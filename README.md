@@ -33,4 +33,4 @@ TODOs:
 
 @ruiyang:
 - make the streamer stream an opengl texture/framebuffer instead of the input video
-- use nvenc_h264 for encoding
+- use nvenc_h264 for encoding (https://docs.nvidia.com/video-technologies/video-codec-sdk/12.0/ffmpeg-with-nvidia-gpu/index.html)
