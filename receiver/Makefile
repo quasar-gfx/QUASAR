@@ -13,7 +13,7 @@ INCLUDES = -Iinclude
 THIRD_PARTY = -Ithird_party
 
 CXXFLAGS = -O2 -std=c++17
-LDFLAGS = -ldl -lglfw -lavformat -lavcodec -lavutil
+LDFLAGS = -ldl -lglfw -lavformat -lavcodec -lavutil -lswscale
 
 all: setup build
 
@@ -32,7 +32,8 @@ $(BIN_DIR)/$(PROJ): $(OBJ_RULE)
 
 build: $(BIN_DIR)/$(PROJ)
 
-run:
+run: $(BIN_DIR)/$(PROJ)
+	@echo "Running $(PROJ)"
 	@./$(BIN_DIR)/$(PROJ)
 
 clean:

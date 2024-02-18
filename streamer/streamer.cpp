@@ -159,7 +159,7 @@ int main(int argc, char **argv) {
     }
     /* END: Setup output (to write video to URL) */
 
-    int frame_index = 0;
+    int frameSent = 0;
     int64_t start_time = av_gettime();
     while (1) {
         // read frame from file
@@ -177,8 +177,8 @@ int main(int argc, char **argv) {
                 return -1;
             }
 
-            AVFrame *frame = av_frame_alloc();
             // get frame from decoder
+            AVFrame *frame = av_frame_alloc();
             ret = avcodec_receive_frame(inputCodecContext, frame);
             if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                 av_frame_free(&frame);
@@ -216,7 +216,7 @@ int main(int argc, char **argv) {
                 // duration between 2 frames (us)
                 int64_t calc_duration = (double)AV_TIME_BASE/av_q2d(inputVideoStream->r_frame_rate);
                 // parameters
-                packet.pts = (double)(frame_index*calc_duration)/(double)(av_q2d(time_base1)*AV_TIME_BASE);
+                packet.pts = (double)(frameSent*calc_duration)/(double)(av_q2d(time_base1)*AV_TIME_BASE);
                 packet.dts = packet.pts;
                 packet.duration = (double)calc_duration/(double)(av_q2d(time_base1)*AV_TIME_BASE);
             }
@@ -239,8 +239,8 @@ int main(int argc, char **argv) {
             packet.pos = -1;
 
             // send packet to output URL
-            frame_index++;
-            std::cout << "Sending frame: " << frame_index << std::endl;
+            frameSent++;
+            std::cout << "Sending frame: " << frameSent << std::endl;
             ret = av_interleaved_write_frame(outputFormatContext, &packet);
             av_packet_unref(&packet);
             av_frame_free(&frame);
@@ -251,7 +251,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    std::cout << "Wrote: " << frame_index << std::endl;
+    std::cout << "Wrote: " << frameSent << std::endl;
 
     av_write_trailer(outputFormatContext);
     avformat_close_input(&inputFormatContext);

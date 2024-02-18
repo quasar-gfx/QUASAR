@@ -1,4 +1,6 @@
+extern "C" {
 #include "glad/glad.h"
+}
 
 #include <GLFW/glfw3.h>
 
@@ -6,15 +8,14 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 #include "shader.h"
 #include "camera.h"
-#include "model.h"
-#include "ffmpeg_receiver.hpp"
+#include "video_receiver.hpp"
 
 #include <iostream>
-
-#undef av_err2str
-#define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
 
 // settings
 const unsigned int WIDTH = 800;
@@ -33,7 +34,7 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-FFmpegReceiver *receiver;
+VideoReceiver *videoReceiver;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -42,13 +43,6 @@ void processInput(GLFWwindow *window);
 unsigned int loadTexture(const char *path);
 
 int main(int argc, char **argv) {
-    receiver = new FFmpegReceiver();
-    int ret = receiver->init();
-    if (ret < 0) {
-        std::cerr << "Failed to initialize FFmpeg receiver" << std::endl;
-        return ret;
-    }
-
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -191,10 +185,19 @@ int main(int argc, char **argv) {
 
     screenShader.use();
     screenShader.setInt("screenTexture", 0);
+    screenShader.setInt("videoTexture", 1);
+
+    videoReceiver = new VideoReceiver();
+    int ret = videoReceiver->init(WIDTH, HEIGHT);
+    if (ret < 0) {
+        std::cerr << "Failed to initialize FFmpeg Video Receiver" << std::endl;
+        return ret;
+    }
 
     unsigned int framebuffer;
     glGenFramebuffers(1, &framebuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
     // create a color attachment texture
     unsigned int textureColorbuffer;
     glGenTextures(1, &textureColorbuffer);
@@ -203,6 +206,7 @@ int main(int argc, char **argv) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
+
     // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
     unsigned int rbo;
     glGenRenderbuffers(1, &rbo);
@@ -211,15 +215,10 @@ int main(int argc, char **argv) {
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
     // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << endl;
+        std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    // draw as wireframe
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
     while (!glfwWindowShouldClose(window)) {
-        receiver->receive();
-
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
@@ -269,13 +268,20 @@ int main(int argc, char **argv) {
 
         screenShader.use();
         glBindVertexArray(quadVAO);
-        glBindTexture(GL_TEXTURE_2D, textureColorbuffer);	// use the color attachment texture as the texture of the quad plane
+        // bind "normal" rendering output framebuffer to texture0
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+        // bind video framebuffer to texture1
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, videoReceiver->textureVideoBuffer);
+        videoReceiver->receive();
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
+    // cleanup
     glDeleteVertexArrays(1, &cubeVAO);
     glDeleteVertexArrays(1, &planeVAO);
     glDeleteVertexArrays(1, &quadVAO);
@@ -286,7 +292,8 @@ int main(int argc, char **argv) {
     glDeleteFramebuffers(1, &framebuffer);
 
     glfwTerminate();
-    receiver->cleanup();
+    videoReceiver->cleanup();
+
     return 0;
 }
 

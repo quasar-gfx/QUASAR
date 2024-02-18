@@ -5,14 +5,12 @@ To run:
 Build and run OpenGL receiver:
 ```
 cd receiver
-make
 make run
 ```
 
 Then, open a new terminal and build and run the streamer:
 ```
 cd streamer
-make
 make run
 ```
 
