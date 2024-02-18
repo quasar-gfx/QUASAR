@@ -17,18 +17,20 @@ public:
     FFmpegReceiver() = default;
     ~FFmpegReceiver();
     int init();
+    void cleanup();
     void receive();
 
 private:
-    AVFormatContext *inputContext = nullptr;
-    AVFormatContext *outputContext = nullptr;
+    AVFormatContext *inputFormatContext = nullptr;
+    AVFormatContext *outputFormatContext = nullptr;
 
-    AVCodecContext *codecContext = nullptr;
+    AVCodecContext *inputCodecContext = nullptr;
+    AVCodecContext *outputCodecContext = nullptr;
 
     AVPacket packet;
     int videoStreamIndex = -1;
 
     AVRational timeBase;
     AVRational streamTimeBase;
-    AVStream *in_stream, *out_stream;
+    AVStream *inputStream, *outputStream;
 };

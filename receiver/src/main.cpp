@@ -286,6 +286,7 @@ int main(int argc, char **argv) {
     glDeleteFramebuffers(1, &framebuffer);
 
     glfwTerminate();
+    receiver->cleanup();
     return 0;
 }
 
