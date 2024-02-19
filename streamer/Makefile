@@ -11,3 +11,6 @@ all:
 run: $(BIN_DIR)/$(PROJ)
 	@echo "Running $(PROJ)"
 	@./$(BIN_DIR)/$(PROJ)
+
+clean:
+	rm -rf $(BIN_DIR)

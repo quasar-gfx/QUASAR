@@ -38,6 +38,3 @@ run: $(BIN_DIR)/$(PROJ)
 
 clean:
 	rm -f $(OBJ_DIR)/* $(BIN_DIR)/*
-
-# g++ main.cpp glad.c -o OpenGLTest -ldl -lglfw -Iinclude
-

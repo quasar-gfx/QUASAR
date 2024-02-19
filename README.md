@@ -16,7 +16,7 @@ make run
 
 After the streamer says `Error reading frame: End of file` and exits, you have to manually kill the receiver code (graceful exit is WIP).
 
-The streamer should encode and stream the `streamer/input.mp4` file to the receiver, which saves the decoded video frames to `receiver/output.mp4`.
+The streamer should encode and stream the `streamer/input.mp4` file to the receiver, which displays it on half the screen in the opengl window.
 
 ```
 # in receiver/
@@ -26,7 +26,6 @@ vlc output.mp4 # play the output file
 TODOs:
 
 @edward:
-- make receiver render the video in opengl instead of saving it to a file
 - run reciever in android
 
 @ruiyang:
