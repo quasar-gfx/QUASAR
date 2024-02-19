@@ -1,6 +1,6 @@
-extern "C" {
+#include <iostream>
+
 #include "glad/glad.h"
-}
 
 #include <GLFW/glfw3.h>
 
@@ -11,38 +11,41 @@ extern "C" {
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#include "shader.h"
-#include "camera.h"
+#include "shader.hpp"
+#include "camera.hpp"
 #include "video_receiver.hpp"
 
-#include <iostream>
-
-// settings
 const unsigned int WIDTH = 800;
 const unsigned int HEIGHT = 600;
 
 const std::string CONTAINER_TEXTURE = "assets/textures/container.jpg";
 const std::string METAL_TEXTURE = "assets/textures/metal.png";
 
-// camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 float lastX = (float)WIDTH / 2.0;
 float lastY = (float)HEIGHT / 2.0;
 bool firstMouse = true;
 
-// timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-VideoReceiver *videoReceiver;
+VideoReceiver* videoReceiver;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow *window);
-unsigned int loadTexture(const char *path);
+void processInput(GLFWwindow* window);
+unsigned int loadTexture(const char* path);
 
 int main(int argc, char **argv) {
+    std::string inputUrl = "udp://localhost:1234";
+    for (int i = 1; i < argc; i++) {
+        if (!strcmp(argv[i], "-o") && i + 1 < argc) {
+            inputUrl = argv[i + 1];
+            i++;
+        }
+    }
+
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -188,9 +191,9 @@ int main(int argc, char **argv) {
     screenShader.setInt("videoTexture", 1);
 
     videoReceiver = new VideoReceiver();
-    int ret = videoReceiver->init(WIDTH, HEIGHT);
+    int ret = videoReceiver->init(inputUrl, WIDTH, HEIGHT);
     if (ret < 0) {
-        std::cerr << "Failed to initialize FFmpeg Video Receiver" << std::endl;
+        std::cerr << "Failed to initialize FFMpeg Video Receiver" << std::endl;
         return ret;
     }
 
@@ -274,7 +277,11 @@ int main(int argc, char **argv) {
         // bind video framebuffer to texture1
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, videoReceiver->textureVideoBuffer);
-        videoReceiver->receive();
+        ret = videoReceiver->receive();
+        if (ret < 0) {
+            std::cerr << "Failed to receive frame" << std::endl;
+            break;
+        }
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
         glfwSwapBuffers(window);

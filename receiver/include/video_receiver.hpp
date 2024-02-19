@@ -12,7 +12,6 @@ extern "C" {
 class VideoReceiver {
 public:
     std::string inputUrl = "udp://localhost:1234"; // Specify the UDP input URL
-    std::string outputFileName = "output.mp4";
 
     int frameReceived;
     int textureWidth, textureHeight;
@@ -22,9 +21,9 @@ public:
     VideoReceiver() = default;
     ~VideoReceiver() = default;
 
-    int init(int textureWidth, int textureHeight);
+    int init(const std::string inputUrl, int textureWidth, int textureHeight);
     void cleanup();
-    void receive();
+    int receive();
 
 private:
     AVFormatContext* inputFormatContext = nullptr;

@@ -14,14 +14,9 @@ cd streamer
 make run
 ```
 
-After the streamer says `Error reading frame: End of file` and exits, you have to manually kill the receiver code (graceful exit is WIP).
+After the streamer says `Error reading frame: End of file`, you have to manually kill the streamer and receiver programs (graceful exit is WIP).
 
-The streamer should encode and stream the `streamer/input.mp4` file to the receiver, which displays it on half the screen in the opengl window.
-
-```
-# in receiver/
-vlc output.mp4 # play the output file
-```
+The streamer should encode and stream the `streamer/input.mp4` file to the receiver, which displays it on right half the screen in the opengl window.
 
 TODOs:
 

@@ -5,9 +5,11 @@
 #undef av_err2str
 #define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
 
-int VideoReceiver::init(int textureWidth, int textureHeight) {
+int VideoReceiver::init(const std::string inputUrl, int textureWidth, int textureHeight) {
+    this->inputUrl = inputUrl;
     this->textureWidth = textureWidth;
     this->textureHeight = textureHeight;
+
     int ret = initFFMpeg();
     if (ret < 0) {
         return ret;
@@ -23,6 +25,8 @@ int VideoReceiver::init(int textureWidth, int textureHeight) {
 
 int VideoReceiver::initFFMpeg() {
     AVStream* inputVideoStream = nullptr;
+
+    std::cout << "Waiting to receive video..." << std::endl;
 
     /* BEGIN: Setup input (to read video from url) */
     int ret = avformat_open_input(&inputFormatContext, inputUrl.c_str(), nullptr, nullptr);
@@ -69,13 +73,13 @@ int VideoReceiver::initFFMpeg() {
     ret = avcodec_parameters_to_context(inputCodecContext, inputVideoStream->codecpar);
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't copy codec parameters to context: %s\n", av_err2str(ret));
-        return -1;
+        return ret;
     }
 
     ret = avcodec_open2(inputCodecContext, inputCodec, nullptr);
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't open codec: %s\n", av_err2str(ret));
-        return -1;
+        return ret;
     }
     /* END: Setup codec to decode input (video from URL) */
 
@@ -104,12 +108,12 @@ int VideoReceiver::initOutputTexture() {
     return 0;
 }
 
-void VideoReceiver::receive() {
+int VideoReceiver::receive() {
     // read frame from URL
     int ret = av_read_frame(inputFormatContext, &packet);
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error reading frame: %s\n", av_err2str(ret));
-        return;
+        return ret;
     }
 
     if (packet.stream_index == videoStreamIndex) {
@@ -117,7 +121,7 @@ void VideoReceiver::receive() {
         ret = avcodec_send_packet(inputCodecContext, &packet);
         if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
             av_log(nullptr, AV_LOG_ERROR, "Error: Could not send packet to input decoder: %s\n", av_err2str(ret));
-            return;
+            return ret;
         }
 
         // get frame from decoder
@@ -125,11 +129,11 @@ void VideoReceiver::receive() {
         ret = avcodec_receive_frame(inputCodecContext, frame);
         if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
             av_packet_unref(&packet);
-            return;
+            return 1;
         }
         else if (ret < 0) {
             av_log(nullptr, AV_LOG_ERROR, "Error: Could not receive raw frame from input decoder: %s\n", av_err2str(ret));
-            return;
+            return ret;
         }
 
         // resize video frame to fit output texture size
@@ -140,6 +144,8 @@ void VideoReceiver::receive() {
         frameReceived++;
         std::cout << "Received " << frameReceived << " video frames from " << inputUrl << std::endl;
     }
+
+    return 0;
 }
 
 void VideoReceiver::cleanup() {
