@@ -53,6 +53,7 @@ int VideoReceiver::initFFMpeg() {
     /* END: Setup input (to read video from url) */
 
     /* BEGIN: Setup codec to decode input (video from URL) */
+    // const AVCodec *inputCodec = avcodec_find_decoder(AV_CODEC_ID_H264);
     const AVCodec *inputCodec = avcodec_find_decoder(inputVideoStream->codecpar->codec_id);
     if (!inputCodec) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate decoder.\n");
@@ -137,7 +138,7 @@ void VideoReceiver::receive() {
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, textureWidth, textureHeight, GL_RGB, GL_UNSIGNED_BYTE, frameRGB->data[0]);
 
         frameReceived++;
-        std::cout << "Received " << frameReceived << " video frames from input URL" << std::endl;
+        std::cout << "Received " << frameReceived << " video frames from " << inputUrl << std::endl;
     }
 }
 

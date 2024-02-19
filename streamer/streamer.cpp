@@ -93,9 +93,13 @@ int main(int argc, char **argv) {
     /* END: Setup codec to decode input (video from file) */
 
     /* BEGIN: Setup codec to encode output (video to URL) */
+#ifdef __APPLE__ // mac does not have nvenc
     const AVCodec *outputCodec = avcodec_find_encoder(AV_CODEC_ID_H264);
+#else
+    const AVCodec *outputCodec = avcodec_find_encoder_by_name("h264_nvenc");
+#endif
     if (!outputCodec) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate decoder.\n");
+        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate encoder.\n");
         return -1;
     }
 
@@ -240,7 +244,7 @@ int main(int argc, char **argv) {
 
             // send packet to output URL
             frameSent++;
-            std::cout << "Sending frame: " << frameSent << std::endl;
+            std::cout << "Sending frame " << frameSent << " to " << outputUrl << std::endl;
             ret = av_interleaved_write_frame(outputFormatContext, &outputPacket);
             av_packet_unref(&outputPacket);
             av_frame_free(&frame);
