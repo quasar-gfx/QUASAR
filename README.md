@@ -16,7 +16,7 @@ make run
 
 After the streamer says `Error reading frame: End of file`, you have to manually kill the streamer and receiver programs (graceful exit is WIP).
 
-The streamer should encode and stream the `streamer/input.mp4` file to the receiver, which displays it on right half the screen in the opengl window.
+The streamer should render some frames and encode and stream the `streamer/input.mp4` file to the receiver, which displays it on right half the screen in the opengl window.
 
 TODOs:
 

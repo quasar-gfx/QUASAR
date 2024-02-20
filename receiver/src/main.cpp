@@ -18,8 +18,8 @@
 const unsigned int WIDTH = 800;
 const unsigned int HEIGHT = 600;
 
-const std::string CONTAINER_TEXTURE = "assets/textures/container.jpg";
-const std::string METAL_TEXTURE = "assets/textures/metal.png";
+const std::string CONTAINER_TEXTURE = "../assets/textures/container.jpg";
+const std::string METAL_TEXTURE = "../assets/textures/metal.png";
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 float lastX = (float)WIDTH / 2.0;
@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "LearnOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Video Receiver", NULL, NULL);
     if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -299,6 +299,7 @@ int main(int argc, char **argv) {
     glDeleteFramebuffers(1, &framebuffer);
 
     glfwTerminate();
+
     videoReceiver->cleanup();
 
     return 0;

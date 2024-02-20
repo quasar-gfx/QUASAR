@@ -230,8 +230,9 @@ int VideoStreamer::sendFrame() {
 }
 
 void VideoStreamer::cleanup() {
-    av_write_trailer(outputFormatContext);
     avformat_close_input(&inputFormatContext);
+    avformat_free_context(inputFormatContext);
     avio_closep(&outputFormatContext->pb);
+    avformat_close_input(&outputFormatContext);
     avformat_free_context(outputFormatContext);
 }
