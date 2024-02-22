@@ -62,10 +62,12 @@ int VideoStreamer::init(const std::string inputFileName, const std::string outpu
     /* END: Setup codec to decode input (video from file) */
 
     /* BEGIN: Setup codec to encode output (video to URL) */
-#ifdef __APPLE__ // mac does not have nvenc
-    const AVCodec *outputCodec = avcodec_find_encoder(AV_CODEC_ID_H264);
+#ifdef __APPLE__
+    const AVCodec *outputCodec = avcodec_find_encoder_by_name("h264_videotoolbox");
+    std::cout << "Encoder: h264_videotoolbox" << std::endl;
 #else
     const AVCodec *outputCodec = avcodec_find_encoder_by_name("h264_nvenc");
+    std::cout << "Encoder: h264_nvenc" << std::endl;
 #endif
     if (!outputCodec) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate encoder.\n");
