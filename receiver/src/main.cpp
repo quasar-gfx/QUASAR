@@ -6,7 +6,7 @@
 #include "FrameBuffer.h"
 #include "OpenGLApp.h"
 
-#include "VideoReceiver.h"
+#include "VideoTexture.h"
 
 void processInput(OpenGLApp* app);
 
@@ -155,8 +155,8 @@ int main(int argc, char** argv) {
     screenShader.setInt("screenTexture", 0);
     screenShader.setInt("videoTexture", 1);
 
-    VideoReceiver videoReceiver{};
-    int ret = videoReceiver.init(inputUrl, app.config.width, app.config.height);
+    VideoTexture videoTexture(app.config.width, app.config.height);
+    int ret = videoTexture.initVideo(inputUrl);
     if (ret < 0) {
         std::cerr << "Failed to initialize FFMpeg Video Receiver" << std::endl;
         return ret;
@@ -168,7 +168,7 @@ int main(int argc, char** argv) {
     app.animate([&](double now, double dt) {
         deltaTime = dt;
 
-        ret = videoReceiver.receive();
+        ret = videoTexture.receive();
         if (ret < 0) {
             std::cerr << "Failed to receive frame" << std::endl;
         }
@@ -225,8 +225,7 @@ int main(int argc, char** argv) {
         screenShader.bind();
 
         framebuffer.colorAttachment.bind(0);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, videoReceiver.textureVideoBuffer);
+        videoTexture.bind(1);
         quadVB.bind();
             glDrawArrays(GL_TRIANGLES, 0, 6);
         quadVB.unbind();
@@ -242,7 +241,7 @@ int main(int argc, char** argv) {
     cubeTexture.cleanup();
     floorTexture.cleanup();
     framebuffer.cleanup();
-    videoReceiver.cleanup();
+    videoTexture.cleanup();
     app.cleanup();
 
     return 0;

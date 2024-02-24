@@ -10,21 +10,25 @@ extern "C" {
 #include <libavutil/imgutils.h>
 }
 
-class VideoReceiver {
+#include "Texture.h"
+
+class VideoTexture : public Texture {
 public:
     std::string inputUrl = "udp://localhost:1234"; // Specify the UDP input URL
 
     int frameReceived;
-    int textureWidth, textureHeight;
 
-    unsigned int textureVideoBuffer;
+    VideoTexture(unsigned int width, unsigned int height,
+            GLenum format = GL_RGB, GLint wrap = GL_CLAMP_TO_EDGE, GLint filter = GL_LINEAR)
+            : frameReceived(0), Texture(width, height, format, wrap, filter) { }
 
-    VideoReceiver() = default;
-    ~VideoReceiver() = default;
+    ~VideoTexture() {
+        cleanup();
+    }
 
-    int init(const std::string inputUrl, int textureWidth, int textureHeight);
-    void cleanup();
+    int initVideo(const std::string inputUrl);
     int receive();
+    void cleanup();
 
 private:
     AVFormatContext* inputFormatContext = nullptr;
@@ -39,7 +43,7 @@ private:
     struct SwsContext* swsContext = nullptr;
 
     int initFFMpeg();
-    int initOutputTexture();
+    int initOutputFrame();
 };
 
 #endif // VIDEO_RECEIVER_H

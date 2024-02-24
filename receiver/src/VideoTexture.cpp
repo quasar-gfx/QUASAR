@@ -1,21 +1,19 @@
 #include "glad/glad.h"
 
-#include "VideoReceiver.h"
+#include "VideoTexture.h"
 
 #undef av_err2str
 #define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
 
-int VideoReceiver::init(const std::string inputUrl, int textureWidth, int textureHeight) {
+int VideoTexture::initVideo(const std::string inputUrl) {
     this->inputUrl = inputUrl;
-    this->textureWidth = textureWidth;
-    this->textureHeight = textureHeight;
 
     int ret = initFFMpeg();
     if (ret < 0) {
         return ret;
     }
 
-    ret = initOutputTexture();
+    ret = initOutputFrame();
     if (ret < 0) {
         return ret;
     }
@@ -23,7 +21,7 @@ int VideoReceiver::init(const std::string inputUrl, int textureWidth, int textur
     return 0;
 }
 
-int VideoReceiver::initFFMpeg() {
+int VideoTexture::initFFMpeg() {
     AVStream* inputVideoStream = nullptr;
 
     std::cout << "Waiting to receive video..." << std::endl;
@@ -86,29 +84,21 @@ int VideoReceiver::initFFMpeg() {
     return 0;
 }
 
-int VideoReceiver::initOutputTexture() {
+int VideoTexture::initOutputFrame() {
     frameRGB = av_frame_alloc();
 
-    int numBytes = av_image_get_buffer_size(AV_PIX_FMT_RGB24, textureWidth, textureHeight, 1);
+    int numBytes = av_image_get_buffer_size(AV_PIX_FMT_RGB24, width, height, 1);
     buffer = (uint8_t*)av_malloc(numBytes * sizeof(uint8_t));
 
-    av_image_fill_arrays(frameRGB->data, frameRGB->linesize, buffer, AV_PIX_FMT_RGB24, textureWidth, textureHeight, 1);
+    av_image_fill_arrays(frameRGB->data, frameRGB->linesize, buffer, AV_PIX_FMT_RGB24, width, height, 1);
 
     swsContext = sws_getContext(inputCodecContext->width, inputCodecContext->height, inputCodecContext->pix_fmt,
-                                textureWidth, textureHeight, AV_PIX_FMT_RGB24, SWS_BILINEAR, nullptr, nullptr, nullptr);
-
-    // create framebuffer for video frames
-    glGenTextures(1, &textureVideoBuffer);
-    glBindTexture(GL_TEXTURE_2D, textureVideoBuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, textureWidth, textureHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureVideoBuffer, 0);
+                                width, height, AV_PIX_FMT_RGB24, SWS_BILINEAR, nullptr, nullptr, nullptr);
 
     return 0;
 }
 
-int VideoReceiver::receive() {
+int VideoTexture::receive() {
     // read frame from URL
     int ret = av_read_frame(inputFormatContext, &packet);
     if (ret < 0) {
@@ -139,7 +129,7 @@ int VideoReceiver::receive() {
         // resize video frame to fit output texture size
         sws_scale(swsContext, (uint8_t const* const*)frame->data, frame->linesize,
                     0, inputCodecContext->height, frameRGB->data, frameRGB->linesize);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, textureWidth, textureHeight, GL_RGB, GL_UNSIGNED_BYTE, frameRGB->data[0]);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, frameRGB->data[0]);
 
         frameReceived++;
         std::cout << "Received " << frameReceived << " video frames from " << inputUrl << std::endl;
@@ -148,7 +138,8 @@ int VideoReceiver::receive() {
     return 0;
 }
 
-void VideoReceiver::cleanup() {
+void VideoTexture::cleanup() {
+    Texture::cleanup();
     avformat_close_input(&inputFormatContext);
     avformat_free_context(inputFormatContext);
 }
