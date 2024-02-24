@@ -2,6 +2,7 @@
 #define SHADER_H
 
 #include "glad/glad.h"
+
 #include <glm/glm.hpp>
 
 #include <string>
@@ -9,11 +10,10 @@
 #include <sstream>
 #include <iostream>
 
-class Shader {
-public:
-    unsigned int ID;
-    // constructor generates the shader on the fly
+#include "OpenGLObject.h"
 
+class Shader : public OpenGLObject {
+public:
     Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath = nullptr) {
         std::string vertexCode;
         std::string fragmentCode;
@@ -89,14 +89,25 @@ public:
         // delete the shaders as they're linked into our program now and no longer necessary
         glDeleteShader(vertex);
         glDeleteShader(fragment);
-        if(geometryPath != nullptr)
+        if (geometryPath != nullptr) {
             glDeleteShader(geometry);
-
+        }
     }
-    // activate the shader
 
-    void use() {
+    ~Shader() {
+        cleanup();
+    }
+
+    void bind() {
         glUseProgram(ID);
+    }
+
+    void unbind() {
+        glUseProgram(0);
+    }
+
+    void cleanup() {
+        glDeleteProgram(ID);
     }
 
     void setBool(const std::string &name, bool value) const {
