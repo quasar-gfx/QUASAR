@@ -3,17 +3,16 @@
 #include "Shader.h"
 #include "VertexBuffer.h"
 #include "Texture.h"
+#include "Mesh.h"
 #include "FrameBuffer.h"
 #include "OpenGLApp.h"
 
 #include "VideoStreamer.h"
 
-void processInput(OpenGLApp* app);
+void processInput(OpenGLApp* app, float deltaTime);
 
 const std::string CONTAINER_TEXTURE = "../assets/textures/container.jpg";
 const std::string METAL_TEXTURE = "../assets/textures/metal.png";
-
-float deltaTime = 0.0f;
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
@@ -65,60 +64,71 @@ int main(int argc, char** argv) {
     Shader shader("shaders/framebuffer.vert", "shaders/framebuffer.frag");
     Shader screenShader("shaders/postprocess.vert", "shaders/postprocess.frag");
 
-    float cubeVertices[] = {
-        // positions          // texture Coords
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+    // textures
+    Texture cubeTexture(CONTAINER_TEXTURE);
+    std::vector<Texture> cubeTextures;
+    cubeTextures.push_back(cubeTexture);
 
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+    Texture floorTexture(METAL_TEXTURE);
+    std::vector<Texture> floorTextures;
+    floorTextures.push_back(floorTexture);
 
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    std::vector<Vertex> cubeVertices = {
+        {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+        {{ 0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+        {{ 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}},
+        {{ 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}},
+        {{-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 0.0f}},
+        {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
 
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        {{-0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+        {{ 0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+        {{ 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}},
+        {{ 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}},
+        {{-0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 0.0f}},
+        {{-0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
 
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        {{-0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+        {{-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}},
+        {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 0.0f}},
+        {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 0.0f}},
+        {{-0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+        {{-0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
 
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+        {{ 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+        {{ 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}},
+        {{ 0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 0.0f}},
+        {{ 0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 0.0f}},
+        {{ 0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+        {{ 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+
+        {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 0.0f}},
+        {{ 0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}},
+        {{ 0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+        {{ 0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+        {{-0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+        {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 0.0f}},
+
+        {{-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 0.0f}},
+        {{ 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}},
+        {{ 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+        {{ 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+        {{-0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+        {{-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 0.0f}}
     };
-    float planeVertices[] = {
-        // positions          // texture Coords
-         5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
-        -5.0f, -0.5f,  5.0f,  0.0f, 0.0f,
-        -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
+    Mesh cubeMesh(cubeVertices, cubeTextures);
 
-         5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
-        -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
-         5.0f, -0.5f, -5.0f,  2.0f, 2.0f
+    std::vector<Vertex> planeVertices = {
+        {{ 5.0f, -0.5f,  5.0f}, {0.0f, 0.0f, 0.0f}, {2.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+        {{-5.0f, -0.5f,  5.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+        {{-5.0f, -0.5f, -5.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 2.0f}, {0.0f, 0.0f, 0.0f}},
+
+        {{ 5.0f, -0.5f,  5.0f}, {0.0f, 0.0f, 0.0f}, {2.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+        {{-5.0f, -0.5f, -5.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 2.0f}, {0.0f, 0.0f, 0.0f}},
+        {{ 5.0f, -0.5f, -5.0f}, {0.0f, 0.0f, 0.0f}, {2.0f, 2.0f}, {0.0f, 0.0f, 0.0f}}
     };
+    Mesh planeMesh(planeVertices, floorTextures);
+
     float quadVertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
         // positions   // texCoords
         -1.0f,  1.0f,  0.0f, 1.0f,
@@ -129,35 +139,10 @@ int main(int argc, char** argv) {
          1.0f, -1.0f,  1.0f, 0.0f,
          1.0f,  1.0f,  1.0f, 1.0f
     };
-
-    // cube vertices
-    VertexBuffer cubeVB(cubeVertices, sizeof(cubeVertices));
-    cubeVB.bind();
-    cubeVB.addAttribute(0, 3, GL_FALSE, 5 * sizeof(float), 0);
-    cubeVB.addAttribute(1, 2, GL_FALSE, 5 * sizeof(float), 3 * sizeof(float));
-
-    // plane vertices
-    VertexBuffer planeVB(planeVertices, sizeof(planeVertices));
-    planeVB.bind();
-    planeVB.addAttribute(0, 3, GL_FALSE, 5 * sizeof(float), 0);
-    planeVB.addAttribute(1, 2, GL_FALSE, 5 * sizeof(float), 3 * sizeof(float));
-
-    // screen quad vertices
     VertexBuffer quadVB(quadVertices, sizeof(quadVertices));
     quadVB.bind();
     quadVB.addAttribute(0, 2, GL_FALSE, 4 * sizeof(float), 0);
     quadVB.addAttribute(1, 2, GL_FALSE, 4 * sizeof(float), 2 * sizeof(float));
-
-    // textures
-    Texture cubeTexture(CONTAINER_TEXTURE);
-    Texture floorTexture(METAL_TEXTURE);
-
-    // shaders
-    shader.bind();
-    shader.setInt("texture1", 0);
-
-    screenShader.bind();
-    screenShader.setInt("screenTexture", 0);
 
     VideoStreamer videoStreamer{};
     int ret = videoStreamer.init(inputFileName, outputUrl);
@@ -170,9 +155,7 @@ int main(int argc, char** argv) {
     FrameBuffer framebuffer(app.config.width, app.config.height);
 
     app.animate([&](double now, double dt) {
-        deltaTime = dt;
-
-        processInput(&app);
+        processInput(&app, dt);
 
         // bind to framebuffer and draw scene as we normally would to color texture
         framebuffer.bind();
@@ -189,29 +172,22 @@ int main(int argc, char** argv) {
 
             glm::mat4 model;
 
-            // cubes
-            cubeTexture.bind();
-            cubeVB.bind();
-                // cube 1
-                model = glm::mat4(1.0f);
-                model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
-                shader.setMat4("model", model);
-                glDrawArrays(GL_TRIANGLES, 0, 36);
+            // cube 1
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+            shader.setMat4("model", model);
+            cubeMesh.draw(shader);
 
-                // cube 2
-                model = glm::mat4(1.0f);
-                model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-                shader.setMat4("model", model);
-                glDrawArrays(GL_TRIANGLES, 0, 36);
-            cubeVB.unbind();
+            // cube 2
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+            shader.setMat4("model", model);
+            cubeMesh.draw(shader);
 
             // floor
-            floorTexture.bind();
-            planeVB.bind();
-                model = glm::mat4(1.0f);
-                shader.setMat4("model", model);
-                glDrawArrays(GL_TRIANGLES, 0, 6);
-            planeVB.unbind();
+            model = glm::mat4(1.0f);
+            shader.setMat4("model", model);
+            planeMesh.draw(shader);
 
         // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
         framebuffer.unbind();
@@ -222,11 +198,13 @@ int main(int argc, char** argv) {
         glClear(GL_COLOR_BUFFER_BIT);
 
         screenShader.bind();
+        screenShader.setInt("screenTexture", 0);
 
         framebuffer.colorAttachment.bind();
         quadVB.bind();
             glDrawArrays(GL_TRIANGLES, 0, 6);
         quadVB.unbind();
+        framebuffer.colorAttachment.unbind();
 
         // @TODO make this stream the framebuffer to the output URL
         ret = videoStreamer.sendFrame();
@@ -239,11 +217,9 @@ int main(int argc, char** argv) {
     app.run();
 
     // cleanup
-    cubeVB.cleanup();
-    planeVB.cleanup();
+    cubeMesh.cleanup();
+    planeMesh.cleanup();
     quadVB.cleanup();
-    cubeTexture.cleanup();
-    floorTexture.cleanup();
     framebuffer.cleanup();
     videoStreamer.cleanup();
     app.cleanup();
@@ -251,7 +227,7 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void processInput(OpenGLApp* app) {
+void processInput(OpenGLApp* app, float deltaTime) {
     if (glfwGetKey(app->window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(app->window, true);
 

@@ -6,15 +6,25 @@
 
 #include "OpenGLObject.h"
 
+enum TextureType {
+    TEXTURE_DIFFUSE,
+    TEXTURE_SPECULAR,
+    TEXTURE_NORMAL,
+    TEXTURE_HEIGHT
+};
+
 class Texture : public OpenGLObject {
 public:
     GLuint ID;
+
+    TextureType type = TEXTURE_DIFFUSE;
 
     unsigned int width, height;
 
     Texture(unsigned int width, unsigned int height,
             GLenum format = GL_RGB, GLint wrap = GL_CLAMP_TO_EDGE, GLint filter = GL_LINEAR,
-            unsigned char* data = nullptr) : width(width), height(height) {
+            unsigned char* data = nullptr)
+                : width(width), height(height) {
         glGenTextures(1, &ID);
         glBindTexture(GL_TEXTURE_2D, ID);
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
@@ -43,6 +53,7 @@ public:
 
     void unbind() {
         glBindTexture(GL_TEXTURE_2D, 0);
+        glActiveTexture(GL_TEXTURE0);
     }
 
     void cleanup() {
