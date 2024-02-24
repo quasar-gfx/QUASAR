@@ -1,4 +1,5 @@
-#pragma once
+#ifndef VIDEOSTREAMER_H
+#define VIDEOSTREAMER_H
 
 #include <iostream>
 
@@ -38,3 +39,4 @@ private:
     AVStream *outputVideoStream = nullptr;
 };
 
+#endif // VIDEOSTREAMER_H

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef VIDEO_RECEIVER_H
+#define VIDEO_RECEIVER_H
 
 #include <iostream>
 
@@ -40,3 +41,5 @@ private:
     int initFFMpeg();
     int initOutputTexture();
 };
+
+#endif // VIDEO_RECEIVER_H

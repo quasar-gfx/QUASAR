@@ -8,9 +8,9 @@ OBJ_DIR = obj
 INCLUDE_DIR = include
 COMMON_DIR = ../common
 
-SRCS = $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/*.c)
+SRCS = $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/*.c) $(wildcard $(COMMON_DIR)/src/*.cpp)
 OBJS = $(wildcard $(OBJ_DIR)/*.o)
-OBJ_RULE = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o) $(SRCS:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
+OBJ_RULE = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o) $(SRCS:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o) $(SRCS:$(COMMON_DIR)/src/%.cpp=$(OBJ_DIR)/%.o)
 INCLUDES = -I$(INCLUDE_DIR) -I$(COMMON_DIR)/include
 THIRD_PARTY = -I../third_party
 
@@ -27,6 +27,9 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@ $(INCLUDES) $(THIRD_PARTY)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+	$(CXX) $(CXXFLAGS) -c $< -o $@ $(INCLUDES) $(THIRD_PARTY)
+
+$(OBJ_DIR)/%.o: $(COMMON_DIR)/src/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@ $(INCLUDES) $(THIRD_PARTY)
 
 $(BIN_DIR)/$(PROJ): $(OBJ_RULE)

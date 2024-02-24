@@ -1,48 +1,33 @@
 #include <iostream>
 
-#include "glad/glad.h"
+#include "OpenGLApp.h"
+#include "Shader.h"
+#include "Utils.h"
+#include "VideoStreamer.h"
 
-#include <GLFW/glfw3.h>
-
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
-#include "shader.hpp"
-#include "camera.hpp"
-#include "video_streamer.hpp"
-
-const unsigned int WIDTH = 800;
-const unsigned int HEIGHT = 600;
+void processInput(OpenGLApp* app);
 
 const std::string CONTAINER_TEXTURE = "../assets/textures/container.jpg";
 const std::string METAL_TEXTURE = "../assets/textures/metal.png";
 
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
-float lastX = (float)WIDTH / 2.0;
-float lastY = (float)HEIGHT / 2.0;
-bool firstMouse = true;
-
 float deltaTime = 0.0f;
-float lastFrame = 0.0f;
 
-VideoStreamer* videoStreamer;
+int main(int argc, char** argv) {
+    OpenGLApp app{};
+    app.config.title = "Video Streamer";
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow* window);
-unsigned int loadTexture(const char* path);
-
-
-int main(int argc, char **argv) {
     std::string inputFileName = "input.mp4";
     std::string outputUrl = "udp://localhost:1234";
     for (int i = 1; i < argc; i++) {
-        if (!strcmp(argv[i], "-i") && i + 1 < argc) {
+        if (!strcmp(argv[i], "-w") && i + 1 < argc) {
+            app.config.width = atoi(argv[i + 1]);
+            i++;
+        }
+        else if (!strcmp(argv[i], "-h") && i + 1 < argc) {
+            app.config.height = atoi(argv[i + 1]);
+            i++;
+        }
+        else if (!strcmp(argv[i], "-i") && i + 1 < argc) {
             inputFileName = argv[i + 1];
             i++;
         }
@@ -52,35 +37,27 @@ int main(int argc, char **argv) {
         }
     }
 
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    app.init();
 
-#ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
+    app.mouseMove([&app](double xposIn, double yposIn) {
+        static float lastX = app.config.width / 2.0;
+        static float lastY = app.config.height / 2.0;
 
-    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Video Streamer", NULL, NULL);
-    if (window == NULL) {
-        std::cout << "Failed to create GLFW window" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
-    glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetCursorPosCallback(window, mouse_callback);
-    glfwSetScrollCallback(window, scroll_callback);
+        float xpos = static_cast<float>(xposIn);
+        float ypos = static_cast<float>(yposIn);
 
-    // tell GLFW to capture our mouse
-    // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        float xoffset = xpos - lastX;
+        float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
 
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cout << "Failed to initialize GLAD" << std::endl;
-        return -1;
-    }
+        lastX = xpos;
+        lastY = ypos;
 
-    glEnable(GL_DEPTH_TEST);
+        app.camera.processMouseMovement(xoffset, yoffset);
+    });
+
+    app.mouseScroll([&app](double xoffset, double yoffset) {
+        app.camera.processMouseScroll(static_cast<float>(yoffset));
+    });
 
     Shader shader("shaders/framebuffer.vert", "shaders/framebuffer.frag");
     Shader screenShader("shaders/postprocess.vert", "shaders/postprocess.frag");
@@ -186,8 +163,8 @@ int main(int argc, char **argv) {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
 
-    unsigned int cubeTexture = loadTexture(CONTAINER_TEXTURE.c_str());
-    unsigned int floorTexture = loadTexture(METAL_TEXTURE.c_str());
+    unsigned int cubeTexture = Utils::loadTexture(CONTAINER_TEXTURE.c_str());
+    unsigned int floorTexture = Utils::loadTexture(METAL_TEXTURE.c_str());
 
     shader.use();
     shader.setInt("texture1", 0);
@@ -195,8 +172,8 @@ int main(int argc, char **argv) {
     screenShader.use();
     screenShader.setInt("screenTexture", 0);
 
-    videoStreamer = new VideoStreamer();
-    int ret = videoStreamer->init(inputFileName, outputUrl);
+    VideoStreamer videoStreamer{};
+    int ret = videoStreamer.init(inputFileName, outputUrl);
     if (ret < 0) {
         std::cerr << "Failed to initialize FFMpeg Video Streamer" << std::endl;
         return ret;
@@ -210,7 +187,7 @@ int main(int argc, char **argv) {
     unsigned int textureColorbuffer;
     glGenTextures(1, &textureColorbuffer);
     glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WIDTH, HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, app.config.width, app.config.height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
@@ -219,19 +196,17 @@ int main(int argc, char **argv) {
     unsigned int rbo;
     glGenRenderbuffers(1, &rbo);
     glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, WIDTH, HEIGHT); // use a single renderbuffer object for both a depth AND stencil buffer.
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, app.config.width, app.config.height); // use a single renderbuffer object for both a depth AND stencil buffer.
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
     // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    while (!glfwWindowShouldClose(window)) {
-        float currentFrame = static_cast<float>(glfwGetTime());
-        deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
+    app.animate([&](double now, double dt) {
+        deltaTime = dt;
 
-        processInput(window);
+        processInput(&app);
 
         // bind to framebuffer and draw scene as we normally would to color texture
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
@@ -242,19 +217,21 @@ int main(int argc, char **argv) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         shader.use();
-        glm::mat4 model = glm::mat4(1.0f);
-        glm::mat4 view = camera.GetViewMatrix();
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f);
-        shader.setMat4("view", view);
-        shader.setMat4("projection", projection);
 
-        // cubes
+        shader.setMat4("view", app.camera.view);
+        shader.setMat4("projection", app.camera.proj);
+
+        glm::mat4 model = glm::mat4(1.0f);
+
+        // cube1
         glBindVertexArray(cubeVAO);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, cubeTexture);
         model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
         shader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        // cube2
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
         shader.setMat4("model", model);
@@ -281,14 +258,14 @@ int main(int argc, char **argv) {
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
         // @TODO make this stream the framebuffer to the output URL
-        ret = videoStreamer->sendFrame();
+        ret = videoStreamer.sendFrame();
         if (ret < 0) {
-            break;
+            return;
         }
+    });
 
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-    }
+    // run app loop (blocking)
+    app.run();
 
     // cleanup
     glDeleteVertexArrays(1, &cubeVAO);
@@ -300,85 +277,23 @@ int main(int argc, char **argv) {
     glDeleteRenderbuffers(1, &rbo);
     glDeleteFramebuffers(1, &framebuffer);
 
-    glfwTerminate();
+    videoStreamer.cleanup();
 
-    videoStreamer->cleanup();
+    app.cleanup();
 
     return 0;
 }
 
-void processInput(GLFWwindow *window) {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
+void processInput(OpenGLApp* app) {
+    if (glfwGetKey(app->window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(app->window, true);
 
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.ProcessKeyboard(FORWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.ProcessKeyboard(BACKWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.ProcessKeyboard(LEFT, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.ProcessKeyboard(RIGHT, deltaTime);
-}
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-    // make sure the viewport matches the new window dimensions; note that width and
-    // height will be significantly larger than specified on retina displays.
-    glViewport(0, 0, width, height);
-}
-
-void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
-    float xpos = static_cast<float>(xposIn);
-    float ypos = static_cast<float>(yposIn);
-    if (firstMouse) {
-        lastX = xpos;
-        lastY = ypos;
-        firstMouse = false;
-    }
-
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-
-    lastX = xpos;
-    lastY = ypos;
-
-    camera.ProcessMouseMovement(xoffset, yoffset);
-}
-
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
-    camera.ProcessMouseScroll(static_cast<float>(yoffset));
-}
-
-unsigned int loadTexture(char const * path) {
-    unsigned int textureID;
-    glGenTextures(1, &textureID);
-
-    int width, height, nrComponents;
-    unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
-    if (data) {
-        GLenum format;
-        if (nrComponents == 1)
-            format = GL_RED;
-        else if (nrComponents == 3)
-            format = GL_RGB;
-        else if (nrComponents == 4)
-            format = GL_RGBA;
-
-        glBindTexture(GL_TEXTURE_2D, textureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        stbi_image_free(data);
-    }
-    else {
-        std::cout << "Texture failed to load at path: " << path << std::endl;
-        stbi_image_free(data);
-    }
-
-    return textureID;
+    if (glfwGetKey(app->window, GLFW_KEY_W) == GLFW_PRESS)
+        app->camera.processKeyboard(FORWARD, deltaTime);
+    if (glfwGetKey(app->window, GLFW_KEY_S) == GLFW_PRESS)
+        app->camera.processKeyboard(BACKWARD, deltaTime);
+    if (glfwGetKey(app->window, GLFW_KEY_A) == GLFW_PRESS)
+        app->camera.processKeyboard(LEFT, deltaTime);
+    if (glfwGetKey(app->window, GLFW_KEY_D) == GLFW_PRESS)
+        app->camera.processKeyboard(RIGHT, deltaTime);
 }
