@@ -21,10 +21,12 @@ public:
 
     unsigned int width, height;
 
-    Texture(unsigned int width, unsigned int height,
+    std::string path;
+
+    Texture(unsigned int width, unsigned int height, TextureType type = TEXTURE_DIFFUSE,
             GLenum format = GL_RGB, GLint wrap = GL_CLAMP_TO_EDGE, GLint filter = GL_LINEAR,
             unsigned char* data = nullptr)
-                : width(width), height(height) {
+                : width(width), height(height), type(type) {
         glGenTextures(1, &ID);
         glBindTexture(GL_TEXTURE_2D, ID);
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
@@ -34,7 +36,8 @@ public:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
     }
 
-    Texture(const std::string path) {
+    Texture(const std::string path, TextureType type = TEXTURE_DIFFUSE)
+            : path(path), type(type) {
         loadFromFile(path.c_str());
     }
 

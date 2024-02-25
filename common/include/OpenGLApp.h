@@ -21,6 +21,7 @@ public:
     Config config;
 
     GLFWwindow* window;
+    bool frameResized = false;
 
     Camera camera;
 
@@ -32,10 +33,20 @@ public:
     void mouseMove(MouseMoveCallback callback) { mouseMoveCallback = callback; }
     void mouseScroll(MouseScrollCallback callback) { scrollCallback = callback; }
 
+    void getWindowSize(int *resWidth, int *resHeight) const {
+        int width, height;
+        glfwGetFramebufferSize(window, &width, &height);
+        while (width == 0 || height == 0) {
+            glfwGetFramebufferSize(window, &width, &height);
+            glfwWaitEvents();
+        }
+        *resWidth = width;
+        *resHeight = height;
+    }
+
     static void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
         auto app = reinterpret_cast<OpenGLApp*>(glfwGetWindowUserPointer(window));
-        app->camera.aspect = (float)width / (float)height;
-        glViewport(0, 0, width, height);
+        app->frameResized = true;
     }
 
 private:

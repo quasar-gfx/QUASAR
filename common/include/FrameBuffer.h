@@ -16,7 +16,7 @@ public:
 
     FrameBuffer(unsigned int width, unsigned int height)
             : width(width), height(height),
-            colorAttachment(width, height, GL_RGB, GL_CLAMP_TO_EDGE, GL_LINEAR),
+            colorAttachment(width, height, TEXTURE_DIFFUSE, GL_RGB, GL_CLAMP_TO_EDGE, GL_LINEAR),
             depthAttachment(width, height, GL_DEPTH24_STENCIL8) {
         glGenFramebuffers(1, &ID);
         glBindFramebuffer(GL_FRAMEBUFFER, ID);
@@ -29,7 +29,7 @@ public:
 
         // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-            std::cerr << "Framebuffer is not complete!" << std::endl;
+            throw std::runtime_error("Framebuffer is not complete!");
         }
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);

@@ -18,7 +18,7 @@ int OpenGLApp::init() {
 
     window = glfwCreateWindow(config.width, config.height, config.title.c_str(), NULL, NULL);
     if (window == NULL) {
-        std::cerr << "Failed to create GLFW window" << std::endl;
+        throw std::runtime_error("Failed to create GLFW window");
         glfwTerminate();
         return -1;
     }
@@ -38,8 +38,10 @@ int OpenGLApp::init() {
     }
 
     // set default camera parameters
-    camera.setProjectionMatrix(glm::radians(60.0f), (float)config.width / (float)config.height, 0.1f, 100.0f);
-    camera.position = glm::vec3(0.0f, 0.0f, 2.0f);
+    int width, height;
+    getWindowSize(&width, &height);
+    camera.setProjectionMatrix(glm::radians(60.0f), (float)width / (float)height, 0.1f, 100.0f);
+    camera.position = glm::vec3(0.0f, 1.6f, 2.0f);
 
     return 0;
 }
@@ -52,6 +54,15 @@ void OpenGLApp::run() {
     float currTime;
     float prevTime = static_cast<float>(glfwGetTime());
     while (!glfwWindowShouldClose(window)) {
+        if (frameResized) {
+            int width, height;
+            getWindowSize(&width, &height);
+            std::cout << "Resized to " << width << "x" << height << std::endl;
+            camera.aspect = (float)width / (float)height;
+            glViewport(0, 0, width, height);
+            frameResized = false;
+        }
+
         camera.updateViewMatrix();
         camera.updateProjectionMatrix();
 

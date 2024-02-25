@@ -5,6 +5,8 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
 
 #include <string>
 #include <vector>
@@ -19,7 +21,22 @@ struct Vertex {
     glm::vec3 normal;
     glm::vec2 texCoords;
     glm::vec3 tangent;
+
+    bool operator==(const Vertex& other) const {
+        return position == other.position && normal == other.normal && texCoords == other.texCoords && tangent == other.tangent;
+    }
 };
+
+namespace std {
+    template<> struct hash<Vertex> {
+        size_t operator()(Vertex const& vertex) const {
+            return ((hash<glm::vec3>()(vertex.position) ^
+                   (hash<glm::vec3>()(vertex.normal) << 1)) >> 1) ^
+                   (hash<glm::vec2>()(vertex.texCoords) << 1 ^
+                   (hash<glm::vec3>()(vertex.tangent) << 1) >> 1);
+        }
+    };
+}
 
 enum VertexAttribute {
     ATTRIBUTE_POSITION   = 0,
@@ -44,7 +61,7 @@ public:
     Mesh(std::vector<Vertex> &vertices, std::vector<unsigned int> &indices, std::vector<Texture> &textures)
             : vertices(vertices), indices(indices), textures(textures),
             vbo(vertices.data(), static_cast<unsigned int>(vertices.size() * sizeof(Vertex))),
-            ebo(indices.data(), static_cast<unsigned int>(indices.size())) {
+            ibo(indices.data(), static_cast<unsigned int>(indices.size())) {
         init();
     }
 
@@ -77,7 +94,9 @@ public:
 
         vbo.bind();
         if (indices.size() > 0) {
+            ibo.bind();
             glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(indices.size()), GL_UNSIGNED_INT, 0);
+            ibo.unbind();
         }
         else {
             glDrawArrays(GL_TRIANGLES, 0, static_cast<unsigned int>(vertices.size()));
@@ -92,16 +111,18 @@ public:
     void cleanup() {
         vbo.cleanup();
         if (indices.size() > 0) {
-            ebo.cleanup();
+            ibo.cleanup();
         }
         for (auto &texture : textures) {
             texture.cleanup();
         }
     }
 
+    static Mesh loadMeshFromFile(const std::string& path, std::vector<Texture>& textures);
+
 private:
     VertexBuffer vbo;
-    IndexBuffer ebo;
+    IndexBuffer ibo;
 
     void init() {
         vbo.bind();

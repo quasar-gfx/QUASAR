@@ -20,7 +20,7 @@ public:
 
     VideoTexture(unsigned int width, unsigned int height,
             GLenum format = GL_RGB, GLint wrap = GL_CLAMP_TO_EDGE, GLint filter = GL_LINEAR)
-            : frameReceived(0), Texture(width, height, format, wrap, filter) { }
+            : frameReceived(0), Texture(width, height, TEXTURE_DIFFUSE, format, wrap, filter) { }
 
     ~VideoTexture() {
         cleanup();

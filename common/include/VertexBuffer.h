@@ -35,7 +35,7 @@ public:
     VertexBuffer(const void* data, unsigned int size) : va() {
         glGenBuffers(1, &ID);
         va.bind();
-        glBindBuffer(GL_ARRAY_BUFFER, va.ID);
+        glBindBuffer(GL_ARRAY_BUFFER, ID);
         glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
     }
 
