@@ -15,7 +15,7 @@ INCLUDES = -I$(INCLUDE_DIR) -I$(COMMON_DIR)/include
 THIRD_PARTY = -I../third_party
 
 CXXFLAGS = -O2 -std=c++17
-LDFLAGS = -ldl -lglfw -lavformat -lavcodec -lavutil -lswscale
+LDFLAGS = -ldl -lglfw -lavformat -lavcodec -lavutil -lswscale -lassimp
 
 all: setup build
 

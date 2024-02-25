@@ -1,20 +1,20 @@
 #include <iostream>
 
-#include "Shader.h"
-#include "VertexBuffer.h"
-#include "Texture.h"
-#include "Mesh.h"
-#include "FrameBuffer.h"
-#include "OpenGLApp.h"
+#include <Shader.h>
+#include <VertexBuffer.h>
+#include <Texture.h>
+#include <Mesh.h>
+#include <Model.h>
+#include <FrameBuffer.h>
+#include <OpenGLApp.h>
 
-#include "VideoStreamer.h"
+#include <VideoStreamer.h>
 
 void processInput(OpenGLApp* app, float deltaTime);
 
 const std::string CONTAINER_TEXTURE = "../assets/textures/container.jpg";
 const std::string METAL_TEXTURE = "../assets/textures/metal.png";
-const std::string MODEL_PATH = "../assets/models/viking_room.obj";
-const std::string MODEL_TEXTURE_PATH = "../assets/textures/viking_room.png";
+const std::string MODEL_PATH = "../assets/models/backpack/backpack.obj";
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
@@ -67,17 +67,13 @@ int main(int argc, char** argv) {
     Shader screenShader("shaders/postprocess.vert", "shaders/postprocess.frag");
 
     // textures
-    Texture cubeTexture(CONTAINER_TEXTURE);
-    std::vector<Texture> cubeTextures;
+    Texture* cubeTexture = Texture::create(CONTAINER_TEXTURE);
+    std::vector<Texture*> cubeTextures;
     cubeTextures.push_back(cubeTexture);
 
-    Texture floorTexture(METAL_TEXTURE);
-    std::vector<Texture> floorTextures;
+    Texture* floorTexture = Texture::create(METAL_TEXTURE);
+    std::vector<Texture*> floorTextures;
     floorTextures.push_back(floorTexture);
-
-    Texture vikingTexture(MODEL_TEXTURE_PATH);
-    std::vector<Texture> vikingTextures;
-    vikingTextures.push_back(vikingTexture);
 
     std::vector<Vertex> cubeVertices = {
         {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
@@ -122,7 +118,7 @@ int main(int argc, char** argv) {
         {{-0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
         {{-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 0.0f}}
     };
-    Mesh cubeMesh(cubeVertices, cubeTextures);
+    Mesh* cubeMesh = Mesh::create(cubeVertices, cubeTextures);
 
     std::vector<Vertex> planeVertices = {
         {{ 25.0f, -0.5f,  25.0f}, {0.0f, 0.0f, 0.0f}, {2.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
@@ -133,9 +129,9 @@ int main(int argc, char** argv) {
         {{-25.0f, -0.5f, -25.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 2.0f}, {0.0f, 0.0f, 0.0f}},
         {{ 25.0f, -0.5f, -25.0f}, {0.0f, 0.0f, 0.0f}, {2.0f, 2.0f}, {0.0f, 0.0f, 0.0f}}
     };
-    Mesh planeMesh(planeVertices, floorTextures);
+    Mesh* planeMesh = Mesh::create(planeVertices, floorTextures);
 
-    Mesh viking = Mesh::loadMeshFromFile(MODEL_PATH, vikingTextures);
+    Model* backpack = Model::create(MODEL_PATH);
 
     float quadVertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
         // positions   // texCoords
@@ -184,25 +180,24 @@ int main(int argc, char** argv) {
             model = glm::mat4(1.0f);
             model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
             shader.setMat4("model", model);
-            cubeMesh.draw(shader);
+            cubeMesh->draw(shader);
 
             // cube 2
             model = glm::mat4(1.0f);
             model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
             shader.setMat4("model", model);
-            cubeMesh.draw(shader);
+            cubeMesh->draw(shader);
 
             // floor
             model = glm::mat4(1.0f);
             shader.setMat4("model", model);
-            planeMesh.draw(shader);
+            planeMesh->draw(shader);
 
             // model
             model = glm::mat4(1.0f);
-            model = glm::translate(model, glm::vec3(0.0f, -0.1f, -10.0f));
-            model = glm::scale(model, glm::vec3(5.0f));
+            model = glm::translate(model, glm::vec3(0.0f, 2.0f, -6.0f));
             shader.setMat4("model", model);
-            viking.draw(shader);
+            backpack->draw(shader);
 
         // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
         framebuffer.unbind();
@@ -215,11 +210,11 @@ int main(int argc, char** argv) {
         screenShader.bind();
         screenShader.setInt("screenTexture", 0);
 
-        framebuffer.colorAttachment.bind();
+        framebuffer.bindColorAttachment(0);
         quadVB.bind();
             glDrawArrays(GL_TRIANGLES, 0, 6);
         quadVB.unbind();
-        framebuffer.colorAttachment.unbind();
+        framebuffer.unbindColorAttachment();
 
         // @TODO make this stream the framebuffer to the output URL
         ret = videoStreamer.sendFrame();
@@ -232,8 +227,8 @@ int main(int argc, char** argv) {
     app.run();
 
     // cleanup
-    cubeMesh.cleanup();
-    planeMesh.cleanup();
+    cubeMesh->cleanup();
+    planeMesh->cleanup();
     quadVB.cleanup();
     framebuffer.cleanup();
     videoStreamer.cleanup();

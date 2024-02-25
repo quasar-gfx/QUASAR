@@ -1,7 +1,7 @@
 #ifndef MESH_H
 #define MESH_H
 
-#include "glad/glad.h"
+#include <glad/glad.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -11,10 +11,10 @@
 #include <string>
 #include <vector>
 
-#include "Shader.h"
-#include "VertexBuffer.h"
-#include "IndexBuffer.h"
-#include "Texture.h"
+#include <Shader.h>
+#include <VertexBuffer.h>
+#include <IndexBuffer.h>
+#include <Texture.h>
 
 struct Vertex {
     glm::vec3 position;
@@ -47,23 +47,9 @@ enum VertexAttribute {
 
 class Mesh {
 public:
-    // mesh Data
     std::vector<Vertex>       vertices;
     std::vector<unsigned int> indices;
-    std::vector<Texture>      textures;
-
-    Mesh(std::vector<Vertex> &vertices, std::vector<Texture> &textures)
-            : vertices(vertices), textures(textures),
-            vbo(vertices.data(), static_cast<unsigned int>(vertices.size() * sizeof(Vertex))) {
-        init();
-    }
-
-    Mesh(std::vector<Vertex> &vertices, std::vector<unsigned int> &indices, std::vector<Texture> &textures)
-            : vertices(vertices), indices(indices), textures(textures),
-            vbo(vertices.data(), static_cast<unsigned int>(vertices.size() * sizeof(Vertex))),
-            ibo(indices.data(), static_cast<unsigned int>(indices.size())) {
-        init();
-    }
+    std::vector<Texture*>      textures;
 
     void draw(Shader &shader) {
         int diffuseIdx  = 1;
@@ -74,7 +60,7 @@ public:
         for (int i = 0; i < textures.size(); i++) {
             std::string name;
 
-            TextureType type = textures[i].type;
+            TextureType type = textures[i]->type;
             if (type == TEXTURE_DIFFUSE) {
                 name = "texture_diffuse" + std::to_string(diffuseIdx++);
             }
@@ -89,7 +75,7 @@ public:
             }
 
             shader.setInt(name.c_str(), i);
-            textures[i].bind(i);
+            textures[i]->bind(i);
         }
 
         vbo.bind();
@@ -104,7 +90,7 @@ public:
         vbo.unbind();
 
         if (textures.size() > 0) {
-            textures[textures.size()-1].unbind();
+            textures[textures.size()-1]->unbind();
         }
     }
 
@@ -114,17 +100,42 @@ public:
             ibo.cleanup();
         }
         for (auto &texture : textures) {
-            texture.cleanup();
+            texture->cleanup();
         }
     }
 
-    static Mesh loadMeshFromFile(const std::string& path, std::vector<Texture>& textures);
+    static Mesh* create(std::vector<Vertex> &vertices, std::vector<Texture*> &textures) {
+        return new Mesh(vertices, textures);
+    }
+
+    static Mesh* create(std::vector<Vertex> &vertices, std::vector<unsigned int> &indices, std::vector<Texture*> &textures) {
+        return new Mesh(vertices, indices, textures);
+    }
+
+    static Mesh* create(const std::string& path, std::vector<Texture*>& textures);
 
 private:
     VertexBuffer vbo;
     IndexBuffer ibo;
 
-    void init() {
+    Mesh(std::vector<Vertex> &vertices, std::vector<Texture*> &textures)
+            : vertices(vertices), textures(textures),
+            vbo(vertices.data(), static_cast<unsigned int>(vertices.size() * sizeof(Vertex))) {
+        initAttributes();
+    }
+
+    Mesh(std::vector<Vertex> &vertices, std::vector<unsigned int> &indices, std::vector<Texture*> &textures)
+            : vertices(vertices), indices(indices), textures(textures),
+            vbo(vertices.data(), static_cast<unsigned int>(vertices.size() * sizeof(Vertex))),
+            ibo(indices.data(), static_cast<unsigned int>(indices.size())) {
+        initAttributes();
+    }
+
+    ~Mesh() {
+        cleanup();
+    }
+
+    void initAttributes() {
         vbo.bind();
         vbo.addAttribute(ATTRIBUTE_POSITION,   3, GL_FALSE, sizeof(Vertex), 0);
         vbo.addAttribute(ATTRIBUTE_NORMAL,     3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, normal));

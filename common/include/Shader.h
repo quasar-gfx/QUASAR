@@ -1,7 +1,7 @@
 #ifndef SHADER_H
 #define SHADER_H
 
-#include "glad/glad.h"
+#include <glad/glad.h>
 
 #include <glm/glm.hpp>
 
@@ -10,7 +10,7 @@
 #include <sstream>
 #include <iostream>
 
-#include "OpenGLObject.h"
+#include <OpenGLObject.h>
 
 class Shader : public OpenGLObject {
 public:

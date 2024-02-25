@@ -1,9 +1,9 @@
-#include "Mesh.h"
+#include <Mesh.h>
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
-Mesh Mesh::loadMeshFromFile(const std::string& path, std::vector<Texture>& textures) {
+Mesh* Mesh::create(const std::string& path, std::vector<Texture*>& textures) {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
@@ -47,5 +47,5 @@ Mesh Mesh::loadMeshFromFile(const std::string& path, std::vector<Texture>& textu
         }
     }
 
-    return Mesh(vertices, indices, textures);
+    return new Mesh(vertices, indices, textures);
 }

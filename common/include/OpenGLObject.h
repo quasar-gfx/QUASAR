@@ -1,7 +1,7 @@
 #ifndef OPENGL_OBJECT_H
 #define OPENGL_OBJECT_H
 
-#include "glad/glad.h"
+#include <glad/glad.h>
 
 class OpenGLObject {
 public:

@@ -1,10 +1,10 @@
 #ifndef TEXTURE_H
 #define TEXTURE_H
 
-#include "glad/glad.h"
+#include <glad/glad.h>
 #include <string>
 
-#include "OpenGLObject.h"
+#include <OpenGLObject.h>
 
 enum TextureType {
     TEXTURE_DIFFUSE,
@@ -23,6 +23,35 @@ public:
 
     std::string path;
 
+    void bind() {
+        bind(0);
+    }
+
+    void bind(unsigned int slot) {
+        glActiveTexture(GL_TEXTURE0 + slot);
+        glBindTexture(GL_TEXTURE_2D, ID);
+    }
+
+    void unbind() {
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glActiveTexture(GL_TEXTURE0);
+    }
+
+    void cleanup() {
+        glDeleteTextures(1, &ID);
+    }
+
+    static Texture* create(unsigned int width, unsigned int height, TextureType type = TEXTURE_DIFFUSE,
+                           GLenum format = GL_RGB, GLint wrap = GL_CLAMP_TO_EDGE, GLint filter = GL_LINEAR,
+                           unsigned char* data = nullptr) {
+        return new Texture(width, height, type, format, wrap, filter, data);
+    }
+
+    static Texture* create(const std::string path, TextureType type = TEXTURE_DIFFUSE) {
+        return new Texture(path, type);
+    }
+
+protected:
     Texture(unsigned int width, unsigned int height, TextureType type = TEXTURE_DIFFUSE,
             GLenum format = GL_RGB, GLint wrap = GL_CLAMP_TO_EDGE, GLint filter = GL_LINEAR,
             unsigned char* data = nullptr)
@@ -43,24 +72,6 @@ public:
 
     ~Texture() {
         cleanup();
-    }
-
-    void bind() {
-        bind(0);
-    }
-
-    void bind(unsigned int slot) {
-        glActiveTexture(GL_TEXTURE0 + slot);
-        glBindTexture(GL_TEXTURE_2D, ID);
-    }
-
-    void unbind() {
-        glBindTexture(GL_TEXTURE_2D, 0);
-        glActiveTexture(GL_TEXTURE0);
-    }
-
-    void cleanup() {
-        glDeleteTextures(1, &ID);
     }
 
 private:

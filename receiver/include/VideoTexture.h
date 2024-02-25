@@ -10,7 +10,7 @@ extern "C" {
 #include <libavutil/imgutils.h>
 }
 
-#include "Texture.h"
+#include <Texture.h>
 
 class VideoTexture : public Texture {
 public:
@@ -18,6 +18,16 @@ public:
 
     int frameReceived;
 
+    int initVideo(const std::string inputUrl);
+    int receive();
+    void cleanup();
+
+    static VideoTexture* create(unsigned int width, unsigned int height,
+            GLenum format = GL_RGB, GLint wrap = GL_CLAMP_TO_EDGE, GLint filter = GL_LINEAR) {
+        return new VideoTexture(width, height, format, wrap, filter);
+    }
+
+private:
     VideoTexture(unsigned int width, unsigned int height,
             GLenum format = GL_RGB, GLint wrap = GL_CLAMP_TO_EDGE, GLint filter = GL_LINEAR)
             : frameReceived(0), Texture(width, height, TEXTURE_DIFFUSE, format, wrap, filter) { }
@@ -26,11 +36,6 @@ public:
         cleanup();
     }
 
-    int initVideo(const std::string inputUrl);
-    int receive();
-    void cleanup();
-
-private:
     AVFormatContext* inputFormatContext = nullptr;
 
     AVCodecContext* inputCodecContext = nullptr;

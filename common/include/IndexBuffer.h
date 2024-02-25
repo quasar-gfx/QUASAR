@@ -1,9 +1,9 @@
 #ifndef INDEX_BUFFER_H
 #define INDEX_BUFFER_H
 
-#include "glad/glad.h"
+#include <glad/glad.h>
 
-#include "OpenGLObject.h"
+#include <OpenGLObject.h>
 
 class IndexBuffer : public OpenGLObject {
 public:

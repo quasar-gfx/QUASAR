@@ -1,9 +1,9 @@
 #ifndef VERTEX_BUFFER_H
 #define VERTEX_BUFFER_H
 
-#include "glad/glad.h"
+#include <glad/glad.h>
 
-#include "OpenGLObject.h"
+#include <OpenGLObject.h>
 
 class VertexArray : public OpenGLObject {
 public:
