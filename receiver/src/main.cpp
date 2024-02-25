@@ -60,12 +60,12 @@ int main(int argc, char** argv) {
     Shader screenShader("shaders/postprocess.vert", "shaders/postprocess.frag");
 
     // textures
-    Texture cubeTexture(CONTAINER_TEXTURE);
-    std::vector<Texture> cubeTextures;
+    Texture* cubeTexture = Texture::create(CONTAINER_TEXTURE);
+    std::vector<Texture*> cubeTextures;
     cubeTextures.push_back(cubeTexture);
 
-    Texture floorTexture(METAL_TEXTURE);
-    std::vector<Texture> floorTextures;
+    Texture* floorTexture = Texture::create(METAL_TEXTURE);
+    std::vector<Texture*> floorTextures;
     floorTextures.push_back(floorTexture);
 
     std::vector<Vertex> cubeVertices = {
@@ -111,7 +111,7 @@ int main(int argc, char** argv) {
         {{-0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
         {{-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 0.0f}}
     };
-    Mesh cubeMesh(cubeVertices, cubeTextures);
+    Mesh* cubeMesh = Mesh::create(cubeVertices, cubeTextures);
 
     std::vector<Vertex> planeVertices = {
         {{ 5.0f, -0.5f,  5.0f}, {0.0f, 0.0f, 0.0f}, {2.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
@@ -122,7 +122,7 @@ int main(int argc, char** argv) {
         {{-5.0f, -0.5f, -5.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 2.0f}, {0.0f, 0.0f, 0.0f}},
         {{ 5.0f, -0.5f, -5.0f}, {0.0f, 0.0f, 0.0f}, {2.0f, 2.0f}, {0.0f, 0.0f, 0.0f}}
     };
-    Mesh planeMesh(planeVertices, floorTextures);
+    Mesh* planeMesh = Mesh::create(planeVertices, floorTextures);
 
     float quadVertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
         // positions   // texCoords
@@ -139,8 +139,8 @@ int main(int argc, char** argv) {
     quadVB.addAttribute(0, 2, GL_FALSE, 4 * sizeof(float), 0);
     quadVB.addAttribute(1, 2, GL_FALSE, 4 * sizeof(float), 2 * sizeof(float));
 
-    VideoTexture videoTexture(app.config.width, app.config.height);
-    int ret = videoTexture.initVideo(inputUrl);
+    VideoTexture* videoTexture = VideoTexture::create(app.config.width, app.config.height);
+    int ret = videoTexture->initVideo(inputUrl);
     if (ret < 0) {
         std::cerr << "Failed to initialize FFMpeg Video Receiver" << std::endl;
         return ret;
@@ -150,7 +150,7 @@ int main(int argc, char** argv) {
     FrameBuffer framebuffer(app.config.width, app.config.height);
 
     app.animate([&](double now, double dt) {
-        ret = videoTexture.receive();
+        ret = videoTexture->receive();
         if (ret < 0) {
             std::cerr << "Failed to receive frame" << std::endl;
         }
@@ -176,18 +176,18 @@ int main(int argc, char** argv) {
             model = glm::mat4(1.0f);
             model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
             shader.setMat4("model", model);
-            cubeMesh.draw(shader);
+            cubeMesh->draw(shader);
 
             // cube 2
             model = glm::mat4(1.0f);
             model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
             shader.setMat4("model", model);
-            cubeMesh.draw(shader);
+            cubeMesh->draw(shader);
 
             // floor
             model = glm::mat4(1.0f);
             shader.setMat4("model", model);
-            planeMesh.draw(shader);
+            planeMesh->draw(shader);
 
         // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
         framebuffer.unbind();
@@ -201,8 +201,8 @@ int main(int argc, char** argv) {
         screenShader.setInt("screenTexture", 0);
         screenShader.setInt("videoTexture", 1);
 
-        framebuffer.colorAttachment.bind(0);
-        videoTexture.bind(1);
+        framebuffer.bindColorAttachment(0);
+        videoTexture->bind(1);
         quadVB.bind();
             glDrawArrays(GL_TRIANGLES, 0, 6);
         quadVB.unbind();
@@ -212,11 +212,11 @@ int main(int argc, char** argv) {
     app.run();
 
     // cleanup
-    cubeMesh.cleanup();
-    planeMesh.cleanup();
+    cubeMesh->cleanup();
+    planeMesh->cleanup();
     quadVB.cleanup();
     framebuffer.cleanup();
-    videoTexture.cleanup();
+    videoTexture->cleanup();
     app.cleanup();
 
     return 0;
