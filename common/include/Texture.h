@@ -1,10 +1,10 @@
 #ifndef TEXTURE_H
 #define TEXTURE_H
 
-#include "glad/glad.h"
+#include <glad/glad.h>
 #include <string>
 
-#include "OpenGLObject.h"
+#include <OpenGLObject.h>
 
 enum TextureType {
     TEXTURE_DIFFUSE,

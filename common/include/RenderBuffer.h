@@ -1,9 +1,9 @@
 #ifndef RENDERBUFFER_H
 #define RENDERBUFFER_H
 
-#include "glad/glad.h"
+#include <glad/glad.h>
 
-#include "OpenGLObject.h"
+#include <OpenGLObject.h>
 
 class RenderBuffer : public OpenGLObject {
 public:

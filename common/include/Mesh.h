@@ -1,7 +1,7 @@
 #ifndef MESH_H
 #define MESH_H
 
-#include "glad/glad.h"
+#include <glad/glad.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -11,10 +11,10 @@
 #include <string>
 #include <vector>
 
-#include "Shader.h"
-#include "VertexBuffer.h"
-#include "IndexBuffer.h"
-#include "Texture.h"
+#include <Shader.h>
+#include <VertexBuffer.h>
+#include <IndexBuffer.h>
+#include <Texture.h>
 
 struct Vertex {
     glm::vec3 position;

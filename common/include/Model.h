@@ -1,7 +1,7 @@
 #ifndef MODEL_H
 #define MODEL_H
 
-#include "glad/glad.h"
+#include <glad/glad.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -10,8 +10,8 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-#include "Shader.h"
-#include "Mesh.h"
+#include <Shader.h>
+#include <Mesh.h>
 
 #include <string>
 #include <fstream>
@@ -22,8 +22,8 @@
 
 class Model {
 public:
-    std::vector<Texture*> texturesLoaded;
     std::vector<Mesh*> meshes;
+    std::unordered_map<std::string, Texture*> texturesLoaded;
 
     std::string rootDirectory;
 
@@ -137,22 +137,15 @@ private:
             mat->GetTexture(type, i, &str);
 
             std::string stdStr = std::string(str.C_Str());
+            std::replace(stdStr.begin(), stdStr.end(), '\\', '/');
 
-            bool skip = false;
-            for (int j = 0; j < texturesLoaded.size(); j++) {
-                if (std::strcmp(texturesLoaded[j]->path.data(), str.C_Str()) == 0) {
-                    textures.push_back(texturesLoaded[j]);
-                    skip = true;
-                    break;
-                }
+            if (texturesLoaded.count(stdStr) > 0) {
+                textures.push_back(texturesLoaded[stdStr]);
             }
-
-            if (!skip) {
-                std::replace(stdStr.begin(), stdStr.end(), '\\', '/');
-
+            else {
                 Texture* texture = Texture::create(rootDirectory + '/' + stdStr, textureType);
                 textures.push_back(texture);
-                texturesLoaded.push_back(texture);
+                texturesLoaded[stdStr] = texture;
             }
         }
         return textures;

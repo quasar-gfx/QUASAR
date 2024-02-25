@@ -1,7 +1,7 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include "glad/glad.h"
+#include <glad/glad.h>
 
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>

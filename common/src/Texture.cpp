@@ -3,7 +3,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#include "Texture.h"
+#include <Texture.h>
 
 void Texture::loadFromFile(const std::string path) {
     glGenTextures(1, &ID);

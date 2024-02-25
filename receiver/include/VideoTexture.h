@@ -10,7 +10,7 @@ extern "C" {
 #include <libavutil/imgutils.h>
 }
 
-#include "Texture.h"
+#include <Texture.h>
 
 class VideoTexture : public Texture {
 public:

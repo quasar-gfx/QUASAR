@@ -1,11 +1,11 @@
 #ifndef FRAMEBUFFER_H
 #define FRAMEBUFFER_H
 
-#include "glad/glad.h"
+#include <glad/glad.h>
 
-#include "OpenGLObject.h"
-#include "Texture.h"
-#include "RenderBuffer.h"
+#include <OpenGLObject.h>
+#include <Texture.h>
+#include <RenderBuffer.h>
 
 class FrameBuffer : public OpenGLObject {
 public:

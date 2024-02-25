@@ -2,19 +2,29 @@
 
 To run:
 
-Build and run OpenGL receiver:
+Build streamer and receiver:
 ```
-cd receiver
-make run
+mkdir out
+cd out
+cmake ..
+make -j
 ```
 
-Then, open a new terminal and build and run the streamer:
+To run streamer:
 ```
+# in out directory
 cd streamer
-make run
+./streamer
 ```
 
-After the streamer says `Error reading frame: End of file`, you have to manually kill the streamer and receiver programs (graceful exit is WIP).
+In a new terminal, to run receiever:
+```
+# in out directory
+cd receiever
+./receiever
+```
+
+After the streamer says `Error reading frame: End of file`, you can manually kill the streamer and receiver programs (graceful exit is WIP).
 
 The streamer should render some frames and encode and stream the `streamer/input.mp4` file to the receiver, which displays it on right half the screen in the opengl window.
 
@@ -25,4 +35,3 @@ TODOs:
 
 @ruiyang:
 - make the streamer stream an opengl texture/framebuffer instead of the input video
-- use nvenc_h264 for encoding (https://docs.nvidia.com/video-technologies/video-codec-sdk/12.0/ffmpeg-with-nvidia-gpu/index.html)

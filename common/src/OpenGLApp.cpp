@@ -4,7 +4,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "OpenGLApp.h"
+#include <OpenGLApp.h>
 
 int OpenGLApp::init() {
     glfwInit();

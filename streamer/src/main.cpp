@@ -1,14 +1,14 @@
 #include <iostream>
 
-#include "Shader.h"
-#include "VertexBuffer.h"
-#include "Texture.h"
-#include "Mesh.h"
-#include "Model.h"
-#include "FrameBuffer.h"
-#include "OpenGLApp.h"
+#include <Shader.h>
+#include <VertexBuffer.h>
+#include <Texture.h>
+#include <Mesh.h>
+#include <Model.h>
+#include <FrameBuffer.h>
+#include <OpenGLApp.h>
 
-#include "VideoStreamer.h"
+#include <VideoStreamer.h>
 
 void processInput(OpenGLApp* app, float deltaTime);
 

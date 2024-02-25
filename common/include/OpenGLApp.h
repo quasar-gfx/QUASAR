@@ -1,13 +1,13 @@
 #ifndef OPENGL_APP_H
 #define OPENGL_APP_H
 
-#include "glad/glad.h"
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #include <functional>
 
-#include "Camera.h"
-#include "OpenGLAppConfig.h"
+#include <Camera.h>
+#include <OpenGLAppConfig.h>
 
 class OpenGLApp {
 public:
