@@ -180,8 +180,8 @@ int main(int argc, char** argv) {
 
         // bind to framebuffer and draw scene as we normally would to color texture
         framebuffer->bind();
-            // glEnable(GL_CULL_FACE);
-            // glCullFace(GL_BACK);
+            glEnable(GL_CULL_FACE);
+            glCullFace(GL_BACK);
             glEnable(GL_DEPTH_TEST); // enable depth testing (is disabled for rendering screen-space quad)
 
             // make sure we clear the framebuffer's content

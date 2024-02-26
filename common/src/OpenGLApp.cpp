@@ -28,10 +28,7 @@ int OpenGLApp::init() {
     }
 
     glfwMakeContextCurrent(window);
-
-    if (config.enableVSync) {
-        glfwSwapInterval(1); // Enable vsync
-    }
+    glfwSwapInterval(config.enableVSync); // set vsync
 
     glfwSetWindowUserPointer(window, this);
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
