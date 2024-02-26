@@ -4,6 +4,7 @@
 #include <string>
 
 struct Config {
+    bool enableVSync = false;
     unsigned int width = 800;
     unsigned int height = 600;
     std::string title = "OpenGL App";

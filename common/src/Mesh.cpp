@@ -1,51 +1,44 @@
 #include <Mesh.h>
 
-#define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
+void Mesh::draw(Shader &shader) {
+    int diffuseIdx  = 1;
+    int specularIdx = 1;
+    int normalIdx   = 1;
+    int heightIdx   = 1;
 
-Mesh* Mesh::create(const std::string& path, std::vector<Texture*>& textures) {
-    tinyobj::attrib_t attrib;
-    std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> materials;
-    std::string warn, err;
+    for (int i = 0; i < textures.size(); i++) {
+        std::string name;
 
-    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str())) {
-        throw std::runtime_error(warn + err);
-    }
-
-    std::vector<Vertex> vertices;
-    std::vector<unsigned int> indices;
-    std::unordered_map<Vertex, unsigned int> uniqueVertices{};
-
-    for (const auto& shape : shapes) {
-        for (const auto& index : shape.mesh.indices) {
-            Vertex vertex{
-                .position = {
-                    attrib.vertices[3 * index.vertex_index + 0],
-                    attrib.vertices[3 * index.vertex_index + 1],
-                    attrib.vertices[3 * index.vertex_index + 2]
-                },
-
-                .normal = {
-                    attrib.normals[3 * index.normal_index + 0],
-                    attrib.normals[3 * index.normal_index + 1],
-                    attrib.normals[3 * index.normal_index + 2]
-                },
-
-                .texCoords = {
-                    attrib.texcoords[2 * index.texcoord_index + 0],
-                    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-                }
-            };
-
-            if (uniqueVertices.count(vertex) == 0) {
-                uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
-                vertices.push_back(vertex);
-            }
-
-            indices.push_back(uniqueVertices[vertex]);
+        TextureType type = textures[i]->type;
+        if (type == TEXTURE_DIFFUSE) {
+            name = "texture_diffuse" + std::to_string(diffuseIdx++);
         }
+        else if (type == TEXTURE_SPECULAR) {
+            name = "texture_specular" + std::to_string(specularIdx++);
+        }
+        else if (type == TEXTURE_NORMAL) {
+            name = "texture_normal" + std::to_string(normalIdx++);
+        }
+        else if (type == TEXTURE_HEIGHT) {
+            name = "texture_height" + std::to_string(heightIdx++);
+        }
+
+        shader.setInt(name.c_str(), i);
+        textures[i]->bind(i);
     }
 
-    return new Mesh(vertices, indices, textures);
+    vbo.bind();
+    if (indices.size() > 0) {
+        ibo.bind();
+        glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(indices.size()), GL_UNSIGNED_INT, 0);
+        ibo.unbind();
+    }
+    else {
+        glDrawArrays(GL_TRIANGLES, 0, static_cast<unsigned int>(vertices.size()));
+    }
+    vbo.unbind();
+
+    if (textures.size() > 0) {
+        textures[textures.size()-1]->unbind();
+    }
 }
