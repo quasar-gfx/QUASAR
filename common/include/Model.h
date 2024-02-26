@@ -25,12 +25,6 @@ public:
 
     void draw(Shader &shader);
 
-    void cleanup() {
-        for (int i = 0; i < meshes.size(); i++) {
-            meshes[i]->cleanup();
-        }
-    }
-
     static Model* create(const std::string &modelPath) {
         return new Model(modelPath);
     }

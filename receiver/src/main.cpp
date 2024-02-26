@@ -3,10 +3,10 @@
 #include <imgui/imgui.h>
 
 #include <Shader.h>
-#include <VertexBuffer.h>
 #include <Texture.h>
 #include <Mesh.h>
 #include <FrameBuffer.h>
+#include <FullScreenQuad.h>
 #include <OpenGLApp.h>
 
 #include <VideoTexture.h>
@@ -32,8 +32,12 @@ int main(int argc, char** argv) {
             app.config.height = atoi(argv[i + 1]);
             i++;
         }
-        else if (!strcmp(argv[i], "-o") && i + 1 < argc) {
+        else if (!strcmp(argv[i], "-i") && i + 1 < argc) {
             inputUrl = argv[i + 1];
+            i++;
+        }
+        else if (!strcmp(argv[i], "-v")) {
+            app.config.enableVSync = true;
             i++;
         }
     }
@@ -56,7 +60,7 @@ int main(int argc, char** argv) {
                 deltaTimeSum = 0.0f; sumCount = 0;
             }
         }
-        ImGui::Text("Frame rate: %.1f FPS", frameRateToDisplay);
+        ImGui::Text("Frame Rate: %.1f FPS", frameRateToDisplay);
         deltaTimeSum += dt; sumCount++;
         ImGui::End();
     });
@@ -155,20 +159,7 @@ int main(int argc, char** argv) {
     };
     Mesh* planeMesh = Mesh::create(planeVertices, floorTextures);
 
-    float quadVertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
-        // positions   // texCoords
-        -1.0f,  1.0f,  0.0f, 1.0f,
-        -1.0f, -1.0f,  0.0f, 0.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
-
-        -1.0f,  1.0f,  0.0f, 1.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
-         1.0f,  1.0f,  1.0f, 1.0f
-    };
-    VertexBuffer quadVB(quadVertices, sizeof(quadVertices));
-    quadVB.bind();
-    quadVB.addAttribute(0, 2, GL_FALSE, 4 * sizeof(float), 0);
-    quadVB.addAttribute(1, 2, GL_FALSE, 4 * sizeof(float), 2 * sizeof(float));
+    FullScreenQuad* fsQuad = FullScreenQuad::create();
 
     VideoTexture* videoTexture = VideoTexture::create(app.config.width, app.config.height);
     int ret = videoTexture->initVideo(inputUrl);
@@ -180,7 +171,7 @@ int main(int argc, char** argv) {
     // framebuffer to render into
     int width, height;
     app.getWindowSize(&width, &height);
-    FrameBuffer framebuffer(width, height);
+    FrameBuffer* framebuffer = FrameBuffer::create(width, height);
 
     app.animate([&](double now, double dt) {
         ret = videoTexture->receive();
@@ -191,7 +182,7 @@ int main(int argc, char** argv) {
         processInput(&app, dt);
 
         // bind to framebuffer and draw scene as we normally would to color texture
-        framebuffer.bind();
+        framebuffer->bind();
             glEnable(GL_CULL_FACE);
             glCullFace(GL_BACK);
             glEnable(GL_DEPTH_TEST); // enable depth testing (is disabled for rendering screen-space quad)
@@ -224,7 +215,7 @@ int main(int argc, char** argv) {
             planeMesh->draw(shader);
 
         // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
-        framebuffer.unbind();
+        framebuffer->unbind();
 
         glDisable(GL_DEPTH_TEST); // disable depth test so screen-space quad isn't discarded due to depth test.
         // clear all relevant buffers
@@ -235,22 +226,15 @@ int main(int argc, char** argv) {
         screenShader.setInt("screenTexture", 0);
         screenShader.setInt("videoTexture", 1);
 
-        framebuffer.bindColorAttachment(0);
+        framebuffer->bindColorAttachment(0);
         videoTexture->bind(1);
-        quadVB.bind();
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-        quadVB.unbind();
+        fsQuad->draw();
     });
 
     // run app loop (blocking)
     app.run();
 
     // cleanup
-    cubeMesh->cleanup();
-    planeMesh->cleanup();
-    quadVB.cleanup();
-    framebuffer.cleanup();
-    videoTexture->cleanup();
     app.cleanup();
 
     return 0;

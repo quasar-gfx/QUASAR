@@ -3,11 +3,11 @@
 #include <imgui/imgui.h>
 
 #include <Shader.h>
-#include <VertexBuffer.h>
 #include <Texture.h>
 #include <Mesh.h>
 #include <Model.h>
 #include <FrameBuffer.h>
+#include <FullScreenQuad.h>
 #include <OpenGLApp.h>
 
 #include <VideoStreamer.h>
@@ -47,6 +47,10 @@ int main(int argc, char** argv) {
             outputUrl = argv[i + 1];
             i++;
         }
+        else if (!strcmp(argv[i], "-v")) {
+            app.config.enableVSync = true;
+            i++;
+        }
     }
 
     app.init();
@@ -67,7 +71,7 @@ int main(int argc, char** argv) {
                 deltaTimeSum = 0.0f; sumCount = 0;
             }
         }
-        ImGui::Text("Frame rate: %.1f FPS", frameRateToDisplay);
+        ImGui::Text("Frame Rate: %.1f FPS", frameRateToDisplay);
         deltaTimeSum += dt; sumCount++;
         ImGui::End();
     });
@@ -168,20 +172,7 @@ int main(int argc, char** argv) {
 
     Model* backpack = Model::create(modelPath);
 
-    float quadVertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
-        // positions   // texCoords
-        -1.0f,  1.0f,  0.0f, 1.0f,
-        -1.0f, -1.0f,  0.0f, 0.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
-
-        -1.0f,  1.0f,  0.0f, 1.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
-         1.0f,  1.0f,  1.0f, 1.0f
-    };
-    VertexBuffer quadVB(quadVertices, sizeof(quadVertices));
-    quadVB.bind();
-    quadVB.addAttribute(0, 2, GL_FALSE, 4 * sizeof(float), 0);
-    quadVB.addAttribute(1, 2, GL_FALSE, 4 * sizeof(float), 2 * sizeof(float));
+    FullScreenQuad* fsQuad = FullScreenQuad::create();
 
     VideoStreamer videoStreamer{};
     int ret = videoStreamer.init(inputFileName, outputUrl);
@@ -193,14 +184,13 @@ int main(int argc, char** argv) {
     // framebuffer to render into
     int width, height;
     app.getWindowSize(&width, &height);
-    FrameBuffer framebuffer(width, height);
+    FrameBuffer* framebuffer = FrameBuffer::create(width, height);
 
     app.animate([&](double now, double dt) {
-
         processInput(&app, dt);
 
         // bind to framebuffer and draw scene as we normally would to color texture
-        framebuffer.bind();
+        framebuffer->bind();
             glEnable(GL_CULL_FACE);
             glCullFace(GL_BACK);
             glEnable(GL_DEPTH_TEST); // enable depth testing (is disabled for rendering screen-space quad)
@@ -239,7 +229,7 @@ int main(int argc, char** argv) {
             backpack->draw(shader);
 
         // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
-        framebuffer.unbind();
+        framebuffer->unbind();
 
         glDisable(GL_DEPTH_TEST); // disable depth test so screen-space quad isn't discarded due to depth test.
         // clear all relevant buffers
@@ -249,11 +239,9 @@ int main(int argc, char** argv) {
         screenShader.bind();
         screenShader.setInt("screenTexture", 0);
 
-        framebuffer.bindColorAttachment(0);
-        quadVB.bind();
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-        quadVB.unbind();
-        framebuffer.unbindColorAttachment();
+        framebuffer->bindColorAttachment(0);
+        fsQuad->draw();
+        framebuffer->unbindColorAttachment();
 
         // @TODO make this stream the framebuffer to the output URL
         ret = videoStreamer.sendFrame();
@@ -266,11 +254,6 @@ int main(int argc, char** argv) {
     app.run();
 
     // cleanup
-    cubeMesh->cleanup();
-    planeMesh->cleanup();
-    quadVB.cleanup();
-    framebuffer.cleanup();
-    videoStreamer.cleanup();
     app.cleanup();
 
     return 0;
