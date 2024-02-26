@@ -8,5 +8,10 @@ in vec2 tangent;
 uniform sampler2D texture_diffuse1;
 
 void main() {
-    FragColor = texture(texture_diffuse1, texCoords);
+    vec4 col = texture(texture_diffuse1, texCoords);
+    if (col.a < 0.5) {
+        discard;
+    }
+
+    FragColor = col;
 }

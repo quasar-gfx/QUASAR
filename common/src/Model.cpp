@@ -42,10 +42,12 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene *scene) {
         Vertex vertex;
         glm::vec3 vector;
 
-        vector.x = mesh->mVertices[i].x;
-        vector.y = mesh->mVertices[i].y;
-        vector.z = mesh->mVertices[i].z;
-        vertex.position = vector;
+        if (mesh->HasPositions()) {
+            vector.x = mesh->mVertices[i].x;
+            vector.y = mesh->mVertices[i].y;
+            vector.z = mesh->mVertices[i].z;
+            vertex.position = vector;
+        }
 
         if (mesh->HasNormals()) {
             vector.x = mesh->mNormals[i].x;
@@ -54,19 +56,18 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene *scene) {
             vertex.normal = vector;
         }
 
-        if (mesh->mTextureCoords[0]) {
+        if (mesh->HasTextureCoords(0)) {
             glm::vec2 vec;
             vec.x = mesh->mTextureCoords[0][i].x;
             vec.y = 1.0f - mesh->mTextureCoords[0][i].y;
             vertex.texCoords = vec;
+        }
 
+        if (mesh->HasTangentsAndBitangents()) {
             vector.x = mesh->mTangents[i].x;
             vector.y = mesh->mTangents[i].y;
             vector.z = mesh->mTangents[i].z;
             vertex.tangent = vector;
-        }
-        else {
-            vertex.texCoords = glm::vec2(0.0f, 0.0f);
         }
 
         vertices.push_back(vertex);
@@ -88,10 +89,10 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene *scene) {
     std::vector<Texture*> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, TEXTURE_SPECULAR);
     textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
 
-    std::vector<Texture*> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, TEXTURE_NORMAL);
+    std::vector<Texture*> normalMaps = loadMaterialTextures(material, aiTextureType_NORMALS, TEXTURE_NORMAL);
     textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
 
-    std::vector<Texture*> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, TEXTURE_HEIGHT);
+    std::vector<Texture*> heightMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, TEXTURE_HEIGHT);
     textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 
     return Mesh::create(vertices, indices, textures);
