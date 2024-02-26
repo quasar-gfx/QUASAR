@@ -5,28 +5,31 @@
 
 #include <Texture.h>
 
-void Texture::loadFromFile(const std::string path) {
+void Texture::loadFromFile(const std::string path, GLint wrapS, GLint wrapT, GLint minFilter, GLint magFilter) {
     glGenTextures(1, &ID);
 
-    int width, height, nrComponents;
-    unsigned char* data = stbi_load(path.c_str(), &width, &height, &nrComponents, 0);
+    int texWidth, texHeight, texChannels;
+    unsigned char* data = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, 0);
     if (data) {
+        this->width = texWidth;
+        this->height = texHeight;
+
         GLenum format;
-        if (nrComponents == 1)
+        if (texChannels == 1)
             format = GL_RED;
-        else if (nrComponents == 3)
+        else if (texChannels == 3)
             format = GL_RGB;
-        else if (nrComponents == 4)
+        else if (texChannels == 4)
             format = GL_RGBA;
 
         glBindTexture(GL_TEXTURE_2D, ID);
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapS);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magFilter);
 
         stbi_image_free(data);
     }

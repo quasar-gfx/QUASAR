@@ -59,7 +59,12 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene *scene) {
         if (mesh->HasTextureCoords(0)) {
             glm::vec2 vec;
             vec.x = mesh->mTextureCoords[0][i].x;
-            vec.y = 1.0f - mesh->mTextureCoords[0][i].y;
+            if (flipTextures) {
+                vec.y = 1.0f - mesh->mTextureCoords[0][i].y;
+            }
+            else {
+                vec.y = mesh->mTextureCoords[0][i].y;
+            }
             vertex.texCoords = vec;
         }
 

@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
 
     std::string inputFileName = "input.mp4";
     std::string outputUrl = "udp://localhost:1234";
-    std::string modelPath = "../assets/models/backpack/backpack.obj";
+    std::string modelPath = "../assets/models/sponza/sponza.obj";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             app.config.width = atoi(argv[i + 1]);
@@ -159,18 +159,7 @@ int main(int argc, char** argv) {
     };
     Mesh* cubeMesh = Mesh::create(cubeVertices, cubeTextures);
 
-    std::vector<Vertex> planeVertices = {
-        {{ 25.0f, -0.5f, -25.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
-        {{-25.0f, -0.5f, -25.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
-        {{-25.0f, -0.5f,  25.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-
-        {{ 25.0f, -0.5f, -25.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
-        {{-25.0f, -0.5f,  25.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-        {{ 25.0f, -0.5f,  25.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 0.0f}, {1.0f, 0.0f, 0.0f}}
-    };
-    Mesh* planeMesh = Mesh::create(planeVertices, floorTextures);
-
-    Model* backpack = Model::create(modelPath);
+    Model* sponza = Model::create(modelPath);
 
     FullScreenQuad* fsQuad = FullScreenQuad::create();
 
@@ -191,8 +180,8 @@ int main(int argc, char** argv) {
 
         // bind to framebuffer and draw scene as we normally would to color texture
         framebuffer->bind();
-            glEnable(GL_CULL_FACE);
-            glCullFace(GL_BACK);
+            // glEnable(GL_CULL_FACE);
+            // glCullFace(GL_BACK);
             glEnable(GL_DEPTH_TEST); // enable depth testing (is disabled for rendering screen-space quad)
 
             // make sure we clear the framebuffer's content
@@ -217,16 +206,13 @@ int main(int argc, char** argv) {
             shader.setMat4("model", model);
             cubeMesh->draw(shader);
 
-            // floor
-            model = glm::mat4(1.0f);
-            shader.setMat4("model", model);
-            planeMesh->draw(shader);
-
             // model
             model = glm::mat4(1.0f);
-            model = glm::translate(model, glm::vec3(0.0f, 2.0f, -6.0f));
+            model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+            model = glm::translate(model, glm::vec3(0.0f, -0.5f, 0.0f));
+            model = glm::scale(model, glm::vec3(0.01f));
             shader.setMat4("model", model);
-            backpack->draw(shader);
+            sponza->draw(shader);
 
         // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
         framebuffer->unbind();
@@ -239,7 +225,7 @@ int main(int argc, char** argv) {
         screenShader.bind();
         screenShader.setInt("screenTexture", 0);
 
-        framebuffer->bindColorAttachment(0);
+        framebuffer->bindColorAttachment();
         fsQuad->draw();
         framebuffer->unbindColorAttachment();
 

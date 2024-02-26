@@ -22,7 +22,7 @@ public:
     Config config;
 
     GLFWwindow* window;
-    bool frameResized = true;
+    bool frameResized = false;
 
     Camera camera;
 

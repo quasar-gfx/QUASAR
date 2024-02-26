@@ -15,8 +15,6 @@ enum TextureType {
 
 class Texture : public OpenGLObject {
 public:
-    GLuint ID;
-
     TextureType type = TEXTURE_DIFFUSE;
 
     unsigned int width, height;
@@ -27,7 +25,7 @@ public:
         bind(0);
     }
 
-    void bind(unsigned int slot) {
+    void bind(unsigned int slot = 0) {
         glActiveTexture(GL_TEXTURE0 + slot);
         glBindTexture(GL_TEXTURE_2D, ID);
     }
@@ -41,33 +39,45 @@ public:
         glDeleteTextures(1, &ID);
     }
 
-    static Texture* create(unsigned int width, unsigned int height, TextureType type = TEXTURE_DIFFUSE,
-                           GLenum format = GL_RGB, GLint wrap = GL_CLAMP_TO_EDGE, GLint filter = GL_LINEAR,
-                           unsigned char* data = nullptr) {
-        return new Texture(width, height, type, format, wrap, filter, data);
+    static Texture* create(unsigned int width, unsigned int height,
+            TextureType type = TEXTURE_DIFFUSE,
+            GLenum format = GL_RGB,
+            GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE,
+            GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR,
+            unsigned char* data = nullptr) {
+        return new Texture(width, height, type, format, wrapS, wrapT, minFilter, magFilter, data);
     }
 
-    static Texture* create(const std::string path, TextureType type = TEXTURE_DIFFUSE) {
-        return new Texture(path, type);
+    static Texture* create(const std::string path,
+            TextureType type = TEXTURE_DIFFUSE,
+            GLint wrapS = GL_REPEAT, GLint wrapT = GL_REPEAT,
+            GLint minFilter = GL_LINEAR_MIPMAP_LINEAR, GLint magFilter = GL_LINEAR) {
+        return new Texture(path, type, wrapS, wrapT, minFilter, magFilter);
     }
 
 protected:
-    Texture(unsigned int width, unsigned int height, TextureType type = TEXTURE_DIFFUSE,
-            GLenum format = GL_RGB, GLint wrap = GL_CLAMP_TO_EDGE, GLint filter = GL_LINEAR,
+    Texture(unsigned int width, unsigned int height,
+            TextureType type = TEXTURE_DIFFUSE,
+            GLenum format = GL_RGBA,
+            GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE,
+            GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR,
             unsigned char* data = nullptr)
                 : width(width), height(height), type(type) {
         glGenTextures(1, &ID);
         glBindTexture(GL_TEXTURE_2D, ID);
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapS);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magFilter);
     }
 
-    Texture(const std::string path, TextureType type = TEXTURE_DIFFUSE)
-            : path(path), type(type) {
-        loadFromFile(path.c_str());
+    Texture(const std::string path,
+            TextureType type = TEXTURE_DIFFUSE,
+            GLint wrapS = GL_REPEAT, GLint wrapT = GL_REPEAT,
+            GLint minFilter = GL_LINEAR_MIPMAP_LINEAR, GLint magFilter = GL_LINEAR)
+                : path(path), type(type) {
+        loadFromFile(path.c_str(), wrapS, wrapT, minFilter, magFilter);
     }
 
     ~Texture() {
@@ -75,7 +85,9 @@ protected:
     }
 
 private:
-    void loadFromFile(const std::string path);
+    void loadFromFile(const std::string path,
+        GLint wrapS = GL_REPEAT, GLint wrapT = GL_REPEAT,
+        GLint minFilter = GL_LINEAR_MIPMAP_LINEAR, GLint magFilter = GL_LINEAR);
 };
 
 #endif // TEXTURE_H

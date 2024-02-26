@@ -22,7 +22,7 @@ public:
         glBindFramebuffer(GL_FRAMEBUFFER, ID);
     }
 
-    void bindColorAttachment(unsigned int slot) {
+    void bindColorAttachment(unsigned int slot = 0) {
         colorAttachment->bind(slot);
     }
 

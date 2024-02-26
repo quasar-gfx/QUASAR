@@ -226,7 +226,7 @@ int main(int argc, char** argv) {
         screenShader.setInt("screenTexture", 0);
         screenShader.setInt("videoTexture", 1);
 
-        framebuffer->bindColorAttachment(0);
+        framebuffer->bindColorAttachment();
         videoTexture->bind(1);
         fsQuad->draw();
     });

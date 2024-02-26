@@ -23,16 +23,19 @@ public:
 
     std::string rootDirectory;
 
+    bool flipTextures = false;
+
     void draw(Shader &shader);
 
-    static Model* create(const std::string &modelPath) {
-        return new Model(modelPath);
+    static Model* create(const std::string &modelPath, bool flipTextures = false) {
+        return new Model(modelPath, flipTextures);
     }
 
 private:
     std::unordered_map<std::string, Texture*> texturesLoaded;
 
-    Model(const std::string &modelPath) {
+    Model(const std::string &modelPath, bool flipTextures = false)
+            : flipTextures(flipTextures) {
         std::cout << "Loading model: " << modelPath << std::endl;
         loadFromFile(modelPath);
     }
