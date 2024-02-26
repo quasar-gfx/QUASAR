@@ -49,6 +49,9 @@ set(LIBS ${LIBS} ${SWS_LIBRARY})
 add_subdirectory(${EXTERNAL}/libassimp/tnt)
 set(LIBS ${LIBS} assimp)
 
+add_subdirectory(${EXTERNAL}/imgui/tnt)
+set(LIBS ${LIBS} imgui)
+
 file(GLOB COMMON_SRCS
     "${COMMON}/src/*.cpp"
     "${COMMON}/src/*.c"

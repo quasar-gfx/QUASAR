@@ -14,6 +14,7 @@ public:
     using MouseMoveCallback = std::function<void(double xpos, double ypos)>;
     using MouseScrollCallback = std::function<void(double xoffset, double yoffset)>;
     using AnimCallback = std::function<void(double now, double dt)>;
+    using GuiCallback = std::function<void(double now, double dt)>;
 
     OpenGLApp() = default;
     ~OpenGLApp() = default;
@@ -21,7 +22,7 @@ public:
     Config config;
 
     GLFWwindow* window;
-    bool frameResized = false;
+    bool frameResized = true;
 
     Camera camera;
 
@@ -32,6 +33,7 @@ public:
 
     void mouseMove(MouseMoveCallback callback) { mouseMoveCallback = callback; }
     void mouseScroll(MouseScrollCallback callback) { scrollCallback = callback; }
+    void gui(GuiCallback callback) { guiCallback = callback; }
 
     void getWindowSize(int *resWidth, int *resHeight) const {
         int width, height;
@@ -53,15 +55,16 @@ private:
     MouseMoveCallback mouseMoveCallback;
     MouseScrollCallback scrollCallback;
     AnimCallback animCallback;
+    GuiCallback guiCallback;
 
-    static void mouseMoveCallbackWarpper(GLFWwindow* window, double xpos, double ypos) {
+    static void mouseMoveCallbackWrapper(GLFWwindow* window, double xpos, double ypos) {
         auto app = reinterpret_cast<OpenGLApp*>(glfwGetWindowUserPointer(window));
         if (app->mouseMoveCallback) {
             app->mouseMoveCallback(xpos, ypos);
         }
     }
 
-    static void mouseScrollCallbackWarpper(GLFWwindow* window, double xoffset, double yoffset) {
+    static void mouseScrollCallbackWrapper(GLFWwindow* window, double xoffset, double yoffset) {
         auto app = reinterpret_cast<OpenGLApp*>(glfwGetWindowUserPointer(window));
         if (app->scrollCallback) {
             app->scrollCallback(xoffset, yoffset);

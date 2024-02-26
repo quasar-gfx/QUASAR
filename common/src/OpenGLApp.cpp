@@ -4,6 +4,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <imgui/imgui.h>
+#include <imgui/backends/imgui_impl_opengl3.h>
+#include <imgui/backends/imgui_impl_glfw.h>
+
 #include <OpenGLApp.h>
 
 int OpenGLApp::init() {
@@ -24,10 +28,19 @@ int OpenGLApp::init() {
     }
 
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(1); // Enable vsync
     glfwSetWindowUserPointer(window, this);
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
-    glfwSetCursorPosCallback(window, mouseMoveCallbackWarpper);
-    glfwSetScrollCallback(window, mouseScrollCallbackWarpper);
+    glfwSetCursorPosCallback(window, mouseMoveCallbackWrapper);
+    glfwSetScrollCallback(window, mouseScrollCallbackWrapper);
+
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui::StyleColorsDark();
+
+    // Setup ImGui OpenGL backend
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330");
 
     // tell GLFW to capture our mouse
     // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -54,6 +67,11 @@ void OpenGLApp::run() {
     float currTime;
     float prevTime = static_cast<float>(glfwGetTime());
     while (!glfwWindowShouldClose(window)) {
+        currTime = static_cast<float>(glfwGetTime());
+        float deltaTime = currTime - prevTime;
+
+        glfwPollEvents();
+
         if (frameResized) {
             int width, height;
             getWindowSize(&width, &height);
@@ -66,12 +84,19 @@ void OpenGLApp::run() {
         camera.updateViewMatrix();
         camera.updateProjectionMatrix();
 
-        currTime = static_cast<float>(glfwGetTime());
         if (animCallback) {
-            animCallback(currTime, currTime - prevTime);
+            animCallback(currTime, deltaTime);
         }
+
+        if (guiCallback) {
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            guiCallback(currTime, deltaTime);
+            ImGui::Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        }
+
         glfwSwapBuffers(window);
-        glfwPollEvents();
 
         prevTime = currTime;
     }

@@ -1,5 +1,7 @@
 #include <iostream>
 
+#include <imgui/imgui.h>
+
 #include <Shader.h>
 #include <VertexBuffer.h>
 #include <Texture.h>
@@ -8,6 +10,8 @@
 #include <OpenGLApp.h>
 
 #include <VideoTexture.h>
+
+#define GUI_UPDATE_FRAMERATE_INTERVAL 0.1f // seconds
 
 void processInput(OpenGLApp* app, float deltaTime);
 
@@ -35,6 +39,27 @@ int main(int argc, char** argv) {
     }
 
     app.init();
+
+    app.gui([&app](double now, double dt) {
+        static float deltaTimeSum = 0.0f;
+        static int sumCount = 0;
+        static float frameRateToDisplay = 0.0f;
+        static float prevDisplayTime = 0.0f;
+
+        ImGui::NewFrame();
+        ImGui::SetNextWindowPos(ImVec2(10, 10));
+        ImGui::Begin(app.config.title.c_str());
+        if (now - prevDisplayTime > GUI_UPDATE_FRAMERATE_INTERVAL) {
+            prevDisplayTime = now;
+            if (deltaTimeSum > 0.0f) {
+                frameRateToDisplay = sumCount / deltaTimeSum;
+                deltaTimeSum = 0.0f; sumCount = 0;
+            }
+        }
+        ImGui::Text("Frame rate: %.1f FPS", frameRateToDisplay);
+        deltaTimeSum += dt; sumCount++;
+        ImGui::End();
+    });
 
     app.mouseMove([&app](double xposIn, double yposIn) {
         static float lastX = app.config.width / 2.0;

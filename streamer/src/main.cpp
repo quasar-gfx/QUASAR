@@ -1,5 +1,7 @@
 #include <iostream>
 
+#include <imgui/imgui.h>
+
 #include <Shader.h>
 #include <VertexBuffer.h>
 #include <Texture.h>
@@ -10,11 +12,12 @@
 
 #include <VideoStreamer.h>
 
+#define GUI_UPDATE_FRAMERATE_INTERVAL 0.1f // seconds
+
 void processInput(OpenGLApp* app, float deltaTime);
 
 const std::string CONTAINER_TEXTURE = "../assets/textures/container.jpg";
 const std::string METAL_TEXTURE = "../assets/textures/metal.png";
-const std::string MODEL_PATH = "../assets/models/backpack/backpack.obj";
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
@@ -22,6 +25,7 @@ int main(int argc, char** argv) {
 
     std::string inputFileName = "input.mp4";
     std::string outputUrl = "udp://localhost:1234";
+    std::string modelPath = "../assets/models/backpack/backpack.obj";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             app.config.width = atoi(argv[i + 1]);
@@ -29,6 +33,10 @@ int main(int argc, char** argv) {
         }
         else if (!strcmp(argv[i], "-h") && i + 1 < argc) {
             app.config.height = atoi(argv[i + 1]);
+            i++;
+        }
+        else if (!strcmp(argv[i], "-m") && i + 1 < argc) {
+            modelPath = argv[i + 1];
             i++;
         }
         else if (!strcmp(argv[i], "-i") && i + 1 < argc) {
@@ -42,6 +50,27 @@ int main(int argc, char** argv) {
     }
 
     app.init();
+
+    app.gui([&app](double now, double dt) {
+        static float deltaTimeSum = 0.0f;
+        static int sumCount = 0;
+        static float frameRateToDisplay = 0.0f;
+        static float prevDisplayTime = 0.0f;
+
+        ImGui::NewFrame();
+        ImGui::SetNextWindowPos(ImVec2(10, 10));
+        ImGui::Begin(app.config.title.c_str());
+        if (now - prevDisplayTime > GUI_UPDATE_FRAMERATE_INTERVAL) {
+            prevDisplayTime = now;
+            if (deltaTimeSum > 0.0f) {
+                frameRateToDisplay = sumCount / deltaTimeSum;
+                deltaTimeSum = 0.0f; sumCount = 0;
+            }
+        }
+        ImGui::Text("Frame rate: %.1f FPS", frameRateToDisplay);
+        deltaTimeSum += dt; sumCount++;
+        ImGui::End();
+    });
 
     app.mouseMove([&app](double xposIn, double yposIn) {
         static float lastX = app.config.width / 2.0;
@@ -131,7 +160,7 @@ int main(int argc, char** argv) {
     };
     Mesh* planeMesh = Mesh::create(planeVertices, floorTextures);
 
-    Model* backpack = Model::create(MODEL_PATH);
+    Model* backpack = Model::create(modelPath);
 
     float quadVertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
         // positions   // texCoords
