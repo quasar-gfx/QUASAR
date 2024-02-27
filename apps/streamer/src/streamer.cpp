@@ -14,11 +14,34 @@
 #include <FullScreenQuad.h>
 #include <OpenGLApp.h>
 
+#include <cuda.h>
+
 #include <VideoStreamer.h>
 
 #define GUI_UPDATE_FRAMERATE_INTERVAL 0.1f // seconds
 
 void processInput(OpenGLApp* app, Camera* camera, float deltaTime);
+
+int getDeviceName(std::string& gpuName) {
+    // Setup the cuda context for hardware encoding with ffmpeg
+    int iGpu = 0;
+    CUresult res;
+    cuInit(0);
+    int nGpu = 0;
+    cuDeviceGetCount(&nGpu);
+    if (iGpu < 0 || iGpu >= nGpu) {
+        std::cout << "GPU ordinal out of range. Should be within [" << 0 << ", " << nGpu - 1 << "]" << std::endl;
+        return 1;
+    }
+
+    CUdevice cuDevice = 0;
+    cuDeviceGet(&cuDevice, iGpu);
+    char szDeviceName[80];
+    cuDeviceGetName(szDeviceName, sizeof(szDeviceName), cuDevice);
+    gpuName = szDeviceName;
+
+    return 0;
+}
 
 const std::string CONTAINER_TEXTURE = "../../assets/textures/container.jpg";
 const std::string METAL_TEXTURE = "../../assets/textures/metal.png";
@@ -51,6 +74,12 @@ int main(int argc, char** argv) {
             i++;
         }
     }
+
+    std::string gpuName;
+    if (getDeviceName(gpuName) != 0) {
+        return 1;
+    }
+    std::cout << "GPU in use: " << gpuName << std::endl;
 
     app.init();
 

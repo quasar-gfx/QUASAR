@@ -19,6 +19,13 @@ set(LIBS )
 
 set(LIBS ${LIBS} -ldl)
 
+find_package(CUDA 12.0 REQUIRED)
+set(LIBS ${LIBS} ${CUDA_LIBRARIES})
+
+find_package(CUDAToolkit REQUIRED)
+set(LIBS ${LIBS} CUDA::cudart)
+set(LIBS ${LIBS} CUDA::cuda_driver)
+
 find_package(OpenGL REQUIRED)
 set(LIBS ${LIBS} ${OPENGL_LIBRARIES})
 
@@ -59,12 +66,15 @@ file(GLOB RENDERER_SRCS
     "${RENDERER}/src/*.c"
 )
 
+set(CUDA_INCLUDE /usr/local/cuda/include)
+
 include_directories(
     ${OPENGL_INCLUDE_DIRS}
     ${GLFW_INCLUDE_DIRS}
     ${AVCODEC_INCLUDE_DIR} ${AVFORMAT_INCLUDE_DIR} ${AVUTIL_INCLUDE_DIR} ${AVDEVICE_INCLUDE_DIR}
     ${RENDERER}/include
     ${EXTERNAL}
+    ${CUDA_INCLUDE}
 )
 
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/assets" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
