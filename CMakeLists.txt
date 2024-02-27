@@ -13,7 +13,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Werror -g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
 set(EXTERNAL ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
-set(COMMON ${CMAKE_CURRENT_SOURCE_DIR}/common)
+set(RENDERER ${CMAKE_CURRENT_SOURCE_DIR}/renderer)
 
 set(LIBS )
 
@@ -52,20 +52,19 @@ set(LIBS ${LIBS} assimp)
 add_subdirectory(${EXTERNAL}/imgui/tnt)
 set(LIBS ${LIBS} imgui)
 
-file(GLOB COMMON_SRCS
-    "${COMMON}/src/*.cpp"
-    "${COMMON}/src/*.c"
+file(GLOB RENDERER_SRCS
+    "${RENDERER}/src/*.cpp"
+    "${RENDERER}/src/*.c"
 )
 
 include_directories(
     ${OPENGL_INCLUDE_DIRS}
     ${GLFW_INCLUDE_DIRS}
     ${AVCODEC_INCLUDE_DIR} ${AVFORMAT_INCLUDE_DIR} ${AVUTIL_INCLUDE_DIR} ${AVDEVICE_INCLUDE_DIR}
-    ${COMMON}/include
+    ${RENDERER}/include
     ${EXTERNAL}
 )
 
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/assets" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-add_subdirectory(streamer)
-add_subdirectory(receiver)
+add_subdirectory(apps)

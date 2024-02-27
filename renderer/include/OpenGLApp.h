@@ -37,8 +37,8 @@ public:
     void onMouseScroll(MouseScrollCallback callback) { scrollCallback = callback; }
     void onRender(RenderCallback callback) { renderCallback = callback; };
 
-    void render(Shader &shader, Scene* scene, Camera* camera);
-    void renderNode(Shader &shader, Node* node, glm::mat4 parentTransform);
+    void draw(Shader &shader, Scene* scene, Camera* camera);
+    void drawNode(Shader &shader, Node* node, glm::mat4 parentTransform);
 
     void getWindowSize(int *resWidth, int *resHeight) const {
         int width, height;

@@ -10,17 +10,19 @@ cmake ..
 make -j
 ```
 
+In the `out` directory, there will be a folder called `apps`,
+
 To run streamer:
 ```
 # in out directory
-cd streamer
+cd apps/streamer
 ./streamer
 ```
 
 In a new terminal, to run receiever:
 ```
 # in out directory
-cd receiever
+cd apps/receiever
 ./receiever
 ```
 

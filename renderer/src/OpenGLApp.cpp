@@ -68,7 +68,7 @@ void OpenGLApp::cleanup() {
     glfwTerminate();
 }
 
-void OpenGLApp::render(Shader &shader, Scene* scene, Camera* camera) {
+void OpenGLApp::draw(Shader &shader, Scene* scene, Camera* camera) {
     glm::mat4 model;
 
     shader.bind();
@@ -77,13 +77,13 @@ void OpenGLApp::render(Shader &shader, Scene* scene, Camera* camera) {
     shader.setMat4("projection", camera->getProjectionMatrix());
 
     for (auto child : scene->children) {
-        renderNode(shader, child, glm::mat4(1.0f));
+        drawNode(shader, child, glm::mat4(1.0f));
     }
 
     shader.unbind();
 }
 
-void OpenGLApp::renderNode(Shader &shader, Node* node, glm::mat4 parentTransform) {
+void OpenGLApp::drawNode(Shader &shader, Node* node, glm::mat4 parentTransform) {
     glm::mat4 model = parentTransform * node->getTransformParentFromLocal();
 
     if (node->entity != nullptr) {
@@ -92,7 +92,7 @@ void OpenGLApp::renderNode(Shader &shader, Node* node, glm::mat4 parentTransform
     }
 
     for (auto& child : node->children) {
-        renderNode(shader, child, model);
+        drawNode(shader, child, model);
     }
 }
 

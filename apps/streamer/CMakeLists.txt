@@ -1,16 +1,17 @@
 cmake_minimum_required(VERSION 3.19)
-project(Receiver)
+project(Streamer)
 
-set(TARGET receiver)
+set(TARGET streamer)
 
 file(GLOB SRCS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
 )
 
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/input.mp4" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/shaders" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-add_executable(${TARGET} ${COMMON_SRCS} ${SRCS})
+add_executable(${TARGET} ${RENDERER_SRCS} ${SRCS})
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 

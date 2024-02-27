@@ -13,9 +13,15 @@
 class FullScreenQuad {
 public:
     void draw() {
-        quadVB->bind();
+        // disable depth test so screen-space quad isn't discarded due to depth test.
+        glDisable(GL_DEPTH_TEST);
+
+        quadVBO->bind();
         glDrawArrays(GL_TRIANGLES, 0, 6);
-        quadVB->unbind();
+        quadVBO->unbind();
+
+        // re-enable depth test
+        glEnable(GL_DEPTH_TEST);
     }
 
     static FullScreenQuad* create() {
@@ -28,7 +34,7 @@ private:
         glm::vec2 texCoords;
     };
 
-    VertexBuffer* quadVB;
+    VertexBuffer* quadVBO;
     FullScreenQuad() {
         // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
         std::vector<FSQuadVertex> quadVertices = {
@@ -41,10 +47,10 @@ private:
             {{ 1.0f,  1.0f}, {1.0f, 1.0f}}
         };
 
-        quadVB = new VertexBuffer(quadVertices.data(), quadVertices.size() * sizeof(FSQuadVertex));
-        quadVB->bind();
-        quadVB->addAttribute(0, 2, GL_FALSE, 4 * sizeof(float), 0);
-        quadVB->addAttribute(1, 2, GL_FALSE, 4 * sizeof(float), 2 * sizeof(float));
+        quadVBO = new VertexBuffer(quadVertices.data(), quadVertices.size() * sizeof(FSQuadVertex));
+        quadVBO->bind();
+        quadVBO->addAttribute(0, 2, GL_FALSE, sizeof(FSQuadVertex), 0);
+        quadVBO->addAttribute(1, 2, GL_FALSE, sizeof(FSQuadVertex), offsetof(FSQuadVertex, texCoords));
     }
 
     ~FullScreenQuad() { }

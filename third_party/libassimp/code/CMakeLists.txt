@@ -162,7 +162,7 @@ SET( Logging_SRCS
 )
 SOURCE_GROUP(Logging FILES ${Logging_SRCS})
 
-SET( Common_SRCS
+SET( RENDERER_SRCS
   Common/BaseImporter.cpp
   Common/BaseProcess.cpp
   Common/BaseProcess.h
@@ -199,7 +199,7 @@ SET( Common_SRCS
   Common/simd.h
   Common/simd.cpp
 )
-SOURCE_GROUP(Common FILES ${Common_SRCS})
+SOURCE_GROUP(Common FILES ${RENDERER_SRCS})
 
 SET( CApi_SRCS
   CApi/CInterfaceIOWrapper.cpp
@@ -1063,7 +1063,7 @@ SET( assimp_src
   # Assimp Files
   ${Core_SRCS}
   ${CApi_SRCS}
-  ${Common_SRCS}
+  ${RENDERER_SRCS}
   ${Logging_SRCS}
   ${Exporter_SRCS}
   ${PostProcessing_SRCS}
