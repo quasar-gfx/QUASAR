@@ -8,15 +8,7 @@
 int VideoTexture::initVideo(const std::string inputUrl) {
     this->inputUrl = inputUrl;
 
-    int ret = initFFMpeg();
-    if (ret < 0) {
-        return ret;
-    }
-
-    ret = initOutputFrame();
-    if (ret < 0) {
-        return ret;
-    }
+    videoReceiverThread = std::thread(&VideoTexture::receiveVideo, this);
 
     return 0;
 }
@@ -27,7 +19,7 @@ int VideoTexture::initFFMpeg() {
     std::cout << "Waiting to receive video..." << std::endl;
 
     /* BEGIN: Setup input (to read video from url) */
-    int ret = avformat_open_input(&inputFormatContext, inputUrl.c_str(), nullptr, nullptr);
+    int ret = avformat_open_input(&inputFormatContext, inputUrl.c_str(), nullptr, nullptr); // blocking
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Cannot open input URL: %s\n", av_err2str(ret));
         return ret;
@@ -98,47 +90,70 @@ int VideoTexture::initOutputFrame() {
     return 0;
 }
 
-int VideoTexture::receive() {
-    // read frame from URL
-    int ret = av_read_frame(inputFormatContext, &packet);
+void VideoTexture::receiveVideo() {
+    int ret = initFFMpeg();
     if (ret < 0) {
-        av_log(nullptr, AV_LOG_ERROR, "Error reading frame: %s\n", av_err2str(ret));
-        return ret;
+        return;
     }
 
-    if (packet.stream_index == videoStreamIndex) {
-        // send packet to decoder
-        ret = avcodec_send_packet(inputCodecContext, &packet);
-        if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-            av_log(nullptr, AV_LOG_ERROR, "Error: Could not send packet to input decoder: %s\n", av_err2str(ret));
-            return ret;
-        }
-
-        // get frame from decoder
-        AVFrame *frame = av_frame_alloc();
-        ret = avcodec_receive_frame(inputCodecContext, frame);
-        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-            av_packet_unref(&packet);
-            return 1;
-        }
-        else if (ret < 0) {
-            av_log(nullptr, AV_LOG_ERROR, "Error: Could not receive raw frame from input decoder: %s\n", av_err2str(ret));
-            return ret;
-        }
-
-        // resize video frame to fit output texture size
-        sws_scale(swsContext, (uint8_t const* const*)frame->data, frame->linesize,
-                    0, inputCodecContext->height, frameRGB->data, frameRGB->linesize);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, frameRGB->data[0]);
-
-        frameReceived++;
-        std::cout << "Received " << frameReceived << " video frames from " << inputUrl << std::endl;
+    ret = initOutputFrame();
+    if (ret < 0) {
+        return;
     }
 
-    return 0;
+    videoReady = true;
+
+    while (1) {
+        // read frame from URL
+        int ret = av_read_frame(inputFormatContext, &packet);
+        if (ret < 0) {
+            av_log(nullptr, AV_LOG_ERROR, "Error reading frame: %s\n", av_err2str(ret));
+            return;
+        }
+
+        if (packet.stream_index == videoStreamIndex) {
+            // send packet to decoder
+            ret = avcodec_send_packet(inputCodecContext, &packet);
+            if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+                av_log(nullptr, AV_LOG_ERROR, "Error: Could not send packet to input decoder: %s\n", av_err2str(ret));
+                return;
+            }
+
+            // get frame from decoder
+            AVFrame *frame = av_frame_alloc();
+            ret = avcodec_receive_frame(inputCodecContext, frame);
+            if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+                av_packet_unref(&packet);
+                continue;
+            }
+            else if (ret < 0) {
+                av_log(nullptr, AV_LOG_ERROR, "Error: Could not receive raw frame from input decoder: %s\n", av_err2str(ret));
+                return;
+            }
+
+            // resize video frame to fit output texture size
+            frameRGBMutex.lock();
+            sws_scale(swsContext, (uint8_t const* const*)frame->data, frame->linesize,
+                        0, inputCodecContext->height, frameRGB->data, frameRGB->linesize);
+            frameRGBMutex.unlock();
+
+            frameReceived++;
+            std::cout << "Received " << frameReceived << " video frames from " << inputUrl << std::endl;
+        }
+    }
+}
+
+void VideoTexture::draw() {
+    if (!videoReady) {
+        return;
+    }
+    frameRGBMutex.lock();
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, frameRGB->data[0]);
+    frameRGBMutex.unlock();
 }
 
 void VideoTexture::cleanup() {
+    videoReceiverThread.join();
     Texture::cleanup();
     avformat_close_input(&inputFormatContext);
     avformat_free_context(inputFormatContext);

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <thread>
 
 #include <imgui/imgui.h>
 
@@ -174,11 +175,6 @@ int main(int argc, char** argv) {
     FrameBuffer* framebuffer = FrameBuffer::create(width, height);
 
     app.animate([&](double now, double dt) {
-        ret = videoTexture->receive();
-        if (ret < 0) {
-            std::cerr << "Failed to receive frame" << std::endl;
-        }
-
         processInput(&app, dt);
 
         // bind to framebuffer and draw scene as we normally would to color texture
@@ -228,6 +224,7 @@ int main(int argc, char** argv) {
 
         framebuffer->bindColorAttachment();
         videoTexture->bind(1);
+        videoTexture->draw();
         fsQuad->draw();
     });
 

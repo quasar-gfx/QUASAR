@@ -2,6 +2,7 @@
 #define VIDEO_RECEIVER_H
 
 #include <iostream>
+#include <thread>
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -19,25 +20,29 @@ public:
     int frameReceived;
 
     int initVideo(const std::string inputUrl);
-    int receive();
     void cleanup();
 
+    void draw();
+
     static VideoTexture* create(unsigned int width, unsigned int height,
-            GLenum format = GL_RGB, GLint wrap = GL_CLAMP_TO_EDGE, GLint filter = GL_LINEAR) {
-        return new VideoTexture(width, height, format, wrap, filter);
+            GLenum format = GL_RGB,
+            GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE,
+            GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR) {
+        return new VideoTexture(width, height, format, wrapS, wrapT, minFilter, magFilter);
     }
 
 private:
     VideoTexture(unsigned int width, unsigned int height,
-            GLenum format = GL_RGB, GLint wrap = GL_CLAMP_TO_EDGE, GLint filter = GL_LINEAR)
-            : frameReceived(0), Texture(width, height, TEXTURE_DIFFUSE, format, wrap, filter) { }
+            GLenum format = GL_RGB,
+            GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE,
+            GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR)
+                : frameReceived(0), Texture(width, height, TEXTURE_DIFFUSE, format, wrapS, wrapT, minFilter, magFilter) { }
 
     ~VideoTexture() {
         cleanup();
     }
 
     AVFormatContext* inputFormatContext = nullptr;
-
     AVCodecContext* inputCodecContext = nullptr;
 
     AVPacket packet;
@@ -46,6 +51,13 @@ private:
     AVFrame* frameRGB = nullptr;
     uint8_t* buffer = nullptr;
     struct SwsContext* swsContext = nullptr;
+
+    bool videoReady = false;
+
+    std::thread videoReceiverThread;
+    std::mutex frameRGBMutex;
+
+    void receiveVideo();
 
     int initFFMpeg();
     int initOutputFrame();

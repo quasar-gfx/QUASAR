@@ -2,6 +2,7 @@
 #define VIDEOSTREAMER_H
 
 #include <iostream>
+#include <thread>
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -17,15 +18,17 @@ public:
 
     unsigned int framesSent;
 
-    VideoStreamer() = default;
-    ~VideoStreamer() = default;
-
     int init(const std::string inputFileName, const std::string outputUrl);
     void cleanup();
 
-    int sendFrame();
+    static VideoStreamer* create() {
+        return new VideoStreamer();
+    }
 
 private:
+    VideoStreamer() = default;
+    ~VideoStreamer() = default;
+
     AVFormatContext *inputFormatContext = nullptr;
     AVFormatContext *outputFormatContext = nullptr;
 
@@ -37,6 +40,10 @@ private:
     int videoStreamIndex = -1;
     AVStream *inputVideoStream = nullptr;
     AVStream *outputVideoStream = nullptr;
+
+    std::thread videoStreamerThread;
+
+    void sendFrame();
 };
 
 #endif // VIDEOSTREAMER_H

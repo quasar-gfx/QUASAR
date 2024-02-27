@@ -31,7 +31,7 @@ int VideoStreamer::init(const std::string inputFileName, const std::string outpu
 
     if (videoStreamIndex == -1 || inputVideoStream == nullptr) {
         av_log(nullptr, AV_LOG_ERROR, "No video stream found in the input file.\n");
-        return -1;
+;
     }
     /* END: Setup input (to read video from file) */
 
@@ -134,101 +134,103 @@ int VideoStreamer::init(const std::string inputFileName, const std::string outpu
     }
     /* END: Setup output (to write video to URL) */
 
+    videoStreamerThread = std::thread(&VideoStreamer::sendFrame, this);
+
     return 0;
 }
 
-int VideoStreamer::sendFrame() {
+void VideoStreamer::sendFrame() {
     static int64_t start_time = av_gettime();
 
-    // read frame from file
-    int ret = av_read_frame(inputFormatContext, &inputPacket);
-    if (ret < 0) {
-        av_log(nullptr, AV_LOG_ERROR, "Error reading frame: %s\n", av_err2str(ret));
-        return -1;
-    }
-
-    if (inputPacket.stream_index == videoStreamIndex) {
-        // send packet to decoder
-        ret = avcodec_send_packet(inputCodecContext, &inputPacket);
+    while (1) {
+        // read frame from file
+        int ret = av_read_frame(inputFormatContext, &inputPacket);
         if (ret < 0) {
-            av_log(nullptr, AV_LOG_ERROR, "Error: Could not send packet to input decoder: %s\n", av_err2str(ret));
-            return ret;
+            av_log(nullptr, AV_LOG_ERROR, "Error reading frame: %s\n", av_err2str(ret));
+            return;
         }
 
-        // get frame from decoder
-        AVFrame *frame = av_frame_alloc();
-        ret = avcodec_receive_frame(inputCodecContext, frame);
-        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-            av_frame_free(&frame);
-            av_packet_unref(&inputPacket);
-            return 1;
-        }
-        else if (ret < 0) {
-            av_log(nullptr, AV_LOG_ERROR, "Error: Could not receive raw frame from input decoder: %s\n", av_err2str(ret));
-            return ret;
-        }
+        if (inputPacket.stream_index == videoStreamIndex) {
+            // send packet to decoder
+            ret = avcodec_send_packet(inputCodecContext, &inputPacket);
+            if (ret < 0) {
+                av_log(nullptr, AV_LOG_ERROR, "Error: Could not send packet to input decoder: %s\n", av_err2str(ret));
+                return;
+            }
 
-        // send packet to encoder
-        ret = avcodec_send_frame(outputCodecContext, frame);
-        if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-            av_log(nullptr, AV_LOG_ERROR, "Error: Could not send frame to output encoder: %s\n", av_err2str(ret));
-            return ret;
-        }
+            // get frame from decoder
+            AVFrame *frame = av_frame_alloc();
+            ret = avcodec_receive_frame(inputCodecContext, frame);
+            if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+                av_frame_free(&frame);
+                av_packet_unref(&inputPacket);
+                continue;
+            }
+            else if (ret < 0) {
+                av_log(nullptr, AV_LOG_ERROR, "Error: Could not receive raw frame from input decoder: %s\n", av_err2str(ret));
+                return;
+            }
 
-        // get packet from encoder
-        ret = avcodec_receive_packet(outputCodecContext, &outputPacket);
-        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-            av_frame_free(&frame);
+            // send packet to encoder
+            ret = avcodec_send_frame(outputCodecContext, frame);
+            if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+                av_log(nullptr, AV_LOG_ERROR, "Error: Could not send frame to output encoder: %s\n", av_err2str(ret));
+                return;
+            }
+
+            // get packet from encoder
+            ret = avcodec_receive_packet(outputCodecContext, &outputPacket);
+            if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+                av_frame_free(&frame);
+                av_packet_unref(&outputPacket);
+                continue;
+            }
+            else if (ret < 0) {
+                av_log(nullptr, AV_LOG_ERROR, "Error: Could not receive frame from encoder: %s\n", av_err2str(ret));
+                return;
+            }
+
+            outputPacket.stream_index = outputVideoStream->index;
+            if (outputPacket.pts == AV_NOPTS_VALUE) {
+                // write PTS
+                AVRational time_base1 = inputVideoStream->time_base;
+                // duration between 2 frames (us)
+                int64_t calc_duration = (double)AV_TIME_BASE/av_q2d(inputVideoStream->r_frame_rate);
+                // parameters
+                outputPacket.pts = (double)(framesSent*calc_duration)/(double)(av_q2d(time_base1)*AV_TIME_BASE);
+                outputPacket.dts = outputPacket.pts;
+                outputPacket.duration = (double)calc_duration/(double)(av_q2d(time_base1)*AV_TIME_BASE);
+            }
+
+            // important to maintain FPS - delay
+            AVRational time_base = inputVideoStream->time_base;
+            AVRational time_base_q = {1, AV_TIME_BASE};
+            int64_t pts_time = av_rescale_q(outputPacket.dts, time_base, time_base_q);
+            int64_t now_time = av_gettime() - start_time;
+            if (pts_time > now_time) {
+                av_usleep(pts_time - now_time);
+            }
+
+            // convert PTS/DTS
+            outputPacket.pts = av_rescale_q_rnd(inputPacket.pts, inputVideoStream->time_base, outputVideoStream->time_base,
+                                            (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+            outputPacket.dts = av_rescale_q_rnd(inputPacket.dts, inputVideoStream->time_base, outputVideoStream->time_base,
+                                            (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+            outputPacket.duration = av_rescale_q(inputPacket.duration, inputVideoStream->time_base, outputVideoStream->time_base);
+            outputPacket.pos = -1;
+
+            // send packet to output URL
+            framesSent++;
+            std::cout << "Sending frame " << framesSent << " to " << outputUrl << std::endl;
+            ret = av_interleaved_write_frame(outputFormatContext, &outputPacket);
             av_packet_unref(&outputPacket);
-            return 1;
-        }
-        else if (ret < 0) {
-            av_log(nullptr, AV_LOG_ERROR, "Error: Could not receive frame from encoder: %s\n", av_err2str(ret));
-            return ret;
-        }
-
-        outputPacket.stream_index = outputVideoStream->index;
-        if (outputPacket.pts == AV_NOPTS_VALUE) {
-            // write PTS
-            AVRational time_base1 = inputVideoStream->time_base;
-            // duration between 2 frames (us)
-            int64_t calc_duration = (double)AV_TIME_BASE/av_q2d(inputVideoStream->r_frame_rate);
-            // parameters
-            outputPacket.pts = (double)(framesSent*calc_duration)/(double)(av_q2d(time_base1)*AV_TIME_BASE);
-            outputPacket.dts = outputPacket.pts;
-            outputPacket.duration = (double)calc_duration/(double)(av_q2d(time_base1)*AV_TIME_BASE);
-        }
-
-        // important to maintain FPS - delay
-        AVRational time_base = inputVideoStream->time_base;
-        AVRational time_base_q = {1, AV_TIME_BASE};
-        int64_t pts_time = av_rescale_q(outputPacket.dts, time_base, time_base_q);
-        int64_t now_time = av_gettime() - start_time;
-        if (pts_time > now_time) {
-            av_usleep(pts_time - now_time);
-        }
-
-        // convert PTS/DTS
-        outputPacket.pts = av_rescale_q_rnd(inputPacket.pts, inputVideoStream->time_base, outputVideoStream->time_base,
-                                        (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-        outputPacket.dts = av_rescale_q_rnd(inputPacket.dts, inputVideoStream->time_base, outputVideoStream->time_base,
-                                        (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-        outputPacket.duration = av_rescale_q(inputPacket.duration, inputVideoStream->time_base, outputVideoStream->time_base);
-        outputPacket.pos = -1;
-
-        // send packet to output URL
-        framesSent++;
-        std::cout << "Sending frame " << framesSent << " to " << outputUrl << std::endl;
-        ret = av_interleaved_write_frame(outputFormatContext, &outputPacket);
-        av_packet_unref(&outputPacket);
-        av_frame_free(&frame);
-        if (ret < 0) {
-            av_log(nullptr, AV_LOG_ERROR, "Error writing frame\n");
-            return ret;
+            av_frame_free(&frame);
+            if (ret < 0) {
+                av_log(nullptr, AV_LOG_ERROR, "Error writing frame\n");
+                return;
+            }
         }
     }
-
-    return 0;
 }
 
 void VideoStreamer::cleanup() {

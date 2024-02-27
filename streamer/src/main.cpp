@@ -163,8 +163,8 @@ int main(int argc, char** argv) {
 
     FullScreenQuad* fsQuad = FullScreenQuad::create();
 
-    VideoStreamer videoStreamer{};
-    int ret = videoStreamer.init(inputFileName, outputUrl);
+    VideoStreamer* videoStreamer = VideoStreamer::create();
+    int ret = videoStreamer->init(inputFileName, outputUrl);
     if (ret < 0) {
         std::cerr << "Failed to initialize FFMpeg Video Streamer" << std::endl;
         return ret;
@@ -228,12 +228,6 @@ int main(int argc, char** argv) {
         framebuffer->bindColorAttachment();
         fsQuad->draw();
         framebuffer->unbindColorAttachment();
-
-        // @TODO make this stream the framebuffer to the output URL
-        ret = videoStreamer.sendFrame();
-        if (ret < 0) {
-            return;
-        }
     });
 
     // run app loop (blocking)
