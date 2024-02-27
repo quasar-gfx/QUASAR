@@ -6,15 +6,18 @@
 
 #include <functional>
 
+#include <Shader.h>
+#include <Scene.h>
 #include <Camera.h>
 #include <OpenGLAppConfig.h>
 
 class OpenGLApp {
 public:
+    using GuiCallback = std::function<void(double now, double dt)>;
+    using ResizeCallback = std::function<void(unsigned int width, unsigned int height)>;
     using MouseMoveCallback = std::function<void(double xpos, double ypos)>;
     using MouseScrollCallback = std::function<void(double xoffset, double yoffset)>;
     using RenderCallback = std::function<void(double now, double dt)>;
-    using GuiCallback = std::function<void(double now, double dt)>;
 
     OpenGLApp() = default;
     ~OpenGLApp() = default;
@@ -24,16 +27,18 @@ public:
     GLFWwindow* window;
     bool frameResized = false;
 
-    Camera camera;
-
     int init();
     void cleanup();
     void run();
 
     void gui(GuiCallback callback) { guiCallback = callback; }
-    void mouseMove(MouseMoveCallback callback) { mouseMoveCallback = callback; }
-    void mouseScroll(MouseScrollCallback callback) { scrollCallback = callback; }
-    void render(RenderCallback callback) { renderCallback = callback; };
+    void onResize(ResizeCallback callback) { resizeCallback = callback; }
+    void onMouseMove(MouseMoveCallback callback) { mouseMoveCallback = callback; }
+    void onMouseScroll(MouseScrollCallback callback) { scrollCallback = callback; }
+    void onRender(RenderCallback callback) { renderCallback = callback; };
+
+    void render(Shader &shader, Scene* scene, Camera* camera);
+    void renderNode(Shader &shader, Node* node, glm::mat4 parentTransform);
 
     void getWindowSize(int *resWidth, int *resHeight) const {
         int width, height;
@@ -52,10 +57,11 @@ public:
     }
 
 private:
+    GuiCallback guiCallback;
+    ResizeCallback resizeCallback;
     MouseMoveCallback mouseMoveCallback;
     MouseScrollCallback scrollCallback;
     RenderCallback renderCallback;
-    GuiCallback guiCallback;
 
     static void mouseMoveCallbackWrapper(GLFWwindow* window, double xpos, double ypos) {
         auto app = reinterpret_cast<OpenGLApp*>(glfwGetWindowUserPointer(window));

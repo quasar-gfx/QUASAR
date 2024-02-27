@@ -6,6 +6,9 @@
 #include <Shader.h>
 #include <Texture.h>
 #include <Mesh.h>
+#include <Entity.h>
+#include <Scene.h>
+#include <Camera.h>
 #include <FrameBuffer.h>
 #include <FullScreenQuad.h>
 #include <OpenGLApp.h>
@@ -14,7 +17,7 @@
 
 #define GUI_UPDATE_FRAMERATE_INTERVAL 0.1f // seconds
 
-void processInput(OpenGLApp* app, float deltaTime);
+void processInput(OpenGLApp* app, Camera* camera, float deltaTime);
 
 const std::string CONTAINER_TEXTURE = "../assets/textures/container.jpg";
 const std::string METAL_TEXTURE = "../assets/textures/metal.png";
@@ -37,13 +40,19 @@ int main(int argc, char** argv) {
             inputUrl = argv[i + 1];
             i++;
         }
-        else if (!strcmp(argv[i], "-v")) {
-            app.config.enableVSync = true;
+        else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
+            app.config.enableVSync = atoi(argv[i + 1]);
             i++;
         }
     }
 
     app.init();
+
+    int width, height;
+    app.getWindowSize(&width, &height);
+
+    Scene* scene = new Scene();
+    Camera* camera = new Camera(width, height);
 
     VideoTexture* videoTexture = VideoTexture::create(app.config.width, app.config.height);
     int ret = videoTexture->initVideo(inputUrl);
@@ -74,7 +83,11 @@ int main(int argc, char** argv) {
         ImGui::End();
     });
 
-    app.mouseMove([&app](double xposIn, double yposIn) {
+    app.onResize([&camera](unsigned int width, unsigned int height) {
+        camera->aspect = (float)width / (float)height;
+    });
+
+    app.onMouseMove([&app, &camera](double xposIn, double yposIn) {
         static float lastX = app.config.width / 2.0;
         static float lastY = app.config.height / 2.0;
 
@@ -87,11 +100,11 @@ int main(int argc, char** argv) {
         lastX = xpos;
         lastY = ypos;
 
-        app.camera.processMouseMovement(xoffset, yoffset);
+        camera->processMouseMovement(xoffset, yoffset);
     });
 
-    app.mouseScroll([&app](double xoffset, double yoffset) {
-        app.camera.processMouseScroll(static_cast<float>(yoffset));
+    app.onMouseScroll([&app, &camera](double xoffset, double yoffset) {
+        camera->processMouseScroll(static_cast<float>(yoffset));
     });
 
     Shader shader("shaders/framebuffer.vert", "shaders/framebuffer.frag");
@@ -157,6 +170,12 @@ int main(int argc, char** argv) {
     };
     Mesh* cubeMesh = Mesh::create(cubeVertices, cubeTextures);
 
+    Node* cubeNode1 = Node::create(cubeMesh);
+    cubeNode1->setTranslation(glm::vec3(-1.0f, 0.0f, -1.0f));
+
+    Node* cubeNode2 = Node::create(cubeMesh);
+    cubeNode2->setTranslation(glm::vec3(2.0f, 0.0f, 0.0f));
+
     std::vector<Vertex> planeVertices = {
         {{ 25.0f, -0.5f, -25.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
         {{-25.0f, -0.5f, -25.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
@@ -168,48 +187,31 @@ int main(int argc, char** argv) {
     };
     Mesh* planeMesh = Mesh::create(planeVertices, floorTextures);
 
+    Node* planeNode = Node::create(planeMesh);
+
+    scene->addChildNode(cubeNode1);
+    scene->addChildNode(cubeNode2);
+    scene->addChildNode(planeNode);
+
     FullScreenQuad* fsQuad = FullScreenQuad::create();
 
     // framebuffer to render into
-    int width, height;
-    app.getWindowSize(&width, &height);
     FrameBuffer* framebuffer = FrameBuffer::create(width, height);
 
-    app.render([&](double now, double dt) {
-        processInput(&app, dt);
+    app.onRender([&](double now, double dt) {
+        processInput(&app, camera, dt);
 
         // bind to framebuffer and draw scene as we normally would to color texture
         framebuffer->bind();
-            glEnable(GL_CULL_FACE);
-            glCullFace(GL_BACK);
-            glEnable(GL_DEPTH_TEST); // enable depth testing (is disabled for rendering screen-space quad)
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+        glEnable(GL_DEPTH_TEST); // enable depth testing (is disabled for rendering screen-space quad)
 
-            // make sure we clear the framebuffer's content
-            glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        // make sure we clear the framebuffer's content
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            shader.bind();
-            shader.setMat4("view", app.camera.view);
-            shader.setMat4("projection", app.camera.proj);
-
-            glm::mat4 model;
-
-            // cube 1
-            model = glm::mat4(1.0f);
-            model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
-            shader.setMat4("model", model);
-            cubeMesh->draw(shader);
-
-            // cube 2
-            model = glm::mat4(1.0f);
-            model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-            shader.setMat4("model", model);
-            cubeMesh->draw(shader);
-
-            // floor
-            model = glm::mat4(1.0f);
-            shader.setMat4("model", model);
-            planeMesh->draw(shader);
+        app.render(shader, scene, camera);
 
         // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
         framebuffer->unbind();
@@ -238,16 +240,16 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void processInput(OpenGLApp* app, float deltaTime) {
+void processInput(OpenGLApp* app, Camera* camera,  float deltaTime) {
     if (glfwGetKey(app->window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(app->window, true);
 
     if (glfwGetKey(app->window, GLFW_KEY_W) == GLFW_PRESS)
-        app->camera.processKeyboard(FORWARD, deltaTime);
+        camera->processKeyboard(FORWARD, deltaTime);
     if (glfwGetKey(app->window, GLFW_KEY_S) == GLFW_PRESS)
-        app->camera.processKeyboard(BACKWARD, deltaTime);
+        camera->processKeyboard(BACKWARD, deltaTime);
     if (glfwGetKey(app->window, GLFW_KEY_A) == GLFW_PRESS)
-        app->camera.processKeyboard(LEFT, deltaTime);
+        camera->processKeyboard(LEFT, deltaTime);
     if (glfwGetKey(app->window, GLFW_KEY_D) == GLFW_PRESS)
-        app->camera.processKeyboard(RIGHT, deltaTime);
+        camera->processKeyboard(RIGHT, deltaTime);
 }

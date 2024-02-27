@@ -1,6 +1,10 @@
 #ifndef MODEL_H
 #define MODEL_H
 
+#include <string>
+#include <unordered_map>
+#include <vector>
+
 #include <glad/glad.h>
 
 #include <glm/glm.hpp>
@@ -12,12 +16,9 @@
 
 #include <Shader.h>
 #include <Mesh.h>
+#include <Entity.h>
 
-#include <string>
-#include <unordered_map>
-#include <vector>
-
-class Model {
+class Model : public Entity {
 public:
     std::vector<Mesh*> meshes;
 
@@ -35,7 +36,7 @@ private:
     std::unordered_map<std::string, Texture*> texturesLoaded;
 
     Model(const std::string &modelPath, bool flipTextures = false)
-            : flipTextures(flipTextures) {
+            : flipTextures(flipTextures), Entity() {
         std::cout << "Loading model: " << modelPath << std::endl;
         loadFromFile(modelPath);
     }

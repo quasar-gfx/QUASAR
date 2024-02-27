@@ -8,7 +8,11 @@
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_glfw.h>
 
+#include <Entity.h>
 #include <OpenGLApp.h>
+
+unsigned int Entity::nextID = 0;
+unsigned int Node::nextID = 0;
 
 int OpenGLApp::init() {
     glfwInit();
@@ -51,17 +55,45 @@ int OpenGLApp::init() {
         return -1;
     }
 
-    // set default camera parameters
-    int width, height;
-    getWindowSize(&width, &height);
-    camera.setProjectionMatrix(glm::radians(60.0f), (float)width / (float)height, 0.1f, 100.0f);
-    camera.position = glm::vec3(0.0f, 1.6f, 2.0f);
+    // // set default camera parameters
+    // int width, height;
+    // getWindowSize(&width, &height);
+    // camera.setProjectionMatrix(glm::radians(60.0f), (float)width / (float)height, 0.1f, 100.0f);
+    // camera.position = glm::vec3(0.0f, 1.6f, 2.0f);
 
     return 0;
 }
 
 void OpenGLApp::cleanup() {
     glfwTerminate();
+}
+
+void OpenGLApp::render(Shader &shader, Scene* scene, Camera* camera) {
+    glm::mat4 model;
+
+    shader.bind();
+
+    shader.setMat4("view", camera->getViewMatrix());
+    shader.setMat4("projection", camera->getProjectionMatrix());
+
+    for (auto child : scene->children) {
+        renderNode(shader, child, glm::mat4(1.0f));
+    }
+
+    shader.unbind();
+}
+
+void OpenGLApp::renderNode(Shader &shader, Node* node, glm::mat4 parentTransform) {
+    glm::mat4 model = parentTransform * node->getTransformParentFromLocal();
+
+    if (node->entity != nullptr) {
+        shader.setMat4("model", model);
+        node->entity->draw(shader);
+    }
+
+    for (auto& child : node->children) {
+        renderNode(shader, child, model);
+    }
 }
 
 void OpenGLApp::run() {
@@ -77,13 +109,12 @@ void OpenGLApp::run() {
             int width, height;
             getWindowSize(&width, &height);
             std::cout << "Resized to " << width << "x" << height << std::endl;
-            camera.aspect = (float)width / (float)height;
+            if (resizeCallback) {
+                resizeCallback(width, height);
+            }
             glViewport(0, 0, width, height);
             frameResized = false;
         }
-
-        camera.updateViewMatrix();
-        camera.updateProjectionMatrix();
 
         if (renderCallback) {
             renderCallback(currTime, deltaTime);

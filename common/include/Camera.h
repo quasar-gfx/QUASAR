@@ -7,7 +7,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-// Defines several possible options for camera movement. Used as abstraction to stay away from window-system specific input methods
 enum CameraMovement {
     FORWARD,
     BACKWARD,
@@ -15,12 +14,8 @@ enum CameraMovement {
     RIGHT
 };
 
-// An abstract camera class that processes input and calculates the corresponding Euler Angles, Vectors and Matrices for use in OpenGL
 class Camera {
 public:
-    glm::mat4 view;
-    glm::mat4 proj;
-
     glm::vec3 position = glm::vec3(0.0f);
     glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -38,6 +33,20 @@ public:
     float movementSpeed = 2.5f;
     float mouseSensitivity = 0.1f;
 
+    Camera(unsigned int width, unsigned int height) {
+        setProjectionMatrix(glm::radians(60.0f), (float)width / (float)height, 0.1f, 1000.0f);
+        position = glm::vec3(0.0f, 1.6f, 2.0f);
+    }
+
+    Camera(float fovy, float aspect, float near, float far) {
+        setProjectionMatrix(fovy, aspect, near, far);
+    }
+
+    glm::mat4 getProjectionMatrix() {
+        updateProjectionMatrix();
+        return proj;
+    }
+
     void setProjectionMatrix(float fovy, float aspect, float near, float far) {
         this->fovy = fovy;
         this->aspect = aspect;
@@ -48,6 +57,11 @@ public:
 
     void updateProjectionMatrix() {
         proj = glm::perspective(fovy, aspect, near, far);
+    }
+
+    glm::mat4 getViewMatrix() {
+        updateViewMatrix();
+        return view;
     }
 
     void updateViewMatrix() {
@@ -81,7 +95,6 @@ public:
                 pitch = -89.0f;
         }
 
-        // update front, right and up Vectors using the updated Euler angles
         updateCameraVectors();
     }
 
@@ -97,6 +110,9 @@ public:
     }
 
 private:
+    glm::mat4 view;
+    glm::mat4 proj;
+
     // calculates the front vector from the Camera's (updated) Euler Angles
     void updateCameraVectors() {
         // calculate the new front vector

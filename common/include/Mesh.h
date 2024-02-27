@@ -15,6 +15,7 @@
 #include <VertexBuffer.h>
 #include <IndexBuffer.h>
 #include <Texture.h>
+#include <Entity.h>
 
 enum VertexAttribute {
     ATTRIBUTE_POSITION   = 0,
@@ -45,7 +46,7 @@ namespace std {
     };
 }
 
-class Mesh {
+class Mesh : public Entity {
 public:
     std::vector<Vertex>       vertices;
     std::vector<unsigned int> indices;
@@ -77,14 +78,14 @@ private:
 
     Mesh(std::vector<Vertex> &vertices, std::vector<Texture*> &textures)
             : vertices(vertices), textures(textures),
-            vbo(vertices.data(), static_cast<unsigned int>(vertices.size() * sizeof(Vertex))) {
+            vbo(vertices.data(), static_cast<unsigned int>(vertices.size() * sizeof(Vertex))), Entity() {
         initAttributes();
     }
 
     Mesh(std::vector<Vertex> &vertices, std::vector<unsigned int> &indices, std::vector<Texture*> &textures)
             : vertices(vertices), indices(indices), textures(textures),
             vbo(vertices.data(), static_cast<unsigned int>(vertices.size() * sizeof(Vertex))),
-            ibo(indices.data(), static_cast<unsigned int>(indices.size())) {
+            ibo(indices.data(), static_cast<unsigned int>(indices.size())), Entity() {
         initAttributes();
     }
 
