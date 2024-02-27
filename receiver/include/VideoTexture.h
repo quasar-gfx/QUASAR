@@ -24,6 +24,13 @@ public:
 
     void draw();
 
+    float getFrameRate() {
+        if (inputFormatContext == nullptr || videoStreamIndex == -1) {
+            return 0;
+        }
+        return av_q2d(inputFormatContext->streams[videoStreamIndex]->avg_frame_rate);
+    }
+
     static VideoTexture* create(unsigned int width, unsigned int height,
             GLenum format = GL_RGB,
             GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE,

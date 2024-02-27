@@ -18,6 +18,13 @@ public:
 
     unsigned int framesSent;
 
+    float getFrameRate() {
+        if (inputVideoStream != nullptr && inputVideoStream->avg_frame_rate.den > 0) {
+            return inputVideoStream->avg_frame_rate.num / inputVideoStream->avg_frame_rate.den;
+        }
+        return 0;
+    }
+
     int init(const std::string inputFileName, const std::string outputUrl);
     void cleanup();
 
@@ -29,17 +36,17 @@ private:
     VideoStreamer() = default;
     ~VideoStreamer() = default;
 
-    AVFormatContext *inputFormatContext = nullptr;
-    AVFormatContext *outputFormatContext = nullptr;
+    AVFormatContext* inputFormatContext = nullptr;
+    AVFormatContext* outputFormatContext = nullptr;
 
-    AVCodecContext *inputCodecContext = nullptr;
-    AVCodecContext *outputCodecContext = nullptr;
+    AVCodecContext* inputCodecContext = nullptr;
+    AVCodecContext* outputCodecContext = nullptr;
 
     AVPacket inputPacket, outputPacket;
 
     int videoStreamIndex = -1;
-    AVStream *inputVideoStream = nullptr;
-    AVStream *outputVideoStream = nullptr;
+    AVStream* inputVideoStream = nullptr;
+    AVStream* outputVideoStream = nullptr;
 
     std::thread videoStreamerThread;
 

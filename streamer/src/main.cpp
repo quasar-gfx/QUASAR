@@ -55,7 +55,14 @@ int main(int argc, char** argv) {
 
     app.init();
 
-    app.gui([&app](double now, double dt) {
+    VideoStreamer* videoStreamer = VideoStreamer::create();
+    int ret = videoStreamer->init(inputFileName, outputUrl);
+    if (ret < 0) {
+        std::cerr << "Failed to initialize FFMpeg Video Streamer" << std::endl;
+        return ret;
+    }
+
+    app.gui([&app, &videoStreamer](double now, double dt) {
         static float deltaTimeSum = 0.0f;
         static int sumCount = 0;
         static float frameRateToDisplay = 0.0f;
@@ -63,7 +70,7 @@ int main(int argc, char** argv) {
 
         ImGui::NewFrame();
         ImGui::SetNextWindowPos(ImVec2(10, 10));
-        ImGui::Begin(app.config.title.c_str());
+        ImGui::Begin(app.config.title.c_str(), 0, ImGuiWindowFlags_AlwaysAutoResize);
         if (now - prevDisplayTime > GUI_UPDATE_FRAMERATE_INTERVAL) {
             prevDisplayTime = now;
             if (deltaTimeSum > 0.0f) {
@@ -71,8 +78,9 @@ int main(int argc, char** argv) {
                 deltaTimeSum = 0.0f; sumCount = 0;
             }
         }
-        ImGui::Text("Frame Rate: %.1f FPS", frameRateToDisplay);
         deltaTimeSum += dt; sumCount++;
+        ImGui::Text("Rendering Frame Rate: %.1f FPS", frameRateToDisplay);
+        ImGui::Text("Video Frame Rate: %.1f FPS", videoStreamer->getFrameRate());
         ImGui::End();
     });
 
@@ -162,13 +170,6 @@ int main(int argc, char** argv) {
     Model* sponza = Model::create(modelPath);
 
     FullScreenQuad* fsQuad = FullScreenQuad::create();
-
-    VideoStreamer* videoStreamer = VideoStreamer::create();
-    int ret = videoStreamer->init(inputFileName, outputUrl);
-    if (ret < 0) {
-        std::cerr << "Failed to initialize FFMpeg Video Streamer" << std::endl;
-        return ret;
-    }
 
     // framebuffer to render into
     int width, height;
