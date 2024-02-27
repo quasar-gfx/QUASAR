@@ -65,11 +65,6 @@ int main(int argc, char** argv) {
     Camera* camera = new Camera(width, height);
 
     VideoStreamer* videoStreamer = VideoStreamer::create();
-    int ret = videoStreamer->init(inputFileName, outputUrl);
-    if (ret < 0) {
-        std::cerr << "Failed to initialize FFMpeg Video Streamer" << std::endl;
-        return ret;
-    }
 
     app.gui([&app, &videoStreamer](double now, double dt) {
         static float deltaTimeSum = 0.0f;
@@ -197,20 +192,31 @@ int main(int argc, char** argv) {
     scene->addChildNode(cubeNode2);
     scene->addChildNode(sponzaNode);
 
+    int ret = videoStreamer->start(inputFileName, outputUrl);
+    if (ret < 0) {
+        std::cerr << "Failed to initialize FFMpeg Video Streamer" << std::endl;
+        return ret;
+    }
+
     FullScreenQuad* fsQuad = FullScreenQuad::create();
 
     // framebuffer to render into
     FrameBuffer* framebuffer = FrameBuffer::create(width, height);
+
+    // enable backface culling
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    // enable alpha blending
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     app.onRender([&](double now, double dt) {
         processInput(&app, camera, dt);
 
         // bind to framebuffer and draw scene as we normally would to color texture
         framebuffer->bind();
-
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_BACK);
-        glEnable(GL_DEPTH_TEST); // enable depth testing (is disabled for rendering screen-space quad)
+        // enable depth testing (is disabled for rendering screen-space quad)
+        glEnable(GL_DEPTH_TEST);
 
         // make sure we clear the framebuffer's content
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);

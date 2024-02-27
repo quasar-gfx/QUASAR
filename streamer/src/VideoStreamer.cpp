@@ -3,7 +3,7 @@
 #undef av_err2str
 #define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
 
-int VideoStreamer::init(const std::string inputFileName, const std::string outputUrl) {
+int VideoStreamer::start(const std::string inputFileName, const std::string outputUrl) {
     this->inputFileName = inputFileName;
     this->outputUrl = outputUrl;
 
@@ -31,7 +31,6 @@ int VideoStreamer::init(const std::string inputFileName, const std::string outpu
 
     if (videoStreamIndex == -1 || inputVideoStream == nullptr) {
         av_log(nullptr, AV_LOG_ERROR, "No video stream found in the input file.\n");
-;
     }
     /* END: Setup input (to read video from file) */
 

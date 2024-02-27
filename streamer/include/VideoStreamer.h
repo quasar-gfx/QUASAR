@@ -25,7 +25,7 @@ public:
         return 0;
     }
 
-    int init(const std::string inputFileName, const std::string outputUrl);
+    int start(const std::string inputFileName, const std::string outputUrl);
     void cleanup();
 
     static VideoStreamer* create() {

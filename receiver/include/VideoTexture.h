@@ -19,7 +19,7 @@ public:
 
     int frameReceived;
 
-    int initVideo(const std::string inputUrl);
+    void initVideo(const std::string inputUrl);
     void cleanup();
 
     void draw();
