@@ -13,7 +13,7 @@ class OpenGLApp {
 public:
     using MouseMoveCallback = std::function<void(double xpos, double ypos)>;
     using MouseScrollCallback = std::function<void(double xoffset, double yoffset)>;
-    using AnimCallback = std::function<void(double now, double dt)>;
+    using RenderCallback = std::function<void(double now, double dt)>;
     using GuiCallback = std::function<void(double now, double dt)>;
 
     OpenGLApp() = default;
@@ -28,12 +28,12 @@ public:
 
     int init();
     void cleanup();
-    void animate(AnimCallback callback) { animCallback = callback; };
     void run();
 
+    void gui(GuiCallback callback) { guiCallback = callback; }
     void mouseMove(MouseMoveCallback callback) { mouseMoveCallback = callback; }
     void mouseScroll(MouseScrollCallback callback) { scrollCallback = callback; }
-    void gui(GuiCallback callback) { guiCallback = callback; }
+    void render(RenderCallback callback) { renderCallback = callback; };
 
     void getWindowSize(int *resWidth, int *resHeight) const {
         int width, height;
@@ -54,7 +54,7 @@ public:
 private:
     MouseMoveCallback mouseMoveCallback;
     MouseScrollCallback scrollCallback;
-    AnimCallback animCallback;
+    RenderCallback renderCallback;
     GuiCallback guiCallback;
 
     static void mouseMoveCallbackWrapper(GLFWwindow* window, double xpos, double ypos) {

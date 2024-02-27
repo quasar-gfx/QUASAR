@@ -85,8 +85,8 @@ void OpenGLApp::run() {
         camera.updateViewMatrix();
         camera.updateProjectionMatrix();
 
-        if (animCallback) {
-            animCallback(currTime, deltaTime);
+        if (renderCallback) {
+            renderCallback(currTime, deltaTime);
         }
 
         if (guiCallback) {

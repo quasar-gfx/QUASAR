@@ -176,7 +176,7 @@ int main(int argc, char** argv) {
     app.getWindowSize(&width, &height);
     FrameBuffer* framebuffer = FrameBuffer::create(width, height);
 
-    app.animate([&](double now, double dt) {
+    app.render([&](double now, double dt) {
         processInput(&app, dt);
 
         // bind to framebuffer and draw scene as we normally would to color texture
