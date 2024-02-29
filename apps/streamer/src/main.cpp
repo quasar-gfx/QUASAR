@@ -27,7 +27,6 @@ int main(int argc, char** argv) {
     OpenGLApp app{};
     app.config.title = "Video Streamer";
 
-    std::string inputFileName = "input.mp4";
     std::string outputUrl = "udp://localhost:1234";
     std::string modelPath = "../../assets/models/sponza/sponza.obj";
     for (int i = 1; i < argc; i++) {
@@ -41,10 +40,6 @@ int main(int argc, char** argv) {
         }
         else if (!strcmp(argv[i], "-m") && i + 1 < argc) {
             modelPath = argv[i + 1];
-            i++;
-        }
-        else if (!strcmp(argv[i], "-i") && i + 1 < argc) {
-            inputFileName = argv[i + 1];
             i++;
         }
         else if (!strcmp(argv[i], "-o") && i + 1 < argc) {
@@ -196,12 +191,6 @@ int main(int argc, char** argv) {
     scene->addChildNode(cubeNode2);
     scene->addChildNode(sponzaNode);
 
-    int ret = videoStreamer->start(inputFileName, outputUrl);
-    if (ret < 0) {
-        std::cerr << "Failed to initialize FFMpeg Video Streamer" << std::endl;
-        return ret;
-    }
-
     CubeMap* skybox = CubeMap::create({
         "../../assets/textures/skybox/right.jpg",
         "../../assets/textures/skybox/left.jpg",
@@ -215,6 +204,12 @@ int main(int argc, char** argv) {
 
     // framebuffer to render into
     FrameBuffer* framebuffer = FrameBuffer::create(width, height);
+
+    int ret = videoStreamer->start(framebuffer->colorAttachment, outputUrl);
+    if (ret < 0) {
+        std::cerr << "Failed to initialize FFMpeg Video Streamer" << std::endl;
+        return ret;
+    }
 
     app.onRender([&](double now, double dt) {
         processInput(&app, camera, dt);
@@ -245,6 +240,10 @@ int main(int argc, char** argv) {
                 fsQuad->draw();
             framebuffer->unbindColorAttachment();
         screenShader.unbind();
+
+        double start = glfwGetTime();
+        videoStreamer->sendFrame();
+        std::cout << "Time to send frame: " << glfwGetTime() - start << " seconds" << std::endl;
     });
 
     // run app loop (blocking)

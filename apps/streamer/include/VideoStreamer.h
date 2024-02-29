@@ -4,29 +4,32 @@
 #include <iostream>
 #include <thread>
 
+#include <Texture.h>
+
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
+#include <libswscale/swscale.h>
 #include <libavutil/time.h>
 #include <libavutil/opt.h>
 }
 
 class VideoStreamer {
 public:
-    std::string inputFileName = "input.mp4";
     std::string outputUrl = "udp://localhost:1234";
 
-    unsigned int framesSent;
+    int frameRate = 15;
+
+    unsigned int framesSent = 0;
 
     float getFrameRate() {
-        if (inputVideoStream != nullptr && inputVideoStream->avg_frame_rate.den > 0) {
-            return inputVideoStream->avg_frame_rate.num / inputVideoStream->avg_frame_rate.den;
-        }
         return 0;
     }
 
-    int start(const std::string inputFileName, const std::string outputUrl);
+    int start(Texture* texture, const std::string outputUrl);
     void cleanup();
+
+    void sendFrame();
 
     static VideoStreamer* create() {
         return new VideoStreamer();
@@ -36,21 +39,18 @@ private:
     VideoStreamer() = default;
     ~VideoStreamer() = default;
 
-    AVFormatContext* inputFormatContext = nullptr;
     AVFormatContext* outputFormatContext = nullptr;
-
-    AVCodecContext* inputCodecContext = nullptr;
     AVCodecContext* outputCodecContext = nullptr;
 
-    AVPacket inputPacket, outputPacket;
+    AVPacket outputPacket;
 
     int videoStreamIndex = -1;
-    AVStream* inputVideoStream = nullptr;
     AVStream* outputVideoStream = nullptr;
 
-    std::thread videoStreamerThread;
+    SwsContext* conversionContext;
 
-    void sendFrame();
+    Texture* sourceTexture;
+    uint8_t* rgbaData;
 };
 
 #endif // VIDEOSTREAMER_H

@@ -26,8 +26,6 @@ int main(int argc, char** argv) {
     OpenGLApp app{};
     app.config.title = "Video Streamer";
 
-    std::string inputFileName = "input.mp4";
-    std::string outputUrl = "udp://localhost:1234";
     std::string modelPath = "../../assets/models/sponza/sponza.obj";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
@@ -40,14 +38,6 @@ int main(int argc, char** argv) {
         }
         else if (!strcmp(argv[i], "-m") && i + 1 < argc) {
             modelPath = argv[i + 1];
-            i++;
-        }
-        else if (!strcmp(argv[i], "-i") && i + 1 < argc) {
-            inputFileName = argv[i + 1];
-            i++;
-        }
-        else if (!strcmp(argv[i], "-o") && i + 1 < argc) {
-            outputUrl = argv[i + 1];
             i++;
         }
         else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
