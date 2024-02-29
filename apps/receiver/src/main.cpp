@@ -107,7 +107,7 @@ int main(int argc, char** argv) {
     // shaders
     Shader skyboxShader("shaders/skybox.vert", "shaders/skybox.frag");
     skyboxShader.setInt("skybox", 0);
-    Shader shader("shaders/framebuffer.vert", "shaders/framebuffer.frag");
+    Shader shader("shaders/meshMaterial.vert", "shaders/meshMaterial.frag");
     Shader screenShader("shaders/postprocess.vert", "shaders/postprocess.frag");
 
     // textures
@@ -206,13 +206,6 @@ int main(int argc, char** argv) {
 
     // framebuffer to render into
     FrameBuffer* framebuffer = FrameBuffer::create(width, height);
-
-    // enable backface culling
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    // enable alpha blending
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     app.onRender([&](double now, double dt) {
         processInput(&app, camera, dt);

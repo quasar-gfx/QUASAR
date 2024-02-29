@@ -11,16 +11,16 @@ void Mesh::draw(Shader &shader) {
 
         TextureType type = textures[i]->type;
         if (type == TEXTURE_DIFFUSE) {
-            name = "texture_diffuse" + std::to_string(diffuseIdx++);
+            name = "material.diffuse";
         }
         else if (type == TEXTURE_SPECULAR) {
-            name = "texture_specular" + std::to_string(specularIdx++);
+            name = "material.specular";
         }
         else if (type == TEXTURE_NORMAL) {
-            name = "texture_normal" + std::to_string(normalIdx++);
+            name = "material.normal";
         }
         else if (type == TEXTURE_HEIGHT) {
-            name = "texture_height" + std::to_string(heightIdx++);
+            name = "material.height";
         }
 
         shader.setInt(name.c_str(), i);
