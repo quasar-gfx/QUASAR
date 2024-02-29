@@ -24,7 +24,7 @@ const std::string BACKPACK_MODEL_PATH = "../../assets/models/backpack/backpack.o
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
-    app.config.title = "Video Streamer";
+    app.config.title = "Test App";
 
     std::string modelPath = "../../assets/models/sponza/sponza.obj";
     for (int i = 1; i < argc; i++) {

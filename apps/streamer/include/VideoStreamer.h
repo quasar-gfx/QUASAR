@@ -2,7 +2,6 @@
 #define VIDEOSTREAMER_H
 
 #include <iostream>
-#include <thread>
 
 #include <Texture.h>
 
@@ -38,6 +37,12 @@ public:
 private:
     VideoStreamer() = default;
     ~VideoStreamer() = default;
+
+#ifdef __APPLE__
+    AVPixelFormat pixelFormat = AV_PIX_FMT_YUV420P;
+#else
+    AVPixelFormat pixelFormat = AV_PIX_FMT_YUV444P;
+#endif
 
     AVFormatContext* outputFormatContext = nullptr;
     AVCodecContext* outputCodecContext = nullptr;

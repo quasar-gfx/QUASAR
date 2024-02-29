@@ -30,8 +30,8 @@ int VideoStreamer::start(Texture* texture, const std::string outputUrl) {
     outputCodecContext->height = texture->height;
     outputCodecContext->time_base = {1, frameRate};
     outputCodecContext->framerate = {frameRate, 1};
-    outputCodecContext->pix_fmt = AV_PIX_FMT_YUV420P;
-    outputCodecContext->bit_rate = 400000;
+    outputCodecContext->pix_fmt = this->pixelFormat;
+    outputCodecContext->bit_rate = 100000 * 1000;
 
     // Set zero latency
     outputCodecContext->max_b_frames = 0;
@@ -75,7 +75,7 @@ int VideoStreamer::start(Texture* texture, const std::string outputUrl) {
     /* END: Setup output (to write video to URL) */
 
     conversionContext = sws_getContext(texture->width, texture->height, AV_PIX_FMT_RGBA,
-                                                    texture->width, texture->height, AV_PIX_FMT_YUV420P,
+                                                    texture->width, texture->height, this->pixelFormat,
                                                     SWS_BICUBIC, nullptr, nullptr, nullptr);
     if (!conversionContext) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate conversion context\n");
@@ -92,7 +92,7 @@ void VideoStreamer::sendFrame() {
 
     // get frame from decoder
     AVFrame *frame = av_frame_alloc();
-    frame->format = AV_PIX_FMT_YUV420P;
+    frame->format = this->pixelFormat;
     frame->width = sourceTexture->width;
     frame->height = sourceTexture->height;
 
