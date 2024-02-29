@@ -15,6 +15,14 @@
 #include "camera.hpp"
 #include "video_streamer.hpp"
 
+#include "cuda.h"
+#include <cuda_runtime.h>
+#include <cuda_gl_interop.h>
+
+#include <libavutil/hwcontext.h>
+#include <libavutil/hwcontext_cuda.h>
+#include <libavcodec/avcodec.h>
+
 const unsigned int WIDTH = 800;
 const unsigned int HEIGHT = 600;
 
@@ -36,9 +44,154 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 unsigned int loadTexture(const char* path);
+bool checkDriver(CUresult code, const char* op, const char* file, int line);
+int mynaive_test();
+
+const char *vertexShaderSource = "#version 330 core\n"
+    "layout (location = 0) in vec3 aPos;\n"
+    "layout (location = 1) in vec2 aTexCoord;\n"
+    "out vec2 TexCoord;\n"
+    "void main()\n"
+    "{\n"
+    "   gl_Position = vec4(aPos, 1.0);\n"
+    "   TexCoord = aTexCoord;\n"
+    "}\0";
+
+
+const char *fragmentShaderSource = "#version 330 core\n"
+    "out vec4 FragColor;\n"
+    "in vec2 TexCoord;\n"
+    "uniform sampler2D ourTexture;\n"
+    "void main()\n"
+    "{\n"
+    "   FragColor = texture(ourTexture, TexCoord);\n"
+    "}\0";
+
+int mynaive_test() {
+    glfwInit();
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+    GLFWwindow* window = glfwCreateWindow(800, 600, "LearnOpenGL", NULL, NULL);
+    if (window == NULL) {
+        std::cout << "Failed to create GLFW window" << std::endl;
+        glfwTerminate();
+        return -1;
+    }
+    glfwMakeContextCurrent(window);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        std::cout << "Failed to initialize GLAD" << std::endl;
+        return -1;
+    }
+    unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    glCompileShader(vertexShader);
+    unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+    glCompileShader(fragmentShader);
+    unsigned int shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+    glLinkProgram(shaderProgram);
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    float vertices[] = {
+         0.5f,  0.5f, 0.0f,  1.0f, 1.0f,
+         0.5f, -0.5f, 0.0f,  1.0f, 0.0f,
+        -0.5f, -0.5f, 0.0f,  0.0f, 0.0f,
+        -0.5f,  0.5f, 0.0f,  0.0f, 1.0f
+    };
+    unsigned int indices[] = {
+        0, 1, 3,
+        1, 2, 3
+    };
+    unsigned int VBO, VAO, EBO;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    int width, height, nrChannels;
+    unsigned char *data = stbi_load("1.jpg", &width, &height, &nrChannels, 0);
+    if (data) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    } else {
+        std::cout << "Failed to load texture" << std::endl;
+    }
+    stbi_image_free(data);
+    std::string gpuName;
+    videoStreamer = new VideoStreamer();
+    std::string inputFileName = "input.mp4";
+    std::string outputUrl = "udp://localhost:1234";
+    int ret = videoStreamer->init(inputFileName, outputUrl);
+    if (ret < 0) {
+        std::cerr << "Failed to initialize FFMpeg Video Streamer" << std::endl;
+        return ret;
+    }
+    int initSuccess = videoStreamer->initializeCudaContext(gpuName, width, height, texture);
+    if (!initSuccess) {
+        std::cerr << "Failed to initialize CUDA context and FFmpeg environment." << std::endl;
+        return -1;
+    }
+
+    while (!glfwWindowShouldClose(window)) {
+        processInput(window);
+
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        glBindTexture(GL_TEXTURE_2D, texture);
+
+        glUseProgram(shaderProgram);
+        glBindVertexArray(VAO);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+
+    glfwTerminate();
+    return 0;
+}
 
 
 int main(int argc, char **argv) {
+    mynaive_test();
+    return 1;
+    std::string gpuName;
+    int width = 1920;
+    int height = 1080;
+
     std::string inputFileName = "input.mp4";
     std::string outputUrl = "udp://localhost:1234";
     for (int i = 1; i < argc; i++) {
@@ -207,13 +360,19 @@ int main(int argc, char **argv) {
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
     // create a color attachment texture
-    unsigned int textureColorbuffer;
+    GLuint textureColorbuffer;
     glGenTextures(1, &textureColorbuffer);
     glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WIDTH, HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
+
+    int initSuccess = videoStreamer->initializeCudaContext(gpuName, width, height, textureColorbuffer);
+    if (!initSuccess) {
+        std::cerr << "Failed to initialize CUDA context and FFmpeg environment." << std::endl;
+        return -1;
+    }
 
     // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
     unsigned int rbo;

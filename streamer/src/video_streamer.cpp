@@ -3,6 +3,111 @@
 #undef av_err2str
 #define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
 
+int VideoStreamer::initializeCudaContext(std::string& gpuName, int width, int height, GLuint texture) {
+    std::cout << "initializing Cuda Context" << std::endl;
+    if (getDeviceName(gpuName) < 0) {
+        std::cerr << "Failed to get CUDA device name." << std::endl;
+        return -1;
+    }
+    std::cout << "Graphic Device Name:" << gpuName << std::endl;
+    cudaGLSetGLDevice(0);
+    // Create CUDA Hardware Context for ffmpeg
+    AVBufferRef* m_avBufferRefDevice;
+    int ret = av_hwdevice_ctx_create(&m_avBufferRefDevice, AV_HWDEVICE_TYPE_CUDA, gpuName.c_str(), NULL, NULL);
+    if (ret < 0) {
+        std::cerr << "Failed to create a hardware device context." << std::endl;
+        return false;
+    }
+    std::cout << "hw device ctx created" << std::endl;
+    
+    // Retrieve and cast the hardware device context to a CUDA device context for accessing CUDA-specific functionalities.
+    AVHWDeviceContext* hwDevContext = reinterpret_cast<AVHWDeviceContext*>(m_avBufferRefDevice->data);
+    AVCUDADeviceContext* cudaDevCtx = reinterpret_cast<AVCUDADeviceContext*>(hwDevContext->hwctx);
+    CUcontext *m_cuContext = &(cudaDevCtx->cuda_ctx);
+
+    
+    AVBufferRef* m_avBufferRefFrame = av_hwframe_ctx_alloc(m_avBufferRefDevice);
+    AVHWFramesContext* frameCtxPtr = reinterpret_cast<AVHWFramesContext*>(m_avBufferRefFrame->data);
+    frameCtxPtr->width = width;
+    frameCtxPtr->height = height;
+    frameCtxPtr->sw_format = AV_PIX_FMT_0BGR32;
+    frameCtxPtr->format = AV_PIX_FMT_CUDA;
+    frameCtxPtr->device_ref = m_avBufferRefDevice;
+    frameCtxPtr->device_ctx = hwDevContext;
+
+    ret = av_hwframe_ctx_init(m_avBufferRefFrame);
+    if (ret < 0) {
+        std::cerr << "Failed to initialize a hardware frame context." << std::endl;
+        return -1;
+    }
+    std::cout << "hw frame context created" << std::endl;
+    
+    CUresult res;
+    CUcontext oldCtx;
+    cudaGraphicsResource* cuInpTexRes;
+    res = cuCtxPopCurrent(&oldCtx);
+    res = cuCtxPushCurrent(*m_cuContext);
+    checkCudaErrors(cudaGraphicsGLRegisterImage(&cuInpTexRes, texture, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsReadOnly));
+    res = cuCtxPopCurrent(&oldCtx);
+
+    inputCodecContext->hw_device_ctx = av_buffer_ref(m_avBufferRefDevice);
+    inputCodecContext->pix_fmt = AV_PIX_FMT_CUDA;
+    inputCodecContext->hw_frames_ctx = av_buffer_ref(m_avBufferRefFrame);
+    inputCodecContext->codec_type = AVMEDIA_TYPE_VIDEO;
+    inputCodecContext->sw_pix_fmt = AV_PIX_FMT_0BGR32;
+
+    CUDA_MEMCPY2D_st m_memCpyStruct;
+    m_memCpyStruct.srcXInBytes = 0;
+    m_memCpyStruct.srcY = 0;
+    m_memCpyStruct.srcMemoryType = CUmemorytype::CU_MEMORYTYPE_ARRAY;
+
+    m_memCpyStruct.dstXInBytes = 0;
+    m_memCpyStruct.dstY = 0;
+    m_memCpyStruct.dstMemoryType = CUmemorytype::CU_MEMORYTYPE_DEVICE;
+    return 0;
+}
+
+#define checkDriver(op) __check_cuda_driver((op), #op, __FILE__, __LINE__)
+bool __check_cuda_driver(CUresult code, const char* op, const char* file, int line) {
+    if(code != CUresult::CUDA_SUCCESS) {
+        const char* err_name = nullptr;
+        const char* err_message = nullptr;
+        cuGetErrorName(code, &err_name);
+        cuGetErrorString(code, &err_message);
+        printf("%s:%d %d failed. \n code = %s, message = %s\n", file, line, op, err_name, err_message);
+        return false;
+    }
+    return true;
+}
+
+int VideoStreamer::getDeviceName(std::string& gpuName) {
+    //Setup the cuda context for hardware encoding with ffmpeg
+    int iGpu = 0;
+    CUresult res;
+    checkDriver(cuInit(0));
+    int nGpu = 0;
+    cuDeviceGetCount(&nGpu);
+    if (iGpu < 0 || iGpu >= nGpu)
+    {
+        std::cout << "GPU ordinal out of range. Should be within [" << 0 << ", " << nGpu - 1 << "]" << std::endl;
+        return 1;
+    }
+    int driver_version = 0;
+    if (!checkDriver(cuDriverGetVersion(&driver_version))) {
+        return -1;
+    }
+    printf("Driver version is %d\n", driver_version);
+    CUdevice cuDevice = 0;
+    cuDeviceGet(&cuDevice, iGpu);
+    char szDeviceName[80];
+    cuDeviceGetName(szDeviceName, sizeof(szDeviceName), cuDevice);
+    gpuName = szDeviceName;
+    printf("Device %d name is %s\n", cuDevice, szDeviceName);
+    return 0;
+}
+
+
+
 int VideoStreamer::init(const std::string inputFileName, const std::string outputUrl) {
     this->inputFileName = inputFileName;
     this->outputUrl = outputUrl;

@@ -8,6 +8,12 @@ extern "C" {
 #include <libavutil/time.h>
 #include <libavutil/opt.h>
 }
+#include "cuda.h"
+#include <cuda_runtime.h>
+#include <cuda_gl_interop.h>
+#include <helper_cuda.h>
+#include <libavutil/hwcontext.h>
+#include <libavutil/hwcontext_cuda.h>
 
 class VideoStreamer {
 public:
@@ -23,6 +29,8 @@ public:
     void cleanup();
 
     int sendFrame();
+    int initializeCudaContext(std::string& gpuName, int width, int height, GLuint texture);
+    int getDeviceName(std::string& gpuName);
 
 private:
     AVFormatContext *inputFormatContext = nullptr;
