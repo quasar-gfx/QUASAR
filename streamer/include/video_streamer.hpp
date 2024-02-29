@@ -33,6 +33,10 @@ public:
     int getDeviceName(std::string& gpuName);
 
 private:
+    CUcontext *m_cuContext = nullptr;
+    cudaGraphicsResource* cuInpTexRes;
+    CUDA_MEMCPY2D_st m_memCpyStruct;
+
     AVFormatContext *inputFormatContext = nullptr;
     AVFormatContext *outputFormatContext = nullptr;
 
