@@ -1,11 +1,11 @@
 #include <iostream>
-#include <thread>
 
 #include <imgui/imgui.h>
 
 #include <Shader.h>
 #include <Texture.h>
 #include <Mesh.h>
+#include <Model.h>
 #include <CubeMap.h>
 #include <Entity.h>
 #include <Scene.h>
@@ -14,20 +14,19 @@
 #include <FullScreenQuad.h>
 #include <OpenGLApp.h>
 
-#include <VideoTexture.h>
-
 #define GUI_UPDATE_FRAMERATE_INTERVAL 0.1f // seconds
 
 void processInput(OpenGLApp* app, Camera* camera, float deltaTime);
 
 const std::string CONTAINER_TEXTURE = "../../assets/textures/container.jpg";
 const std::string METAL_TEXTURE = "../../assets/textures/metal.png";
+const std::string BACKPACK_MODEL_PATH = "../../assets/models/backpack/backpack.obj";
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
-    app.config.title = "Video Receiver";
+    app.config.title = "Depth Buffer";
 
-    std::string inputUrl = "udp://localhost:1234";
+    std::string modelPath = "../../assets/models/sponza/sponza.obj";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             app.config.width = atoi(argv[i + 1]);
@@ -37,8 +36,8 @@ int main(int argc, char** argv) {
             app.config.height = atoi(argv[i + 1]);
             i++;
         }
-        else if (!strcmp(argv[i], "-i") && i + 1 < argc) {
-            inputUrl = argv[i + 1];
+        else if (!strcmp(argv[i], "-m") && i + 1 < argc) {
+            modelPath = argv[i + 1];
             i++;
         }
         else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
@@ -55,10 +54,7 @@ int main(int argc, char** argv) {
     Scene* scene = new Scene();
     Camera* camera = new Camera(width, height);
 
-    VideoTexture* videoTexture = VideoTexture::create(app.config.width, app.config.height);
-    videoTexture->initVideo(inputUrl);
-
-    app.gui([&app, &videoTexture](double now, double dt) {
+    app.gui([&app](double now, double dt) {
         static float deltaTimeSum = 0.0f;
         static int sumCount = 0;
         static float frameRateToDisplay = 0.0f;
@@ -76,7 +72,6 @@ int main(int argc, char** argv) {
         }
         deltaTimeSum += dt; sumCount++;
         ImGui::Text("Rendering Frame Rate: %.1f FPS", frameRateToDisplay);
-        ImGui::Text("Video Frame Rate: %.1f FPS", videoTexture->getFrameRate());
         ImGui::End();
     });
 
@@ -107,7 +102,7 @@ int main(int argc, char** argv) {
     // shaders
     Shader skyboxShader("shaders/skybox.vert", "shaders/skybox.frag");
     skyboxShader.setInt("skybox", 0);
-    Shader shader("shaders/framebuffer.vert", "shaders/framebuffer.frag");
+    Shader shader("shaders/meshMaterial.vert", "shaders/meshMaterial.frag");
     Shader screenShader("shaders/postprocess.vert", "shaders/postprocess.frag");
 
     // textures
@@ -176,22 +171,23 @@ int main(int argc, char** argv) {
     Node* cubeNode2 = Node::create(cubeMesh);
     cubeNode2->setTranslation(glm::vec3(2.0f, 0.0f, 0.0f));
 
-    std::vector<Vertex> planeVertices = {
-        {{ 25.0f, -0.5f, -25.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
-        {{-25.0f, -0.5f, -25.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
-        {{-25.0f, -0.5f,  25.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+    Model* sponza = Model::create(modelPath);
 
-        {{ 25.0f, -0.5f, -25.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
-        {{-25.0f, -0.5f,  25.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-        {{ 25.0f, -0.5f,  25.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 0.0f}, {1.0f, 0.0f, 0.0f}}
-    };
-    Mesh* planeMesh = Mesh::create(planeVertices, floorTextures);
+    Node* sponzaNode = Node::create(sponza);
+    sponzaNode->setTranslation(glm::vec3(0.0f, -0.5f, 0.0f));
+    sponzaNode->setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
+    sponzaNode->setScale(glm::vec3(0.01f));
 
-    Node* planeNode = Node::create(planeMesh);
+    Model* backpack = Model::create(BACKPACK_MODEL_PATH, true);
+
+    Node* backpackNode = Node::create(backpack);
+    backpackNode->setTranslation(glm::vec3(-0.25f, 0.25f, -3.0f));
+    backpackNode->setScale(glm::vec3(0.25f));
 
     scene->addChildNode(cubeNode1);
     scene->addChildNode(cubeNode2);
-    scene->addChildNode(planeNode);
+    scene->addChildNode(sponzaNode);
+    scene->addChildNode(backpackNode);
 
     CubeMap* skybox = CubeMap::create({
         "../../assets/textures/skybox/right.jpg",
@@ -205,20 +201,14 @@ int main(int argc, char** argv) {
     FullScreenQuad* fsQuad = FullScreenQuad::create();
 
     // framebuffer to render into
-    FrameBuffer* framebuffer = FrameBuffer::create(width, height);
-
-    // enable backface culling
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    // enable alpha blending
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    FrameBuffer* framebuffer = FrameBuffer::create(app.config.width, app.config.height);
 
     app.onRender([&](double now, double dt) {
         processInput(&app, camera, dt);
 
         // bind to framebuffer and draw scene as we normally would to color texture
         framebuffer->bind();
+        glViewport(0, 0, framebuffer->width, framebuffer->height);
 
         // make sure we clear the framebuffer's content
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -232,6 +222,7 @@ int main(int argc, char** argv) {
 
         // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
         framebuffer->unbind();
+        glViewport(0, 0, width, height);
 
         // clear all relevant buffers
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
@@ -239,13 +230,12 @@ int main(int argc, char** argv) {
 
         screenShader.bind();
         screenShader.setInt("screenTexture", 0);
-        screenShader.setInt("videoTexture", 1);
-            framebuffer->bindColorAttachment();
-                videoTexture->bind(1);
-                videoTexture->draw();
-                    fsQuad->draw();
-                videoTexture->unbind();
+        screenShader.setInt("depthTexture", 1);
+            framebuffer->bindColorAttachment(0);
+            framebuffer->bindDepthAttachment(1);
+                fsQuad->draw();
             framebuffer->unbindColorAttachment();
+            framebuffer->unbindDepthAttachment();
         screenShader.unbind();
     });
 
@@ -258,7 +248,7 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void processInput(OpenGLApp* app, Camera* camera,  float deltaTime) {
+void processInput(OpenGLApp* app, Camera* camera, float deltaTime) {
     if (glfwGetKey(app->window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(app->window, true);
 

@@ -1,11 +1,11 @@
 #include <iostream>
+#include <thread>
 
 #include <imgui/imgui.h>
 
 #include <Shader.h>
 #include <Texture.h>
 #include <Mesh.h>
-#include <Model.h>
 #include <CubeMap.h>
 #include <Entity.h>
 #include <Scene.h>
@@ -14,45 +14,20 @@
 #include <FullScreenQuad.h>
 #include <OpenGLApp.h>
 
-#include <cuda.h>
-
-#include <VideoStreamer.h>
+#include <VideoTexture.h>
 
 #define GUI_UPDATE_FRAMERATE_INTERVAL 0.1f // seconds
 
 void processInput(OpenGLApp* app, Camera* camera, float deltaTime);
-
-int getDeviceName(std::string& gpuName) {
-    // Setup the cuda context for hardware encoding with ffmpeg
-    int iGpu = 0;
-    CUresult res;
-    cuInit(0);
-    int nGpu = 0;
-    cuDeviceGetCount(&nGpu);
-    if (iGpu < 0 || iGpu >= nGpu) {
-        std::cout << "GPU ordinal out of range. Should be within [" << 0 << ", " << nGpu - 1 << "]" << std::endl;
-        return 1;
-    }
-
-    CUdevice cuDevice = 0;
-    cuDeviceGet(&cuDevice, iGpu);
-    char szDeviceName[80];
-    cuDeviceGetName(szDeviceName, sizeof(szDeviceName), cuDevice);
-    gpuName = szDeviceName;
-
-    return 0;
-}
 
 const std::string CONTAINER_TEXTURE = "../../assets/textures/container.jpg";
 const std::string METAL_TEXTURE = "../../assets/textures/metal.png";
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
-    app.config.title = "Video Streamer";
+    app.config.title = "Video Receiver";
 
-    std::string inputFileName = "input.mp4";
-    std::string outputUrl = "udp://localhost:1234";
-    std::string modelPath = "../../assets/models/sponza/sponza.obj";
+    std::string inputUrl = "udp://localhost:1234";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             app.config.width = atoi(argv[i + 1]);
@@ -62,16 +37,8 @@ int main(int argc, char** argv) {
             app.config.height = atoi(argv[i + 1]);
             i++;
         }
-        else if (!strcmp(argv[i], "-m") && i + 1 < argc) {
-            modelPath = argv[i + 1];
-            i++;
-        }
         else if (!strcmp(argv[i], "-i") && i + 1 < argc) {
-            inputFileName = argv[i + 1];
-            i++;
-        }
-        else if (!strcmp(argv[i], "-o") && i + 1 < argc) {
-            outputUrl = argv[i + 1];
+            inputUrl = argv[i + 1];
             i++;
         }
         else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
@@ -79,12 +46,6 @@ int main(int argc, char** argv) {
             i++;
         }
     }
-
-    std::string gpuName;
-    if (getDeviceName(gpuName) != 0) {
-        return 1;
-    }
-    std::cout << "GPU in use: " << gpuName << std::endl;
 
     app.init();
 
@@ -94,9 +55,10 @@ int main(int argc, char** argv) {
     Scene* scene = new Scene();
     Camera* camera = new Camera(width, height);
 
-    VideoStreamer* videoStreamer = VideoStreamer::create();
+    VideoTexture* videoTexture = VideoTexture::create(app.config.width, app.config.height);
+    videoTexture->initVideo(inputUrl);
 
-    app.gui([&app, &videoStreamer](double now, double dt) {
+    app.gui([&app, &videoTexture](double now, double dt) {
         static float deltaTimeSum = 0.0f;
         static int sumCount = 0;
         static float frameRateToDisplay = 0.0f;
@@ -114,7 +76,7 @@ int main(int argc, char** argv) {
         }
         deltaTimeSum += dt; sumCount++;
         ImGui::Text("Rendering Frame Rate: %.1f FPS", frameRateToDisplay);
-        ImGui::Text("Video Frame Rate: %.1f FPS", videoStreamer->getFrameRate());
+        ImGui::Text("Video Frame Rate: %.1f FPS", videoTexture->getFrameRate());
         ImGui::End();
     });
 
@@ -145,7 +107,7 @@ int main(int argc, char** argv) {
     // shaders
     Shader skyboxShader("shaders/skybox.vert", "shaders/skybox.frag");
     skyboxShader.setInt("skybox", 0);
-    Shader shader("shaders/framebuffer.vert", "shaders/framebuffer.frag");
+    Shader shader("shaders/meshMaterial.vert", "shaders/meshMaterial.frag");
     Shader screenShader("shaders/postprocess.vert", "shaders/postprocess.frag");
 
     // textures
@@ -214,22 +176,22 @@ int main(int argc, char** argv) {
     Node* cubeNode2 = Node::create(cubeMesh);
     cubeNode2->setTranslation(glm::vec3(2.0f, 0.0f, 0.0f));
 
-    Model* sponza = Model::create(modelPath);
+    std::vector<Vertex> planeVertices = {
+        {{ 25.0f, -0.5f, -25.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
+        {{-25.0f, -0.5f, -25.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
+        {{-25.0f, -0.5f,  25.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
 
-    Node* sponzaNode = Node::create(sponza);
-    sponzaNode->setTranslation(glm::vec3(0.0f, -0.5f, 0.0f));
-    sponzaNode->setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
-    sponzaNode->setScale(glm::vec3(0.01f));
+        {{ 25.0f, -0.5f, -25.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
+        {{-25.0f, -0.5f,  25.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+        {{ 25.0f, -0.5f,  25.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 0.0f}, {1.0f, 0.0f, 0.0f}}
+    };
+    Mesh* planeMesh = Mesh::create(planeVertices, floorTextures);
+
+    Node* planeNode = Node::create(planeMesh);
 
     scene->addChildNode(cubeNode1);
     scene->addChildNode(cubeNode2);
-    scene->addChildNode(sponzaNode);
-
-    int ret = videoStreamer->start(inputFileName, outputUrl);
-    if (ret < 0) {
-        std::cerr << "Failed to initialize FFMpeg Video Streamer" << std::endl;
-        return ret;
-    }
+    scene->addChildNode(planeNode);
 
     CubeMap* skybox = CubeMap::create({
         "../../assets/textures/skybox/right.jpg",
@@ -243,20 +205,14 @@ int main(int argc, char** argv) {
     FullScreenQuad* fsQuad = FullScreenQuad::create();
 
     // framebuffer to render into
-    FrameBuffer* framebuffer = FrameBuffer::create(width, height);
-
-    // enable backface culling
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    // enable alpha blending
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    FrameBuffer* framebuffer = FrameBuffer::create(app.config.width, app.config.height);
 
     app.onRender([&](double now, double dt) {
         processInput(&app, camera, dt);
 
         // bind to framebuffer and draw scene as we normally would to color texture
         framebuffer->bind();
+        glViewport(0, 0, framebuffer->width, framebuffer->height);
 
         // make sure we clear the framebuffer's content
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -270,6 +226,7 @@ int main(int argc, char** argv) {
 
         // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
         framebuffer->unbind();
+        glViewport(0, 0, width, height);
 
         // clear all relevant buffers
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
@@ -277,8 +234,12 @@ int main(int argc, char** argv) {
 
         screenShader.bind();
         screenShader.setInt("screenTexture", 0);
+        screenShader.setInt("videoTexture", 1);
             framebuffer->bindColorAttachment();
-                fsQuad->draw();
+                videoTexture->bind(1);
+                videoTexture->draw();
+                    fsQuad->draw();
+                videoTexture->unbind();
             framebuffer->unbindColorAttachment();
         screenShader.unbind();
     });
@@ -292,7 +253,7 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void processInput(OpenGLApp* app, Camera* camera, float deltaTime) {
+void processInput(OpenGLApp* app, Camera* camera,  float deltaTime) {
     if (glfwGetKey(app->window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(app->window, true);
 

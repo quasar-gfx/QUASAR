@@ -1,4 +1,8 @@
 #include <VideoStreamer.h>
+#ifndef __APPLE__
+#include <cuda.h>
+#include <cuda_runtime.h>
+#endif
 
 #undef av_err2str
 #define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
@@ -109,11 +113,26 @@ int VideoStreamer::getDeviceName(std::string& gpuName) {
         return -1;
     }
     printf("Driver version is %d\n", driver_version);
+
+#ifndef __APPLE__
+int getDeviceName(std::string& gpuName) {
+    // Setup the cuda context for hardware encoding with ffmpeg
+    int iGpu = 0;
+    CUresult res;
+    cuInit(0);
+    int nGpu = 0;
+    cuDeviceGetCount(&nGpu);
+    if (iGpu < 0 || iGpu >= nGpu) {
+        std::cout << "GPU ordinal out of range. Should be within [" << 0 << ", " << nGpu - 1 << "]" << std::endl;
+        return 1;
+    }
+
     CUdevice cuDevice = 0;
     cuDeviceGet(&cuDevice, iGpu);
     char szDeviceName[80];
     cuDeviceGetName(szDeviceName, sizeof(szDeviceName), cuDevice);
     gpuName = szDeviceName;
+
     printf("Device %d name is %s\n", cuDevice, szDeviceName);
     return 0;
 }
@@ -157,25 +176,21 @@ int VideoStreamer::init(const std::string inputFileName, const std::string outpu
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate decoder.\n");
         return -1;
     }
+    return 0;
+}
+#endif
 
-    inputCodecContext = avcodec_alloc_context3(inputCodec);
-    if (!inputCodecContext) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate codec context.\n");
-        return -1;
-    }
+int VideoStreamer::start(Texture* texture, const std::string outputUrl) {
+    this->sourceTexture = texture;
+    this->outputUrl = outputUrl;
 
-    ret = avcodec_parameters_to_context(inputCodecContext, inputVideoStream->codecpar);
-    if (ret < 0) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't copy codec parameters to context: %s\n", av_err2str(ret));
-        return ret;
+#ifndef __APPLE__
+    std::string gpuName;
+    if (getDeviceName(gpuName) != 0) {
+        return 1;
     }
-
-    ret = avcodec_open2(inputCodecContext, inputCodec, nullptr);
-    if (ret < 0) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't open codec: %s\n", av_err2str(ret));
-        return ret;
-    }
-    /* END: Setup codec to decode input (video from file) */
+    std::cout << "GPU in use: " << gpuName << std::endl;
+#endif
 
     /* BEGIN: Setup codec to encode output (video to URL) */
 #ifdef __APPLE__
@@ -196,20 +211,20 @@ int VideoStreamer::init(const std::string inputFileName, const std::string outpu
         return -1;
     }
 
-    outputCodecContext->width = inputVideoStream->codecpar->width;
-    outputCodecContext->height = inputVideoStream->codecpar->height;
-    outputCodecContext->time_base = inputFormatContext->streams[videoStreamIndex]->time_base;
-    outputCodecContext->framerate = inputFormatContext->streams[videoStreamIndex]->avg_frame_rate;
-    outputCodecContext->pix_fmt = (AVPixelFormat)inputVideoStream->codecpar->format;
-    outputCodecContext->bit_rate = 400000;
+    outputCodecContext->width = texture->width;
+    outputCodecContext->height = texture->height;
+    outputCodecContext->time_base = {1, frameRate};
+    outputCodecContext->framerate = {frameRate, 1};
+    outputCodecContext->pix_fmt = this->pixelFormat;
+    outputCodecContext->bit_rate = 100000 * 1000;
 
     // Set zero latency
-    // outputCodecContext->max_b_frames = 0;
-    // outputCodecContext->gop_size = 0;
-    // av_opt_set_int(outputCodecContext->priv_data, "zerolatency", 1, 0);
-    // av_opt_set_int(outputCodecContext->priv_data, "delay", 0, 0);
+    outputCodecContext->max_b_frames = 0;
+    outputCodecContext->gop_size = 0;
+    av_opt_set_int(outputCodecContext->priv_data, "zerolatency", 1, 0);
+    av_opt_set_int(outputCodecContext->priv_data, "delay", 0, 0);
 
-    ret = avcodec_open2(outputCodecContext, outputCodec, nullptr);
+    int ret = avcodec_open2(outputCodecContext, outputCodec, nullptr);
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't open codec: %s\n", av_err2str(ret));
         return ret;
@@ -230,12 +245,6 @@ int VideoStreamer::init(const std::string inputFileName, const std::string outpu
         return -1;
     }
 
-    ret = avcodec_parameters_from_context(outputVideoStream->codecpar, inputCodecContext);
-    if (ret < 0) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Could not initialize output stream parameters: %s\n", av_err2str(ret));
-        return ret;
-    }
-
     // Open output URL
     ret = avio_open(&outputFormatContext->pb, outputUrl.c_str(), AVIO_FLAG_WRITE);
     if (ret < 0) {
@@ -250,7 +259,15 @@ int VideoStreamer::init(const std::string inputFileName, const std::string outpu
     }
     /* END: Setup output (to write video to URL) */
 
-    videoStreamerThread = std::thread(&VideoStreamer::sendFrame, this);
+    conversionContext = sws_getContext(texture->width, texture->height, AV_PIX_FMT_RGBA,
+                                                    texture->width, texture->height, this->pixelFormat,
+                                                    SWS_BICUBIC, nullptr, nullptr, nullptr);
+    if (!conversionContext) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate conversion context\n");
+        return -1;
+    }
+
+    rgbaData = new uint8_t[texture->width * texture->height * 4];
 
     return 0;
 }
@@ -411,13 +428,78 @@ int VideoStreamer::sendFrame() {
                 return;
             }
         }
+
+void VideoStreamer::sendFrame() {
+    static uint64_t lastTime = av_gettime();
+
+    // get frame from decoder
+    AVFrame *frame = av_frame_alloc();
+    frame->format = this->pixelFormat;
+    frame->width = sourceTexture->width;
+    frame->height = sourceTexture->height;
+
+    int ret = av_frame_get_buffer(frame, 0);
+    if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate frame data: %s\n", av_err2str(ret));
+        return;
     }
+
+    ret = av_frame_make_writable(frame);
+    if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Could not make frame writable: %s\n", av_err2str(ret));
+        return;
+    }
+
+    sourceTexture->bind(0);
+    glReadPixels(0, 0, sourceTexture->width, sourceTexture->height, GL_RGBA, GL_UNSIGNED_BYTE, rgbaData);
+    sourceTexture->unbind();
+
+    const uint8_t* srcData[] = { rgbaData };
+    int srcStride[] = { static_cast<int>(sourceTexture->width * 4) }; // RGBA has 4 bytes per pixel
+
+    sws_scale(conversionContext, srcData, srcStride, 0, sourceTexture->height, frame->data, frame->linesize);
+
+    // send packet to encoder
+    ret = avcodec_send_frame(outputCodecContext, frame);
+    if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Could not send frame to output encoder: %s\n", av_err2str(ret));
+        return;
+    }
+
+    // get packet from encoder
+    ret = avcodec_receive_packet(outputCodecContext, &outputPacket);
+    if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+        av_frame_free(&frame);
+        av_packet_unref(&outputPacket);
+        return;
+    }
+    else if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Could not receive frame from encoder: %s\n", av_err2str(ret));
+        return;
+    }
+
+    outputPacket.pts = framesSent * (outputFormatContext->streams[0]->time_base.den) / frameRate;
+    outputPacket.dts = outputPacket.pts;
+
+    av_usleep(1.0f / frameRate * 1000000.0f - (av_gettime() - lastTime));
+
+    // send packet to output URL
+    ret = av_interleaved_write_frame(outputFormatContext, &outputPacket);
+    av_packet_unref(&outputPacket);
+    av_frame_free(&frame);
+    if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Error writing frame\n");
+        return;
+    }
+
+    framesSent++;
+
+    lastTime = av_gettime();
 }
 
 void VideoStreamer::cleanup() {
-    avformat_close_input(&inputFormatContext);
-    avformat_free_context(inputFormatContext);
     avio_closep(&outputFormatContext->pb);
     avformat_close_input(&outputFormatContext);
     avformat_free_context(outputFormatContext);
+    sws_freeContext(conversionContext);
 }
