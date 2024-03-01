@@ -9,6 +9,7 @@ extern "C" {
 #include <libavutil/opt.h>
 }
 #include "cuda.h"
+#include "cudaGL.h"
 #include <cuda_runtime.h>
 #include <cuda_gl_interop.h>
 #include <helper_cuda.h>
@@ -28,13 +29,14 @@ public:
     int init(const std::string inputFileName, const std::string outputUrl);
     void cleanup();
 
+    int prepareEncode(AVFrame *frame);
     int sendFrame();
     int initializeCudaContext(std::string& gpuName, int width, int height, GLuint texture);
     int getDeviceName(std::string& gpuName);
 
 private:
     CUcontext *m_cuContext = nullptr;
-    cudaGraphicsResource* cuInpTexRes;
+    CUgraphicsResource cuInpTexRes;
     CUDA_MEMCPY2D_st m_memCpyStruct;
 
     AVFormatContext *inputFormatContext = nullptr;

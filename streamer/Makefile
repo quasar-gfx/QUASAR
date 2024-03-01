@@ -11,7 +11,7 @@ COMMON_DIR = ../common
 SRCS = $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/*.c)
 OBJS = $(wildcard $(OBJ_DIR)/*.o)
 OBJ_RULE = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o) $(SRCS:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
-INCLUDES = -I$(INCLUDE_DIR) -I$(COMMON_DIR)/include -I$(CUDA_HOME)/include -I$(CUDA_HOME)/cuda-samples/Common
+INCLUDES = -I$(INCLUDE_DIR) -I$(COMMON_DIR)/include -I$(CUDA_HOME)/include -I$(HOME)/cuda-samples/Common/
 THIRD_PARTY = -I../third_party
 
 CXXFLAGS = -O2 -std=c++17
