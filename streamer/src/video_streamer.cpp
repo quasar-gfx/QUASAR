@@ -46,11 +46,15 @@ int VideoStreamer::initializeCudaContext(std::string& gpuName, int width, int he
     CUcontext oldCtx;
     // cuInpTexRes = (CUgraphicsResource *)malloc(sizeof(CUgraphicsResource));e
     res = cuCtxPopCurrent(&oldCtx);
+    std::cout << res << std::endl;
     res = cuCtxPushCurrent(*m_cuContext);
+    std::cout << res << std::endl;
     res = cuGraphicsGLRegisterImage(&cuInpTexRes, texture, GL_TEXTURE_2D, CU_GRAPHICS_REGISTER_FLAGS_READ_ONLY);
+    std::cout << res << std::endl;
     //res = cuGraphicsGLRegisterBuffer(&cuInpTexRes, texture, CU_GRAPHICS_REGISTER_FLAGS_READ_ONLY);
     res = cuCtxPopCurrent(&oldCtx);
-
+    std::cout << res << std::endl;
+    
     outputCodecContext->hw_device_ctx = av_buffer_ref(m_avBufferRefDevice);
     outputCodecContext->pix_fmt = AV_PIX_FMT_CUDA;
     outputCodecContext->hw_frames_ctx = av_buffer_ref(m_avBufferRefFrame);
