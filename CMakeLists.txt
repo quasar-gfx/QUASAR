@@ -19,12 +19,15 @@ set(LIBS )
 
 set(LIBS ${LIBS} -ldl)
 
-find_package(CUDA 12.0 REQUIRED)
-set(LIBS ${LIBS} ${CUDA_LIBRARIES})
+if(APPLE)
+else()
+    find_package(CUDA 12.0 REQUIRED)
+    set(LIBS ${LIBS} ${CUDA_LIBRARIES})
 
-find_package(CUDAToolkit REQUIRED)
-set(LIBS ${LIBS} CUDA::cudart)
-set(LIBS ${LIBS} CUDA::cuda_driver)
+    find_package(CUDAToolkit REQUIRED)
+    set(LIBS ${LIBS} CUDA::cudart)
+    set(LIBS ${LIBS} CUDA::cuda_driver)
+endif()
 
 find_package(OpenGL REQUIRED)
 set(LIBS ${LIBS} ${OPENGL_LIBRARIES})
