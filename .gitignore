@@ -3,3 +3,6 @@
 
 build/
 out/
+streamer/bin/streamer
+streamer/obj/glad.o
+streamer/obj/main.o
