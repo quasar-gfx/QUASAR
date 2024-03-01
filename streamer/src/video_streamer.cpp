@@ -10,7 +10,7 @@ int VideoStreamer::initializeCudaContext(std::string& gpuName, int width, int he
         return -1;
     }
     std::cout << "Graphic Device Name:" << gpuName << std::endl;
-    cudaGLSetGLDevice(0);
+
     // Create CUDA Hardware Context for ffmpeg
     AVBufferRef* m_avBufferRefDevice;
     int ret = av_hwdevice_ctx_create(&m_avBufferRefDevice, AV_HWDEVICE_TYPE_CUDA, gpuName.c_str(), NULL, NULL);
@@ -18,13 +18,21 @@ int VideoStreamer::initializeCudaContext(std::string& gpuName, int width, int he
         std::cerr << "Failed to create a hardware device context." << std::endl;
         return false;
     }
-    std::cout << "hw device ctx created" << std::endl;
+    std::cout << "HW Device Context created" << std::endl;
     
     // Retrieve and cast the hardware device context to a CUDA device context for accessing CUDA-specific functionalities.
+    
     AVHWDeviceContext* hwDevContext = reinterpret_cast<AVHWDeviceContext*>(m_avBufferRefDevice->data);
+    std:: cout << hwDevContext << std::endl;
     AVCUDADeviceContext* cudaDevCtx = reinterpret_cast<AVCUDADeviceContext*>(hwDevContext->hwctx);
+    std:: cout << cudaDevCtx << std::endl;
+    CUresult res;
     m_cuContext = &(cudaDevCtx->cuda_ctx);
-
+    std:: cout << m_cuContext << std::endl;
+    unsigned int *version = nullptr;
+    version = (unsigned int*)malloc(sizeof(unsigned int));
+    res = cuCtxGetApiVersion(*m_cuContext, version);
+    std::cout << "cuRes: " << res << " Context Api Version: " << *version << std::endl;
     
     AVBufferRef* m_avBufferRefFrame = av_hwframe_ctx_alloc(m_avBufferRefDevice);
     AVHWFramesContext* frameCtxPtr = reinterpret_cast<AVHWFramesContext*>(m_avBufferRefFrame->data);
@@ -40,9 +48,9 @@ int VideoStreamer::initializeCudaContext(std::string& gpuName, int width, int he
         std::cerr << "Failed to initialize a hardware frame context." << std::endl;
         return -1;
     }
-    std::cout << "Hw Frame Context Created" << std::endl;
+    std::cout << "Hw Frame Context " << std::endl;
     
-    CUresult res;
+    
     CUcontext oldCtx;
     // cuInpTexRes = (CUgraphicsResource *)malloc(sizeof(CUgraphicsResource));e
     res = cuCtxPopCurrent(&oldCtx);
@@ -54,7 +62,7 @@ int VideoStreamer::initializeCudaContext(std::string& gpuName, int width, int he
     //res = cuGraphicsGLRegisterBuffer(&cuInpTexRes, texture, CU_GRAPHICS_REGISTER_FLAGS_READ_ONLY);
     res = cuCtxPopCurrent(&oldCtx);
     std::cout << res << std::endl;
-    
+
     outputCodecContext->hw_device_ctx = av_buffer_ref(m_avBufferRefDevice);
     outputCodecContext->pix_fmt = AV_PIX_FMT_CUDA;
     outputCodecContext->hw_frames_ctx = av_buffer_ref(m_avBufferRefFrame);
@@ -255,8 +263,15 @@ int VideoStreamer::prepareEncode(AVFrame *frame) {
     //Get context
     cuRes = cuCtxPopCurrent(&oldCtx); // THIS IS ALLOWED TO FAIL
     cuRes = cuCtxPushCurrent(*m_cuContext);
+    std:: cout << m_cuContext << std::endl;
+    __asm volatile("bkpt");
     std::cout << "Get context: " << cuRes << std::endl;
     
+    unsigned int *version = nullptr;
+    version = (unsigned int*)malloc(sizeof(unsigned int));
+    cuRes = cuCtxGetApiVersion(*m_cuContext, version);
+    std::cout << "cuRes: " << cuRes << " Context Api Version: " << *version << std::endl;
+
     //Get Texture
     cuRes = cuGraphicsResourceSetMapFlags(cuInpTexRes, CU_GRAPHICS_MAP_RESOURCE_FLAGS_READ_ONLY);
     std::cout << cuRes << std::endl;
@@ -282,11 +297,11 @@ int VideoStreamer::prepareEncode(AVFrame *frame) {
 
     //Do memcpy
     cuRes = cuMemcpy2D(&m_memCpyStruct); 
-    std::cout << "cu Memcpy 2D " << cuRes << std::endl;
+    std::cout << "cu Memcpy 2D: " << cuRes << std::endl;
     
     //release context
     cuRes = cuCtxPopCurrent(&oldCtx); // THIS IS ALLOWED TO FAIL
-    std::cout << cuRes << std::endl;
+    std::cout << "Release Context: " << cuRes << std::endl;
     
     return 0;
 }
