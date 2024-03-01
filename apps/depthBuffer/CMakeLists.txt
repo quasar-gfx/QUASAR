@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.19)
-project(Receiver)
+project(DepthBuffer)
 
-set(TARGET receiver)
+set(TARGET depthBuffer)
 
 file(GLOB SRCS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
@@ -14,4 +14,4 @@ add_executable(${TARGET} ${RENDERER_SRCS} ${SRCS})
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-target_link_libraries(${TARGET} PRIVATE ${LIBS} -pthread)
+target_link_libraries(${TARGET} PRIVATE ${LIBS})

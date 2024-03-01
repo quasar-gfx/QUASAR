@@ -38,13 +38,13 @@ private:
     FullScreenQuad() {
         // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
         std::vector<FSQuadVertex> quadVertices = {
-            {{-1.0f,  1.0f}, {0.0f, 1.0f}},
-            {{-1.0f, -1.0f}, {0.0f, 0.0f}},
-            {{ 1.0f, -1.0f}, {1.0f, 0.0f}},
+            { {-1.0f,  1.0f}, {0.0f, 1.0f} },
+            { {-1.0f, -1.0f}, {0.0f, 0.0f} },
+            { { 1.0f, -1.0f}, {1.0f, 0.0f} },
 
-            {{-1.0f,  1.0f}, {0.0f, 1.0f}},
-            {{ 1.0f, -1.0f}, {1.0f, 0.0f}},
-            {{ 1.0f,  1.0f}, {1.0f, 1.0f}}
+            { {-1.0f,  1.0f}, {0.0f, 1.0f} },
+            { { 1.0f, -1.0f}, {1.0f, 0.0f} },
+            { { 1.0f,  1.0f}, {1.0f, 1.0f} }
         };
 
         quadVBO = new VertexBuffer(quadVertices.data(), quadVertices.size() * sizeof(FSQuadVertex));
