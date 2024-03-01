@@ -14,4 +14,4 @@ add_executable(${TARGET} ${RENDERER_SRCS} ${SRCS})
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-target_link_libraries(${TARGET} PRIVATE ${LIBS})
+target_link_libraries(${TARGET} PRIVATE ${LIBS} -pthread)
