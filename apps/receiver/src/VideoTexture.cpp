@@ -6,7 +6,7 @@
 #define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
 
 void VideoTexture::initVideo(const std::string inputUrl) {
-    this->inputUrl = inputUrl;
+    this->inputUrl = inputUrl + "?overrun_nonfatal=1&fifo_size=50000000";
     videoReceiverThread = std::thread(&VideoTexture::receiveVideo, this);
 }
 
@@ -135,7 +135,6 @@ void VideoTexture::receiveVideo() {
             frameRGBMutex.unlock();
 
             frameReceived++;
-            std::cout << "Received " << frameReceived << " video frames from " << inputUrl << std::endl;
         }
     }
 }

@@ -18,7 +18,7 @@ class VideoTexture : public Texture {
 public:
     std::string inputUrl = "udp://localhost:1234"; // Specify the UDP input URL
 
-    int frameReceived;
+    int frameReceived = 0;
 
     void initVideo(const std::string inputUrl);
     void cleanup();

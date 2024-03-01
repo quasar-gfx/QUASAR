@@ -17,6 +17,8 @@ set(RENDERER ${CMAKE_CURRENT_SOURCE_DIR}/renderer)
 
 set(LIBS )
 
+set(LIBS ${LIBS} -ldl)
+
 find_package(OpenGL REQUIRED)
 set(LIBS ${LIBS} ${OPENGL_LIBRARIES})
 

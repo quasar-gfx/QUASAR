@@ -24,10 +24,8 @@ const std::string BACKPACK_MODEL_PATH = "../../assets/models/backpack/backpack.o
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
-    app.config.title = "Video Streamer";
+    app.config.title = "Depth Buffer";
 
-    std::string inputFileName = "input.mp4";
-    std::string outputUrl = "udp://localhost:1234";
     std::string modelPath = "../../assets/models/sponza/sponza.obj";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
@@ -40,14 +38,6 @@ int main(int argc, char** argv) {
         }
         else if (!strcmp(argv[i], "-m") && i + 1 < argc) {
             modelPath = argv[i + 1];
-            i++;
-        }
-        else if (!strcmp(argv[i], "-i") && i + 1 < argc) {
-            inputFileName = argv[i + 1];
-            i++;
-        }
-        else if (!strcmp(argv[i], "-o") && i + 1 < argc) {
-            outputUrl = argv[i + 1];
             i++;
         }
         else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
@@ -211,13 +201,14 @@ int main(int argc, char** argv) {
     FullScreenQuad* fsQuad = FullScreenQuad::create();
 
     // framebuffer to render into
-    FrameBuffer* framebuffer = FrameBuffer::create(width, height);
+    FrameBuffer* framebuffer = FrameBuffer::create(app.config.width, app.config.height);
 
     app.onRender([&](double now, double dt) {
         processInput(&app, camera, dt);
 
         // bind to framebuffer and draw scene as we normally would to color texture
         framebuffer->bind();
+        glViewport(0, 0, framebuffer->width, framebuffer->height);
 
         // make sure we clear the framebuffer's content
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -231,6 +222,7 @@ int main(int argc, char** argv) {
 
         // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
         framebuffer->unbind();
+        glViewport(0, 0, width, height);
 
         // clear all relevant buffers
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
@@ -238,9 +230,12 @@ int main(int argc, char** argv) {
 
         screenShader.bind();
         screenShader.setInt("screenTexture", 0);
-            framebuffer->bindColorAttachment();
+        screenShader.setInt("depthTexture", 1);
+            framebuffer->bindColorAttachment(0);
+            framebuffer->bindDepthAttachment(1);
                 fsQuad->draw();
             framebuffer->unbindColorAttachment();
+            framebuffer->unbindDepthAttachment();
         screenShader.unbind();
     });
 
