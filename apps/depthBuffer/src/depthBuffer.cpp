@@ -14,20 +14,18 @@
 #include <FullScreenQuad.h>
 #include <OpenGLApp.h>
 
-#include <VideoStreamer.h>
-
 #define GUI_UPDATE_FRAMERATE_INTERVAL 0.1f // seconds
 
 void processInput(OpenGLApp* app, Camera* camera, float deltaTime);
 
 const std::string CONTAINER_TEXTURE = "../../assets/textures/container.jpg";
 const std::string METAL_TEXTURE = "../../assets/textures/metal.png";
+const std::string BACKPACK_MODEL_PATH = "../../assets/models/backpack/backpack.obj";
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
-    app.config.title = "Video Streamer";
+    app.config.title = "Depth Buffer";
 
-    std::string outputUrl = "udp://localhost:1234";
     std::string modelPath = "../../assets/models/sponza/sponza.obj";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
@@ -40,10 +38,6 @@ int main(int argc, char** argv) {
         }
         else if (!strcmp(argv[i], "-m") && i + 1 < argc) {
             modelPath = argv[i + 1];
-            i++;
-        }
-        else if (!strcmp(argv[i], "-o") && i + 1 < argc) {
-            outputUrl = argv[i + 1];
             i++;
         }
         else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
@@ -60,9 +54,7 @@ int main(int argc, char** argv) {
     Scene* scene = new Scene();
     Camera* camera = new Camera(width, height);
 
-    VideoStreamer* videoStreamer = VideoStreamer::create();
-
-    app.gui([&app, &videoStreamer](double now, double dt) {
+    app.gui([&app](double now, double dt) {
         static float deltaTimeSum = 0.0f;
         static int sumCount = 0;
         static float frameRateToDisplay = 0.0f;
@@ -80,7 +72,6 @@ int main(int argc, char** argv) {
         }
         deltaTimeSum += dt; sumCount++;
         ImGui::Text("Rendering Frame Rate: %.1f FPS", frameRateToDisplay);
-        ImGui::Text("Video Frame Rate: %.1f FPS", videoStreamer->getFrameRate());
         ImGui::End();
     });
 
@@ -187,9 +178,16 @@ int main(int argc, char** argv) {
     sponzaNode->setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
     sponzaNode->setScale(glm::vec3(0.01f));
 
+    Model* backpack = Model::create(BACKPACK_MODEL_PATH, true);
+
+    Node* backpackNode = Node::create(backpack);
+    backpackNode->setTranslation(glm::vec3(-0.25f, 0.25f, -3.0f));
+    backpackNode->setScale(glm::vec3(0.25f));
+
     scene->addChildNode(cubeNode1);
     scene->addChildNode(cubeNode2);
     scene->addChildNode(sponzaNode);
+    scene->addChildNode(backpackNode);
 
     CubeMap* skybox = CubeMap::create({
         "../../assets/textures/skybox/right.jpg",
@@ -204,12 +202,6 @@ int main(int argc, char** argv) {
 
     // framebuffer to render into
     FrameBuffer* framebuffer = FrameBuffer::create(app.config.width, app.config.height);
-
-    int ret = videoStreamer->start(framebuffer->colorAttachment, outputUrl);
-    if (ret < 0) {
-        std::cerr << "Failed to initialize FFMpeg Video Streamer" << std::endl;
-        return ret;
-    }
 
     app.onRender([&](double now, double dt) {
         processInput(&app, camera, dt);
@@ -238,14 +230,13 @@ int main(int argc, char** argv) {
 
         screenShader.bind();
         screenShader.setInt("screenTexture", 0);
-            framebuffer->bindColorAttachment();
+        screenShader.setInt("depthTexture", 1);
+            framebuffer->bindColorAttachment(0);
+            framebuffer->bindDepthAttachment(1);
                 fsQuad->draw();
             framebuffer->unbindColorAttachment();
+            framebuffer->unbindDepthAttachment();
         screenShader.unbind();
-
-        double start = glfwGetTime();
-        videoStreamer->sendFrame();
-        std::cout << "Time to send frame: " << glfwGetTime() - start << " seconds" << std::endl;
     });
 
     // run app loop (blocking)

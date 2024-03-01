@@ -201,13 +201,14 @@ int main(int argc, char** argv) {
     FullScreenQuad* fsQuad = FullScreenQuad::create();
 
     // framebuffer to render into
-    FrameBuffer* framebuffer = FrameBuffer::create(width, height);
+    FrameBuffer* framebuffer = FrameBuffer::create(app.config.width, app.config.height);
 
     app.onRender([&](double now, double dt) {
         processInput(&app, camera, dt);
 
         // bind to framebuffer and draw scene as we normally would to color texture
         framebuffer->bind();
+        glViewport(0, 0, framebuffer->width, framebuffer->height);
 
         // make sure we clear the framebuffer's content
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -221,6 +222,7 @@ int main(int argc, char** argv) {
 
         // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
         framebuffer->unbind();
+        glViewport(0, 0, width, height);
 
         // clear all relevant buffers
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
@@ -228,7 +230,7 @@ int main(int argc, char** argv) {
 
         screenShader.bind();
         screenShader.setInt("screenTexture", 0);
-            framebuffer->bindColorAttachment();
+            framebuffer->bindColorAttachment(0);
                 fsQuad->draw();
             framebuffer->unbindColorAttachment();
         screenShader.unbind();

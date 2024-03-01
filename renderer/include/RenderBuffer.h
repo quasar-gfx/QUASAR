@@ -10,10 +10,16 @@ public:
     unsigned int width, height;
 
     void bind() {
+        bind(0);
+    }
+
+    void bind(unsigned int slot = 0) {
+        glActiveTexture(GL_TEXTURE0 + slot);
         glBindRenderbuffer(GL_RENDERBUFFER, ID);
     }
 
     void unbind() {
+        glBindTexture(GL_TEXTURE_2D, 0);
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
     }
 

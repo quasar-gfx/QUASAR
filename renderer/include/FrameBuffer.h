@@ -12,7 +12,7 @@ public:
     unsigned int width, height;
 
     Texture* colorAttachment;
-    RenderBuffer* depthAttachment;
+    Texture* depthAttachment;
 
     ~FrameBuffer() {
         cleanup();
@@ -30,8 +30,8 @@ public:
         colorAttachment->unbind();
     }
 
-    void bindDepthAttachment() {
-        depthAttachment->bind();
+    void bindDepthAttachment(unsigned int slot = 0) {
+        depthAttachment->bind(slot);
     }
 
     void unbindDepthAttachment() {
@@ -44,8 +44,6 @@ public:
 
     void cleanup() {
         glDeleteFramebuffers(1, &ID);
-        colorAttachment->cleanup();
-        depthAttachment->cleanup();
     }
 
     static FrameBuffer* create(unsigned int width, unsigned int height) {
@@ -55,17 +53,24 @@ public:
 private:
     FrameBuffer(unsigned int width, unsigned int height)
             : width(width), height(height) {
-        colorAttachment = Texture::create(width, height, TEXTURE_DIFFUSE, GL_RGB, GL_CLAMP_TO_EDGE, GL_LINEAR);
-        depthAttachment = RenderBuffer::create(width, height, GL_DEPTH_COMPONENT24);
 
         glGenFramebuffers(1, &ID);
         glBindFramebuffer(GL_FRAMEBUFFER, ID);
 
         // create a color attachment texture
+        colorAttachment = Texture::create(width, height, TEXTURE_DIFFUSE, GL_RGB);
+
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorAttachment->ID, 0);
 
-        // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthAttachment->ID);
+        // create a renderbuffer object for depth
+        depthAttachment = Texture::create(width, height, TEXTURE_DIFFUSE, GL_DEPTH_COMPONENT);
+
+        glBindTexture(GL_TEXTURE_2D, depthAttachment->ID);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+        glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthAttachment->ID, 0);
 
         // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
