@@ -17,14 +17,12 @@ set(RENDERER ${CMAKE_CURRENT_SOURCE_DIR}/renderer)
 
 set(LIBS )
 
-<<<<<<< HEAD
 find_package(CUDA 12.0 REQUIRED)
 set(LIBS ${LIBS} ${CUDA_LIBRARIES})
 
 find_package(CUDAToolkit REQUIRED)
 set(LIBS ${LIBS} CUDA::cudart)
 set(LIBS ${LIBS} CUDA::cuda_driver)
-=======
 set(LIBS ${LIBS} -ldl)
 
 if(APPLE)
@@ -36,7 +34,6 @@ else()
     set(LIBS ${LIBS} CUDA::cudart)
     set(LIBS ${LIBS} CUDA::cuda_driver)
 endif()
->>>>>>> b28d90d760d48d76651ebd9cb80b9496beed7920
 
 find_package(OpenGL REQUIRED)
 set(LIBS ${LIBS} ${OPENGL_LIBRARIES})
