@@ -10,6 +10,12 @@ extern "C" {
 #include <libavutil/time.h>
 #include <libavutil/opt.h>
 }
+#include "cuda.h"
+#include "cudaGL.h"
+#include <cuda_runtime.h>
+#include <cuda_gl_interop.h>
+#include <libavutil/hwcontext.h>
+#include <libavutil/hwcontext_cuda.h>
 
 class VideoStreamer {
 public:
@@ -36,6 +42,10 @@ private:
     VideoStreamer() = default;
     ~VideoStreamer() = default;
 
+    CUcontext *m_cuContext = nullptr;
+    CUgraphicsResource cuInpTexRes;
+    CUDA_MEMCPY2D_st m_memCpyStruct;
+
     AVFormatContext* inputFormatContext = nullptr;
     AVFormatContext* outputFormatContext = nullptr;
 
@@ -50,7 +60,10 @@ private:
 
     std::thread videoStreamerThread;
 
-    void sendFrame();
+    int prepareEncode(AVFrame *frame);
+    int sendFrame();
+    int initializeCudaContext(std::string& gpuName, int width, int height, GLuint texture);
+    int getDeviceName(std::string& gpuName);
 };
 
 #endif // VIDEOSTREAMER_H
