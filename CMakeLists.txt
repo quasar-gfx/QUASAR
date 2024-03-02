@@ -23,6 +23,17 @@ set(LIBS ${LIBS} ${CUDA_LIBRARIES})
 find_package(CUDAToolkit REQUIRED)
 set(LIBS ${LIBS} CUDA::cudart)
 set(LIBS ${LIBS} CUDA::cuda_driver)
+set(LIBS ${LIBS} -ldl)
+
+if(APPLE)
+else()
+    find_package(CUDA 12.0 REQUIRED)
+    set(LIBS ${LIBS} ${CUDA_LIBRARIES})
+
+    find_package(CUDAToolkit REQUIRED)
+    set(LIBS ${LIBS} CUDA::cudart)
+    set(LIBS ${LIBS} CUDA::cuda_driver)
+endif()
 
 find_package(OpenGL REQUIRED)
 set(LIBS ${LIBS} ${OPENGL_LIBRARIES})
