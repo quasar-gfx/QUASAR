@@ -12,9 +12,13 @@ ENDIF(NOT CMAKE_BUILD_TYPE)
 set(EXTERNAL ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 set(RENDERER ${CMAKE_CURRENT_SOURCE_DIR}/renderer)
 
+# set required libs
 set(LIBS )
 
 set(LIBS ${LIBS} -ldl)
+
+find_package(Threads REQUIRED)
+set(LIBS ${LIBS} Threads::Threads)
 
 find_package(OpenGL REQUIRED)
 set(LIBS ${LIBS} ${OPENGL_LIBRARIES})

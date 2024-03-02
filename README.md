@@ -1,6 +1,17 @@
-# FFMPEG Video Streaming
+# OpenGL FFMPEG Video Streaming
 
 To run:
+
+Install dependencies:
+```
+# Linux
+sudo apt-get install cmake libglew-dev libglfw3-dev libglm-dev libao-dev libmpg123-dev
+```
+
+```
+# Mac
+brew install cmake glew glfw3 glm
+```
 
 Build streamer and receiver:
 ```
@@ -36,4 +47,4 @@ TODOs:
 - run reciever in android
 
 @ruiyang:
-- make the streamer stream an opengl texture/framebuffer instead of the input video
+- use cuda to directly stream an opengl texture from GPU
