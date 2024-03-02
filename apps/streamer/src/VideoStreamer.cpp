@@ -56,7 +56,6 @@ int VideoStreamer::initializeCudaContext(std::string& gpuName, int width, int he
     
     
     CUcontext oldCtx;
-    // cuInpTexRes = (CUgraphicsResource *)malloc(sizeof(CUgraphicsResource));e
     res = cuCtxPopCurrent(&oldCtx);
     std::cout << res << std::endl;
     res = cuCtxPushCurrent(*m_cuContext);
@@ -95,11 +94,13 @@ bool __check_cuda_driver(CUresult code, const char* op, const char* file, int li
     }
     return true;
 }
+
 int VideoStreamer::getDeviceName(std::string& gpuName) {
     // Setup the cuda context for hardware encoding with ffmpeg
     int iGpu = 0;
     CUresult res;
-    cuInit(0);
+    res = cuInit(0);
+    std::cout << res << std::endl;
     int nGpu = 0;
     cuDeviceGetCount(&nGpu);
     if (iGpu < 0 || iGpu >= nGpu) {
@@ -205,7 +206,10 @@ int VideoStreamer::start(Texture* texture, const std::string outputUrl) {
     }
 
     rgbaData = new uint8_t[texture->width * texture->height * 4];
-
+    int res = initializeCudaContext(gpuName, texture->width, texture->height, texture->ID);
+    if (res < 0) {
+        std::cout << "Initilization Cuda Context Failed" << std::endl;
+    }
     return 0;
 }
 
@@ -267,6 +271,7 @@ void VideoStreamer::sendFrame() {
 
     // get frame from decoder
     AVFrame *frame = av_frame_alloc();
+    prepareEncode(frame);
     frame->format = this->pixelFormat;
     frame->width = sourceTexture->width;
     frame->height = sourceTexture->height;

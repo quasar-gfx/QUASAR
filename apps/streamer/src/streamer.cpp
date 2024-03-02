@@ -26,7 +26,8 @@ int getDeviceName(std::string& gpuName) {
     // Setup the cuda context for hardware encoding with ffmpeg
     int iGpu = 0;
     CUresult res;
-    cuInit(0);
+    res = cuInit(0);
+    std::cout << res << std::endl;
     int nGpu = 0;
     cuDeviceGetCount(&nGpu);
     if (iGpu < 0 || iGpu >= nGpu) {
@@ -289,7 +290,6 @@ int main(int argc, char** argv) {
 void processInput(OpenGLApp* app, Camera* camera, float deltaTime) {
     if (glfwGetKey(app->window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(app->window, true);
-
     if (glfwGetKey(app->window, GLFW_KEY_W) == GLFW_PRESS)
         camera->processKeyboard(FORWARD, deltaTime);
     if (glfwGetKey(app->window, GLFW_KEY_S) == GLFW_PRESS)
