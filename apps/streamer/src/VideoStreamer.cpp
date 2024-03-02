@@ -17,7 +17,7 @@ int VideoStreamer::initializeCudaContext(std::string& gpuName, int width, int he
 
     // Create CUDA Hardware Context for ffmpeg
     AVBufferRef* m_avBufferRefDevice;
-    int ret = av_hwdevice_ctx_create(&m_avBufferRefDevice, AV_HWDEVICE_TYPE_CUDA, gpuName.c_str(), NULL, NULL);
+    int ret = av_hwdevice_ctx_create(&m_avBufferRefDevice, AV_HWDEVICE_TYPE_CUDA, gpuName.c_str(), NULL, 0);
     if (ret < 0) {
         std::cerr << "Failed to create a hardware device context." << std::endl;
         return false;
@@ -90,32 +90,12 @@ bool __check_cuda_driver(CUresult code, const char* op, const char* file, int li
         const char* err_message = nullptr;
         cuGetErrorName(code, &err_name);
         cuGetErrorString(code, &err_message);
-        printf("%s:%d %d failed. \n code = %s, message = %s\n", file, line, op, err_name, err_message);
+        printf("%s:%d %s failed. \n code = %s, message = %s\n", file, line, op, err_name, err_message);
         return false;
     }
     return true;
 }
-
 int VideoStreamer::getDeviceName(std::string& gpuName) {
-    //Setup the cuda context for hardware encoding with ffmpeg
-    int iGpu = 0;
-    CUresult res;
-    checkDriver(cuInit(0));
-    int nGpu = 0;
-    cuDeviceGetCount(&nGpu);
-    if (iGpu < 0 || iGpu >= nGpu)
-    {
-        std::cout << "GPU ordinal out of range. Should be within [" << 0 << ", " << nGpu - 1 << "]" << std::endl;
-        return 1;
-    }
-    int driver_version = 0;
-    if (!checkDriver(cuDriverGetVersion(&driver_version))) {
-        return -1;
-    }
-    printf("Driver version is %d\n", driver_version);
-
-#ifndef __APPLE__
-int getDeviceName(std::string& gpuName) {
     // Setup the cuda context for hardware encoding with ffmpeg
     int iGpu = 0;
     CUresult res;
@@ -136,49 +116,6 @@ int getDeviceName(std::string& gpuName) {
     printf("Device %d name is %s\n", cuDevice, szDeviceName);
     return 0;
 }
-
-
-
-int VideoStreamer::init(const std::string inputFileName, const std::string outputUrl) {
-    this->inputFileName = inputFileName;
-    this->outputUrl = outputUrl;
-
-    /* BEGIN: Setup input (to read video from file) */
-    int ret = avformat_open_input(&inputFormatContext, inputFileName.c_str(), nullptr, nullptr);
-    if (ret < 0) {
-        av_log(nullptr, AV_LOG_ERROR, "Cannot open input file: %s\n", av_err2str(ret));
-        return ret;
-    }
-
-    ret = avformat_find_stream_info(inputFormatContext, nullptr);
-    if (ret < 0) {
-        av_log(nullptr, AV_LOG_ERROR, "Cannot find stream information: %s\n", av_err2str(ret));
-        return ret;
-    }
-
-    // find the video stream index
-    for (int i = 0; i < inputFormatContext->nb_streams; i++) {
-        if (inputFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
-            videoStreamIndex = i;
-            inputVideoStream = inputFormatContext->streams[i];
-            break;
-        }
-    }
-
-    if (videoStreamIndex == -1 || inputVideoStream == nullptr) {
-        av_log(nullptr, AV_LOG_ERROR, "No video stream found in the input file.\n");
-    }
-    /* END: Setup input (to read video from file) */
-
-    /* BEGIN: Setup codec to decode input (video from file) */
-    const AVCodec *inputCodec = avcodec_find_decoder(inputVideoStream->codecpar->codec_id);
-    if (!inputCodec) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate decoder.\n");
-        return -1;
-    }
-    return 0;
-}
-#endif
 
 int VideoStreamer::start(Texture* texture, const std::string outputUrl) {
     this->sourceTexture = texture;
@@ -284,7 +221,6 @@ int VideoStreamer::prepareEncode(AVFrame *frame) {
     cuRes = cuCtxPopCurrent(&oldCtx); // THIS IS ALLOWED TO FAIL
     cuRes = cuCtxPushCurrent(*m_cuContext);
     std:: cout << m_cuContext << std::endl;
-    __asm volatile("bkpt");
     std::cout << "Get context: " << cuRes << std::endl;
     
     unsigned int *version = nullptr;
@@ -325,109 +261,6 @@ int VideoStreamer::prepareEncode(AVFrame *frame) {
     
     return 0;
 }
-
-int VideoStreamer::sendFrame() {
-    std::cout << "-------------- Send Frame ------------------" << std::endl;
-    static int64_t start_time = av_gettime();
-    // read frame from file
-    int ret = av_read_frame(inputFormatContext, &inputPacket);
-    if (ret < 0) {
-        av_log(nullptr, AV_LOG_ERROR, "Error reading frame: %s\n", av_err2str(ret));
-        return -1;
-    }
-    std::cout << "Frame read" << std::endl;
-
-    if (inputPacket.stream_index == videoStreamIndex) {
-        // send packet to decoder
-        ret = avcodec_send_packet(inputCodecContext, &inputPacket);
-        if (ret < 0) {
-            av_log(nullptr, AV_LOG_ERROR, "Error reading frame: %s\n", av_err2str(ret));
-            return;
-        }
-        std::cout << "Send Packet to input decoder" << std::endl;
-
-        // get frame from decoder
-        AVFrame *frame = av_frame_alloc();
-        ret = avcodec_receive_frame(inputCodecContext, frame);
-        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-            av_frame_free(&frame);
-            av_packet_unref(&inputPacket);
-            return 1;
-        }
-        else if (ret < 0) {
-            av_log(nullptr, AV_LOG_ERROR, "Error: Could not receive raw frame from input decoder: %s\n", av_err2str(ret));
-            return ret;
-        }
-        std::cout << "Receive raw frame from input decoder" << std::endl;
-
-        // send packet to encoder
-        prepareEncode(frame);
-        ret = avcodec_send_frame(outputCodecContext, frame);
-        if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-            av_log(nullptr, AV_LOG_ERROR, "Error: Could not send frame to output encoder: %s\n", av_err2str(ret));
-            return ret;
-        }
-        std::cout << "Send packet to encoder" << std::endl;
-
-            // send packet to encoder
-            ret = avcodec_send_frame(outputCodecContext, frame);
-            if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-                av_log(nullptr, AV_LOG_ERROR, "Error: Could not send frame to output encoder: %s\n", av_err2str(ret));
-                return;
-            }
-
-            // get packet from encoder
-            ret = avcodec_receive_packet(outputCodecContext, &outputPacket);
-            if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-                av_frame_free(&frame);
-                av_packet_unref(&outputPacket);
-                continue;
-            }
-            else if (ret < 0) {
-                av_log(nullptr, AV_LOG_ERROR, "Error: Could not receive frame from encoder: %s\n", av_err2str(ret));
-                return;
-            }
-
-            outputPacket.stream_index = outputVideoStream->index;
-            if (outputPacket.pts == AV_NOPTS_VALUE) {
-                // write PTS
-                AVRational time_base1 = inputVideoStream->time_base;
-                // duration between 2 frames (us)
-                int64_t calc_duration = (double)AV_TIME_BASE/av_q2d(inputVideoStream->r_frame_rate);
-                // parameters
-                outputPacket.pts = (double)(framesSent*calc_duration)/(double)(av_q2d(time_base1)*AV_TIME_BASE);
-                outputPacket.dts = outputPacket.pts;
-                outputPacket.duration = (double)calc_duration/(double)(av_q2d(time_base1)*AV_TIME_BASE);
-            }
-
-            // important to maintain FPS - delay
-            AVRational time_base = inputVideoStream->time_base;
-            AVRational time_base_q = {1, AV_TIME_BASE};
-            int64_t pts_time = av_rescale_q(outputPacket.dts, time_base, time_base_q);
-            int64_t now_time = av_gettime() - start_time;
-            if (pts_time > now_time) {
-                av_usleep(pts_time - now_time);
-            }
-
-            // convert PTS/DTS
-            outputPacket.pts = av_rescale_q_rnd(inputPacket.pts, inputVideoStream->time_base, outputVideoStream->time_base,
-                                            (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-            outputPacket.dts = av_rescale_q_rnd(inputPacket.dts, inputVideoStream->time_base, outputVideoStream->time_base,
-                                            (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-            outputPacket.duration = av_rescale_q(inputPacket.duration, inputVideoStream->time_base, outputVideoStream->time_base);
-            outputPacket.pos = -1;
-
-            // send packet to output URL
-            framesSent++;
-            std::cout << "Sending frame " << framesSent << " to " << outputUrl << std::endl;
-            ret = av_interleaved_write_frame(outputFormatContext, &outputPacket);
-            av_packet_unref(&outputPacket);
-            av_frame_free(&frame);
-            if (ret < 0) {
-                av_log(nullptr, AV_LOG_ERROR, "Error writing frame\n");
-                return;
-            }
-        }
 
 void VideoStreamer::sendFrame() {
     static uint64_t lastTime = av_gettime();

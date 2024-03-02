@@ -48,8 +48,6 @@ private:
     CUgraphicsResource cuInpTexRes;
     CUDA_MEMCPY2D_st m_memCpyStruct;
 
-    AVFormatContext* inputFormatContext = nullptr;
-    AVFormatContext* outputFormatContext = nullptr;
 #ifdef __APPLE__
     AVPixelFormat pixelFormat = AV_PIX_FMT_YUV420P;
 #else
@@ -67,7 +65,6 @@ private:
     SwsContext* conversionContext;
 
     int prepareEncode(AVFrame *frame);
-    int sendFrame();
     int initializeCudaContext(std::string& gpuName, int width, int height, GLuint texture);
     int getDeviceName(std::string& gpuName);
     Texture* sourceTexture;
