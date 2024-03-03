@@ -52,7 +52,7 @@ public:
     std::vector<unsigned int> indices;
     std::vector<Texture*>     textures;
 
-    void draw(Shader &shader);
+    void draw(Shader &shader) override;
 
     void cleanup() {
         vbo.cleanup();
@@ -63,6 +63,8 @@ public:
             texture->cleanup();
         }
     }
+
+    EntityType getType() override { return ENTITY_MESH; }
 
     static Mesh* create(std::vector<Vertex> &vertices, std::vector<Texture*> &textures) {
         return new Mesh(vertices, textures);

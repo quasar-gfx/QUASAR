@@ -73,14 +73,32 @@ void OpenGLApp::cleanup() {
     glfwTerminate();
 }
 
-void OpenGLApp::draw(Shader &shader, Scene* scene, Camera* camera) {
-    glm::mat4 model;
+void OpenGLApp::drawSkyBox(Shader &shader, Scene* scene, Camera* camera) {
+    shader.bind();
+    shader.setMat4("view", camera->getViewMatrix());
+    shader.setMat4("projection", camera->getProjectionMatrix());
 
+    if (scene->ambientLight != nullptr) {
+        scene->ambientLight->draw(shader);
+    }
+
+    if (scene->skyBox != nullptr) {
+        scene->skyBox->draw(shader, camera);
+    }
+
+    shader.unbind();
+}
+
+void OpenGLApp::draw(Shader &shader, Scene* scene, Camera* camera) {
     shader.bind();
 
     shader.setMat4("view", camera->getViewMatrix());
     shader.setMat4("projection", camera->getProjectionMatrix());
     shader.setVec3("viewPos", camera->position);
+
+    if (scene->ambientLight != nullptr) {
+        scene->ambientLight->draw(shader);
+    }
 
     for (auto child : scene->children) {
         drawNode(shader, child, glm::mat4(1.0f));

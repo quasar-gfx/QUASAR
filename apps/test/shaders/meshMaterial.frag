@@ -17,7 +17,14 @@ struct Material {
     float shininess;
 };
 
+struct AmbientLight {
+    vec3 color;
+    float intensity;
+};
+
 uniform Material material;
+
+uniform AmbientLight ambientLight;
 
 void main() {
     vec3 viewDir = normalize(fs_in.TangentViewPos - fs_in.TangentFragPos);
@@ -26,6 +33,8 @@ void main() {
     vec4 col = texture(material.diffuse, texCoords);
     if (col.a < 0.5)
         discard;
+
+    col.rgb = ambientLight.intensity * (ambientLight.color * col.rgb);
 
     FragColor = col;
 }

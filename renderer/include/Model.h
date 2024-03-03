@@ -26,7 +26,9 @@ public:
 
     bool flipTextures = false;
 
-    void draw(Shader &shader);
+    void draw(Shader &shader) override;
+
+    EntityType getType() override { return ENTITY_MESH; }
 
     static Model* create(const std::string &modelPath, bool flipTextures = false) {
         return new Model(modelPath, flipTextures);

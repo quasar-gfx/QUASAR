@@ -37,8 +37,8 @@ public:
     void onMouseScroll(MouseScrollCallback callback) { scrollCallback = callback; }
     void onRender(RenderCallback callback) { renderCallback = callback; };
 
+    void drawSkyBox(Shader &shader, Scene* scene, Camera* camera);
     void draw(Shader &shader, Scene* scene, Camera* camera);
-    void drawNode(Shader &shader, Node* node, glm::mat4 parentTransform);
 
     void getWindowSize(int *resWidth, int *resHeight) const {
         int width, height;
@@ -76,6 +76,8 @@ private:
             app->scrollCallback(xoffset, yoffset);
         }
     }
+
+    void drawNode(Shader &shader, Node* node, glm::mat4 parentTransform);
 };
 
 #endif // OPENGL_APP_H

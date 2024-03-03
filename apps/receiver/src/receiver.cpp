@@ -110,6 +110,9 @@ int main(int argc, char** argv) {
     Shader shader("shaders/meshMaterial.vert", "shaders/meshMaterial.frag");
     Shader screenShader("shaders/postprocess.vert", "shaders/postprocess.frag");
 
+    // lights
+    AmbientLight* ambientLight = AmbientLight::create();
+
     // textures
     Texture* cubeTexture = Texture::create(CONTAINER_TEXTURE);
     std::vector<Texture*> cubeTextures;
@@ -189,10 +192,6 @@ int main(int argc, char** argv) {
 
     Node* planeNode = Node::create(planeMesh);
 
-    scene->addChildNode(cubeNode1);
-    scene->addChildNode(cubeNode2);
-    scene->addChildNode(planeNode);
-
     CubeMap* skybox = CubeMap::create({
         "../../assets/textures/skybox/right.jpg",
         "../../assets/textures/skybox/left.jpg",
@@ -201,6 +200,12 @@ int main(int argc, char** argv) {
         "../../assets/textures/skybox/front.jpg",
         "../../assets/textures/skybox/back.jpg"
     });
+
+    scene->setAmbientLight(ambientLight);
+    scene->setSkyBox(skybox);
+    scene->addChildNode(cubeNode1);
+    scene->addChildNode(cubeNode2);
+    scene->addChildNode(planeNode);
 
     FullScreenQuad* fsQuad = FullScreenQuad::create();
 

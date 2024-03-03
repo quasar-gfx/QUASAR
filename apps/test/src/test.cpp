@@ -10,6 +10,7 @@
 #include <Entity.h>
 #include <Scene.h>
 #include <Camera.h>
+#include <AmbientLight.h>
 #include <FrameBuffer.h>
 #include <FullScreenQuad.h>
 #include <OpenGLApp.h>
@@ -105,6 +106,9 @@ int main(int argc, char** argv) {
     Shader shader("shaders/meshMaterial.vert", "shaders/meshMaterial.frag");
     Shader screenShader("shaders/postprocess.vert", "shaders/postprocess.frag");
 
+    // lights
+    AmbientLight* ambientLight = AmbientLight::create(glm::vec3(1.0f, 0.8f, 0.8f), 0.9f);
+
     // textures
     Texture* cubeTexture = Texture::create(CONTAINER_TEXTURE);
     std::vector<Texture*> cubeTextures;
@@ -184,11 +188,6 @@ int main(int argc, char** argv) {
     backpackNode->setTranslation(glm::vec3(-0.25f, 0.25f, -3.0f));
     backpackNode->setScale(glm::vec3(0.25f));
 
-    scene->addChildNode(cubeNode1);
-    scene->addChildNode(cubeNode2);
-    scene->addChildNode(sponzaNode);
-    scene->addChildNode(backpackNode);
-
     CubeMap* skybox = CubeMap::create({
         "../../assets/textures/skybox/right.jpg",
         "../../assets/textures/skybox/left.jpg",
@@ -197,6 +196,13 @@ int main(int argc, char** argv) {
         "../../assets/textures/skybox/front.jpg",
         "../../assets/textures/skybox/back.jpg"
     });
+
+    scene->setAmbientLight(ambientLight);
+    scene->setSkyBox(skybox);
+    scene->addChildNode(cubeNode1);
+    scene->addChildNode(cubeNode2);
+    scene->addChildNode(sponzaNode);
+    scene->addChildNode(backpackNode);
 
     FullScreenQuad* fsQuad = FullScreenQuad::create();
 
@@ -215,7 +221,7 @@ int main(int argc, char** argv) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // must draw before drawing scene
-        skybox->draw(skyboxShader, camera);
+        app.drawSkyBox(skyboxShader, scene, camera);
 
         // draw all objects in scene
         app.draw(shader, scene, camera);

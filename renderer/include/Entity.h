@@ -10,6 +10,12 @@
 
 class Node;
 
+enum EntityType {
+    ENTITY_EMPTY,
+    ENTITY_MESH,
+    ENTITY_LIGHT
+};
+
 class Entity {
 public:
     Entity() {
@@ -21,6 +27,8 @@ public:
     int getID() { return ID; }
 
     virtual void draw(Shader &shader) = 0;
+
+    virtual EntityType getType() { return ENTITY_EMPTY; }
 
 private:
     unsigned int ID;

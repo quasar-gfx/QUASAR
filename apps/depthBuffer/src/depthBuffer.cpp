@@ -184,11 +184,6 @@ int main(int argc, char** argv) {
     backpackNode->setTranslation(glm::vec3(-0.25f, 0.25f, -3.0f));
     backpackNode->setScale(glm::vec3(0.25f));
 
-    scene->addChildNode(cubeNode1);
-    scene->addChildNode(cubeNode2);
-    scene->addChildNode(sponzaNode);
-    scene->addChildNode(backpackNode);
-
     CubeMap* skybox = CubeMap::create({
         "../../assets/textures/skybox/right.jpg",
         "../../assets/textures/skybox/left.jpg",
@@ -197,6 +192,12 @@ int main(int argc, char** argv) {
         "../../assets/textures/skybox/front.jpg",
         "../../assets/textures/skybox/back.jpg"
     });
+
+    scene->setSkyBox(skybox);
+    scene->addChildNode(cubeNode1);
+    scene->addChildNode(cubeNode2);
+    scene->addChildNode(sponzaNode);
+    scene->addChildNode(backpackNode);
 
     FullScreenQuad* fsQuad = FullScreenQuad::create();
 
@@ -215,7 +216,7 @@ int main(int argc, char** argv) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // must draw before drawing scene
-        skybox->draw(skyboxShader, camera);
+        app.drawSkyBox(skyboxShader, scene, camera);
 
         // draw all objects in scene
         app.draw(shader, scene, camera);
