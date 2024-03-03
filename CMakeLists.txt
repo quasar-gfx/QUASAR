@@ -55,6 +55,9 @@ set(LIBS ${LIBS} assimp)
 add_subdirectory(${EXTERNAL}/imgui/tnt)
 set(LIBS ${LIBS} imgui)
 
+add_subdirectory(${EXTERNAL}/stb/tnt)
+set(LIBS ${LIBS} stb)
+
 file(GLOB RENDERER_SRCS
     "${RENDERER}/src/*.cpp"
     "${RENDERER}/src/*.c"
