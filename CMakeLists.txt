@@ -9,68 +9,47 @@ IF(NOT CMAKE_BUILD_TYPE)
     SET(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build (Debug or Release)" FORCE)
 ENDIF(NOT CMAKE_BUILD_TYPE)
 
-set(EXTERNAL ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 set(RENDERER ${CMAKE_CURRENT_SOURCE_DIR}/renderer)
+set(EXTERNAL ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 
 # set required libs
-set(LIBS )
+set(RENDERER_LIBS )
 
-set(LIBS ${LIBS} -ldl)
-
-find_package(Threads REQUIRED)
-set(LIBS ${LIBS} Threads::Threads)
+set(RENDERER_LIBS ${RENDERER_LIBS} ${CMAKE_DL_LIBS})
 
 find_package(OpenGL REQUIRED)
-set(LIBS ${LIBS} ${OPENGL_LIBRARIES})
+set(RENDERER_LIBS ${RENDERER_LIBS} ${OPENGL_LIBRARIES})
 
 find_package(glfw3 REQUIRED)
-set(LIBS ${LIBS} glfw)
+set(RENDERER_LIBS ${RENDERER_LIBS} glfw)
 
-add_library(GLAD "${EXTERNAL}/glad/glad.c")
-set(LIBS ${LIBS} GLAD)
+add_library(glad "${EXTERNAL}/glad/glad.c")
+set(RENDERER_LIBS ${RENDERER_LIBS} glad)
 
-find_path(AVCODEC_INCLUDE_DIR libavcodec/avcodec.h)
-find_library(AVCODEC_LIBRARY avcodec)
-set(LIBS ${LIBS} ${AVCODEC_LIBRARY})
-
-find_path(AVFORMAT_INCLUDE_DIR libavformat/avformat.h)
-find_library(AVFORMAT_LIBRARY avformat)
-set(LIBS ${LIBS} ${AVFORMAT_LIBRARY})
-
-find_path(AVUTIL_INCLUDE_DIR libavutil/avutil.h)
-find_library(AVUTIL_LIBRARY avutil)
-set(LIBS ${LIBS} ${AVUTIL_LIBRARY})
-
-find_path(AVDEVICE_INCLUDE_DIR libavdevice/avdevice.h)
-find_library(AVDEVICE_LIBRARY avdevice)
-set(LIBS ${LIBS} ${AVDEVICE_LIBRARY})
-
-find_path(SWS_INCLUDE_DIR libswscale/swscale.h)
-find_library(SWS_LIBRARY swscale)
-set(LIBS ${LIBS} ${SWS_LIBRARY})
-
+# add third party libraries
 add_subdirectory(${EXTERNAL}/libassimp/tnt)
-set(LIBS ${LIBS} assimp)
+set(RENDERER_LIBS ${RENDERER_LIBS} assimp)
 
 add_subdirectory(${EXTERNAL}/imgui/tnt)
-set(LIBS ${LIBS} imgui)
+set(RENDERER_LIBS ${RENDERER_LIBS} imgui)
 
 add_subdirectory(${EXTERNAL}/stb/tnt)
-set(LIBS ${LIBS} stb)
+set(RENDERER_LIBS ${RENDERER_LIBS} stb)
 
-file(GLOB RENDERER_SRCS
-    "${RENDERER}/src/*.cpp"
-    "${RENDERER}/src/*.c"
-)
-
+# include directories
 include_directories(
     ${OPENGL_INCLUDE_DIRS}
     ${GLFW_INCLUDE_DIRS}
-    ${AVCODEC_INCLUDE_DIR} ${AVFORMAT_INCLUDE_DIR} ${AVUTIL_INCLUDE_DIR} ${AVDEVICE_INCLUDE_DIR}
     ${RENDERER}/include
     ${EXTERNAL}
 )
 
+# add and link renderer library
+add_subdirectory(${RENDERER})
+target_link_libraries(renderer ${RENDERER_LIBS})
+
+# copy assets to output directory
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/assets" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
+# add apps
 add_subdirectory(apps)
