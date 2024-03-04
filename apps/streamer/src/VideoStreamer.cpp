@@ -139,7 +139,7 @@ void VideoStreamer::sendFrame() {
     outputPacket.pts = framesSent * (outputFormatContext->streams[0]->time_base.den) / frameRate;
     outputPacket.dts = outputPacket.pts;
 
-    av_usleep(1.0f / frameRate * 1000000.0f - (av_gettime() - lastTime));
+    av_usleep(1.0f / frameRate * 1000000.0f);
 
     // send packet to output URL
     ret = av_interleaved_write_frame(outputFormatContext, &outputPacket);
