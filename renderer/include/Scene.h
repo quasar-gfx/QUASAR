@@ -4,13 +4,14 @@
 #include <vector>
 
 #include <Entity.h>
-#include <AmbientLight.h>
+#include <Lights.h>
 #include <CubeMap.h>
 
 class Scene {
 public:
     CubeMap* skyBox = nullptr;
     AmbientLight* ambientLight = nullptr;
+    DirectionalLight* directionalLight = nullptr;
 
     std::vector<Node*> children;
 
@@ -24,6 +25,10 @@ public:
 
     void setAmbientLight(AmbientLight* ambientLight) {
         this->ambientLight = ambientLight;
+    }
+
+    void setDirectionalLight(DirectionalLight* directionalLight) {
+        this->directionalLight = directionalLight;
     }
 };
 

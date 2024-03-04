@@ -10,7 +10,7 @@
 #include <Entity.h>
 #include <Scene.h>
 #include <Camera.h>
-#include <AmbientLight.h>
+#include <Lights.h>
 #include <FrameBuffer.h>
 #include <FullScreenQuad.h>
 #include <OpenGLApp.h>
@@ -143,7 +143,9 @@ int main(int argc, char** argv) {
     Shader screenShader = Shader::createFromFiles("shaders/postprocess.vert", "shaders/postprocess.frag");
 
     // lights
-    AmbientLight* ambientLight = AmbientLight::create(glm::vec3(1.0f, 0.9f, 0.9f), 0.9f);
+    AmbientLight* ambientLight = AmbientLight::create(glm::vec3(1.0f, 0.9f, 0.9f), 0.25f);
+    DirectionalLight* directionalLight = DirectionalLight::create(glm::vec3(0.8f, 0.8f, 0.8f), 0.9f);
+    directionalLight->setDirection(glm::vec3(-0.2f, -1.0f, -0.3f));
 
     // textures
     Texture* cubeTexture = Texture::create(CONTAINER_TEXTURE);
@@ -236,6 +238,7 @@ int main(int argc, char** argv) {
 
     scene->setAmbientLight(ambientLight);
     scene->setSkyBox(skybox);
+    scene->setDirectionalLight(directionalLight);
     scene->addChildNode(cubeNode1);
     scene->addChildNode(sponzaNode);
     scene->addChildNode(backpackNode);

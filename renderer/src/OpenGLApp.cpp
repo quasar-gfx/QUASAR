@@ -101,6 +101,10 @@ void OpenGLApp::draw(Shader &shader, Scene* scene, Camera* camera) {
         scene->ambientLight->draw(shader);
     }
 
+    if (scene->directionalLight != nullptr) {
+        scene->directionalLight->draw(shader);
+    }
+
     for (auto child : scene->children) {
         drawNode(shader, child, glm::mat4(1.0f));
     }

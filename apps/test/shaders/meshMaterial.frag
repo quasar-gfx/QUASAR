@@ -3,10 +3,8 @@ out vec4 FragColor;
 
 in VS_OUT {
     vec3 FragPos;
+    vec3 Normal;
     vec2 TexCoords;
-    vec3 TangentLightPos;
-    vec3 TangentViewPos;
-    vec3 TangentFragPos;
 } fs_in;
 
 struct Material {
@@ -14,7 +12,6 @@ struct Material {
     sampler2D specular;
     sampler2D normal;
     sampler2D height;
-    float shininess;
 };
 
 struct AmbientLight {
@@ -22,19 +19,39 @@ struct AmbientLight {
     float intensity;
 };
 
+struct DirectionalLight {
+    vec3 color;
+    vec3 direction;
+    float intensity;
+};
+
 uniform Material material;
 
+uniform vec3 viewPos;
 uniform AmbientLight ambientLight;
+uniform DirectionalLight directionalLight;
+
+vec3 addDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir) {
+    vec3 lightDir = normalize(-light.direction);
+    // diffuse shading
+    float diff = max(dot(normal, lightDir), 0.0);
+    vec3 diffuse = diff * vec3(texture(material.diffuse, fs_in.TexCoords));
+    return light.intensity * light.color * diffuse;
+}
 
 void main() {
-    vec3 viewDir = normalize(fs_in.TangentViewPos - fs_in.TangentFragPos);
-    vec2 texCoords = fs_in.TexCoords;
+    vec3 norm = normalize(fs_in.Normal);
+    vec3 viewDir = normalize(viewPos - fs_in.FragPos);
 
-    vec4 col = texture(material.diffuse, texCoords);
+    vec4 col = texture(material.diffuse, fs_in.TexCoords);
     if (col.a < 0.5)
         discard;
 
-    col.rgb = ambientLight.intensity * (ambientLight.color * col.rgb);
+    vec3 direct = ambientLight.intensity * ambientLight.color * col.rgb;
+    vec3 indirect = vec3(0.0);
+    indirect += addDirectionalLight(directionalLight, norm, viewDir);
 
-    FragColor = col;
+    vec3 result = direct + indirect;
+
+    FragColor = vec4(result, 1.0);
 }

@@ -23,8 +23,8 @@ void Mesh::draw(Shader &shader) {
             name = "material.height";
         }
 
-        shader.setInt(name.c_str(), i);
         textures[i]->bind(i);
+        shader.setInt(name.c_str(), i);
     }
 
     vbo.bind();
