@@ -31,6 +31,11 @@ public:
     }
 
     void unbind() {
+        unbind(0);
+    }
+
+    void unbind(unsigned int slot) {
+        glActiveTexture(GL_TEXTURE0 + slot);
         glBindTexture(GL_TEXTURE_2D, 0);
         glActiveTexture(GL_TEXTURE0);
     }

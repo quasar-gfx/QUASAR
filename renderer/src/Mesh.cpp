@@ -1,10 +1,7 @@
 #include <Mesh.h>
 
 void Mesh::draw(Shader &shader) {
-    int diffuseIdx  = 1;
-    int specularIdx = 1;
-    int normalIdx   = 1;
-    int heightIdx   = 1;
+    shader.setFloat("material.shininess", shininess);
 
     for (int i = 0; i < textures.size(); i++) {
         std::string name;
@@ -23,8 +20,8 @@ void Mesh::draw(Shader &shader) {
             name = "material.height";
         }
 
-        textures[i]->bind(i);
         shader.setInt(name.c_str(), i);
+        textures[i]->bind(i);
     }
 
     vbo.bind();
@@ -38,7 +35,23 @@ void Mesh::draw(Shader &shader) {
     }
     vbo.unbind();
 
-    if (textures.size() > 0) {
-        textures[textures.size()-1]->unbind();
+    for (int i = 0; i < textures.size(); i++) {
+        std::string name;
+
+        TextureType type = textures[i]->type;
+        if (type == TEXTURE_DIFFUSE) {
+            name = "material.diffuse";
+        }
+        else if (type == TEXTURE_SPECULAR) {
+            name = "material.specular";
+        }
+        else if (type == TEXTURE_NORMAL) {
+            name = "material.normal";
+        }
+        else if (type == TEXTURE_HEIGHT) {
+            name = "material.height";
+        }
+
+        textures[i]->unbind(i);
     }
 }
