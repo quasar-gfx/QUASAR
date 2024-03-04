@@ -12,6 +12,7 @@ struct Material {
     sampler2D specular;
     sampler2D normal;
     sampler2D height;
+    float shininess;
 };
 
 struct AmbientLight {
@@ -44,33 +45,43 @@ uniform AmbientLight ambientLight;
 uniform DirectionalLight directionalLight;
 uniform PointLight pointLights[NR_POINT_LIGHTS];
 
-vec3 addDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir) {
-    if (light.intensity == 0.0) {
-        return vec3(0.0);
-    }
+uniform samplerCube skybox;
 
+vec3 addSkyBoxLight(vec3 normal, vec3 viewDir) {
+    vec3 reflectDir = reflect(-viewDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+    vec3 diffuse = texture(material.diffuse, fs_in.TexCoords).rgb;
+    vec3 specular = spec * texture(material.specular, fs_in.TexCoords).rrr;
+    vec3 color = texture(skybox, reflectDir).rgb;
+    return 0.1 * color * (diffuse + specular);
+}
+
+vec3 addDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir) {
     vec3 lightDir = normalize(-light.direction);
     // diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
-    vec3 diffuse = diff * vec3(texture(material.diffuse, fs_in.TexCoords));
-    return light.intensity * light.color * diffuse;
+    // specular shading
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+    vec3 diffuse = diff * texture(material.diffuse, fs_in.TexCoords).rgb;
+    vec3 specular = spec * texture(material.specular, fs_in.TexCoords).rrr;
+    return light.intensity * light.color * (diffuse + specular);
 }
 
 vec3 addPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
-    if (light.intensity == 0.0) {
-        return vec3(0.0);
-    }
-
     vec3 lightDir = normalize(light.position - fragPos);
     // diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
+    // specular shading
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
     // attenuation
     float distance = length(light.position - fragPos);
-    float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
+    float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance) + 0.00001);
     // combine results
-    vec3 diffuse = diff * vec3(texture(material.diffuse, fs_in.TexCoords));
-    diffuse *= attenuation;
-    return light.intensity * light.color * diffuse;
+    vec3 diffuse = diff * texture(material.diffuse, fs_in.TexCoords).rgb;
+    vec3 specular = spec * texture(material.specular, fs_in.TexCoords).rrr;
+    return attenuation * (light.intensity * light.color * (diffuse + specular));
 }
 
 void main() {
@@ -81,15 +92,12 @@ void main() {
     if (col.a < 0.5)
         discard;
 
-    vec3 direct = ambientLight.intensity * ambientLight.color * col.rgb;
-
-    vec3 indirect = vec3(0.0);
-    indirect += addDirectionalLight(directionalLight, norm, viewDir);
+    vec3 result = ambientLight.intensity * ambientLight.color * col.rgb;
+    result += addDirectionalLight(directionalLight, norm, viewDir);
     for (int i = 0; i < NR_POINT_LIGHTS; i++) {
-        indirect += addPointLight(pointLights[i], norm, fs_in.FragPos, viewDir);
+        result += addPointLight(pointLights[i], norm, fs_in.FragPos, viewDir);
     }
-
-    vec3 result = direct + indirect;
+    // result += addSkyBoxLight(norm, viewDir);
 
     FragColor = vec4(result, 1.0);
 }
