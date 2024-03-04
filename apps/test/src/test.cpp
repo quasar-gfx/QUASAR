@@ -202,7 +202,7 @@ int main(int argc, char** argv) {
     cubeNode2->setTranslation(glm::vec3(2.5f, 0.0f, 1.0f));
 
     // lights
-    AmbientLight* ambientLight = AmbientLight::create(glm::vec3(1.0f, 0.9f, 0.9f), 0.7f);
+    AmbientLight* ambientLight = AmbientLight::create(glm::vec3(0.9f, 0.9f, 0.9f), 0.7f);
 
     DirectionalLight* directionalLight = DirectionalLight::create(glm::vec3(0.8f, 0.8f, 0.8f), 0.9f);
     directionalLight->setDirection(glm::vec3(-0.2f, -1.0f, -0.3f));

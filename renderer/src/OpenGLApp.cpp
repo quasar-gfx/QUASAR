@@ -97,6 +97,14 @@ void OpenGLApp::draw(Shader &shader, Scene* scene, Camera* camera) {
     shader.setMat4("projection", camera->getProjectionMatrix());
     shader.setVec3("viewPos", camera->position);
 
+    if (scene->skyBox != nullptr) {
+        glActiveTexture(GL_TEXTURE0 + 4);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, scene->skyBox->ID);
+        shader.setInt("skybox", 4);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+    }
+
     if (scene->ambientLight != nullptr) {
         scene->ambientLight->draw(shader);
     }

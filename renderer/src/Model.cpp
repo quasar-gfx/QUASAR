@@ -100,7 +100,10 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene *scene) {
     std::vector<Texture*> heightMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, TEXTURE_HEIGHT);
     textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 
-    return Mesh::create(vertices, indices, textures);
+    float shininess = 0.0f;
+    aiGetMaterialFloat(material, AI_MATKEY_SHININESS, &shininess);
+
+    return Mesh::create(vertices, indices, textures, shininess);
 }
 
 std::vector<Texture*> Model::loadMaterialTextures(aiMaterial* mat, aiTextureType type, TextureType textureType) {

@@ -23,9 +23,11 @@ void Mesh::draw(Shader &shader) {
             name = "material.height";
         }
 
-        textures[i]->bind(i);
         shader.setInt(name.c_str(), i);
+        textures[i]->bind(i);
     }
+
+    shader.setFloat("material.shininess", shininess);
 
     vbo.bind();
     if (indices.size() > 0) {
