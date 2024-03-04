@@ -48,9 +48,12 @@ uniform PointLight pointLights[NR_POINT_LIGHTS];
 uniform samplerCube skybox;
 
 vec3 addSkyBoxLight(vec3 normal, vec3 viewDir) {
-    // vec3 reflectDir = reflect(-viewDir, normal);
-    // vec3 specular = texture(skybox, reflectDir).rgb;
-    return vec3(0.0);
+    vec3 reflectDir = reflect(-viewDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+    vec3 diffuse = texture(material.diffuse, fs_in.TexCoords).rgb;
+    vec3 specular = spec * texture(material.specular, fs_in.TexCoords).rrr;
+    vec3 color = texture(skybox, reflectDir).rgb;
+    return 0.1 * color * (diffuse + specular);
 }
 
 vec3 addDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir) {
@@ -94,7 +97,7 @@ void main() {
     for (int i = 0; i < NR_POINT_LIGHTS; i++) {
         result += addPointLight(pointLights[i], norm, fs_in.FragPos, viewDir);
     }
-    result += addSkyBoxLight(norm, viewDir);
+    // result += addSkyBoxLight(norm, viewDir);
 
     FragColor = vec4(result, 1.0);
 }

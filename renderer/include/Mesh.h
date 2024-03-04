@@ -52,7 +52,7 @@ public:
     std::vector<unsigned int> indices;
     std::vector<Texture*>     textures;
 
-    float shininess = 0.0f;
+    float shininess = 1.0f;
 
     void draw(Shader &shader) override;
 
@@ -68,11 +68,11 @@ public:
 
     EntityType getType() override { return ENTITY_MESH; }
 
-    static Mesh* create(std::vector<Vertex> &vertices, std::vector<Texture*> &textures, float shininess = 0.0f) {
+    static Mesh* create(std::vector<Vertex> &vertices, std::vector<Texture*> &textures, float shininess = 1.0f) {
         return new Mesh(vertices, textures, shininess);
     }
 
-    static Mesh* create(std::vector<Vertex> &vertices, std::vector<unsigned int> &indices, std::vector<Texture*> &textures, float shininess = 0.0f) {
+    static Mesh* create(std::vector<Vertex> &vertices, std::vector<unsigned int> &indices, std::vector<Texture*> &textures, float shininess = 1.0f) {
         return new Mesh(vertices, indices, textures, shininess);
     }
 
@@ -80,13 +80,13 @@ private:
     VertexBuffer vbo;
     IndexBuffer ibo;
 
-    Mesh(std::vector<Vertex> &vertices, std::vector<Texture*> &textures, float shininess = 0.0f)
+    Mesh(std::vector<Vertex> &vertices, std::vector<Texture*> &textures, float shininess = 1.0f)
             : vertices(vertices), textures(textures), shininess(shininess),
             vbo(vertices.data(), static_cast<unsigned int>(vertices.size() * sizeof(Vertex))), Entity() {
         initAttributes();
     }
 
-    Mesh(std::vector<Vertex> &vertices, std::vector<unsigned int> &indices, std::vector<Texture*> &textures, float shininess = 0.0f)
+    Mesh(std::vector<Vertex> &vertices, std::vector<unsigned int> &indices, std::vector<Texture*> &textures, float shininess = 1.0f)
             : vertices(vertices), indices(indices), textures(textures), shininess(shininess),
             vbo(vertices.data(), static_cast<unsigned int>(vertices.size() * sizeof(Vertex))),
             ibo(indices.data(), static_cast<unsigned int>(indices.size())), Entity() {
