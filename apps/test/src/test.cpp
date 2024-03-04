@@ -142,11 +142,6 @@ int main(int argc, char** argv) {
     Shader shader = Shader::createFromFiles("shaders/meshMaterial.vert", "shaders/meshMaterial.frag");
     Shader screenShader = Shader::createFromFiles("shaders/postprocess.vert", "shaders/postprocess.frag");
 
-    // lights
-    AmbientLight* ambientLight = AmbientLight::create(glm::vec3(1.0f, 0.9f, 0.9f), 0.25f);
-    DirectionalLight* directionalLight = DirectionalLight::create(glm::vec3(0.8f, 0.8f, 0.8f), 0.9f);
-    directionalLight->setDirection(glm::vec3(-0.2f, -1.0f, -0.3f));
-
     // textures
     Texture* cubeTexture = Texture::create(CONTAINER_TEXTURE);
     std::vector<Texture*> cubeTextures;
@@ -214,6 +209,22 @@ int main(int argc, char** argv) {
     cubeNode1->addChildNode(cubeNode2);
     cubeNode2->setTranslation(glm::vec3(2.5f, 0.0f, 1.0f));
 
+    // lights
+    AmbientLight* ambientLight = AmbientLight::create(glm::vec3(1.0f, 0.9f, 0.9f), 0.1f);
+
+    DirectionalLight* directionalLight = DirectionalLight::create(glm::vec3(0.8f, 0.8f, 0.8f), 0.9f);
+    directionalLight->setDirection(glm::vec3(-0.2f, -1.0f, -0.3f));
+
+    PointLight* pointLight = PointLight::create(glm::vec3(0.9f, 0.9f, 1.0f), 0.9f);
+    pointLight->setPosition(glm::vec3(0.0f, 3.0f, 0.0f));
+    pointLight->setAttenuation(1.0f, 0.09f, 0.032f);
+
+    // add a cube to visualize point light position
+    Node* pointNode = Node::create(cubeMesh);
+    pointNode->setScale(glm::vec3(0.2f));
+    pointNode->setTranslation(pointLight->position);
+
+    // models
     Model* sponza = Model::create(modelPath);
 
     Node* sponzaNode = Node::create(sponza);
@@ -237,8 +248,10 @@ int main(int argc, char** argv) {
     });
 
     scene->setAmbientLight(ambientLight);
-    scene->setSkyBox(skybox);
     scene->setDirectionalLight(directionalLight);
+    scene->addPointLight(pointLight);
+    scene->setSkyBox(skybox);
+    scene->addChildNode(pointNode);
     scene->addChildNode(cubeNode1);
     scene->addChildNode(sponzaNode);
     scene->addChildNode(backpackNode);

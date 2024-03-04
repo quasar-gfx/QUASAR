@@ -3,5 +3,6 @@
 
 #include <AmbientLight.h>
 #include <DirectionalLight.h>
+#include <PointLight.h>
 
 #endif // LIGHTS_H

@@ -105,6 +105,10 @@ void OpenGLApp::draw(Shader &shader, Scene* scene, Camera* camera) {
         scene->directionalLight->draw(shader);
     }
 
+    for (auto pointLight : scene->pointLights) {
+        pointLight->draw(shader);
+    }
+
     for (auto child : scene->children) {
         drawNode(shader, child, glm::mat4(1.0f));
     }

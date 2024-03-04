@@ -13,6 +13,8 @@ public:
     AmbientLight* ambientLight = nullptr;
     DirectionalLight* directionalLight = nullptr;
 
+    std::vector<PointLight*> pointLights;
+
     std::vector<Node*> children;
 
     void addChildNode(Node* node) {
@@ -29,6 +31,10 @@ public:
 
     void setDirectionalLight(DirectionalLight* directionalLight) {
         this->directionalLight = directionalLight;
+    }
+
+    void addPointLight(PointLight* pointLight) {
+        pointLights.push_back(pointLight);
     }
 };
 
