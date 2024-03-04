@@ -105,10 +105,10 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader skyboxShader("shaders/skybox.vert", "shaders/skybox.frag");
+    Shader skyboxShader = Shader::createFromFiles("shaders/skybox.vert", "shaders/skybox.frag");
     skyboxShader.setInt("skybox", 0);
-    Shader shader("shaders/meshMaterial.vert", "shaders/meshMaterial.frag");
-    Shader screenShader("shaders/postprocess.vert", "shaders/postprocess.frag");
+    Shader shader = Shader::createFromFiles("shaders/meshMaterial.vert", "shaders/meshMaterial.frag");
+    Shader screenShader = Shader::createFromFiles("shaders/postprocess.vert", "shaders/postprocess.frag");
 
     // lights
     AmbientLight* ambientLight = AmbientLight::create();

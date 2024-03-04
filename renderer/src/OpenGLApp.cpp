@@ -65,6 +65,7 @@ int OpenGLApp::init() {
 
     // enable msaa
     glEnable(GL_MULTISAMPLE);
+    glfwWindowHint(GLFW_SAMPLES, 4);
 
     return 0;
 }

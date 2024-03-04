@@ -14,8 +14,6 @@
 
 class Shader : public OpenGLObject {
 public:
-    Shader(std::string vertexPath, std::string fragmentPath, std::string geometryPath = "");
-
     ~Shader() {
         cleanup();
     }
@@ -77,6 +75,14 @@ public:
         glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
     }
 
+    static Shader createFromFiles(std::string vertexPath, std::string fragmentPath, std::string geometryPath = "") {
+        return Shader(vertexPath, fragmentPath, geometryPath);
+    }
+
+    static Shader createFromData(const char* vertexData, const char* fragmentData, const char* geometryData = nullptr) {
+        return Shader(vertexData, fragmentData, geometryData);
+    }
+
 private:
     enum ShaderType {
         SHADER_PROGRAM,
@@ -85,6 +91,10 @@ private:
         SHADER_GEOMETRY
     };
 
+    Shader(std::string vertexPath, std::string fragmentPath, std::string geometryPath = "");
+    Shader(const char* vertexData, const char* fragmentData, const char* geometryData = nullptr);
+
+    void createAndCompileProgram(const char* vertexData, const char* fragmentData, const char* geometryData = nullptr);
     void checkCompileErrors(GLuint shader, ShaderType type);
 };
 

@@ -17,6 +17,42 @@
 
 #define GUI_UPDATE_FRAMERATE_INTERVAL 0.1f // seconds
 
+static const char* SkyBoxShaderVertGlsl = R"_(#version 330 core
+    layout (location = 0) in vec3 aPos;
+
+    out vec3 TexCoords;
+
+    uniform mat4 projection;
+    uniform mat4 view;
+
+    void main() {
+        TexCoords = aPos;
+        vec4 pos = projection * view * vec4(aPos, 1.0);
+        gl_Position = pos.xyww;
+    }
+)_";
+
+static const char* SkyBoxShaderFragGlsl = R"_(#version 330 core
+    out vec4 FragColor;
+
+    in vec3 TexCoords;
+
+    struct AmbientLight {
+        vec3 color;
+        float intensity;
+    };
+
+    uniform AmbientLight ambientLight;
+
+    uniform samplerCube skybox;
+
+    void main() {
+        vec4 col = texture(skybox, TexCoords);
+        col.rgb = ambientLight.intensity * (ambientLight.color * col.rgb);
+        FragColor = col;
+    }
+)_";
+
 void processInput(OpenGLApp* app, Camera* camera, float deltaTime);
 
 const std::string CONTAINER_TEXTURE = "../../assets/textures/container.jpg";
@@ -101,13 +137,13 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader skyboxShader("shaders/skybox.vert", "shaders/skybox.frag");
+    Shader skyboxShader = Shader::createFromData(SkyBoxShaderVertGlsl, SkyBoxShaderFragGlsl);
     skyboxShader.setInt("skybox", 0);
-    Shader shader("shaders/meshMaterial.vert", "shaders/meshMaterial.frag");
-    Shader screenShader("shaders/postprocess.vert", "shaders/postprocess.frag");
+    Shader shader = Shader::createFromFiles("shaders/meshMaterial.vert", "shaders/meshMaterial.frag");
+    Shader screenShader = Shader::createFromFiles("shaders/postprocess.vert", "shaders/postprocess.frag");
 
     // lights
-    AmbientLight* ambientLight = AmbientLight::create(glm::vec3(1.0f, 0.8f, 0.8f), 0.9f);
+    AmbientLight* ambientLight = AmbientLight::create(glm::vec3(1.0f, 0.9f, 0.9f), 0.9f);
 
     // textures
     Texture* cubeTexture = Texture::create(CONTAINER_TEXTURE);
@@ -173,7 +209,8 @@ int main(int argc, char** argv) {
     cubeNode1->setTranslation(glm::vec3(-1.0f, 0.0f, -1.0f));
 
     Node* cubeNode2 = Node::create(cubeMesh);
-    cubeNode2->setTranslation(glm::vec3(2.0f, 0.0f, 0.0f));
+    cubeNode1->addChildNode(cubeNode2);
+    cubeNode2->setTranslation(glm::vec3(2.5f, 0.0f, 1.0f));
 
     Model* sponza = Model::create(modelPath);
 
@@ -200,7 +237,6 @@ int main(int argc, char** argv) {
     scene->setAmbientLight(ambientLight);
     scene->setSkyBox(skybox);
     scene->addChildNode(cubeNode1);
-    scene->addChildNode(cubeNode2);
     scene->addChildNode(sponzaNode);
     scene->addChildNode(backpackNode);
 
