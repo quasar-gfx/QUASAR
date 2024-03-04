@@ -114,9 +114,6 @@ int main(int argc, char** argv) {
     Shader shader = Shader::createFromFiles("shaders/meshMaterial.vert", "shaders/meshMaterial.frag");
     Shader screenShader = Shader::createFromFiles("shaders/postprocess.vert", "shaders/postprocess.frag");
 
-    // lights
-    AmbientLight* ambientLight = AmbientLight::create();
-
     // textures
     Texture* cubeTexture = Texture::create(CONTAINER_TEXTURE);
     std::vector<Texture*> cubeTextures;
@@ -183,6 +180,28 @@ int main(int argc, char** argv) {
     Node* cubeNode2 = Node::create(cubeMesh);
     cubeNode2->setTranslation(glm::vec3(2.0f, 0.0f, 0.0f));
 
+    // lights
+    AmbientLight* ambientLight = AmbientLight::create(glm::vec3(1.0f, 0.9f, 0.9f), 0.7f);
+
+    DirectionalLight* directionalLight = DirectionalLight::create(glm::vec3(0.8f, 0.8f, 0.8f), 0.9f);
+    directionalLight->setDirection(glm::vec3(-0.2f, -1.0f, -0.3f));
+
+    PointLight* pointLight1 = PointLight::create(glm::vec3(0.9f, 0.9f, 1.0f), 0.3f);
+    pointLight1->setPosition(glm::vec3(-1.45f, 0.9f, -6.2f));
+    pointLight1->setAttenuation(1.0f, 0.09f, 0.032f);
+
+    PointLight* pointLight2 = PointLight::create(glm::vec3(0.9f, 0.9f, 1.0f), 0.3f);
+    pointLight2->setPosition(glm::vec3(2.2f, 0.9f, -6.2f));
+    pointLight2->setAttenuation(1.0f, 0.09f, 0.032f);
+
+    PointLight* pointLight3 = PointLight::create(glm::vec3(0.9f, 0.9f, 1.0f), 0.3f);
+    pointLight3->setPosition(glm::vec3(-1.45f, 0.9f, 4.89f));
+    pointLight3->setAttenuation(1.0f, 0.09f, 0.032f);
+
+    PointLight* pointLight4 = PointLight::create(glm::vec3(0.9f, 0.9f, 1.0f), 0.3f);
+    pointLight4->setPosition(glm::vec3(2.2f, 0.9f, 4.89f));
+    pointLight4->setAttenuation(1.0f, 0.09f, 0.032f);
+
     Model* sponza = Model::create(modelPath);
 
     Node* sponzaNode = Node::create(sponza);
@@ -200,6 +219,11 @@ int main(int argc, char** argv) {
     });
 
     scene->setAmbientLight(ambientLight);
+    scene->setDirectionalLight(directionalLight);
+    scene->addPointLight(pointLight1);
+    scene->addPointLight(pointLight2);
+    scene->addPointLight(pointLight3);
+    scene->addPointLight(pointLight4);
     scene->setSkyBox(skybox);
     scene->addChildNode(cubeNode1);
     scene->addChildNode(cubeNode2);
@@ -228,7 +252,7 @@ int main(int argc, char** argv) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // must draw before drawing scene
-        skybox->draw(skyboxShader, camera);
+        app.drawSkyBox(skyboxShader, scene, camera);
 
         // draw all objects in scene
         app.draw(shader, scene, camera);

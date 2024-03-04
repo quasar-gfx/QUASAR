@@ -37,18 +37,10 @@ static const char* SkyBoxShaderFragGlsl = R"_(#version 330 core
 
     in vec3 TexCoords;
 
-    struct AmbientLight {
-        vec3 color;
-        float intensity;
-    };
-
-    uniform AmbientLight ambientLight;
-
     uniform samplerCube skybox;
 
     void main() {
         vec4 col = texture(skybox, TexCoords);
-        col.rgb = ambientLight.intensity * (ambientLight.color * col.rgb);
         FragColor = col;
     }
 )_";
@@ -210,19 +202,26 @@ int main(int argc, char** argv) {
     cubeNode2->setTranslation(glm::vec3(2.5f, 0.0f, 1.0f));
 
     // lights
-    AmbientLight* ambientLight = AmbientLight::create(glm::vec3(1.0f, 0.9f, 0.9f), 0.1f);
+    AmbientLight* ambientLight = AmbientLight::create(glm::vec3(1.0f, 0.9f, 0.9f), 0.7f);
 
     DirectionalLight* directionalLight = DirectionalLight::create(glm::vec3(0.8f, 0.8f, 0.8f), 0.9f);
     directionalLight->setDirection(glm::vec3(-0.2f, -1.0f, -0.3f));
 
-    PointLight* pointLight = PointLight::create(glm::vec3(0.9f, 0.9f, 1.0f), 0.9f);
-    pointLight->setPosition(glm::vec3(0.0f, 3.0f, 0.0f));
-    pointLight->setAttenuation(1.0f, 0.09f, 0.032f);
+    PointLight* pointLight1 = PointLight::create(glm::vec3(0.9f, 0.9f, 1.0f), 0.3f);
+    pointLight1->setPosition(glm::vec3(-1.45f, 0.9f, -6.2f));
+    pointLight1->setAttenuation(1.0f, 0.09f, 0.032f);
 
-    // add a cube to visualize point light position
-    Node* pointNode = Node::create(cubeMesh);
-    pointNode->setScale(glm::vec3(0.2f));
-    pointNode->setTranslation(pointLight->position);
+    PointLight* pointLight2 = PointLight::create(glm::vec3(0.9f, 0.9f, 1.0f), 0.3f);
+    pointLight2->setPosition(glm::vec3(2.2f, 0.9f, -6.2f));
+    pointLight2->setAttenuation(1.0f, 0.09f, 0.032f);
+
+    PointLight* pointLight3 = PointLight::create(glm::vec3(0.9f, 0.9f, 1.0f), 0.3f);
+    pointLight3->setPosition(glm::vec3(-1.45f, 0.9f, 4.89f));
+    pointLight3->setAttenuation(1.0f, 0.09f, 0.032f);
+
+    PointLight* pointLight4 = PointLight::create(glm::vec3(0.9f, 0.9f, 1.0f), 0.3f);
+    pointLight4->setPosition(glm::vec3(2.2f, 0.9f, 4.89f));
+    pointLight4->setAttenuation(1.0f, 0.09f, 0.032f);
 
     // models
     Model* sponza = Model::create(modelPath);
@@ -249,9 +248,11 @@ int main(int argc, char** argv) {
 
     scene->setAmbientLight(ambientLight);
     scene->setDirectionalLight(directionalLight);
-    scene->addPointLight(pointLight);
+    scene->addPointLight(pointLight1);
+    scene->addPointLight(pointLight2);
+    scene->addPointLight(pointLight3);
+    scene->addPointLight(pointLight4);
     scene->setSkyBox(skybox);
-    scene->addChildNode(pointNode);
     scene->addChildNode(cubeNode1);
     scene->addChildNode(sponzaNode);
     scene->addChildNode(backpackNode);

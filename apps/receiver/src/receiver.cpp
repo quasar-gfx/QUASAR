@@ -224,7 +224,7 @@ int main(int argc, char** argv) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // must draw before drawing scene
-        skybox->draw(skyboxShader, camera);
+        app.drawSkyBox(skyboxShader, scene, camera);
 
         // draw all objects in scene
         app.draw(shader, scene, camera);

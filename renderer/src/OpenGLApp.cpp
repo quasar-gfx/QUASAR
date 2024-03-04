@@ -105,8 +105,8 @@ void OpenGLApp::draw(Shader &shader, Scene* scene, Camera* camera) {
         scene->directionalLight->draw(shader);
     }
 
-    for (auto pointLight : scene->pointLights) {
-        pointLight->draw(shader);
+    for (int i = 0; i < scene->pointLights.size(); i++) {
+        scene->pointLights[i]->draw(shader, i);
     }
 
     for (auto child : scene->children) {

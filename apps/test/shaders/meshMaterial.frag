@@ -37,11 +37,18 @@ struct PointLight {
 uniform Material material;
 
 uniform vec3 viewPos;
+
+#define NR_POINT_LIGHTS 4
+
 uniform AmbientLight ambientLight;
 uniform DirectionalLight directionalLight;
-uniform PointLight pointLight;
+uniform PointLight pointLights[NR_POINT_LIGHTS];
 
 vec3 addDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir) {
+    if (light.intensity == 0.0) {
+        return vec3(0.0);
+    }
+
     vec3 lightDir = normalize(-light.direction);
     // diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
@@ -50,6 +57,10 @@ vec3 addDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir) {
 }
 
 vec3 addPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
+    if (light.intensity == 0.0) {
+        return vec3(0.0);
+    }
+
     vec3 lightDir = normalize(light.position - fragPos);
     // diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
@@ -71,9 +82,12 @@ void main() {
         discard;
 
     vec3 direct = ambientLight.intensity * ambientLight.color * col.rgb;
+
     vec3 indirect = vec3(0.0);
     indirect += addDirectionalLight(directionalLight, norm, viewDir);
-    indirect += addPointLight(pointLight, norm, fs_in.FragPos, viewDir);
+    for (int i = 0; i < NR_POINT_LIGHTS; i++) {
+        indirect += addPointLight(pointLights[i], norm, fs_in.FragPos, viewDir);
+    }
 
     vec3 result = direct + indirect;
 

@@ -11,12 +11,17 @@ public:
     float quadratic = 0.032f;
 
     void draw(Shader &shader) {
-        shader.setVec3("pointLight.position", position);
-        shader.setVec3("pointLight.color", color);
-        shader.setFloat("pointLight.intensity", intensity);
-        shader.setFloat("pointLight.constant", constant);
-        shader.setFloat("pointLight.linear", linear);
-        shader.setFloat("pointLight.quadratic", quadratic);
+        draw(shader, 0);
+    }
+
+    void draw(Shader &shader, int idx) {
+        std::string idxStr = std::to_string(idx);
+        shader.setVec3("pointLights["+idxStr+"].position", position);
+        shader.setVec3("pointLights["+idxStr+"].color", color);
+        shader.setFloat("pointLights["+idxStr+"].intensity", intensity);
+        shader.setFloat("pointLights["+idxStr+"].constant", constant);
+        shader.setFloat("pointLights["+idxStr+"].linear", linear);
+        shader.setFloat("pointLights["+idxStr+"].quadratic", quadratic);
     }
 
     void setPosition(const glm::vec3 &position) {
