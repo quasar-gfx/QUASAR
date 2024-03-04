@@ -16,8 +16,8 @@ unsigned int Node::nextID = 0;
 
 int OpenGLApp::init() {
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 #ifdef __APPLE__
@@ -56,8 +56,11 @@ int OpenGLApp::init() {
     }
 
     // enable backface culling
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
+	glEnable(GL_CULL_FACE);
+	glFrontFace(GL_CCW);
+
+    // enable seamless cube map sampling for lower mip levels in the pre-filter map
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
     // enable alpha blending
     glEnable(GL_BLEND);
