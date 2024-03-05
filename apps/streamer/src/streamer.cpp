@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
     Scene* scene = new Scene();
     Camera* camera = new Camera(width, height);
 
-    VideoStreamer* videoStreamer = VideoStreamer::create();
+    VideoStreamer videoStreamer = VideoStreamer();
 
     app.gui([&app, &videoStreamer](double now, double dt) {
         static float deltaTimeSum = 0.0f;
@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
         }
         deltaTimeSum += dt; sumCount++;
         ImGui::Text("Rendering Frame Rate: %.1f FPS", frameRateToDisplay);
-        ImGui::Text("Video Frame Rate: %.1f FPS", videoStreamer->getFrameRate());
+        ImGui::Text("Video Frame Rate: %.1f FPS", videoStreamer.getFrameRate());
         ImGui::End();
     });
 
@@ -110,19 +110,18 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader skyboxShader = Shader::createFromFiles("shaders/skybox.vert", "shaders/skybox.frag");
+    Shader skyboxShader, shader, screenShader;
+    skyboxShader.loadFromFile("shaders/skybox.vert", "shaders/skybox.frag");
     skyboxShader.setInt("skybox", 0);
-    Shader shader = Shader::createFromFiles("shaders/meshMaterial.vert", "shaders/meshMaterial.frag");
-    Shader screenShader = Shader::createFromFiles("shaders/postprocess.vert", "shaders/postprocess.frag");
+    shader.loadFromFile("shaders/meshMaterial.vert", "shaders/meshMaterial.frag");
+    screenShader.loadFromFile("shaders/postprocess.vert", "shaders/postprocess.frag");
 
     // textures
-    Texture* cubeTexture = Texture::create(CONTAINER_TEXTURE);
-    std::vector<Texture*> cubeTextures;
-    cubeTextures.push_back(cubeTexture);
+    Texture cubeTexture = Texture(CONTAINER_TEXTURE);
+    std::vector<TextureID> cubeTextures = { cubeTexture.ID };
 
-    Texture* floorTexture = Texture::create(METAL_TEXTURE);
-    std::vector<Texture*> floorTextures;
-    floorTextures.push_back(floorTexture);
+    Texture floorTexture = Texture(METAL_TEXTURE);
+    std::vector<TextureID> floorTextures = { floorTexture.ID };
 
     std::vector<Vertex> cubeVertices {
         // Front face
@@ -173,44 +172,44 @@ int main(int argc, char** argv) {
         { {-0.5f, -0.5f,  0.5f}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Left
         { {-0.5f, -0.5f, -0.5f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} }   // Bottom Left
     };
-    Mesh* cubeMesh = Mesh::create(cubeVertices, cubeTextures);
+    Mesh* cubeMesh = new Mesh(cubeVertices, cubeTextures);
 
-    Node* cubeNode1 = Node::create(cubeMesh);
+    Node* cubeNode1 = new Node(cubeMesh);
     cubeNode1->setTranslation(glm::vec3(-1.0f, 0.0f, -1.0f));
 
-    Node* cubeNode2 = Node::create(cubeMesh);
+    Node* cubeNode2 = new Node(cubeMesh);
     cubeNode2->setTranslation(glm::vec3(2.0f, 0.0f, 0.0f));
 
     // lights
-    AmbientLight* ambientLight = AmbientLight::create(glm::vec3(0.9f, 0.9f, 0.9f), 0.7f);
+    AmbientLight* ambientLight = new AmbientLight(glm::vec3(0.9f, 0.9f, 0.9f), 0.7f);
 
-    DirectionalLight* directionalLight = DirectionalLight::create(glm::vec3(0.8f, 0.8f, 0.8f), 0.9f);
+    DirectionalLight* directionalLight = new DirectionalLight(glm::vec3(0.8f, 0.8f, 0.8f), 0.9f);
     directionalLight->setDirection(glm::vec3(-0.2f, -1.0f, -0.3f));
 
-    PointLight* pointLight1 = PointLight::create(glm::vec3(0.9f, 0.9f, 1.0f), 0.3f);
+    PointLight* pointLight1 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 0.3f);
     pointLight1->setPosition(glm::vec3(-1.45f, 0.9f, -6.2f));
     pointLight1->setAttenuation(1.0f, 0.09f, 0.032f);
 
-    PointLight* pointLight2 = PointLight::create(glm::vec3(0.9f, 0.9f, 1.0f), 0.3f);
+    PointLight* pointLight2 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 0.3f);
     pointLight2->setPosition(glm::vec3(2.2f, 0.9f, -6.2f));
     pointLight2->setAttenuation(1.0f, 0.09f, 0.032f);
 
-    PointLight* pointLight3 = PointLight::create(glm::vec3(0.9f, 0.9f, 1.0f), 0.3f);
+    PointLight* pointLight3 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 0.3f);
     pointLight3->setPosition(glm::vec3(-1.45f, 0.9f, 4.89f));
     pointLight3->setAttenuation(1.0f, 0.09f, 0.032f);
 
-    PointLight* pointLight4 = PointLight::create(glm::vec3(0.9f, 0.9f, 1.0f), 0.3f);
+    PointLight* pointLight4 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 0.3f);
     pointLight4->setPosition(glm::vec3(2.2f, 0.9f, 4.89f));
     pointLight4->setAttenuation(1.0f, 0.09f, 0.032f);
 
-    Model* sponza = Model::create(modelPath);
+    Model* sponza = new Model(modelPath);
 
-    Node* sponzaNode = Node::create(sponza);
+    Node* sponzaNode = new Node(sponza);
     sponzaNode->setTranslation(glm::vec3(0.0f, -0.5f, 0.0f));
     sponzaNode->setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
     sponzaNode->setScale(glm::vec3(0.01f));
 
-    CubeMap* skybox = CubeMap::create({
+    CubeMap* skybox = new CubeMap({
         "../../assets/textures/skybox/right.jpg",
         "../../assets/textures/skybox/left.jpg",
         "../../assets/textures/skybox/top.jpg",
@@ -230,12 +229,12 @@ int main(int argc, char** argv) {
     scene->addChildNode(cubeNode2);
     scene->addChildNode(sponzaNode);
 
-    FullScreenQuad* fsQuad = FullScreenQuad::create();
+    FullScreenQuad fsQuad = FullScreenQuad();
 
     // framebuffer to render into
-    FrameBuffer* framebuffer = FrameBuffer::create(app.config.width, app.config.height);
+    FrameBuffer framebuffer = FrameBuffer(app.config.width, app.config.height);
 
-    int ret = videoStreamer->start(framebuffer->colorAttachment, outputUrl);
+    int ret = videoStreamer.start(framebuffer.colorAttachment, outputUrl);
     if (ret < 0) {
         std::cerr << "Failed to initialize FFMpeg Video Streamer" << std::endl;
         return ret;
@@ -245,8 +244,8 @@ int main(int argc, char** argv) {
         processInput(&app, camera, dt);
 
         // bind to framebuffer and draw scene as we normally would to color texture
-        framebuffer->bind();
-        glViewport(0, 0, framebuffer->width, framebuffer->height);
+        framebuffer.bind();
+        glViewport(0, 0, framebuffer.width, framebuffer.height);
 
         // make sure we clear the framebuffer's content
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -259,7 +258,7 @@ int main(int argc, char** argv) {
         app.renderer.draw(shader, scene, camera);
 
         // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
-        framebuffer->unbind();
+        framebuffer.unbind();
         glViewport(0, 0, width, height);
 
         // clear all relevant buffers
@@ -268,13 +267,13 @@ int main(int argc, char** argv) {
 
         screenShader.bind();
         screenShader.setInt("screenTexture", 0);
-            framebuffer->bindColorAttachment();
-                fsQuad->draw();
-            framebuffer->unbindColorAttachment();
+            framebuffer.bindColorAttachment();
+                fsQuad.draw();
+            framebuffer.unbindColorAttachment();
         screenShader.unbind();
 
         double start = glfwGetTime();
-        videoStreamer->sendFrame();
+        videoStreamer.sendFrame();
         std::cout << "Time to send frame: " << glfwGetTime() - start << " seconds" << std::endl;
     });
 
@@ -283,6 +282,7 @@ int main(int argc, char** argv) {
 
     // cleanup
     app.cleanup();
+    videoStreamer.cleanup();
 
     return 0;
 }

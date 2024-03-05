@@ -173,20 +173,21 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader shader = Shader::createFromFiles("shaders/meshMaterial.vert", "shaders/meshMaterial.frag");
-    Shader screenShader = Shader::createFromFiles("shaders/postprocess.vert", "shaders/postprocess.frag");
+    Shader shader, screenShader;
+    shader.loadFromFile("shaders/meshMaterial.vert", "shaders/meshMaterial.frag");
+    screenShader.loadFromFile("shaders/postprocess.vert", "shaders/postprocess.frag");
 
     // lights
-    AmbientLight* ambientLight = AmbientLight::create(glm::vec3(0.9f, 0.9f, 0.9f), 0.7f);
+    AmbientLight* ambientLight = new AmbientLight(glm::vec3(0.9f, 0.9f, 0.9f), 0.7f);
 
-    DirectionalLight* directionalLight = DirectionalLight::create(glm::vec3(0.8f, 0.8f, 0.8f), 0.9f);
+    DirectionalLight* directionalLight = new DirectionalLight(glm::vec3(0.8f, 0.8f, 0.8f), 0.9f);
     directionalLight->setDirection(glm::vec3(-0.2f, -1.0f, -0.3f));
 
-    PointLight* pointLight = PointLight::create(glm::vec3(0.9f, 0.9f, 1.0f), 0.6f);
+    PointLight* pointLight = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 0.6f);
     pointLight->setPosition(glm::vec3(0.0f, 3.0f, 0.0f));
     pointLight->setAttenuation(1.0f, 0.09f, 0.032f);
 
-    Texture* hdrTexture = Texture::create("../../assets/textures/environment.hdr", GL_RGB16F, GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR);
+    Texture hdrTexture = Texture("../../assets/textures/environment.hdr", GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR);
 
     unsigned int envCubemap;
     glGenTextures(1, &envCubemap);
@@ -210,15 +211,16 @@ int main(int argc, char** argv) {
         glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
     };
 
-    Shader skyboxShader = Shader::createFromFiles("shaders/skybox.vert", "shaders/equirectangular2cubemap.frag");
+    Shader skyboxShader;
+    skyboxShader.loadFromFile("shaders/skybox.vert", "shaders/equirectangular2cubemap.frag");
     skyboxShader.setInt("equirectangularMap", 0);
     skyboxShader.setMat4("projection", captureProjection);
-    hdrTexture->bind(0);
+    hdrTexture.bind(0);
 
-    FrameBuffer* captureFramebuffer = FrameBuffer::create(512, 512);
+    FrameBuffer captureFramebuffer = FrameBuffer(512, 512);
 
     glViewport(0, 0, 512, 512); // don't forget to configure the viewport to the capture dimensions.
-    captureFramebuffer->bind();
+    captureFramebuffer.bind();
     for (unsigned int i = 0; i < 6; ++i) {
         skyboxShader.setMat4("view", captureViews[i]);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, envCubemap, 0);
@@ -226,15 +228,15 @@ int main(int argc, char** argv) {
 
         renderCube();
     }
-    captureFramebuffer->unbind();
+    captureFramebuffer.unbind();
 
     glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
     glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
 
     // models
-    Model* gun = Model::create(modelPath);
+    Model* gun = new Model(modelPath);
 
-    Node* gunNode = Node::create(gun);
+    Node* gunNode = new Node(gun);
     gunNode->setTranslation(glm::vec3(0.0f, 1.0f, -1.0f));
     gunNode->setRotationEuler(glm::vec3(-90.0f, 90.0f, 0.0f));
     gunNode->setScale(glm::vec3(0.05f));
@@ -244,17 +246,17 @@ int main(int argc, char** argv) {
     scene->addPointLight(pointLight);
     scene->addChildNode(gunNode);
 
-    FullScreenQuad* fsQuad = FullScreenQuad::create();
+    FullScreenQuad fsQuad = FullScreenQuad();
 
     // framebuffer to render into
-    FrameBuffer* framebuffer = FrameBuffer::create(app.config.width, app.config.height);
+    FrameBuffer framebuffer = FrameBuffer(app.config.width, app.config.height);
 
     app.onRender([&](double now, double dt) {
         processInput(&app, camera, dt);
 
         // bind to framebuffer and draw scene as we normally would to color texture
-        framebuffer->bind();
-        glViewport(0, 0, framebuffer->width, framebuffer->height);
+        framebuffer.bind();
+        glViewport(0, 0, framebuffer.width, framebuffer.height);
 
         // make sure we clear the framebuffer's content
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -266,7 +268,7 @@ int main(int argc, char** argv) {
         app.renderer.draw(shader, scene, camera);
 
         // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
-        framebuffer->unbind();
+        framebuffer.unbind();
         glViewport(0, 0, width, height);
 
         // clear all relevant buffers
@@ -275,9 +277,9 @@ int main(int argc, char** argv) {
 
         screenShader.bind();
         screenShader.setInt("screenTexture", 0);
-            framebuffer->bindColorAttachment(0);
-                fsQuad->draw();
-            framebuffer->unbindColorAttachment();
+            framebuffer.bindColorAttachment(0);
+                fsQuad.draw();
+            framebuffer.unbindColorAttachment();
         screenShader.unbind();
     });
 

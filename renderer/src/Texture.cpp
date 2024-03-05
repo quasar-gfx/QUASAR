@@ -5,7 +5,26 @@
 
 #include <Texture.h>
 
-void Texture::loadFromFile(const std::string path, GLint internalFormat, GLenum type, GLint wrapS, GLint wrapT, GLint minFilter, GLint magFilter) {
+Texture::Texture(unsigned int width, unsigned int height,
+        GLint internalFormat, GLenum format,
+        GLenum type,
+        GLint wrapS, GLint wrapT,
+        GLint minFilter, GLint magFilter,
+        unsigned char* data) {
+    this->width = width;
+    this->height = height;
+    glGenTextures(1, &ID);
+    glBindTexture(GL_TEXTURE_2D, ID);
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, data);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapS);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magFilter);
+}
+
+Texture::Texture(const std::string path, GLenum type, GLint wrapS, GLint wrapT, GLint minFilter, GLint magFilter) {
+    this->path = path;
+
     int texWidth, texHeight, texChannels;
     void* data = nullptr;
     if (type == GL_UNSIGNED_BYTE) {
@@ -21,13 +40,19 @@ void Texture::loadFromFile(const std::string path, GLint internalFormat, GLenum 
         this->width = texWidth;
         this->height = texHeight;
 
-        GLenum format;
-        if (texChannels == 1)
+        GLenum internalFormat, format;
+        if (texChannels == 1) {
+            internalFormat = GL_RED;
             format = GL_RED;
-        else if (texChannels == 3)
+        }
+        else if (texChannels == 3) {
+            internalFormat = GL_RGB;
             format = GL_RGB;
-        else if (texChannels == 4)
+        }
+        else if (texChannels == 4) {
+            internalFormat = GL_RGBA;
             format = GL_RGBA;
+        }
 
         glBindTexture(GL_TEXTURE_2D, ID);
         glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, data);

@@ -20,22 +20,11 @@
 
 class Model : public Entity {
 public:
-    std::vector<Mesh*> meshes;
+    std::vector<Mesh> meshes;
 
     std::string rootDirectory;
 
     bool flipTextures = false;
-
-    void draw(Shader &shader) override;
-
-    EntityType getType() override { return ENTITY_MESH; }
-
-    static Model* create(const std::string &modelPath, bool flipTextures = false) {
-        return new Model(modelPath, flipTextures);
-    }
-
-private:
-    std::unordered_map<std::string, Texture*> texturesLoaded;
 
     Model(const std::string &modelPath, bool flipTextures = false)
             : flipTextures(flipTextures), Entity() {
@@ -43,10 +32,17 @@ private:
         loadFromFile(modelPath);
     }
 
+    void draw(Shader &shader) override;
+
+    EntityType getType() override { return ENTITY_MESH; }
+
+private:
+    std::unordered_map<std::string, Texture> texturesLoaded;
+
     void loadFromFile(const std::string &path);
     void processNode(aiNode* node, const aiScene* scene);
-    Mesh* processMesh(aiMesh* mesh, const aiScene *scene);
-    Texture* loadMaterialTexture(aiMaterial* mat, aiTextureType type);
+    Mesh processMesh(aiMesh* mesh, const aiScene *scene);
+    GLuint loadMaterialTexture(aiMaterial* mat, aiTextureType type);
 };
 
 #endif // MODEL_H

@@ -6,7 +6,7 @@
 
 void Model::draw(Shader &shader) {
     for (int i = 0; i < meshes.size(); i++) {
-        meshes[i]->draw(shader);
+        meshes[i].draw(shader);
     }
 }
 
@@ -33,10 +33,10 @@ void Model::processNode(aiNode* node, const aiScene* scene) {
     }
 }
 
-Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene) {
+Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene) {
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
-    std::vector<Texture*> textures;
+    std::vector<GLuint> textures;
 
     for (int i = 0; i < mesh->mNumVertices; i++) {
         Vertex vertex;
@@ -98,11 +98,10 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene) {
     float shininess = 0.0f;
     aiGetMaterialFloat(material, AI_MATKEY_SHININESS, &shininess);
 
-    return Mesh::create(vertices, indices, textures, shininess);
+    return Mesh(vertices, indices, textures, shininess);
 }
 
-Texture* Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
-    Texture* texture;
+GLuint Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
     if (mat->GetTextureCount(type) > 0) {
         aiString str;
         mat->GetTexture(type, 0, &str);
@@ -112,17 +111,14 @@ Texture* Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
 
         std::replace(texturePath.begin(), texturePath.end(), '\\', '/');
 
-        if (texturesLoaded.count(texturePath) > 0) {
-            texture = texturesLoaded[texturePath];
-        }
-        else {
-            texture = Texture::create(texturePath);
+        if (texturesLoaded.count(texturePath) == 0) {
+            Texture texture = Texture(texturePath);
             texturesLoaded[texturePath] = texture;
         }
 
-        return texture;
+        return texturesLoaded[texturePath].ID;
     }
     else {
-        return nullptr;
+        return 0;
     }
 }

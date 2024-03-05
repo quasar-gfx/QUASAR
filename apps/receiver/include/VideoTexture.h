@@ -16,9 +16,22 @@ extern "C" {
 
 class VideoTexture : public Texture {
 public:
-    std::string inputUrl = "udp://localhost:1234"; // Specify the UDP input URL
+    std::string inputUrl = "udp://localhost:1234";
 
     int frameReceived = 0;
+
+    VideoTexture(unsigned int width, unsigned int height,
+            GLint internalFormat = GL_RGB,
+            GLenum format = GL_RGB,
+            GLenum type = GL_UNSIGNED_BYTE,
+            GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE,
+            GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR) :
+            Texture(width, height, internalFormat, format, type, wrapS, wrapT, minFilter, magFilter) {
+    }
+
+    ~VideoTexture() {
+        cleanup();
+    }
 
     void initVideo(const std::string inputUrl);
     void cleanup();
@@ -32,28 +45,7 @@ public:
         return av_q2d(inputFormatContext->streams[videoStreamIndex]->avg_frame_rate);
     }
 
-    static VideoTexture* create(unsigned int width, unsigned int height,
-            GLint internalFormat = GL_RGB,
-            GLenum format = GL_RGB,
-            GLenum type = GL_UNSIGNED_BYTE,
-            GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE,
-            GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR) {
-        return new VideoTexture(width, height, internalFormat, format, type, wrapS, wrapT, minFilter, magFilter);
-    }
-
 private:
-    VideoTexture(unsigned int width, unsigned int height,
-            GLint internalFormat = GL_RGB,
-            GLenum format = GL_RGB,
-            GLenum type = GL_UNSIGNED_BYTE,
-            GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE,
-            GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR)
-                : Texture(width, height, internalFormat, format, type, wrapS, wrapT, minFilter, magFilter) { }
-
-    ~VideoTexture() {
-        cleanup();
-    }
-
     AVFormatContext* inputFormatContext = nullptr;
     AVCodecContext* inputCodecContext = nullptr;
 

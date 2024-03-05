@@ -11,8 +11,33 @@ class FrameBuffer : public OpenGLObject {
 public:
     unsigned int width, height;
 
-    Texture* colorAttachment;
-    Texture* depthAttachment;
+    Texture colorAttachment;
+    Texture depthAttachment;
+
+    FrameBuffer(unsigned int width, unsigned int height)
+            : width(width), height(height),
+              colorAttachment(width, height, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE),
+              depthAttachment(width, height, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE) {
+
+        glGenFramebuffers(1, &ID);
+        glBindFramebuffer(GL_FRAMEBUFFER, ID);
+
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorAttachment.ID, 0);
+
+        glBindTexture(GL_TEXTURE_2D, depthAttachment.ID);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+        glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthAttachment.ID, 0);
+
+        // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+            throw std::runtime_error("Framebuffer is not complete!");
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
 
     ~FrameBuffer() {
         cleanup();
@@ -23,19 +48,19 @@ public:
     }
 
     void bindColorAttachment(unsigned int slot = 0) {
-        colorAttachment->bind(slot);
+        colorAttachment.bind(slot);
     }
 
     void unbindColorAttachment() {
-        colorAttachment->unbind();
+        colorAttachment.unbind();
     }
 
     void bindDepthAttachment(unsigned int slot = 0) {
-        depthAttachment->bind(slot);
+        depthAttachment.bind(slot);
     }
 
     void unbindDepthAttachment() {
-        depthAttachment->unbind();
+        depthAttachment.unbind();
     }
 
     void unbind() {
@@ -44,40 +69,6 @@ public:
 
     void cleanup() {
         glDeleteFramebuffers(1, &ID);
-    }
-
-    static FrameBuffer* create(unsigned int width, unsigned int height) {
-        return new FrameBuffer(width, height);
-    }
-
-protected:
-    FrameBuffer(unsigned int width, unsigned int height)
-            : width(width), height(height) {
-
-        glGenFramebuffers(1, &ID);
-        glBindFramebuffer(GL_FRAMEBUFFER, ID);
-
-        // create a color attachment texture
-        colorAttachment = Texture::create(width, height, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE);
-
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorAttachment->ID, 0);
-
-        // create a renderbuffer object for depth
-        depthAttachment = Texture::create(width, height, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE);
-
-        glBindTexture(GL_TEXTURE_2D, depthAttachment->ID);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-        glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
-        glBindTexture(GL_TEXTURE_2D, 0);
-
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthAttachment->ID, 0);
-
-        // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
-        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-            throw std::runtime_error("Framebuffer is not complete!");
-        }
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 };
 

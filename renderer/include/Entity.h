@@ -44,6 +44,15 @@ public:
 
     int getID() { return ID; }
 
+    Node() {
+        ID = nextID++;
+    }
+
+    Node(Entity* entity) {
+        ID = nextID++;
+        setEntity(entity);
+    }
+
     void setEntity(Entity* entity) {
         this->entity = entity;
         entity->parentNode = this;
@@ -112,24 +121,6 @@ public:
         }
 
         return transformLocalFromWorld;
-    }
-
-    static Node* create() {
-        return new Node();
-    }
-
-    static Node* create(Entity* entity) {
-        return new Node(entity);
-    }
-
-protected:
-    Node() {
-        ID = nextID++;
-    }
-
-    Node(Entity* entity) {
-        ID = nextID++;
-        setEntity(entity);
     }
 
 private:

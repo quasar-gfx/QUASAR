@@ -21,23 +21,19 @@ public:
 
     unsigned int framesSent = 0;
 
+    VideoStreamer() = default;
+    ~VideoStreamer() = default;
+
     float getFrameRate() {
         return 0;
     }
 
-    int start(Texture* texture, const std::string outputUrl);
+    int start(Texture &texture, const std::string outputUrl);
     void cleanup();
 
     void sendFrame();
 
-    static VideoStreamer* create() {
-        return new VideoStreamer();
-    }
-
 private:
-    VideoStreamer() = default;
-    ~VideoStreamer() = default;
-
 #ifdef __APPLE__
     AVPixelFormat pixelFormat = AV_PIX_FMT_YUV420P;
 #else
@@ -54,7 +50,7 @@ private:
 
     SwsContext* conversionContext;
 
-    Texture* sourceTexture;
+    Texture sourceTexture;
     uint8_t* rgbaData;
 };
 

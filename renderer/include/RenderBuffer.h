@@ -9,6 +9,16 @@ class RenderBuffer : public OpenGLObject {
 public:
     unsigned int width, height;
 
+    RenderBuffer(unsigned int width, unsigned int height, GLenum internalFormat = GL_DEPTH_COMPONENT24) : width(width), height(height) {
+        glGenRenderbuffers(1, &ID);
+        glBindRenderbuffer(GL_RENDERBUFFER, ID);
+        glRenderbufferStorage(GL_RENDERBUFFER, internalFormat, width, height);
+    }
+
+    ~RenderBuffer() {
+        cleanup();
+    }
+
     void bind() {
         bind(0);
     }
@@ -25,21 +35,6 @@ public:
 
     void cleanup() {
         glDeleteRenderbuffers(1, &ID);
-    }
-
-    static RenderBuffer* create(unsigned int width, unsigned int height, GLenum internalFormat = GL_DEPTH_COMPONENT24) {
-        return new RenderBuffer(width, height, internalFormat);
-    }
-
-protected:
-    RenderBuffer(unsigned int width, unsigned int height, GLenum internalFormat = GL_DEPTH_COMPONENT24) : width(width), height(height) {
-        glGenRenderbuffers(1, &ID);
-        glBindRenderbuffer(GL_RENDERBUFFER, ID);
-        glRenderbufferStorage(GL_RENDERBUFFER, internalFormat, width, height);
-    }
-
-    ~RenderBuffer() {
-        cleanup();
     }
 };
 

@@ -32,7 +32,7 @@ void Mesh::draw(Shader &shader) {
     shader.setFloat("material.shininess", shininess);
 
     for (int i = 0; i < textures.size(); i++) {
-        if (textures[i] == nullptr) continue;
+        if (textures[i] == 0) continue;
 
         std::string name;
 
@@ -49,8 +49,9 @@ void Mesh::draw(Shader &shader) {
             name = "material.height";
         }
 
+        glActiveTexture(GL_TEXTURE0 + i);
         shader.setInt(name.c_str(), i);
-        textures[i]->bind(i);
+        glBindTexture(GL_TEXTURE_2D, textures[i]);
     }
 
     glBindVertexArray(VAO);
@@ -65,7 +66,7 @@ void Mesh::draw(Shader &shader) {
     glBindVertexArray(0);
 
     for (int i = 0; i < textures.size(); i++) {
-        if (textures[i] == nullptr) continue;
+        if (textures[i] == 0) continue;
 
         std::string name;
 
@@ -82,6 +83,7 @@ void Mesh::draw(Shader &shader) {
             name = "material.height";
         }
 
-        textures[i]->unbind(i);
+        glActiveTexture(GL_TEXTURE0 + i);
+        glBindTexture(GL_TEXTURE_2D, 0);
     }
 }

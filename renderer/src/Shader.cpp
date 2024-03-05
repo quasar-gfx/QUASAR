@@ -1,6 +1,6 @@
 #include <Shader.h>
 
-Shader::Shader(std::string vertexPath, std::string fragmentPath, std::string geometryPath) {
+void Shader::loadFromFile(std::string vertexPath, std::string fragmentPath, std::string geometryPath) {
     std::string vertexCode;
     std::string fragmentCode;
     std::string geometryCode;
@@ -51,7 +51,7 @@ Shader::Shader(std::string vertexPath, std::string fragmentPath, std::string geo
     createAndCompileProgram(vShaderCode, fShaderCode, gShaderCode);
 }
 
-Shader::Shader(const char* vertexData, const char* fragmentData, const char* geometryData) {
+void Shader::loadFromData(const char* vertexData, const char* fragmentData, const char* geometryData) {
     createAndCompileProgram(vertexData, fragmentData, geometryData);
 }
 

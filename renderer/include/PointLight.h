@@ -10,6 +10,8 @@ public:
     float linear = 0.09f;
     float quadratic = 0.032f;
 
+    PointLight(const glm::vec3 &color = glm::vec3(1.0f), float intensity = 1.0f) : Light(color, intensity) {}
+
     void draw(Shader &shader) {
         draw(shader, 0);
     }
@@ -33,13 +35,6 @@ public:
         this->linear = linear;
         this->quadratic = quadratic;
     }
-
-    static PointLight* create(const glm::vec3 &color = glm::vec3(1.0f), float intensity = 1.0f) {
-        return new PointLight(color, intensity);
-    }
-
-protected:
-    PointLight(const glm::vec3 &color = glm::vec3(1.0f), float intensity = 1.0f) : Light(color, intensity) {}
 };
 
 #endif // POINT_LIGHT_H
