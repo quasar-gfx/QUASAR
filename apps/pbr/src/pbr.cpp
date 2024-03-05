@@ -98,8 +98,10 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader shader, screenShader;
+    Shader shader, backgroundShader, screenShader;
     shader.loadFromFile("shaders/meshMaterial.vert", "shaders/meshMaterial.frag");
+    backgroundShader.loadFromFile("shaders/background.vert", "shaders/background.frag");
+    backgroundShader.setInt("environmentMap", 0);
     screenShader.loadFromFile("shaders/postprocess.vert", "shaders/postprocess.frag");
 
     // lights
@@ -188,6 +190,7 @@ int main(int argc, char** argv) {
 
     scene->setAmbientLight(ambientLight);
     scene->setDirectionalLight(directionalLight);
+    scene->setSkyBox(&envCubeMap);
     scene->addPointLight(pointLight);
     scene->addChildNode(gunNode);
 
@@ -207,10 +210,11 @@ int main(int argc, char** argv) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // must draw before drawing scene
-
         // draw all objects in scene
         app.renderer.draw(shader, scene, camera);
+
+        // render skybox (render as last to prevent overdraw)
+        app.renderer.drawSkyBox(backgroundShader, scene, camera);
 
         // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
         framebuffer.unbind();
