@@ -13,7 +13,10 @@
 #include <Texture.h>
 #include <Camera.h>
 
+#define NUM_CUBEMAP_FACES 6
+
 enum CubeMapType {
+    CUBE_MAP_STANDARD,
     CUBE_MAP_SHADOW,
     CUBE_MAP_HDR,
     CUBE_MAP_PREFILTER
@@ -23,11 +26,14 @@ class CubeMap : public Texture {
 public:
     std::vector<std::string> faceFilePaths;
 
-    unsigned int maxMipLevels;
+    CubeMapType cubeType;
+
+    unsigned int maxMipLevels = 1;
 
     CubeMap(unsigned int width, unsigned int height, CubeMapType cubeType);
 
-    CubeMap(std::vector<std::string> faceFilePaths,
+    CubeMap(const std::vector<std::string> faceFilePaths,
+            CubeMapType cubeType = CUBE_MAP_STANDARD,
             GLenum format = GL_RGB,
             GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE, GLint wrapR = GL_CLAMP_TO_EDGE,
             GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR);
@@ -36,34 +42,18 @@ public:
         cleanup();
     }
 
-    void draw(Shader &shader, Camera* camera) {
-        glDepthFunc(GL_LEQUAL);
+    void loadFromEquirectTexture(Shader &equirectToCubeMapShader, unsigned int width, unsigned int height, Texture &equirectTexture);
+    void convolve(Shader &convolutionShader, unsigned int width, unsigned int height, TextureID envMapTexture);
+    void prefilter(Shader &prefilterShader, unsigned int width, unsigned int height, TextureID envMapTexture, Texture &captureRBO);
 
-        shader.bind();
-
-        glm::mat4 view = glm::mat4(glm::mat3(camera->getViewMatrix()));
-        shader.setMat4("view", view);
-        shader.setMat4("projection", camera->getProjectionMatrix());
-
-        glBindVertexArray(quadVAO);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, ID);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-        glActiveTexture(GL_TEXTURE0);
-        glBindVertexArray(0);
-
-        shader.unbind();
-
-        // restore depth func
-        glDepthFunc(GL_LESS);
-    }
+    void draw(Shader &shader, Camera* camera);
 
     void cleanup() {
         glDeleteTextures(1, &ID);
     }
 
     static const glm::mat4 captureProjection;
-    static const glm::mat4 captureViews[18];
+    static const glm::mat4 captureViews[3*NUM_CUBEMAP_FACES];
 
 private:
     struct CubeMapVertex {
@@ -76,6 +66,8 @@ private:
             GLenum format,
             GLint wrapS, GLint wrapT, GLint wrapR,
             GLint minFilter, GLint magFilter);
+
+    void drawCube();
 };
 
 #endif // CUBE_MAP_H

@@ -15,8 +15,6 @@
 #include <Texture.h>
 #include <Entity.h>
 
-typedef GLuint TextureID;
-
 enum VertexAttribute {
     ATTRIBUTE_POSITION   = 0,
     ATTRIBUTE_NORMAL     = 1,

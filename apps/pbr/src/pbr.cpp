@@ -187,27 +187,70 @@ int main(int argc, char** argv) {
     pointLight->setPosition(glm::vec3(0.0f, 3.0f, 0.0f));
     pointLight->setAttenuation(1.0f, 0.09f, 0.032f);
 
+    // set up framebuffer
+    FrameBuffer captureFramebuffer = FrameBuffer(512, 512);
+
+    // load the HDR environment map
     Texture hdrTexture = Texture("../../assets/textures/environment.hdr", GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR);
 
-    CubeMap envCubeMap = CubeMap(512, 512, CUBE_MAP_PREFILTER);
+    // convert HDR equirectangular environment map to cubemap equivalent
+    Shader equirectToCubeMapShader;
+    equirectToCubeMapShader.loadFromFile("shaders/skybox.vert", "shaders/equirectangular2cubemap.frag");
 
-    Shader skyboxShader;
-    skyboxShader.loadFromFile("shaders/skybox.vert", "shaders/equirectangular2cubemap.frag");
-    skyboxShader.setInt("equirectangularMap", 0);
-    skyboxShader.setMat4("projection", envCubeMap.captureProjection);
-    hdrTexture.bind(0);
-
-    FrameBuffer captureFramebuffer = FrameBuffer(512, 512);
-    glViewport(0, 0, 512, 512);
+    CubeMap envCubeMap = CubeMap(512, 512, CUBE_MAP_HDR);
 
     captureFramebuffer.bind();
-    for (unsigned int i = 0; i < 6; ++i) {
-        skyboxShader.setMat4("view", envCubeMap.captureViews[i]);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, envCubeMap.ID, 0);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    envCubeMap.loadFromEquirectTexture(equirectToCubeMapShader, 512, 512, hdrTexture);
+    captureFramebuffer.unbind();
 
-        renderCube();
-    }
+    // glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 32, 32);
+
+    // create an irradiance cubemap, and rescale capture FBO to irradiance scale
+    CubeMap irradianceCubeMap = CubeMap(32, 32, CUBE_MAP_HDR);
+
+    // solve diffuse integral by convolution to create an irradiance cubemap
+    Shader convolutionShader;
+    convolutionShader.loadFromFile("shaders/skybox.vert", "shaders/irradianceConvolution.frag");
+
+    captureFramebuffer.bind();
+    irradianceCubeMap.convolve(convolutionShader, 32, 32, envCubeMap.ID);
+    captureFramebuffer.unbind();
+
+    // create a prefilter cubemap, and rescale capture FBO to prefilter scale
+    CubeMap prefilterCubeMap = CubeMap(128, 128, CUBE_MAP_PREFILTER);
+
+    // run a quasi monte-carlo simulation on the environment lighting to create a prefilter cubemap
+    Shader prefilterShader;
+    prefilterShader.loadFromFile("shaders/skybox.vert", "shaders/prefilter.frag");
+
+    captureFramebuffer.bind();
+    prefilterCubeMap.prefilter(prefilterShader, 32, 32, envCubeMap.ID, captureFramebuffer.depthAttachment);
+    captureFramebuffer.unbind();
+
+    // generate a 2D LUT from the BRDF equations used
+    Texture brdfLUT = Texture(512, 512, GL_RG16F, GL_RG, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_LINEAR, GL_LINEAR);
+
+    // then reconfigure capture framebuffer object and render screen-space quad with BRDF shader
+    Shader brdfShader;
+    brdfShader.loadFromFile("shaders/brdf.vert", "shaders/brdf.frag");
+
+    captureFramebuffer.bind();
+    captureFramebuffer.bindColorAttachment(0);
+    captureFramebuffer.bindDepthAttachment(0);
+
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 512, 512);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUT.ID, 0);
+
+    FullScreenQuad brdfFsQuad = FullScreenQuad();
+
+    glViewport(0, 0, 512, 512);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    brdfShader.bind();
+    brdfFsQuad.draw();
+    brdfShader.unbind();
+
+    captureFramebuffer.unbindColorAttachment();
+    captureFramebuffer.unbindDepthAttachment();
     captureFramebuffer.unbind();
 
     // models

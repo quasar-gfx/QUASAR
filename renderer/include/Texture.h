@@ -6,6 +6,8 @@
 
 #include <OpenGLObject.h>
 
+typedef GLuint TextureID;
+
 enum TextureType {
     TEXTURE_DIFFUSE  = 0,
     TEXTURE_SPECULAR = 1,
