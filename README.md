@@ -30,16 +30,14 @@ cd apps/streamer
 ./streamer
 ```
 
-In a new terminal, to run receiever:
+In a new terminal, to run receiver:
 ```
 # in out directory
-cd apps/receiever
-./receiever
+cd apps/receiver
+./receiver
 ```
 
-After the streamer says `Error reading frame: End of file`, you can manually kill the streamer and receiver programs (graceful exit is WIP).
-
-The streamer should render some frames and encode and stream the `streamer/input.mp4` file to the receiver, which displays it on right half the screen in the opengl window.
+The streamer should render, encode, and stream its output frames to the receiver, which displays in its opengl window with a locally rendered background scene.
 
 TODOs:
 

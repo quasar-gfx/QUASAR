@@ -282,6 +282,9 @@ int main(int argc, char** argv) {
 
     // cleanup
     app.cleanup();
+
+    std::cout << "Please do CTRL-C to exit!" << std::endl;
+
     videoStreamer.cleanup();
 
     return 0;
