@@ -46,7 +46,7 @@ private:
     void loadFromFile(const std::string &path);
     void processNode(aiNode* node, const aiScene* scene);
     Mesh* processMesh(aiMesh* mesh, const aiScene *scene);
-    std::vector<Texture*> loadMaterialTextures(aiMaterial* mat, aiTextureType type, TextureType textureType);
+    Texture* loadMaterialTexture(aiMaterial* mat, aiTextureType type);
 };
 
 #endif // MODEL_H

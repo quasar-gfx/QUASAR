@@ -8,17 +8,15 @@
 
 #include <vector>
 
-#include <VertexBuffer.h>
-
 class FullScreenQuad {
 public:
     void draw() {
         // disable depth test so screen-space quad isn't discarded due to depth test.
         glDisable(GL_DEPTH_TEST);
 
-        quadVBO->bind();
+        glBindVertexArray(quadVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
-        quadVBO->unbind();
+        glBindVertexArray(0);
 
         // re-enable depth test
         glEnable(GL_DEPTH_TEST);
@@ -41,10 +39,18 @@ protected:
             { { 1.0f,  1.0f}, {1.0f, 1.0f} }
         };
 
-        quadVBO = new VertexBuffer(quadVertices.data(), quadVertices.size() * sizeof(FSQuadVertex));
-        quadVBO->bind();
-        quadVBO->addAttribute(0, 2, GL_FALSE, sizeof(FSQuadVertex), 0);
-        quadVBO->addAttribute(1, 2, GL_FALSE, sizeof(FSQuadVertex), offsetof(FSQuadVertex, texCoords));
+        glGenVertexArrays(1, &quadVAO);
+        glGenBuffers(1, &quadVBO);
+
+        glBindVertexArray(quadVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+
+        glBufferData(GL_ARRAY_BUFFER, quadVertices.size() * sizeof(FSQuadVertex), quadVertices.data(), GL_STATIC_DRAW);
+
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(FSQuadVertex), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(FSQuadVertex), (void*)offsetof(FSQuadVertex, texCoords));
     }
 
     ~FullScreenQuad() { }
@@ -55,7 +61,7 @@ private:
         glm::vec2 texCoords;
     };
 
-    VertexBuffer* quadVBO;
+    GLuint quadVAO, quadVBO;
 };
 
 #endif // FULL_SCREEN_QUAD_H

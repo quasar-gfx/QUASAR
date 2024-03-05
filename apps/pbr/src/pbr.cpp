@@ -186,7 +186,7 @@ int main(int argc, char** argv) {
     pointLight->setPosition(glm::vec3(0.0f, 3.0f, 0.0f));
     pointLight->setAttenuation(1.0f, 0.09f, 0.032f);
 
-    Texture* hdrTexture = Texture::create("../../assets/textures/environment.hdr", TEXTURE_DIFFUSE, GL_RGB16F, GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR);
+    Texture* hdrTexture = Texture::create("../../assets/textures/environment.hdr", GL_RGB16F, GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR);
 
     unsigned int envCubemap;
     glGenTextures(1, &envCubemap);

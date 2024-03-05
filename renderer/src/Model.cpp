@@ -12,12 +12,12 @@ void Model::draw(Shader &shader) {
 
 void Model::loadFromFile(const std::string &path) {
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
+    const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_OptimizeMeshes | aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         throw std::runtime_error("ERROR::ASSIMP:: " + std::string(importer.GetErrorString()));
     }
 
-    rootDirectory = path.substr(0, path.find_last_of('/'));
+    rootDirectory = path.substr(0, path.find_last_of('/'))  + '/';
 
     processNode(scene->mRootNode, scene);
 }
@@ -33,7 +33,7 @@ void Model::processNode(aiNode* node, const aiScene* scene) {
     }
 }
 
-Mesh* Model::processMesh(aiMesh* mesh, const aiScene *scene) {
+Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene) {
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
     std::vector<Texture*> textures;
@@ -88,17 +88,12 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene *scene) {
 
     aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 
-    std::vector<Texture*> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, TEXTURE_DIFFUSE);
-    textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
-
-    std::vector<Texture*> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, TEXTURE_SPECULAR);
-    textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
-
-    std::vector<Texture*> normalMaps = loadMaterialTextures(material, aiTextureType_NORMALS, TEXTURE_NORMAL);
-    textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
-
-    std::vector<Texture*> heightMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, TEXTURE_HEIGHT);
-    textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
+    textures = {
+        loadMaterialTexture(material, aiTextureType_DIFFUSE),
+        loadMaterialTexture(material, aiTextureType_SPECULAR),
+        loadMaterialTexture(material, aiTextureType_NORMALS),
+        loadMaterialTexture(material, aiTextureType_HEIGHT)
+    };
 
     float shininess = 0.0f;
     aiGetMaterialFloat(material, AI_MATKEY_SHININESS, &shininess);
@@ -106,23 +101,28 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene *scene) {
     return Mesh::create(vertices, indices, textures, shininess);
 }
 
-std::vector<Texture*> Model::loadMaterialTextures(aiMaterial* mat, aiTextureType type, TextureType textureType) {
-    std::vector<Texture*> textures;
-    for (int i = 0; i < mat->GetTextureCount(type); i++) {
+Texture* Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
+    Texture* texture;
+    if (mat->GetTextureCount(type) > 0) {
         aiString str;
-        mat->GetTexture(type, i, &str);
+        mat->GetTexture(type, 0, &str);
 
-        std::string stdStr = std::string(str.C_Str());
-        std::replace(stdStr.begin(), stdStr.end(), '\\', '/');
+        std::string texturePath = rootDirectory;
+        texturePath = texturePath.append(str.C_Str());
 
-        if (texturesLoaded.count(stdStr) > 0) {
-            textures.push_back(texturesLoaded[stdStr]);
+        std::replace(texturePath.begin(), texturePath.end(), '\\', '/');
+
+        if (texturesLoaded.count(texturePath) > 0) {
+            texture = texturesLoaded[texturePath];
         }
         else {
-            Texture* texture = Texture::create(rootDirectory + '/' + stdStr, textureType);
-            textures.push_back(texture);
-            texturesLoaded[stdStr] = texture;
+            texture = Texture::create(texturePath);
+            texturesLoaded[texturePath] = texture;
         }
+
+        return texture;
     }
-    return textures;
+    else {
+        return nullptr;
+    }
 }

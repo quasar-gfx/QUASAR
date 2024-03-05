@@ -48,7 +48,7 @@ private:
             GLenum type = GL_UNSIGNED_BYTE,
             GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE,
             GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR)
-                : Texture(width, height, TEXTURE_DIFFUSE, internalFormat, format, type, wrapS, wrapT, minFilter, magFilter) { }
+                : Texture(width, height, internalFormat, format, type, wrapS, wrapT, minFilter, magFilter) { }
 
     ~VideoTexture() {
         cleanup();

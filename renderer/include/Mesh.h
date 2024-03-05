@@ -12,8 +12,6 @@
 #include <vector>
 
 #include <Shader.h>
-#include <VertexBuffer.h>
-#include <IndexBuffer.h>
 #include <Texture.h>
 #include <Entity.h>
 
@@ -57,11 +55,8 @@ public:
     void draw(Shader &shader) override;
 
     void cleanup() {
-        vbo.cleanup();
-        if (indices.size() > 0) {
-            ibo.cleanup();
-        }
         for (auto &texture : textures) {
+            if (texture == nullptr) continue;
             texture->cleanup();
         }
     }
@@ -78,16 +73,13 @@ public:
 
 protected:
     Mesh(std::vector<Vertex> &vertices, std::vector<Texture*> &textures, float shininess = 1.0f)
-            : vertices(vertices), textures(textures), shininess(shininess),
-            vbo(vertices.data(), static_cast<unsigned int>(vertices.size() * sizeof(Vertex))), Entity() {
-        initAttributes();
+            : vertices(vertices), textures(textures), shininess(shininess), Entity() {
+        init();
     }
 
     Mesh(std::vector<Vertex> &vertices, std::vector<unsigned int> &indices, std::vector<Texture*> &textures, float shininess = 1.0f)
-            : vertices(vertices), indices(indices), textures(textures), shininess(shininess),
-            vbo(vertices.data(), static_cast<unsigned int>(vertices.size() * sizeof(Vertex))),
-            ibo(indices.data(), static_cast<unsigned int>(indices.size())), Entity() {
-        initAttributes();
+            : vertices(vertices), indices(indices), textures(textures), shininess(shininess), Entity() {
+        init();
     }
 
     ~Mesh() {
@@ -95,16 +87,8 @@ protected:
     }
 
 private:
-    VertexBuffer vbo;
-    IndexBuffer ibo;
+    GLuint VAO, VBO, EBO;
 
-    void initAttributes() {
-        vbo.bind();
-        vbo.addAttribute(ATTRIBUTE_POSITION,   3, GL_FALSE, sizeof(Vertex), 0);
-        vbo.addAttribute(ATTRIBUTE_NORMAL,     3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, normal));
-        vbo.addAttribute(ATTRIBUTE_TEX_COORDS, 2, GL_FALSE, sizeof(Vertex), offsetof(Vertex, texCoords));
-        vbo.addAttribute(ATTRIBUTE_TANGENT,    3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, tangent));
-        vbo.unbind();
-    }
+    void init();
 };
 #endif

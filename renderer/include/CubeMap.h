@@ -9,7 +9,6 @@
 #include <vector>
 #include <string>
 
-#include <VertexBuffer.h>
 #include <Shader.h>
 #include <Camera.h>
 
@@ -28,12 +27,12 @@ public:
         shader.setMat4("view", view);
         shader.setMat4("projection", camera->getProjectionMatrix());
 
-        quadVB->bind();
+        glBindVertexArray(quadVAO);
         glBindTexture(GL_TEXTURE_CUBE_MAP, ID);
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
         glActiveTexture(GL_TEXTURE0);
-        quadVB->unbind();
+        glBindVertexArray(0);
 
         shader.unbind();
 
@@ -105,9 +104,16 @@ private:
             { { 1.0f, -1.0f,  1.0f} }
         };
 
-        quadVB = new VertexBuffer(skyboxVertices.data(), skyboxVertices.size() * sizeof(CubeMapVertex));
-        quadVB->bind();
-        quadVB->addAttribute(0, 3, GL_FALSE, sizeof(CubeMapVertex), 0);
+        glGenVertexArrays(1, &quadVAO);
+        glGenBuffers(1, &quadVBO);
+
+        glBindVertexArray(quadVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+
+        glBufferData(GL_ARRAY_BUFFER, skyboxVertices.size() * sizeof(CubeMapVertex), skyboxVertices.data(), GL_STATIC_DRAW);
+
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(CubeMapVertex), (void*)0);
 
         loadFromFiles(faceFilePaths, format, wrapS, wrapT, wrapR, minFilter, magFilter);
     }
@@ -116,7 +122,7 @@ private:
         cleanup();
     }
 
-    VertexBuffer* quadVB;
+    GLuint quadVAO, quadVBO;
 
     void loadFromFiles(std::vector<std::string> faceFilePaths,
             GLenum format,

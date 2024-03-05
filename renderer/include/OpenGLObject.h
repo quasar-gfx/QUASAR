@@ -7,6 +7,8 @@ class OpenGLObject {
 public:
     GLuint ID;
 
+    operator GLuint() const { return ID; }
+
     OpenGLObject() : ID(0) {}
     ~OpenGLObject() {};
 
