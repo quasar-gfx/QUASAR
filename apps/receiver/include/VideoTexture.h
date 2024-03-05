@@ -33,18 +33,22 @@ public:
     }
 
     static VideoTexture* create(unsigned int width, unsigned int height,
+            GLint internalFormat = GL_RGB,
             GLenum format = GL_RGB,
+            GLenum type = GL_UNSIGNED_BYTE,
             GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE,
             GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR) {
-        return new VideoTexture(width, height, format, wrapS, wrapT, minFilter, magFilter);
+        return new VideoTexture(width, height, internalFormat, format, type, wrapS, wrapT, minFilter, magFilter);
     }
 
 private:
     VideoTexture(unsigned int width, unsigned int height,
+            GLint internalFormat = GL_RGB,
             GLenum format = GL_RGB,
+            GLenum type = GL_UNSIGNED_BYTE,
             GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE,
             GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR)
-                : frameReceived(0), Texture(width, height, TEXTURE_DIFFUSE, format, wrapS, wrapT, minFilter, magFilter) { }
+                : Texture(width, height, TEXTURE_DIFFUSE, internalFormat, format, type, wrapS, wrapT, minFilter, magFilter) { }
 
     ~VideoTexture() {
         cleanup();

@@ -12,6 +12,7 @@
 #include <Camera.h>
 #include <FrameBuffer.h>
 #include <FullScreenQuad.h>
+#include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 
 #define GUI_UPDATE_FRAMERATE_INTERVAL 0.1f // seconds
@@ -216,10 +217,10 @@ int main(int argc, char** argv) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // must draw before drawing scene
-        app.drawSkyBox(skyboxShader, scene, camera);
+        app.renderer.drawSkyBox(skyboxShader, scene, camera);
 
         // draw all objects in scene
-        app.draw(shader, scene, camera);
+        app.renderer.draw(shader, scene, camera);
 
         // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
         framebuffer->unbind();

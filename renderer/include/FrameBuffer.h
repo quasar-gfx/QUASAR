@@ -50,7 +50,7 @@ public:
         return new FrameBuffer(width, height);
     }
 
-private:
+protected:
     FrameBuffer(unsigned int width, unsigned int height)
             : width(width), height(height) {
 

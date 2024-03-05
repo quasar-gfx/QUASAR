@@ -14,7 +14,7 @@ public:
         return new AmbientLight(color, intensity);
     }
 
-private:
+protected:
     AmbientLight(const glm::vec3 &color = glm::vec3(1.0f), float intensity = 1.0f) : Light(color, intensity) {}
 };
 

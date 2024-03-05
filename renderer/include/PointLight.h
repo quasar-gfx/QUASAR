@@ -38,7 +38,7 @@ public:
         return new PointLight(color, intensity);
     }
 
-private:
+protected:
     PointLight(const glm::vec3 &color = glm::vec3(1.0f), float intensity = 1.0f) : Light(color, intensity) {}
 };
 

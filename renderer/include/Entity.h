@@ -122,7 +122,7 @@ public:
         return new Node(entity);
     }
 
-private:
+protected:
     Node() {
         ID = nextID++;
     }
@@ -132,6 +132,7 @@ private:
         setEntity(entity);
     }
 
+private:
     unsigned int ID;
 
     glm::vec3 translation = glm::vec3(0.0f);

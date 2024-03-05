@@ -31,7 +31,7 @@ public:
         return new RenderBuffer(width, height, internalFormat);
     }
 
-private:
+protected:
     RenderBuffer(unsigned int width, unsigned int height, GLenum internalFormat = GL_DEPTH_COMPONENT24) : width(width), height(height) {
         glGenRenderbuffers(1, &ID);
         glBindRenderbuffer(GL_RENDERBUFFER, ID);

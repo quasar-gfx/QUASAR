@@ -6,9 +6,7 @@
 
 #include <functional>
 
-#include <Shader.h>
-#include <Scene.h>
-#include <Camera.h>
+#include <OpenGLRenderer.h>
 #include <OpenGLAppConfig.h>
 
 class OpenGLApp {
@@ -24,6 +22,8 @@ public:
 
     Config config;
 
+    OpenGLRenderer renderer;
+
     GLFWwindow* window;
     bool frameResized = false;
 
@@ -36,9 +36,6 @@ public:
     void onMouseMove(MouseMoveCallback callback) { mouseMoveCallback = callback; }
     void onMouseScroll(MouseScrollCallback callback) { scrollCallback = callback; }
     void onRender(RenderCallback callback) { renderCallback = callback; };
-
-    void drawSkyBox(Shader &shader, Scene* scene, Camera* camera);
-    void draw(Shader &shader, Scene* scene, Camera* camera);
 
     void getWindowSize(int *resWidth, int *resHeight) const {
         int width, height;
@@ -76,8 +73,6 @@ private:
             app->scrollCallback(xoffset, yoffset);
         }
     }
-
-    void drawNode(Shader &shader, Node* node, glm::mat4 parentTransform);
 };
 
 #endif // OPENGL_APP_H

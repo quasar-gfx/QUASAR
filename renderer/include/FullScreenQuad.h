@@ -28,13 +28,7 @@ public:
         return new FullScreenQuad();
     }
 
-private:
-    struct FSQuadVertex {
-        glm::vec2 position;
-        glm::vec2 texCoords;
-    };
-
-    VertexBuffer* quadVBO;
+protected:
     FullScreenQuad() {
         // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
         std::vector<FSQuadVertex> quadVertices = {
@@ -54,6 +48,14 @@ private:
     }
 
     ~FullScreenQuad() { }
+
+private:
+    struct FSQuadVertex {
+        glm::vec2 position;
+        glm::vec2 texCoords;
+    };
+
+    VertexBuffer* quadVBO;
 };
 
 #endif // FULL_SCREEN_QUAD_H

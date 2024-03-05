@@ -76,10 +76,7 @@ public:
         return new Mesh(vertices, indices, textures, shininess);
     }
 
-private:
-    VertexBuffer vbo;
-    IndexBuffer ibo;
-
+protected:
     Mesh(std::vector<Vertex> &vertices, std::vector<Texture*> &textures, float shininess = 1.0f)
             : vertices(vertices), textures(textures), shininess(shininess),
             vbo(vertices.data(), static_cast<unsigned int>(vertices.size() * sizeof(Vertex))), Entity() {
@@ -96,6 +93,10 @@ private:
     ~Mesh() {
         cleanup();
     }
+
+private:
+    VertexBuffer vbo;
+    IndexBuffer ibo;
 
     void initAttributes() {
         vbo.bind();
