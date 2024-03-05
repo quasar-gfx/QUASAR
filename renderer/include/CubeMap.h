@@ -10,75 +10,27 @@
 #include <string>
 
 #include <Shader.h>
+#include <Texture.h>
 #include <Camera.h>
 
-class CubeMap {
-public:
-    GLuint ID;
+enum CubeMapType {
+    CUBE_MAP_SHADOW,
+    CUBE_MAP_HDR,
+    CUBE_MAP_PREFILTER
+};
 
+class CubeMap : public Texture {
+public:
     std::vector<std::string> faceFilePaths;
+
+    unsigned int maxMipLevels;
+
+    CubeMap(unsigned int width, unsigned int height, CubeMapType cubeType);
 
     CubeMap(std::vector<std::string> faceFilePaths,
             GLenum format = GL_RGB,
             GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE, GLint wrapR = GL_CLAMP_TO_EDGE,
-            GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR) {
-        std::vector<CubeMapVertex> skyboxVertices = {
-            { {-1.0f,  1.0f, -1.0f} },
-            { {-1.0f, -1.0f, -1.0f} },
-            { { 1.0f, -1.0f, -1.0f} },
-            { { 1.0f, -1.0f, -1.0f} },
-            { { 1.0f,  1.0f, -1.0f} },
-            { {-1.0f,  1.0f, -1.0f} },
-
-            { {-1.0f, -1.0f,  1.0f} },
-            { {-1.0f, -1.0f, -1.0f} },
-            { {-1.0f,  1.0f, -1.0f} },
-            { {-1.0f,  1.0f, -1.0f} },
-            { {-1.0f,  1.0f,  1.0f} },
-            { {-1.0f, -1.0f,  1.0f} },
-
-            { { 1.0f, -1.0f, -1.0f} },
-            { { 1.0f, -1.0f,  1.0f} },
-            { { 1.0f,  1.0f,  1.0f} },
-            { { 1.0f,  1.0f,  1.0f} },
-            { { 1.0f,  1.0f, -1.0f} },
-            { { 1.0f, -1.0f, -1.0f} },
-
-            { {-1.0f, -1.0f,  1.0f} },
-            { {-1.0f,  1.0f,  1.0f} },
-            { { 1.0f,  1.0f,  1.0f} },
-            { { 1.0f,  1.0f,  1.0f} },
-            { { 1.0f, -1.0f,  1.0f} },
-            { {-1.0f, -1.0f,  1.0f} },
-
-            { {-1.0f,  1.0f, -1.0f} },
-            { { 1.0f,  1.0f, -1.0f} },
-            { { 1.0f,  1.0f,  1.0f} },
-            { { 1.0f,  1.0f,  1.0f} },
-            { {-1.0f,  1.0f,  1.0f} },
-            { {-1.0f,  1.0f, -1.0f} },
-
-            { {-1.0f, -1.0f, -1.0f} },
-            { {-1.0f, -1.0f,  1.0f} },
-            { { 1.0f, -1.0f, -1.0f} },
-            { { 1.0f, -1.0f, -1.0f} },
-            { {-1.0f, -1.0f,  1.0f} },
-            { { 1.0f, -1.0f,  1.0f} }
-        };
-
-        glGenVertexArrays(1, &quadVAO);
-        glGenBuffers(1, &quadVBO);
-
-        glBindVertexArray(quadVAO);
-        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-
-        glBufferData(GL_ARRAY_BUFFER, skyboxVertices.size() * sizeof(CubeMapVertex), skyboxVertices.data(), GL_STATIC_DRAW);
-
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(CubeMapVertex), (void*)0);
-
-        loadFromFiles(faceFilePaths, format, wrapS, wrapT, wrapR, minFilter, magFilter);
-    }
+            GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR);
 
     ~CubeMap() {
         cleanup();
@@ -109,6 +61,9 @@ public:
     void cleanup() {
         glDeleteTextures(1, &ID);
     }
+
+    static const glm::mat4 captureProjection;
+    static const glm::mat4 captureViews[18];
 
 private:
     struct CubeMapVertex {

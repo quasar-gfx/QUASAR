@@ -18,7 +18,8 @@
 
 #define GUI_UPDATE_FRAMERATE_INTERVAL 0.1f // seconds
 
-static const char* SkyBoxShaderVertGlsl = R"_(#version 330 core
+static const char* SkyBoxShaderVertGlsl = R"_(
+    #version 330 core
     layout (location = 0) in vec3 aPos;
 
     out vec3 TexCoords;
@@ -33,7 +34,8 @@ static const char* SkyBoxShaderVertGlsl = R"_(#version 330 core
     }
 )_";
 
-static const char* SkyBoxShaderFragGlsl = R"_(#version 330 core
+static const char* SkyBoxShaderFragGlsl = R"_(
+    #version 330 core
     out vec4 FragColor;
 
     in vec3 TexCoords;

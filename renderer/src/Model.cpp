@@ -102,9 +102,10 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene) {
 }
 
 GLuint Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
+    // if the texture type exists, load the texture
     if (mat->GetTextureCount(type) > 0) {
         aiString str;
-        mat->GetTexture(type, 0, &str);
+        mat->GetTexture(type, 0, &str); // only grab the first texture of each type
 
         std::string texturePath = rootDirectory;
         texturePath = texturePath.append(str.C_Str());
@@ -118,6 +119,7 @@ GLuint Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
 
         return texturesLoaded[texturePath].ID;
     }
+    // else return 0, indicating that there is no texture
     else {
         return 0;
     }
