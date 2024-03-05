@@ -58,12 +58,12 @@ private:
         glBindFramebuffer(GL_FRAMEBUFFER, ID);
 
         // create a color attachment texture
-        colorAttachment = Texture::create(width, height, TEXTURE_DIFFUSE, GL_RGB);
+        colorAttachment = Texture::create(width, height, TEXTURE_DIFFUSE, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE);
 
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorAttachment->ID, 0);
 
         // create a renderbuffer object for depth
-        depthAttachment = Texture::create(width, height, TEXTURE_DIFFUSE, GL_DEPTH_COMPONENT);
+        depthAttachment = Texture::create(width, height, TEXTURE_DIFFUSE, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE);
 
         glBindTexture(GL_TEXTURE_2D, depthAttachment->ID);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);

@@ -97,7 +97,7 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader skyboxShader = Shader::createFromFiles("shaders/skybox.vert", "shaders/skybox.frag");
+    Shader skyboxShader = Shader::createFromFiles("shaders/skybox.vert", "shaders/equirectangular2cubemap.frag");
     skyboxShader.setInt("skybox", 0);
     Shader shader = Shader::createFromFiles("shaders/meshMaterial.vert", "shaders/meshMaterial.frag");
     Shader screenShader = Shader::createFromFiles("shaders/postprocess.vert", "shaders/postprocess.frag");
@@ -112,6 +112,8 @@ int main(int argc, char** argv) {
     pointLight->setPosition(glm::vec3(0.0f, 3.0f, 0.0f));
     pointLight->setAttenuation(1.0f, 0.09f, 0.032f);
 
+    Texture* hdrTexture = Texture::create("../../assets/textures/environment.hdr", TEXTURE_DIFFUSE, GL_RGB16F, GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR);
+
     // models
     Model* gun = Model::create(modelPath);
 
@@ -120,19 +122,9 @@ int main(int argc, char** argv) {
     gunNode->setRotationEuler(glm::vec3(-90.0f, 90.0f, 0.0f));
     gunNode->setScale(glm::vec3(0.05f));
 
-    CubeMap* skybox = CubeMap::create({
-        "../../assets/textures/skybox/right.jpg",
-        "../../assets/textures/skybox/left.jpg",
-        "../../assets/textures/skybox/top.jpg",
-        "../../assets/textures/skybox/bottom.jpg",
-        "../../assets/textures/skybox/front.jpg",
-        "../../assets/textures/skybox/back.jpg"
-    });
-
     scene->setAmbientLight(ambientLight);
     scene->setDirectionalLight(directionalLight);
     scene->addPointLight(pointLight);
-    scene->setSkyBox(skybox);
     scene->addChildNode(gunNode);
 
     FullScreenQuad* fsQuad = FullScreenQuad::create();
@@ -152,7 +144,6 @@ int main(int argc, char** argv) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // must draw before drawing scene
-        app.drawSkyBox(skyboxShader, scene, camera);
 
         // draw all objects in scene
         app.draw(shader, scene, camera);

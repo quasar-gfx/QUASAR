@@ -5,12 +5,19 @@
 
 #include <Texture.h>
 
-void Texture::loadFromFile(const std::string path, GLint wrapS, GLint wrapT, GLint minFilter, GLint magFilter) {
-    glGenTextures(1, &ID);
-
+void Texture::loadFromFile(const std::string path, GLint internalFormat, GLenum type, GLint wrapS, GLint wrapT, GLint minFilter, GLint magFilter) {
     int texWidth, texHeight, texChannels;
-    unsigned char* data = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, 0);
+    void* data = nullptr;
+    if (type == GL_UNSIGNED_BYTE) {
+        data = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, 0);
+    }
+    else if (type == GL_FLOAT) {
+        data = stbi_loadf(path.c_str(), &texWidth, &texHeight, &texChannels, 0);
+    }
+
     if (data) {
+        glGenTextures(1, &ID);
+
         this->width = texWidth;
         this->height = texHeight;
 
@@ -23,7 +30,7 @@ void Texture::loadFromFile(const std::string path, GLint wrapS, GLint wrapT, GLi
             format = GL_RGBA;
 
         glBindTexture(GL_TEXTURE_2D, ID);
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, data);
         glGenerateMipmap(GL_TEXTURE_2D);
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapS);

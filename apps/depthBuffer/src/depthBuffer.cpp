@@ -181,7 +181,7 @@ int main(int argc, char** argv) {
     Model* backpack = Model::create(BACKPACK_MODEL_PATH, true);
 
     Node* backpackNode = Node::create(backpack);
-    backpackNode->setTranslation(glm::vec3(-0.25f, 0.25f, -3.0f));
+    backpackNode->setTranslation(glm::vec3(0.0f, 0.25f, -3.0f));
     backpackNode->setScale(glm::vec3(0.25f));
 
     CubeMap* skybox = CubeMap::create({

@@ -6,7 +6,7 @@ void Mesh::draw(Shader &shader) {
     for (int i = 0; i < textures.size(); i++) {
         std::string name;
 
-        TextureType type = textures[i]->type;
+        TextureType type = textures[i]->textureType;
         if (type == TEXTURE_DIFFUSE) {
             name = "material.diffuse";
         }
@@ -38,7 +38,7 @@ void Mesh::draw(Shader &shader) {
     for (int i = 0; i < textures.size(); i++) {
         std::string name;
 
-        TextureType type = textures[i]->type;
+        TextureType type = textures[i]->textureType;
         if (type == TEXTURE_DIFFUSE) {
             name = "material.diffuse";
         }
