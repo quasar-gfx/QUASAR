@@ -197,6 +197,9 @@ int main(int argc, char** argv) {
     cubeNodeIron->setTranslation(glm::vec3(5.0f, 0.5f, -1.0f));
 
     // lights
+    DirectionalLight* directionalLight = new DirectionalLight(glm::vec3(0.8f, 0.8f, 0.8f), 10.0f);
+    directionalLight->setDirection(glm::vec3(-0.2f, -1.0f, -0.3f));
+
     PointLight* pointLight1 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
     pointLight1->setPosition(glm::vec3(-1.45f, 0.9f, -6.2f));
     pointLight1->setAttenuation(0.0f, 0.09f, 1.0f);
@@ -233,6 +236,7 @@ int main(int argc, char** argv) {
     // skybox
     CubeMap envCubeMap = CubeMap(512, 512, CUBE_MAP_HDR);
 
+    scene->setDirectionalLight(directionalLight);
     scene->addPointLight(pointLight1);
     scene->addPointLight(pointLight2);
     scene->addPointLight(pointLight3);
