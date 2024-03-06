@@ -63,6 +63,11 @@ set(PRIVATE_HDRS
     ${PRIVATE_HDR_DIR}/FBX/FBXProperties.h
     ${PRIVATE_HDR_DIR}/FBX/FBXTokenizer.h
     ${PRIVATE_HDR_DIR}/FBX/FBXUtil.h
+    ${PRIVATE_HDR_DIR}/glTF/glTFCommon.h
+    ${PRIVATE_HDR_DIR}/glTF/glTFAsset.h
+    ${PRIVATE_HDR_DIR}/glTF/glTFImporter.h
+    ${PRIVATE_HDR_DIR}/glTF2/glTF2Asset.h
+    ${PRIVATE_HDR_DIR}/glTF2/glTF2Importer.h
     ${PRIVATE_HDR_DIR}/Common/FileLogStream.h
     ${PRIVATE_HDR_DIR}/Common/FileSystemFilter.h
     ${PRIVATE_HDR_DIR}/PostProcessing/FindDegenerates.h
@@ -139,6 +144,9 @@ set(SRCS
     ${SRC_DIR}/code/FBX/FBXProperties.cpp
     ${SRC_DIR}/code/FBX/FBXTokenizer.cpp
     ${SRC_DIR}/code/FBX/FBXUtil.cpp
+    ${SRC_DIR}/code/glTF/glTFCommon.cpp
+    ${SRC_DIR}/code/glTF/glTFImporter.cpp
+    ${SRC_DIR}/code/glTF2/glTF2Importer.cpp
     ${SRC_DIR}/code/X3D/FIReader.cpp
     ${SRC_DIR}/code/PostProcessing/FindDegenerates.cpp
     ${SRC_DIR}/code/PostProcessing/FindInstancesProcess.cpp
@@ -210,8 +218,8 @@ add_definitions(
     -DASSIMP_BUILD_NO_COLLADA_IMPORTER
     -DASSIMP_BUILD_NO_CSM_IMPORTER
     -DASSIMP_BUILD_NO_DXF_IMPORTER
-    -DASSIMP_BUILD_NO_GLTF_IMPORTER
-    -DASSIMP_BUILD_NO_GLTF2_IMPORTER
+    # -DASSIMP_BUILD_NO_GLTF_IMPORTER
+    # -DASSIMP_BUILD_NO_GLTF2_IMPORTER
     -DASSIMP_BUILD_NO_HMP_IMPORTER
     -DASSIMP_BUILD_NO_IFC_IMPORTER
     -DASSIMP_BUILD_NO_IRR_IMPORTER

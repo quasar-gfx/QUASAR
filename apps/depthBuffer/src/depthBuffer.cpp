@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
     OpenGLApp app{};
     app.config.title = "Depth Buffer";
 
-    std::string modelPath = "../../assets/models/sponza/sponza.obj";
+    std::string modelPath = "../../assets/models/Sponza/Sponza.gltf";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             app.config.width = atoi(argv[i + 1]);

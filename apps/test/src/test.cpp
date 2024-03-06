@@ -18,47 +18,15 @@
 
 #define GUI_UPDATE_FRAMERATE_INTERVAL 0.1f // seconds
 
-static const char* SkyBoxShaderVertGlsl = R"_(
-    #version 330 core
-    layout (location = 0) in vec3 aPos;
-
-    out vec3 TexCoords;
-
-    uniform mat4 projection;
-    uniform mat4 view;
-
-    void main() {
-        TexCoords = aPos;
-        vec4 pos = projection * view * vec4(aPos, 1.0);
-        gl_Position = pos.xyww;
-    }
-)_";
-
-static const char* SkyBoxShaderFragGlsl = R"_(
-    #version 330 core
-    out vec4 FragColor;
-
-    in vec3 TexCoords;
-
-    uniform samplerCube environmentMap;
-
-    void main() {
-        vec4 col = texture(environmentMap, TexCoords);
-        FragColor = col;
-    }
-)_";
-
 void processInput(OpenGLApp* app, Camera* camera, float deltaTime);
 
-const std::string CONTAINER_TEXTURE = "../../assets/textures/container.jpg";
-const std::string METAL_TEXTURE = "../../assets/textures/metal.png";
 const std::string BACKPACK_MODEL_PATH = "../../assets/models/backpack/backpack.obj";
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
-    app.config.title = "Test App";
+    app.config.title = "PBR";
 
-    std::string modelPath = "../../assets/models/sponza/sponza.obj";
+    std::string modelPath = "../../assets/models/Sponza/Sponza.gltf";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             app.config.width = atoi(argv[i + 1]);
@@ -132,14 +100,44 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader skyboxShader, shader, screenShader;
-    skyboxShader.loadFromData(SkyBoxShaderVertGlsl, SkyBoxShaderFragGlsl);
-    shader.loadFromFile("shaders/meshMaterial.vert", "shaders/meshMaterial.frag");
+    Shader pbrShader, screenShader;
+    pbrShader.loadFromFile("shaders/pbr.vert", "shaders/pbr.frag");
     screenShader.loadFromFile("shaders/postprocess.vert", "shaders/postprocess.frag");
 
+    // converts HDR equirectangular environment map to cubemap equivalent
+    Shader equirectToCubeMapShader;
+    equirectToCubeMapShader.loadFromFile("shaders/skybox.vert", "shaders/equirectangular2cubemap.frag");
+
+    // solves diffuse integral by convolution to create an irradiance cubemap
+    Shader convolutionShader;
+    convolutionShader.loadFromFile("shaders/skybox.vert", "shaders/irradianceConvolution.frag");
+
+    // runs a quasi monte-carlo simulation on the environment lighting to create a prefilter cubemap
+    Shader prefilterShader;
+    prefilterShader.loadFromFile("shaders/skybox.vert", "shaders/prefilter.frag");
+
+    // BRDF shader
+    Shader brdfShader;
+    brdfShader.loadFromFile("shaders/brdf.vert", "shaders/brdf.frag");
+
+    // background skybox shader
+    Shader backgroundShader;
+    backgroundShader.loadFromFile("shaders/background.vert", "shaders/background.frag");
+
     // textures
-    Texture cubeTexture = Texture(CONTAINER_TEXTURE);
-    std::vector<TextureID> cubeTextures = { cubeTexture.ID };
+    Texture albedo = Texture("../../assets/textures/pbr/gold/albedo.png");
+    Texture normal = Texture("../../assets/textures/pbr/gold/normal.png");
+    Texture metallic = Texture("../../assets/textures/pbr/gold/metallic.png");
+    Texture roughness = Texture("../../assets/textures/pbr/gold/roughness.png");
+    Texture ao = Texture("../../assets/textures/pbr/gold/ao.png");
+    std::vector<TextureID> goldTextures = { albedo.ID, 0, normal.ID, metallic.ID, roughness.ID, ao.ID };
+
+    Texture ironAlbedo = Texture("../../assets/textures/pbr/rusted_iron/albedo.png");
+    Texture ironNormal = Texture("../../assets/textures/pbr/rusted_iron/normal.png");
+    Texture ironMetallic = Texture("../../assets/textures/pbr/rusted_iron/metallic.png");
+    Texture ironRoughness = Texture("../../assets/textures/pbr/rusted_iron/roughness.png");
+    Texture ironAo = Texture("../../assets/textures/pbr/rusted_iron/ao.png");
+    std::vector<TextureID> ironTextures = { ironAlbedo.ID, 0, ironNormal.ID, ironMetallic.ID, ironRoughness.ID, ironAo.ID };
 
     std::vector<Vertex> cubeVertices {
         // Front face
@@ -190,37 +188,30 @@ int main(int argc, char** argv) {
         { {-1.0f, -1.0f,  1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Left
         { {-1.0f, -1.0f, -1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} }   // Bottom Left
     };
-    Mesh* cubeMesh = new Mesh(cubeVertices, cubeTextures);
+    Mesh* cubeMeshGold = new Mesh(cubeVertices, goldTextures);
+    Node* cubeNodeGold = new Node(cubeMeshGold);
+    cubeNodeGold->setTranslation(glm::vec3(-5.0f, 0.5f, -1.0f));
 
-    Node* cubeNode1 = new Node(cubeMesh);
-    cubeNode1->setTranslation(glm::vec3(-1.0f, 0.0f, -1.0f));
-    cubeNode1->setScale(glm::vec3(0.5f, 0.5f, 0.5f));
-
-    Node* cubeNode2 = new Node(cubeMesh);
-    cubeNode1->addChildNode(cubeNode2);
-    cubeNode2->setTranslation(glm::vec3(5.0f, 0.0f, 1.0f));
+    Mesh* cubeMeshIron = new Mesh(cubeVertices, ironTextures);
+    Node* cubeNodeIron = new Node(cubeMeshIron);
+    cubeNodeIron->setTranslation(glm::vec3(5.0f, 0.5f, -1.0f));
 
     // lights
-    AmbientLight* ambientLight = new AmbientLight(glm::vec3(0.9f, 0.9f, 0.9f), 0.7f);
-
-    DirectionalLight* directionalLight = new DirectionalLight(glm::vec3(0.8f, 0.8f, 0.8f), 0.9f);
-    directionalLight->setDirection(glm::vec3(-0.2f, -1.0f, -0.3f));
-
-    PointLight* pointLight1 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 0.3f);
+    PointLight* pointLight1 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
     pointLight1->setPosition(glm::vec3(-1.45f, 0.9f, -6.2f));
-    pointLight1->setAttenuation(1.0f, 0.09f, 0.032f);
+    pointLight1->setAttenuation(0.0f, 0.09f, 1.0f);
 
-    PointLight* pointLight2 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 0.3f);
+    PointLight* pointLight2 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
     pointLight2->setPosition(glm::vec3(2.2f, 0.9f, -6.2f));
-    pointLight2->setAttenuation(1.0f, 0.09f, 0.032f);
+    pointLight2->setAttenuation(0.0f, 0.09f, 1.0f);
 
-    PointLight* pointLight3 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 0.3f);
+    PointLight* pointLight3 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
     pointLight3->setPosition(glm::vec3(-1.45f, 0.9f, 4.89f));
-    pointLight3->setAttenuation(1.0f, 0.09f, 0.032f);
+    pointLight3->setAttenuation(0.0f, 0.09f, 1.0f);
 
-    PointLight* pointLight4 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 0.3f);
+    PointLight* pointLight4 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
     pointLight4->setPosition(glm::vec3(2.2f, 0.9f, 4.89f));
-    pointLight4->setAttenuation(1.0f, 0.09f, 0.032f);
+    pointLight4->setAttenuation(0.0f, 0.09f, 1.0f);
 
     // models
     Model* sponza = new Model(modelPath);
@@ -236,27 +227,26 @@ int main(int argc, char** argv) {
     backpackNode->setTranslation(glm::vec3(-0.25f, 0.25f, -3.0f));
     backpackNode->setScale(glm::vec3(0.25f));
 
-    CubeMap* skybox = new CubeMap({
-        "../../assets/textures/skybox/right.jpg",
-        "../../assets/textures/skybox/left.jpg",
-        "../../assets/textures/skybox/top.jpg",
-        "../../assets/textures/skybox/bottom.jpg",
-        "../../assets/textures/skybox/front.jpg",
-        "../../assets/textures/skybox/back.jpg"
-    });
+    // load the HDR environment map
+    Texture hdrTexture = Texture("../../assets/textures/barcelona.hdr", GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
 
-    scene->setAmbientLight(ambientLight);
-    scene->setDirectionalLight(directionalLight);
+    // skybox
+    CubeMap envCubeMap = CubeMap(512, 512, CUBE_MAP_HDR);
+
     scene->addPointLight(pointLight1);
     scene->addPointLight(pointLight2);
     scene->addPointLight(pointLight3);
     scene->addPointLight(pointLight4);
-    scene->setEnvMap(skybox);
-    scene->addChildNode(cubeNode1);
+    scene->addChildNode(cubeNodeGold);
+    scene->addChildNode(cubeNodeIron);
     scene->addChildNode(sponzaNode);
     scene->addChildNode(backpackNode);
 
-    FullScreenQuad fsQuad = FullScreenQuad();
+    scene->equirectToCubeMap(envCubeMap, hdrTexture, equirectToCubeMapShader);
+    scene->setupIBL(envCubeMap, convolutionShader, prefilterShader, brdfShader);
+    scene->setEnvMap(&envCubeMap);
+
+    FullScreenQuad outputFsQuad = FullScreenQuad();
 
     // framebuffer to render into
     FrameBuffer framebuffer = FrameBuffer(app.config.width, app.config.height);
@@ -272,11 +262,15 @@ int main(int argc, char** argv) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // must draw before drawing scene
-        app.renderer.drawSkyBox(skyboxShader, scene, camera);
+        pbrShader.bind();
+
+        pbrShader.unbind();
 
         // draw all objects in scene
-        app.renderer.draw(shader, scene, camera);
+        app.renderer.draw(pbrShader, scene, camera);
+
+        // render skybox (render as last to prevent overdraw)
+        app.renderer.drawSkyBox(backgroundShader, scene, camera);
 
         // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
         framebuffer.unbind();
@@ -289,7 +283,7 @@ int main(int argc, char** argv) {
         screenShader.bind();
         screenShader.setInt("screenTexture", 0);
             framebuffer.bindColorAttachment(0);
-                fsQuad.draw();
+                outputFsQuad.draw();
             framebuffer.unbindColorAttachment();
         screenShader.unbind();
     });
