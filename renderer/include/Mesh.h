@@ -73,6 +73,8 @@ public:
 
     EntityType getType() override { return ENTITY_MESH; }
 
+    static const unsigned int numTextures = 6;
+
 private:
     TextureID VAO, VBO, EBO;
 

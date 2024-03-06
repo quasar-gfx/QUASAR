@@ -201,7 +201,7 @@ int main(int argc, char** argv) {
     });
 
     scene->setAmbientLight(ambientLight);
-    scene->setSkyBox(skybox);
+    scene->setEnvMap(skybox);
     scene->addChildNode(cubeNode1);
     scene->addChildNode(cubeNode2);
     scene->addChildNode(planeNode);

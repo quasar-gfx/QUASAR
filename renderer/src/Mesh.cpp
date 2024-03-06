@@ -31,58 +31,39 @@ void Mesh::init()  {
 void Mesh::draw(Shader &shader) {
     shader.setFloat("shininess", shininess);
 
-    glActiveTexture(GL_TEXTURE0);
-    shader.setInt("albedoMap", 0);
-    if (textures.size() > 0) {
-        glBindTexture(GL_TEXTURE_2D, textures[0]);
-    }
-    else {
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }
+    std::string name;
+    for (int i = 0; i < numTextures; i++) {
+        glActiveTexture(GL_TEXTURE0 + i);
+        switch(i) {
+        case 0:
+            name = "albedoMap";
+            break;
+        case 1:
+            name = "specularMap";
+            break;
+        case 2:
+            name = "normalMap";
+            break;
+        case 3:
+            name = "metallicMap";
+            break;
+        case 4:
+            name = "roughnessMap";
+            break;
+        case 5:
+            name = "aoMap";
+            break;
+        default:
+            break;
+        }
 
-    glActiveTexture(GL_TEXTURE1);
-    shader.setInt("specularMap", 1);
-    if (textures.size() > 1) {
-        glBindTexture(GL_TEXTURE_2D, textures[1]);
-    }
-    else {
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }
-
-    glActiveTexture(GL_TEXTURE2);
-    shader.setInt("normalMap", 2);
-    if (textures.size() > 2) {
-        glBindTexture(GL_TEXTURE_2D, textures[2]);
-    }
-    else {
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }
-
-    glActiveTexture(GL_TEXTURE3);
-    shader.setInt("metallicMap", 3);
-    if (textures.size() > 3) {
-        glBindTexture(GL_TEXTURE_2D, textures[3]);
-    }
-    else {
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }
-
-    glActiveTexture(GL_TEXTURE4);
-    shader.setInt("roughnessMap", 4);
-    if (textures.size() > 4) {
-        glBindTexture(GL_TEXTURE_2D, textures[4]);
-    }
-    else {
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }
-
-    glActiveTexture(GL_TEXTURE5);
-    shader.setInt("aoMap", 5);
-    if (textures.size() > 5) {
-        glBindTexture(GL_TEXTURE_2D, textures[5]);
-    }
-    else {
-        glBindTexture(GL_TEXTURE_2D, 0);
+        shader.setInt(name, i);
+        if (i < textures.size()) {
+            glBindTexture(GL_TEXTURE_2D, textures[i]);
+        }
+        else {
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
     }
 
     glBindVertexArray(VAO);

@@ -13,6 +13,8 @@ const glm::mat4 CubeMap::captureViews[] = {
 };
 
 CubeMap::CubeMap(unsigned int width, unsigned int height, CubeMapType cubeType) {
+    this->width = width;
+    this->height = height;
     this->cubeType = cubeType;
 
     initBuffers();
@@ -156,11 +158,13 @@ void CubeMap::loadFromFiles(std::vector<std::string> faceFilePaths,
     glGenTextures(1, &ID);
     glBindTexture(GL_TEXTURE_CUBE_MAP, ID);
 
-    int width, height, nrChannels;
+    int textureWidth, textureHeight, nrChannels;
+    this->width = textureWidth;
+    this->height = textureHeight;
     for (unsigned int i = 0; i < faceFilePaths.size(); i++) {
-        void* data = stbi_load(faceFilePaths[i].c_str(), &width, &height, &nrChannels, 0);
+        void* data = stbi_load(faceFilePaths[i].c_str(), &textureWidth, &textureHeight, &nrChannels, 0);
         if (data) {
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, format, textureWidth, textureHeight, 0, format, GL_UNSIGNED_BYTE, data);
             stbi_image_free(data);
         }
         else {
@@ -175,7 +179,7 @@ void CubeMap::loadFromFiles(std::vector<std::string> faceFilePaths,
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, magFilter);
 }
 
-void CubeMap::loadFromEquirectTexture(Shader &equirectToCubeMapShader, unsigned int width, unsigned int height, Texture &equirectTexture) {
+void CubeMap::loadFromEquirectTexture(Shader &equirectToCubeMapShader, Texture &equirectTexture) {
     equirectToCubeMapShader.bind();
 
     equirectToCubeMapShader.setInt("equirectangularMap", 0);
@@ -196,7 +200,7 @@ void CubeMap::loadFromEquirectTexture(Shader &equirectToCubeMapShader, unsigned 
     equirectToCubeMapShader.unbind();
 }
 
-void CubeMap::convolve(Shader &convolutionShader, unsigned int width, unsigned int height, CubeMap &envCubeMap) {
+void CubeMap::convolve(Shader &convolutionShader, CubeMap &envCubeMap) {
     convolutionShader.bind();
 
     convolutionShader.setInt("environmentMap", 0);
@@ -215,7 +219,7 @@ void CubeMap::convolve(Shader &convolutionShader, unsigned int width, unsigned i
     convolutionShader.unbind();
 }
 
-void CubeMap::prefilter(Shader &prefilterShader, unsigned int width, unsigned int height, CubeMap &envCubeMap, RenderBuffer &captureRBO) {
+void CubeMap::prefilter(Shader &prefilterShader, CubeMap &envCubeMap, RenderBuffer &captureRBO) {
     prefilterShader.bind();
 
     prefilterShader.setInt("environmentMap", 0);

@@ -251,7 +251,7 @@ int main(int argc, char** argv) {
     scene->addPointLight(pointLight2);
     scene->addPointLight(pointLight3);
     scene->addPointLight(pointLight4);
-    scene->setSkyBox(skybox);
+    scene->setEnvMap(skybox);
     scene->addChildNode(cubeNode1);
     scene->addChildNode(sponzaNode);
     scene->addChildNode(backpackNode);

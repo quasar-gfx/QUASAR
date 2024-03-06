@@ -192,7 +192,7 @@ int main(int argc, char** argv) {
         "../../assets/textures/skybox/back.jpg"
     });
 
-    scene->setSkyBox(skybox);
+    scene->setEnvMap(skybox);
     scene->addChildNode(cubeNode1);
     scene->addChildNode(cubeNode2);
     scene->addChildNode(sponzaNode);

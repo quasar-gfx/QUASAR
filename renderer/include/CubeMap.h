@@ -31,6 +31,8 @@ public:
 
     unsigned int maxMipLevels = 1;
 
+    unsigned int width, height;
+
     CubeMap(unsigned int width, unsigned int height, CubeMapType cubeType);
 
     CubeMap(const std::vector<std::string> faceFilePaths,
@@ -43,9 +45,9 @@ public:
         cleanup();
     }
 
-    void loadFromEquirectTexture(Shader &equirectToCubeMapShader, unsigned int width, unsigned int height, Texture &equirectTexture);
-    void convolve(Shader &convolutionShader, unsigned int width, unsigned int height, CubeMap &envCubeMap);
-    void prefilter(Shader &prefilterShader, unsigned int width, unsigned int height, CubeMap &envCubeMap, RenderBuffer &captureRBO);
+    void loadFromEquirectTexture(Shader &equirectToCubeMapShader, Texture &equirectTexture);
+    void convolve(Shader &convolutionShader, CubeMap &envCubeMap);
+    void prefilter(Shader &prefilterShader, CubeMap &envCubeMap, RenderBuffer &captureRBO);
 
     void draw(Shader &shader, Camera* camera);
 

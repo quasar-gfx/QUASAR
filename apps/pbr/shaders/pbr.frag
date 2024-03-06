@@ -17,9 +17,19 @@ uniform samplerCube irradianceMap;
 uniform samplerCube prefilterMap;
 uniform sampler2D brdfLUT;
 
+#define NUM_LIGHTS 4
+
 // lights
-uniform vec3 lightPositions[4];
-uniform vec3 lightColors[4];
+struct PointLight {
+    vec3 color;
+    vec3 position;
+    float intensity;
+    float constant;
+    float linear;
+    float quadratic;
+};
+
+uniform PointLight pointLights[NUM_LIGHTS];
 
 uniform vec3 camPos;
 
@@ -87,7 +97,11 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
 
 void main() {
     // material properties
-    vec3 albedo = pow(texture(albedoMap, TexCoords).rgb, vec3(2.2));
+    vec4 col = texture(albedoMap, TexCoords);
+    if (col.a < 0.5)
+        discard;
+
+    vec3 albedo = pow(col.rgb, vec3(2.2));
     float metallic = texture(metallicMap, TexCoords).r;
     float roughness = texture(roughnessMap, TexCoords).r;
     float ao = texture(aoMap, TexCoords).r;
@@ -104,13 +118,13 @@ void main() {
 
     // reflectance equation
     vec3 Lo = vec3(0.0);
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < NUM_LIGHTS; ++i) {
         // calculate per-light radiance
-        vec3 L = normalize(lightPositions[i] - WorldPos);
+        vec3 L = normalize(pointLights[i].position - WorldPos);
         vec3 H = normalize(V + L);
-        float distance = length(lightPositions[i] - WorldPos);
+        float distance = length(pointLights[i].position - WorldPos);
         float attenuation = 1.0 / (distance * distance);
-        vec3 radiance = lightColors[i] * attenuation;
+        vec3 radiance = pointLights[i].color * attenuation;
 
         // Cook-Torrance BRDF
         float NDF = DistributionGGX(N, H, roughness);

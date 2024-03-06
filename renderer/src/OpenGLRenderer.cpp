@@ -22,8 +22,8 @@ void OpenGLRenderer::drawSkyBox(Shader &shader, Scene* scene, Camera* camera) {
         scene->ambientLight->draw(shader);
     }
 
-    if (scene->skyBox != nullptr) {
-        scene->skyBox->draw(shader, camera);
+    if (scene->envCubeMap != nullptr) {
+        scene->envCubeMap->draw(shader, camera);
     }
 
     shader.unbind();
@@ -35,6 +35,7 @@ void OpenGLRenderer::draw(Shader &shader, Scene* scene, Camera* camera) {
     shader.setMat4("view", camera->getViewMatrix());
     shader.setMat4("projection", camera->getProjectionMatrix());
     shader.setVec3("camPos", camera->position);
+    scene->bindPBREnvMap(shader);
 
     if (scene->ambientLight != nullptr) {
         scene->ambientLight->draw(shader);
