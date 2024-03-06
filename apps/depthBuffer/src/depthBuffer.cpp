@@ -103,7 +103,6 @@ int main(int argc, char** argv) {
     // shaders
     Shader skyboxShader, shader, screenShader;
     skyboxShader.loadFromFile("shaders/skybox.vert", "shaders/skybox.frag");
-    skyboxShader.setInt("skybox", 0);
     shader.loadFromFile("shaders/meshMaterial.vert", "shaders/meshMaterial.frag");
     screenShader.loadFromFile("shaders/postprocess.vert", "shaders/postprocess.frag");
 

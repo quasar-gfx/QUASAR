@@ -22,7 +22,7 @@ void processInput(OpenGLApp* app, Camera* camera, float deltaTime);
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
-    app.config.title = "Test App";
+    app.config.title = "PBR";
 
     std::string modelPath = "../../assets/models/cerberus/cerberus.fbx";
     for (int i = 1; i < argc; i++) {
@@ -98,27 +98,16 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader shader, backgroundShader, screenShader;
-    shader.loadFromFile("shaders/meshMaterial.vert", "shaders/meshMaterial.frag");
-    backgroundShader.loadFromFile("shaders/background.vert", "shaders/background.frag");
-    backgroundShader.setInt("environmentMap", 0);
+    Shader pbrShader, screenShader;
+    pbrShader.loadFromFile("shaders/pbr.vert", "shaders/pbr.frag");
     screenShader.loadFromFile("shaders/postprocess.vert", "shaders/postprocess.frag");
-
-    // lights
-    AmbientLight* ambientLight = new AmbientLight(glm::vec3(0.9f, 0.9f, 0.9f), 0.7f);
-
-    DirectionalLight* directionalLight = new DirectionalLight(glm::vec3(0.8f, 0.8f, 0.8f), 0.9f);
-    directionalLight->setDirection(glm::vec3(-0.2f, -1.0f, -0.3f));
-
-    PointLight* pointLight = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 0.6f);
-    pointLight->setPosition(glm::vec3(0.0f, 3.0f, 0.0f));
-    pointLight->setAttenuation(1.0f, 0.09f, 0.032f);
 
     // set up framebuffer
     FrameBuffer captureFramebuffer = FrameBuffer(512, 512);
+    RenderBuffer captureRenderBuffer = RenderBuffer(512, 512, GL_DEPTH_COMPONENT24);
 
     // load the HDR environment map
-    Texture hdrTexture = Texture("../../assets/textures/environment.hdr", GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR);
+    Texture hdrTexture = Texture("../../assets/textures/newport_loft.hdr", GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
 
     // convert HDR equirectangular environment map to cubemap equivalent
     Shader equirectToCubeMapShader;
@@ -130,7 +119,9 @@ int main(int argc, char** argv) {
     envCubeMap.loadFromEquirectTexture(equirectToCubeMapShader, 512, 512, hdrTexture);
     captureFramebuffer.unbind();
 
-    // glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 32, 32);
+    captureFramebuffer.bind();
+    captureRenderBuffer.bind();
+    captureRenderBuffer.resize(32, 32);
 
     // create an irradiance cubemap, and rescale capture FBO to irradiance scale
     CubeMap irradianceCubeMap = CubeMap(32, 32, CUBE_MAP_HDR);
@@ -140,64 +131,156 @@ int main(int argc, char** argv) {
     convolutionShader.loadFromFile("shaders/skybox.vert", "shaders/irradianceConvolution.frag");
 
     captureFramebuffer.bind();
-    irradianceCubeMap.convolve(convolutionShader, 32, 32, envCubeMap.ID);
+    irradianceCubeMap.convolve(convolutionShader, 32, 32, envCubeMap);
     captureFramebuffer.unbind();
 
     // create a prefilter cubemap, and rescale capture FBO to prefilter scale
-    CubeMap prefilterCubeMap = CubeMap(128, 128, CUBE_MAP_PREFILTER);
+    CubeMap prefilterCubeMap = CubeMap(256, 256, CUBE_MAP_PREFILTER);
 
     // run a quasi monte-carlo simulation on the environment lighting to create a prefilter cubemap
     Shader prefilterShader;
     prefilterShader.loadFromFile("shaders/skybox.vert", "shaders/prefilter.frag");
 
     captureFramebuffer.bind();
-    prefilterCubeMap.prefilter(prefilterShader, 32, 32, envCubeMap.ID, captureFramebuffer.depthAttachment);
+    prefilterCubeMap.prefilter(prefilterShader, 256, 256, envCubeMap, captureRenderBuffer);
     captureFramebuffer.unbind();
 
     // generate a 2D LUT from the BRDF equations used
-    Texture brdfLUT = Texture(512, 512, GL_RG16F, GL_RG, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_LINEAR, GL_LINEAR);
+    Texture brdfLUT = Texture(512, 512, GL_RG16F, GL_RG, GL_FLOAT, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_LINEAR, GL_LINEAR);
 
     // then reconfigure capture framebuffer object and render screen-space quad with BRDF shader
     Shader brdfShader;
     brdfShader.loadFromFile("shaders/brdf.vert", "shaders/brdf.frag");
 
-    captureFramebuffer.bind();
-    captureFramebuffer.bindColorAttachment(0);
-    captureFramebuffer.bindDepthAttachment(0);
-
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 512, 512);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUT.ID, 0);
-
     FullScreenQuad brdfFsQuad = FullScreenQuad();
 
+    captureFramebuffer.bind();
+    captureRenderBuffer.bind();
+    captureRenderBuffer.resize(512, 512);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUT.ID, 0);
+
     glViewport(0, 0, 512, 512);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     brdfShader.bind();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     brdfFsQuad.draw();
     brdfShader.unbind();
 
-    captureFramebuffer.unbindColorAttachment();
-    captureFramebuffer.unbindDepthAttachment();
     captureFramebuffer.unbind();
 
-    // models
-    Model* gun = new Model(modelPath);
+    // background shader
+    Shader backgroundShader;
+    backgroundShader.loadFromFile("shaders/background.vert", "shaders/background.frag");
 
-    Node* gunNode = new Node(gun);
-    gunNode->setTranslation(glm::vec3(0.0f, 1.0f, -1.0f));
-    gunNode->setRotationEuler(glm::vec3(-90.0f, 90.0f, 0.0f));
-    gunNode->setScale(glm::vec3(0.05f));
+    // textures
+    Texture albedo = Texture("../../assets/textures/pbr/gold/albedo.png");
+    Texture normal = Texture("../../assets/textures/pbr/gold/normal.png");
+    Texture metallic = Texture("../../assets/textures/pbr/gold/metallic.png");
+    Texture roughness = Texture("../../assets/textures/pbr/gold/roughness.png");
+    Texture ao = Texture("../../assets/textures/pbr/gold/ao.png");
+    std::vector<TextureID> goldTextures = { albedo.ID, 0, normal.ID, metallic.ID, roughness.ID, ao.ID };
 
-    scene->setAmbientLight(ambientLight);
-    scene->setDirectionalLight(directionalLight);
+    Texture ironAlbedo = Texture("../../assets/textures/pbr/rusted_iron/albedo.png");
+    Texture ironNormal = Texture("../../assets/textures/pbr/rusted_iron/normal.png");
+    Texture ironMetallic = Texture("../../assets/textures/pbr/rusted_iron/metallic.png");
+    Texture ironRoughness = Texture("../../assets/textures/pbr/rusted_iron/roughness.png");
+    Texture ironAo = Texture("../../assets/textures/pbr/rusted_iron/ao.png");
+    std::vector<TextureID> ironTextures = { ironAlbedo.ID, 0, ironNormal.ID, ironMetallic.ID, ironRoughness.ID, ironAo.ID };
+
+    std::vector<Vertex> cubeVertices {
+        // Front face
+        { {-1.0f, -1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Left
+        { { 1.0f, -1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Right
+        { { 1.0f,  1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Right
+        { { 1.0f,  1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Right
+        { {-1.0f,  1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Left
+        { {-1.0f, -1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Left
+
+        // Back face
+        { { 1.0f, -1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Right
+        { {-1.0f, -1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Left
+        { {-1.0f,  1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Left
+        { {-1.0f,  1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Left
+        { { 1.0f,  1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Right
+        { { 1.0f, -1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Right
+
+        // Left face
+        { {-1.0f, -1.0f, -1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },  // Bottom Front
+        { {-1.0f, -1.0f,  1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },  // Bottom Back
+        { {-1.0f,  1.0f,  1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },  // Top Back
+        { {-1.0f,  1.0f,  1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },  // Top Back
+        { {-1.0f,  1.0f, -1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },  // Top Front
+        { {-1.0f, -1.0f, -1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },  // Bottom Front
+
+        // Right face
+        { { 1.0f, -1.0f,  1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },  // Bottom Front
+        { { 1.0f, -1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },  // Bottom Back
+        { { 1.0f,  1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 1.0f} },  // Top Back
+        { { 1.0f,  1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 1.0f} },  // Top Back
+        { { 1.0f,  1.0f,  1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, 1.0f} },  // Top Front
+        { { 1.0f, -1.0f,  1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },  // Bottom Front
+
+        // Top face
+        { {-1.0f,  1.0f,  1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Left
+        { { 1.0f,  1.0f,  1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Right
+        { { 1.0f,  1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Right
+        { { 1.0f,  1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Right
+        { {-1.0f,  1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Left
+        { {-1.0f,  1.0f,  1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Left
+
+        // Bottom face
+        { {-1.0f, -1.0f, -1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Left
+        { { 1.0f, -1.0f, -1.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Right
+        { { 1.0f, -1.0f,  1.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Right
+        { { 1.0f, -1.0f,  1.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Right
+        { {-1.0f, -1.0f,  1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Left
+        { {-1.0f, -1.0f, -1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} }   // Bottom Left
+    };
+    Mesh* cubeMeshGold = new Mesh(cubeVertices, goldTextures);
+    Node* cubeNodeGold = new Node(cubeMeshGold);
+    cubeNodeGold->setTranslation(glm::vec3(-2.0f, 0.5f, -1.0f));
+
+    Mesh* cubeMeshIron = new Mesh(cubeVertices, ironTextures);
+    Node* cubeNodeIron = new Node(cubeMeshIron);
+    cubeNodeIron->setTranslation(glm::vec3(2.0f, 0.5f, -1.0f));
+
+    // // // models
+    // // Model* gun = new Model(modelPath);
+
+    // // Node* gunNode = new Node(gun);
+    // // gunNode->setTranslation(glm::vec3(0.0f, 1.0f, -1.0f));
+    // // gunNode->setRotationEuler(glm::vec3(-90.0f, 90.0f, 0.0f));
+    // // gunNode->setScale(glm::vec3(0.05f));
+
     scene->setSkyBox(&envCubeMap);
-    scene->addPointLight(pointLight);
-    scene->addChildNode(gunNode);
+    scene->addChildNode(cubeNodeGold);
+    scene->addChildNode(cubeNodeIron);
 
-    FullScreenQuad fsQuad = FullScreenQuad();
+    FullScreenQuad outputFsQuad = FullScreenQuad();
 
     // framebuffer to render into
     FrameBuffer framebuffer = FrameBuffer(app.config.width, app.config.height);
+
+    glm::vec3 lightPositions[] = {
+        glm::vec3(-10.0f,  10.0f, 10.0f),
+        glm::vec3( 10.0f,  10.0f, 10.0f),
+        glm::vec3(-10.0f, -10.0f, 10.0f),
+        glm::vec3( 10.0f, -10.0f, 10.0f),
+    };
+    glm::vec3 lightColors[] = {
+        glm::vec3(300.0f, 300.0f, 300.0f),
+        glm::vec3(300.0f, 300.0f, 300.0f),
+        glm::vec3(300.0f, 300.0f, 300.0f),
+        glm::vec3(300.0f, 300.0f, 300.0f)
+    };
+
+    pbrShader.bind();
+    pbrShader.setInt("irradianceMap", 6);
+    irradianceCubeMap.bind(6);
+    pbrShader.setInt("prefilterMap", 7);
+    prefilterCubeMap.bind(7);
+    pbrShader.setInt("brdfLUT", 8);
+    brdfLUT.bind(8);
+    pbrShader.unbind();
 
     app.onRender([&](double now, double dt) {
         processInput(&app, camera, dt);
@@ -210,8 +293,19 @@ int main(int argc, char** argv) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        pbrShader.bind();
+
+        for (int i = 0; i < sizeof(lightPositions) / sizeof(lightPositions[0]); ++i) {
+            glm::vec3 newPos = lightPositions[i] + glm::vec3(sin(glfwGetTime() * 5.0) * 5.0, 0.0, 0.0);
+            newPos = lightPositions[i];
+            pbrShader.setVec3("lightPositions[" + std::to_string(i) + "]", newPos);
+            pbrShader.setVec3("lightColors[" + std::to_string(i) + "]", lightColors[i]);
+        }
+
+        pbrShader.unbind();
+
         // draw all objects in scene
-        app.renderer.draw(shader, scene, camera);
+        app.renderer.draw(pbrShader, scene, camera);
 
         // render skybox (render as last to prevent overdraw)
         app.renderer.drawSkyBox(backgroundShader, scene, camera);
@@ -227,7 +321,7 @@ int main(int argc, char** argv) {
         screenShader.bind();
         screenShader.setInt("screenTexture", 0);
             framebuffer.bindColorAttachment(0);
-                fsQuad.draw();
+                outputFsQuad.draw();
             framebuffer.unbindColorAttachment();
         screenShader.unbind();
     });

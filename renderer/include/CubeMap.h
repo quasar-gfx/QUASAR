@@ -11,6 +11,7 @@
 
 #include <Shader.h>
 #include <Texture.h>
+#include <RenderBuffer.h>
 #include <Camera.h>
 
 #define NUM_CUBEMAP_FACES 6
@@ -43,10 +44,23 @@ public:
     }
 
     void loadFromEquirectTexture(Shader &equirectToCubeMapShader, unsigned int width, unsigned int height, Texture &equirectTexture);
-    void convolve(Shader &convolutionShader, unsigned int width, unsigned int height, TextureID envMapTexture);
-    void prefilter(Shader &prefilterShader, unsigned int width, unsigned int height, TextureID envMapTexture, Texture &captureRBO);
+    void convolve(Shader &convolutionShader, unsigned int width, unsigned int height, CubeMap &envCubeMap);
+    void prefilter(Shader &prefilterShader, unsigned int width, unsigned int height, CubeMap &envCubeMap, RenderBuffer &captureRBO);
 
     void draw(Shader &shader, Camera* camera);
+
+    void bind() {
+        bind(0);
+    }
+
+    void bind(unsigned int slot) {
+        glActiveTexture(GL_TEXTURE0 + slot);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, ID);
+    }
+
+    void unbind() {
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+    }
 
     void cleanup() {
         glDeleteTextures(1, &ID);
@@ -61,6 +75,8 @@ private:
     };
 
     GLuint quadVAO, quadVBO;
+
+    void initBuffers();
 
     void loadFromFiles(std::vector<std::string> faceFilePaths,
             GLenum format,

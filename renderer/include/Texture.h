@@ -21,6 +21,8 @@ public:
 
     std::string path;
 
+    bool flipped = false;
+
     Texture() = default;
 
     Texture(unsigned int width, unsigned int height,
@@ -31,10 +33,11 @@ public:
             GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR,
             unsigned char* data = nullptr);
 
-    Texture(const std::string path,
+    Texture(const std::string &path,
             GLenum type = GL_UNSIGNED_BYTE,
             GLint wrapS = GL_REPEAT, GLint wrapT = GL_REPEAT,
-            GLint minFilter = GL_LINEAR_MIPMAP_LINEAR, GLint magFilter = GL_LINEAR);
+            GLint minFilter = GL_LINEAR_MIPMAP_LINEAR, GLint magFilter = GL_LINEAR,
+            bool flipTexture = false);
 
     void bind() {
         bind(0);

@@ -33,7 +33,7 @@ public:
         cleanup();
     }
 
-    void initVideo(const std::string inputUrl);
+    void initVideo(const std::string &inputUrl);
     void cleanup();
 
     void draw();

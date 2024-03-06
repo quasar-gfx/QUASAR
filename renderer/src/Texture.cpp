@@ -22,8 +22,11 @@ Texture::Texture(unsigned int width, unsigned int height,
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magFilter);
 }
 
-Texture::Texture(const std::string path, GLenum type, GLint wrapS, GLint wrapT, GLint minFilter, GLint magFilter) {
+Texture::Texture(const std::string &path, GLenum type, GLint wrapS, GLint wrapT, GLint minFilter, GLint magFilter, bool flipTexture) {
     this->path = path;
+    this->flipped = flipTexture;
+
+    stbi_set_flip_vertically_on_load(flipTexture);
 
     int texWidth, texHeight, texChannels;
     void* data = nullptr;

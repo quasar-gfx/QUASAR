@@ -2,15 +2,11 @@
 
 void OpenGLRenderer::init() {
     // enable backface culling
-    glEnable(GL_CULL_FACE);
-    glFrontFace(GL_CCW);
+    // glEnable(GL_CULL_FACE);
+    // glFrontFace(GL_CCW);
 
     // enable seamless cube map sampling for lower mip levels in the pre-filter map
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-
-    // enable alpha blending
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // enable msaa
     glEnable(GL_MULTISAMPLE);
@@ -18,6 +14,7 @@ void OpenGLRenderer::init() {
 
 void OpenGLRenderer::drawSkyBox(Shader &shader, Scene* scene, Camera* camera) {
     shader.bind();
+    shader.setInt("environmentMap", 0);
     shader.setMat4("view", camera->getViewMatrix());
     shader.setMat4("projection", camera->getProjectionMatrix());
 
@@ -37,15 +34,7 @@ void OpenGLRenderer::draw(Shader &shader, Scene* scene, Camera* camera) {
 
     shader.setMat4("view", camera->getViewMatrix());
     shader.setMat4("projection", camera->getProjectionMatrix());
-    shader.setVec3("viewPos", camera->position);
-
-    if (scene->skyBox != nullptr) {
-        glActiveTexture(GL_TEXTURE0 + 4);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, scene->skyBox->ID);
-        shader.setInt("skybox", 4);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-    }
+    shader.setVec3("camPos", camera->position);
 
     if (scene->ambientLight != nullptr) {
         scene->ambientLight->draw(shader);
@@ -71,6 +60,7 @@ void OpenGLRenderer::drawNode(Shader &shader, Node* node, glm::mat4 parentTransf
 
     if (node->entity != nullptr) {
         shader.setMat4("model", model);
+        shader.setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
         node->entity->draw(shader);
     }
 

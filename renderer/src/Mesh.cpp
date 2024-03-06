@@ -29,29 +29,60 @@ void Mesh::init()  {
 }
 
 void Mesh::draw(Shader &shader) {
-    shader.setFloat("material.shininess", shininess);
+    shader.setFloat("shininess", shininess);
 
-    for (int i = 0; i < textures.size(); i++) {
-        if (textures[i] == 0) continue;
+    glActiveTexture(GL_TEXTURE0);
+    shader.setInt("albedoMap", 0);
+    if (textures.size() > 0) {
+        glBindTexture(GL_TEXTURE_2D, textures[0]);
+    }
+    else {
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
 
-        std::string name;
+    glActiveTexture(GL_TEXTURE1);
+    shader.setInt("specularMap", 1);
+    if (textures.size() > 1) {
+        glBindTexture(GL_TEXTURE_2D, textures[1]);
+    }
+    else {
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
 
-        if (i == TEXTURE_DIFFUSE) {
-            name = "material.diffuse";
-        }
-        else if (i == TEXTURE_SPECULAR) {
-            name = "material.specular";
-        }
-        else if (i == TEXTURE_NORMAL) {
-            name = "material.normal";
-        }
-        else if (i == TEXTURE_HEIGHT) {
-            name = "material.height";
-        }
+    glActiveTexture(GL_TEXTURE2);
+    shader.setInt("normalMap", 2);
+    if (textures.size() > 2) {
+        glBindTexture(GL_TEXTURE_2D, textures[2]);
+    }
+    else {
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
 
-        glActiveTexture(GL_TEXTURE0 + i);
-        shader.setInt(name.c_str(), i);
-        glBindTexture(GL_TEXTURE_2D, textures[i]);
+    glActiveTexture(GL_TEXTURE3);
+    shader.setInt("metallicMap", 3);
+    if (textures.size() > 3) {
+        glBindTexture(GL_TEXTURE_2D, textures[3]);
+    }
+    else {
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+    glActiveTexture(GL_TEXTURE4);
+    shader.setInt("roughnessMap", 4);
+    if (textures.size() > 4) {
+        glBindTexture(GL_TEXTURE_2D, textures[4]);
+    }
+    else {
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+    glActiveTexture(GL_TEXTURE5);
+    shader.setInt("aoMap", 5);
+    if (textures.size() > 5) {
+        glBindTexture(GL_TEXTURE_2D, textures[5]);
+    }
+    else {
+        glBindTexture(GL_TEXTURE_2D, 0);
     }
 
     glBindVertexArray(VAO);
@@ -66,23 +97,6 @@ void Mesh::draw(Shader &shader) {
     glBindVertexArray(0);
 
     for (int i = 0; i < textures.size(); i++) {
-        if (textures[i] == 0) continue;
-
-        std::string name;
-
-        if (i == TEXTURE_DIFFUSE) {
-            name = "material.diffuse";
-        }
-        else if (i == TEXTURE_SPECULAR) {
-            name = "material.specular";
-        }
-        else if (i == TEXTURE_NORMAL) {
-            name = "material.normal";
-        }
-        else if (i == TEXTURE_HEIGHT) {
-            name = "material.height";
-        }
-
         glActiveTexture(GL_TEXTURE0 + i);
         glBindTexture(GL_TEXTURE_2D, 0);
     }

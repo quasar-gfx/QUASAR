@@ -23,12 +23,6 @@ public:
         glBindFramebuffer(GL_FRAMEBUFFER, ID);
 
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorAttachment.ID, 0);
-
-        glBindTexture(GL_TEXTURE_2D, depthAttachment.ID);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-        glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
-        glBindTexture(GL_TEXTURE_2D, 0);
-
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthAttachment.ID, 0);
 
         // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now

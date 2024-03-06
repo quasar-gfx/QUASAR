@@ -92,7 +92,9 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene) {
         loadMaterialTexture(material, aiTextureType_DIFFUSE),
         loadMaterialTexture(material, aiTextureType_SPECULAR),
         loadMaterialTexture(material, aiTextureType_NORMALS),
-        loadMaterialTexture(material, aiTextureType_HEIGHT)
+        loadMaterialTexture(material, aiTextureType_METALNESS),
+        loadMaterialTexture(material, aiTextureType_DIFFUSE_ROUGHNESS),
+        loadMaterialTexture(material, aiTextureType_AMBIENT_OCCLUSION)
     };
 
     float shininess = 0.0f;

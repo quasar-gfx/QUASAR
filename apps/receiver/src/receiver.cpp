@@ -108,7 +108,6 @@ int main(int argc, char** argv) {
     // shaders
     Shader skyboxShader, shader, screenShader;
     skyboxShader.loadFromFile("shaders/skybox.vert", "shaders/skybox.frag");
-    skyboxShader.setInt("skybox", 0);
     shader.loadFromFile("shaders/meshMaterial.vert", "shaders/meshMaterial.frag");
     screenShader.loadFromFile("shaders/postprocess.vert", "shaders/postprocess.frag");
 
@@ -117,10 +116,10 @@ int main(int argc, char** argv) {
 
     // textures
     Texture cubeTexture = Texture(CONTAINER_TEXTURE);
-    std::vector<TextureID> cubeTextures = { cubeTexture.ID };
+    std::vector<TextureID> cubeTextures = { cubeTexture.ID, 0 };
 
     Texture floorTexture = Texture(METAL_TEXTURE);
-    std::vector<TextureID> floorTextures = { floorTexture.ID };
+    std::vector<TextureID> floorTextures = { floorTexture.ID, 0 };
 
     std::vector<Vertex> cubeVertices {
         // Front face
