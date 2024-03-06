@@ -38,11 +38,11 @@ struct PointLight {
 
 uniform vec3 camPos;
 
-#define NR_POINT_LIGHTS 4
+#define NUM_POINT_LIGHTS 4
 
 uniform AmbientLight ambientLight;
 uniform DirectionalLight directionalLight;
-uniform PointLight pointLights[NR_POINT_LIGHTS];
+uniform PointLight pointLights[NUM_POINT_LIGHTS];
 
 uniform samplerCube environmentMap;
 
@@ -93,7 +93,7 @@ void main() {
 
     vec3 result = ambientLight.intensity * ambientLight.color * col.rgb;
     result += addDirectionalLight(directionalLight, norm, viewDir);
-    for (int i = 0; i < NR_POINT_LIGHTS; i++) {
+    for (int i = 0; i < NUM_POINT_LIGHTS; i++) {
         result += addPointLight(pointLights[i], norm, fs_in.FragPos, viewDir);
     }
     // result += addSkyBoxLight(norm, viewDir);

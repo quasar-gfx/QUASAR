@@ -216,27 +216,33 @@ int main(int argc, char** argv) {
     CubeMap envCubeMap = CubeMap(512, 512, CUBE_MAP_HDR);
 
     // lights
-    PointLight* pointLight1 = new PointLight(glm::vec3(300.0f, 300.0f, 300.0f), 1.0f);
+    PointLight* pointLight1 = new PointLight(glm::vec3(1.0, 1.0, 1.0), 300.0f);
     pointLight1->setPosition(glm::vec3(-10.0f,  10.0f, 10.0f));
+    pointLight1->setAttenuation(0.0f, 0.09f, 1.0f);
 
-    PointLight* pointLight2 = new PointLight(glm::vec3(300.0f, 300.0f, 300.0f), 1.0f);
+    PointLight* pointLight2 = new PointLight(glm::vec3(1.0, 1.0, 1.0), 300.0f);
     pointLight2->setPosition(glm::vec3( 10.0f,  10.0f, 10.0f));
+    pointLight2->setAttenuation(0.0f, 0.09f, 1.0f);
 
-    PointLight* pointLight3 = new PointLight(glm::vec3(300.0f, 300.0f, 300.0f), 1.0f);
+    PointLight* pointLight3 = new PointLight(glm::vec3(1.0, 1.0, 1.0), 300.0f);
     pointLight3->setPosition(glm::vec3(-10.0f, -10.0f, 10.0f));
+    pointLight3->setAttenuation(0.0f, 0.09f, 1.0f);
 
-    PointLight* pointLight4 = new PointLight(glm::vec3(300.0f, 300.0f, 300.0f), 1.0f);
+    PointLight* pointLight4 = new PointLight(glm::vec3(1.0, 1.0, 1.0), 300.0f);
     pointLight4->setPosition(glm::vec3( 10.0f, -10.0f, 10.0f));
+    pointLight4->setAttenuation(0.0f, 0.09f, 1.0f);
 
     scene->addPointLight(pointLight1);
     scene->addPointLight(pointLight2);
     scene->addPointLight(pointLight3);
     scene->addPointLight(pointLight4);
-    scene->setupIBL(envCubeMap, hdrTexture, equirectToCubeMapShader, convolutionShader, prefilterShader, brdfShader);
-    scene->setEnvMap(&envCubeMap);
     scene->addChildNode(cubeNodeGold);
     scene->addChildNode(cubeNodeIron);
     scene->addChildNode(gunNode);
+
+    scene->equirectToCubeMap(envCubeMap, hdrTexture, equirectToCubeMapShader);
+    scene->setupIBL(envCubeMap, convolutionShader, prefilterShader, brdfShader);
+    scene->setEnvMap(&envCubeMap);
 
     FullScreenQuad outputFsQuad = FullScreenQuad();
 

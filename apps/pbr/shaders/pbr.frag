@@ -17,7 +17,7 @@ uniform samplerCube irradianceMap;
 uniform samplerCube prefilterMap;
 uniform sampler2D brdfLUT;
 
-#define NUM_LIGHTS 4
+#define NUM_POINT_LIGHTS 4
 
 // lights
 struct PointLight {
@@ -29,7 +29,7 @@ struct PointLight {
     float quadratic;
 };
 
-uniform PointLight pointLights[NUM_LIGHTS];
+uniform PointLight pointLights[NUM_POINT_LIGHTS];
 
 uniform vec3 camPos;
 
@@ -118,13 +118,13 @@ void main() {
 
     // reflectance equation
     vec3 Lo = vec3(0.0);
-    for (int i = 0; i < NUM_LIGHTS; ++i) {
+    for (int i = 0; i < NUM_POINT_LIGHTS; ++i) {
         // calculate per-light radiance
         vec3 L = normalize(pointLights[i].position - WorldPos);
         vec3 H = normalize(V + L);
         float distance = length(pointLights[i].position - WorldPos);
-        float attenuation = 1.0 / (distance * distance);
-        vec3 radiance = pointLights[i].color * attenuation;
+        float attenuation = 1.0 / (pointLights[i].constant + pointLights[i].linear * distance + pointLights[i].quadratic * (distance * distance));
+        vec3 radiance = pointLights[i].intensity * pointLights[i].color * attenuation;
 
         // Cook-Torrance BRDF
         float NDF = DistributionGGX(N, H, roughness);

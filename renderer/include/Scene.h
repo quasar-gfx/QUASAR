@@ -68,12 +68,14 @@ public:
         brdfLUT.bind(Mesh::numTextures + 2);
     }
 
-    void setupIBL(CubeMap &envCubeMap, Texture &hdrTexture, Shader &equirectToCubeMapShader, Shader &convolutionShader, Shader &prefilterShader, Shader &brdfShader) {
-        hasPBREnvMap = true;
-
+    void equirectToCubeMap(CubeMap &envCubeMap, Texture &hdrTexture, Shader &equirectToCubeMapShader) {
         captureFramebuffer.bind();
         envCubeMap.loadFromEquirectTexture(equirectToCubeMapShader, hdrTexture);
         captureFramebuffer.unbind();
+    }
+
+    void setupIBL(CubeMap &envCubeMap, Shader &convolutionShader, Shader &prefilterShader, Shader &brdfShader) {
+        hasPBREnvMap = true;
 
         captureFramebuffer.bind();
         captureRenderBuffer.bind();
