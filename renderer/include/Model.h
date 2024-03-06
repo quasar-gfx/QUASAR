@@ -26,10 +26,16 @@ public:
 
     bool flipTextures = false;
 
+    Model(const std::string &modelPath, std::vector<TextureID> inputTextures)
+            : Entity() {
+        std::cout << "Loading model: " << modelPath << std::endl;
+        loadFromFile(modelPath, inputTextures);
+    }
+
     Model(const std::string &modelPath, bool flipTextures = false)
             : flipTextures(flipTextures), Entity() {
         std::cout << "Loading model: " << modelPath << std::endl;
-        loadFromFile(modelPath);
+        loadFromFile(modelPath, {});
     }
 
     void draw(Shader &shader) override;
@@ -39,9 +45,9 @@ public:
 private:
     std::unordered_map<std::string, Texture> texturesLoaded;
 
-    void loadFromFile(const std::string &path);
-    void processNode(aiNode* node, const aiScene* scene);
-    Mesh processMesh(aiMesh* mesh, const aiScene *scene);
+    void loadFromFile(const std::string &path, std::vector<TextureID> inputTextures);
+    void processNode(aiNode* node, const aiScene* scene, std::vector<TextureID> inputTextures);
+    Mesh processMesh(aiMesh* mesh, const aiScene *scene, std::vector<TextureID> inputTextures);
     GLuint loadMaterialTexture(aiMaterial* mat, aiTextureType type);
 };
 

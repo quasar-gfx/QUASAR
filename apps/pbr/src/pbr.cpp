@@ -188,19 +188,26 @@ int main(int argc, char** argv) {
     };
     Mesh* cubeMeshGold = new Mesh(cubeVertices, goldTextures);
     Node* cubeNodeGold = new Node(cubeMeshGold);
-    cubeNodeGold->setTranslation(glm::vec3(-2.0f, 0.5f, -1.0f));
+    cubeNodeGold->setTranslation(glm::vec3(-5.0f, 0.5f, -1.0f));
 
     Mesh* cubeMeshIron = new Mesh(cubeVertices, ironTextures);
     Node* cubeNodeIron = new Node(cubeMeshIron);
-    cubeNodeIron->setTranslation(glm::vec3(2.0f, 0.5f, -1.0f));
+    cubeNodeIron->setTranslation(glm::vec3(5.0f, 0.5f, -1.0f));
+
+    Texture gunAlbedo = Texture("../../assets/models/cerberus/Textures/Cerberus_A.tga");
+    Texture gunNormal = Texture("../../assets/models/cerberus/Textures/Cerberus_N.tga");
+    Texture gunMetallic = Texture("../../assets/models/cerberus/Textures/Cerberus_M.tga");
+    Texture gunRoughness = Texture("../../assets/models/cerberus/Textures/Cerberus_R.tga");
+    Texture gunAo = Texture("../../assets/models/cerberus/Textures/Cerberus_AO.tga");
+    std::vector<TextureID> gunTextures = { gunAlbedo.ID, 0, gunNormal.ID, gunMetallic.ID, gunRoughness.ID, gunAo.ID };
 
     // models
-    // Model* gun = new Model(modelPath);
+    Model* gun = new Model(modelPath, gunTextures);
+    Node* gunNode = new Node(gun);
 
-    // Node* gunNode = new Node(gun);
-    // gunNode->setTranslation(glm::vec3(0.0f, 1.0f, -1.0f));
-    // gunNode->setRotationEuler(glm::vec3(-90.0f, 90.0f, 0.0f));
-    // gunNode->setScale(glm::vec3(0.05f));
+    gunNode->setTranslation(glm::vec3(-2.5f, 1.0f, -1.0f));
+    gunNode->setRotationEuler(glm::vec3(-90.0f, 90.0f, 0.0f));
+    gunNode->setScale(glm::vec3(0.05f));
 
     // load the HDR environment map
     Texture hdrTexture = Texture("../../assets/textures/newport_loft.hdr", GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
@@ -229,7 +236,7 @@ int main(int argc, char** argv) {
     scene->setEnvMap(&envCubeMap);
     scene->addChildNode(cubeNodeGold);
     scene->addChildNode(cubeNodeIron);
-    // scene->addChildNode(gunNode);
+    scene->addChildNode(gunNode);
 
     FullScreenQuad outputFsQuad = FullScreenQuad();
 

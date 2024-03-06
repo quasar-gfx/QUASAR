@@ -10,7 +10,7 @@ void Model::draw(Shader &shader) {
     }
 }
 
-void Model::loadFromFile(const std::string &path) {
+void Model::loadFromFile(const std::string &path, std::vector<TextureID> inputTextures) {
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_OptimizeMeshes | aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
@@ -19,24 +19,24 @@ void Model::loadFromFile(const std::string &path) {
 
     rootDirectory = path.substr(0, path.find_last_of('/'))  + '/';
 
-    processNode(scene->mRootNode, scene);
+    processNode(scene->mRootNode, scene, inputTextures);
 }
 
-void Model::processNode(aiNode* node, const aiScene* scene) {
+void Model::processNode(aiNode* node, const aiScene* scene, std::vector<TextureID> inputTextures) {
     for (int i = 0; i < node->mNumMeshes; i++) {
         aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-        meshes.push_back(processMesh(mesh, scene));
+        meshes.push_back(processMesh(mesh, scene, inputTextures));
     }
 
     for (int i = 0; i < node->mNumChildren; i++) {
-        processNode(node->mChildren[i], scene);
+        processNode(node->mChildren[i], scene, inputTextures);
     }
 }
 
-Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene) {
+Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, std::vector<TextureID> inputTextures) {
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
-    std::vector<GLuint> textures;
+    std::vector<TextureID> textures;
 
     for (int i = 0; i < mesh->mNumVertices; i++) {
         Vertex vertex;
@@ -88,14 +88,26 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene) {
 
     aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 
-    textures = {
-        loadMaterialTexture(material, aiTextureType_DIFFUSE),
-        loadMaterialTexture(material, aiTextureType_SPECULAR),
-        loadMaterialTexture(material, aiTextureType_NORMALS),
-        loadMaterialTexture(material, aiTextureType_METALNESS),
-        loadMaterialTexture(material, aiTextureType_DIFFUSE_ROUGHNESS),
-        loadMaterialTexture(material, aiTextureType_AMBIENT_OCCLUSION)
-    };
+    if (inputTextures.size() > 0) {
+        for (int i = 0; i < Mesh::numTextures; i++) {
+            if (i < inputTextures.size()) {
+                textures.push_back(inputTextures[i]);
+            }
+            else {
+                textures.push_back(0);
+            }
+        }
+    }
+    else {
+        textures = {
+            loadMaterialTexture(material, aiTextureType_DIFFUSE),
+            loadMaterialTexture(material, aiTextureType_SPECULAR),
+            loadMaterialTexture(material, aiTextureType_NORMALS),
+            loadMaterialTexture(material, aiTextureType_METALNESS),
+            loadMaterialTexture(material, aiTextureType_DIFFUSE_ROUGHNESS),
+            loadMaterialTexture(material, aiTextureType_AMBIENT_OCCLUSION)
+        };
+    }
 
     float shininess = 0.0f;
     aiGetMaterialFloat(material, AI_MATKEY_SHININESS, &shininess);
