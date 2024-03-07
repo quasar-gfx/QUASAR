@@ -26,8 +26,8 @@ public:
     Texture() = default;
 
     Texture(unsigned int width, unsigned int height,
-            GLint internalFormat = GL_RGB,
-            GLenum format = GL_RGB,
+            GLint internalFormat = GL_RGBA,
+            GLenum format = GL_RGBA,
             GLenum type = GL_UNSIGNED_BYTE,
             GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE,
             GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR,

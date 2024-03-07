@@ -86,7 +86,7 @@ void OpenGLRenderer::draw(Shader &shader, Scene* scene, Camera* camera) {
     int texIdx = Scene::numTextures;
     if (scene->directionalLight != nullptr) {
         shader.setMat4("lightSpaceMatrix", scene->directionalLight->lightSpaceMatrix);
-        shader.setInt("dirLightDepthMap", Mesh::numTextures + texIdx);
+        shader.setInt("dirLightShadowMap", Mesh::numTextures + texIdx);
         scene->directionalLight->dirLightShadowMapFBO.depthBuffer.bind(Mesh::numTextures + texIdx);
 
         scene->directionalLight->draw(shader);
@@ -95,7 +95,7 @@ void OpenGLRenderer::draw(Shader &shader, Scene* scene, Camera* camera) {
 
     for (int i = 0; i < scene->pointLights.size(); i++) {
         shader.setFloat("farPlane", scene->pointLights[i]->zFar);
-        shader.setInt("pointLightDepthMaps[" + std::to_string(i) + "]", Mesh::numTextures + texIdx);
+        shader.setInt("pointLightShadowMaps[" + std::to_string(i) + "]", Mesh::numTextures + texIdx);
         scene->pointLights[i]->pointLightShadowMapFBO.depthCubeMap.bind(Mesh::numTextures + texIdx);
         texIdx++;
 

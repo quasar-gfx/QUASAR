@@ -185,7 +185,7 @@ int main(int argc, char** argv) {
 
     // lights
     DirectionalLight* directionalLight = new DirectionalLight(glm::vec3(0.8f, 0.8f, 0.8f), 0.1f);
-    directionalLight->setDirection(100.0f * glm::vec3(0.0f, -5.0f, 1.333f));
+    directionalLight->setDirection(glm::vec3(0.0f, -1.0f, -0.3f));
 
     PointLight* pointLight1 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
     pointLight1->setPosition(glm::vec3(-1.45f, 3.5f, -6.2f));
