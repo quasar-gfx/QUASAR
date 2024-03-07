@@ -10,8 +10,8 @@
 class OpenGLRenderer {
 public:
     void init();
-    void drawDirLightShadows(Shader &shader, Scene* scene, Camera* camera);
-    void drawPointLightShadows(Shader &shader, Scene* scene, Camera* camera);
+    void updateDirLightShadowMap(Shader &shader, Scene* scene, Camera* camera);
+    void updatePointLightShadowMaps(Shader &shader, Scene* scene, Camera* camera);
     void drawSkyBox(Shader &shader, Scene* scene, Camera* camera);
     void draw(Shader &shader, Scene* scene, Camera* camera);
 

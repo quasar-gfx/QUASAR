@@ -42,7 +42,7 @@ uniform PointLight pointLights[NUM_POINT_LIGHTS];
 uniform sampler2D dirLightDepthMap;
 
 uniform samplerCube pointLightDepthMaps[NUM_POINT_LIGHTS];
-uniform float far_plane;
+uniform float farPlane;
 
 uniform vec3 camPos;
 
@@ -120,8 +120,8 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
 float calcDirShadow(vec4 fragPosLightSpace) {
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projCoords = projCoords * 0.5 + 0.5;
-    float bias = 0.0;
-    int   samples = 9;
+    float bias = 0.15;
+    int samples = 20;
     float shadow = 0.0;
 
     vec2 texelSize = 1.0 / textureSize(dirLightDepthMap, 0);
@@ -141,11 +141,11 @@ float calcPointLightShadows(samplerCube depthMap, vec3 fragToLight) {
     float bias = 0.15;
     int samples = 20;
     float viewDistance = length(camPos - WorldPos);
-    float diskRadius = (1.0 + (viewDistance / far_plane)) / 25.0;
+    float diskRadius = (1.0 + (viewDistance / farPlane)) / 25.0;
     for(int i = 0; i < samples; ++i)
     {
         float closestDepth = texture(depthMap, fragToLight + gridSamplingDisk[i] * diskRadius).r;
-        closestDepth *= far_plane;   // undo mapping [0;1]
+        closestDepth *= farPlane;   // undo mapping [0;1]
         if(currentDepth - bias > closestDepth)
             shadow += 1.0;
     }

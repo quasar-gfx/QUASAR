@@ -5,8 +5,6 @@
 #include <CubeMap.h>
 #include <FrameBuffer.h>
 
-#define NUM_POINT_LIGHTS 4
-
 class PointLight : public Light {
 public:
     glm::vec3 position = glm::vec3(0.0f);
@@ -17,9 +15,13 @@ public:
     glm::mat4 lookAtPerFace[NUM_CUBEMAP_FACES];
     PointShadowBuffer pointLightShadowMapFBO;
 
-    PointLight(const glm::vec3 &color = glm::vec3(1.0f), float intensity = 1.0f)
+    PointLight(const glm::vec3 &color = glm::vec3(1.0f), float intensity = 1.0f, float zNear = 1.0f, float zFar = 25.0f)
         : Light(color, intensity) {
-        pointLightShadowMapFBO.createColorAndDepthBuffers(2048, 2048);
+        pointLightShadowMapFBO.createColorAndDepthBuffers(shadowRes, shadowRes);
+
+        shadowProjectionMat = glm::perspective(glm::radians(90.0f), 1.0f, zNear, zFar);
+
+        updateLookAtFace();
     }
 
     void draw(Shader &shader) {
@@ -38,12 +40,25 @@ public:
 
     void setPosition(const glm::vec3 &position) {
         this->position = position;
+        updateLookAtFace();
     }
 
     void setAttenuation(float constant, float linear, float quadratic) {
         this->constant = constant;
         this->linear = linear;
         this->quadratic = quadratic;
+    }
+
+    static const unsigned int maxPointLights = 4;
+
+private:
+    void updateLookAtFace() {
+        lookAtPerFace[0] = glm::lookAt(position, position + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+        lookAtPerFace[1] = glm::lookAt(position, position + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+        lookAtPerFace[2] = glm::lookAt(position, position + glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        lookAtPerFace[3] = glm::lookAt(position, position + glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f));
+        lookAtPerFace[4] = glm::lookAt(position, position + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+        lookAtPerFace[5] = glm::lookAt(position, position + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
     }
 };
 

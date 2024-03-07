@@ -194,9 +194,6 @@ int main(int argc, char** argv) {
 
         // bind to framebuffer and draw scene as we normally would to color texture
         framebuffer.bind();
-        glViewport(0, 0, framebuffer.width, framebuffer.height);
-
-        // make sure we clear the framebuffer's content
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

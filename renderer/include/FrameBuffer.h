@@ -42,6 +42,7 @@ public:
 
     void bind() {
         glBindFramebuffer(GL_FRAMEBUFFER, ID);
+        glViewport(0, 0, width, height);
     }
 
     void unbind() {

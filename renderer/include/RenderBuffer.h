@@ -9,7 +9,12 @@ class RenderBuffer : public OpenGLObject {
 public:
     unsigned int width, height;
 
-    RenderBuffer(unsigned int width, unsigned int height, GLenum internalFormat = GL_DEPTH_COMPONENT24) : width(width), height(height) {
+    RenderBuffer() = default;
+
+    void create(unsigned int width, unsigned int height, GLenum internalFormat = GL_DEPTH_COMPONENT24) {
+        this->width = width;
+        this->height = height;
+
         glGenRenderbuffers(1, &ID);
         glBindRenderbuffer(GL_RENDERBUFFER, ID);
         glRenderbufferStorage(GL_RENDERBUFFER, internalFormat, width, height);

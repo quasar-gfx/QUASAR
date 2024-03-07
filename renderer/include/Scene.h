@@ -23,7 +23,7 @@ public:
 
     // set up framebuffer
     FrameBuffer captureFramebuffer;
-    RenderBuffer captureRenderBuffer = RenderBuffer(512, 512, GL_DEPTH_COMPONENT24);
+    RenderBuffer captureRenderBuffer;
 
     // create an irradiance cubemap, and rescale capture FBO to irradiance scale
     CubeMap irradianceCubeMap = CubeMap(32, 32, CUBE_MAP_HDR);
@@ -32,12 +32,10 @@ public:
     CubeMap prefilterCubeMap = CubeMap(256, 256, CUBE_MAP_PREFILTER);
 
     // generate a 2D LUT from the BRDF equations used
-    Texture brdfLUT = Texture(512, 512, GL_RG16F, GL_RG, GL_FLOAT, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_LINEAR, GL_LINEAR);
+    Texture brdfLUT;
     FullScreenQuad brdfFsQuad = FullScreenQuad();
 
-    Scene() {
-        captureFramebuffer.createColorAndDepthBuffers(512, 512);
-    }
+    Scene() = default;
 
     void addChildNode(Node* node) {
         children.push_back(node);
@@ -73,6 +71,9 @@ public:
     }
 
     void equirectToCubeMap(CubeMap &envCubeMap, Texture &hdrTexture, Shader &equirectToCubeMapShader) {
+        captureFramebuffer.createColorAndDepthBuffers(envCubeMap.width, envCubeMap.height);
+        captureRenderBuffer.create(envCubeMap.width, envCubeMap.height, GL_DEPTH_COMPONENT24);
+
         captureFramebuffer.bind();
         envCubeMap.loadFromEquirectTexture(equirectToCubeMapShader, hdrTexture);
         captureFramebuffer.unbind();
@@ -83,7 +84,7 @@ public:
 
         captureFramebuffer.bind();
         captureRenderBuffer.bind();
-        captureRenderBuffer.resize(32, 32);
+        captureRenderBuffer.resize(irradianceCubeMap.width, irradianceCubeMap.height);
 
         captureFramebuffer.bind();
         irradianceCubeMap.convolve(convolutionShader, envCubeMap);
@@ -93,12 +94,13 @@ public:
         prefilterCubeMap.prefilter(prefilterShader, envCubeMap, captureRenderBuffer);
         captureFramebuffer.unbind();
 
+        brdfLUT = Texture(envCubeMap.width, envCubeMap.height, GL_RG16F, GL_RG, GL_FLOAT, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_LINEAR, GL_LINEAR);
+
         captureFramebuffer.bind();
         captureRenderBuffer.bind();
-        captureRenderBuffer.resize(512, 512);
+        captureRenderBuffer.resize(prefilterCubeMap.width, prefilterCubeMap.height);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUT.ID, 0);
 
-        glViewport(0, 0, 512, 512);
         brdfShader.bind();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         brdfFsQuad.draw();
@@ -106,6 +108,8 @@ public:
 
         captureFramebuffer.unbind();
     }
+
+    static const unsigned int numTextures = 3;
 };
 
 #endif // SCENE_H

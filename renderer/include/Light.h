@@ -16,7 +16,10 @@ public:
 
     glm::mat4 shadowProjectionMat = glm::mat4(0.0);
 
-    Light(const glm::vec3 &color = glm::vec3(1.0f), float intensity = 1.0f) : color(color), intensity(intensity) {}
+    unsigned int shadowRes = 2048;
+
+    Light(const glm::vec3 &color = glm::vec3(1.0f), float intensity = 1.0f, float zNear = 1.0f, float zFar = 25.0f)
+        : color(color), intensity(intensity), zNear(zNear), zFar(zFar) { }
 
     void draw(Shader &shader) override = 0;
 

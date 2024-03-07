@@ -252,15 +252,17 @@ int main(int argc, char** argv) {
     app.onRender([&](double now, double dt) {
         processInput(&app, camera, dt);
 
-        app.renderer.drawDirLightShadows(dirLightShadowsShader, scene, camera);
+        app.renderer.updateDirLightShadowMap(dirLightShadowsShader, scene, camera);
+        app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, scene, camera);
 
-        app.renderer.drawPointLightShadows(pointLightShadowsShader, scene, camera);
+        // animate lights
+        pointLight1->setPosition(glm::vec3(-1.45f + 0.25f * sin(now), 3.5f, -6.2f + 0.25f * cos(now)));
+        pointLight2->setPosition(glm::vec3(2.2f + 0.25f * sin(now), 3.5f, -6.2f + 0.25f * cos(now)));
+        pointLight3->setPosition(glm::vec3(-1.45f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));
+        pointLight4->setPosition(glm::vec3(2.2f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));
 
         // bind to framebuffer and draw scene as we normally would to color texture
         framebuffer.bind();
-        glViewport(0, 0, framebuffer.width, framebuffer.height);
-
-        // make sure we clear the framebuffer's content
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
