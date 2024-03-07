@@ -82,6 +82,8 @@ public:
     void setupIBL(CubeMap &envCubeMap, Shader &convolutionShader, Shader &prefilterShader, Shader &brdfShader) {
         hasPBREnvMap = true;
 
+        glDisable(GL_BLEND);
+
         captureFramebuffer.bind();
         captureRenderBuffer.bind();
         captureRenderBuffer.resize(irradianceCubeMap.width, irradianceCubeMap.height);
@@ -107,6 +109,8 @@ public:
         brdfShader.unbind();
 
         captureFramebuffer.unbind();
+
+        glEnable(GL_BLEND);
     }
 
     static const unsigned int numTextures = 3;

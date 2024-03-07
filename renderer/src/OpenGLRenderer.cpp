@@ -1,6 +1,9 @@
 #include <OpenGLRenderer.h>
 
 void OpenGLRenderer::init() {
+    // enable depth testing
+    glEnable(GL_DEPTH_TEST);
+
     // enable msaa
     glEnable(GL_MULTISAMPLE);
 
@@ -10,6 +13,10 @@ void OpenGLRenderer::init() {
     // enable backface culling
     // glEnable(GL_CULL_FACE);
     // glFrontFace(GL_CCW);
+
+    // enable aplha blending
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 void OpenGLRenderer::updateDirLightShadowMap(Shader &dirLightShadowsShader, Scene* scene, Camera* camera) {

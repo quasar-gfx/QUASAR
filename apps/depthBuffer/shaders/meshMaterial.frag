@@ -56,6 +56,9 @@ vec3 addSkyBoxLight(vec3 normal, vec3 viewDir) {
 }
 
 vec3 addDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir) {
+    if (light.intensity <= 0.0)
+        return vec3(0.0);
+
     vec3 lightDir = normalize(-light.direction);
     // diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
@@ -68,6 +71,9 @@ vec3 addDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir) {
 }
 
 vec3 addPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
+    if (light.intensity <= 0.0)
+        return vec3(0.0);
+
     vec3 lightDir = normalize(light.position - fragPos);
     // diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
@@ -84,12 +90,13 @@ vec3 addPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
 }
 
 void main() {
+    vec4 col = texture(albedoMap, fs_in.TexCoords);
+    float alpha = col.a;
+    if (alpha < 0.1)
+        discard;
+
     vec3 norm = normalize(fs_in.Normal);
     vec3 viewDir = normalize(camPos - fs_in.FragPos);
-
-    vec4 col = texture(albedoMap, fs_in.TexCoords);
-    if (col.a < 0.5)
-        discard;
 
     vec3 result = ambientLight.intensity * ambientLight.color * col.rgb;
     result += addDirectionalLight(directionalLight, norm, viewDir);
@@ -98,5 +105,5 @@ void main() {
     }
     // result += addSkyBoxLight(norm, viewDir);
 
-    FragColor = vec4(result, 1.0);
+    FragColor = vec4(result, alpha);
 }

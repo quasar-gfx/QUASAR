@@ -226,7 +226,7 @@ int main(int argc, char** argv) {
     backpackNode->setScale(glm::vec3(0.25f));
 
     // load the HDR environment map
-    Texture hdrTexture = Texture("../../assets/textures/barcelona.hdr", GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
+    Texture hdrTexture = Texture("../../assets/textures/hdr/barcelona.hdr", GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
 
     // skybox
     CubeMap envCubeMap = CubeMap(512, 512, CUBE_MAP_HDR);

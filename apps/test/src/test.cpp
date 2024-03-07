@@ -124,6 +124,10 @@ int main(int argc, char** argv) {
     Texture ironAo = Texture("../../assets/textures/pbr/rusted_iron/ao.png");
     std::vector<TextureID> ironTextures = { ironAlbedo.ID, 0, ironNormal.ID, ironMetallic.ID, ironRoughness.ID, ironAo.ID };
 
+    Texture windowTexture = Texture("../../assets/textures/window.png");
+    std::vector<TextureID> windowTextures = { windowTexture.ID, 0 };
+
+    // objects
     std::vector<Vertex> cubeVertices {
         // Front face
         { {-1.0f, -1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Left
@@ -183,6 +187,21 @@ int main(int argc, char** argv) {
     cubeNodeIron->setTranslation(glm::vec3(1.5f, 0.25f, -3.0f));
     cubeNodeIron->setScale(glm::vec3(0.5f));
 
+    std::vector<Vertex> planeVertices = {
+        {{ 1.0f, -0.5f, -1.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
+        {{-1.0f, -0.5f, -1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
+        {{-1.0f, -0.5f,  1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+
+        {{ 1.0f, -0.5f, -1.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
+        {{-1.0f, -0.5f,  1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+        {{ 1.0f, -0.5f,  1.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 0.0f}, {1.0f, 0.0f, 0.0f}}
+    };
+    Mesh* planeMesh = new Mesh(planeVertices, windowTextures);
+    Node* planeNode = new Node(planeMesh);
+    planeNode->setTranslation(glm::vec3(0.0f, 1.5f, -7.0f));
+    planeNode->setRotationEuler(glm::vec3(-90.0f, 0.0f, 0.0f));
+    planeNode->setScale(glm::vec3(0.5f));
+
     // lights
     DirectionalLight* directionalLight = new DirectionalLight(glm::vec3(0.8f, 0.8f, 0.8f), 0.1f);
     directionalLight->setDirection(glm::vec3(0.0f, -1.0f, -0.3f));
@@ -218,7 +237,7 @@ int main(int argc, char** argv) {
     backpackNode->setScale(glm::vec3(0.25f));
 
     // load the HDR environment map
-    Texture hdrTexture = Texture("../../assets/textures/barcelona.hdr", GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
+    Texture hdrTexture = Texture("../../assets/textures/hdr/barcelona.hdr", GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
 
     // skybox
     CubeMap envCubeMap = CubeMap(512, 512, CUBE_MAP_HDR);
@@ -232,6 +251,7 @@ int main(int argc, char** argv) {
     scene->addChildNode(cubeNodeIron);
     scene->addChildNode(sponzaNode);
     scene->addChildNode(backpackNode);
+    scene->addChildNode(planeNode);
 
     scene->equirectToCubeMap(envCubeMap, hdrTexture, equirectToCubeMapShader);
     scene->setupIBL(envCubeMap, convolutionShader, prefilterShader, brdfShader);

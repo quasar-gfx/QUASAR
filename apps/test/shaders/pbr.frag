@@ -258,7 +258,8 @@ vec3 calcPointLight(PointLight light, samplerCube pointLightShadowMap, vec3 N, v
 void main() {
     // material properties
     vec4 col = texture(albedoMap, TexCoords);
-    if (col.a < 0.5)
+    float alpha = col.a;
+    if (alpha < 0.1)
         discard;
 
     vec3 albedo = pow(col.rgb, vec3(2.2));
@@ -308,5 +309,5 @@ void main() {
     // gamma correct
     color = pow(color, vec3(1.0/2.2));
 
-    FragColor = vec4(color, 1.0);
+    FragColor = vec4(color, alpha);
 }
