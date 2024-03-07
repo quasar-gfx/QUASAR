@@ -57,12 +57,12 @@ int main(int argc, char** argv) {
     VideoTexture videoTexture = VideoTexture(app.config.width, app.config.height);
     videoTexture.initVideo(inputUrl);
 
-    app.gui([&app, &videoTexture](double now, double dt) {
+    app.gui([&](double now, double dt) {
         ImGui::NewFrame();
         ImGui::SetNextWindowPos(ImVec2(10, 10));
         ImGui::Begin(app.config.title.c_str(), 0, ImGuiWindowFlags_AlwaysAutoResize);
         ImGui::Text("Rendering Frame Rate: %.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
-        ImGui::Text("Video Frame Rate: %.1f FPS", videoTexture.getFrameRate());
+        ImGui::Text("Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoTexture.getFrameRate(), 1000.0f / videoTexture.getFrameRate());
         ImGui::End();
     });
 
@@ -71,6 +71,8 @@ int main(int argc, char** argv) {
     });
 
     app.onMouseMove([&app, &camera](double xposIn, double yposIn) {
+        static bool mouseDown = false;
+
         static float lastX = app.config.width / 2.0;
         static float lastY = app.config.height / 2.0;
 
@@ -83,7 +85,19 @@ int main(int argc, char** argv) {
         lastX = xpos;
         lastY = ypos;
 
-        camera->processMouseMovement(xoffset, yoffset);
+        if (glfwGetMouseButton(app.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+            mouseDown = true;
+            glfwSetInputMode(app.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        }
+
+        if (glfwGetMouseButton(app.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
+            mouseDown = false;
+            glfwSetInputMode(app.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
+
+        if (mouseDown) {
+            camera->processMouseMovement(xoffset, yoffset);
+        }
     });
 
     app.onMouseScroll([&app, &camera](double xoffset, double yoffset) {

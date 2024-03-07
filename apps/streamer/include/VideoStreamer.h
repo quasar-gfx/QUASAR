@@ -17,15 +17,16 @@ class VideoStreamer {
 public:
     std::string outputUrl = "udp://localhost:1234";
 
-    int frameRate = 30;
+    int frameRate = 60;
 
     unsigned int framesSent = 0;
+    float timeToSendFrame = 0.0f;
 
     VideoStreamer() = default;
     ~VideoStreamer() = default;
 
     float getFrameRate() {
-        return 0;
+        return 1.0f / timeToSendFrame;
     }
 
     int start(Texture &texture, const std::string outputUrl);

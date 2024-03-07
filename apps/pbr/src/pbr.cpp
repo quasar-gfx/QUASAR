@@ -63,6 +63,8 @@ int main(int argc, char** argv) {
     });
 
     app.onMouseMove([&app, &camera](double xposIn, double yposIn) {
+        static bool mouseDown = false;
+
         static float lastX = app.config.width / 2.0;
         static float lastY = app.config.height / 2.0;
 
@@ -75,7 +77,19 @@ int main(int argc, char** argv) {
         lastX = xpos;
         lastY = ypos;
 
-        camera->processMouseMovement(xoffset, yoffset);
+        if (glfwGetMouseButton(app.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+            mouseDown = true;
+            glfwSetInputMode(app.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        }
+
+        if (glfwGetMouseButton(app.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
+            mouseDown = false;
+            glfwSetInputMode(app.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
+
+        if (mouseDown) {
+            camera->processMouseMovement(xoffset, yoffset);
+        }
     });
 
     app.onMouseScroll([&app, &camera](double xoffset, double yoffset) {

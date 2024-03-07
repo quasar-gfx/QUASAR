@@ -5,6 +5,8 @@
 #undef av_err2str
 #define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
 
+#define MICROSECONDS_IN_SECOND 1000000.0f
+
 void VideoTexture::initVideo(const std::string &inputUrl) {
     this->inputUrl = inputUrl + "?overrun_nonfatal=1&fifo_size=50000000";
     videoReceiverThread = std::thread(&VideoTexture::receiveVideo, this);
@@ -100,6 +102,7 @@ void VideoTexture::receiveVideo() {
 
     videoReady = true;
 
+    uint64_t prevTime = av_gettime();
     while (1) {
         // read frame from URL
         int ret = av_read_frame(inputFormatContext, &packet);
@@ -134,7 +137,11 @@ void VideoTexture::receiveVideo() {
                         0, inputCodecContext->height, frameRGB->data, frameRGB->linesize);
             frameRGBMutex.unlock();
 
+            uint64_t elapsedTime = (av_gettime() - prevTime);
+            timeToReceiveFrame = elapsedTime / MICROSECONDS_IN_SECOND;
             frameReceived++;
+
+            prevTime = av_gettime();
         }
     }
 }

@@ -9,6 +9,7 @@ extern "C" {
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
 #include <libswscale/swscale.h>
+#include <libavutil/time.h>
 #include <libavutil/imgutils.h>
 }
 
@@ -19,6 +20,7 @@ public:
     std::string inputUrl = "udp://localhost:1234";
 
     int frameReceived = 0;
+    float timeToReceiveFrame = 0.0f;
 
     VideoTexture(unsigned int width, unsigned int height,
             GLint internalFormat = GL_RGB,
@@ -39,10 +41,7 @@ public:
     void draw();
 
     float getFrameRate() {
-        if (inputFormatContext == nullptr || videoStreamIndex == -1) {
-            return 0;
-        }
-        return av_q2d(inputFormatContext->streams[videoStreamIndex]->avg_frame_rate);
+        return 1.0f / timeToReceiveFrame;
     }
 
 private:

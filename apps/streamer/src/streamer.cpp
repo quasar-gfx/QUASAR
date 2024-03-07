@@ -61,12 +61,12 @@ int main(int argc, char** argv) {
 
     VideoStreamer videoStreamer = VideoStreamer();
 
-    app.gui([&app, &videoStreamer](double now, double dt) {
+    app.gui([&](double now, double dt) {
         ImGui::NewFrame();
         ImGui::SetNextWindowPos(ImVec2(10, 10));
         ImGui::Begin(app.config.title.c_str(), 0, ImGuiWindowFlags_AlwaysAutoResize);
         ImGui::Text("Rendering Frame Rate: %.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
-        ImGui::Text("Video Frame Rate: %.1f FPS", videoStreamer.getFrameRate());
+        ImGui::Text("Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoStreamer.getFrameRate(), 1000.0f / videoStreamer.getFrameRate());
         ImGui::End();
     });
 
@@ -75,6 +75,8 @@ int main(int argc, char** argv) {
     });
 
     app.onMouseMove([&app, &camera](double xposIn, double yposIn) {
+        static bool mouseDown = false;
+
         static float lastX = app.config.width / 2.0;
         static float lastY = app.config.height / 2.0;
 
@@ -87,7 +89,19 @@ int main(int argc, char** argv) {
         lastX = xpos;
         lastY = ypos;
 
-        camera->processMouseMovement(xoffset, yoffset);
+        if (glfwGetMouseButton(app.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+            mouseDown = true;
+            glfwSetInputMode(app.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        }
+
+        if (glfwGetMouseButton(app.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
+            mouseDown = false;
+            glfwSetInputMode(app.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
+
+        if (mouseDown) {
+            camera->processMouseMovement(xoffset, yoffset);
+        }
     });
 
     app.onMouseScroll([&app, &camera](double xoffset, double yoffset) {
@@ -288,9 +302,7 @@ int main(int argc, char** argv) {
             framebuffer.colorBuffer.unbind();
         screenShader.unbind();
 
-        double start = glfwGetTime();
         videoStreamer.sendFrame();
-        std::cout << "Time to send frame: " << glfwGetTime() - start << " seconds" << std::endl;
     });
 
     // run app loop (blocking)
@@ -298,6 +310,8 @@ int main(int argc, char** argv) {
 
     // cleanup
     app.cleanup();
+
+    std::cout << "Please do CTRL-C to exit!" << std::endl;
 
     return 0;
 }

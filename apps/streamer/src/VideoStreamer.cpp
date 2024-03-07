@@ -3,6 +3,8 @@
 #undef av_err2str
 #define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
 
+#define MICROSECONDS_IN_SECOND 1000000.0f
+
 int VideoStreamer::start(Texture &texture, const std::string outputUrl) {
     this->sourceTexture = texture;
     this->outputUrl = outputUrl;
@@ -88,7 +90,7 @@ int VideoStreamer::start(Texture &texture, const std::string outputUrl) {
 }
 
 void VideoStreamer::sendFrame() {
-    static uint64_t lastTime = av_gettime();
+    static uint64_t prevTime = av_gettime();
 
     // get frame from decoder
     AVFrame *frame = av_frame_alloc();
@@ -139,8 +141,6 @@ void VideoStreamer::sendFrame() {
     outputPacket.pts = framesSent * (outputFormatContext->streams[0]->time_base.den) / frameRate;
     outputPacket.dts = outputPacket.pts;
 
-    av_usleep(1.0f / frameRate * 1000000.0f);
-
     // send packet to output URL
     ret = av_interleaved_write_frame(outputFormatContext, &outputPacket);
     av_packet_unref(&outputPacket);
@@ -150,9 +150,14 @@ void VideoStreamer::sendFrame() {
         return;
     }
 
+    uint64_t elapsedTime = (av_gettime() - prevTime);
+    if (elapsedTime < (1.0f / frameRate * MICROSECONDS_IN_SECOND)) {
+        av_usleep((1.0f / frameRate * MICROSECONDS_IN_SECOND) - elapsedTime);
+    }
+    timeToSendFrame = elapsedTime / MICROSECONDS_IN_SECOND;
     framesSent++;
 
-    lastTime = av_gettime();
+    prevTime = av_gettime();
 }
 
 void VideoStreamer::cleanup() {
