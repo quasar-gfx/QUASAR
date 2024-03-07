@@ -24,7 +24,7 @@ const std::string BACKPACK_MODEL_PATH = "../../assets/models/backpack/backpack.o
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
-    app.config.title = "PBR";
+    app.config.title = "Test App";
 
     std::string modelPath = "../../assets/models/Sponza/Sponza.gltf";
     for (int i = 1; i < argc; i++) {
@@ -286,9 +286,9 @@ int main(int argc, char** argv) {
 
         screenShader.bind();
         screenShader.setInt("screenTexture", 0);
-            framebuffer.bindColorAttachment(0);
+            framebuffer.colorBuffer.bind(0);
                 outputFsQuad.draw();
-            framebuffer.unbindColorAttachment();
+            framebuffer.colorBuffer.unbind();
         screenShader.unbind();
     });
 

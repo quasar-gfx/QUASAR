@@ -239,12 +239,12 @@ int main(int argc, char** argv) {
         screenShader.bind();
         screenShader.setInt("screenTexture", 0);
         screenShader.setInt("videoTexture", 1);
-            framebuffer.bindColorAttachment();
+            framebuffer.colorBuffer.bind(0);
                 videoTexture.bind(1);
                 videoTexture.draw();
                     fsQuad.draw();
                 videoTexture.unbind();
-            framebuffer.unbindColorAttachment();
+            framebuffer.colorBuffer.unbind();
         screenShader.unbind();
     });
 

@@ -231,11 +231,11 @@ int main(int argc, char** argv) {
         screenShader.bind();
         screenShader.setInt("screenTexture", 0);
         screenShader.setInt("depthTexture", 1);
-            framebuffer.bindColorAttachment(0);
-            framebuffer.bindDepthAttachment(1);
+            framebuffer.colorBuffer.bind(0);
+            framebuffer.depthBuffer.bind(1);
                 fsQuad.draw();
-            framebuffer.unbindColorAttachment();
-            framebuffer.unbindDepthAttachment();
+            framebuffer.colorBuffer.unbind();
+            framebuffer.depthBuffer.unbind();
         screenShader.unbind();
     });
 

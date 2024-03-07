@@ -280,9 +280,9 @@ int main(int argc, char** argv) {
 
         screenShader.bind();
         screenShader.setInt("screenTexture", 0);
-            framebuffer.bindColorAttachment(0);
+            framebuffer.colorBuffer.bind(0);
                 outputFsQuad.draw();
-            framebuffer.unbindColorAttachment();
+            framebuffer.colorBuffer.unbind();
         screenShader.unbind();
     });
 

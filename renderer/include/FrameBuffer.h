@@ -11,21 +11,19 @@ class FrameBuffer : public OpenGLObject {
 public:
     unsigned int width, height;
 
-    Texture colorAttachment;
-    Texture depthAttachment;
+    Texture colorBuffer;
+    Texture depthBuffer;
 
     FrameBuffer(unsigned int width, unsigned int height)
             : width(width), height(height),
-              colorAttachment(width, height, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE),
-              depthAttachment(width, height, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE) {
-
+              colorBuffer(width, height, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE),
+              depthBuffer(width, height, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_FLOAT){
         glGenFramebuffers(1, &ID);
         glBindFramebuffer(GL_FRAMEBUFFER, ID);
 
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorAttachment.ID, 0);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthAttachment.ID, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorBuffer.ID, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBuffer.ID, 0);
 
-        // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
             throw std::runtime_error("Framebuffer is not complete!");
         }
@@ -41,24 +39,25 @@ public:
         glBindFramebuffer(GL_FRAMEBUFFER, ID);
     }
 
-    void bindColorAttachment(unsigned int slot = 0) {
-        colorAttachment.bind(slot);
-    }
-
-    void unbindColorAttachment() {
-        colorAttachment.unbind();
-    }
-
-    void bindDepthAttachment(unsigned int slot = 0) {
-        depthAttachment.bind(slot);
-    }
-
-    void unbindDepthAttachment() {
-        depthAttachment.unbind();
-    }
-
     void unbind() {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    void attachStencilBuffer(RenderBuffer &stencilBuffer) {
+        bind();
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, stencilBuffer.ID);
+
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+            throw std::runtime_error("Framebuffer is not complete!");
+        }
+
+        unbind();
+    }
+
+    void unattachStencilBuffer() {
+        bind();
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0);
+        unbind();
     }
 
     void cleanup() {
