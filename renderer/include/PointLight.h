@@ -2,6 +2,7 @@
 #define POINT_LIGHT_H
 
 #include <Light.h>
+#include <CubeMap.h>
 
 class PointLight : public Light {
 public:
@@ -10,7 +11,11 @@ public:
     float linear = 0.09f;
     float quadratic = 0.032f;
 
-    PointLight(const glm::vec3 &color = glm::vec3(1.0f), float intensity = 1.0f) : Light(color, intensity) {}
+    // glm::mat4 lookAtPerFace[NUM_CUBEMAP_FACES];
+    // CubeMap shadowCubeMap = CubeMap(1024, 1024, CUBE_MAP_SHADOW);
+
+    PointLight(const glm::vec3 &color = glm::vec3(1.0f), float intensity = 1.0f)
+        : Light(color, intensity) { }
 
     void draw(Shader &shader) {
         draw(shader, 0);

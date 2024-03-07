@@ -11,13 +11,11 @@ class FrameBuffer : public OpenGLObject {
 public:
     unsigned int width, height;
 
-    Texture colorBuffer;
-    Texture depthBuffer;
+    Texture colorBuffer = Texture(width, height, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE);
+    Texture depthBuffer = Texture(width, height, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_FLOAT);
 
     FrameBuffer(unsigned int width, unsigned int height)
-            : width(width), height(height),
-              colorBuffer(width, height, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE),
-              depthBuffer(width, height, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_FLOAT){
+            : width(width), height(height) {
         glGenFramebuffers(1, &ID);
         glBindFramebuffer(GL_FRAMEBUFFER, ID);
 

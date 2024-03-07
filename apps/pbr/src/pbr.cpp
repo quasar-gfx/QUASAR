@@ -16,8 +16,6 @@
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 
-#define GUI_UPDATE_FRAMERATE_INTERVAL 0.1f // seconds
-
 void processInput(OpenGLApp* app, Camera* camera, float deltaTime);
 
 int main(int argc, char** argv) {
@@ -53,23 +51,10 @@ int main(int argc, char** argv) {
     Camera* camera = new Camera(width, height);
 
     app.gui([&app](double now, double dt) {
-        static float deltaTimeSum = 0.0f;
-        static int sumCount = 0;
-        static float frameRateToDisplay = 0.0f;
-        static float prevDisplayTime = 0.0f;
-
         ImGui::NewFrame();
         ImGui::SetNextWindowPos(ImVec2(10, 10));
         ImGui::Begin(app.config.title.c_str(), 0, ImGuiWindowFlags_AlwaysAutoResize);
-        if (now - prevDisplayTime > GUI_UPDATE_FRAMERATE_INTERVAL) {
-            prevDisplayTime = now;
-            if (deltaTimeSum > 0.0f) {
-                frameRateToDisplay = sumCount / deltaTimeSum;
-                deltaTimeSum = 0.0f; sumCount = 0;
-            }
-        }
-        deltaTimeSum += dt; sumCount++;
-        ImGui::Text("Rendering Frame Rate: %.1f FPS", frameRateToDisplay);
+        ImGui::Text("Rendering Frame Rate: %.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
         ImGui::End();
     });
 
