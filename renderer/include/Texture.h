@@ -31,7 +31,7 @@ public:
             GLenum type = GL_UNSIGNED_BYTE,
             GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE,
             GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR,
-            unsigned char* data = nullptr);
+            unsigned char* data = nullptr, bool hasBorder = false);
 
     Texture(const std::string &path,
             GLenum type = GL_UNSIGNED_BYTE,

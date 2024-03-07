@@ -10,7 +10,7 @@ Texture::Texture(unsigned int width, unsigned int height,
         GLenum type,
         GLint wrapS, GLint wrapT,
         GLint minFilter, GLint magFilter,
-        unsigned char* data) {
+        unsigned char* data, bool hasBorder) {
     this->width = width;
     this->height = height;
     glGenTextures(1, &ID);
@@ -20,6 +20,10 @@ Texture::Texture(unsigned int width, unsigned int height,
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magFilter);
+    if (hasBorder) {
+        float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    }
 }
 
 Texture::Texture(const std::string &path, GLenum type, GLint wrapS, GLint wrapT, GLint minFilter, GLint magFilter, bool flipTexture) {

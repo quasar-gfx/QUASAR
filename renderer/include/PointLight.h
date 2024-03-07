@@ -3,6 +3,9 @@
 
 #include <Light.h>
 #include <CubeMap.h>
+#include <FrameBuffer.h>
+
+#define NUM_POINT_LIGHTS 4
 
 class PointLight : public Light {
 public:
@@ -11,11 +14,13 @@ public:
     float linear = 0.09f;
     float quadratic = 0.032f;
 
-    // glm::mat4 lookAtPerFace[NUM_CUBEMAP_FACES];
-    // CubeMap shadowCubeMap = CubeMap(1024, 1024, CUBE_MAP_SHADOW);
+    glm::mat4 lookAtPerFace[NUM_CUBEMAP_FACES];
+    PointShadowBuffer pointLightShadowMapFBO;
 
     PointLight(const glm::vec3 &color = glm::vec3(1.0f), float intensity = 1.0f)
-        : Light(color, intensity) { }
+        : Light(color, intensity) {
+        pointLightShadowMapFBO.createColorAndDepthBuffers(2048, 2048);
+    }
 
     void draw(Shader &shader) {
         draw(shader, 0);

@@ -22,7 +22,7 @@ public:
     bool hasPBREnvMap = false;
 
     // set up framebuffer
-    FrameBuffer captureFramebuffer = FrameBuffer(512, 512);
+    FrameBuffer captureFramebuffer;
     RenderBuffer captureRenderBuffer = RenderBuffer(512, 512, GL_DEPTH_COMPONENT24);
 
     // create an irradiance cubemap, and rescale capture FBO to irradiance scale
@@ -34,6 +34,10 @@ public:
     // generate a 2D LUT from the BRDF equations used
     Texture brdfLUT = Texture(512, 512, GL_RG16F, GL_RG, GL_FLOAT, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_LINEAR, GL_LINEAR);
     FullScreenQuad brdfFsQuad = FullScreenQuad();
+
+    Scene() {
+        captureFramebuffer.createColorAndDepthBuffers(512, 512);
+    }
 
     void addChildNode(Node* node) {
         children.push_back(node);

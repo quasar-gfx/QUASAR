@@ -175,30 +175,32 @@ int main(int argc, char** argv) {
     };
     Mesh* cubeMeshGold = new Mesh(cubeVertices, goldTextures);
     Node* cubeNodeGold = new Node(cubeMeshGold);
-    cubeNodeGold->setTranslation(glm::vec3(-5.0f, 0.5f, -1.0f));
+    cubeNodeGold->setTranslation(glm::vec3(-0.2f, 0.25f, -7.0f));
+    cubeNodeGold->setScale(glm::vec3(0.5f));
 
     Mesh* cubeMeshIron = new Mesh(cubeVertices, ironTextures);
     Node* cubeNodeIron = new Node(cubeMeshIron);
-    cubeNodeIron->setTranslation(glm::vec3(5.0f, 0.5f, -1.0f));
+    cubeNodeIron->setTranslation(glm::vec3(1.5f, 0.25f, -3.0f));
+    cubeNodeIron->setScale(glm::vec3(0.5f));
 
     // lights
-    DirectionalLight* directionalLight = new DirectionalLight(glm::vec3(0.8f, 0.8f, 0.8f), 10.0f);
-    directionalLight->setDirection(glm::vec3(-0.2f, -1.0f, -0.3f));
+    DirectionalLight* directionalLight = new DirectionalLight(glm::vec3(0.8f, 0.8f, 0.8f), 0.1f);
+    directionalLight->setDirection(100.0f * glm::vec3(0.0f, -5.0f, 1.333f));
 
     PointLight* pointLight1 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
-    pointLight1->setPosition(glm::vec3(-1.45f, 0.9f, -6.2f));
+    pointLight1->setPosition(glm::vec3(-1.45f, 3.5f, -6.2f));
     pointLight1->setAttenuation(0.0f, 0.09f, 1.0f);
 
     PointLight* pointLight2 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
-    pointLight2->setPosition(glm::vec3(2.2f, 0.9f, -6.2f));
+    pointLight2->setPosition(glm::vec3(2.2f, 3.5f, -6.2f));
     pointLight2->setAttenuation(0.0f, 0.09f, 1.0f);
 
     PointLight* pointLight3 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
-    pointLight3->setPosition(glm::vec3(-1.45f, 0.9f, 4.89f));
+    pointLight3->setPosition(glm::vec3(-1.45f, 3.5f, 4.89f));
     pointLight3->setAttenuation(0.0f, 0.09f, 1.0f);
 
     PointLight* pointLight4 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
-    pointLight4->setPosition(glm::vec3(2.2f, 0.9f, 4.89f));
+    pointLight4->setPosition(glm::vec3(2.2f, 3.5f, 4.89f));
     pointLight4->setAttenuation(0.0f, 0.09f, 1.0f);
 
     // models
@@ -212,7 +214,7 @@ int main(int argc, char** argv) {
     Model* backpack = new Model(BACKPACK_MODEL_PATH, true);
 
     Node* backpackNode = new Node(backpack);
-    backpackNode->setTranslation(glm::vec3(-0.25f, 0.25f, -3.0f));
+    backpackNode->setTranslation(glm::vec3(0.5f, 0.1f, -5.0f));
     backpackNode->setScale(glm::vec3(0.25f));
 
     // load the HDR environment map
@@ -238,10 +240,21 @@ int main(int argc, char** argv) {
     FullScreenQuad outputFsQuad = FullScreenQuad();
 
     // framebuffer to render into
-    FrameBuffer framebuffer = FrameBuffer(app.config.width, app.config.height);
+    FrameBuffer framebuffer = FrameBuffer();
+    framebuffer.createColorAndDepthBuffers(app.config.width, app.config.height);
+
+    Shader dirLightShadowsShader;
+    dirLightShadowsShader.loadFromFile("shaders/shadow.vert", "shaders/shadow.frag");
+
+    Shader pointLightShadowsShader;
+    pointLightShadowsShader.loadFromFile("shaders/pointShadow.vert", "shaders/pointShadow.frag", "shaders/pointShadow.geo");
 
     app.onRender([&](double now, double dt) {
         processInput(&app, camera, dt);
+
+        app.renderer.drawDirLightShadows(dirLightShadowsShader, scene, camera);
+
+        app.renderer.drawPointLightShadows(pointLightShadowsShader, scene, camera);
 
         // bind to framebuffer and draw scene as we normally would to color texture
         framebuffer.bind();
@@ -250,10 +263,6 @@ int main(int argc, char** argv) {
         // make sure we clear the framebuffer's content
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        pbrShader.bind();
-
-        pbrShader.unbind();
 
         // draw all objects in scene
         app.renderer.draw(pbrShader, scene, camera);

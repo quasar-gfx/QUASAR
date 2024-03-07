@@ -12,7 +12,7 @@ const glm::mat4 CubeMap::captureViews[] = {
     glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
 };
 
-CubeMap::CubeMap(unsigned int width, unsigned int height, CubeMapType cubeType) {
+void CubeMap::init(unsigned int width, unsigned int height, CubeMapType cubeType) {
     this->width = width;
     this->height = height;
     this->cubeType = cubeType;
@@ -43,9 +43,9 @@ CubeMap::CubeMap(unsigned int width, unsigned int height, CubeMapType cubeType) 
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        // glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+        // glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        // glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         break;
 
     case CUBE_MAP_HDR:
@@ -93,47 +93,48 @@ CubeMap::CubeMap(std::vector<std::string> faceFilePaths,
 
 void CubeMap::initBuffers() {
     std::vector<CubeMapVertex> skyboxVertices = {
-        { {-1.0f,  1.0f, -1.0f} },
-        { {-1.0f, -1.0f, -1.0f} },
-        { { 1.0f, -1.0f, -1.0f} },
-        { { 1.0f, -1.0f, -1.0f} },
-        { { 1.0f,  1.0f, -1.0f} },
-        { {-1.0f,  1.0f, -1.0f} },
-
-        { {-1.0f, -1.0f,  1.0f} },
-        { {-1.0f, -1.0f, -1.0f} },
-        { {-1.0f,  1.0f, -1.0f} },
-        { {-1.0f,  1.0f, -1.0f} },
-        { {-1.0f,  1.0f,  1.0f} },
-        { {-1.0f, -1.0f,  1.0f} },
-
-        { { 1.0f, -1.0f, -1.0f} },
-        { { 1.0f, -1.0f,  1.0f} },
-        { { 1.0f,  1.0f,  1.0f} },
-        { { 1.0f,  1.0f,  1.0f} },
-        { { 1.0f,  1.0f, -1.0f} },
-        { { 1.0f, -1.0f, -1.0f} },
-
-        { {-1.0f, -1.0f,  1.0f} },
-        { {-1.0f,  1.0f,  1.0f} },
-        { { 1.0f,  1.0f,  1.0f} },
-        { { 1.0f,  1.0f,  1.0f} },
-        { { 1.0f, -1.0f,  1.0f} },
-        { {-1.0f, -1.0f,  1.0f} },
-
-        { {-1.0f,  1.0f, -1.0f} },
-        { { 1.0f,  1.0f, -1.0f} },
-        { { 1.0f,  1.0f,  1.0f} },
-        { { 1.0f,  1.0f,  1.0f} },
-        { {-1.0f,  1.0f,  1.0f} },
-        { {-1.0f,  1.0f, -1.0f} },
-
-        { {-1.0f, -1.0f, -1.0f} },
-        { {-1.0f, -1.0f,  1.0f} },
-        { { 1.0f, -1.0f, -1.0f} },
-        { { 1.0f, -1.0f, -1.0f} },
-        { {-1.0f, -1.0f,  1.0f} },
-        { { 1.0f, -1.0f,  1.0f} }
+        // back face
+        { {-1.0f, -1.0f, -1.0f, } },
+        { { 1.0f,  1.0f, -1.0f, } },
+        { { 1.0f, -1.0f, -1.0f, } },
+        { { 1.0f,  1.0f, -1.0f, } },
+        { {-1.0f, -1.0f, -1.0f, } },
+        { {-1.0f,  1.0f, -1.0f, } },
+        // front face
+        { {-1.0f, -1.0f,  1.0f, } },
+        { { 1.0f, -1.0f,  1.0f, } },
+        { { 1.0f,  1.0f,  1.0f, } },
+        { { 1.0f,  1.0f,  1.0f, } },
+        { {-1.0f,  1.0f,  1.0f, } },
+        { {-1.0f, -1.0f,  1.0f, } },
+        // left face
+        { {-1.0f,  1.0f,  1.0f, } },
+        { {-1.0f,  1.0f, -1.0f, } },
+        { {-1.0f, -1.0f, -1.0f, } },
+        { {-1.0f, -1.0f, -1.0f, } },
+        { {-1.0f, -1.0f,  1.0f, } },
+        { {-1.0f,  1.0f,  1.0f, } },
+        // right face
+        { { 1.0f,  1.0f,  1.0f, } },
+        { { 1.0f, -1.0f, -1.0f, } },
+        { { 1.0f,  1.0f, -1.0f, } },
+        { { 1.0f, -1.0f, -1.0f, } },
+        { { 1.0f,  1.0f,  1.0f, } },
+        { { 1.0f, -1.0f,  1.0f, } },
+        // bottom face
+        { {-1.0f, -1.0f, -1.0f, } },
+        { { 1.0f, -1.0f, -1.0f, } },
+        { { 1.0f, -1.0f,  1.0f, } },
+        { { 1.0f, -1.0f,  1.0f, } },
+        { {-1.0f, -1.0f,  1.0f, } },
+        { {-1.0f, -1.0f, -1.0f, } },
+        // top face
+        { {-1.0f,  1.0f, -1.0f, } },
+        { { 1.0f,  1.0f , 1.0f, } },
+        { { 1.0f,  1.0f, -1.0f, } },
+        { { 1.0f,  1.0f,  1.0f, } },
+        { {-1.0f,  1.0f, -1.0f, } },
+        { {-1.0f,  1.0f,  1.0f, } }
     };
 
     glGenVertexArrays(1, &quadVAO);

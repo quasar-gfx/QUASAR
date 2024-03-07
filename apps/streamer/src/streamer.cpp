@@ -248,7 +248,8 @@ int main(int argc, char** argv) {
     FullScreenQuad outputFsQuad = FullScreenQuad();
 
     // framebuffer to render into
-    FrameBuffer framebuffer = FrameBuffer(app.config.width, app.config.height);
+    FrameBuffer framebuffer = FrameBuffer();
+    framebuffer.createColorAndDepthBuffers(app.config.width, app.config.height);
 
     int ret = videoStreamer.start(framebuffer.colorBuffer, outputUrl);
     if (ret < 0) {

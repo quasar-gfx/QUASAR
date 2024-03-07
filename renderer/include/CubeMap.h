@@ -33,7 +33,11 @@ public:
 
     unsigned int width, height;
 
-    CubeMap(unsigned int width, unsigned int height, CubeMapType cubeType);
+    CubeMap() = default;
+
+    CubeMap(unsigned int width, unsigned int height, CubeMapType cubeType) {
+        init(width, height, cubeType);
+    }
 
     CubeMap(const std::vector<std::string> faceFilePaths,
             CubeMapType cubeType = CUBE_MAP_STANDARD,
@@ -44,6 +48,8 @@ public:
     ~CubeMap() {
         cleanup();
     }
+
+    void init(unsigned int width, unsigned int height, CubeMapType cubeType);
 
     void loadFromEquirectTexture(Shader &equirectToCubeMapShader, Texture &equirectTexture);
     void convolve(Shader &convolutionShader, CubeMap &envCubeMap);
