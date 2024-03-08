@@ -23,6 +23,9 @@ int main(int argc, char** argv) {
     app.config.title = "PBR";
 
     std::string modelPath = "../../assets/models/cerberus/cerberus.fbx";
+    std::string hdrImagePath = "../../assets/textures/hdr/newport_loft.hdr";
+    std::string cube1TexturePath = "../../assets/textures/pbr/gold";
+    std::string cube2TexturePath = "../../assets/textures/pbr/rusted_iron";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             app.config.width = atoi(argv[i + 1]);
@@ -36,6 +39,18 @@ int main(int argc, char** argv) {
             modelPath = argv[i + 1];
             i++;
         }
+        else if (!strcmp(argv[i], "-i") && i + 1 < argc) {
+            hdrImagePath = argv[i + 1];
+            i++;
+        }
+        else if (!strcmp(argv[i], "-t1") && i + 1 < argc) {
+            cube1TexturePath = argv[i + 1];
+            i++;
+        }
+        else if (!strcmp(argv[i], "-t2") && i + 1 < argc) {
+            cube2TexturePath = argv[i + 1];
+            i++;
+        }
         else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
             app.config.enableVSync = atoi(argv[i + 1]);
             i++;
@@ -44,11 +59,11 @@ int main(int argc, char** argv) {
 
     app.init();
 
-    int width, height;
-    app.getWindowSize(&width, &height);
+    int screenWidth, screenHeight;
+    app.getWindowSize(&screenWidth, &screenHeight);
 
     Scene* scene = new Scene();
-    Camera* camera = new Camera(width, height);
+    Camera* camera = new Camera(screenWidth, screenHeight);
 
     app.gui([&app](double now, double dt) {
         ImGui::NewFrame();
@@ -122,18 +137,18 @@ int main(int argc, char** argv) {
     backgroundShader.loadFromFile("shaders/background.vert", "shaders/background.frag");
 
     // textures
-    Texture albedo = Texture("../../assets/textures/pbr/gold/albedo.png");
-    Texture normal = Texture("../../assets/textures/pbr/gold/normal.png");
-    Texture metallic = Texture("../../assets/textures/pbr/gold/metallic.png");
-    Texture roughness = Texture("../../assets/textures/pbr/gold/roughness.png");
-    Texture ao = Texture("../../assets/textures/pbr/gold/ao.png");
+    Texture albedo = Texture(cube1TexturePath + "/albedo.png");
+    Texture normal = Texture(cube1TexturePath + "/normal.png");
+    Texture metallic = Texture(cube1TexturePath + "/metallic.png");
+    Texture roughness = Texture(cube1TexturePath + "/roughness.png");
+    Texture ao = Texture(cube1TexturePath + "/ao.png");
     std::vector<TextureID> goldTextures = { albedo.ID, 0, normal.ID, metallic.ID, roughness.ID, ao.ID };
 
-    Texture ironAlbedo = Texture("../../assets/textures/pbr/rusted_iron/albedo.png");
-    Texture ironNormal = Texture("../../assets/textures/pbr/rusted_iron/normal.png");
-    Texture ironMetallic = Texture("../../assets/textures/pbr/rusted_iron/metallic.png");
-    Texture ironRoughness = Texture("../../assets/textures/pbr/rusted_iron/roughness.png");
-    Texture ironAo = Texture("../../assets/textures/pbr/rusted_iron/ao.png");
+    Texture ironAlbedo = Texture(cube2TexturePath + "/albedo.png");
+    Texture ironNormal = Texture(cube2TexturePath + "/normal.png");
+    Texture ironMetallic = Texture(cube2TexturePath + "/metallic.png");
+    Texture ironRoughness = Texture(cube2TexturePath + "/roughness.png");
+    Texture ironAo = Texture(cube2TexturePath + "/ao.png");
     std::vector<TextureID> ironTextures = { ironAlbedo.ID, 0, ironNormal.ID, ironMetallic.ID, ironRoughness.ID, ironAo.ID };
 
     std::vector<Vertex> cubeVertices {
@@ -209,18 +224,18 @@ int main(int argc, char** argv) {
     gunNode->setScale(glm::vec3(0.05f));
 
     // load the HDR environment map
-    Texture hdrTexture = Texture("../../assets/textures/hdr/newport_loft.hdr", GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
+    Texture hdrTexture = Texture(hdrImagePath, GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
 
     // skybox
     CubeMap envCubeMap = CubeMap(512, 512, CUBE_MAP_HDR);
 
     // lights
     PointLight* pointLight1 = new PointLight(glm::vec3(1.0, 1.0, 1.0), 300.0f);
-    pointLight1->setPosition(glm::vec3(-10.0f,  10.0f, 10.0f));
+    pointLight1->setPosition(glm::vec3(-10.0f, 10.0f, 10.0f));
     pointLight1->setAttenuation(0.0f, 0.09f, 1.0f);
 
     PointLight* pointLight2 = new PointLight(glm::vec3(1.0, 1.0, 1.0), 300.0f);
-    pointLight2->setPosition(glm::vec3( 10.0f,  10.0f, 10.0f));
+    pointLight2->setPosition(glm::vec3(10.0f, 10.0f, 10.0f));
     pointLight2->setAttenuation(0.0f, 0.09f, 1.0f);
 
     PointLight* pointLight3 = new PointLight(glm::vec3(1.0, 1.0, 1.0), 300.0f);
@@ -228,7 +243,7 @@ int main(int argc, char** argv) {
     pointLight3->setAttenuation(0.0f, 0.09f, 1.0f);
 
     PointLight* pointLight4 = new PointLight(glm::vec3(1.0, 1.0, 1.0), 300.0f);
-    pointLight4->setPosition(glm::vec3( 10.0f, -10.0f, 10.0f));
+    pointLight4->setPosition(glm::vec3(10.0f, -10.0f, 10.0f));
     pointLight4->setAttenuation(0.0f, 0.09f, 1.0f);
 
     scene->addPointLight(pointLight1);
@@ -243,40 +258,17 @@ int main(int argc, char** argv) {
     scene->setupIBL(envCubeMap, convolutionShader, prefilterShader, brdfShader);
     scene->setEnvMap(&envCubeMap);
 
-    FullScreenQuad outputFsQuad = FullScreenQuad();
-
-    // framebuffer to render into
-    FrameBuffer framebuffer = FrameBuffer();
-    framebuffer.createColorAndDepthBuffers(app.config.width, app.config.height);
-
     app.onRender([&](double now, double dt) {
         processInput(&app, camera, dt);
 
-        // bind to framebuffer and draw scene as we normally would to color texture
-        framebuffer.bind();
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        // draw all objects in scene
-        app.renderer.draw(pbrShader, scene, camera);
+        // render all objects in scene
+        app.renderer.drawObjects(pbrShader, scene, camera);
 
         // render skybox (render as last to prevent overdraw)
         app.renderer.drawSkyBox(backgroundShader, scene, camera);
 
-        // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
-        framebuffer.unbind();
-        glViewport(0, 0, width, height);
-
-        // clear all relevant buffers
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        screenShader.bind();
-        screenShader.setInt("screenTexture", 0);
-            framebuffer.colorBuffer.bind(0);
-                outputFsQuad.draw();
-            framebuffer.colorBuffer.unbind();
-        screenShader.unbind();
+        // render to screen
+        app.renderer.drawToScreen(screenShader, screenWidth, screenHeight);
     });
 
     // run app loop (blocking)

@@ -53,11 +53,11 @@ int main(int argc, char** argv) {
 
     app.init();
 
-    int width, height;
-    app.getWindowSize(&width, &height);
+    int screenWidth, screenHeight;
+    app.getWindowSize(&screenWidth, &screenHeight);
 
     Scene* scene = new Scene();
-    Camera* camera = new Camera(width, height);
+    Camera* camera = new Camera(screenWidth, screenHeight);
 
     VideoStreamer videoStreamer = VideoStreamer();
 
@@ -259,13 +259,7 @@ int main(int argc, char** argv) {
     scene->setupIBL(envCubeMap, convolutionShader, prefilterShader, brdfShader);
     scene->setEnvMap(&envCubeMap);
 
-    FullScreenQuad outputFsQuad = FullScreenQuad();
-
-    // framebuffer to render into
-    FrameBuffer framebuffer = FrameBuffer();
-    framebuffer.createColorAndDepthBuffers(app.config.width, app.config.height);
-
-    int ret = videoStreamer.start(framebuffer.colorBuffer, outputUrl);
+    int ret = videoStreamer.start(app.renderer.framebuffer.colorBuffer, outputUrl);
     if (ret < 0) {
         std::cerr << "Failed to initialize FFMpeg Video Streamer" << std::endl;
         return ret;
@@ -274,33 +268,14 @@ int main(int argc, char** argv) {
     app.onRender([&](double now, double dt) {
         processInput(&app, camera, dt);
 
-        // bind to framebuffer and draw scene as we normally would to color texture
-        framebuffer.bind();
-
-        // make sure we clear the framebuffer's content
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        // draw all objects in scene
-        app.renderer.draw(pbrShader, scene, camera);
+        // render all objects in scene
+        app.renderer.drawObjects(pbrShader, scene, camera);
 
         // render skybox (render as last to prevent overdraw)
         app.renderer.drawSkyBox(backgroundShader, scene, camera);
 
-        // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
-        framebuffer.unbind();
-        glViewport(0, 0, width, height);
-
-        // clear all relevant buffers
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        screenShader.bind();
-        screenShader.setInt("screenTexture", 0);
-            framebuffer.colorBuffer.bind(0);
-                outputFsQuad.draw();
-            framebuffer.colorBuffer.unbind();
-        screenShader.unbind();
+        // render to screen
+        app.renderer.drawToScreen(screenShader, screenWidth, screenHeight);
 
         videoStreamer.sendFrame();
     });

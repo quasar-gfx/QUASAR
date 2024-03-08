@@ -17,7 +17,7 @@ class VideoStreamer {
 public:
     std::string outputUrl = "udp://localhost:1234";
 
-    int frameRate = 60;
+    int frameRate = 30;
 
     unsigned int framesSent = 0;
     float timeToSendFrame = 0.0f;

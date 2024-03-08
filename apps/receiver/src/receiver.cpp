@@ -48,11 +48,11 @@ int main(int argc, char** argv) {
 
     app.init();
 
-    int width, height;
-    app.getWindowSize(&width, &height);
+    int screenWidth, screenHeight;
+    app.getWindowSize(&screenWidth, &screenHeight);
 
     Scene* scene = new Scene();
-    Camera* camera = new Camera(width, height);
+    Camera* camera = new Camera(screenWidth, screenHeight);
 
     VideoTexture videoTexture = VideoTexture(app.config.width, app.config.height);
     videoTexture.initVideo(inputUrl);
@@ -115,10 +115,10 @@ int main(int argc, char** argv) {
 
     // textures
     Texture cubeTexture = Texture(CONTAINER_TEXTURE);
-    std::vector<TextureID> cubeTextures = { cubeTexture.ID, 0 };
+    std::vector<TextureID> cubeTextures = { cubeTexture.ID };
 
     Texture floorTexture = Texture(METAL_TEXTURE);
-    std::vector<TextureID> floorTextures = { floorTexture.ID, 0 };
+    std::vector<TextureID> floorTextures = { floorTexture.ID };
 
     std::vector<Vertex> cubeVertices {
         // Front face
@@ -205,44 +205,23 @@ int main(int argc, char** argv) {
     scene->addChildNode(cubeNode2);
     scene->addChildNode(planeNode);
 
-    FullScreenQuad fsQuad = FullScreenQuad();
-
-    // framebuffer to render into
-    FrameBuffer framebuffer = FrameBuffer();
-    framebuffer.createColorAndDepthBuffers(app.config.width, app.config.height);
-
     app.onRender([&](double now, double dt) {
         processInput(&app, camera, dt);
 
-        // bind to framebuffer and draw scene as we normally would to color texture
-        framebuffer.bind();
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        // render all objects in scene
+        app.renderer.drawObjects(shader, scene, camera);
 
-        // must draw before drawing scene
+        // render skybox (render as last to prevent overdraw)
         app.renderer.drawSkyBox(skyboxShader, scene, camera);
 
-        // draw all objects in scene
-        app.renderer.draw(shader, scene, camera);
-
-        // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
-        framebuffer.unbind();
-        glViewport(0, 0, width, height);
-
-        // clear all relevant buffers
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
-        glClear(GL_COLOR_BUFFER_BIT);
-
+        // render video
         screenShader.bind();
-        screenShader.setInt("screenTexture", 0);
-        screenShader.setInt("videoTexture", 1);
-            framebuffer.colorBuffer.bind(0);
-                videoTexture.bind(1);
-                videoTexture.draw();
-                    fsQuad.draw();
-                videoTexture.unbind();
-            framebuffer.colorBuffer.unbind();
-        screenShader.unbind();
+        screenShader.setInt("videoTexture", 2);
+        videoTexture.bind(2);
+        videoTexture.draw();
+
+        // render to screen
+        app.renderer.drawToScreen(screenShader, screenWidth, screenHeight);
     });
 
     // run app loop (blocking)

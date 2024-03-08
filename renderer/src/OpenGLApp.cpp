@@ -54,7 +54,7 @@ int OpenGLApp::init() {
         return -1;
     }
 
-    renderer.init();
+    renderer.init(config.width, config.height);
 
     return 0;
 }

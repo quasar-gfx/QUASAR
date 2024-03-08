@@ -33,7 +33,7 @@ public:
 
     // generate a 2D LUT from the BRDF equations used
     Texture brdfLUT;
-    FullScreenQuad brdfFsQuad = FullScreenQuad();
+    FullScreenQuad brdfFsQuad;
 
     Scene() = default;
 
@@ -97,6 +97,7 @@ public:
         captureFramebuffer.unbind();
 
         brdfLUT = Texture(envCubeMap.width, envCubeMap.height, GL_RG16F, GL_RG, GL_FLOAT, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_LINEAR, GL_LINEAR);
+        brdfFsQuad.init();
 
         captureFramebuffer.bind();
         captureRenderBuffer.bind();

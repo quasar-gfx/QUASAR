@@ -25,6 +25,7 @@ int main(int argc, char** argv) {
     app.config.title = "Test App";
 
     std::string modelPath = "../../assets/models/Sponza/Sponza.gltf";
+    std::string hdrImagePath = "../../assets/textures/hdr/barcelona.hdr";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             app.config.width = atoi(argv[i + 1]);
@@ -38,6 +39,10 @@ int main(int argc, char** argv) {
             modelPath = argv[i + 1];
             i++;
         }
+        else if (!strcmp(argv[i], "-i") && i + 1 < argc) {
+            hdrImagePath = argv[i + 1];
+            i++;
+        }
         else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
             app.config.enableVSync = atoi(argv[i + 1]);
             i++;
@@ -46,11 +51,11 @@ int main(int argc, char** argv) {
 
     app.init();
 
-    int width, height;
-    app.getWindowSize(&width, &height);
+    int screenWidth, screenHeight;
+    app.getWindowSize(&screenWidth, &screenHeight);
 
     Scene* scene = new Scene();
-    Camera* camera = new Camera(width, height);
+    Camera* camera = new Camera(screenWidth, screenHeight);
 
     app.gui([&app](double now, double dt) {
         ImGui::NewFrame();
@@ -139,7 +144,7 @@ int main(int argc, char** argv) {
     std::vector<TextureID> ironTextures = { ironAlbedo.ID, 0, ironNormal.ID, ironMetallic.ID, ironRoughness.ID, ironAo.ID };
 
     Texture windowTexture = Texture("../../assets/textures/window.png");
-    std::vector<TextureID> windowTextures = { windowTexture.ID, 0 };
+    std::vector<TextureID> windowTextures = { windowTexture.ID };
 
     // objects
     std::vector<Vertex> cubeVertices {
@@ -251,7 +256,7 @@ int main(int argc, char** argv) {
     backpackNode->setScale(glm::vec3(0.25f));
 
     // load the HDR environment map
-    Texture hdrTexture = Texture("../../assets/textures/hdr/barcelona.hdr", GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
+    Texture hdrTexture = Texture(hdrImagePath, GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
 
     // skybox
     CubeMap envCubeMap = CubeMap(512, 512, CUBE_MAP_HDR);
@@ -271,12 +276,6 @@ int main(int argc, char** argv) {
     scene->setupIBL(envCubeMap, convolutionShader, prefilterShader, brdfShader);
     scene->setEnvMap(&envCubeMap);
 
-    FullScreenQuad outputFsQuad = FullScreenQuad();
-
-    // framebuffer to render into
-    FrameBuffer framebuffer = FrameBuffer();
-    framebuffer.createColorAndDepthBuffers(app.config.width, app.config.height);
-
     Shader dirLightShadowsShader;
     dirLightShadowsShader.loadFromFile("shaders/shadow.vert", "shaders/shadow.frag");
 
@@ -295,31 +294,14 @@ int main(int argc, char** argv) {
         pointLight3->setPosition(glm::vec3(-1.45f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));
         pointLight4->setPosition(glm::vec3(2.2f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));
 
-        // bind to framebuffer and draw scene as we normally would to color texture
-        framebuffer.bind();
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        // draw all objects in scene
-        app.renderer.draw(pbrShader, scene, camera);
+        // render all objects in scene
+        app.renderer.drawObjects(pbrShader, scene, camera);
 
         // render skybox (render as last to prevent overdraw)
         app.renderer.drawSkyBox(backgroundShader, scene, camera);
 
-        // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
-        framebuffer.unbind();
-        glViewport(0, 0, width, height);
-
-        // clear all relevant buffers
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        screenShader.bind();
-        screenShader.setInt("screenTexture", 0);
-            framebuffer.colorBuffer.bind(0);
-                outputFsQuad.draw();
-            framebuffer.colorBuffer.unbind();
-        screenShader.unbind();
+        // render to screen
+        app.renderer.drawToScreen(screenShader, screenWidth, screenHeight);
     });
 
     // run app loop (blocking)

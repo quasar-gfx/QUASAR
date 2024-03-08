@@ -3,11 +3,12 @@ out vec4 FragColor;
 
 in vec2 TexCoords;
 
-uniform sampler2D screenTexture;
+uniform sampler2D screenColor;
+uniform sampler2D screenDepth;
 
 void main() {
     vec2 uv = TexCoords;
 
-    vec3 col = texture(screenTexture, uv).rgb;
+    vec3 col = texture(screenColor, uv).rgb;
     FragColor = vec4(col, 1.0);
 }

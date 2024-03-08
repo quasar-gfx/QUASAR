@@ -1,6 +1,9 @@
 #include <OpenGLRenderer.h>
 
-void OpenGLRenderer::init() {
+void OpenGLRenderer::init(unsigned int width, unsigned int height) {
+    this->width = width;
+    this->height = height;
+
     // enable depth testing
     glEnable(GL_DEPTH_TEST);
 
@@ -17,6 +20,9 @@ void OpenGLRenderer::init() {
     // enable aplha blending
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    outputFsQuad.init();
+    framebuffer.createColorAndDepthBuffers(width, height);
 }
 
 void OpenGLRenderer::updateDirLightShadowMap(Shader &dirLightShadowsShader, Scene* scene, Camera* camera) {
@@ -62,6 +68,9 @@ void OpenGLRenderer::updatePointLightShadowMaps(Shader &pointLightShadowsShader,
 }
 
 void OpenGLRenderer::drawSkyBox(Shader &backgroundShader, Scene* scene, Camera* camera) {
+    framebuffer.bind();
+    // dont clear color or depth bit here, since we want this to draw over
+
     backgroundShader.bind();
     backgroundShader.setInt("environmentMap", 0);
     backgroundShader.setMat4("view", camera->getViewMatrix());
@@ -76,9 +85,16 @@ void OpenGLRenderer::drawSkyBox(Shader &backgroundShader, Scene* scene, Camera* 
     }
 
     backgroundShader.unbind();
+
+    framebuffer.unbind();
 }
 
-void OpenGLRenderer::draw(Shader &shader, Scene* scene, Camera* camera) {
+void OpenGLRenderer::drawObjects(Shader &shader, Scene* scene, Camera* camera) {
+    // bind to framebuffer and draw scene as we normally would to color texture
+    framebuffer.bind();
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     shader.bind();
 
     shader.setMat4("view", camera->getViewMatrix());
@@ -114,6 +130,9 @@ void OpenGLRenderer::draw(Shader &shader, Scene* scene, Camera* camera) {
     }
 
     shader.unbind();
+
+    // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
+    framebuffer.unbind();
 }
 
 void OpenGLRenderer::drawNode(Shader &shader, Node* node, glm::mat4 parentTransform) {
@@ -128,4 +147,23 @@ void OpenGLRenderer::drawNode(Shader &shader, Node* node, glm::mat4 parentTransf
     for (auto& child : node->children) {
         drawNode(shader, child, model);
     }
+}
+
+void OpenGLRenderer::drawToScreen(Shader &screenShader, unsigned int screenWidth, unsigned int screenHeight) {
+    glViewport(0, 0, screenWidth, screenHeight);
+
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    screenShader.bind();
+    screenShader.setInt("screenColor", 0);
+    framebuffer.colorBuffer.bind(0);
+    screenShader.setInt("screenDepth", 1);
+    framebuffer.depthBuffer.bind(1);
+
+    outputFsQuad.draw();
+
+    framebuffer.colorBuffer.unbind();
+    framebuffer.depthBuffer.unbind();
+    screenShader.unbind();
 }

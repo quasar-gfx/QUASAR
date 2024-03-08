@@ -47,11 +47,11 @@ int main(int argc, char** argv) {
 
     app.init();
 
-    int width, height;
-    app.getWindowSize(&width, &height);
+    int screenWidth, screenHeight;
+    app.getWindowSize(&screenWidth, &screenHeight);
 
     Scene* scene = new Scene();
-    Camera* camera = new Camera(width, height);
+    Camera* camera = new Camera(screenWidth, screenHeight);
 
     app.gui([&app](double now, double dt) {
         ImGui::NewFrame();
@@ -206,34 +206,14 @@ int main(int argc, char** argv) {
     app.onRender([&](double now, double dt) {
         processInput(&app, camera, dt);
 
-        // bind to framebuffer and draw scene as we normally would to color texture
-        framebuffer.bind();
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
         // must draw before drawing scene
         app.renderer.drawSkyBox(skyboxShader, scene, camera);
 
-        // draw all objects in scene
-        app.renderer.draw(shader, scene, camera);
+        // render all objects in scene
+        app.renderer.drawObjects(shader, scene, camera);
 
-        // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
-        framebuffer.unbind();
-        glViewport(0, 0, width, height);
-
-        // clear all relevant buffers
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        screenShader.bind();
-        screenShader.setInt("screenTexture", 0);
-        screenShader.setInt("depthTexture", 1);
-            framebuffer.colorBuffer.bind(0);
-            framebuffer.depthBuffer.bind(1);
-                fsQuad.draw();
-            framebuffer.colorBuffer.unbind();
-            framebuffer.depthBuffer.unbind();
-        screenShader.unbind();
+        // render to screen
+        app.renderer.drawToScreen(screenShader, screenWidth, screenHeight);
     });
 
     // run app loop (blocking)

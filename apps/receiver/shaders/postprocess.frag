@@ -3,7 +3,8 @@ out vec4 FragColor;
 
 in vec2 TexCoords;
 
-uniform sampler2D screenTexture;
+uniform sampler2D screenColor;
+uniform sampler2D screenDepth;
 uniform sampler2D videoTexture;
 
 void main() {
@@ -11,7 +12,7 @@ void main() {
 
     vec3 col;
     if (uv.x < 0.05 || uv.x > 0.95 || uv.y < 0.05 || uv.y > 0.95) {
-        col = texture(screenTexture, uv).rgb;
+        col = texture(screenColor, uv).rgb;
     }
     else {
         col = texture(videoTexture, uv).rgb;
