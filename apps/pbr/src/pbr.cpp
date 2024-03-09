@@ -114,7 +114,7 @@ int main(int argc, char** argv) {
     // shaders
     Shader pbrShader, screenShader;
     pbrShader.loadFromFile("../assets/shaders/pbr/pbr.vert", "../assets/shaders/pbr/pbr.frag");
-    screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/postprocess.frag");
+    screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayColor.frag");
 
     // converts HDR equirectangular environment map to cubemap equivalent
     Shader equirectToCubeMapShader;

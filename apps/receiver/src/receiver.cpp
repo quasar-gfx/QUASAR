@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
     Shader skyboxShader, shader, screenShader;
     skyboxShader.loadFromFile("../assets/shaders/cubemap/background.vert", "../assets/shaders/cubemap/backgroundNoHDR.frag");
     shader.loadFromFile("../assets/shaders/simple.vert", "../assets/shaders/simple.frag");
-    screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/overlayVideo.frag");
+    screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayVideo.frag");
 
     // lights
     AmbientLight* ambientLight = new AmbientLight();
