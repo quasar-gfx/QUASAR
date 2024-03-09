@@ -4,7 +4,7 @@
 
 #include <Shader.h>
 #include <Texture.h>
-#include <Mesh.h>
+#include <Primatives.h>
 #include <Model.h>
 #include <CubeMap.h>
 #include <Entity.h>
@@ -143,80 +143,34 @@ int main(int argc, char** argv) {
     Texture ironAo = Texture("../assets/textures/pbr/rusted_iron/ao.png");
     std::vector<TextureID> ironTextures = { ironAlbedo.ID, 0, ironNormal.ID, ironMetallic.ID, ironRoughness.ID, ironAo.ID };
 
+    Texture plasticAlbedo = Texture("../assets/textures/pbr/plastic/albedo.png");
+    Texture plasticNormal = Texture("../assets/textures/pbr/plastic/normal.png");
+    Texture plasticMetallic = Texture("../assets/textures/pbr/plastic/metallic.png");
+    Texture plasticRoughness = Texture("../assets/textures/pbr/plastic/roughness.png");
+    Texture plasticAo = Texture("../assets/textures/pbr/plastic/ao.png");
+    std::vector<TextureID> plasticTextures = { plasticAlbedo.ID, 0, plasticNormal.ID, plasticMetallic.ID, plasticRoughness.ID, plasticAo.ID };
+
     Texture windowTexture = Texture("../assets/textures/window.png");
     std::vector<TextureID> windowTextures = { windowTexture.ID };
 
     // objects
-    std::vector<Vertex> cubeVertices {
-        // Front face
-        { {-1.0f, -1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Left
-        { { 1.0f, -1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Right
-        { { 1.0f,  1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Right
-        { { 1.0f,  1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Right
-        { {-1.0f,  1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Left
-        { {-1.0f, -1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Left
-
-        // Back face
-        { { 1.0f, -1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Right
-        { {-1.0f, -1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Left
-        { {-1.0f,  1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Left
-        { {-1.0f,  1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Left
-        { { 1.0f,  1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Right
-        { { 1.0f, -1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Right
-
-        // Left face
-        { {-1.0f, -1.0f, -1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },  // Bottom Front
-        { {-1.0f, -1.0f,  1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },  // Bottom Back
-        { {-1.0f,  1.0f,  1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },  // Top Back
-        { {-1.0f,  1.0f,  1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },  // Top Back
-        { {-1.0f,  1.0f, -1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },  // Top Front
-        { {-1.0f, -1.0f, -1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },  // Bottom Front
-
-        // Right face
-        { { 1.0f, -1.0f,  1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },  // Bottom Front
-        { { 1.0f, -1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },  // Bottom Back
-        { { 1.0f,  1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 1.0f} },  // Top Back
-        { { 1.0f,  1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 1.0f} },  // Top Back
-        { { 1.0f,  1.0f,  1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, 1.0f} },  // Top Front
-        { { 1.0f, -1.0f,  1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },  // Bottom Front
-
-        // Top face
-        { {-1.0f,  1.0f,  1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Left
-        { { 1.0f,  1.0f,  1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Right
-        { { 1.0f,  1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Right
-        { { 1.0f,  1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Right
-        { {-1.0f,  1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Left
-        { {-1.0f,  1.0f,  1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Left
-
-        // Bottom face
-        { {-1.0f, -1.0f, -1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Left
-        { { 1.0f, -1.0f, -1.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Right
-        { { 1.0f, -1.0f,  1.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Right
-        { { 1.0f, -1.0f,  1.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Right
-        { {-1.0f, -1.0f,  1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Left
-        { {-1.0f, -1.0f, -1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} }   // Bottom Left
-    };
-    Mesh* cubeMeshGold = new Mesh(cubeVertices, goldTextures);
-    Node* cubeNodeGold = new Node(cubeMeshGold);
+    Cube* cubeGold = new Cube(goldTextures);
+    Node* cubeNodeGold = new Node(cubeGold);
     cubeNodeGold->setTranslation(glm::vec3(-0.2f, 0.25f, -7.0f));
     cubeNodeGold->setScale(glm::vec3(0.5f));
 
-    Mesh* cubeMeshIron = new Mesh(cubeVertices, ironTextures);
-    Node* cubeNodeIron = new Node(cubeMeshIron);
+    Cube* cubeIron = new Cube(ironTextures);
+    Node* cubeNodeIron = new Node(cubeIron);
     cubeNodeIron->setTranslation(glm::vec3(1.5f, 0.25f, -3.0f));
     cubeNodeIron->setScale(glm::vec3(0.5f));
 
-    std::vector<Vertex> planeVertices = {
-        {{ 1.0f, -0.5f, -1.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
-        {{-1.0f, -0.5f, -1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
-        {{-1.0f, -0.5f,  1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+    Sphere* sphere = new Sphere(plasticTextures);
+    Node* sphereNodePlastic = new Node(sphere);
+    sphereNodePlastic->setTranslation(glm::vec3(1.0f, 1.5f, -8.0f));
+    sphereNodePlastic->setScale(glm::vec3(0.5f));
 
-        {{ 1.0f, -0.5f, -1.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
-        {{-1.0f, -0.5f,  1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-        {{ 1.0f, -0.5f,  1.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 0.0f}, {1.0f, 0.0f, 0.0f}}
-    };
-    Mesh* planeMesh = new Mesh(planeVertices, windowTextures);
-    Node* planeNode = new Node(planeMesh);
+    Plane* plane = new Plane(windowTextures);
+    Node* planeNode = new Node(plane);
     planeNode->setTranslation(glm::vec3(0.0f, 1.5f, -7.0f));
     planeNode->setRotationEuler(glm::vec3(-90.0f, 0.0f, 0.0f));
     planeNode->setScale(glm::vec3(0.5f));
@@ -268,6 +222,7 @@ int main(int argc, char** argv) {
     scene->addPointLight(pointLight4);
     scene->addChildNode(cubeNodeGold);
     scene->addChildNode(cubeNodeIron);
+    scene->addChildNode(sphereNodePlastic);
     scene->addChildNode(sponzaNode);
     scene->addChildNode(backpackNode);
     scene->addChildNode(planeNode);
@@ -288,7 +243,8 @@ int main(int argc, char** argv) {
         app.renderer.updateDirLightShadowMap(dirLightShadowsShader, scene, camera);
         app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, scene, camera);
 
-        // animate lights
+        // animate
+        cubeNodeGold->setRotationEuler(glm::vec3(0.0f, 10.0f * now, 0.0f));
         pointLight1->setPosition(glm::vec3(-1.45f + 0.25f * sin(now), 3.5f, -6.2f + 0.25f * cos(now)));
         pointLight2->setPosition(glm::vec3(2.2f + 0.25f * sin(now), 3.5f, -6.2f + 0.25f * cos(now)));
         pointLight3->setPosition(glm::vec3(-1.45f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));
