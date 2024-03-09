@@ -12,14 +12,11 @@
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 
-unsigned int Entity::nextID = 0;
-unsigned int Node::nextID = 0;
-
 int OpenGLApp::init() {
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-    glfwWindowHint(GLFW_SAMPLES, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, config.openglMajorVersion);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, config.openglMinorVersion);
+    glfwWindowHint(GLFW_SAMPLES, config.numSamples);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 #ifdef __APPLE__

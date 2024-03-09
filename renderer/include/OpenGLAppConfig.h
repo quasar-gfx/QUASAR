@@ -5,6 +5,9 @@
 
 struct Config {
     bool enableVSync = true;
+    unsigned char openglMajorVersion = 4;
+    unsigned char openglMinorVersion = 1;
+    unsigned char numSamples = 4;
     unsigned int width = 800;
     unsigned int height = 600;
     std::string title = "OpenGL App";
