@@ -5,7 +5,7 @@
 
 #include <Shader.h>
 #include <Texture.h>
-#include <Mesh.h>
+#include <Primatives.h>
 #include <CubeMap.h>
 #include <Entity.h>
 #include <Scene.h>
@@ -19,8 +19,8 @@
 
 void processInput(OpenGLApp* app, Camera* camera, float deltaTime);
 
-const std::string CONTAINER_TEXTURE = "../../assets/textures/container.jpg";
-const std::string METAL_TEXTURE = "../../assets/textures/metal.png";
+const std::string CONTAINER_TEXTURE = "../assets/textures/container.jpg";
+const std::string METAL_TEXTURE = "../assets/textures/metal.png";
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
     Scene* scene = new Scene();
     Camera* camera = new Camera(screenWidth, screenHeight);
 
-    VideoTexture videoTexture = VideoTexture(app.config.width, app.config.height);
+    VideoTexture videoTexture(app.config.width, app.config.height);
     videoTexture.initVideo(inputUrl);
 
     app.gui([&](double now, double dt) {
@@ -106,103 +106,48 @@ int main(int argc, char** argv) {
 
     // shaders
     Shader skyboxShader, shader, screenShader;
-    skyboxShader.loadFromFile("shaders/skybox.vert", "shaders/skybox.frag");
-    shader.loadFromFile("shaders/meshMaterial.vert", "shaders/meshMaterial.frag");
-    screenShader.loadFromFile("shaders/postprocess.vert", "shaders/postprocess.frag");
+    skyboxShader.loadFromFile("../assets/shaders/cubemap/background.vert", "../assets/shaders/cubemap/backgroundNoHDR.frag");
+    shader.loadFromFile("../assets/shaders/simple.vert", "../assets/shaders/simple.frag");
+    screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayVideo.frag");
 
     // lights
     AmbientLight* ambientLight = new AmbientLight();
 
     // textures
-    Texture cubeTexture = Texture(CONTAINER_TEXTURE);
-    std::vector<TextureID> cubeTextures = { cubeTexture.ID };
+    Texture conatinerTexture = Texture(CONTAINER_TEXTURE);
+    std::vector<TextureID> conatinerTextures = { conatinerTexture.ID };
 
     Texture floorTexture = Texture(METAL_TEXTURE);
     std::vector<TextureID> floorTextures = { floorTexture.ID };
 
-    std::vector<Vertex> cubeVertices {
-        // Front face
-        { {-0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Left
-        { { 0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Right
-        { { 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Right
-        { { 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Right
-        { {-0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Left
-        { {-0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Left
+    Cube* cube = new Cube(conatinerTextures);
 
-        // Back face
-        { { 0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Right
-        { {-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Left
-        { {-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Left
-        { {-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Left
-        { { 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Right
-        { { 0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Right
+    Node* cubeNode = new Node(cube);
+    cubeNode->setTranslation(glm::vec3(-1.0f, 0.0f, -1.0f));
 
-        // Left face
-        { {-0.5f, -0.5f, -0.5f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },  // Bottom Front
-        { {-0.5f, -0.5f,  0.5f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },  // Bottom Back
-        { {-0.5f,  0.5f,  0.5f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },  // Top Back
-        { {-0.5f,  0.5f,  0.5f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },  // Top Back
-        { {-0.5f,  0.5f, -0.5f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },  // Top Front
-        { {-0.5f, -0.5f, -0.5f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },  // Bottom Front
+    Sphere* sphere = new Sphere(conatinerTextures);
 
-        // Right face
-        { { 0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },  // Bottom Front
-        { { 0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },  // Bottom Back
-        { { 0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 1.0f} },  // Top Back
-        { { 0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 1.0f} },  // Top Back
-        { { 0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, 1.0f} },  // Top Front
-        { { 0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },  // Bottom Front
+    Node* sphereNode = new Node(sphere);
+    sphereNode->setTranslation(glm::vec3(2.0f, 1.0f, -3.0f));
 
-        // Top face
-        { {-0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Left
-        { { 0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Right
-        { { 0.5f,  0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Right
-        { { 0.5f,  0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Right
-        { {-0.5f,  0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Left
-        { {-0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Left
+    Plane* plane = new Plane(floorTextures);
 
-        // Bottom face
-        { {-0.5f, -0.5f, -0.5f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Left
-        { { 0.5f, -0.5f, -0.5f}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Right
-        { { 0.5f, -0.5f,  0.5f}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Right
-        { { 0.5f, -0.5f,  0.5f}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Right
-        { {-0.5f, -0.5f,  0.5f}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Left
-        { {-0.5f, -0.5f, -0.5f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} }   // Bottom Left
-    };
-    Mesh* cubeMesh = new Mesh(cubeVertices, cubeTextures);
-
-    Node* cubeNode1 = new Node(cubeMesh);
-    cubeNode1->setTranslation(glm::vec3(-1.0f, 0.0f, -1.0f));
-
-    Node* cubeNode2 = new Node(cubeMesh);
-    cubeNode2->setTranslation(glm::vec3(2.0f, 0.0f, 0.0f));
-
-    std::vector<Vertex> planeVertices = {
-        {{ 25.0f, -0.5f, -25.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
-        {{-25.0f, -0.5f, -25.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
-        {{-25.0f, -0.5f,  25.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-
-        {{ 25.0f, -0.5f, -25.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
-        {{-25.0f, -0.5f,  25.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-        {{ 25.0f, -0.5f,  25.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 0.0f}, {1.0f, 0.0f, 0.0f}}
-    };
-    Mesh* planeMesh = new Mesh(planeVertices, floorTextures);
-
-    Node* planeNode = new Node(planeMesh);
+    Node* planeNode = new Node(plane);
+    planeNode->setScale(glm::vec3(25.0f, 1.0f, 25.0f));
 
     CubeMap* skybox = new CubeMap({
-        "../../assets/textures/skybox/right.jpg",
-        "../../assets/textures/skybox/left.jpg",
-        "../../assets/textures/skybox/top.jpg",
-        "../../assets/textures/skybox/bottom.jpg",
-        "../../assets/textures/skybox/front.jpg",
-        "../../assets/textures/skybox/back.jpg"
+        "../assets/textures/skybox/right.jpg",
+        "../assets/textures/skybox/left.jpg",
+        "../assets/textures/skybox/top.jpg",
+        "../assets/textures/skybox/bottom.jpg",
+        "../assets/textures/skybox/front.jpg",
+        "../assets/textures/skybox/back.jpg"
     });
 
     scene->setAmbientLight(ambientLight);
     scene->setEnvMap(skybox);
-    scene->addChildNode(cubeNode1);
-    scene->addChildNode(cubeNode2);
+    scene->addChildNode(cubeNode);
+    scene->addChildNode(sphereNode);
     scene->addChildNode(planeNode);
 
     app.onRender([&](double now, double dt) {
@@ -216,8 +161,8 @@ int main(int argc, char** argv) {
 
         // render video
         screenShader.bind();
-        screenShader.setInt("videoTexture", 2);
-        videoTexture.bind(2);
+        screenShader.setInt("videoTexture", 4);
+        videoTexture.bind(4);
         videoTexture.draw();
 
         // render to screen

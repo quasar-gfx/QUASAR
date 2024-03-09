@@ -46,11 +46,11 @@ namespace std {
 
 class Mesh : public Entity {
 public:
-    std::vector<Vertex> vertices;
-    std::vector<unsigned int> indices;
     std::vector<TextureID> textures;
 
     float shininess = 1.0f;
+
+    Mesh() : Entity() {}
 
     Mesh(std::vector<Vertex> &vertices, std::vector<TextureID> &textures, float shininess = 1.0f)
             : vertices(vertices), textures(textures), shininess(shininess), Entity() {
@@ -75,8 +75,11 @@ public:
 
     static const unsigned int numTextures = 6;
 
-private:
+protected:
     TextureID VAO, VBO, EBO;
+
+    std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
 
     void init();
 };

@@ -4,7 +4,7 @@
 
 #include <Shader.h>
 #include <Texture.h>
-#include <Mesh.h>
+#include <Primatives.h>
 #include <Model.h>
 #include <CubeMap.h>
 #include <Entity.h>
@@ -20,14 +20,15 @@
 
 void processInput(OpenGLApp* app, Camera* camera, float deltaTime);
 
-const std::string BACKPACK_MODEL_PATH = "../../assets/models/backpack/backpack.obj";
+const std::string BACKPACK_MODEL_PATH = "../assets/models/backpack/backpack.obj";
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
     app.config.title = "Video Streamer";
 
     std::string outputUrl = "udp://localhost:1234";
-    std::string modelPath = "../../assets/models/Sponza/Sponza.gltf";
+    std::string modelPath = "../assets/models/Sponza/Sponza.gltf";
+    std::string hdrImagePath = "../assets/textures/hdr/barcelona.hdr";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             app.config.width = atoi(argv[i + 1]);
@@ -39,6 +40,10 @@ int main(int argc, char** argv) {
         }
         else if (!strcmp(argv[i], "-m") && i + 1 < argc) {
             modelPath = argv[i + 1];
+            i++;
+        }
+        else if (!strcmp(argv[i], "-i") && i + 1 < argc) {
+            hdrImagePath = argv[i + 1];
             i++;
         }
         else if (!strcmp(argv[i], "-o") && i + 1 < argc) {
@@ -110,44 +115,55 @@ int main(int argc, char** argv) {
 
     // shaders
     Shader pbrShader, screenShader;
-    pbrShader.loadFromFile("shaders/pbr.vert", "shaders/pbr.frag");
-    screenShader.loadFromFile("shaders/postprocess.vert", "shaders/postprocess.frag");
+    pbrShader.loadFromFile("../assets/shaders/pbr/pbr.vert", "../assets/shaders/pbr/pbr.frag");
+    screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayColor.frag");
 
     // converts HDR equirectangular environment map to cubemap equivalent
     Shader equirectToCubeMapShader;
-    equirectToCubeMapShader.loadFromFile("shaders/skybox.vert", "shaders/equirectangular2cubemap.frag");
+    equirectToCubeMapShader.loadFromFile("../assets/shaders/cubemap/cubemap.vert", "../assets/shaders/cubemap/equirectangular2cubemap.frag");
 
     // solves diffuse integral by convolution to create an irradiance cubemap
     Shader convolutionShader;
-    convolutionShader.loadFromFile("shaders/skybox.vert", "shaders/irradianceConvolution.frag");
+    convolutionShader.loadFromFile("../assets/shaders/cubemap/cubemap.vert", "../assets/shaders/pbr/irradianceConvolution.frag");
 
     // runs a quasi monte-carlo simulation on the environment lighting to create a prefilter cubemap
     Shader prefilterShader;
-    prefilterShader.loadFromFile("shaders/skybox.vert", "shaders/prefilter.frag");
+    prefilterShader.loadFromFile("../assets/shaders/cubemap/cubemap.vert", "../assets/shaders/pbr/prefilter.frag");
 
     // BRDF shader
     Shader brdfShader;
-    brdfShader.loadFromFile("shaders/brdf.vert", "shaders/brdf.frag");
+    brdfShader.loadFromFile("../assets/shaders/pbr/brdf.vert", "../assets/shaders/pbr/brdf.frag");
 
     // background skybox shader
     Shader backgroundShader;
-    backgroundShader.loadFromFile("shaders/background.vert", "shaders/background.frag");
+    backgroundShader.loadFromFile("../assets/shaders/cubemap/background.vert", "../assets/shaders/cubemap/backgroundHDR.frag");
 
     // textures
-    Texture albedo = Texture("../../assets/textures/pbr/gold/albedo.png");
-    Texture normal = Texture("../../assets/textures/pbr/gold/normal.png");
-    Texture metallic = Texture("../../assets/textures/pbr/gold/metallic.png");
-    Texture roughness = Texture("../../assets/textures/pbr/gold/roughness.png");
-    Texture ao = Texture("../../assets/textures/pbr/gold/ao.png");
+    Texture albedo = Texture("../assets/textures/pbr/gold/albedo.png");
+    Texture normal = Texture("../assets/textures/pbr/gold/normal.png");
+    Texture metallic = Texture("../assets/textures/pbr/gold/metallic.png");
+    Texture roughness = Texture("../assets/textures/pbr/gold/roughness.png");
+    Texture ao = Texture("../assets/textures/pbr/gold/ao.png");
     std::vector<TextureID> goldTextures = { albedo.ID, 0, normal.ID, metallic.ID, roughness.ID, ao.ID };
 
-    Texture ironAlbedo = Texture("../../assets/textures/pbr/rusted_iron/albedo.png");
-    Texture ironNormal = Texture("../../assets/textures/pbr/rusted_iron/normal.png");
-    Texture ironMetallic = Texture("../../assets/textures/pbr/rusted_iron/metallic.png");
-    Texture ironRoughness = Texture("../../assets/textures/pbr/rusted_iron/roughness.png");
-    Texture ironAo = Texture("../../assets/textures/pbr/rusted_iron/ao.png");
+    Texture ironAlbedo = Texture("../assets/textures/pbr/rusted_iron/albedo.png");
+    Texture ironNormal = Texture("../assets/textures/pbr/rusted_iron/normal.png");
+    Texture ironMetallic = Texture("../assets/textures/pbr/rusted_iron/metallic.png");
+    Texture ironRoughness = Texture("../assets/textures/pbr/rusted_iron/roughness.png");
+    Texture ironAo = Texture("../assets/textures/pbr/rusted_iron/ao.png");
     std::vector<TextureID> ironTextures = { ironAlbedo.ID, 0, ironNormal.ID, ironMetallic.ID, ironRoughness.ID, ironAo.ID };
 
+    Texture plasticAlbedo = Texture("../assets/textures/pbr/plastic/albedo.png");
+    Texture plasticNormal = Texture("../assets/textures/pbr/plastic/normal.png");
+    Texture plasticMetallic = Texture("../assets/textures/pbr/plastic/metallic.png");
+    Texture plasticRoughness = Texture("../assets/textures/pbr/plastic/roughness.png");
+    Texture plasticAo = Texture("../assets/textures/pbr/plastic/ao.png");
+    std::vector<TextureID> plasticTextures = { plasticAlbedo.ID, 0, plasticNormal.ID, plasticMetallic.ID, plasticRoughness.ID, plasticAo.ID };
+
+    Texture windowTexture = Texture("../assets/textures/window.png");
+    std::vector<TextureID> windowTextures = { windowTexture.ID };
+
+    // objects
     std::vector<Vertex> cubeVertices {
         // Front face
         { {-1.0f, -1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Left
@@ -197,32 +213,45 @@ int main(int argc, char** argv) {
         { {-1.0f, -1.0f,  1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Left
         { {-1.0f, -1.0f, -1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} }   // Bottom Left
     };
-    Mesh* cubeMeshGold = new Mesh(cubeVertices, goldTextures);
-    Node* cubeNodeGold = new Node(cubeMeshGold);
-    cubeNodeGold->setTranslation(glm::vec3(-5.0f, 0.5f, -1.0f));
+    Mesh* cubeGold = new Mesh(cubeVertices, goldTextures);
+    Node* cubeNodeGold = new Node(cubeGold);
+    cubeNodeGold->setTranslation(glm::vec3(-0.2f, 0.25f, -7.0f));
+    cubeNodeGold->setScale(glm::vec3(0.5f));
 
-    Mesh* cubeMeshIron = new Mesh(cubeVertices, ironTextures);
-    Node* cubeNodeIron = new Node(cubeMeshIron);
-    cubeNodeIron->setTranslation(glm::vec3(5.0f, 0.5f, -1.0f));
+    Mesh* cubeIron = new Mesh(cubeVertices, ironTextures);
+    Node* cubeNodeIron = new Node(cubeIron);
+    cubeNodeIron->setTranslation(glm::vec3(1.5f, 0.25f, -3.0f));
+    cubeNodeIron->setScale(glm::vec3(0.5f));
+
+    Sphere* sphere = new Sphere(plasticTextures);
+    Node* sphereNodePlastic = new Node(sphere);
+    sphereNodePlastic->setTranslation(glm::vec3(1.0f, 1.5f, -8.0f));
+    sphereNodePlastic->setScale(glm::vec3(0.5f));
+
+    Plane* plane = new Plane(windowTextures);
+    Node* planeNode = new Node(plane);
+    planeNode->setTranslation(glm::vec3(0.0f, 1.5f, -7.0f));
+    planeNode->setRotationEuler(glm::vec3(-90.0f, 0.0f, 0.0f));
+    planeNode->setScale(glm::vec3(0.5f));
 
     // lights
-    DirectionalLight* directionalLight = new DirectionalLight(glm::vec3(0.8f, 0.8f, 0.8f), 10.0f);
-    directionalLight->setDirection(glm::vec3(-0.2f, -1.0f, -0.3f));
+    DirectionalLight* directionalLight = new DirectionalLight(glm::vec3(0.8f, 0.8f, 0.8f), 0.1f);
+    directionalLight->setDirection(glm::vec3(0.0f, -1.0f, -0.3f));
 
     PointLight* pointLight1 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
-    pointLight1->setPosition(glm::vec3(-1.45f, 0.9f, -6.2f));
+    pointLight1->setPosition(glm::vec3(-1.45f, 3.5f, -6.2f));
     pointLight1->setAttenuation(0.0f, 0.09f, 1.0f);
 
     PointLight* pointLight2 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
-    pointLight2->setPosition(glm::vec3(2.2f, 0.9f, -6.2f));
+    pointLight2->setPosition(glm::vec3(2.2f, 3.5f, -6.2f));
     pointLight2->setAttenuation(0.0f, 0.09f, 1.0f);
 
     PointLight* pointLight3 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
-    pointLight3->setPosition(glm::vec3(-1.45f, 0.9f, 4.89f));
+    pointLight3->setPosition(glm::vec3(-1.45f, 3.5f, 4.89f));
     pointLight3->setAttenuation(0.0f, 0.09f, 1.0f);
 
     PointLight* pointLight4 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
-    pointLight4->setPosition(glm::vec3(2.2f, 0.9f, 4.89f));
+    pointLight4->setPosition(glm::vec3(2.2f, 3.5f, 4.89f));
     pointLight4->setAttenuation(0.0f, 0.09f, 1.0f);
 
     // models
@@ -236,14 +265,14 @@ int main(int argc, char** argv) {
     Model* backpack = new Model(BACKPACK_MODEL_PATH, true);
 
     Node* backpackNode = new Node(backpack);
-    backpackNode->setTranslation(glm::vec3(-0.25f, 0.25f, -3.0f));
+    backpackNode->setTranslation(glm::vec3(0.5f, 0.1f, -5.0f));
     backpackNode->setScale(glm::vec3(0.25f));
 
     // load the HDR environment map
-    Texture hdrTexture = Texture("../../assets/textures/hdr/barcelona.hdr", GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
+    Texture hdrTexture(hdrImagePath, GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
 
     // skybox
-    CubeMap envCubeMap = CubeMap(512, 512, CUBE_MAP_HDR);
+    CubeMap envCubeMap(512, 512, CUBE_MAP_HDR);
 
     scene->setDirectionalLight(directionalLight);
     scene->addPointLight(pointLight1);
@@ -252,21 +281,39 @@ int main(int argc, char** argv) {
     scene->addPointLight(pointLight4);
     scene->addChildNode(cubeNodeGold);
     scene->addChildNode(cubeNodeIron);
+    scene->addChildNode(sphereNodePlastic);
     scene->addChildNode(sponzaNode);
     scene->addChildNode(backpackNode);
+    scene->addChildNode(planeNode);
 
     scene->equirectToCubeMap(envCubeMap, hdrTexture, equirectToCubeMapShader);
     scene->setupIBL(envCubeMap, convolutionShader, prefilterShader, brdfShader);
     scene->setEnvMap(&envCubeMap);
 
-    int ret = videoStreamer.start(app.renderer.framebuffer.colorBuffer, outputUrl);
+    int ret = videoStreamer.start(app.renderer.gBuffer.colorBuffer, outputUrl);
     if (ret < 0) {
         std::cerr << "Failed to initialize FFMpeg Video Streamer" << std::endl;
         return ret;
     }
 
+    Shader dirLightShadowsShader;
+    dirLightShadowsShader.loadFromFile("../assets/shaders/shadows/dirShadow.vert", "../assets/shaders/shadows/dirShadow.frag");
+
+    Shader pointLightShadowsShader;
+    pointLightShadowsShader.loadFromFile("../assets/shaders/shadows/pointShadow.vert", "../assets/shaders/shadows/pointShadow.frag", "../assets/shaders/shadows/pointShadow.geo");
+
     app.onRender([&](double now, double dt) {
         processInput(&app, camera, dt);
+
+        app.renderer.updateDirLightShadowMap(dirLightShadowsShader, scene, camera);
+        app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, scene, camera);
+
+        // animate lights
+        cubeNodeGold->setRotationEuler(glm::vec3(0.0f, 10.0f * now, 0.0f));
+        pointLight1->setPosition(glm::vec3(-1.45f + 0.25f * sin(now), 3.5f, -6.2f + 0.25f * cos(now)));
+        pointLight2->setPosition(glm::vec3(2.2f + 0.25f * sin(now), 3.5f, -6.2f + 0.25f * cos(now)));
+        pointLight3->setPosition(glm::vec3(-1.45f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));
+        pointLight4->setPosition(glm::vec3(2.2f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));
 
         // render all objects in scene
         app.renderer.drawObjects(pbrShader, scene, camera);
@@ -285,8 +332,6 @@ int main(int argc, char** argv) {
 
     // cleanup
     app.cleanup();
-
-    std::cout << "Please do CTRL-C to exit!" << std::endl;
 
     return 0;
 }

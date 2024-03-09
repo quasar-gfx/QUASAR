@@ -4,7 +4,7 @@
 
 #include <Shader.h>
 #include <Texture.h>
-#include <Mesh.h>
+#include <Primatives.h>
 #include <Model.h>
 #include <CubeMap.h>
 #include <Entity.h>
@@ -18,14 +18,14 @@
 
 void processInput(OpenGLApp* app, Camera* camera, float deltaTime);
 
-const std::string BACKPACK_MODEL_PATH = "../../assets/models/backpack/backpack.obj";
+const std::string BACKPACK_MODEL_PATH = "../assets/models/backpack/backpack.obj";
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
     app.config.title = "Test App";
 
-    std::string modelPath = "../../assets/models/Sponza/Sponza.gltf";
-    std::string hdrImagePath = "../../assets/textures/hdr/barcelona.hdr";
+    std::string modelPath = "../assets/models/Sponza/Sponza.gltf";
+    std::string hdrImagePath = "../assets/textures/hdr/barcelona.hdr";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             app.config.width = atoi(argv[i + 1]);
@@ -105,118 +105,72 @@ int main(int argc, char** argv) {
 
     // shaders
     Shader pbrShader, screenShader;
-    pbrShader.loadFromFile("shaders/pbr.vert", "shaders/pbr.frag");
-    screenShader.loadFromFile("shaders/postprocess.vert", "shaders/postprocess.frag");
+    pbrShader.loadFromFile("../assets/shaders/pbr/pbr.vert", "../assets/shaders/pbr/pbr.frag");
+    screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayColor.frag");
 
     // converts HDR equirectangular environment map to cubemap equivalent
     Shader equirectToCubeMapShader;
-    equirectToCubeMapShader.loadFromFile("shaders/skybox.vert", "shaders/equirectangular2cubemap.frag");
+    equirectToCubeMapShader.loadFromFile("../assets/shaders/cubemap/cubemap.vert", "../assets/shaders/cubemap/equirectangular2cubemap.frag");
 
     // solves diffuse integral by convolution to create an irradiance cubemap
     Shader convolutionShader;
-    convolutionShader.loadFromFile("shaders/skybox.vert", "shaders/irradianceConvolution.frag");
+    convolutionShader.loadFromFile("../assets/shaders/cubemap/cubemap.vert", "../assets/shaders/pbr/irradianceConvolution.frag");
 
     // runs a quasi monte-carlo simulation on the environment lighting to create a prefilter cubemap
     Shader prefilterShader;
-    prefilterShader.loadFromFile("shaders/skybox.vert", "shaders/prefilter.frag");
+    prefilterShader.loadFromFile("../assets/shaders/cubemap/cubemap.vert", "../assets/shaders/pbr/prefilter.frag");
 
     // BRDF shader
     Shader brdfShader;
-    brdfShader.loadFromFile("shaders/brdf.vert", "shaders/brdf.frag");
+    brdfShader.loadFromFile("../assets/shaders/pbr/brdf.vert", "../assets/shaders/pbr/brdf.frag");
 
     // background skybox shader
     Shader backgroundShader;
-    backgroundShader.loadFromFile("shaders/background.vert", "shaders/background.frag");
+    backgroundShader.loadFromFile("../assets/shaders/cubemap/background.vert", "../assets/shaders/cubemap/backgroundHDR.frag");
 
     // textures
-    Texture albedo = Texture("../../assets/textures/pbr/gold/albedo.png");
-    Texture normal = Texture("../../assets/textures/pbr/gold/normal.png");
-    Texture metallic = Texture("../../assets/textures/pbr/gold/metallic.png");
-    Texture roughness = Texture("../../assets/textures/pbr/gold/roughness.png");
-    Texture ao = Texture("../../assets/textures/pbr/gold/ao.png");
+    Texture albedo = Texture("../assets/textures/pbr/gold/albedo.png");
+    Texture normal = Texture("../assets/textures/pbr/gold/normal.png");
+    Texture metallic = Texture("../assets/textures/pbr/gold/metallic.png");
+    Texture roughness = Texture("../assets/textures/pbr/gold/roughness.png");
+    Texture ao = Texture("../assets/textures/pbr/gold/ao.png");
     std::vector<TextureID> goldTextures = { albedo.ID, 0, normal.ID, metallic.ID, roughness.ID, ao.ID };
 
-    Texture ironAlbedo = Texture("../../assets/textures/pbr/rusted_iron/albedo.png");
-    Texture ironNormal = Texture("../../assets/textures/pbr/rusted_iron/normal.png");
-    Texture ironMetallic = Texture("../../assets/textures/pbr/rusted_iron/metallic.png");
-    Texture ironRoughness = Texture("../../assets/textures/pbr/rusted_iron/roughness.png");
-    Texture ironAo = Texture("../../assets/textures/pbr/rusted_iron/ao.png");
+    Texture ironAlbedo = Texture("../assets/textures/pbr/rusted_iron/albedo.png");
+    Texture ironNormal = Texture("../assets/textures/pbr/rusted_iron/normal.png");
+    Texture ironMetallic = Texture("../assets/textures/pbr/rusted_iron/metallic.png");
+    Texture ironRoughness = Texture("../assets/textures/pbr/rusted_iron/roughness.png");
+    Texture ironAo = Texture("../assets/textures/pbr/rusted_iron/ao.png");
     std::vector<TextureID> ironTextures = { ironAlbedo.ID, 0, ironNormal.ID, ironMetallic.ID, ironRoughness.ID, ironAo.ID };
 
-    Texture windowTexture = Texture("../../assets/textures/window.png");
+    Texture plasticAlbedo = Texture("../assets/textures/pbr/plastic/albedo.png");
+    Texture plasticNormal = Texture("../assets/textures/pbr/plastic/normal.png");
+    Texture plasticMetallic = Texture("../assets/textures/pbr/plastic/metallic.png");
+    Texture plasticRoughness = Texture("../assets/textures/pbr/plastic/roughness.png");
+    Texture plasticAo = Texture("../assets/textures/pbr/plastic/ao.png");
+    std::vector<TextureID> plasticTextures = { plasticAlbedo.ID, 0, plasticNormal.ID, plasticMetallic.ID, plasticRoughness.ID, plasticAo.ID };
+
+    Texture windowTexture = Texture("../assets/textures/window.png");
     std::vector<TextureID> windowTextures = { windowTexture.ID };
 
     // objects
-    std::vector<Vertex> cubeVertices {
-        // Front face
-        { {-1.0f, -1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Left
-        { { 1.0f, -1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Right
-        { { 1.0f,  1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Right
-        { { 1.0f,  1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Right
-        { {-1.0f,  1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Left
-        { {-1.0f, -1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Left
-
-        // Back face
-        { { 1.0f, -1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Right
-        { {-1.0f, -1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Left
-        { {-1.0f,  1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Left
-        { {-1.0f,  1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Left
-        { { 1.0f,  1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Right
-        { { 1.0f, -1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Right
-
-        // Left face
-        { {-1.0f, -1.0f, -1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },  // Bottom Front
-        { {-1.0f, -1.0f,  1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },  // Bottom Back
-        { {-1.0f,  1.0f,  1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },  // Top Back
-        { {-1.0f,  1.0f,  1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },  // Top Back
-        { {-1.0f,  1.0f, -1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },  // Top Front
-        { {-1.0f, -1.0f, -1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },  // Bottom Front
-
-        // Right face
-        { { 1.0f, -1.0f,  1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },  // Bottom Front
-        { { 1.0f, -1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },  // Bottom Back
-        { { 1.0f,  1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 1.0f} },  // Top Back
-        { { 1.0f,  1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 1.0f} },  // Top Back
-        { { 1.0f,  1.0f,  1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, 1.0f} },  // Top Front
-        { { 1.0f, -1.0f,  1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },  // Bottom Front
-
-        // Top face
-        { {-1.0f,  1.0f,  1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Left
-        { { 1.0f,  1.0f,  1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Right
-        { { 1.0f,  1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Right
-        { { 1.0f,  1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Right
-        { {-1.0f,  1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Left
-        { {-1.0f,  1.0f,  1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Left
-
-        // Bottom face
-        { {-1.0f, -1.0f, -1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Left
-        { { 1.0f, -1.0f, -1.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Right
-        { { 1.0f, -1.0f,  1.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Right
-        { { 1.0f, -1.0f,  1.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Right
-        { {-1.0f, -1.0f,  1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Left
-        { {-1.0f, -1.0f, -1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} }   // Bottom Left
-    };
-    Mesh* cubeMeshGold = new Mesh(cubeVertices, goldTextures);
-    Node* cubeNodeGold = new Node(cubeMeshGold);
+    Cube* cubeGold = new Cube(goldTextures);
+    Node* cubeNodeGold = new Node(cubeGold);
     cubeNodeGold->setTranslation(glm::vec3(-0.2f, 0.25f, -7.0f));
     cubeNodeGold->setScale(glm::vec3(0.5f));
 
-    Mesh* cubeMeshIron = new Mesh(cubeVertices, ironTextures);
-    Node* cubeNodeIron = new Node(cubeMeshIron);
+    Cube* cubeIron = new Cube(ironTextures);
+    Node* cubeNodeIron = new Node(cubeIron);
     cubeNodeIron->setTranslation(glm::vec3(1.5f, 0.25f, -3.0f));
     cubeNodeIron->setScale(glm::vec3(0.5f));
 
-    std::vector<Vertex> planeVertices = {
-        {{ 1.0f, -0.5f, -1.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
-        {{-1.0f, -0.5f, -1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
-        {{-1.0f, -0.5f,  1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+    Sphere* sphere = new Sphere(plasticTextures);
+    Node* sphereNodePlastic = new Node(sphere);
+    sphereNodePlastic->setTranslation(glm::vec3(1.0f, 1.5f, -8.0f));
+    sphereNodePlastic->setScale(glm::vec3(0.5f));
 
-        {{ 1.0f, -0.5f, -1.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
-        {{-1.0f, -0.5f,  1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-        {{ 1.0f, -0.5f,  1.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 0.0f}, {1.0f, 0.0f, 0.0f}}
-    };
-    Mesh* planeMesh = new Mesh(planeVertices, windowTextures);
-    Node* planeNode = new Node(planeMesh);
+    Plane* plane = new Plane(windowTextures);
+    Node* planeNode = new Node(plane);
     planeNode->setTranslation(glm::vec3(0.0f, 1.5f, -7.0f));
     planeNode->setRotationEuler(glm::vec3(-90.0f, 0.0f, 0.0f));
     planeNode->setScale(glm::vec3(0.5f));
@@ -256,10 +210,10 @@ int main(int argc, char** argv) {
     backpackNode->setScale(glm::vec3(0.25f));
 
     // load the HDR environment map
-    Texture hdrTexture = Texture(hdrImagePath, GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
+    Texture hdrTexture(hdrImagePath, GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
 
     // skybox
-    CubeMap envCubeMap = CubeMap(512, 512, CUBE_MAP_HDR);
+    CubeMap envCubeMap(512, 512, CUBE_MAP_HDR);
 
     scene->setDirectionalLight(directionalLight);
     scene->addPointLight(pointLight1);
@@ -268,6 +222,7 @@ int main(int argc, char** argv) {
     scene->addPointLight(pointLight4);
     scene->addChildNode(cubeNodeGold);
     scene->addChildNode(cubeNodeIron);
+    scene->addChildNode(sphereNodePlastic);
     scene->addChildNode(sponzaNode);
     scene->addChildNode(backpackNode);
     scene->addChildNode(planeNode);
@@ -277,10 +232,10 @@ int main(int argc, char** argv) {
     scene->setEnvMap(&envCubeMap);
 
     Shader dirLightShadowsShader;
-    dirLightShadowsShader.loadFromFile("shaders/shadow.vert", "shaders/shadow.frag");
+    dirLightShadowsShader.loadFromFile("../assets/shaders/shadows/dirShadow.vert", "../assets/shaders/shadows/dirShadow.frag");
 
     Shader pointLightShadowsShader;
-    pointLightShadowsShader.loadFromFile("shaders/pointShadow.vert", "shaders/pointShadow.frag", "shaders/pointShadow.geo");
+    pointLightShadowsShader.loadFromFile("../assets/shaders/shadows/pointShadow.vert", "../assets/shaders/shadows/pointShadow.frag", "../assets/shaders/shadows/pointShadow.geo");
 
     app.onRender([&](double now, double dt) {
         processInput(&app, camera, dt);
@@ -288,7 +243,8 @@ int main(int argc, char** argv) {
         app.renderer.updateDirLightShadowMap(dirLightShadowsShader, scene, camera);
         app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, scene, camera);
 
-        // animate lights
+        // animate
+        cubeNodeGold->setRotationEuler(glm::vec3(0.0f, 10.0f * now, 0.0f));
         pointLight1->setPosition(glm::vec3(-1.45f + 0.25f * sin(now), 3.5f, -6.2f + 0.25f * cos(now)));
         pointLight2->setPosition(glm::vec3(2.2f + 0.25f * sin(now), 3.5f, -6.2f + 0.25f * cos(now)));
         pointLight3->setPosition(glm::vec3(-1.45f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));
