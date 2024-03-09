@@ -22,7 +22,7 @@ void OpenGLRenderer::init(unsigned int width, unsigned int height) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     outputFsQuad.init();
-    framebuffer.createColorAndDepthBuffers(width, height);
+    gBuffer.createBuffers(width, height);
 }
 
 void OpenGLRenderer::updateDirLightShadowMap(Shader &dirLightShadowsShader, Scene* scene, Camera* camera) {
@@ -68,7 +68,7 @@ void OpenGLRenderer::updatePointLightShadowMaps(Shader &pointLightShadowsShader,
 }
 
 void OpenGLRenderer::drawSkyBox(Shader &backgroundShader, Scene* scene, Camera* camera) {
-    framebuffer.bind();
+    gBuffer.bind();
     // dont clear color or depth bit here, since we want this to draw over
 
     backgroundShader.bind();
@@ -86,12 +86,12 @@ void OpenGLRenderer::drawSkyBox(Shader &backgroundShader, Scene* scene, Camera* 
 
     backgroundShader.unbind();
 
-    framebuffer.unbind();
+    gBuffer.unbind();
 }
 
 void OpenGLRenderer::drawObjects(Shader &shader, Scene* scene, Camera* camera) {
-    // bind to framebuffer and draw scene as we normally would to color texture
-    framebuffer.bind();
+    // bind to gBuffer and draw scene as we normally would to color texture
+    gBuffer.bind();
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -131,8 +131,8 @@ void OpenGLRenderer::drawObjects(Shader &shader, Scene* scene, Camera* camera) {
 
     shader.unbind();
 
-    // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
-    framebuffer.unbind();
+    // now bind back to default gBuffer and draw a quad plane with the attached gBuffer color texture
+    gBuffer.unbind();
 }
 
 void OpenGLRenderer::drawNode(Shader &shader, Node* node, glm::mat4 parentTransform) {
@@ -156,14 +156,20 @@ void OpenGLRenderer::drawToScreen(Shader &screenShader, unsigned int screenWidth
     glClear(GL_COLOR_BUFFER_BIT);
 
     screenShader.bind();
-    screenShader.setInt("screenColor", 0);
-    framebuffer.colorBuffer.bind(0);
-    screenShader.setInt("screenDepth", 1);
-    framebuffer.depthBuffer.bind(1);
+    screenShader.setInt("screenPositions", 0);
+    gBuffer.positionBuffer.bind(0);
+    screenShader.setInt("screenNormals", 1);
+    gBuffer.normalsBuffer.bind(1);
+    screenShader.setInt("screenColor", 2);
+    gBuffer.colorBuffer.bind(2);
+    screenShader.setInt("screenDepth", 3);
+    gBuffer.depthBuffer.bind(3);
 
     outputFsQuad.draw();
 
-    framebuffer.colorBuffer.unbind();
-    framebuffer.depthBuffer.unbind();
+    gBuffer.positionBuffer.unbind();
+    gBuffer.normalsBuffer.unbind();
+    gBuffer.colorBuffer.unbind();
+    gBuffer.depthBuffer.unbind();
     screenShader.unbind();
 }

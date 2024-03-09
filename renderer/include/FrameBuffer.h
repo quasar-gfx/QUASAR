@@ -23,7 +23,7 @@ public:
         glGenFramebuffers(1, &ID);
         glBindFramebuffer(GL_FRAMEBUFFER, ID);
 
-        colorBuffer = Texture(width, height, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE);
+        colorBuffer = Texture(width, height, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE);
         depthBuffer = Texture(width, height, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_FLOAT);
 
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorBuffer.ID, 0);
@@ -54,7 +54,42 @@ public:
     }
 };
 
-struct DirShadowBuffer : public FrameBuffer {
+class GeometryBuffer : public FrameBuffer {
+public:
+    Texture positionBuffer;
+    Texture normalsBuffer;
+
+    void createBuffers(unsigned int width, unsigned int height) {
+        this->width = width;
+        this->height = height;
+
+        glGenFramebuffers(1, &ID);
+        glBindFramebuffer(GL_FRAMEBUFFER, ID);
+
+        positionBuffer = Texture(width, height, GL_RGBA16F, GL_RGBA, GL_FLOAT, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, positionBuffer.ID, 0);
+
+        normalsBuffer = Texture(width, height, GL_RGBA16F, GL_RGBA, GL_FLOAT, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, normalsBuffer.ID, 0);
+
+        colorBuffer = Texture(width, height, GL_RGBA16F, GL_RGBA, GL_FLOAT, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, colorBuffer.ID, 0);
+
+        depthBuffer = Texture(width, height, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_FLOAT);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBuffer.ID, 0);
+
+        unsigned int attachments[3] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
+        glDrawBuffers(3, attachments);
+
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+            throw std::runtime_error("Framebuffer is not complete!");
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+};
+
+class DirShadowBuffer : public FrameBuffer {
 public:
     void createColorAndDepthBuffers(unsigned int width, unsigned int height) {
         this->width = width;
@@ -81,7 +116,7 @@ public:
     }
 };
 
-struct PointShadowBuffer : public FrameBuffer {
+class PointShadowBuffer : public FrameBuffer {
 public:
     CubeMap depthCubeMap;
 

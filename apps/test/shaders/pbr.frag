@@ -1,5 +1,8 @@
 #version 410 core
-out vec4 FragColor;
+layout(location = 0) out vec4 positionBuffer;
+layout(location = 1) out vec4 normalsBuffer;
+layout(location = 2) out vec4 FragColor;
+
 in vec2 TexCoords;
 in vec3 WorldPos;
 in vec3 Normal;
@@ -309,5 +312,7 @@ void main() {
     // gamma correct
     color = pow(color, vec3(1.0/2.2));
 
+    positionBuffer = vec4(WorldPos, 1.0);
+    normalsBuffer = vec4(normalize(Normal), 1.0);
     FragColor = vec4(color, alpha);
 }

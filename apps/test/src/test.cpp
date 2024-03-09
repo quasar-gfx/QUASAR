@@ -298,7 +298,7 @@ int main(int argc, char** argv) {
         app.renderer.drawObjects(pbrShader, scene, camera);
 
         // render skybox (render as last to prevent overdraw)
-        app.renderer.drawSkyBox(backgroundShader, scene, camera);
+        // app.renderer.drawSkyBox(backgroundShader, scene, camera);
 
         // render to screen
         app.renderer.drawToScreen(screenShader, screenWidth, screenHeight);

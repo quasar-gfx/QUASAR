@@ -12,7 +12,7 @@ public:
     unsigned int width, height;
 
     FullScreenQuad outputFsQuad;
-    FrameBuffer framebuffer;
+    GeometryBuffer gBuffer;
 
     OpenGLRenderer() = default;
     ~OpenGLRenderer() = default;

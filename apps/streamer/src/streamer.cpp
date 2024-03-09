@@ -259,7 +259,7 @@ int main(int argc, char** argv) {
     scene->setupIBL(envCubeMap, convolutionShader, prefilterShader, brdfShader);
     scene->setEnvMap(&envCubeMap);
 
-    int ret = videoStreamer.start(app.renderer.framebuffer.colorBuffer, outputUrl);
+    int ret = videoStreamer.start(app.renderer.gBuffer.colorBuffer, outputUrl);
     if (ret < 0) {
         std::cerr << "Failed to initialize FFMpeg Video Streamer" << std::endl;
         return ret;
