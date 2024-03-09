@@ -18,14 +18,14 @@
 
 void processInput(OpenGLApp* app, Camera* camera, float deltaTime);
 
-const std::string BACKPACK_MODEL_PATH = "../../assets/models/backpack/backpack.obj";
+const std::string BACKPACK_MODEL_PATH = "../assets/models/backpack/backpack.obj";
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
     app.config.title = "Test App";
 
-    std::string modelPath = "../../assets/models/Sponza/Sponza.gltf";
-    std::string hdrImagePath = "../../assets/textures/hdr/barcelona.hdr";
+    std::string modelPath = "../assets/models/Sponza/Sponza.gltf";
+    std::string hdrImagePath = "../assets/textures/hdr/barcelona.hdr";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             app.config.width = atoi(argv[i + 1]);
@@ -105,45 +105,45 @@ int main(int argc, char** argv) {
 
     // shaders
     Shader pbrShader, screenShader;
-    pbrShader.loadFromFile("shaders/pbr.vert", "shaders/pbr.frag");
-    screenShader.loadFromFile("shaders/postprocess.vert", "shaders/postprocess.frag");
+    pbrShader.loadFromFile("../assets/shaders/pbr/pbr.vert", "../assets/shaders/pbr/pbr.frag");
+    screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/postprocess.frag");
 
     // converts HDR equirectangular environment map to cubemap equivalent
     Shader equirectToCubeMapShader;
-    equirectToCubeMapShader.loadFromFile("shaders/skybox.vert", "shaders/equirectangular2cubemap.frag");
+    equirectToCubeMapShader.loadFromFile("../assets/shaders/cubemap/cubemap.vert", "../assets/shaders/cubemap/equirectangular2cubemap.frag");
 
     // solves diffuse integral by convolution to create an irradiance cubemap
     Shader convolutionShader;
-    convolutionShader.loadFromFile("shaders/skybox.vert", "shaders/irradianceConvolution.frag");
+    convolutionShader.loadFromFile("../assets/shaders/cubemap/cubemap.vert", "../assets/shaders/pbr/irradianceConvolution.frag");
 
     // runs a quasi monte-carlo simulation on the environment lighting to create a prefilter cubemap
     Shader prefilterShader;
-    prefilterShader.loadFromFile("shaders/skybox.vert", "shaders/prefilter.frag");
+    prefilterShader.loadFromFile("../assets/shaders/cubemap/cubemap.vert", "../assets/shaders/pbr/prefilter.frag");
 
     // BRDF shader
     Shader brdfShader;
-    brdfShader.loadFromFile("shaders/brdf.vert", "shaders/brdf.frag");
+    brdfShader.loadFromFile("../assets/shaders/pbr/brdf.vert", "../assets/shaders/pbr/brdf.frag");
 
     // background skybox shader
     Shader backgroundShader;
-    backgroundShader.loadFromFile("shaders/background.vert", "shaders/background.frag");
+    backgroundShader.loadFromFile("../assets/shaders/cubemap/background.vert", "../assets/shaders/cubemap/backgroundHDR.frag");
 
     // textures
-    Texture albedo = Texture("../../assets/textures/pbr/gold/albedo.png");
-    Texture normal = Texture("../../assets/textures/pbr/gold/normal.png");
-    Texture metallic = Texture("../../assets/textures/pbr/gold/metallic.png");
-    Texture roughness = Texture("../../assets/textures/pbr/gold/roughness.png");
-    Texture ao = Texture("../../assets/textures/pbr/gold/ao.png");
+    Texture albedo = Texture("../assets/textures/pbr/gold/albedo.png");
+    Texture normal = Texture("../assets/textures/pbr/gold/normal.png");
+    Texture metallic = Texture("../assets/textures/pbr/gold/metallic.png");
+    Texture roughness = Texture("../assets/textures/pbr/gold/roughness.png");
+    Texture ao = Texture("../assets/textures/pbr/gold/ao.png");
     std::vector<TextureID> goldTextures = { albedo.ID, 0, normal.ID, metallic.ID, roughness.ID, ao.ID };
 
-    Texture ironAlbedo = Texture("../../assets/textures/pbr/rusted_iron/albedo.png");
-    Texture ironNormal = Texture("../../assets/textures/pbr/rusted_iron/normal.png");
-    Texture ironMetallic = Texture("../../assets/textures/pbr/rusted_iron/metallic.png");
-    Texture ironRoughness = Texture("../../assets/textures/pbr/rusted_iron/roughness.png");
-    Texture ironAo = Texture("../../assets/textures/pbr/rusted_iron/ao.png");
+    Texture ironAlbedo = Texture("../assets/textures/pbr/rusted_iron/albedo.png");
+    Texture ironNormal = Texture("../assets/textures/pbr/rusted_iron/normal.png");
+    Texture ironMetallic = Texture("../assets/textures/pbr/rusted_iron/metallic.png");
+    Texture ironRoughness = Texture("../assets/textures/pbr/rusted_iron/roughness.png");
+    Texture ironAo = Texture("../assets/textures/pbr/rusted_iron/ao.png");
     std::vector<TextureID> ironTextures = { ironAlbedo.ID, 0, ironNormal.ID, ironMetallic.ID, ironRoughness.ID, ironAo.ID };
 
-    Texture windowTexture = Texture("../../assets/textures/window.png");
+    Texture windowTexture = Texture("../assets/textures/window.png");
     std::vector<TextureID> windowTextures = { windowTexture.ID };
 
     // objects
@@ -256,10 +256,10 @@ int main(int argc, char** argv) {
     backpackNode->setScale(glm::vec3(0.25f));
 
     // load the HDR environment map
-    Texture hdrTexture = Texture(hdrImagePath, GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
+    Texture hdrTexture(hdrImagePath, GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
 
     // skybox
-    CubeMap envCubeMap = CubeMap(512, 512, CUBE_MAP_HDR);
+    CubeMap envCubeMap(512, 512, CUBE_MAP_HDR);
 
     scene->setDirectionalLight(directionalLight);
     scene->addPointLight(pointLight1);
@@ -277,10 +277,10 @@ int main(int argc, char** argv) {
     scene->setEnvMap(&envCubeMap);
 
     Shader dirLightShadowsShader;
-    dirLightShadowsShader.loadFromFile("shaders/shadow.vert", "shaders/shadow.frag");
+    dirLightShadowsShader.loadFromFile("../assets/shaders/shadows/dirShadow.vert", "../assets/shaders/shadows/dirShadow.frag");
 
     Shader pointLightShadowsShader;
-    pointLightShadowsShader.loadFromFile("shaders/pointShadow.vert", "shaders/pointShadow.frag", "shaders/pointShadow.geo");
+    pointLightShadowsShader.loadFromFile("../assets/shaders/shadows/pointShadow.vert", "../assets/shaders/shadows/pointShadow.frag", "../assets/shaders/shadows/pointShadow.geo");
 
     app.onRender([&](double now, double dt) {
         processInput(&app, camera, dt);
@@ -298,7 +298,7 @@ int main(int argc, char** argv) {
         app.renderer.drawObjects(pbrShader, scene, camera);
 
         // render skybox (render as last to prevent overdraw)
-        // app.renderer.drawSkyBox(backgroundShader, scene, camera);
+        app.renderer.drawSkyBox(backgroundShader, scene, camera);
 
         // render to screen
         app.renderer.drawToScreen(screenShader, screenWidth, screenHeight);

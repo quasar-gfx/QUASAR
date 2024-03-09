@@ -3,6 +3,5 @@ project(Apps)
 
 add_subdirectory(test)
 add_subdirectory(pbr)
-add_subdirectory(depthBuffer)
 add_subdirectory(streamer)
 add_subdirectory(receiver)

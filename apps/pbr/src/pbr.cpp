@@ -22,10 +22,10 @@ int main(int argc, char** argv) {
     OpenGLApp app{};
     app.config.title = "PBR";
 
-    std::string modelPath = "../../assets/models/cerberus/cerberus.fbx";
-    std::string hdrImagePath = "../../assets/textures/hdr/newport_loft.hdr";
-    std::string cube1TexturePath = "../../assets/textures/pbr/gold";
-    std::string cube2TexturePath = "../../assets/textures/pbr/rusted_iron";
+    std::string modelPath = "../assets/models/cerberus/cerberus.fbx";
+    std::string hdrImagePath = "../assets/textures/hdr/newport_loft.hdr";
+    std::string cube1TexturePath = "../assets/textures/pbr/gold";
+    std::string cube2TexturePath = "../assets/textures/pbr/rusted_iron";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             app.config.width = atoi(argv[i + 1]);
@@ -113,28 +113,28 @@ int main(int argc, char** argv) {
 
     // shaders
     Shader pbrShader, screenShader;
-    pbrShader.loadFromFile("shaders/pbr.vert", "shaders/pbr.frag");
-    screenShader.loadFromFile("shaders/postprocess.vert", "shaders/postprocess.frag");
+    pbrShader.loadFromFile("../assets/shaders/pbr/pbr.vert", "../assets/shaders/pbr/pbr.frag");
+    screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/postprocess.frag");
 
     // converts HDR equirectangular environment map to cubemap equivalent
     Shader equirectToCubeMapShader;
-    equirectToCubeMapShader.loadFromFile("shaders/skybox.vert", "shaders/equirectangular2cubemap.frag");
+    equirectToCubeMapShader.loadFromFile("../assets/shaders/cubemap/cubemap.vert", "../assets/shaders/cubemap/equirectangular2cubemap.frag");
 
     // solves diffuse integral by convolution to create an irradiance cubemap
     Shader convolutionShader;
-    convolutionShader.loadFromFile("shaders/skybox.vert", "shaders/irradianceConvolution.frag");
+    convolutionShader.loadFromFile("../assets/shaders/cubemap/cubemap.vert", "../assets/shaders/pbr/irradianceConvolution.frag");
 
     // runs a quasi monte-carlo simulation on the environment lighting to create a prefilter cubemap
     Shader prefilterShader;
-    prefilterShader.loadFromFile("shaders/skybox.vert", "shaders/prefilter.frag");
+    prefilterShader.loadFromFile("../assets/shaders/cubemap/cubemap.vert", "../assets/shaders/pbr/prefilter.frag");
 
     // BRDF shader
     Shader brdfShader;
-    brdfShader.loadFromFile("shaders/brdf.vert", "shaders/brdf.frag");
+    brdfShader.loadFromFile("../assets/shaders/pbr/brdf.vert", "../assets/shaders/pbr/brdf.frag");
 
     // background skybox shader
     Shader backgroundShader;
-    backgroundShader.loadFromFile("shaders/background.vert", "shaders/background.frag");
+    backgroundShader.loadFromFile("../assets/shaders/cubemap/background.vert", "../assets/shaders/cubemap/backgroundHDR.frag");
 
     // textures
     Texture albedo = Texture(cube1TexturePath + "/albedo.png");
@@ -208,11 +208,11 @@ int main(int argc, char** argv) {
     Node* cubeNodeIron = new Node(cubeMeshIron);
     cubeNodeIron->setTranslation(glm::vec3(5.0f, 0.5f, -1.0f));
 
-    Texture gunAlbedo = Texture("../../assets/models/cerberus/Textures/Cerberus_A.tga");
-    Texture gunNormal = Texture("../../assets/models/cerberus/Textures/Cerberus_N.tga");
-    Texture gunMetallic = Texture("../../assets/models/cerberus/Textures/Cerberus_M.tga");
-    Texture gunRoughness = Texture("../../assets/models/cerberus/Textures/Cerberus_R.tga");
-    Texture gunAo = Texture("../../assets/models/cerberus/Textures/Cerberus_AO.tga");
+    Texture gunAlbedo = Texture("../assets/models/cerberus/Textures/Cerberus_A.tga");
+    Texture gunNormal = Texture("../assets/models/cerberus/Textures/Cerberus_N.tga");
+    Texture gunMetallic = Texture("../assets/models/cerberus/Textures/Cerberus_M.tga");
+    Texture gunRoughness = Texture("../assets/models/cerberus/Textures/Cerberus_R.tga");
+    Texture gunAo = Texture("../assets/models/cerberus/Textures/Cerberus_AO.tga");
     std::vector<TextureID> gunTextures = { gunAlbedo.ID, 0, gunNormal.ID, gunMetallic.ID, gunRoughness.ID, gunAo.ID };
 
     // models
@@ -224,10 +224,10 @@ int main(int argc, char** argv) {
     gunNode->setScale(glm::vec3(0.05f));
 
     // load the HDR environment map
-    Texture hdrTexture = Texture(hdrImagePath, GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
+    Texture hdrTexture(hdrImagePath, GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
 
     // skybox
-    CubeMap envCubeMap = CubeMap(512, 512, CUBE_MAP_HDR);
+    CubeMap envCubeMap(512, 512, CUBE_MAP_HDR);
 
     // lights
     PointLight* pointLight1 = new PointLight(glm::vec3(1.0, 1.0, 1.0), 300.0f);

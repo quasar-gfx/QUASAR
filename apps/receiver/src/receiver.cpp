@@ -19,8 +19,8 @@
 
 void processInput(OpenGLApp* app, Camera* camera, float deltaTime);
 
-const std::string CONTAINER_TEXTURE = "../../assets/textures/container.jpg";
-const std::string METAL_TEXTURE = "../../assets/textures/metal.png";
+const std::string CONTAINER_TEXTURE = "../assets/textures/container.jpg";
+const std::string METAL_TEXTURE = "../assets/textures/metal.png";
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
     Scene* scene = new Scene();
     Camera* camera = new Camera(screenWidth, screenHeight);
 
-    VideoTexture videoTexture = VideoTexture(app.config.width, app.config.height);
+    VideoTexture videoTexture(app.config.width, app.config.height);
     videoTexture.initVideo(inputUrl);
 
     app.gui([&](double now, double dt) {
@@ -106,9 +106,9 @@ int main(int argc, char** argv) {
 
     // shaders
     Shader skyboxShader, shader, screenShader;
-    skyboxShader.loadFromFile("shaders/skybox.vert", "shaders/skybox.frag");
-    shader.loadFromFile("shaders/meshMaterial.vert", "shaders/meshMaterial.frag");
-    screenShader.loadFromFile("shaders/postprocess.vert", "shaders/postprocess.frag");
+    skyboxShader.loadFromFile("../assets/shaders/cubemap/background.vert", "../assets/shaders/cubemap/backgroundNoHDR.frag");
+    shader.loadFromFile("../assets/shaders/simple.vert", "../assets/shaders/simple.frag");
+    screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/overlayVideo.frag");
 
     // lights
     AmbientLight* ambientLight = new AmbientLight();
@@ -191,12 +191,12 @@ int main(int argc, char** argv) {
     Node* planeNode = new Node(planeMesh);
 
     CubeMap* skybox = new CubeMap({
-        "../../assets/textures/skybox/right.jpg",
-        "../../assets/textures/skybox/left.jpg",
-        "../../assets/textures/skybox/top.jpg",
-        "../../assets/textures/skybox/bottom.jpg",
-        "../../assets/textures/skybox/front.jpg",
-        "../../assets/textures/skybox/back.jpg"
+        "../assets/textures/skybox/right.jpg",
+        "../assets/textures/skybox/left.jpg",
+        "../assets/textures/skybox/top.jpg",
+        "../assets/textures/skybox/bottom.jpg",
+        "../assets/textures/skybox/front.jpg",
+        "../assets/textures/skybox/back.jpg"
     });
 
     scene->setAmbientLight(ambientLight);
@@ -216,8 +216,8 @@ int main(int argc, char** argv) {
 
         // render video
         screenShader.bind();
-        screenShader.setInt("videoTexture", 2);
-        videoTexture.bind(2);
+        screenShader.setInt("videoTexture", 4);
+        videoTexture.bind(4);
         videoTexture.draw();
 
         // render to screen

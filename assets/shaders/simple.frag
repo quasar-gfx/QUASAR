@@ -1,5 +1,7 @@
 #version 410 core
-out vec4 FragColor;
+layout(location = 0) out vec4 positionBuffer;
+layout(location = 1) out vec4 normalsBuffer;
+layout(location = 2) out vec4 FragColor;
 
 in VS_OUT {
     vec3 FragPos;
@@ -105,5 +107,7 @@ void main() {
     }
     // result += addSkyBoxLight(norm, viewDir);
 
+    positionBuffer = vec4(fs_in.FragPos, 1.0);
+    normalsBuffer = vec4(normalize(fs_in.Normal), 1.0);
     FragColor = vec4(result, alpha);
 }

@@ -48,8 +48,8 @@ include_directories(
 add_subdirectory(${RENDERER})
 target_link_libraries(renderer ${RENDERER_LIBS})
 
-# copy assets to output directory
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/assets" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-
 # add apps
 add_subdirectory(apps)
+
+# copy assets to output directory
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/assets" DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/apps)
