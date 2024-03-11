@@ -61,9 +61,8 @@ int main(int argc, char** argv) {
         ImGui::NewFrame();
         ImGui::SetNextWindowPos(ImVec2(10, 10));
         ImGui::Begin(app.config.title.c_str(), 0, ImGuiWindowFlags_AlwaysAutoResize);
-        ImGui::Text("OpenGL Version: %s", glGetString(GL_VERSION));
-        ImGui::Text("GPU: %s", glGetString(GL_RENDERER));
-        ImGui::Text("\nFramerate %.2f FPS / Frametime %.4f ms", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+        ImGui::TextColored(ImVec4(1,1,0,1), "OpenGL Version: %s", glGetString(GL_VERSION));
+        ImGui::TextColored(ImVec4(1,1,0,1), "GPU: %s\n", glGetString(GL_RENDERER));
         ImGui::Text("Rendering Frame Rate: %.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
         ImGui::End();
     });

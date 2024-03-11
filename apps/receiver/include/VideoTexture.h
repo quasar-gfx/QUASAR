@@ -19,6 +19,8 @@ class VideoTexture : public Texture {
 public:
     std::string inputUrl = "udp://localhost:1234";
 
+    unsigned int width, height;
+
     int frameReceived = 0;
     float timeToReceiveFrame = 0.0f;
 
@@ -27,9 +29,9 @@ public:
             GLenum format = GL_RGB,
             GLenum type = GL_UNSIGNED_BYTE,
             GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE,
-            GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR) :
-            Texture(width, height, internalFormat, format, type, wrapS, wrapT, minFilter, magFilter) {
-    }
+            GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR)
+            : Texture(width, height, internalFormat, format, type, wrapS, wrapT, minFilter, magFilter),
+                width(width), height(height) { }
 
     ~VideoTexture() {
         cleanup();
