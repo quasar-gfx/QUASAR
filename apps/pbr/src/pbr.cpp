@@ -172,8 +172,8 @@ int main(int argc, char** argv) {
     Model* gun = new Model(modelPath, gunTextures);
     Node* gunNode = new Node(gun);
 
-    gunNode->setTranslation(glm::vec3(-2.5f, 1.0f, -1.0f));
-    gunNode->setRotationEuler(glm::vec3(-90.0f, 90.0f, 0.0f));
+    gunNode->setTranslation(glm::vec3(2.0f, 1.0f, -1.0f));
+    gunNode->setRotationEuler(glm::vec3(0.0f, 90.0f, 0.0f));
     gunNode->setScale(glm::vec3(0.05f));
 
     // load the HDR environment map

@@ -19,6 +19,9 @@ enum CameraMovement {
 class Camera {
 public:
     glm::vec3 position = glm::vec3(0.0f);
+    glm::quat rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+    glm::vec3 scale = glm::vec3(1.0f);
+
     glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
     glm::vec3 right = glm::vec3(-1.0f, 0.0f, 0.0f);
@@ -68,10 +71,14 @@ public:
 
     void setViewMatrix(glm::mat4 view) {
         this->view = view;
+
+        glm::vec3 skew;
+        glm::vec4 perspective;
+        glm::decompose(glm::inverse(view), scale, rotation, position, skew, perspective);
     }
 
     void updateViewMatrix() {
-        view = glm::lookAt(position, position + front, up);
+        view = glm::scale(glm::mat4(1.0f), 1.0f/scale) * glm::mat4_cast(glm::conjugate(rotation)) * glm::translate(glm::mat4(1.0f), -position);
     }
 
     void processKeyboard(CameraMovement direction, float deltaTime) {
@@ -88,7 +95,7 @@ public:
         updateViewMatrix();
     }
 
-    void processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true) {
+    void processMouseMovement(float xoffset, float yoffset, bool constrainPitch = true) {
         xoffset *= mouseSensitivity;
         yoffset *= mouseSensitivity;
 
@@ -104,7 +111,6 @@ public:
         }
 
         updateCameraVectors();
-        updateViewMatrix();
     }
 
     void processMouseScroll(float yoffset) {
@@ -135,6 +141,14 @@ private:
         // also re-calculate the right and up vector
         right = glm::normalize(glm::cross(front, worldUp));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
         up    = glm::normalize(glm::cross(right, front));
+
+        glm::mat4 newView = glm::lookAt(position, position + front, up);
+
+        glm::vec3 temp, skew;
+        glm::vec4 perspective;
+        glm::decompose(glm::inverse(newView), scale, rotation, temp, skew, perspective);
+
+        updateViewMatrix();
     }
 };
 
