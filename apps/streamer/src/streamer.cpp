@@ -70,6 +70,8 @@ int main(int argc, char** argv) {
         ImGui::NewFrame();
         ImGui::SetNextWindowPos(ImVec2(10, 10));
         ImGui::Begin(app.config.title.c_str(), 0, ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::Text("OpenGL Version: %s", glGetString(GL_VERSION));
+        ImGui::Text("GPU: %s", glGetString(GL_RENDERER));
         ImGui::Text("Rendering Frame Rate: %.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
         ImGui::Text("Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoStreamer.getFrameRate(), 1000.0f / videoStreamer.getFrameRate());
         ImGui::End();
@@ -260,7 +262,6 @@ int main(int argc, char** argv) {
     Node* sponzaNode = new Node(sponza);
     sponzaNode->setTranslation(glm::vec3(0.0f, -0.5f, 0.0f));
     sponzaNode->setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
-    sponzaNode->setScale(glm::vec3(0.01f));
 
     Model* backpack = new Model(BACKPACK_MODEL_PATH, true);
 

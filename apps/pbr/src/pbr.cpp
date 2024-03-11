@@ -65,10 +65,12 @@ int main(int argc, char** argv) {
     Scene* scene = new Scene();
     Camera* camera = new Camera(screenWidth, screenHeight);
 
-    app.gui([&app](double now, double dt) {
+    app.gui([&](double now, double dt) {
         ImGui::NewFrame();
         ImGui::SetNextWindowPos(ImVec2(10, 10));
         ImGui::Begin(app.config.title.c_str(), 0, ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::Text("OpenGL Version: %s", glGetString(GL_VERSION));
+        ImGui::Text("GPU: %s", glGetString(GL_RENDERER));
         ImGui::Text("Rendering Frame Rate: %.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
         ImGui::End();
     });
