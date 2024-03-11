@@ -16,6 +16,7 @@
 #include <OpenGLApp.h>
 
 #include <VideoTexture.h>
+#include <PoseStreamer.h>
 
 void processInput(OpenGLApp* app, Camera* camera, float deltaTime);
 
@@ -26,7 +27,8 @@ int main(int argc, char** argv) {
     OpenGLApp app{};
     app.config.title = "Video Receiver";
 
-    std::string inputUrl = "udp://localhost:1234";
+    std::string inputUrl = "udp://127.0.0.1:1234";
+    std::string poseURL = "udp://127.0.0.1:4321";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             app.config.width = atoi(argv[i + 1]);
@@ -38,6 +40,10 @@ int main(int argc, char** argv) {
         }
         else if (!strcmp(argv[i], "-i") && i + 1 < argc) {
             inputUrl = argv[i + 1];
+            i++;
+        }
+        else if (!strcmp(argv[i], "-p") && i + 1 < argc) {
+            poseURL = argv[i + 1];
             i++;
         }
         else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
@@ -56,6 +62,7 @@ int main(int argc, char** argv) {
 
     VideoTexture videoTexture(app.config.width, app.config.height);
     videoTexture.initVideo(inputUrl);
+    PoseStreamer poseStreamer(camera, poseURL);
 
     app.gui([&](double now, double dt) {
         ImGui::NewFrame();
@@ -154,6 +161,8 @@ int main(int argc, char** argv) {
 
     app.onRender([&](double now, double dt) {
         processInput(&app, camera, dt);
+
+        poseStreamer.sendPose();
 
         // render all objects in scene
         app.renderer.drawObjects(shader, scene, camera);

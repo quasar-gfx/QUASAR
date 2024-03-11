@@ -16,6 +16,8 @@
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 
+#include <glm/gtx/string_cast.hpp>
+
 void processInput(OpenGLApp* app, Camera* camera, float deltaTime);
 
 const std::string BACKPACK_MODEL_PATH = "../assets/models/backpack/backpack.obj";

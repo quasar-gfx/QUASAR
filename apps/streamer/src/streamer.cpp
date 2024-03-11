@@ -17,6 +17,7 @@
 #include <OpenGLApp.h>
 
 #include <VideoStreamer.h>
+#include <PoseReceiver.h>
 
 void processInput(OpenGLApp* app, Camera* camera, float deltaTime);
 
@@ -26,7 +27,8 @@ int main(int argc, char** argv) {
     OpenGLApp app{};
     app.config.title = "Video Streamer";
 
-    std::string outputUrl = "udp://localhost:1234";
+    std::string outputUrl = "udp://127.0.0.1:1234";
+    std::string poseURL = "udp://127.0.0.1:4321";
     std::string modelPath = "../assets/models/Sponza/Sponza.gltf";
     std::string hdrImagePath = "../assets/textures/hdr/barcelona.hdr";
     for (int i = 1; i < argc; i++) {
@@ -50,6 +52,10 @@ int main(int argc, char** argv) {
             outputUrl = argv[i + 1];
             i++;
         }
+        else if (!strcmp(argv[i], "-p") && i + 1 < argc) {
+            poseURL = argv[i + 1];
+            i++;
+        }
         else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
             app.config.enableVSync = atoi(argv[i + 1]);
             i++;
@@ -65,6 +71,7 @@ int main(int argc, char** argv) {
     Camera* camera = new Camera(screenWidth, screenHeight);
 
     VideoStreamer videoStreamer = VideoStreamer();
+    PoseReceiver poseReceiver = PoseReceiver(camera, poseURL);
 
     app.gui([&](double now, double dt) {
         ImGui::NewFrame();
@@ -81,39 +88,39 @@ int main(int argc, char** argv) {
         camera->aspect = (float)width / (float)height;
     });
 
-    app.onMouseMove([&app, &camera](double xposIn, double yposIn) {
-        static bool mouseDown = false;
+    // app.onMouseMove([&app, &camera](double xposIn, double yposIn) {
+    //     static bool mouseDown = false;
 
-        static float lastX = app.config.width / 2.0;
-        static float lastY = app.config.height / 2.0;
+    //     static float lastX = app.config.width / 2.0;
+    //     static float lastY = app.config.height / 2.0;
 
-        float xpos = static_cast<float>(xposIn);
-        float ypos = static_cast<float>(yposIn);
+    //     float xpos = static_cast<float>(xposIn);
+    //     float ypos = static_cast<float>(yposIn);
 
-        float xoffset = xpos - lastX;
-        float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+    //     float xoffset = xpos - lastX;
+    //     float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
 
-        lastX = xpos;
-        lastY = ypos;
+    //     lastX = xpos;
+    //     lastY = ypos;
 
-        if (glfwGetMouseButton(app.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-            mouseDown = true;
-            glfwSetInputMode(app.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        }
+    //     if (glfwGetMouseButton(app.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+    //         mouseDown = true;
+    //         glfwSetInputMode(app.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    //     }
 
-        if (glfwGetMouseButton(app.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
-            mouseDown = false;
-            glfwSetInputMode(app.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        }
+    //     if (glfwGetMouseButton(app.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
+    //         mouseDown = false;
+    //         glfwSetInputMode(app.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    //     }
 
-        if (mouseDown) {
-            camera->processMouseMovement(xoffset, yoffset);
-        }
-    });
+    //     if (mouseDown) {
+    //         camera->processMouseMovement(xoffset, yoffset);
+    //     }
+    // });
 
-    app.onMouseScroll([&app, &camera](double xoffset, double yoffset) {
-        camera->processMouseScroll(static_cast<float>(yoffset));
-    });
+    // app.onMouseScroll([&app, &camera](double xoffset, double yoffset) {
+    //     camera->processMouseScroll(static_cast<float>(yoffset));
+    // });
 
     // shaders
     Shader pbrShader, screenShader;
@@ -306,6 +313,8 @@ int main(int argc, char** argv) {
     app.onRender([&](double now, double dt) {
         processInput(&app, camera, dt);
 
+        poseReceiver.receivePose();
+
         app.renderer.updateDirLightShadowMap(dirLightShadowsShader, scene, camera);
         app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, scene, camera);
 
@@ -334,6 +343,8 @@ int main(int argc, char** argv) {
     // cleanup
     app.cleanup();
 
+    std::cout << "Please do CTRL-C to exit!" << std::endl;
+
     return 0;
 }
 
@@ -341,12 +352,12 @@ void processInput(OpenGLApp* app, Camera* camera, float deltaTime) {
     if (glfwGetKey(app->window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(app->window, true);
 
-    if (glfwGetKey(app->window, GLFW_KEY_W) == GLFW_PRESS)
-        camera->processKeyboard(FORWARD, deltaTime);
-    if (glfwGetKey(app->window, GLFW_KEY_S) == GLFW_PRESS)
-        camera->processKeyboard(BACKWARD, deltaTime);
-    if (glfwGetKey(app->window, GLFW_KEY_A) == GLFW_PRESS)
-        camera->processKeyboard(LEFT, deltaTime);
-    if (glfwGetKey(app->window, GLFW_KEY_D) == GLFW_PRESS)
-        camera->processKeyboard(RIGHT, deltaTime);
+    // if (glfwGetKey(app->window, GLFW_KEY_W) == GLFW_PRESS)
+    //     camera->processKeyboard(FORWARD, deltaTime);
+    // if (glfwGetKey(app->window, GLFW_KEY_S) == GLFW_PRESS)
+    //     camera->processKeyboard(BACKWARD, deltaTime);
+    // if (glfwGetKey(app->window, GLFW_KEY_A) == GLFW_PRESS)
+    //     camera->processKeyboard(LEFT, deltaTime);
+    // if (glfwGetKey(app->window, GLFW_KEY_D) == GLFW_PRESS)
+    //     camera->processKeyboard(RIGHT, deltaTime);
 }
