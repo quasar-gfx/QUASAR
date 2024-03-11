@@ -12,7 +12,8 @@ void Model::draw(Shader &shader) {
 
 void Model::loadFromFile(const std::string &path, std::vector<TextureID> inputTextures) {
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_OptimizeMeshes | aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
+    unsigned int flags = aiProcess_Triangulate | aiProcess_OptimizeMeshes | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace | aiProcess_FlipUVs;
+    const aiScene* scene = importer.ReadFile(path, flags);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         throw std::runtime_error("ERROR::ASSIMP:: " + std::string(importer.GetErrorString()));
     }
