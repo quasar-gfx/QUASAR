@@ -6,6 +6,8 @@
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/matrix_decompose.hpp>
 
 enum CameraMovement {
     FORWARD,
@@ -36,14 +38,15 @@ public:
     Camera(unsigned int width, unsigned int height) {
         setProjectionMatrix(glm::radians(60.0f), (float)width / (float)height, 0.1f, 1000.0f);
         position = glm::vec3(0.0f, 1.6f, 2.0f);
+        updateViewMatrix();
     }
 
     Camera(float fovy, float aspect, float near, float far) {
         setProjectionMatrix(fovy, aspect, near, far);
+        updateViewMatrix();
     }
 
     glm::mat4 getProjectionMatrix() {
-        updateProjectionMatrix();
         return proj;
     }
 
@@ -60,8 +63,11 @@ public:
     }
 
     glm::mat4 getViewMatrix() {
-        updateViewMatrix();
         return view;
+    }
+
+    void setViewMatrix(glm::mat4 view) {
+        this->view = view;
     }
 
     void updateViewMatrix() {
@@ -78,6 +84,8 @@ public:
             position -= right * velocity;
         if (direction == RIGHT)
             position += right * velocity;
+
+        updateViewMatrix();
     }
 
     void processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true) {
@@ -96,6 +104,7 @@ public:
         }
 
         updateCameraVectors();
+        updateViewMatrix();
     }
 
     void processMouseScroll(float yoffset) {
@@ -107,6 +116,7 @@ public:
         if (fovy > glm::radians(60.0f)) {
             fovy = glm::radians(60.0f);
         }
+        updateProjectionMatrix();
     }
 
 private:
