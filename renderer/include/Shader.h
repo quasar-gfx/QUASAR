@@ -14,6 +14,14 @@
 
 class Shader : public OpenGLObject {
 public:
+    enum ShaderType {
+        SHADER_PROGRAM,
+        SHADER_VERTEX,
+        SHADER_FRAGMENT,
+        SHADER_GEOMETRY,
+        SHADER_COMPUTE
+    };
+
     void loadFromFile(std::string vertexPath, std::string fragmentPath, std::string geometryPath = "");
     void loadFromData(const char* vertexData, const char* fragmentData, const char* geometryData = nullptr);
 
@@ -79,14 +87,9 @@ public:
     }
 
 private:
-    enum ShaderType {
-        SHADER_PROGRAM,
-        SHADER_VERTEX,
-        SHADER_FRAGMENT,
-        SHADER_GEOMETRY
-    };
-
     void createAndCompileProgram(const char* vertexData, const char* fragmentData, const char* geometryData = nullptr);
+
+protected:
     void checkCompileErrors(GLuint shader, ShaderType type);
 };
 
