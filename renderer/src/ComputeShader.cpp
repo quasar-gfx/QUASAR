@@ -38,3 +38,8 @@ void ComputeShader::createAndCompileProgram(const char* computeData) {
 
     glDeleteShader(compute);
 }
+
+void ComputeShader::dispatch(GLuint numGroupsX, GLuint numGroupsY, GLuint numGroupsZ) {
+    glDispatchCompute(numGroupsX, numGroupsY, numGroupsZ);
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+}

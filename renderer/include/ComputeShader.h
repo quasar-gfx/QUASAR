@@ -17,6 +17,8 @@ public:
     void loadFromFile(std::string computePath);
     void loadFromData(const char* computeData);
 
+    void dispatch(GLuint numGroupsX, GLuint numGroupsY, GLuint numGroupsZ);
+
     ~ComputeShader() {
         cleanup();
     }
