@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
 
     // shaders
     Shader pbrShader, screenShader;
-    pbrShader.loadFromFile("../assets/shaders/pbr/pbr.vert", "../assets/shaders/pbr/pbr.frag");
+    pbrShader.loadFromFile("../assets/shaders/simple.vert", "../assets/shaders/textured.frag");
     screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayColor.frag");
 
     // converts HDR equirectangular environment map to cubemap equivalent
@@ -140,44 +140,44 @@ int main(int argc, char** argv) {
     Texture ao = Texture("../assets/textures/pbr/gold/ao.png");
     std::vector<TextureID> goldTextures = { albedo.ID, 0, normal.ID, metallic.ID, roughness.ID, ao.ID };
 
-    Texture ironAlbedo = Texture("../assets/textures/pbr/rusted_iron/albedo.png");
-    Texture ironNormal = Texture("../assets/textures/pbr/rusted_iron/normal.png");
-    Texture ironMetallic = Texture("../assets/textures/pbr/rusted_iron/metallic.png");
-    Texture ironRoughness = Texture("../assets/textures/pbr/rusted_iron/roughness.png");
-    Texture ironAo = Texture("../assets/textures/pbr/rusted_iron/ao.png");
-    std::vector<TextureID> ironTextures = { ironAlbedo.ID, 0, ironNormal.ID, ironMetallic.ID, ironRoughness.ID, ironAo.ID };
+    // Texture ironAlbedo = Texture("../assets/textures/pbr/rusted_iron/albedo.png");
+    // Texture ironNormal = Texture("../assets/textures/pbr/rusted_iron/normal.png");
+    // Texture ironMetallic = Texture("../assets/textures/pbr/rusted_iron/metallic.png");
+    // Texture ironRoughness = Texture("../assets/textures/pbr/rusted_iron/roughness.png");
+    // Texture ironAo = Texture("../assets/textures/pbr/rusted_iron/ao.png");
+    // std::vector<TextureID> ironTextures = { ironAlbedo.ID, 0, ironNormal.ID, ironMetallic.ID, ironRoughness.ID, ironAo.ID };
 
-    Texture plasticAlbedo = Texture("../assets/textures/pbr/plastic/albedo.png");
-    Texture plasticNormal = Texture("../assets/textures/pbr/plastic/normal.png");
-    Texture plasticMetallic = Texture("../assets/textures/pbr/plastic/metallic.png");
-    Texture plasticRoughness = Texture("../assets/textures/pbr/plastic/roughness.png");
-    Texture plasticAo = Texture("../assets/textures/pbr/plastic/ao.png");
-    std::vector<TextureID> plasticTextures = { plasticAlbedo.ID, 0, plasticNormal.ID, plasticMetallic.ID, plasticRoughness.ID, plasticAo.ID };
+    // Texture plasticAlbedo = Texture("../assets/textures/pbr/plastic/albedo.png");
+    // Texture plasticNormal = Texture("../assets/textures/pbr/plastic/normal.png");
+    // Texture plasticMetallic = Texture("../assets/textures/pbr/plastic/metallic.png");
+    // Texture plasticRoughness = Texture("../assets/textures/pbr/plastic/roughness.png");
+    // Texture plasticAo = Texture("../assets/textures/pbr/plastic/ao.png");
+    // std::vector<TextureID> plasticTextures = { plasticAlbedo.ID, 0, plasticNormal.ID, plasticMetallic.ID, plasticRoughness.ID, plasticAo.ID };
 
-    Texture windowTexture = Texture("../assets/textures/window.png");
-    std::vector<TextureID> windowTextures = { windowTexture.ID };
+    // Texture windowTexture = Texture("../assets/textures/window.png");
+    // std::vector<TextureID> windowTextures = { windowTexture.ID };
 
     // objects
-    Cube* cubeGold = new Cube(goldTextures);
-    Node* cubeNodeGold = new Node(cubeGold);
-    cubeNodeGold->setTranslation(glm::vec3(-0.2f, 0.25f, -7.0f));
-    cubeNodeGold->setScale(glm::vec3(0.5f));
+    // Cube* cubeGold = new Cube(goldTextures);
+    // Node* cubeNodeGold = new Node(cubeGold);
+    // cubeNodeGold->setTranslation(glm::vec3(-0.2f, 0.25f, -7.0f));
+    // cubeNodeGold->setScale(glm::vec3(0.5f));
 
-    Cube* cubeIron = new Cube(ironTextures);
-    Node* cubeNodeIron = new Node(cubeIron);
-    cubeNodeIron->setTranslation(glm::vec3(1.5f, 0.25f, -3.0f));
-    cubeNodeIron->setScale(glm::vec3(0.5f));
+    // Cube* cubeIron = new Cube(ironTextures);
+    // Node* cubeNodeIron = new Node(cubeIron);
+    // cubeNodeIron->setTranslation(glm::vec3(1.5f, 0.25f, -3.0f));
+    // cubeNodeIron->setScale(glm::vec3(0.5f));
 
-    Sphere* sphere = new Sphere(plasticTextures);
-    Node* sphereNodePlastic = new Node(sphere);
-    sphereNodePlastic->setTranslation(glm::vec3(1.0f, 1.5f, -8.0f));
-    sphereNodePlastic->setScale(glm::vec3(0.5f));
+    // Sphere* sphere = new Sphere(plasticTextures);
+    // Node* sphereNodePlastic = new Node(sphere);
+    // sphereNodePlastic->setTranslation(glm::vec3(1.0f, 1.5f, -8.0f));
+    // sphereNodePlastic->setScale(glm::vec3(0.5f));
 
-    Plane* plane = new Plane(windowTextures);
-    Node* planeNode = new Node(plane);
-    planeNode->setTranslation(glm::vec3(0.0f, 1.5f, -7.0f));
-    planeNode->setRotationEuler(glm::vec3(-90.0f, 0.0f, 0.0f));
-    planeNode->setScale(glm::vec3(0.5f));
+    // Plane* plane = new Plane(windowTextures);
+    // Node* planeNode = new Node(plane);
+    // planeNode->setTranslation(glm::vec3(0.0f, 1.5f, -7.0f));
+    // planeNode->setRotationEuler(glm::vec3(-90.0f, 0.0f, 0.0f));
+    // planeNode->setScale(glm::vec3(0.5f));
 
     // lights
     DirectionalLight* directionalLight = new DirectionalLight(glm::vec3(0.8f, 0.8f, 0.8f), 0.1f);
@@ -199,18 +199,21 @@ int main(int argc, char** argv) {
     pointLight4->setPosition(glm::vec3(2.2f, 3.5f, 4.89f));
     pointLight4->setAttenuation(0.0f, 0.09f, 1.0f);
 
+    Texture meshTexture = Texture("../meshing/meshColor.png");
+    std::vector<TextureID> meshTextures = { meshTexture.ID };
+    // Cube* cube = new Cube(meshTextures);
+    // Node* cubeNode = new Node(cube);
+
     // models
-    Model* sponza = new Model(modelPath);
+    Model* mesh = new Model(modelPath, meshTextures);
 
-    Node* sponzaNode = new Node(sponza);
-    // sponzaNode->setTranslation(glm::vec3(0.0f, -0.5f, 0.0f));
-    // sponzaNode->setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
+    Node* meshNode = new Node(mesh);
 
-    Model* backpack = new Model(BACKPACK_MODEL_PATH, true);
+    // Model* backpack = new Model(BACKPACK_MODEL_PATH, true);
 
-    Node* backpackNode = new Node(backpack);
-    backpackNode->setTranslation(glm::vec3(0.5f, 0.1f, -5.0f));
-    backpackNode->setScale(glm::vec3(0.25f));
+    // Node* backpackNode = new Node(backpack);
+    // backpackNode->setTranslation(glm::vec3(0.5f, 0.1f, -5.0f));
+    // backpackNode->setScale(glm::vec3(0.25f));
 
     // load the HDR environment map
     Texture hdrTexture(hdrImagePath, GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
@@ -226,7 +229,8 @@ int main(int argc, char** argv) {
     // scene->addChildNode(cubeNodeGold);
     // scene->addChildNode(cubeNodeIron);
     // scene->addChildNode(sphereNodePlastic);
-    scene->addChildNode(sponzaNode);
+    scene->addChildNode(meshNode);
+    // scene->addChildNode(cubeNode);
     // scene->addChildNode(backpackNode);
     // scene->addChildNode(planeNode);
 
@@ -243,20 +247,13 @@ int main(int argc, char** argv) {
     app.onRender([&](double now, double dt) {
         processInput(&app, camera, dt);
 
-        app.renderer.updateDirLightShadowMap(dirLightShadowsShader, scene, camera);
-        app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, scene, camera);
-
-        // animate
-        cubeNodeGold->setRotationEuler(glm::vec3(0.0f, 10.0f * now, 0.0f));
-        pointLight1->setPosition(glm::vec3(-1.45f + 0.25f * sin(now), 3.5f, -6.2f + 0.25f * cos(now)));
-        pointLight2->setPosition(glm::vec3(2.2f + 0.25f * sin(now), 3.5f, -6.2f + 0.25f * cos(now)));
-        pointLight3->setPosition(glm::vec3(-1.45f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));
-        pointLight4->setPosition(glm::vec3(2.2f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));
+        // app.renderer.updateDirLightShadowMap(dirLightShadowsShader, scene, camera);
+        // app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, scene, camera);
 
         // render all objects in scene
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         app.renderer.drawObjects(pbrShader, scene, camera);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        // glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
         // render skybox (render as last to prevent overdraw)
         app.renderer.drawSkyBox(backgroundShader, scene, camera);

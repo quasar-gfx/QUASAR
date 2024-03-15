@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
     // shaders
     Shader pbrShader, screenShader;
     pbrShader.loadFromFile("../assets/shaders/pbr/pbr.vert", "../assets/shaders/pbr/pbr.frag");
-    screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayDepth.frag");
+    screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayColor.frag");
 
     // converts HDR equirectangular environment map to cubemap equivalent
     Shader equirectToCubeMapShader;
@@ -249,21 +249,27 @@ int main(int argc, char** argv) {
     app.renderer.updateDirLightShadowMap(dirLightShadowsShader, scene, camera);
     app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, scene, camera);
 
-    GLuint vertexBuffer, indexBuffer;
+    GLuint vertexBuffer;
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, screenWidth * screenHeight * sizeof(glm::vec4), nullptr, GL_STATIC_DRAW);
 
-    // Generate index buffer
+    GLuint indexBuffer;
     int numTriangles = (screenWidth - 1) * (screenHeight - 1) * 2;
     int indexBufferSize = numTriangles * 3;
     glGenBuffers(1, &indexBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_STATIC_DRAW);
 
+    GLuint texCoordBuffer;
+    glGenBuffers(1, &texCoordBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, texCoordBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, screenWidth * screenHeight * sizeof(glm::vec2), nullptr, GL_STATIC_DRAW);
+
     genMeshShader.bind();
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, texCoordBuffer);
     genMeshShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
     genMeshShader.unbind();
 
@@ -309,7 +315,7 @@ int main(int argc, char** argv) {
                     vertex.position.y = pVertices[i].y;
                     vertex.position.z = pVertices[i].z;
                     vertices.push_back(vertex);
-                    std::cout << pVertices[i].x << " " << pVertices[i].y << " " << pVertices[i].z << " " << pVertices[i].w << std::endl;
+                    // std::cout << pVertices[i].x << " " << pVertices[i].y << " " << pVertices[i].z << " " << pVertices[i].w << std::endl;
                 }
 
                 glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
@@ -333,21 +339,56 @@ int main(int argc, char** argv) {
                 std::cerr << "Failed to map index buffer into memory" << std::endl;
             }
 
+            std::vector<glm::vec2> texCoords;
+            texCoords.reserve(screenWidth * screenHeight);
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, texCoordBuffer);
+            GLvoid* pTexCoordBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+            if (pTexCoordBuffer) {
+                glm::vec2* pTexCoords = static_cast<glm::vec2*>(pTexCoordBuffer);
+
+                for (int i = 0; i < screenWidth * screenHeight; ++i) {
+                    texCoords.push_back(pTexCoords[i]);
+                }
+
+                glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+            } else {
+                std::cerr << "Failed to map tex coord buffer into memory" << std::endl;
+            }
+
             std::cout << "saving" << std::endl;
             std::ofstream file;
             file.open("mesh.obj");
             if (file.is_open()) {
+                file << "mtllib " << "mesh.mtl" << std::endl;
+                file << "usemtl " << "Material1" << std::endl;
                 for (int i = 0; i < vertices.size(); i++) {
                     file << "v " << vertices[i].position.x << " " << vertices[i].position.y << " " << vertices[i].position.z << std::endl;
                 }
+                for (int i = 0; i < texCoords.size(); i++) {
+                    file << "vt " << texCoords[i].x << " " << texCoords[i].y << std::endl;
+                }
+                // for (int i = 0; i < indices.size(); i += 3) {
+                //     file << "f " << indices[i] + 1 << " " << indices[i + 1] + 1 << " " << indices[i + 2] + 1<< std::endl;
+                // }
                 for (int i = 0; i < indices.size(); i += 3) {
-                    file << "f " << indices[i] + 1 << " " << indices[i + 1] + 1 << " " << indices[i + 2] + 1<< std::endl;
+                    file << "f " << indices[i + 0] + 1 << "/" << indices[i + 0] + 1 << " " << indices[i + 1] + 1 << "/" << indices[i + 1] + 1 << " " << indices[i + 2] + 1 << "/" << indices[i + 2] + 1 << std::endl;
                 }
                 file.close();
             } else {
                 std::cerr << "Failed to open file" << std::endl;
             }
+
+            std::ofstream file1;
+            file1.open("mesh.mtl");
+
+            if (file1.is_open()) {
+                file1 << "newmtl " << "Material1" << std::endl;
+                file1 << "map_Kd " << "meshColor.png" << std::endl;
+            }
+
             std::cout << "done saving" << std::endl;
+
+            app.renderer.gBuffer.colorBuffer.saveTextureToPNG("meshColor.png");
         }
     });
 

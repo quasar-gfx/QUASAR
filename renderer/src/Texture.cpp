@@ -3,6 +3,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb_image_write.h>
+
 #include <Texture.h>
 
 Texture::Texture(unsigned int width, unsigned int height,
@@ -76,4 +79,24 @@ Texture::Texture(const std::string &path, GLenum type, GLint wrapS, GLint wrapT,
         throw std::runtime_error("Texture failed to load at path: " + path);
         stbi_image_free(data);
     }
+}
+
+void Texture::saveTextureToPNG(const char* filename) {
+    unsigned char* data = new unsigned char[width * height * 4];
+
+    bind(0);
+    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    unbind();
+
+    for (int y = 0; y < height / 2; y++) {
+        for (int x = 0; x < width * 4; x++) {
+            unsigned char temp = data[y * width * 4 + x];
+            data[y * width * 4 + x] = data[(height - y - 1) * width * 4 + x];
+            data[(height - y - 1) * width * 4 + x] = temp;
+        }
+    }
+
+    stbi_write_png(filename, width, height, 4, data, width * 4);
+
+    delete[] data;
 }

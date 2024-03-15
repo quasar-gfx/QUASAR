@@ -61,6 +61,8 @@ public:
     void cleanup() {
         glDeleteTextures(1, &ID);
     }
+
+    void saveTextureToPNG(const char* filename);
 };
 
 #endif // TEXTURE_H
