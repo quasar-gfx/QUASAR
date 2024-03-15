@@ -229,7 +229,7 @@ int main(int argc, char** argv) {
     scene->addChildNode(cubeNodeGold);
     scene->addChildNode(cubeNodeIron);
     scene->addChildNode(sphereNodePlastic);
-    // scene->addChildNode(sponzaNode);
+    scene->addChildNode(sponzaNode);
     scene->addChildNode(backpackNode);
     scene->addChildNode(planeNode);
 

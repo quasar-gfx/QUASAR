@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
     OpenGLApp app{};
     app.config.title = "Test App";
 
-    std::string modelPath = "../assets/models/Sponza/Sponza.gltf";
+    std::string modelPath = "../meshing/mesh.obj";
     std::string hdrImagePath = "../assets/textures/hdr/barcelona.hdr";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
@@ -203,8 +203,8 @@ int main(int argc, char** argv) {
     Model* sponza = new Model(modelPath);
 
     Node* sponzaNode = new Node(sponza);
-    sponzaNode->setTranslation(glm::vec3(0.0f, -0.5f, 0.0f));
-    sponzaNode->setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
+    // sponzaNode->setTranslation(glm::vec3(0.0f, -0.5f, 0.0f));
+    // sponzaNode->setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
 
     Model* backpack = new Model(BACKPACK_MODEL_PATH, true);
 
@@ -223,12 +223,12 @@ int main(int argc, char** argv) {
     scene->addPointLight(pointLight2);
     scene->addPointLight(pointLight3);
     scene->addPointLight(pointLight4);
-    scene->addChildNode(cubeNodeGold);
-    scene->addChildNode(cubeNodeIron);
-    scene->addChildNode(sphereNodePlastic);
+    // scene->addChildNode(cubeNodeGold);
+    // scene->addChildNode(cubeNodeIron);
+    // scene->addChildNode(sphereNodePlastic);
     scene->addChildNode(sponzaNode);
-    scene->addChildNode(backpackNode);
-    scene->addChildNode(planeNode);
+    // scene->addChildNode(backpackNode);
+    // scene->addChildNode(planeNode);
 
     scene->equirectToCubeMap(envCubeMap, hdrTexture, equirectToCubeMapShader);
     scene->setupIBL(envCubeMap, convolutionShader, prefilterShader, brdfShader);
@@ -254,7 +254,9 @@ int main(int argc, char** argv) {
         pointLight4->setPosition(glm::vec3(2.2f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));
 
         // render all objects in scene
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         app.renderer.drawObjects(pbrShader, scene, camera);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
         // render skybox (render as last to prevent overdraw)
         app.renderer.drawSkyBox(backgroundShader, scene, camera);

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.19)
-project(Mesh)
+project(MeshingVizualizer)
 
-set(TARGET mesh)
+set(TARGET meshingviz)
 
 set(PUBLIC_HDR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
