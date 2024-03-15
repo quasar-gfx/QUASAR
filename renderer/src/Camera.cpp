@@ -2,7 +2,6 @@
 
 Camera::Camera(unsigned int width, unsigned int height) {
     setProjectionMatrix(glm::radians(60.0f), (float)width / (float)height, 0.1f, 1000.0f);
-    position = glm::vec3(0.0f, 1.6f, 2.0f);
     updateViewMatrix();
 }
 

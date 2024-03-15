@@ -24,7 +24,7 @@ public:
         glBindFramebuffer(GL_FRAMEBUFFER, ID);
 
         colorBuffer = Texture(width, height, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE);
-        depthBuffer = Texture(width, height, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_FLOAT);
+        depthBuffer = Texture(width, height, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT);
 
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorBuffer.ID, 0);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBuffer.ID, 0);
@@ -75,7 +75,7 @@ public:
         colorBuffer = Texture(width, height, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, colorBuffer.ID, 0);
 
-        depthBuffer = Texture(width, height, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_FLOAT);
+        depthBuffer = Texture(width, height, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBuffer.ID, 0);
 
         unsigned int attachments[3] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
@@ -98,7 +98,7 @@ public:
         glGenFramebuffers(1, &ID);
         glBindFramebuffer(GL_FRAMEBUFFER, ID);
 
-        depthBuffer = Texture(width, height, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_FLOAT,
+        depthBuffer = Texture(width, height, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT,
                                 GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER,
                                 GL_NEAREST, GL_NEAREST,
                                 nullptr, true);

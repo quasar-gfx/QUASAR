@@ -85,7 +85,7 @@ int main(int argc, char** argv) {
     });
 
     ComputeShader computeShader;
-    computeShader.loadFromFile("../assets/shaders/compute.comp");
+    computeShader.loadFromFile("../assets/shaders/compute/test.comp");
 
     Shader screenShader;
     screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayTexture.frag");

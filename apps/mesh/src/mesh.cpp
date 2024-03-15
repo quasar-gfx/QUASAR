@@ -3,6 +3,7 @@
 #include <imgui/imgui.h>
 
 #include <Shader.h>
+#include <ComputeShader.h>
 #include <Texture.h>
 #include <Primatives.h>
 #include <Model.h>
@@ -24,7 +25,9 @@ const std::string BACKPACK_MODEL_PATH = "../assets/models/backpack/backpack.obj"
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
-    app.config.title = "Test App";
+    app.config.title = "Mesh Test";
+    app.config.openglMajorVersion = 4;
+    app.config.openglMinorVersion = 3;
 
     std::string modelPath = "../assets/models/Sponza/Sponza.gltf";
     std::string hdrImagePath = "../assets/textures/hdr/barcelona.hdr";
@@ -110,7 +113,7 @@ int main(int argc, char** argv) {
     // shaders
     Shader pbrShader, screenShader;
     pbrShader.loadFromFile("../assets/shaders/pbr/pbr.vert", "../assets/shaders/pbr/pbr.frag");
-    screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayColor.frag");
+    screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayDepth.frag");
 
     // converts HDR equirectangular environment map to cubemap equivalent
     Shader equirectToCubeMapShader;
@@ -203,8 +206,8 @@ int main(int argc, char** argv) {
     Model* sponza = new Model(modelPath);
 
     Node* sponzaNode = new Node(sponza);
-    // sponzaNode->setTranslation(glm::vec3(0.0f, -0.5f, 0.0f));
-    // sponzaNode->setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
+    sponzaNode->setTranslation(glm::vec3(0.0f, -0.5f, 0.0f));
+    sponzaNode->setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
 
     Model* backpack = new Model(BACKPACK_MODEL_PATH, true);
 
@@ -226,7 +229,7 @@ int main(int argc, char** argv) {
     scene->addChildNode(cubeNodeGold);
     scene->addChildNode(cubeNodeIron);
     scene->addChildNode(sphereNodePlastic);
-    scene->addChildNode(sponzaNode);
+    // scene->addChildNode(sponzaNode);
     scene->addChildNode(backpackNode);
     scene->addChildNode(planeNode);
 
@@ -240,29 +243,112 @@ int main(int argc, char** argv) {
     Shader pointLightShadowsShader;
     pointLightShadowsShader.loadFromFile("../assets/shaders/shadows/pointShadow.vert", "../assets/shaders/shadows/pointShadow.frag", "../assets/shaders/shadows/pointShadow.geo");
 
+    ComputeShader genMeshShader;
+    genMeshShader.loadFromFile("../assets/shaders/compute/genMesh.comp");
+
+    app.renderer.updateDirLightShadowMap(dirLightShadowsShader, scene, camera);
+    app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, scene, camera);
+
+    GLuint vertexBuffer, indexBuffer;
+    glGenBuffers(1, &vertexBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, screenWidth * screenHeight * sizeof(glm::vec4), nullptr, GL_STATIC_DRAW);
+
+    // Generate index buffer
+    int numTriangles = (screenWidth - 1) * (screenHeight - 1) * 2;
+    int indexBufferSize = numTriangles * 3;
+    glGenBuffers(1, &indexBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_STATIC_DRAW);
+
+    genMeshShader.bind();
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffer);
+    genMeshShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
+    genMeshShader.unbind();
+
+    int i = 0;
+
     app.onRender([&](double now, double dt) {
         processInput(&app, camera, dt);
 
-        app.renderer.updateDirLightShadowMap(dirLightShadowsShader, scene, camera);
-        app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, scene, camera);
-
-        // animate
-        cubeNodeGold->setRotationEuler(glm::vec3(0.0f, 10.0f * now, 0.0f));
-        pointLight1->setPosition(glm::vec3(-1.45f + 0.25f * sin(now), 3.5f, -6.2f + 0.25f * cos(now)));
-        pointLight2->setPosition(glm::vec3(2.2f + 0.25f * sin(now), 3.5f, -6.2f + 0.25f * cos(now)));
-        pointLight3->setPosition(glm::vec3(-1.45f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));
-        pointLight4->setPosition(glm::vec3(2.2f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));
-
         // render all objects in scene
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         app.renderer.drawObjects(pbrShader, scene, camera);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
         // render skybox (render as last to prevent overdraw)
         app.renderer.drawSkyBox(backgroundShader, scene, camera);
 
+        genMeshShader.bind();
+        genMeshShader.setMat4("view", camera->getViewMatrix());
+        genMeshShader.setMat4("projectionInverse", glm::inverse(camera->getProjectionMatrix()));
+        genMeshShader.setFloat("near", camera->near);
+        genMeshShader.setFloat("far", camera->far);
+	    glBindImageTexture(0, app.renderer.gBuffer.positionBuffer.ID, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
+	    glBindImageTexture(1, app.renderer.gBuffer.normalsBuffer.ID, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
+	    glBindImageTexture(2, app.renderer.gBuffer.colorBuffer.ID, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA);
+        app.renderer.gBuffer.depthBuffer.bind(3);
+        genMeshShader.dispatch(screenWidth / 10, screenHeight / 10, 1);
+        genMeshShader.unbind();
+
         // render to screen
         app.renderer.drawToScreen(screenShader, screenWidth, screenHeight);
+
+        i++;
+        if (i == 100) {
+            std::vector<Vertex> vertices;
+            vertices.reserve(screenWidth * screenHeight);
+
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
+            GLvoid* pBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+            if (pBuffer) {
+                glm::vec4* pVertices = static_cast<glm::vec4*>(pBuffer);
+
+                for (int i = 0; i < screenWidth * screenHeight; ++i) {
+                    Vertex vertex;
+                    vertex.position.x = pVertices[i].x;
+                    vertex.position.y = pVertices[i].y;
+                    vertex.position.z = pVertices[i].z;
+                    vertices.push_back(vertex);
+                    std::cout << pVertices[i].x << " " << pVertices[i].y << " " << pVertices[i].z << " " << pVertices[i].w << std::endl;
+                }
+
+                glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+            } else {
+                std::cerr << "Failed to map vertex buffer into memory" << std::endl;
+            }
+
+            std::vector<unsigned int> indices;
+            indices.reserve(indexBufferSize);
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
+            GLvoid* pIndexBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+            if (pIndexBuffer) {
+                unsigned int* pIndices = static_cast<unsigned int*>(pIndexBuffer);
+
+                for (int i = 0; i < indexBufferSize; ++i) {
+                    indices.push_back(pIndices[i]);
+                }
+
+                glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+            } else {
+                std::cerr << "Failed to map index buffer into memory" << std::endl;
+            }
+
+            std::cout << "saving" << std::endl;
+            std::ofstream file;
+            file.open("mesh.obj");
+            if (file.is_open()) {
+                for (int i = 0; i < vertices.size(); i++) {
+                    file << "v " << vertices[i].position.x << " " << vertices[i].position.y << " " << vertices[i].position.z << std::endl;
+                }
+                for (int i = 0; i < indices.size(); i += 3) {
+                    file << "f " << indices[i] + 1 << " " << indices[i + 1] + 1 << " " << indices[i + 2] + 1<< std::endl;
+                }
+                file.close();
+            } else {
+                std::cerr << "Failed to open file" << std::endl;
+            }
+            std::cout << "done saving" << std::endl;
+        }
     });
 
     // run app loop (blocking)
