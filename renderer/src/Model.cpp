@@ -113,7 +113,9 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, std::vector<TextureI
     float shininess = 0.0f;
     aiGetMaterialFloat(material, AI_MATKEY_SHININESS, &shininess);
 
-    return Mesh(vertices, indices, textures, shininess);
+    auto res = Mesh(vertices, indices, textures, shininess);
+    res.wireframe = wireframe;
+    return res;
 }
 
 GLuint Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {

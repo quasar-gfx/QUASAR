@@ -50,6 +50,8 @@ public:
 
     float shininess = 1.0f;
 
+    bool wireframe = false;
+
     Mesh() : Entity() {}
 
     Mesh(std::vector<Vertex> &vertices, std::vector<TextureID> &textures, float shininess = 1.0f)

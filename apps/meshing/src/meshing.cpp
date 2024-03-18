@@ -61,6 +61,7 @@ int main(int argc, char** argv) {
 
     Scene* scene = new Scene();
     Camera* camera = new Camera(screenWidth, screenHeight);
+    // camera->setProjectionMatrix(glm::radians(120.0f), (float)screenWidth / (float)screenHeight, 0.1f, 1000.0f);
 
     app.gui([&](double now, double dt) {
         ImGui::NewFrame();
@@ -315,7 +316,6 @@ int main(int argc, char** argv) {
                     vertex.position.y = pVertices[i].y;
                     vertex.position.z = pVertices[i].z;
                     vertices.push_back(vertex);
-                    // std::cout << pVertices[i].x << " " << pVertices[i].y << " " << pVertices[i].z << " " << pVertices[i].w << std::endl;
                 }
 
                 glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);

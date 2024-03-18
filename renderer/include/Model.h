@@ -26,14 +26,16 @@ public:
 
     bool flipTextures = false;
 
-    Model(const std::string &modelPath, std::vector<TextureID> inputTextures)
-            : Entity() {
+    bool wireframe = false;
+
+    Model(const std::string &modelPath, std::vector<TextureID> inputTextures, bool flipTextures = false, bool wireframe = false)
+            : flipTextures(flipTextures), wireframe(wireframe), Entity() {
         std::cout << "Loading model: " << modelPath << std::endl;
         loadFromFile(modelPath, inputTextures);
     }
 
-    Model(const std::string &modelPath, bool flipTextures = false)
-            : flipTextures(flipTextures), Entity() {
+    Model(const std::string &modelPath, bool flipTextures = false, bool wireframe = false)
+            : flipTextures(flipTextures), wireframe(wireframe), Entity() {
         std::cout << "Loading model: " << modelPath << std::endl;
         loadFromFile(modelPath, {});
     }

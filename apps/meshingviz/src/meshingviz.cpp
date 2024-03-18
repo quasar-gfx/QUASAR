@@ -205,7 +205,7 @@ int main(int argc, char** argv) {
     // Node* cubeNode = new Node(cube);
 
     // models
-    Model* mesh = new Model(modelPath, meshTextures);
+    Model* mesh = new Model(modelPath, meshTextures, false);
 
     Node* meshNode = new Node(mesh);
 
@@ -214,12 +214,6 @@ int main(int argc, char** argv) {
     // Node* backpackNode = new Node(backpack);
     // backpackNode->setTranslation(glm::vec3(0.5f, 0.1f, -5.0f));
     // backpackNode->setScale(glm::vec3(0.25f));
-
-    // load the HDR environment map
-    Texture hdrTexture(hdrImagePath, GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
-
-    // skybox
-    CubeMap envCubeMap(512, 512, CUBE_MAP_HDR);
 
     scene->setDirectionalLight(directionalLight);
     scene->addPointLight(pointLight1);
@@ -234,10 +228,6 @@ int main(int argc, char** argv) {
     // scene->addChildNode(backpackNode);
     // scene->addChildNode(planeNode);
 
-    scene->equirectToCubeMap(envCubeMap, hdrTexture, equirectToCubeMapShader);
-    scene->setupIBL(envCubeMap, convolutionShader, prefilterShader, brdfShader);
-    scene->setEnvMap(&envCubeMap);
-
     Shader dirLightShadowsShader;
     dirLightShadowsShader.loadFromFile("../assets/shaders/shadows/dirShadow.vert", "../assets/shaders/shadows/dirShadow.frag");
 
@@ -251,9 +241,7 @@ int main(int argc, char** argv) {
         // app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, scene, camera);
 
         // render all objects in scene
-        // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         app.renderer.drawObjects(pbrShader, scene, camera);
-        // glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
         // render skybox (render as last to prevent overdraw)
         app.renderer.drawSkyBox(backgroundShader, scene, camera);
