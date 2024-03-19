@@ -17,7 +17,7 @@
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 
-void processInput(OpenGLApp* app, Camera* camera, float deltaTime);
+void processInput(OpenGLApp& app, Camera& camera, float deltaTime);
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
@@ -33,8 +33,8 @@ int main(int argc, char** argv) {
     int screenWidth, screenHeight;
     app.getWindowSize(&screenWidth, &screenHeight);
 
-    Scene* scene = new Scene();
-    Camera* camera = new Camera(screenWidth, screenHeight);
+    Scene scene = Scene();
+    Camera camera = Camera(screenWidth, screenHeight);
 
     app.gui([&](double now, double dt) {
         ImGui::NewFrame();
@@ -47,14 +47,14 @@ int main(int argc, char** argv) {
     });
 
     app.onResize([&camera](unsigned int width, unsigned int height) {
-        camera->aspect = (float)width / (float)height;
+        camera.aspect = (float)width / (float)height;
     });
 
-    app.onMouseMove([&app, &camera](double xposIn, double yposIn) {
+    app.onMouseMove([&](double xposIn, double yposIn) {
         static bool mouseDown = false;
 
-        static float lastX = app.config.width / 2.0;
-        static float lastY = app.config.height / 2.0;
+        static float lastX = screenWidth / 2.0;
+        static float lastY = screenHeight / 2.0;
 
         float xpos = static_cast<float>(xposIn);
         float ypos = static_cast<float>(yposIn);
@@ -76,12 +76,12 @@ int main(int argc, char** argv) {
         }
 
         if (mouseDown) {
-            camera->processMouseMovement(xoffset, yoffset);
+            camera.processMouseMovement(xoffset, yoffset);
         }
     });
 
     app.onMouseScroll([&app, &camera](double xoffset, double yoffset) {
-        camera->processMouseScroll(static_cast<float>(yoffset));
+        camera.processMouseScroll(static_cast<float>(yoffset));
     });
 
     ComputeShader computeShader;
@@ -115,7 +115,7 @@ int main(int argc, char** argv) {
 	std::cout << "Number of invocations in a single local work group that may be dispatched to a compute shader " << max_compute_work_group_invocations << std::endl;
 
     app.onRender([&](double now, double dt) {
-        processInput(&app, camera, dt);
+        processInput(app, camera, dt);
 
         // compute shader
         computeShader.bind();
@@ -141,16 +141,16 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void processInput(OpenGLApp* app, Camera* camera, float deltaTime) {
-    if (glfwGetKey(app->window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(app->window, true);
+void processInput(OpenGLApp& app, Camera& camera, float deltaTime) {
+    if (glfwGetKey(app.window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(app.window, true);
 
-    if (glfwGetKey(app->window, GLFW_KEY_W) == GLFW_PRESS)
-        camera->processKeyboard(FORWARD, deltaTime);
-    if (glfwGetKey(app->window, GLFW_KEY_S) == GLFW_PRESS)
-        camera->processKeyboard(BACKWARD, deltaTime);
-    if (glfwGetKey(app->window, GLFW_KEY_A) == GLFW_PRESS)
-        camera->processKeyboard(LEFT, deltaTime);
-    if (glfwGetKey(app->window, GLFW_KEY_D) == GLFW_PRESS)
-        camera->processKeyboard(RIGHT, deltaTime);
+    if (glfwGetKey(app.window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.processKeyboard(FORWARD, deltaTime);
+    if (glfwGetKey(app.window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.processKeyboard(BACKWARD, deltaTime);
+    if (glfwGetKey(app.window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.processKeyboard(LEFT, deltaTime);
+    if (glfwGetKey(app.window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.processKeyboard(RIGHT, deltaTime);
 }

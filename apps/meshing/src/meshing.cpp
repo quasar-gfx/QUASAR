@@ -17,15 +17,13 @@
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 
-#include <glm/gtx/string_cast.hpp>
-
-void processInput(OpenGLApp* app, Camera* camera, float deltaTime);
+void processInput(OpenGLApp& app, Camera& camera, float deltaTime);
 
 const std::string BACKPACK_MODEL_PATH = "../assets/models/backpack/backpack.obj";
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
-    app.config.title = "Mesh Test";
+    app.config.title = "Meshing Test";
     app.config.openglMajorVersion = 4;
     app.config.openglMinorVersion = 3;
 
@@ -59,9 +57,9 @@ int main(int argc, char** argv) {
     int screenWidth, screenHeight;
     app.getWindowSize(&screenWidth, &screenHeight);
 
-    Scene* scene = new Scene();
-    Camera* camera = new Camera(screenWidth, screenHeight);
-    // camera->setProjectionMatrix(glm::radians(120.0f), (float)screenWidth / (float)screenHeight, 0.1f, 1000.0f);
+    Scene scene = Scene();
+    Camera camera = Camera(screenWidth, screenHeight);
+    // camera.setProjectionMatrix(glm::radians(120.0f), (float)screenWidth / (float)screenHeight, 0.1f, 1000.0f);
 
     app.gui([&](double now, double dt) {
         ImGui::NewFrame();
@@ -74,14 +72,14 @@ int main(int argc, char** argv) {
     });
 
     app.onResize([&camera](unsigned int width, unsigned int height) {
-        camera->aspect = (float)width / (float)height;
+        camera.aspect = (float)width / (float)height;
     });
 
-    app.onMouseMove([&app, &camera](double xposIn, double yposIn) {
+    app.onMouseMove([&](double xposIn, double yposIn) {
         static bool mouseDown = false;
 
-        static float lastX = app.config.width / 2.0;
-        static float lastY = app.config.height / 2.0;
+        static float lastX = screenWidth / 2.0;
+        static float lastY = screenHeight / 2.0;
 
         float xpos = static_cast<float>(xposIn);
         float ypos = static_cast<float>(yposIn);
@@ -103,12 +101,12 @@ int main(int argc, char** argv) {
         }
 
         if (mouseDown) {
-            camera->processMouseMovement(xoffset, yoffset);
+            camera.processMouseMovement(xoffset, yoffset);
         }
     });
 
     app.onMouseScroll([&app, &camera](double xoffset, double yoffset) {
-        camera->processMouseScroll(static_cast<float>(yoffset));
+        camera.processMouseScroll(static_cast<float>(yoffset));
     });
 
     // shaders
@@ -162,59 +160,57 @@ int main(int argc, char** argv) {
     std::vector<TextureID> windowTextures = { windowTexture.ID };
 
     // objects
-    Cube* cubeGold = new Cube(goldTextures);
-    Node* cubeNodeGold = new Node(cubeGold);
-    cubeNodeGold->setTranslation(glm::vec3(-0.2f, 0.25f, -7.0f));
-    cubeNodeGold->setScale(glm::vec3(0.5f));
+    Cube cubeGold = Cube(goldTextures);
+    Node cubeNodeGold = Node(&cubeGold);
+    cubeNodeGold.setTranslation(glm::vec3(-0.2f, 0.25f, -7.0f));
+    cubeNodeGold.setScale(glm::vec3(0.5f));
 
-    Cube* cubeIron = new Cube(ironTextures);
-    Node* cubeNodeIron = new Node(cubeIron);
-    cubeNodeIron->setTranslation(glm::vec3(1.5f, 0.25f, -3.0f));
-    cubeNodeIron->setScale(glm::vec3(0.5f));
+    Cube cubeIron = Cube(ironTextures);
+    Node cubeNodeIron = Node(&cubeIron);
+    cubeNodeIron.setTranslation(glm::vec3(1.5f, 0.25f, -3.0f));
+    cubeNodeIron.setScale(glm::vec3(0.5f));
 
-    Sphere* sphere = new Sphere(plasticTextures);
-    Node* sphereNodePlastic = new Node(sphere);
-    sphereNodePlastic->setTranslation(glm::vec3(1.0f, 1.5f, -8.0f));
-    sphereNodePlastic->setScale(glm::vec3(0.5f));
+    Sphere sphere = Sphere(plasticTextures);
+    Node sphereNodePlastic = Node(&sphere);
+    sphereNodePlastic.setTranslation(glm::vec3(1.0f, 1.5f, -8.0f));
+    sphereNodePlastic.setScale(glm::vec3(0.5f));
 
-    Plane* plane = new Plane(windowTextures);
-    Node* planeNode = new Node(plane);
-    planeNode->setTranslation(glm::vec3(0.0f, 1.5f, -7.0f));
-    planeNode->setRotationEuler(glm::vec3(-90.0f, 0.0f, 0.0f));
-    planeNode->setScale(glm::vec3(0.5f));
+    Plane plane = Plane(windowTextures);
+    Node planeNode = Node(&plane);
+    planeNode.setTranslation(glm::vec3(0.0f, 1.5f, -7.0f));
+    planeNode.setRotationEuler(glm::vec3(-90.0f, 0.0f, 0.0f));
+    planeNode.setScale(glm::vec3(0.5f));
 
     // lights
-    DirectionalLight* directionalLight = new DirectionalLight(glm::vec3(0.8f, 0.8f, 0.8f), 0.1f);
-    directionalLight->setDirection(glm::vec3(0.0f, -1.0f, -0.3f));
+    DirectionalLight directionalLight = DirectionalLight(glm::vec3(0.8f, 0.8f, 0.8f), 0.1f);
+    directionalLight.setDirection(glm::vec3(0.0f, -1.0f, -0.3f));
 
-    PointLight* pointLight1 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
-    pointLight1->setPosition(glm::vec3(-1.45f, 3.5f, -6.2f));
-    pointLight1->setAttenuation(0.0f, 0.09f, 1.0f);
+    PointLight pointLight1 = PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
+    pointLight1.setPosition(glm::vec3(-1.45f, 3.5f, -6.2f));
+    pointLight1.setAttenuation(0.0f, 0.09f, 1.0f);
 
-    PointLight* pointLight2 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
-    pointLight2->setPosition(glm::vec3(2.2f, 3.5f, -6.2f));
-    pointLight2->setAttenuation(0.0f, 0.09f, 1.0f);
+    PointLight pointLight2 = PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
+    pointLight2.setPosition(glm::vec3(2.2f, 3.5f, -6.2f));
+    pointLight2.setAttenuation(0.0f, 0.09f, 1.0f);
 
-    PointLight* pointLight3 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
-    pointLight3->setPosition(glm::vec3(-1.45f, 3.5f, 4.89f));
-    pointLight3->setAttenuation(0.0f, 0.09f, 1.0f);
+    PointLight pointLight3 = PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
+    pointLight3.setPosition(glm::vec3(-1.45f, 3.5f, 4.89f));
+    pointLight3.setAttenuation(0.0f, 0.09f, 1.0f);
 
-    PointLight* pointLight4 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
-    pointLight4->setPosition(glm::vec3(2.2f, 3.5f, 4.89f));
-    pointLight4->setAttenuation(0.0f, 0.09f, 1.0f);
+    PointLight pointLight4 = PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
+    pointLight4.setPosition(glm::vec3(2.2f, 3.5f, 4.89f));
+    pointLight4.setAttenuation(0.0f, 0.09f, 1.0f);
 
     // models
-    Model* sponza = new Model(modelPath);
+    Model sponza = Model(modelPath);
+    Node sponzaNode = Node(&sponza);
+    sponzaNode.setTranslation(glm::vec3(0.0f, -0.5f, 0.0f));
+    sponzaNode.setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
 
-    Node* sponzaNode = new Node(sponza);
-    sponzaNode->setTranslation(glm::vec3(0.0f, -0.5f, 0.0f));
-    sponzaNode->setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
-
-    Model* backpack = new Model(BACKPACK_MODEL_PATH, true);
-
-    Node* backpackNode = new Node(backpack);
-    backpackNode->setTranslation(glm::vec3(0.5f, 0.1f, -5.0f));
-    backpackNode->setScale(glm::vec3(0.25f));
+    Model backpack = Model(BACKPACK_MODEL_PATH, true);
+    Node backpackNode = Node(&backpack);
+    backpackNode.setTranslation(glm::vec3(0.5f, 0.1f, -5.0f));
+    backpackNode.setScale(glm::vec3(0.25f));
 
     // load the HDR environment map
     Texture hdrTexture(hdrImagePath, GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
@@ -222,21 +218,21 @@ int main(int argc, char** argv) {
     // skybox
     CubeMap envCubeMap(512, 512, CUBE_MAP_HDR);
 
-    scene->setDirectionalLight(directionalLight);
-    scene->addPointLight(pointLight1);
-    scene->addPointLight(pointLight2);
-    scene->addPointLight(pointLight3);
-    scene->addPointLight(pointLight4);
-    scene->addChildNode(cubeNodeGold);
-    scene->addChildNode(cubeNodeIron);
-    scene->addChildNode(sphereNodePlastic);
-    scene->addChildNode(sponzaNode);
-    scene->addChildNode(backpackNode);
-    scene->addChildNode(planeNode);
+    scene.setDirectionalLight(&directionalLight);
+    scene.addPointLight(&pointLight1);
+    scene.addPointLight(&pointLight2);
+    scene.addPointLight(&pointLight3);
+    scene.addPointLight(&pointLight4);
+    scene.addChildNode(&cubeNodeGold);
+    scene.addChildNode(&cubeNodeIron);
+    scene.addChildNode(&sphereNodePlastic);
+    scene.addChildNode(&sponzaNode);
+    scene.addChildNode(&backpackNode);
+    scene.addChildNode(&planeNode);
 
-    scene->equirectToCubeMap(envCubeMap, hdrTexture, equirectToCubeMapShader);
-    scene->setupIBL(envCubeMap, convolutionShader, prefilterShader, brdfShader);
-    scene->setEnvMap(&envCubeMap);
+    scene.equirectToCubeMap(envCubeMap, hdrTexture, equirectToCubeMapShader);
+    scene.setupIBL(envCubeMap, convolutionShader, prefilterShader, brdfShader);
+    scene.setEnvMap(&envCubeMap);
 
     Shader dirLightShadowsShader;
     dirLightShadowsShader.loadFromFile("../assets/shaders/shadows/dirShadow.vert", "../assets/shaders/shadows/dirShadow.frag");
@@ -247,8 +243,8 @@ int main(int argc, char** argv) {
     ComputeShader genMeshShader;
     genMeshShader.loadFromFile("../assets/shaders/compute/genMesh.comp");
 
-    app.renderer.updateDirLightShadowMap(dirLightShadowsShader, scene, camera);
-    app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, scene, camera);
+    app.renderer.updateDirLightShadowMap(dirLightShadowsShader, &scene, &camera);
+    app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, &scene, &camera);
 
     GLuint vertexBuffer;
     glGenBuffers(1, &vertexBuffer);
@@ -275,21 +271,20 @@ int main(int argc, char** argv) {
     genMeshShader.unbind();
 
     int i = 0;
-
     app.onRender([&](double now, double dt) {
-        processInput(&app, camera, dt);
+        processInput(app, camera, dt);
 
         // render all objects in scene
-        app.renderer.drawObjects(pbrShader, scene, camera);
+        app.renderer.drawObjects(pbrShader, &scene, &camera);
 
         // render skybox (render as last to prevent overdraw)
-        app.renderer.drawSkyBox(backgroundShader, scene, camera);
+        app.renderer.drawSkyBox(backgroundShader, &scene, &camera);
 
         genMeshShader.bind();
-        genMeshShader.setMat4("view", camera->getViewMatrix());
-        genMeshShader.setMat4("projectionInverse", glm::inverse(camera->getProjectionMatrix()));
-        genMeshShader.setFloat("near", camera->near);
-        genMeshShader.setFloat("far", camera->far);
+        genMeshShader.setMat4("view", camera.getViewMatrix());
+        genMeshShader.setMat4("projectionInverse", glm::inverse(camera.getProjectionMatrix()));
+        genMeshShader.setFloat("near", camera.near);
+        genMeshShader.setFloat("far", camera.far);
 	    glBindImageTexture(0, app.renderer.gBuffer.positionBuffer.ID, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
 	    glBindImageTexture(1, app.renderer.gBuffer.normalsBuffer.ID, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
 	    glBindImageTexture(2, app.renderer.gBuffer.colorBuffer.ID, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA);
@@ -401,16 +396,16 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void processInput(OpenGLApp* app, Camera* camera, float deltaTime) {
-    if (glfwGetKey(app->window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(app->window, true);
+void processInput(OpenGLApp& app, Camera& camera, float deltaTime) {
+    if (glfwGetKey(app.window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(app.window, true);
 
-    if (glfwGetKey(app->window, GLFW_KEY_W) == GLFW_PRESS)
-        camera->processKeyboard(FORWARD, deltaTime);
-    if (glfwGetKey(app->window, GLFW_KEY_S) == GLFW_PRESS)
-        camera->processKeyboard(BACKWARD, deltaTime);
-    if (glfwGetKey(app->window, GLFW_KEY_A) == GLFW_PRESS)
-        camera->processKeyboard(LEFT, deltaTime);
-    if (glfwGetKey(app->window, GLFW_KEY_D) == GLFW_PRESS)
-        camera->processKeyboard(RIGHT, deltaTime);
+    if (glfwGetKey(app.window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.processKeyboard(FORWARD, deltaTime);
+    if (glfwGetKey(app.window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.processKeyboard(BACKWARD, deltaTime);
+    if (glfwGetKey(app.window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.processKeyboard(LEFT, deltaTime);
+    if (glfwGetKey(app.window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.processKeyboard(RIGHT, deltaTime);
 }
