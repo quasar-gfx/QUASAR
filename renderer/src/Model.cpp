@@ -2,6 +2,8 @@
 #include <sstream>
 #include <iostream>
 
+#include <stb_image.h>
+
 #include <Model.h>
 
 void Model::draw(Shader &shader) {
@@ -13,7 +15,7 @@ void Model::draw(Shader &shader) {
 void Model::loadFromFile(const std::string &path, std::vector<TextureID> inputTextures) {
     Assimp::Importer importer;
     unsigned int flags = aiProcess_Triangulate | aiProcess_OptimizeMeshes | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace | aiProcess_FlipUVs;
-    const aiScene* scene = importer.ReadFile(path, flags);
+    scene = importer.ReadFile(path, flags);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         throw std::runtime_error("ERROR::ASSIMP:: " + std::string(importer.GetErrorString()));
     }
@@ -121,20 +123,56 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, std::vector<TextureI
 GLuint Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
     // if the texture type exists, load the texture
     if (mat->GetTextureCount(type) > 0) {
-        aiString str;
-        mat->GetTexture(type, 0, &str); // only grab the first texture of each type
+        aiString aiTexturePath;
+        mat->GetTexture(type, 0, &aiTexturePath); // only grab the first texture of each type
 
         std::string texturePath = rootDirectory;
-        texturePath = texturePath.append(str.C_Str());
-
+        texturePath = texturePath.append(aiTexturePath.C_Str());
         std::replace(texturePath.begin(), texturePath.end(), '\\', '/');
 
+        // if we havent loaded this texture yet
         if (texturesLoaded.count(texturePath) == 0) {
-            Texture texture = Texture(texturePath);
-            texturesLoaded[texturePath] = texture;
+            // seems like assimp uses * as a prefix for embedded textures
+            if (aiTexturePath.length > 0 && aiTexturePath.data[0] == '*') {
+                const aiTexture* aiTexture = scene->GetEmbeddedTexture(aiTexturePath.C_Str());
+                if (aiTexture) {
+                    int texWidth, texHeight, texChannels;
+                    unsigned char* data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiTexture->pcData),
+                                                                aiTexture->mWidth, &texWidth, &texHeight, &texChannels, 0);
+                    if (data) {
+                        GLenum internalFormat, format;
+                        if (texChannels == 1) {
+                            internalFormat = GL_RED;
+                            format = GL_RED;
+                        }
+                        else if (texChannels == 3) {
+                            internalFormat = GL_RGB;
+                            format = GL_RGB;
+                        }
+                        else if (texChannels == 4) {
+                            internalFormat = GL_RGBA;
+                            format = GL_RGBA;
+                        }
+
+                        Texture texture = Texture(texWidth, texHeight, internalFormat, format, GL_UNSIGNED_BYTE, GL_REPEAT, GL_REPEAT, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, data);
+                        glGenerateMipmap(GL_TEXTURE_2D);
+
+                        stbi_image_free(data);
+                        texturesLoaded[texturePath] = texture;
+                        return texturesLoaded[texturePath].ID;
+                    }
+                }
+
+                return 0;
+            }
+            else {
+                Texture texture = Texture(texturePath);
+                texturesLoaded[texturePath] = texture;
+                return texturesLoaded[texturePath].ID;
+            }
         }
 
-        return texturesLoaded[texturePath].ID;
+        return 0;
     }
     // else return 0, indicating that there is no texture
     else {

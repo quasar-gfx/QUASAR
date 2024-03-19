@@ -45,6 +45,7 @@ public:
     EntityType getType() override { return ENTITY_MESH; }
 
 private:
+    const aiScene* scene;
     std::unordered_map<std::string, Texture> texturesLoaded;
 
     void loadFromFile(const std::string &path, std::vector<TextureID> inputTextures);
