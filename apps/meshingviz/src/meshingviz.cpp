@@ -18,14 +18,14 @@
 
 void processInput(OpenGLApp &app, Camera &camera, float deltaTime);
 
+const std::string BACKPACK_MODEL_PATH = "../assets/models/backpack/backpack.obj";
+
 int main(int argc, char** argv) {
     OpenGLApp app{};
-    app.config.title = "PBR";
+    app.config.title = "Meshing Visualizer";
 
-    std::string modelPath = "../assets/models/cerberus/cerberus.fbx";
-    std::string hdrImagePath = "../assets/textures/hdr/newport_loft.hdr";
-    std::string cube1TexturePath = "../assets/textures/pbr/gold";
-    std::string cube2TexturePath = "../assets/textures/pbr/rusted_iron";
+    std::string modelPath = "../meshing/mesh.obj";
+    std::string hdrImagePath = "../assets/textures/hdr/barcelona.hdr";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             app.config.width = atoi(argv[i + 1]);
@@ -41,14 +41,6 @@ int main(int argc, char** argv) {
         }
         else if (!strcmp(argv[i], "-i") && i + 1 < argc) {
             hdrImagePath = argv[i + 1];
-            i++;
-        }
-        else if (!strcmp(argv[i], "-t1") && i + 1 < argc) {
-            cube1TexturePath = argv[i + 1];
-            i++;
-        }
-        else if (!strcmp(argv[i], "-t2") && i + 1 < argc) {
-            cube2TexturePath = argv[i + 1];
             i++;
         }
         else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
@@ -83,7 +75,7 @@ int main(int argc, char** argv) {
         static bool mouseDown = false;
 
         static float lastX = screenWidth / 2.0;
-        static float lastY = screenHeight / 2.0;
+        static float lastY = app.config.height / 2.0;
 
         float xpos = static_cast<float>(xposIn);
         float ypos = static_cast<float>(yposIn);
@@ -115,7 +107,7 @@ int main(int argc, char** argv) {
 
     // shaders
     Shader pbrShader, screenShader;
-    pbrShader.loadFromFile("../assets/shaders/pbr/pbr.vert", "../assets/shaders/pbr/pbr.frag");
+    pbrShader.loadFromFile("../assets/shaders/simple.vert", "../assets/shaders/textured.frag");
     screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayColor.frag");
 
     // converts HDR equirectangular environment map to cubemap equivalent
@@ -140,114 +132,124 @@ int main(int argc, char** argv) {
 
     // textures
     TextureCreateParams textureParams{
-        .wrapS = GL_REPEAT,
-        .wrapT = GL_REPEAT,
         .minFilter = GL_LINEAR_MIPMAP_LINEAR,
         .magFilter = GL_LINEAR
     };
-    textureParams.path = cube1TexturePath + "/albedo.png";
+    textureParams.path = "../assets/textures/pbr/gold/albedo.png";
     Texture albedo = Texture(textureParams);
-    textureParams.path = cube1TexturePath + "/normal.png";
+    textureParams.path = "../assets/textures/pbr/gold/normal.png";
     Texture normal = Texture(textureParams);
-    textureParams.path = cube1TexturePath + "/metallic.png";
+    textureParams.path = "../assets/textures/pbr/gold/metallic.png";
     Texture metallic = Texture(textureParams);
-    textureParams.path = cube1TexturePath + "/roughness.png";
+    textureParams.path = "../assets/textures/pbr/gold/roughness.png";
     Texture roughness = Texture(textureParams);
-    textureParams.path = cube1TexturePath + "/ao.png";
+    textureParams.path = "../assets/textures/pbr/gold/ao.png";
     Texture ao = Texture(textureParams);
     std::vector<TextureID> goldTextures = { albedo.ID, 0, normal.ID, metallic.ID, roughness.ID, ao.ID };
 
-    textureParams.path = cube2TexturePath + "/albedo.png";
-    Texture ironAlbedo = Texture(textureParams);
-    textureParams.path = cube2TexturePath + "/normal.png";
-    Texture ironNormal = Texture(textureParams);
-    textureParams.path = cube2TexturePath + "/metallic.png";
-    Texture ironMetallic = Texture(textureParams);
-    textureParams.path = cube2TexturePath + "/roughness.png";
-    Texture ironRoughness = Texture(textureParams);
-    textureParams.path = cube2TexturePath + "/ao.png";
-    Texture ironAo = Texture(textureParams);
-    std::vector<TextureID> ironTextures = { ironAlbedo.ID, 0, ironNormal.ID, ironMetallic.ID, ironRoughness.ID, ironAo.ID };
+    // Texture ironAlbedo = Texture("../assets/textures/pbr/rusted_iron/albedo.png");
+    // Texture ironNormal = Texture("../assets/textures/pbr/rusted_iron/normal.png");
+    // Texture ironMetallic = Texture("../assets/textures/pbr/rusted_iron/metallic.png");
+    // Texture ironRoughness = Texture("../assets/textures/pbr/rusted_iron/roughness.png");
+    // Texture ironAo = Texture("../assets/textures/pbr/rusted_iron/ao.png");
+    // std::vector<TextureID> ironTextures = { ironAlbedo.ID, 0, ironNormal.ID, ironMetallic.ID, ironRoughness.ID, ironAo.ID };
 
-    Sphere sphereGold = Sphere(goldTextures);
-    Node sphereNodeGold = Node(&sphereGold);
-    sphereNodeGold.setTranslation(glm::vec3(-5.0f, 0.5f, -1.0f));
+    // Texture plasticAlbedo = Texture("../assets/textures/pbr/plastic/albedo.png");
+    // Texture plasticNormal = Texture("../assets/textures/pbr/plastic/normal.png");
+    // Texture plasticMetallic = Texture("../assets/textures/pbr/plastic/metallic.png");
+    // Texture plasticRoughness = Texture("../assets/textures/pbr/plastic/roughness.png");
+    // Texture plasticAo = Texture("../assets/textures/pbr/plastic/ao.png");
+    // std::vector<TextureID> plasticTextures = { plasticAlbedo.ID, 0, plasticNormal.ID, plasticMetallic.ID, plasticRoughness.ID, plasticAo.ID };
 
-    Cube cubeIron = Cube(ironTextures);
-    Node cubeNodeIron = Node(&cubeIron);
-    cubeNodeIron.setTranslation(glm::vec3(5.0f, 0.5f, -1.0f));
+    // Texture windowTexture = Texture("../assets/textures/window.png");
+    // std::vector<TextureID> windowTextures = { windowTexture.ID };
 
-    textureParams.path = "../assets/models/cerberus/Textures/Cerberus_A.tga";
-    Texture gunAlbedo = Texture(textureParams);
-    textureParams.path = "../assets/models/cerberus/Textures/Cerberus_N.tga";
-    Texture gunNormal = Texture(textureParams);
-    textureParams.path = "../assets/models/cerberus/Textures/Cerberus_M.tga";
-    Texture gunMetallic = Texture(textureParams);
-    textureParams.path = "../assets/models/cerberus/Textures/Cerberus_R.tga";
-    Texture gunRoughness = Texture(textureParams);
-    textureParams.path = "../assets/models/cerberus/Textures/Cerberus_AO.tga";
-    Texture gunAo = Texture(textureParams);
-    std::vector<TextureID> gunTextures = { gunAlbedo.ID, 0, gunNormal.ID, gunMetallic.ID, gunRoughness.ID, gunAo.ID };
+    // objects
+    // Cube cubeGold = Cube(goldTextures);
+    // Node cubeNodeGold = Node(cubeGold);
+    // cubeNodeGold.setTranslation(glm::vec3(-0.2f, 0.25f, -7.0f));
+    // cubeNodeGold.setScale(glm::vec3(0.5f));
 
-    // models
-    ModelCreateParams gunParams{
-        .path = modelPath,
-        .inputTextures = gunTextures
-    };
-    Model gun = Model(gunParams);
-    Node gunNode = Node(&gun);
-    gunNode.setTranslation(glm::vec3(2.0f, 1.0f, -1.0f));
-    gunNode.setRotationEuler(glm::vec3(0.0f, 90.0f, 0.0f));
-    gunNode.setScale(glm::vec3(0.05f));
+    // Cube cubeIron = Cube(ironTextures);
+    // Node cubeNodeIron = Node(cubeIron);
+    // cubeNodeIron.setTranslation(glm::vec3(1.5f, 0.25f, -3.0f));
+    // cubeNodeIron.setScale(glm::vec3(0.5f));
 
-    // load the HDR environment map
-    TextureCreateParams hdrParams{
-        .path = hdrImagePath,
-        .internalFormat = GL_RGB16F,
-        .format = GL_RGB,
-        .type = GL_FLOAT,
-        .wrapS = GL_REPEAT,
-        .wrapT = GL_REPEAT,
-        .minFilter = GL_LINEAR,
-        .magFilter = GL_LINEAR,
-        .flipped = true
-    };
-    Texture hdrTexture = Texture(hdrParams);
+    // Sphere sphere = Sphere(plasticTextures);
+    // Node sphereNodePlastic = Node(sphere);
+    // sphereNodePlastic.setTranslation(glm::vec3(1.0f, 1.5f, -8.0f));
+    // sphereNodePlastic.setScale(glm::vec3(0.5f));
 
-    // skybox
-    CubeMap envCubeMap(512, 512, CUBE_MAP_HDR);
+    // Plane plane = Plane(windowTextures);
+    // Node planeNode = Node(plane);
+    // planeNode.setTranslation(glm::vec3(0.0f, 1.5f, -7.0f));
+    // planeNode.setRotationEuler(glm::vec3(-90.0f, 0.0f, 0.0f));
+    // planeNode.setScale(glm::vec3(0.5f));
 
     // lights
-    PointLight pointLight1 = PointLight(glm::vec3(1.0, 1.0, 1.0), 300.0f);
-    pointLight1.setPosition(glm::vec3(-10.0f, 10.0f, 10.0f));
+    DirectionalLight directionalLight = DirectionalLight(glm::vec3(0.8f, 0.8f, 0.8f), 0.1f);
+    directionalLight.setDirection(glm::vec3(0.0f, -1.0f, -0.3f));
+
+    PointLight pointLight1 = PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
+    pointLight1.setPosition(glm::vec3(-1.45f, 3.5f, -6.2f));
     pointLight1.setAttenuation(0.0f, 0.09f, 1.0f);
 
-    PointLight pointLight2 = PointLight(glm::vec3(1.0, 1.0, 1.0), 300.0f);
-    pointLight2.setPosition(glm::vec3(10.0f, 10.0f, 10.0f));
+    PointLight pointLight2 = PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
+    pointLight2.setPosition(glm::vec3(2.2f, 3.5f, -6.2f));
     pointLight2.setAttenuation(0.0f, 0.09f, 1.0f);
 
-    PointLight pointLight3 = PointLight(glm::vec3(1.0, 1.0, 1.0), 300.0f);
-    pointLight3.setPosition(glm::vec3(-10.0f, -10.0f, 10.0f));
+    PointLight pointLight3 = PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
+    pointLight3.setPosition(glm::vec3(-1.45f, 3.5f, 4.89f));
     pointLight3.setAttenuation(0.0f, 0.09f, 1.0f);
 
-    PointLight pointLight4 = PointLight(glm::vec3(1.0, 1.0, 1.0), 300.0f);
-    pointLight4.setPosition(glm::vec3(10.0f, -10.0f, 10.0f));
+    PointLight pointLight4 = PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
+    pointLight4.setPosition(glm::vec3(2.2f, 3.5f, 4.89f));
     pointLight4.setAttenuation(0.0f, 0.09f, 1.0f);
 
+    textureParams.path = "../meshing/meshColor.png";
+    Texture meshTexture = Texture(textureParams);
+    std::vector<TextureID> meshTextures = { meshTexture.ID };
+    // Cube cube = Cube(meshTextures);
+    // Node cubeNode = Node(&cube);
+
+    // models
+    ModelCreateParams modelParams{
+        .path = modelPath,
+        .inputTextures = meshTextures
+    };
+    Model mesh = Model(modelParams);
+    Node meshNode = Node(&mesh);
+
+    // Model backpack = Model(BACKPACK_MODEL_PATH, true);
+
+    // Node backpackNode = Node(&backpack);
+    // backpackNode.setTranslation(glm::vec3(0.5f, 0.1f, -5.0f));
+    // backpackNode.setScale(glm::vec3(0.25f));
+
+    scene.setDirectionalLight(&directionalLight);
     scene.addPointLight(&pointLight1);
     scene.addPointLight(&pointLight2);
     scene.addPointLight(&pointLight3);
     scene.addPointLight(&pointLight4);
-    scene.addChildNode(&sphereNodeGold);
-    scene.addChildNode(&cubeNodeIron);
-    scene.addChildNode(&gunNode);
+    // scene.addChildNode(&cubeNodeGold);
+    // scene.addChildNode(&cubeNodeIron);
+    // scene.addChildNode(sphereNodePlastic);
+    scene.addChildNode(&meshNode);
+    // scene.addChildNode(&cubeNode);
+    // scene.addChildNode(&backpackNode);
+    // scene.addChildNode(&planeNode);
 
-    scene.equirectToCubeMap(envCubeMap, hdrTexture, equirectToCubeMapShader);
-    scene.setupIBL(envCubeMap, convolutionShader, prefilterShader, brdfShader);
-    scene.setEnvMap(&envCubeMap);
+    // Shader dirLightShadowsShader;
+    // dirLightShadowsShader.loadFromFile("../assets/shaders/shadows/dirShadow.vert", "../assets/shaders/shadows/dirShadow.frag");
+
+    // Shader pointLightShadowsShader;
+    // pointLightShadowsShader.loadFromFile("../assets/shaders/shadows/pointShadow.vert", "../assets/shaders/shadows/pointShadow.frag", "../assets/shaders/shadows/pointShadow.geo");
 
     app.onRender([&](double now, double dt) {
         processInput(app, camera, dt);
+
+        // app.renderer.updateDirLightShadowMap(dirLightShadowsShader, &scene, &camera);
+        // app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, &scene, &camera);
 
         // render all objects in scene
         app.renderer.drawObjects(pbrShader, &scene, &camera);

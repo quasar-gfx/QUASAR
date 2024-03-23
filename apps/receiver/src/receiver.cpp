@@ -18,7 +18,7 @@
 #include <VideoTexture.h>
 #include <PoseStreamer.h>
 
-void processInput(OpenGLApp* app, Camera* camera, float deltaTime);
+void processInput(OpenGLApp &app, Camera &camera, float deltaTime);
 
 const std::string CONTAINER_TEXTURE = "../assets/textures/container.jpg";
 const std::string METAL_TEXTURE = "../assets/textures/metal.png";
@@ -54,15 +54,26 @@ int main(int argc, char** argv) {
 
     app.init();
 
-    int screenWidth, screenHeight;
+    unsigned int screenWidth, screenHeight;
     app.getWindowSize(&screenWidth, &screenHeight);
 
-    Scene* scene = new Scene();
-    Camera* camera = new Camera(screenWidth, screenHeight);
+    Scene scene = Scene();
+    Camera camera = Camera(screenWidth, screenHeight);
 
-    VideoTexture videoTexture(app.config.width, app.config.height);
+    TextureCreateParams videoParams{
+        .width = app.config.width,
+        .height = app.config.height,
+        .internalFormat = GL_RGB,
+        .format = GL_RGB,
+        .type = GL_UNSIGNED_BYTE,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_LINEAR,
+        .magFilter = GL_LINEAR
+    };
+    VideoTexture videoTexture(videoParams);
     videoTexture.initVideo(inputUrl);
-    PoseStreamer poseStreamer(camera, poseURL);
+    PoseStreamer poseStreamer(&camera, poseURL);
 
     app.gui([&](double now, double dt) {
         ImGui::NewFrame();
@@ -76,14 +87,14 @@ int main(int argc, char** argv) {
     });
 
     app.onResize([&camera](unsigned int width, unsigned int height) {
-        camera->aspect = (float)width / (float)height;
+        camera.aspect = (float)width / (float)height;
     });
 
-    app.onMouseMove([&app, &camera](double xposIn, double yposIn) {
+    app.onMouseMove([&](double xposIn, double yposIn) {
         static bool mouseDown = false;
 
-        static float lastX = app.config.width / 2.0;
-        static float lastY = app.config.height / 2.0;
+        static float lastX = screenWidth / 2.0;
+        static float lastY = screenHeight / 2.0;
 
         float xpos = static_cast<float>(xposIn);
         float ypos = static_cast<float>(yposIn);
@@ -105,12 +116,12 @@ int main(int argc, char** argv) {
         }
 
         if (mouseDown) {
-            camera->processMouseMovement(xoffset, yoffset);
+            camera.processMouseMovement(xoffset, yoffset);
         }
     });
 
     app.onMouseScroll([&app, &camera](double xoffset, double yoffset) {
-        camera->processMouseScroll(static_cast<float>(yoffset));
+        camera.processMouseScroll(static_cast<float>(yoffset));
     });
 
     // shaders
@@ -120,31 +131,38 @@ int main(int argc, char** argv) {
     screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayVideo.frag");
 
     // lights
-    AmbientLight* ambientLight = new AmbientLight();
+    AmbientLight ambientLight = AmbientLight();
 
     // textures
-    Texture conatinerTexture = Texture(CONTAINER_TEXTURE);
+    TextureCreateParams textureParams{
+        .wrapS = GL_REPEAT,
+        .wrapT = GL_REPEAT,
+        .minFilter = GL_LINEAR_MIPMAP_LINEAR,
+        .magFilter = GL_LINEAR
+    };
+    textureParams.path = CONTAINER_TEXTURE;
+    Texture conatinerTexture = Texture(textureParams);
     std::vector<TextureID> conatinerTextures = { conatinerTexture.ID };
 
-    Texture floorTexture = Texture(METAL_TEXTURE);
+    textureParams.path = METAL_TEXTURE;
+    Texture floorTexture = Texture(textureParams);
     std::vector<TextureID> floorTextures = { floorTexture.ID };
 
-    Cube* cube = new Cube(conatinerTextures);
+    Cube cube = Cube(conatinerTextures);
 
-    Node* cubeNode = new Node(cube);
-    cubeNode->setTranslation(glm::vec3(-1.0f, 0.0f, -1.0f));
+    Node cubeNode = Node(&cube);
+    cubeNode.setTranslation(glm::vec3(-1.0f, 0.0f, -1.0f));
 
-    Sphere* sphere = new Sphere(conatinerTextures);
+    Sphere sphere = Sphere(conatinerTextures);
 
-    Node* sphereNode = new Node(sphere);
-    sphereNode->setTranslation(glm::vec3(2.0f, 1.0f, -3.0f));
+    Node sphereNode = Node(&sphere);
+    sphereNode.setTranslation(glm::vec3(2.0f, 1.0f, -3.0f));
 
-    Plane* plane = new Plane(floorTextures);
+    Plane plane = Plane(floorTextures);
+    Node planeNode = Node(&plane);
+    planeNode.setScale(glm::vec3(25.0f, 1.0f, 25.0f));
 
-    Node* planeNode = new Node(plane);
-    planeNode->setScale(glm::vec3(25.0f, 1.0f, 25.0f));
-
-    CubeMap* skybox = new CubeMap({
+    CubeMap skybox = CubeMap({
         "../assets/textures/skybox/right.jpg",
         "../assets/textures/skybox/left.jpg",
         "../assets/textures/skybox/top.jpg",
@@ -153,22 +171,22 @@ int main(int argc, char** argv) {
         "../assets/textures/skybox/back.jpg"
     });
 
-    scene->setAmbientLight(ambientLight);
-    scene->setEnvMap(skybox);
-    scene->addChildNode(cubeNode);
-    scene->addChildNode(sphereNode);
-    scene->addChildNode(planeNode);
+    scene.setAmbientLight(&ambientLight);
+    scene.setEnvMap(&skybox);
+    scene.addChildNode(&cubeNode);
+    scene.addChildNode(&sphereNode);
+    scene.addChildNode(&planeNode);
 
     app.onRender([&](double now, double dt) {
-        processInput(&app, camera, dt);
+        processInput(app, camera, dt);
 
         poseStreamer.sendPose();
 
         // render all objects in scene
-        app.renderer.drawObjects(shader, scene, camera);
+        app.renderer.drawObjects(shader, &scene, &camera);
 
         // render skybox (render as last to prevent overdraw)
-        app.renderer.drawSkyBox(skyboxShader, scene, camera);
+        app.renderer.drawSkyBox(skyboxShader, &scene, &camera);
 
         // render video
         screenShader.bind();
@@ -193,16 +211,16 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void processInput(OpenGLApp* app, Camera* camera,  float deltaTime) {
-    if (glfwGetKey(app->window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(app->window, true);
+void processInput(OpenGLApp &app, Camera &camera,  float deltaTime) {
+    if (glfwGetKey(app.window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(app.window, true);
 
-    if (glfwGetKey(app->window, GLFW_KEY_W) == GLFW_PRESS)
-        camera->processKeyboard(FORWARD, deltaTime);
-    if (glfwGetKey(app->window, GLFW_KEY_S) == GLFW_PRESS)
-        camera->processKeyboard(BACKWARD, deltaTime);
-    if (glfwGetKey(app->window, GLFW_KEY_A) == GLFW_PRESS)
-        camera->processKeyboard(LEFT, deltaTime);
-    if (glfwGetKey(app->window, GLFW_KEY_D) == GLFW_PRESS)
-        camera->processKeyboard(RIGHT, deltaTime);
+    if (glfwGetKey(app.window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.processKeyboard(FORWARD, deltaTime);
+    if (glfwGetKey(app.window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.processKeyboard(BACKWARD, deltaTime);
+    if (glfwGetKey(app.window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.processKeyboard(LEFT, deltaTime);
+    if (glfwGetKey(app.window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.processKeyboard(RIGHT, deltaTime);
 }

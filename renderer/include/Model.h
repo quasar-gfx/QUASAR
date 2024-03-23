@@ -18,6 +18,14 @@
 #include <Mesh.h>
 #include <Entity.h>
 
+struct ModelCreateParams {
+    std::string path;
+    std::vector<TextureID> inputTextures;
+    bool flipTextures = false;
+    bool wireframe = false;
+    bool gammaCorrected = false;
+};
+
 class Model : public Entity {
 public:
     std::vector<Mesh> meshes;
@@ -26,16 +34,15 @@ public:
 
     bool flipTextures = false;
 
-    Model(const std::string &modelPath, std::vector<TextureID> inputTextures)
-            : Entity() {
-        std::cout << "Loading model: " << modelPath << std::endl;
-        loadFromFile(modelPath, inputTextures);
-    }
+    bool wireframe = false;
+    bool gammaCorrected = false;
 
-    Model(const std::string &modelPath, bool flipTextures = false)
-            : flipTextures(flipTextures), Entity() {
-        std::cout << "Loading model: " << modelPath << std::endl;
-        loadFromFile(modelPath, {});
+    Model(const ModelCreateParams &params)
+            : flipTextures(params.flipTextures),
+                wireframe(params.wireframe), gammaCorrected(params.gammaCorrected),
+                Entity() {
+        std::cout << "Loading model: " << params.path << std::endl;
+        loadFromFile(params);
     }
 
     void draw(Shader &shader) override;
@@ -43,9 +50,10 @@ public:
     EntityType getType() override { return ENTITY_MESH; }
 
 private:
+    const aiScene* scene;
     std::unordered_map<std::string, Texture> texturesLoaded;
 
-    void loadFromFile(const std::string &path, std::vector<TextureID> inputTextures);
+    void loadFromFile(const ModelCreateParams &params);
     void processNode(aiNode* node, const aiScene* scene, std::vector<TextureID> inputTextures);
     Mesh processMesh(aiMesh* mesh, const aiScene *scene, std::vector<TextureID> inputTextures);
     GLuint loadMaterialTexture(aiMaterial* mat, aiTextureType type);

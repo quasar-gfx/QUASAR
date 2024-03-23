@@ -1,3 +1,7 @@
+#include <fstream>
+#include <sstream>
+#include <iostream>
+
 #include <ComputeShader.h>
 
 void ComputeShader::loadFromFile(std::string computePath) {

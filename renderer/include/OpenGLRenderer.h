@@ -4,8 +4,17 @@
 #include <glad/glad.h>
 
 #include <Shader.h>
+#include <ComputeShader.h>
+#include <Texture.h>
+#include <Primatives.h>
+#include <Model.h>
+#include <CubeMap.h>
+#include <Entity.h>
 #include <Scene.h>
 #include <Camera.h>
+#include <Lights.h>
+#include <FrameBuffer.h>
+#include <FullScreenQuad.h>
 
 class OpenGLRenderer {
 public:

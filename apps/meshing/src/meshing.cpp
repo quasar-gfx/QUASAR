@@ -3,6 +3,7 @@
 #include <imgui/imgui.h>
 
 #include <Shader.h>
+#include <ComputeShader.h>
 #include <Texture.h>
 #include <Primatives.h>
 #include <Model.h>
@@ -16,19 +17,16 @@
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 
-#include <VideoStreamer.h>
-#include <PoseReceiver.h>
-
 void processInput(OpenGLApp &app, Camera &camera, float deltaTime);
 
 const std::string BACKPACK_MODEL_PATH = "../assets/models/backpack/backpack.obj";
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
-    app.config.title = "Video Streamer";
+    app.config.title = "Meshing Test";
+    app.config.openglMajorVersion = 4;
+    app.config.openglMinorVersion = 3;
 
-    std::string outputUrl = "udp://127.0.0.1:1234";
-    std::string poseURL = "udp://127.0.0.1:4321";
     std::string modelPath = "../assets/models/Sponza/Sponza.gltf";
     std::string hdrImagePath = "../assets/textures/hdr/barcelona.hdr";
     for (int i = 1; i < argc; i++) {
@@ -48,14 +46,6 @@ int main(int argc, char** argv) {
             hdrImagePath = argv[i + 1];
             i++;
         }
-        else if (!strcmp(argv[i], "-o") && i + 1 < argc) {
-            outputUrl = argv[i + 1];
-            i++;
-        }
-        else if (!strcmp(argv[i], "-p") && i + 1 < argc) {
-            poseURL = argv[i + 1];
-            i++;
-        }
         else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
             app.config.enableVSync = atoi(argv[i + 1]);
             i++;
@@ -69,9 +59,7 @@ int main(int argc, char** argv) {
 
     Scene scene = Scene();
     Camera camera = Camera(screenWidth, screenHeight);
-
-    VideoStreamer videoStreamer = VideoStreamer();
-    PoseReceiver poseReceiver = PoseReceiver(&camera, poseURL);
+    // camera.setProjectionMatrix(glm::radians(120.0f), (float)screenWidth / (float)screenHeight, 0.1f, 1000.0f);
 
     app.gui([&](double now, double dt) {
         ImGui::NewFrame();
@@ -80,7 +68,6 @@ int main(int argc, char** argv) {
         ImGui::TextColored(ImVec4(1,1,0,1), "OpenGL Version: %s", glGetString(GL_VERSION));
         ImGui::TextColored(ImVec4(1,1,0,1), "GPU: %s\n", glGetString(GL_RENDERER));
         ImGui::Text("Rendering Frame Rate: %.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
-        ImGui::Text("Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoStreamer.getFrameRate(), 1000.0f / videoStreamer.getFrameRate());
         ImGui::End();
     });
 
@@ -88,39 +75,39 @@ int main(int argc, char** argv) {
         camera.aspect = (float)width / (float)height;
     });
 
-    // app.onMouseMove([&](double xposIn, double yposIn) {
-    //     static bool mouseDown = false;
+    app.onMouseMove([&](double xposIn, double yposIn) {
+        static bool mouseDown = false;
 
-    //     static float lastX = screenWidth / 2.0;
-    //     static float lastY = screenHeight / 2.0;
+        static float lastX = screenWidth / 2.0;
+        static float lastY = screenHeight / 2.0;
 
-    //     float xpos = static_cast<float>(xposIn);
-    //     float ypos = static_cast<float>(yposIn);
+        float xpos = static_cast<float>(xposIn);
+        float ypos = static_cast<float>(yposIn);
 
-    //     float xoffset = xpos - lastX;
-    //     float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+        float xoffset = xpos - lastX;
+        float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
 
-    //     lastX = xpos;
-    //     lastY = ypos;
+        lastX = xpos;
+        lastY = ypos;
 
-    //     if (glfwGetMouseButton(app.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-    //         mouseDown = true;
-    //         glfwSetInputMode(app.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    //     }
+        if (glfwGetMouseButton(app.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+            mouseDown = true;
+            glfwSetInputMode(app.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        }
 
-    //     if (glfwGetMouseButton(app.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
-    //         mouseDown = false;
-    //         glfwSetInputMode(app.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    //     }
+        if (glfwGetMouseButton(app.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
+            mouseDown = false;
+            glfwSetInputMode(app.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
 
-    //     if (mouseDown) {
-    //         camera.processMouseMovement(xoffset, yoffset);
-    //     }
-    // });
+        if (mouseDown) {
+            camera.processMouseMovement(xoffset, yoffset);
+        }
+    });
 
-    // app.onMouseScroll([&app, &camera](double xoffset, double yoffset) {
-    //     camera.processMouseScroll(static_cast<float>(yoffset));
-    // });
+    app.onMouseScroll([&app, &camera](double xoffset, double yoffset) {
+        camera.processMouseScroll(static_cast<float>(yoffset));
+    });
 
     // shaders
     Shader pbrShader, screenShader;
@@ -197,61 +184,12 @@ int main(int argc, char** argv) {
     std::vector<TextureID> windowTextures = { windowTexture.ID };
 
     // objects
-    std::vector<Vertex> cubeVertices {
-        // Front face
-        { {-1.0f, -1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Left
-        { { 1.0f, -1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Right
-        { { 1.0f,  1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Right
-        { { 1.0f,  1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Right
-        { {-1.0f,  1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Left
-        { {-1.0f, -1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Left
-
-        // Back face
-        { { 1.0f, -1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Right
-        { {-1.0f, -1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Left
-        { {-1.0f,  1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Left
-        { {-1.0f,  1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Left
-        { { 1.0f,  1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Right
-        { { 1.0f, -1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Right
-
-        // Left face
-        { {-1.0f, -1.0f, -1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },  // Bottom Front
-        { {-1.0f, -1.0f,  1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },  // Bottom Back
-        { {-1.0f,  1.0f,  1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },  // Top Back
-        { {-1.0f,  1.0f,  1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },  // Top Back
-        { {-1.0f,  1.0f, -1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },  // Top Front
-        { {-1.0f, -1.0f, -1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },  // Bottom Front
-
-        // Right face
-        { { 1.0f, -1.0f,  1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },  // Bottom Front
-        { { 1.0f, -1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },  // Bottom Back
-        { { 1.0f,  1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 1.0f} },  // Top Back
-        { { 1.0f,  1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 1.0f} },  // Top Back
-        { { 1.0f,  1.0f,  1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, 1.0f} },  // Top Front
-        { { 1.0f, -1.0f,  1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },  // Bottom Front
-
-        // Top face
-        { {-1.0f,  1.0f,  1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Left
-        { { 1.0f,  1.0f,  1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Right
-        { { 1.0f,  1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Right
-        { { 1.0f,  1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Right
-        { {-1.0f,  1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Left
-        { {-1.0f,  1.0f,  1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  // Top Left
-
-        // Bottom face
-        { {-1.0f, -1.0f, -1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Left
-        { { 1.0f, -1.0f, -1.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },  // Bottom Right
-        { { 1.0f, -1.0f,  1.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Right
-        { { 1.0f, -1.0f,  1.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Right
-        { {-1.0f, -1.0f,  1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },  // Top Left
-        { {-1.0f, -1.0f, -1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} }   // Bottom Left
-    };
-    Mesh cubeGold = Mesh(cubeVertices, goldTextures);
+    Cube cubeGold = Cube(goldTextures);
     Node cubeNodeGold = Node(&cubeGold);
     cubeNodeGold.setTranslation(glm::vec3(-0.2f, 0.25f, -7.0f));
     cubeNodeGold.setScale(glm::vec3(0.5f));
 
-    Mesh cubeIron = Mesh(cubeVertices, ironTextures);
+    Cube cubeIron = Cube(ironTextures);
     Node cubeNodeIron = Node(&cubeIron);
     cubeNodeIron.setTranslation(glm::vec3(1.5f, 0.25f, -3.0f));
     cubeNodeIron.setScale(glm::vec3(0.5f));
@@ -338,32 +276,45 @@ int main(int argc, char** argv) {
     scene.setupIBL(envCubeMap, convolutionShader, prefilterShader, brdfShader);
     scene.setEnvMap(&envCubeMap);
 
-    int ret = videoStreamer.start(app.renderer.gBuffer.colorBuffer, outputUrl);
-    if (ret < 0) {
-        std::cerr << "Failed to initialize FFMpeg Video Streamer" << std::endl;
-        return ret;
-    }
-
     Shader dirLightShadowsShader;
     dirLightShadowsShader.loadFromFile("../assets/shaders/shadows/dirShadow.vert", "../assets/shaders/shadows/dirShadow.frag");
 
     Shader pointLightShadowsShader;
     pointLightShadowsShader.loadFromFile("../assets/shaders/shadows/pointShadow.vert", "../assets/shaders/shadows/pointShadow.frag", "../assets/shaders/shadows/pointShadow.geo");
 
+    ComputeShader genMeshShader;
+    genMeshShader.loadFromFile("../assets/shaders/compute/genMesh.comp");
+
+    app.renderer.updateDirLightShadowMap(dirLightShadowsShader, &scene, &camera);
+    app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, &scene, &camera);
+
+    GLuint vertexBuffer;
+    glGenBuffers(1, &vertexBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, screenWidth * screenHeight * sizeof(glm::vec4), nullptr, GL_STATIC_DRAW);
+
+    GLuint indexBuffer;
+    int numTriangles = (screenWidth - 1) * (screenHeight - 1) * 2;
+    int indexBufferSize = numTriangles * 3;
+    glGenBuffers(1, &indexBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_STATIC_DRAW);
+
+    GLuint texCoordBuffer;
+    glGenBuffers(1, &texCoordBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, texCoordBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, screenWidth * screenHeight * sizeof(glm::vec2), nullptr, GL_STATIC_DRAW);
+
+    genMeshShader.bind();
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, texCoordBuffer);
+    genMeshShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
+    genMeshShader.unbind();
+
+    int i = 0;
     app.onRender([&](double now, double dt) {
         processInput(app, camera, dt);
-
-        poseReceiver.receivePose();
-
-        app.renderer.updateDirLightShadowMap(dirLightShadowsShader, &scene, &camera);
-        app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, &scene, &camera);
-
-        // animate lights
-        cubeNodeGold.setRotationEuler(glm::vec3(0.0f, 10.0f * now, 0.0f));
-        pointLight1.setPosition(glm::vec3(-1.45f + 0.25f * sin(now), 3.5f, -6.2f + 0.25f * cos(now)));
-        pointLight2.setPosition(glm::vec3(2.2f + 0.25f * sin(now), 3.5f, -6.2f + 0.25f * cos(now)));
-        pointLight3.setPosition(glm::vec3(-1.45f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));
-        pointLight4.setPosition(glm::vec3(2.2f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));
 
         // render all objects in scene
         app.renderer.drawObjects(pbrShader, &scene, &camera);
@@ -371,10 +322,111 @@ int main(int argc, char** argv) {
         // render skybox (render as last to prevent overdraw)
         app.renderer.drawSkyBox(backgroundShader, &scene, &camera);
 
+        genMeshShader.bind();
+        genMeshShader.setMat4("view", camera.getViewMatrix());
+        genMeshShader.setMat4("projectionInverse", glm::inverse(camera.getProjectionMatrix()));
+        genMeshShader.setFloat("near", camera.near);
+        genMeshShader.setFloat("far", camera.far);
+	    glBindImageTexture(0, app.renderer.gBuffer.positionBuffer.ID, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
+	    glBindImageTexture(1, app.renderer.gBuffer.normalsBuffer.ID, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
+	    glBindImageTexture(2, app.renderer.gBuffer.colorBuffer.ID, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA);
+        app.renderer.gBuffer.depthBuffer.bind(3);
+        genMeshShader.dispatch(screenWidth / 10, screenHeight / 10, 1);
+        genMeshShader.unbind();
+
         // render to screen
         app.renderer.drawToScreen(screenShader, screenWidth, screenHeight);
 
-        videoStreamer.sendFrame();
+        i++;
+        if (i == 100) {
+            std::vector<Vertex> vertices;
+            vertices.reserve(screenWidth * screenHeight);
+
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
+            GLvoid* pBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+            if (pBuffer) {
+                glm::vec4* pVertices = static_cast<glm::vec4*>(pBuffer);
+
+                for (int i = 0; i < screenWidth * screenHeight; ++i) {
+                    Vertex vertex;
+                    vertex.position.x = pVertices[i].x;
+                    vertex.position.y = pVertices[i].y;
+                    vertex.position.z = pVertices[i].z;
+                    vertices.push_back(vertex);
+                }
+
+                glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+            } else {
+                std::cerr << "Failed to map vertex buffer into memory" << std::endl;
+            }
+
+            std::vector<unsigned int> indices;
+            indices.reserve(indexBufferSize);
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
+            GLvoid* pIndexBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+            if (pIndexBuffer) {
+                unsigned int* pIndices = static_cast<unsigned int*>(pIndexBuffer);
+
+                for (int i = 0; i < indexBufferSize; ++i) {
+                    indices.push_back(pIndices[i]);
+                }
+
+                glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+            } else {
+                std::cerr << "Failed to map index buffer into memory" << std::endl;
+            }
+
+            std::vector<glm::vec2> texCoords;
+            texCoords.reserve(screenWidth * screenHeight);
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, texCoordBuffer);
+            GLvoid* pTexCoordBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+            if (pTexCoordBuffer) {
+                glm::vec2* pTexCoords = static_cast<glm::vec2*>(pTexCoordBuffer);
+
+                for (int i = 0; i < screenWidth * screenHeight; ++i) {
+                    texCoords.push_back(pTexCoords[i]);
+                }
+
+                glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+            } else {
+                std::cerr << "Failed to map tex coord buffer into memory" << std::endl;
+            }
+
+            std::cout << "saving" << std::endl;
+            std::ofstream file;
+            file.open("mesh.obj");
+            if (file.is_open()) {
+                file << "mtllib " << "mesh.mtl" << std::endl;
+                file << "usemtl " << "Material1" << std::endl;
+                for (int i = 0; i < vertices.size(); i++) {
+                    file << "v " << vertices[i].position.x << " " << vertices[i].position.y << " " << vertices[i].position.z << std::endl;
+                }
+                for (int i = 0; i < texCoords.size(); i++) {
+                    file << "vt " << texCoords[i].x << " " << texCoords[i].y << std::endl;
+                }
+                // for (int i = 0; i < indices.size(); i += 3) {
+                //     file << "f " << indices[i] + 1 << " " << indices[i + 1] + 1 << " " << indices[i + 2] + 1<< std::endl;
+                // }
+                for (int i = 0; i < indices.size(); i += 3) {
+                    file << "f " << indices[i + 0] + 1 << "/" << indices[i + 0] + 1 << " " << indices[i + 1] + 1 << "/" << indices[i + 1] + 1 << " " << indices[i + 2] + 1 << "/" << indices[i + 2] + 1 << std::endl;
+                }
+                file.close();
+            } else {
+                std::cerr << "Failed to open file" << std::endl;
+            }
+
+            std::ofstream file1;
+            file1.open("mesh.mtl");
+
+            if (file1.is_open()) {
+                file1 << "newmtl " << "Material1" << std::endl;
+                file1 << "map_Kd " << "meshColor.png" << std::endl;
+            }
+
+            std::cout << "done saving" << std::endl;
+
+            app.renderer.gBuffer.colorBuffer.saveTextureToPNG("meshColor.png");
+        }
     });
 
     // run app loop (blocking)
@@ -383,8 +435,6 @@ int main(int argc, char** argv) {
     // cleanup
     app.cleanup();
 
-    std::cout << "Please do CTRL-C to exit!" << std::endl;
-
     return 0;
 }
 
@@ -392,12 +442,12 @@ void processInput(OpenGLApp &app, Camera &camera, float deltaTime) {
     if (glfwGetKey(app.window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(app.window, true);
 
-    // if (glfwGetKey(app->window, GLFW_KEY_W) == GLFW_PRESS)
-    //     camera.processKeyboard(FORWARD, deltaTime);
-    // if (glfwGetKey(app->window, GLFW_KEY_S) == GLFW_PRESS)
-    //     camera.processKeyboard(BACKWARD, deltaTime);
-    // if (glfwGetKey(app->window, GLFW_KEY_A) == GLFW_PRESS)
-    //     camera.processKeyboard(LEFT, deltaTime);
-    // if (glfwGetKey(app->window, GLFW_KEY_D) == GLFW_PRESS)
-    //     camera.processKeyboard(RIGHT, deltaTime);
+    if (glfwGetKey(app.window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.processKeyboard(FORWARD, deltaTime);
+    if (glfwGetKey(app.window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.processKeyboard(BACKWARD, deltaTime);
+    if (glfwGetKey(app.window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.processKeyboard(LEFT, deltaTime);
+    if (glfwGetKey(app.window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.processKeyboard(RIGHT, deltaTime);
 }

@@ -2,6 +2,8 @@
 #include <sstream>
 #include <iostream>
 
+#include <stb_image.h>
+
 #include <Model.h>
 
 void Model::draw(Shader &shader) {
@@ -10,17 +12,17 @@ void Model::draw(Shader &shader) {
     }
 }
 
-void Model::loadFromFile(const std::string &path, std::vector<TextureID> inputTextures) {
+void Model::loadFromFile(const ModelCreateParams &params) {
     Assimp::Importer importer;
     unsigned int flags = aiProcess_Triangulate | aiProcess_OptimizeMeshes | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace | aiProcess_FlipUVs;
-    const aiScene* scene = importer.ReadFile(path, flags);
+    scene = importer.ReadFile(params.path, flags);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         throw std::runtime_error("ERROR::ASSIMP:: " + std::string(importer.GetErrorString()));
     }
 
-    rootDirectory = path.substr(0, path.find_last_of('/'))  + '/';
+    rootDirectory = params.path.substr(0, params.path.find_last_of('/'))  + '/';
 
-    processNode(scene->mRootNode, scene, inputTextures);
+    processNode(scene->mRootNode, scene, params.inputTextures);
 }
 
 void Model::processNode(aiNode* node, const aiScene* scene, std::vector<TextureID> inputTextures) {
@@ -113,26 +115,84 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, std::vector<TextureI
     float shininess = 0.0f;
     aiGetMaterialFloat(material, AI_MATKEY_SHININESS, &shininess);
 
-    return Mesh(vertices, indices, textures, shininess);
+    auto res = Mesh(vertices, indices, textures, shininess);
+    res.wireframe = wireframe;
+    return res;
 }
 
 GLuint Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
     // if the texture type exists, load the texture
     if (mat->GetTextureCount(type) > 0) {
-        aiString str;
-        mat->GetTexture(type, 0, &str); // only grab the first texture of each type
+        aiString aiTexturePath;
+        mat->GetTexture(type, 0, &aiTexturePath); // only grab the first texture of each type
 
         std::string texturePath = rootDirectory;
-        texturePath = texturePath.append(str.C_Str());
-
+        texturePath = texturePath.append(aiTexturePath.C_Str());
         std::replace(texturePath.begin(), texturePath.end(), '\\', '/');
 
+        // if we havent loaded this texture yet
         if (texturesLoaded.count(texturePath) == 0) {
-            Texture texture = Texture(texturePath);
-            texturesLoaded[texturePath] = texture;
+            // seems like assimp uses * as a prefix for embedded textures
+            if (aiTexturePath.length > 0 && aiTexturePath.data[0] == '*') {
+                const aiTexture* aiTexture = scene->GetEmbeddedTexture(aiTexturePath.C_Str());
+                if (aiTexture) {
+                    int texWidth, texHeight, texChannels;
+                    unsigned char* data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiTexture->pcData),
+                                                                aiTexture->mWidth, &texWidth, &texHeight, &texChannels, 0);
+                    if (data) {
+                        GLint internalFormat;
+                        GLenum format;
+                        if (texChannels == 1) {
+                            internalFormat = GL_RED;
+                            format = GL_RED;
+                        }
+                        else if (texChannels == 3) {
+                            internalFormat = gammaCorrected ? GL_SRGB : GL_RGB;
+                            format = GL_RGB;
+                        }
+                        else if (texChannels == 4) {
+                            internalFormat = gammaCorrected ? GL_SRGB_ALPHA : GL_RGBA;
+                            format = GL_RGBA;
+                        }
+
+                        TextureCreateParams params{
+                            .width = static_cast<unsigned int>(texWidth),
+                            .height = static_cast<unsigned int>(texHeight),
+                            .internalFormat = internalFormat,
+                            .format = format,
+                            .wrapS = GL_REPEAT,
+                            .wrapT = GL_REPEAT,
+                            .minFilter = GL_LINEAR_MIPMAP_LINEAR,
+                            .magFilter = GL_LINEAR,
+                            .data = data
+                        };
+                        Texture texture = Texture(params);
+                        glGenerateMipmap(GL_TEXTURE_2D);
+
+                        stbi_image_free(data);
+                        texturesLoaded[texturePath] = texture;
+                        return texturesLoaded[texturePath].ID;
+                    }
+                }
+
+                return 0;
+            }
+            else {
+                TextureCreateParams params{
+                    .path = texturePath,
+                    .wrapS = GL_REPEAT,
+                    .wrapT = GL_REPEAT,
+                    .minFilter = GL_LINEAR_MIPMAP_LINEAR,
+                    .magFilter = GL_LINEAR,
+                    .gammaCorrected = (type == aiTextureType_DIFFUSE) ? gammaCorrected : false
+                };
+                Texture texture = Texture(params);
+                texturesLoaded[texturePath] = texture;
+                return texturesLoaded[texturePath].ID;
+            }
         }
 
-        return texturesLoaded[texturePath].ID;
+        return 0;
     }
     // else return 0, indicating that there is no texture
     else {

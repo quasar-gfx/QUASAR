@@ -37,7 +37,7 @@ public:
     void onMouseScroll(MouseScrollCallback callback) { scrollCallback = callback; }
     void onRender(RenderCallback callback) { renderCallback = callback; };
 
-    void getWindowSize(int *resWidth, int *resHeight) const {
+    void getWindowSize(unsigned int *resWidth, unsigned int *resHeight) const {
         int width, height;
         glfwGetFramebufferSize(window, &width, &height);
         while (width == 0 || height == 0) {

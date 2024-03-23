@@ -18,7 +18,7 @@
 
 #include <glm/gtx/string_cast.hpp>
 
-void processInput(OpenGLApp* app, Camera* camera, float deltaTime);
+void processInput(OpenGLApp &app, Camera &camera, float deltaTime);
 
 const std::string BACKPACK_MODEL_PATH = "../assets/models/backpack/backpack.obj";
 
@@ -53,11 +53,11 @@ int main(int argc, char** argv) {
 
     app.init();
 
-    int screenWidth, screenHeight;
+    unsigned int screenWidth, screenHeight;
     app.getWindowSize(&screenWidth, &screenHeight);
 
-    Scene* scene = new Scene();
-    Camera* camera = new Camera(screenWidth, screenHeight);
+    Scene scene = Scene();
+    Camera camera = Camera(screenWidth, screenHeight);
 
     app.gui([&](double now, double dt) {
         ImGui::NewFrame();
@@ -70,14 +70,14 @@ int main(int argc, char** argv) {
     });
 
     app.onResize([&camera](unsigned int width, unsigned int height) {
-        camera->aspect = (float)width / (float)height;
+        camera.aspect = (float)width / (float)height;
     });
 
-    app.onMouseMove([&app, &camera](double xposIn, double yposIn) {
+    app.onMouseMove([&](double xposIn, double yposIn) {
         static bool mouseDown = false;
 
-        static float lastX = app.config.width / 2.0;
-        static float lastY = app.config.height / 2.0;
+        static float lastX = screenWidth / 2.0;
+        static float lastY = screenHeight / 2.0;
 
         float xpos = static_cast<float>(xposIn);
         float ypos = static_cast<float>(yposIn);
@@ -99,18 +99,17 @@ int main(int argc, char** argv) {
         }
 
         if (mouseDown) {
-            camera->processMouseMovement(xoffset, yoffset);
+            camera.processMouseMovement(xoffset, yoffset);
         }
     });
 
     app.onMouseScroll([&app, &camera](double xoffset, double yoffset) {
-        camera->processMouseScroll(static_cast<float>(yoffset));
+        camera.processMouseScroll(static_cast<float>(yoffset));
     });
 
     // shaders
-    Shader pbrShader, screenShader;
+    Shader pbrShader;
     pbrShader.loadFromFile("../assets/shaders/pbr/pbr.vert", "../assets/shaders/pbr/pbr.frag");
-    screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayColor.frag");
 
     // converts HDR equirectangular environment map to cubemap equivalent
     Shader equirectToCubeMapShader;
@@ -133,106 +132,146 @@ int main(int argc, char** argv) {
     backgroundShader.loadFromFile("../assets/shaders/cubemap/background.vert", "../assets/shaders/cubemap/backgroundHDR.frag");
 
     // textures
-    Texture albedo = Texture("../assets/textures/pbr/gold/albedo.png");
-    Texture normal = Texture("../assets/textures/pbr/gold/normal.png");
-    Texture metallic = Texture("../assets/textures/pbr/gold/metallic.png");
-    Texture roughness = Texture("../assets/textures/pbr/gold/roughness.png");
-    Texture ao = Texture("../assets/textures/pbr/gold/ao.png");
+    TextureCreateParams textureParams{
+        .wrapS = GL_REPEAT,
+        .wrapT = GL_REPEAT,
+        .minFilter = GL_LINEAR_MIPMAP_LINEAR,
+        .magFilter = GL_LINEAR
+    };
+    textureParams.path = "../assets/textures/pbr/gold/albedo.png";
+    Texture albedo = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/gold/normal.png";
+    Texture normal = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/gold/metallic.png";
+    Texture metallic = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/gold/roughness.png";
+    Texture roughness = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/gold/ao.png";
+    Texture ao = Texture(textureParams);
     std::vector<TextureID> goldTextures = { albedo.ID, 0, normal.ID, metallic.ID, roughness.ID, ao.ID };
 
-    Texture ironAlbedo = Texture("../assets/textures/pbr/rusted_iron/albedo.png");
-    Texture ironNormal = Texture("../assets/textures/pbr/rusted_iron/normal.png");
-    Texture ironMetallic = Texture("../assets/textures/pbr/rusted_iron/metallic.png");
-    Texture ironRoughness = Texture("../assets/textures/pbr/rusted_iron/roughness.png");
-    Texture ironAo = Texture("../assets/textures/pbr/rusted_iron/ao.png");
+    textureParams.path = "../assets/textures/pbr/rusted_iron/albedo.png";
+    Texture ironAlbedo = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/rusted_iron/normal.png";
+    Texture ironNormal = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/rusted_iron/metallic.png";
+    Texture ironMetallic = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/rusted_iron/roughness.png";
+    Texture ironRoughness = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/rusted_iron/ao.png";
+    Texture ironAo = Texture(textureParams);
     std::vector<TextureID> ironTextures = { ironAlbedo.ID, 0, ironNormal.ID, ironMetallic.ID, ironRoughness.ID, ironAo.ID };
 
-    Texture plasticAlbedo = Texture("../assets/textures/pbr/plastic/albedo.png");
-    Texture plasticNormal = Texture("../assets/textures/pbr/plastic/normal.png");
-    Texture plasticMetallic = Texture("../assets/textures/pbr/plastic/metallic.png");
-    Texture plasticRoughness = Texture("../assets/textures/pbr/plastic/roughness.png");
-    Texture plasticAo = Texture("../assets/textures/pbr/plastic/ao.png");
+    textureParams.path = "../assets/textures/pbr/plastic/albedo.png";
+    Texture plasticAlbedo = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/plastic/normal.png";
+    Texture plasticNormal = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/plastic/metallic.png";
+    Texture plasticMetallic = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/plastic/roughness.png";
+    Texture plasticRoughness = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/plastic/ao.png";
+    Texture plasticAo = Texture(textureParams);
     std::vector<TextureID> plasticTextures = { plasticAlbedo.ID, 0, plasticNormal.ID, plasticMetallic.ID, plasticRoughness.ID, plasticAo.ID };
 
-    Texture windowTexture = Texture("../assets/textures/window.png");
+    textureParams.path = "../assets/textures/window.png";
+    textureParams.wrapS = GL_REPEAT;
+    textureParams.wrapT = GL_REPEAT;
+    Texture windowTexture = Texture(textureParams);
     std::vector<TextureID> windowTextures = { windowTexture.ID };
 
     // objects
-    Cube* cubeGold = new Cube(goldTextures);
-    Node* cubeNodeGold = new Node(cubeGold);
-    cubeNodeGold->setTranslation(glm::vec3(-0.2f, 0.25f, -7.0f));
-    cubeNodeGold->setScale(glm::vec3(0.5f));
+    Cube cubeGold = Cube(goldTextures);
+    Node cubeNodeGold = Node(&cubeGold);
+    cubeNodeGold.setTranslation(glm::vec3(-0.2f, 0.25f, -7.0f));
+    cubeNodeGold.setScale(glm::vec3(0.5f));
 
-    Cube* cubeIron = new Cube(ironTextures);
-    Node* cubeNodeIron = new Node(cubeIron);
-    cubeNodeIron->setTranslation(glm::vec3(1.5f, 0.25f, -3.0f));
-    cubeNodeIron->setScale(glm::vec3(0.5f));
+    Cube cubeIron = Cube(ironTextures);
+    Node cubeNodeIron = Node(&cubeIron);
+    cubeNodeIron.setTranslation(glm::vec3(1.5f, 0.25f, -3.0f));
+    cubeNodeIron.setScale(glm::vec3(0.5f));
 
-    Sphere* sphere = new Sphere(plasticTextures);
-    Node* sphereNodePlastic = new Node(sphere);
-    sphereNodePlastic->setTranslation(glm::vec3(1.0f, 1.5f, -8.0f));
-    sphereNodePlastic->setScale(glm::vec3(0.5f));
+    Sphere sphere = Sphere(plasticTextures);
+    Node sphereNodePlastic = Node(&sphere);
+    sphereNodePlastic.setTranslation(glm::vec3(1.0f, 1.5f, -8.0f));
+    sphereNodePlastic.setScale(glm::vec3(0.5f));
 
-    Plane* plane = new Plane(windowTextures);
-    Node* planeNode = new Node(plane);
-    planeNode->setTranslation(glm::vec3(0.0f, 1.5f, -7.0f));
-    planeNode->setRotationEuler(glm::vec3(-90.0f, 0.0f, 0.0f));
-    planeNode->setScale(glm::vec3(0.5f));
+    Plane plane = Plane(windowTextures);
+    Node planeNode = Node(&plane);
+    planeNode.setTranslation(glm::vec3(0.0f, 1.5f, -7.0f));
+    planeNode.setRotationEuler(glm::vec3(-90.0f, 0.0f, 0.0f));
+    planeNode.setScale(glm::vec3(0.5f));
 
     // lights
-    DirectionalLight* directionalLight = new DirectionalLight(glm::vec3(0.8f, 0.8f, 0.8f), 0.1f);
-    directionalLight->setDirection(glm::vec3(0.0f, -1.0f, -0.3f));
+    DirectionalLight directionalLight = DirectionalLight(glm::vec3(0.8f, 0.8f, 0.8f), 0.1f);
+    directionalLight.setDirection(glm::vec3(0.0f, -1.0f, -0.3f));
 
-    PointLight* pointLight1 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
-    pointLight1->setPosition(glm::vec3(-1.45f, 3.5f, -6.2f));
-    pointLight1->setAttenuation(0.0f, 0.09f, 1.0f);
+    PointLight pointLight1 = PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
+    pointLight1.setPosition(glm::vec3(-1.45f, 3.5f, -6.2f));
+    pointLight1.setAttenuation(0.0f, 0.09f, 1.0f);
 
-    PointLight* pointLight2 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
-    pointLight2->setPosition(glm::vec3(2.2f, 3.5f, -6.2f));
-    pointLight2->setAttenuation(0.0f, 0.09f, 1.0f);
+    PointLight pointLight2 = PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
+    pointLight2.setPosition(glm::vec3(2.2f, 3.5f, -6.2f));
+    pointLight2.setAttenuation(0.0f, 0.09f, 1.0f);
 
-    PointLight* pointLight3 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
-    pointLight3->setPosition(glm::vec3(-1.45f, 3.5f, 4.89f));
-    pointLight3->setAttenuation(0.0f, 0.09f, 1.0f);
+    PointLight pointLight3 = PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
+    pointLight3.setPosition(glm::vec3(-1.45f, 3.5f, 4.89f));
+    pointLight3.setAttenuation(0.0f, 0.09f, 1.0f);
 
-    PointLight* pointLight4 = new PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
-    pointLight4->setPosition(glm::vec3(2.2f, 3.5f, 4.89f));
-    pointLight4->setAttenuation(0.0f, 0.09f, 1.0f);
+    PointLight pointLight4 = PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
+    pointLight4.setPosition(glm::vec3(2.2f, 3.5f, 4.89f));
+    pointLight4.setAttenuation(0.0f, 0.09f, 1.0f);
 
     // models
-    Model* sponza = new Model(modelPath);
+    ModelCreateParams sponzaParams{
+        .path = modelPath
+    };
+    Model sponza = Model(sponzaParams);
+    Node sponzaNode = Node(&sponza);
+    sponzaNode.setTranslation(glm::vec3(0.0f, -0.5f, 0.0f));
+    sponzaNode.setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
 
-    Node* sponzaNode = new Node(sponza);
-    sponzaNode->setTranslation(glm::vec3(0.0f, -0.5f, 0.0f));
-    sponzaNode->setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
-
-    Model* backpack = new Model(BACKPACK_MODEL_PATH, true);
-
-    Node* backpackNode = new Node(backpack);
-    backpackNode->setTranslation(glm::vec3(0.5f, 0.1f, -5.0f));
-    backpackNode->setScale(glm::vec3(0.25f));
+    ModelCreateParams backpackParams{
+        .path = BACKPACK_MODEL_PATH,
+        .flipTextures = true
+    };
+    Model backpack = Model(backpackParams);
+    Node backpackNode = Node(&backpack);
+    backpackNode.setTranslation(glm::vec3(0.5f, 0.1f, -5.0f));
+    backpackNode.setScale(glm::vec3(0.25f));
 
     // load the HDR environment map
-    Texture hdrTexture(hdrImagePath, GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
+    TextureCreateParams hdrParams{
+        .path = hdrImagePath,
+        .internalFormat = GL_RGB16F,
+        .format = GL_RGB,
+        .type = GL_FLOAT,
+        .wrapS = GL_REPEAT,
+        .wrapT = GL_REPEAT,
+        .minFilter = GL_LINEAR,
+        .magFilter = GL_LINEAR,
+        .flipped = true
+    };
+    Texture hdrTexture = Texture(hdrParams);
 
     // skybox
     CubeMap envCubeMap(512, 512, CUBE_MAP_HDR);
 
-    scene->setDirectionalLight(directionalLight);
-    scene->addPointLight(pointLight1);
-    scene->addPointLight(pointLight2);
-    scene->addPointLight(pointLight3);
-    scene->addPointLight(pointLight4);
-    scene->addChildNode(cubeNodeGold);
-    scene->addChildNode(cubeNodeIron);
-    scene->addChildNode(sphereNodePlastic);
-    scene->addChildNode(sponzaNode);
-    scene->addChildNode(backpackNode);
-    scene->addChildNode(planeNode);
+    scene.setDirectionalLight(&directionalLight);
+    scene.addPointLight(&pointLight1);
+    scene.addPointLight(&pointLight2);
+    scene.addPointLight(&pointLight3);
+    scene.addPointLight(&pointLight4);
+    scene.addChildNode(&cubeNodeGold);
+    scene.addChildNode(&cubeNodeIron);
+    scene.addChildNode(&sphereNodePlastic);
+    scene.addChildNode(&sponzaNode);
+    scene.addChildNode(&backpackNode);
+    scene.addChildNode(&planeNode);
 
-    scene->equirectToCubeMap(envCubeMap, hdrTexture, equirectToCubeMapShader);
-    scene->setupIBL(envCubeMap, convolutionShader, prefilterShader, brdfShader);
-    scene->setEnvMap(&envCubeMap);
+    scene.equirectToCubeMap(envCubeMap, hdrTexture, equirectToCubeMapShader);
+    scene.setupIBL(envCubeMap, convolutionShader, prefilterShader, brdfShader);
+    scene.setEnvMap(&envCubeMap);
 
     Shader dirLightShadowsShader;
     dirLightShadowsShader.loadFromFile("../assets/shaders/shadows/dirShadow.vert", "../assets/shaders/shadows/dirShadow.frag");
@@ -240,24 +279,27 @@ int main(int argc, char** argv) {
     Shader pointLightShadowsShader;
     pointLightShadowsShader.loadFromFile("../assets/shaders/shadows/pointShadow.vert", "../assets/shaders/shadows/pointShadow.frag", "../assets/shaders/shadows/pointShadow.geo");
 
-    app.onRender([&](double now, double dt) {
-        processInput(&app, camera, dt);
+    Shader screenShader;
+    screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayColor.frag");
 
-        app.renderer.updateDirLightShadowMap(dirLightShadowsShader, scene, camera);
-        app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, scene, camera);
+    app.onRender([&](double now, double dt) {
+        processInput(app, camera, dt);
+
+        app.renderer.updateDirLightShadowMap(dirLightShadowsShader, &scene, &camera);
+        app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, &scene, &camera);
 
         // animate
-        cubeNodeGold->setRotationEuler(glm::vec3(0.0f, 10.0f * now, 0.0f));
-        pointLight1->setPosition(glm::vec3(-1.45f + 0.25f * sin(now), 3.5f, -6.2f + 0.25f * cos(now)));
-        pointLight2->setPosition(glm::vec3(2.2f + 0.25f * sin(now), 3.5f, -6.2f + 0.25f * cos(now)));
-        pointLight3->setPosition(glm::vec3(-1.45f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));
-        pointLight4->setPosition(glm::vec3(2.2f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));
+        cubeNodeGold.setRotationEuler(glm::vec3(0.0f, 10.0f * now, 0.0f));
+        pointLight1.setPosition(glm::vec3(-1.45f + 0.25f * sin(now), 3.5f, -6.2f + 0.25f * cos(now)));
+        pointLight2.setPosition(glm::vec3(2.2f + 0.25f * sin(now), 3.5f, -6.2f + 0.25f * cos(now)));
+        pointLight3.setPosition(glm::vec3(-1.45f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));
+        pointLight4.setPosition(glm::vec3(2.2f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));
 
         // render all objects in scene
-        app.renderer.drawObjects(pbrShader, scene, camera);
+        app.renderer.drawObjects(pbrShader, &scene, &camera);
 
         // render skybox (render as last to prevent overdraw)
-        app.renderer.drawSkyBox(backgroundShader, scene, camera);
+        app.renderer.drawSkyBox(backgroundShader, &scene, &camera);
 
         // render to screen
         app.renderer.drawToScreen(screenShader, screenWidth, screenHeight);
@@ -272,16 +314,16 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void processInput(OpenGLApp* app, Camera* camera, float deltaTime) {
-    if (glfwGetKey(app->window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(app->window, true);
+void processInput(OpenGLApp &app, Camera &camera, float deltaTime) {
+    if (glfwGetKey(app.window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(app.window, true);
 
-    if (glfwGetKey(app->window, GLFW_KEY_W) == GLFW_PRESS)
-        camera->processKeyboard(FORWARD, deltaTime);
-    if (glfwGetKey(app->window, GLFW_KEY_S) == GLFW_PRESS)
-        camera->processKeyboard(BACKWARD, deltaTime);
-    if (glfwGetKey(app->window, GLFW_KEY_A) == GLFW_PRESS)
-        camera->processKeyboard(LEFT, deltaTime);
-    if (glfwGetKey(app->window, GLFW_KEY_D) == GLFW_PRESS)
-        camera->processKeyboard(RIGHT, deltaTime);
+    if (glfwGetKey(app.window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.processKeyboard(FORWARD, deltaTime);
+    if (glfwGetKey(app.window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.processKeyboard(BACKWARD, deltaTime);
+    if (glfwGetKey(app.window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.processKeyboard(LEFT, deltaTime);
+    if (glfwGetKey(app.window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.processKeyboard(RIGHT, deltaTime);
 }

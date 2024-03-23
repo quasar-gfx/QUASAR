@@ -2,13 +2,12 @@
 
 Camera::Camera(unsigned int width, unsigned int height) {
     setProjectionMatrix(glm::radians(60.0f), (float)width / (float)height, 0.1f, 1000.0f);
-    position = glm::vec3(0.0f, 1.6f, 2.0f);
-    updateViewMatrix();
+    updateCameraVectors();
 }
 
 Camera::Camera(float fovy, float aspect, float near, float far) {
     setProjectionMatrix(fovy, aspect, near, far);
-    updateViewMatrix();
+    updateCameraVectors();
 }
 
 void Camera::setProjectionMatrix(float fovy, float aspect, float near, float far) {
@@ -88,8 +87,8 @@ void Camera::updateCameraVectors() {
     front = glm::normalize(newFront);
 
     // also re-calculate the right and up vector
-    right = glm::normalize(glm::cross(front, worldUp));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
-    up    = glm::normalize(glm::cross(right, front));
+    right = glm::normalize(glm::cross(front, worldUp));
+    up = glm::normalize(glm::cross(right, front));
 
     glm::mat4 newView = glm::lookAt(position, position + front, up);
 

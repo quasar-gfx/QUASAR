@@ -70,7 +70,7 @@ void OpenGLApp::run() {
         glfwPollEvents();
 
         if (frameResized) {
-            int width, height;
+            unsigned int width, height;
             getWindowSize(&width, &height);
             std::cout << "Resized to " << width << "x" << height << std::endl;
             if (resizeCallback) {

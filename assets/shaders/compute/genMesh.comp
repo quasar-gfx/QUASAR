@@ -1,0 +1,72 @@
+#version 430 core
+
+layout(local_size_x = 10, local_size_y = 10, local_size_z = 1) in;
+
+layout(binding = 0, rgba16f) readonly uniform image2D normalMap;
+layout(binding = 1, rgba16f) readonly uniform image2D positionMap;
+layout(binding = 2, rgba32f) readonly uniform image2D colorOutput;
+layout(binding = 3) uniform sampler2D depthMap;
+
+layout(std430, binding = 0) buffer VertexBuffer {
+    vec4 vertices[];
+};
+
+layout(std430, binding = 1) buffer IndexBuffer {
+    uint indices[];
+};
+
+layout(std430, binding = 2) buffer TexCoordBuffer {
+    vec2 texCoords[];
+};
+
+uniform vec2 screenSize;
+
+uniform mat4 view;
+uniform mat4 projectionInverse;
+
+uniform float near;
+uniform float far;
+
+void main() {
+    uint vertexIndex = uint(gl_GlobalInvocationID.y * screenSize.x + gl_GlobalInvocationID.x);
+
+    ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
+    vec2 pixelCoordsNormalized = vec2(pixelCoords) / vec2(screenSize);
+    vec2 ndc = pixelCoordsNormalized * 2.0 - 1.0;
+
+    // vec4 positionData = imageLoad(positionMap, pixelCoords);
+    // vec4 normalData = imageLoad(normalMap, pixelCoords);
+    // vec4 colorData = imageLoad(colorOutput, pixelCoords);
+    vec4 depthData = texture(depthMap, pixelCoordsNormalized);
+
+    // vec3 normal = normalize(normalData.xyz);
+    // vec3 position = positionData.xyz;
+    // vec3 color = colorData.xyz;
+    float depth = depthData.x;
+
+    vec4 ndcPos;
+    ndcPos.xy = ndc.xy;
+    ndcPos.z = 2.0 * depth - 1.0;
+    ndcPos.w = 1.0;
+
+    vec4 worldCoords = view * projectionInverse * ndcPos;
+    worldCoords = worldCoords / worldCoords.w;
+
+    vertices[vertexIndex] = worldCoords;
+    texCoords[vertexIndex] = pixelCoordsNormalized;
+
+    if (pixelCoords.x < screenSize.x - 1 && pixelCoords.y < screenSize.y - 1) {
+        uint currentVertexIndex = vertexIndex;
+        uint nextVertexIndex = currentVertexIndex + 1;
+        uint bottomVertexIndex = currentVertexIndex + uint(screenSize.x);
+        uint bottomNextVertexIndex = bottomVertexIndex + 1;
+
+        indices[vertexIndex * 6 + 0] = currentVertexIndex;
+        indices[vertexIndex * 6 + 1] = nextVertexIndex;
+        indices[vertexIndex * 6 + 2] = bottomVertexIndex;
+
+        indices[vertexIndex * 6 + 3] = nextVertexIndex;
+        indices[vertexIndex * 6 + 4] = bottomNextVertexIndex;
+        indices[vertexIndex * 6 + 5] = bottomVertexIndex;
+    }
+}

@@ -15,29 +15,37 @@ enum TextureType {
     TEXTURE_HEIGHT   = 3
 };
 
+struct TextureCreateParams {
+    GLint internalFormat = GL_RGB;
+    GLenum format = GL_RGB;
+    GLenum type = GL_UNSIGNED_BYTE;
+    GLint wrapS = GL_CLAMP_TO_EDGE;
+    GLint wrapT = GL_CLAMP_TO_EDGE;
+    GLint minFilter = GL_LINEAR;
+    GLint magFilter = GL_LINEAR;
+    bool flipped = false;
+    bool hasBorder = false;
+    bool gammaCorrected = false;
+    unsigned char* data = nullptr;
+    unsigned int width = 0;
+    unsigned int height = 0;
+    std::string path = "";
+};
+
 class Texture : public OpenGLObject {
 public:
     unsigned int width, height;
 
-    std::string path;
-
-    bool flipped = false;
-
     Texture() = default;
 
-    Texture(unsigned int width, unsigned int height,
-            GLint internalFormat = GL_RGB,
-            GLenum format = GL_RGB,
-            GLenum type = GL_UNSIGNED_BYTE,
-            GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE,
-            GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR,
-            unsigned char* data = nullptr, bool hasBorder = false);
-
-    Texture(const std::string &path,
-            GLenum type = GL_UNSIGNED_BYTE,
-            GLint wrapS = GL_REPEAT, GLint wrapT = GL_REPEAT,
-            GLint minFilter = GL_LINEAR_MIPMAP_LINEAR, GLint magFilter = GL_LINEAR,
-            bool flipTexture = false);
+    Texture(const TextureCreateParams &params) {
+        if (params.path == "") {
+            create(params);
+        }
+        else {
+            loadFromFile(params);
+        }
+    }
 
     void bind() {
         bind(0);
@@ -61,6 +69,12 @@ public:
     void cleanup() {
         glDeleteTextures(1, &ID);
     }
+
+    void saveTextureToPNG(const char* filename);
+
+private:
+    void create(const TextureCreateParams &params);
+    void loadFromFile(const TextureCreateParams &params);
 };
 
 #endif // TEXTURE_H

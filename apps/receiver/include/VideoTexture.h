@@ -24,14 +24,9 @@ public:
     int frameReceived = 0;
     float timeToReceiveFrame = 0.0f;
 
-    VideoTexture(unsigned int width, unsigned int height,
-            GLint internalFormat = GL_RGB,
-            GLenum format = GL_RGB,
-            GLenum type = GL_UNSIGNED_BYTE,
-            GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE,
-            GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR)
-            : Texture(width, height, internalFormat, format, type, wrapS, wrapT, minFilter, magFilter),
-                width(width), height(height) { }
+    VideoTexture(TextureCreateParams &params)
+            : Texture(params),
+                width(params.width), height(params.height) { }
 
     ~VideoTexture() {
         cleanup();

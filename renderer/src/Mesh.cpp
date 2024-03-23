@@ -66,6 +66,10 @@ void Mesh::draw(Shader &shader) {
         }
     }
 
+    if (wireframe) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    }
+
     glBindVertexArray(VAO);
     if (indices.size() > 0) {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
@@ -80,5 +84,9 @@ void Mesh::draw(Shader &shader) {
     for (int i = 0; i < textures.size(); i++) {
         glActiveTexture(GL_TEXTURE0 + i);
         glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+    if (wireframe) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 }
