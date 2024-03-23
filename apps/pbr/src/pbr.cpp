@@ -16,7 +16,7 @@
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 
-void processInput(OpenGLApp& app, Camera& camera, float deltaTime);
+void processInput(OpenGLApp &app, Camera &camera, float deltaTime);
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
 
     app.init();
 
-    int screenWidth, screenHeight;
+    unsigned int screenWidth, screenHeight;
     app.getWindowSize(&screenWidth, &screenHeight);
 
     Scene scene = Scene();
@@ -139,18 +139,34 @@ int main(int argc, char** argv) {
     backgroundShader.loadFromFile("../assets/shaders/cubemap/background.vert", "../assets/shaders/cubemap/backgroundHDR.frag");
 
     // textures
-    Texture albedo = Texture(cube1TexturePath + "/albedo.png");
-    Texture normal = Texture(cube1TexturePath + "/normal.png");
-    Texture metallic = Texture(cube1TexturePath + "/metallic.png");
-    Texture roughness = Texture(cube1TexturePath + "/roughness.png");
-    Texture ao = Texture(cube1TexturePath + "/ao.png");
+    TextureCreateParams textureParams{
+        .wrapS = GL_REPEAT,
+        .wrapT = GL_REPEAT,
+        .minFilter = GL_LINEAR_MIPMAP_LINEAR,
+        .magFilter = GL_LINEAR
+    };
+    textureParams.path = cube1TexturePath + "/albedo.png";
+    Texture albedo = Texture(textureParams);
+    textureParams.path = cube1TexturePath + "/normal.png";
+    Texture normal = Texture(textureParams);
+    textureParams.path = cube1TexturePath + "/metallic.png";
+    Texture metallic = Texture(textureParams);
+    textureParams.path = cube1TexturePath + "/roughness.png";
+    Texture roughness = Texture(textureParams);
+    textureParams.path = cube1TexturePath + "/ao.png";
+    Texture ao = Texture(textureParams);
     std::vector<TextureID> goldTextures = { albedo.ID, 0, normal.ID, metallic.ID, roughness.ID, ao.ID };
 
-    Texture ironAlbedo = Texture(cube2TexturePath + "/albedo.png");
-    Texture ironNormal = Texture(cube2TexturePath + "/normal.png");
-    Texture ironMetallic = Texture(cube2TexturePath + "/metallic.png");
-    Texture ironRoughness = Texture(cube2TexturePath + "/roughness.png");
-    Texture ironAo = Texture(cube2TexturePath + "/ao.png");
+    textureParams.path = cube2TexturePath + "/albedo.png";
+    Texture ironAlbedo = Texture(textureParams);
+    textureParams.path = cube2TexturePath + "/normal.png";
+    Texture ironNormal = Texture(textureParams);
+    textureParams.path = cube2TexturePath + "/metallic.png";
+    Texture ironMetallic = Texture(textureParams);
+    textureParams.path = cube2TexturePath + "/roughness.png";
+    Texture ironRoughness = Texture(textureParams);
+    textureParams.path = cube2TexturePath + "/ao.png";
+    Texture ironAo = Texture(textureParams);
     std::vector<TextureID> ironTextures = { ironAlbedo.ID, 0, ironNormal.ID, ironMetallic.ID, ironRoughness.ID, ironAo.ID };
 
     Sphere sphereGold = Sphere(goldTextures);
@@ -161,22 +177,42 @@ int main(int argc, char** argv) {
     Node cubeNodeIron = Node(&cubeIron);
     cubeNodeIron.setTranslation(glm::vec3(5.0f, 0.5f, -1.0f));
 
-    Texture gunAlbedo = Texture("../assets/models/cerberus/Textures/Cerberus_A.tga");
-    Texture gunNormal = Texture("../assets/models/cerberus/Textures/Cerberus_N.tga");
-    Texture gunMetallic = Texture("../assets/models/cerberus/Textures/Cerberus_M.tga");
-    Texture gunRoughness = Texture("../assets/models/cerberus/Textures/Cerberus_R.tga");
-    Texture gunAo = Texture("../assets/models/cerberus/Textures/Cerberus_AO.tga");
+    textureParams.path = "../assets/models/cerberus/Textures/Cerberus_A.tga";
+    Texture gunAlbedo = Texture(textureParams);
+    textureParams.path = "../assets/models/cerberus/Textures/Cerberus_N.tga";
+    Texture gunNormal = Texture(textureParams);
+    textureParams.path = "../assets/models/cerberus/Textures/Cerberus_M.tga";
+    Texture gunMetallic = Texture(textureParams);
+    textureParams.path = "../assets/models/cerberus/Textures/Cerberus_R.tga";
+    Texture gunRoughness = Texture(textureParams);
+    textureParams.path = "../assets/models/cerberus/Textures/Cerberus_AO.tga";
+    Texture gunAo = Texture(textureParams);
     std::vector<TextureID> gunTextures = { gunAlbedo.ID, 0, gunNormal.ID, gunMetallic.ID, gunRoughness.ID, gunAo.ID };
 
     // models
-    Model gun = Model(modelPath, gunTextures);
+    ModelCreateParams gunParams{
+        .path = modelPath,
+        .inputTextures = gunTextures
+    };
+    Model gun = Model(gunParams);
     Node gunNode = Node(&gun);
     gunNode.setTranslation(glm::vec3(2.0f, 1.0f, -1.0f));
     gunNode.setRotationEuler(glm::vec3(0.0f, 90.0f, 0.0f));
     gunNode.setScale(glm::vec3(0.05f));
 
     // load the HDR environment map
-    Texture hdrTexture(hdrImagePath, GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
+    TextureCreateParams hdrParams{
+        .path = hdrImagePath,
+        .internalFormat = GL_RGB16F,
+        .format = GL_RGB,
+        .type = GL_FLOAT,
+        .wrapS = GL_REPEAT,
+        .wrapT = GL_REPEAT,
+        .minFilter = GL_LINEAR,
+        .magFilter = GL_LINEAR,
+        .flipped = true
+    };
+    Texture hdrTexture = Texture(hdrParams);
 
     // skybox
     CubeMap envCubeMap(512, 512, CUBE_MAP_HDR);
@@ -232,7 +268,7 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void processInput(OpenGLApp& app, Camera& camera, float deltaTime) {
+void processInput(OpenGLApp &app, Camera &camera, float deltaTime) {
     if (glfwGetKey(app.window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(app.window, true);
 

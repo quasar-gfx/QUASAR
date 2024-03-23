@@ -23,8 +23,26 @@ public:
         glGenFramebuffers(1, &ID);
         glBindFramebuffer(GL_FRAMEBUFFER, ID);
 
-        colorBuffer = Texture(width, height, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE);
-        depthBuffer = Texture(width, height, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT);
+        TextureCreateParams colorParams{
+            .width = width,
+            .height = height,
+            .internalFormat = GL_RGBA,
+            .format = GL_RGBA,
+            .type = GL_UNSIGNED_BYTE,
+            .wrapS = GL_CLAMP_TO_EDGE,
+            .wrapT = GL_CLAMP_TO_EDGE,
+            .minFilter = GL_LINEAR,
+            .magFilter = GL_LINEAR
+        };
+        colorBuffer = Texture(colorParams);
+        TextureCreateParams depthParams{
+            .width = width,
+            .height = height,
+            .internalFormat = GL_DEPTH_COMPONENT24,
+            .format = GL_DEPTH_COMPONENT,
+            .type = GL_FLOAT
+        };
+        depthBuffer = Texture(depthParams);
 
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorBuffer.ID, 0);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBuffer.ID, 0);
@@ -66,16 +84,56 @@ public:
         glGenFramebuffers(1, &ID);
         glBindFramebuffer(GL_FRAMEBUFFER, ID);
 
-        positionBuffer = Texture(width, height, GL_RGBA16F, GL_RGBA, GL_FLOAT, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST);
+        TextureCreateParams positionParams{
+            .width = width,
+            .height = height,
+            .internalFormat = GL_RGBA16F,
+            .format = GL_RGBA,
+            .type = GL_FLOAT,
+            .wrapS = GL_CLAMP_TO_EDGE,
+            .wrapT = GL_CLAMP_TO_EDGE,
+            .minFilter = GL_NEAREST,
+            .magFilter = GL_NEAREST
+        };
+        positionBuffer = Texture(positionParams);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, positionBuffer.ID, 0);
 
-        normalsBuffer = Texture(width, height, GL_RGBA16F, GL_RGBA, GL_FLOAT, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST);
+        TextureCreateParams normalsParams{
+            .width = width,
+            .height = height,
+            .internalFormat = GL_RGBA16F,
+            .format = GL_RGBA,
+            .type = GL_FLOAT,
+            .wrapS = GL_CLAMP_TO_EDGE,
+            .wrapT = GL_CLAMP_TO_EDGE,
+            .minFilter = GL_NEAREST,
+            .magFilter = GL_NEAREST
+        };
+        normalsBuffer = Texture(normalsParams);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, normalsBuffer.ID, 0);
 
-        colorBuffer = Texture(width, height, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE);
+        TextureCreateParams colorParams{
+            .width = width,
+            .height = height,
+            .internalFormat = GL_RGBA,
+            .format = GL_RGBA,
+            .type = GL_UNSIGNED_BYTE,
+            .wrapS = GL_CLAMP_TO_EDGE,
+            .wrapT = GL_CLAMP_TO_EDGE,
+            .minFilter = GL_NEAREST,
+            .magFilter = GL_NEAREST
+        };
+        colorBuffer = Texture(colorParams);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, colorBuffer.ID, 0);
 
-        depthBuffer = Texture(width, height, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT);
+        TextureCreateParams depthParams{
+            .width = width,
+            .height = height,
+            .internalFormat = GL_DEPTH_COMPONENT24,
+            .format = GL_DEPTH_COMPONENT,
+            .type = GL_FLOAT
+        };
+        depthBuffer = Texture(depthParams);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBuffer.ID, 0);
 
         unsigned int attachments[3] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
@@ -98,10 +156,19 @@ public:
         glGenFramebuffers(1, &ID);
         glBindFramebuffer(GL_FRAMEBUFFER, ID);
 
-        depthBuffer = Texture(width, height, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT,
-                                GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER,
-                                GL_NEAREST, GL_NEAREST,
-                                nullptr, true);
+        TextureCreateParams params{
+            .width = width,
+            .height = height,
+            .internalFormat = GL_DEPTH_COMPONENT,
+            .format = GL_DEPTH_COMPONENT,
+            .type = GL_FLOAT,
+            .wrapS = GL_CLAMP_TO_BORDER,
+            .wrapT = GL_CLAMP_TO_BORDER,
+            .minFilter = GL_NEAREST,
+            .magFilter = GL_NEAREST,
+            .hasBorder = true
+        };
+        depthBuffer = Texture(params);
 
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBuffer.ID, 0);
 

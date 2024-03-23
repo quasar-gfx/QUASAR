@@ -18,7 +18,7 @@
 #include <VideoTexture.h>
 #include <PoseStreamer.h>
 
-void processInput(OpenGLApp& app, Camera& camera, float deltaTime);
+void processInput(OpenGLApp &app, Camera &camera, float deltaTime);
 
 const std::string CONTAINER_TEXTURE = "../assets/textures/container.jpg";
 const std::string METAL_TEXTURE = "../assets/textures/metal.png";
@@ -54,13 +54,24 @@ int main(int argc, char** argv) {
 
     app.init();
 
-    int screenWidth, screenHeight;
+    unsigned int screenWidth, screenHeight;
     app.getWindowSize(&screenWidth, &screenHeight);
 
     Scene scene = Scene();
     Camera camera = Camera(screenWidth, screenHeight);
 
-    VideoTexture videoTexture(app.config.width, app.config.height);
+    TextureCreateParams videoParams{
+        .width = app.config.width,
+        .height = app.config.height,
+        .internalFormat = GL_RGB,
+        .format = GL_RGB,
+        .type = GL_UNSIGNED_BYTE,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_LINEAR,
+        .magFilter = GL_LINEAR
+    };
+    VideoTexture videoTexture(videoParams);
     videoTexture.initVideo(inputUrl);
     PoseStreamer poseStreamer(&camera, poseURL);
 
@@ -123,10 +134,18 @@ int main(int argc, char** argv) {
     AmbientLight ambientLight = AmbientLight();
 
     // textures
-    Texture conatinerTexture = Texture(CONTAINER_TEXTURE);
+    TextureCreateParams textureParams{
+        .wrapS = GL_REPEAT,
+        .wrapT = GL_REPEAT,
+        .minFilter = GL_LINEAR_MIPMAP_LINEAR,
+        .magFilter = GL_LINEAR
+    };
+    textureParams.path = CONTAINER_TEXTURE;
+    Texture conatinerTexture = Texture(textureParams);
     std::vector<TextureID> conatinerTextures = { conatinerTexture.ID };
 
-    Texture floorTexture = Texture(METAL_TEXTURE);
+    textureParams.path = METAL_TEXTURE;
+    Texture floorTexture = Texture(textureParams);
     std::vector<TextureID> floorTextures = { floorTexture.ID };
 
     Cube cube = Cube(conatinerTextures);
@@ -192,7 +211,7 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void processInput(OpenGLApp& app, Camera& camera,  float deltaTime) {
+void processInput(OpenGLApp &app, Camera &camera,  float deltaTime) {
     if (glfwGetKey(app.window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(app.window, true);
 

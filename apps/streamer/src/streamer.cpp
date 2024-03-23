@@ -19,7 +19,7 @@
 #include <VideoStreamer.h>
 #include <PoseReceiver.h>
 
-void processInput(OpenGLApp& app, Camera& camera, float deltaTime);
+void processInput(OpenGLApp &app, Camera &camera, float deltaTime);
 
 const std::string BACKPACK_MODEL_PATH = "../assets/models/backpack/backpack.obj";
 
@@ -64,7 +64,7 @@ int main(int argc, char** argv) {
 
     app.init();
 
-    int screenWidth, screenHeight;
+    unsigned int screenWidth, screenHeight;
     app.getWindowSize(&screenWidth, &screenHeight);
 
     Scene scene = Scene();
@@ -148,28 +148,52 @@ int main(int argc, char** argv) {
     backgroundShader.loadFromFile("../assets/shaders/cubemap/background.vert", "../assets/shaders/cubemap/backgroundHDR.frag");
 
     // textures
-    Texture albedo = Texture("../assets/textures/pbr/gold/albedo.png");
-    Texture normal = Texture("../assets/textures/pbr/gold/normal.png");
-    Texture metallic = Texture("../assets/textures/pbr/gold/metallic.png");
-    Texture roughness = Texture("../assets/textures/pbr/gold/roughness.png");
-    Texture ao = Texture("../assets/textures/pbr/gold/ao.png");
+    TextureCreateParams textureParams{
+        .wrapS = GL_REPEAT,
+        .wrapT = GL_REPEAT,
+        .minFilter = GL_LINEAR_MIPMAP_LINEAR,
+        .magFilter = GL_LINEAR
+    };
+    textureParams.path = "../assets/textures/pbr/gold/albedo.png";
+    Texture albedo = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/gold/normal.png";
+    Texture normal = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/gold/metallic.png";
+    Texture metallic = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/gold/roughness.png";
+    Texture roughness = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/gold/ao.png";
+    Texture ao = Texture(textureParams);
     std::vector<TextureID> goldTextures = { albedo.ID, 0, normal.ID, metallic.ID, roughness.ID, ao.ID };
 
-    Texture ironAlbedo = Texture("../assets/textures/pbr/rusted_iron/albedo.png");
-    Texture ironNormal = Texture("../assets/textures/pbr/rusted_iron/normal.png");
-    Texture ironMetallic = Texture("../assets/textures/pbr/rusted_iron/metallic.png");
-    Texture ironRoughness = Texture("../assets/textures/pbr/rusted_iron/roughness.png");
-    Texture ironAo = Texture("../assets/textures/pbr/rusted_iron/ao.png");
+    textureParams.path = "../assets/textures/pbr/rusted_iron/albedo.png";
+    Texture ironAlbedo = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/rusted_iron/normal.png";
+    Texture ironNormal = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/rusted_iron/metallic.png";
+    Texture ironMetallic = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/rusted_iron/roughness.png";
+    Texture ironRoughness = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/rusted_iron/ao.png";
+    Texture ironAo = Texture(textureParams);
     std::vector<TextureID> ironTextures = { ironAlbedo.ID, 0, ironNormal.ID, ironMetallic.ID, ironRoughness.ID, ironAo.ID };
 
-    Texture plasticAlbedo = Texture("../assets/textures/pbr/plastic/albedo.png");
-    Texture plasticNormal = Texture("../assets/textures/pbr/plastic/normal.png");
-    Texture plasticMetallic = Texture("../assets/textures/pbr/plastic/metallic.png");
-    Texture plasticRoughness = Texture("../assets/textures/pbr/plastic/roughness.png");
-    Texture plasticAo = Texture("../assets/textures/pbr/plastic/ao.png");
+    textureParams.path = "../assets/textures/pbr/plastic/albedo.png";
+    Texture plasticAlbedo = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/plastic/normal.png";
+    Texture plasticNormal = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/plastic/metallic.png";
+    Texture plasticMetallic = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/plastic/roughness.png";
+    Texture plasticRoughness = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/plastic/ao.png";
+    Texture plasticAo = Texture(textureParams);
     std::vector<TextureID> plasticTextures = { plasticAlbedo.ID, 0, plasticNormal.ID, plasticMetallic.ID, plasticRoughness.ID, plasticAo.ID };
 
-    Texture windowTexture = Texture("../assets/textures/window.png");
+    textureParams.path = "../assets/textures/window.png";
+    textureParams.wrapS = GL_REPEAT;
+    textureParams.wrapT = GL_REPEAT;
+    Texture windowTexture = Texture(textureParams);
     std::vector<TextureID> windowTextures = { windowTexture.ID };
 
     // objects
@@ -264,18 +288,36 @@ int main(int argc, char** argv) {
     pointLight4.setAttenuation(0.0f, 0.09f, 1.0f);
 
     // models
-    Model sponza = Model(modelPath);
+    ModelCreateParams sponzaParams{
+        .path = modelPath
+    };
+    Model sponza = Model(sponzaParams);
     Node sponzaNode = Node(&sponza);
     sponzaNode.setTranslation(glm::vec3(0.0f, -0.5f, 0.0f));
     sponzaNode.setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
 
-    Model backpack = Model(BACKPACK_MODEL_PATH, true);
+    ModelCreateParams backpackParams{
+        .path = BACKPACK_MODEL_PATH,
+        .flipTextures = true
+    };
+    Model backpack = Model(backpackParams);
     Node backpackNode = Node(&backpack);
     backpackNode.setTranslation(glm::vec3(0.5f, 0.1f, -5.0f));
     backpackNode.setScale(glm::vec3(0.25f));
 
     // load the HDR environment map
-    Texture hdrTexture(hdrImagePath, GL_FLOAT, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR, true);
+    TextureCreateParams hdrParams{
+        .path = hdrImagePath,
+        .internalFormat = GL_RGB16F,
+        .format = GL_RGB,
+        .type = GL_FLOAT,
+        .wrapS = GL_REPEAT,
+        .wrapT = GL_REPEAT,
+        .minFilter = GL_LINEAR,
+        .magFilter = GL_LINEAR,
+        .flipped = true
+    };
+    Texture hdrTexture = Texture(hdrParams);
 
     // skybox
     CubeMap envCubeMap(512, 512, CUBE_MAP_HDR);
@@ -346,7 +388,7 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void processInput(OpenGLApp& app, Camera& camera, float deltaTime) {
+void processInput(OpenGLApp &app, Camera &camera, float deltaTime) {
     if (glfwGetKey(app.window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(app.window, true);
 

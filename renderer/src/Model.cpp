@@ -12,17 +12,17 @@ void Model::draw(Shader &shader) {
     }
 }
 
-void Model::loadFromFile(const std::string &path, std::vector<TextureID> inputTextures) {
+void Model::loadFromFile(const ModelCreateParams &params) {
     Assimp::Importer importer;
     unsigned int flags = aiProcess_Triangulate | aiProcess_OptimizeMeshes | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace | aiProcess_FlipUVs;
-    scene = importer.ReadFile(path, flags);
+    scene = importer.ReadFile(params.path, flags);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         throw std::runtime_error("ERROR::ASSIMP:: " + std::string(importer.GetErrorString()));
     }
 
-    rootDirectory = path.substr(0, path.find_last_of('/'))  + '/';
+    rootDirectory = params.path.substr(0, params.path.find_last_of('/'))  + '/';
 
-    processNode(scene->mRootNode, scene, inputTextures);
+    processNode(scene->mRootNode, scene, params.inputTextures);
 }
 
 void Model::processNode(aiNode* node, const aiScene* scene, std::vector<TextureID> inputTextures) {
@@ -140,21 +140,33 @@ GLuint Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
                     unsigned char* data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiTexture->pcData),
                                                                 aiTexture->mWidth, &texWidth, &texHeight, &texChannels, 0);
                     if (data) {
-                        GLenum internalFormat, format;
+                        GLint internalFormat;
+                        GLenum format;
                         if (texChannels == 1) {
                             internalFormat = GL_RED;
                             format = GL_RED;
                         }
                         else if (texChannels == 3) {
-                            internalFormat = GL_RGB;
+                            internalFormat = gammaCorrected ? GL_SRGB : GL_RGB;
                             format = GL_RGB;
                         }
                         else if (texChannels == 4) {
-                            internalFormat = GL_RGBA;
+                            internalFormat = gammaCorrected ? GL_SRGB_ALPHA : GL_RGBA;
                             format = GL_RGBA;
                         }
 
-                        Texture texture = Texture(texWidth, texHeight, internalFormat, format, GL_UNSIGNED_BYTE, GL_REPEAT, GL_REPEAT, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, data);
+                        TextureCreateParams params{
+                            .width = static_cast<unsigned int>(texWidth),
+                            .height = static_cast<unsigned int>(texHeight),
+                            .internalFormat = internalFormat,
+                            .format = format,
+                            .wrapS = GL_REPEAT,
+                            .wrapT = GL_REPEAT,
+                            .minFilter = GL_LINEAR_MIPMAP_LINEAR,
+                            .magFilter = GL_LINEAR,
+                            .data = data
+                        };
+                        Texture texture = Texture(params);
                         glGenerateMipmap(GL_TEXTURE_2D);
 
                         stbi_image_free(data);
@@ -166,7 +178,15 @@ GLuint Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
                 return 0;
             }
             else {
-                Texture texture = Texture(texturePath);
+                TextureCreateParams params{
+                    .path = texturePath,
+                    .wrapS = GL_REPEAT,
+                    .wrapT = GL_REPEAT,
+                    .minFilter = GL_LINEAR_MIPMAP_LINEAR,
+                    .magFilter = GL_LINEAR,
+                    .gammaCorrected = (type == aiTextureType_DIFFUSE) ? gammaCorrected : false
+                };
+                Texture texture = Texture(params);
                 texturesLoaded[texturePath] = texture;
                 return texturesLoaded[texturePath].ID;
             }

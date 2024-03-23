@@ -17,7 +17,7 @@
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 
-void processInput(OpenGLApp& app, Camera& camera, float deltaTime);
+void processInput(OpenGLApp &app, Camera &camera, float deltaTime);
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
 
     app.init();
 
-    int screenWidth, screenHeight;
+    unsigned int screenWidth, screenHeight;
     app.getWindowSize(&screenWidth, &screenHeight);
 
     Scene scene = Scene();
@@ -90,7 +90,18 @@ int main(int argc, char** argv) {
     Shader screenShader;
     screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayTexture.frag");
 
-    Texture outputTexture = Texture(screenWidth, screenHeight, GL_RGBA32F, GL_RGBA, GL_FLOAT);
+    TextureCreateParams params{
+        .width = screenWidth,
+        .height = screenHeight,
+        .internalFormat = GL_RGBA32F,
+        .format = GL_RGBA,
+        .type = GL_FLOAT,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST
+    };
+    Texture outputTexture = Texture(params);
 
     // query limitations
 	int max_compute_work_group_count[3];
@@ -141,7 +152,7 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void processInput(OpenGLApp& app, Camera& camera, float deltaTime) {
+void processInput(OpenGLApp &app, Camera &camera, float deltaTime) {
     if (glfwGetKey(app.window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(app.window, true);
 

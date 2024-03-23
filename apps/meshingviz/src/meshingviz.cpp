@@ -16,7 +16,7 @@
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 
-void processInput(OpenGLApp& app, Camera& camera, float deltaTime);
+void processInput(OpenGLApp &app, Camera &camera, float deltaTime);
 
 const std::string BACKPACK_MODEL_PATH = "../assets/models/backpack/backpack.obj";
 
@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
 
     app.init();
 
-    int screenWidth, screenHeight;
+    unsigned int screenWidth, screenHeight;
     app.getWindowSize(&screenWidth, &screenHeight);
 
     Scene scene = Scene();
@@ -131,11 +131,20 @@ int main(int argc, char** argv) {
     backgroundShader.loadFromFile("../assets/shaders/cubemap/background.vert", "../assets/shaders/cubemap/backgroundHDR.frag");
 
     // textures
-    Texture albedo = Texture("../assets/textures/pbr/gold/albedo.png");
-    Texture normal = Texture("../assets/textures/pbr/gold/normal.png");
-    Texture metallic = Texture("../assets/textures/pbr/gold/metallic.png");
-    Texture roughness = Texture("../assets/textures/pbr/gold/roughness.png");
-    Texture ao = Texture("../assets/textures/pbr/gold/ao.png");
+    TextureCreateParams textureParams{
+        .minFilter = GL_LINEAR_MIPMAP_LINEAR,
+        .magFilter = GL_LINEAR
+    };
+    textureParams.path = "../assets/textures/pbr/gold/albedo.png";
+    Texture albedo = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/gold/normal.png";
+    Texture normal = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/gold/metallic.png";
+    Texture metallic = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/gold/roughness.png";
+    Texture roughness = Texture(textureParams);
+    textureParams.path = "../assets/textures/pbr/gold/ao.png";
+    Texture ao = Texture(textureParams);
     std::vector<TextureID> goldTextures = { albedo.ID, 0, normal.ID, metallic.ID, roughness.ID, ao.ID };
 
     // Texture ironAlbedo = Texture("../assets/textures/pbr/rusted_iron/albedo.png");
@@ -197,13 +206,18 @@ int main(int argc, char** argv) {
     pointLight4.setPosition(glm::vec3(2.2f, 3.5f, 4.89f));
     pointLight4.setAttenuation(0.0f, 0.09f, 1.0f);
 
-    Texture meshTexture = Texture("../meshing/meshColor.png");
+    textureParams.path = "../meshing/meshColor.png";
+    Texture meshTexture = Texture(textureParams);
     std::vector<TextureID> meshTextures = { meshTexture.ID };
     // Cube cube = Cube(meshTextures);
     // Node cubeNode = Node(&cube);
 
     // models
-    Model mesh = Model(modelPath, meshTextures, false);
+    ModelCreateParams modelParams{
+        .path = modelPath,
+        .inputTextures = meshTextures
+    };
+    Model mesh = Model(modelParams);
     Node meshNode = Node(&mesh);
 
     // Model backpack = Model(BACKPACK_MODEL_PATH, true);
@@ -256,7 +270,7 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void processInput(OpenGLApp& app, Camera& camera, float deltaTime) {
+void processInput(OpenGLApp &app, Camera &camera, float deltaTime) {
     if (glfwGetKey(app.window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(app.window, true);
 

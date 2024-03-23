@@ -96,7 +96,18 @@ public:
         prefilterCubeMap.prefilter(prefilterShader, envCubeMap, captureRenderBuffer);
         captureFramebuffer.unbind();
 
-        brdfLUT = Texture(envCubeMap.width, envCubeMap.height, GL_RG16F, GL_RG, GL_FLOAT, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_LINEAR, GL_LINEAR);
+        TextureCreateParams brdfParams{
+            .width = envCubeMap.width,
+            .height = envCubeMap.height,
+            .internalFormat = GL_RG16F,
+            .format = GL_RG,
+            .type = GL_FLOAT,
+            .wrapS = GL_CLAMP_TO_EDGE,
+            .wrapT = GL_CLAMP_TO_EDGE,
+            .minFilter = GL_LINEAR,
+            .magFilter = GL_LINEAR
+        };
+        brdfLUT = Texture(brdfParams);
         brdfFsQuad.init();
 
         captureFramebuffer.bind();
