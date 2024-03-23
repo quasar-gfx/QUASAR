@@ -178,8 +178,6 @@ int main(int argc, char** argv) {
     std::vector<TextureID> plasticTextures = { plasticAlbedo.ID, 0, plasticNormal.ID, plasticMetallic.ID, plasticRoughness.ID, plasticAo.ID };
 
     textureParams.path = "../assets/textures/window.png";
-    textureParams.wrapS = GL_REPEAT;
-    textureParams.wrapT = GL_REPEAT;
     Texture windowTexture = Texture(textureParams);
     std::vector<TextureID> windowTextures = { windowTexture.ID };
 
@@ -245,7 +243,6 @@ int main(int argc, char** argv) {
 
     // load the HDR environment map
     TextureCreateParams hdrParams{
-        .path = hdrImagePath,
         .internalFormat = GL_RGB16F,
         .format = GL_RGB,
         .type = GL_FLOAT,
@@ -253,7 +250,8 @@ int main(int argc, char** argv) {
         .wrapT = GL_REPEAT,
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR,
-        .flipped = true
+        .flipped = true,
+        .path = hdrImagePath
     };
     Texture hdrTexture = Texture(hdrParams);
 

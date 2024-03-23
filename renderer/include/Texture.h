@@ -16,6 +16,8 @@ enum TextureType {
 };
 
 struct TextureCreateParams {
+    unsigned int width = 0;
+    unsigned int height = 0;
     GLint internalFormat = GL_RGB;
     GLenum format = GL_RGB;
     GLenum type = GL_UNSIGNED_BYTE;
@@ -27,8 +29,6 @@ struct TextureCreateParams {
     bool hasBorder = false;
     bool gammaCorrected = false;
     unsigned char* data = nullptr;
-    unsigned int width = 0;
-    unsigned int height = 0;
     std::string path = "";
 };
 

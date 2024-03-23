@@ -179,12 +179,12 @@ GLuint Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
             }
             else {
                 TextureCreateParams params{
-                    .path = texturePath,
                     .wrapS = GL_REPEAT,
                     .wrapT = GL_REPEAT,
                     .minFilter = GL_LINEAR_MIPMAP_LINEAR,
                     .magFilter = GL_LINEAR,
-                    .gammaCorrected = (type == aiTextureType_DIFFUSE) ? gammaCorrected : false
+                    .gammaCorrected = (type == aiTextureType_DIFFUSE) ? gammaCorrected : false,
+                    .path = texturePath
                 };
                 Texture texture = Texture(params);
                 texturesLoaded[texturePath] = texture;

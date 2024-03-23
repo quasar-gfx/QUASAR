@@ -202,7 +202,6 @@ int main(int argc, char** argv) {
 
     // load the HDR environment map
     TextureCreateParams hdrParams{
-        .path = hdrImagePath,
         .internalFormat = GL_RGB16F,
         .format = GL_RGB,
         .type = GL_FLOAT,
@@ -210,7 +209,8 @@ int main(int argc, char** argv) {
         .wrapT = GL_REPEAT,
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR,
-        .flipped = true
+        .flipped = true,
+        .path = hdrImagePath
     };
     Texture hdrTexture = Texture(hdrParams);
 
