@@ -66,18 +66,6 @@ void Camera::processMouseMovement(float xoffset, float yoffset, bool constrainPi
     updateCameraVectors();
 }
 
-void Camera::processMouseScroll(float yoffset) {
-    fovy -= (float)yoffset;
-
-    if (fovy < glm::radians(1.0f)) {
-        fovy = glm::radians(1.0f);
-    }
-    if (fovy > glm::radians(60.0f)) {
-        fovy = glm::radians(60.0f);
-    }
-    updateProjectionMatrix();
-}
-
 void Camera::updateCameraVectors() {
     // calculate the new front vector
     glm::vec3 newFront;

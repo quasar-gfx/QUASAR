@@ -15,10 +15,7 @@
 #include <FullScreenQuad.h>
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
-
-#include <glm/gtx/string_cast.hpp>
-
-void processInput(OpenGLApp &app, Camera &camera, float deltaTime);
+#include <GLFWWindow.h>
 
 const std::string BACKPACK_MODEL_PATH = "../assets/models/backpack/backpack.obj";
 
@@ -51,10 +48,11 @@ int main(int argc, char** argv) {
         }
     }
 
-    app.init();
+    GLFWWindow window(app.config);
+    app.init(&window);
 
     unsigned int screenWidth, screenHeight;
-    app.getWindowSize(&screenWidth, &screenHeight);
+    window.getSize(&screenWidth, &screenHeight);
 
     Scene scene = Scene();
     Camera camera = Camera(screenWidth, screenHeight);
@@ -67,44 +65,6 @@ int main(int argc, char** argv) {
         ImGui::TextColored(ImVec4(1,1,0,1), "GPU: %s\n", glGetString(GL_RENDERER));
         ImGui::Text("Rendering Frame Rate: %.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
         ImGui::End();
-    });
-
-    app.onResize([&camera](unsigned int width, unsigned int height) {
-        camera.aspect = (float)width / (float)height;
-    });
-
-    app.onMouseMove([&](double xposIn, double yposIn) {
-        static bool mouseDown = false;
-
-        static float lastX = screenWidth / 2.0;
-        static float lastY = screenHeight / 2.0;
-
-        float xpos = static_cast<float>(xposIn);
-        float ypos = static_cast<float>(yposIn);
-
-        float xoffset = xpos - lastX;
-        float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-
-        lastX = xpos;
-        lastY = ypos;
-
-        if (glfwGetMouseButton(app.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-            mouseDown = true;
-            glfwSetInputMode(app.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        }
-
-        if (glfwGetMouseButton(app.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
-            mouseDown = false;
-            glfwSetInputMode(app.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        }
-
-        if (mouseDown) {
-            camera.processMouseMovement(xoffset, yoffset);
-        }
-    });
-
-    app.onMouseScroll([&app, &camera](double xoffset, double yoffset) {
-        camera.processMouseScroll(static_cast<float>(yoffset));
     });
 
     // shaders
@@ -281,8 +241,52 @@ int main(int argc, char** argv) {
     screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayColor.frag");
 
     app.onRender([&](double now, double dt) {
-        processInput(app, camera, dt);
+        // handle mouse buttons
+        auto mouseButtons = window.getMouseButtons();
+        window.setMouseCursor(!mouseButtons.LEFT_PRESSED);
+        if (mouseButtons.LEFT_PRESSED) {
+            static bool firstMouse = true;
+            static float lastX = screenWidth / 2.0;
+            static float lastY = screenHeight / 2.0;
 
+            auto cursorPos = window.getCursorPos();
+            float xpos = static_cast<float>(cursorPos[0]);
+            float ypos = static_cast<float>(cursorPos[1]);
+
+            if (firstMouse) {
+                lastX = xpos;
+                lastY = ypos;
+                firstMouse = false;
+            }
+
+            float xoffset = xpos - lastX;
+            float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+
+            lastX = xpos;
+            lastY = ypos;
+
+            camera.processMouseMovement(xoffset, yoffset, true);
+        }
+
+        // handle keyboard input
+        auto keys = window.getKeys();
+        if (keys.W_PRESSED) {
+            camera.processKeyboard(FORWARD, dt);
+        }
+        if (keys.A_PRESSED) {
+            camera.processKeyboard(LEFT, dt);
+        }
+        if (keys.S_PRESSED) {
+            camera.processKeyboard(BACKWARD, dt);
+        }
+        if (keys.D_PRESSED) {
+            camera.processKeyboard(RIGHT, dt);
+        }
+        if (keys.ESC_PRESSED) {
+            window.close();
+        }
+
+        // update shadows
         app.renderer.updateDirLightShadowMap(dirLightShadowsShader, &scene, &camera);
         app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, &scene, &camera);
 
@@ -306,22 +310,5 @@ int main(int argc, char** argv) {
     // run app loop (blocking)
     app.run();
 
-    // cleanup
-    app.cleanup();
-
     return 0;
-}
-
-void processInput(OpenGLApp &app, Camera &camera, float deltaTime) {
-    if (glfwGetKey(app.window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(app.window, true);
-
-    if (glfwGetKey(app.window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.processKeyboard(FORWARD, deltaTime);
-    if (glfwGetKey(app.window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.processKeyboard(BACKWARD, deltaTime);
-    if (glfwGetKey(app.window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.processKeyboard(LEFT, deltaTime);
-    if (glfwGetKey(app.window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.processKeyboard(RIGHT, deltaTime);
 }
