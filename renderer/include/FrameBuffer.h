@@ -26,9 +26,9 @@ public:
         TextureCreateParams colorParams{
             .width = width,
             .height = height,
-            .internalFormat = GL_RGBA,
+            .internalFormat = GL_RGBA16,
             .format = GL_RGBA,
-            .type = GL_UNSIGNED_BYTE,
+            .type = GL_FLOAT,
             .wrapS = GL_CLAMP_TO_EDGE,
             .wrapT = GL_CLAMP_TO_EDGE,
             .minFilter = GL_LINEAR,
@@ -115,9 +115,9 @@ public:
         TextureCreateParams colorParams{
             .width = width,
             .height = height,
-            .internalFormat = GL_RGBA,
+            .internalFormat = GL_RGBA16,
             .format = GL_RGBA,
-            .type = GL_UNSIGNED_BYTE,
+            .type = GL_FLOAT,
             .wrapS = GL_CLAMP_TO_EDGE,
             .wrapT = GL_CLAMP_TO_EDGE,
             .minFilter = GL_NEAREST,

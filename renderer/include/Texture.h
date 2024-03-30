@@ -70,7 +70,8 @@ public:
         glDeleteTextures(1, &ID);
     }
 
-    void saveTextureToPNG(const char* filename);
+    void saveTextureToPNG(std::string filename);
+    void saveDepthToPNG(std::string , float near, float far);
 
 private:
     void create(const TextureCreateParams &params);

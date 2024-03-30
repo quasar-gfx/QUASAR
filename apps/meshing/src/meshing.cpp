@@ -18,6 +18,8 @@
 #include <OpenGLApp.h>
 #include <GLFWWindow.h>
 
+#include <glm/gtx/string_cast.hpp>
+
 const std::string BACKPACK_MODEL_PATH = "../assets/models/backpack/backpack.obj";
 
 int main(int argc, char** argv) {
@@ -272,6 +274,11 @@ int main(int argc, char** argv) {
     genMeshShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
     genMeshShader.unbind();
 
+    camera.position = glm::vec3(0.0f, 0.0f, 0.0f);
+    camera.updateViewMatrix();
+
+    // camera.setProjectionMatrix(glm::radians(120.0f), (float)screenWidth / (float)screenHeight, 0.1f, 1000.0f);
+
     int i = 0;
     app.onRender([&](double now, double dt) {
         // handle mouse buttons
@@ -326,7 +333,7 @@ int main(int argc, char** argv) {
         app.renderer.drawSkyBox(backgroundShader, &scene, &camera);
 
         genMeshShader.bind();
-        genMeshShader.setMat4("view", camera.getViewMatrix());
+        genMeshShader.setMat4("viewInverse", glm::inverse(camera.getViewMatrix()));
         genMeshShader.setMat4("projectionInverse", glm::inverse(camera.getProjectionMatrix()));
         genMeshShader.setFloat("near", camera.near);
         genMeshShader.setFloat("far", camera.far);
@@ -342,6 +349,23 @@ int main(int argc, char** argv) {
 
         i++;
         if (i == 100) {
+            std::cout << "saving" << std::endl;
+
+            app.renderer.gBuffer.colorBuffer.saveTextureToPNG("colorHighFov.png");
+            // app.renderer.gBuffer.depthBuffer.saveDepthToPNG("depth.png", camera.near, camera.far);
+
+            std::ofstream depthFile;
+            depthFile.open("depthHighFov.txt");
+
+            std::ofstream positionsFile;
+            positionsFile.open("positionsHighFov.txt");
+
+            std::ofstream objFile;
+            objFile.open("mesh.obj");
+
+            std::ofstream mtlFile;
+            mtlFile.open("mesh.mtl");
+
             std::vector<Vertex> vertices;
             vertices.reserve(screenWidth * screenHeight);
 
@@ -356,6 +380,8 @@ int main(int argc, char** argv) {
                     vertex.position.y = pVertices[i].y;
                     vertex.position.z = pVertices[i].z;
                     vertices.push_back(vertex);
+
+                    depthFile << pVertices[i].w << std::endl;
                 }
 
                 glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
@@ -395,40 +421,33 @@ int main(int argc, char** argv) {
                 std::cerr << "Failed to map tex coord buffer into memory" << std::endl;
             }
 
-            std::cout << "saving" << std::endl;
-            std::ofstream file;
-            file.open("mesh.obj");
-            if (file.is_open()) {
-                file << "mtllib " << "mesh.mtl" << std::endl;
-                file << "usemtl " << "Material1" << std::endl;
+            if (objFile.is_open()) {
+                objFile << "mtllib " << "mesh.mtl" << std::endl;
+                objFile << "usemtl " << "Material1" << std::endl;
                 for (int i = 0; i < vertices.size(); i++) {
-                    file << "v " << vertices[i].position.x << " " << vertices[i].position.y << " " << vertices[i].position.z << std::endl;
+                    objFile << "v " << vertices[i].position.x << " " << vertices[i].position.y << " " << vertices[i].position.z << std::endl;
+                    positionsFile << vertices[i].position.x << " " << vertices[i].position.y << " " << vertices[i].position.z << std::endl;
                 }
                 for (int i = 0; i < texCoords.size(); i++) {
-                    file << "vt " << texCoords[i].x << " " << texCoords[i].y << std::endl;
+                    objFile << "vt " << texCoords[i].x << " " << texCoords[i].y << std::endl;
                 }
                 // for (int i = 0; i < indices.size(); i += 3) {
-                //     file << "f " << indices[i] + 1 << " " << indices[i + 1] + 1 << " " << indices[i + 2] + 1<< std::endl;
+                //     objFile << "f " << indices[i] + 1 << " " << indices[i + 1] + 1 << " " << indices[i + 2] + 1<< std::endl;
                 // }
                 for (int i = 0; i < indices.size(); i += 3) {
-                    file << "f " << indices[i + 0] + 1 << "/" << indices[i + 0] + 1 << " " << indices[i + 1] + 1 << "/" << indices[i + 1] + 1 << " " << indices[i + 2] + 1 << "/" << indices[i + 2] + 1 << std::endl;
+                    objFile << "f " << indices[i + 0] + 1 << "/" << indices[i + 0] + 1 << " " << indices[i + 1] + 1 << "/" << indices[i + 1] + 1 << " " << indices[i + 2] + 1 << "/" << indices[i + 2] + 1 << std::endl;
                 }
-                file.close();
+                objFile.close();
             } else {
-                std::cerr << "Failed to open file" << std::endl;
+                std::cerr << "Failed to open objFile" << std::endl;
             }
 
-            std::ofstream file1;
-            file1.open("mesh.mtl");
-
-            if (file1.is_open()) {
-                file1 << "newmtl " << "Material1" << std::endl;
-                file1 << "map_Kd " << "meshColor.png" << std::endl;
+            if (mtlFile.is_open()) {
+                mtlFile << "newmtl " << "Material1" << std::endl;
+                mtlFile << "map_Kd " << "meshColor.png" << std::endl;
             }
 
             std::cout << "done saving" << std::endl;
-
-            app.renderer.gBuffer.colorBuffer.saveTextureToPNG("meshColor.png");
         }
     });
 
