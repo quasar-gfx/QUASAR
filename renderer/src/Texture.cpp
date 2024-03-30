@@ -7,6 +7,8 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
 
+#include <fstream>
+
 #include <Texture.h>
 
 void Texture::create(const TextureCreateParams &params) {
@@ -88,4 +90,31 @@ void Texture::saveTextureToPNG(std::string filename) {
     stbi_write_png(filename.c_str(), width, height, 4, data, width * 4);
 
     delete[] data;
+}
+
+void Texture::saveDepthToFile(std::string filename) {
+    std::ofstream depthFile;
+    depthFile.open(filename, std::ios::out | std::ios::binary);
+
+    GLuint pbo;
+    glGenBuffers(1, &pbo);
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
+    glBufferData(GL_PIXEL_PACK_BUFFER, width * height * sizeof(float), NULL, GL_STREAM_READ);
+
+    bind(0);
+    glReadBuffer(GL_COLOR_ATTACHMENT0);
+    glReadPixels(0, 0, width, height, GL_RED, GL_FLOAT, 0);
+
+    float* data = (float*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+
+    if (depthFile.is_open()) {
+        for (int i = 0; i < width * height; i++) {
+            depthFile.write(reinterpret_cast<const char*>(&data[i]), sizeof(data[i]));
+            std::cout << data[i] << std::endl;
+        }
+    }
+
+    glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+
+    depthFile.close();
 }

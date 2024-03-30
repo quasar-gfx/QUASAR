@@ -40,7 +40,9 @@ public:
             .height = height,
             .internalFormat = GL_DEPTH_COMPONENT24,
             .format = GL_DEPTH_COMPONENT,
-            .type = GL_FLOAT
+            .type = GL_FLOAT,
+            .minFilter = GL_NEAREST,
+            .magFilter = GL_NEAREST
         };
         depthBuffer = Texture(depthParams);
 
@@ -120,8 +122,8 @@ public:
             .type = GL_FLOAT,
             .wrapS = GL_CLAMP_TO_EDGE,
             .wrapT = GL_CLAMP_TO_EDGE,
-            .minFilter = GL_NEAREST,
-            .magFilter = GL_NEAREST
+            .minFilter = GL_LINEAR,
+            .magFilter = GL_LINEAR
         };
         colorBuffer = Texture(colorParams);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, colorBuffer.ID, 0);
@@ -131,7 +133,9 @@ public:
             .height = height,
             .internalFormat = GL_DEPTH_COMPONENT24,
             .format = GL_DEPTH_COMPONENT,
-            .type = GL_FLOAT
+            .type = GL_FLOAT,
+            .minFilter = GL_NEAREST,
+            .magFilter = GL_NEAREST
         };
         depthBuffer = Texture(depthParams);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBuffer.ID, 0);

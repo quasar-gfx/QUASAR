@@ -351,14 +351,14 @@ int main(int argc, char** argv) {
         if (i == 100) {
             std::cout << "saving" << std::endl;
 
-            app.renderer.gBuffer.colorBuffer.saveTextureToPNG("colorHighFov.png");
-            // app.renderer.gBuffer.depthBuffer.saveDepthToPNG("depth.png", camera.near, camera.far);
+            // app.renderer.gBuffer.colorBuffer.saveTextureToPNG("depth.png");
+            // app.renderer.gBuffer.depthBuffer.saveDepthToFile("depth1.bin");
 
             std::ofstream depthFile;
-            depthFile.open("depthHighFov.txt");
+            depthFile.open("depth.bin", std::ios::out | std::ios::binary);
 
             std::ofstream positionsFile;
-            positionsFile.open("positionsHighFov.txt");
+            positionsFile.open("positions.bin", std::ios::out | std::ios::binary);
 
             std::ofstream objFile;
             objFile.open("mesh.obj");
@@ -381,7 +381,7 @@ int main(int argc, char** argv) {
                     vertex.position.z = pVertices[i].z;
                     vertices.push_back(vertex);
 
-                    depthFile << pVertices[i].w << std::endl;
+                    depthFile.write(reinterpret_cast<const char*>(&pVertices[i].w), sizeof(pVertices[i].w));
                 }
 
                 glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
@@ -426,7 +426,10 @@ int main(int argc, char** argv) {
                 objFile << "usemtl " << "Material1" << std::endl;
                 for (int i = 0; i < vertices.size(); i++) {
                     objFile << "v " << vertices[i].position.x << " " << vertices[i].position.y << " " << vertices[i].position.z << std::endl;
-                    positionsFile << vertices[i].position.x << " " << vertices[i].position.y << " " << vertices[i].position.z << std::endl;
+                    positionsFile.write(reinterpret_cast<const char*>(&vertices[i].position.x), sizeof(vertices[i].position.x));
+                    positionsFile.write(reinterpret_cast<const char*>(&vertices[i].position.y), sizeof(vertices[i].position.y));
+                    positionsFile.write(reinterpret_cast<const char*>(&vertices[i].position.z), sizeof(vertices[i].position.z));
+                    // positionsFile << vertices[i].position.x << " " << vertices[i].position.y << " " << vertices[i].position.z << std::endl;
                 }
                 for (int i = 0; i < texCoords.size(); i++) {
                     objFile << "vt " << texCoords[i].x << " " << texCoords[i].y << std::endl;
@@ -448,6 +451,7 @@ int main(int argc, char** argv) {
             }
 
             std::cout << "done saving" << std::endl;
+            window.close();
         }
     });
 

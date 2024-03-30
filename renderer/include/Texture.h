@@ -71,7 +71,7 @@ public:
     }
 
     void saveTextureToPNG(std::string filename);
-    void saveDepthToPNG(std::string , float near, float far);
+    void saveDepthToFile(std::string filename);
 
 private:
     void create(const TextureCreateParams &params);

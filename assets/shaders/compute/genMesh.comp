@@ -37,7 +37,7 @@ void main() {
     // vec4 positionData = imageLoad(positionMap, pixelCoords);
     // vec4 normalData = imageLoad(normalMap, pixelCoords);
     // vec4 colorData = imageLoad(colorOutput, pixelCoords);
-    vec4 depthData = texture(depthMap, pixelCoordsNormalized);
+    vec4 depthData = texelFetch(depthMap, pixelCoords, 0);
 
     // vec3 normal = normalize(normalData.xyz);
     // vec3 position = positionData.xyz;
