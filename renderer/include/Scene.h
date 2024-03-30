@@ -7,7 +7,7 @@
 #include <Lights.h>
 #include <CubeMap.h>
 #include <Mesh.h>
-#include <FrameBuffer.h>
+#include <Framebuffer.h>
 #include <FullScreenQuad.h>
 
 class Scene {
@@ -22,8 +22,8 @@ public:
     bool hasPBREnvMap = false;
 
     // set up framebuffer
-    FrameBuffer captureFramebuffer;
-    RenderBuffer captureRenderBuffer;
+    Framebuffer captureFramebuffer;
+    Renderbuffer captureRenderBuffer;
 
     // create an irradiance cubemap, and rescale capture FBO to irradiance scale
     CubeMap irradianceCubeMap = CubeMap(32, 32, CUBE_MAP_HDR);

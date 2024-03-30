@@ -3,7 +3,7 @@
 
 #include <Light.h>
 #include <CubeMap.h>
-#include <FrameBuffer.h>
+#include <Framebuffer.h>
 
 class PointLight : public Light {
 public:

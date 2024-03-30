@@ -5,11 +5,11 @@
 
 #include <OpenGLObject.h>
 
-class RenderBuffer : public OpenGLObject {
+class Renderbuffer : public OpenGLObject {
 public:
     unsigned int width, height;
 
-    RenderBuffer() = default;
+    Renderbuffer() = default;
 
     void create(unsigned int width, unsigned int height, GLenum internalFormat = GL_DEPTH_COMPONENT24) {
         this->width = width;
@@ -20,7 +20,7 @@ public:
         glRenderbufferStorage(GL_RENDERBUFFER, internalFormat, width, height);
     }
 
-    ~RenderBuffer() {
+    ~Renderbuffer() {
         cleanup();
     }
 

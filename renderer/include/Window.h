@@ -17,6 +17,11 @@ struct Keys {
     bool ESC_PRESSED = false;
 };
 
+struct CursorPos {
+    double x;
+    double y;
+};
+
 class Window {
 public:
     virtual ~Window() = default;
@@ -25,7 +30,7 @@ public:
     virtual bool resized() = 0;
 
     virtual Mouse getMouseButtons() = 0;
-    virtual std::array<double, 2> getCursorPos() = 0;
+    virtual CursorPos getCursorPos() = 0;
     virtual Keys getKeys() = 0;
     virtual void setMouseCursor(bool enabled) = 0;
     virtual double getTime() = 0;

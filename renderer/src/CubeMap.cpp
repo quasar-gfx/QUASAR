@@ -220,7 +220,7 @@ void CubeMap::convolve(Shader &convolutionShader, CubeMap &envCubeMap) {
     convolutionShader.unbind();
 }
 
-void CubeMap::prefilter(Shader &prefilterShader, CubeMap &envCubeMap, RenderBuffer &captureRBO) {
+void CubeMap::prefilter(Shader &prefilterShader, CubeMap &envCubeMap, Renderbuffer &captureRBO) {
     prefilterShader.bind();
 
     prefilterShader.setInt("environmentMap", 0);

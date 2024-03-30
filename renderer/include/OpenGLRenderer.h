@@ -13,7 +13,7 @@
 #include <Scene.h>
 #include <Camera.h>
 #include <Lights.h>
-#include <FrameBuffer.h>
+#include <Framebuffer.h>
 #include <FullScreenQuad.h>
 
 class OpenGLRenderer {

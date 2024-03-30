@@ -12,7 +12,7 @@
 #include <Scene.h>
 #include <Camera.h>
 #include <Lights.h>
-#include <FrameBuffer.h>
+#include <Framebuffer.h>
 #include <FullScreenQuad.h>
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>

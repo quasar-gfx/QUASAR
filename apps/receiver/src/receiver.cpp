@@ -10,7 +10,7 @@
 #include <Entity.h>
 #include <Scene.h>
 #include <Camera.h>
-#include <FrameBuffer.h>
+#include <Framebuffer.h>
 #include <FullScreenQuad.h>
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
@@ -149,8 +149,8 @@ int main(int argc, char** argv) {
             static float lastY = screenHeight / 2.0;
 
             auto cursorPos = window.getCursorPos();
-            float xpos = static_cast<float>(cursorPos[0]);
-            float ypos = static_cast<float>(cursorPos[1]);
+            float xpos = static_cast<float>(cursorPos.x);
+            float ypos = static_cast<float>(cursorPos.y);
 
             if (firstMouse) {
                 lastX = xpos;

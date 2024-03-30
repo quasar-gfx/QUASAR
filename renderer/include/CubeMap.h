@@ -11,7 +11,7 @@
 
 #include <Shader.h>
 #include <Texture.h>
-#include <RenderBuffer.h>
+#include <Renderbuffer.h>
 #include <Camera.h>
 
 #define NUM_CUBEMAP_FACES 6
@@ -53,7 +53,7 @@ public:
 
     void loadFromEquirectTexture(Shader &equirectToCubeMapShader, Texture &equirectTexture);
     void convolve(Shader &convolutionShader, CubeMap &envCubeMap);
-    void prefilter(Shader &prefilterShader, CubeMap &envCubeMap, RenderBuffer &captureRBO);
+    void prefilter(Shader &prefilterShader, CubeMap &envCubeMap, Renderbuffer &captureRBO);
 
     void draw(Shader &shader, Camera* camera);
 

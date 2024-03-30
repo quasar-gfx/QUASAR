@@ -2,7 +2,7 @@
 #define DIRECTIONAL_LIGHT_H
 
 #include <Light.h>
-#include <FrameBuffer.h>
+#include <Framebuffer.h>
 
 class DirectionalLight : public Light {
 public:

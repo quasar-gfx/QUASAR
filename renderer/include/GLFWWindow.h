@@ -77,26 +77,32 @@ public:
     }
 
     Mouse getMouseButtons() override {
-        Mouse mouse;
-        mouse.LEFT_PRESSED = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
-        mouse.MIDDLE_PRESSED = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS;
-        mouse.RIGHT_PRESSED = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+        Mouse mouse{
+            .LEFT_PRESSED = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS),
+            .MIDDLE_PRESSED = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS),
+            .RIGHT_PRESSED = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+        };
         return mouse;
     }
 
-    std::array<double, 2> getCursorPos() override {
+    CursorPos getCursorPos() override {
         double xpos, ypos;
         glfwGetCursorPos(window, &xpos, &ypos);
-        return {xpos, ypos};
+        CursorPos pos{
+            .x = xpos,
+            .y = ypos
+        };
+        return pos;
     }
 
     Keys getKeys() override {
-        Keys keys;
-        keys.W_PRESSED = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
-        keys.A_PRESSED = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
-        keys.S_PRESSED = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
-        keys.D_PRESSED = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
-        keys.ESC_PRESSED = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS;
+        Keys keys {
+            .W_PRESSED = (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS),
+            .A_PRESSED = (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS),
+            .S_PRESSED = (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS),
+            .D_PRESSED = (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS),
+            .ESC_PRESSED = (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        };
         return keys;
     }
 
@@ -124,7 +130,6 @@ public:
     void guiNewFrame() override {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
     }
 
     void guiRender() override {

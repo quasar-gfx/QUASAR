@@ -7,14 +7,14 @@
 #include <Texture.h>
 #include <CubeMap.h>
 
-class FrameBuffer : public OpenGLObject {
+class Framebuffer : public OpenGLObject {
 public:
     unsigned int width, height;
 
     Texture colorBuffer;
     Texture depthBuffer;
 
-    FrameBuffer() = default;
+    Framebuffer() = default;
 
     void createColorAndDepthBuffers(unsigned int width, unsigned int height) {
         this->width = width;
@@ -56,7 +56,7 @@ public:
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    ~FrameBuffer() {
+    ~Framebuffer() {
         cleanup();
     }
 
@@ -74,7 +74,7 @@ public:
     }
 };
 
-class GeometryBuffer : public FrameBuffer {
+class GeometryBuffer : public Framebuffer {
 public:
     Texture positionBuffer;
     Texture normalsBuffer;
@@ -151,7 +151,7 @@ public:
     }
 };
 
-class DirShadowBuffer : public FrameBuffer {
+class DirShadowBuffer : public Framebuffer {
 public:
     void createColorAndDepthBuffers(unsigned int width, unsigned int height) {
         this->width = width;
@@ -187,7 +187,7 @@ public:
     }
 };
 
-class PointShadowBuffer : public FrameBuffer {
+class PointShadowBuffer : public Framebuffer {
 public:
     CubeMap depthCubeMap;
 
