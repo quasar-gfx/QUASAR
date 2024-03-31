@@ -55,7 +55,7 @@ public:
     void convolve(Shader &convolutionShader, CubeMap &envCubeMap);
     void prefilter(Shader &prefilterShader, CubeMap &envCubeMap, Renderbuffer &captureRBO);
 
-    void draw(Shader &shader, Camera* camera);
+    void draw(Shader &shader, Camera &camera);
 
     void bind() {
         bind(0);

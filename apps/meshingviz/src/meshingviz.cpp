@@ -227,30 +227,19 @@ int main(int argc, char** argv) {
 
         // handle keyboard input
         auto keys = window.getKeys();
-        if (keys.W_PRESSED) {
-            camera.processKeyboard(FORWARD, dt);
-        }
-        if (keys.A_PRESSED) {
-            camera.processKeyboard(LEFT, dt);
-        }
-        if (keys.S_PRESSED) {
-            camera.processKeyboard(BACKWARD, dt);
-        }
-        if (keys.D_PRESSED) {
-            camera.processKeyboard(RIGHT, dt);
-        }
+        camera.processKeyboard(keys, dt);
         if (keys.ESC_PRESSED) {
             window.close();
         }
 
-        // app.renderer.updateDirLightShadowMap(dirLightShadowsShader, &scene, &camera);
-        // app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, &scene, &camera);
+        // app.renderer.updateDirLightShadowMap(dirLightShadowsShader, scene, camera);
+        // app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, scene, camera);
 
         // render all objects in scene
-        app.renderer.drawObjects(pbrShader, &scene, &camera);
+        app.renderer.drawObjects(pbrShader, scene, camera);
 
         // render skybox (render as last to prevent overdraw)
-        app.renderer.drawSkyBox(backgroundShader, &scene, &camera);
+        app.renderer.drawSkyBox(backgroundShader, scene, camera);
 
         // render to screen
         app.renderer.drawToScreen(screenShader, screenWidth, screenHeight);

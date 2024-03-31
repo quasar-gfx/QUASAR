@@ -250,15 +250,15 @@ void CubeMap::prefilter(Shader &prefilterShader, CubeMap &envCubeMap, Renderbuff
     prefilterShader.unbind();
 }
 
-void CubeMap::draw(Shader &shader, Camera* camera) {
+void CubeMap::draw(Shader &shader, Camera &camera) {
     glDepthFunc(GL_LEQUAL);
     glDepthMask(GL_FALSE);
 
     shader.bind();
 
-    glm::mat4 view = glm::mat4(glm::mat3(camera->getViewMatrix()));
+    glm::mat4 view = glm::mat4(glm::mat3(camera.getViewMatrix()));
     shader.setMat4("view", view);
-    shader.setMat4("projection", camera->getProjectionMatrix());
+    shader.setMat4("projection", camera.getProjectionMatrix());
 
     bind();
     drawCube();

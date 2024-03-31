@@ -19,5 +19,6 @@ void main() {
     vs_out.Normal = mat3(transpose(inverse(model))) * aNormal;
     vs_out.TexCoords = aTexCoords;
 
+    gl_PointSize = 10.0;
     gl_Position = projection * view * model * vec4(aPos, 1.0);
 }

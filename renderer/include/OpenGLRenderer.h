@@ -27,10 +27,10 @@ public:
     ~OpenGLRenderer() = default;
 
     void init(unsigned int width, unsigned int height);
-    void updateDirLightShadowMap(Shader &shader, Scene* scene, Camera* camera);
-    void updatePointLightShadowMaps(Shader &shader, Scene* scene, Camera* camera);
-    void drawSkyBox(Shader &shader, Scene* scene, Camera* camera);
-    void drawObjects(Shader &shader, Scene* scene, Camera* camera);
+    void updateDirLightShadowMap(Shader &shader, Scene &scene, Camera &camera);
+    void updatePointLightShadowMaps(Shader &shader, Scene &scene, Camera &camera);
+    void drawSkyBox(Shader &shader, Scene &scene, Camera &camera);
+    void drawObjects(Shader &shader, Scene &scene, Camera &camera);
     void drawToScreen(Shader &screenShader, unsigned int screenWidth, unsigned int screenHeight);
 
 private:

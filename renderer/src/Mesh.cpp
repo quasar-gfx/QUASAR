@@ -70,14 +70,16 @@ void Mesh::draw(Shader &shader) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     }
 
+    GLenum primativeType = drawAsPointCloud ? GL_POINTS : GL_TRIANGLES;
+
     glBindVertexArray(VAO);
     if (indices.size() > 0) {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(indices.size()), GL_UNSIGNED_INT, 0);
+        glDrawElements(primativeType, static_cast<unsigned int>(indices.size()), GL_UNSIGNED_INT, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     }
     else {
-        glDrawArrays(GL_TRIANGLES, 0, static_cast<unsigned int>(vertices.size()));
+        glDrawArrays(primativeType, 0, static_cast<unsigned int>(vertices.size()));
     }
     glBindVertexArray(0);
 

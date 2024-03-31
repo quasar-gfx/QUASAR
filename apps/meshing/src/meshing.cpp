@@ -206,7 +206,7 @@ int main(int argc, char** argv) {
     backpackNode.setScale(glm::vec3(0.25f));
 
     // load the HDR environment map
-    TextureCreateParams hdrParams{
+    TextureCreateParams hdrTextureParams{
         .internalFormat = GL_RGB16F,
         .format = GL_RGB,
         .type = GL_FLOAT,
@@ -217,7 +217,7 @@ int main(int argc, char** argv) {
         .flipped = true,
         .path = hdrImagePath
     };
-    Texture hdrTexture = Texture(hdrParams);
+    Texture hdrTexture = Texture(hdrTextureParams);
 
     // skybox
     CubeMap envCubeMap(512, 512, CUBE_MAP_HDR);
@@ -247,8 +247,8 @@ int main(int argc, char** argv) {
     ComputeShader genMeshShader;
     genMeshShader.loadFromFile("../assets/shaders/compute/genMesh.comp");
 
-    app.renderer.updateDirLightShadowMap(dirLightShadowsShader, &scene, &camera);
-    app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, &scene, &camera);
+    app.renderer.updateDirLightShadowMap(dirLightShadowsShader, scene, camera);
+    app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, scene, camera);
 
     GLuint vertexBuffer;
     glGenBuffers(1, &vertexBuffer);
@@ -310,27 +310,16 @@ int main(int argc, char** argv) {
 
         // handle keyboard input
         auto keys = window.getKeys();
-        if (keys.W_PRESSED) {
-            camera.processKeyboard(FORWARD, dt);
-        }
-        if (keys.A_PRESSED) {
-            camera.processKeyboard(LEFT, dt);
-        }
-        if (keys.S_PRESSED) {
-            camera.processKeyboard(BACKWARD, dt);
-        }
-        if (keys.D_PRESSED) {
-            camera.processKeyboard(RIGHT, dt);
-        }
+        camera.processKeyboard(keys, dt);
         if (keys.ESC_PRESSED) {
             window.close();
         }
 
         // render all objects in scene
-        app.renderer.drawObjects(pbrShader, &scene, &camera);
+        app.renderer.drawObjects(pbrShader, scene, camera);
 
         // render skybox (render as last to prevent overdraw)
-        app.renderer.drawSkyBox(backgroundShader, &scene, &camera);
+        app.renderer.drawSkyBox(backgroundShader, scene, camera);
 
         genMeshShader.bind();
         genMeshShader.setMat4("viewInverse", glm::inverse(camera.getViewMatrix()));

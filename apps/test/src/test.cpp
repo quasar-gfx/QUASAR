@@ -199,7 +199,7 @@ int main(int argc, char** argv) {
     backpackNode.setScale(glm::vec3(0.25f));
 
     // load the HDR environment map
-    TextureCreateParams hdrParams{
+    TextureCreateParams hdrTextureParams{
         .internalFormat = GL_RGB16F,
         .format = GL_RGB,
         .type = GL_FLOAT,
@@ -210,7 +210,7 @@ int main(int argc, char** argv) {
         .flipped = true,
         .path = hdrImagePath
     };
-    Texture hdrTexture = Texture(hdrParams);
+    Texture hdrTexture = Texture(hdrTextureParams);
 
     // skybox
     CubeMap envCubeMap(512, 512, CUBE_MAP_HDR);
@@ -270,25 +270,14 @@ int main(int argc, char** argv) {
 
         // handle keyboard input
         auto keys = window.getKeys();
-        if (keys.W_PRESSED) {
-            camera.processKeyboard(FORWARD, dt);
-        }
-        if (keys.A_PRESSED) {
-            camera.processKeyboard(LEFT, dt);
-        }
-        if (keys.S_PRESSED) {
-            camera.processKeyboard(BACKWARD, dt);
-        }
-        if (keys.D_PRESSED) {
-            camera.processKeyboard(RIGHT, dt);
-        }
+        camera.processKeyboard(keys, dt);
         if (keys.ESC_PRESSED) {
             window.close();
         }
 
         // update shadows
-        app.renderer.updateDirLightShadowMap(dirLightShadowsShader, &scene, &camera);
-        app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, &scene, &camera);
+        app.renderer.updateDirLightShadowMap(dirLightShadowsShader, scene, camera);
+        app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, scene, camera);
 
         // animate
         cubeNodeGold.setRotationEuler(glm::vec3(0.0f, 10.0f * now, 0.0f));
@@ -298,10 +287,10 @@ int main(int argc, char** argv) {
         pointLight4.setPosition(glm::vec3(2.2f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));
 
         // render all objects in scene
-        app.renderer.drawObjects(pbrShader, &scene, &camera);
+        app.renderer.drawObjects(pbrShader, scene, camera);
 
         // render skybox (render as last to prevent overdraw)
-        app.renderer.drawSkyBox(backgroundShader, &scene, &camera);
+        app.renderer.drawSkyBox(backgroundShader, scene, camera);
 
         // render to screen
         app.renderer.drawToScreen(screenShader, screenWidth, screenHeight);

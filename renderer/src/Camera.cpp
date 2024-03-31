@@ -34,15 +34,15 @@ void Camera::updateViewMatrix() {
     view = glm::scale(glm::mat4(1.0f), 1.0f/scale) * glm::mat4_cast(glm::conjugate(rotation)) * glm::translate(glm::mat4(1.0f), -position);
 }
 
-void Camera::processKeyboard(CameraMovement direction, float deltaTime) {
+void Camera::processKeyboard(Keys keys, float deltaTime) {
     float velocity = movementSpeed * deltaTime;
-    if (direction == FORWARD)
+    if (keys.W_PRESSED)
         position += front * velocity;
-    if (direction == BACKWARD)
-        position -= front * velocity;
-    if (direction == LEFT)
+    if (keys.A_PRESSED)
         position -= right * velocity;
-    if (direction == RIGHT)
+    if (keys.S_PRESSED)
+        position -= front * velocity;
+    if (keys.D_PRESSED)
         position += right * velocity;
 
     updateViewMatrix();

@@ -9,12 +9,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/matrix_decompose.hpp>
 
-enum CameraMovement {
-    FORWARD,
-    BACKWARD,
-    LEFT,
-    RIGHT
-};
+#include <Window.h>
 
 class Camera {
 public:
@@ -49,7 +44,7 @@ public:
     void setViewMatrix(glm::mat4 view);
     void updateViewMatrix();
 
-    void processKeyboard(CameraMovement direction, float deltaTime);
+    void processKeyboard(Keys keys, float deltaTime);
     void processMouseMovement(float xoffset, float yoffset, bool constrainPitch = true);
 
 private:

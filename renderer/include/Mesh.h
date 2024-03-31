@@ -44,6 +44,15 @@ namespace std {
     };
 }
 
+struct MeshCreateParams {
+    std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
+    std::vector<TextureID> textures;
+    float shininess = 1.0f;
+    bool wireframe = false;
+    bool drawAsPointCloud = false;
+};
+
 class Mesh : public Entity {
 public:
     std::vector<TextureID> textures;
@@ -51,16 +60,15 @@ public:
     float shininess = 1.0f;
 
     bool wireframe = false;
+    bool drawAsPointCloud = false;
 
     Mesh() : Entity() {}
 
-    Mesh(std::vector<Vertex> &vertices, std::vector<TextureID> &textures, float shininess = 1.0f)
-            : vertices(vertices), textures(textures), shininess(shininess), Entity() {
-        init();
-    }
-
-    Mesh(std::vector<Vertex> &vertices, std::vector<unsigned int> &indices, std::vector<TextureID> &textures, float shininess = 1.0f)
-            : vertices(vertices), indices(indices), textures(textures), shininess(shininess), Entity() {
+    Mesh(const MeshCreateParams &params)
+            : vertices(params.vertices), indices(params.indices), textures(params.textures),
+                shininess(params.shininess),
+                wireframe(params.wireframe), drawAsPointCloud(params.drawAsPointCloud),
+                Entity() {
         init();
     }
 

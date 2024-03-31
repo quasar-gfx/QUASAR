@@ -23,6 +23,7 @@ struct ModelCreateParams {
     std::vector<TextureID> inputTextures;
     bool flipTextures = false;
     bool wireframe = false;
+    bool drawAsPointCloud = false;
     bool gammaCorrected = false;
 };
 
@@ -35,11 +36,13 @@ public:
     bool flipTextures = false;
 
     bool wireframe = false;
+    bool drawAsPointCloud = false;
     bool gammaCorrected = false;
 
     Model(const ModelCreateParams &params)
             : flipTextures(params.flipTextures),
-                wireframe(params.wireframe), gammaCorrected(params.gammaCorrected),
+                wireframe(params.wireframe), drawAsPointCloud(params.drawAsPointCloud),
+                gammaCorrected(params.gammaCorrected),
                 Entity() {
         std::cout << "Loading model: " << params.path << std::endl;
         loadFromFile(params);

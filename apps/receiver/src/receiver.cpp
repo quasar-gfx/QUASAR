@@ -169,18 +169,7 @@ int main(int argc, char** argv) {
 
         // handle keyboard input
         auto keys = window.getKeys();
-        if (keys.W_PRESSED) {
-            camera.processKeyboard(FORWARD, dt);
-        }
-        if (keys.A_PRESSED) {
-            camera.processKeyboard(LEFT, dt);
-        }
-        if (keys.S_PRESSED) {
-            camera.processKeyboard(BACKWARD, dt);
-        }
-        if (keys.D_PRESSED) {
-            camera.processKeyboard(RIGHT, dt);
-        }
+        camera.processKeyboard(keys, dt);
         if (keys.ESC_PRESSED) {
             window.close();
         }
@@ -188,10 +177,10 @@ int main(int argc, char** argv) {
         poseStreamer.sendPose();
 
         // render all objects in scene
-        app.renderer.drawObjects(shader, &scene, &camera);
+        app.renderer.drawObjects(shader, scene, camera);
 
         // render skybox (render as last to prevent overdraw)
-        app.renderer.drawSkyBox(skyboxShader, &scene, &camera);
+        app.renderer.drawSkyBox(skyboxShader, scene, camera);
 
         // render video
         screenShader.bind();
