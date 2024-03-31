@@ -13,10 +13,6 @@ void OpenGLRenderer::init(unsigned int width, unsigned int height) {
     // enable seamless cube map sampling for lower mip levels in the pre-filter map
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
-    // enable backface culling
-    // glEnable(GL_CULL_FACE);
-    // glFrontFace(GL_CCW);
-
     // enable aplha blending
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

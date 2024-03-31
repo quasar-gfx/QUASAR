@@ -1,6 +1,6 @@
 #include <Shader.h>
 
-void Shader::loadFromFile(std::string vertexPath, std::string fragmentPath, std::string geometryPath) {
+void Shader::loadFromFile(const std::string vertexPath, const std::string fragmentPath, const std::string geometryPath) {
     std::string vertexCode;
     std::string fragmentCode;
     std::string geometryCode;

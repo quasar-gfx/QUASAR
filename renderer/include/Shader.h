@@ -22,7 +22,7 @@ public:
         SHADER_COMPUTE
     };
 
-    void loadFromFile(std::string vertexPath, std::string fragmentPath, std::string geometryPath = "");
+    void loadFromFile(const std::string vertexPath, const std::string fragmentPath, const std::string geometryPath = "");
     void loadFromData(const char* vertexData, const char* fragmentData, const char* geometryData = nullptr);
 
     ~Shader() {
