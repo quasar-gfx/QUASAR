@@ -4,6 +4,15 @@
 #include <Light.h>
 #include <Framebuffer.h>
 
+struct DirectionalLightCreateParams {
+    glm::vec3 color = glm::vec3(1.0f);
+    glm::vec3 direction = glm::vec3(0.0f, -1.0f, 0.0);
+    float intensity = 1.0f;
+    float orthoBoxSize = 10.0f;
+    float zNear = 1.0f;
+    float zFar = 100.0f;
+};
+
 class DirectionalLight : public Light {
 public:
     glm::vec3 direction = glm::vec3(0.0f);
@@ -15,8 +24,8 @@ public:
 
     DirShadowBuffer dirLightShadowMapFBO;
 
-    explicit DirectionalLight(const glm::vec3 &color = glm::vec3(1.0f), float intensity = 1.0f, float orthoBoxSize = 10.0f, float zNear = 1.0f, float zFar = 100.0f)
-        : Light(color, intensity, zNear, zFar), orthoBoxSize(orthoBoxSize) {
+    explicit DirectionalLight(const DirectionalLightCreateParams &params)
+            : direction(params.direction), orthoBoxSize(params.orthoBoxSize), Light(params.color, params.intensity, params.zNear, params.zFar) {
         dirLightShadowMapFBO.createColorAndDepthBuffers(2048, 2048);
         updateLightView();
     }

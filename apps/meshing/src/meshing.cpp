@@ -61,7 +61,6 @@ int main(int argc, char** argv) {
 
     Scene scene = Scene();
     Camera camera = Camera(screenWidth, screenHeight);
-    // camera.setProjectionMatrix(glm::radians(120.0f), (float)screenWidth / (float)screenHeight, 0.1f, 1000.0f);
 
     app.gui([&](double now, double dt) {
         ImGui::NewFrame();
@@ -106,7 +105,7 @@ int main(int argc, char** argv) {
     // background skybox shader
     Shader backgroundShader({
         .vertexCodePath = "../assets/shaders/cubemap/background.vert",
-        .fragmentCodePath = "../assets/shaders/cubemap/backgroundNoHDR.frag"
+        .fragmentCodePath = "../assets/shaders/cubemap/backgroundHDR.frag"
     });
 
     Shader dirLightShadowsShader({
@@ -181,24 +180,39 @@ int main(int argc, char** argv) {
     planeNode.setScale(glm::vec3(0.5f));
 
     // lights
-    DirectionalLight directionalLight = DirectionalLight(glm::vec3(0.8f, 0.8f, 0.8f), 0.1f);
-    directionalLight.setDirection(glm::vec3(0.0f, -1.0f, -0.3f));
+    DirectionalLight directionalLight = DirectionalLight({
+        .color = glm::vec3(0.8f, 0.8f, 0.8f),
+        .direction = glm::vec3(0.0f, -1.0f, -0.3f),
+        .intensity = 0.1f
+    });
 
-    PointLight pointLight1 = PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
-    pointLight1.setPosition(glm::vec3(-1.45f, 3.5f, -6.2f));
-    pointLight1.setAttenuation(0.0f, 0.09f, 1.0f);
+    PointLight pointLight1 = PointLight({
+        .color = glm::vec3(0.9f, 0.9f, 1.0f),
+        .initialPosition = glm::vec3(-1.45f, 3.5f, -6.2f),
+        .intensity = 100.0f,
+        .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
+    });
 
-    PointLight pointLight2 = PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
-    pointLight2.setPosition(glm::vec3(2.2f, 3.5f, -6.2f));
-    pointLight2.setAttenuation(0.0f, 0.09f, 1.0f);
+    PointLight pointLight2 = PointLight({
+        .color = glm::vec3(0.9f, 0.9f, 1.0f),
+        .initialPosition = glm::vec3(2.2f, 3.5f, -6.2f),
+        .intensity = 100.0f,
+        .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
+    });
 
-    PointLight pointLight3 = PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
-    pointLight3.setPosition(glm::vec3(-1.45f, 3.5f, 4.89f));
-    pointLight3.setAttenuation(0.0f, 0.09f, 1.0f);
+    PointLight pointLight3 = PointLight({
+        .color = glm::vec3(0.9f, 0.9f, 1.0f),
+        .initialPosition = glm::vec3(-1.45f, 3.5f, 4.89f),
+        .intensity = 100.0f,
+        .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
+    });
 
-    PointLight pointLight4 = PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
-    pointLight4.setPosition(glm::vec3(2.2f, 3.5f, 4.89f));
-    pointLight4.setAttenuation(0.0f, 0.09f, 1.0f);
+    PointLight pointLight4 = PointLight({
+        .color = glm::vec3(0.9f, 0.9f, 1.0f),
+        .initialPosition = glm::vec3(2.2f, 3.5f, 4.89f),
+        .intensity = 100.0f,
+        .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
+    });
 
     // models
     Model sponza = Model({ .path = modelPath });

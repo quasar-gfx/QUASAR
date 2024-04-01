@@ -5,6 +5,17 @@
 #include <CubeMap.h>
 #include <Framebuffer.h>
 
+struct PointLightCreateParams {
+    glm::vec3 color = glm::vec3(1.0f);
+    glm::vec3 initialPosition = glm::vec3(0.0f);
+    float intensity = 1.0f;
+    float constant = 1.0f;
+    float linear = 0.09f;
+    float quadratic = 0.032f;
+    float zNear = 1.0f;
+    float zFar = 25.0f;
+};
+
 class PointLight : public Light {
 public:
     glm::vec3 position = glm::vec3(0.0f);
@@ -15,11 +26,12 @@ public:
     glm::mat4 lookAtPerFace[NUM_CUBEMAP_FACES];
     PointShadowBuffer pointLightShadowMapFBO;
 
-    explicit PointLight(const glm::vec3 &color = glm::vec3(1.0f), float intensity = 1.0f, float zNear = 1.0f, float zFar = 25.0f)
-        : Light(color, intensity) {
+    explicit PointLight(const PointLightCreateParams &params)
+            : position(params.initialPosition), constant(params.constant), linear(params.linear), quadratic(params.quadratic),
+                Light(params.color, params.intensity, params.zNear, params.zFar) {
         pointLightShadowMapFBO.createColorAndDepthBuffers(shadowRes, shadowRes);
 
-        shadowProjectionMat = glm::perspective(glm::radians(90.0f), 1.0f, zNear, zFar);
+        shadowProjectionMat = glm::perspective(glm::radians(90.0f), 1.0f, params.zNear, params.zFar);
 
         updateLookAtFace();
     }

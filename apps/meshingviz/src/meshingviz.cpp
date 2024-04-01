@@ -25,7 +25,6 @@ int main(int argc, char** argv) {
     app.config.title = "Meshing Visualizer";
 
     std::string modelPath = "../meshing/mesh.obj";
-    std::string hdrImagePath = "../assets/textures/hdr/barcelona.hdr";
     bool renderPointcloud = false;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
@@ -38,10 +37,6 @@ int main(int argc, char** argv) {
         }
         else if (!strcmp(argv[i], "-m") && i + 1 < argc) {
             modelPath = argv[i + 1];
-            i++;
-        }
-        else if (!strcmp(argv[i], "-i") && i + 1 < argc) {
-            hdrImagePath = argv[i + 1];
             i++;
         }
         else if (!strcmp(argv[i], "-p") && i + 1 < argc) {
@@ -74,32 +69,14 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader pbrShader, screenShader;
-    pbrShader.loadFromFile("../assets/shaders/simple.vert", "../assets/shaders/textured.frag");
-    screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayColor.frag");
-
-    // converts HDR equirectangular environment map to cubemap equivalent
-    Shader equirectToCubeMapShader({
-        .vertexCodePath = "../assets/shaders/cubemap/cubemap.vert",
-        .fragmentCodePath = "../assets/shaders/cubemap/equirectangular2cubemap.frag"
+    Shader pbrShader = Shader({
+        .vertexCodePath = "../assets/shaders/simple.vert",
+        .fragmentCodePath = "../assets/shaders/textured.frag"
     });
 
-    // solves diffuse integral by convolution to create an irradiance cubemap
-    Shader convolutionShader({
-        .vertexCodePath = "../assets/shaders/cubemap/cubemap.vert",
-        .fragmentCodePath = "../assets/shaders/pbr/irradianceConvolution.frag"
-    });
-
-    // runs a quasi monte-carlo simulation on the environment lighting to create a prefilter cubemap
-    Shader prefilterShader({
-        .vertexCodePath = "../assets/shaders/cubemap/cubemap.vert",
-        .fragmentCodePath = "../assets/shaders/pbr/prefilter.frag"
-    });
-
-    // BRDF shader
-    Shader brdfShader({
-        .vertexCodePath = "../assets/shaders/pbr/brdf.vert",
-        .fragmentCodePath = "../assets/shaders/pbr/brdf.frag"
+    Shader screenShader({
+        .vertexCodePath = "../assets/shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../assets/shaders/postprocessing/displayColor.frag"
     });
 
     // background skybox shader
@@ -107,12 +84,6 @@ int main(int argc, char** argv) {
         .vertexCodePath = "../assets/shaders/cubemap/background.vert",
         .fragmentCodePath = "../assets/shaders/cubemap/backgroundNoHDR.frag"
     });
-
-    // Shader dirLightShadowsShader;
-    // dirLightShadowsShader.loadFromFile("../assets/shaders/shadows/dirShadow.vert", "../assets/shaders/shadows/dirShadow.frag");
-
-    // Shader pointLightShadowsShader;
-    // pointLightShadowsShader.loadFromFile("../assets/shaders/shadows/pointShadow.vert", "../assets/shaders/shadows/pointShadow.frag", "../assets/shaders/shadows/pointShadow.geo");
 
     // textures
     Material goldMaterial = Material({
@@ -124,30 +95,44 @@ int main(int argc, char** argv) {
     });
 
     // lights
-    DirectionalLight directionalLight = DirectionalLight(glm::vec3(0.8f, 0.8f, 0.8f), 0.1f);
-    directionalLight.setDirection(glm::vec3(0.0f, -1.0f, -0.3f));
+    DirectionalLight directionalLight = DirectionalLight({
+        .color = glm::vec3(0.8f, 0.8f, 0.8f),
+        .direction = glm::vec3(0.0f, -1.0f, -0.3f),
+        .intensity = 0.1f
+    });
 
-    PointLight pointLight1 = PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
-    pointLight1.setPosition(glm::vec3(-1.45f, 3.5f, -6.2f));
-    pointLight1.setAttenuation(0.0f, 0.09f, 1.0f);
+    PointLight pointLight1 = PointLight({
+        .color = glm::vec3(0.9f, 0.9f, 1.0f),
+        .initialPosition = glm::vec3(-1.45f, 3.5f, -6.2f),
+        .intensity = 100.0f,
+        .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
+    });
 
-    PointLight pointLight2 = PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
-    pointLight2.setPosition(glm::vec3(2.2f, 3.5f, -6.2f));
-    pointLight2.setAttenuation(0.0f, 0.09f, 1.0f);
+    PointLight pointLight2 = PointLight({
+        .color = glm::vec3(0.9f, 0.9f, 1.0f),
+        .initialPosition = glm::vec3(2.2f, 3.5f, -6.2f),
+        .intensity = 100.0f,
+        .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
+    });
 
-    PointLight pointLight3 = PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
-    pointLight3.setPosition(glm::vec3(-1.45f, 3.5f, 4.89f));
-    pointLight3.setAttenuation(0.0f, 0.09f, 1.0f);
+    PointLight pointLight3 = PointLight({
+        .color = glm::vec3(0.9f, 0.9f, 1.0f),
+        .initialPosition = glm::vec3(-1.45f, 3.5f, 4.89f),
+        .intensity = 100.0f,
+        .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
+    });
 
-    PointLight pointLight4 = PointLight(glm::vec3(0.9f, 0.9f, 1.0f), 100.0f);
-    pointLight4.setPosition(glm::vec3(2.2f, 3.5f, 4.89f));
-    pointLight4.setAttenuation(0.0f, 0.09f, 1.0f);
+    PointLight pointLight4 = PointLight({
+        .color = glm::vec3(0.9f, 0.9f, 1.0f),
+        .initialPosition = glm::vec3(2.2f, 3.5f, 4.89f),
+        .intensity = 100.0f,
+        .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
+    });
 
     Material meshMaterial = Material({ .albedoTexturePath = "../meshing/color.png" });
-    // Cube cube = Cube(meshTextures);
-    // Node cubeNode = Node(&cube);
 
     // models
+    // Cube cube = Cube(goldMaterial);
     Model mesh = Model({
         .path = modelPath,
         .material = meshMaterial,
@@ -166,9 +151,6 @@ int main(int argc, char** argv) {
     scene.addPointLight(&pointLight2);
     scene.addPointLight(&pointLight3);
     scene.addPointLight(&pointLight4);
-    // scene.addChildNode(&cubeNodeGold);
-    // scene.addChildNode(&cubeNodeIron);
-    // scene.addChildNode(sphereNodePlastic);
     scene.addChildNode(&meshNode);
     // scene.addChildNode(&cubeNode);
     // scene.addChildNode(&backpackNode);
@@ -208,9 +190,6 @@ int main(int argc, char** argv) {
         if (keys.ESC_PRESSED) {
             window.close();
         }
-
-        // app.renderer.updateDirLightShadowMap(dirLightShadowsShader, scene, camera);
-        // app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, scene, camera);
 
         // render all objects in scene
         app.renderer.drawObjects(pbrShader, scene, camera);

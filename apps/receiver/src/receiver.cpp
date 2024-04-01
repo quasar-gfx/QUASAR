@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR
     };
-    VideoTexture videoTexture = VideoTexture(videoParams);
+    VideoTexture videoTexture(videoParams);
     videoTexture.initVideo(inputUrl);
     PoseStreamer poseStreamer(&camera, poseURL);
 
@@ -88,13 +88,23 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader skyboxShader, shader, screenShader;
-    skyboxShader.loadFromFile("../assets/shaders/cubemap/background.vert", "../assets/shaders/cubemap/backgroundNoHDR.frag");
-    shader.loadFromFile("../assets/shaders/simple.vert", "../assets/shaders/simple.frag");
-    screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayVideo.frag");
+    Shader skyboxShader({
+        .vertexCodePath = "../assets/shaders/cubemap/background.vert",
+        .fragmentCodePath = "../assets/shaders/cubemap/backgroundHDR.frag"
+    });
+
+    Shader shader({
+        .vertexCodePath = "../assets/shaders/simple.vert",
+        .fragmentCodePath = "../assets/shaders/simple.frag"
+    });;
+
+    Shader screenShader({
+        .vertexCodePath = "../assets/shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../assets/shaders/postprocessing/displayVideo.frag"
+    });
 
     // lights
-    AmbientLight ambientLight = AmbientLight();
+    AmbientLight ambientLight = AmbientLight({ .color = glm::vec3(1.0f), .intensity = 1.0f });
 
     // materials
     Material containerMaterial = Material({ CONTAINER_TEXTURE });

@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
     // background skybox shader
     Shader backgroundShader({
         .vertexCodePath = "../assets/shaders/cubemap/background.vert",
-        .fragmentCodePath = "../assets/shaders/cubemap/backgroundNoHDR.frag"
+        .fragmentCodePath = "../assets/shaders/cubemap/backgroundHDR.frag"
     });
 
     Shader screenShader({
@@ -177,21 +177,33 @@ int main(int argc, char** argv) {
     CubeMap envCubeMap({ .width = 512, .height = 512, .type = CUBE_MAP_HDR });
 
     // lights
-    PointLight pointLight1 = PointLight(glm::vec3(1.0, 1.0, 1.0), 300.0f);
-    pointLight1.setPosition(glm::vec3(-10.0f, 10.0f, 10.0f));
-    pointLight1.setAttenuation(0.0f, 0.09f, 1.0f);
+    PointLight pointLight1 = PointLight({
+        .color = glm::vec3(1.0f, 1.0f, 1.0f),
+        .initialPosition = glm::vec3(-10.0f, 10.0f, 10.0f),
+        .intensity = 300.0f,
+        .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
+    });
 
-    PointLight pointLight2 = PointLight(glm::vec3(1.0, 1.0, 1.0), 300.0f);
-    pointLight2.setPosition(glm::vec3(10.0f, 10.0f, 10.0f));
-    pointLight2.setAttenuation(0.0f, 0.09f, 1.0f);
+    PointLight pointLight2 = PointLight({
+        .color = glm::vec3(1.0f, 1.0f, 1.0f),
+        .initialPosition = glm::vec3(10.0f, 10.0f, 10.0f),
+        .intensity = 300.0f,
+        .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
+    });
 
-    PointLight pointLight3 = PointLight(glm::vec3(1.0, 1.0, 1.0), 300.0f);
-    pointLight3.setPosition(glm::vec3(-10.0f, -10.0f, 10.0f));
-    pointLight3.setAttenuation(0.0f, 0.09f, 1.0f);
+    PointLight pointLight3 = PointLight({
+        .color = glm::vec3(1.0f, 1.0f, 1.0f),
+        .initialPosition = glm::vec3(-10.0f, -10.0f, 10.0f),
+        .intensity = 300.0f,
+        .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
+    });
 
-    PointLight pointLight4 = PointLight(glm::vec3(1.0, 1.0, 1.0), 300.0f);
-    pointLight4.setPosition(glm::vec3(10.0f, -10.0f, 10.0f));
-    pointLight4.setAttenuation(0.0f, 0.09f, 1.0f);
+    PointLight pointLight4 = PointLight({
+        .color = glm::vec3(1.0f, 1.0f, 1.0f),
+        .initialPosition = glm::vec3(10.0f, -10.0f, 10.0f),
+        .intensity = 300.0f,
+        .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
+    });
 
     scene.addPointLight(&pointLight1);
     scene.addPointLight(&pointLight2);
