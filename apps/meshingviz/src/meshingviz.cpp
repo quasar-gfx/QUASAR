@@ -83,6 +83,13 @@ int main(int argc, char** argv) {
     Shader backgroundShader;
     backgroundShader.loadFromFile("../assets/shaders/cubemap/background.vert", "../assets/shaders/cubemap/backgroundHDR.frag");
 
+    // Shader dirLightShadowsShader;
+    // dirLightShadowsShader.loadFromFile("../assets/shaders/shadows/dirShadow.vert", "../assets/shaders/shadows/dirShadow.frag");
+
+    // Shader pointLightShadowsShader;
+    // pointLightShadowsShader.loadFromFile("../assets/shaders/shadows/pointShadow.vert", "../assets/shaders/shadows/pointShadow.frag", "../assets/shaders/shadows/pointShadow.geo");
+
+
     // textures
     Material goldMaterial = Material({
         .albedoTexturePath = "../assets/textures/pbr/gold/albedo.png",
@@ -142,12 +149,6 @@ int main(int argc, char** argv) {
     // scene.addChildNode(&cubeNode);
     // scene.addChildNode(&backpackNode);
     // scene.addChildNode(&planeNode);
-
-    // Shader dirLightShadowsShader;
-    // dirLightShadowsShader.loadFromFile("../assets/shaders/shadows/dirShadow.vert", "../assets/shaders/shadows/dirShadow.frag");
-
-    // Shader pointLightShadowsShader;
-    // pointLightShadowsShader.loadFromFile("../assets/shaders/shadows/pointShadow.vert", "../assets/shaders/shadows/pointShadow.frag", "../assets/shaders/shadows/pointShadow.geo");
 
     app.onRender([&](double now, double dt) {
         // handle mouse buttons

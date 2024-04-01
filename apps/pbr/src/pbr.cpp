@@ -76,9 +76,8 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader pbrShader, screenShader;
+    Shader pbrShader;
     pbrShader.loadFromFile("../assets/shaders/pbr/pbr.vert", "../assets/shaders/pbr/pbr.frag");
-    screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayColor.frag");
 
     // converts HDR equirectangular environment map to cubemap equivalent
     Shader equirectToCubeMapShader;
@@ -100,6 +99,9 @@ int main(int argc, char** argv) {
     Shader backgroundShader;
     backgroundShader.loadFromFile("../assets/shaders/cubemap/background.vert", "../assets/shaders/cubemap/backgroundHDR.frag");
 
+    Shader screenShader;
+    screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayColor.frag");
+
     // materials
     Material goldMaterial = Material({
         .albedoTexturePath = "../assets/textures/pbr/gold/albedo.png",
@@ -117,12 +119,13 @@ int main(int argc, char** argv) {
         .aoTexturePath = "../assets/textures/pbr/rusted_iron/ao.png"
     });
 
-    Material gunMaterial = Material({"../assets/models/cerberus/Textures/Cerberus_A.tga",
-                                     "", // no specular map
-                                     "../assets/models/cerberus/Textures/Cerberus_N.tga",
-                                     "../assets/models/cerberus/Textures/Cerberus_M.tga",
-                                     "../assets/models/cerberus/Textures/Cerberus_R.tga",
-                                     "../assets/models/cerberus/Textures/Cerberus_AO.tga"});
+    Material gunMaterial = Material({
+        .albedoTexturePath = "../assets/models/cerberus/Textures/Cerberus_A.tga",
+        .normalTexturePath = "../assets/models/cerberus/Textures/Cerberus_N.tga",
+        .metallicTexturePath = "../assets/models/cerberus/Textures/Cerberus_M.tga",
+        .roughnessTexturePath = "../assets/models/cerberus/Textures/Cerberus_R.tga",
+        .aoTexturePath = "../assets/models/cerberus/Textures/Cerberus_AO.tga"
+    });
 
     // objects
     Sphere sphereGold = Sphere(goldMaterial);
@@ -134,11 +137,10 @@ int main(int argc, char** argv) {
     cubeNodeIron.setTranslation(glm::vec3(5.0f, 0.5f, -1.0f));
 
     // models
-    ModelCreateParams gunParams{
+    Model gun = Model({
         .path = modelPath,
         .material = gunMaterial
-    };
-    Model gun = Model(gunParams);
+    });
     Node gunNode = Node(&gun);
     gunNode.setTranslation(glm::vec3(2.0f, 1.0f, -1.0f));
     gunNode.setRotationEuler(glm::vec3(0.0f, 90.0f, 0.0f));

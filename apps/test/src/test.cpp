@@ -92,6 +92,15 @@ int main(int argc, char** argv) {
     Shader backgroundShader;
     backgroundShader.loadFromFile("../assets/shaders/cubemap/background.vert", "../assets/shaders/cubemap/backgroundHDR.frag");
 
+    Shader dirLightShadowsShader;
+    dirLightShadowsShader.loadFromFile("../assets/shaders/shadows/dirShadow.vert", "../assets/shaders/shadows/dirShadow.frag");
+
+    Shader pointLightShadowsShader;
+    pointLightShadowsShader.loadFromFile("../assets/shaders/shadows/pointShadow.vert", "../assets/shaders/shadows/pointShadow.frag", "../assets/shaders/shadows/pointShadow.geo");
+
+    Shader screenShader;
+    screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayColor.frag");
+
     // materials
     Material goldMaterial = Material({
         .albedoTexturePath = "../assets/textures/pbr/gold/albedo.png",
@@ -169,11 +178,7 @@ int main(int argc, char** argv) {
     sponzaNode.setTranslation(glm::vec3(0.0f, -0.5f, 0.0f));
     sponzaNode.setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
 
-    ModelCreateParams backpackParams{
-        .path = BACKPACK_MODEL_PATH,
-        .flipTextures = true
-    };
-    Model backpack = Model(backpackParams);
+    Model backpack = Model({ .path = BACKPACK_MODEL_PATH, .flipTextures = true });
     Node backpackNode = Node(&backpack);
     backpackNode.setTranslation(glm::vec3(0.5f, 0.1f, -5.0f));
     backpackNode.setScale(glm::vec3(0.25f));
@@ -209,15 +214,6 @@ int main(int argc, char** argv) {
     scene.equirectToCubeMap(envCubeMap, hdrTexture, equirectToCubeMapShader);
     scene.setupIBL(envCubeMap, convolutionShader, prefilterShader, brdfShader);
     scene.setEnvMap(&envCubeMap);
-
-    Shader dirLightShadowsShader;
-    dirLightShadowsShader.loadFromFile("../assets/shaders/shadows/dirShadow.vert", "../assets/shaders/shadows/dirShadow.frag");
-
-    Shader pointLightShadowsShader;
-    pointLightShadowsShader.loadFromFile("../assets/shaders/shadows/pointShadow.vert", "../assets/shaders/shadows/pointShadow.frag", "../assets/shaders/shadows/pointShadow.geo");
-
-    Shader screenShader;
-    screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayColor.frag");
 
     app.onRender([&](double now, double dt) {
         // handle mouse buttons
