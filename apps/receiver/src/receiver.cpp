@@ -6,6 +6,7 @@
 #include <Shader.h>
 #include <Texture.h>
 #include <Primatives.h>
+#include <Material.h>
 #include <CubeMap.h>
 #include <Entity.h>
 #include <Scene.h>
@@ -71,7 +72,7 @@ int main(int argc, char** argv) {
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR
     };
-    VideoTexture videoTexture(videoParams);
+    VideoTexture videoTexture = VideoTexture(videoParams);
     videoTexture.initVideo(inputUrl);
     PoseStreamer poseStreamer(&camera, poseURL);
 
@@ -95,42 +96,31 @@ int main(int argc, char** argv) {
     // lights
     AmbientLight ambientLight = AmbientLight();
 
-    // textures
-    TextureCreateParams textureParams{
-        .wrapS = GL_REPEAT,
-        .wrapT = GL_REPEAT,
-        .minFilter = GL_LINEAR_MIPMAP_LINEAR,
-        .magFilter = GL_LINEAR
-    };
-    textureParams.path = CONTAINER_TEXTURE;
-    Texture conatinerTexture = Texture(textureParams);
-    std::vector<TextureID> conatinerTextures = { conatinerTexture.ID };
+    // materials
+    Material containerMaterial = Material({ CONTAINER_TEXTURE });
+    Material floorMaterial = Material({ METAL_TEXTURE });
 
-    textureParams.path = METAL_TEXTURE;
-    Texture floorTexture = Texture(textureParams);
-    std::vector<TextureID> floorTextures = { floorTexture.ID };
-
-    Cube cube = Cube(conatinerTextures);
+    Cube cube = Cube(containerMaterial);
 
     Node cubeNode = Node(&cube);
     cubeNode.setTranslation(glm::vec3(-1.0f, 0.0f, -1.0f));
 
-    Sphere sphere = Sphere(conatinerTextures);
+    Sphere sphere = Sphere(containerMaterial);
 
     Node sphereNode = Node(&sphere);
     sphereNode.setTranslation(glm::vec3(2.0f, 1.0f, -3.0f));
 
-    Plane plane = Plane(floorTextures);
+    Plane plane = Plane(floorMaterial);
     Node planeNode = Node(&plane);
     planeNode.setScale(glm::vec3(25.0f, 1.0f, 25.0f));
 
     CubeMap skybox = CubeMap({
-        "../assets/textures/skybox/right.jpg",
-        "../assets/textures/skybox/left.jpg",
-        "../assets/textures/skybox/top.jpg",
-        "../assets/textures/skybox/bottom.jpg",
-        "../assets/textures/skybox/front.jpg",
-        "../assets/textures/skybox/back.jpg"
+        .rightFaceTexturePath = "../assets/textures/skybox/right.jpg",
+        .leftFaceTexturePath = "../assets/textures/skybox/left.jpg",
+        .topFaceTexturePath = "../assets/textures/skybox/top.jpg",
+        .bottomFaceTexturePath = "../assets/textures/skybox/bottom.jpg",
+        .frontFaceTexturePath = "../assets/textures/skybox/front.jpg",
+        .backFaceTexturePath = "../assets/textures/skybox/back.jpg"
     });
 
     scene.setAmbientLight(&ambientLight);

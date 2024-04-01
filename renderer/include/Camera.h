@@ -33,8 +33,8 @@ public:
     float movementSpeed = 2.5f;
     float mouseSensitivity = 0.1f;
 
-    Camera(unsigned int width, unsigned int height);
-    Camera(float fovy, float aspect, float near, float far);
+    explicit Camera(unsigned int width, unsigned int height);
+    explicit Camera(float fovy, float aspect, float near, float far);
 
     glm::mat4 getProjectionMatrix() { return proj; }
     void setProjectionMatrix(float fovy, float aspect, float near, float far);

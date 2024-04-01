@@ -24,9 +24,7 @@ public:
     int frameReceived = 0;
     float timeToReceiveFrame = 0.0f;
 
-    VideoTexture(TextureCreateParams &params)
-            : Texture(params),
-                width(params.width), height(params.height) { }
+    explicit VideoTexture(TextureCreateParams &params) : Texture(params), width(params.width), height(params.height) { }
 
     ~VideoTexture() {
         cleanup();

@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
     Shader screenShader;
     screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayTexture.frag");
 
-    TextureCreateParams params{
+    Texture outputTexture = Texture({
         .width = screenWidth,
         .height = screenHeight,
         .internalFormat = GL_RGBA32F,
@@ -62,8 +62,7 @@ int main(int argc, char** argv) {
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST
-    };
-    Texture outputTexture = Texture(params);
+    });
 
     // query limitations
 	int max_compute_work_group_count[3];

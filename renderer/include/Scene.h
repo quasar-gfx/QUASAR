@@ -26,16 +26,16 @@ public:
     Renderbuffer captureRenderBuffer;
 
     // create an irradiance cubemap, and rescale capture FBO to irradiance scale
-    CubeMap irradianceCubeMap = CubeMap(32, 32, CUBE_MAP_HDR);
+    CubeMap irradianceCubeMap = CubeMap({ .width = 32, .height = 32, .type = CUBE_MAP_STANDARD });
 
     // create a prefilter cubemap, and rescale capture FBO to prefilter scale
-    CubeMap prefilterCubeMap = CubeMap(256, 256, CUBE_MAP_PREFILTER);
+    CubeMap prefilterCubeMap = CubeMap({ .width = 256, .height = 256, .type = CUBE_MAP_PREFILTER });
 
     // generate a 2D LUT from the BRDF equations used
     Texture brdfLUT;
     FullScreenQuad brdfFsQuad;
 
-    Scene() = default;
+    explicit Scene() = default;
 
     void addChildNode(Node* node);
 

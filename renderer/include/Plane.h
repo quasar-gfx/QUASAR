@@ -5,7 +5,7 @@
 
 class Plane : public Mesh {
 public:
-    Plane(std::vector<TextureID> &textures, float shininess = 1.0f) : Mesh() {
+    explicit Plane(Material &material) : Mesh() {
         this->vertices = {
             {{ 1.0f, -1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
             {{-1.0f, -1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 2.0f}, {1.0f, 0.0f, 0.0f}},
@@ -15,8 +15,7 @@ public:
             {{-1.0f, -1.0f,  1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
             {{ 1.0f, -1.0f,  1.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 0.0f}, {1.0f, 0.0f, 0.0f}}
         };
-        this->textures = textures;
-        this->shininess = shininess;
+        this->material = material;
 
         init();
     }

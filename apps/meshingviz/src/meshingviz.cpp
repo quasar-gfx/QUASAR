@@ -5,6 +5,7 @@
 #include <Shader.h>
 #include <Texture.h>
 #include <Primatives.h>
+#include <Material.h>
 #include <Model.h>
 #include <CubeMap.h>
 #include <Entity.h>
@@ -83,60 +84,13 @@ int main(int argc, char** argv) {
     backgroundShader.loadFromFile("../assets/shaders/cubemap/background.vert", "../assets/shaders/cubemap/backgroundHDR.frag");
 
     // textures
-    TextureCreateParams textureParams{
-        .minFilter = GL_LINEAR_MIPMAP_LINEAR,
-        .magFilter = GL_LINEAR
-    };
-    textureParams.path = "../assets/textures/pbr/gold/albedo.png";
-    Texture albedo = Texture(textureParams);
-    textureParams.path = "../assets/textures/pbr/gold/normal.png";
-    Texture normal = Texture(textureParams);
-    textureParams.path = "../assets/textures/pbr/gold/metallic.png";
-    Texture metallic = Texture(textureParams);
-    textureParams.path = "../assets/textures/pbr/gold/roughness.png";
-    Texture roughness = Texture(textureParams);
-    textureParams.path = "../assets/textures/pbr/gold/ao.png";
-    Texture ao = Texture(textureParams);
-    std::vector<TextureID> goldTextures = { albedo.ID, 0, normal.ID, metallic.ID, roughness.ID, ao.ID };
-
-    // Texture ironAlbedo = Texture("../assets/textures/pbr/rusted_iron/albedo.png");
-    // Texture ironNormal = Texture("../assets/textures/pbr/rusted_iron/normal.png");
-    // Texture ironMetallic = Texture("../assets/textures/pbr/rusted_iron/metallic.png");
-    // Texture ironRoughness = Texture("../assets/textures/pbr/rusted_iron/roughness.png");
-    // Texture ironAo = Texture("../assets/textures/pbr/rusted_iron/ao.png");
-    // std::vector<TextureID> ironTextures = { ironAlbedo.ID, 0, ironNormal.ID, ironMetallic.ID, ironRoughness.ID, ironAo.ID };
-
-    // Texture plasticAlbedo = Texture("../assets/textures/pbr/plastic/albedo.png");
-    // Texture plasticNormal = Texture("../assets/textures/pbr/plastic/normal.png");
-    // Texture plasticMetallic = Texture("../assets/textures/pbr/plastic/metallic.png");
-    // Texture plasticRoughness = Texture("../assets/textures/pbr/plastic/roughness.png");
-    // Texture plasticAo = Texture("../assets/textures/pbr/plastic/ao.png");
-    // std::vector<TextureID> plasticTextures = { plasticAlbedo.ID, 0, plasticNormal.ID, plasticMetallic.ID, plasticRoughness.ID, plasticAo.ID };
-
-    // Texture windowTexture = Texture("../assets/textures/window.png");
-    // std::vector<TextureID> windowTextures = { windowTexture.ID };
-
-    // objects
-    // Cube cubeGold = Cube(goldTextures);
-    // Node cubeNodeGold = Node(cubeGold);
-    // cubeNodeGold.setTranslation(glm::vec3(-0.2f, 0.25f, -7.0f));
-    // cubeNodeGold.setScale(glm::vec3(0.5f));
-
-    // Cube cubeIron = Cube(ironTextures);
-    // Node cubeNodeIron = Node(cubeIron);
-    // cubeNodeIron.setTranslation(glm::vec3(1.5f, 0.25f, -3.0f));
-    // cubeNodeIron.setScale(glm::vec3(0.5f));
-
-    // Sphere sphere = Sphere(plasticTextures);
-    // Node sphereNodePlastic = Node(sphere);
-    // sphereNodePlastic.setTranslation(glm::vec3(1.0f, 1.5f, -8.0f));
-    // sphereNodePlastic.setScale(glm::vec3(0.5f));
-
-    // Plane plane = Plane(windowTextures);
-    // Node planeNode = Node(plane);
-    // planeNode.setTranslation(glm::vec3(0.0f, 1.5f, -7.0f));
-    // planeNode.setRotationEuler(glm::vec3(-90.0f, 0.0f, 0.0f));
-    // planeNode.setScale(glm::vec3(0.5f));
+    Material goldMaterial = Material({
+        .albedoTexturePath = "../assets/textures/pbr/gold/albedo.png",
+        .normalTexturePath = "../assets/textures/pbr/gold/normal.png",
+        .metallicTexturePath = "../assets/textures/pbr/gold/metallic.png",
+        .roughnessTexturePath = "../assets/textures/pbr/gold/roughness.png",
+        .aoTexturePath = "../assets/textures/pbr/gold/ao.png"
+    });
 
     // lights
     DirectionalLight directionalLight = DirectionalLight(glm::vec3(0.8f, 0.8f, 0.8f), 0.1f);
@@ -158,16 +112,14 @@ int main(int argc, char** argv) {
     pointLight4.setPosition(glm::vec3(2.2f, 3.5f, 4.89f));
     pointLight4.setAttenuation(0.0f, 0.09f, 1.0f);
 
-    textureParams.path = "../meshing/meshColor.png";
-    Texture meshTexture = Texture(textureParams);
-    std::vector<TextureID> meshTextures = { meshTexture.ID };
+    Material meshMaterial = Material({"../meshing/meshColor.png"});
     // Cube cube = Cube(meshTextures);
     // Node cubeNode = Node(&cube);
 
     // models
     ModelCreateParams modelParams{
         .path = modelPath,
-        .inputTextures = meshTextures
+        .material = meshMaterial
     };
     Model mesh = Model(modelParams);
     Node meshNode = Node(&mesh);

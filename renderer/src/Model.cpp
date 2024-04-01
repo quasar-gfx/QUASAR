@@ -22,21 +22,21 @@ void Model::loadFromFile(const ModelCreateParams &params) {
 
     rootDirectory = params.path.substr(0, params.path.find_last_of('/'))  + '/';
 
-    processNode(scene->mRootNode, scene, params.inputTextures);
+    processNode(scene->mRootNode, scene, params.material);
 }
 
-void Model::processNode(aiNode* node, const aiScene* scene, std::vector<TextureID> inputTextures) {
+void Model::processNode(aiNode* node, const aiScene* scene, const Material &material) {
     for (int i = 0; i < node->mNumMeshes; i++) {
         aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-        meshes.push_back(processMesh(mesh, scene, inputTextures));
+        meshes.push_back(processMesh(mesh, scene, material));
     }
 
     for (int i = 0; i < node->mNumChildren; i++) {
-        processNode(node->mChildren[i], scene, inputTextures);
+        processNode(node->mChildren[i], scene, material);
     }
 }
 
-Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, std::vector<TextureID> inputTextures) {
+Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, const Material &material) {
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
     std::vector<TextureID> textures;
@@ -89,41 +89,48 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, std::vector<TextureI
         }
     }
 
-    aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+    aiMaterial* aiMat = scene->mMaterials[mesh->mMaterialIndex];
 
-    if (inputTextures.size() > 0) {
-        for (int i = 0; i < Mesh::numTextures; i++) {
-            if (i < inputTextures.size()) {
-                textures.push_back(inputTextures[i]);
-            }
-            else {
-                textures.push_back(0);
-            }
-        }
+    if (!material.empty) {
+        MeshCreateParams meshParams{
+            .vertices = vertices,
+            .indices = indices,
+            .material = material,
+            .wireframe = wireframe,
+            .drawAsPointCloud = drawAsPointCloud
+        };
+        return Mesh(meshParams);
     }
     else {
         textures = {
-            loadMaterialTexture(material, aiTextureType_DIFFUSE),
-            loadMaterialTexture(material, aiTextureType_SPECULAR),
-            loadMaterialTexture(material, aiTextureType_NORMALS),
-            loadMaterialTexture(material, aiTextureType_METALNESS),
-            loadMaterialTexture(material, aiTextureType_DIFFUSE_ROUGHNESS),
-            loadMaterialTexture(material, aiTextureType_AMBIENT_OCCLUSION)
+            loadMaterialTexture(aiMat, aiTextureType_DIFFUSE),
+            loadMaterialTexture(aiMat, aiTextureType_SPECULAR),
+            loadMaterialTexture(aiMat, aiTextureType_NORMALS),
+            loadMaterialTexture(aiMat, aiTextureType_METALNESS),
+            loadMaterialTexture(aiMat, aiTextureType_DIFFUSE_ROUGHNESS),
+            loadMaterialTexture(aiMat, aiTextureType_AMBIENT_OCCLUSION)
         };
+
+        float shininess = 0.0f;
+        aiGetMaterialFloat(aiMat, AI_MATKEY_SHININESS, &shininess);
+
+        Material mat = Material({
+            .albedoTextureID = textures[0],
+            .specularTextureID = textures[1],
+            .normalTextureID = textures[2],
+            .metallicTextureID = textures[3],
+            .roughnessTextureID = textures[4],
+            .aoTextureID = textures[5],
+            .shininess = shininess
+        });
+        return Mesh({
+            .vertices = vertices,
+            .indices = indices,
+            .material = mat,
+            .wireframe = wireframe,
+            .drawAsPointCloud = drawAsPointCloud
+        });
     }
-
-    float shininess = 0.0f;
-    aiGetMaterialFloat(material, AI_MATKEY_SHININESS, &shininess);
-
-    MeshCreateParams meshParams{
-        .vertices = vertices,
-        .indices = indices,
-        .textures = textures,
-        .shininess = shininess,
-        .wireframe = wireframe,
-        .drawAsPointCloud = drawAsPointCloud
-    };
-    return Mesh(meshParams);
 }
 
 GLuint Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
@@ -161,7 +168,7 @@ GLuint Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
                             format = GL_RGBA;
                         }
 
-                        TextureCreateParams params{
+                        Texture texture = Texture({
                             .width = static_cast<unsigned int>(texWidth),
                             .height = static_cast<unsigned int>(texHeight),
                             .internalFormat = internalFormat,
@@ -171,8 +178,7 @@ GLuint Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
                             .minFilter = GL_LINEAR_MIPMAP_LINEAR,
                             .magFilter = GL_LINEAR,
                             .data = data
-                        };
-                        Texture texture = Texture(params);
+                        });
                         glGenerateMipmap(GL_TEXTURE_2D);
 
                         stbi_image_free(data);
@@ -184,15 +190,14 @@ GLuint Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
                 return 0;
             }
             else {
-                TextureCreateParams params{
+                Texture texture = Texture({
                     .wrapS = GL_REPEAT,
                     .wrapT = GL_REPEAT,
                     .minFilter = GL_LINEAR_MIPMAP_LINEAR,
                     .magFilter = GL_LINEAR,
                     .gammaCorrected = (type == aiTextureType_DIFFUSE) ? gammaCorrected : false,
                     .path = texturePath
-                };
-                Texture texture = Texture(params);
+                });
                 texturesLoaded[texturePath] = texture;
                 return texturesLoaded[texturePath].ID;
             }

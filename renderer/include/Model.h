@@ -16,11 +16,12 @@
 
 #include <Shader.h>
 #include <Mesh.h>
+#include <Material.h>
 #include <Entity.h>
 
 struct ModelCreateParams {
     std::string path;
-    std::vector<TextureID> inputTextures;
+    Material material;
     bool flipTextures = false;
     bool wireframe = false;
     bool drawAsPointCloud = false;
@@ -39,11 +40,11 @@ public:
     bool drawAsPointCloud = false;
     bool gammaCorrected = false;
 
-    Model(const ModelCreateParams &params)
+    explicit Model(const ModelCreateParams &params)
             : flipTextures(params.flipTextures),
-                wireframe(params.wireframe), drawAsPointCloud(params.drawAsPointCloud),
-                gammaCorrected(params.gammaCorrected),
-                Entity() {
+              wireframe(params.wireframe), drawAsPointCloud(params.drawAsPointCloud),
+              gammaCorrected(params.gammaCorrected),
+              Entity() {
         std::cout << "Loading model: " << params.path << std::endl;
         loadFromFile(params);
     }
@@ -57,8 +58,8 @@ private:
     std::unordered_map<std::string, Texture> texturesLoaded;
 
     void loadFromFile(const ModelCreateParams &params);
-    void processNode(aiNode* node, const aiScene* scene, std::vector<TextureID> inputTextures);
-    Mesh processMesh(aiMesh* mesh, const aiScene *scene, std::vector<TextureID> inputTextures);
+    void processNode(aiNode* node, const aiScene* scene, const Material &material);
+    Mesh processMesh(aiMesh* mesh, const aiScene *scene, const Material &material);
     GLuint loadMaterialTexture(aiMaterial* mat, aiTextureType type);
 };
 

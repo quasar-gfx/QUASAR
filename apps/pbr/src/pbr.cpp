@@ -100,61 +100,43 @@ int main(int argc, char** argv) {
     Shader backgroundShader;
     backgroundShader.loadFromFile("../assets/shaders/cubemap/background.vert", "../assets/shaders/cubemap/backgroundHDR.frag");
 
-    // textures
-    TextureCreateParams textureParams{
-        .wrapS = GL_REPEAT,
-        .wrapT = GL_REPEAT,
-        .minFilter = GL_LINEAR_MIPMAP_LINEAR,
-        .magFilter = GL_LINEAR
-    };
-    textureParams.path = cube1TexturePath + "/albedo.png";
-    Texture albedo = Texture(textureParams);
-    textureParams.path = cube1TexturePath + "/normal.png";
-    Texture normal = Texture(textureParams);
-    textureParams.path = cube1TexturePath + "/metallic.png";
-    Texture metallic = Texture(textureParams);
-    textureParams.path = cube1TexturePath + "/roughness.png";
-    Texture roughness = Texture(textureParams);
-    textureParams.path = cube1TexturePath + "/ao.png";
-    Texture ao = Texture(textureParams);
-    std::vector<TextureID> goldTextures = { albedo.ID, 0, normal.ID, metallic.ID, roughness.ID, ao.ID };
+    // materials
+    Material goldMaterial = Material({
+        .albedoTexturePath = "../assets/textures/pbr/gold/albedo.png",
+        .normalTexturePath = "../assets/textures/pbr/gold/normal.png",
+        .metallicTexturePath = "../assets/textures/pbr/gold/metallic.png",
+        .roughnessTexturePath = "../assets/textures/pbr/gold/roughness.png",
+        .aoTexturePath = "../assets/textures/pbr/gold/ao.png"
+    });
 
-    textureParams.path = cube2TexturePath + "/albedo.png";
-    Texture ironAlbedo = Texture(textureParams);
-    textureParams.path = cube2TexturePath + "/normal.png";
-    Texture ironNormal = Texture(textureParams);
-    textureParams.path = cube2TexturePath + "/metallic.png";
-    Texture ironMetallic = Texture(textureParams);
-    textureParams.path = cube2TexturePath + "/roughness.png";
-    Texture ironRoughness = Texture(textureParams);
-    textureParams.path = cube2TexturePath + "/ao.png";
-    Texture ironAo = Texture(textureParams);
-    std::vector<TextureID> ironTextures = { ironAlbedo.ID, 0, ironNormal.ID, ironMetallic.ID, ironRoughness.ID, ironAo.ID };
+    Material ironMaterial = Material({
+        .albedoTexturePath = "../assets/textures/pbr/rusted_iron/albedo.png",
+        .normalTexturePath = "../assets/textures/pbr/rusted_iron/normal.png",
+        .metallicTexturePath = "../assets/textures/pbr/rusted_iron/metallic.png",
+        .roughnessTexturePath = "../assets/textures/pbr/rusted_iron/roughness.png",
+        .aoTexturePath = "../assets/textures/pbr/rusted_iron/ao.png"
+    });
 
-    Sphere sphereGold = Sphere(goldTextures);
+    Material gunMaterial = Material({"../assets/models/cerberus/Textures/Cerberus_A.tga",
+                                     "", // no specular map
+                                     "../assets/models/cerberus/Textures/Cerberus_N.tga",
+                                     "../assets/models/cerberus/Textures/Cerberus_M.tga",
+                                     "../assets/models/cerberus/Textures/Cerberus_R.tga",
+                                     "../assets/models/cerberus/Textures/Cerberus_AO.tga"});
+
+    // objects
+    Sphere sphereGold = Sphere(goldMaterial);
     Node sphereNodeGold = Node(&sphereGold);
     sphereNodeGold.setTranslation(glm::vec3(-5.0f, 0.5f, -1.0f));
 
-    Cube cubeIron = Cube(ironTextures);
+    Cube cubeIron = Cube(ironMaterial);
     Node cubeNodeIron = Node(&cubeIron);
     cubeNodeIron.setTranslation(glm::vec3(5.0f, 0.5f, -1.0f));
-
-    textureParams.path = "../assets/models/cerberus/Textures/Cerberus_A.tga";
-    Texture gunAlbedo = Texture(textureParams);
-    textureParams.path = "../assets/models/cerberus/Textures/Cerberus_N.tga";
-    Texture gunNormal = Texture(textureParams);
-    textureParams.path = "../assets/models/cerberus/Textures/Cerberus_M.tga";
-    Texture gunMetallic = Texture(textureParams);
-    textureParams.path = "../assets/models/cerberus/Textures/Cerberus_R.tga";
-    Texture gunRoughness = Texture(textureParams);
-    textureParams.path = "../assets/models/cerberus/Textures/Cerberus_AO.tga";
-    Texture gunAo = Texture(textureParams);
-    std::vector<TextureID> gunTextures = { gunAlbedo.ID, 0, gunNormal.ID, gunMetallic.ID, gunRoughness.ID, gunAo.ID };
 
     // models
     ModelCreateParams gunParams{
         .path = modelPath,
-        .inputTextures = gunTextures
+        .material = gunMaterial
     };
     Model gun = Model(gunParams);
     Node gunNode = Node(&gun);
@@ -163,7 +145,7 @@ int main(int argc, char** argv) {
     gunNode.setScale(glm::vec3(0.05f));
 
     // load the HDR environment map
-    TextureCreateParams hdrTextureParams{
+    Texture hdrTexture = Texture({
         .internalFormat = GL_RGB16F,
         .format = GL_RGB,
         .type = GL_FLOAT,
@@ -173,11 +155,10 @@ int main(int argc, char** argv) {
         .magFilter = GL_LINEAR,
         .flipped = true,
         .path = hdrImagePath
-    };
-    Texture hdrTexture = Texture(hdrTextureParams);
+    });
 
     // skybox
-    CubeMap envCubeMap(512, 512, CUBE_MAP_HDR);
+    CubeMap envCubeMap({ .width = 512, .height = 512, .type = CUBE_MAP_HDR });
 
     // lights
     PointLight pointLight1 = PointLight(glm::vec3(1.0, 1.0, 1.0), 300.0f);

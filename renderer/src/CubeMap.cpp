@@ -12,17 +12,17 @@ const glm::mat4 CubeMap::captureViews[] = {
     glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
 };
 
-void CubeMap::init(unsigned int width, unsigned int height, CubeMapType cubeType) {
+void CubeMap::init(unsigned int width, unsigned int height, CubeMapType type) {
     this->width = width;
     this->height = height;
-    this->cubeType = cubeType;
+    this->type = type;
 
     initBuffers();
 
     glGenTextures(1, &ID);
     glBindTexture(GL_TEXTURE_CUBE_MAP, ID);
 
-    switch(cubeType) {
+    switch(type) {
     case CUBE_MAP_STANDARD:
         for (int i = 0; i < NUM_CUBEMAP_FACES; i++) {
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
@@ -77,18 +77,6 @@ void CubeMap::init(unsigned int width, unsigned int height, CubeMapType cubeType
         throw std::runtime_error("Invalid CubeMapType");
         break;
     }
-}
-
-CubeMap::CubeMap(std::vector<std::string> faceFilePaths,
-        CubeMapType cubeType,
-        GLenum format,
-        GLint wrapS, GLint wrapT, GLint wrapR,
-        GLint minFilter, GLint magFilter) {
-    this->faceFilePaths = faceFilePaths;
-    this->cubeType = cubeType;
-
-    initBuffers();
-    loadFromFiles(faceFilePaths, format, wrapS, wrapT, wrapR, minFilter, magFilter);
 }
 
 void CubeMap::initBuffers() {

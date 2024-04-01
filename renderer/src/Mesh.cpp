@@ -29,42 +29,7 @@ void Mesh::init()  {
 }
 
 void Mesh::draw(Shader &shader) {
-    shader.setFloat("shininess", shininess);
-
-    std::string name;
-    for (int i = 0; i < numTextures; i++) {
-        glActiveTexture(GL_TEXTURE0 + i);
-        switch(i) {
-        case 0:
-            name = "albedoMap";
-            break;
-        case 1:
-            name = "specularMap";
-            break;
-        case 2:
-            name = "normalMap";
-            break;
-        case 3:
-            name = "metallicMap";
-            break;
-        case 4:
-            name = "roughnessMap";
-            break;
-        case 5:
-            name = "aoMap";
-            break;
-        default:
-            break;
-        }
-
-        shader.setInt(name, i);
-        if (i < textures.size()) {
-            glBindTexture(GL_TEXTURE_2D, textures[i]);
-        }
-        else {
-            glBindTexture(GL_TEXTURE_2D, 0);
-        }
-    }
+    material.bind(shader);
 
     if (wireframe) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -83,10 +48,7 @@ void Mesh::draw(Shader &shader) {
     }
     glBindVertexArray(0);
 
-    for (int i = 0; i < textures.size(); i++) {
-        glActiveTexture(GL_TEXTURE0 + i);
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }
+    material.unbind();
 
     if (wireframe) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);

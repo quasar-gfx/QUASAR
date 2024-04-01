@@ -10,7 +10,7 @@
 
 class FullScreenQuad {
 public:
-    FullScreenQuad() = default;
+    explicit FullScreenQuad() = default;
 
     ~FullScreenQuad() {
         cleanup();

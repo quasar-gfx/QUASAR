@@ -22,7 +22,7 @@ public:
     unsigned int framesSent = 0;
     float timeToSendFrame = 0.0f;
 
-    VideoStreamer() = default;
+    explicit VideoStreamer() = default;
     ~VideoStreamer() = default;
 
     float getFrameRate() {

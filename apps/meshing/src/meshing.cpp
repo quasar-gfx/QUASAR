@@ -98,70 +98,52 @@ int main(int argc, char** argv) {
     Shader backgroundShader;
     backgroundShader.loadFromFile("../assets/shaders/cubemap/background.vert", "../assets/shaders/cubemap/backgroundHDR.frag");
 
-    // textures
-    TextureCreateParams textureParams{
-        .wrapS = GL_REPEAT,
-        .wrapT = GL_REPEAT,
-        .minFilter = GL_LINEAR_MIPMAP_LINEAR,
-        .magFilter = GL_LINEAR
-    };
-    textureParams.path = "../assets/textures/pbr/gold/albedo.png";
-    Texture albedo = Texture(textureParams);
-    textureParams.path = "../assets/textures/pbr/gold/normal.png";
-    Texture normal = Texture(textureParams);
-    textureParams.path = "../assets/textures/pbr/gold/metallic.png";
-    Texture metallic = Texture(textureParams);
-    textureParams.path = "../assets/textures/pbr/gold/roughness.png";
-    Texture roughness = Texture(textureParams);
-    textureParams.path = "../assets/textures/pbr/gold/ao.png";
-    Texture ao = Texture(textureParams);
-    std::vector<TextureID> goldTextures = { albedo.ID, 0, normal.ID, metallic.ID, roughness.ID, ao.ID };
+    // materials
+    Material goldMaterial = Material({
+        .albedoTexturePath = "../assets/textures/pbr/gold/albedo.png",
+        .normalTexturePath = "../assets/textures/pbr/gold/normal.png",
+        .metallicTexturePath = "../assets/textures/pbr/gold/metallic.png",
+        .roughnessTexturePath = "../assets/textures/pbr/gold/roughness.png",
+        .aoTexturePath = "../assets/textures/pbr/gold/ao.png"
+    });
 
-    textureParams.path = "../assets/textures/pbr/rusted_iron/albedo.png";
-    Texture ironAlbedo = Texture(textureParams);
-    textureParams.path = "../assets/textures/pbr/rusted_iron/normal.png";
-    Texture ironNormal = Texture(textureParams);
-    textureParams.path = "../assets/textures/pbr/rusted_iron/metallic.png";
-    Texture ironMetallic = Texture(textureParams);
-    textureParams.path = "../assets/textures/pbr/rusted_iron/roughness.png";
-    Texture ironRoughness = Texture(textureParams);
-    textureParams.path = "../assets/textures/pbr/rusted_iron/ao.png";
-    Texture ironAo = Texture(textureParams);
-    std::vector<TextureID> ironTextures = { ironAlbedo.ID, 0, ironNormal.ID, ironMetallic.ID, ironRoughness.ID, ironAo.ID };
+    Material ironMaterial = Material({
+        .albedoTexturePath = "../assets/textures/pbr/rusted_iron/albedo.png",
+        .normalTexturePath = "../assets/textures/pbr/rusted_iron/normal.png",
+        .metallicTexturePath = "../assets/textures/pbr/rusted_iron/metallic.png",
+        .roughnessTexturePath = "../assets/textures/pbr/rusted_iron/roughness.png",
+        .aoTexturePath = "../assets/textures/pbr/rusted_iron/ao.png"
+    });
 
-    textureParams.path = "../assets/textures/pbr/plastic/albedo.png";
-    Texture plasticAlbedo = Texture(textureParams);
-    textureParams.path = "../assets/textures/pbr/plastic/normal.png";
-    Texture plasticNormal = Texture(textureParams);
-    textureParams.path = "../assets/textures/pbr/plastic/metallic.png";
-    Texture plasticMetallic = Texture(textureParams);
-    textureParams.path = "../assets/textures/pbr/plastic/roughness.png";
-    Texture plasticRoughness = Texture(textureParams);
-    textureParams.path = "../assets/textures/pbr/plastic/ao.png";
-    Texture plasticAo = Texture(textureParams);
-    std::vector<TextureID> plasticTextures = { plasticAlbedo.ID, 0, plasticNormal.ID, plasticMetallic.ID, plasticRoughness.ID, plasticAo.ID };
+    Material plasticMaterial = Material({
+        .albedoTexturePath = "../assets/textures/pbr/plastic/albedo.png",
+        .normalTexturePath = "../assets/textures/pbr/plastic/normal.png",
+        .metallicTexturePath = "../assets/textures/pbr/plastic/metallic.png",
+        .roughnessTexturePath = "../assets/textures/pbr/plastic/roughness.png",
+        .aoTexturePath = "../assets/textures/pbr/plastic/ao.png"
+    });
 
-    textureParams.path = "../assets/textures/window.png";
-    Texture windowTexture = Texture(textureParams);
-    std::vector<TextureID> windowTextures = { windowTexture.ID };
+    Material windowMaterial = Material({
+        .albedoTexturePath = "../assets/textures/window.png"
+    });
 
     // objects
-    Cube cubeGold = Cube(goldTextures);
+    Cube cubeGold = Cube(goldMaterial);
     Node cubeNodeGold = Node(&cubeGold);
     cubeNodeGold.setTranslation(glm::vec3(-0.2f, 0.25f, -7.0f));
     cubeNodeGold.setScale(glm::vec3(0.5f));
 
-    Cube cubeIron = Cube(ironTextures);
+    Cube cubeIron = Cube(ironMaterial);
     Node cubeNodeIron = Node(&cubeIron);
     cubeNodeIron.setTranslation(glm::vec3(1.5f, 0.25f, -3.0f));
     cubeNodeIron.setScale(glm::vec3(0.5f));
 
-    Sphere sphere = Sphere(plasticTextures);
+    Sphere sphere = Sphere(plasticMaterial);
     Node sphereNodePlastic = Node(&sphere);
     sphereNodePlastic.setTranslation(glm::vec3(1.0f, 1.5f, -8.0f));
     sphereNodePlastic.setScale(glm::vec3(0.5f));
 
-    Plane plane = Plane(windowTextures);
+    Plane plane = Plane(windowMaterial);
     Node planeNode = Node(&plane);
     planeNode.setTranslation(glm::vec3(0.0f, 1.5f, -7.0f));
     planeNode.setRotationEuler(glm::vec3(-90.0f, 0.0f, 0.0f));
@@ -188,10 +170,7 @@ int main(int argc, char** argv) {
     pointLight4.setAttenuation(0.0f, 0.09f, 1.0f);
 
     // models
-    ModelCreateParams sponzaParams{
-        .path = modelPath
-    };
-    Model sponza = Model(sponzaParams);
+    Model sponza = Model({ .path = modelPath });
     Node sponzaNode = Node(&sponza);
     sponzaNode.setTranslation(glm::vec3(0.0f, -0.5f, 0.0f));
     sponzaNode.setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
@@ -206,7 +185,7 @@ int main(int argc, char** argv) {
     backpackNode.setScale(glm::vec3(0.25f));
 
     // load the HDR environment map
-    TextureCreateParams hdrTextureParams{
+    Texture hdrTexture = Texture({
         .internalFormat = GL_RGB16F,
         .format = GL_RGB,
         .type = GL_FLOAT,
@@ -216,11 +195,10 @@ int main(int argc, char** argv) {
         .magFilter = GL_LINEAR,
         .flipped = true,
         .path = hdrImagePath
-    };
-    Texture hdrTexture = Texture(hdrTextureParams);
+    });
 
     // skybox
-    CubeMap envCubeMap(512, 512, CUBE_MAP_HDR);
+    CubeMap envCubeMap({ .width = 512, .height = 512, .type = CUBE_MAP_HDR });
 
     scene.setDirectionalLight(&directionalLight);
     scene.addPointLight(&pointLight1);

@@ -36,7 +36,7 @@ class Texture : public OpenGLObject {
 public:
     unsigned int width, height;
 
-    Texture() = default;
+    explicit Texture() = default;
 
     Texture(const TextureCreateParams &params) {
         if (params.path == "") {

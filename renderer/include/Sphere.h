@@ -5,8 +5,7 @@
 
 class Sphere : public Mesh {
 public:
-    Sphere(std::vector<TextureID> &textures, float shininess = 1.0f,
-            unsigned int xSegments = 64, unsigned int ySegments = 64) : Mesh() {
+    explicit Sphere(Material &material, unsigned int xSegments = 64, unsigned int ySegments = 64) : Mesh() {
         float radius = 1.0f;
         const float PI = 3.14159265359f;
 
@@ -55,8 +54,7 @@ public:
                 this->vertices.push_back(vertex);
             }
         }
-        this->textures = textures;
-        this->shininess = shininess;
+        this->material = material;
 
         init();
     }

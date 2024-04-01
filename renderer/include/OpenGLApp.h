@@ -14,7 +14,7 @@ public:
     using GuiCallback = std::function<void(double now, double dt)>;
     using RenderCallback = std::function<void(double now, double dt)>;
 
-    OpenGLApp() = default;
+    explicit OpenGLApp() = default;
     ~OpenGLApp() = default;
 
     Config config;

@@ -59,7 +59,7 @@ void Scene::setupIBL(CubeMap &envCubeMap, Shader &convolutionShader, Shader &pre
     prefilterCubeMap.prefilter(prefilterShader, envCubeMap, captureRenderBuffer);
     captureFramebuffer.unbind();
 
-    TextureCreateParams brdfParams{
+    brdfLUT = Texture({
         .width = envCubeMap.width,
         .height = envCubeMap.height,
         .internalFormat = GL_RG16F,
@@ -69,8 +69,7 @@ void Scene::setupIBL(CubeMap &envCubeMap, Shader &convolutionShader, Shader &pre
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR
-    };
-    brdfLUT = Texture(brdfParams);
+    });
     brdfFsQuad.init();
 
     captureFramebuffer.bind();

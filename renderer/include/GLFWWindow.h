@@ -14,7 +14,7 @@
 
 class GLFWWindow final : public Window {
 public:
-    GLFWWindow(const Config &config);
+    explicit GLFWWindow(const Config &config);
     ~GLFWWindow() {
         glfwTerminate();
     }

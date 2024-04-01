@@ -23,33 +23,58 @@ enum CubeMapType {
     CUBE_MAP_PREFILTER
 };
 
-class CubeMap : public Texture {
-public:
-    std::vector<std::string> faceFilePaths;
+struct CubeMapCreateParams {
+    unsigned int width, height;
+    std::string rightFaceTexturePath = "";
+    std::string leftFaceTexturePath = "";
+    std::string topFaceTexturePath = "";
+    std::string bottomFaceTexturePath = "";
+    std::string frontFaceTexturePath = "";
+    std::string backFaceTexturePath = "";
+    CubeMapType type;
+    GLenum format = GL_RGB;
+    GLint wrapS = GL_CLAMP_TO_EDGE;
+    GLint wrapT = GL_CLAMP_TO_EDGE;
+    GLint wrapR = GL_CLAMP_TO_EDGE;
+    GLint minFilter = GL_LINEAR;
+    GLint magFilter = GL_LINEAR;
+};
 
-    CubeMapType cubeType;
+class CubeMap : public OpenGLObject {
+public:
+    CubeMapType type;
 
     unsigned int maxMipLevels = 1;
 
     unsigned int width, height;
 
-    CubeMap() = default;
+    explicit CubeMap() = default;
 
-    CubeMap(unsigned int width, unsigned int height, CubeMapType cubeType) {
-        init(width, height, cubeType);
+    explicit CubeMap(const CubeMapCreateParams &params) {
+        if (params.rightFaceTexturePath != "" && params.leftFaceTexturePath != "" &&
+            params.topFaceTexturePath != "" && params.bottomFaceTexturePath != "" &&
+            params.frontFaceTexturePath != "" && params.backFaceTexturePath != "") {
+            initBuffers();
+            std::vector faceTexturePaths = {
+                params.rightFaceTexturePath,
+                params.leftFaceTexturePath,
+                params.topFaceTexturePath,
+                params.bottomFaceTexturePath,
+                params.frontFaceTexturePath,
+                params.backFaceTexturePath
+            };
+            loadFromFiles(faceTexturePaths, params.format, params.wrapS, params.wrapT, params.wrapR, params.minFilter, params.magFilter);
+        }
+        else {
+            init(params.width, params.height, params.type);
+        }
     }
-
-    CubeMap(const std::vector<std::string> faceFilePaths,
-            CubeMapType cubeType = CUBE_MAP_STANDARD,
-            GLenum format = GL_RGB,
-            GLint wrapS = GL_CLAMP_TO_EDGE, GLint wrapT = GL_CLAMP_TO_EDGE, GLint wrapR = GL_CLAMP_TO_EDGE,
-            GLint minFilter = GL_LINEAR, GLint magFilter = GL_LINEAR);
 
     ~CubeMap() {
         cleanup();
     }
 
-    void init(unsigned int width, unsigned int height, CubeMapType cubeType);
+    void init(unsigned int width, unsigned int height, CubeMapType type);
 
     void loadFromEquirectTexture(Shader &equirectToCubeMapShader, Texture &equirectTexture);
     void convolve(Shader &convolutionShader, CubeMap &envCubeMap);

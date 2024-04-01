@@ -27,7 +27,7 @@ public:
     socklen_t streamerAddrLen;
     Camera* camera;
 
-    PoseReceiver(Camera* camera, std::string streamerURL) : streamerURL(streamerURL) {
+    explicit PoseReceiver(Camera* camera, std::string streamerURL) : streamerURL(streamerURL) {
         this->streamerURL = streamerURL;
         this->camera = camera;
 

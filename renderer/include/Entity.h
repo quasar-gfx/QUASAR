@@ -18,7 +18,7 @@ enum EntityType {
 
 class Entity {
 public:
-    Entity() {
+    explicit Entity() {
         ID = nextID++;
     }
 
@@ -44,11 +44,11 @@ public:
 
     int getID() { return ID; }
 
-    Node() {
+    explicit Node() {
         ID = nextID++;
     }
 
-    Node(Entity* entity) {
+    explicit Node(Entity* entity) {
         ID = nextID++;
         setEntity(entity);
     }

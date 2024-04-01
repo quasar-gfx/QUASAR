@@ -15,7 +15,7 @@ public:
 
     DirShadowBuffer dirLightShadowMapFBO;
 
-    DirectionalLight(const glm::vec3 &color = glm::vec3(1.0f), float intensity = 1.0f, float orthoBoxSize = 10.0f, float zNear = 1.0f, float zFar = 100.0f)
+    explicit DirectionalLight(const glm::vec3 &color = glm::vec3(1.0f), float intensity = 1.0f, float orthoBoxSize = 10.0f, float zNear = 1.0f, float zFar = 100.0f)
         : Light(color, intensity, zNear, zFar), orthoBoxSize(orthoBoxSize) {
         dirLightShadowMapFBO.createColorAndDepthBuffers(2048, 2048);
         updateLightView();

@@ -15,7 +15,7 @@ public:
     glm::mat4 lookAtPerFace[NUM_CUBEMAP_FACES];
     PointShadowBuffer pointLightShadowMapFBO;
 
-    PointLight(const glm::vec3 &color = glm::vec3(1.0f), float intensity = 1.0f, float zNear = 1.0f, float zFar = 25.0f)
+    explicit PointLight(const glm::vec3 &color = glm::vec3(1.0f), float intensity = 1.0f, float zNear = 1.0f, float zFar = 25.0f)
         : Light(color, intensity) {
         pointLightShadowMapFBO.createColorAndDepthBuffers(shadowRes, shadowRes);
 

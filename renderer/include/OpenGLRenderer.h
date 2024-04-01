@@ -23,7 +23,7 @@ public:
     FullScreenQuad outputFsQuad;
     GeometryBuffer gBuffer;
 
-    OpenGLRenderer() = default;
+    explicit OpenGLRenderer() = default;
     ~OpenGLRenderer() = default;
 
     void init(unsigned int width, unsigned int height);

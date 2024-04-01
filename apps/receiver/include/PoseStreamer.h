@@ -27,7 +27,7 @@ public:
     Camera* camera;
     glm::mat4 prevViewMatrix;
 
-    PoseStreamer(Camera* camera, std::string receiverURL) : receiverURL(receiverURL) {
+    explicit PoseStreamer(Camera* camera, std::string receiverURL) : receiverURL(receiverURL) {
         this->camera = camera;
 
         size_t pos = receiverURL.find("://");

@@ -9,7 +9,7 @@ public:
 
     operator GLuint() const { return ID; }
 
-    OpenGLObject() : ID(0) {}
+    explicit OpenGLObject() : ID(0) {}
     ~OpenGLObject() {};
 
     virtual void bind() = 0;
