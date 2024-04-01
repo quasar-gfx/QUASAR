@@ -12,6 +12,15 @@
 
 #include <OpenGLObject.h>
 
+struct ShaderCreateParams {
+    std::string vertexCodePath = "";
+    std::string fragmentCodePath = "";
+    std::string geometryCodePath = "";
+    const char* vertexData = nullptr;
+    const char* fragmentData = nullptr;
+    const char* geometryData = nullptr;
+};
+
 class Shader : public OpenGLObject {
 public:
     enum ShaderType {
@@ -21,6 +30,17 @@ public:
         SHADER_GEOMETRY,
         SHADER_COMPUTE
     };
+
+    explicit Shader() = default;
+
+    explicit Shader(const ShaderCreateParams& params) {
+        if (params.vertexData != nullptr && params.fragmentData != nullptr) {
+            loadFromData(params.vertexData, params.fragmentData, params.geometryData);
+        }
+        else {
+            loadFromFile(params.vertexCodePath, params.fragmentCodePath, params.geometryCodePath);
+        }
+    }
 
     void loadFromFile(const std::string vertexPath, const std::string fragmentPath, const std::string geometryPath = "");
     void loadFromData(const char* vertexData, const char* fragmentData, const char* geometryData = nullptr);

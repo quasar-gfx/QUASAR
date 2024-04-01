@@ -46,11 +46,14 @@ int main(int argc, char** argv) {
         ImGui::End();
     });
 
-    ComputeShader computeShader;
-    computeShader.loadFromFile("../assets/shaders/compute/test.comp");
+    ComputeShader computeShader = ComputeShader({
+        .computeCodePath = "../assets/shaders/compute/test.comp"
+    });
 
-    Shader screenShader;
-    screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayTexture.frag");
+    Shader screenShader = Shader({
+        .vertexCodePath = "../assets/shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../assets/shaders/postprocessing/displayTexture.frag"
+    });
 
     Texture outputTexture = Texture({
         .width = screenWidth,

@@ -64,24 +64,34 @@ int main(int argc, char** argv) {
     screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayColor.frag");
 
     // converts HDR equirectangular environment map to cubemap equivalent
-    Shader equirectToCubeMapShader;
-    equirectToCubeMapShader.loadFromFile("../assets/shaders/cubemap/cubemap.vert", "../assets/shaders/cubemap/equirectangular2cubemap.frag");
+    Shader equirectToCubeMapShader({
+        .vertexCodePath = "../assets/shaders/cubemap/cubemap.vert",
+        .fragmentCodePath = "../assets/shaders/cubemap/equirectangular2cubemap.frag"
+    });
 
     // solves diffuse integral by convolution to create an irradiance cubemap
-    Shader convolutionShader;
-    convolutionShader.loadFromFile("../assets/shaders/cubemap/cubemap.vert", "../assets/shaders/pbr/irradianceConvolution.frag");
+    Shader convolutionShader({
+        .vertexCodePath = "../assets/shaders/cubemap/cubemap.vert",
+        .fragmentCodePath = "../assets/shaders/pbr/irradianceConvolution.frag"
+    });
 
     // runs a quasi monte-carlo simulation on the environment lighting to create a prefilter cubemap
-    Shader prefilterShader;
-    prefilterShader.loadFromFile("../assets/shaders/cubemap/cubemap.vert", "../assets/shaders/pbr/prefilter.frag");
+    Shader prefilterShader({
+        .vertexCodePath = "../assets/shaders/cubemap/cubemap.vert",
+        .fragmentCodePath = "../assets/shaders/pbr/prefilter.frag"
+    });
 
     // BRDF shader
-    Shader brdfShader;
-    brdfShader.loadFromFile("../assets/shaders/pbr/brdf.vert", "../assets/shaders/pbr/brdf.frag");
+    Shader brdfShader({
+        .vertexCodePath = "../assets/shaders/pbr/brdf.vert",
+        .fragmentCodePath = "../assets/shaders/pbr/brdf.frag"
+    });
 
     // background skybox shader
-    Shader backgroundShader;
-    backgroundShader.loadFromFile("../assets/shaders/cubemap/background.vert", "../assets/shaders/cubemap/backgroundHDR.frag");
+    Shader backgroundShader({
+        .vertexCodePath = "../assets/shaders/cubemap/background.vert",
+        .fragmentCodePath = "../assets/shaders/cubemap/backgroundHDR.frag"
+    });
 
     // Shader dirLightShadowsShader;
     // dirLightShadowsShader.loadFromFile("../assets/shaders/shadows/dirShadow.vert", "../assets/shaders/shadows/dirShadow.frag");

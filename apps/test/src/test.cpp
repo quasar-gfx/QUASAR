@@ -69,37 +69,56 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader pbrShader;
-    pbrShader.loadFromFile("../assets/shaders/pbr/pbr.vert", "../assets/shaders/pbr/pbr.frag");
+    Shader pbrShader({
+        .vertexCodePath = "../assets/shaders/pbr/pbr.vert",
+        .fragmentCodePath = "../assets/shaders/pbr/pbr.frag"
+    });
 
     // converts HDR equirectangular environment map to cubemap equivalent
-    Shader equirectToCubeMapShader;
-    equirectToCubeMapShader.loadFromFile("../assets/shaders/cubemap/cubemap.vert", "../assets/shaders/cubemap/equirectangular2cubemap.frag");
+    Shader equirectToCubeMapShader({
+        .vertexCodePath = "../assets/shaders/cubemap/cubemap.vert",
+        .fragmentCodePath = "../assets/shaders/cubemap/equirectangular2cubemap.frag"
+    });
 
     // solves diffuse integral by convolution to create an irradiance cubemap
-    Shader convolutionShader;
-    convolutionShader.loadFromFile("../assets/shaders/cubemap/cubemap.vert", "../assets/shaders/pbr/irradianceConvolution.frag");
+    Shader convolutionShader({
+        .vertexCodePath = "../assets/shaders/cubemap/cubemap.vert",
+        .fragmentCodePath = "../assets/shaders/pbr/irradianceConvolution.frag"
+    });
 
     // runs a quasi monte-carlo simulation on the environment lighting to create a prefilter cubemap
-    Shader prefilterShader;
-    prefilterShader.loadFromFile("../assets/shaders/cubemap/cubemap.vert", "../assets/shaders/pbr/prefilter.frag");
+    Shader prefilterShader({
+        .vertexCodePath = "../assets/shaders/cubemap/cubemap.vert",
+        .fragmentCodePath = "../assets/shaders/pbr/prefilter.frag"
+    });
 
     // BRDF shader
-    Shader brdfShader;
-    brdfShader.loadFromFile("../assets/shaders/pbr/brdf.vert", "../assets/shaders/pbr/brdf.frag");
+    Shader brdfShader({
+        .vertexCodePath = "../assets/shaders/pbr/brdf.vert",
+        .fragmentCodePath = "../assets/shaders/pbr/brdf.frag"
+    });
 
     // background skybox shader
-    Shader backgroundShader;
-    backgroundShader.loadFromFile("../assets/shaders/cubemap/background.vert", "../assets/shaders/cubemap/backgroundHDR.frag");
+    Shader backgroundShader({
+        .vertexCodePath = "../assets/shaders/cubemap/background.vert",
+        .fragmentCodePath = "../assets/shaders/cubemap/backgroundHDR.frag"
+    });
 
-    Shader dirLightShadowsShader;
-    dirLightShadowsShader.loadFromFile("../assets/shaders/shadows/dirShadow.vert", "../assets/shaders/shadows/dirShadow.frag");
+    Shader dirLightShadowsShader({
+        .vertexCodePath = "../assets/shaders/shadows/dirShadow.vert",
+        .fragmentCodePath = "../assets/shaders/shadows/dirShadow.frag"
+    });
 
-    Shader pointLightShadowsShader;
-    pointLightShadowsShader.loadFromFile("../assets/shaders/shadows/pointShadow.vert", "../assets/shaders/shadows/pointShadow.frag", "../assets/shaders/shadows/pointShadow.geo");
+    Shader pointLightShadowsShader({
+        .vertexCodePath = "../assets/shaders/shadows/pointShadow.vert",
+        .fragmentCodePath = "../assets/shaders/shadows/pointShadow.frag",
+        .geometryCodePath = "../assets/shaders/shadows/pointShadow.geom"
+    });
 
-    Shader screenShader;
-    screenShader.loadFromFile("../assets/shaders/postprocessing/postprocess.vert", "../assets/shaders/postprocessing/displayColor.frag");
+    Shader screenShader({
+        .vertexCodePath = "../assets/shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../assets/shaders/postprocessing/displayColor.frag"
+    });
 
     // materials
     Material goldMaterial = Material({
