@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
     // background skybox shader
     Shader backgroundShader({
         .vertexCodePath = "../assets/shaders/cubemap/background.vert",
-        .fragmentCodePath = "../assets/shaders/cubemap/backgroundHDR.frag"
+        .fragmentCodePath = "../assets/shaders/cubemap/backgroundNoHDR.frag"
     });
 
     Shader screenShader({

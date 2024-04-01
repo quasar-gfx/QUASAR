@@ -26,6 +26,7 @@ int main(int argc, char** argv) {
 
     std::string modelPath = "../meshing/mesh.obj";
     std::string hdrImagePath = "../assets/textures/hdr/barcelona.hdr";
+    bool renderPointcloud = false;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             app.config.width = atoi(argv[i + 1]);
@@ -43,6 +44,10 @@ int main(int argc, char** argv) {
             hdrImagePath = argv[i + 1];
             i++;
         }
+        else if (!strcmp(argv[i], "-p") && i + 1 < argc) {
+            renderPointcloud = argv[i + 1];
+            i++;
+        }
         else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
             app.config.enableVSync = atoi(argv[i + 1]);
             i++;
@@ -57,6 +62,16 @@ int main(int argc, char** argv) {
 
     Scene scene = Scene();
     Camera camera = Camera(screenWidth, screenHeight);
+
+    app.gui([&](double now, double dt) {
+        ImGui::NewFrame();
+        ImGui::SetNextWindowPos(ImVec2(10, 10));
+        ImGui::Begin(app.config.title.c_str(), 0, ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::TextColored(ImVec4(1,1,0,1), "OpenGL Version: %s", glGetString(GL_VERSION));
+        ImGui::TextColored(ImVec4(1,1,0,1), "GPU: %s\n", glGetString(GL_RENDERER));
+        ImGui::Text("Rendering Frame Rate: %.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+        ImGui::End();
+    });
 
     // shaders
     Shader pbrShader, screenShader;
@@ -90,7 +105,7 @@ int main(int argc, char** argv) {
     // background skybox shader
     Shader backgroundShader({
         .vertexCodePath = "../assets/shaders/cubemap/background.vert",
-        .fragmentCodePath = "../assets/shaders/cubemap/backgroundHDR.frag"
+        .fragmentCodePath = "../assets/shaders/cubemap/backgroundNoHDR.frag"
     });
 
     // Shader dirLightShadowsShader;
@@ -98,7 +113,6 @@ int main(int argc, char** argv) {
 
     // Shader pointLightShadowsShader;
     // pointLightShadowsShader.loadFromFile("../assets/shaders/shadows/pointShadow.vert", "../assets/shaders/shadows/pointShadow.frag", "../assets/shaders/shadows/pointShadow.geo");
-
 
     // textures
     Material goldMaterial = Material({
@@ -129,16 +143,16 @@ int main(int argc, char** argv) {
     pointLight4.setPosition(glm::vec3(2.2f, 3.5f, 4.89f));
     pointLight4.setAttenuation(0.0f, 0.09f, 1.0f);
 
-    Material meshMaterial = Material({"../meshing/meshColor.png"});
+    Material meshMaterial = Material({ .albedoTexturePath = "../meshing/color.png" });
     // Cube cube = Cube(meshTextures);
     // Node cubeNode = Node(&cube);
 
     // models
-    ModelCreateParams modelParams{
+    Model mesh = Model({
         .path = modelPath,
-        .material = meshMaterial
-    };
-    Model mesh = Model(modelParams);
+        .material = meshMaterial,
+        .pointcloud = renderPointcloud
+    });
     Node meshNode = Node(&mesh);
 
     // Model backpack = Model(BACKPACK_MODEL_PATH, true);

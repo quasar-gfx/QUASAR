@@ -97,7 +97,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, const Material &mate
             .indices = indices,
             .material = material,
             .wireframe = wireframe,
-            .drawAsPointCloud = drawAsPointCloud
+            .pointcloud = pointcloud
         };
         return Mesh(meshParams);
     }
@@ -128,7 +128,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, const Material &mate
             .indices = indices,
             .material = mat,
             .wireframe = wireframe,
-            .drawAsPointCloud = drawAsPointCloud
+            .pointcloud = pointcloud
         });
     }
 }

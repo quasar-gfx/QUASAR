@@ -24,7 +24,7 @@ struct ModelCreateParams {
     Material material;
     bool flipTextures = false;
     bool wireframe = false;
-    bool drawAsPointCloud = false;
+    bool pointcloud = false;
     bool gammaCorrected = false;
 };
 
@@ -37,12 +37,12 @@ public:
     bool flipTextures = false;
 
     bool wireframe = false;
-    bool drawAsPointCloud = false;
+    bool pointcloud = false;
     bool gammaCorrected = false;
 
     explicit Model(const ModelCreateParams &params)
             : flipTextures(params.flipTextures),
-              wireframe(params.wireframe), drawAsPointCloud(params.drawAsPointCloud),
+              wireframe(params.wireframe), pointcloud(params.pointcloud),
               gammaCorrected(params.gammaCorrected),
               Entity() {
         std::cout << "Loading model: " << params.path << std::endl;

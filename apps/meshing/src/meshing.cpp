@@ -106,7 +106,7 @@ int main(int argc, char** argv) {
     // background skybox shader
     Shader backgroundShader({
         .vertexCodePath = "../assets/shaders/cubemap/background.vert",
-        .fragmentCodePath = "../assets/shaders/cubemap/backgroundHDR.frag"
+        .fragmentCodePath = "../assets/shaders/cubemap/backgroundNoHDR.frag"
     });
 
     Shader dirLightShadowsShader({
@@ -126,7 +126,7 @@ int main(int argc, char** argv) {
     });
 
     ComputeShader genMeshShader({
-        .computeCodePath = "../assets/shaders/meshing/genMesh.comp"
+        .computeCodePath = "../assets/shaders/compute/genMesh.comp"
     });
 
     // materials
@@ -252,7 +252,7 @@ int main(int argc, char** argv) {
     glBufferData(GL_SHADER_STORAGE_BUFFER, screenWidth * screenHeight * sizeof(glm::vec4), nullptr, GL_STATIC_DRAW);
 
     GLuint indexBuffer;
-    int numTriangles = (screenWidth - 1) * (screenHeight - 1) * 2;
+    int numTriangles = screenWidth * screenHeight * 2;
     int indexBufferSize = numTriangles * 3;
     glGenBuffers(1, &indexBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
@@ -336,14 +336,14 @@ int main(int argc, char** argv) {
         if (i == 100) {
             std::cout << "saving" << std::endl;
 
-            // app.renderer.gBuffer.colorBuffer.saveTextureToPNG("depth.png");
+            app.renderer.gBuffer.colorBuffer.saveTextureToPNG("color.png");
             // app.renderer.gBuffer.depthBuffer.saveDepthToFile("depth1.bin");
 
             std::ofstream depthFile;
-            depthFile.open("depth.bin", std::ios::out | std::ios::binary);
+            depthFile.open("data/depth.bin", std::ios::out | std::ios::binary);
 
             std::ofstream positionsFile;
-            positionsFile.open("positions.bin", std::ios::out | std::ios::binary);
+            positionsFile.open("data/positions.bin", std::ios::out | std::ios::binary);
 
             std::ofstream objFile;
             objFile.open("mesh.obj");

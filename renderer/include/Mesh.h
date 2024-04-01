@@ -50,7 +50,7 @@ struct MeshCreateParams {
     std::vector<unsigned int> indices;
     Material material;
     bool wireframe = false;
-    bool drawAsPointCloud = false;
+    bool pointcloud = false;
 };
 
 class Mesh : public Entity {
@@ -58,14 +58,14 @@ public:
     Material material;
 
     bool wireframe = false;
-    bool drawAsPointCloud = false;
+    bool pointcloud = false;
 
     explicit Mesh() : Entity() {}
 
     explicit Mesh(const MeshCreateParams &params)
             : vertices(params.vertices), indices(params.indices),
                 material(params.material),
-                wireframe(params.wireframe), drawAsPointCloud(params.drawAsPointCloud),
+                wireframe(params.wireframe), pointcloud(params.pointcloud),
                 Entity() {
         init();
     }

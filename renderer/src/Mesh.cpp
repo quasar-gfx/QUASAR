@@ -35,7 +35,7 @@ void Mesh::draw(Shader &shader) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     }
 
-    GLenum primativeType = drawAsPointCloud ? GL_POINTS : GL_TRIANGLES;
+    GLenum primativeType = pointcloud ? GL_POINTS : GL_TRIANGLES;
 
     glBindVertexArray(VAO);
     if (indices.size() > 0) {
