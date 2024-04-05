@@ -272,23 +272,29 @@ int main(int argc, char** argv) {
     }
 
     app.onRender([&](double now, double dt) {
-        // handle mouse buttons
+        // handle mouse input
         auto mouseButtons = window.getMouseButtons();
         window.setMouseCursor(!mouseButtons.LEFT_PRESSED);
-        if (mouseButtons.LEFT_PRESSED) {
-            static bool firstMouse = true;
-            static float lastX = screenWidth / 2.0;
-            static float lastY = screenHeight / 2.0;
+        static bool dragging = false;
+        static bool prevMouseLeftPressed = false;
+        static float lastX = screenWidth / 2.0;
+        static float lastY = screenHeight / 2.0;
+        if (!prevMouseLeftPressed && mouseButtons.LEFT_PRESSED) {
+            dragging = true;
+            prevMouseLeftPressed = true;
 
+            auto cursorPos = window.getCursorPos();
+            lastX = static_cast<float>(cursorPos.x);
+            lastY = static_cast<float>(cursorPos.y);
+        }
+        if (prevMouseLeftPressed && !mouseButtons.LEFT_PRESSED) {
+            dragging = false;
+            prevMouseLeftPressed = false;
+        }
+        if (dragging) {
             auto cursorPos = window.getCursorPos();
             float xpos = static_cast<float>(cursorPos.x);
             float ypos = static_cast<float>(cursorPos.y);
-
-            if (firstMouse) {
-                lastX = xpos;
-                lastY = ypos;
-                firstMouse = false;
-            }
 
             float xoffset = xpos - lastX;
             float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
