@@ -284,86 +284,53 @@ int main(int argc, char** argv) {
     genMeshShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
     genMeshShader.unbind();
 
-    camera.position = glm::vec3(0.0f, 0.0f, 0.0f);
-    camera.updateViewMatrix();
-
     // camera.setProjectionMatrix(glm::radians(120.0f), (float)screenWidth / (float)screenHeight, 0.1f, 1000.0f);
 
-    int i = 0;
+    unsigned int t = 0;
+    float z = 0.0f;
     app.onRender([&](double now, double dt) {
-        // handle mouse buttons
-        auto mouseButtons = window.getMouseButtons();
-        window.setMouseCursor(!mouseButtons.LEFT_PRESSED);
-        if (mouseButtons.LEFT_PRESSED) {
-            static bool firstMouse = true;
-            static float lastX = screenWidth / 2.0;
-            static float lastY = screenHeight / 2.0;
 
-            auto cursorPos = window.getCursorPos();
-            float xpos = static_cast<float>(cursorPos.x);
-            float ypos = static_cast<float>(cursorPos.y);
+        auto saveFrame = [&](glm::vec3 position, std::string label, unsigned int timestamp) {
+            camera.position = position;
+            camera.updateViewMatrix();
 
-            if (firstMouse) {
-                lastX = xpos;
-                lastY = ypos;
-                firstMouse = false;
-            }
+            // render all objects in scene
+            app.renderer.drawObjects(pbrShader, scene, camera);
 
-            float xoffset = xpos - lastX;
-            float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+            // render skybox (render as last to prevent overdraw)
+            app.renderer.drawSkyBox(backgroundShader, scene, camera);
 
-            lastX = xpos;
-            lastY = ypos;
+            genMeshShader.bind();
+            genMeshShader.setMat4("viewInverse", glm::inverse(camera.getViewMatrix()));
+            genMeshShader.setMat4("projectionInverse", glm::inverse(camera.getProjectionMatrix()));
+            genMeshShader.setFloat("near", camera.near);
+            genMeshShader.setFloat("far", camera.far);
+            glBindImageTexture(0, app.renderer.gBuffer.positionBuffer.ID, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
+            glBindImageTexture(1, app.renderer.gBuffer.normalsBuffer.ID, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
+            glBindImageTexture(2, app.renderer.gBuffer.colorBuffer.ID, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA);
+            app.renderer.gBuffer.depthBuffer.bind(3);
+            genMeshShader.dispatch(screenWidth / 10, screenHeight / 10, 1);
+            genMeshShader.unbind();
 
-            camera.processMouseMovement(xoffset, yoffset, true);
-        }
+            // render to screen
+            app.renderer.drawToScreen(screenShader, screenWidth, screenHeight);
 
-        // handle keyboard input
-        auto keys = window.getKeys();
-        camera.processKeyboard(keys, dt);
-        if (keys.ESC_PRESSED) {
-            window.close();
-        }
+            std::cout << "saving " << label << " t=" << std::to_string(timestamp) << std::endl;
 
-        // render all objects in scene
-        app.renderer.drawObjects(pbrShader, scene, camera);
-
-        // render skybox (render as last to prevent overdraw)
-        app.renderer.drawSkyBox(backgroundShader, scene, camera);
-
-        genMeshShader.bind();
-        genMeshShader.setMat4("viewInverse", glm::inverse(camera.getViewMatrix()));
-        genMeshShader.setMat4("projectionInverse", glm::inverse(camera.getProjectionMatrix()));
-        genMeshShader.setFloat("near", camera.near);
-        genMeshShader.setFloat("far", camera.far);
-	    glBindImageTexture(0, app.renderer.gBuffer.positionBuffer.ID, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
-	    glBindImageTexture(1, app.renderer.gBuffer.normalsBuffer.ID, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
-	    glBindImageTexture(2, app.renderer.gBuffer.colorBuffer.ID, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA);
-        app.renderer.gBuffer.depthBuffer.bind(3);
-        genMeshShader.dispatch(screenWidth / 10, screenHeight / 10, 1);
-        genMeshShader.unbind();
-
-        // render to screen
-        app.renderer.drawToScreen(screenShader, screenWidth, screenHeight);
-
-        i++;
-        if (i == 100) {
-            std::cout << "saving" << std::endl;
-
-            app.renderer.gBuffer.colorBuffer.saveTextureToPNG("color.png");
-            // app.renderer.gBuffer.depthBuffer.saveDepthToFile("depth1.bin");
+            app.renderer.gBuffer.colorBuffer.saveTextureToPNG("imgs/color_" + label + "_" + std::to_string(timestamp) + ".png");
+            // app.renderer.gBuffer.depthBuffer.saveDepthToFile("imgs/depth1.bin");
 
             std::ofstream depthFile;
-            depthFile.open("data/depth.bin", std::ios::out | std::ios::binary);
+            depthFile.open("data/depth_" + label + "_" + std::to_string(timestamp) + ".bin", std::ios::out | std::ios::binary);
 
             std::ofstream positionsFile;
-            positionsFile.open("data/positions.bin", std::ios::out | std::ios::binary);
+            positionsFile.open("data/positions_" + label + "_" + std::to_string(timestamp) + ".bin", std::ios::out | std::ios::binary);
 
-            std::ofstream objFile;
-            objFile.open("mesh.obj");
+            // std::ofstream objFile;
+            // objFile.open("mesh.obj");
 
-            std::ofstream mtlFile;
-            mtlFile.open("mesh.mtl");
+            // std::ofstream mtlFile;
+            // mtlFile.open("mesh.mtl");
 
             std::vector<Vertex> vertices;
             vertices.reserve(screenWidth * screenHeight);
@@ -380,6 +347,9 @@ int main(int argc, char** argv) {
                     vertex.position.z = pVertices[i].z;
                     vertices.push_back(vertex);
 
+                    positionsFile.write(reinterpret_cast<const char*>(&pVertices[i].x), sizeof(pVertices[i].x));
+                    positionsFile.write(reinterpret_cast<const char*>(&pVertices[i].y), sizeof(pVertices[i].y));
+                    positionsFile.write(reinterpret_cast<const char*>(&pVertices[i].z), sizeof(pVertices[i].z));
                     depthFile.write(reinterpret_cast<const char*>(&pVertices[i].w), sizeof(pVertices[i].w));
                 }
 
@@ -420,36 +390,47 @@ int main(int argc, char** argv) {
                 std::cerr << "Failed to map tex coord buffer into memory" << std::endl;
             }
 
-            if (objFile.is_open()) {
-                objFile << "mtllib " << "mesh.mtl" << std::endl;
-                objFile << "usemtl " << "Material1" << std::endl;
-                for (int i = 0; i < vertices.size(); i++) {
-                    objFile << "v " << vertices[i].position.x << " " << vertices[i].position.y << " " << vertices[i].position.z << std::endl;
-                    positionsFile.write(reinterpret_cast<const char*>(&vertices[i].position.x), sizeof(vertices[i].position.x));
-                    positionsFile.write(reinterpret_cast<const char*>(&vertices[i].position.y), sizeof(vertices[i].position.y));
-                    positionsFile.write(reinterpret_cast<const char*>(&vertices[i].position.z), sizeof(vertices[i].position.z));
-                    // positionsFile << vertices[i].position.x << " " << vertices[i].position.y << " " << vertices[i].position.z << std::endl;
-                }
-                for (int i = 0; i < texCoords.size(); i++) {
-                    objFile << "vt " << texCoords[i].x << " " << texCoords[i].y << std::endl;
-                }
-                // for (int i = 0; i < indices.size(); i += 3) {
-                //     objFile << "f " << indices[i] + 1 << " " << indices[i + 1] + 1 << " " << indices[i + 2] + 1<< std::endl;
-                // }
-                for (int i = 0; i < indices.size(); i += 3) {
-                    objFile << "f " << indices[i + 0] + 1 << "/" << indices[i + 0] + 1 << " " << indices[i + 1] + 1 << "/" << indices[i + 1] + 1 << " " << indices[i + 2] + 1 << "/" << indices[i + 2] + 1 << std::endl;
-                }
-                objFile.close();
-            } else {
-                std::cerr << "Failed to open objFile" << std::endl;
-            }
+            // if (objFile.is_open()) {
+            //     objFile << "mtllib " << "mesh.mtl" << std::endl;
+            //     objFile << "usemtl " << "Material1" << std::endl;
+            //     for (int i = 0; i < vertices.size(); i++) {
+            //         objFile << "v " << vertices[i].position.x << " " << vertices[i].position.y << " " << vertices[i].position.z << std::endl;
+            //         positionsFile.write(reinterpret_cast<const char*>(&vertices[i].position.x), sizeof(vertices[i].position.x));
+            //         positionsFile.write(reinterpret_cast<const char*>(&vertices[i].position.y), sizeof(vertices[i].position.y));
+            //         positionsFile.write(reinterpret_cast<const char*>(&vertices[i].position.z), sizeof(vertices[i].position.z));
+            //         // positionsFile << vertices[i].position.x << " " << vertices[i].position.y << " " << vertices[i].position.z << std::endl;
+            //     }
+            //     for (int i = 0; i < texCoords.size(); i++) {
+            //         objFile << "vt " << texCoords[i].x << " " << texCoords[i].y << std::endl;
+            //     }
+            //     // for (int i = 0; i < indices.size(); i += 3) {
+            //     //     objFile << "f " << indices[i] + 1 << " " << indices[i + 1] + 1 << " " << indices[i + 2] + 1<< std::endl;
+            //     // }
+            //     for (int i = 0; i < indices.size(); i += 3) {
+            //         objFile << "f " << indices[i + 0] + 1 << "/" << indices[i + 0] + 1 << " " << indices[i + 1] + 1 << "/" << indices[i + 1] + 1 << " " << indices[i + 2] + 1 << "/" << indices[i + 2] + 1 << std::endl;
+            //     }
+            //     objFile.close();
+            // } else {
+            //     std::cerr << "Failed to open objFile" << std::endl;
+            // }
 
-            if (mtlFile.is_open()) {
-                mtlFile << "newmtl " << "Material1" << std::endl;
-                mtlFile << "map_Kd " << "meshColor.png" << std::endl;
-            }
+            // if (mtlFile.is_open()) {
+            //     mtlFile << "newmtl " << "Material1" << std::endl;
+            //     mtlFile << "map_Kd " << "meshColor.png" << std::endl;
+            // }
+        };
 
-            std::cout << "done saving" << std::endl;
+        saveFrame(glm::vec3(0.0f, 0.0f, z), "center", t);
+        saveFrame(glm::vec3(0.0f, 1.0f, z), "top", t);
+        saveFrame(glm::vec3(1.0f, 1.0f, z), "top_right", t);
+        saveFrame(glm::vec3(-1.0f, 1.0f, z), "top_left", t);
+        saveFrame(glm::vec3(-1.0f, -0.5f, z), "bottom_left", t);
+        saveFrame(glm::vec3(1.0f, -0.5f, z), "bottom_right", t);
+
+        z -= 0.5f;
+
+        t++;
+        if (t >= 10) {
             window.close();
         }
     });
