@@ -420,12 +420,13 @@ int main(int argc, char** argv) {
             // }
         };
 
-        saveFrame(glm::vec3(0.0f, 0.0f, z), "center", t);
-        saveFrame(glm::vec3(0.0f, 1.0f, z), "top", t);
-        saveFrame(glm::vec3(1.0f, 1.0f, z), "top_right", t);
-        saveFrame(glm::vec3(-1.0f, 1.0f, z), "top_left", t);
-        saveFrame(glm::vec3(-1.0f, -0.5f, z), "bottom_left", t);
-        saveFrame(glm::vec3(1.0f, -0.5f, z), "bottom_right", t);
+        glm::vec3 initialPosition = glm::vec3(0.0f, 1.6f, 0.0f);
+        saveFrame(initialPosition + glm::vec3(0.0f, 0.0f, z), "center", t);
+        saveFrame(initialPosition + glm::vec3(0.0f, 0.5f, z), "top", t);
+        saveFrame(initialPosition + glm::vec3(0.5f, 0.5f, z), "top_right", t);
+        saveFrame(initialPosition + glm::vec3(-0.5f, 0.5f, z), "top_left", t);
+        saveFrame(initialPosition + glm::vec3(-0.5f, -0.5f, z), "bottom_left", t);
+        saveFrame(initialPosition + glm::vec3(0.5f, -0.5f, z), "bottom_right", t);
 
         z -= 0.5f;
 
