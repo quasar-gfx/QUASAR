@@ -17,7 +17,7 @@ Build streamer and receiver:
 ```
 mkdir out
 cd out
-cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake ..
 make -j
 ```
 

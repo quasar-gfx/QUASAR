@@ -20,6 +20,32 @@
 
 const std::string BACKPACK_MODEL_PATH = "../assets/models/backpack/backpack.obj";
 
+int createMesh(Mesh *mesh, std::string label, unsigned int width, unsigned int height, bool renderPointcloud) {
+    std::vector<Vertex> vertices;
+    std::ifstream file("../meshing/data/positions_" + label + "_0.bin", std::ios::binary);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file woth label=" << label << std::endl;
+        return -1;
+    }
+    int idx = 0;
+    while (file) {
+        Vertex vertex;
+        file.read(reinterpret_cast<char*>(&vertex.position), sizeof(glm::vec3));
+        vertex.texCoords = glm::vec2((idx % width) / (float)width, 1.0f - (idx / width) / (float)height);
+        idx++;
+        vertices.push_back(vertex);
+    }
+    file.close();
+
+    *mesh = Mesh({
+        .vertices = vertices,
+        .material = Material({ .albedoTexturePath = "../meshing/imgs/color_" + label + "_0.png" }),
+        .pointcloud = renderPointcloud
+    });
+
+    return 0;
+}
+
 int main(int argc, char** argv) {
     OpenGLApp app{};
     app.config.title = "Meshing Visualizer";
@@ -51,6 +77,7 @@ int main(int argc, char** argv) {
 
     GLFWWindow window(app.config);
     app.init(&window);
+    glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 
     unsigned int screenWidth, screenHeight;
     window.getSize(&screenWidth, &screenHeight);
@@ -129,32 +156,55 @@ int main(int argc, char** argv) {
         .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
     });
 
-    Material meshMaterial = Material({ .albedoTexturePath = "../meshing/color.png" });
-
     // models
     // Cube cube = Cube(goldMaterial);
-    Model mesh = Model({
-        .path = modelPath,
-        .material = meshMaterial,
-        .pointcloud = renderPointcloud
-    });
-    Node meshNode = Node(&mesh);
+    // Model mesh = Model({
+    //     .path = modelPath,
+    //     .material = meshMaterial,
+    //     .pointcloud = renderPointcloud
+    // });
 
-    // Model backpack = Model(BACKPACK_MODEL_PATH, true);
+    unsigned int meshWidth = 1000;
+    unsigned int meshHeight =  1000;
 
-    // Node backpackNode = Node(&backpack);
-    // backpackNode.setTranslation(glm::vec3(0.5f, 0.1f, -5.0f));
-    // backpackNode.setScale(glm::vec3(0.25f));
+    Mesh mesh1;
+    createMesh(&mesh1, "center", meshWidth, meshHeight, renderPointcloud);
+    Node meshNode1 = Node(&mesh1);
+
+    Mesh mesh2;
+    createMesh(&mesh2, "top", meshWidth, meshHeight, renderPointcloud);
+    Node meshNode2 = Node(&mesh2);
+
+    Mesh mesh3;
+    createMesh(&mesh3, "top_right", meshWidth, meshHeight, renderPointcloud);
+    Node meshNode3 = Node(&mesh3);
+
+    Mesh mesh4;
+    createMesh(&mesh4, "top_left", meshWidth, meshHeight, renderPointcloud);
+    Node meshNode4 = Node(&mesh4);
+
+    Mesh mesh5;
+    createMesh(&mesh5, "bottom_right", meshWidth, meshHeight, renderPointcloud);
+    Node meshNode5 = Node(&mesh5);
+
+    Mesh mesh6;
+    createMesh(&mesh6, "bottom_left", meshWidth, meshHeight, renderPointcloud);
+    Node meshNode6 = Node(&mesh6);
 
     scene.setDirectionalLight(&directionalLight);
     scene.addPointLight(&pointLight1);
     scene.addPointLight(&pointLight2);
     scene.addPointLight(&pointLight3);
     scene.addPointLight(&pointLight4);
-    scene.addChildNode(&meshNode);
-    // scene.addChildNode(&cubeNode);
-    // scene.addChildNode(&backpackNode);
-    // scene.addChildNode(&planeNode);
+    scene.addChildNode(&meshNode1);
+    scene.addChildNode(&meshNode2);
+    scene.addChildNode(&meshNode3);
+    scene.addChildNode(&meshNode4);
+    scene.addChildNode(&meshNode5);
+    scene.addChildNode(&meshNode6);
+
+    glm::vec3 initialPosition = glm::vec3(0.0f, 1.6f, 0.0f);
+    camera.position = initialPosition;
 
     app.onRender([&](double now, double dt) {
         // handle mouse input

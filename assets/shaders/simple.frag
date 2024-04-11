@@ -3,11 +3,9 @@ layout(location = 0) out vec4 positionBuffer;
 layout(location = 1) out vec4 normalsBuffer;
 layout(location = 2) out vec4 FragColor;
 
-in VS_OUT {
-    vec3 FragPos;
-    vec3 Normal;
-    vec2 TexCoords;
-} fs_in;
+in vec3 FragPos;
+in vec3 Normal;
+in vec2 TexCoords;
 
 // material parameters
 uniform sampler2D albedoMap;
@@ -51,8 +49,8 @@ uniform samplerCube environmentMap;
 vec3 addSkyBoxLight(vec3 normal, vec3 viewDir) {
     vec3 reflectDir = reflect(-viewDir, normal);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
-    vec3 diffuse = texture(albedoMap, fs_in.TexCoords).rgb;
-    vec3 specular = spec * texture(specularMap, fs_in.TexCoords).rrr;
+    vec3 diffuse = texture(albedoMap, TexCoords).rgb;
+    vec3 specular = spec * texture(specularMap, TexCoords).rrr;
     vec3 color = texture(environmentMap, reflectDir).rgb;
     return 0.1 * color * (diffuse + specular);
 }
@@ -67,8 +65,8 @@ vec3 addDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir) {
     // specular shading
     vec3 reflectDir = reflect(-lightDir, normal);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
-    vec3 diffuse = diff * texture(albedoMap, fs_in.TexCoords).rgb;
-    vec3 specular = spec * texture(specularMap, fs_in.TexCoords).rrr;
+    vec3 diffuse = diff * texture(albedoMap, TexCoords).rgb;
+    vec3 specular = spec * texture(specularMap, TexCoords).rrr;
     return light.intensity * light.color * (diffuse + specular);
 }
 
@@ -86,28 +84,28 @@ vec3 addPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
     float distance = length(light.position - fragPos);
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
     // combine results
-    vec3 diffuse = diff * texture(albedoMap, fs_in.TexCoords).rgb;
-    vec3 specular = spec * texture(specularMap, fs_in.TexCoords).rrr;
+    vec3 diffuse = diff * texture(albedoMap, TexCoords).rgb;
+    vec3 specular = spec * texture(specularMap, TexCoords).rrr;
     return attenuation * (light.intensity * light.color * (diffuse + specular));
 }
 
 void main() {
-    vec4 col = texture(albedoMap, fs_in.TexCoords);
+    vec4 col = texture(albedoMap, TexCoords);
     float alpha = col.a;
     if (alpha < 0.1)
         discard;
 
-    vec3 norm = normalize(fs_in.Normal);
-    vec3 viewDir = normalize(camPos - fs_in.FragPos);
+    vec3 norm = normalize(Normal);
+    vec3 viewDir = normalize(camPos - FragPos);
 
     vec3 result = ambientLight.intensity * ambientLight.color * col.rgb;
     result += addDirectionalLight(directionalLight, norm, viewDir);
     for (int i = 0; i < NUM_POINT_LIGHTS; i++) {
-        result += addPointLight(pointLights[i], norm, fs_in.FragPos, viewDir);
+        result += addPointLight(pointLights[i], norm, FragPos, viewDir);
     }
     // result += addSkyBoxLight(norm, viewDir);
 
-    positionBuffer = vec4(fs_in.FragPos, 1.0);
-    normalsBuffer = vec4(normalize(fs_in.Normal), 1.0);
+    positionBuffer = vec4(FragPos, 1.0);
+    normalsBuffer = vec4(normalize(Normal), 1.0);
     FragColor = vec4(result, alpha);
 }
