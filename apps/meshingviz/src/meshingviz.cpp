@@ -31,7 +31,7 @@ int createMesh(Mesh *mesh, std::string label, unsigned int width, unsigned int h
     while (file) {
         Vertex vertex;
         file.read(reinterpret_cast<char*>(&vertex.position), sizeof(glm::vec3));
-        vertex.texCoords = glm::vec2((idx % width) / (float)width, 1.0f - (idx / width) / (float)height);
+        vertex.texCoords = glm::vec2((idx % width) / (float)(width - 1), 1.0f - (idx / width) / (float)(height - 1));
         idx++;
         vertices.push_back(vertex);
     }
