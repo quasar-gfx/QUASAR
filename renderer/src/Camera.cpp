@@ -44,6 +44,10 @@ void Camera::processKeyboard(Keys keys, float deltaTime) {
         position -= front * velocity;
     if (keys.D_PRESSED)
         position += right * velocity;
+    if (keys.Q_PRESSED)
+        position += up * velocity;
+    if (keys.Z_PRESSED)
+        position -= up * velocity;
 
     updateViewMatrix();
 }

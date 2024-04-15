@@ -14,6 +14,8 @@ struct Keys {
     bool A_PRESSED = false;
     bool S_PRESSED = false;
     bool D_PRESSED = false;
+    bool Q_PRESSED = false;
+    bool Z_PRESSED = false;
     bool ESC_PRESSED = false;
 };
 

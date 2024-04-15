@@ -289,7 +289,6 @@ int main(int argc, char** argv) {
     unsigned int t = 0;
     float z = 0.0f;
     app.onRender([&](double now, double dt) {
-
         auto saveFrame = [&](glm::vec3 position, std::string label, unsigned int timestamp) {
             camera.position = position;
             camera.updateViewMatrix();

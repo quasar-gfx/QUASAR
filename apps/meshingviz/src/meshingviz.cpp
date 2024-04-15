@@ -24,7 +24,7 @@ int createMesh(Mesh *mesh, std::string label, unsigned int width, unsigned int h
     std::vector<Vertex> vertices;
     std::ifstream file("../meshing/data/positions_" + label + "_0.bin", std::ios::binary);
     if (!file.is_open()) {
-        std::cerr << "Failed to open file woth label=" << label << std::endl;
+        std::cerr << "Failed to open file with label=" << label << std::endl;
         return -1;
     }
     int idx = 0;
@@ -52,6 +52,8 @@ int main(int argc, char** argv) {
 
     std::string modelPath = "../meshing/mesh.obj";
     bool renderPointcloud = false;
+    unsigned int meshWidth = 1000;
+    unsigned int meshHeight = 1000;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             app.config.width = atoi(argv[i + 1]);
@@ -61,12 +63,20 @@ int main(int argc, char** argv) {
             app.config.height = atoi(argv[i + 1]);
             i++;
         }
+        else if (!strcmp(argv[i], "-mw") && i + 1 < argc) {
+            meshWidth = atoi(argv[i + 1]);
+            i++;
+        }
+        else if (!strcmp(argv[i], "-mh") && i + 1 < argc) {
+            meshHeight = atoi(argv[i + 1]);
+            i++;
+        }
         else if (!strcmp(argv[i], "-m") && i + 1 < argc) {
             modelPath = argv[i + 1];
             i++;
         }
         else if (!strcmp(argv[i], "-p") && i + 1 < argc) {
-            renderPointcloud = argv[i + 1];
+            renderPointcloud = atoi(argv[i + 1]);
             i++;
         }
         else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
@@ -163,9 +173,6 @@ int main(int argc, char** argv) {
     //     .material = meshMaterial,
     //     .pointcloud = renderPointcloud
     // });
-
-    unsigned int meshWidth = 1000;
-    unsigned int meshHeight =  1000;
 
     Mesh mesh1;
     createMesh(&mesh1, "center", meshWidth, meshHeight, renderPointcloud);
