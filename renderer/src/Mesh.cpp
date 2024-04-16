@@ -1,4 +1,4 @@
-#include <Mesh.h>
+#include <Primatives/Mesh.h>
 
 void Mesh::init()  {
     glGenVertexArrays(1, &VAO);
@@ -29,7 +29,7 @@ void Mesh::init()  {
 }
 
 void Mesh::draw(Shader &shader) {
-    material.bind(shader);
+    material->bind(shader);
 
     if (wireframe) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -48,7 +48,7 @@ void Mesh::draw(Shader &shader) {
     }
     glBindVertexArray(0);
 
-    material.unbind();
+    material->unbind();
 
     if (wireframe) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);

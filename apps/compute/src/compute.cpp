@@ -5,18 +5,17 @@
 #include <Shader.h>
 #include <ComputeShader.h>
 #include <Texture.h>
-#include <Primatives.h>
+#include <Primatives/Primatives.h>
 #include <Model.h>
 #include <CubeMap.h>
-#include <Entity.h>
 #include <Scene.h>
 #include <Camera.h>
-#include <Lights.h>
+#include <Lights/Lights.h>
 #include <Framebuffer.h>
 #include <FullScreenQuad.h>
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
-#include <GLFWWindow.h>
+#include <Windowing/GLFWWindow.h>
 
 int main(int argc, char** argv) {
     OpenGLApp app{};

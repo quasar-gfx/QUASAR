@@ -4,19 +4,18 @@
 
 #include <Shader.h>
 #include <Texture.h>
-#include <Primatives.h>
-#include <Material.h>
+#include <Primatives/Primatives.h>
+#include <Materials/PBRMaterial.h>
 #include <Model.h>
 #include <CubeMap.h>
-#include <Entity.h>
 #include <Scene.h>
 #include <Camera.h>
-#include <Lights.h>
+#include <Lights/Lights.h>
 #include <Framebuffer.h>
 #include <FullScreenQuad.h>
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
-#include <GLFWWindow.h>
+#include <Windowing/GLFWWindow.h>
 
 const std::string BACKPACK_MODEL_PATH = "../assets/models/backpack/backpack.obj";
 
@@ -50,7 +49,7 @@ int createMesh(Mesh* mesh, std::string label, bool renderPointcloud) {
 
     *mesh = Mesh({
         .vertices = vertices,
-        .material = Material({ .albedoTextureID = albedoTexture.ID }),
+        .material = new PBRMaterial({ .albedoTextureID = albedoTexture.ID }),
         .pointcloud = renderPointcloud
     });
 
@@ -108,7 +107,7 @@ int main(int argc, char** argv) {
 
     // shaders
     Shader pbrShader = Shader({
-        .vertexCodePath = "../assets/shaders/simple.vert",
+        .vertexCodePath = "../assets/shaders/diffuseSpecular.vert",
         .fragmentCodePath = "../assets/shaders/textured.frag"
     });
 
@@ -124,7 +123,7 @@ int main(int argc, char** argv) {
     });
 
     // textures
-    Material goldMaterial = Material({
+    PBRMaterial goldMaterial = PBRMaterial({
         .albedoTexturePath = "../assets/textures/pbr/gold/albedo.png",
         .normalTexturePath = "../assets/textures/pbr/gold/normal.png",
         .metallicTexturePath = "../assets/textures/pbr/gold/metallic.png",

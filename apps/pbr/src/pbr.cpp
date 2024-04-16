@@ -4,18 +4,17 @@
 
 #include <Shader.h>
 #include <Texture.h>
-#include <Primatives.h>
+#include <Primatives/Primatives.h>
 #include <Model.h>
 #include <CubeMap.h>
-#include <Entity.h>
 #include <Scene.h>
 #include <Camera.h>
-#include <Lights.h>
+#include <Lights/Lights.h>
 #include <Framebuffer.h>
 #include <FullScreenQuad.h>
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
-#include <GLFWWindow.h>
+#include <Windowing/GLFWWindow.h>
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
@@ -117,7 +116,7 @@ int main(int argc, char** argv) {
     });
 
     // materials
-    Material goldMaterial = Material({
+    PBRMaterial goldMaterial = PBRMaterial({
         .albedoTexturePath = "../assets/textures/pbr/gold/albedo.png",
         .normalTexturePath = "../assets/textures/pbr/gold/normal.png",
         .metallicTexturePath = "../assets/textures/pbr/gold/metallic.png",
@@ -125,7 +124,7 @@ int main(int argc, char** argv) {
         .aoTexturePath = "../assets/textures/pbr/gold/ao.png"
     });
 
-    Material ironMaterial = Material({
+    PBRMaterial ironMaterial = PBRMaterial({
         .albedoTexturePath = "../assets/textures/pbr/rusted_iron/albedo.png",
         .normalTexturePath = "../assets/textures/pbr/rusted_iron/normal.png",
         .metallicTexturePath = "../assets/textures/pbr/rusted_iron/metallic.png",
@@ -133,7 +132,7 @@ int main(int argc, char** argv) {
         .aoTexturePath = "../assets/textures/pbr/rusted_iron/ao.png"
     });
 
-    Material gunMaterial = Material({
+    PBRMaterial gunMaterial = PBRMaterial({
         .albedoTexturePath = "../assets/models/cerberus/Textures/Cerberus_A.tga",
         .normalTexturePath = "../assets/models/cerberus/Textures/Cerberus_N.tga",
         .metallicTexturePath = "../assets/models/cerberus/Textures/Cerberus_M.tga",
@@ -142,18 +141,18 @@ int main(int argc, char** argv) {
     });
 
     // objects
-    Sphere sphereGold = Sphere(goldMaterial);
+    Sphere sphereGold = Sphere(&goldMaterial);
     Node sphereNodeGold = Node(&sphereGold);
     sphereNodeGold.setTranslation(glm::vec3(-5.0f, 0.5f, -1.0f));
 
-    Cube cubeIron = Cube(ironMaterial);
+    Cube cubeIron = Cube(&ironMaterial);
     Node cubeNodeIron = Node(&cubeIron);
     cubeNodeIron.setTranslation(glm::vec3(5.0f, 0.5f, -1.0f));
 
     // models
     Model gun = Model({
         .path = modelPath,
-        .material = gunMaterial
+        .material = &gunMaterial
     });
     Node gunNode = Node(&gun);
     gunNode.setTranslation(glm::vec3(2.0f, 1.0f, -1.0f));

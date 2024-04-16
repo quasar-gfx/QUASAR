@@ -8,12 +8,8 @@ in vec3 Normal;
 in vec2 TexCoords;
 
 // material parameters
-uniform sampler2D albedoMap;
+uniform sampler2D diffuseMap;
 uniform sampler2D specularMap;
-uniform sampler2D normalMap;
-uniform sampler2D metallicMap;
-uniform sampler2D roughnessMap;
-uniform sampler2D aoMap;
 uniform float shininess;
 
 struct AmbientLight {
@@ -49,7 +45,7 @@ uniform samplerCube environmentMap;
 vec3 addSkyBoxLight(vec3 normal, vec3 viewDir) {
     vec3 reflectDir = reflect(-viewDir, normal);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
-    vec3 diffuse = texture(albedoMap, TexCoords).rgb;
+    vec3 diffuse = texture(diffuseMap, TexCoords).rgb;
     vec3 specular = spec * texture(specularMap, TexCoords).rrr;
     vec3 color = texture(environmentMap, reflectDir).rgb;
     return 0.1 * color * (diffuse + specular);
@@ -65,7 +61,7 @@ vec3 addDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir) {
     // specular shading
     vec3 reflectDir = reflect(-lightDir, normal);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
-    vec3 diffuse = diff * texture(albedoMap, TexCoords).rgb;
+    vec3 diffuse = diff * texture(diffuseMap, TexCoords).rgb;
     vec3 specular = spec * texture(specularMap, TexCoords).rrr;
     return light.intensity * light.color * (diffuse + specular);
 }
@@ -84,13 +80,13 @@ vec3 addPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
     float distance = length(light.position - fragPos);
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
     // combine results
-    vec3 diffuse = diff * texture(albedoMap, TexCoords).rgb;
+    vec3 diffuse = diff * texture(diffuseMap, TexCoords).rgb;
     vec3 specular = spec * texture(specularMap, TexCoords).rrr;
     return attenuation * (light.intensity * light.color * (diffuse + specular));
 }
 
 void main() {
-    vec4 col = texture(albedoMap, TexCoords);
+    vec4 col = texture(diffuseMap, TexCoords);
     float alpha = col.a;
     if (alpha < 0.1)
         discard;

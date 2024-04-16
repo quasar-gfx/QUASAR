@@ -7,7 +7,7 @@
 
 #include <OpenGLRenderer.h>
 #include <OpenGLAppConfig.h>
-#include <Window.h>
+#include <Windowing/Window.h>
 
 class OpenGLApp {
 public:

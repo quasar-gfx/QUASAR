@@ -1,7 +1,7 @@
 #ifndef POINT_LIGHT_H
 #define POINT_LIGHT_H
 
-#include <Light.h>
+#include <Lights/Light.h>
 #include <CubeMap.h>
 #include <Framebuffer.h>
 

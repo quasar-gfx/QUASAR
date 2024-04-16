@@ -10,7 +10,6 @@ in vec4 FragPosLightSpace;
 
 // material parameters
 uniform sampler2D albedoMap;
-uniform sampler2D specularMap;
 uniform sampler2D normalMap;
 uniform sampler2D metallicMap;
 uniform sampler2D roughnessMap;

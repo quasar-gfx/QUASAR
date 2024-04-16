@@ -5,8 +5,8 @@
 
 #include <Shader.h>
 #include <Texture.h>
-#include <Primatives.h>
-#include <Material.h>
+#include <Primatives/Primatives.h>
+#include <Materials/DiffSpecMaterial.h>
 #include <CubeMap.h>
 #include <Entity.h>
 #include <Scene.h>
@@ -15,7 +15,7 @@
 #include <FullScreenQuad.h>
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
-#include <GLFWWindow.h>
+#include <Windowing/GLFWWindow.h>
 
 #include <VideoTexture.h>
 #include <PoseStreamer.h>
@@ -94,8 +94,8 @@ int main(int argc, char** argv) {
     });
 
     Shader shader({
-        .vertexCodePath = "../assets/shaders/simple.vert",
-        .fragmentCodePath = "../assets/shaders/simple.frag"
+        .vertexCodePath = "../assets/shaders/diffuseSpecular.vert",
+        .fragmentCodePath = "../assets/shaders/diffuseSpecular.frag"
     });;
 
     Shader screenShader({
@@ -107,20 +107,20 @@ int main(int argc, char** argv) {
     AmbientLight ambientLight = AmbientLight({ .color = glm::vec3(1.0f), .intensity = 1.0f });
 
     // materials
-    Material containerMaterial = Material({ CONTAINER_TEXTURE });
-    Material floorMaterial = Material({ METAL_TEXTURE });
+    DiffSpecMaterial containerMaterial = DiffSpecMaterial({ CONTAINER_TEXTURE });
+    DiffSpecMaterial floorMaterial = DiffSpecMaterial({ METAL_TEXTURE });
 
-    Cube cube = Cube(containerMaterial);
+    Cube cube = Cube(&containerMaterial);
 
     Node cubeNode = Node(&cube);
     cubeNode.setTranslation(glm::vec3(-1.0f, 0.0f, -1.0f));
 
-    Sphere sphere = Sphere(containerMaterial);
+    Sphere sphere = Sphere(&containerMaterial);
 
     Node sphereNode = Node(&sphere);
     sphereNode.setTranslation(glm::vec3(2.0f, 1.0f, -3.0f));
 
-    Plane plane = Plane(floorMaterial);
+    Plane plane = Plane(&floorMaterial);
     Node planeNode = Node(&plane);
     planeNode.setScale(glm::vec3(25.0f, 1.0f, 25.0f));
 

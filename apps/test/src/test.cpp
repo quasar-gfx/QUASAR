@@ -4,19 +4,18 @@
 
 #include <Shader.h>
 #include <Texture.h>
-#include <Primatives.h>
-#include <Material.h>
+#include <Primatives/Primatives.h>
+#include <Materials/PBRMaterial.h>
 #include <Model.h>
 #include <CubeMap.h>
-#include <Entity.h>
 #include <Scene.h>
 #include <Camera.h>
-#include <Lights.h>
+#include <Lights/Lights.h>
 #include <Framebuffer.h>
 #include <FullScreenQuad.h>
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
-#include <GLFWWindow.h>
+#include <Windowing/GLFWWindow.h>
 
 const std::string BACKPACK_MODEL_PATH = "../assets/models/backpack/backpack.obj";
 
@@ -121,7 +120,7 @@ int main(int argc, char** argv) {
     });
 
     // materials
-    Material goldMaterial = Material({
+    PBRMaterial goldMaterial = PBRMaterial({
         .albedoTexturePath = "../assets/textures/pbr/gold/albedo.png",
         .normalTexturePath = "../assets/textures/pbr/gold/normal.png",
         .metallicTexturePath = "../assets/textures/pbr/gold/metallic.png",
@@ -129,7 +128,7 @@ int main(int argc, char** argv) {
         .aoTexturePath = "../assets/textures/pbr/gold/ao.png"
     });
 
-    Material ironMaterial = Material({
+    PBRMaterial ironMaterial = PBRMaterial({
         .albedoTexturePath = "../assets/textures/pbr/rusted_iron/albedo.png",
         .normalTexturePath = "../assets/textures/pbr/rusted_iron/normal.png",
         .metallicTexturePath = "../assets/textures/pbr/rusted_iron/metallic.png",
@@ -137,7 +136,7 @@ int main(int argc, char** argv) {
         .aoTexturePath = "../assets/textures/pbr/rusted_iron/ao.png"
     });
 
-    Material plasticMaterial = Material({
+    PBRMaterial plasticMaterial = PBRMaterial({
         .albedoTexturePath = "../assets/textures/pbr/plastic/albedo.png",
         .normalTexturePath = "../assets/textures/pbr/plastic/normal.png",
         .metallicTexturePath = "../assets/textures/pbr/plastic/metallic.png",
@@ -145,27 +144,27 @@ int main(int argc, char** argv) {
         .aoTexturePath = "../assets/textures/pbr/plastic/ao.png"
     });
 
-    Material windowMaterial = Material({
+    PBRMaterial windowMaterial = PBRMaterial({
         .albedoTexturePath = "../assets/textures/window.png"
     });
 
     // objects
-    Cube cubeGold = Cube(goldMaterial);
+    Cube cubeGold = Cube(&goldMaterial);
     Node cubeNodeGold = Node(&cubeGold);
     cubeNodeGold.setTranslation(glm::vec3(-0.2f, 0.25f, -7.0f));
     cubeNodeGold.setScale(glm::vec3(0.5f));
 
-    Cube cubeIron = Cube(ironMaterial);
+    Cube cubeIron = Cube(&ironMaterial);
     Node cubeNodeIron = Node(&cubeIron);
     cubeNodeIron.setTranslation(glm::vec3(1.5f, 0.25f, -3.0f));
     cubeNodeIron.setScale(glm::vec3(0.5f));
 
-    Sphere sphere = Sphere(plasticMaterial);
+    Sphere sphere = Sphere(&plasticMaterial);
     Node sphereNodePlastic = Node(&sphere);
     sphereNodePlastic.setTranslation(glm::vec3(1.0f, 1.5f, -8.0f));
     sphereNodePlastic.setScale(glm::vec3(0.5f));
 
-    Plane plane = Plane(windowMaterial);
+    Plane plane = Plane(&windowMaterial);
     Node planeNode = Node(&plane);
     planeNode.setTranslation(glm::vec3(0.0f, 1.5f, -7.0f));
     planeNode.setRotationEuler(glm::vec3(-90.0f, 0.0f, 0.0f));
