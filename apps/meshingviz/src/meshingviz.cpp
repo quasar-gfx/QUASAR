@@ -20,7 +20,7 @@
 
 const std::string BACKPACK_MODEL_PATH = "../assets/models/backpack/backpack.obj";
 
-int createMesh(Mesh *mesh, std::string label, bool renderPointcloud) {
+int createMesh(Mesh* mesh, std::string label, bool renderPointcloud) {
     std::vector<Vertex> vertices;
     std::ifstream file("../meshing/data/positions_" + label + "_0.bin", std::ios::binary);
     if (!file.is_open()) {
@@ -175,41 +175,31 @@ int main(int argc, char** argv) {
     //     .pointcloud = renderPointcloud
     // });
 
-    Mesh mesh1;
-    createMesh(&mesh1, "center", renderPointcloud);
-    Node meshNode1 = Node(&mesh1);
+    std::vector<std::string> labels = {
+        "center",
+        "top_right_front",
+        "top_right_back",
+        "top_left_front",
+        "top_left_back",
+        "bottom_right_front",
+        "bottom_right_back",
+        "bottom_left_front",
+        "bottom_left_back"
+    };
 
-    Mesh mesh2;
-    createMesh(&mesh2, "top", renderPointcloud);
-    Node meshNode2 = Node(&mesh2);
-
-    Mesh mesh3;
-    createMesh(&mesh3, "top_right", renderPointcloud);
-    Node meshNode3 = Node(&mesh3);
-
-    Mesh mesh4;
-    createMesh(&mesh4, "top_left", renderPointcloud);
-    Node meshNode4 = Node(&mesh4);
-
-    Mesh mesh5;
-    createMesh(&mesh5, "bottom_right", renderPointcloud);
-    Node meshNode5 = Node(&mesh5);
-
-    Mesh mesh6;
-    createMesh(&mesh6, "bottom_left", renderPointcloud);
-    Node meshNode6 = Node(&mesh6);
+    std::vector<Mesh> meshes(labels.size());
+    std::vector<Node> nodes(labels.size());
+    for (int i = 0; i < labels.size(); i++) {
+        createMesh(&meshes[i], labels[i], renderPointcloud);
+        nodes[i] = Node(&meshes[i]);
+        scene.addChildNode(&nodes[i]);
+    }
 
     scene.setDirectionalLight(&directionalLight);
     scene.addPointLight(&pointLight1);
     scene.addPointLight(&pointLight2);
     scene.addPointLight(&pointLight3);
     scene.addPointLight(&pointLight4);
-    scene.addChildNode(&meshNode1);
-    scene.addChildNode(&meshNode2);
-    scene.addChildNode(&meshNode3);
-    scene.addChildNode(&meshNode4);
-    scene.addChildNode(&meshNode5);
-    scene.addChildNode(&meshNode6);
 
     glm::vec3 initialPosition = glm::vec3(0.0f, 1.6f, 0.0f);
     camera.position = initialPosition;
