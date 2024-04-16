@@ -25,7 +25,7 @@ void Model::loadFromFile(const ModelCreateParams &params) {
     processNode(scene->mRootNode, scene, params.material);
 }
 
-void Model::processNode(aiNode* node, const aiScene* scene, const Material &material) {
+void Model::processNode(aiNode* node, const aiScene* scene, PBRMaterial* material) {
     for (int i = 0; i < node->mNumMeshes; i++) {
         aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
         meshes.push_back(processMesh(mesh, scene, material));
@@ -36,7 +36,7 @@ void Model::processNode(aiNode* node, const aiScene* scene, const Material &mate
     }
 }
 
-Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, const Material &material) {
+Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* material) {
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
     std::vector<TextureID> textures;
@@ -91,7 +91,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, const Material &mate
 
     aiMaterial* aiMat = scene->mMaterials[mesh->mMaterialIndex];
 
-    if (!material.empty) {
+    if (material != nullptr) {
         MeshCreateParams meshParams{
             .vertices = vertices,
             .indices = indices,
@@ -104,29 +104,22 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, const Material &mate
     else {
         textures = {
             loadMaterialTexture(aiMat, aiTextureType_DIFFUSE),
-            loadMaterialTexture(aiMat, aiTextureType_SPECULAR),
             loadMaterialTexture(aiMat, aiTextureType_NORMALS),
             loadMaterialTexture(aiMat, aiTextureType_METALNESS),
             loadMaterialTexture(aiMat, aiTextureType_DIFFUSE_ROUGHNESS),
             loadMaterialTexture(aiMat, aiTextureType_AMBIENT_OCCLUSION)
         };
 
-        float shininess = 0.0f;
-        aiGetMaterialFloat(aiMat, AI_MATKEY_SHININESS, &shininess);
-
-        Material mat = Material({
-            .albedoTextureID = textures[0],
-            .specularTextureID = textures[1],
-            .normalTextureID = textures[2],
-            .metallicTextureID = textures[3],
-            .roughnessTextureID = textures[4],
-            .aoTextureID = textures[5],
-            .shininess = shininess
-        });
         return Mesh({
             .vertices = vertices,
             .indices = indices,
-            .material = mat,
+            .material = new PBRMaterial({
+                .albedoTextureID = textures[0],
+                .normalTextureID = textures[1],
+                .metallicTextureID = textures[2],
+                .roughnessTextureID = textures[3],
+                .aoTextureID = textures[4]
+            }),
             .wireframe = wireframe,
             .pointcloud = pointcloud
         });

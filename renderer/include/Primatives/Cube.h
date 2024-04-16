@@ -1,11 +1,11 @@
 #ifndef CUBE_H
 #define CUBE_H
 
-#include <Mesh.h>
+#include <Primatives/Mesh.h>
 
 class Cube : public Mesh {
 public:
-    explicit Cube(Material &material) : Mesh() {
+    explicit Cube(Material* material) : Mesh() {
         this->vertices = {
             // Front face
             { {-1.0f, -1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  // Bottom Left

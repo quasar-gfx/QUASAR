@@ -4,19 +4,18 @@
 
 #include <Shader.h>
 #include <Texture.h>
-#include <Primatives.h>
-#include <Material.h>
+#include <Primatives/Primatives.h>
+#include <Materials/PBRMaterial.h>
 #include <Model.h>
 #include <CubeMap.h>
-#include <Entity.h>
 #include <Scene.h>
 #include <Camera.h>
-#include <Lights.h>
+#include <Lights/Lights.h>
 #include <Framebuffer.h>
 #include <FullScreenQuad.h>
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
-#include <GLFWWindow.h>
+#include <Windowing/GLFWWindow.h>
 
 const std::string BACKPACK_MODEL_PATH = "../assets/models/backpack/backpack.obj";
 
@@ -121,7 +120,7 @@ int main(int argc, char** argv) {
     });
 
     // materials
-    Material goldMaterial = Material({
+    PBRMaterial* goldMaterial = new PBRMaterial({
         .albedoTexturePath = "../assets/textures/pbr/gold/albedo.png",
         .normalTexturePath = "../assets/textures/pbr/gold/normal.png",
         .metallicTexturePath = "../assets/textures/pbr/gold/metallic.png",
@@ -129,7 +128,7 @@ int main(int argc, char** argv) {
         .aoTexturePath = "../assets/textures/pbr/gold/ao.png"
     });
 
-    Material ironMaterial = Material({
+    PBRMaterial* ironMaterial = new PBRMaterial({
         .albedoTexturePath = "../assets/textures/pbr/rusted_iron/albedo.png",
         .normalTexturePath = "../assets/textures/pbr/rusted_iron/normal.png",
         .metallicTexturePath = "../assets/textures/pbr/rusted_iron/metallic.png",
@@ -137,7 +136,7 @@ int main(int argc, char** argv) {
         .aoTexturePath = "../assets/textures/pbr/rusted_iron/ao.png"
     });
 
-    Material plasticMaterial = Material({
+    PBRMaterial* plasticMaterial = new PBRMaterial({
         .albedoTexturePath = "../assets/textures/pbr/plastic/albedo.png",
         .normalTexturePath = "../assets/textures/pbr/plastic/normal.png",
         .metallicTexturePath = "../assets/textures/pbr/plastic/metallic.png",
@@ -145,7 +144,7 @@ int main(int argc, char** argv) {
         .aoTexturePath = "../assets/textures/pbr/plastic/ao.png"
     });
 
-    Material windowMaterial = Material({
+    PBRMaterial* windowMaterial = new PBRMaterial({
         .albedoTexturePath = "../assets/textures/window.png"
     });
 

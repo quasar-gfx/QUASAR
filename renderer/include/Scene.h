@@ -4,9 +4,9 @@
 #include <vector>
 
 #include <Entity.h>
-#include <Lights.h>
+#include <Lights/Lights.h>
 #include <CubeMap.h>
-#include <Mesh.h>
+#include <Primatives/Mesh.h>
 #include <Framebuffer.h>
 #include <FullScreenQuad.h>
 

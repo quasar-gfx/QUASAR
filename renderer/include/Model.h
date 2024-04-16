@@ -15,13 +15,13 @@
 #include <assimp/postprocess.h>
 
 #include <Shader.h>
-#include <Mesh.h>
-#include <Material.h>
+#include <Primatives/Mesh.h>
+#include <Materials/PBRMaterial.h>
 #include <Entity.h>
 
 struct ModelCreateParams {
     std::string path;
-    Material material;
+    PBRMaterial* material;
     bool flipTextures = false;
     bool wireframe = false;
     bool pointcloud = false;
@@ -58,8 +58,8 @@ private:
     std::unordered_map<std::string, Texture> texturesLoaded;
 
     void loadFromFile(const ModelCreateParams &params);
-    void processNode(aiNode* node, const aiScene* scene, const Material &material);
-    Mesh processMesh(aiMesh* mesh, const aiScene *scene, const Material &material);
+    void processNode(aiNode* node, const aiScene* scene, PBRMaterial* material);
+    Mesh processMesh(aiMesh* mesh, const aiScene *scene, PBRMaterial* material);
     GLuint loadMaterialTexture(aiMaterial* mat, aiTextureType type);
 };
 

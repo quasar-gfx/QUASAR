@@ -1,6 +1,6 @@
 #include <glad/glad.h>
 
-#include <GLFWWindow.h>
+#include <Windowing/GLFWWindow.h>
 
 GLFWWindow::GLFWWindow(const Config &config) {
     glfwInit();

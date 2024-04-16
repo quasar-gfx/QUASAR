@@ -1,7 +1,7 @@
 #ifndef AMBIENT_LIGHT_H
 #define AMBIENT_LIGHT_H
 
-#include <Light.h>
+#include <Lights/Light.h>
 
 struct AmbientLightCreateParams {
     glm::vec3 color = glm::vec3(1.0f);

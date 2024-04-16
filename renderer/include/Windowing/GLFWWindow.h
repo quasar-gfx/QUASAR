@@ -9,7 +9,7 @@
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_glfw.h>
 
-#include <Window.h>
+#include <Windowing/Window.h>
 #include <OpenGLAppConfig.h>
 
 class GLFWWindow final : public Window {

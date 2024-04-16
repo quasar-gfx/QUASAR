@@ -14,7 +14,7 @@
 #include <Shader.h>
 #include <Texture.h>
 #include <Entity.h>
-#include <Material.h>
+#include <Materials/Material.h>
 
 enum VertexAttribute {
     ATTRIBUTE_POSITION   = 0,
@@ -48,14 +48,14 @@ namespace std {
 struct MeshCreateParams {
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
-    Material material;
+    Material* material;
     bool wireframe = false;
     bool pointcloud = false;
 };
 
 class Mesh : public Entity {
 public:
-    Material material;
+    Material* material;
 
     bool wireframe = false;
     bool pointcloud = false;
@@ -73,7 +73,7 @@ public:
     void draw(Shader &shader) override;
 
     void cleanup() {
-        material.cleanup();
+        material->cleanup();
     }
 
     EntityType getType() override { return ENTITY_MESH; }
