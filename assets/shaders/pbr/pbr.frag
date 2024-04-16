@@ -36,14 +36,14 @@ struct PointLight {
     float quadratic;
 };
 
-#define NUM_POINT_LIGHTS 4
+#define MAX_POINT_LIGHTS 4
 
 uniform DirectionalLight directionalLight;
-uniform PointLight pointLights[NUM_POINT_LIGHTS];
+uniform PointLight pointLights[MAX_POINT_LIGHTS];
 
 uniform sampler2D dirLightShadowMap;
 
-uniform samplerCube pointLightShadowMaps[NUM_POINT_LIGHTS];
+uniform samplerCube pointLightShadowMaps[MAX_POINT_LIGHTS];
 uniform float farPlane;
 
 uniform vec3 camPos;
@@ -282,7 +282,7 @@ void main() {
     // reflectance equation
     vec3 Lo = vec3(0.0);
     Lo += calcDirectionalLight(directionalLight, N, V, albedo, roughness, metallic, F0);
-    for (int i = 0; i < NUM_POINT_LIGHTS; ++i) {
+    for (int i = 0; i < MAX_POINT_LIGHTS; ++i) {
         Lo += calcPointLight(pointLights[i], pointLightShadowMaps[i], N, V, albedo, roughness, metallic, F0);
     }
 

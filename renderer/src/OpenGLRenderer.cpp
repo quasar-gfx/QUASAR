@@ -42,16 +42,18 @@ void OpenGLRenderer::updateDirLightShadowMap(Shader &dirLightShadowsShader, Scen
 
 void OpenGLRenderer::updatePointLightShadowMaps(Shader &pointLightShadowsShader, Scene &scene, Camera &camera) {
     for (int i = 0; i < scene.pointLights.size(); i++) {
-        scene.pointLights[i]->pointLightShadowMapFBO.bind();
+        auto pointLight = scene.pointLights[i];
+
+        pointLight->pointLightShadowMapFBO.bind();
         glClear(GL_DEPTH_BUFFER_BIT);
 
         pointLightShadowsShader.bind();
-        pointLightShadowsShader.setVec3("lightPos", scene.pointLights[i]->position);
-        pointLightShadowsShader.setFloat("farPlane", scene.pointLights[i]->zFar);
+        pointLightShadowsShader.setVec3("lightPos", pointLight->position);
+        pointLightShadowsShader.setFloat("farPlane", pointLight->zFar);
 
-        glm::mat4 shadowProj = scene.pointLights[i]->shadowProjectionMat;
+        glm::mat4 shadowProj = pointLight->shadowProjectionMat;
         for (int face = 0; face < NUM_CUBEMAP_FACES; face++) {
-            pointLightShadowsShader.setMat4("shadowMatrices[" + std::to_string(face) + "]", shadowProj * scene.pointLights[i]->lookAtPerFace[face]);
+            pointLightShadowsShader.setMat4("shadowMatrices[" + std::to_string(face) + "]", shadowProj * pointLight->lookAtPerFace[face]);
         }
 
         for (auto child : scene.children) {
@@ -59,7 +61,7 @@ void OpenGLRenderer::updatePointLightShadowMaps(Shader &pointLightShadowsShader,
         }
 
         pointLightShadowsShader.unbind();
-        scene.pointLights[i]->pointLightShadowMapFBO.unbind();
+        pointLight->pointLightShadowMapFBO.unbind();
     }
 }
 
@@ -113,12 +115,14 @@ void OpenGLRenderer::drawObjects(Shader &shader, Scene &scene, Camera &camera) {
     texIdx++;
 
     for (int i = 0; i < scene.pointLights.size(); i++) {
-        shader.setFloat("farPlane", scene.pointLights[i]->zFar);
+        auto pointLight = scene.pointLights[i];
+
+        shader.setFloat("farPlane", pointLight->zFar);
         shader.setInt("pointLightShadowMaps[" + std::to_string(i) + "]", Mesh::numTextures + texIdx);
-        scene.pointLights[i]->pointLightShadowMapFBO.depthCubeMap.bind(Mesh::numTextures + texIdx);
+        pointLight->pointLightShadowMapFBO.depthCubeMap.bind(Mesh::numTextures + texIdx);
         texIdx++;
 
-        scene.pointLights[i]->draw(shader, i);
+        pointLight->draw(shader, i);
     }
 
     for (auto child : scene.children) {

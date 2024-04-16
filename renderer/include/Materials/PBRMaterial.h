@@ -29,7 +29,7 @@ public:
 
     void cleanup() override;
 
-    static const unsigned int numTextures = 6;
+    static const unsigned int numTextures = 5;
 };
 
 #endif // PBR_MATERIAL_H

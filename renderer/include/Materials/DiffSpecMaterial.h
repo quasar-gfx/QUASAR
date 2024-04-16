@@ -24,7 +24,7 @@ public:
 
     void cleanup() override;
 
-    static const unsigned int numTextures = 6;
+    static const unsigned int numTextures = 2;
 };
 
 #endif // DIFF_SPEC_MATERIAL_H
