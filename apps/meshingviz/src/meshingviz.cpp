@@ -20,14 +20,25 @@
 
 const std::string BACKPACK_MODEL_PATH = "../assets/models/backpack/backpack.obj";
 
-int createMesh(Mesh *mesh, std::string label, unsigned int width, unsigned int height, bool renderPointcloud) {
+int createMesh(Mesh *mesh, std::string label, bool renderPointcloud) {
     std::vector<Vertex> vertices;
     std::ifstream file("../meshing/data/positions_" + label + "_0.bin", std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "Failed to open file with label=" << label << std::endl;
         return -1;
     }
-    int idx = 0;
+
+    Texture albedoTexture = Texture({
+        .wrapS = GL_REPEAT,
+        .wrapT = GL_REPEAT,
+        .minFilter = GL_LINEAR_MIPMAP_LINEAR,
+        .magFilter = GL_LINEAR,
+        .path = "../meshing/imgs/color_" + label + "_0.png"
+    });
+
+    unsigned int width = albedoTexture.width;
+    unsigned int height = albedoTexture.height;
+    unsigned int idx = 0;
     while (file) {
         Vertex vertex;
         file.read(reinterpret_cast<char*>(&vertex.position), sizeof(glm::vec3));
@@ -39,7 +50,7 @@ int createMesh(Mesh *mesh, std::string label, unsigned int width, unsigned int h
 
     *mesh = Mesh({
         .vertices = vertices,
-        .material = Material({ .albedoTexturePath = "../meshing/imgs/color_" + label + "_0.png" }),
+        .material = Material({ .albedoTextureID = albedoTexture.ID }),
         .pointcloud = renderPointcloud
     });
 
@@ -52,8 +63,6 @@ int main(int argc, char** argv) {
 
     std::string modelPath = "../meshing/mesh.obj";
     bool renderPointcloud = false;
-    unsigned int meshWidth = 1000;
-    unsigned int meshHeight = 1000;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             app.config.width = atoi(argv[i + 1]);
@@ -61,14 +70,6 @@ int main(int argc, char** argv) {
         }
         else if (!strcmp(argv[i], "-h") && i + 1 < argc) {
             app.config.height = atoi(argv[i + 1]);
-            i++;
-        }
-        else if (!strcmp(argv[i], "-mw") && i + 1 < argc) {
-            meshWidth = atoi(argv[i + 1]);
-            i++;
-        }
-        else if (!strcmp(argv[i], "-mh") && i + 1 < argc) {
-            meshHeight = atoi(argv[i + 1]);
             i++;
         }
         else if (!strcmp(argv[i], "-m") && i + 1 < argc) {
@@ -175,27 +176,27 @@ int main(int argc, char** argv) {
     // });
 
     Mesh mesh1;
-    createMesh(&mesh1, "center", meshWidth, meshHeight, renderPointcloud);
+    createMesh(&mesh1, "center", renderPointcloud);
     Node meshNode1 = Node(&mesh1);
 
     Mesh mesh2;
-    createMesh(&mesh2, "top", meshWidth, meshHeight, renderPointcloud);
+    createMesh(&mesh2, "top", renderPointcloud);
     Node meshNode2 = Node(&mesh2);
 
     Mesh mesh3;
-    createMesh(&mesh3, "top_right", meshWidth, meshHeight, renderPointcloud);
+    createMesh(&mesh3, "top_right", renderPointcloud);
     Node meshNode3 = Node(&mesh3);
 
     Mesh mesh4;
-    createMesh(&mesh4, "top_left", meshWidth, meshHeight, renderPointcloud);
+    createMesh(&mesh4, "top_left", renderPointcloud);
     Node meshNode4 = Node(&mesh4);
 
     Mesh mesh5;
-    createMesh(&mesh5, "bottom_right", meshWidth, meshHeight, renderPointcloud);
+    createMesh(&mesh5, "bottom_right", renderPointcloud);
     Node meshNode5 = Node(&mesh5);
 
     Mesh mesh6;
-    createMesh(&mesh6, "bottom_left", meshWidth, meshHeight, renderPointcloud);
+    createMesh(&mesh6, "bottom_left", renderPointcloud);
     Node meshNode6 = Node(&mesh6);
 
     scene.setDirectionalLight(&directionalLight);
