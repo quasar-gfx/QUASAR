@@ -138,14 +138,14 @@ public:
         glDrawBuffers(3, attachments);
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-            throw std::runtime_error("Framebuffer is not complete!");
+            throw std::runtime_error("GBuffer Framebuffer is not complete!");
         }
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 };
 
-class DirShadowBuffer : public Framebuffer {
+class DirLightShadowBuffer : public Framebuffer {
 public:
     void createColorAndDepthBuffers(unsigned int width, unsigned int height) {
         this->width = width;
@@ -173,14 +173,16 @@ public:
         glReadBuffer(GL_NONE);
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-            throw std::runtime_error("DirShadowBuffer Framebuffer is not complete!");
+            throw std::runtime_error("DirLightShadowBuffer Framebuffer is not complete!");
         }
+
+        glClear(GL_DEPTH_BUFFER_BIT);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 };
 
-class PointShadowBuffer : public Framebuffer {
+class PointLightShadowBuffer : public Framebuffer {
 public:
     CubeMap depthCubeMap;
 
@@ -199,8 +201,10 @@ public:
         glReadBuffer(GL_NONE);
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-            throw std::runtime_error("PointShadowBuffer Framebuffer is not complete!");
+            throw std::runtime_error("PointLightShadowBuffer Framebuffer is not complete!");
         }
+
+        glClear(GL_DEPTH_BUFFER_BIT);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }

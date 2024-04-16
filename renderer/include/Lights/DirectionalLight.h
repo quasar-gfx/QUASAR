@@ -22,11 +22,11 @@ public:
     glm::mat4 lightView = glm::mat4(0.0);
     glm::mat4 lightSpaceMatrix = glm::mat4(0.0);
 
-    DirShadowBuffer dirLightShadowMapFBO;
+    DirLightShadowBuffer shadowMapFramebuffer;
 
     explicit DirectionalLight(const DirectionalLightCreateParams &params)
             : direction(params.direction), orthoBoxSize(params.orthoBoxSize), Light(params.color, params.intensity, params.zNear, params.zFar) {
-        dirLightShadowMapFBO.createColorAndDepthBuffers(2048, 2048);
+        shadowMapFramebuffer.createColorAndDepthBuffers(2048, 2048);
         updateLightView();
     }
 

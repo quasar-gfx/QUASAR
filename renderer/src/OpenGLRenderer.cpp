@@ -26,7 +26,7 @@ void OpenGLRenderer::updateDirLightShadowMap(Shader &dirLightShadowsShader, Scen
         return;
     }
 
-    scene.directionalLight->dirLightShadowMapFBO.bind();
+    scene.directionalLight->shadowMapFramebuffer.bind();
     glClear(GL_DEPTH_BUFFER_BIT);
 
     dirLightShadowsShader.bind();
@@ -37,14 +37,14 @@ void OpenGLRenderer::updateDirLightShadowMap(Shader &dirLightShadowsShader, Scen
     }
 
     dirLightShadowsShader.unbind();
-    scene.directionalLight->dirLightShadowMapFBO.unbind();
+    scene.directionalLight->shadowMapFramebuffer.unbind();
 }
 
 void OpenGLRenderer::updatePointLightShadowMaps(Shader &pointLightShadowsShader, Scene &scene, Camera &camera) {
     for (int i = 0; i < scene.pointLights.size(); i++) {
         auto pointLight = scene.pointLights[i];
 
-        pointLight->pointLightShadowMapFBO.bind();
+        pointLight->shadowMapFramebuffer.bind();
         glClear(GL_DEPTH_BUFFER_BIT);
 
         pointLightShadowsShader.bind();
@@ -61,7 +61,7 @@ void OpenGLRenderer::updatePointLightShadowMaps(Shader &pointLightShadowsShader,
         }
 
         pointLightShadowsShader.unbind();
-        pointLight->pointLightShadowMapFBO.unbind();
+        pointLight->shadowMapFramebuffer.unbind();
     }
 }
 
@@ -108,7 +108,8 @@ void OpenGLRenderer::drawObjects(Shader &shader, Scene &scene, Camera &camera) {
     if (scene.directionalLight != nullptr) {
         shader.setMat4("lightSpaceMatrix", scene.directionalLight->lightSpaceMatrix);
         shader.setInt("dirLightShadowMap", Mesh::numTextures + texIdx);
-        scene.directionalLight->dirLightShadowMapFBO.depthBuffer.bind(Mesh::numTextures + texIdx);
+
+        scene.directionalLight->shadowMapFramebuffer.depthBuffer.bind(Mesh::numTextures + texIdx);
 
         scene.directionalLight->draw(shader);
     }
@@ -119,7 +120,8 @@ void OpenGLRenderer::drawObjects(Shader &shader, Scene &scene, Camera &camera) {
 
         shader.setFloat("farPlane", pointLight->zFar);
         shader.setInt("pointLightShadowMaps[" + std::to_string(i) + "]", Mesh::numTextures + texIdx);
-        pointLight->pointLightShadowMapFBO.depthCubeMap.bind(Mesh::numTextures + texIdx);
+
+        pointLight->shadowMapFramebuffer.depthCubeMap.bind(Mesh::numTextures + texIdx);
         texIdx++;
 
         pointLight->draw(shader, i);

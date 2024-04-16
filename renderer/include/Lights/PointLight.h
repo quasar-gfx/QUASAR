@@ -24,12 +24,12 @@ public:
     float quadratic = 0.032f;
 
     glm::mat4 lookAtPerFace[NUM_CUBEMAP_FACES];
-    PointShadowBuffer pointLightShadowMapFBO;
+    PointLightShadowBuffer shadowMapFramebuffer;
 
     explicit PointLight(const PointLightCreateParams &params)
             : position(params.initialPosition), constant(params.constant), linear(params.linear), quadratic(params.quadratic),
                 Light(params.color, params.intensity, params.zNear, params.zFar) {
-        pointLightShadowMapFBO.createColorAndDepthBuffers(shadowRes, shadowRes);
+        shadowMapFramebuffer.createColorAndDepthBuffers(shadowRes, shadowRes);
 
         shadowProjectionMat = glm::perspective(glm::radians(90.0f), 1.0f, params.zNear, params.zFar);
 
