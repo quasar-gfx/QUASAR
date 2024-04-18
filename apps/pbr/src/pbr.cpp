@@ -5,7 +5,7 @@
 #include <Shader.h>
 #include <Texture.h>
 #include <Primatives/Primatives.h>
-#include <Model.h>
+#include <Primatives/Model.h>
 #include <CubeMap.h>
 #include <Scene.h>
 #include <Camera.h>
@@ -15,7 +15,6 @@
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 #include <Windowing/GLFWWindow.h>
-#include <shaders.h>
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
@@ -81,38 +80,6 @@ int main(int argc, char** argv) {
         .vertexDataSize = SHADER_PBR_VERT_len,
         .fragmentData = SHADER_PBR_FRAG,
         .fragmentDataSize = SHADER_PBR_FRAG_len
-    });
-
-    // converts HDR equirectangular environment map to cubemap equivalent
-    Shader equirectToCubeMapShader({
-        .vertexData = SHADER_CUBEMAP_VERT,
-        .vertexDataSize = SHADER_CUBEMAP_VERT_len,
-        .fragmentData = SHADER_EQUIRECTANGULAR2CUBEMAP_FRAG,
-        .fragmentDataSize = SHADER_EQUIRECTANGULAR2CUBEMAP_FRAG_len
-    });
-
-    // solves diffuse integral by convolution to create an irradiance cubemap
-    Shader convolutionShader({
-        .vertexData = SHADER_CUBEMAP_VERT,
-        .vertexDataSize = SHADER_CUBEMAP_VERT_len,
-        .fragmentData = SHADER_IRRADIANCECONVOLUTION_FRAG,
-        .fragmentDataSize = SHADER_IRRADIANCECONVOLUTION_FRAG_len
-    });
-
-    // runs a quasi monte-carlo simulation on the environment lighting to create a prefilter cubemap
-    Shader prefilterShader({
-        .vertexData = SHADER_CUBEMAP_VERT,
-        .vertexDataSize = SHADER_CUBEMAP_VERT_len,
-        .fragmentData = SHADER_PREFILTER_FRAG,
-        .fragmentDataSize = SHADER_PREFILTER_FRAG_len
-    });
-
-    // BRDF shader
-    Shader brdfShader({
-        .vertexData = SHADER_BRDF_VERT,
-        .vertexDataSize = SHADER_BRDF_VERT_len,
-        .fragmentData = SHADER_BRDF_FRAG,
-        .fragmentDataSize = SHADER_BRDF_FRAG_len
     });
 
     // background skybox shader
@@ -227,8 +194,8 @@ int main(int argc, char** argv) {
     scene.addChildNode(&cubeNodeIron);
     scene.addChildNode(&gunNode);
 
-    scene.equirectToCubeMap(envCubeMap, hdrTexture, equirectToCubeMapShader);
-    scene.setupIBL(envCubeMap, convolutionShader, prefilterShader, brdfShader);
+    scene.equirectToCubeMap(envCubeMap, hdrTexture);
+    scene.setupIBL(envCubeMap);
     scene.setEnvMap(&envCubeMap);
 
     app.onRender([&](double now, double dt) {
@@ -273,7 +240,7 @@ int main(int argc, char** argv) {
         }
 
         // render all objects in scene
-        app.renderer.drawObjects(pbrShader, scene, camera);
+        app.renderer.drawObjects(scene, camera);
 
         // render skybox (render as last to prevent overdraw)
         app.renderer.drawSkyBox(backgroundShader, scene, camera);

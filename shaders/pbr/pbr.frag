@@ -9,16 +9,16 @@ in vec3 Normal;
 in vec4 FragPosLightSpace;
 
 // material parameters
-uniform sampler2D albedoMap;
-uniform sampler2D normalMap;
-uniform sampler2D metallicMap;
-uniform sampler2D roughnessMap;
-uniform sampler2D aoMap;
+uniform sampler2D albedoMap; // 0
+uniform sampler2D normalMap; // 1
+uniform sampler2D metallicMap; // 2
+uniform sampler2D roughnessMap; // 3
+uniform sampler2D aoMap; // 4
 
 // IBL
-uniform samplerCube irradianceMap;
-uniform samplerCube prefilterMap;
-uniform sampler2D brdfLUT;
+uniform samplerCube irradianceMap; // 5
+uniform samplerCube prefilterMap; // 6
+uniform sampler2D brdfLUT; // 7
 
 // lights
 struct DirectionalLight {
@@ -41,9 +41,9 @@ struct PointLight {
 uniform DirectionalLight directionalLight;
 uniform PointLight pointLights[MAX_POINT_LIGHTS];
 
-uniform sampler2D dirLightShadowMap;
+uniform sampler2D dirLightShadowMap; // 8
 
-uniform samplerCube pointLightShadowMaps[MAX_POINT_LIGHTS];
+uniform samplerCube pointLightShadowMaps[MAX_POINT_LIGHTS]; // 9+
 uniform float farPlane;
 
 uniform vec3 camPos;

@@ -64,6 +64,7 @@ void Shader::loadFromData(const char* vertexData, const GLint vertexDataSize,
 void Shader::createAndCompileProgram(const char* vertexData, const GLint vertexDataSize,
                                      const char* fragmentData, const GLint fragmentDataSize,
                                      const char* geometryData, const GLint geometryDataSize) {
+
     // compile vertex shader
     GLuint vertex = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertex, 1, &vertexData, &vertexDataSize);

@@ -2,8 +2,10 @@
 #define SCENE_H
 
 #include <vector>
+#include <memory>
 
-#include <Entity.h>
+#include <Shader.h>
+#include <Primatives/Entity.h>
 #include <Lights/Lights.h>
 #include <CubeMap.h>
 #include <Primatives/Mesh.h>
@@ -35,7 +37,51 @@ public:
     Texture brdfLUT;
     FullScreenQuad brdfFsQuad;
 
-    explicit Scene() = default;
+    // converts HDR equirectangular environment map to cubemap equivalent
+    std::shared_ptr<Shader> equirectToCubeMapShader;
+
+    // solves diffuse integral by convolution to create an irradiance cubemap
+    std::shared_ptr<Shader> convolutionShader;
+
+    // runs a quasi monte-carlo simulation on the environment lighting to create a prefilter cubemap
+    std::shared_ptr<Shader> prefilterShader;
+
+    // BRDF shader
+    std::shared_ptr<Shader> brdfShader;
+
+    explicit Scene() {
+        ShaderCreateParams equirectToCubeMapShaderParams = {
+            .vertexData = SHADER_CUBEMAP_VERT,
+            .vertexDataSize = SHADER_CUBEMAP_VERT_len,
+            .fragmentData = SHADER_EQUIRECTANGULAR2CUBEMAP_FRAG,
+            .fragmentDataSize = SHADER_EQUIRECTANGULAR2CUBEMAP_FRAG_len
+        };
+        equirectToCubeMapShader = std::make_shared<Shader>(equirectToCubeMapShaderParams);
+
+        ShaderCreateParams convolutionShaderParams = {
+            .vertexData = SHADER_CUBEMAP_VERT,
+            .vertexDataSize = SHADER_CUBEMAP_VERT_len,
+            .fragmentData = SHADER_IRRADIANCECONVOLUTION_FRAG,
+            .fragmentDataSize = SHADER_IRRADIANCECONVOLUTION_FRAG_len
+        };
+        convolutionShader = std::make_shared<Shader>(convolutionShaderParams);
+
+        ShaderCreateParams prefilterShaderParams = {
+            .vertexData = SHADER_CUBEMAP_VERT,
+            .vertexDataSize = SHADER_CUBEMAP_VERT_len,
+            .fragmentData = SHADER_PREFILTER_FRAG,
+            .fragmentDataSize = SHADER_PREFILTER_FRAG_len
+        };
+        prefilterShader = std::make_shared<Shader>(prefilterShaderParams);
+
+        ShaderCreateParams brdfShaderParams = {
+            .vertexData = SHADER_BRDF_VERT,
+            .vertexDataSize = SHADER_BRDF_VERT_len,
+            .fragmentData = SHADER_BRDF_FRAG,
+            .fragmentDataSize = SHADER_BRDF_FRAG_len
+        };
+        brdfShader = std::make_shared<Shader>(brdfShaderParams);
+    }
 
     void addChildNode(Node* node);
 
@@ -46,8 +92,8 @@ public:
     void addPointLight(PointLight* pointLight);
 
     void bindPBREnvMap(Shader &shader);
-    void equirectToCubeMap(CubeMap &envCubeMap, Texture &hdrTexture, Shader &equirectToCubeMapShader);
-    void setupIBL(CubeMap &envCubeMap, Shader &convolutionShader, Shader &prefilterShader, Shader &brdfShader);
+    void equirectToCubeMap(CubeMap &envCubeMap, Texture &hdrTexture);
+    void setupIBL(CubeMap &envCubeMap);
 
     static const unsigned int numTextures = 3;
 };

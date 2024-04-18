@@ -4,11 +4,17 @@
 
 #include <stb_image.h>
 
-#include <Model.h>
+#include <Primatives/Model.h>
 
-void Model::draw(Shader &shader) {
+void Model::bindSceneAndCamera(Scene& scene, Camera& camera, glm::mat4 model, Material* overrideMaterial) {
     for (int i = 0; i < meshes.size(); i++) {
-        meshes[i].draw(shader);
+        meshes[i].bindSceneAndCamera(scene, camera, model, overrideMaterial);
+    }
+}
+
+void Model::draw(Material* overrideMaterial) {
+    for (int i = 0; i < meshes.size(); i++) {
+        meshes[i].draw(overrideMaterial);
     }
 }
 

@@ -1,7 +1,6 @@
 #include <glad/glad.h>
 
 #include <Windowing/GLFWWindow.h>
-#include <shaders.h>
 
 GLFWWindow::GLFWWindow(const Config &config) {
     glfwInit();

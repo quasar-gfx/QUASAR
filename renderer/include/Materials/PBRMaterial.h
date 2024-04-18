@@ -24,7 +24,7 @@ public:
 
     PBRMaterial(const PBRMaterialCreateParams &params);
 
-    void bind(Shader &shader) override;
+    void bind() override;
     void unbind() override;
 
     void cleanup() override;

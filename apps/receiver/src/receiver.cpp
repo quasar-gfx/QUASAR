@@ -8,7 +8,7 @@
 #include <Primatives/Primatives.h>
 #include <Materials/DiffSpecMaterial.h>
 #include <CubeMap.h>
-#include <Entity.h>
+#include <Primatives/Entity.h>
 #include <Scene.h>
 #include <Camera.h>
 #include <Framebuffer.h>
@@ -16,7 +16,6 @@
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 #include <Windowing/GLFWWindow.h>
-#include <shaders.h>
 
 #include <VideoTexture.h>
 #include <PoseStreamer.h>
@@ -190,7 +189,7 @@ int main(int argc, char** argv) {
         poseStreamer.sendPose();
 
         // render all objects in scene
-        app.renderer.drawObjects(shader, scene, camera);
+        app.renderer.drawObjects(scene, camera);
 
         // render skybox (render as last to prevent overdraw)
         app.renderer.drawSkyBox(skyboxShader, scene, camera);

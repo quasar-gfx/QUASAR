@@ -12,6 +12,8 @@
 
 #include <OpenGLObject.h>
 
+#include <shaders.h>
+
 struct ShaderCreateParams {
     std::string vertexCodePath = "";
     std::string fragmentCodePath = "";

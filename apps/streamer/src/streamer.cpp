@@ -5,7 +5,7 @@
 #include <Shader.h>
 #include <Texture.h>
 #include <Primatives/Primatives.h>
-#include <Model.h>
+#include <Primatives/Model.h>
 #include <CubeMap.h>
 #include <Scene.h>
 #include <Camera.h>
@@ -15,7 +15,6 @@
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 #include <Windowing/GLFWWindow.h>
-#include <shaders.h>
 
 #include <VideoStreamer.h>
 #include <PoseReceiver.h>
@@ -92,60 +91,12 @@ int main(int argc, char** argv) {
         .fragmentDataSize = SHADER_PBR_FRAG_len
     });
 
-    // converts HDR equirectangular environment map to cubemap equivalent
-    Shader equirectToCubeMapShader({
-        .vertexData = SHADER_CUBEMAP_VERT,
-        .vertexDataSize = SHADER_CUBEMAP_VERT_len,
-        .fragmentData = SHADER_EQUIRECTANGULAR2CUBEMAP_FRAG,
-        .fragmentDataSize = SHADER_EQUIRECTANGULAR2CUBEMAP_FRAG_len
-    });
-
-    // solves diffuse integral by convolution to create an irradiance cubemap
-    Shader convolutionShader({
-        .vertexData = SHADER_CUBEMAP_VERT,
-        .vertexDataSize = SHADER_CUBEMAP_VERT_len,
-        .fragmentData = SHADER_IRRADIANCECONVOLUTION_FRAG,
-        .fragmentDataSize = SHADER_IRRADIANCECONVOLUTION_FRAG_len
-    });
-
-    // runs a quasi monte-carlo simulation on the environment lighting to create a prefilter cubemap
-    Shader prefilterShader({
-        .vertexData = SHADER_CUBEMAP_VERT,
-        .vertexDataSize = SHADER_CUBEMAP_VERT_len,
-        .fragmentData = SHADER_PREFILTER_FRAG,
-        .fragmentDataSize = SHADER_PREFILTER_FRAG_len
-    });
-
-    // BRDF shader
-    Shader brdfShader({
-        .vertexData = SHADER_BRDF_VERT,
-        .vertexDataSize = SHADER_BRDF_VERT_len,
-        .fragmentData = SHADER_BRDF_FRAG,
-        .fragmentDataSize = SHADER_BRDF_FRAG_len
-    });
-
     // background skybox shader
     Shader backgroundShader({
         .vertexData = SHADER_BACKGROUND_VERT,
         .vertexDataSize = SHADER_BACKGROUND_VERT_len,
         .fragmentData = SHADER_BACKGROUNDHDR_FRAG,
         .fragmentDataSize = SHADER_BACKGROUNDHDR_FRAG_len
-    });
-
-    Shader dirLightShadowsShader({
-        .vertexData = SHADER_DIRSHADOW_VERT,
-        .vertexDataSize = SHADER_DIRSHADOW_VERT_len,
-        .fragmentData = SHADER_DIRSHADOW_FRAG,
-        .fragmentDataSize = SHADER_DIRSHADOW_FRAG_len
-    });
-
-    Shader pointLightShadowsShader({
-        .vertexData = SHADER_POINTSHADOW_VERT,
-        .vertexDataSize = SHADER_POINTSHADOW_VERT_len,
-        .fragmentData = SHADER_POINTSHADOW_FRAG,
-        .fragmentDataSize = SHADER_POINTSHADOW_FRAG_len,
-        .geometryData = SHADER_POINTSHADOW_GEOM,
-        .geometryDataSize = SHADER_POINTSHADOW_GEOM_len
     });
 
     Shader screenShader({
@@ -280,8 +231,8 @@ int main(int argc, char** argv) {
     scene.addChildNode(&backpackNode);
     scene.addChildNode(&planeNode);
 
-    scene.equirectToCubeMap(envCubeMap, hdrTexture, equirectToCubeMapShader);
-    scene.setupIBL(envCubeMap, convolutionShader, prefilterShader, brdfShader);
+    scene.equirectToCubeMap(envCubeMap, hdrTexture);
+    scene.setupIBL(envCubeMap);
     scene.setEnvMap(&envCubeMap);
 
     int ret = videoStreamer.start(app.renderer.gBuffer.colorBuffer, outputUrl);
@@ -333,8 +284,8 @@ int main(int argc, char** argv) {
 
         poseReceiver.receivePose();
 
-        app.renderer.updateDirLightShadowMap(dirLightShadowsShader, scene, camera);
-        app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, scene, camera);
+        app.renderer.updateDirLightShadow(scene, camera);
+        app.renderer.updatePointLightShadows(scene, camera);
 
         // animate lights
         cubeNodeGold.setRotationEuler(glm::vec3(0.0f, 10.0f * now, 0.0f));
@@ -344,7 +295,7 @@ int main(int argc, char** argv) {
         pointLight4.setPosition(glm::vec3(2.2f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));
 
         // render all objects in scene
-        app.renderer.drawObjects(pbrShader, scene, camera);
+        app.renderer.drawObjects(scene, camera);
 
         // render skybox (render as last to prevent overdraw)
         app.renderer.drawSkyBox(backgroundShader, scene, camera);

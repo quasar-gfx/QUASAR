@@ -1,6 +1,7 @@
 #ifndef MATERIAL_H
 #define MATERIAL_H
 
+#include <memory>
 #include <vector>
 
 #include <Shader.h>
@@ -10,7 +11,9 @@ class Material {
 public:
     std::vector<TextureID> textures;
 
-    virtual void bind(Shader &shader) = 0;
+    std::shared_ptr<Shader> shader;
+
+    virtual void bind() = 0;
     virtual void unbind() = 0;
 
     virtual void cleanup() = 0;

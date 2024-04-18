@@ -6,7 +6,7 @@
 #include <Texture.h>
 #include <Primatives/Primatives.h>
 #include <Materials/PBRMaterial.h>
-#include <Model.h>
+#include <Primatives/Model.h>
 #include <CubeMap.h>
 #include <Scene.h>
 #include <Camera.h>
@@ -16,7 +16,6 @@
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 #include <Windowing/GLFWWindow.h>
-#include <shaders.h>
 
 const std::string BACKPACK_MODEL_PATH = "../assets/models/backpack/backpack.obj";
 
@@ -69,45 +68,6 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader pbrShader({
-        .vertexData = SHADER_PBR_VERT,
-        .vertexDataSize = SHADER_PBR_VERT_len,
-        .fragmentData = SHADER_PBR_FRAG,
-        .fragmentDataSize = SHADER_PBR_FRAG_len
-    });
-
-    // converts HDR equirectangular environment map to cubemap equivalent
-    Shader equirectToCubeMapShader({
-        .vertexData = SHADER_CUBEMAP_VERT,
-        .vertexDataSize = SHADER_CUBEMAP_VERT_len,
-        .fragmentData = SHADER_EQUIRECTANGULAR2CUBEMAP_FRAG,
-        .fragmentDataSize = SHADER_EQUIRECTANGULAR2CUBEMAP_FRAG_len
-    });
-
-    // solves diffuse integral by convolution to create an irradiance cubemap
-    Shader convolutionShader({
-        .vertexData = SHADER_CUBEMAP_VERT,
-        .vertexDataSize = SHADER_CUBEMAP_VERT_len,
-        .fragmentData = SHADER_IRRADIANCECONVOLUTION_FRAG,
-        .fragmentDataSize = SHADER_IRRADIANCECONVOLUTION_FRAG_len
-    });
-
-    // runs a quasi monte-carlo simulation on the environment lighting to create a prefilter cubemap
-    Shader prefilterShader({
-        .vertexData = SHADER_CUBEMAP_VERT,
-        .vertexDataSize = SHADER_CUBEMAP_VERT_len,
-        .fragmentData = SHADER_PREFILTER_FRAG,
-        .fragmentDataSize = SHADER_PREFILTER_FRAG_len
-    });
-
-    // BRDF shader
-    Shader brdfShader({
-        .vertexData = SHADER_BRDF_VERT,
-        .vertexDataSize = SHADER_BRDF_VERT_len,
-        .fragmentData = SHADER_BRDF_FRAG,
-        .fragmentDataSize = SHADER_BRDF_FRAG_len
-    });
-
     // background skybox shader
     Shader backgroundShader({
         .vertexData = SHADER_BACKGROUND_VERT,
@@ -264,8 +224,8 @@ int main(int argc, char** argv) {
     scene.addChildNode(&backpackNode);
     scene.addChildNode(&planeNode);
 
-    scene.equirectToCubeMap(envCubeMap, hdrTexture, equirectToCubeMapShader);
-    scene.setupIBL(envCubeMap, convolutionShader, prefilterShader, brdfShader);
+    scene.equirectToCubeMap(envCubeMap, hdrTexture);
+    scene.setupIBL(envCubeMap);
     scene.setEnvMap(&envCubeMap);
 
     app.onRender([&](double now, double dt) {
@@ -310,8 +270,8 @@ int main(int argc, char** argv) {
         }
 
         // update shadows
-        app.renderer.updateDirLightShadowMap(dirLightShadowsShader, scene, camera);
-        app.renderer.updatePointLightShadowMaps(pointLightShadowsShader, scene, camera);
+        app.renderer.updateDirLightShadow(scene, camera);
+        app.renderer.updatePointLightShadows(scene, camera);
 
         // animate
         cubeNodeGold.setRotationEuler(glm::vec3(0.0f, 10.0f * now, 0.0f));
@@ -321,7 +281,7 @@ int main(int argc, char** argv) {
         pointLight4.setPosition(glm::vec3(2.2f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));
 
         // render all objects in scene
-        app.renderer.drawObjects(pbrShader, scene, camera);
+        app.renderer.drawObjects(scene, camera);
 
         // render skybox (render as last to prevent overdraw)
         app.renderer.drawSkyBox(backgroundShader, scene, camera);

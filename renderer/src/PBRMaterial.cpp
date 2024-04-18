@@ -52,10 +52,19 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params) {
     else {
         textures.push_back(params.aoTextureID);
     }
+
+    ShaderCreateParams pbrShaderParams{
+        .vertexData = SHADER_PBR_VERT,
+        .vertexDataSize = SHADER_PBR_VERT_len,
+        .fragmentData = SHADER_PBR_FRAG,
+        .fragmentDataSize = SHADER_PBR_FRAG_len
+    };
+    shader = std::make_unique<Shader>(pbrShaderParams);
 }
 
-void PBRMaterial::bind(Shader &shader) {
-    shader.setFloat("shininess", shininess);
+void PBRMaterial::bind() {
+    shader->bind();
+    shader->setFloat("shininess", shininess);
 
     std::string name;
     for (int i = 0; i < textures.size(); i++) {
@@ -80,7 +89,7 @@ void PBRMaterial::bind(Shader &shader) {
             break;
         }
 
-        shader.setInt(name, i);
+        shader->setInt(name, i);
         glBindTexture(GL_TEXTURE_2D, textures[i]);
     }
 }
@@ -90,6 +99,7 @@ void PBRMaterial::unbind() {
         glActiveTexture(GL_TEXTURE0 + i);
         glBindTexture(GL_TEXTURE_2D, 0);
     }
+    shader->unbind();
 }
 
 void PBRMaterial::cleanup() {
