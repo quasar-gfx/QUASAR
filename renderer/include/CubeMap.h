@@ -9,7 +9,7 @@
 #include <vector>
 #include <string>
 
-#include <Shader.h>
+#include <Shaders/Shader.h>
 #include <Texture.h>
 #include <Renderbuffer.h>
 #include <Camera.h>

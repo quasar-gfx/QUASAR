@@ -5,8 +5,8 @@
 
 #include <glad/glad.h>
 
-#include <Shader.h>
-#include <ComputeShader.h>
+#include <Shaders/Shader.h>
+#include <Shaders/ComputeShader.h>
 #include <Texture.h>
 #include <Primatives/Primatives.h>
 #include <Primatives/Model.h>

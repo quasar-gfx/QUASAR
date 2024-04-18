@@ -15,18 +15,3 @@ PointShadowMapMaterial::PointShadowMapMaterial() {
 void PointShadowMapMaterial::bind() {
     shader->bind();
 }
-
-void PointShadowMapMaterial::unbind() {
-    for (int i = 0; i < textures.size(); i++) {
-        glActiveTexture(GL_TEXTURE0 + i);
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }
-    shader->unbind();
-}
-
-void PointShadowMapMaterial::cleanup() {
-    for (auto &textureID : textures) {
-        if (textureID == 0) continue;
-        glDeleteTextures(1, &textureID);
-    }
-}

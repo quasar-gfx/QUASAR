@@ -2,7 +2,7 @@
 
 #include <imgui/imgui.h>
 
-#include <Shader.h>
+#include <Shaders/Shader.h>
 #include <Texture.h>
 #include <Primatives/Primatives.h>
 #include <Materials/PBRMaterial.h>
@@ -74,22 +74,6 @@ int main(int argc, char** argv) {
         .vertexDataSize = SHADER_BACKGROUND_VERT_len,
         .fragmentData = SHADER_BACKGROUNDHDR_FRAG,
         .fragmentDataSize = SHADER_BACKGROUNDHDR_FRAG_len
-    });
-
-    Shader dirLightShadowsShader({
-        .vertexData = SHADER_DIRSHADOW_VERT,
-        .vertexDataSize = SHADER_DIRSHADOW_VERT_len,
-        .fragmentData = SHADER_DIRSHADOW_FRAG,
-        .fragmentDataSize = SHADER_DIRSHADOW_FRAG_len
-    });
-
-    Shader pointLightShadowsShader({
-        .vertexData = SHADER_POINTSHADOW_VERT,
-        .vertexDataSize = SHADER_POINTSHADOW_VERT_len,
-        .fragmentData = SHADER_POINTSHADOW_FRAG,
-        .fragmentDataSize = SHADER_POINTSHADOW_FRAG_len,
-        .geometryData = SHADER_POINTSHADOW_GEOM,
-        .geometryDataSize = SHADER_POINTSHADOW_GEOM_len
     });
 
     Shader screenShader({
@@ -228,6 +212,8 @@ int main(int argc, char** argv) {
     scene.setupIBL(envCubeMap);
     scene.setEnvMap(&envCubeMap);
 
+    camera.position = glm::vec3(0.0f, 1.6f, 0.0f);
+
     app.onRender([&](double now, double dt) {
         // handle mouse input
         auto mouseButtons = window.getMouseButtons();
@@ -268,10 +254,6 @@ int main(int argc, char** argv) {
         if (keys.ESC_PRESSED) {
             window.close();
         }
-
-        // update shadows
-        app.renderer.updateDirLightShadow(scene, camera);
-        app.renderer.updatePointLightShadows(scene, camera);
 
         // animate
         cubeNodeGold.setRotationEuler(glm::vec3(0.0f, 10.0f * now, 0.0f));

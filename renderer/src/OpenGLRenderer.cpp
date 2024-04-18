@@ -74,10 +74,6 @@ void OpenGLRenderer::drawSkyBox(Shader &backgroundShader, Scene &scene, Camera &
     backgroundShader.setMat4("view", camera.getViewMatrix());
     backgroundShader.setMat4("projection", camera.getProjectionMatrix());
 
-    // if (scene.ambientLight != nullptr) {
-    //     scene.ambientLight->draw(backgroundShader);
-    // }
-
     if (scene.envCubeMap != nullptr) {
         scene.envCubeMap->draw(backgroundShader, camera);
     }
@@ -88,6 +84,10 @@ void OpenGLRenderer::drawSkyBox(Shader &backgroundShader, Scene &scene, Camera &
 }
 
 void OpenGLRenderer::drawObjects(Scene &scene, Camera &camera) {
+    // update shadows
+    updateDirLightShadow(scene, camera);
+    updatePointLightShadows(scene, camera);
+
     // bind to gBuffer and draw scene as we normally would to color texture
     gBuffer.bind();
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);

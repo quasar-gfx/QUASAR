@@ -2,8 +2,8 @@
 
 #include <imgui/imgui.h>
 
-#include <Shader.h>
-#include <ComputeShader.h>
+#include <Shaders/Shader.h>
+#include <Shaders/ComputeShader.h>
 #include <Texture.h>
 #include <Primatives/Primatives.h>
 #include <Primatives/Model.h>
@@ -227,9 +227,6 @@ int main(int argc, char** argv) {
     scene.equirectToCubeMap(envCubeMap, hdrTexture);
     scene.setupIBL(envCubeMap);
     scene.setEnvMap(&envCubeMap);
-
-    app.renderer.updateDirLightShadow(scene, camera);
-    app.renderer.updatePointLightShadows(scene, camera);
 
     GLuint vertexBuffer;
     glGenBuffers(1, &vertexBuffer);

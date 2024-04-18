@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include <Shader.h>
+#include <Shaders/Shader.h>
 #include <Texture.h>
 #include <Primatives/Entity.h>
 #include <Materials/Material.h>

@@ -4,7 +4,7 @@
 #include <vector>
 #include <memory>
 
-#include <Shader.h>
+#include <Shaders/Shader.h>
 #include <Primatives/Entity.h>
 #include <Lights/Lights.h>
 #include <CubeMap.h>

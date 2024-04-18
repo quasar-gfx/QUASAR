@@ -35,18 +35,3 @@ void TexturedMaterial::bind() {
     shader->setInt(name, 0);
     glBindTexture(GL_TEXTURE_2D, textures[0]);
 }
-
-void TexturedMaterial::unbind() {
-    for (int i = 0; i < textures.size(); i++) {
-        glActiveTexture(GL_TEXTURE0 + i);
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }
-    shader->unbind();
-}
-
-void TexturedMaterial::cleanup() {
-    for (auto &textureID : textures) {
-        if (textureID == 0) continue;
-        glDeleteTextures(1, &textureID);
-    }
-}

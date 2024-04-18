@@ -2,7 +2,7 @@
 #include <sstream>
 #include <iostream>
 
-#include <ComputeShader.h>
+#include <Shaders/ComputeShader.h>
 
 void ComputeShader::loadFromFile(std::string computePath) {
     std::ifstream computeFile;

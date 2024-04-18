@@ -1,4 +1,4 @@
-#include <Shader.h>
+#include <Shaders/Shader.h>
 
 void Shader::loadFromFile(const std::string vertexPath, const std::string fragmentPath, const std::string geometryPath) {
     std::string vertexCode;

@@ -14,7 +14,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-#include <Shader.h>
+#include <Shaders/Shader.h>
 #include <Primatives/Mesh.h>
 #include <Materials/PBRMaterial.h>
 #include <Primatives/Entity.h>

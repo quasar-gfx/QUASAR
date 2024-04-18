@@ -5,7 +5,7 @@
 
 #include <string>
 
-#include <Shader.h>
+#include <Shaders/Shader.h>
 
 struct ComputeShaderCreateParams {
     std::string computeCodePath = "";

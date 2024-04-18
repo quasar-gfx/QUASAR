@@ -25,9 +25,6 @@ public:
     PBRMaterial(const PBRMaterialCreateParams &params);
 
     void bind() override;
-    void unbind() override;
-
-    void cleanup() override;
 
     static const unsigned int numTextures = 5;
 };

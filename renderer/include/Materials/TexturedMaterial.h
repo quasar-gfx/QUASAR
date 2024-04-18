@@ -15,9 +15,6 @@ public:
     TexturedMaterial(const TexturedMaterialCreateParams &params);
 
     void bind() override;
-    void unbind() override;
-
-    void cleanup() override;
 };
 
 #endif // TEXTURED_MATERIAL_H

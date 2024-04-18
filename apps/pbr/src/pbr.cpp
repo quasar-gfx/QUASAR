@@ -2,7 +2,7 @@
 
 #include <imgui/imgui.h>
 
-#include <Shader.h>
+#include <Shaders/Shader.h>
 #include <Texture.h>
 #include <Primatives/Primatives.h>
 #include <Primatives/Model.h>

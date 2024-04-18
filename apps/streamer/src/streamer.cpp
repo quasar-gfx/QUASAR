@@ -2,7 +2,7 @@
 
 #include <imgui/imgui.h>
 
-#include <Shader.h>
+#include <Shaders/Shader.h>
 #include <Texture.h>
 #include <Primatives/Primatives.h>
 #include <Primatives/Model.h>
@@ -283,9 +283,6 @@ int main(int argc, char** argv) {
         }
 
         poseReceiver.receivePose();
-
-        app.renderer.updateDirLightShadow(scene, camera);
-        app.renderer.updatePointLightShadows(scene, camera);
 
         // animate lights
         cubeNodeGold.setRotationEuler(glm::vec3(0.0f, 10.0f * now, 0.0f));
