@@ -2,10 +2,10 @@
 
 DirShadowMapMaterial::DirShadowMapMaterial() {
     ShaderCreateParams dirShadowMapParams{
-        .vertexData = SHADER_DIRSHADOW_VERT,
-        .vertexDataSize = SHADER_DIRSHADOW_VERT_len,
-        .fragmentData = SHADER_DIRSHADOW_FRAG,
-        .fragmentDataSize = SHADER_DIRSHADOW_FRAG_len
+        .vertexCodeData = SHADER_DIRSHADOW_VERT,
+        .vertexCodeSize = SHADER_DIRSHADOW_VERT_len,
+        .fragmentCodeData = SHADER_DIRSHADOW_FRAG,
+        .fragmentCodeSize = SHADER_DIRSHADOW_FRAG_len
     };
     shader = std::make_shared<Shader>(dirShadowMapParams);
 }

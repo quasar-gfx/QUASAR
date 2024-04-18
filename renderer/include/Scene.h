@@ -51,34 +51,34 @@ public:
 
     explicit Scene() {
         ShaderCreateParams equirectToCubeMapShaderParams = {
-            .vertexData = SHADER_CUBEMAP_VERT,
-            .vertexDataSize = SHADER_CUBEMAP_VERT_len,
-            .fragmentData = SHADER_EQUIRECTANGULAR2CUBEMAP_FRAG,
-            .fragmentDataSize = SHADER_EQUIRECTANGULAR2CUBEMAP_FRAG_len
+            .vertexCodeData = SHADER_CUBEMAP_VERT,
+            .vertexCodeSize = SHADER_CUBEMAP_VERT_len,
+            .fragmentCodeData = SHADER_EQUIRECTANGULAR2CUBEMAP_FRAG,
+            .fragmentCodeSize = SHADER_EQUIRECTANGULAR2CUBEMAP_FRAG_len
         };
         equirectToCubeMapShader = std::make_shared<Shader>(equirectToCubeMapShaderParams);
 
         ShaderCreateParams convolutionShaderParams = {
-            .vertexData = SHADER_CUBEMAP_VERT,
-            .vertexDataSize = SHADER_CUBEMAP_VERT_len,
-            .fragmentData = SHADER_IRRADIANCECONVOLUTION_FRAG,
-            .fragmentDataSize = SHADER_IRRADIANCECONVOLUTION_FRAG_len
+            .vertexCodeData = SHADER_CUBEMAP_VERT,
+            .vertexCodeSize = SHADER_CUBEMAP_VERT_len,
+            .fragmentCodeData = SHADER_IRRADIANCECONVOLUTION_FRAG,
+            .fragmentCodeSize = SHADER_IRRADIANCECONVOLUTION_FRAG_len
         };
         convolutionShader = std::make_shared<Shader>(convolutionShaderParams);
 
         ShaderCreateParams prefilterShaderParams = {
-            .vertexData = SHADER_CUBEMAP_VERT,
-            .vertexDataSize = SHADER_CUBEMAP_VERT_len,
-            .fragmentData = SHADER_PREFILTER_FRAG,
-            .fragmentDataSize = SHADER_PREFILTER_FRAG_len
+            .vertexCodeData = SHADER_CUBEMAP_VERT,
+            .vertexCodeSize = SHADER_CUBEMAP_VERT_len,
+            .fragmentCodeData = SHADER_PREFILTER_FRAG,
+            .fragmentCodeSize = SHADER_PREFILTER_FRAG_len
         };
         prefilterShader = std::make_shared<Shader>(prefilterShaderParams);
 
         ShaderCreateParams brdfShaderParams = {
-            .vertexData = SHADER_BRDF_VERT,
-            .vertexDataSize = SHADER_BRDF_VERT_len,
-            .fragmentData = SHADER_BRDF_FRAG,
-            .fragmentDataSize = SHADER_BRDF_FRAG_len
+            .vertexCodeData = SHADER_BRDF_VERT,
+            .vertexCodeSize = SHADER_BRDF_VERT_len,
+            .fragmentCodeData = SHADER_BRDF_FRAG,
+            .fragmentCodeSize = SHADER_BRDF_FRAG_len
         };
         brdfShader = std::make_shared<Shader>(brdfShaderParams);
     }

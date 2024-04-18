@@ -89,10 +89,10 @@ int main(int argc, char** argv) {
 
     // shaders
     Shader screenShader({
-        .vertexData = SHADER_POSTPROCESS_VERT,
-        .vertexDataSize = SHADER_POSTPROCESS_VERT_len,
-        .fragmentData = SHADER_DISPLAYVIDEO_FRAG,
-        .fragmentDataSize = SHADER_DISPLAYVIDEO_FRAG_len
+        .vertexCodeData = SHADER_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_DISPLAYVIDEO_FRAG,
+        .fragmentCodeSize = SHADER_DISPLAYVIDEO_FRAG_len
     });
 
     // lights

@@ -19,10 +19,10 @@ void OpenGLRenderer::init(unsigned int width, unsigned int height) {
 
     // background skybox shader
     ShaderCreateParams skyboxShaderParams = {
-        .vertexData = SHADER_SKYBOX_VERT,
-        .vertexDataSize = SHADER_SKYBOX_VERT_len,
-        .fragmentData = SHADER_SKYBOX_FRAG,
-        .fragmentDataSize = SHADER_SKYBOX_FRAG_len
+        .vertexCodeData = SHADER_SKYBOX_VERT,
+        .vertexCodeSize = SHADER_SKYBOX_VERT_len,
+        .fragmentCodeData = SHADER_SKYBOX_FRAG,
+        .fragmentCodeSize = SHADER_SKYBOX_FRAG_len
     };
     skyboxShader = std::make_shared<Shader>(skyboxShaderParams);
 

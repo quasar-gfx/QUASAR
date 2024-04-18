@@ -2,10 +2,10 @@
 
 PointShadowMapMaterial::PointShadowMapMaterial() {
     ShaderCreateParams pointShadowMapParams{
-        .vertexData = SHADER_POINTSHADOW_VERT,
-        .vertexDataSize = SHADER_POINTSHADOW_VERT_len,
-        .fragmentData = SHADER_POINTSHADOW_FRAG,
-        .fragmentDataSize = SHADER_POINTSHADOW_FRAG_len,
+        .vertexCodeData = SHADER_POINTSHADOW_VERT,
+        .vertexCodeSize = SHADER_POINTSHADOW_VERT_len,
+        .fragmentCodeData = SHADER_POINTSHADOW_FRAG,
+        .fragmentCodeSize = SHADER_POINTSHADOW_FRAG_len,
         .geometryData = SHADER_POINTSHADOW_GEOM,
         .geometryDataSize = SHADER_POINTSHADOW_GEOM_len
     };

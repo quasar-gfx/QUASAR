@@ -46,15 +46,14 @@ int main(int argc, char** argv) {
     });
 
     ComputeShader computeShader = ComputeShader({
-        .computeData = SHADER_TEST_COMP,
-        .computeDataSize = SHADER_TEST_COMP_len
+        .computeCodePath = "shaders/test.comp"
     });
 
     Shader screenShader = Shader({
-        .vertexData = SHADER_POSTPROCESS_VERT,
-        .vertexDataSize = SHADER_POSTPROCESS_VERT_len,
-        .fragmentData = SHADER_DISPLAYTEXTURE_FRAG,
-        .fragmentDataSize = SHADER_DISPLAYTEXTURE_FRAG_len
+        .vertexCodeData = SHADER_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_DISPLAYTEXTURE_FRAG,
+        .fragmentCodeSize = SHADER_DISPLAYTEXTURE_FRAG_len
     });
 
     Texture outputTexture = Texture({

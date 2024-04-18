@@ -73,22 +73,21 @@ int main(int argc, char** argv) {
 
     // shaders
     Shader pbrShader({
-        .vertexData = SHADER_PBR_VERT,
-        .vertexDataSize = SHADER_PBR_VERT_len,
-        .fragmentData = SHADER_PBR_FRAG,
-        .fragmentDataSize = SHADER_PBR_FRAG_len
+        .vertexCodeData = SHADER_PBR_VERT,
+        .vertexCodeSize = SHADER_PBR_VERT_len,
+        .fragmentCodeData = SHADER_PBR_FRAG,
+        .fragmentCodeSize = SHADER_PBR_FRAG_len
     });
 
     Shader screenShader({
-        .vertexData = SHADER_POSTPROCESS_VERT,
-        .vertexDataSize = SHADER_POSTPROCESS_VERT_len,
-        .fragmentData = SHADER_DISPLAYCOLOR_FRAG,
-        .fragmentDataSize = SHADER_DISPLAYCOLOR_FRAG_len
+        .vertexCodeData = SHADER_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_DISPLAYCOLOR_FRAG,
+        .fragmentCodeSize = SHADER_DISPLAYCOLOR_FRAG_len
     });
 
     ComputeShader genMeshShader({
-        .computeData = SHADER_GENMESH_COMP,
-        .computeDataSize = SHADER_GENMESH_COMP_len
+        .computeCodePath = "shaders/genMesh.comp"
     });
 
     // materials

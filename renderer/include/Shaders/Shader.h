@@ -26,10 +26,10 @@ struct ShaderCreateParams {
     std::string vertexCodePath = "";
     std::string fragmentCodePath = "";
     std::string geometryCodePath = "";
-    const char* vertexData = nullptr;
-    unsigned int vertexDataSize = 0;
-    const char* fragmentData = nullptr;
-    unsigned int fragmentDataSize = 0;
+    const char* vertexCodeData = nullptr;
+    unsigned int vertexCodeSize = 0;
+    const char* fragmentCodeData = nullptr;
+    unsigned int fragmentCodeSize = 0;
     const char* geometryData = nullptr;
     unsigned int geometryDataSize = 0;
 };
@@ -39,17 +39,17 @@ public:
     explicit Shader() = default;
 
     explicit Shader(const ShaderCreateParams& params) {
-        if (params.vertexData != nullptr && params.fragmentData != nullptr) {
-            loadFromData(params.vertexData, params.vertexDataSize, params.fragmentData, params.fragmentDataSize, params.geometryData, params.geometryDataSize);
+        if (params.vertexCodeData != nullptr && params.fragmentCodeData != nullptr) {
+            loadFromData(params.vertexCodeData, params.vertexCodeSize, params.fragmentCodeData, params.fragmentCodeSize, params.geometryData, params.geometryDataSize);
         }
         else {
-            loadFromFile(params.vertexCodePath, params.fragmentData, params.geometryCodePath);
+            loadFromFile(params.vertexCodePath, params.fragmentCodeData, params.geometryCodePath);
         }
     }
 
     void loadFromFile(const std::string vertexPath, const std::string fragmentPath, const std::string geometryPath = "");
-    void loadFromData(const char* vertexData, const GLint vertexDataSize,
-                      const char* fragmentData, const GLint fragmentDataSize,
+    void loadFromData(const char* vertexCodeData, const GLint vertexCodeSize,
+                      const char* fragmentCodeData, const GLint fragmentCodeSize,
                       const char* geometryData = nullptr, const GLint geometryDataSize = 0);
 
     ~Shader() {
@@ -114,8 +114,8 @@ public:
     }
 
 private:
-    void createAndCompileProgram(const char* vertexData, const GLint vertexDataSize,
-                                 const char* fragmentData, const GLint fragmentDataSize,
+    void createAndCompileProgram(const char* vertexCodeData, const GLint vertexCodeSize,
+                                 const char* fragmentCodeData, const GLint fragmentCodeSize,
                                  const char* geometryData = nullptr, const GLint geometryDataSize = 0);
 
 protected:

@@ -18,10 +18,10 @@ TexturedMaterial::TexturedMaterial(const TexturedMaterialCreateParams &params) {
     }
 
     ShaderCreateParams texturedMaterialParams{
-        .vertexData = SHADER_DIFFUSESPECULAR_VERT,
-        .vertexDataSize = SHADER_DIFFUSESPECULAR_VERT_len,
-        .fragmentData = SHADER_TEXTURED_FRAG,
-        .fragmentDataSize = SHADER_TEXTURED_FRAG_len
+        .vertexCodeData = SHADER_DIFFUSESPECULAR_VERT,
+        .vertexCodeSize = SHADER_DIFFUSESPECULAR_VERT_len,
+        .fragmentCodeData = SHADER_TEXTURED_FRAG,
+        .fragmentCodeSize = SHADER_TEXTURED_FRAG_len
     };
     shader = std::make_shared<Shader>(texturedMaterialParams);
 }
