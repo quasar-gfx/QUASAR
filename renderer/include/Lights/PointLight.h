@@ -4,6 +4,7 @@
 #include <Lights/Light.h>
 #include <CubeMap.h>
 #include <Framebuffer.h>
+#include <Materials/PointShadowMapMaterial.h>
 
 struct PointLightCreateParams {
     glm::vec3 color = glm::vec3(1.0f);
@@ -23,8 +24,11 @@ public:
     float linear = 0.09f;
     float quadratic = 0.032f;
 
+    unsigned int channel = -1;
+
     glm::mat4 lookAtPerFace[NUM_CUBEMAP_FACES];
     PointLightShadowBuffer shadowMapFramebuffer;
+    PointShadowMapMaterial shadowMapMaterial;
 
     explicit PointLight(const PointLightCreateParams &params)
             : position(params.initialPosition), constant(params.constant), linear(params.linear), quadratic(params.quadratic),
@@ -36,18 +40,18 @@ public:
         updateLookAtFace();
     }
 
-    void draw(Shader &shader) {
-        draw(shader, 0);
+    void setChannel(int channel) {
+        this->channel = channel;
     }
 
-    void draw(Shader &shader, int idx) {
-        std::string idxStr = std::to_string(idx);
-        shader.setVec3("pointLights["+idxStr+"].position", position);
-        shader.setVec3("pointLights["+idxStr+"].color", color);
-        shader.setFloat("pointLights["+idxStr+"].intensity", intensity);
-        shader.setFloat("pointLights["+idxStr+"].constant", constant);
-        shader.setFloat("pointLights["+idxStr+"].linear", linear);
-        shader.setFloat("pointLights["+idxStr+"].quadratic", quadratic);
+    void bindMaterial(Material &material) override {
+        std::string idxStr = std::to_string(this->channel);
+        material.shader->setVec3("pointLights["+idxStr+"].position", position);
+        material.shader->setVec3("pointLights["+idxStr+"].color", color);
+        material.shader->setFloat("pointLights["+idxStr+"].intensity", intensity);
+        material.shader->setFloat("pointLights["+idxStr+"].constant", constant);
+        material.shader->setFloat("pointLights["+idxStr+"].linear", linear);
+        material.shader->setFloat("pointLights["+idxStr+"].quadratic", quadratic);
     }
 
     void setPosition(const glm::vec3 &position) {

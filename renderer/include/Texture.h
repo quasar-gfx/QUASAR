@@ -8,13 +8,6 @@
 
 typedef GLuint TextureID;
 
-enum TextureType {
-    TEXTURE_DIFFUSE  = 0,
-    TEXTURE_SPECULAR = 1,
-    TEXTURE_NORMAL   = 2,
-    TEXTURE_HEIGHT   = 3
-};
-
 struct TextureCreateParams {
     unsigned int width = 0;
     unsigned int height = 0;

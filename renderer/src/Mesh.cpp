@@ -28,8 +28,51 @@ void Mesh::init()  {
     glBindVertexArray(0);
 }
 
-void Mesh::draw(Shader &shader) {
-    material->bind(shader);
+void Mesh::bindSceneAndCamera(Scene& scene, Camera& camera, glm::mat4 model, Material* overrideMaterial) {
+    auto materialToBind = overrideMaterial != nullptr ? overrideMaterial : material;
+    materialToBind->bind();
+
+    if (scene.ambientLight != nullptr) {
+        scene.ambientLight->bindMaterial(*materialToBind);
+    }
+
+    int texIdx = Scene::numTextures + Mesh::numTextures;
+    if (scene.directionalLight != nullptr) {
+        materialToBind->shader->setMat4("lightSpaceMatrix", scene.directionalLight->lightSpaceMatrix);
+        materialToBind->shader->setInt("dirLightShadowMap", texIdx);
+
+        scene.directionalLight->shadowMapFramebuffer.depthBuffer.bind(texIdx);
+        scene.directionalLight->bindMaterial(*materialToBind);
+    }
+    texIdx++;
+
+    for (int i = 0; i < scene.pointLights.size(); i++) {
+        auto pointLight = scene.pointLights[i];
+        pointLight->setChannel(i);
+
+        materialToBind->shader->setFloat("farPlane", pointLight->zFar);
+
+        materialToBind->shader->setInt("pointLightShadowMaps[" + std::to_string(i) + "]", texIdx);
+        pointLight->shadowMapFramebuffer.depthCubeMap.bind(texIdx);
+        texIdx++;
+
+        pointLight->bindMaterial(*materialToBind);
+    }
+
+    scene.bindPBREnvMap(*materialToBind->shader);
+
+    materialToBind->shader->setMat4("view", camera.getViewMatrix());
+    materialToBind->shader->setMat4("projection", camera.getProjectionMatrix());
+    materialToBind->shader->setVec3("camPos", camera.position);
+    materialToBind->shader->setMat4("model", model);
+    materialToBind->shader->setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
+
+    materialToBind->unbind();
+}
+
+void Mesh::draw(Material* overrideMaterial) {
+    auto materialToBind = overrideMaterial != nullptr ? overrideMaterial : material;
+    materialToBind->bind();
 
     if (wireframe) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -48,9 +91,9 @@ void Mesh::draw(Shader &shader) {
     }
     glBindVertexArray(0);
 
-    material->unbind();
-
     if (wireframe) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
+
+    materialToBind->unbind();
 }

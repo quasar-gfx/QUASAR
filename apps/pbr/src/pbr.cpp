@@ -2,10 +2,10 @@
 
 #include <imgui/imgui.h>
 
-#include <Shader.h>
+#include <Shaders/Shader.h>
 #include <Texture.h>
 #include <Primatives/Primatives.h>
-#include <Model.h>
+#include <Primatives/Model.h>
 #include <CubeMap.h>
 #include <Scene.h>
 #include <Camera.h>
@@ -76,43 +76,17 @@ int main(int argc, char** argv) {
 
     // shaders
     Shader pbrShader({
-        .vertexCodePath = "../assets/shaders/pbr/pbr.vert",
-        .fragmentCodePath = "../assets/shaders/pbr/pbr.frag"
-    });
-
-    // converts HDR equirectangular environment map to cubemap equivalent
-    Shader equirectToCubeMapShader({
-        .vertexCodePath = "../assets/shaders/cubemap/cubemap.vert",
-        .fragmentCodePath = "../assets/shaders/cubemap/equirectangular2cubemap.frag"
-    });
-
-    // solves diffuse integral by convolution to create an irradiance cubemap
-    Shader convolutionShader({
-        .vertexCodePath = "../assets/shaders/cubemap/cubemap.vert",
-        .fragmentCodePath = "../assets/shaders/pbr/irradianceConvolution.frag"
-    });
-
-    // runs a quasi monte-carlo simulation on the environment lighting to create a prefilter cubemap
-    Shader prefilterShader({
-        .vertexCodePath = "../assets/shaders/cubemap/cubemap.vert",
-        .fragmentCodePath = "../assets/shaders/pbr/prefilter.frag"
-    });
-
-    // BRDF shader
-    Shader brdfShader({
-        .vertexCodePath = "../assets/shaders/pbr/brdf.vert",
-        .fragmentCodePath = "../assets/shaders/pbr/brdf.frag"
-    });
-
-    // background skybox shader
-    Shader backgroundShader({
-        .vertexCodePath = "../assets/shaders/cubemap/background.vert",
-        .fragmentCodePath = "../assets/shaders/cubemap/backgroundHDR.frag"
+        .vertexCodeData = SHADER_PBR_VERT,
+        .vertexCodeSize = SHADER_PBR_VERT_len,
+        .fragmentCodeData = SHADER_PBR_FRAG,
+        .fragmentCodeSize = SHADER_PBR_FRAG_len
     });
 
     Shader screenShader({
-        .vertexCodePath = "../assets/shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../assets/shaders/postprocessing/displayColor.frag"
+        .vertexCodeData = SHADER_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_DISPLAYCOLOR_FRAG,
+        .fragmentCodeSize = SHADER_DISPLAYCOLOR_FRAG_len
     });
 
     // materials
@@ -173,7 +147,7 @@ int main(int argc, char** argv) {
     });
 
     // skybox
-    CubeMap envCubeMap({ .width = 512, .height = 512, .type = CUBE_MAP_HDR });
+    CubeMap envCubeMap({ .width = 512, .height = 512, .type = CubeMapType::HDR });
 
     // lights
     PointLight pointLight1 = PointLight({
@@ -212,8 +186,8 @@ int main(int argc, char** argv) {
     scene.addChildNode(&cubeNodeIron);
     scene.addChildNode(&gunNode);
 
-    scene.equirectToCubeMap(envCubeMap, hdrTexture, equirectToCubeMapShader);
-    scene.setupIBL(envCubeMap, convolutionShader, prefilterShader, brdfShader);
+    scene.equirectToCubeMap(envCubeMap, hdrTexture);
+    scene.setupIBL(envCubeMap);
     scene.setEnvMap(&envCubeMap);
 
     app.onRender([&](double now, double dt) {
@@ -258,10 +232,7 @@ int main(int argc, char** argv) {
         }
 
         // render all objects in scene
-        app.renderer.drawObjects(pbrShader, scene, camera);
-
-        // render skybox (render as last to prevent overdraw)
-        app.renderer.drawSkyBox(backgroundShader, scene, camera);
+        app.renderer.drawObjects(scene, camera);
 
         // render to screen
         app.renderer.drawToScreen(screenShader, screenWidth, screenHeight);

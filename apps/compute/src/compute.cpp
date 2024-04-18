@@ -2,11 +2,11 @@
 
 #include <imgui/imgui.h>
 
-#include <Shader.h>
-#include <ComputeShader.h>
+#include <Shaders/Shader.h>
+#include <Shaders/ComputeShader.h>
 #include <Texture.h>
 #include <Primatives/Primatives.h>
-#include <Model.h>
+#include <Primatives/Model.h>
 #include <CubeMap.h>
 #include <Scene.h>
 #include <Camera.h>
@@ -46,12 +46,14 @@ int main(int argc, char** argv) {
     });
 
     ComputeShader computeShader = ComputeShader({
-        .computeCodePath = "../assets/shaders/compute/test.comp"
+        .computeCodePath = "shaders/test.comp"
     });
 
     Shader screenShader = Shader({
-        .vertexCodePath = "../assets/shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../assets/shaders/postprocessing/displayTexture.frag"
+        .vertexCodeData = SHADER_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_DISPLAYTEXTURE_FRAG,
+        .fragmentCodeSize = SHADER_DISPLAYTEXTURE_FRAG_len
     });
 
     Texture outputTexture = Texture({

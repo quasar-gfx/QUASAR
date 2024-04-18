@@ -3,12 +3,12 @@
 
 #include <imgui/imgui.h>
 
-#include <Shader.h>
+#include <Shaders/Shader.h>
 #include <Texture.h>
 #include <Primatives/Primatives.h>
 #include <Materials/DiffSpecMaterial.h>
 #include <CubeMap.h>
-#include <Entity.h>
+#include <Primatives/Entity.h>
 #include <Scene.h>
 #include <Camera.h>
 #include <Framebuffer.h>
@@ -88,19 +88,11 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader skyboxShader({
-        .vertexCodePath = "../assets/shaders/cubemap/background.vert",
-        .fragmentCodePath = "../assets/shaders/cubemap/backgroundHDR.frag"
-    });
-
-    Shader shader({
-        .vertexCodePath = "../assets/shaders/diffuseSpecular.vert",
-        .fragmentCodePath = "../assets/shaders/diffuseSpecular.frag"
-    });;
-
     Shader screenShader({
-        .vertexCodePath = "../assets/shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../assets/shaders/postprocessing/displayVideo.frag"
+        .vertexCodeData = SHADER_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_DISPLAYVIDEO_FRAG,
+        .fragmentCodeSize = SHADER_DISPLAYVIDEO_FRAG_len
     });
 
     // lights
@@ -183,10 +175,7 @@ int main(int argc, char** argv) {
         poseStreamer.sendPose();
 
         // render all objects in scene
-        app.renderer.drawObjects(shader, scene, camera);
-
-        // render skybox (render as last to prevent overdraw)
-        app.renderer.drawSkyBox(skyboxShader, scene, camera);
+        app.renderer.drawObjects(scene, camera);
 
         // render video
         screenShader.bind();

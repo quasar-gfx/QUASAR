@@ -6,29 +6,31 @@
 
 #include <vector>
 
-#include <Shader.h>
+#include <Materials/Material.h>
 
 class Node;
+class Scene;
+class Camera;
 
-enum EntityType {
-    ENTITY_EMPTY,
-    ENTITY_MESH,
-    ENTITY_LIGHT
+enum class EntityType {
+    EMPTY,
+    MESH
 };
 
 class Entity {
 public:
+    Node* parentNode = nullptr;
+
     explicit Entity() {
         ID = nextID++;
     }
 
-    Node* parentNode = nullptr;
-
     int getID() { return ID; }
 
-    virtual void draw(Shader &shader) = 0;
+    virtual void bindSceneAndCamera(Scene& scene, Camera& camera, glm::mat4 model, Material* overrideMaterial = nullptr) = 0;
+    virtual void draw(Material* overrideMaterial = nullptr) = 0;
 
-    virtual EntityType getType() { return ENTITY_EMPTY; }
+    virtual EntityType getType() { return EntityType::EMPTY; }
 
 private:
     unsigned int ID;

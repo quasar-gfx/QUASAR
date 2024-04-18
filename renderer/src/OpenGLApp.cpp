@@ -4,7 +4,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <Entity.h>
+#include <Primatives/Entity.h>
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 

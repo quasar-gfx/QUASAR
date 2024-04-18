@@ -9,18 +9,18 @@
 #include <vector>
 #include <string>
 
-#include <Shader.h>
+#include <Shaders/Shader.h>
 #include <Texture.h>
 #include <Renderbuffer.h>
 #include <Camera.h>
 
 #define NUM_CUBEMAP_FACES 6
 
-enum CubeMapType {
-    CUBE_MAP_STANDARD,
-    CUBE_MAP_SHADOW,
-    CUBE_MAP_HDR,
-    CUBE_MAP_PREFILTER
+enum class CubeMapType {
+    STANDARD,
+    SHADOW,
+    HDR,
+    PREFILTER
 };
 
 struct CubeMapCreateParams {

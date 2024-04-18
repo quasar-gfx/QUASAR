@@ -193,7 +193,7 @@ public:
         glGenFramebuffers(1, &ID);
         glBindFramebuffer(GL_FRAMEBUFFER, ID);
 
-        depthCubeMap.init(width, height, CUBE_MAP_SHADOW);
+        depthCubeMap.init(width, height, CubeMapType::SHADOW);
 
         glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthCubeMap.ID, 0);
 

@@ -33,16 +33,16 @@ void Scene::bindPBREnvMap(Shader &shader) {
     brdfLUT.bind(Mesh::numTextures + 2);
 }
 
-void Scene::equirectToCubeMap(CubeMap &envCubeMap, Texture &hdrTexture, Shader &equirectToCubeMapShader) {
+void Scene::equirectToCubeMap(CubeMap &envCubeMap, Texture &hdrTexture) {
     captureFramebuffer.createColorAndDepthBuffers(envCubeMap.width, envCubeMap.height);
     captureRenderBuffer.create(envCubeMap.width, envCubeMap.height, GL_DEPTH_COMPONENT24);
 
     captureFramebuffer.bind();
-    envCubeMap.loadFromEquirectTexture(equirectToCubeMapShader, hdrTexture);
+    envCubeMap.loadFromEquirectTexture(*equirectToCubeMapShader, hdrTexture);
     captureFramebuffer.unbind();
 }
 
-void Scene::setupIBL(CubeMap &envCubeMap, Shader &convolutionShader, Shader &prefilterShader, Shader &brdfShader) {
+void Scene::setupIBL(CubeMap &envCubeMap) {
     hasPBREnvMap = true;
 
     glDisable(GL_BLEND);
@@ -52,11 +52,11 @@ void Scene::setupIBL(CubeMap &envCubeMap, Shader &convolutionShader, Shader &pre
     captureRenderBuffer.resize(irradianceCubeMap.width, irradianceCubeMap.height);
 
     captureFramebuffer.bind();
-    irradianceCubeMap.convolve(convolutionShader, envCubeMap);
+    irradianceCubeMap.convolve(*convolutionShader, envCubeMap);
     captureFramebuffer.unbind();
 
     captureFramebuffer.bind();
-    prefilterCubeMap.prefilter(prefilterShader, envCubeMap, captureRenderBuffer);
+    prefilterCubeMap.prefilter(*prefilterShader, envCubeMap, captureRenderBuffer);
     captureFramebuffer.unbind();
 
     brdfLUT = Texture({
@@ -77,10 +77,10 @@ void Scene::setupIBL(CubeMap &envCubeMap, Shader &convolutionShader, Shader &pre
     captureRenderBuffer.resize(prefilterCubeMap.width, prefilterCubeMap.height);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUT.ID, 0);
 
-    brdfShader.bind();
+    brdfShader->bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     brdfFsQuad.draw();
-    brdfShader.unbind();
+    brdfShader->unbind();
 
     captureFramebuffer.unbind();
 

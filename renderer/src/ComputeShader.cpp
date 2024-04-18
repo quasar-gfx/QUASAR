@@ -2,7 +2,7 @@
 #include <sstream>
 #include <iostream>
 
-#include <ComputeShader.h>
+#include <Shaders/ComputeShader.h>
 
 void ComputeShader::loadFromFile(std::string computePath) {
     std::ifstream computeFile;
@@ -18,27 +18,28 @@ void ComputeShader::loadFromFile(std::string computePath) {
 
         std::string computeCode = computeStream.str();
         const char* computeCodeCStr = computeCode.c_str();
-        loadFromData(computeCodeCStr);
+        unsigned int computeCodeSize = computeCode.size();
+        loadFromData(computeCodeCStr, computeCodeSize);
     }
     catch (std::ifstream::failure e) {
         std::cerr << "Failed to read compute shader file: " << computePath << std::endl;
     }
 }
 
-void ComputeShader::loadFromData(const char* computeData) {
-    createAndCompileProgram(computeData);
+void ComputeShader::loadFromData(const char* computeCodeData, const GLint computeCodeSize) {
+    createAndCompileProgram(computeCodeData, computeCodeSize);
 }
 
-void ComputeShader::createAndCompileProgram(const char* computeData) {
+void ComputeShader::createAndCompileProgram(const char* computeCodeData, const GLint computeCodeSize) {
     GLuint compute = glCreateShader(GL_COMPUTE_SHADER);
-    glShaderSource(compute, 1, &computeData, NULL);
+    glShaderSource(compute, 1, &computeCodeData, &computeCodeSize);
     glCompileShader(compute);
-    checkCompileErrors(compute, SHADER_COMPUTE);
+    checkCompileErrors(compute, ShaderType::COMPUTE);
 
     ID = glCreateProgram();
     glAttachShader(ID, compute);
     glLinkProgram(ID);
-    checkCompileErrors(ID, SHADER_PROGRAM);
+    checkCompileErrors(ID, ShaderType::PROGRAM);
 
     glDeleteShader(compute);
 }

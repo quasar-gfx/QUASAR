@@ -12,38 +12,45 @@
 
 #include <OpenGLObject.h>
 
+#include <shaders.h>
+
+enum class ShaderType {
+    PROGRAM,
+    VERTEX,
+    FRAGMENT,
+    GEOMETRY,
+    COMPUTE
+};
+
 struct ShaderCreateParams {
     std::string vertexCodePath = "";
     std::string fragmentCodePath = "";
     std::string geometryCodePath = "";
-    const char* vertexData = nullptr;
-    const char* fragmentData = nullptr;
+    const char* vertexCodeData = nullptr;
+    unsigned int vertexCodeSize = 0;
+    const char* fragmentCodeData = nullptr;
+    unsigned int fragmentCodeSize = 0;
     const char* geometryData = nullptr;
+    unsigned int geometryDataSize = 0;
 };
 
 class Shader : public OpenGLObject {
 public:
-    enum ShaderType {
-        SHADER_PROGRAM,
-        SHADER_VERTEX,
-        SHADER_FRAGMENT,
-        SHADER_GEOMETRY,
-        SHADER_COMPUTE
-    };
-
     explicit Shader() = default;
 
     explicit Shader(const ShaderCreateParams& params) {
-        if (params.vertexData != nullptr && params.fragmentData != nullptr) {
-            loadFromData(params.vertexData, params.fragmentData, params.geometryData);
+        if (params.vertexCodeData != nullptr && params.fragmentCodeData != nullptr) {
+            loadFromData(params.vertexCodeData, params.vertexCodeSize, params.fragmentCodeData, params.fragmentCodeSize, params.geometryData, params.geometryDataSize);
         }
         else {
-            loadFromFile(params.vertexCodePath, params.fragmentCodePath, params.geometryCodePath);
+            loadFromFile(params.vertexCodePath, params.fragmentCodeData, params.geometryCodePath);
         }
     }
 
     void loadFromFile(const std::string vertexPath, const std::string fragmentPath, const std::string geometryPath = "");
-    void loadFromData(const char* vertexData, const char* fragmentData, const char* geometryData = nullptr);
+    void loadFromData(const char* vertexCodeData, const GLint vertexCodeSize,
+                      const char* fragmentCodeData, const GLint fragmentCodeSize,
+                      const char* geometryData = nullptr, const GLint geometryDataSize = 0);
 
     ~Shader() {
         cleanup();
@@ -107,7 +114,9 @@ public:
     }
 
 private:
-    void createAndCompileProgram(const char* vertexData, const char* fragmentData, const char* geometryData = nullptr);
+    void createAndCompileProgram(const char* vertexCodeData, const GLint vertexCodeSize,
+                                 const char* fragmentCodeData, const GLint fragmentCodeSize,
+                                 const char* geometryData = nullptr, const GLint geometryDataSize = 0);
 
 protected:
     void checkCompileErrors(GLuint shader, ShaderType type);

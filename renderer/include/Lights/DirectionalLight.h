@@ -3,6 +3,7 @@
 
 #include <Lights/Light.h>
 #include <Framebuffer.h>
+#include <Materials/DirShadowMapMaterial.h>
 
 struct DirectionalLightCreateParams {
     glm::vec3 color = glm::vec3(1.0f);
@@ -23,6 +24,7 @@ public:
     glm::mat4 lightSpaceMatrix = glm::mat4(0.0);
 
     DirLightShadowBuffer shadowMapFramebuffer;
+    DirShadowMapMaterial shadowMapMaterial;
 
     explicit DirectionalLight(const DirectionalLightCreateParams &params)
             : direction(params.direction), orthoBoxSize(params.orthoBoxSize), Light(params.color, params.intensity, params.zNear, params.zFar) {
@@ -30,10 +32,10 @@ public:
         updateLightView();
     }
 
-    void draw(Shader &shader) {
-        shader.setVec3("directionalLight.direction", direction);
-        shader.setVec3("directionalLight.color", color);
-        shader.setFloat("directionalLight.intensity", intensity);
+    void bindMaterial(Material &material) override {
+        material.shader->setVec3("directionalLight.direction", direction);
+        material.shader->setVec3("directionalLight.color", color);
+        material.shader->setFloat("directionalLight.intensity", intensity);
     }
 
     void setDirection(const glm::vec3 &direction) {

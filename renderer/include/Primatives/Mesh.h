@@ -11,10 +11,12 @@
 #include <string>
 #include <vector>
 
-#include <Shader.h>
+#include <Shaders/Shader.h>
 #include <Texture.h>
-#include <Entity.h>
+#include <Primatives/Entity.h>
 #include <Materials/Material.h>
+#include <Scene.h>
+#include <Camera.h>
 
 enum VertexAttribute {
     ATTRIBUTE_POSITION   = 0,
@@ -70,13 +72,14 @@ public:
         init();
     }
 
-    void draw(Shader &shader) override;
+    void bindSceneAndCamera(Scene& scene, Camera& camera, glm::mat4 model, Material* overrideMaterial = nullptr) override;
+    void draw(Material* overrideMaterial) override;
 
     void cleanup() {
         material->cleanup();
     }
 
-    EntityType getType() override { return ENTITY_MESH; }
+    EntityType getType() override { return EntityType::MESH; }
 
     static const unsigned int numTextures = 5;
 

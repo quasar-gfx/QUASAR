@@ -27,10 +27,19 @@ DiffSpecMaterial::DiffSpecMaterial(const DiffSpecMaterialCreateParams &params) {
     }
 
     shininess = params.shininess;
+
+    ShaderCreateParams diffSpecShaderParams{
+        .vertexCodeData = SHADER_DIFFUSESPECULAR_VERT,
+        .vertexCodeSize = SHADER_DIFFUSESPECULAR_VERT_len,
+        .fragmentCodeData = SHADER_DIFFUSESPECULAR_FRAG,
+        .fragmentCodeSize = SHADER_DIFFUSESPECULAR_FRAG_len
+    };
+    shader = std::make_shared<Shader>(diffSpecShaderParams);
 }
 
-void DiffSpecMaterial::bind(Shader &shader) {
-    shader.setFloat("shininess", shininess);
+void DiffSpecMaterial::bind() {
+    shader->bind();
+    shader->setFloat("shininess", shininess);
 
     std::string name;
     for (int i = 0; i < textures.size(); i++) {
@@ -46,21 +55,7 @@ void DiffSpecMaterial::bind(Shader &shader) {
             break;
         }
 
-        shader.setInt(name, i);
+        shader->setInt(name, i);
         glBindTexture(GL_TEXTURE_2D, textures[i]);
-    }
-}
-
-void DiffSpecMaterial::unbind() {
-    for (int i = 0; i < textures.size(); i++) {
-        glActiveTexture(GL_TEXTURE0 + i);
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }
-}
-
-void DiffSpecMaterial::cleanup() {
-    for (auto &textureID : textures) {
-        if (textureID == 0) continue;
-        glDeleteTextures(1, &textureID);
     }
 }

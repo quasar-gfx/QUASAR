@@ -19,10 +19,7 @@ public:
 
     DiffSpecMaterial(const DiffSpecMaterialCreateParams &params);
 
-    void bind(Shader &shader) override;
-    void unbind() override;
-
-    void cleanup() override;
+    void bind() override;
 
     static const unsigned int numTextures = 2;
 };

@@ -14,10 +14,10 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-#include <Shader.h>
+#include <Shaders/Shader.h>
 #include <Primatives/Mesh.h>
 #include <Materials/PBRMaterial.h>
-#include <Entity.h>
+#include <Primatives/Entity.h>
 
 struct ModelCreateParams {
     std::string path;
@@ -49,9 +49,10 @@ public:
         loadFromFile(params);
     }
 
-    void draw(Shader &shader) override;
+    void bindSceneAndCamera(Scene& scene, Camera& camera, glm::mat4 model, Material* overrideMaterial = nullptr) override;
+    void draw(Material* overrideMaterial) override;
 
-    EntityType getType() override { return ENTITY_MESH; }
+    EntityType getType() override { return EntityType::MESH; }
 
 private:
     const aiScene* scene;

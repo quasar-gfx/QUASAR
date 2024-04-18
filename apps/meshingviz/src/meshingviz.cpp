@@ -2,11 +2,12 @@
 
 #include <imgui/imgui.h>
 
-#include <Shader.h>
+#include <Shaders/Shader.h>
 #include <Texture.h>
 #include <Primatives/Primatives.h>
+#include <Materials/TexturedMaterial.h>
 #include <Materials/PBRMaterial.h>
-#include <Model.h>
+#include <Primatives/Model.h>
 #include <CubeMap.h>
 #include <Scene.h>
 #include <Camera.h>
@@ -27,7 +28,7 @@ int createMesh(Mesh* mesh, std::string label, bool renderPointcloud) {
         return -1;
     }
 
-    Texture albedoTexture = Texture({
+    Texture diffuseTexture = Texture({
         .wrapS = GL_REPEAT,
         .wrapT = GL_REPEAT,
         .minFilter = GL_LINEAR_MIPMAP_LINEAR,
@@ -35,8 +36,8 @@ int createMesh(Mesh* mesh, std::string label, bool renderPointcloud) {
         .path = "../meshing/imgs/color_" + label + "_0.png"
     });
 
-    unsigned int width = albedoTexture.width;
-    unsigned int height = albedoTexture.height;
+    unsigned int width = diffuseTexture.width;
+    unsigned int height = diffuseTexture.height;
     unsigned int idx = 0;
     while (file) {
         Vertex vertex;
@@ -49,7 +50,7 @@ int createMesh(Mesh* mesh, std::string label, bool renderPointcloud) {
 
     *mesh = Mesh({
         .vertices = vertices,
-        .material = new PBRMaterial({ .albedoTextureID = albedoTexture.ID }),
+        .material = new TexturedMaterial({ .diffuseTextureID = diffuseTexture.ID }),
         .pointcloud = renderPointcloud
     });
 
@@ -106,20 +107,11 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader pbrShader = Shader({
-        .vertexCodePath = "../assets/shaders/diffuseSpecular.vert",
-        .fragmentCodePath = "../assets/shaders/textured.frag"
-    });
-
     Shader screenShader({
-        .vertexCodePath = "../assets/shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../assets/shaders/postprocessing/displayColor.frag"
-    });
-
-    // background skybox shader
-    Shader backgroundShader({
-        .vertexCodePath = "../assets/shaders/cubemap/background.vert",
-        .fragmentCodePath = "../assets/shaders/cubemap/backgroundNoHDR.frag"
+        .vertexCodeData = SHADER_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_DISPLAYCOLOR_FRAG,
+        .fragmentCodeSize = SHADER_DISPLAYCOLOR_FRAG_len
     });
 
     // textures
@@ -245,10 +237,7 @@ int main(int argc, char** argv) {
         }
 
         // render all objects in scene
-        app.renderer.drawObjects(pbrShader, scene, camera);
-
-        // render skybox (render as last to prevent overdraw)
-        app.renderer.drawSkyBox(backgroundShader, scene, camera);
+        app.renderer.drawObjects(scene, camera);
 
         // render to screen
         app.renderer.drawToScreen(screenShader, screenWidth, screenHeight);
