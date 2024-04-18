@@ -18,20 +18,21 @@ void ComputeShader::loadFromFile(std::string computePath) {
 
         std::string computeCode = computeStream.str();
         const char* computeCodeCStr = computeCode.c_str();
-        loadFromData(computeCodeCStr);
+        unsigned int computeDataSize = computeCode.size();
+        loadFromData(computeCodeCStr, computeDataSize);
     }
     catch (std::ifstream::failure e) {
         std::cerr << "Failed to read compute shader file: " << computePath << std::endl;
     }
 }
 
-void ComputeShader::loadFromData(const char* computeData) {
-    createAndCompileProgram(computeData);
+void ComputeShader::loadFromData(const char* computeData, const GLint computeDataSize) {
+    createAndCompileProgram(computeData, computeDataSize);
 }
 
-void ComputeShader::createAndCompileProgram(const char* computeData) {
+void ComputeShader::createAndCompileProgram(const char* computeData, const GLint computeDataSize) {
     GLuint compute = glCreateShader(GL_COMPUTE_SHADER);
-    glShaderSource(compute, 1, &computeData, NULL);
+    glShaderSource(compute, 1, &computeData, &computeDataSize);
     glCompileShader(compute);
     checkCompileErrors(compute, SHADER_COMPUTE);
 

@@ -17,8 +17,11 @@ struct ShaderCreateParams {
     std::string fragmentCodePath = "";
     std::string geometryCodePath = "";
     const char* vertexData = nullptr;
+    unsigned int vertexDataSize = 0;
     const char* fragmentData = nullptr;
+    unsigned int fragmentDataSize = 0;
     const char* geometryData = nullptr;
+    unsigned int geometryDataSize = 0;
 };
 
 class Shader : public OpenGLObject {
@@ -35,15 +38,17 @@ public:
 
     explicit Shader(const ShaderCreateParams& params) {
         if (params.vertexData != nullptr && params.fragmentData != nullptr) {
-            loadFromData(params.vertexData, params.fragmentData, params.geometryData);
+            loadFromData(params.vertexData, params.vertexDataSize, params.fragmentData, params.fragmentDataSize, params.geometryData, params.geometryDataSize);
         }
         else {
-            loadFromFile(params.vertexCodePath, params.fragmentCodePath, params.geometryCodePath);
+            loadFromFile(params.vertexCodePath, params.fragmentData, params.geometryCodePath);
         }
     }
 
     void loadFromFile(const std::string vertexPath, const std::string fragmentPath, const std::string geometryPath = "");
-    void loadFromData(const char* vertexData, const char* fragmentData, const char* geometryData = nullptr);
+    void loadFromData(const char* vertexData, const GLint vertexDataSize,
+                      const char* fragmentData, const GLint fragmentDataSize,
+                      const char* geometryData = nullptr, const GLint geometryDataSize = 0);
 
     ~Shader() {
         cleanup();
@@ -107,7 +112,9 @@ public:
     }
 
 private:
-    void createAndCompileProgram(const char* vertexData, const char* fragmentData, const char* geometryData = nullptr);
+    void createAndCompileProgram(const char* vertexData, const GLint vertexDataSize,
+                                 const char* fragmentData, const GLint fragmentDataSize,
+                                 const char* geometryData = nullptr, const GLint geometryDataSize = 0);
 
 protected:
     void checkCompileErrors(GLuint shader, ShaderType type);

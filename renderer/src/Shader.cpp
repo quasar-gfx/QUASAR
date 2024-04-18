@@ -48,23 +48,31 @@ void Shader::loadFromFile(const std::string vertexPath, const std::string fragme
     const char* fShaderCode = fragmentCode.c_str();
     const char* gShaderCode = geometryPath != "" ? geometryCode.c_str() : nullptr;
 
-    createAndCompileProgram(vShaderCode, fShaderCode, gShaderCode);
+    unsigned int vertexDataSize = vertexCode.size();
+    unsigned int fragmentDataSize = fragmentCode.size();
+    unsigned int geometryDataSize = geometryPath != "" ? geometryCode.size() : 0;
+
+    createAndCompileProgram(vShaderCode, vertexDataSize, fShaderCode, fragmentDataSize, gShaderCode, geometryDataSize);
 }
 
-void Shader::loadFromData(const char* vertexData, const char* fragmentData, const char* geometryData) {
-    createAndCompileProgram(vertexData, fragmentData, geometryData);
+void Shader::loadFromData(const char* vertexData, const GLint vertexDataSize,
+                          const char* fragmentData, const GLint fragmentDataSize,
+                          const char* geometryData, const GLint geometryDataSize) {
+    createAndCompileProgram(vertexData, vertexDataSize, fragmentData, fragmentDataSize, geometryData, geometryDataSize);
 }
 
-void Shader::createAndCompileProgram(const char* vertexData, const char* fragmentData, const char* geometryData) {
+void Shader::createAndCompileProgram(const char* vertexData, const GLint vertexDataSize,
+                                     const char* fragmentData, const GLint fragmentDataSize,
+                                     const char* geometryData, const GLint geometryDataSize) {
     // compile vertex shader
     GLuint vertex = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex, 1, &vertexData, NULL);
+    glShaderSource(vertex, 1, &vertexData, &vertexDataSize);
     glCompileShader(vertex);
     checkCompileErrors(vertex, SHADER_VERTEX);
 
     // compile fragment shader
     GLuint fragment = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment, 1, &fragmentData, NULL);
+    glShaderSource(fragment, 1, &fragmentData, &fragmentDataSize);
     glCompileShader(fragment);
     checkCompileErrors(fragment, SHADER_FRAGMENT);
 
@@ -72,7 +80,7 @@ void Shader::createAndCompileProgram(const char* vertexData, const char* fragmen
     GLuint geometry;
     if (geometryData != nullptr) {
         geometry = glCreateShader(GL_GEOMETRY_SHADER);
-        glShaderSource(geometry, 1, &geometryData, NULL);
+        glShaderSource(geometry, 1, &geometryData, &geometryDataSize);
         glCompileShader(geometry);
         checkCompileErrors(geometry, SHADER_GEOMETRY);
     }

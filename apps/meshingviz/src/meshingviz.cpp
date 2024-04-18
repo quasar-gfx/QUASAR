@@ -16,6 +16,7 @@
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 #include <Windowing/GLFWWindow.h>
+#include <shaders.h>
 
 const std::string BACKPACK_MODEL_PATH = "../assets/models/backpack/backpack.obj";
 
@@ -106,20 +107,26 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader pbrShader = Shader({
-        .vertexCodePath = "../assets/shaders/diffuseSpecular.vert",
-        .fragmentCodePath = "../assets/shaders/textured.frag"
+    Shader diffuseShader = Shader({
+        .vertexData = SHADER_DIFFUSESPECULAR_VERT,
+        .vertexDataSize = SHADER_DIFFUSESPECULAR_VERT_len,
+        .fragmentData = SHADER_TEXTURED_FRAG,
+        .fragmentDataSize = SHADER_TEXTURED_FRAG_len
     });
 
     Shader screenShader({
-        .vertexCodePath = "../assets/shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../assets/shaders/postprocessing/displayColor.frag"
+        .vertexData = SHADER_POSTPROCESS_VERT,
+        .vertexDataSize = SHADER_POSTPROCESS_VERT_len,
+        .fragmentData = SHADER_DISPLAYCOLOR_FRAG,
+        .fragmentDataSize = SHADER_DISPLAYCOLOR_FRAG_len
     });
 
     // background skybox shader
     Shader backgroundShader({
-        .vertexCodePath = "../assets/shaders/cubemap/background.vert",
-        .fragmentCodePath = "../assets/shaders/cubemap/backgroundNoHDR.frag"
+        .vertexData = SHADER_BACKGROUND_VERT,
+        .vertexDataSize = SHADER_BACKGROUND_VERT_len,
+        .fragmentData = SHADER_BACKGROUNDNOHDR_FRAG,
+        .fragmentDataSize = SHADER_BACKGROUNDNOHDR_FRAG_len
     });
 
     // textures
@@ -245,7 +252,7 @@ int main(int argc, char** argv) {
         }
 
         // render all objects in scene
-        app.renderer.drawObjects(pbrShader, scene, camera);
+        app.renderer.drawObjects(diffuseShader, scene, camera);
 
         // render skybox (render as last to prevent overdraw)
         app.renderer.drawSkyBox(backgroundShader, scene, camera);

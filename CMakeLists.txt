@@ -12,6 +12,7 @@ ENDIF(NOT CMAKE_BUILD_TYPE)
 set (CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE} -ldl")
 
 set(RENDERER ${CMAKE_CURRENT_SOURCE_DIR}/renderer)
+set(SHADERS ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
 set(EXTERNAL ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 
 # set required libs
@@ -38,16 +39,20 @@ set(RENDERER_LIBS ${RENDERER_LIBS} imgui)
 add_subdirectory(${EXTERNAL}/stb/tnt)
 set(RENDERER_LIBS ${RENDERER_LIBS} stb)
 
+add_subdirectory(${SHADERS})
+
 # include directories
 include_directories(
     ${OPENGL_INCLUDE_DIRS}
     ${GLFW_INCLUDE_DIRS}
     ${RENDERER}/include
     ${EXTERNAL}
+    ${CMAKE_BINARY_DIR}/shaders
 )
 
 # add and link renderer library
 add_subdirectory(${RENDERER})
+add_dependencies(renderer shaders)
 target_link_libraries(renderer ${RENDERER_LIBS})
 
 # add apps

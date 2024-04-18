@@ -10,13 +10,14 @@
 struct ComputeShaderCreateParams {
     std::string computeCodePath = "";
     const char* computeData = nullptr;
+    unsigned int computeDataSize = 0;
 };
 
 class ComputeShader : public Shader {
 public:
     explicit ComputeShader(const ComputeShaderCreateParams& params) {
         if (params.computeData != nullptr) {
-            loadFromData(params.computeData);
+            loadFromData(params.computeData, params.computeDataSize);
         }
         else {
             loadFromFile(params.computeCodePath);
@@ -24,7 +25,7 @@ public:
     }
 
     void loadFromFile(std::string computePath);
-    void loadFromData(const char* computeData);
+    void loadFromData(const char* computeData, const GLint computeDataSize);
 
     void dispatch(GLuint numGroupsX, GLuint numGroupsY, GLuint numGroupsZ);
 
@@ -33,7 +34,7 @@ public:
     }
 
 private:
-    void createAndCompileProgram(const char* computeData);
+    void createAndCompileProgram(const char* computeData, const GLint computeDataSize);
 };
 
 #endif // COMPUTE_SHADER_H

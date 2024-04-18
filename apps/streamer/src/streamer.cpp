@@ -15,6 +15,7 @@
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 #include <Windowing/GLFWWindow.h>
+#include <shaders.h>
 
 #include <VideoStreamer.h>
 #include <PoseReceiver.h>
@@ -85,54 +86,73 @@ int main(int argc, char** argv) {
 
     // shaders
     Shader pbrShader({
-        .vertexCodePath = "../assets/shaders/pbr/pbr.vert",
-        .fragmentCodePath = "../assets/shaders/pbr/pbr.frag"
+        .vertexData = SHADER_PBR_VERT,
+        .vertexDataSize = SHADER_PBR_VERT_len,
+        .fragmentData = SHADER_PBR_FRAG,
+        .fragmentDataSize = SHADER_PBR_FRAG_len
     });
 
     // converts HDR equirectangular environment map to cubemap equivalent
     Shader equirectToCubeMapShader({
-        .vertexCodePath = "../assets/shaders/cubemap/cubemap.vert",
-        .fragmentCodePath = "../assets/shaders/cubemap/equirectangular2cubemap.frag"
+        .vertexData = SHADER_CUBEMAP_VERT,
+        .vertexDataSize = SHADER_CUBEMAP_VERT_len,
+        .fragmentData = SHADER_EQUIRECTANGULAR2CUBEMAP_FRAG,
+        .fragmentDataSize = SHADER_EQUIRECTANGULAR2CUBEMAP_FRAG_len
     });
 
     // solves diffuse integral by convolution to create an irradiance cubemap
     Shader convolutionShader({
-        .vertexCodePath = "../assets/shaders/cubemap/cubemap.vert",
-        .fragmentCodePath = "../assets/shaders/pbr/irradianceConvolution.frag"
+        .vertexData = SHADER_CUBEMAP_VERT,
+        .vertexDataSize = SHADER_CUBEMAP_VERT_len,
+        .fragmentData = SHADER_IRRADIANCECONVOLUTION_FRAG,
+        .fragmentDataSize = SHADER_IRRADIANCECONVOLUTION_FRAG_len
     });
 
     // runs a quasi monte-carlo simulation on the environment lighting to create a prefilter cubemap
     Shader prefilterShader({
-        .vertexCodePath = "../assets/shaders/cubemap/cubemap.vert",
-        .fragmentCodePath = "../assets/shaders/pbr/prefilter.frag"
+        .vertexData = SHADER_CUBEMAP_VERT,
+        .vertexDataSize = SHADER_CUBEMAP_VERT_len,
+        .fragmentData = SHADER_PREFILTER_FRAG,
+        .fragmentDataSize = SHADER_PREFILTER_FRAG_len
     });
 
     // BRDF shader
     Shader brdfShader({
-        .vertexCodePath = "../assets/shaders/pbr/brdf.vert",
-        .fragmentCodePath = "../assets/shaders/pbr/brdf.frag"
+        .vertexData = SHADER_BRDF_VERT,
+        .vertexDataSize = SHADER_BRDF_VERT_len,
+        .fragmentData = SHADER_BRDF_FRAG,
+        .fragmentDataSize = SHADER_BRDF_FRAG_len
     });
 
     // background skybox shader
     Shader backgroundShader({
-        .vertexCodePath = "../assets/shaders/cubemap/background.vert",
-        .fragmentCodePath = "../assets/shaders/cubemap/backgroundHDR.frag"
+        .vertexData = SHADER_BACKGROUND_VERT,
+        .vertexDataSize = SHADER_BACKGROUND_VERT_len,
+        .fragmentData = SHADER_BACKGROUNDHDR_FRAG,
+        .fragmentDataSize = SHADER_BACKGROUNDHDR_FRAG_len
     });
 
     Shader dirLightShadowsShader({
-        .vertexCodePath = "../assets/shaders/shadows/dirShadow.vert",
-        .fragmentCodePath = "../assets/shaders/shadows/dirShadow.frag"
+        .vertexData = SHADER_DIRSHADOW_VERT,
+        .vertexDataSize = SHADER_DIRSHADOW_VERT_len,
+        .fragmentData = SHADER_DIRSHADOW_FRAG,
+        .fragmentDataSize = SHADER_DIRSHADOW_FRAG_len
     });
 
     Shader pointLightShadowsShader({
-        .vertexCodePath = "../assets/shaders/shadows/pointShadow.vert",
-        .fragmentCodePath = "../assets/shaders/shadows/pointShadow.frag",
-        .geometryCodePath = "../assets/shaders/shadows/pointShadow.geom"
+        .vertexData = SHADER_POINTSHADOW_VERT,
+        .vertexDataSize = SHADER_POINTSHADOW_VERT_len,
+        .fragmentData = SHADER_POINTSHADOW_FRAG,
+        .fragmentDataSize = SHADER_POINTSHADOW_FRAG_len,
+        .geometryData = SHADER_POINTSHADOW_GEOM,
+        .geometryDataSize = SHADER_POINTSHADOW_GEOM_len
     });
 
     Shader screenShader({
-        .vertexCodePath = "../assets/shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../assets/shaders/postprocessing/displayColor.frag"
+        .vertexData = SHADER_POSTPROCESS_VERT,
+        .vertexDataSize = SHADER_POSTPROCESS_VERT_len,
+        .fragmentData = SHADER_DISPLAYCOLOR_FRAG,
+        .fragmentDataSize = SHADER_DISPLAYCOLOR_FRAG_len
     });
 
     // materials

@@ -16,6 +16,7 @@
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 #include <Windowing/GLFWWindow.h>
+#include <shaders.h>
 
 #include <VideoTexture.h>
 #include <PoseStreamer.h>
@@ -89,18 +90,24 @@ int main(int argc, char** argv) {
 
     // shaders
     Shader skyboxShader({
-        .vertexCodePath = "../assets/shaders/cubemap/background.vert",
-        .fragmentCodePath = "../assets/shaders/cubemap/backgroundHDR.frag"
+        .vertexData = SHADER_BACKGROUND_VERT,
+        .vertexDataSize = SHADER_BACKGROUND_VERT_len,
+        .fragmentData = SHADER_BACKGROUNDHDR_FRAG,
+        .fragmentDataSize = SHADER_BACKGROUNDHDR_FRAG_len
     });
 
     Shader shader({
-        .vertexCodePath = "../assets/shaders/diffuseSpecular.vert",
-        .fragmentCodePath = "../assets/shaders/diffuseSpecular.frag"
-    });;
+        .vertexData = SHADER_DIFFUSESPECULAR_VERT,
+        .vertexDataSize = SHADER_DIFFUSESPECULAR_VERT_len,
+        .fragmentData = SHADER_DIFFUSESPECULAR_FRAG,
+        .fragmentDataSize = SHADER_DIFFUSESPECULAR_FRAG_len
+    });
 
     Shader screenShader({
-        .vertexCodePath = "../assets/shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../assets/shaders/postprocessing/displayVideo.frag"
+        .vertexData = SHADER_POSTPROCESS_VERT,
+        .vertexDataSize = SHADER_POSTPROCESS_VERT_len,
+        .fragmentData = SHADER_DISPLAYVIDEO_FRAG,
+        .fragmentDataSize = SHADER_DISPLAYVIDEO_FRAG_len
     });
 
     // lights

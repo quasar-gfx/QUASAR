@@ -16,6 +16,7 @@
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 #include <Windowing/GLFWWindow.h>
+#include <shaders.h>
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
@@ -46,12 +47,15 @@ int main(int argc, char** argv) {
     });
 
     ComputeShader computeShader = ComputeShader({
-        .computeCodePath = "../assets/shaders/compute/test.comp"
+        .computeData = SHADER_TEST_COMP,
+        .computeDataSize = SHADER_TEST_COMP_len
     });
 
     Shader screenShader = Shader({
-        .vertexCodePath = "../assets/shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../assets/shaders/postprocessing/displayTexture.frag"
+        .vertexData = SHADER_POSTPROCESS_VERT,
+        .vertexDataSize = SHADER_POSTPROCESS_VERT_len,
+        .fragmentData = SHADER_DISPLAYTEXTURE_FRAG,
+        .fragmentDataSize = SHADER_DISPLAYTEXTURE_FRAG_len
     });
 
     Texture outputTexture = Texture({
