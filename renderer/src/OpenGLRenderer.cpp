@@ -17,6 +17,15 @@ void OpenGLRenderer::init(unsigned int width, unsigned int height) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+    // background skybox shader
+    ShaderCreateParams skyboxShaderParams = {
+        .vertexData = SHADER_SKYBOX_VERT,
+        .vertexDataSize = SHADER_SKYBOX_VERT_len,
+        .fragmentData = SHADER_SKYBOX_FRAG,
+        .fragmentDataSize = SHADER_SKYBOX_FRAG_len
+    };
+    skyboxShader = std::make_shared<Shader>(skyboxShaderParams);
+
     outputFsQuad.init();
     gBuffer.createBuffers(width, height);
 }
@@ -65,20 +74,27 @@ void OpenGLRenderer::updatePointLightShadows(Scene &scene, Camera &camera) {
     }
 }
 
-void OpenGLRenderer::drawSkyBox(Shader &backgroundShader, Scene &scene, Camera &camera) {
+void OpenGLRenderer::drawSkyBox(Scene &scene, Camera &camera) {
+    if (scene.envCubeMap == nullptr) {
+        return;
+    }
+
     gBuffer.bind();
     // dont clear color or depth bit here, since we want this to draw over
 
-    backgroundShader.bind();
-    backgroundShader.setInt("environmentMap", 0);
-    backgroundShader.setMat4("view", camera.getViewMatrix());
-    backgroundShader.setMat4("projection", camera.getProjectionMatrix());
+    bool isHDR = (scene.envCubeMap->type == CUBE_MAP_HDR);
+
+    skyboxShader->bind();
+    skyboxShader->setInt("environmentMap", 0);
+    skyboxShader->setMat4("view", camera.getViewMatrix());
+    skyboxShader->setMat4("projection", camera.getProjectionMatrix());
+    skyboxShader->setBool("isHDR", isHDR);
 
     if (scene.envCubeMap != nullptr) {
-        scene.envCubeMap->draw(backgroundShader, camera);
+        scene.envCubeMap->draw(*skyboxShader, camera);
     }
 
-    backgroundShader.unbind();
+    skyboxShader->unbind();
 
     gBuffer.unbind();
 }
@@ -96,6 +112,8 @@ void OpenGLRenderer::drawObjects(Scene &scene, Camera &camera) {
     for (auto& child : scene.children) {
         drawNode(scene, camera, child, glm::mat4(1.0f));
     }
+
+    drawSkyBox(scene, camera);
 
     // now bind back to default gBuffer and draw a quad plane with the attached gBuffer color texture
     gBuffer.unbind();

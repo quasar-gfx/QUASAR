@@ -24,13 +24,15 @@ public:
     FullScreenQuad outputFsQuad;
     GeometryBuffer gBuffer;
 
+    std::shared_ptr<Shader> skyboxShader;
+
     explicit OpenGLRenderer() = default;
     ~OpenGLRenderer() = default;
 
     void init(unsigned int width, unsigned int height);
     void updateDirLightShadow(Scene &scene, Camera &camera);
     void updatePointLightShadows(Scene &scene, Camera &camera);
-    void drawSkyBox(Shader &shader, Scene &scene, Camera &camera);
+    void drawSkyBox(Scene &scene, Camera &camera);
     void drawObjects(Scene &scene, Camera &camera);
     void drawToScreen(Shader &screenShader, unsigned int screenWidth, unsigned int screenHeight);
 

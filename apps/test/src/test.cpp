@@ -68,14 +68,6 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    // background skybox shader
-    Shader backgroundShader({
-        .vertexData = SHADER_BACKGROUND_VERT,
-        .vertexDataSize = SHADER_BACKGROUND_VERT_len,
-        .fragmentData = SHADER_BACKGROUNDHDR_FRAG,
-        .fragmentDataSize = SHADER_BACKGROUNDHDR_FRAG_len
-    });
-
     Shader screenShader({
         .vertexData = SHADER_POSTPROCESS_VERT,
         .vertexDataSize = SHADER_POSTPROCESS_VERT_len,
@@ -264,9 +256,6 @@ int main(int argc, char** argv) {
 
         // render all objects in scene
         app.renderer.drawObjects(scene, camera);
-
-        // render skybox (render as last to prevent overdraw)
-        app.renderer.drawSkyBox(backgroundShader, scene, camera);
 
         // render to screen
         app.renderer.drawToScreen(screenShader, screenWidth, screenHeight);
