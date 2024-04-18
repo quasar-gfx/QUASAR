@@ -28,10 +28,10 @@ public:
     Renderbuffer captureRenderBuffer;
 
     // create an irradiance cubemap, and rescale capture FBO to irradiance scale
-    CubeMap irradianceCubeMap = CubeMap({ .width = 32, .height = 32, .type = CUBE_MAP_STANDARD });
+    CubeMap irradianceCubeMap = CubeMap({ .width = 32, .height = 32, .type = CubeMapType::STANDARD });
 
     // create a prefilter cubemap, and rescale capture FBO to prefilter scale
-    CubeMap prefilterCubeMap = CubeMap({ .width = 256, .height = 256, .type = CUBE_MAP_PREFILTER });
+    CubeMap prefilterCubeMap = CubeMap({ .width = 256, .height = 256, .type = CubeMapType::PREFILTER });
 
     // generate a 2D LUT from the BRDF equations used
     Texture brdfLUT;

@@ -82,7 +82,7 @@ void OpenGLRenderer::drawSkyBox(Scene &scene, Camera &camera) {
     gBuffer.bind();
     // dont clear color or depth bit here, since we want this to draw over
 
-    bool isHDR = (scene.envCubeMap->type == CUBE_MAP_HDR);
+    bool isHDR = (scene.envCubeMap->type == CubeMapType::HDR);
 
     skyboxShader->bind();
     skyboxShader->setInt("environmentMap", 0);

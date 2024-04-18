@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
     });
 
     // skybox
-    CubeMap envCubeMap({ .width = 512, .height = 512, .type = CUBE_MAP_HDR });
+    CubeMap envCubeMap({ .width = 512, .height = 512, .type = CubeMapType::HDR });
 
     // lights
     PointLight pointLight1 = PointLight({

@@ -34,12 +34,12 @@ void ComputeShader::createAndCompileProgram(const char* computeData, const GLint
     GLuint compute = glCreateShader(GL_COMPUTE_SHADER);
     glShaderSource(compute, 1, &computeData, &computeDataSize);
     glCompileShader(compute);
-    checkCompileErrors(compute, SHADER_COMPUTE);
+    checkCompileErrors(compute, ShaderType::COMPUTE);
 
     ID = glCreateProgram();
     glAttachShader(ID, compute);
     glLinkProgram(ID);
-    checkCompileErrors(ID, SHADER_PROGRAM);
+    checkCompileErrors(ID, ShaderType::PROGRAM);
 
     glDeleteShader(compute);
 }

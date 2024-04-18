@@ -14,6 +14,14 @@
 
 #include <shaders.h>
 
+enum class ShaderType {
+    PROGRAM,
+    VERTEX,
+    FRAGMENT,
+    GEOMETRY,
+    COMPUTE
+};
+
 struct ShaderCreateParams {
     std::string vertexCodePath = "";
     std::string fragmentCodePath = "";
@@ -28,14 +36,6 @@ struct ShaderCreateParams {
 
 class Shader : public OpenGLObject {
 public:
-    enum ShaderType {
-        SHADER_PROGRAM,
-        SHADER_VERTEX,
-        SHADER_FRAGMENT,
-        SHADER_GEOMETRY,
-        SHADER_COMPUTE
-    };
-
     explicit Shader() = default;
 
     explicit Shader(const ShaderCreateParams& params) {

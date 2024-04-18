@@ -23,7 +23,7 @@ void CubeMap::init(unsigned int width, unsigned int height, CubeMapType type) {
     glBindTexture(GL_TEXTURE_CUBE_MAP, ID);
 
     switch(type) {
-    case CUBE_MAP_STANDARD:
+    case CubeMapType::STANDARD:
         for (int i = 0; i < NUM_CUBEMAP_FACES; i++) {
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
         }
@@ -34,7 +34,7 @@ void CubeMap::init(unsigned int width, unsigned int height, CubeMapType type) {
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         break;
 
-    case CUBE_MAP_SHADOW:
+    case CubeMapType::SHADOW:
         for (int i = 0; i < NUM_CUBEMAP_FACES; i++) {
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
         }
@@ -48,7 +48,7 @@ void CubeMap::init(unsigned int width, unsigned int height, CubeMapType type) {
         // glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         break;
 
-    case CUBE_MAP_HDR:
+    case CubeMapType::HDR:
         for (int i = 0; i < NUM_CUBEMAP_FACES; i++) {
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA32F, width, height, 0, GL_RGB, GL_FLOAT, nullptr);
         }
@@ -59,7 +59,7 @@ void CubeMap::init(unsigned int width, unsigned int height, CubeMapType type) {
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         break;
 
-    case CUBE_MAP_PREFILTER:
+    case CubeMapType::PREFILTER:
         for (int i = 0; i < NUM_CUBEMAP_FACES; i++) {
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, nullptr);
         }

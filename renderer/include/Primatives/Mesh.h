@@ -79,7 +79,7 @@ public:
         material->cleanup();
     }
 
-    EntityType getType() override { return ENTITY_MESH; }
+    EntityType getType() override { return EntityType::MESH; }
 
     static const unsigned int numTextures = 5;
 
