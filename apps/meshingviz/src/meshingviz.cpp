@@ -12,7 +12,6 @@
 #include <Scene.h>
 #include <Camera.h>
 #include <Lights/Lights.h>
-#include <Framebuffer.h>
 #include <FullScreenQuad.h>
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
