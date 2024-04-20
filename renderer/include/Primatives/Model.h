@@ -61,7 +61,7 @@ private:
     void loadFromFile(const ModelCreateParams &params);
     void processNode(aiNode* node, const aiScene* scene, PBRMaterial* material);
     Mesh processMesh(aiMesh* mesh, const aiScene *scene, PBRMaterial* material);
-    GLuint loadMaterialTexture(aiMaterial* mat, aiTextureType type);
+    TextureID loadMaterialTexture(aiMaterial* mat, aiTextureType type);
 };
 
 #endif // MODEL_H

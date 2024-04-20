@@ -132,71 +132,61 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
     }
 }
 
-GLuint Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
-    // if the texture type exists, load the texture
-    if (mat->GetTextureCount(type) > 0) {
-        aiString aiTexturePath;
-        mat->GetTexture(type, 0, &aiTexturePath); // only grab the first texture of each type
+TextureID Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
+    // if the texture type doesn't exist, return 0
+    if (mat->GetTextureCount(type) == 0) {
+        return 0;
+    }
 
-        std::string texturePath = rootDirectory;
-        texturePath = texturePath.append(aiTexturePath.C_Str());
-        std::replace(texturePath.begin(), texturePath.end(), '\\', '/');
+    // else if the texture type exists, load the texture
+    aiString aiTexturePath;
+    mat->GetTexture(type, 0, &aiTexturePath); // only grab the first texture of each type
 
-        // if we havent loaded this texture yet
-        if (texturesLoaded.count(texturePath) == 0) {
-            // seems like assimp uses * as a prefix for embedded textures
-            if (aiTexturePath.length > 0 && aiTexturePath.data[0] == '*') {
-                const aiTexture* aiTexture = scene->GetEmbeddedTexture(aiTexturePath.C_Str());
-                if (aiTexture) {
-                    int texWidth, texHeight, texChannels;
-                    unsigned char* data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiTexture->pcData),
-                                                                aiTexture->mWidth, &texWidth, &texHeight, &texChannels, 0);
-                    if (data) {
-                        GLint internalFormat;
-                        GLenum format;
-                        if (texChannels == 1) {
-                            internalFormat = GL_RED;
-                            format = GL_RED;
-                        }
-                        else if (texChannels == 3) {
-                            internalFormat = gammaCorrected ? GL_SRGB : GL_RGB;
-                            format = GL_RGB;
-                        }
-                        else if (texChannels == 4) {
-                            internalFormat = gammaCorrected ? GL_SRGB_ALPHA : GL_RGBA;
-                            format = GL_RGBA;
-                        }
+    std::string texturePath = rootDirectory;
+    texturePath = texturePath.append(aiTexturePath.C_Str());
+    std::replace(texturePath.begin(), texturePath.end(), '\\', '/');
 
-                        Texture texture = Texture({
-                            .width = static_cast<unsigned int>(texWidth),
-                            .height = static_cast<unsigned int>(texHeight),
-                            .internalFormat = internalFormat,
-                            .format = format,
-                            .wrapS = GL_REPEAT,
-                            .wrapT = GL_REPEAT,
-                            .minFilter = GL_LINEAR_MIPMAP_LINEAR,
-                            .magFilter = GL_LINEAR,
-                            .data = data
-                        });
-                        glGenerateMipmap(GL_TEXTURE_2D);
+    // if we've loaded this texture already, return the already loaded texture
+    if (texturesLoaded.count(texturePath) > 0) {
+        return texturesLoaded[texturePath].ID;
+    }
 
-                        stbi_image_free(data);
-                        texturesLoaded[texturePath] = texture;
-                        return texturesLoaded[texturePath].ID;
-                    }
+    // if texture is embedded into the file, read it from memory
+    if (aiTexturePath.length > 0 && aiTexturePath.data[0] == '*') { // seems like assimp uses * as a prefix for embedded textures
+        const aiTexture* aiTexture = scene->GetEmbeddedTexture(aiTexturePath.C_Str());
+        if (aiTexture) {
+            int texWidth, texHeight, texChannels;
+            unsigned char* data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiTexture->pcData),
+                                                        aiTexture->mWidth, &texWidth, &texHeight, &texChannels, 0);
+            if (data) {
+                GLint internalFormat;
+                GLenum format;
+                if (texChannels == 1) {
+                    internalFormat = GL_RED;
+                    format = GL_RED;
+                }
+                else if (texChannels == 3) {
+                    internalFormat = gammaCorrected ? GL_SRGB : GL_RGB;
+                    format = GL_RGB;
+                }
+                else if (texChannels == 4) {
+                    internalFormat = gammaCorrected ? GL_SRGB_ALPHA : GL_RGBA;
+                    format = GL_RGBA;
                 }
 
-                return 0;
-            }
-            else {
                 Texture texture = Texture({
+                    .width = static_cast<unsigned int>(texWidth),
+                    .height = static_cast<unsigned int>(texHeight),
+                    .internalFormat = internalFormat,
+                    .format = format,
                     .wrapS = GL_REPEAT,
                     .wrapT = GL_REPEAT,
                     .minFilter = GL_LINEAR_MIPMAP_LINEAR,
                     .magFilter = GL_LINEAR,
-                    .gammaCorrected = (type == aiTextureType_DIFFUSE) ? gammaCorrected : false,
-                    .path = texturePath
+                    .data = data
                 });
+
+                stbi_image_free(data);
                 texturesLoaded[texturePath] = texture;
                 return texturesLoaded[texturePath].ID;
             }
@@ -204,8 +194,17 @@ GLuint Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
 
         return 0;
     }
-    // else return 0, indicating that there is no texture
+    // else load the texture from external file
     else {
-        return 0;
+        Texture texture = Texture({
+            .wrapS = GL_REPEAT,
+            .wrapT = GL_REPEAT,
+            .minFilter = GL_LINEAR_MIPMAP_LINEAR,
+            .magFilter = GL_LINEAR,
+            .gammaCorrected = (type == aiTextureType_DIFFUSE) ? gammaCorrected : false,
+            .path = texturePath
+        });
+        texturesLoaded[texturePath] = texture;
+        return texturesLoaded[texturePath].ID;
     }
 }
