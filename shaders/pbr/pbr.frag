@@ -34,6 +34,7 @@ struct PointLight {
     float constant;
     float linear;
     float quadratic;
+    float farPlane;
 };
 
 #define MAX_POINT_LIGHTS 4
@@ -44,11 +45,10 @@ uniform PointLight pointLights[MAX_POINT_LIGHTS];
 uniform sampler2D dirLightShadowMap; // 8
 
 uniform samplerCube pointLightShadowMaps[MAX_POINT_LIGHTS]; // 9+
-uniform float farPlane;
 
 uniform vec3 camPos;
 
-const float PI = 3.14159265359;
+const float PI = 3.1415926535897932384626433832795;
 
 vec3 gridSamplingDisk[20] = vec3[]
 (
@@ -119,49 +119,42 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
-float calcDirLightShadow(vec4 fragPosLightSpace) {
+float calcDirLightShadow(DirectionalLight light, vec4 fragPosLightSpace) {
     // perform perspective divide
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    // transform to [0,1] range
     projCoords = projCoords * 0.5 + 0.5;
     // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
     float closestDepth = texture(dirLightShadowMap, projCoords.xy).r;
     // get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
-    // calculate bias (based on depth map resolution and slope)
-    vec3 normal = normalize(Normal);
-    vec3 lightDir = normalize(directionalLight.direction);
-    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
 
     // PCF
+    int samples = 9;
     float shadow = 0.0;
+    vec3 normal = normalize(Normal);
+    vec3 lightDir = normalize(-light.direction);
+    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
     vec2 texelSize = 1.0 / textureSize(dirLightShadowMap, 0);
-    for (int x = -1; x <= 1; ++x) {
-        for (int y = -1; y <= 1; ++y) {
-            float pcfDepth = texture(dirLightShadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-            shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;
-        }
+    for (int i = 0; i < samples; i++) {
+        float pcfDepth = texture(dirLightShadowMap, projCoords.xy + gridSamplingDisk[i].xy * texelSize).r;
+        shadow += projCoords.z - bias > pcfDepth ? 0.111111 : 0.0;
     }
-    shadow /= 9.0;
-
-    // keep the shadow at 0.0 when outside the far_plane region of the light's frustum.
-    if (projCoords.z > 1.0)
-        shadow = 0.0;
 
     return shadow;
 }
 
-float calcPointLightShadows(samplerCube pointLightShadowMap, vec3 fragToLight) {
+float calcPointLightShadows(PointLight light, samplerCube pointLightShadowMap, vec3 fragToLight) {
     float currentDepth = length(fragToLight);
 
+    // PCF
+    int samples = 20;
     float shadow = 0.0;
     float bias = 0.15;
-    int samples = 20;
     float viewDistance = length(camPos - WorldPos);
-    float diskRadius = (1.0 + (viewDistance / farPlane)) / 25.0;
-    for (int i = 0; i < samples; ++i) {
+    float diskRadius = (1.0 + (viewDistance / light.farPlane)) / 25.0;
+    for (int i = 0; i < samples; i++) {
         float closestDepth = texture(pointLightShadowMap, fragToLight + gridSamplingDisk[i] * diskRadius).r;
-        closestDepth *= farPlane;   // undo mapping [0;1]
+        closestDepth *= light.farPlane;   // undo mapping [0;1]
         if (currentDepth - bias > closestDepth)
             shadow += 1.0;
     }
@@ -206,7 +199,7 @@ vec3 calcDirectionalLight(DirectionalLight light, vec3 N, vec3 V, vec3 albedo, f
     vec3 radianceOut = (kD * albedo / PI + specular) * radianceIn * NdotL; // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
 
     // shadow calcs
-    float shadow = calcDirLightShadow(FragPosLightSpace);
+    float shadow = calcDirLightShadow(light, FragPosLightSpace);
     radianceOut *= (1.0 - shadow);
 
     return radianceOut;
@@ -251,7 +244,7 @@ vec3 calcPointLight(PointLight light, samplerCube pointLightShadowMap, vec3 N, v
 
     // shadow stuff
     vec3 fragToLight = WorldPos - light.position;
-    float shadow = calcPointLightShadows(pointLightShadowMap, fragToLight);
+    float shadow = calcPointLightShadows(light, pointLightShadowMap, fragToLight);
     radianceOut *= (1.0 - shadow);
 
     return radianceOut;
@@ -282,7 +275,7 @@ void main() {
     // reflectance equation
     vec3 Lo = vec3(0.0);
     Lo += calcDirectionalLight(directionalLight, N, V, albedo, roughness, metallic, F0);
-    for (int i = 0; i < MAX_POINT_LIGHTS; ++i) {
+    for (int i = 0; i < MAX_POINT_LIGHTS; i++) {
         Lo += calcPointLight(pointLights[i], pointLightShadowMaps[i], N, V, albedo, roughness, metallic, F0);
     }
 
@@ -296,7 +289,8 @@ void main() {
     vec3 irradiance = texture(irradianceMap, N).rgb;
     vec3 diffuse = irradiance * albedo;
 
-    // sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation to get the IBL specular part.
+    // sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation
+    // to get the IBL specular part
     const float MAX_REFLECTION_LOD = 4.0;
     vec3 prefilteredColor = textureLod(prefilterMap, R,  roughness * MAX_REFLECTION_LOD).rgb;
     vec2 brdf  = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
@@ -306,9 +300,8 @@ void main() {
 
     vec3 color = ambient + Lo;
 
-    // HDR tonemapping
+    // HDR tonemapping and gamma correction
     color = color / (color + vec3(1.0));
-    // gamma correct
     color = pow(color, vec3(1.0/2.2));
 
     positionBuffer = vec4(WorldPos, 1.0);

@@ -32,10 +32,11 @@ public:
         updateLightView();
     }
 
-    void bindMaterial(Material &material) override {
-        material.shader->setVec3("directionalLight.direction", direction);
-        material.shader->setVec3("directionalLight.color", color);
-        material.shader->setFloat("directionalLight.intensity", intensity);
+    void bindMaterial(Material* material) override {
+        material->shader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
+        material->shader->setVec3("directionalLight.direction", direction);
+        material->shader->setVec3("directionalLight.color", color);
+        material->shader->setFloat("directionalLight.intensity", intensity);
     }
 
     void setDirection(const glm::vec3 &direction) {

@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
     DirectionalLight directionalLight = DirectionalLight({
         .color = glm::vec3(0.8f, 0.8f, 0.8f),
         .direction = glm::vec3(0.0f, -1.0f, -0.3f),
-        .intensity = 0.1f
+        .intensity = 1.0f
     });
 
     PointLight pointLight1 = PointLight({

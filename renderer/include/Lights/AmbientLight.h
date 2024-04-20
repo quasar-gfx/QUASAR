@@ -12,9 +12,9 @@ class AmbientLight : public Light {
 public:
     explicit AmbientLight(const AmbientLightCreateParams &params) : Light(params.color, params.intensity) {}
 
-    void bindMaterial(Material &material) override {
-        material.shader->setVec3("ambientLight.color", color);
-        material.shader->setFloat("ambientLight.intensity", intensity);
+    void bindMaterial(Material* material) override {
+        material->shader->setVec3("ambientLight.color", color);
+        material->shader->setFloat("ambientLight.intensity", intensity);
     }
 };
 

@@ -9,7 +9,7 @@ public:
         float radius = 1.0f;
         const float PI = 3.14159265359f;
 
-        for (int i = 0; i < xSegments; ++i) {
+        for (int i = 0; i < xSegments; i++) {
             for (int j = 0; j < ySegments; ++j) {
                 int first = (i * (ySegments + 1)) + j;
                 int second = first + ySegments + 1;
@@ -24,7 +24,7 @@ public:
             }
         }
 
-        for (int i = 0; i <= xSegments; ++i) {
+        for (int i = 0; i <= xSegments; i++) {
             float phi = M_PI * static_cast<float>(i) / xSegments;
             float cosPhi = cos(phi);
             float sinPhi = sin(phi);

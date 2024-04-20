@@ -49,7 +49,7 @@ public:
         loadFromFile(params);
     }
 
-    void bindSceneAndCamera(Scene& scene, Camera& camera, glm::mat4 model, Material* overrideMaterial = nullptr) override;
+    void bindSceneAndCamera(Scene &scene, Camera &camera, glm::mat4 model, Material* overrideMaterial = nullptr) override;
     void draw(Material* overrideMaterial) override;
 
     EntityType getType() override { return EntityType::MESH; }

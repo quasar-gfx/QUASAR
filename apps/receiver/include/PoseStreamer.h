@@ -54,7 +54,7 @@ public:
     }
 
     bool epsilonEqual(const glm::mat4& mat1, const glm::mat4& mat2, float epsilon = 0.001f) {
-        for (int i = 0; i < 4; ++i) {
+        for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; ++j) {
                 if (std::abs(mat1[i][j] - mat2[i][j]) > epsilon)
                     return false;

@@ -6,7 +6,7 @@
 
 #include <Primatives/Model.h>
 
-void Model::bindSceneAndCamera(Scene& scene, Camera& camera, glm::mat4 model, Material* overrideMaterial) {
+void Model::bindSceneAndCamera(Scene &scene, Camera &camera, glm::mat4 model, Material* overrideMaterial) {
     for (int i = 0; i < meshes.size(); i++) {
         meshes[i].bindSceneAndCamera(scene, camera, model, overrideMaterial);
     }

@@ -145,7 +145,7 @@ int main(int argc, char** argv) {
     DirectionalLight directionalLight = DirectionalLight({
         .color = glm::vec3(0.8f, 0.8f, 0.8f),
         .direction = glm::vec3(0.0f, -1.0f, -0.3f),
-        .intensity = 0.1f
+        .intensity = 1.0f
     });
 
     PointLight pointLight1 = PointLight({
@@ -295,7 +295,7 @@ int main(int argc, char** argv) {
             if (pBuffer) {
                 glm::vec4* pVertices = static_cast<glm::vec4*>(pBuffer);
 
-                for (int i = 0; i < screenWidth * screenHeight; ++i) {
+                for (int i = 0; i < screenWidth * screenHeight; i++) {
                     Vertex vertex;
                     vertex.position.x = pVertices[i].x;
                     vertex.position.y = pVertices[i].y;
@@ -320,7 +320,7 @@ int main(int argc, char** argv) {
             if (pIndexBuffer) {
                 unsigned int* pIndices = static_cast<unsigned int*>(pIndexBuffer);
 
-                for (int i = 0; i < indexBufferSize; ++i) {
+                for (int i = 0; i < indexBufferSize; i++) {
                     indices.push_back(pIndices[i]);
                 }
 
@@ -336,7 +336,7 @@ int main(int argc, char** argv) {
             if (pTexCoordBuffer) {
                 glm::vec2* pTexCoords = static_cast<glm::vec2*>(pTexCoordBuffer);
 
-                for (int i = 0; i < screenWidth * screenHeight; ++i) {
+                for (int i = 0; i < screenWidth * screenHeight; i++) {
                     texCoords.push_back(pTexCoords[i]);
                 }
 

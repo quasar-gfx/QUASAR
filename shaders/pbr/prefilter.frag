@@ -68,7 +68,7 @@ void main() {
     vec3 prefilteredColor = vec3(0.0);
     float totalWeight = 0.0;
 
-    for (uint i = 0u; i < SAMPLE_COUNT; ++i) {
+    for (uint i = 0u; i < SAMPLE_COUNT; i++) {
         // generates a sample vector that's biased towards the preferred alignment direction (importance sampling).
         vec2 Xi = Hammersley(i, SAMPLE_COUNT);
         vec3 H = ImportanceSampleGGX(Xi, N, roughness);

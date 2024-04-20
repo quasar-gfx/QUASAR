@@ -28,35 +28,29 @@ void Mesh::init()  {
     glBindVertexArray(0);
 }
 
-void Mesh::bindSceneAndCamera(Scene& scene, Camera& camera, glm::mat4 model, Material* overrideMaterial) {
+void Mesh::bindSceneAndCamera(Scene &scene, Camera &camera, glm::mat4 model, Material* overrideMaterial) {
     auto materialToBind = overrideMaterial != nullptr ? overrideMaterial : material;
     materialToBind->bind();
 
     if (scene.ambientLight != nullptr) {
-        scene.ambientLight->bindMaterial(*materialToBind);
+        scene.ambientLight->bindMaterial(materialToBind);
     }
 
     int texIdx = Scene::numTextures + Mesh::numTextures;
     if (scene.directionalLight != nullptr) {
-        materialToBind->shader->setMat4("lightSpaceMatrix", scene.directionalLight->lightSpaceMatrix);
         materialToBind->shader->setInt("dirLightShadowMap", texIdx);
-
         scene.directionalLight->shadowMapFramebuffer.depthBuffer.bind(texIdx);
-        scene.directionalLight->bindMaterial(*materialToBind);
+        scene.directionalLight->bindMaterial(materialToBind);
     }
     texIdx++;
 
     for (int i = 0; i < scene.pointLights.size(); i++) {
         auto pointLight = scene.pointLights[i];
         pointLight->setChannel(i);
-
-        materialToBind->shader->setFloat("farPlane", pointLight->zFar);
-
         materialToBind->shader->setInt("pointLightShadowMaps[" + std::to_string(i) + "]", texIdx);
         pointLight->shadowMapFramebuffer.depthCubeMap.bind(texIdx);
+        pointLight->bindMaterial(materialToBind);
         texIdx++;
-
-        pointLight->bindMaterial(*materialToBind);
     }
 
     scene.bindPBREnvMap(*materialToBind->shader);

@@ -44,14 +44,15 @@ public:
         this->channel = channel;
     }
 
-    void bindMaterial(Material &material) override {
+    void bindMaterial(Material* material) override {
         std::string idxStr = std::to_string(this->channel);
-        material.shader->setVec3("pointLights["+idxStr+"].position", position);
-        material.shader->setVec3("pointLights["+idxStr+"].color", color);
-        material.shader->setFloat("pointLights["+idxStr+"].intensity", intensity);
-        material.shader->setFloat("pointLights["+idxStr+"].constant", constant);
-        material.shader->setFloat("pointLights["+idxStr+"].linear", linear);
-        material.shader->setFloat("pointLights["+idxStr+"].quadratic", quadratic);
+        material->shader->setVec3("pointLights["+idxStr+"].position", position);
+        material->shader->setVec3("pointLights["+idxStr+"].color", color);
+        material->shader->setFloat("pointLights["+idxStr+"].intensity", intensity);
+        material->shader->setFloat("pointLights["+idxStr+"].constant", constant);
+        material->shader->setFloat("pointLights["+idxStr+"].linear", linear);
+        material->shader->setFloat("pointLights["+idxStr+"].quadratic", quadratic);
+        material->shader->setFloat("pointLights["+idxStr+"].farPlane", zFar);
     }
 
     void setPosition(const glm::vec3 &position) {
