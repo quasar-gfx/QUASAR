@@ -15,6 +15,8 @@ public:
 
     virtual void bind() = 0;
 
+    virtual unsigned int getTextureCount() = 0;
+
     void unbind() {
         for (int i = 0; i < textures.size(); i++) {
             glActiveTexture(GL_TEXTURE0 + i);

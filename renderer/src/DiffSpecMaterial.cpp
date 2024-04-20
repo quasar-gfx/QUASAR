@@ -29,8 +29,8 @@ DiffSpecMaterial::DiffSpecMaterial(const DiffSpecMaterialCreateParams &params) {
     shininess = params.shininess;
 
     ShaderCreateParams diffSpecShaderParams{
-        .vertexCodeData = SHADER_DIFFUSESPECULAR_VERT,
-        .vertexCodeSize = SHADER_DIFFUSESPECULAR_VERT_len,
+        .vertexCodeData = SHADER_MAIN_VERT,
+        .vertexCodeSize = SHADER_MAIN_VERT_len,
         .fragmentCodeData = SHADER_DIFFUSESPECULAR_FRAG,
         .fragmentCodeSize = SHADER_DIFFUSESPECULAR_FRAG_len
     };

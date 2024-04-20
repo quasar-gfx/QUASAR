@@ -81,8 +81,6 @@ public:
 
     EntityType getType() override { return EntityType::MESH; }
 
-    static const unsigned int numTextures = 5;
-
 protected:
     TextureID VAO, VBO, EBO;
 

@@ -5,7 +5,7 @@
 
 class DirShadowMapMaterial : public ShadowMapMaterial {
 public:
-    DirShadowMapMaterial();
+    explicit DirShadowMapMaterial();
 
     void bind() override;
 };

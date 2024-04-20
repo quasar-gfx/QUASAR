@@ -15,13 +15,12 @@ class DiffSpecMaterial : public Material {
 public:
     float shininess = 1.0f;
 
-    DiffSpecMaterial() = default;
-
-    DiffSpecMaterial(const DiffSpecMaterialCreateParams &params);
+    explicit DiffSpecMaterial() = default;
+    explicit DiffSpecMaterial(const DiffSpecMaterialCreateParams &params);
 
     void bind() override;
 
-    static const unsigned int numTextures = 2;
+    unsigned int getTextureCount() override { return 2; }
 };
 
 #endif // DIFF_SPEC_MATERIAL_H

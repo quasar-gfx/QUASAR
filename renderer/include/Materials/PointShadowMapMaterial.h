@@ -5,7 +5,7 @@
 
 class PointShadowMapMaterial : public ShadowMapMaterial {
 public:
-    PointShadowMapMaterial();
+    explicit PointShadowMapMaterial();
 
     void bind() override;
 };

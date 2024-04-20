@@ -103,7 +103,7 @@ void VideoTexture::receiveVideo() {
     videoReady = true;
 
     uint64_t prevTime = av_gettime();
-    while (1) {
+    while (videoReady) {
         // read frame from URL
         int ret = av_read_frame(inputFormatContext, &packet);
         if (ret < 0) {

@@ -5,7 +5,7 @@ layout (location = 2) in vec2 aTexCoords;
 layout (location = 3) in vec3 aTangent;
 
 out vec2 TexCoords;
-out vec3 WorldPos;
+out vec3 FragPos;
 out vec3 Normal;
 out vec4 FragPosLightSpace;
 
@@ -17,11 +17,11 @@ uniform mat4 lightSpaceMatrix;
 
 void main() {
     TexCoords = aTexCoords;
-    WorldPos = vec3(model * vec4(aPos, 1.0));
+    FragPos = vec3(model * vec4(aPos, 1.0));
     Normal = normalMatrix * aNormal;
 
-    FragPosLightSpace = lightSpaceMatrix * vec4(WorldPos, 1.0);
+    FragPosLightSpace = lightSpaceMatrix * vec4(FragPos, 1.0);
 
     gl_PointSize = 25.0;
-    gl_Position = projection * view * vec4(WorldPos, 1.0);
+    gl_Position = projection * view * vec4(FragPos, 1.0);
 }

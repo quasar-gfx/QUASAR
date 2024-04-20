@@ -47,39 +47,7 @@ public:
     // BRDF shader
     std::shared_ptr<Shader> brdfShader;
 
-    explicit Scene() {
-        ShaderCreateParams equirectToCubeMapShaderParams = {
-            .vertexCodeData = SHADER_CUBEMAP_VERT,
-            .vertexCodeSize = SHADER_CUBEMAP_VERT_len,
-            .fragmentCodeData = SHADER_EQUIRECTANGULAR2CUBEMAP_FRAG,
-            .fragmentCodeSize = SHADER_EQUIRECTANGULAR2CUBEMAP_FRAG_len
-        };
-        equirectToCubeMapShader = std::make_shared<Shader>(equirectToCubeMapShaderParams);
-
-        ShaderCreateParams convolutionShaderParams = {
-            .vertexCodeData = SHADER_CUBEMAP_VERT,
-            .vertexCodeSize = SHADER_CUBEMAP_VERT_len,
-            .fragmentCodeData = SHADER_IRRADIANCECONVOLUTION_FRAG,
-            .fragmentCodeSize = SHADER_IRRADIANCECONVOLUTION_FRAG_len
-        };
-        convolutionShader = std::make_shared<Shader>(convolutionShaderParams);
-
-        ShaderCreateParams prefilterShaderParams = {
-            .vertexCodeData = SHADER_CUBEMAP_VERT,
-            .vertexCodeSize = SHADER_CUBEMAP_VERT_len,
-            .fragmentCodeData = SHADER_PREFILTER_FRAG,
-            .fragmentCodeSize = SHADER_PREFILTER_FRAG_len
-        };
-        prefilterShader = std::make_shared<Shader>(prefilterShaderParams);
-
-        ShaderCreateParams brdfShaderParams = {
-            .vertexCodeData = SHADER_BRDF_VERT,
-            .vertexCodeSize = SHADER_BRDF_VERT_len,
-            .fragmentCodeData = SHADER_BRDF_FRAG,
-            .fragmentCodeSize = SHADER_BRDF_FRAG_len
-        };
-        brdfShader = std::make_shared<Shader>(brdfShaderParams);
-    }
+    explicit Scene();
 
     void addChildNode(Node* node);
 
@@ -89,9 +57,10 @@ public:
     void setDirectionalLight(DirectionalLight* directionalLight);
     void addPointLight(PointLight* pointLight);
 
-    void bindPBREnvMap(Shader &shader);
     void equirectToCubeMap(CubeMap &envCubeMap, Texture &hdrTexture);
     void setupIBL(CubeMap &envCubeMap);
+
+    void bindMaterial(Material* material);
 
     static const unsigned int numTextures = 3;
 

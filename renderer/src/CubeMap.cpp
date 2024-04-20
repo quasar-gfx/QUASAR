@@ -13,10 +13,6 @@ const glm::mat4 CubeMap::captureViews[] = {
 };
 
 void CubeMap::init(unsigned int width, unsigned int height, CubeMapType type) {
-    this->width = width;
-    this->height = height;
-    this->type = type;
-
     initBuffers();
 
     glGenTextures(1, &ID);

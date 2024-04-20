@@ -5,7 +5,7 @@
 #include <Shaders/Shader.h>
 #include <Texture.h>
 #include <Primatives/Primatives.h>
-#include <Materials/TexturedMaterial.h>
+#include <Materials/UnlitMaterial.h>
 #include <Materials/PBRMaterial.h>
 #include <Primatives/Model.h>
 #include <CubeMap.h>
@@ -50,7 +50,7 @@ int createMesh(Mesh* mesh, std::string label, bool renderPointcloud) {
 
     *mesh = Mesh({
         .vertices = vertices,
-        .material = new TexturedMaterial({ .diffuseTextureID = diffuseTexture.ID }),
+        .material = new UnlitMaterial({ .diffuseTextureID = diffuseTexture.ID }),
         .pointcloud = renderPointcloud
     });
 

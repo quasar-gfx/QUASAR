@@ -1,6 +1,6 @@
-#include <Materials/TexturedMaterial.h>
+#include <Materials/UnlitMaterial.h>
 
-TexturedMaterial::TexturedMaterial(const TexturedMaterialCreateParams &params) {
+UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams &params) {
     TextureCreateParams textureParams{
         .wrapS = GL_REPEAT,
         .wrapT = GL_REPEAT,
@@ -17,16 +17,16 @@ TexturedMaterial::TexturedMaterial(const TexturedMaterialCreateParams &params) {
         textures.push_back(params.diffuseTextureID);
     }
 
-    ShaderCreateParams texturedMaterialParams{
-        .vertexCodeData = SHADER_DIFFUSESPECULAR_VERT,
-        .vertexCodeSize = SHADER_DIFFUSESPECULAR_VERT_len,
-        .fragmentCodeData = SHADER_TEXTURED_FRAG,
-        .fragmentCodeSize = SHADER_TEXTURED_FRAG_len
+    ShaderCreateParams UnlitMaterialParams{
+        .vertexCodeData = SHADER_MAIN_VERT,
+        .vertexCodeSize = SHADER_MAIN_VERT_len,
+        .fragmentCodeData = SHADER_UNLIT_FRAG,
+        .fragmentCodeSize = SHADER_UNLIT_FRAG_len
     };
-    shader = std::make_shared<Shader>(texturedMaterialParams);
+    shader = std::make_shared<Shader>(UnlitMaterialParams);
 }
 
-void TexturedMaterial::bind() {
+void UnlitMaterial::bind() {
     shader->bind();
 
     std::string name = "diffuseMap";

@@ -1,5 +1,39 @@
 #include <Scene.h>
 
+Scene::Scene() {
+    ShaderCreateParams equirectToCubeMapShaderParams = {
+        .vertexCodeData = SHADER_CUBEMAP_VERT,
+        .vertexCodeSize = SHADER_CUBEMAP_VERT_len,
+        .fragmentCodeData = SHADER_EQUIRECTANGULAR2CUBEMAP_FRAG,
+        .fragmentCodeSize = SHADER_EQUIRECTANGULAR2CUBEMAP_FRAG_len
+    };
+    equirectToCubeMapShader = std::make_shared<Shader>(equirectToCubeMapShaderParams);
+
+    ShaderCreateParams convolutionShaderParams = {
+        .vertexCodeData = SHADER_CUBEMAP_VERT,
+        .vertexCodeSize = SHADER_CUBEMAP_VERT_len,
+        .fragmentCodeData = SHADER_IRRADIANCECONVOLUTION_FRAG,
+        .fragmentCodeSize = SHADER_IRRADIANCECONVOLUTION_FRAG_len
+    };
+    convolutionShader = std::make_shared<Shader>(convolutionShaderParams);
+
+    ShaderCreateParams prefilterShaderParams = {
+        .vertexCodeData = SHADER_CUBEMAP_VERT,
+        .vertexCodeSize = SHADER_CUBEMAP_VERT_len,
+        .fragmentCodeData = SHADER_PREFILTER_FRAG,
+        .fragmentCodeSize = SHADER_PREFILTER_FRAG_len
+    };
+    prefilterShader = std::make_shared<Shader>(prefilterShaderParams);
+
+    ShaderCreateParams brdfShaderParams = {
+        .vertexCodeData = SHADER_BRDF_VERT,
+        .vertexCodeSize = SHADER_BRDF_VERT_len,
+        .fragmentCodeData = SHADER_BRDF_FRAG,
+        .fragmentCodeSize = SHADER_BRDF_FRAG_len
+    };
+    brdfShader = std::make_shared<Shader>(brdfShaderParams);
+}
+
 void Scene::addChildNode(Node* node) {
     children.push_back(node);
 }
@@ -20,17 +54,17 @@ void Scene::addPointLight(PointLight* pointLight) {
     pointLights.push_back(pointLight);
 }
 
-void Scene::bindPBREnvMap(Shader &shader) {
+void Scene::bindMaterial(Material* material) {
     if (!hasPBREnvMap) {
         return;
     }
 
-    shader.setInt("irradianceMap", Mesh::numTextures + 0);
-    irradianceCubeMap.bind(Mesh::numTextures + 0);
-    shader.setInt("prefilterMap", Mesh::numTextures + 1);
-    prefilterCubeMap.bind(Mesh::numTextures + 1);
-    shader.setInt("brdfLUT", Mesh::numTextures + 2);
-    brdfLUT.bind(Mesh::numTextures + 2);
+    material->shader->setInt("irradianceMap", material->getTextureCount() + 0);
+    irradianceCubeMap.bind(material->getTextureCount() + 0);
+    material->shader->setInt("prefilterMap", material->getTextureCount() + 1);
+    prefilterCubeMap.bind(material->getTextureCount() + 1);
+    material->shader->setInt("brdfLUT", material->getTextureCount() + 2);
+    brdfLUT.bind(material->getTextureCount() + 2);
 }
 
 void Scene::equirectToCubeMap(CubeMap &envCubeMap, Texture &hdrTexture) {

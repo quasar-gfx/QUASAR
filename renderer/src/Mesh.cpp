@@ -29,44 +29,44 @@ void Mesh::init()  {
 }
 
 void Mesh::bindSceneAndCamera(Scene &scene, Camera &camera, glm::mat4 model, Material* overrideMaterial) {
-    auto materialToBind = overrideMaterial != nullptr ? overrideMaterial : material;
-    materialToBind->bind();
+    auto materialToUse = overrideMaterial != nullptr ? overrideMaterial : material;
+    materialToUse->bind();
 
     if (scene.ambientLight != nullptr) {
-        scene.ambientLight->bindMaterial(materialToBind);
+        scene.ambientLight->bindMaterial(materialToUse);
     }
 
-    int texIdx = Scene::numTextures + Mesh::numTextures;
+    scene.bindMaterial(materialToUse);
+
+    int texIdx = materialToUse->getTextureCount() + Scene::numTextures;
     if (scene.directionalLight != nullptr) {
-        materialToBind->shader->setInt("dirLightShadowMap", texIdx);
+        materialToUse->shader->setInt("dirLightShadowMap", texIdx);
         scene.directionalLight->shadowMapFramebuffer.depthBuffer.bind(texIdx);
-        scene.directionalLight->bindMaterial(materialToBind);
+        scene.directionalLight->bindMaterial(materialToUse);
     }
     texIdx++;
 
     for (int i = 0; i < scene.pointLights.size(); i++) {
         auto pointLight = scene.pointLights[i];
         pointLight->setChannel(i);
-        materialToBind->shader->setInt("pointLightShadowMaps[" + std::to_string(i) + "]", texIdx);
+        materialToUse->shader->setInt("pointLightShadowMaps[" + std::to_string(i) + "]", texIdx);
         pointLight->shadowMapFramebuffer.depthCubeMap.bind(texIdx);
-        pointLight->bindMaterial(materialToBind);
+        pointLight->bindMaterial(materialToUse);
         texIdx++;
     }
 
-    scene.bindPBREnvMap(*materialToBind->shader);
+    materialToUse->shader->setMat4("view", camera.getViewMatrix());
+    materialToUse->shader->setMat4("projection", camera.getProjectionMatrix());
+    materialToUse->shader->setVec3("camPos", camera.position);
+    materialToUse->shader->setMat4("model", model);
+    materialToUse->shader->setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
 
-    materialToBind->shader->setMat4("view", camera.getViewMatrix());
-    materialToBind->shader->setMat4("projection", camera.getProjectionMatrix());
-    materialToBind->shader->setVec3("camPos", camera.position);
-    materialToBind->shader->setMat4("model", model);
-    materialToBind->shader->setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
-
-    materialToBind->unbind();
+    materialToUse->unbind();
 }
 
 void Mesh::draw(Material* overrideMaterial) {
-    auto materialToBind = overrideMaterial != nullptr ? overrideMaterial : material;
-    materialToBind->bind();
+    auto materialToUse = overrideMaterial != nullptr ? overrideMaterial : material;
+    materialToUse->bind();
 
     if (wireframe) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -89,5 +89,5 @@ void Mesh::draw(Material* overrideMaterial) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 
-    materialToBind->unbind();
+    materialToUse->unbind();
 }

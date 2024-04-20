@@ -5,9 +5,11 @@
 
 class ShadowMapMaterial : public Material {
 public:
-    ShadowMapMaterial() = default;
+    explicit ShadowMapMaterial() = default;
 
     void bind() override;
+
+    unsigned int getTextureCount() override { return 0; }
 };
 
 #endif // SHADOW_MAP_MATERIAL_H

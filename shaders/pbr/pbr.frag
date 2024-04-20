@@ -4,7 +4,7 @@ layout(location = 1) out vec4 normalsBuffer;
 layout(location = 2) out vec4 FragColor;
 
 in vec2 TexCoords;
-in vec3 WorldPos;
+in vec3 FragPos;
 in vec3 Normal;
 in vec4 FragPosLightSpace;
 
@@ -66,8 +66,8 @@ vec3 gridSamplingDisk[20] = vec3[]
 vec3 getNormalFromMap() {
     vec3 tangentNormal = texture(normalMap, TexCoords).xyz * 2.0 - 1.0;
 
-    vec3 Q1  = dFdx(WorldPos);
-    vec3 Q2  = dFdy(WorldPos);
+    vec3 Q1  = dFdx(FragPos);
+    vec3 Q2  = dFdy(FragPos);
     vec2 st1 = dFdx(TexCoords);
     vec2 st2 = dFdy(TexCoords);
 
@@ -150,7 +150,7 @@ float calcPointLightShadows(PointLight light, samplerCube pointLightShadowMap, v
     int samples = 20;
     float shadow = 0.0;
     float bias = 0.15;
-    float viewDistance = length(camPos - WorldPos);
+    float viewDistance = length(camPos - FragPos);
     float diskRadius = (1.0 + (viewDistance / light.farPlane)) / 25.0;
     for (int i = 0; i < samples; i++) {
         float closestDepth = texture(pointLightShadowMap, fragToLight + gridSamplingDisk[i] * diskRadius).r;
@@ -210,9 +210,9 @@ vec3 calcPointLight(PointLight light, samplerCube pointLightShadowMap, vec3 N, v
         return vec3(0.0);
 
     // calculate per-light radiance
-    vec3 L = normalize(light.position - WorldPos);
+    vec3 L = normalize(light.position - FragPos);
     vec3 H = normalize(V + L);
-    float distance = length(light.position - WorldPos);
+    float distance = length(light.position - FragPos);
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
     vec3 radianceIn = light.intensity * light.color * attenuation;
 
@@ -243,7 +243,7 @@ vec3 calcPointLight(PointLight light, samplerCube pointLightShadowMap, vec3 N, v
     vec3 radianceOut = (kD * albedo / PI + specular) * radianceIn * NdotL; // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
 
     // shadow stuff
-    vec3 fragToLight = WorldPos - light.position;
+    vec3 fragToLight = FragPos - light.position;
     float shadow = calcPointLightShadows(light, pointLightShadowMap, fragToLight);
     radianceOut *= (1.0 - shadow);
 
@@ -264,7 +264,7 @@ void main() {
 
     // input lighting data
     vec3 N = getNormalFromMap();
-    vec3 V = normalize(camPos - WorldPos);
+    vec3 V = normalize(camPos - FragPos);
     vec3 R = reflect(-V, N);
 
     // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0
@@ -304,7 +304,7 @@ void main() {
     color = color / (color + vec3(1.0));
     color = pow(color, vec3(1.0/2.2));
 
-    positionBuffer = vec4(WorldPos, 1.0);
+    positionBuffer = vec4(FragPos, 1.0);
     normalsBuffer = vec4(normalize(Normal), 1.0);
     FragColor = vec4(color, alpha);
 }

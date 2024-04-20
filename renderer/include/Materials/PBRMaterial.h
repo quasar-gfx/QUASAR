@@ -20,13 +20,12 @@ class PBRMaterial : public Material {
 public:
     float shininess = 1.0f;
 
-    PBRMaterial() = default;
-
-    PBRMaterial(const PBRMaterialCreateParams &params);
+    explicit PBRMaterial() = default;
+    explicit PBRMaterial(const PBRMaterialCreateParams &params);
 
     void bind() override;
 
-    static const unsigned int numTextures = 5;
+    unsigned int getTextureCount() override { return 5; }
 };
 
 #endif // PBR_MATERIAL_H

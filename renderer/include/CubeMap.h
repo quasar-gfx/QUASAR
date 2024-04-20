@@ -31,7 +31,7 @@ struct CubeMapCreateParams {
     std::string bottomFaceTexturePath = "";
     std::string frontFaceTexturePath = "";
     std::string backFaceTexturePath = "";
-    CubeMapType type;
+    CubeMapType type = CubeMapType::STANDARD;
     GLenum format = GL_RGB;
     GLint wrapS = GL_CLAMP_TO_EDGE;
     GLint wrapT = GL_CLAMP_TO_EDGE;
@@ -50,7 +50,7 @@ public:
 
     explicit CubeMap() = default;
 
-    explicit CubeMap(const CubeMapCreateParams &params) {
+    explicit CubeMap(const CubeMapCreateParams &params) : type(params.type), width(params.width), height(params.height) {
         if (params.rightFaceTexturePath != "" && params.leftFaceTexturePath != "" &&
             params.topFaceTexturePath != "" && params.bottomFaceTexturePath != "" &&
             params.frontFaceTexturePath != "" && params.backFaceTexturePath != "") {

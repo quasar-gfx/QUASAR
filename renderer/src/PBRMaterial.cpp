@@ -54,8 +54,8 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params) {
     }
 
     ShaderCreateParams pbrShaderParams{
-        .vertexCodeData = SHADER_PBR_VERT,
-        .vertexCodeSize = SHADER_PBR_VERT_len,
+        .vertexCodeData = SHADER_MAIN_VERT,
+        .vertexCodeSize = SHADER_MAIN_VERT_len,
         .fragmentCodeData = SHADER_PBR_FRAG,
         .fragmentCodeSize = SHADER_PBR_FRAG_len
     };
