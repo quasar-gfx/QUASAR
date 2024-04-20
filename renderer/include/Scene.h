@@ -23,9 +23,7 @@ public:
 
     bool hasPBREnvMap = false;
 
-    // set up framebuffer
-    Framebuffer captureFramebuffer;
-    Renderbuffer captureRenderBuffer;
+    glm::vec4 backgroundColor = glm::vec4(0.1f, 0.1f, 0.1f, 1.0f);
 
     // create an irradiance cubemap, and rescale capture FBO to irradiance scale
     CubeMap irradianceCubeMap = CubeMap({ .width = 32, .height = 32, .type = CubeMapType::STANDARD });
@@ -96,6 +94,10 @@ public:
     void setupIBL(CubeMap &envCubeMap);
 
     static const unsigned int numTextures = 3;
+
+private:
+    Framebuffer captureFramebuffer;
+    Renderbuffer captureRenderBuffer;
 };
 
 #endif // SCENE_H

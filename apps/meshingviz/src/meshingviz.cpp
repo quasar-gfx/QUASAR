@@ -192,6 +192,8 @@ int main(int argc, char** argv) {
     scene.addPointLight(&pointLight3);
     scene.addPointLight(&pointLight4);
 
+    scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
+
     glm::vec3 initialPosition = glm::vec3(0.0f, 1.6f, 0.0f);
     camera.position = initialPosition;
 

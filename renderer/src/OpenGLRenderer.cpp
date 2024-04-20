@@ -106,7 +106,7 @@ void OpenGLRenderer::drawObjects(Scene &scene, Camera &camera) {
 
     // bind to gBuffer and draw scene as we normally would to color texture
     gBuffer.bind();
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     for (auto& child : scene.children) {
