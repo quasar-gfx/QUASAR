@@ -44,7 +44,7 @@ public:
 
 private:
     GLFWwindow* window;
-    bool frameResized = false;
+    bool frameResized = true;
 };
 
 #endif // GLFW_WINDOW_H
