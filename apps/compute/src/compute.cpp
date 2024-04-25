@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
         outputTexture.bind(4);
 
         // render to screen
-        app.renderer.drawToScreen(screenShader, screenWidth, screenHeight);
+        app.renderer.drawToScreen(screenShader);
     });
 
     // run app loop (blocking)

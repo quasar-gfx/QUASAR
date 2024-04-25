@@ -22,8 +22,13 @@ void OpenGLApp::run() {
         if (window->resized()) {
             unsigned int width, height;
             window->getSize(&width, &height);
+
             std::cout << "Resized to " << width << "x" << height << std::endl;
-            glViewport(0, 0, width, height);
+            renderer.resize(width, height);
+
+            if (resizeCallback) {
+                resizeCallback(width, height);
+            }
         }
 
         if (renderCallback) {
@@ -40,4 +45,8 @@ void OpenGLApp::run() {
 
         prevTime = currTime;
     }
+}
+
+void OpenGLApp::resize(unsigned int width, unsigned int height) {
+    renderer.resize(width, height);
 }

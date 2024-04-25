@@ -12,8 +12,6 @@
 #include <Texture.h>
 
 void Texture::create(const TextureCreateParams &params) {
-    this->width = params.width;
-    this->height = params.height;
     glGenTextures(1, &ID);
     glBindTexture(GL_TEXTURE_2D, ID);
     glTexImage2D(GL_TEXTURE_2D, 0, params.internalFormat, width, height, 0, params.format, params.type, params.data);

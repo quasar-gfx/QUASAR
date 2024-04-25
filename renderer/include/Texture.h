@@ -29,9 +29,24 @@ class Texture : public OpenGLObject {
 public:
     unsigned int width, height;
 
+    GLint internalFormat = GL_RGB;
+    GLenum format = GL_RGB;
+    GLenum type = GL_UNSIGNED_BYTE;
+
+    GLint wrapS = GL_CLAMP_TO_EDGE;
+    GLint wrapT = GL_CLAMP_TO_EDGE;
+
+    GLint minFilter = GL_LINEAR;
+    GLint magFilter = GL_LINEAR;
+
     explicit Texture() = default;
 
-    Texture(const TextureCreateParams &params) {
+    explicit Texture(const TextureCreateParams &params)
+            : width(params.width), height(params.height),
+              internalFormat(params.internalFormat), format(params.format),
+              type(params.type),
+              wrapS(params.wrapS), wrapT(params.wrapT),
+              minFilter(params.minFilter), magFilter(params.magFilter) {
         if (params.path == "") {
             create(params);
         }
@@ -57,6 +72,15 @@ public:
         glActiveTexture(GL_TEXTURE0 + slot);
         glBindTexture(GL_TEXTURE_2D, 0);
         glActiveTexture(GL_TEXTURE0);
+    }
+
+    void resize(unsigned int width, unsigned int height) {
+        this->width = width;
+        this->height = height;
+
+        glBindTexture(GL_TEXTURE_2D, ID);
+        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, nullptr);
+        glBindTexture(GL_TEXTURE_2D, 0);
     }
 
     void cleanup() {

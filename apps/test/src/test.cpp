@@ -66,6 +66,14 @@ int main(int argc, char** argv) {
         ImGui::End();
     });
 
+    app.onResize([&](unsigned int width, unsigned int height) {
+        screenWidth = width;
+        screenHeight = height;
+
+        camera.aspect = (float)screenWidth / (float)screenHeight;
+        camera.updateProjectionMatrix();
+    });
+
     // shaders
     Shader screenShader({
         .vertexCodeData = SHADER_POSTPROCESS_VERT,
@@ -257,7 +265,7 @@ int main(int argc, char** argv) {
         app.renderer.drawObjects(scene, camera);
 
         // render to screen
-        app.renderer.drawToScreen(screenShader, screenWidth, screenHeight);
+        app.renderer.drawToScreen(screenShader);
     });
 
     // run app loop (blocking)

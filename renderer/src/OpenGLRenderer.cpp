@@ -132,8 +132,8 @@ void OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, glm::mat
     }
 }
 
-void OpenGLRenderer::drawToScreen(Shader &screenShader, unsigned int screenWidth, unsigned int screenHeight) {
-    glViewport(0, 0, screenWidth, screenHeight);
+void OpenGLRenderer::drawToScreen(Shader &screenShader) {
+    glViewport(0, 0, width, height);
 
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -155,4 +155,18 @@ void OpenGLRenderer::drawToScreen(Shader &screenShader, unsigned int screenWidth
     gBuffer.colorBuffer.unbind();
     gBuffer.depthBuffer.unbind();
     screenShader.unbind();
+}
+
+void OpenGLRenderer::drawToFramebuffer(Shader &screenShader, Framebuffer &framebuffer) {
+    framebuffer.bind();
+    drawToScreen(screenShader);
+    framebuffer.unbind();
+}
+
+void OpenGLRenderer::resize(unsigned int width, unsigned int height) {
+    this->width = width;
+    this->height = height;
+
+    glViewport(0, 0, width, height);
+    gBuffer.resize(width, height);
 }

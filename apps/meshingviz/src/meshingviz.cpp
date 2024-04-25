@@ -105,6 +105,14 @@ int main(int argc, char** argv) {
         ImGui::End();
     });
 
+    app.onResize([&](unsigned int width, unsigned int height) {
+        screenWidth = width;
+        screenHeight = height;
+
+        camera.aspect = (float)screenWidth / (float)screenHeight;
+        camera.updateProjectionMatrix();
+    });
+
     // shaders
     Shader screenShader({
         .vertexCodeData = SHADER_POSTPROCESS_VERT,
@@ -120,41 +128,6 @@ int main(int argc, char** argv) {
         .metallicTexturePath = "../assets/textures/pbr/gold/metallic.png",
         .roughnessTexturePath = "../assets/textures/pbr/gold/roughness.png",
         .aoTexturePath = "../assets/textures/pbr/gold/ao.png"
-    });
-
-    // lights
-    DirectionalLight directionalLight = DirectionalLight({
-        .color = glm::vec3(0.8f, 0.8f, 0.8f),
-        .direction = glm::vec3(0.0f, -1.0f, -0.3f),
-        .intensity = 1.0f
-    });
-
-    PointLight pointLight1 = PointLight({
-        .color = glm::vec3(0.9f, 0.9f, 1.0f),
-        .initialPosition = glm::vec3(-1.45f, 3.5f, -6.2f),
-        .intensity = 100.0f,
-        .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
-    });
-
-    PointLight pointLight2 = PointLight({
-        .color = glm::vec3(0.9f, 0.9f, 1.0f),
-        .initialPosition = glm::vec3(2.2f, 3.5f, -6.2f),
-        .intensity = 100.0f,
-        .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
-    });
-
-    PointLight pointLight3 = PointLight({
-        .color = glm::vec3(0.9f, 0.9f, 1.0f),
-        .initialPosition = glm::vec3(-1.45f, 3.5f, 4.89f),
-        .intensity = 100.0f,
-        .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
-    });
-
-    PointLight pointLight4 = PointLight({
-        .color = glm::vec3(0.9f, 0.9f, 1.0f),
-        .initialPosition = glm::vec3(2.2f, 3.5f, 4.89f),
-        .intensity = 100.0f,
-        .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
     });
 
     // models
@@ -184,12 +157,6 @@ int main(int argc, char** argv) {
         nodes[i] = Node(&meshes[i]);
         scene.addChildNode(&nodes[i]);
     }
-
-    scene.setDirectionalLight(&directionalLight);
-    scene.addPointLight(&pointLight1);
-    scene.addPointLight(&pointLight2);
-    scene.addPointLight(&pointLight3);
-    scene.addPointLight(&pointLight4);
 
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
 
@@ -241,7 +208,7 @@ int main(int argc, char** argv) {
         app.renderer.drawObjects(scene, camera);
 
         // render to screen
-        app.renderer.drawToScreen(screenShader, screenWidth, screenHeight);
+        app.renderer.drawToScreen(screenShader);
     });
 
     // run app loop (blocking)

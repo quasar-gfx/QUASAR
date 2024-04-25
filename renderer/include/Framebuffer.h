@@ -58,6 +58,14 @@ public:
         cleanup();
     }
 
+    void resize(unsigned int width, unsigned int height) {
+        this->width = width;
+        this->height = height;
+
+        colorBuffer.resize(width, height);
+        depthBuffer.resize(width, height);
+    }
+
     void bind() {
         glBindFramebuffer(GL_FRAMEBUFFER, ID);
         glViewport(0, 0, width, height);
@@ -143,6 +151,16 @@ public:
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
+
+    void resize(unsigned int width, unsigned int height) {
+        this->width = width;
+        this->height = height;
+
+        positionBuffer.resize(width, height);
+        normalsBuffer.resize(width, height);
+        colorBuffer.resize(width, height);
+        depthBuffer.resize(width, height);
+    }
 };
 
 class DirLightShadowBuffer : public Framebuffer {
@@ -166,7 +184,6 @@ public:
             .magFilter = GL_NEAREST,
             .hasBorder = true
         });
-
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBuffer.ID, 0);
 
         glDrawBuffer(GL_NONE);
@@ -194,7 +211,6 @@ public:
         glBindFramebuffer(GL_FRAMEBUFFER, ID);
 
         depthCubeMap.init(width, height, CubeMapType::SHADOW);
-
         glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthCubeMap.ID, 0);
 
         glDrawBuffer(GL_NONE);

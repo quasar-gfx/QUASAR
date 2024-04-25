@@ -33,7 +33,9 @@ public:
     void updatePointLightShadows(Scene &scene, Camera &camera);
     void drawSkyBox(Scene &scene, Camera &camera);
     void drawObjects(Scene &scene, Camera &camera);
-    void drawToScreen(Shader &screenShader, unsigned int screenWidth, unsigned int screenHeight);
+    void drawToScreen(Shader &screenShader);
+    void drawToFramebuffer(Shader &screenShader, Framebuffer &framebuffer);
+    void resize(unsigned int width, unsigned int height);
 
 private:
     void drawNode(Scene &scene, Camera &camera, Node* node, glm::mat4 parentTransform, Material* overrideMaterial = nullptr);

@@ -25,6 +25,7 @@ int main(int argc, char** argv) {
     app.config.title = "Meshing Test";
     app.config.openglMajorVersion = 4;
     app.config.openglMinorVersion = 3;
+    app.config.showWindow = false;
 
     std::string modelPath = "../assets/models/Sponza/Sponza.gltf";
     std::string hdrImagePath = "../assets/textures/hdr/barcelona.hdr";
@@ -47,6 +48,10 @@ int main(int argc, char** argv) {
         }
         else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
             app.config.enableVSync = atoi(argv[i + 1]);
+            i++;
+        }
+        else if (!strcmp(argv[i], "-d") && i + 1 < argc) {
+            app.config.showWindow = atoi(argv[i + 1]);
             i++;
         }
     }
@@ -173,6 +178,7 @@ int main(int argc, char** argv) {
     Node sponzaNode = Node(&sponza);
     sponzaNode.setTranslation(glm::vec3(0.0f, -0.5f, 0.0f));
     sponzaNode.setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
+    sponzaNode.setScale(glm::vec3(5.0f));
 
     Model backpack = Model({ .path = BACKPACK_MODEL_PATH, .flipTextures = true });
     Node backpackNode = Node(&backpack);
@@ -200,12 +206,12 @@ int main(int argc, char** argv) {
     scene.addPointLight(&pointLight2);
     scene.addPointLight(&pointLight3);
     scene.addPointLight(&pointLight4);
-    scene.addChildNode(&cubeNodeGold);
-    scene.addChildNode(&cubeNodeIron);
-    scene.addChildNode(&sphereNodePlastic);
+    /* scene.addChildNode(&cubeNodeGold);
+     * scene.addChildNode(&cubeNodeIron);
+     * scene.addChildNode(&sphereNodePlastic); */
     scene.addChildNode(&sponzaNode);
-    scene.addChildNode(&backpackNode);
-    scene.addChildNode(&planeNode);
+    /* scene.addChildNode(&backpackNode);
+     * scene.addChildNode(&planeNode); */
 
     scene.equirectToCubeMap(envCubeMap, hdrTexture);
     scene.setupIBL(envCubeMap);
@@ -237,10 +243,17 @@ int main(int argc, char** argv) {
 
     // camera.setProjectionMatrix(glm::radians(120.0f), (float)screenWidth / (float)screenHeight, 0.1f, 1000.0f);
 
+    Framebuffer outputFramebuffer;
+    outputFramebuffer.createColorAndDepthBuffers(screenWidth, screenHeight);
+
     unsigned int t = 0;
     float z = 0.0f;
     app.onRender([&](double now, double dt) {
         auto saveFrame = [&](glm::vec3 position, std::string label, unsigned int timestamp) {
+            std::cout << "saving " << label << " t=" << std::to_string(timestamp) << std::endl;
+
+            double startTime = glfwGetTime();
+
             camera.position = position;
             camera.updateViewMatrix();
 
@@ -260,12 +273,16 @@ int main(int argc, char** argv) {
             genMeshShader.unbind();
 
             // render to screen
-            app.renderer.drawToScreen(screenShader, screenWidth, screenHeight);
+            // app.renderer.drawToScreen(screenShader);
+            app.renderer.drawToFramebuffer(screenShader, outputFramebuffer);
 
-            std::cout << "saving " << label << " t=" << std::to_string(timestamp) << std::endl;
+            std::cout << "\tRendering Time: " << glfwGetTime() - startTime << "s" << std::endl;
 
-            app.renderer.gBuffer.colorBuffer.saveTextureToPNG("imgs/color_" + label + "_" + std::to_string(timestamp) + ".png");
+            // app.renderer.gBuffer.colorBuffer.saveTextureToPNG("imgs/color_" + label + "_" + std::to_string(timestamp) + ".png");
             // app.renderer.gBuffer.depthBuffer.saveDepthToFile("imgs/depth1.bin");
+            outputFramebuffer.bind();
+            outputFramebuffer.colorBuffer.saveTextureToPNG("imgs/color_" + label + "_" + std::to_string(timestamp) + ".png");
+            outputFramebuffer.unbind();
 
             std::ofstream depthFile;
             depthFile.open("data/depth_" + label + "_" + std::to_string(timestamp) + ".bin", std::ios::out | std::ios::binary);
@@ -294,9 +311,7 @@ int main(int argc, char** argv) {
                     vertex.position.z = pVertices[i].z;
                     vertices.push_back(vertex);
 
-                    positionsFile.write(reinterpret_cast<const char*>(&pVertices[i].x), sizeof(pVertices[i].x));
-                    positionsFile.write(reinterpret_cast<const char*>(&pVertices[i].y), sizeof(pVertices[i].y));
-                    positionsFile.write(reinterpret_cast<const char*>(&pVertices[i].z), sizeof(pVertices[i].z));
+                    positionsFile.write(reinterpret_cast<const char*>(&pVertices[i].x), 3 * sizeof(float));
                     depthFile.write(reinterpret_cast<const char*>(&pVertices[i].w), sizeof(pVertices[i].w));
                 }
 
@@ -305,66 +320,68 @@ int main(int argc, char** argv) {
                 std::cerr << "Failed to map vertex buffer into memory" << std::endl;
             }
 
-            std::vector<unsigned int> indices;
-            indices.reserve(indexBufferSize);
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
-            GLvoid* pIndexBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-            if (pIndexBuffer) {
-                unsigned int* pIndices = static_cast<unsigned int*>(pIndexBuffer);
+/*             std::vector<unsigned int> indices;
+ *             indices.reserve(indexBufferSize);
+ *             glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
+ *             GLvoid* pIndexBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+ *             if (pIndexBuffer) {
+ *                 unsigned int* pIndices = static_cast<unsigned int*>(pIndexBuffer);
+ *
+ *                 for (int i = 0; i < indexBufferSize; i++) {
+ *                     indices.push_back(pIndices[i]);
+ *                 }
+ *
+ *                 glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+ *             } else {
+ *                 std::cerr << "Failed to map index buffer into memory" << std::endl;
+ *             }
+ *
+ *             std::vector<glm::vec2> texCoords;
+ *             texCoords.reserve(screenWidth * screenHeight);
+ *             glBindBuffer(GL_SHADER_STORAGE_BUFFER, texCoordBuffer);
+ *             GLvoid* pTexCoordBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+ *             if (pTexCoordBuffer) {
+ *                 glm::vec2* pTexCoords = static_cast<glm::vec2*>(pTexCoordBuffer);
+ *
+ *                 for (int i = 0; i < screenWidth * screenHeight; i++) {
+ *                     texCoords.push_back(pTexCoords[i]);
+ *                 }
+ *
+ *                 glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+ *             } else {
+ *                 std::cerr << "Failed to map tex coord buffer into memory" << std::endl;
+ *             }
+ *
+ *             if (objFile.is_open()) {
+ *                 objFile << "mtllib " << "mesh.mtl" << std::endl;
+ *                 objFile << "usemtl " << "Material1" << std::endl;
+ *                 for (int i = 0; i < vertices.size(); i++) {
+ *                     objFile << "v " << vertices[i].position.x << " " << vertices[i].position.y << " " << vertices[i].position.z << std::endl;
+ *                     positionsFile.write(reinterpret_cast<const char*>(&vertices[i].position.x), sizeof(vertices[i].position.x));
+ *                     positionsFile.write(reinterpret_cast<const char*>(&vertices[i].position.y), sizeof(vertices[i].position.y));
+ *                     positionsFile.write(reinterpret_cast<const char*>(&vertices[i].position.z), sizeof(vertices[i].position.z));
+ *                     // positionsFile << vertices[i].position.x << " " << vertices[i].position.y << " " << vertices[i].position.z << std::endl;
+ *                 }
+ *                 for (int i = 0; i < texCoords.size(); i++) {
+ *                     objFile << "vt " << texCoords[i].x << " " << texCoords[i].y << std::endl;
+ *                 }
+ *                 // for (int i = 0; i < indices.size(); i += 3) {
+ *                 //     objFile << "f " << indices[i] + 1 << " " << indices[i + 1] + 1 << " " << indices[i + 2] + 1<< std::endl;
+ *                 // }
+ *                 for (int i = 0; i < indices.size(); i += 3) {
+ *                     objFile << "f " << indices[i + 0] + 1 << "/" << indices[i + 0] + 1 << " " << indices[i + 1] + 1 << "/" << indices[i + 1] + 1 << " " << indices[i + 2] + 1 << "/" << indices[i + 2] + 1 << std::endl;
+ *                 }
+ *                 objFile.close();
+ *             } else {
+ *                 std::cerr << "Failed to open objFile" << std::endl;
+ *             }
+ *
+ *             if (mtlFile.is_open()) {
+ *                 mtlFile << "newmtl " << "Material1" << std::endl;
+ *                 mtlFile << "map_Kd " << "meshColor.png" << std::endl;
+ *             } */
 
-                for (int i = 0; i < indexBufferSize; i++) {
-                    indices.push_back(pIndices[i]);
-                }
-
-                glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-            } else {
-                std::cerr << "Failed to map index buffer into memory" << std::endl;
-            }
-
-            std::vector<glm::vec2> texCoords;
-            texCoords.reserve(screenWidth * screenHeight);
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, texCoordBuffer);
-            GLvoid* pTexCoordBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-            if (pTexCoordBuffer) {
-                glm::vec2* pTexCoords = static_cast<glm::vec2*>(pTexCoordBuffer);
-
-                for (int i = 0; i < screenWidth * screenHeight; i++) {
-                    texCoords.push_back(pTexCoords[i]);
-                }
-
-                glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-            } else {
-                std::cerr << "Failed to map tex coord buffer into memory" << std::endl;
-            }
-
-            // if (objFile.is_open()) {
-            //     objFile << "mtllib " << "mesh.mtl" << std::endl;
-            //     objFile << "usemtl " << "Material1" << std::endl;
-            //     for (int i = 0; i < vertices.size(); i++) {
-            //         objFile << "v " << vertices[i].position.x << " " << vertices[i].position.y << " " << vertices[i].position.z << std::endl;
-            //         positionsFile.write(reinterpret_cast<const char*>(&vertices[i].position.x), sizeof(vertices[i].position.x));
-            //         positionsFile.write(reinterpret_cast<const char*>(&vertices[i].position.y), sizeof(vertices[i].position.y));
-            //         positionsFile.write(reinterpret_cast<const char*>(&vertices[i].position.z), sizeof(vertices[i].position.z));
-            //         // positionsFile << vertices[i].position.x << " " << vertices[i].position.y << " " << vertices[i].position.z << std::endl;
-            //     }
-            //     for (int i = 0; i < texCoords.size(); i++) {
-            //         objFile << "vt " << texCoords[i].x << " " << texCoords[i].y << std::endl;
-            //     }
-            //     // for (int i = 0; i < indices.size(); i += 3) {
-            //     //     objFile << "f " << indices[i] + 1 << " " << indices[i + 1] + 1 << " " << indices[i + 2] + 1<< std::endl;
-            //     // }
-            //     for (int i = 0; i < indices.size(); i += 3) {
-            //         objFile << "f " << indices[i + 0] + 1 << "/" << indices[i + 0] + 1 << " " << indices[i + 1] + 1 << "/" << indices[i + 1] + 1 << " " << indices[i + 2] + 1 << "/" << indices[i + 2] + 1 << std::endl;
-            //     }
-            //     objFile.close();
-            // } else {
-            //     std::cerr << "Failed to open objFile" << std::endl;
-            // }
-
-            // if (mtlFile.is_open()) {
-            //     mtlFile << "newmtl " << "Material1" << std::endl;
-            //     mtlFile << "map_Kd " << "meshColor.png" << std::endl;
-            // }
+            std::cout << "\tSaving Time: " << glfwGetTime() - startTime << "s" << std::endl;
         };
 
         glm::vec3 initialPosition = glm::vec3(0.0f, 1.6f, 0.0f);

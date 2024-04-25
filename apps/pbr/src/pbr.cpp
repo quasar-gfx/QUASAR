@@ -227,7 +227,7 @@ int main(int argc, char** argv) {
         app.renderer.drawObjects(scene, camera);
 
         // render to screen
-        app.renderer.drawToScreen(screenShader, screenWidth, screenHeight);
+        app.renderer.drawToScreen(screenShader);
     });
 
     // run app loop (blocking)

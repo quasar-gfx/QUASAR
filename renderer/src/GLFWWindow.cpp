@@ -8,6 +8,7 @@ GLFWWindow::GLFWWindow(const Config &config) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, config.openglMinorVersion);
     glfwWindowHint(GLFW_SAMPLES, config.numSamples);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_VISIBLE, config.showWindow);
 
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);

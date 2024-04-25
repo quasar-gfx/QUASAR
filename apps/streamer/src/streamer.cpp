@@ -57,6 +57,10 @@ int main(int argc, char** argv) {
             app.config.enableVSync = atoi(argv[i + 1]);
             i++;
         }
+        else if (!strcmp(argv[i], "-d") && i + 1 < argc) {
+            app.config.showWindow = atoi(argv[i + 1]);
+            i++;
+        }
     }
 
     GLFWWindow window(app.config);
@@ -80,6 +84,14 @@ int main(int argc, char** argv) {
         ImGui::Text("Rendering Frame Rate: %.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
         ImGui::Text("Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoStreamer.getFrameRate(), 1000.0f / videoStreamer.getFrameRate());
         ImGui::End();
+    });
+
+    app.onResize([&](unsigned int width, unsigned int height) {
+        screenWidth = width;
+        screenHeight = height;
+
+        camera.aspect = (float)screenWidth / (float)screenHeight;
+        camera.updateProjectionMatrix();
     });
 
     // shaders
@@ -279,7 +291,7 @@ int main(int argc, char** argv) {
         app.renderer.drawObjects(scene, camera);
 
         // render to screen
-        app.renderer.drawToScreen(screenShader, screenWidth, screenHeight);
+        app.renderer.drawToScreen(screenShader);
 
         videoStreamer.sendFrame();
     });
