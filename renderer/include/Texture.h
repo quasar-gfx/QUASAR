@@ -80,6 +80,9 @@ public:
 
         glBindTexture(GL_TEXTURE_2D, ID);
         glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, nullptr);
+        if (minFilter == GL_LINEAR_MIPMAP_LINEAR || minFilter == GL_LINEAR_MIPMAP_NEAREST) {
+            glGenerateMipmap(GL_TEXTURE_2D);
+        }
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
