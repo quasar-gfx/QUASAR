@@ -114,12 +114,12 @@ int main(int argc, char** argv) {
     // objects
     Cube cubeGold = Cube(&goldMaterial);
     Node cubeNodeGold = Node(&cubeGold);
-    cubeNodeGold.setTranslation(glm::vec3(-0.2f, 0.25f, -7.0f));
+    cubeNodeGold.setTranslation(glm::vec3(-0.2f, 0.5f, -7.0f));
     cubeNodeGold.setScale(glm::vec3(0.5f));
 
     Cube cubeIron = Cube(&ironMaterial);
     Node cubeNodeIron = Node(&cubeIron);
-    cubeNodeIron.setTranslation(glm::vec3(1.5f, 0.25f, -3.0f));
+    cubeNodeIron.setTranslation(glm::vec3(1.5f, 0.5f, -3.0f));
     cubeNodeIron.setScale(glm::vec3(0.5f));
 
     Sphere sphere = Sphere(&plasticMaterial);
@@ -143,28 +143,28 @@ int main(int argc, char** argv) {
 
     PointLight pointLight1 = PointLight({
         .color = glm::vec3(0.9f, 0.9f, 1.0f),
-        .initialPosition = glm::vec3(-1.45f, 1.5f, -6.2f),
+        .initialPosition = glm::vec3(-1.45f, 2.5f, -6.2f),
         .intensity = 25.0f,
         .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
     });
 
     PointLight pointLight2 = PointLight({
         .color = glm::vec3(0.9f, 0.9f, 1.0f),
-        .initialPosition = glm::vec3(2.2f, 1.5f, -6.2f),
+        .initialPosition = glm::vec3(2.2f, 2.5f, -6.2f),
         .intensity = 25.0f,
         .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
     });
 
     PointLight pointLight3 = PointLight({
         .color = glm::vec3(0.9f, 0.9f, 1.0f),
-        .initialPosition = glm::vec3(-1.45f, 1.5f, 4.89f),
+        .initialPosition = glm::vec3(-1.45f, 2.5f, 4.89f),
         .intensity = 25.0f,
         .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
     });
 
     PointLight pointLight4 = PointLight({
         .color = glm::vec3(0.9f, 0.9f, 1.0f),
-        .initialPosition = glm::vec3(2.2f, 1.5f, 4.89f),
+        .initialPosition = glm::vec3(2.2f, 2.5f, 4.89f),
         .intensity = 25.0f,
         .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
     });
@@ -172,12 +172,11 @@ int main(int argc, char** argv) {
     // models
     Model sponza = Model({ .path = modelPath });
     Node sponzaNode = Node(&sponza);
-    sponzaNode.setTranslation(glm::vec3(0.0f, -0.5f, 0.0f));
     sponzaNode.setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
 
     Model backpack = Model({ .path = BACKPACK_MODEL_PATH, .flipTextures = true });
     Node backpackNode = Node(&backpack);
-    backpackNode.setTranslation(glm::vec3(0.5f, 0.1f, -5.0f));
+    backpackNode.setTranslation(glm::vec3(0.5f, 0.5f, -5.0f));
     backpackNode.setScale(glm::vec3(0.25f));
 
     // load the HDR environment map
@@ -257,10 +256,10 @@ int main(int argc, char** argv) {
 
         // animate
         cubeNodeGold.setRotationEuler(glm::vec3(0.0f, 10.0f * now, 0.0f));
-        // pointLight1.setPosition(glm::vec3(-1.45f + 0.25f * sin(now), 3.5f, -6.2f + 0.25f * cos(now)));
-        // pointLight2.setPosition(glm::vec3(2.2f + 0.25f * sin(now), 3.5f, -6.2f + 0.25f * cos(now)));
-        // pointLight3.setPosition(glm::vec3(-1.45f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));
-        // pointLight4.setPosition(glm::vec3(2.2f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));
+        pointLight1.setPosition(glm::vec3(-1.45f + 1.1f * sin(now), 2.5f, -6.2f));
+        pointLight2.setPosition(glm::vec3(2.2f + 1.1f * sin(now), 2.5f, -6.2f));
+        pointLight3.setPosition(glm::vec3(-1.45f + 1.1f * sin(now), 2.5f, 4.89f));
+        pointLight4.setPosition(glm::vec3(2.2f + 1.1f * sin(now), 2.5f, 4.89f));
 
         // render all objects in scene
         app.renderer.drawObjects(scene, camera);

@@ -8,8 +8,7 @@ in vec3 FragPos;
 in vec3 Normal;
 in vec3 Tangent;
 in vec3 BiTangent;
-in vec2 TexCoords;
-out vec4 FragPosLightSpace;
+in vec4 FragPosLightSpace;
 
 // material parameters
 uniform sampler2D diffuseMap;
