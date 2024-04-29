@@ -17,12 +17,21 @@ uniform sampler2D metallicMap; // 2
 uniform sampler2D roughnessMap; // 3
 uniform sampler2D aoMap; // 4
 
+uniform bool aoMapped;
+uniform bool normalMapped;
+
 // IBL
+uniform bool IBL;
 uniform samplerCube irradianceMap; // 5
 uniform samplerCube prefilterMap; // 6
 uniform sampler2D brdfLUT; // 7
 
 // lights
+struct AmbientLight {
+    vec3 color;
+    float intensity;
+};
+
 struct DirectionalLight {
     vec3 color;
     vec3 direction;
@@ -41,6 +50,7 @@ struct PointLight {
 
 #define MAX_POINT_LIGHTS 4
 
+uniform AmbientLight ambientLight;
 uniform DirectionalLight directionalLight;
 uniform PointLight pointLights[MAX_POINT_LIGHTS];
 
@@ -66,6 +76,10 @@ vec3 getNormalFromMap() {
     vec3 T   = normalize(Tangent);
     vec3 B   = normalize(BiTangent);
     mat3 TBN = mat3(T, B, N);
+
+    if (!normalMapped) {
+        return N;
+    }
 
     vec3 normal = normalize(2.0 * texture(normalMap, TexCoords).rgb - 1.0);
     return normalize(TBN * normal);
@@ -266,23 +280,28 @@ void main() {
         radianceOut += calcPointLight(pointLights[i], pointLightShadowMaps[i], N, V, albedo, roughness, metallic, F0);
     }
 
-    // ambient lighting (we now use IBL as the ambient term)
-    vec3 kS = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
-    vec3 kD = 1.0 - kS;
-    kD *= 1.0 - metallic;
+    vec3 ambient = ambientLight.intensity * ambientLight.color * albedo;
+    if (IBL) {
+        // ambient lighting (we now use IBL as the ambient term)
+        vec3 kS = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+        vec3 kD = 1.0 - kS;
+        kD *= 1.0 - metallic;
 
-    vec3 irradiance = texture(irradianceMap, N).rgb;
-    vec3 diffuse = irradiance * albedo;
+        vec3 irradiance = texture(irradianceMap, N).rgb;
+        vec3 diffuse = irradiance * albedo;
 
-    // sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation
-    // to get the IBL specular part
-    const float MAX_REFLECTION_LOD = 4.0;
-    vec3 prefilteredColor = textureLod(prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
-    vec2 brdf = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
-    vec3 specular = prefilteredColor * (kS * brdf.x + brdf.y);
-    vec3 ambient = (kD * diffuse + specular);
+        // sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation
+        // to get the IBL specular part
+        const float MAX_REFLECTION_LOD = 4.0;
+        vec3 prefilteredColor = textureLod(prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+        vec2 brdf = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
+        vec3 specular = prefilteredColor * (kS * brdf.x + brdf.y);
+        ambient = (kD * diffuse + specular);
+    }
 
-    ambient = ambient * ao;
+    if (aoMapped) {
+        ambient *= ao;
+    }
 
     radianceOut = radianceOut + ambient;
 

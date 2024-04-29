@@ -66,6 +66,7 @@ void Mesh::bindSceneAndCamera(Scene &scene, Camera &camera, glm::mat4 model, Mat
         texIdx++;
     }
 
+    materialToUse->shader->setBool("IBL", IBL);
     materialToUse->shader->setMat4("view", camera.getViewMatrix());
     materialToUse->shader->setMat4("projection", camera.getProjectionMatrix());
     materialToUse->shader->setVec3("camPos", camera.position);

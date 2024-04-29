@@ -26,6 +26,7 @@ struct ModelCreateParams {
     bool wireframe = false;
     bool pointcloud = false;
     bool gammaCorrected = false;
+    bool IBL = true;
 };
 
 class Model : public Entity {
@@ -35,15 +36,15 @@ public:
     std::string rootDirectory;
 
     bool flipTextures = false;
-
     bool wireframe = false;
     bool pointcloud = false;
     bool gammaCorrected = false;
+    bool IBL = true;
 
     explicit Model(const ModelCreateParams &params)
             : flipTextures(params.flipTextures),
               wireframe(params.wireframe), pointcloud(params.pointcloud),
-              gammaCorrected(params.gammaCorrected),
+              gammaCorrected(params.gammaCorrected), IBL(params.IBL),
               Entity() {
         std::cout << "Loading model: " << params.path << std::endl;
         loadFromFile(params);

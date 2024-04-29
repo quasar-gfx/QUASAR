@@ -114,17 +114,17 @@ int main(int argc, char** argv) {
     // objects
     Cube cubeGold = Cube(&goldMaterial);
     Node cubeNodeGold = Node(&cubeGold);
-    cubeNodeGold.setTranslation(glm::vec3(-0.2f, 0.5f, -7.0f));
+    cubeNodeGold.setTranslation(glm::vec3(-0.2f, 0.75f, -7.0f));
     cubeNodeGold.setScale(glm::vec3(0.5f));
 
     Cube cubeIron = Cube(&ironMaterial);
     Node cubeNodeIron = Node(&cubeIron);
-    cubeNodeIron.setTranslation(glm::vec3(1.5f, 0.5f, -3.0f));
+    cubeNodeIron.setTranslation(glm::vec3(1.5f, 0.75f, -3.0f));
     cubeNodeIron.setScale(glm::vec3(0.5f));
 
     Sphere sphere = Sphere(&plasticMaterial);
     Node sphereNodePlastic = Node(&sphere);
-    sphereNodePlastic.setTranslation(glm::vec3(1.0f, 1.5f, -8.0f));
+    sphereNodePlastic.setTranslation(glm::vec3(1.0f, 2.0f, -8.0f));
     sphereNodePlastic.setScale(glm::vec3(0.5f));
 
     Plane plane = Plane(&windowMaterial);
@@ -134,8 +134,13 @@ int main(int argc, char** argv) {
     planeNode.setScale(glm::vec3(0.5f));
 
     // lights
+    AmbientLight ambientLight = AmbientLight({
+        .color = glm::vec3(0.9f, 0.9f, 0.9f),
+        .intensity = 0.1f
+    });
+
     DirectionalLight directionalLight = DirectionalLight({
-        .color = glm::vec3(0.8f, 0.8f, 0.8f),
+        .color = glm::vec3(1.0f, 0.75f, 0.75f),
         .direction = glm::vec3(-1.0f, -5.0f, 0.0f),
         .distance = 100.0f,
         .intensity = 1.0f
@@ -170,7 +175,7 @@ int main(int argc, char** argv) {
     });
 
     // models
-    Model sponza = Model({ .path = modelPath });
+    Model sponza = Model({ .path = modelPath, .IBL = false });
     Node sponzaNode = Node(&sponza);
     sponzaNode.setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
 
@@ -195,6 +200,7 @@ int main(int argc, char** argv) {
     // skybox
     CubeMap envCubeMap({ .width = 512, .height = 512, .type = CubeMapType::HDR });
 
+    scene.setAmbientLight(&ambientLight);
     scene.setDirectionalLight(&directionalLight);
     scene.addPointLight(&pointLight1);
     scene.addPointLight(&pointLight2);

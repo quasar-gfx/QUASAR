@@ -55,6 +55,7 @@ struct MeshCreateParams {
     Material* material;
     bool wireframe = false;
     bool pointcloud = false;
+    bool IBL = true;
 };
 
 class Mesh : public Entity {
@@ -63,13 +64,14 @@ public:
 
     bool wireframe = false;
     bool pointcloud = false;
+    bool IBL = true;
 
     explicit Mesh() : Entity() {}
 
     explicit Mesh(const MeshCreateParams &params)
             : vertices(params.vertices), indices(params.indices),
                 material(params.material),
-                wireframe(params.wireframe), pointcloud(params.pointcloud),
+                wireframe(params.wireframe), pointcloud(params.pointcloud), IBL(params.IBL),
                 Entity() {
         init();
     }
