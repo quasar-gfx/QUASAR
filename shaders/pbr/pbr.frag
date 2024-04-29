@@ -60,6 +60,8 @@ uniform samplerCube pointLightShadowMaps[MAX_POINT_LIGHTS]; // 9+
 
 uniform vec3 camPos;
 
+uniform bool transparent;
+
 const float PI = 3.1415926535897932384626433832795;
 
 vec3 gridSamplingDisk[20] = vec3[]
@@ -256,8 +258,9 @@ void main() {
 
     vec3 albedo = color.rgb;
     float alpha = color.a;
-    if (alpha < 0.5)
+    if (!transparent && alpha < 0.5)
         discard;
+
 
     float metallic = texture(metallicMap, TexCoords).r;
     float roughness = texture(roughnessMap, TexCoords).r;
@@ -307,5 +310,5 @@ void main() {
 
     positionBuffer = vec4(FragPos, 1.0);
     normalsBuffer = vec4(normalize(Normal), 1.0);
-    FragColor = vec4(radianceOut, 1.0);
+    FragColor = vec4(radianceOut, alpha);
 }

@@ -5,7 +5,7 @@
 
 class Cube : public Mesh {
 public:
-    explicit Cube(Material* material) : Mesh() {
+    explicit Cube(const MeshCreateParams &params) : Mesh(params) {
         this->vertices = {
             // Front face
             { {-1.0f, -1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f} }, // Bottom Left

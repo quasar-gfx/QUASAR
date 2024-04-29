@@ -112,24 +112,24 @@ int main(int argc, char** argv) {
     });
 
     // objects
-    Cube cubeGold = Cube(&goldMaterial);
+    Cube cubeGold = Cube({ .material = &goldMaterial });
     Node cubeNodeGold = Node(&cubeGold);
     cubeNodeGold.setTranslation(glm::vec3(-0.2f, 0.75f, -7.0f));
     cubeNodeGold.setScale(glm::vec3(0.5f));
 
-    Cube cubeIron = Cube(&ironMaterial);
+    Cube cubeIron = Cube({ .material = &ironMaterial });
     Node cubeNodeIron = Node(&cubeIron);
     cubeNodeIron.setTranslation(glm::vec3(1.5f, 0.75f, -3.0f));
     cubeNodeIron.setScale(glm::vec3(0.5f));
 
-    Sphere sphere = Sphere(&plasticMaterial);
+    Sphere sphere = Sphere({ .material = &plasticMaterial });
     Node sphereNodePlastic = Node(&sphere);
     sphereNodePlastic.setTranslation(glm::vec3(1.0f, 2.0f, -8.0f));
     sphereNodePlastic.setScale(glm::vec3(0.5f));
 
-    Plane plane = Plane(&windowMaterial);
+    Plane plane = Plane({ .material = &windowMaterial, .IBL = false, .transparent = true });
     Node planeNode = Node(&plane);
-    planeNode.setTranslation(glm::vec3(0.0f, 1.5f, -7.0f));
+    planeNode.setTranslation(glm::vec3(0.0f, 1.5f, -6.0f));
     planeNode.setRotationEuler(glm::vec3(-90.0f, 0.0f, 0.0f));
     planeNode.setScale(glm::vec3(0.5f));
 
@@ -211,7 +211,7 @@ int main(int argc, char** argv) {
     scene.addChildNode(&sphereNodePlastic);
     scene.addChildNode(&sponzaNode);
     scene.addChildNode(&backpackNode);
-    /* scene.addChildNode(&planeNode); */
+    scene.addChildNode(&planeNode);
 
     scene.equirectToCubeMap(envCubeMap, hdrTexture);
     scene.setupIBL(envCubeMap);

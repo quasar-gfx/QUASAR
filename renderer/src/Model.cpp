@@ -133,7 +133,8 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
             }),
             .wireframe = wireframe,
             .pointcloud = pointcloud,
-            .IBL = IBL
+            .IBL = IBL,
+            .transparent = transparent
         });
     }
 }

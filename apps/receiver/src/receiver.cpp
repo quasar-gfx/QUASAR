@@ -110,17 +110,17 @@ int main(int argc, char** argv) {
     DiffSpecMaterial containerMaterial = DiffSpecMaterial({ CONTAINER_TEXTURE });
     DiffSpecMaterial floorMaterial = DiffSpecMaterial({ METAL_TEXTURE });
 
-    Cube cube = Cube(&containerMaterial);
+    Cube cube = Cube({ .material = &containerMaterial });
 
     Node cubeNode = Node(&cube);
     cubeNode.setTranslation(glm::vec3(-1.0f, 0.0f, -1.0f));
 
-    Sphere sphere = Sphere(&containerMaterial);
+    Sphere sphere = Sphere({ .material = &containerMaterial });
 
     Node sphereNode = Node(&sphere);
     sphereNode.setTranslation(glm::vec3(2.0f, 1.0f, -3.0f));
 
-    Plane plane = Plane(&floorMaterial);
+    Plane plane = Plane({ .material = &floorMaterial });
     Node planeNode = Node(&plane);
     planeNode.setScale(glm::vec3(25.0f, 1.0f, 25.0f));
 

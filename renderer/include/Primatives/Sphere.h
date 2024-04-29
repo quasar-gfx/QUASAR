@@ -5,7 +5,7 @@
 
 class Sphere : public Mesh {
 public:
-    explicit Sphere(Material* material, unsigned int xSegments = 64, unsigned int ySegments = 64) : Mesh() {
+    explicit Sphere(const MeshCreateParams &params, unsigned int xSegments = 64, unsigned int ySegments = 64) : Mesh(params) {
         float radius = 1.0f;
         const float PI = 3.14159265359f;
 

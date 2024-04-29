@@ -107,11 +107,11 @@ int main(int argc, char** argv) {
     });
 
     // objects
-    Sphere sphereGold = Sphere(&goldMaterial);
+    Sphere sphereGold = Sphere({ .material = &goldMaterial });
     Node sphereNodeGold = Node(&sphereGold);
     sphereNodeGold.setTranslation(glm::vec3(-5.0f, 0.5f, -1.0f));
 
-    Cube cubeIron = Cube(&ironMaterial);
+    Cube cubeIron = Cube({ .material = &ironMaterial });
     Node cubeNodeIron = Node(&cubeIron);
     cubeNodeIron.setTranslation(glm::vec3(5.0f, 0.5f, -1.0f));
 

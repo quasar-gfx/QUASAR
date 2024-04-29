@@ -56,6 +56,7 @@ struct MeshCreateParams {
     bool wireframe = false;
     bool pointcloud = false;
     bool IBL = true;
+    bool transparent = false;
 };
 
 class Mesh : public Entity {
@@ -65,13 +66,15 @@ public:
     bool wireframe = false;
     bool pointcloud = false;
     bool IBL = true;
+    bool transparent = false;
 
     explicit Mesh() : Entity() {}
 
     explicit Mesh(const MeshCreateParams &params)
             : vertices(params.vertices), indices(params.indices),
                 material(params.material),
-                wireframe(params.wireframe), pointcloud(params.pointcloud), IBL(params.IBL),
+                wireframe(params.wireframe), pointcloud(params.pointcloud),
+                IBL(params.IBL), transparent(params.transparent),
                 Entity() {
         init();
     }

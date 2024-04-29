@@ -5,7 +5,7 @@
 
 class Plane : public Mesh {
 public:
-    explicit Plane(Material* material) : Mesh() {
+    explicit Plane(const MeshCreateParams &params) : Mesh(params) {
         this->vertices = {
             {{ 1.0f, -1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {2.0f, 2.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
             {{-1.0f, -1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 2.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
