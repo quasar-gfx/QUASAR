@@ -37,7 +37,7 @@ public:
         depthBuffer = Texture({
             .width = width,
             .height = height,
-            .internalFormat = GL_DEPTH_COMPONENT24,
+            .internalFormat = GL_DEPTH_COMPONENT32F,
             .format = GL_DEPTH_COMPONENT,
             .type = GL_FLOAT,
             .minFilter = GL_NEAREST,
@@ -121,7 +121,7 @@ public:
         colorBuffer = Texture({
             .width = width,
             .height = height,
-            .internalFormat = GL_RGBA16,
+            .internalFormat = GL_RGBA16F,
             .format = GL_RGBA,
             .type = GL_FLOAT,
             .wrapS = GL_CLAMP_TO_EDGE,
@@ -175,15 +175,17 @@ public:
         depthBuffer = Texture({
             .width = width,
             .height = height,
-            .internalFormat = GL_DEPTH_COMPONENT,
+            .internalFormat = GL_DEPTH_COMPONENT32F,
             .format = GL_DEPTH_COMPONENT,
             .type = GL_FLOAT,
             .wrapS = GL_CLAMP_TO_BORDER,
             .wrapT = GL_CLAMP_TO_BORDER,
-            .minFilter = GL_NEAREST,
-            .magFilter = GL_NEAREST,
+            .minFilter = GL_LINEAR,
+            .magFilter = GL_LINEAR,
             .hasBorder = true
         });
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LESS);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBuffer.ID, 0);
 
         glDrawBuffer(GL_NONE);

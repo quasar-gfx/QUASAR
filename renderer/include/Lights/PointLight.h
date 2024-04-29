@@ -13,8 +13,8 @@ struct PointLightCreateParams {
     float constant = 1.0f;
     float linear = 0.09f;
     float quadratic = 0.032f;
-    float zNear = 1.0f;
-    float zFar = 25.0f;
+    float zNear = 0.1f;
+    float zFar = 100.0f;
 };
 
 class PointLight : public Light {

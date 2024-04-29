@@ -51,6 +51,11 @@ public:
                 vertex.tangent[1] = 0;
                 vertex.tangent[2] = radius * cosTheta;
 
+                // Compute bitangent (approximation)
+                vertex.bitangent[0] = radius * cosPhi * cosTheta;
+                vertex.bitangent[1] = -radius * sinPhi;
+                vertex.bitangent[2] = radius * cosPhi * sinTheta;
+
                 this->vertices.push_back(vertex);
             }
         }

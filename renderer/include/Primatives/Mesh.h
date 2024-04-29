@@ -22,7 +22,8 @@ enum VertexAttribute {
     ATTRIBUTE_POSITION   = 0,
     ATTRIBUTE_NORMAL     = 1,
     ATTRIBUTE_TEX_COORDS = 2,
-    ATTRIBUTE_TANGENT    = 3
+    ATTRIBUTE_TANGENT    = 3,
+    ATTRIBUTE_BITANGENT  = 4
 };
 
 struct Vertex {
@@ -30,6 +31,7 @@ struct Vertex {
     glm::vec3 normal;
     glm::vec2 texCoords;
     glm::vec3 tangent;
+    glm::vec3 bitangent;
 
     bool operator==(const Vertex& other) const {
         return position == other.position && normal == other.normal && texCoords == other.texCoords && tangent == other.tangent;

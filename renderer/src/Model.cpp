@@ -82,6 +82,11 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
             vector.y = mesh->mTangents[i].y;
             vector.z = mesh->mTangents[i].z;
             vertex.tangent = vector;
+
+            vector.x = mesh->mBitangents[i].x;
+            vector.y = mesh->mBitangents[i].y;
+            vector.z = mesh->mBitangents[i].z;
+            vertex.bitangent = vector;
         }
 
         vertices.push_back(vertex);
@@ -201,7 +206,7 @@ TextureID Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
             .wrapT = GL_REPEAT,
             .minFilter = GL_LINEAR_MIPMAP_LINEAR,
             .magFilter = GL_LINEAR,
-            .gammaCorrected = (type == aiTextureType_DIFFUSE) ? gammaCorrected : false,
+            .gammaCorrected = gammaCorrected,
             .path = texturePath
         });
         texturesLoaded[texturePath] = texture;

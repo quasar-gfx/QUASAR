@@ -30,8 +30,8 @@ public:
     float yaw = -90.0f;
     float pitch = 0.0f;
 
-    float movementSpeed = 2.5f;
-    float mouseSensitivity = 0.1f;
+    float movementSpeed = 5.0f;
+    float mouseSensitivity = 0.05f;
 
     explicit Camera(unsigned int width, unsigned int height);
     explicit Camera(float fovy, float aspect, float near, float far);

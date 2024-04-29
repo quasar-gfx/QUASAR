@@ -4,11 +4,14 @@ void OpenGLRenderer::init(unsigned int width, unsigned int height) {
     this->width = width;
     this->height = height;
 
-    // enable depth testing
-    glEnable(GL_DEPTH_TEST);
-
     // enable msaa
     glEnable(GL_MULTISAMPLE);
+
+    // enable face culling
+    // glEnable(GL_CULL_FACE);
+
+    // enable srgb framebuffers
+    glEnable(GL_FRAMEBUFFER_SRGB);
 
     // enable seamless cube map sampling for lower mip levels in the pre-filter map
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
@@ -38,14 +41,10 @@ void OpenGLRenderer::updateDirLightShadow(Scene &scene, Camera &camera) {
     scene.directionalLight->shadowMapFramebuffer.bind();
     glClear(GL_DEPTH_BUFFER_BIT);
 
-    scene.directionalLight->shadowMapMaterial.bind();
-    scene.directionalLight->shadowMapMaterial.shader->setMat4("lightSpaceMatrix", scene.directionalLight->lightSpaceMatrix);
-
     for (auto& child : scene.children) {
         drawNode(scene, camera, child, glm::mat4(1.0f), &scene.directionalLight->shadowMapMaterial);
     }
 
-    scene.directionalLight->shadowMapMaterial.unbind();
     scene.directionalLight->shadowMapFramebuffer.unbind();
 }
 
@@ -59,6 +58,7 @@ void OpenGLRenderer::updatePointLightShadows(Scene &scene, Camera &camera) {
         pointLight->shadowMapMaterial.bind();
         pointLight->shadowMapMaterial.shader->setVec3("lightPos", pointLight->position);
         pointLight->shadowMapMaterial.shader->setFloat("farPlane", pointLight->zFar);
+        pointLight->shadowMapMaterial.unbind();
 
         glm::mat4 shadowProj = pointLight->shadowProjectionMat;
         for (int face = 0; face < NUM_CUBEMAP_FACES; face++) {
@@ -69,7 +69,6 @@ void OpenGLRenderer::updatePointLightShadows(Scene &scene, Camera &camera) {
             drawNode(scene, camera, child, glm::mat4(1.0f), &pointLight->shadowMapMaterial);
         }
 
-        pointLight->shadowMapMaterial.unbind();
         pointLight->shadowMapFramebuffer.unbind();
     }
 }
@@ -82,13 +81,10 @@ void OpenGLRenderer::drawSkyBox(Scene &scene, Camera &camera) {
     gBuffer.bind();
     // dont clear color or depth bit here, since we want this to draw over
 
-    bool isHDR = (scene.envCubeMap->type == CubeMapType::HDR);
-
     skyboxShader->bind();
     skyboxShader->setInt("environmentMap", 0);
     skyboxShader->setMat4("view", camera.getViewMatrix());
     skyboxShader->setMat4("projection", camera.getProjectionMatrix());
-    skyboxShader->setBool("isHDR", isHDR);
 
     if (scene.envCubeMap != nullptr) {
         scene.envCubeMap->draw(*skyboxShader, camera);
