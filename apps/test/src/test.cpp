@@ -135,45 +135,45 @@ int main(int argc, char** argv) {
 
     // lights
     DirectionalLight directionalLight = DirectionalLight({
-        .color = glm::vec3(1.0f, 1.0f, 1.0f),
-        .direction = glm::vec3(0.0f, -5.0f, 0.055f),
+        .color = glm::vec3(0.8f, 0.8f, 0.8f),
+        .direction = glm::vec3(-1.0f, -5.0f, 0.0f),
         .distance = 100.0f,
         .intensity = 1.0f
     });
 
-    // PointLight pointLight1 = PointLight({
-    //     .color = glm::vec3(0.9f, 0.9f, 1.0f),
-    //     .initialPosition = glm::vec3(-1.45f, 3.5f, -6.2f),
-    //     .intensity = 100.0f,
-    //     .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
-    // });
+    PointLight pointLight1 = PointLight({
+        .color = glm::vec3(0.9f, 0.9f, 1.0f),
+        .initialPosition = glm::vec3(-1.45f, 1.5f, -6.2f),
+        .intensity = 25.0f,
+        .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
+    });
 
-    // PointLight pointLight2 = PointLight({
-    //     .color = glm::vec3(0.9f, 0.9f, 1.0f),
-    //     .initialPosition = glm::vec3(2.2f, 3.5f, -6.2f),
-    //     .intensity = 100.0f,
-    //     .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
-    // });
+    PointLight pointLight2 = PointLight({
+        .color = glm::vec3(0.9f, 0.9f, 1.0f),
+        .initialPosition = glm::vec3(2.2f, 1.5f, -6.2f),
+        .intensity = 25.0f,
+        .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
+    });
 
-    // PointLight pointLight3 = PointLight({
-    //     .color = glm::vec3(0.9f, 0.9f, 1.0f),
-    //     .initialPosition = glm::vec3(-1.45f, 3.5f, 4.89f),
-    //     .intensity = 100.0f,
-    //     .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
-    // });
+    PointLight pointLight3 = PointLight({
+        .color = glm::vec3(0.9f, 0.9f, 1.0f),
+        .initialPosition = glm::vec3(-1.45f, 1.5f, 4.89f),
+        .intensity = 25.0f,
+        .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
+    });
 
-    // PointLight pointLight4 = PointLight({
-    //     .color = glm::vec3(0.9f, 0.9f, 1.0f),
-    //     .initialPosition = glm::vec3(2.2f, 3.5f, 4.89f),
-    //     .intensity = 100.0f,
-    //     .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
-    // });
+    PointLight pointLight4 = PointLight({
+        .color = glm::vec3(0.9f, 0.9f, 1.0f),
+        .initialPosition = glm::vec3(2.2f, 1.5f, 4.89f),
+        .intensity = 25.0f,
+        .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
+    });
 
     // models
     Model sponza = Model({ .path = modelPath });
     Node sponzaNode = Node(&sponza);
-    sponzaNode.setTranslation(glm::vec3(0.0f, 0.0f, 0.0f));
-    sponzaNode.setRotationEuler(glm::vec3(0.0f, 90.0f, 0.0f));
+    sponzaNode.setTranslation(glm::vec3(0.0f, -0.5f, 0.0f));
+    sponzaNode.setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
 
     Model backpack = Model({ .path = BACKPACK_MODEL_PATH, .flipTextures = true });
     Node backpackNode = Node(&backpack);
@@ -197,16 +197,16 @@ int main(int argc, char** argv) {
     CubeMap envCubeMap({ .width = 512, .height = 512, .type = CubeMapType::HDR });
 
     scene.setDirectionalLight(&directionalLight);
-    // scene.addPointLight(&pointLight1);
-    // scene.addPointLight(&pointLight2);
-    // scene.addPointLight(&pointLight3);
-    // scene.addPointLight(&pointLight4);
-    /* scene.addChildNode(&cubeNodeGold);
-     * scene.addChildNode(&cubeNodeIron);
-     * scene.addChildNode(&sphereNodePlastic); */
+    scene.addPointLight(&pointLight1);
+    scene.addPointLight(&pointLight2);
+    scene.addPointLight(&pointLight3);
+    scene.addPointLight(&pointLight4);
+    scene.addChildNode(&cubeNodeGold);
+    scene.addChildNode(&cubeNodeIron);
+    scene.addChildNode(&sphereNodePlastic);
     scene.addChildNode(&sponzaNode);
-    /* scene.addChildNode(&backpackNode);
-     * scene.addChildNode(&planeNode); */
+    scene.addChildNode(&backpackNode);
+    /* scene.addChildNode(&planeNode); */
 
     scene.equirectToCubeMap(envCubeMap, hdrTexture);
     scene.setupIBL(envCubeMap);
@@ -255,8 +255,8 @@ int main(int argc, char** argv) {
             window.close();
         }
 
-        // // animate
-        // cubeNodeGold.setRotationEuler(glm::vec3(0.0f, 10.0f * now, 0.0f));
+        // animate
+        cubeNodeGold.setRotationEuler(glm::vec3(0.0f, 10.0f * now, 0.0f));
         // pointLight1.setPosition(glm::vec3(-1.45f + 0.25f * sin(now), 3.5f, -6.2f + 0.25f * cos(now)));
         // pointLight2.setPosition(glm::vec3(2.2f + 0.25f * sin(now), 3.5f, -6.2f + 0.25f * cos(now)));
         // pointLight3.setPosition(glm::vec3(-1.45f + 0.25f * sin(now), 3.5f, 4.89f + 0.25f * cos(now)));

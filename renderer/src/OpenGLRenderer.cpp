@@ -58,12 +58,12 @@ void OpenGLRenderer::updatePointLightShadows(Scene &scene, Camera &camera) {
         pointLight->shadowMapMaterial.bind();
         pointLight->shadowMapMaterial.shader->setVec3("lightPos", pointLight->position);
         pointLight->shadowMapMaterial.shader->setFloat("farPlane", pointLight->zFar);
-        pointLight->shadowMapMaterial.unbind();
 
         glm::mat4 shadowProj = pointLight->shadowProjectionMat;
         for (int face = 0; face < NUM_CUBEMAP_FACES; face++) {
             pointLight->shadowMapMaterial.shader->setMat4("shadowMatrices[" + std::to_string(face) + "]", shadowProj * pointLight->lookAtPerFace[face]);
         }
+        pointLight->shadowMapMaterial.unbind();
 
         for (auto& child : scene.children) {
             drawNode(scene, camera, child, glm::mat4(1.0f), &pointLight->shadowMapMaterial);

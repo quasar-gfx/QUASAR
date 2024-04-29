@@ -54,11 +54,11 @@ const float PI = 3.1415926535897932384626433832795;
 
 vec3 gridSamplingDisk[20] = vec3[]
 (
-   vec3(1, 1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1, 1,  1),
-   vec3(1, 1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1, 1, -1),
-   vec3(1, 1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1, 1,  0),
-   vec3(1, 0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1, 0, -1),
-   vec3(0, 1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0, 1, -1)
+   vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1),
+   vec3( 1,  1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1,  1, -1),
+   vec3( 1,  1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1,  1,  0),
+   vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
+   vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
 );
 
 vec3 getNormalFromMap() {
@@ -119,9 +119,9 @@ float calcDirLightShadow(DirectionalLight light, vec4 fragPosLightSpace) {
     // PCF
     int samples = 9;
     float shadow = 0.0;
-    // vec3 normal = normalize(Normal);
-    // vec3 lightDir = normalize(-light.direction);
-    float bias = 0.0; // max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+    vec3 normal = normalize(Normal);
+    vec3 lightDir = normalize(-light.direction);
+    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
     vec2 texelSize = 1.0 / textureSize(dirLightShadowMap, 0);
     for (int i = 0; i < samples; i++) {
         float pcfDepth = texture(dirLightShadowMap, projCoords.xy + gridSamplingDisk[i].xy * texelSize).r;
@@ -262,9 +262,9 @@ void main() {
     // reflectance equation
     vec3 radianceOut = vec3(0.0);
     radianceOut += calcDirLight(directionalLight, N, V, albedo, roughness, metallic, F0);
-    // for (int i = 0; i < MAX_POINT_LIGHTS; i++) {
-    //     radianceOut += calcPointLight(pointLights[i], pointLightShadowMaps[i], N, V, albedo, roughness, metallic, F0);
-    // }
+    for (int i = 0; i < MAX_POINT_LIGHTS; i++) {
+        radianceOut += calcPointLight(pointLights[i], pointLightShadowMaps[i], N, V, albedo, roughness, metallic, F0);
+    }
 
     // ambient lighting (we now use IBL as the ambient term)
     vec3 kS = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
@@ -277,7 +277,7 @@ void main() {
     // sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation
     // to get the IBL specular part
     const float MAX_REFLECTION_LOD = 4.0;
-    vec3 prefilteredColor = textureLod(prefilterMap, R,  roughness * MAX_REFLECTION_LOD).rgb;
+    vec3 prefilteredColor = textureLod(prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
     vec2 brdf = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
     vec3 specular = prefilteredColor * (kS * brdf.x + brdf.y);
     vec3 ambient = (kD * diffuse + specular);
@@ -288,5 +288,5 @@ void main() {
 
     positionBuffer = vec4(FragPos, 1.0);
     normalsBuffer = vec4(normalize(Normal), 1.0);
-    FragColor = vec4(vec3(brdf, 0.0), 1.0);
+    FragColor = vec4(radianceOut, 1.0);
 }

@@ -7,12 +7,12 @@
 
 struct DirectionalLightCreateParams {
     glm::vec3 color = glm::vec3(1.0f);
-    glm::vec3 direction = glm::vec3(0.0f, -5.0f, 0.005f);
+    glm::vec3 direction = glm::vec3(0.0f, -5.0f, 1.333f);
     float distance = 100.0f;
     float intensity = 1.0f;
-    float orthoBoxSize = 100.0f;
+    float orthoBoxSize = 75.0f;
     float zNear = 1.0f;
-    float zFar = 700.0f;
+    float zFar = 750.0f;
 };
 
 class DirectionalLight : public Light {
@@ -20,7 +20,7 @@ public:
     glm::vec3 direction = glm::vec3(0.0f);
     float distance = 100.0f;
 
-    float orthoBoxSize = 100.0f;
+    float orthoBoxSize = 75.0f;
 
     glm::mat4 lightView = glm::mat4(0.0);
     glm::mat4 lightSpaceMatrix = glm::mat4(0.0);
@@ -49,7 +49,7 @@ public:
 
 private:
     void updateLightSpaceMatrix() {
-        float left = orthoBoxSize;
+        float left = orthoBoxSize / 2;
         float right = -left;
         float top = left;
         float bottom = -top;
