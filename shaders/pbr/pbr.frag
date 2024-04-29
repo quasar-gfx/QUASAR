@@ -288,5 +288,5 @@ void main() {
 
     positionBuffer = vec4(FragPos, 1.0);
     normalsBuffer = vec4(normalize(Normal), 1.0);
-    FragColor = vec4(radianceOut, 1.0);
+    FragColor = vec4(vec3(brdf, 0.0), 1.0);
 }

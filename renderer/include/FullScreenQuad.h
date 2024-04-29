@@ -19,10 +19,13 @@ public:
     void init() {
         // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
         std::vector<FSQuadVertex> quadVertices = {
-            { {-1.0f,  1.0f, 0.0f}, {0.0f, 1.0f} },
+            { {-1.0f, 1.0f, 0.0f}, {0.0f, 1.0f} },
             { {-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f} },
-            { { 1.0f,  1.0f, 0.0f}, {1.0f, 1.0f} },
-            { { 1.0f, -1.0f, 0.0f}, {1.0f, 0.0f} },
+            { {1.0f, -1.0f, 0.0f}, {1.0f, 0.0f} },
+
+            { {-1.0f, 1.0f, 0.0f}, {0.0f, 1.0f} },
+            { {1.0f, -1.0f, 0.0f}, {1.0f, 0.0f} },
+            { {1.0f, 1.0f, 0.0f}, {1.0f, 1.0f} }
         };
 
         glGenVertexArrays(1, &quadVAO);
@@ -37,6 +40,8 @@ public:
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(FSQuadVertex), (void*)0);
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(FSQuadVertex), (void*)offsetof(FSQuadVertex, texCoords));
+
+        glBindVertexArray(0);
     }
 
     void draw() {
@@ -44,7 +49,7 @@ public:
         glDisable(GL_DEPTH_TEST);
 
         glBindVertexArray(quadVAO);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 6);
         glBindVertexArray(0);
 
         // reenable depth test
