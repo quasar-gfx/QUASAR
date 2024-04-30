@@ -25,6 +25,7 @@ int main(int argc, char** argv) {
     app.config.title = "Meshing Test";
     app.config.openglMajorVersion = 4;
     app.config.openglMinorVersion = 3;
+    app.config.enableVSync = false;
     app.config.showWindow = false;
 
     std::string modelPath = "../assets/models/Sponza/Sponza.gltf";
@@ -134,7 +135,7 @@ int main(int argc, char** argv) {
 
     Plane plane = Plane({ .material = &windowMaterial, .IBL = false, .transparent = true });
     Node planeNode = Node(&plane);
-    planeNode.setTranslation(glm::vec3(0.0f, 1.5f, -7.0f));
+    planeNode.setTranslation(glm::vec3(0.0f, 1.5f, -6.0f));
     planeNode.setRotationEuler(glm::vec3(-90.0f, 0.0f, 0.0f));
     planeNode.setScale(glm::vec3(0.5f));
 
@@ -145,7 +146,7 @@ int main(int argc, char** argv) {
     });
 
     DirectionalLight directionalLight = DirectionalLight({
-        .color = glm::vec3(1.0f, 0.75f, 0.75f),
+        .color = glm::vec3(0.3f, 0.45f, 0.63f),
         .direction = glm::vec3(-1.0f, -5.0f, 0.0f),
         .distance = 100.0f,
         .intensity = 1.0f
@@ -182,10 +183,10 @@ int main(int argc, char** argv) {
     // models
     Model sponza = Model({ .path = modelPath, .IBL = false });
     Node sponzaNode = Node(&sponza);
+    sponzaNode.setTranslation(glm::vec3(0.0f, -0.05f, 0.0f));
     sponzaNode.setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
-    sponzaNode.setScale(glm::vec3(5.0f));
 
-    Model backpack = Model({ .path = BACKPACK_MODEL_PATH, .flipTextures = true });
+    Model backpack = Model({ .path = BACKPACK_MODEL_PATH, .flipTextures = true, .IBL = false });
     Node backpackNode = Node(&backpack);
     backpackNode.setTranslation(glm::vec3(0.5f, 0.5f, -5.0f));
     backpackNode.setScale(glm::vec3(0.25f));
@@ -212,12 +213,12 @@ int main(int argc, char** argv) {
     scene.addPointLight(&pointLight2);
     scene.addPointLight(&pointLight3);
     scene.addPointLight(&pointLight4);
-    /* scene.addChildNode(&cubeNodeGold);
-     * scene.addChildNode(&cubeNodeIron);
-     * scene.addChildNode(&sphereNodePlastic); */
+    scene.addChildNode(&cubeNodeGold);
+    scene.addChildNode(&cubeNodeIron);
+    scene.addChildNode(&sphereNodePlastic);
     scene.addChildNode(&sponzaNode);
-    /* scene.addChildNode(&backpackNode);
-     * scene.addChildNode(&planeNode); */
+    scene.addChildNode(&backpackNode);
+    scene.addChildNode(&planeNode);
 
     scene.equirectToCubeMap(envCubeMap, hdrTexture);
     scene.setupIBL(envCubeMap);

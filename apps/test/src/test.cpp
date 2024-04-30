@@ -140,7 +140,7 @@ int main(int argc, char** argv) {
     });
 
     DirectionalLight directionalLight = DirectionalLight({
-        .color = glm::vec3(1.0f, 0.75f, 0.75f),
+        .color = glm::vec3(0.3f, 0.45f, 0.63f),
         .direction = glm::vec3(-1.0f, -5.0f, 0.0f),
         .distance = 100.0f,
         .intensity = 1.0f
@@ -177,9 +177,10 @@ int main(int argc, char** argv) {
     // models
     Model sponza = Model({ .path = modelPath, .IBL = false });
     Node sponzaNode = Node(&sponza);
+    sponzaNode.setTranslation(glm::vec3(0.0f, -0.05f, 0.0f));
     sponzaNode.setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
 
-    Model backpack = Model({ .path = BACKPACK_MODEL_PATH, .flipTextures = true });
+    Model backpack = Model({ .path = BACKPACK_MODEL_PATH, .flipTextures = true, .IBL = false });
     Node backpackNode = Node(&backpack);
     backpackNode.setTranslation(glm::vec3(0.5f, 0.5f, -5.0f));
     backpackNode.setScale(glm::vec3(0.25f));

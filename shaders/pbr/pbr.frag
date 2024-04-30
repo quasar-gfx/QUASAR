@@ -260,7 +260,8 @@ void main() {
     float alpha = color.a;
     if (!transparent && alpha < 0.5)
         discard;
-
+    if (transparent && alpha < 0.1)
+        discard;
 
     float metallic = texture(metallicMap, TexCoords).r;
     float roughness = texture(roughnessMap, TexCoords).r;

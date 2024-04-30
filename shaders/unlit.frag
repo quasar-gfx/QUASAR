@@ -19,10 +19,14 @@ uniform vec3 camPos;
 
 uniform samplerCube environmentMap;
 
+uniform bool transparent;
+
 void main() {
     vec4 col = texture(diffuseMap, TexCoords);
     float alpha = col.a;
-    if (alpha < 0.5)
+    if (!transparent && alpha < 0.5)
+        discard;
+    if (transparent && alpha < 0.1)
         discard;
 
     vec3 norm = normalize(Normal);

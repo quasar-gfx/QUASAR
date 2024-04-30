@@ -15,6 +15,8 @@ uniform sampler2D diffuseMap;
 uniform sampler2D specularMap;
 uniform float shininess;
 
+uniform bool transparent;
+
 struct AmbientLight {
     vec3 color;
     float intensity;
@@ -91,7 +93,9 @@ vec3 addPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
 void main() {
     vec4 col = texture(diffuseMap, TexCoords);
     float alpha = col.a;
-    if (alpha < 0.5)
+    if (!transparent && alpha < 0.5)
+        discard;
+    if (transparent && alpha < 0.1)
         discard;
 
     vec3 norm = normalize(Normal);
