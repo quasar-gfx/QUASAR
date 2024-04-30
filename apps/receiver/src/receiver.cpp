@@ -26,6 +26,7 @@ const std::string METAL_TEXTURE = "../assets/textures/metal.png";
 int main(int argc, char** argv) {
     OpenGLApp app{};
     app.config.title = "Video Receiver";
+    app.config.sRGB = false;
 
     std::string inputUrl = "udp://127.0.0.1:1234";
     std::string poseURL = "udp://127.0.0.1:4321";

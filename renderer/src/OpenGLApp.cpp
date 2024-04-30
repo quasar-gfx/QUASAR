@@ -10,6 +10,15 @@
 
 void OpenGLApp::init(Window* window) {
     this->window = window;
+
+    // enable face culling
+    // glEnable(GL_CULL_FACE);
+
+    // enable srgb framebuffers
+    if (config.sRGB) {
+        glEnable(GL_FRAMEBUFFER_SRGB);
+    }
+
     renderer.init(config.width, config.height);
 }
 

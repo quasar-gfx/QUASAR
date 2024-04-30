@@ -35,11 +35,7 @@ public:
     void sendFrame();
 
 private:
-#ifdef __APPLE__
     AVPixelFormat pixelFormat = AV_PIX_FMT_YUV420P;
-#else
-    AVPixelFormat pixelFormat = AV_PIX_FMT_YUV444P;
-#endif
 
     AVFormatContext* outputFormatContext = nullptr;
     AVCodecContext* outputCodecContext = nullptr;

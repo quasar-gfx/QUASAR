@@ -7,12 +7,6 @@ void OpenGLRenderer::init(unsigned int width, unsigned int height) {
     // enable msaa
     glEnable(GL_MULTISAMPLE);
 
-    // enable face culling
-    // glEnable(GL_CULL_FACE);
-
-    // enable srgb framebuffers
-    glEnable(GL_FRAMEBUFFER_SRGB);
-
     // enable seamless cube map sampling for lower mip levels in the pre-filter map
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
