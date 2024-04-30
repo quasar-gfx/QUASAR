@@ -26,6 +26,7 @@ const std::string METAL_TEXTURE = "../assets/textures/metal.png";
 int main(int argc, char** argv) {
     OpenGLApp app{};
     app.config.title = "Video Receiver";
+    app.config.sRGB = false;
 
     std::string inputUrl = "udp://127.0.0.1:1234";
     std::string poseURL = "udp://127.0.0.1:4321";
@@ -110,17 +111,17 @@ int main(int argc, char** argv) {
     DiffSpecMaterial containerMaterial = DiffSpecMaterial({ CONTAINER_TEXTURE });
     DiffSpecMaterial floorMaterial = DiffSpecMaterial({ METAL_TEXTURE });
 
-    Cube cube = Cube(&containerMaterial);
+    Cube cube = Cube({ .material = &containerMaterial });
 
     Node cubeNode = Node(&cube);
     cubeNode.setTranslation(glm::vec3(-1.0f, 0.0f, -1.0f));
 
-    Sphere sphere = Sphere(&containerMaterial);
+    Sphere sphere = Sphere({ .material = &containerMaterial });
 
     Node sphereNode = Node(&sphere);
     sphereNode.setTranslation(glm::vec3(2.0f, 1.0f, -3.0f));
 
-    Plane plane = Plane(&floorMaterial);
+    Plane plane = Plane({ .material = &floorMaterial });
     Node planeNode = Node(&plane);
     planeNode.setScale(glm::vec3(25.0f, 1.0f, 25.0f));
 

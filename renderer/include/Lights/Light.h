@@ -13,7 +13,7 @@ public:
     float intensity = 1.0f;
 
     float zNear = 1.0f;
-    float zFar = 25.0f;
+    float zFar = 2000.0f;
 
     glm::mat4 shadowProjectionMat = glm::mat4(0.0);
 

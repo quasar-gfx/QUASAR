@@ -1,5 +1,7 @@
 #include <Primatives/Mesh.h>
 
+#include <glm/gtx/string_cast.hpp>
+
 void Mesh::init()  {
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -25,6 +27,9 @@ void Mesh::init()  {
     glEnableVertexAttribArray(ATTRIBUTE_TANGENT);
     glVertexAttribPointer(ATTRIBUTE_TANGENT,    3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tangent));
 
+    glEnableVertexAttribArray(ATTRIBUTE_BITANGENT);
+    glVertexAttribPointer(ATTRIBUTE_BITANGENT,  4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, bitangent));
+
     glBindVertexArray(0);
 }
 
@@ -40,9 +45,15 @@ void Mesh::bindSceneAndCamera(Scene &scene, Camera &camera, glm::mat4 model, Mat
 
     int texIdx = materialToUse->getTextureCount() + Scene::numTextures;
     if (scene.directionalLight != nullptr) {
-        materialToUse->shader->setInt("dirLightShadowMap", texIdx);
-        scene.directionalLight->shadowMapFramebuffer.depthBuffer.bind(texIdx);
         scene.directionalLight->bindMaterial(materialToUse);
+        if (overrideMaterial != nullptr) {
+            materialToUse->shader->setMat4("lightSpaceMatrix", scene.directionalLight->lightSpaceMatrix * model);
+        }
+        else {
+            materialToUse->shader->setInt("dirLightShadowMap", texIdx);
+            scene.directionalLight->shadowMapFramebuffer.depthBuffer.bind(texIdx);
+            materialToUse->shader->setMat4("lightSpaceMatrix", scene.directionalLight->lightSpaceMatrix);
+        }
     }
     texIdx++;
 
@@ -55,6 +66,8 @@ void Mesh::bindSceneAndCamera(Scene &scene, Camera &camera, glm::mat4 model, Mat
         texIdx++;
     }
 
+    materialToUse->shader->setBool("IBL", IBL);
+    materialToUse->shader->setBool("transparent", transparent);
     materialToUse->shader->setMat4("view", camera.getViewMatrix());
     materialToUse->shader->setMat4("projection", camera.getProjectionMatrix());
     materialToUse->shader->setVec3("camPos", camera.position);

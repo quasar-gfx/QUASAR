@@ -107,13 +107,13 @@ int main(int argc, char** argv) {
     });
 
     // objects
-    Sphere sphereGold = Sphere(&goldMaterial);
+    Sphere sphereGold = Sphere({ .material = &goldMaterial });
     Node sphereNodeGold = Node(&sphereGold);
-    sphereNodeGold.setTranslation(glm::vec3(-5.0f, 0.5f, -1.0f));
+    sphereNodeGold.setTranslation(glm::vec3(-5.0f, 0.0f, -1.0f));
 
-    Cube cubeIron = Cube(&ironMaterial);
+    Cube cubeIron = Cube({ .material = &ironMaterial });
     Node cubeNodeIron = Node(&cubeIron);
-    cubeNodeIron.setTranslation(glm::vec3(5.0f, 0.5f, -1.0f));
+    cubeNodeIron.setTranslation(glm::vec3(5.0f, 0.0f, -1.0f));
 
     // models
     Model gun = Model({
@@ -121,7 +121,7 @@ int main(int argc, char** argv) {
         .material = &gunMaterial
     });
     Node gunNode = Node(&gun);
-    gunNode.setTranslation(glm::vec3(2.0f, 1.0f, -1.0f));
+    gunNode.setTranslation(glm::vec3(2.0f, 0.5f, -1.0f));
     gunNode.setRotationEuler(glm::vec3(0.0f, 90.0f, 0.0f));
     gunNode.setScale(glm::vec3(0.05f));
 
@@ -130,8 +130,8 @@ int main(int argc, char** argv) {
         .internalFormat = GL_RGB16F,
         .format = GL_RGB,
         .type = GL_FLOAT,
-        .wrapS = GL_REPEAT,
-        .wrapT = GL_REPEAT,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR,
         .flipped = true,

@@ -108,15 +108,17 @@ void Scene::setupIBL(CubeMap &envCubeMap) {
 
     captureFramebuffer.bind();
     captureRenderBuffer.bind();
-    captureRenderBuffer.resize(prefilterCubeMap.width, prefilterCubeMap.height);
+    captureRenderBuffer.resize(brdfLUT.width, brdfLUT.height);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUT.ID, 0);
 
     brdfShader->bind();
+    glViewport(0, 0, brdfLUT.width, brdfLUT.height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     brdfFsQuad.draw();
     brdfShader->unbind();
 
     captureFramebuffer.unbind();
+    captureRenderBuffer.unbind();
 
     glEnable(GL_BLEND);
 }

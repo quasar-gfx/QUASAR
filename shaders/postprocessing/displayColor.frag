@@ -8,6 +8,10 @@ uniform sampler2D screenNormals;
 uniform sampler2D screenColor;
 uniform sampler2D screenDepth;
 
+const float exposure = 1.0;
+
 void main() {
-    FragColor = texture(screenColor, TexCoords);
+    vec3 hdrCol = texture(screenColor, TexCoords).rgb;
+    vec3 toneMappedResult = vec3(1.0) - exp(-hdrCol * exposure);
+    FragColor = vec4(hdrCol, 1.0);
 }

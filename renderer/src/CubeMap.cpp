@@ -39,14 +39,14 @@ void CubeMap::init(unsigned int width, unsigned int height, CubeMapType type) {
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-        // glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-        // glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        // glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         break;
 
     case CubeMapType::HDR:
         for (int i = 0; i < NUM_CUBEMAP_FACES; i++) {
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA32F, width, height, 0, GL_RGB, GL_FLOAT, nullptr);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB32F, width, height, 0, GL_RGB, GL_FLOAT, nullptr);
         }
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -77,55 +77,54 @@ void CubeMap::init(unsigned int width, unsigned int height, CubeMapType type) {
 
 void CubeMap::initBuffers() {
     std::vector<CubeMapVertex> skyboxVertices = {
-        // back face
-        { {-1.0f, -1.0f, -1.0f, } },
-        { { 1.0f,  1.0f, -1.0f, } },
-        { { 1.0f, -1.0f, -1.0f, } },
-        { { 1.0f,  1.0f, -1.0f, } },
-        { {-1.0f, -1.0f, -1.0f, } },
-        { {-1.0f,  1.0f, -1.0f, } },
-        // front face
-        { {-1.0f, -1.0f,  1.0f, } },
-        { { 1.0f, -1.0f,  1.0f, } },
-        { { 1.0f,  1.0f,  1.0f, } },
-        { { 1.0f,  1.0f,  1.0f, } },
-        { {-1.0f,  1.0f,  1.0f, } },
-        { {-1.0f, -1.0f,  1.0f, } },
-        // left face
-        { {-1.0f,  1.0f,  1.0f, } },
-        { {-1.0f,  1.0f, -1.0f, } },
-        { {-1.0f, -1.0f, -1.0f, } },
-        { {-1.0f, -1.0f, -1.0f, } },
-        { {-1.0f, -1.0f,  1.0f, } },
-        { {-1.0f,  1.0f,  1.0f, } },
-        // right face
-        { { 1.0f,  1.0f,  1.0f, } },
-        { { 1.0f, -1.0f, -1.0f, } },
-        { { 1.0f,  1.0f, -1.0f, } },
-        { { 1.0f, -1.0f, -1.0f, } },
-        { { 1.0f,  1.0f,  1.0f, } },
-        { { 1.0f, -1.0f,  1.0f, } },
-        // bottom face
-        { {-1.0f, -1.0f, -1.0f, } },
-        { { 1.0f, -1.0f, -1.0f, } },
-        { { 1.0f, -1.0f,  1.0f, } },
-        { { 1.0f, -1.0f,  1.0f, } },
-        { {-1.0f, -1.0f,  1.0f, } },
-        { {-1.0f, -1.0f, -1.0f, } },
-        // top face
-        { {-1.0f,  1.0f, -1.0f, } },
-        { { 1.0f,  1.0f , 1.0f, } },
-        { { 1.0f,  1.0f, -1.0f, } },
-        { { 1.0f,  1.0f,  1.0f, } },
-        { {-1.0f,  1.0f, -1.0f, } },
-        { {-1.0f,  1.0f,  1.0f, } }
+        { {-1.0f, 1.0f, -1.0f} },
+        { {-1.0f, -1.0f, -1.0f} },
+        { {1.0f, -1.0f, -1.0f} },
+        { {1.0f, -1.0f, -1.0f} },
+        { {1.0f, 1.0f, -1.0f} },
+        { {-1.0f, 1.0f, -1.0f} },
+
+        { {-1.0f, -1.0f, 1.0f} },
+        { {-1.0f, -1.0f, -1.0f} },
+        { {-1.0f, 1.0f, -1.0f} },
+        { {-1.0f, 1.0f, -1.0f} },
+        { {-1.0f, 1.0f, 1.0f} },
+        { {-1.0f, -1.0f, 1.0f} },
+
+        { {1.0f, -1.0f, -1.0f} },
+        { {1.0f, -1.0f, 1.0f} },
+        { {1.0f, 1.0f, 1.0f} },
+        { {1.0f, 1.0f, 1.0f} },
+        { {1.0f, 1.0f, -1.0f} },
+        { {1.0f, -1.0f, -1.0f} },
+
+        { {-1.0f, -1.0f, 1.0f} },
+        { {-1.0f, 1.0f, 1.0f} },
+        { {1.0f, 1.0f, 1.0f} },
+        { {1.0f, 1.0f, 1.0f} },
+        { {1.0f, -1.0f, 1.0f} },
+        { {-1.0f, -1.0f, 1.0f} },
+
+        { {-1.0f, 1.0f, -1.0f} },
+        { {1.0f, 1.0f, -1.0f} },
+        { {1.0f, 1.0f, 1.0f} },
+        { {1.0f, 1.0f, 1.0f} },
+        { {-1.0f, 1.0f, 1.0f} },
+        { {-1.0f, 1.0f, -1.0f} },
+
+        { {-1.0f, -1.0f, -1.0f} },
+        { {-1.0f, -1.0f, 1.0f} },
+        { {1.0f, -1.0f, -1.0f} },
+        { {1.0f, -1.0f, -1.0f} },
+        { {-1.0f, -1.0f, 1.0f} },
+        { {1.0f, -1.0f, 1.0f} },
     };
 
-    glGenVertexArrays(1, &quadVAO);
-    glGenBuffers(1, &quadVBO);
+    glGenVertexArrays(1, &cubeMapVAO);
+    glGenBuffers(1, &cubeMapVBO);
 
-    glBindVertexArray(quadVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBindVertexArray(cubeMapVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, cubeMapVBO);
 
     glBufferData(GL_ARRAY_BUFFER, skyboxVertices.size() * sizeof(CubeMapVertex), skyboxVertices.data(), GL_STATIC_DRAW);
 
@@ -256,7 +255,7 @@ void CubeMap::draw(Shader &shader, Camera &camera) {
 }
 
 void CubeMap::drawCube() {
-    glBindVertexArray(quadVAO);
+    glBindVertexArray(cubeMapVAO);
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
 }

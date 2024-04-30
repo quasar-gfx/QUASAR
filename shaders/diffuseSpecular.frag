@@ -3,14 +3,19 @@ layout(location = 0) out vec4 positionBuffer;
 layout(location = 1) out vec4 normalsBuffer;
 layout(location = 2) out vec4 FragColor;
 
+in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
-in vec2 TexCoords;
+in vec3 Tangent;
+in vec3 BiTangent;
+out vec4 FragPosLightSpace;
 
 // material parameters
 uniform sampler2D diffuseMap;
 uniform sampler2D specularMap;
 uniform float shininess;
+
+uniform bool transparent;
 
 struct AmbientLight {
     vec3 color;
@@ -88,7 +93,9 @@ vec3 addPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
 void main() {
     vec4 col = texture(diffuseMap, TexCoords);
     float alpha = col.a;
-    if (alpha < 0.1)
+    if (!transparent && alpha < 0.5)
+        discard;
+    if (transparent && alpha < 0.1)
         discard;
 
     vec3 norm = normalize(Normal);

@@ -6,6 +6,8 @@
 struct Config {
     bool enableVSync = true;
     bool showWindow = true;
+    bool sRGB = true;
+    bool backfaceCulling = true;
     unsigned char openglMajorVersion = 4;
     unsigned char openglMinorVersion = 1;
     unsigned char numSamples = 4;

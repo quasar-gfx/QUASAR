@@ -25,6 +25,7 @@ int main(int argc, char** argv) {
     app.config.title = "Meshing Test";
     app.config.openglMajorVersion = 4;
     app.config.openglMinorVersion = 3;
+    app.config.enableVSync = false;
     app.config.showWindow = false;
 
     std::string modelPath = "../assets/models/Sponza/Sponza.gltf";
@@ -117,72 +118,77 @@ int main(int argc, char** argv) {
     });
 
     // objects
-    Cube cubeGold = Cube(&goldMaterial);
+    Cube cubeGold = Cube({ .material = &goldMaterial });
     Node cubeNodeGold = Node(&cubeGold);
-    cubeNodeGold.setTranslation(glm::vec3(-0.2f, 0.25f, -7.0f));
+    cubeNodeGold.setTranslation(glm::vec3(-0.2f, 0.75f, -7.0f));
     cubeNodeGold.setScale(glm::vec3(0.5f));
 
-    Cube cubeIron = Cube(&ironMaterial);
+    Cube cubeIron = Cube({ .material = &ironMaterial });
     Node cubeNodeIron = Node(&cubeIron);
-    cubeNodeIron.setTranslation(glm::vec3(1.5f, 0.25f, -3.0f));
+    cubeNodeIron.setTranslation(glm::vec3(1.5f, 0.75f, -3.0f));
     cubeNodeIron.setScale(glm::vec3(0.5f));
 
-    Sphere sphere = Sphere(&plasticMaterial);
+    Sphere sphere = Sphere({ .material = &plasticMaterial });
     Node sphereNodePlastic = Node(&sphere);
-    sphereNodePlastic.setTranslation(glm::vec3(1.0f, 1.5f, -8.0f));
+    sphereNodePlastic.setTranslation(glm::vec3(1.0f, 2.0f, -8.0f));
     sphereNodePlastic.setScale(glm::vec3(0.5f));
 
-    Plane plane = Plane(&windowMaterial);
+    Plane plane = Plane({ .material = &windowMaterial, .IBL = false, .transparent = true });
     Node planeNode = Node(&plane);
-    planeNode.setTranslation(glm::vec3(0.0f, 1.5f, -7.0f));
+    planeNode.setTranslation(glm::vec3(0.0f, 1.5f, -6.0f));
     planeNode.setRotationEuler(glm::vec3(-90.0f, 0.0f, 0.0f));
     planeNode.setScale(glm::vec3(0.5f));
 
     // lights
+    AmbientLight ambientLight = AmbientLight({
+        .color = glm::vec3(0.9f, 0.9f, 0.9f),
+        .intensity = 0.1f
+    });
+
     DirectionalLight directionalLight = DirectionalLight({
-        .color = glm::vec3(0.8f, 0.8f, 0.8f),
-        .direction = glm::vec3(0.0f, -1.0f, -0.3f),
+        .color = glm::vec3(0.3f, 0.45f, 0.63f),
+        .direction = glm::vec3(-1.0f, -5.0f, 0.0f),
+        .distance = 100.0f,
         .intensity = 1.0f
     });
 
     PointLight pointLight1 = PointLight({
         .color = glm::vec3(0.9f, 0.9f, 1.0f),
-        .initialPosition = glm::vec3(-1.45f, 3.5f, -6.2f),
-        .intensity = 100.0f,
+        .initialPosition = glm::vec3(-1.45f, 2.5f, -6.2f),
+        .intensity = 25.0f,
         .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
     });
 
     PointLight pointLight2 = PointLight({
         .color = glm::vec3(0.9f, 0.9f, 1.0f),
-        .initialPosition = glm::vec3(2.2f, 3.5f, -6.2f),
-        .intensity = 100.0f,
+        .initialPosition = glm::vec3(2.2f, 2.5f, -6.2f),
+        .intensity = 25.0f,
         .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
     });
 
     PointLight pointLight3 = PointLight({
         .color = glm::vec3(0.9f, 0.9f, 1.0f),
-        .initialPosition = glm::vec3(-1.45f, 3.5f, 4.89f),
-        .intensity = 100.0f,
+        .initialPosition = glm::vec3(-1.45f, 2.5f, 4.89f),
+        .intensity = 25.0f,
         .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
     });
 
     PointLight pointLight4 = PointLight({
         .color = glm::vec3(0.9f, 0.9f, 1.0f),
-        .initialPosition = glm::vec3(2.2f, 3.5f, 4.89f),
-        .intensity = 100.0f,
+        .initialPosition = glm::vec3(2.2f, 2.5f, 4.89f),
+        .intensity = 25.0f,
         .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
     });
 
     // models
-    Model sponza = Model({ .path = modelPath });
+    Model sponza = Model({ .path = modelPath, .IBL = false });
     Node sponzaNode = Node(&sponza);
-    sponzaNode.setTranslation(glm::vec3(0.0f, -0.5f, 0.0f));
+    sponzaNode.setTranslation(glm::vec3(0.0f, -0.05f, 0.0f));
     sponzaNode.setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
-    sponzaNode.setScale(glm::vec3(5.0f));
 
-    Model backpack = Model({ .path = BACKPACK_MODEL_PATH, .flipTextures = true });
+    Model backpack = Model({ .path = BACKPACK_MODEL_PATH, .flipTextures = true, .IBL = false });
     Node backpackNode = Node(&backpack);
-    backpackNode.setTranslation(glm::vec3(0.5f, 0.1f, -5.0f));
+    backpackNode.setTranslation(glm::vec3(0.5f, 0.5f, -5.0f));
     backpackNode.setScale(glm::vec3(0.25f));
 
     // load the HDR environment map
@@ -190,8 +196,8 @@ int main(int argc, char** argv) {
         .internalFormat = GL_RGB16F,
         .format = GL_RGB,
         .type = GL_FLOAT,
-        .wrapS = GL_REPEAT,
-        .wrapT = GL_REPEAT,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR,
         .flipped = true,
@@ -201,17 +207,18 @@ int main(int argc, char** argv) {
     // skybox
     CubeMap envCubeMap({ .width = 512, .height = 512, .type = CubeMapType::HDR });
 
+    scene.setAmbientLight(&ambientLight);
     scene.setDirectionalLight(&directionalLight);
     scene.addPointLight(&pointLight1);
     scene.addPointLight(&pointLight2);
     scene.addPointLight(&pointLight3);
     scene.addPointLight(&pointLight4);
-    /* scene.addChildNode(&cubeNodeGold);
-     * scene.addChildNode(&cubeNodeIron);
-     * scene.addChildNode(&sphereNodePlastic); */
+    scene.addChildNode(&cubeNodeGold);
+    scene.addChildNode(&cubeNodeIron);
+    scene.addChildNode(&sphereNodePlastic);
     scene.addChildNode(&sponzaNode);
-    /* scene.addChildNode(&backpackNode);
-     * scene.addChildNode(&planeNode); */
+    scene.addChildNode(&backpackNode);
+    scene.addChildNode(&planeNode);
 
     scene.equirectToCubeMap(envCubeMap, hdrTexture);
     scene.setupIBL(envCubeMap);

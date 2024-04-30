@@ -75,6 +75,7 @@ void PBRMaterial::bind() {
             break;
         case 1:
             name = "normalMap";
+            shader->setBool("normalMapped", textures[i] != 0);
             break;
         case 2:
             name = "metallicMap";
@@ -84,6 +85,7 @@ void PBRMaterial::bind() {
             break;
         case 4:
             name = "aoMap";
+            shader->setBool("aoMapped", textures[i] != 0);
             break;
         default:
             break;
