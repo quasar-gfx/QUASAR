@@ -7,29 +7,13 @@ class Sphere : public Mesh {
 public:
     explicit Sphere(const MeshCreateParams &params, unsigned int xSegments = 64, unsigned int ySegments = 64) : Mesh(params) {
         float radius = 1.0f;
-        const float PI = 3.14159265359f;
-
-        for (int i = 0; i < xSegments; i++) {
-            for (int j = 0; j < ySegments; ++j) {
-                int first = (i * (ySegments + 1)) + j;
-                int second = first + ySegments + 1;
-
-                this->indices.push_back(first);
-                this->indices.push_back(second);
-                this->indices.push_back(first + 1);
-
-                this->indices.push_back(second);
-                this->indices.push_back(second + 1);
-                this->indices.push_back(first + 1);
-            }
-        }
 
         for (int i = 0; i <= xSegments; i++) {
             float phi = M_PI * static_cast<float>(i) / xSegments;
             float cosPhi = cos(phi);
             float sinPhi = sin(phi);
 
-            for (int j = 0; j <= ySegments; ++j) {
+            for (int j = 0; j <= ySegments; j++) {
                 float theta = 2 * M_PI * static_cast<float>(j) / ySegments;
                 float cosTheta = cos(theta);
                 float sinTheta = sin(theta);
@@ -59,6 +43,23 @@ public:
                 this->vertices.push_back(vertex);
             }
         }
+
+        for (int i = 0; i < xSegments; i++) {
+            for (int j = 0; j < ySegments; j++) {
+                int first = (i * (ySegments + 1)) + j;
+                int second = first + ySegments + 1;
+
+                // Reversed order of indices
+                indices.push_back(first);
+                indices.push_back(first + 1);
+                indices.push_back(second);
+
+                indices.push_back(second);
+                indices.push_back(first + 1);
+                indices.push_back(second + 1);
+            }
+        }
+
         this->material = material;
 
         init();

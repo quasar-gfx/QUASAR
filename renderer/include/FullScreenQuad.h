@@ -49,7 +49,7 @@ public:
         glDisable(GL_DEPTH_TEST);
 
         glBindVertexArray(quadVAO);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 6);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
 
         // reenable depth test

@@ -77,55 +77,54 @@ void CubeMap::init(unsigned int width, unsigned int height, CubeMapType type) {
 
 void CubeMap::initBuffers() {
     std::vector<CubeMapVertex> skyboxVertices = {
-        // back face
-        { {-1.0f, -1.0f, -1.0f, } },
-        { { 1.0f,  1.0f, -1.0f, } },
-        { { 1.0f, -1.0f, -1.0f, } },
-        { { 1.0f,  1.0f, -1.0f, } },
-        { {-1.0f, -1.0f, -1.0f, } },
-        { {-1.0f,  1.0f, -1.0f, } },
-        // front face
-        { {-1.0f, -1.0f,  1.0f, } },
-        { { 1.0f, -1.0f,  1.0f, } },
-        { { 1.0f,  1.0f,  1.0f, } },
-        { { 1.0f,  1.0f,  1.0f, } },
-        { {-1.0f,  1.0f,  1.0f, } },
-        { {-1.0f, -1.0f,  1.0f, } },
-        // left face
-        { {-1.0f,  1.0f,  1.0f, } },
-        { {-1.0f,  1.0f, -1.0f, } },
-        { {-1.0f, -1.0f, -1.0f, } },
-        { {-1.0f, -1.0f, -1.0f, } },
-        { {-1.0f, -1.0f,  1.0f, } },
-        { {-1.0f,  1.0f,  1.0f, } },
-        // right face
-        { { 1.0f,  1.0f,  1.0f, } },
-        { { 1.0f, -1.0f, -1.0f, } },
-        { { 1.0f,  1.0f, -1.0f, } },
-        { { 1.0f, -1.0f, -1.0f, } },
-        { { 1.0f,  1.0f,  1.0f, } },
-        { { 1.0f, -1.0f,  1.0f, } },
-        // bottom face
-        { {-1.0f, -1.0f, -1.0f, } },
-        { { 1.0f, -1.0f, -1.0f, } },
-        { { 1.0f, -1.0f,  1.0f, } },
-        { { 1.0f, -1.0f,  1.0f, } },
-        { {-1.0f, -1.0f,  1.0f, } },
-        { {-1.0f, -1.0f, -1.0f, } },
-        // top face
-        { {-1.0f,  1.0f, -1.0f, } },
-        { { 1.0f,  1.0f , 1.0f, } },
-        { { 1.0f,  1.0f, -1.0f, } },
-        { { 1.0f,  1.0f,  1.0f, } },
-        { {-1.0f,  1.0f, -1.0f, } },
-        { {-1.0f,  1.0f,  1.0f, } }
+        { {-1.0f, 1.0f, -1.0f} },
+        { {-1.0f, -1.0f, -1.0f} },
+        { {1.0f, -1.0f, -1.0f} },
+        { {1.0f, -1.0f, -1.0f} },
+        { {1.0f, 1.0f, -1.0f} },
+        { {-1.0f, 1.0f, -1.0f} },
+
+        { {-1.0f, -1.0f, 1.0f} },
+        { {-1.0f, -1.0f, -1.0f} },
+        { {-1.0f, 1.0f, -1.0f} },
+        { {-1.0f, 1.0f, -1.0f} },
+        { {-1.0f, 1.0f, 1.0f} },
+        { {-1.0f, -1.0f, 1.0f} },
+
+        { {1.0f, -1.0f, -1.0f} },
+        { {1.0f, -1.0f, 1.0f} },
+        { {1.0f, 1.0f, 1.0f} },
+        { {1.0f, 1.0f, 1.0f} },
+        { {1.0f, 1.0f, -1.0f} },
+        { {1.0f, -1.0f, -1.0f} },
+
+        { {-1.0f, -1.0f, 1.0f} },
+        { {-1.0f, 1.0f, 1.0f} },
+        { {1.0f, 1.0f, 1.0f} },
+        { {1.0f, 1.0f, 1.0f} },
+        { {1.0f, -1.0f, 1.0f} },
+        { {-1.0f, -1.0f, 1.0f} },
+
+        { {-1.0f, 1.0f, -1.0f} },
+        { {1.0f, 1.0f, -1.0f} },
+        { {1.0f, 1.0f, 1.0f} },
+        { {1.0f, 1.0f, 1.0f} },
+        { {-1.0f, 1.0f, 1.0f} },
+        { {-1.0f, 1.0f, -1.0f} },
+
+        { {-1.0f, -1.0f, -1.0f} },
+        { {-1.0f, -1.0f, 1.0f} },
+        { {1.0f, -1.0f, -1.0f} },
+        { {1.0f, -1.0f, -1.0f} },
+        { {-1.0f, -1.0f, 1.0f} },
+        { {1.0f, -1.0f, 1.0f} },
     };
 
-    glGenVertexArrays(1, &quadVAO);
-    glGenBuffers(1, &quadVBO);
+    glGenVertexArrays(1, &cubeMapVAO);
+    glGenBuffers(1, &cubeMapVBO);
 
-    glBindVertexArray(quadVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBindVertexArray(cubeMapVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, cubeMapVBO);
 
     glBufferData(GL_ARRAY_BUFFER, skyboxVertices.size() * sizeof(CubeMapVertex), skyboxVertices.data(), GL_STATIC_DRAW);
 
@@ -256,7 +255,7 @@ void CubeMap::draw(Shader &shader, Camera &camera) {
 }
 
 void CubeMap::drawCube() {
-    glBindVertexArray(quadVAO);
+    glBindVertexArray(cubeMapVAO);
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
 }

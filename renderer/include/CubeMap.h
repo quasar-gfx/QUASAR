@@ -107,7 +107,7 @@ private:
         glm::vec3 position;
     };
 
-    GLuint quadVAO, quadVBO;
+    GLuint cubeMapVAO, cubeMapVBO;
 
     void initBuffers();
 
