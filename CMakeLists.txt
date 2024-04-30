@@ -39,6 +39,9 @@ set(RENDERER_LIBS ${RENDERER_LIBS} imgui)
 add_subdirectory(${EXTERNAL}/stb/tnt)
 set(RENDERER_LIBS ${RENDERER_LIBS} stb)
 
+add_subdirectory(${EXTERNAL}/jsmn/tnt)
+set(RENDERER_LIBS ${RENDERER_LIBS} jsmn)
+
 add_subdirectory(${SHADERS})
 
 # include directories
@@ -58,5 +61,16 @@ target_link_libraries(renderer ${RENDERER_LIBS})
 # add apps
 add_subdirectory(apps)
 
-# copy assets to output directory
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/assets" DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/apps)
+# make symbolic link of assets to output/apps directory
+file(CREATE_LINK
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets
+        ${CMAKE_CURRENT_BINARY_DIR}/apps/assets
+        SYMBOLIC
+)
+
+# make symbolic link of shaders to output/apps directory
+file(CREATE_LINK
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders
+        ${CMAKE_CURRENT_BINARY_DIR}/apps/shaders
+        SYMBOLIC
+)

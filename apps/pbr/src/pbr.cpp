@@ -83,10 +83,8 @@ int main(int argc, char** argv) {
 
     // shaders
     Shader screenShader({
-        .vertexCodeData = SHADER_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_DISPLAYCOLOR_FRAG,
-        .fragmentCodeSize = SHADER_DISPLAYCOLOR_FRAG_len
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
 
     // materials
@@ -152,28 +150,28 @@ int main(int argc, char** argv) {
     // lights
     PointLight pointLight1 = PointLight({
         .color = glm::vec3(1.0f, 1.0f, 1.0f),
-        .initialPosition = glm::vec3(-10.0f, 10.0f, 10.0f),
+        .position = glm::vec3(-10.0f, 10.0f, 10.0f),
         .intensity = 300.0f,
         .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
     });
 
     PointLight pointLight2 = PointLight({
         .color = glm::vec3(1.0f, 1.0f, 1.0f),
-        .initialPosition = glm::vec3(10.0f, 10.0f, 10.0f),
+        .position = glm::vec3(10.0f, 10.0f, 10.0f),
         .intensity = 300.0f,
         .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
     });
 
     PointLight pointLight3 = PointLight({
         .color = glm::vec3(1.0f, 1.0f, 1.0f),
-        .initialPosition = glm::vec3(-10.0f, -10.0f, 10.0f),
+        .position = glm::vec3(-10.0f, -10.0f, 10.0f),
         .intensity = 300.0f,
         .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
     });
 
     PointLight pointLight4 = PointLight({
         .color = glm::vec3(1.0f, 1.0f, 1.0f),
-        .initialPosition = glm::vec3(10.0f, -10.0f, 10.0f),
+        .position = glm::vec3(10.0f, -10.0f, 10.0f),
         .intensity = 300.0f,
         .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
     });

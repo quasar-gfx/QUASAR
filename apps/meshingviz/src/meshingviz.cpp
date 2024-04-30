@@ -115,10 +115,8 @@ int main(int argc, char** argv) {
 
     // shaders
     Shader screenShader({
-        .vertexCodeData = SHADER_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_DISPLAYCOLOR_FRAG,
-        .fragmentCodeSize = SHADER_DISPLAYCOLOR_FRAG_len
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
 
     // textures

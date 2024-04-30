@@ -1,0 +1,154 @@
+{
+    "skybox": {
+        "path": "../assets/textures/hdr/barcelona.hdr",
+        "HDR": true,
+        "flipped": true,
+        "width": 512,
+        "height": 512
+    },
+    "materials": [
+        {
+            "PBR": true,
+            "albedoTexturePath": "../assets/textures/pbr/gold/albedo.png",
+            "normalTexturePath": "../assets/textures/pbr/gold/normal.png",
+            "metallicTexturePath": "../assets/textures/pbr/gold/metallic.png",
+            "roughnessTexturePath": "../assets/textures/pbr/gold/roughness.png",
+            "aoTexturePath": "../assets/textures/pbr/gold/ao.png"
+        },
+        {
+            "PBR": true,
+            "albedoTexturePath": "../assets/textures/pbr/rusted_iron/albedo.png",
+            "normalTexturePath": "../assets/textures/pbr/rusted_iron/normal.png",
+            "metallicTexturePath": "../assets/textures/pbr/rusted_iron/metallic.png",
+            "roughnessTexturePath": "../assets/textures/pbr/rusted_iron/roughness.png",
+            "aoTexturePath": "../assets/textures/pbr/rusted_iron/ao.png"
+        },
+        {
+            "PBR": true,
+            "albedoTexturePath": "../assets/textures/pbr/plastic/albedo.png",
+            "normalTexturePath": "../assets/textures/pbr/plastic/normal.png",
+            "metallicTexturePath": "../assets/textures/pbr/plastic/metallic.png",
+            "roughnessTexturePath": "../assets/textures/pbr/plastic/roughness.png",
+            "aoTexturePath": "../assets/textures/pbr/plastic/ao.png"
+        },
+        {
+            "PBR": true,
+            "albedoTexturePath": "../assets/textures/window.png"
+        }
+    ],
+    "models": [
+        {
+            "path": "../assets/models/Sponza/Sponza.gltf",
+            "IBL": false
+        },
+        {
+            "path": "../assets/models/backpack/backpack.obj",
+            "IBL": false,
+            "flipTextures": true
+        }
+    ],
+    "meshes": [
+        {
+            "type": "cube",
+            "material": 0
+        },
+        {
+            "type": "cube",
+            "material": 1
+        },
+        {
+            "type": "sphere",
+            "material": 2
+        },
+        {
+            "type": "plane",
+            "material": 3,
+            "IBL": false,
+            "transparent": true
+        }
+    ],
+    "nodes": [
+        {
+            "model": 0,
+            "position": [0.0, -0.05, 0.0],
+            "rotation": [0.0, -90.0, 0.0],
+            "scale" : [1.0, 1.0, 1.0]
+        },
+        {
+            "model": 1,
+            "position": [0.5, 0.5, -5.0],
+            "scale" : [0.25, 0.25, 0.25]
+        },
+        {
+            "mesh": 0,
+            "position": [-0.2, 0.75, -7.0],
+            "scale": [0.5, 0.5, 0.5]
+        },
+        {
+            "mesh": 1,
+            "position": [1.5, 0.75, -3.0],
+            "scale": [0.5, 0.5, 0.5]
+        },
+        {
+            "mesh": 2,
+            "position": [1.0, 2.0, -8.0],
+            "scale": [0.5, 0.5, 0.5]
+        },
+        {
+            "mesh": 3,
+            "position": [0.0, 1.5, -6.0],
+            "rotation": [-90.0, 0.0, 0.0],
+            "scale": [0.5, 0.5, 0.5]
+        }
+    ],
+    "camera":{
+        "fov": 60.0,
+        "near": 0.1,
+        "far": 1000.0,
+        "position": [0.0, 1.6, 0.0]
+    },
+    "ambientLight": {
+        "color": [0.9, 0.9, 0.9],
+        "intensity": 0.1
+    },
+    "directionalLight": {
+        "color": [0.3, 0.45, 0.63],
+        "direction": [-1.0, -5.0, 0.0],
+        "distance": 100.0,
+        "intensity": 1.0
+    },
+    "pointLights":[
+        {
+            "color": [0.9, 0.9, 1.0],
+            "position": [-1.45, 2.5, -6.2],
+            "intensity": 25.0,
+            "constant": 0.0,
+            "linear": 0.09,
+            "quadratic": 1.0
+        },
+        {
+            "color": [0.9, 0.9, 1.0],
+            "position": [2.2, 2.5, -6.2],
+            "intensity": 25.0,
+            "constant": 0.0,
+            "linear": 0.09,
+            "quadratic": 1.0
+        },
+        {
+            "color": [0.9, 0.9, 1.0],
+            "position": [-1.45, 2.5, 4.89],
+            "intensity": 25.0,
+            "constant": 0.0,
+            "linear": 0.09,
+            "quadratic": 1.0
+        },
+        {
+            "color": [0.9, 0.9, 1.0],
+            "position": [2.2, 2.5, 4.89],
+            "intensity": 25.0,
+            "constant": 0.0,
+            "linear": 0.09,
+            "quadratic": 1.0
+        }
+    ]
+}
