@@ -1,0 +1,106 @@
+{
+    "skybox": {
+        "path": "../assets/textures/hdr/newport_loft.hdr",
+        "HDR": true,
+        "flipped": true,
+        "width": 512,
+        "height": 512
+    },
+    "materials": [
+        {
+            "PBR": true,
+            "albedoTexturePath": "../assets/textures/pbr/gold/albedo.png",
+            "normalTexturePath": "../assets/textures/pbr/gold/normal.png",
+            "metallicTexturePath": "../assets/textures/pbr/gold/metallic.png",
+            "roughnessTexturePath": "../assets/textures/pbr/gold/roughness.png",
+            "aoTexturePath": "../assets/textures/pbr/gold/ao.png"
+        },
+        {
+            "PBR": true,
+            "albedoTexturePath": "../assets/textures/pbr/rusted_iron/albedo.png",
+            "normalTexturePath": "../assets/textures/pbr/rusted_iron/normal.png",
+            "metallicTexturePath": "../assets/textures/pbr/rusted_iron/metallic.png",
+            "roughnessTexturePath": "../assets/textures/pbr/rusted_iron/roughness.png",
+            "aoTexturePath": "../assets/textures/pbr/rusted_iron/ao.png"
+        },
+        {
+            "PBR": true,
+            "albedoTexturePath": "../assets/models/cerberus/Textures/Cerberus_A.tga",
+            "normalTexturePath": "../assets/models/cerberus/Textures/Cerberus_N.tga",
+            "metallicTexturePath": "../assets/models/cerberus/Textures/Cerberus_M.tga",
+            "roughnessTexturePath": "../assets/models/cerberus/Textures/Cerberus_R.tga",
+            "aoTexturePath": "../assets/models/cerberus/Textures/Cerberus_AO.tga"
+        }
+    ],
+    "models": [
+        {
+            "path": "../assets/models/cerberus/cerberus.fbx",
+            "material": 2
+        }
+    ],
+    "meshes": [
+        {
+            "type": "sphere",
+            "material": 0
+        },
+        {
+            "type": "cube",
+            "material": 1
+        }
+    ],
+    "nodes": [
+        {
+            "mesh": 0,
+            "position": [-5.0, 0.0, -1.0]
+        },
+        {
+            "mesh": 1,
+            "position": [5.0, 0.0, -1.0]
+        },
+        {
+            "model": 0,
+            "position": [2.0, 0.5, -1.0],
+            "rotation": [0.0, 90.0, 0.0],
+            "scale" : [0.05, 0.05, 0.05]
+        }
+    ],
+    "camera":{
+        "fov": 60.0,
+        "near": 0.1,
+        "far": 1000.0
+    },
+    "pointLights":[
+        {
+            "color": [1.0, 1.0, 1.0],
+            "position": [-10.0, 10.0, 10.0],
+            "intensity": 300.0,
+            "constant": 0.0,
+            "linear": 0.09,
+            "quadratic": 1.0
+        },
+        {
+            "color": [1.0, 1.0, 1.0],
+            "position": [10.0, 10.0, 10.0],
+            "intensity": 300.0,
+            "constant": 0.0,
+            "linear": 0.09,
+            "quadratic": 1.0
+        },
+        {
+            "color": [1.0, 1.0, 1.0],
+            "position": [-10.0, -10.0, 10.0],
+            "intensity": 300.0,
+            "constant": 0.0,
+            "linear": 0.09,
+            "quadratic": 1.0
+        },
+        {
+            "color": [1.0, 1.0, 1.0],
+            "position": [10.0, -10.0, 10.0],
+            "intensity": 300.0,
+            "constant": 0.0,
+            "linear": 0.09,
+            "quadratic": 1.0
+        }
+    ]
+}

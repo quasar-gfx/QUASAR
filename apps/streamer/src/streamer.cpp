@@ -19,14 +19,14 @@
 #include <VideoStreamer.h>
 #include <PoseReceiver.h>
 
+#define SCENE_PATH "../assets/scenes/sponza.json"
+
 int main(int argc, char** argv) {
     OpenGLApp app{};
     app.config.title = "Streamer";
 
     std::string outputUrl = "udp://127.0.0.1:1234";
     std::string poseURL = "udp://127.0.0.1:4321";
-    std::string modelPath = "../assets/models/Sponza/Sponza.gltf";
-    std::string hdrImagePath = "../assets/textures/hdr/barcelona.hdr";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             app.config.width = atoi(argv[i + 1]);
@@ -34,14 +34,6 @@ int main(int argc, char** argv) {
         }
         else if (!strcmp(argv[i], "-h") && i + 1 < argc) {
             app.config.height = atoi(argv[i + 1]);
-            i++;
-        }
-        else if (!strcmp(argv[i], "-m") && i + 1 < argc) {
-            modelPath = argv[i + 1];
-            i++;
-        }
-        else if (!strcmp(argv[i], "-i") && i + 1 < argc) {
-            hdrImagePath = argv[i + 1];
             i++;
         }
         else if (!strcmp(argv[i], "-o") && i + 1 < argc) {
@@ -71,7 +63,7 @@ int main(int argc, char** argv) {
     Scene scene = Scene();
     Camera camera = Camera(screenWidth, screenHeight);
     SceneLoader loader = SceneLoader();
-    loader.loadScene("../assets/scenes/sponza.json", scene, camera);
+    loader.loadScene(SCENE_PATH, scene, camera);
 
     VideoStreamer videoStreamer = VideoStreamer();
     PoseReceiver poseReceiver = PoseReceiver(&camera, poseURL);

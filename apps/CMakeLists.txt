@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.19)
 project(Apps)
 
 add_subdirectory(test)
-add_subdirectory(pbr)
 add_subdirectory(streamer)
 add_subdirectory(receiver)
 add_subdirectory(compute)

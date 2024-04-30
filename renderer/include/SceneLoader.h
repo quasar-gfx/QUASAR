@@ -281,6 +281,16 @@ private:
             else if (compare(tok, json, "transparent") == 0) {
                 i = parseBool(tokens, i + 1, json, &params.transparent);
             }
+            else if (compare(tok, json, "material") == 0) {
+                float materialIdxFloat;
+                i = parseFloat(tokens, i + 1, json, &materialIdxFloat);
+                int materialIdx = static_cast<int>(materialIdxFloat);
+                if (materialIdx < 0 || materialIdx >= materials.size()) {
+                    throw std::runtime_error("Material index out of bounds for Mesh " + j);
+                    return -1;
+                }
+                params.material = materials[materialIdx];
+            }
             else {
                 i = parse(tokens, i + 1);
             }

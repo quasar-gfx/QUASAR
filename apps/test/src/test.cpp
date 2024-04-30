@@ -21,8 +21,7 @@ int main(int argc, char** argv) {
     OpenGLApp app{};
     app.config.title = "Test App";
 
-    std::string modelPath = "../assets/models/Sponza/Sponza.gltf";
-    std::string hdrImagePath = "../assets/textures/hdr/barcelona.hdr";
+    std::string scenePath = "../assets/scenes/sponza.json";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             app.config.width = atoi(argv[i + 1]);
@@ -32,12 +31,8 @@ int main(int argc, char** argv) {
             app.config.height = atoi(argv[i + 1]);
             i++;
         }
-        else if (!strcmp(argv[i], "-m") && i + 1 < argc) {
-            modelPath = argv[i + 1];
-            i++;
-        }
-        else if (!strcmp(argv[i], "-i") && i + 1 < argc) {
-            hdrImagePath = argv[i + 1];
+        else if (!strcmp(argv[i], "-s") && i + 1 < argc) {
+            scenePath = argv[i + 1];
             i++;
         }
         else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
@@ -55,7 +50,7 @@ int main(int argc, char** argv) {
     Scene scene = Scene();
     Camera camera = Camera(screenWidth, screenHeight);
     SceneLoader loader = SceneLoader();
-    loader.loadScene("../assets/scenes/sponza.json", scene, camera);
+    loader.loadScene(scenePath, scene, camera);
 
     app.gui([&](double now, double dt) {
         ImGui::NewFrame();
@@ -121,12 +116,6 @@ int main(int argc, char** argv) {
         if (keys.ESC_PRESSED) {
             window.close();
         }
-
-        // animate
-        scene.pointLights[0]->setPosition(glm::vec3(-1.45f + 1.1f * sin(now), 2.5f, -6.2f));
-        scene.pointLights[1]->setPosition(glm::vec3(2.2f + 1.1f * sin(now), 2.5f, -6.2f));
-        scene.pointLights[2]->setPosition(glm::vec3(-1.45f + 1.1f * sin(now), 2.5f, 4.89f));
-        scene.pointLights[3]->setPosition(glm::vec3(2.2f + 1.1f * sin(now), 2.5f, 4.89f));
 
         // render all objects in scene
         app.renderer.drawObjects(scene, camera);
