@@ -15,8 +15,7 @@
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 #include <Windowing/GLFWWindow.h>
-
-#include <glm/gtx/string_cast.hpp>
+#include <SceneLoader.h>
 
 const std::string BACKPACK_MODEL_PATH = "../assets/models/backpack/backpack.obj";
 
@@ -28,8 +27,7 @@ int main(int argc, char** argv) {
     app.config.enableVSync = false;
     app.config.showWindow = false;
 
-    std::string modelPath = "../assets/models/Sponza/Sponza.gltf";
-    std::string hdrImagePath = "../assets/textures/hdr/barcelona.hdr";
+    std::string scenePath = "../assets/scenes/sponza.json";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             app.config.width = atoi(argv[i + 1]);
@@ -39,16 +37,8 @@ int main(int argc, char** argv) {
             app.config.height = atoi(argv[i + 1]);
             i++;
         }
-        else if (!strcmp(argv[i], "-m") && i + 1 < argc) {
-            modelPath = argv[i + 1];
-            i++;
-        }
-        else if (!strcmp(argv[i], "-i") && i + 1 < argc) {
-            hdrImagePath = argv[i + 1];
-            i++;
-        }
-        else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
-            app.config.enableVSync = atoi(argv[i + 1]);
+        else if (!strcmp(argv[i], "-s") && i + 1 < argc) {
+            scenePath = argv[i + 1];
             i++;
         }
         else if (!strcmp(argv[i], "-d") && i + 1 < argc) {
@@ -65,6 +55,8 @@ int main(int argc, char** argv) {
 
     Scene scene = Scene();
     Camera camera = Camera(screenWidth, screenHeight);
+    SceneLoader loader = SceneLoader();
+    loader.loadScene(scenePath, scene, camera);
 
     app.gui([&](double now, double dt) {
         ImGui::NewFrame();
@@ -85,142 +77,6 @@ int main(int argc, char** argv) {
     ComputeShader genMeshShader({
         .computeCodePath = "shaders/genMesh.comp"
     });
-
-    // materials
-    PBRMaterial goldMaterial = PBRMaterial({
-        .albedoTexturePath = "../assets/textures/pbr/gold/albedo.png",
-        .normalTexturePath = "../assets/textures/pbr/gold/normal.png",
-        .metallicTexturePath = "../assets/textures/pbr/gold/metallic.png",
-        .roughnessTexturePath = "../assets/textures/pbr/gold/roughness.png",
-        .aoTexturePath = "../assets/textures/pbr/gold/ao.png"
-    });
-
-    PBRMaterial ironMaterial = PBRMaterial({
-        .albedoTexturePath = "../assets/textures/pbr/rusted_iron/albedo.png",
-        .normalTexturePath = "../assets/textures/pbr/rusted_iron/normal.png",
-        .metallicTexturePath = "../assets/textures/pbr/rusted_iron/metallic.png",
-        .roughnessTexturePath = "../assets/textures/pbr/rusted_iron/roughness.png",
-        .aoTexturePath = "../assets/textures/pbr/rusted_iron/ao.png"
-    });
-
-    PBRMaterial plasticMaterial = PBRMaterial({
-        .albedoTexturePath = "../assets/textures/pbr/plastic/albedo.png",
-        .normalTexturePath = "../assets/textures/pbr/plastic/normal.png",
-        .metallicTexturePath = "../assets/textures/pbr/plastic/metallic.png",
-        .roughnessTexturePath = "../assets/textures/pbr/plastic/roughness.png",
-        .aoTexturePath = "../assets/textures/pbr/plastic/ao.png"
-    });
-
-    PBRMaterial windowMaterial = PBRMaterial({
-        .albedoTexturePath = "../assets/textures/window.png"
-    });
-
-    // objects
-    Cube cubeGold = Cube({ .material = &goldMaterial });
-    Node cubeNodeGold = Node(&cubeGold);
-    cubeNodeGold.setTranslation(glm::vec3(-0.2f, 0.75f, -7.0f));
-    cubeNodeGold.setScale(glm::vec3(0.5f));
-
-    Cube cubeIron = Cube({ .material = &ironMaterial });
-    Node cubeNodeIron = Node(&cubeIron);
-    cubeNodeIron.setTranslation(glm::vec3(1.5f, 0.75f, -3.0f));
-    cubeNodeIron.setScale(glm::vec3(0.5f));
-
-    Sphere sphere = Sphere({ .material = &plasticMaterial });
-    Node sphereNodePlastic = Node(&sphere);
-    sphereNodePlastic.setTranslation(glm::vec3(1.0f, 2.0f, -8.0f));
-    sphereNodePlastic.setScale(glm::vec3(0.5f));
-
-    Plane plane = Plane({ .material = &windowMaterial, .IBL = false, .transparent = true });
-    Node planeNode = Node(&plane);
-    planeNode.setTranslation(glm::vec3(0.0f, 1.5f, -6.0f));
-    planeNode.setRotationEuler(glm::vec3(-90.0f, 0.0f, 0.0f));
-    planeNode.setScale(glm::vec3(0.5f));
-
-    // lights
-    AmbientLight ambientLight = AmbientLight({
-        .color = glm::vec3(0.9f, 0.9f, 0.9f),
-        .intensity = 0.1f
-    });
-
-    DirectionalLight directionalLight = DirectionalLight({
-        .color = glm::vec3(0.3f, 0.45f, 0.63f),
-        .direction = glm::vec3(-1.0f, -5.0f, 0.0f),
-        .distance = 100.0f,
-        .intensity = 1.0f
-    });
-
-    PointLight pointLight1 = PointLight({
-        .color = glm::vec3(0.9f, 0.9f, 1.0f),
-        .position = glm::vec3(-1.45f, 2.5f, -6.2f),
-        .intensity = 25.0f,
-        .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
-    });
-
-    PointLight pointLight2 = PointLight({
-        .color = glm::vec3(0.9f, 0.9f, 1.0f),
-        .position = glm::vec3(2.2f, 2.5f, -6.2f),
-        .intensity = 25.0f,
-        .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
-    });
-
-    PointLight pointLight3 = PointLight({
-        .color = glm::vec3(0.9f, 0.9f, 1.0f),
-        .position = glm::vec3(-1.45f, 2.5f, 4.89f),
-        .intensity = 25.0f,
-        .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
-    });
-
-    PointLight pointLight4 = PointLight({
-        .color = glm::vec3(0.9f, 0.9f, 1.0f),
-        .position = glm::vec3(2.2f, 2.5f, 4.89f),
-        .intensity = 25.0f,
-        .constant = 0.0f, .linear = 0.09f, .quadratic = 1.0f
-    });
-
-    // models
-    Model sponza = Model({ .path = modelPath, .IBL = false });
-    Node sponzaNode = Node(&sponza);
-    sponzaNode.setTranslation(glm::vec3(0.0f, -0.05f, 0.0f));
-    sponzaNode.setRotationEuler(glm::vec3(0.0f, -90.0f, 0.0f));
-
-    Model backpack = Model({ .path = BACKPACK_MODEL_PATH, .flipTextures = true, .IBL = false });
-    Node backpackNode = Node(&backpack);
-    backpackNode.setTranslation(glm::vec3(0.5f, 0.5f, -5.0f));
-    backpackNode.setScale(glm::vec3(0.25f));
-
-    // load the HDR environment map
-    Texture hdrTexture = Texture({
-        .internalFormat = GL_RGB16F,
-        .format = GL_RGB,
-        .type = GL_FLOAT,
-        .wrapS = GL_CLAMP_TO_EDGE,
-        .wrapT = GL_CLAMP_TO_EDGE,
-        .minFilter = GL_LINEAR,
-        .magFilter = GL_LINEAR,
-        .flipped = true,
-        .path = hdrImagePath
-    });
-
-    // skybox
-    CubeMap envCubeMap({ .width = 512, .height = 512, .type = CubeMapType::HDR });
-
-    scene.setAmbientLight(&ambientLight);
-    scene.setDirectionalLight(&directionalLight);
-    scene.addPointLight(&pointLight1);
-    scene.addPointLight(&pointLight2);
-    scene.addPointLight(&pointLight3);
-    scene.addPointLight(&pointLight4);
-    scene.addChildNode(&cubeNodeGold);
-    scene.addChildNode(&cubeNodeIron);
-    scene.addChildNode(&sphereNodePlastic);
-    scene.addChildNode(&sponzaNode);
-    scene.addChildNode(&backpackNode);
-    scene.addChildNode(&planeNode);
-
-    scene.equirectToCubeMap(envCubeMap, hdrTexture);
-    scene.setupIBL(envCubeMap);
-    scene.setEnvMap(&envCubeMap);
 
     GLuint vertexBuffer;
     glGenBuffers(1, &vertexBuffer);
