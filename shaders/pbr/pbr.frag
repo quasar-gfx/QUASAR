@@ -59,6 +59,7 @@ uniform samplerCube pointLightShadowMaps[MAX_POINT_LIGHTS]; // 9+
 
 uniform bool aoMapped;
 uniform bool normalMapped;
+uniform bool metalRoughnessCombined;
 
 uniform bool transparent;
 
@@ -265,8 +266,13 @@ void main() {
     if (transparent && alpha < 0.1)
         discard;
 
-    float metallic = texture(metallicMap, TexCoords).r;
-    float roughness = texture(roughnessMap, TexCoords).r;
+    vec2 mr = texture(metallicMap, TexCoords).rg;
+    float metallic = mr.r;
+    float roughness = mr.g;
+    if (!metalRoughnessCombined) {
+        metallic = texture(metallicMap, TexCoords).r;
+        roughness = texture(roughnessMap, TexCoords).r;
+    }
     float ao = texture(aoMap, TexCoords).r;
 
     // input lighting data

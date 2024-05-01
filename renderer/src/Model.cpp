@@ -110,18 +110,27 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
             .indices = indices,
             .material = material,
             .wireframe = wireframe,
-            .pointcloud = pointcloud
+            .pointcloud = pointcloud,
+            .metalRoughnessCombined = metalRoughnessCombined
         };
         return Mesh(meshParams);
     }
     else {
-        textures = {
-            loadMaterialTexture(aiMat, aiTextureType_DIFFUSE),
-            loadMaterialTexture(aiMat, aiTextureType_NORMALS),
-            loadMaterialTexture(aiMat, aiTextureType_METALNESS),
-            loadMaterialTexture(aiMat, aiTextureType_DIFFUSE_ROUGHNESS),
-            loadMaterialTexture(aiMat, aiTextureType_AMBIENT_OCCLUSION)
-        };
+        bool overrideMetalRoughnessCombined = false;
+
+        TextureID diffuseMap = loadMaterialTexture(aiMat, aiTextureType_DIFFUSE);
+        TextureID normalMap = loadMaterialTexture(aiMat, aiTextureType_NORMALS);
+        TextureID metallicMap = loadMaterialTexture(aiMat, aiTextureType_METALNESS);
+        TextureID roughnessMap = loadMaterialTexture(aiMat, aiTextureType_DIFFUSE_ROUGHNESS);
+        // sometimes gltf models have metal and roughness in a single texture
+        if (metallicMap == 0 || roughnessMap == 0) {
+            // the metallic-roughness texture is sometimes stored in aiTextureType_UNKNOWN
+            metallicMap = loadMaterialTexture(aiMat, aiTextureType_UNKNOWN);
+            overrideMetalRoughnessCombined = true;
+        }
+        TextureID aoMap = loadMaterialTexture(aiMat, aiTextureType_AMBIENT_OCCLUSION);
+
+        textures = {diffuseMap, normalMap, metallicMap, roughnessMap, aoMap};
 
         return Mesh({
             .vertices = vertices,
@@ -136,7 +145,8 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
             .wireframe = wireframe,
             .pointcloud = pointcloud,
             .IBL = IBL,
-            .transparent = transparent
+            .transparent = transparent,
+            .metalRoughnessCombined = metalRoughnessCombined || overrideMetalRoughnessCombined
         });
     }
 }

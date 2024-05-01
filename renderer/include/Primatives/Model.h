@@ -28,6 +28,7 @@ struct ModelCreateParams {
     bool gammaCorrected = false;
     bool IBL = true;
     bool transparent = false;
+    bool metalRoughnessCombined = false;
 };
 
 class Model : public Entity {
@@ -42,12 +43,14 @@ public:
     bool gammaCorrected = false;
     bool IBL = true;
     bool transparent = false;
+    bool metalRoughnessCombined = false;
 
     explicit Model(const ModelCreateParams &params)
             : flipTextures(params.flipTextures),
               wireframe(params.wireframe), pointcloud(params.pointcloud),
               gammaCorrected(params.gammaCorrected),
               IBL(params.IBL), transparent(params.transparent),
+              metalRoughnessCombined(params.metalRoughnessCombined),
               Entity() {
         std::cout << "Loading model: " << params.path << std::endl;
         loadFromFile(params);

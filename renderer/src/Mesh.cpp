@@ -67,6 +67,7 @@ void Mesh::bindSceneAndCamera(Scene &scene, Camera &camera, glm::mat4 model, Mat
     }
 
     materialToUse->shader->setInt("numPointLights", static_cast<int>(scene.pointLights.size()));
+    materialToUse->shader->setInt("metalRoughnessCombined", metalRoughnessCombined);
 
     materialToUse->shader->setBool("IBL", IBL);
     materialToUse->shader->setBool("transparent", transparent);

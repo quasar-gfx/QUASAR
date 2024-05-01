@@ -57,6 +57,7 @@ struct MeshCreateParams {
     bool pointcloud = false;
     bool IBL = true;
     bool transparent = false;
+    bool metalRoughnessCombined = false;
 };
 
 class Mesh : public Entity {
@@ -67,6 +68,7 @@ public:
     bool pointcloud = false;
     bool IBL = true;
     bool transparent = false;
+    bool metalRoughnessCombined = false;
 
     explicit Mesh() : Entity() {}
 
@@ -75,6 +77,7 @@ public:
                 material(params.material),
                 wireframe(params.wireframe), pointcloud(params.pointcloud),
                 IBL(params.IBL), transparent(params.transparent),
+                metalRoughnessCombined(params.metalRoughnessCombined),
                 Entity() {
         init();
     }
