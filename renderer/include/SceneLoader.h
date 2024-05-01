@@ -286,7 +286,7 @@ private:
                 i = parseFloat(tokens, i + 1, json, &materialIdxFloat);
                 int materialIdx = static_cast<int>(materialIdxFloat);
                 if (materialIdx < 0 || materialIdx >= materials.size()) {
-                    throw std::runtime_error("Material index out of bounds for Mesh " + j);
+                    throw std::runtime_error("Material index out of bounds for Mesh " + std::to_string(j));
                     return -1;
                 }
                 params.material = materials[materialIdx];
@@ -333,7 +333,7 @@ private:
                 i = parseFloat(tokens, i + 1, json, &materialIdxFloat);
                 int materialIdx = static_cast<int>(materialIdxFloat);
                 if (materialIdx < 0 || materialIdx >= materials.size()) {
-                    throw std::runtime_error("Material index out of bounds for Mesh " + j);
+                    throw std::runtime_error("Material index out of bounds for Mesh " + std::to_string(j));
                     return -1;
                 }
                 params.material = materials[materialIdx];
@@ -391,7 +391,7 @@ private:
                 i = parseFloat(tokens, i + 1, json, &modelIdxFloat);
                 int modelIdx = static_cast<int>(modelIdxFloat);
                 if (modelIdx < 0 || modelIdx >= models.size()) {
-                    throw std::runtime_error("Model index out of bounds for Node " + j);
+                    throw std::runtime_error("Model index out of bounds for Node " + std::to_string(j));
                     return -1;
                 }
                 node->setEntity(models[modelIdx]);
@@ -401,7 +401,7 @@ private:
                 i = parseFloat(tokens, i + 1, json, &meshIdxFloat);
                 int meshIdx = static_cast<int>(meshIdxFloat);
                 if (meshIdx < 0 || meshIdx >= meshes.size()) {
-                    throw std::runtime_error("Mesh index out of bounds for Node " + j);
+                    throw std::runtime_error("Mesh index out of bounds for Node " + std::to_string(j));
                     return -1;
                 }
                 node->setEntity(meshes[meshIdx]);

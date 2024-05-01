@@ -91,36 +91,39 @@ int main(int argc, char** argv) {
 
     app.onRender([&](double now, double dt) {
         // handle mouse input
-        auto mouseButtons = window.getMouseButtons();
-        window.setMouseCursor(!mouseButtons.LEFT_PRESSED);
-        static bool dragging = false;
-        static bool prevMouseLeftPressed = false;
-        static float lastX = screenWidth / 2.0;
-        static float lastY = screenHeight / 2.0;
-        if (!prevMouseLeftPressed && mouseButtons.LEFT_PRESSED) {
-            dragging = true;
-            prevMouseLeftPressed = true;
+        ImGuiIO& io = ImGui::GetIO();
+        if (!(io.WantCaptureKeyboard || io.WantCaptureMouse)) {
+            auto mouseButtons = window.getMouseButtons();
+            window.setMouseCursor(!mouseButtons.LEFT_PRESSED);
+            static bool dragging = false;
+            static bool prevMouseLeftPressed = false;
+            static float lastX = screenWidth / 2.0;
+            static float lastY = screenHeight / 2.0;
+            if (!prevMouseLeftPressed && mouseButtons.LEFT_PRESSED) {
+                dragging = true;
+                prevMouseLeftPressed = true;
 
-            auto cursorPos = window.getCursorPos();
-            lastX = static_cast<float>(cursorPos.x);
-            lastY = static_cast<float>(cursorPos.y);
-        }
-        if (prevMouseLeftPressed && !mouseButtons.LEFT_PRESSED) {
-            dragging = false;
-            prevMouseLeftPressed = false;
-        }
-        if (dragging) {
-            auto cursorPos = window.getCursorPos();
-            float xpos = static_cast<float>(cursorPos.x);
-            float ypos = static_cast<float>(cursorPos.y);
+                auto cursorPos = window.getCursorPos();
+                lastX = static_cast<float>(cursorPos.x);
+                lastY = static_cast<float>(cursorPos.y);
+            }
+            if (prevMouseLeftPressed && !mouseButtons.LEFT_PRESSED) {
+                dragging = false;
+                prevMouseLeftPressed = false;
+            }
+            if (dragging) {
+                auto cursorPos = window.getCursorPos();
+                float xpos = static_cast<float>(cursorPos.x);
+                float ypos = static_cast<float>(cursorPos.y);
 
-            float xoffset = xpos - lastX;
-            float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+                float xoffset = xpos - lastX;
+                float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
 
-            lastX = xpos;
-            lastY = ypos;
+                lastX = xpos;
+                lastY = ypos;
 
-            camera.processMouseMovement(xoffset, yoffset, true);
+                camera.processMouseMovement(xoffset, yoffset, true);
+            }
         }
 
         // handle keyboard input

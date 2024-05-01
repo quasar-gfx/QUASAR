@@ -40,10 +40,6 @@ public:
         material->shader->setVec3("directionalLight.direction", direction);
         material->shader->setVec3("directionalLight.color", color);
         material->shader->setFloat("directionalLight.intensity", intensity);
-    }
-
-    void setDirection(const glm::vec3 &direction) {
-        this->direction = direction;
         updateLightSpaceMatrix();
     }
 
