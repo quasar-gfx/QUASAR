@@ -10,16 +10,14 @@ in vec3 Tangent;
 in vec3 BiTangent;
 in vec4 FragPosLightSpace;
 
-// material parameters
-uniform sampler2D diffuseMap;
-uniform sampler2D specularMap;
+// material textures
+uniform sampler2D diffuseMap; // 0
+uniform sampler2D specularMap; // 1
 uniform float shininess;
 
-uniform vec3 camPos;
-
-uniform samplerCube environmentMap;
-
 uniform bool transparent;
+
+uniform vec3 camPos;
 
 void main() {
     vec4 col = texture(diffuseMap, TexCoords);

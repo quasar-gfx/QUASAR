@@ -8,7 +8,7 @@
 
 struct PointLightCreateParams {
     glm::vec3 color = glm::vec3(1.0f);
-    glm::vec3 initialPosition = glm::vec3(0.0f);
+    glm::vec3 position = glm::vec3(0.0f);
     float intensity = 1.0f;
     float constant = 1.0f;
     float linear = 0.09f;
@@ -31,7 +31,7 @@ public:
     PointShadowMapMaterial shadowMapMaterial;
 
     explicit PointLight(const PointLightCreateParams &params)
-            : position(params.initialPosition), constant(params.constant), linear(params.linear), quadratic(params.quadratic),
+            : position(params.position), constant(params.constant), linear(params.linear), quadratic(params.quadratic),
                 Light(params.color, params.intensity, params.zNear, params.zFar) {
         shadowMapFramebuffer.createColorAndDepthBuffers(shadowRes, shadowRes);
 

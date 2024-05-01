@@ -43,7 +43,7 @@ public:
             loadFromData(params.vertexCodeData, params.vertexCodeSize, params.fragmentCodeData, params.fragmentCodeSize, params.geometryData, params.geometryDataSize);
         }
         else {
-            loadFromFile(params.vertexCodePath, params.fragmentCodeData, params.geometryCodePath);
+            loadFromFile(params.vertexCodePath, params.fragmentCodePath, params.geometryCodePath);
         }
     }
 

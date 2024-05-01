@@ -1,0 +1,75 @@
+{
+    "skybox": {
+        "path": "../assets/textures/hdr/barcelona.hdr",
+        "HDR": true,
+        "flipped": true,
+        "width": 512,
+        "height": 512
+    },
+    "models": [
+        {
+            "path": "/home/edward/Desktop/Models/San_Miguel/san-miguel-low-poly.obj",
+            "IBL": false
+        }
+    ],
+    "meshes": [
+    ],
+    "nodes": [
+        {
+            "model": 0,
+            "position": [0.0, 0.0, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale" : [1.0, 1.0, 1.0]
+        }
+    ],
+    "camera":{
+        "fov": 60.0,
+        "near": 0.1,
+        "far": 1000.0,
+        "position": [15.0, 1.6, 10.0]
+    },
+    "ambientLight": {
+        "color": [0.9, 0.9, 0.9],
+        "intensity": 0.1
+    },
+    "directionalLight": {
+        "color": [1.0, 1.0, 1.0],
+        "direction": [-1.0, -5.0, 0.0],
+        "distance": 100.0,
+        "intensity": 1.5
+    },
+    "pointLights":[
+        {
+            "color": [1.0, 1.0, 1.0],
+            "position": [7.5, 3, -1.7],
+            "intensity": 25.0,
+            "constant": 0.0,
+            "linear": 0.09,
+            "quadratic": 1.0
+        },
+        {
+            "color": [1.0, 1.0, 1.0],
+            "position": [14.5, 3, -1.7],
+            "intensity": 25.0,
+            "constant": 0.0,
+            "linear": 0.09,
+            "quadratic": 1.0
+        },
+        {
+            "color": [1.0, 1.0, 1.0],
+            "position": [22, 3, -1.7],
+            "intensity": 25.0,
+            "constant": 0.0,
+            "linear": 0.09,
+            "quadratic": 1.0
+        },
+        {
+            "color": [1.0, 1.0, 1.0],
+            "position": [25, 3, 2],
+            "intensity": 25.0,
+            "constant": 0.0,
+            "linear": 0.09,
+            "quadratic": 1.0
+        }
+    ]
+}

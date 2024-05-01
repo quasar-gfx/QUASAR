@@ -19,14 +19,16 @@ void Model::draw(Material* overrideMaterial) {
 }
 
 void Model::loadFromFile(const ModelCreateParams &params) {
+    std::string path = params.path;
+
     Assimp::Importer importer;
     unsigned int flags = aiProcess_Triangulate | aiProcess_OptimizeMeshes | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace | aiProcess_FlipUVs;
-    scene = importer.ReadFile(params.path, flags);
+    scene = importer.ReadFile(path, flags);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         throw std::runtime_error("ERROR::ASSIMP:: " + std::string(importer.GetErrorString()));
     }
 
-    rootDirectory = params.path.substr(0, params.path.find_last_of('/'))  + '/';
+    rootDirectory = path.substr(0, path.find_last_of('/'))  + '/';
 
     processNode(scene->mRootNode, scene, params.material);
 }

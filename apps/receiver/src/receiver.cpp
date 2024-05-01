@@ -25,7 +25,7 @@ const std::string METAL_TEXTURE = "../assets/textures/metal.png";
 
 int main(int argc, char** argv) {
     OpenGLApp app{};
-    app.config.title = "Video Receiver";
+    app.config.title = "Receiver";
     app.config.sRGB = false;
 
     std::string inputUrl = "udp://127.0.0.1:1234";
@@ -98,10 +98,8 @@ int main(int argc, char** argv) {
 
     // shaders
     Shader screenShader({
-        .vertexCodeData = SHADER_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_DISPLAYVIDEO_FRAG,
-        .fragmentCodeSize = SHADER_DISPLAYVIDEO_FRAG_len
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../shaders/postprocessing/displayVideo.frag"
     });
 
     // lights
