@@ -56,9 +56,22 @@ int main(int argc, char** argv) {
         ImGui::NewFrame();
         ImGui::SetNextWindowPos(ImVec2(10, 10));
         ImGui::Begin(app.config.title.c_str(), 0, ImGuiWindowFlags_AlwaysAutoResize);
+
         ImGui::TextColored(ImVec4(1,1,0,1), "OpenGL Version: %s", glGetString(GL_VERSION));
         ImGui::TextColored(ImVec4(1,1,0,1), "GPU: %s\n", glGetString(GL_RENDERER));
+
         ImGui::Text("Rendering Frame Rate: %.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+
+        ImGui::InputFloat3("Camera Position", (float*)&camera.position);
+        ImGui::SliderFloat("Movement speed", &camera.movementSpeed, 0.1f, 20.0f);
+
+        if (ImGui::CollapsingHeader("Directional Light Settings")) {
+            ImGui::TextColored(ImVec4(1,1,1,1), "Directional light Settings");
+            ImGui::ColorEdit3("Color", (float *)&scene.directionalLight->color);
+            ImGui::SliderFloat("Strength", &scene.directionalLight->intensity, 0.1f, 100.0f);
+            ImGui::SliderFloat3("Direction", (float*)&scene.directionalLight->direction, -5.0f, 5.0f);
+        }
+
         ImGui::End();
     });
 
