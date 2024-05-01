@@ -212,14 +212,14 @@ private:
     int parseMaterial(jsmntok_t* tokens, int i, const char* json, Scene &scene, Camera &camera) {
         CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
+        std::string type;
         PBRMaterialCreateParams params{};
 
         int size = tokens[i++].size;
         for (int j = 0; j < size; j++) {
             const jsmntok_t tok = tokens[i];
-            if (compare(tok, json, "PBR") == 0) {
-                bool PBR;
-                i = parseBool(tokens, i + 1, json, &PBR);
+            if (compare(tok, json, "type") == 0) {
+                i = parseString(tokens, i + 1, json, &type);
             }
             else if (compare(tok, json, "albedoTexturePath") == 0) {
                 i = parseString(tokens, i + 1, json, &params.albedoTexturePath);

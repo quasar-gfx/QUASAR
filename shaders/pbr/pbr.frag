@@ -10,22 +10,6 @@ in vec3 Tangent;
 in vec3 BiTangent;
 in vec4 FragPosLightSpace;
 
-// material parameters
-uniform sampler2D albedoMap; // 0
-uniform sampler2D normalMap; // 1
-uniform sampler2D metallicMap; // 2
-uniform sampler2D roughnessMap; // 3
-uniform sampler2D aoMap; // 4
-
-uniform bool aoMapped;
-uniform bool normalMapped;
-
-// IBL
-uniform bool IBL;
-uniform samplerCube irradianceMap; // 5
-uniform samplerCube prefilterMap; // 6
-uniform sampler2D brdfLUT; // 7
-
 // lights
 struct AmbientLight {
     vec3 color;
@@ -50,17 +34,35 @@ struct PointLight {
 
 #define MAX_POINT_LIGHTS 4
 
+uniform int numPointLights;
+
 uniform AmbientLight ambientLight;
 uniform DirectionalLight directionalLight;
 uniform PointLight pointLights[MAX_POINT_LIGHTS];
 
-uniform sampler2D dirLightShadowMap; // 8
+// material textures
+uniform sampler2D albedoMap; // 0
+uniform sampler2D normalMap; // 1
+uniform sampler2D metallicMap; // 2
+uniform sampler2D roughnessMap; // 3
+uniform sampler2D aoMap; // 4
 
+// IBL
+uniform bool IBL;
+uniform samplerCube irradianceMap; // 5
+uniform samplerCube prefilterMap; // 6
+uniform sampler2D brdfLUT; // 7
+
+// shadow maps
+uniform sampler2D dirLightShadowMap; // 8
 uniform samplerCube pointLightShadowMaps[MAX_POINT_LIGHTS]; // 9+
 
-uniform vec3 camPos;
+uniform bool aoMapped;
+uniform bool normalMapped;
 
 uniform bool transparent;
+
+uniform vec3 camPos;
 
 const float PI = 3.1415926535897932384626433832795;
 
@@ -280,7 +282,7 @@ void main() {
     // reflectance equation
     vec3 radianceOut = vec3(0.0);
     radianceOut += calcDirLight(directionalLight, N, V, albedo, roughness, metallic, F0);
-    for (int i = 0; i < MAX_POINT_LIGHTS; i++) {
+    for (int i = 0; i < numPointLights; i++) {
         radianceOut += calcPointLight(pointLights[i], pointLightShadowMaps[i], N, V, albedo, roughness, metallic, F0);
     }
 

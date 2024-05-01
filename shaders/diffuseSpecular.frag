@@ -10,13 +10,6 @@ in vec3 Tangent;
 in vec3 BiTangent;
 out vec4 FragPosLightSpace;
 
-// material parameters
-uniform sampler2D diffuseMap;
-uniform sampler2D specularMap;
-uniform float shininess;
-
-uniform bool transparent;
-
 struct AmbientLight {
     vec3 color;
     float intensity;
@@ -37,15 +30,23 @@ struct PointLight {
     float quadratic;
 };
 
-uniform vec3 camPos;
-
 #define NUM_POINT_LIGHTS 4
 
 uniform AmbientLight ambientLight;
 uniform DirectionalLight directionalLight;
 uniform PointLight pointLights[NUM_POINT_LIGHTS];
 
+// material textures
+uniform sampler2D diffuseMap; // 0
+uniform sampler2D specularMap; // 1
+
 uniform samplerCube environmentMap;
+
+uniform float shininess;
+
+uniform bool transparent;
+
+uniform vec3 camPos;
 
 vec3 addSkyBoxLight(vec3 normal, vec3 viewDir) {
     vec3 reflectDir = reflect(-viewDir, normal);
