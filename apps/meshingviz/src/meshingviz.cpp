@@ -17,8 +17,6 @@
 #include <OpenGLApp.h>
 #include <Windowing/GLFWWindow.h>
 
-const std::string BACKPACK_MODEL_PATH = "../assets/models/backpack/backpack.obj";
-
 int createMesh(Mesh* mesh, std::string label, bool renderPointcloud) {
     std::vector<Vertex> vertices;
     std::ifstream file("../meshing/data/positions_" + label + "_0.bin", std::ios::binary);

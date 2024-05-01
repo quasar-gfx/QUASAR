@@ -279,6 +279,9 @@ private:
             else if (compare(tok, json, "transparent") == 0) {
                 i = parseBool(tokens, i + 1, json, &params.transparent);
             }
+            else if (compare(tok, json, "gammaCorrected") == 0) {
+                i = parseBool(tokens, i + 1, json, &params.gammaCorrected);
+            }
             else if (compare(tok, json, "material") == 0) {
                 float materialIdxFloat;
                 i = parseFloat(tokens, i + 1, json, &materialIdxFloat);

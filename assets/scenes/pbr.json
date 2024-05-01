@@ -36,6 +36,10 @@
         {
             "path": "../assets/models/cerberus/cerberus.fbx",
             "material": 2
+        },
+        {
+            "path": "../assets/models/DamagedHelmet/DamagedHelmet.gltf",
+            "gammaCorrected": true
         }
     ],
     "meshes": [
@@ -55,13 +59,17 @@
         },
         {
             "mesh": 1,
-            "position": [5.0, 0.0, 0.0]
+            "position": [-8.0, 0.0, 0.0]
         },
         {
             "model": 0,
             "position": [2.0, 0.5, 0.0],
             "rotation": [0.0, 90.0, 0.0],
             "scale" : [0.05, 0.05, 0.05]
+        },
+        {
+            "model": 1,
+            "position": [5.0, 0.0, 0.0]
         }
     ],
     "camera": {

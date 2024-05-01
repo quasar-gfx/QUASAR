@@ -52,6 +52,8 @@ int main(int argc, char** argv) {
     SceneLoader loader = SceneLoader();
     loader.loadScene(scenePath, scene, camera);
 
+    float exposure = 1.0f;
+
     app.gui([&](double now, double dt) {
         ImGui::NewFrame();
         ImGui::SetNextWindowPos(ImVec2(10, 10));
@@ -70,6 +72,10 @@ int main(int argc, char** argv) {
             ImGui::ColorEdit3("Color", (float *)&scene.directionalLight->color);
             ImGui::SliderFloat("Strength", &scene.directionalLight->intensity, 0.1f, 100.0f);
             ImGui::SliderFloat3("Direction", (float*)&scene.directionalLight->direction, -5.0f, 5.0f);
+        }
+
+        if (ImGui::CollapsingHeader("Post Processing Settings")) {
+            ImGui::SliderFloat("Exposure", &exposure, 0.1f, 5.0f);
         }
 
         ImGui::End();
@@ -137,6 +143,8 @@ int main(int argc, char** argv) {
         app.renderer.drawObjects(scene, camera);
 
         // render to screen
+        screenShader.bind();
+        screenShader.setFloat("exposure", exposure);
         app.renderer.drawToScreen(screenShader);
     });
 

@@ -17,8 +17,6 @@
 #include <Windowing/GLFWWindow.h>
 #include <SceneLoader.h>
 
-const std::string BACKPACK_MODEL_PATH = "../assets/models/backpack/backpack.obj";
-
 int main(int argc, char** argv) {
     OpenGLApp app{};
     app.config.title = "Meshing Test";
