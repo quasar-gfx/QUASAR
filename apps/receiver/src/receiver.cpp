@@ -138,8 +138,8 @@ int main(int argc, char** argv) {
     scene.addChildNode(&sphereNode);
     scene.addChildNode(&planeNode);
 
-    app.onRender([&](double now, double dt) {
-
+    app.onRender([&](double now, double dt){
+        // handle mouse input
         ImGuiIO& io = ImGui::GetIO();
         if (!(io.WantCaptureKeyboard || io.WantCaptureMouse)) {
             auto mouseButtons = window.getMouseButtons();

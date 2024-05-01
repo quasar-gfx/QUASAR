@@ -10,6 +10,15 @@ Camera::Camera(float fovy, float aspect, float near, float far) {
     updateCameraVectors();
 }
 
+void Camera::setProjectionMatrix(glm::mat4 proj) {
+    this->proj = proj;
+
+    fovy = atan(1.0f / proj[1][1]) * 2.0f;
+    aspect = proj[1][1] / proj[0][0];
+    near = proj[3][2] / (proj[2][2] - 1.0f);
+    far = proj[3][2] / (proj[2][2] + 1.0f);
+}
+
 void Camera::setProjectionMatrix(float fovy, float aspect, float near, float far) {
     this->fovy = fovy;
     this->aspect = aspect;

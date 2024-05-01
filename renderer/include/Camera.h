@@ -37,6 +37,7 @@ public:
     explicit Camera(float fovy, float aspect, float near, float far);
 
     glm::mat4 getProjectionMatrix() { return proj; }
+    void setProjectionMatrix(glm::mat4 proj);
     void setProjectionMatrix(float fovy, float aspect, float near, float far);
     void updateProjectionMatrix();
 

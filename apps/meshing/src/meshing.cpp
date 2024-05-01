@@ -107,6 +107,17 @@ int main(int argc, char** argv) {
     Framebuffer outputFramebuffer;
     outputFramebuffer.createColorAndDepthBuffers(screenWidth, screenHeight);
 
+    // save camera view and projection matrices
+    std::ofstream cameraFile;
+    cameraFile.open("data/camera.bin", std::ios::out | std::ios::binary);
+    glm::mat4 proj = camera.getProjectionMatrix();
+    glm::mat4 view = camera.getViewMatrix();
+    cameraFile.write(reinterpret_cast<const char*>(&proj), sizeof(glm::mat4));
+    cameraFile.write(reinterpret_cast<const char*>(&view), sizeof(glm::mat4));
+    cameraFile.close();
+
+    glm::vec3 initialPosition = camera.position;
+
     unsigned int t = 0;
     float z = 0.0f;
     app.onRender([&](double now, double dt) {
@@ -245,7 +256,6 @@ int main(int argc, char** argv) {
             std::cout << "\tSaving Time: " << glfwGetTime() - startTime << "s" << std::endl;
         };
 
-        glm::vec3 initialPosition = glm::vec3(0.0f, 1.6f, 0.0f);
         saveFrame(initialPosition + glm::vec3(0.0f, 0.0f, 0.0f + z), "center", t);
         saveFrame(initialPosition + glm::vec3(0.5f, 0.5f, 0.5f + z), "top_right_front", t);
         saveFrame(initialPosition + glm::vec3(0.5f, 0.5f, -0.5f + z), "top_right_back", t);

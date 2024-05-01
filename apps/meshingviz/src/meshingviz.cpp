@@ -158,11 +158,18 @@ int main(int argc, char** argv) {
 
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
 
-    glm::vec3 initialPosition = glm::vec3(0.0f, 1.6f, 0.0f);
-    camera.position = initialPosition;
+    // load camera view and projection matrices
+    std::ifstream cameraFile("../meshing/data/camera.bin", std::ios::binary);
+    glm::mat4 proj = glm::mat4(1.0f);
+    glm::mat4 view = glm::mat4(1.0f);
+    cameraFile.read(reinterpret_cast<char*>(&proj), sizeof(glm::mat4));
+    cameraFile.read(reinterpret_cast<char*>(&view), sizeof(glm::mat4));
+    cameraFile.close();
+
+    camera.setProjectionMatrix(proj);
+    camera.setViewMatrix(view);
 
     app.onRender([&](double now, double dt) {
-
         ImGuiIO& io = ImGui::GetIO();
         if (!(io.WantCaptureKeyboard || io.WantCaptureMouse)) {
             auto mouseButtons = window.getMouseButtons();
