@@ -58,7 +58,7 @@
         },
         {
             "color": [1.0, 1.0, 1.0],
-            "position": [-7.4, 6.25, -18.5],
+            "position": [-7.8, 6.25, -18.5],
             "intensity": 50.0,
             "constant": 0.0,
             "linear": 0.09,
@@ -66,7 +66,7 @@
         },
         {
             "color": [1.0, 1.0, 1.0],
-            "position": [6.8, 6.25, -18.5],
+            "position": [7.0, 6.25, -18.5],
             "intensity": 50.0,
             "constant": 0.0,
             "linear": 0.09,
