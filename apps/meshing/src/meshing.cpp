@@ -17,6 +17,8 @@
 #include <Windowing/GLFWWindow.h>
 #include <SceneLoader.h>
 
+#define VERTICES_IN_A_QUAD 4
+
 int main(int argc, char** argv) {
     OpenGLApp app{};
     app.config.title = "Meshing Test";
@@ -94,7 +96,7 @@ int main(int argc, char** argv) {
     int height = screenHeight / surfelSize;
 
     GLuint vertexBuffer;
-    int numVertices = width * height;
+    int numVertices = (width-1) * (height-1) * VERTICES_IN_A_QUAD;
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(glm::vec4), nullptr, GL_STATIC_DRAW);
@@ -106,15 +108,15 @@ int main(int argc, char** argv) {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_STATIC_DRAW);
 
-    GLuint texCoordBuffer;
-    glGenBuffers(1, &texCoordBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, texCoordBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, width * height * sizeof(glm::vec2), nullptr, GL_STATIC_DRAW);
+    // GLuint texCoordBuffer;
+    // glGenBuffers(1, &texCoordBuffer);
+    // glBindBuffer(GL_SHADER_STORAGE_BUFFER, texCoordBuffer);
+    // glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(glm::vec2), nullptr, GL_STATIC_DRAW);
 
     genMeshShader.bind();
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, texCoordBuffer);
+    // glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, texCoordBuffer);
     genMeshShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
     genMeshShader.unbind();
 
@@ -178,16 +180,18 @@ int main(int argc, char** argv) {
             std::ofstream positionsFile;
             positionsFile.open("data/positions_" + label + "_" + std::to_string(timestamp) + ".bin", std::ios::out | std::ios::binary);
 
+            // std::ofstream texCoordsFile;
+            // texCoordsFile.open("data/tex_coords_" + label + "_" + std::to_string(timestamp) + ".bin", std::ios::out | std::ios::binary);
+
             std::ofstream indicesFile;
             indicesFile.open("data/indices_" + label + "_" + std::to_string(timestamp) + ".bin", std::ios::out | std::ios::binary);
 
-            int numVertices = 0;
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
             GLvoid* pBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
             if (pBuffer) {
                 glm::vec4* pVertices = static_cast<glm::vec4*>(pBuffer);
 
-                for (int i = 0; i < width * height; i++) {
+                for (int i = 0; i < numVertices; i++) {
                     Vertex vertex;
                     vertex.position.x = pVertices[i].x;
                     vertex.position.y = pVertices[i].y;
@@ -195,8 +199,7 @@ int main(int argc, char** argv) {
 
                     // std::cout << "Vertex: " << vertex.position.x << ", " << vertex.position.y << ", " << vertex.position.z << std::endl;
 
-                    positionsFile.write(reinterpret_cast<const char*>(&pVertices[i].x), 3 * sizeof(float));
-                    numVertices += 1;
+                    positionsFile.write(reinterpret_cast<const char*>(&vertex.position), sizeof(glm::vec3));
                     // depthFile.write(reinterpret_cast<const char*>(&pVertices[i].w), sizeof(pVertices[i].w));
                 }
 

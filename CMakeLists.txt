@@ -69,8 +69,4 @@ file(CREATE_LINK
 )
 
 # make symbolic link of shaders to output/apps directory
-file(CREATE_LINK
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders
-        ${CMAKE_CURRENT_BINARY_DIR}/apps/shaders
-        SYMBOLIC
-)
+file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}/shaders ${CMAKE_CURRENT_BINARY_DIR}/apps/shaders SYMBOLIC)

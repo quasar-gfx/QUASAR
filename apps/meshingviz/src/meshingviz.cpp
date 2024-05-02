@@ -17,6 +17,8 @@
 #include <OpenGLApp.h>
 #include <Windowing/GLFWWindow.h>
 
+#define VERTICES_IN_A_QUAD 4
+
 int surfelSize = 4;
 bool renderPointcloud = false;
 bool renderWireframe = false;
@@ -44,15 +46,34 @@ int createMesh(Mesh* mesh, std::string label) {
 
     unsigned int width = diffuseTexture.width / surfelSize;
     unsigned int height = diffuseTexture.height / surfelSize;
-    unsigned int idx = 0;
+    int numVertices = (width-1) * (height-1) * VERTICES_IN_A_QUAD;
+
+    unsigned int x = 0, y = 0;
     std::vector<Vertex> vertices;
-    for (int i = 0; i < width * height; i++) {
-        Vertex vertex;
-        vertexFile.read(reinterpret_cast<char*>(&vertex.position), sizeof(glm::vec3));
-        // std::cout << vertex.position.x << " " << vertex.position.y << " " << vertex.position.z << std::endl;
-        vertex.texCoords = glm::vec2((idx % width) / (float)(width - 1), 1.0f - (idx / width) / (float)(height - 1));
-        idx++;
-        vertices.push_back(vertex);
+    for (int i = 0; i < numVertices; i+=VERTICES_IN_A_QUAD) {
+        x = (i / VERTICES_IN_A_QUAD) % width;
+        y = (i / VERTICES_IN_A_QUAD) / width;
+
+        Vertex vertex1;
+        vertexFile.read(reinterpret_cast<char*>(&vertex1.position), sizeof(glm::vec3));
+        vertex1.texCoords = glm::vec2((float)x / (float)(width), 1.0f - (float)y / (float)(height));
+
+        Vertex vertex2;
+        vertexFile.read(reinterpret_cast<char*>(&vertex2.position), sizeof(glm::vec3));
+        vertex2.texCoords = glm::vec2((float)(x+1) / (float)(width), 1.0f - (float)y / (float)(height));
+
+        Vertex vertex3;
+        vertexFile.read(reinterpret_cast<char*>(&vertex3.position), sizeof(glm::vec3));
+        vertex3.texCoords = glm::vec2((float)x / (float)(width), 1.0f - (float)(y+1) / (float)(height));
+
+        Vertex vertex4;
+        vertexFile.read(reinterpret_cast<char*>(&vertex4.position), sizeof(glm::vec3));
+        vertex4.texCoords = glm::vec2((float)(x+1) / (float)(width), 1.0f - (float)(y+1) / (float)(height));
+
+        vertices.push_back(vertex1);
+        vertices.push_back(vertex2);
+        vertices.push_back(vertex3);
+        vertices.push_back(vertex4);
     }
     vertexFile.close();
 
@@ -129,7 +150,12 @@ int main(int argc, char** argv) {
         ImGui::TextColored(ImVec4(1,1,0,1), "OpenGL Version: %s", glGetString(GL_VERSION));
         ImGui::TextColored(ImVec4(1,1,0,1), "GPU: %s\n", glGetString(GL_RENDERER));
         ImGui::Text("Rendering Frame Rate: %.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+
         ImGui::Text("Number of vertices: %d", numVertices);
+
+        ImGui::InputFloat3("Camera Position", (float*)&camera.position);
+        ImGui::SliderFloat("Movement speed", &camera.movementSpeed, 0.1f, 20.0f);
+
         ImGui::Checkbox("Render Point Cloud", &renderPointcloud);
         ImGui::Checkbox("Render Wireframe", &renderWireframe);
         ImGui::End();
@@ -182,6 +208,8 @@ int main(int argc, char** argv) {
         nodes[i] = Node(&meshes[i]);
         scene.addChildNode(&nodes[i]);
     }
+
+    std::cout << numVertices << " vertices" << std::endl;
 
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
 
