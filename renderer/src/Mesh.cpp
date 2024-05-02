@@ -66,16 +66,17 @@ void Mesh::bindSceneAndCamera(Scene &scene, Camera &camera, glm::mat4 model, Mat
         texIdx++;
     }
 
-    materialToUse->shader->setInt("numPointLights", static_cast<int>(scene.pointLights.size()));
-    materialToUse->shader->setInt("metalRoughnessCombined", metalRoughnessCombined);
-
-    materialToUse->shader->setBool("IBL", IBL);
-    materialToUse->shader->setBool("transparent", transparent);
     materialToUse->shader->setMat4("view", camera.getViewMatrix());
     materialToUse->shader->setMat4("projection", camera.getProjectionMatrix());
     materialToUse->shader->setVec3("camPos", camera.position);
     materialToUse->shader->setMat4("model", model);
     materialToUse->shader->setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
+
+    materialToUse->shader->setBool("IBL", IBL);
+    materialToUse->shader->setBool("transparent", transparent);
+    materialToUse->shader->setBool("metalRoughnessCombined", metalRoughnessCombined);
+
+    materialToUse->shader->setInt("numPointLights", static_cast<int>(scene.pointLights.size()));
 
     materialToUse->unbind();
 }
