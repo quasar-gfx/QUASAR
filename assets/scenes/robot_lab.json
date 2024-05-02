@@ -27,7 +27,7 @@
         "fov": 60.0,
         "near": 0.1,
         "far": 1000.0,
-        "position": [0.0, 0.0, 15.0]
+        "position": [0.0, 3.0, 10.0]
     },
     "ambientLight": {
         "color": [0.9, 0.9, 0.9],
@@ -37,37 +37,37 @@
         "color": [1.0, 1.0, 1.0],
         "direction": [-1.0, -5.0, 0.0],
         "distance": 100.0,
-        "intensity": 1.0
+        "intensity": 3.0
     },
     "pointLights": [
         {
             "color": [1.0, 1.0, 1.0],
-            "position": [-5.5, 3.5, -13.5],
-            "intensity": 25.0,
+            "position": [-5.2, 6.25, -18.5],
+            "intensity": 50.0,
             "constant": 0.0,
             "linear": 0.09,
             "quadratic": 1.0
         },
         {
             "color": [1.0, 1.0, 1.0],
-            "position": [4.5, 3.5, -13.5],
-            "intensity": 25.0,
+            "position": [4.8, 6.25, -18.5],
+            "intensity": 50.0,
             "constant": 0.0,
             "linear": 0.09,
             "quadratic": 1.0
         },
         {
             "color": [1.0, 1.0, 1.0],
-            "position": [5, 1.35, 29],
-            "intensity": 25.0,
+            "position": [-7.4, 6.25, -18.5],
+            "intensity": 50.0,
             "constant": 0.0,
             "linear": 0.09,
             "quadratic": 1.0
         },
         {
             "color": [1.0, 1.0, 1.0],
-            "position": [-5, 1.35, 29],
-            "intensity": 25.0,
+            "position": [6.8, 6.25, -18.5],
+            "intensity": 50.0,
             "constant": 0.0,
             "linear": 0.09,
             "quadratic": 1.0

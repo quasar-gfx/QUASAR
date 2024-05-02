@@ -5,6 +5,7 @@
 #include <stb_image.h>
 
 #include <Primatives/Model.h>
+#include <assimp/pbrmaterial.h>
 
 void Model::bindSceneAndCamera(Scene &scene, Camera &camera, glm::mat4 model, Material* overrideMaterial) {
     for (int i = 0; i < meshes.size(); i++) {
@@ -104,20 +105,14 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
 
     aiMaterial* aiMat = scene->mMaterials[mesh->mMaterialIndex];
 
+    bool overrideMetalRoughnessCombined = false;
+    bool transparent = false;
+
+    MeshCreateParams meshParams{};
     if (material != nullptr) {
-        MeshCreateParams meshParams{
-            .vertices = vertices,
-            .indices = indices,
-            .material = material,
-            .wireframe = wireframe,
-            .pointcloud = pointcloud,
-            .metalRoughnessCombined = metalRoughnessCombined
-        };
-        return Mesh(meshParams);
+        meshParams.material = material;
     }
     else {
-        bool overrideMetalRoughnessCombined = false;
-
         TextureID diffuseMap = loadMaterialTexture(aiMat, aiTextureType_DIFFUSE);
         TextureID normalMap = loadMaterialTexture(aiMat, aiTextureType_NORMALS);
         TextureID metallicMap = loadMaterialTexture(aiMat, aiTextureType_METALNESS);
@@ -132,23 +127,32 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
 
         textures = {diffuseMap, normalMap, metallicMap, roughnessMap, aoMap};
 
-        return Mesh({
-            .vertices = vertices,
-            .indices = indices,
-            .material = new PBRMaterial({
-                .albedoTextureID = textures[0],
-                .normalTextureID = textures[1],
-                .metallicTextureID = textures[2],
-                .roughnessTextureID = textures[3],
-                .aoTextureID = textures[4]
-            }),
-            .wireframe = wireframe,
-            .pointcloud = pointcloud,
-            .IBL = IBL,
-            .transparent = transparent,
-            .metalRoughnessCombined = metalRoughnessCombined || overrideMetalRoughnessCombined
+        meshParams.material = new PBRMaterial({
+            .albedoTextureID = textures[0],
+            .normalTextureID = textures[1],
+            .metallicTextureID = textures[2],
+            .roughnessTextureID = textures[3],
+            .aoTextureID = textures[4]
         });
     }
+
+    float opacity = 1.0;
+    aiString alphaMode;
+    aiMat->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode);
+    aiMat->Get(AI_MATKEY_OPACITY, opacity);
+    if (opacity < 1.0 || alphaMode == aiString("BLEND") || alphaMode == aiString("MASK")) {
+        transparent = true;
+    }
+
+    meshParams.vertices = vertices;
+    meshParams.indices = indices;
+    meshParams.wireframe = wireframe;
+    meshParams.pointcloud = pointcloud;
+    meshParams.IBL = IBL;
+    meshParams.transparent = transparent;
+    meshParams.metalRoughnessCombined = metalRoughnessCombined || overrideMetalRoughnessCombined;
+
+    return Mesh(meshParams);
 }
 
 TextureID Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {

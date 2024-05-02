@@ -260,10 +260,8 @@ void main() {
     vec4 color = texture(albedoMap, TexCoords);
 
     vec3 albedo = color.rgb;
-    float alpha = color.a;
-    if (!transparent && alpha < 0.5)
-        discard;
-    if (transparent && alpha < 0.1)
+    float alpha = (transparent) ? color.a : 1.0;
+    if (alpha < 0.1)
         discard;
 
     vec2 mr = texture(metallicMap, TexCoords).rg;
