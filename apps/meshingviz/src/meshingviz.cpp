@@ -17,10 +17,19 @@
 #include <OpenGLApp.h>
 #include <Windowing/GLFWWindow.h>
 
-int createMesh(Mesh* mesh, std::string label, bool renderPointcloud) {
-    std::vector<Vertex> vertices;
-    std::ifstream file("../meshing/data/positions_" + label + "_0.bin", std::ios::binary);
-    if (!file.is_open()) {
+int surfelSize = 4;
+bool renderPointcloud = false;
+bool renderWireframe = false;
+
+int createMesh(Mesh* mesh, std::string label) {
+    std::ifstream vertexFile("../meshing/data/positions_" + label + "_0.bin", std::ios::binary);
+    if (!vertexFile.is_open()) {
+        std::cerr << "Failed to open file with label=" << label << std::endl;
+        return -1;
+    }
+
+    std::ifstream indexFile("../meshing/data/indices_" + label + "_0.bin", std::ios::binary);
+    if (!indexFile.is_open()) {
         std::cerr << "Failed to open file with label=" << label << std::endl;
         return -1;
     }
@@ -33,25 +42,37 @@ int createMesh(Mesh* mesh, std::string label, bool renderPointcloud) {
         .path = "../meshing/imgs/color_" + label + "_0.png"
     });
 
-    unsigned int width = diffuseTexture.width;
-    unsigned int height = diffuseTexture.height;
+    unsigned int width = diffuseTexture.width / surfelSize;
+    unsigned int height = diffuseTexture.height / surfelSize;
     unsigned int idx = 0;
-    while (file) {
+    std::vector<Vertex> vertices;
+    for (int i = 0; i < width * height; i++) {
         Vertex vertex;
-        file.read(reinterpret_cast<char*>(&vertex.position), sizeof(glm::vec3));
+        vertexFile.read(reinterpret_cast<char*>(&vertex.position), sizeof(glm::vec3));
+        // std::cout << vertex.position.x << " " << vertex.position.y << " " << vertex.position.z << std::endl;
         vertex.texCoords = glm::vec2((idx % width) / (float)(width - 1), 1.0f - (idx / width) / (float)(height - 1));
         idx++;
         vertices.push_back(vertex);
     }
-    file.close();
+    vertexFile.close();
+
+    std::vector<unsigned int> indices;
+    while (indexFile) {
+        unsigned int index;
+        indexFile.read(reinterpret_cast<char*>(&index), sizeof(unsigned int));
+        indices.push_back(index);
+    }
+    indexFile.close();
 
     *mesh = Mesh({
         .vertices = vertices,
+        .indices = indices,
         .material = new UnlitMaterial({ .diffuseTextureID = diffuseTexture.ID }),
-        .pointcloud = renderPointcloud
+        .wireframe = renderWireframe,
+        .pointcloud = renderPointcloud,
     });
 
-    return 0;
+    return vertices.size();
 }
 
 int main(int argc, char** argv) {
@@ -59,7 +80,6 @@ int main(int argc, char** argv) {
     app.config.title = "Meshing Visualizer";
 
     std::string modelPath = "../meshing/mesh.obj";
-    bool renderPointcloud = false;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             app.config.width = atoi(argv[i + 1]);
@@ -81,17 +101,26 @@ int main(int argc, char** argv) {
             app.config.enableVSync = atoi(argv[i + 1]);
             i++;
         }
+        else if (!strcmp(argv[i], "-wf") && i + 1 < argc) {
+            renderWireframe = atoi(argv[i + 1]);
+            i++;
+        }
+        else if (!strcmp(argv[i], "-ss") && i + 1 < argc) {
+            surfelSize = atoi(argv[i + 1]);
+            i++;
+        }
     }
 
     GLFWWindow window(app.config);
     app.init(&window);
-    glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 
     unsigned int screenWidth, screenHeight;
     window.getSize(&screenWidth, &screenHeight);
 
     Scene scene = Scene();
     Camera camera = Camera(screenWidth, screenHeight);
+
+    int numVertices = 0;
 
     app.gui([&](double now, double dt) {
         ImGui::NewFrame();
@@ -100,6 +129,9 @@ int main(int argc, char** argv) {
         ImGui::TextColored(ImVec4(1,1,0,1), "OpenGL Version: %s", glGetString(GL_VERSION));
         ImGui::TextColored(ImVec4(1,1,0,1), "GPU: %s\n", glGetString(GL_RENDERER));
         ImGui::Text("Rendering Frame Rate: %.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+        ImGui::Text("Number of vertices: %d", numVertices);
+        ImGui::Checkbox("Render Point Cloud", &renderPointcloud);
+        ImGui::Checkbox("Render Wireframe", &renderWireframe);
         ImGui::End();
     });
 
@@ -117,14 +149,11 @@ int main(int argc, char** argv) {
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
 
-    // textures
-    PBRMaterial goldMaterial = PBRMaterial({
-        .albedoTexturePath = "../assets/textures/pbr/gold/albedo.png",
-        .normalTexturePath = "../assets/textures/pbr/gold/normal.png",
-        .metallicTexturePath = "../assets/textures/pbr/gold/metallic.png",
-        .roughnessTexturePath = "../assets/textures/pbr/gold/roughness.png",
-        .aoTexturePath = "../assets/textures/pbr/gold/ao.png"
-    });
+    // UnlitMaterial containerMaterial = UnlitMaterial({ "../assets/textures/container.jpg" });
+    // Cube cube = Cube({ .material = &containerMaterial });
+    // Node cubeNode = Node(&cube);
+    // cubeNode.setScale(glm::vec3(0.02f, 0.02f, 0.02f));
+    // scene.addChildNode(&cubeNode);
 
     // models
     // Cube cube = Cube(goldMaterial);
@@ -136,20 +165,20 @@ int main(int argc, char** argv) {
 
     std::vector<std::string> labels = {
         "center",
-        "top_right_front",
-        "top_right_back",
-        "top_left_front",
-        "top_left_back",
-        "bottom_right_front",
-        "bottom_right_back",
-        "bottom_left_front",
-        "bottom_left_back"
+        // "top_right_front",
+        // "top_right_back",
+        // "top_left_front",
+        // "top_left_back",
+        // "bottom_right_front",
+        // "bottom_right_back",
+        // "bottom_left_front",
+        // "bottom_left_back"
     };
 
     std::vector<Mesh> meshes(labels.size());
     std::vector<Node> nodes(labels.size());
     for (int i = 0; i < labels.size(); i++) {
-        createMesh(&meshes[i], labels[i], renderPointcloud);
+        numVertices += createMesh(&meshes[i], labels[i]);
         nodes[i] = Node(&meshes[i]);
         scene.addChildNode(&nodes[i]);
     }
@@ -208,6 +237,11 @@ int main(int argc, char** argv) {
         camera.processKeyboard(keys, dt);
         if (keys.ESC_PRESSED) {
             window.close();
+        }
+
+        for (auto& mesh : meshes) {
+            mesh.wireframe = renderWireframe;
+            mesh.pointcloud = renderPointcloud;
         }
 
         // render all objects in scene

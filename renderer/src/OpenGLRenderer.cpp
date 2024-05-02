@@ -14,6 +14,8 @@ void OpenGLRenderer::init(unsigned int width, unsigned int height) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+    glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+
     // background skybox shader
     ShaderCreateParams skyboxShaderParams = {
         .vertexCodeData = SHADER_SKYBOX_VERT,

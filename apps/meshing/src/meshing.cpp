@@ -25,6 +25,8 @@ int main(int argc, char** argv) {
     app.config.enableVSync = false;
     app.config.showWindow = false;
 
+    int maxSteps = 10;
+    int surfelSize = 4;
     std::string scenePath = "../assets/scenes/sponza.json";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
@@ -41,6 +43,18 @@ int main(int argc, char** argv) {
         }
         else if (!strcmp(argv[i], "-d") && i + 1 < argc) {
             app.config.showWindow = atoi(argv[i + 1]);
+            i++;
+        }
+        else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
+            app.config.enableVSync = atoi(argv[i + 1]);
+            i++;
+        }
+        else if (!strcmp(argv[i], "-m") && i + 1 < argc) {
+            maxSteps = atoi(argv[i + 1]);
+            i++;
+        }
+        else if (!strcmp(argv[i], "-ss") && i + 1 < argc) {
+            surfelSize = atoi(argv[i + 1]);
             i++;
         }
     }
@@ -76,13 +90,17 @@ int main(int argc, char** argv) {
         .computeCodePath = "shaders/genMesh.comp"
     });
 
+    int width = screenWidth / surfelSize;
+    int height = screenHeight / surfelSize;
+
     GLuint vertexBuffer;
+    int numVertices = width * height;
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, screenWidth * screenHeight * sizeof(glm::vec4), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(glm::vec4), nullptr, GL_STATIC_DRAW);
 
     GLuint indexBuffer;
-    int numTriangles = screenWidth * screenHeight * 2;
+    int numTriangles = (width-1) * (height-1) * 2;
     int indexBufferSize = numTriangles * 3;
     glGenBuffers(1, &indexBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
@@ -91,7 +109,7 @@ int main(int argc, char** argv) {
     GLuint texCoordBuffer;
     glGenBuffers(1, &texCoordBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, texCoordBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, screenWidth * screenHeight * sizeof(glm::vec2), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, width * height * sizeof(glm::vec2), nullptr, GL_STATIC_DRAW);
 
     genMeshShader.bind();
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
@@ -100,10 +118,10 @@ int main(int argc, char** argv) {
     genMeshShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
     genMeshShader.unbind();
 
-    // camera.setProjectionMatrix(glm::radians(120.0f), (float)screenWidth / (float)screenHeight, 0.1f, 1000.0f);
-
     Framebuffer outputFramebuffer;
     outputFramebuffer.createColorAndDepthBuffers(screenWidth, screenHeight);
+
+    // camera.setProjectionMatrix(glm::radians(120.0f), (float)screenWidth / (float)screenHeight, 0.1f, 1000.0f);
 
     // save camera view and projection matrices
     std::ofstream cameraFile;
@@ -120,7 +138,7 @@ int main(int argc, char** argv) {
     float z = 0.0f;
     app.onRender([&](double now, double dt) {
         auto saveFrame = [&](glm::vec3 position, std::string label, unsigned int timestamp) {
-            std::cout << "saving " << label << " t=" << std::to_string(timestamp) << std::endl;
+            std::cout << "saving [" << label << "] t=" << std::to_string(timestamp) << std::endl;
 
             double startTime = glfwGetTime();
 
@@ -135,11 +153,11 @@ int main(int argc, char** argv) {
             genMeshShader.setMat4("projectionInverse", glm::inverse(camera.getProjectionMatrix()));
             genMeshShader.setFloat("near", camera.near);
             genMeshShader.setFloat("far", camera.far);
-            glBindImageTexture(0, app.renderer.gBuffer.positionBuffer.ID, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
-            glBindImageTexture(1, app.renderer.gBuffer.normalsBuffer.ID, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
-            glBindImageTexture(2, app.renderer.gBuffer.colorBuffer.ID, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA);
-            app.renderer.gBuffer.depthBuffer.bind(3);
-            genMeshShader.dispatch(screenWidth / 10, screenHeight / 10, 1);
+            genMeshShader.setInt("surfelSize", surfelSize);
+            glBindImageTexture(0, app.renderer.gBuffer.positionBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
+            glBindImageTexture(1, app.renderer.gBuffer.normalsBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
+            app.renderer.gBuffer.depthBuffer.bind(2);
+            genMeshShader.dispatch(width, height, 1);
             genMeshShader.unbind();
 
             // render to screen
@@ -154,120 +172,72 @@ int main(int argc, char** argv) {
             outputFramebuffer.colorBuffer.saveTextureToPNG("imgs/color_" + label + "_" + std::to_string(timestamp) + ".png");
             outputFramebuffer.unbind();
 
-            std::ofstream depthFile;
-            depthFile.open("data/depth_" + label + "_" + std::to_string(timestamp) + ".bin", std::ios::out | std::ios::binary);
+            // std::ofstream depthFile;
+            // depthFile.open("data/depth_" + label + "_" + std::to_string(timestamp) + ".bin", std::ios::out | std::ios::binary);
 
             std::ofstream positionsFile;
             positionsFile.open("data/positions_" + label + "_" + std::to_string(timestamp) + ".bin", std::ios::out | std::ios::binary);
 
-            // std::ofstream objFile;
-            // objFile.open("mesh.obj");
+            std::ofstream indicesFile;
+            indicesFile.open("data/indices_" + label + "_" + std::to_string(timestamp) + ".bin", std::ios::out | std::ios::binary);
 
-            // std::ofstream mtlFile;
-            // mtlFile.open("mesh.mtl");
-
-            std::vector<Vertex> vertices;
-            vertices.reserve(screenWidth * screenHeight);
-
+            int numVertices = 0;
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
             GLvoid* pBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
             if (pBuffer) {
                 glm::vec4* pVertices = static_cast<glm::vec4*>(pBuffer);
 
-                for (int i = 0; i < screenWidth * screenHeight; i++) {
+                for (int i = 0; i < width * height; i++) {
                     Vertex vertex;
                     vertex.position.x = pVertices[i].x;
                     vertex.position.y = pVertices[i].y;
                     vertex.position.z = pVertices[i].z;
-                    vertices.push_back(vertex);
+
+                    // std::cout << "Vertex: " << vertex.position.x << ", " << vertex.position.y << ", " << vertex.position.z << std::endl;
 
                     positionsFile.write(reinterpret_cast<const char*>(&pVertices[i].x), 3 * sizeof(float));
-                    depthFile.write(reinterpret_cast<const char*>(&pVertices[i].w), sizeof(pVertices[i].w));
+                    numVertices += 1;
+                    // depthFile.write(reinterpret_cast<const char*>(&pVertices[i].w), sizeof(pVertices[i].w));
                 }
 
                 glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
             } else {
-                std::cerr << "Failed to map vertex buffer into memory" << std::endl;
+                std::cerr << "Failed to save vertex buffer" << std::endl;
             }
 
-/*             std::vector<unsigned int> indices;
- *             indices.reserve(indexBufferSize);
- *             glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
- *             GLvoid* pIndexBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
- *             if (pIndexBuffer) {
- *                 unsigned int* pIndices = static_cast<unsigned int*>(pIndexBuffer);
- *
- *                 for (int i = 0; i < indexBufferSize; i++) {
- *                     indices.push_back(pIndices[i]);
- *                 }
- *
- *                 glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
- *             } else {
- *                 std::cerr << "Failed to map index buffer into memory" << std::endl;
- *             }
- *
- *             std::vector<glm::vec2> texCoords;
- *             texCoords.reserve(screenWidth * screenHeight);
- *             glBindBuffer(GL_SHADER_STORAGE_BUFFER, texCoordBuffer);
- *             GLvoid* pTexCoordBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
- *             if (pTexCoordBuffer) {
- *                 glm::vec2* pTexCoords = static_cast<glm::vec2*>(pTexCoordBuffer);
- *
- *                 for (int i = 0; i < screenWidth * screenHeight; i++) {
- *                     texCoords.push_back(pTexCoords[i]);
- *                 }
- *
- *                 glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
- *             } else {
- *                 std::cerr << "Failed to map tex coord buffer into memory" << std::endl;
- *             }
- *
- *             if (objFile.is_open()) {
- *                 objFile << "mtllib " << "mesh.mtl" << std::endl;
- *                 objFile << "usemtl " << "Material1" << std::endl;
- *                 for (int i = 0; i < vertices.size(); i++) {
- *                     objFile << "v " << vertices[i].position.x << " " << vertices[i].position.y << " " << vertices[i].position.z << std::endl;
- *                     positionsFile.write(reinterpret_cast<const char*>(&vertices[i].position.x), sizeof(vertices[i].position.x));
- *                     positionsFile.write(reinterpret_cast<const char*>(&vertices[i].position.y), sizeof(vertices[i].position.y));
- *                     positionsFile.write(reinterpret_cast<const char*>(&vertices[i].position.z), sizeof(vertices[i].position.z));
- *                     // positionsFile << vertices[i].position.x << " " << vertices[i].position.y << " " << vertices[i].position.z << std::endl;
- *                 }
- *                 for (int i = 0; i < texCoords.size(); i++) {
- *                     objFile << "vt " << texCoords[i].x << " " << texCoords[i].y << std::endl;
- *                 }
- *                 // for (int i = 0; i < indices.size(); i += 3) {
- *                 //     objFile << "f " << indices[i] + 1 << " " << indices[i + 1] + 1 << " " << indices[i + 2] + 1<< std::endl;
- *                 // }
- *                 for (int i = 0; i < indices.size(); i += 3) {
- *                     objFile << "f " << indices[i + 0] + 1 << "/" << indices[i + 0] + 1 << " " << indices[i + 1] + 1 << "/" << indices[i + 1] + 1 << " " << indices[i + 2] + 1 << "/" << indices[i + 2] + 1 << std::endl;
- *                 }
- *                 objFile.close();
- *             } else {
- *                 std::cerr << "Failed to open objFile" << std::endl;
- *             }
- *
- *             if (mtlFile.is_open()) {
- *                 mtlFile << "newmtl " << "Material1" << std::endl;
- *                 mtlFile << "map_Kd " << "meshColor.png" << std::endl;
- *             } */
+            std::cout << numVertices << " vertices" << std::endl;
+
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
+            GLvoid* pIndexBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+            if (pIndexBuffer) {
+                unsigned int* pIndices = static_cast<unsigned int*>(pIndexBuffer);
+
+                for (int i = 0; i < indexBufferSize; i++) {
+                    indicesFile.write(reinterpret_cast<const char*>(&pIndices[i]), sizeof(pIndices[i]));
+                }
+
+                glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+            } else {
+                std::cerr << "Failed to save index buffer" << std::endl;
+            }
 
             std::cout << "\tSaving Time: " << glfwGetTime() - startTime << "s" << std::endl;
         };
 
         saveFrame(initialPosition + glm::vec3(0.0f, 0.0f, 0.0f + z), "center", t);
-        saveFrame(initialPosition + glm::vec3(0.5f, 0.5f, 0.5f + z), "top_right_front", t);
-        saveFrame(initialPosition + glm::vec3(0.5f, 0.5f, -0.5f + z), "top_right_back", t);
-        saveFrame(initialPosition + glm::vec3(-0.5f, 0.5f, 0.5f + z), "top_left_front", t);
-        saveFrame(initialPosition + glm::vec3(-0.5f, 0.5f, -0.5f + z), "top_left_back", t);
-        saveFrame(initialPosition + glm::vec3(0.5f, -0.5f, 0.5f + z), "bottom_right_front", t);
-        saveFrame(initialPosition + glm::vec3(0.5f, -0.5f, -0.5f + z), "bottom_right_back", t);
-        saveFrame(initialPosition + glm::vec3(-0.5f, -0.5f, 0.5f + z), "bottom_left_front", t);
-        saveFrame(initialPosition + glm::vec3(-0.5f, -0.5f, -0.5f + z), "bottom_left_back", t);
+        // saveFrame(initialPosition + glm::vec3(0.5f, 0.5f, 0.5f + z), "top_right_front", t);
+        // saveFrame(initialPosition + glm::vec3(0.5f, 0.5f, -0.5f + z), "top_right_back", t);
+        // saveFrame(initialPosition + glm::vec3(-0.5f, 0.5f, 0.5f + z), "top_left_front", t);
+        // saveFrame(initialPosition + glm::vec3(-0.5f, 0.5f, -0.5f + z), "top_left_back", t);
+        // saveFrame(initialPosition + glm::vec3(0.5f, -0.5f, 0.5f + z), "bottom_right_front", t);
+        // saveFrame(initialPosition + glm::vec3(0.5f, -0.5f, -0.5f + z), "bottom_right_back", t);
+        // saveFrame(initialPosition + glm::vec3(-0.5f, -0.5f, 0.5f + z), "bottom_left_front", t);
+        // saveFrame(initialPosition + glm::vec3(-0.5f, -0.5f, -0.5f + z), "bottom_left_back", t);
 
         z -= 0.5f;
 
         t++;
-        if (t >= 10) {
+        if (t >= maxSteps) {
             window.close();
         }
     });

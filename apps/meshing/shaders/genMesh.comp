@@ -1,11 +1,10 @@
 #version 430 core
 
-layout(local_size_x = 10, local_size_y = 10, local_size_z = 1) in;
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 layout(binding = 0, rgba16f) readonly uniform image2D normalMap;
 layout(binding = 1, rgba16f) readonly uniform image2D positionMap;
-layout(binding = 2, rgba32f) readonly uniform image2D colorOutput;
-layout(binding = 3) uniform sampler2D depthMap;
+layout(binding = 2) uniform sampler2D depthMap;
 
 layout(std430, binding = 0) buffer VertexBuffer {
     vec4 vertices[];
@@ -27,21 +26,31 @@ uniform mat4 projectionInverse;
 uniform float near;
 uniform float far;
 
-void main() {
-    uint vertexIndex = uint(gl_GlobalInvocationID.y * screenSize.x + gl_GlobalInvocationID.x);
+uniform int surfelSize;
 
-    ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
+void main() {
+    vec2 size = vec2(screenSize) / float(surfelSize);
+
+    uint vertexIndex = uint(gl_GlobalInvocationID.y * size.x + gl_GlobalInvocationID.x);
+
+    ivec2 surfelCoords = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 pixelCoords = surfelSize * surfelCoords;
     vec2 pixelCoordsNormalized = vec2(pixelCoords) / vec2(screenSize);
     vec2 ndc = pixelCoordsNormalized * 2.0 - 1.0;
 
-    // vec4 positionData = imageLoad(positionMap, pixelCoords);
-    // vec4 normalData = imageLoad(normalMap, pixelCoords);
-    // vec4 colorData = imageLoad(colorOutput, pixelCoords);
-    vec4 depthData = texelFetch(depthMap, pixelCoords, 0);
+    vec4 positionData = imageLoad(positionMap, pixelCoords);
+    vec4 normalData = imageLoad(normalMap, pixelCoords);
+    vec4 depthData = vec4(0.0);
+    for (int i = 0; i < surfelSize; i++) {
+        for (int j = 0; j < surfelSize; j++) {
+            depthData += texelFetch(depthMap, ivec2(pixelCoords.x + i, pixelCoords.y + j), 0);
+        }
+    }
+    depthData /= float(surfelSize * surfelSize);
+    // depthData += texelFetch(depthMap, pixelCoords, 0);
 
-    // vec3 normal = normalize(normalData.xyz);
-    // vec3 position = positionData.xyz;
-    // vec3 color = colorData.xyz;
+    vec3 normal = normalize(normalData.xyz);
+    vec3 position = positionData.xyz;
     float depth = depthData.x;
 
     vec4 ndcPos;
@@ -51,17 +60,27 @@ void main() {
 
     vec4 worldCoords = viewInverse * projectionInverse * ndcPos;
     worldCoords = worldCoords / worldCoords.w;
-
     worldCoords.w = depth;
+
+    vec3 vertexCoord = worldCoords.xyz;
 
     vertices[vertexIndex] = worldCoords;
     texCoords[vertexIndex] = pixelCoordsNormalized;
 
-    if (pixelCoords.x < screenSize.x - 1 && pixelCoords.y < screenSize.y - 1) {
+    if (surfelCoords.x < size.x - 1 && surfelCoords.y < size.y - 1) {
         uint currentVertexIndex = vertexIndex;
         uint nextVertexIndex = currentVertexIndex + 1;
-        uint bottomVertexIndex = currentVertexIndex + uint(screenSize.x);
+        uint bottomVertexIndex = currentVertexIndex + uint(size.x);
         uint bottomNextVertexIndex = bottomVertexIndex + 1;
+
+        /*****************************
+
+                cvi --- nvi
+                 |     /  |
+                 |   /    |
+                bvi --- bnvi
+
+        *****************************/
 
         indices[vertexIndex * 6 + 0] = currentVertexIndex;
         indices[vertexIndex * 6 + 1] = nextVertexIndex;

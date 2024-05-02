@@ -62,6 +62,9 @@ struct MeshCreateParams {
 
 class Mesh : public Entity {
 public:
+    std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
+
     Material* material;
 
     bool wireframe = false;
@@ -74,10 +77,10 @@ public:
 
     explicit Mesh(const MeshCreateParams &params)
             : vertices(params.vertices), indices(params.indices),
-                material(params.material),
-                wireframe(params.wireframe), pointcloud(params.pointcloud),
-                IBL(params.IBL), transparent(params.transparent),
-                metalRoughnessCombined(params.metalRoughnessCombined),
+              material(params.material),
+              wireframe(params.wireframe), pointcloud(params.pointcloud),
+              IBL(params.IBL), transparent(params.transparent),
+              metalRoughnessCombined(params.metalRoughnessCombined),
                 Entity() {
         init();
     }
@@ -93,9 +96,6 @@ public:
 
 protected:
     TextureID VAO, VBO, EBO;
-
-    std::vector<Vertex> vertices;
-    std::vector<unsigned int> indices;
 
     void init();
 };
