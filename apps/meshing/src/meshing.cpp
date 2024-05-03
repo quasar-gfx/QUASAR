@@ -70,7 +70,11 @@ int main(int argc, char** argv) {
     Scene scene = Scene();
     Camera camera = Camera(screenWidth, screenHeight);
     SceneLoader loader = SceneLoader();
-    loader.loadScene(scenePath, scene, camera);
+    bool res = loader.loadScene(scenePath, scene, camera);
+    if (!res) {
+        std::cerr << "Failed to load scene: " << scenePath << std::endl;
+        return 1;
+    }
 
     app.gui([&](double now, double dt) {
         ImGui::NewFrame();

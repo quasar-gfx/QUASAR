@@ -151,7 +151,6 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
     meshParams.wireframe = wireframe;
     meshParams.pointcloud = pointcloud;
     meshParams.IBL = IBL;
-    meshParams.transparent = transparent;
 
     return Mesh(meshParams);
 }
