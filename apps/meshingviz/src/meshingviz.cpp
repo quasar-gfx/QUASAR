@@ -46,7 +46,7 @@ int createMesh(Mesh* mesh, std::string label) {
 
     unsigned int width = diffuseTexture.width / surfelSize;
     unsigned int height = diffuseTexture.height / surfelSize;
-    int numVertices = (width-1) * (height-1) * VERTICES_IN_A_QUAD;
+    int numVertices = width * height * VERTICES_IN_A_QUAD;
 
     unsigned int x = 0, y = 0;
     std::vector<Vertex> vertices;
