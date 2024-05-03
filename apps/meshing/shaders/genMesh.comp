@@ -94,11 +94,13 @@ void main() {
     float depthLowerLeft  = depthDataLowerLeft.r;
     float depthLowerRight = depthDataLowerRight.r;
 
+    float depth = depthUpperLeft;
+
     // give the same depth for now
-    vec3 worldCoordUpperLeft  = projectToWorld(ndcUpperLeft, depthUpperLeft);
-    vec3 worldCoordUpperRight = projectToWorld(ndcUpperRight, depthUpperLeft);
-    vec3 worldCoordLowerLeft  = projectToWorld(ndcLowerLeft, depthUpperLeft);
-    vec3 worldCoordLowerRight = projectToWorld(ndcLowerRight, depthUpperLeft);
+    vec3 worldCoordUpperLeft  = projectToWorld(ndcUpperLeft, depth);
+    vec3 worldCoordUpperRight = projectToWorld(ndcUpperRight, depth);
+    vec3 worldCoordLowerLeft  = projectToWorld(ndcLowerLeft, depth);
+    vec3 worldCoordLowerRight = projectToWorld(ndcLowerRight, depth);
 
     vec4 vertexCoordUpperLeft  = vec4(worldCoordUpperLeft, 1.0);
     vec4 vertexCoordUpperRight = vec4(worldCoordUpperRight, 1.0);

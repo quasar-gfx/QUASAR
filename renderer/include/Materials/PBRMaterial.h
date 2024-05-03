@@ -14,11 +14,13 @@ struct PBRMaterialCreateParams {
     TextureID metallicTextureID;
     TextureID roughnessTextureID;
     TextureID aoTextureID;
+    bool metalRoughnessCombined = false;
 };
 
 class PBRMaterial : public Material {
 public:
     float shininess = 1.0f;
+    bool metalRoughnessCombined = false;
 
     explicit PBRMaterial() = default;
     explicit PBRMaterial(const PBRMaterialCreateParams &params);

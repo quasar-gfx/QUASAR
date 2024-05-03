@@ -10,7 +10,6 @@
 class Material {
 public:
     std::vector<TextureID> textures;
-
     std::shared_ptr<Shader> shader;
 
     virtual void bind() = 0;

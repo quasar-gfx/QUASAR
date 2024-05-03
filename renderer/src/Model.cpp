@@ -105,7 +105,6 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
 
     aiMaterial* aiMat = scene->mMaterials[mesh->mMaterialIndex];
 
-    bool overrideMetalRoughnessCombined = false;
     bool transparent = false;
 
     MeshCreateParams meshParams{};
@@ -113,6 +112,8 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
         meshParams.material = material;
     }
     else {
+        bool overrideMetalRoughnessCombined = false;
+
         TextureID diffuseMap = loadMaterialTexture(aiMat, aiTextureType_DIFFUSE);
         TextureID normalMap = loadMaterialTexture(aiMat, aiTextureType_NORMALS);
         TextureID metallicMap = loadMaterialTexture(aiMat, aiTextureType_METALNESS);
@@ -132,7 +133,8 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
             .normalTextureID = textures[1],
             .metallicTextureID = textures[2],
             .roughnessTextureID = textures[3],
-            .aoTextureID = textures[4]
+            .aoTextureID = textures[4],
+            .metalRoughnessCombined = overrideMetalRoughnessCombined
         });
     }
 
@@ -150,7 +152,6 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
     meshParams.pointcloud = pointcloud;
     meshParams.IBL = IBL;
     meshParams.transparent = transparent;
-    meshParams.metalRoughnessCombined = metalRoughnessCombined || overrideMetalRoughnessCombined;
 
     return Mesh(meshParams);
 }

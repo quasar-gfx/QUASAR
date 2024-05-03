@@ -60,11 +60,14 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params) {
         .fragmentCodeSize = SHADER_PBR_FRAG_len
     };
     shader = std::make_unique<Shader>(pbrShaderParams);
+
+    metalRoughnessCombined = params.metalRoughnessCombined;
 }
 
 void PBRMaterial::bind() {
     shader->bind();
     shader->setFloat("shininess", shininess);
+    shader->setBool("metalRoughnessCombined", metalRoughnessCombined);
 
     std::string name;
     for (int i = 0; i < textures.size(); i++) {
