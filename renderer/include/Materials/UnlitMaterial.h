@@ -6,10 +6,13 @@
 struct UnlitMaterialCreateParams {
     std::string diffuseTexturePath = "";
     TextureID diffuseTextureID;
+    bool transparent = false;
 };
 
 class UnlitMaterial : public Material {
 public:
+    bool transparent = false;
+
     explicit UnlitMaterial() = default;
     explicit UnlitMaterial(const UnlitMaterialCreateParams &params);
 

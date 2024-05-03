@@ -105,14 +105,21 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
 
     aiMaterial* aiMat = scene->mMaterials[mesh->mMaterialIndex];
 
-    bool transparent = false;
-
     MeshCreateParams meshParams{};
     if (material != nullptr) {
         meshParams.material = material;
     }
     else {
-        bool overrideMetalRoughnessCombined = false;
+        bool transparent = false;
+        bool metalRoughnessCombined = false;
+
+        float opacity = 1.0;
+        aiString alphaMode;
+        aiMat->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode);
+        aiMat->Get(AI_MATKEY_OPACITY, opacity);
+        if (opacity < 1.0 || alphaMode == aiString("BLEND") || alphaMode == aiString("MASK")) {
+            transparent = true;
+        }
 
         TextureID diffuseMap = loadMaterialTexture(aiMat, aiTextureType_DIFFUSE);
         TextureID normalMap = loadMaterialTexture(aiMat, aiTextureType_NORMALS);
@@ -122,7 +129,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
         if (metallicMap == 0 || roughnessMap == 0) {
             // the metallic-roughness texture is sometimes stored in aiTextureType_UNKNOWN
             metallicMap = loadMaterialTexture(aiMat, aiTextureType_UNKNOWN);
-            overrideMetalRoughnessCombined = true;
+            metalRoughnessCombined = true;
         }
         TextureID aoMap = loadMaterialTexture(aiMat, aiTextureType_AMBIENT_OCCLUSION);
 
@@ -134,16 +141,9 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
             .metallicTextureID = textures[2],
             .roughnessTextureID = textures[3],
             .aoTextureID = textures[4],
-            .metalRoughnessCombined = overrideMetalRoughnessCombined
+            .metalRoughnessCombined = metalRoughnessCombined,
+            .transparent = transparent
         });
-    }
-
-    float opacity = 1.0;
-    aiString alphaMode;
-    aiMat->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode);
-    aiMat->Get(AI_MATKEY_OPACITY, opacity);
-    if (opacity < 1.0 || alphaMode == aiString("BLEND") || alphaMode == aiString("MASK")) {
-        transparent = true;
     }
 
     meshParams.vertices = vertices;

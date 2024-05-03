@@ -92,17 +92,15 @@ vec3 addPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
 }
 
 void main() {
-    vec4 col = texture(diffuseMap, TexCoords);
-    float alpha = col.a;
-    if (!transparent && alpha < 0.5)
-        discard;
-    if (transparent && alpha < 0.1)
+    vec4 color = texture(diffuseMap, TexCoords);
+    float alpha = (transparent) ? color.a : 1.0;
+    if (alpha < 0.1)
         discard;
 
     vec3 norm = normalize(Normal);
     vec3 viewDir = normalize(camPos - FragPos);
 
-    vec3 result = ambientLight.intensity * ambientLight.color * col.rgb;
+    vec3 result = ambientLight.intensity * ambientLight.color * color.rgb;
     result += addDirectionalLight(directionalLight, norm, viewDir);
     for (int i = 0; i < NUM_POINT_LIGHTS; i++) {
         result += addPointLight(pointLights[i], norm, FragPos, viewDir);

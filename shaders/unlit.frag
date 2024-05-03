@@ -20,11 +20,9 @@ uniform bool transparent;
 uniform vec3 camPos;
 
 void main() {
-    vec4 col = texture(diffuseMap, TexCoords);
-    float alpha = col.a;
-    if (!transparent && alpha < 0.5)
-        discard;
-    if (transparent && alpha < 0.1)
+    vec4 color = texture(diffuseMap, TexCoords);
+    float alpha = (transparent) ? color.a : 1.0;
+    if (alpha < 0.1)
         discard;
 
     vec3 norm = normalize(Normal);
@@ -32,5 +30,5 @@ void main() {
 
     positionBuffer = vec4(FragPos, 1.0);
     normalsBuffer = vec4(normalize(Normal), 1.0);
-    FragColor = col;
+    FragColor = color;
 }

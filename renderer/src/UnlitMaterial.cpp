@@ -24,10 +24,13 @@ UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams &params) {
         .fragmentCodeSize = SHADER_UNLIT_FRAG_len
     };
     shader = std::make_shared<Shader>(UnlitMaterialParams);
+
+    transparent = params.transparent;
 }
 
 void UnlitMaterial::bind() {
     shader->bind();
+    shader->setBool("transparent", transparent);
 
     std::string name = "diffuseMap";
     glActiveTexture(GL_TEXTURE0);

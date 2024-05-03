@@ -9,11 +9,13 @@ struct DiffSpecMaterialCreateParams {
     TextureID diffuseTextureID;
     TextureID specularTextureID;
     float shininess = 1.0f;
+    bool transparent = false;
 };
 
 class DiffSpecMaterial : public Material {
 public:
     float shininess = 1.0f;
+    bool transparent = false;
 
     explicit DiffSpecMaterial() = default;
     explicit DiffSpecMaterial(const DiffSpecMaterialCreateParams &params);

@@ -35,11 +35,14 @@ DiffSpecMaterial::DiffSpecMaterial(const DiffSpecMaterialCreateParams &params) {
         .fragmentCodeSize = SHADER_DIFFUSESPECULAR_FRAG_len
     };
     shader = std::make_shared<Shader>(diffSpecShaderParams);
+
+    transparent = params.transparent;
 }
 
 void DiffSpecMaterial::bind() {
     shader->bind();
     shader->setFloat("shininess", shininess);
+    shader->setBool("transparent", transparent);
 
     std::string name;
     for (int i = 0; i < textures.size(); i++) {

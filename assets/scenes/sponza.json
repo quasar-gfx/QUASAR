@@ -33,7 +33,8 @@
         },
         {
             "PBR": true,
-            "albedoTexturePath": "../assets/textures/window.png"
+            "albedoTexturePath": "../assets/textures/window.png",
+            "transparent": true
         }
     ],
     "models": [
@@ -63,8 +64,7 @@
         {
             "type": "plane",
             "material": 3,
-            "IBL": false,
-            "transparent": true
+            "IBL": false
         }
     ],
     "nodes": [

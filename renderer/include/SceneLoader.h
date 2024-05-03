@@ -234,6 +234,9 @@ private:
             else if (compare(tok, json, "aoTexturePath") == 0) {
                 i = parseString(tokens, i + 1, json, &params.aoTexturePath);
             }
+            else if (compare(tok, json, "transparent") == 0) {
+                i = parseBool(tokens, i + 1, json, &params.transparent);
+            }
             else {
                 i = parse(tokens, i + 1);
             }
@@ -275,9 +278,6 @@ private:
             }
             else if (compare(tok, json, "flipTextures") == 0) {
                 i = parseBool(tokens, i + 1, json, &params.flipTextures);
-            }
-            else if (compare(tok, json, "transparent") == 0) {
-                i = parseBool(tokens, i + 1, json, &params.transparent);
             }
             else if (compare(tok, json, "gammaCorrected") == 0) {
                 i = parseBool(tokens, i + 1, json, &params.gammaCorrected);
@@ -341,9 +341,6 @@ private:
             }
             else if (compare(tok, json, "IBL") == 0) {
                 i = parseBool(tokens, i + 1, json, &params.IBL);
-            }
-            else if (compare(tok, json, "transparent") == 0) {
-                i = parseBool(tokens, i + 1, json, &params.transparent);
             }
             else {
                 i = parse(tokens, i + 1);
