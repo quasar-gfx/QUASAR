@@ -64,37 +64,18 @@ void main() {
     vec2 ndcLowerLeft  = 2.0 * pixelCoordsLowerLeftNormalized - 1.0;
     vec2 ndcLowerRight = 2.0 * pixelCoordsLowerRightNormalized - 1.0;
 
-    vec4 positionDataUpperLeft  = imageLoad(positionMap, pixelCoordsUpperLeft);
-    vec4 positionDataUpperRight = imageLoad(positionMap, pixelCoordsUpperRight);
-    vec4 positionDataLowerLeft  = imageLoad(positionMap, pixelCoordsLowerLeft);
-    vec4 positionDataLowerRight = imageLoad(positionMap, pixelCoordsLowerRight);
+    vec3 positionUpperLeft  = imageLoad(positionMap, pixelCoordsUpperLeft).xyz;
+    vec3 positionUpperRight = imageLoad(positionMap, pixelCoordsUpperRight).xyz;
+    vec3 positionLowerLeft  = imageLoad(positionMap, pixelCoordsLowerLeft).xyz;
+    vec3 positionLowerRight = imageLoad(positionMap, pixelCoordsLowerRight).xyz;
 
-    vec4 normalDataUpperLeft  = imageLoad(normalMap, pixelCoordsUpperLeft);
-    vec4 normalDataUpperRight = imageLoad(normalMap, pixelCoordsUpperRight);
-    vec4 normalDataLowerLeft  = imageLoad(normalMap, pixelCoordsLowerLeft);
-    vec4 normalDataLowerRight = imageLoad(normalMap, pixelCoordsLowerRight);
+    vec3 normalDataUpperLeft  = normalize(imageLoad(normalMap, pixelCoordsUpperLeft).xyz);
+    vec3 normalDataUpperRight = normalize(imageLoad(normalMap, pixelCoordsUpperRight).xyz);
+    vec3 normalDataLowerLeft  = normalize(imageLoad(normalMap, pixelCoordsLowerLeft).xyz);
+    vec3 normalDataLowerRight = normalize(imageLoad(normalMap, pixelCoordsLowerRight).xyz);
 
-    vec4 depthDataUpperLeft  = texelFetch(depthMap, pixelCoordsUpperLeft, 0);
-    vec4 depthDataUpperRight = texelFetch(depthMap, pixelCoordsUpperRight, 0);
-    vec4 depthDataLowerLeft  = texelFetch(depthMap, pixelCoordsLowerLeft, 0);
-    vec4 depthDataLowerRight = texelFetch(depthMap, pixelCoordsLowerRight, 0);
-
-    vec3 positionUpperLeft  = positionDataUpperLeft.xyz;
-    vec3 positionUpperRight = positionDataUpperRight.xyz;
-    vec3 positionLowerLeft  = positionDataLowerLeft.xyz;
-    vec3 positionLowerRight = positionDataLowerRight.xyz;
-
-    vec3 normalUpperLeft  = normalize(normalDataUpperLeft.xyz);
-    vec3 normalUpperRight = normalize(normalDataUpperRight.xyz);
-    vec3 normalLowerLeft  = normalize(normalDataLowerLeft.xyz);
-    vec3 normalLowerRight = normalize(normalDataLowerRight.xyz);
-
-    float depthUpperLeft  = depthDataUpperLeft.r;
-    float depthUpperRight = depthDataUpperRight.r;
-    float depthLowerLeft  = depthDataLowerLeft.r;
-    float depthLowerRight = depthDataLowerRight.r;
-
-    float depth = depthUpperLeft;
+    vec2 pixelCoordsCenter = vec2(pixelCoordsUpperLeft + pixelCoordsLowerRight + pixelCoordsUpperRight + pixelCoordsLowerLeft) / 4;
+    float depth = texelFetch(depthMap, ivec2(pixelCoordsCenter), 0).r;
 
     // give the same depth for now
     vec3 worldCoordUpperLeft  = projectToWorld(ndcUpperLeft, depth);
