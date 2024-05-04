@@ -2,8 +2,8 @@
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-layout(binding = 0, rgba16f) readonly uniform image2D normalMap;
-layout(binding = 1, rgba16f) readonly uniform image2D positionMap;
+layout(binding = 0, rgba16f) readonly uniform image2D positionMap;
+layout(binding = 1, rgba16f) readonly uniform image2D normalMap;
 layout(binding = 2) uniform sampler2D depthMap;
 
 layout(std430, binding = 0) buffer VertexBuffer {
@@ -69,19 +69,52 @@ void main() {
     vec3 positionLowerLeft  = imageLoad(positionMap, pixelCoordsLowerLeft).xyz;
     vec3 positionLowerRight = imageLoad(positionMap, pixelCoordsLowerRight).xyz;
 
-    vec3 normalDataUpperLeft  = normalize(imageLoad(normalMap, pixelCoordsUpperLeft).xyz);
-    vec3 normalDataUpperRight = normalize(imageLoad(normalMap, pixelCoordsUpperRight).xyz);
-    vec3 normalDataLowerLeft  = normalize(imageLoad(normalMap, pixelCoordsLowerLeft).xyz);
-    vec3 normalDataLowerRight = normalize(imageLoad(normalMap, pixelCoordsLowerRight).xyz);
+    vec3 normalUpperLeft  = normalize(imageLoad(normalMap, pixelCoordsUpperLeft).xyz);
+    vec3 normalUpperRight = normalize(imageLoad(normalMap, pixelCoordsUpperRight).xyz);
+    vec3 normalLowerLeft  = normalize(imageLoad(normalMap, pixelCoordsLowerLeft).xyz);
+    vec3 normalLowerRight = normalize(imageLoad(normalMap, pixelCoordsLowerRight).xyz);
 
-    vec2 pixelCoordsCenter = vec2(pixelCoordsUpperLeft + pixelCoordsLowerRight + pixelCoordsUpperRight + pixelCoordsLowerLeft) / 4;
-    float depth = texelFetch(depthMap, ivec2(pixelCoordsCenter), 0).r;
+    // float depthUpperLeft  = texelFetch(depthMap, pixelCoordsUpperLeft, 0).r;
+    // float depthUpperRight = texelFetch(depthMap, pixelCoordsUpperRight, 0).r;
+    // float depthLowerLeft  = texelFetch(depthMap, pixelCoordsLowerLeft, 0).r;
+    // float depthLowerRight = texelFetch(depthMap, pixelCoordsLowerRight, 0).r;
+
+    // // move quad so it is centered at the average depth
+    // float avgDepth = 0.0;
+    // for (int i = pixelCoordsUpperLeft.x; i < pixelCoordsLowerRight.x; i++) {
+    //     for (int j = pixelCoordsUpperLeft.y; j < pixelCoordsLowerRight.y; j++) {
+    //         avgDepth += texelFetch(depthMap, ivec2(i, j), 0).r;
+    //     }
+    // }
+    // avgDepth /= float(surfelSize * surfelSize);
+    ivec2 centerPixel = (pixelCoordsUpperLeft + pixelCoordsLowerRight) / 2;
+    float avgDepth = texelFetch(depthMap, centerPixel, 0).r;
 
     // give the same depth for now
-    vec3 worldCoordUpperLeft  = projectToWorld(ndcUpperLeft, depth);
-    vec3 worldCoordUpperRight = projectToWorld(ndcUpperRight, depth);
-    vec3 worldCoordLowerLeft  = projectToWorld(ndcLowerLeft, depth);
-    vec3 worldCoordLowerRight = projectToWorld(ndcLowerRight, depth);
+    vec3 worldCoordUpperLeft  = projectToWorld(ndcUpperLeft, avgDepth);
+    vec3 worldCoordUpperRight = projectToWorld(ndcUpperRight, avgDepth);
+    vec3 worldCoordLowerLeft  = projectToWorld(ndcLowerLeft, avgDepth);
+    vec3 worldCoordLowerRight = projectToWorld(ndcLowerRight, avgDepth);
+
+    // rotate quad around the center so that it is oriented at average normal
+    vec3 avgNormal = vec3(0.0);
+    for (int i = pixelCoordsUpperLeft.x; i < pixelCoordsLowerRight.x; i++) {
+        for (int j = pixelCoordsUpperLeft.y; j < pixelCoordsLowerRight.y; j++) {
+            avgNormal += imageLoad(normalMap, ivec2(i, j)).xyz;
+        }
+    }
+    avgNormal /= float(surfelSize * surfelSize);
+    avgNormal = normalize(avgNormal);
+
+    vec3 tangent = normalize(worldCoordUpperRight - worldCoordUpperLeft);
+    vec3 bitangent = cross(avgNormal, tangent);
+    mat3 rotation = mat3(tangent, bitangent, avgNormal);
+
+    vec3 center = (worldCoordUpperLeft + worldCoordUpperRight + worldCoordLowerLeft + worldCoordLowerRight) / 4;
+    worldCoordUpperLeft = rotation * (worldCoordUpperLeft - center) + center;
+    worldCoordUpperRight = rotation * (worldCoordUpperRight - center) + center;
+    worldCoordLowerLeft = rotation * (worldCoordLowerLeft - center) + center;
+    worldCoordLowerRight = rotation * (worldCoordLowerRight - center) + center;
 
     vec4 vertexCoordUpperLeft  = vec4(worldCoordUpperLeft, 1.0);
     vec4 vertexCoordUpperRight = vec4(worldCoordUpperRight, 1.0);

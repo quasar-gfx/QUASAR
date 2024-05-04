@@ -2,8 +2,8 @@
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-layout(binding = 0, rgba16f) readonly uniform image2D normalMap;
-layout(binding = 1, rgba16f) readonly uniform image2D positionMap;
+layout(binding = 0, rgba16f) readonly uniform image2D positionMap;
+layout(binding = 1, rgba16f) readonly uniform image2D normalMap;
 layout(binding = 2) uniform sampler2D depthMap;
 
 layout(std430, binding = 0) buffer VertexBuffer {
