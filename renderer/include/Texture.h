@@ -91,6 +91,8 @@ public:
     }
 
     void saveTextureToPNG(std::string filename);
+    void saveTextureToJPG(std::string filename, int quality = 100);
+    void saveTextureToHDR(std::string filename);
     void saveDepthToFile(std::string filename);
 
 private:

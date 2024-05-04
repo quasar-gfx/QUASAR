@@ -90,6 +90,32 @@ void Texture::saveTextureToPNG(std::string filename) {
     delete[] data;
 }
 
+void Texture::saveTextureToJPG(std::string filename, int quality) {
+    unsigned char* data = new unsigned char[width * height * 4];
+
+    bind(0);
+    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    unbind();
+
+    stbi_flip_vertically_on_write(true);
+    stbi_write_jpg(filename.c_str(), width, height, 4, data, quality);
+
+    delete[] data;
+}
+
+void Texture::saveTextureToHDR(std::string filename) {
+    float* data = new float[width * height * 4];
+
+    bind(0);
+    glReadPixels(0, 0, width, height, GL_RGBA, GL_FLOAT, data);
+    unbind();
+
+    stbi_flip_vertically_on_write(true);
+    stbi_write_hdr(filename.c_str(), width, height, 4, data);
+
+    delete[] data;
+}
+
 void Texture::saveDepthToFile(std::string filename) {
     std::ofstream depthFile;
     depthFile.open(filename, std::ios::out | std::ios::binary);

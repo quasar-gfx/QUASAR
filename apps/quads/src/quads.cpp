@@ -17,9 +17,11 @@
 #include <Windowing/GLFWWindow.h>
 #include <SceneLoader.h>
 
+#define VERTICES_IN_A_QUAD 4
+
 int main(int argc, char** argv) {
     OpenGLApp app{};
-    app.config.title = "Meshing Test";
+    app.config.title = "Quads Test";
     app.config.openglMajorVersion = 4;
     app.config.openglMinorVersion = 3;
     app.config.enableVSync = false;
@@ -68,7 +70,11 @@ int main(int argc, char** argv) {
     Scene scene = Scene();
     Camera camera = Camera(screenWidth, screenHeight);
     SceneLoader loader = SceneLoader();
-    loader.loadScene(scenePath, scene, camera);
+    bool res = loader.loadScene(scenePath, scene, camera);
+    if (!res) {
+        std::cerr << "Failed to load scene: " << scenePath << std::endl;
+        return 1;
+    }
 
     app.gui([&](double now, double dt) {
         ImGui::NewFrame();
@@ -86,37 +92,37 @@ int main(int argc, char** argv) {
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
 
-    ComputeShader genMeshShader({
-        .computeCodePath = "shaders/genMesh.comp"
+    ComputeShader genQuadsShader({
+        .computeCodePath = "shaders/genQuads.comp"
     });
 
     int width = screenWidth / surfelSize;
     int height = screenHeight / surfelSize;
 
     GLuint vertexBuffer;
-    int numVertices = width * height;
+    int numVertices = width * height * VERTICES_IN_A_QUAD;
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(glm::vec4), nullptr, GL_STATIC_DRAW);
 
     GLuint indexBuffer;
-    int numTriangles = (width-1) * height * 2;
+    int numTriangles = width * height * 2;
     int indexBufferSize = numTriangles * 3;
     glGenBuffers(1, &indexBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_STATIC_DRAW);
 
-    GLuint texCoordBuffer;
-    glGenBuffers(1, &texCoordBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, texCoordBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, width * height * sizeof(glm::vec2), nullptr, GL_STATIC_DRAW);
+    // GLuint texCoordBuffer;
+    // glGenBuffers(1, &texCoordBuffer);
+    // glBindBuffer(GL_SHADER_STORAGE_BUFFER, texCoordBuffer);
+    // glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(glm::vec2), nullptr, GL_STATIC_DRAW);
 
-    genMeshShader.bind();
+    genQuadsShader.bind();
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, texCoordBuffer);
-    genMeshShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
-    genMeshShader.unbind();
+    // glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, texCoordBuffer);
+    genQuadsShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
+    genQuadsShader.unbind();
 
     Framebuffer outputFramebuffer;
     outputFramebuffer.createColorAndDepthBuffers(screenWidth, screenHeight);
@@ -148,17 +154,17 @@ int main(int argc, char** argv) {
             // render all objects in scene
             app.renderer.drawObjects(scene, camera);
 
-            genMeshShader.bind();
-            genMeshShader.setMat4("viewInverse", glm::inverse(camera.getViewMatrix()));
-            genMeshShader.setMat4("projectionInverse", glm::inverse(camera.getProjectionMatrix()));
-            genMeshShader.setFloat("near", camera.near);
-            genMeshShader.setFloat("far", camera.far);
-            genMeshShader.setInt("surfelSize", surfelSize);
+            genQuadsShader.bind();
+            genQuadsShader.setMat4("viewInverse", glm::inverse(camera.getViewMatrix()));
+            genQuadsShader.setMat4("projectionInverse", glm::inverse(camera.getProjectionMatrix()));
+            genQuadsShader.setFloat("near", camera.near);
+            genQuadsShader.setFloat("far", camera.far);
+            genQuadsShader.setInt("surfelSize", surfelSize);
             glBindImageTexture(0, app.renderer.gBuffer.positionBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
             glBindImageTexture(1, app.renderer.gBuffer.normalsBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
             app.renderer.gBuffer.depthBuffer.bind(2);
-            genMeshShader.dispatch(width, height, 1);
-            genMeshShader.unbind();
+            genQuadsShader.dispatch(width, height, 1);
+            genQuadsShader.unbind();
 
             // render to screen
             // app.renderer.drawToScreen(screenShader);
@@ -182,6 +188,9 @@ int main(int argc, char** argv) {
             std::ofstream positionsFile;
             positionsFile.open("data/positions_" + label + "_" + std::to_string(timestamp) + ".bin", std::ios::out | std::ios::binary);
 
+            // std::ofstream texCoordsFile;
+            // texCoordsFile.open("data/tex_coords_" + label + "_" + std::to_string(timestamp) + ".bin", std::ios::out | std::ios::binary);
+
             std::ofstream indicesFile;
             indicesFile.open("data/indices_" + label + "_" + std::to_string(timestamp) + ".bin", std::ios::out | std::ios::binary);
 
@@ -190,7 +199,7 @@ int main(int argc, char** argv) {
             if (pBuffer) {
                 glm::vec4* pVertices = static_cast<glm::vec4*>(pBuffer);
 
-                for (int i = 0; i < width * height; i++) {
+                for (int i = 0; i < numVertices; i++) {
                     Vertex vertex;
                     vertex.position.x = pVertices[i].x;
                     vertex.position.y = pVertices[i].y;

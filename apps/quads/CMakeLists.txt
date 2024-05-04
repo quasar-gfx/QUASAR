@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.19)
-project(Compute)
+project(Quads)
 
-set(TARGET compute)
+set(TARGET quads)
 
 set(PUBLIC_HDR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
