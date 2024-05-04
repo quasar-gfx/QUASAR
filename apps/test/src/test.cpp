@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
     }
 
     float exposure = 1.0f;
-
+    int shaderIndex = 0;
     app.gui([&](double now, double dt) {
         ImGui::NewFrame();
         ImGui::SetNextWindowPos(ImVec2(10, 10));
@@ -80,6 +80,10 @@ int main(int argc, char** argv) {
 
         if (ImGui::CollapsingHeader("Post Processing Settings")) {
             ImGui::SliderFloat("Exposure", &exposure, 0.1f, 5.0f);
+            ImGui::RadioButton("Show Color", &shaderIndex, 0);
+            ImGui::RadioButton("Show Depth", &shaderIndex, 1);
+            ImGui::RadioButton("Show Positions", &shaderIndex, 2);
+            ImGui::RadioButton("Show Normals", &shaderIndex, 3);
         }
 
         ImGui::End();
@@ -94,9 +98,24 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader screenShader({
+    Shader showColorShader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
+    });
+
+    Shader showDepthShader({
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../shaders/postprocessing/displayDepth.frag"
+    });
+
+    Shader showPositionShader({
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../shaders/postprocessing/displayPositions.frag"
+    });
+
+    Shader showNormalShader({
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../shaders/postprocessing/displayNormals.frag"
     });
 
     app.onRender([&](double now, double dt) {
@@ -147,9 +166,25 @@ int main(int argc, char** argv) {
         app.renderer.drawObjects(scene, camera);
 
         // render to screen
-        screenShader.bind();
-        screenShader.setFloat("exposure", exposure);
-        app.renderer.drawToScreen(screenShader);
+        if (shaderIndex == 1) {
+            showDepthShader.bind();
+            showDepthShader.setFloat("near", camera.near);
+            showDepthShader.setFloat("far", camera.far);
+            app.renderer.drawToScreen(showDepthShader);
+        }
+        else if (shaderIndex == 2) {
+            showPositionShader.bind();
+            app.renderer.drawToScreen(showPositionShader);
+        }
+        else if (shaderIndex == 3) {
+            showNormalShader.bind();
+            app.renderer.drawToScreen(showNormalShader);
+        }
+        else {
+            showColorShader.bind();
+            showColorShader.setFloat("exposure", exposure);
+            app.renderer.drawToScreen(showColorShader);
+        }
     });
 
     // run app loop (blocking)
