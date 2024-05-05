@@ -127,6 +127,7 @@ int main(int argc, char** argv) {
     Camera camera = Camera(screenWidth, screenHeight);
 
     int numVertices = 0;
+    int renderState = 0;
 
     app.gui([&](double now, double dt) {
         ImGui::NewFrame();
@@ -134,10 +135,14 @@ int main(int argc, char** argv) {
         ImGui::Begin(app.config.title.c_str(), 0, ImGuiWindowFlags_AlwaysAutoResize);
         ImGui::TextColored(ImVec4(1,1,0,1), "OpenGL Version: %s", glGetString(GL_VERSION));
         ImGui::TextColored(ImVec4(1,1,0,1), "GPU: %s\n", glGetString(GL_RENDERER));
+
         ImGui::Text("Rendering Frame Rate: %.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+
         ImGui::Text("Number of vertices: %d", numVertices);
-        ImGui::Checkbox("Render Point Cloud", &renderPointcloud);
-        ImGui::Checkbox("Render Wireframe", &renderWireframe);
+
+        ImGui::RadioButton("Render Mesh", &renderState, 0);
+        ImGui::RadioButton("Render Point Cloud", &renderState, 1);
+        ImGui::RadioButton("Render Wireframe", &renderState, 2);
         ImGui::End();
     });
 
@@ -188,6 +193,8 @@ int main(int argc, char** argv) {
         nodes[i] = Node(&meshes[i]);
         scene.addChildNode(&nodes[i]);
     }
+
+    std::cout << numVertices << " vertices" << std::endl;
 
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
 
@@ -246,8 +253,18 @@ int main(int argc, char** argv) {
         }
 
         for (auto& mesh : meshes) {
-            mesh.wireframe = renderWireframe;
-            mesh.pointcloud = renderPointcloud;
+            if (renderState == 0) {
+                mesh.pointcloud = false;
+                mesh.wireframe = false;
+            }
+            else if (renderState == 1) {
+                mesh.pointcloud = true;
+                mesh.wireframe = false;
+            }
+            else if (renderState == 2) {
+                mesh.pointcloud = false;
+                mesh.wireframe = true;
+            }
         }
 
         // render all objects in scene
