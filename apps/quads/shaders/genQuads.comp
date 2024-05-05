@@ -65,10 +65,10 @@ void main() {
 
     ivec2 surfelCoords = ivec2(gl_GlobalInvocationID.xy);
 
-    ivec2 pixelCoordsUpperLeft  = surfelSize * ivec2(surfelCoords);
-    ivec2 pixelCoordsUpperRight = surfelSize * ivec2(surfelCoords.x + 1, surfelCoords.y);
-    ivec2 pixelCoordsLowerLeft  = surfelSize * ivec2(surfelCoords.x, surfelCoords.y + 1);
-    ivec2 pixelCoordsLowerRight = surfelSize * ivec2(surfelCoords.x + 1, surfelCoords.y + 1);
+    ivec2 pixelCoordsLowerLeft  = surfelSize * (ivec2(surfelCoords) + ivec2(0, 0));
+    ivec2 pixelCoordsLowerRight = surfelSize * (ivec2(surfelCoords) + ivec2(1, 0));
+    ivec2 pixelCoordsUpperLeft  = surfelSize * (ivec2(surfelCoords) + ivec2(0, 1));
+    ivec2 pixelCoordsUpperRight = surfelSize * (ivec2(surfelCoords) + ivec2(1, 1));
     ivec2 pixelCoordsCenter     = (pixelCoordsUpperLeft + pixelCoordsLowerRight) / 2;
 
     vec2 pixelCoordsUpperLeftNormalized = pixelCoordsUpperLeft / screenSize;
@@ -99,15 +99,14 @@ void main() {
     float depthLowerRight = texelFetch(depthMap, pixelCoordsLowerRight, 0).x;
     float depthCenter     = texelFetch(depthMap, pixelCoordsCenter, 0).x;
 
-    // // move quad so it is centered at the average depth
+    // move quad so it is centered at the average depth
     // float avgDepth = 0.0;
-    // for (int i = pixelCoordsUpperLeft.x; i < pixelCoordsLowerRight.x; i++) {
-    //     for (int j = pixelCoordsUpperLeft.y; j < pixelCoordsLowerRight.y; j++) {
-    //         avgDepth += texelFetch(depthMap, ivec2(i, j), 0).r;
+    // for (int i = pixelCoordsUpperLeft.x; i < pixelCoordsUpperRight.x; i++) {
+    //     for (int j = pixelCoordsLowerLeft.y; j < pixelCoordsUpperLeft.y; j++) {
+    //         avgDepth += texelFetch(depthMap, ivec2(i, j), 0).x;
     //     }
     // }
     // avgDepth /= float(surfelSize * surfelSize);
-    // float avgDepth = texelFetch(depthMap, centerPixel, 0).r;
 
     // give the same depth for now
     vec3 worldCoordUpperLeft  = projectToWorld(ndcUpperLeft, depthCenter);
@@ -117,24 +116,24 @@ void main() {
     vec3 worldCoordCenter     = projectToWorld(centerPixel, depthCenter);
 
     // rotate quad around the center so that it is oriented at average normal
-    // vec3 avgNormal = vec3(0.0);
-    // for (int i = pixelCoordsUpperLeft.x; i < pixelCoordsUpperRight.x; i++) {
-    //     for (int j = pixelCoordsUpperLeft.y; j < pixelCoordsLowerLeft.y; j++) {
-    //         avgNormal += imageLoad(normalMap, ivec2(i, j)).xyz;
-    //     }
-    // }
-    // avgNormal /= float(surfelSize * surfelSize);
-    // avgNormal = normalize(avgNormal);
+    vec3 avgNormal = vec3(0.0);
+    for (int i = pixelCoordsUpperLeft.x; i < pixelCoordsUpperRight.x; i++) {
+        for (int j = pixelCoordsLowerLeft.y; j < pixelCoordsUpperLeft.y; j++) {
+            avgNormal += imageLoad(normalMap, ivec2(i, j)).xyz;
+        }
+    }
+    avgNormal /= float(surfelSize * surfelSize);
+    avgNormal = normalize(avgNormal);
     // vec3 avgNormal = normalize(imageLoad(normalMap, pixelCoordsCenter).xyz);
 
-    // vec3 oldNormal = normalize(cross(worldCoordUpperRight - worldCoordLowerRight, worldCoordLowerLeft - worldCoordLowerRight));
-    // vec3 axis = cross(oldNormal, avgNormal);
-    // float angle = acos(dot(oldNormal, avgNormal));
+    vec3 oldNormal = normalize(cross(worldCoordUpperRight - worldCoordLowerRight, worldCoordLowerLeft - worldCoordLowerRight));
+    vec3 axis = cross(avgNormal, oldNormal);
+    float angle = acos(dot(oldNormal, avgNormal));
 
-    // worldCoordUpperLeft = rotatePoint(worldCoordUpperLeft, worldCoordCenter, axis, angle);
-    // worldCoordUpperRight = rotatePoint(worldCoordUpperRight, worldCoordCenter, axis, angle);
-    // worldCoordLowerLeft = rotatePoint(worldCoordLowerLeft, worldCoordCenter, axis, angle);
-    // worldCoordLowerRight = rotatePoint(worldCoordLowerRight, worldCoordCenter, axis, angle);
+    worldCoordUpperLeft = rotatePoint(worldCoordUpperLeft, worldCoordCenter, axis, angle);
+    worldCoordUpperRight = rotatePoint(worldCoordUpperRight, worldCoordCenter, axis, angle);
+    worldCoordLowerLeft = rotatePoint(worldCoordLowerLeft, worldCoordCenter, axis, angle);
+    worldCoordLowerRight = rotatePoint(worldCoordLowerRight, worldCoordCenter, axis, angle);
 
     vec4 vertexCoordUpperLeft  = vec4(worldCoordUpperLeft, 1.0);
     vec4 vertexCoordUpperRight = vec4(worldCoordUpperRight, 1.0);
@@ -146,7 +145,6 @@ void main() {
     uint vertexIndexLowerLeft  = shaderIndex * VERTICES_IN_A_QUAD + 2;
     uint vertexIndexLowerRight = shaderIndex * VERTICES_IN_A_QUAD + 3;
 
-    // uint vertexIndexUpperLeft  = shaderIndex;
     vertices[vertexIndexUpperLeft] = vertexCoordUpperLeft;
     vertices[vertexIndexUpperRight] = vertexCoordUpperRight;
     vertices[vertexIndexLowerLeft] = vertexCoordLowerLeft;

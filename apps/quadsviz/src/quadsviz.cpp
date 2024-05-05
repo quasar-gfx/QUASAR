@@ -56,26 +56,26 @@ int createMesh(Mesh* mesh, std::string label) {
         x = (i / VERTICES_IN_A_QUAD) % width;
         y = (i / VERTICES_IN_A_QUAD) / width;
 
-        Vertex vertex1;
-        vertexFile.read(reinterpret_cast<char*>(&vertex1.position), sizeof(glm::vec3));
-        vertex1.texCoords = glm::vec2((float)x / (float)(width), 1.0f - (float)y / (float)(height));
+        Vertex vertexUpperLeft;
+        vertexFile.read(reinterpret_cast<char*>(&vertexUpperLeft.position), sizeof(glm::vec3));
+        vertexUpperLeft.texCoords = glm::vec2((float)x / (float)(width), 1.0f - (float)(y + 1) / (float)(height));
 
-        Vertex vertex2;
-        vertexFile.read(reinterpret_cast<char*>(&vertex2.position), sizeof(glm::vec3));
-        vertex2.texCoords = glm::vec2((float)(x+1) / (float)(width), 1.0f - (float)y / (float)(height));
+        Vertex vertexUpperRight;
+        vertexFile.read(reinterpret_cast<char*>(&vertexUpperRight.position), sizeof(glm::vec3));
+        vertexUpperRight.texCoords = glm::vec2((float)(x + 1) / (float)(width), 1.0f - (float)(y + 1) / (float)(height));
 
-        Vertex vertex3;
-        vertexFile.read(reinterpret_cast<char*>(&vertex3.position), sizeof(glm::vec3));
-        vertex3.texCoords = glm::vec2((float)x / (float)(width), 1.0f - (float)(y+1) / (float)(height));
+        Vertex vertexLowerLeft;
+        vertexFile.read(reinterpret_cast<char*>(&vertexLowerLeft.position), sizeof(glm::vec3));
+        vertexLowerLeft.texCoords = glm::vec2((float)x / (float)(width), 1.0f - (float)y / (float)(height));
 
-        Vertex vertex4;
-        vertexFile.read(reinterpret_cast<char*>(&vertex4.position), sizeof(glm::vec3));
-        vertex4.texCoords = glm::vec2((float)(x+1) / (float)(width), 1.0f - (float)(y+1) / (float)(height));
+        Vertex vertexLowerRight;
+        vertexFile.read(reinterpret_cast<char*>(&vertexLowerRight.position), sizeof(glm::vec3));
+        vertexLowerRight.texCoords = glm::vec2((float)(x + 1) / (float)(width), 1.0f - (float)y / (float)(height));
 
-        vertices.push_back(vertex1);
-        vertices.push_back(vertex2);
-        vertices.push_back(vertex3);
-        vertices.push_back(vertex4);
+        vertices.push_back(vertexUpperLeft);
+        vertices.push_back(vertexUpperRight);
+        vertices.push_back(vertexLowerLeft);
+        vertices.push_back(vertexLowerRight);
     }
     vertexFile.close();
 
