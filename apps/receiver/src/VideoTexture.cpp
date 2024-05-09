@@ -138,7 +138,7 @@ void VideoTexture::receiveVideo() {
             frameRGBMutex.unlock();
 
             uint64_t elapsedTime = (av_gettime() - prevTime);
-            timeToReceiveFrame = elapsedTime / MICROSECONDS_IN_SECOND;
+            totalTimeToReceiveFrame = elapsedTime / MICROSECONDS_IN_SECOND;
             frameReceived++;
 
             prevTime = av_gettime();

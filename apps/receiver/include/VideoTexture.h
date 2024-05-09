@@ -22,7 +22,7 @@ public:
     unsigned int width, height;
 
     int frameReceived = 0;
-    float timeToReceiveFrame = 0.0f;
+    float totalTimeToReceiveFrame = 0.0f;
 
     explicit VideoTexture(TextureCreateParams &params) : Texture(params), width(params.width), height(params.height) { }
 
@@ -36,7 +36,7 @@ public:
     void draw();
 
     float getFrameRate() {
-        return 1.0f / timeToReceiveFrame;
+        return 1.0f / totalTimeToReceiveFrame;
     }
 
 private:

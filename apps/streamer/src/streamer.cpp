@@ -74,8 +74,17 @@ int main(int argc, char** argv) {
         ImGui::Begin(app.config.title.c_str(), 0, ImGuiWindowFlags_AlwaysAutoResize);
         ImGui::TextColored(ImVec4(1,1,0,1), "OpenGL Version: %s", glGetString(GL_VERSION));
         ImGui::TextColored(ImVec4(1,1,0,1), "GPU: %s\n", glGetString(GL_RENDERER));
+
         ImGui::Text("Rendering Frame Rate: %.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
         ImGui::Text("Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoStreamer.getFrameRate(), 1000.0f / videoStreamer.getFrameRate());
+
+        ImGui::Text("Pose URL: %s", poseURL.c_str());
+        ImGui::Text("Output URL: %s", outputUrl.c_str());
+
+        ImGui::TextColored(ImVec4(1,0.5,0,1), "Time to copy frame: %.3f ms", videoStreamer.timeToCopyFrame);
+        ImGui::TextColored(ImVec4(1,0.5,0,1), "Time to encode frame: %.3f ms", videoStreamer.timeToEncodeFrame);
+        ImGui::TextColored(ImVec4(1,0.5,0,1), "Time to send frame: %.3f ms", videoStreamer.timeToSendFrame);
+
         ImGui::End();
     });
 
@@ -143,6 +152,7 @@ int main(int argc, char** argv) {
             window.close();
         }
 
+        // receive pose
         poseReceiver.receivePose();
 
         // animate lights
@@ -157,6 +167,7 @@ int main(int argc, char** argv) {
         // render to screen
         app.renderer.drawToScreen(screenShader);
 
+        // send video frame
         videoStreamer.sendFrame();
     });
 

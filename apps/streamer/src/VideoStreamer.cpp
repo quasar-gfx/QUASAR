@@ -3,8 +3,6 @@
 #undef av_err2str
 #define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
 
-#define MICROSECONDS_IN_SECOND 1000000.0f
-
 int VideoStreamer::start(Texture &texture, const std::string outputUrl) {
     this->sourceTexture = texture;
     this->outputUrl = outputUrl;
@@ -30,8 +28,8 @@ int VideoStreamer::start(Texture &texture, const std::string outputUrl) {
 
     outputCodecContext->width = texture.width;
     outputCodecContext->height = texture.height;
-    outputCodecContext->time_base = {1, frameRate};
-    outputCodecContext->framerate = {frameRate, 1};
+    outputCodecContext->time_base = {1, targetFrameRate};
+    outputCodecContext->framerate = {targetFrameRate, 1};
     outputCodecContext->pix_fmt = this->pixelFormat;
     outputCodecContext->bit_rate = 100000 * 1000;
 
@@ -77,8 +75,8 @@ int VideoStreamer::start(Texture &texture, const std::string outputUrl) {
     /* END: Setup output (to write video to URL) */
 
     conversionContext = sws_getContext(texture.width, texture.height, AV_PIX_FMT_RGBA,
-                                                    texture.width, texture.height, this->pixelFormat,
-                                                    SWS_BICUBIC, nullptr, nullptr, nullptr);
+                                       texture.width, texture.height, this->pixelFormat,
+                                       SWS_BICUBIC, nullptr, nullptr, nullptr);
     if (!conversionContext) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate conversion context\n");
         return -1;
@@ -86,17 +84,16 @@ int VideoStreamer::start(Texture &texture, const std::string outputUrl) {
 
     rgbaData = new uint8_t[texture.width * texture.height * 4];
 
+    // initialize frame
+    frame->format = this->pixelFormat;
+    frame->width = sourceTexture.width;
+    frame->height = sourceTexture.height;
+
     return 0;
 }
 
 void VideoStreamer::sendFrame() {
     static uint64_t prevTime = av_gettime();
-
-    // get frame from decoder
-    AVFrame *frame = av_frame_alloc();
-    frame->format = this->pixelFormat;
-    frame->width = sourceTexture.width;
-    frame->height = sourceTexture.height;
 
     int ret = av_frame_get_buffer(frame, 0);
     if (ret < 0) {
@@ -110,52 +107,72 @@ void VideoStreamer::sendFrame() {
         return;
     }
 
-    sourceTexture.bind(0);
-    glReadPixels(0, 0, sourceTexture.width, sourceTexture.height, GL_RGBA, GL_UNSIGNED_BYTE, rgbaData);
-    sourceTexture.unbind();
+    /* Copy frame from OpenGL texture to AVFrame (SLOW) */
+    {
+        uint64_t startCopyTime = av_gettime();
 
-    const uint8_t* srcData[] = { rgbaData };
-    int srcStride[] = { static_cast<int>(sourceTexture.width * 4) }; // RGBA has 4 bytes per pixel
+        sourceTexture.bind(0);
+        glReadPixels(0, 0, sourceTexture.width, sourceTexture.height, GL_RGBA, GL_UNSIGNED_BYTE, rgbaData);
+        sourceTexture.unbind();
 
-    sws_scale(conversionContext, srcData, srcStride, 0, sourceTexture.height, frame->data, frame->linesize);
+        const uint8_t* srcData[] = { rgbaData };
+        int srcStride[] = { static_cast<int>(sourceTexture.width * 4) }; // RGBA has 4 bytes per pixel
 
-    // send packet to encoder
-    ret = avcodec_send_frame(outputCodecContext, frame);
-    if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Could not send frame to output encoder: %s\n", av_err2str(ret));
-        return;
+        sws_scale(conversionContext, srcData, srcStride, 0, sourceTexture.height, frame->data, frame->linesize);
+
+        timeToCopyFrame = (av_gettime() - startCopyTime) / MICROSECONDS_IN_MILLISECOND;
     }
 
-    // get packet from encoder
-    ret = avcodec_receive_packet(outputCodecContext, &outputPacket);
-    if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-        av_frame_free(&frame);
+    /* Encode frame */
+    {
+        uint64_t startEncodeTime = av_gettime();
+
+        // send packet to encoder
+        ret = avcodec_send_frame(outputCodecContext, frame);
+        if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+            av_log(nullptr, AV_LOG_ERROR, "Error: Could not send frame to output encoder: %s\n", av_err2str(ret));
+            return;
+        }
+
+        // get packet from encoder
+        ret = avcodec_receive_packet(outputCodecContext, &outputPacket);
+        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+            av_packet_unref(&outputPacket);
+            return;
+        }
+        else if (ret < 0) {
+            av_log(nullptr, AV_LOG_ERROR, "Error: Could not receive frame from encoder: %s\n", av_err2str(ret));
+            return;
+        }
+
+        outputPacket.pts = framesSent * (outputFormatContext->streams[0]->time_base.den) / targetFrameRate;
+        outputPacket.dts = outputPacket.pts;
+
+        timeToEncodeFrame = (av_gettime() - startEncodeTime) / MICROSECONDS_IN_MILLISECOND;
+    }
+
+    /* Send frame to output URL */
+    {
+        uint64_t startWriteTime = av_gettime();
+
+        // send packet to output URL
+        ret = av_interleaved_write_frame(outputFormatContext, &outputPacket);
         av_packet_unref(&outputPacket);
-        return;
-    }
-    else if (ret < 0) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Could not receive frame from encoder: %s\n", av_err2str(ret));
-        return;
-    }
+        if (ret < 0) {
+            av_log(nullptr, AV_LOG_ERROR, "Error writing frame\n");
+            return;
+        }
 
-    outputPacket.pts = framesSent * (outputFormatContext->streams[0]->time_base.den) / frameRate;
-    outputPacket.dts = outputPacket.pts;
+        framesSent++;
 
-    // send packet to output URL
-    ret = av_interleaved_write_frame(outputFormatContext, &outputPacket);
-    av_packet_unref(&outputPacket);
-    av_frame_free(&frame);
-    if (ret < 0) {
-        av_log(nullptr, AV_LOG_ERROR, "Error writing frame\n");
-        return;
+        timeToSendFrame = (av_gettime() - startWriteTime) / MICROSECONDS_IN_MILLISECOND;
     }
 
     uint64_t elapsedTime = (av_gettime() - prevTime);
-    if (elapsedTime < (1.0f / frameRate * MICROSECONDS_IN_SECOND)) {
-        av_usleep((1.0f / frameRate * MICROSECONDS_IN_SECOND) - elapsedTime);
+    if (elapsedTime < (1.0f / targetFrameRate * MICROSECONDS_IN_MILLISECOND)) {
+        av_usleep((1.0f / targetFrameRate * MICROSECONDS_IN_MILLISECOND) - elapsedTime);
     }
-    timeToSendFrame = elapsedTime / MICROSECONDS_IN_SECOND;
-    framesSent++;
+    totalTimeToSendFrame = elapsedTime / MICROSECONDS_IN_MILLISECOND;
 
     prevTime = av_gettime();
 }
