@@ -19,9 +19,14 @@
 
 const std::string DATA_PATH = "../meshing/data/";
 
+enum class RenderState {
+    MESH,
+    POINTCLOUD,
+    WIREFRAME
+};
+
 int surfelSize = 4;
-bool renderPointcloud = false;
-bool renderWireframe = false;
+RenderState renderState = RenderState::MESH;
 
 int createMesh(Mesh* mesh, std::string label) {
     std::ifstream vertexFile(DATA_PATH + "positions_" + label + "_0.bin", std::ios::binary);
@@ -46,11 +51,10 @@ int createMesh(Mesh* mesh, std::string label) {
 
     unsigned int width = diffuseTexture.width / surfelSize;
     unsigned int height = diffuseTexture.height / surfelSize;
-    int numVertices = width * height;
 
     unsigned int x = 0, y = 0;
     std::vector<Vertex> vertices;
-    for (int i = 0; i < numVertices; i++) {
+    for (int i = 0; vertexFile; i++) {
         x = i % width;
         y = i / width;
 
@@ -70,6 +74,9 @@ int createMesh(Mesh* mesh, std::string label) {
     }
     indexFile.close();
 
+    bool renderWireframe = renderState == RenderState::WIREFRAME;
+    bool renderPointcloud = renderState == RenderState::POINTCLOUD;
+
     *mesh = Mesh({
         .vertices = vertices,
         .indices = indices,
@@ -85,7 +92,6 @@ int main(int argc, char** argv) {
     OpenGLApp app{};
     app.config.title = "Meshing Visualizer";
 
-    std::string modelPath = "../meshing/mesh.obj";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             app.config.width = atoi(argv[i + 1]);
@@ -95,24 +101,20 @@ int main(int argc, char** argv) {
             app.config.height = atoi(argv[i + 1]);
             i++;
         }
-        else if (!strcmp(argv[i], "-m") && i + 1 < argc) {
-            modelPath = argv[i + 1];
-            i++;
-        }
-        else if (!strcmp(argv[i], "-p") && i + 1 < argc) {
-            renderPointcloud = atoi(argv[i + 1]);
-            i++;
-        }
         else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
             app.config.enableVSync = atoi(argv[i + 1]);
             i++;
         }
-        else if (!strcmp(argv[i], "-wf") && i + 1 < argc) {
-            renderWireframe = atoi(argv[i + 1]);
-            i++;
-        }
         else if (!strcmp(argv[i], "-ss") && i + 1 < argc) {
             surfelSize = atoi(argv[i + 1]);
+            i++;
+        }
+        else if (!strcmp(argv[i], "-pc") && i + 1 < argc) {
+            renderState = RenderState::POINTCLOUD;
+            i++;
+        }
+        else if (!strcmp(argv[i], "-wf") && i + 1 < argc) {
+            renderState = RenderState::WIREFRAME;
             i++;
         }
     }
@@ -127,7 +129,6 @@ int main(int argc, char** argv) {
     Camera camera = Camera(screenWidth, screenHeight);
 
     int numVertices = 0;
-    int renderState = 0;
 
     app.gui([&](double now, double dt) {
         ImGui::NewFrame();
@@ -140,9 +141,9 @@ int main(int argc, char** argv) {
 
         ImGui::Text("Number of vertices: %d", numVertices);
 
-        ImGui::RadioButton("Render Mesh", &renderState, 0);
-        ImGui::RadioButton("Render Point Cloud", &renderState, 1);
-        ImGui::RadioButton("Render Wireframe", &renderState, 2);
+        ImGui::RadioButton("Render Mesh", (int*)&renderState, 0);
+        ImGui::RadioButton("Render Point Cloud", (int*)&renderState, 1);
+        ImGui::RadioButton("Render Wireframe", (int*)&renderState, 2);
         ImGui::End();
     });
 
@@ -159,20 +160,6 @@ int main(int argc, char** argv) {
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
-
-    // UnlitMaterial containerMaterial = UnlitMaterial({ "../assets/textures/container.jpg" });
-    // Cube cube = Cube({ .material = &containerMaterial });
-    // Node cubeNode = Node(&cube);
-    // cubeNode.setScale(glm::vec3(0.02f, 0.02f, 0.02f));
-    // scene.addChildNode(&cubeNode);
-
-    // models
-    // Cube cube = Cube(goldMaterial);
-    // Model mesh = Model({
-    //     .path = modelPath,
-    //     .material = meshMaterial,
-    //     .pointcloud = renderPointcloud
-    // });
 
     std::vector<std::string> labels = {
         "center",
@@ -253,15 +240,15 @@ int main(int argc, char** argv) {
         }
 
         for (auto& mesh : meshes) {
-            if (renderState == 0) {
+            if (renderState == RenderState::MESH) {
                 mesh.pointcloud = false;
                 mesh.wireframe = false;
             }
-            else if (renderState == 1) {
+            else if (renderState == RenderState::POINTCLOUD) {
                 mesh.pointcloud = true;
                 mesh.wireframe = false;
             }
-            else if (renderState == 2) {
+            else if (renderState == RenderState::WIREFRAME) {
                 mesh.pointcloud = false;
                 mesh.wireframe = true;
             }

@@ -56,9 +56,9 @@ void main() {
     worldCoords = worldCoords / worldCoords.w;
     worldCoords.w = depth;
 
-    vec3 vertexCoord = worldCoords.xyz;
+    vec4 vertexCoords = worldCoords;
 
-    vertices[vertexIndex] = worldCoords;
+    vertices[vertexIndex] = vertexCoords;
     // texCoords[vertexIndex] = pixelCoordsNormalized;
 
     if (surfelCoords.x < size.x - 1 && surfelCoords.y < size.y) {
