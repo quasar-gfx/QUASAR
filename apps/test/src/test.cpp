@@ -58,18 +58,31 @@ int main(int argc, char** argv) {
 
     float exposure = 1.0f;
     int shaderIndex = 0;
+    ImGui::GetIO().Fonts->AddFontFromFileTTF("../assets/fonts/trebucbd.ttf", 24.0f);
     app.gui([&](double now, double dt) {
         ImGui::NewFrame();
-        ImGui::SetNextWindowPos(ImVec2(10, 10));
-        ImGui::Begin(app.config.title.c_str(), 0, ImGuiWindowFlags_AlwaysAutoResize);
 
+        ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
+        int flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar;
+        ImGui::Begin("", 0, flags);
+        ImGui::Text("%.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+        ImGui::End();
+
+        glm::vec2 winSize = glm::vec2(screenWidth, screenHeight);
+        glm::vec2 guiSize = winSize * glm::vec2(0.4f, 0.55f);
+        ImGui::SetNextWindowSize(ImVec2(guiSize.x, guiSize.y), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(10, 60), ImGuiCond_FirstUseEver);
+        flags = 0;
+        ImGui::Begin(app.config.title.c_str(), 0, flags);
         ImGui::TextColored(ImVec4(1,1,0,1), "OpenGL Version: %s", glGetString(GL_VERSION));
         ImGui::TextColored(ImVec4(1,1,0,1), "GPU: %s\n", glGetString(GL_RENDERER));
 
-        ImGui::Text("Rendering Frame Rate: %.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+        ImGui::Separator();
 
         ImGui::InputFloat3("Camera Position", (float*)&camera.position);
-        ImGui::SliderFloat("Movement speed", &camera.movementSpeed, 0.1f, 20.0f);
+        ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
+
+        ImGui::Separator();
 
         if (ImGui::CollapsingHeader("Directional Light Settings")) {
             ImGui::TextColored(ImVec4(1,1,1,1), "Directional Light Settings");
@@ -78,6 +91,8 @@ int main(int argc, char** argv) {
             ImGui::SliderFloat3("Direction", (float*)&scene.directionalLight->direction, -5.0f, 5.0f);
         }
 
+        ImGui::Separator();
+
         if (ImGui::CollapsingHeader("Post Processing Settings")) {
             ImGui::SliderFloat("Exposure", &exposure, 0.1f, 5.0f);
             ImGui::RadioButton("Show Color", &shaderIndex, 0);
@@ -85,7 +100,6 @@ int main(int argc, char** argv) {
             ImGui::RadioButton("Show Positions", &shaderIndex, 2);
             ImGui::RadioButton("Show Normals", &shaderIndex, 3);
         }
-
         ImGui::End();
     });
 

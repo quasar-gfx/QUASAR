@@ -129,17 +129,30 @@ int main(int argc, char** argv) {
     Camera camera = Camera(screenWidth, screenHeight);
 
     int numVertices = 0;
-
+    ImGui::GetIO().Fonts->AddFontFromFileTTF("../assets/fonts/trebucbd.ttf", 24.0f);
     app.gui([&](double now, double dt) {
         ImGui::NewFrame();
-        ImGui::SetNextWindowPos(ImVec2(10, 10));
-        ImGui::Begin(app.config.title.c_str(), 0, ImGuiWindowFlags_AlwaysAutoResize);
+
+        ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
+        int flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar;
+        ImGui::Begin("", 0, flags);
+        ImGui::Text("%.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+        ImGui::End();
+
+        glm::vec2 winSize = glm::vec2(screenWidth, screenHeight);
+        glm::vec2 guiSize = winSize * glm::vec2(0.4f, 0.55f);
+        ImGui::SetNextWindowSize(ImVec2(guiSize.x, guiSize.y), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(10, 60), ImGuiCond_FirstUseEver);
+        flags = 0;
+        ImGui::Begin(app.config.title.c_str(), 0, flags);
         ImGui::TextColored(ImVec4(1,1,0,1), "OpenGL Version: %s", glGetString(GL_VERSION));
         ImGui::TextColored(ImVec4(1,1,0,1), "GPU: %s\n", glGetString(GL_RENDERER));
 
-        ImGui::Text("Rendering Frame Rate: %.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+        ImGui::Separator();
 
         ImGui::Text("Number of vertices: %d", numVertices);
+
+        ImGui::Separator();
 
         ImGui::RadioButton("Render Mesh", (int*)&renderState, 0);
         ImGui::RadioButton("Render Point Cloud", (int*)&renderState, 1);
