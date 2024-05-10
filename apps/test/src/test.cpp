@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
         ImGui::SliderFloat("Movement speed", &camera.movementSpeed, 0.1f, 20.0f);
 
         if (ImGui::CollapsingHeader("Directional Light Settings")) {
-            ImGui::TextColored(ImVec4(1,1,1,1), "Directional light Settings");
+            ImGui::TextColored(ImVec4(1,1,1,1), "Directional Light Settings");
             ImGui::ColorEdit3("Color", (float *)&scene.directionalLight->color);
             ImGui::SliderFloat("Strength", &scene.directionalLight->intensity, 0.1f, 100.0f);
             ImGui::SliderFloat3("Direction", (float*)&scene.directionalLight->direction, -5.0f, 5.0f);
