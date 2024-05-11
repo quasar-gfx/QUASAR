@@ -4,7 +4,6 @@
 #include <iostream>
 #include <thread>
 #include <cstring>
-
 #include <map>
 
 #include <sys/types.h>
@@ -13,18 +12,11 @@
 #include <netdb.h>
 
 #include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/string_cast.hpp>
 #include <glm/gtc/epsilon.hpp>
 
 #include <Camera.h>
 
-typedef uint32_t pose_id_t;
-
-struct Pose {
-    pose_id_t id;
-    glm::mat4 proj;
-    glm::mat4 view;
-};
+#include <CameraPose.h>
 
 class PoseStreamer {
 public:
@@ -42,9 +34,7 @@ public:
 
     std::map<pose_id_t, Pose> prevPoses;
 
-    explicit PoseStreamer(Camera* camera, std::string receiverURL) : receiverURL(receiverURL) {
-        this->camera = camera;
-
+    explicit PoseStreamer(Camera* camera, std::string receiverURL) : camera(camera), receiverURL(receiverURL) {
         size_t pos = receiverURL.find("://");
         if (pos == std::string::npos) {
             throw std::runtime_error("Invalid streamer URL");
@@ -102,7 +92,6 @@ public:
         currPose.id = currPoseId;
         currPose.proj = camera->getProjectionMatrix();
         currPose.view = camera->getViewMatrix();
-        // std::cout << glm::to_string(viewMatrix) << std::endl;
 
         // if (epsilonEqual(currPose.viewMatrix, prevPose.viewMatrix)) {
         //     return;

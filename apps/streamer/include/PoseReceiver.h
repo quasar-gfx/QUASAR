@@ -13,17 +13,10 @@
 #include <netdb.h>
 
 #include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/string_cast.hpp>
 
 #include <Camera.h>
 
-typedef uint32_t pose_id_t;
-
-struct Pose {
-    pose_id_t id;
-    glm::mat4 proj;
-    glm::mat4 view;
-};
+#include <CameraPose.h>
 
 class PoseReceiver {
 public:
@@ -37,10 +30,7 @@ public:
     Camera* camera;
     Pose currPose;
 
-    explicit PoseReceiver(Camera* camera, std::string streamerURL) : streamerURL(streamerURL) {
-        this->streamerURL = streamerURL;
-        this->camera = camera;
-
+    explicit PoseReceiver(Camera* camera, std::string streamerURL) : camera(camera), streamerURL(streamerURL) {
         size_t pos = streamerURL.find("://");
         if (pos == std::string::npos) {
             throw std::runtime_error("Invalid streamer URL");
@@ -88,7 +78,6 @@ public:
             return -1; // throw std::runtime_error("Failed to receive data");
         }
 
-        // std::cout << glm::to_string(viewMatrix) << std::endl;
         camera->setProjectionMatrix(currPose.proj);
         camera->setViewMatrix(currPose.view);
 

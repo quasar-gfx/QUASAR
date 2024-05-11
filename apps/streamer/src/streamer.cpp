@@ -19,14 +19,13 @@
 #include <VideoStreamer.h>
 #include <PoseReceiver.h>
 
-#define SCENE_PATH "../assets/scenes/sponza.json"
-
 int main(int argc, char** argv) {
     OpenGLApp app{};
     app.config.title = "Streamer";
 
     std::string outputUrl = "udp://127.0.0.1:1234";
     std::string poseURL = "udp://127.0.0.1:4321";
+    std::string scenePath = "../assets/scenes/sponza.json";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             app.config.width = atoi(argv[i + 1]);
@@ -42,6 +41,10 @@ int main(int argc, char** argv) {
         }
         else if (!strcmp(argv[i], "-p") && i + 1 < argc) {
             poseURL = argv[i + 1];
+            i++;
+        }
+        else if (!strcmp(argv[i], "-s") && i + 1 < argc) {
+            scenePath = argv[i + 1];
             i++;
         }
         else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
@@ -63,7 +66,7 @@ int main(int argc, char** argv) {
     Scene scene = Scene();
     Camera camera = Camera(screenWidth, screenHeight);
     SceneLoader loader = SceneLoader();
-    loader.loadScene(SCENE_PATH, scene, camera);
+    loader.loadScene(scenePath, scene, camera);
 
     VideoStreamer videoStreamer = VideoStreamer();
     PoseReceiver poseReceiver = PoseReceiver(&camera, poseURL);
@@ -172,13 +175,13 @@ int main(int argc, char** argv) {
 
                 camera.processMouseMovement(xoffset, yoffset, true);
             }
-        }
 
-        // handle keyboard input
-        auto keys = window.getKeys();
-        camera.processKeyboard(keys, dt);
-        if (keys.ESC_PRESSED) {
-            window.close();
+            // handle keyboard input
+            auto keys = window.getKeys();
+            camera.processKeyboard(keys, dt);
+            if (keys.ESC_PRESSED) {
+                window.close();
+            }
         }
 
         if (paused) {
