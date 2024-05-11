@@ -86,7 +86,7 @@ Keys GLFWWindow::getKeys() {
         .S_PRESSED = (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS),
         .D_PRESSED = (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS),
         .Q_PRESSED = (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS),
-        .Z_PRESSED = (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS),
+        .E_PRESSED = (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS),
         .ESC_PRESSED = (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     };
     return keys;

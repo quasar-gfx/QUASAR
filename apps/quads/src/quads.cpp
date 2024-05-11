@@ -98,7 +98,7 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader screenShader({
+    Shader screenShader = Shader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });

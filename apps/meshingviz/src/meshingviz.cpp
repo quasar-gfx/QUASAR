@@ -169,7 +169,7 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader screenShader({
+    Shader screenShader = Shader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
@@ -210,8 +210,8 @@ int main(int argc, char** argv) {
     camera.setViewMatrix(view);
 
     app.onRender([&](double now, double dt) {
-        ImGuiIO& io = ImGui::GetIO();
-        if (!(io.WantCaptureKeyboard || io.WantCaptureMouse)) {
+        // handle mouse input
+        if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
             auto mouseButtons = window.getMouseButtons();
             window.setMouseCursor(!mouseButtons.LEFT_PRESSED);
             static bool dragging = false;

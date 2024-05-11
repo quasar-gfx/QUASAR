@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
     Scene scene = Scene();
     Camera camera = Camera(screenWidth, screenHeight);
 
-    VideoTexture videoTexture({
+    VideoTexture videoTexture = VideoTexture({
         .width = app.config.width,
         .height = app.config.height,
         .internalFormat = GL_RGB,
@@ -120,7 +120,7 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader screenShader({
+    Shader screenShader = Shader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "shaders/displayVideo.frag"
     });
@@ -130,8 +130,7 @@ int main(int argc, char** argv) {
     Pose currentFramePose;
     app.onRender([&](double now, double dt) {
         // handle mouse input
-        ImGuiIO& io = ImGui::GetIO();
-        if (!(io.WantCaptureKeyboard || io.WantCaptureMouse)) {
+        if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
             auto mouseButtons = window.getMouseButtons();
             window.setMouseCursor(!mouseButtons.LEFT_PRESSED);
             static bool dragging = false;
