@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
     Scene scene = Scene();
     Camera camera = Camera(screenWidth, screenHeight);
 
-    TextureCreateParams videoParams{
+    VideoTexture videoTexture({
         .width = app.config.width,
         .height = app.config.height,
         .internalFormat = GL_RGB,
@@ -71,11 +71,11 @@ int main(int argc, char** argv) {
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR
-    };
-    VideoTexture videoTexture(videoParams);
+    });
     videoTexture.initVideo(inputUrl);
     PoseStreamer poseStreamer(&camera, poseURL);
 
+    bool atwEnabled = false;
     ImGui::GetIO().Fonts->AddFontFromFileTTF("../assets/fonts/trebucbd.ttf", 24.0f);
     app.gui([&](double now, double dt) {
         ImGui::NewFrame();
@@ -104,6 +104,10 @@ int main(int argc, char** argv) {
         ImGui::Text("Pose URL: %s", poseURL.c_str());
         ImGui::Text("Input URL: %s", inputUrl.c_str());
 
+        ImGui::Separator();
+
+        ImGui::Checkbox("ATW Enabled", &atwEnabled);
+
         ImGui::End();
     });
 
@@ -121,7 +125,10 @@ int main(int argc, char** argv) {
         .fragmentCodePath = "shaders/displayVideo.frag"
     });
 
-    app.onRender([&](double now, double dt){
+    camera.position = glm::vec3(0.0f, 1.6f, 0.0f);
+
+    Pose currentFramePose;
+    app.onRender([&](double now, double dt) {
         // handle mouse input
         ImGuiIO& io = ImGui::GetIO();
         if (!(io.WantCaptureKeyboard || io.WantCaptureMouse)) {
@@ -165,13 +172,29 @@ int main(int argc, char** argv) {
             window.close();
         }
 
+        // send pose to streamer
         poseStreamer.sendPose();
 
-        // render video
-        screenShader.bind();
-        screenShader.setInt("videoTexture", 4);
-        videoTexture.bind(4);
-        videoTexture.draw();
+        {
+            screenShader.bind();
+
+            screenShader.setBool("atwEnabled", atwEnabled);
+
+            glm::mat4 proj = camera.getProjectionMatrix();
+            glm::mat4 view = camera.getViewMatrix();
+            screenShader.setMat4("projection", proj);
+            screenShader.setMat4("view", view);
+
+            screenShader.setInt("videoTexture", 4);
+            videoTexture.bind(4);
+            // render video frame
+            pose_id_t poseId = videoTexture.draw();
+
+            if (poseId != -1 && poseStreamer.getPose(poseId, &currentFramePose)) {
+                screenShader.setMat4("remoteProjection", currentFramePose.proj);
+                screenShader.setMat4("remoteView", currentFramePose.view);
+            }
+        }
 
         // render to screen
         app.renderer.drawToScreen(screenShader);

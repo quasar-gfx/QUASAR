@@ -103,9 +103,14 @@ void VideoTexture::receiveVideo() {
     videoReady = true;
 
     uint64_t prevTime = av_gettime();
+
+    AVFrame* frame = av_frame_alloc();
     while (videoReady) {
         // read frame from URL
         int ret = av_read_frame(inputFormatContext, &packet);
+
+        unsigned int poseId = packet.pts;
+
         if (ret < 0) {
             av_log(nullptr, AV_LOG_ERROR, "Error reading frame: %s\n", av_err2str(ret));
             return;
@@ -120,7 +125,6 @@ void VideoTexture::receiveVideo() {
             }
 
             // get frame from decoder
-            AVFrame *frame = av_frame_alloc();
             ret = avcodec_receive_frame(inputCodecContext, frame);
             if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                 av_packet_unref(&packet);
@@ -133,8 +137,9 @@ void VideoTexture::receiveVideo() {
 
             // resize video frame to fit output texture size
             frameRGBMutex.lock();
+            frameRGB->opaque = reinterpret_cast<void*>(poseId);
             sws_scale(swsContext, (uint8_t const* const*)frame->data, frame->linesize,
-                        0, inputCodecContext->height, frameRGB->data, frameRGB->linesize);
+                      0, inputCodecContext->height, frameRGB->data, frameRGB->linesize);
             frameRGBMutex.unlock();
 
             uint64_t elapsedTime = (av_gettime() - prevTime);
@@ -146,13 +151,16 @@ void VideoTexture::receiveVideo() {
     }
 }
 
-void VideoTexture::draw() {
+uint32_t VideoTexture::draw() {
     if (!videoReady) {
-        return;
+        return -1;
     }
+
     frameRGBMutex.lock();
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, frameRGB->data[0]);
     frameRGBMutex.unlock();
+
+    return static_cast<uint32_t>(reinterpret_cast<uintptr_t>(frameRGB->opaque));
 }
 
 void VideoTexture::cleanup() {

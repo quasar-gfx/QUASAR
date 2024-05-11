@@ -17,6 +17,14 @@
 
 #include <Camera.h>
 
+typedef uint32_t pose_id_t;
+
+struct Pose {
+    pose_id_t id;
+    glm::mat4 proj;
+    glm::mat4 view;
+};
+
 class PoseReceiver {
 public:
     std::string streamerURL;
@@ -25,7 +33,9 @@ public:
     int clientSocketId;
     struct sockaddr_in streamerAddr;
     socklen_t streamerAddrLen;
+
     Camera* camera;
+    Pose currPose;
 
     explicit PoseReceiver(Camera* camera, std::string streamerURL) : streamerURL(streamerURL) {
         this->streamerURL = streamerURL;
@@ -72,16 +82,17 @@ public:
         }
     }
 
-    void receivePose() {
-        glm::mat4 viewMatrix;
-
-        int bytesReceived = recvfrom(socketId, &viewMatrix, sizeof(glm::mat4), MSG_WAITALL, (struct sockaddr*)&streamerAddr, &streamerAddrLen);
+    unsigned int receivePose() {
+        int bytesReceived = recvfrom(socketId, &currPose, sizeof(Pose), MSG_WAITALL, (struct sockaddr*)&streamerAddr, &streamerAddrLen);
         if (bytesReceived < 0) {
-            return; // throw std::runtime_error("Failed to receive data");
+            return -1; // throw std::runtime_error("Failed to receive data");
         }
 
         // std::cout << glm::to_string(viewMatrix) << std::endl;
-        camera->setViewMatrix(viewMatrix);
+        camera->setProjectionMatrix(currPose.proj);
+        camera->setViewMatrix(currPose.view);
+
+        return currPose.id;
     }
 };
 

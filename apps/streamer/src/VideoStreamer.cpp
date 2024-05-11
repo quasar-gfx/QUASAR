@@ -92,7 +92,7 @@ int VideoStreamer::start(Texture &texture, const std::string outputUrl) {
     return 0;
 }
 
-void VideoStreamer::sendFrame() {
+void VideoStreamer::sendFrame(unsigned int poseId) {
     static uint64_t prevTime = av_gettime();
 
     int ret = av_frame_get_buffer(frame, 0);
@@ -145,7 +145,7 @@ void VideoStreamer::sendFrame() {
             return;
         }
 
-        outputPacket.pts = framesSent * (outputFormatContext->streams[0]->time_base.den) / targetFrameRate;
+        outputPacket.pts = poseId; // framesSent * (outputFormatContext->streams[0]->time_base.den) / targetFrameRate;
         outputPacket.dts = outputPacket.pts;
 
         timeToEncodeFrame = (av_gettime() - startEncodeTime) / MICROSECONDS_IN_MILLISECOND;

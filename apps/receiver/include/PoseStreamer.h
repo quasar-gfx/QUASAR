@@ -5,6 +5,8 @@
 #include <thread>
 #include <cstring>
 
+#include <map>
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -16,6 +18,14 @@
 
 #include <Camera.h>
 
+typedef uint32_t pose_id_t;
+
+struct Pose {
+    pose_id_t id;
+    glm::mat4 proj;
+    glm::mat4 view;
+};
+
 class PoseStreamer {
 public:
     std::string receiverURL;
@@ -24,8 +34,13 @@ public:
     struct sockaddr_in recieverAddr;
     socklen_t recieverAddrLen;
     hostent* server;
+
     Camera* camera;
-    glm::mat4 prevViewMatrix;
+
+    Pose currPose, prevPose;
+    pose_id_t currPoseId = 0;
+
+    std::map<pose_id_t, Pose> prevPoses;
 
     explicit PoseStreamer(Camera* camera, std::string receiverURL) : receiverURL(receiverURL) {
         this->camera = camera;
@@ -63,21 +78,47 @@ public:
         return true;
     }
 
-    void sendPose() {
-        glm::mat4 viewMatrix = camera->getViewMatrix();
+    bool getPose(pose_id_t poseId, Pose* pose) {
+        auto res = prevPoses.find(poseId);
+        if (res != prevPoses.end()) { // found
+            *pose = res->second;
+
+            // delete all poses with id less than poseId
+            for (auto it = prevPoses.begin(); it != prevPoses.end();) {
+                if (it->first < poseId) {
+                    it = prevPoses.erase(it);
+                }
+                else {
+                    ++it;
+                }
+            }
+
+            return true;
+        }
+        return false;
+    }
+
+    bool sendPose() {
+        currPose.id = currPoseId;
+        currPose.proj = camera->getProjectionMatrix();
+        currPose.view = camera->getViewMatrix();
         // std::cout << glm::to_string(viewMatrix) << std::endl;
 
-        if (epsilonEqual(viewMatrix, prevViewMatrix)) {
-            return;
-        }
+        // if (epsilonEqual(currPose.viewMatrix, prevPose.viewMatrix)) {
+        //     return;
+        // }
 
-        int bytesSent = sendto(socketId, &viewMatrix, sizeof(glm::mat4), MSG_WAITALL, (struct sockaddr*)&recieverAddr, recieverAddrLen);
+        int bytesSent = sendto(socketId, &currPose, sizeof(Pose), MSG_WAITALL, (struct sockaddr*)&recieverAddr, recieverAddrLen);
         if (bytesSent < 0) {
-            std::cout << strerror(errno) << std::endl;
             throw std::runtime_error("Failed to send data");
         }
 
-        prevViewMatrix = viewMatrix;
+        prevPoses[currPoseId] = currPose;
+        currPoseId++;
+
+        // prevPose.prevViewMatrix = viewMatrix;
+
+        return bytesSent >= 0;
     }
 };
 

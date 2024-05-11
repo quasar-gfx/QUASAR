@@ -24,7 +24,7 @@ public:
     int frameReceived = 0;
     float totalTimeToReceiveFrame = 0.0f;
 
-    explicit VideoTexture(TextureCreateParams &params) : Texture(params), width(params.width), height(params.height) { }
+    explicit VideoTexture(const TextureCreateParams &params) : Texture(params), width(params.width), height(params.height) { }
 
     ~VideoTexture() {
         cleanup();
@@ -33,7 +33,7 @@ public:
     void initVideo(const std::string &inputUrl);
     void cleanup();
 
-    void draw();
+    unsigned int draw();
 
     float getFrameRate() {
         return 1.0f / totalTimeToReceiveFrame;

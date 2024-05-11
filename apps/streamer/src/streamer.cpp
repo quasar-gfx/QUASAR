@@ -68,6 +68,7 @@ int main(int argc, char** argv) {
     VideoStreamer videoStreamer = VideoStreamer();
     PoseReceiver poseReceiver = PoseReceiver(&camera, poseURL);
 
+    bool paused = false;
     ImGui::GetIO().Fonts->AddFontFromFileTTF("../assets/fonts/trebucbd.ttf", 24.0f);
     app.gui([&](double now, double dt) {
         ImGui::NewFrame();
@@ -102,6 +103,10 @@ int main(int argc, char** argv) {
         ImGui::TextColored(ImVec4(1,0.5,0,1), "Time to encode frame: %.3f ms", videoStreamer.timeToEncodeFrame);
         ImGui::TextColored(ImVec4(1,0.5,0,1), "Time to send frame: %.3f ms", videoStreamer.timeToSendFrame);
 
+        ImGui::Separator();
+
+        ImGui::Checkbox("Pause", &paused);
+
         ImGui::End();
     });
 
@@ -125,7 +130,14 @@ int main(int argc, char** argv) {
         return ret;
     }
 
-    app.onRender([&](double now, double dt){
+    std::vector<glm::vec3> pointLightPositions(4);
+    pointLightPositions[0] = scene.pointLights[0]->position;
+    pointLightPositions[1] = scene.pointLights[1]->position;
+    pointLightPositions[2] = scene.pointLights[2]->position;
+    pointLightPositions[3] = scene.pointLights[3]->position;
+
+    pose_id_t poseId = 0;
+    app.onRender([&](double now, double dt) {
         // handle mouse input
         ImGuiIO& io = ImGui::GetIO();
         if (!(io.WantCaptureKeyboard || io.WantCaptureMouse)) {
@@ -169,14 +181,18 @@ int main(int argc, char** argv) {
             window.close();
         }
 
+        if (paused) {
+            return;
+        }
+
         // receive pose
-        poseReceiver.receivePose();
+        poseId = poseReceiver.receivePose();
 
         // animate lights
-        scene.pointLights[0]->setPosition(glm::vec3(-1.45f + 1.1f * sin(now), 2.5f, -6.2f));
-        scene.pointLights[1]->setPosition(glm::vec3(2.2f + 1.1f * sin(now), 2.5f, -6.2f));
-        scene.pointLights[2]->setPosition(glm::vec3(-1.45f + 1.1f * sin(now), 2.5f, 4.89f));
-        scene.pointLights[3]->setPosition(glm::vec3(2.2f + 1.1f * sin(now), 2.5f, 4.89f));
+        scene.pointLights[0]->setPosition(pointLightPositions[0] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
+        scene.pointLights[1]->setPosition(pointLightPositions[1] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
+        scene.pointLights[2]->setPosition(pointLightPositions[2] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
+        scene.pointLights[3]->setPosition(pointLightPositions[3] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
 
         // render all objects in scene
         app.renderer.drawObjects(scene, camera);
@@ -185,7 +201,9 @@ int main(int argc, char** argv) {
         app.renderer.drawToScreen(screenShader);
 
         // send video frame
-        videoStreamer.sendFrame();
+        if (poseId != -1) {
+            videoStreamer.sendFrame(poseId);
+        }
     });
 
     // run app loop (blocking)

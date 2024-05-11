@@ -39,7 +39,7 @@ public:
     int start(Texture &texture, const std::string outputUrl);
     void cleanup();
 
-    void sendFrame();
+    void sendFrame(unsigned int poseId);
 
 private:
     AVPixelFormat pixelFormat = AV_PIX_FMT_YUV420P;
