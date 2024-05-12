@@ -40,9 +40,6 @@ public:
     virtual void swapBuffers() = 0;
     virtual bool tick() = 0;
     virtual void close() = 0;
-
-    virtual void guiNewFrame() = 0;
-    virtual void guiRender() = 0;
 };
 
 #endif // WINDOW_H

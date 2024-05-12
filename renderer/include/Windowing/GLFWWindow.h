@@ -5,10 +5,6 @@
 
 #include <GLFW/glfw3.h>
 
-#include <imgui/imgui.h>
-#include <imgui/backends/imgui_impl_opengl3.h>
-#include <imgui/backends/imgui_impl_glfw.h>
-
 #include <Windowing/Window.h>
 #include <OpenGLAppConfig.h>
 
@@ -18,6 +14,8 @@ public:
     ~GLFWWindow() {
         glfwTerminate();
     }
+
+    GLFWwindow* window;
 
     void getSize(unsigned int* width, unsigned int* height) override;
 
@@ -32,9 +30,6 @@ public:
     double getTime() override;
     bool tick() override;
 
-    void guiNewFrame() override;
-    void guiRender() override;
-
     void close() override;
 
     static void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
@@ -43,7 +38,6 @@ public:
     }
 
 private:
-    GLFWwindow* window;
     bool frameResized = true;
 };
 

@@ -27,14 +27,6 @@ GLFWWindow::GLFWWindow(const Config &config) {
     glfwSetWindowUserPointer(window, this);
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    ImGui::StyleColorsDark();
-
-    // Setup ImGui OpenGL backend
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init("#version 410");
-
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return;
@@ -112,14 +104,3 @@ bool GLFWWindow::tick() {
 void GLFWWindow::close() {
     glfwSetWindowShouldClose(window, true);
 }
-
-void GLFWWindow::guiNewFrame() {
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-}
-
-void GLFWWindow::guiRender() {
-    ImGui::Render();
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-}
-

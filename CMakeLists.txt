@@ -63,9 +63,9 @@ add_subdirectory(apps)
 
 # make symbolic link of assets to output/apps directory
 file(CREATE_LINK
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets
-        ${CMAKE_CURRENT_BINARY_DIR}/apps/assets
-        SYMBOLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/assets
+    ${CMAKE_CURRENT_BINARY_DIR}/apps/assets
+    SYMBOLIC
 )
 
 # make symbolic link of shaders to output/apps directory

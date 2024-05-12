@@ -3,6 +3,9 @@
 
 #include <string>
 
+#include <Windowing/Window.h>
+#include <GUI/GUIManager.h>
+
 struct Config {
     bool enableVSync = true;
     bool showWindow = true;
@@ -14,6 +17,9 @@ struct Config {
     unsigned int width = 800;
     unsigned int height = 600;
     std::string title = "OpenGL App";
+    Window* window = nullptr;
+    GUIManager* guiManager = nullptr;
+
 };
 
 #endif // OPENGL_APP_CONFIG_H

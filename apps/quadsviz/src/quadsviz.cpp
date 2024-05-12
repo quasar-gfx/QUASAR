@@ -16,6 +16,7 @@
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 #include <Windowing/GLFWWindow.h>
+#include <GUI/ImGuiManager.h>
 
 #define VERTICES_IN_A_QUAD 4
 
@@ -136,8 +137,13 @@ int main(int argc, char** argv) {
         }
     }
 
-    GLFWWindow window(app.config);
-    app.init(&window);
+    GLFWWindow window = GLFWWindow(app.config);
+    ImGuiManager guiManager = ImGuiManager(&window);
+
+    app.config.window = &window;
+    app.config.guiManager = &guiManager;
+
+    app.init();
 
     unsigned int screenWidth, screenHeight;
     window.getSize(&screenWidth, &screenHeight);
@@ -147,7 +153,7 @@ int main(int argc, char** argv) {
 
     int numVertices = 0;
     ImGui::GetIO().Fonts->AddFontFromFileTTF("../assets/fonts/trebucbd.ttf", 24.0f);
-    app.gui([&](double now, double dt) {
+    guiManager.gui([&](double now, double dt) {
         ImGui::NewFrame();
 
         ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);

@@ -8,9 +8,7 @@
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 
-void OpenGLApp::init(Window* window) {
-    this->window = window;
-
+void OpenGLApp::init() {
     // enable face culling
     if (config.backfaceCulling) {
         glEnable(GL_CULL_FACE);
@@ -25,14 +23,14 @@ void OpenGLApp::init(Window* window) {
 }
 
 void OpenGLApp::run() {
-    double prevTime = window->getTime();
-    while (window->tick()) {
-        double currTime = window->getTime();
+    double prevTime = config.window->getTime();
+    while (config.window->tick()) {
+        double currTime = config.window->getTime();
         double deltaTime = currTime - prevTime;
 
-        if (window->resized()) {
+        if (config.window->resized()) {
             unsigned int width, height;
-            window->getSize(&width, &height);
+            config.window->getSize(&width, &height);
 
             std::cout << "Resized to " << width << "x" << height << std::endl;
             renderer.resize(width, height);
@@ -46,13 +44,11 @@ void OpenGLApp::run() {
             renderCallback(currTime, deltaTime);
         }
 
-        if (guiCallback) {
-            window->guiNewFrame();
-            guiCallback(currTime, deltaTime);
-            window->guiRender();
+        if (config.guiManager) {
+            config.guiManager->draw(currTime, deltaTime);
         }
 
-        window->swapBuffers();
+        config.window->swapBuffers();
 
         prevTime = currTime;
     }
