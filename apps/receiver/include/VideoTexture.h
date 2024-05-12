@@ -27,6 +27,7 @@ public:
     int frameReceived = 0;
 
     struct Stats {
+        float timeToReceiveFrame = -1.0f;
         float timeToDecode = -1.0f;
         float timeToResize = -1.0f;
         float totalTimeToReceiveFrame = -1.0f;

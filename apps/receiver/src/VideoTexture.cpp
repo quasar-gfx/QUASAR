@@ -102,17 +102,21 @@ void VideoTexture::receiveVideo() {
 
     uint64_t prevTime = av_gettime();
 
+    unsigned int poseId = -1;
     AVFrame* frame = av_frame_alloc();
     while (videoReady) {
+        uint64_t receiveFrameStartTime = av_gettime();
+
         // read frame from URL
         int ret = av_read_frame(inputFormatContext, &packet);
-
-        unsigned int poseId = packet.pts;
-
         if (ret < 0) {
             av_log(nullptr, AV_LOG_ERROR, "Error reading frame: %s\n", av_err2str(ret));
             return;
         }
+
+        stats.timeToReceiveFrame = (av_gettime() - receiveFrameStartTime) / MICROSECONDS_IN_SECOND;
+
+        poseId = packet.pts;
 
         if (packet.stream_index == videoStreamIndex) {
             /* Decode received frame */

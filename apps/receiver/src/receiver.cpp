@@ -113,6 +113,7 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to receive frame: %.3f ms", videoTexture.stats.timeToReceiveFrame);
         ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decode frame: %.3f ms", videoTexture.stats.timeToDecode);
         ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to resize frame: %.3f ms", videoTexture.stats.timeToResize);
 
