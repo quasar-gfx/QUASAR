@@ -5,8 +5,6 @@
 #undef av_err2str
 #define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
 
-#define MICROSECONDS_IN_SECOND 1000000.0f
-
 void VideoTexture::initVideo(const std::string &inputUrl) {
     this->inputUrl = inputUrl + "?overrun_nonfatal=1&fifo_size=50000000";
     videoReceiverThread = std::thread(&VideoTexture::receiveVideo, this);
@@ -117,33 +115,46 @@ void VideoTexture::receiveVideo() {
         }
 
         if (packet.stream_index == videoStreamIndex) {
-            // send packet to decoder
-            ret = avcodec_send_packet(inputCodecContext, &packet);
-            if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-                av_log(nullptr, AV_LOG_ERROR, "Error: Could not send packet to input decoder: %s\n", av_err2str(ret));
-                return;
+            /* Decode received frame */
+            {
+                uint64_t decodeStartTime = av_gettime();
+
+                // send packet to decoder
+                ret = avcodec_send_packet(inputCodecContext, &packet);
+                if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+                    av_log(nullptr, AV_LOG_ERROR, "Error: Could not send packet to input decoder: %s\n", av_err2str(ret));
+                    return;
+                }
+
+                // get frame from decoder
+                ret = avcodec_receive_frame(inputCodecContext, frame);
+                if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+                    av_packet_unref(&packet);
+                    continue;
+                }
+                else if (ret < 0) {
+                    av_log(nullptr, AV_LOG_ERROR, "Error: Could not receive raw frame from input decoder: %s\n", av_err2str(ret));
+                    return;
+                }
+
+                stats.timeToDecode = (av_gettime() - decodeStartTime) / MICROSECONDS_IN_SECOND;
             }
 
-            // get frame from decoder
-            ret = avcodec_receive_frame(inputCodecContext, frame);
-            if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-                av_packet_unref(&packet);
-                continue;
-            }
-            else if (ret < 0) {
-                av_log(nullptr, AV_LOG_ERROR, "Error: Could not receive raw frame from input decoder: %s\n", av_err2str(ret));
-                return;
-            }
+            /* Resize video frame to fit output texture size */\
+            {
+                uint64_t resizeStartTime = av_gettime();
 
-            // resize video frame to fit output texture size
-            frameRGBMutex.lock();
-            frameRGB->opaque = reinterpret_cast<void*>(poseId);
-            sws_scale(swsContext, (uint8_t const* const*)frame->data, frame->linesize,
-                      0, inputCodecContext->height, frameRGB->data, frameRGB->linesize);
-            frameRGBMutex.unlock();
+                frameRGBMutex.lock();
+                frameRGB->opaque = reinterpret_cast<void*>(poseId);
+                sws_scale(swsContext, (uint8_t const* const*)frame->data, frame->linesize,
+                        0, inputCodecContext->height, frameRGB->data, frameRGB->linesize);
+                frameRGBMutex.unlock();
+
+                stats.timeToResize = (av_gettime() - resizeStartTime) / MICROSECONDS_IN_SECOND;
+            }
 
             uint64_t elapsedTime = (av_gettime() - prevTime);
-            totalTimeToReceiveFrame = elapsedTime / MICROSECONDS_IN_SECOND;
+            stats.totalTimeToReceiveFrame = elapsedTime / MICROSECONDS_IN_SECOND;
             frameReceived++;
 
             prevTime = av_gettime();

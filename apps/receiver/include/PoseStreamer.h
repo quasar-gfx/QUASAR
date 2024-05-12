@@ -68,10 +68,13 @@ public:
         return true;
     }
 
-    bool getPose(pose_id_t poseId, Pose* pose) {
+    bool getPose(pose_id_t poseId, Pose* pose, double now, double* elapsedTime = nullptr) {
         auto res = prevPoses.find(poseId);
         if (res != prevPoses.end()) { // found
             *pose = res->second;
+            if (elapsedTime) {
+                *elapsedTime = now - pose->timestamp;
+            }
 
             // delete all poses with id less than poseId
             for (auto it = prevPoses.begin(); it != prevPoses.end();) {
@@ -85,13 +88,15 @@ public:
 
             return true;
         }
+
         return false;
     }
 
-    bool sendPose() {
+    bool sendPose(double now) {
         currPose.id = currPoseId;
         currPose.proj = camera->getProjectionMatrix();
         currPose.view = camera->getViewMatrix();
+        currPose.timestamp = now;
 
         // if (epsilonEqual(currPose.viewMatrix, prevPose.viewMatrix)) {
         //     return;

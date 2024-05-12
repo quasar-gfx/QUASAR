@@ -76,7 +76,6 @@ int main(int argc, char** argv) {
     SceneLoader loader = SceneLoader();
     loader.loadScene(scenePath, scene, camera);
 
-    ImGui::GetIO().Fonts->AddFontFromFileTTF("../assets/fonts/trebucbd.ttf", 24.0f);
     guiManager.gui([&](double now, double dt) {
         ImGui::NewFrame();
 

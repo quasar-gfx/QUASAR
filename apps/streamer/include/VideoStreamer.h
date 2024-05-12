@@ -24,16 +24,18 @@ public:
 
     unsigned int framesSent = 0;
 
-    float totalTimeToSendFrame = 0.0f;
-    float timeToEncodeFrame = 0.0f;
-    float timeToCopyFrame = 0.0f;
-    float timeToSendFrame = 0.0f;
+    struct Stats {
+        float timeToEncode = -1.0f;
+        float timeToCopyFrame = -1.0f;
+        float timeToSendFrame = -1.0f;
+        float totalTimeToSendFrame = -1.0f;
+    } stats;
 
     explicit VideoStreamer() = default;
     ~VideoStreamer() = default;
 
     float getFrameRate() {
-        return 1000.0f / totalTimeToSendFrame;
+        return 1000.0f / stats.totalTimeToSendFrame;
     }
 
     int start(Texture &texture, const std::string outputUrl);

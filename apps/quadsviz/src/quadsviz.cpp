@@ -152,7 +152,6 @@ int main(int argc, char** argv) {
     Camera camera = Camera(screenWidth, screenHeight);
 
     int numVertices = 0;
-    ImGui::GetIO().Fonts->AddFontFromFileTTF("../assets/fonts/trebucbd.ttf", 24.0f);
     guiManager.gui([&](double now, double dt) {
         ImGui::NewFrame();
 

@@ -120,7 +120,7 @@ void VideoStreamer::sendFrame(unsigned int poseId) {
 
         sws_scale(conversionContext, srcData, srcStride, 0, sourceTexture.height, frame->data, frame->linesize);
 
-        timeToCopyFrame = (av_gettime() - startCopyTime) / MICROSECONDS_IN_MILLISECOND;
+        stats.timeToCopyFrame = (av_gettime() - startCopyTime) / MICROSECONDS_IN_MILLISECOND;
     }
 
     /* Encode frame */
@@ -148,7 +148,7 @@ void VideoStreamer::sendFrame(unsigned int poseId) {
         outputPacket.pts = poseId; // framesSent * (outputFormatContext->streams[0]->time_base.den) / targetFrameRate;
         outputPacket.dts = outputPacket.pts;
 
-        timeToEncodeFrame = (av_gettime() - startEncodeTime) / MICROSECONDS_IN_MILLISECOND;
+        stats.timeToEncode = (av_gettime() - startEncodeTime) / MICROSECONDS_IN_MILLISECOND;
     }
 
     /* Send frame to output URL */
@@ -165,14 +165,14 @@ void VideoStreamer::sendFrame(unsigned int poseId) {
 
         framesSent++;
 
-        timeToSendFrame = (av_gettime() - startWriteTime) / MICROSECONDS_IN_MILLISECOND;
+        stats.timeToSendFrame = (av_gettime() - startWriteTime) / MICROSECONDS_IN_MILLISECOND;
     }
 
     uint64_t elapsedTime = (av_gettime() - prevTime);
     if (elapsedTime < (1.0f / targetFrameRate * MICROSECONDS_IN_MILLISECOND)) {
         av_usleep((1.0f / targetFrameRate * MICROSECONDS_IN_MILLISECOND) - elapsedTime);
     }
-    totalTimeToSendFrame = elapsedTime / MICROSECONDS_IN_MILLISECOND;
+    stats.totalTimeToSendFrame = elapsedTime / MICROSECONDS_IN_MILLISECOND;
 
     prevTime = av_gettime();
 }

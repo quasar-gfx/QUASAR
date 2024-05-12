@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
     PoseStreamer poseStreamer(&camera, poseURL);
 
     bool atwEnabled = false;
-    ImGui::GetIO().Fonts->AddFontFromFileTTF("../assets/fonts/trebucbd.ttf", 24.0f);
+    double elapedTime = 0.0f;
     guiManager.gui([&](double now, double dt) {
         ImGui::NewFrame();
 
@@ -103,12 +103,18 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
-        ImGui::Text("Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoTexture.getFrameRate(), 1000.0f / videoTexture.getFrameRate());
+        ImGui::Text("Video URL: %s", inputUrl.c_str());
+        ImGui::Text("Pose URL: %s", poseURL.c_str());
 
         ImGui::Separator();
 
-        ImGui::Text("Pose URL: %s", poseURL.c_str());
-        ImGui::Text("Input URL: %s", inputUrl.c_str());
+        ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoTexture.getFrameRate(), 1000.0f / videoTexture.getFrameRate());
+        ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: %.3f ms", elapedTime * 1000.0f);
+
+        ImGui::Separator();
+
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decode frame: %.3f ms", videoTexture.stats.timeToDecode);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to resize frame: %.3f ms", videoTexture.stats.timeToResize);
 
         ImGui::Separator();
 
@@ -178,7 +184,7 @@ int main(int argc, char** argv) {
         }
 
         // send pose to streamer
-        poseStreamer.sendPose();
+        poseStreamer.sendPose(now);
 
         {
             screenShader.bind();
@@ -195,7 +201,7 @@ int main(int argc, char** argv) {
             // render video frame
             pose_id_t poseId = videoTexture.draw();
 
-            if (poseId != -1 && poseStreamer.getPose(poseId, &currentFramePose)) {
+            if (poseId != -1 && poseStreamer.getPose(poseId, &currentFramePose, now, &elapedTime)) {
                 screenShader.setMat4("remoteProjection", currentFramePose.proj);
                 screenShader.setMat4("remoteView", currentFramePose.view);
             }

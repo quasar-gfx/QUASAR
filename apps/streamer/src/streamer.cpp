@@ -78,7 +78,6 @@ int main(int argc, char** argv) {
     PoseReceiver poseReceiver = PoseReceiver(&camera, poseURL);
 
     bool paused = false;
-    ImGui::GetIO().Fonts->AddFontFromFileTTF("../assets/fonts/trebucbd.ttf", 24.0f);
     guiManager.gui([&](double now, double dt) {
         ImGui::NewFrame();
 
@@ -99,18 +98,18 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
-        ImGui::Text("Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoStreamer.getFrameRate(), 1000.0f / videoStreamer.getFrameRate());
-
-        ImGui::Separator();
-
+        ImGui::Text("Video URL: %s", outputUrl.c_str());
         ImGui::Text("Pose URL: %s", poseURL.c_str());
-        ImGui::Text("Output URL: %s", outputUrl.c_str());
 
         ImGui::Separator();
 
-        ImGui::TextColored(ImVec4(1,0.5,0,1), "Time to copy frame: %.3f ms", videoStreamer.timeToCopyFrame);
-        ImGui::TextColored(ImVec4(1,0.5,0,1), "Time to encode frame: %.3f ms", videoStreamer.timeToEncodeFrame);
-        ImGui::TextColored(ImVec4(1,0.5,0,1), "Time to send frame: %.3f ms", videoStreamer.timeToSendFrame);
+        ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoStreamer.getFrameRate(), 1000.0f / videoStreamer.getFrameRate());
+
+        ImGui::Separator();
+
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: %.3f ms", videoStreamer.stats.timeToCopyFrame);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.3f ms", videoStreamer.stats.timeToEncode);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: %.3f ms", videoStreamer.stats.timeToSendFrame);
 
         ImGui::Separator();
 

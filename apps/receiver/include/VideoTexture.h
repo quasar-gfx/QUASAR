@@ -15,6 +15,9 @@ extern "C" {
 
 #include <Texture.h>
 
+#define MICROSECONDS_IN_SECOND 1e6f
+#define MICROSECONDS_IN_MILLISECOND 1e3f
+
 class VideoTexture : public Texture {
 public:
     std::string inputUrl = "udp://localhost:1234";
@@ -22,7 +25,12 @@ public:
     unsigned int width, height;
 
     int frameReceived = 0;
-    float totalTimeToReceiveFrame = 0.0f;
+
+    struct Stats {
+        float timeToDecode = -1.0f;
+        float timeToResize = -1.0f;
+        float totalTimeToReceiveFrame = -1.0f;
+    } stats;
 
     explicit VideoTexture(const TextureCreateParams &params) : Texture(params), width(params.width), height(params.height) { }
 
@@ -36,7 +44,7 @@ public:
     unsigned int draw();
 
     float getFrameRate() {
-        return 1.0f / totalTimeToReceiveFrame;
+        return 1.0f / stats.totalTimeToReceiveFrame;
     }
 
 private:
