@@ -23,14 +23,17 @@ void OpenGLApp::init() {
 }
 
 void OpenGLApp::run() {
-    double prevTime = config.window->getTime();
-    while (config.window->tick()) {
-        double currTime = config.window->getTime();
+    auto window = config.window;
+    auto guiManager = config.guiManager;
+
+    double prevTime = window->getTime();
+    while (window->tick()) {
+        double currTime = window->getTime();
         double deltaTime = currTime - prevTime;
 
-        if (config.window->resized()) {
+        if (window->resized()) {
             unsigned int width, height;
-            config.window->getSize(&width, &height);
+            window->getSize(&width, &height);
 
             std::cout << "Resized to " << width << "x" << height << std::endl;
             renderer.resize(width, height);
@@ -44,11 +47,11 @@ void OpenGLApp::run() {
             renderCallback(currTime, deltaTime);
         }
 
-        if (config.guiManager) {
-            config.guiManager->draw(currTime, deltaTime);
+        if (guiManager) {
+            guiManager->draw(currTime, deltaTime);
         }
 
-        config.window->swapBuffers();
+        window->swapBuffers();
 
         prevTime = currTime;
     }

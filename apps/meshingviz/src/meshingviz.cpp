@@ -120,22 +120,22 @@ int main(int argc, char** argv) {
         }
     }
 
-    GLFWWindow window = GLFWWindow(app.config);
-    ImGuiManager guiManager = ImGuiManager(&window);
+    auto window = std::make_shared<GLFWWindow>(app.config);
+    auto guiManager = std::make_shared<ImGuiManager>(window);
 
-    app.config.window = &window;
-    app.config.guiManager = &guiManager;
+    app.config.window = window;
+    app.config.guiManager = guiManager;
 
     app.init();
 
     unsigned int screenWidth, screenHeight;
-    window.getSize(&screenWidth, &screenHeight);
+    window->getSize(&screenWidth, &screenHeight);
 
     Scene scene = Scene();
     Camera camera = Camera(screenWidth, screenHeight);
 
     int numVertices = 0;
-    guiManager.gui([&](double now, double dt) {
+    guiManager->onRender([&](double now, double dt) {
         ImGui::NewFrame();
 
         ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
@@ -217,8 +217,8 @@ int main(int argc, char** argv) {
     app.onRender([&](double now, double dt) {
         // handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
-            auto mouseButtons = window.getMouseButtons();
-            window.setMouseCursor(!mouseButtons.LEFT_PRESSED);
+            auto mouseButtons = window->getMouseButtons();
+            window->setMouseCursor(!mouseButtons.LEFT_PRESSED);
             static bool dragging = false;
             static bool prevMouseLeftPressed = false;
             static float lastX = screenWidth / 2.0;
@@ -227,7 +227,7 @@ int main(int argc, char** argv) {
                 dragging = true;
                 prevMouseLeftPressed = true;
 
-                auto cursorPos = window.getCursorPos();
+                auto cursorPos = window->getCursorPos();
                 lastX = static_cast<float>(cursorPos.x);
                 lastY = static_cast<float>(cursorPos.y);
             }
@@ -236,7 +236,7 @@ int main(int argc, char** argv) {
                 prevMouseLeftPressed = false;
             }
             if (dragging) {
-                auto cursorPos = window.getCursorPos();
+                auto cursorPos = window->getCursorPos();
                 float xpos = static_cast<float>(cursorPos.x);
                 float ypos = static_cast<float>(cursorPos.y);
 
@@ -250,10 +250,10 @@ int main(int argc, char** argv) {
             }
 
             // handle keyboard input
-            auto keys = window.getKeys();
+            auto keys = window->getKeys();
             camera.processKeyboard(keys, dt);
             if (keys.ESC_PRESSED) {
-                window.close();
+                window->close();
             }
         }
 

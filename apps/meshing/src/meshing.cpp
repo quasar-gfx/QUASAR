@@ -60,23 +60,23 @@ int main(int argc, char** argv) {
         }
     }
 
-    GLFWWindow window = GLFWWindow(app.config);
-    ImGuiManager guiManager = ImGuiManager(&window);
+    auto window = std::make_shared<GLFWWindow>(app.config);
+    auto guiManager = std::make_shared<ImGuiManager>(window);
 
-    app.config.window = &window;
-    app.config.guiManager = &guiManager;
+    app.config.window = window;
+    app.config.guiManager = guiManager;
 
     app.init();
 
     unsigned int screenWidth, screenHeight;
-    window.getSize(&screenWidth, &screenHeight);
+    window->getSize(&screenWidth, &screenHeight);
 
     Scene scene = Scene();
     Camera camera = Camera(screenWidth, screenHeight);
     SceneLoader loader = SceneLoader();
     loader.loadScene(scenePath, scene, camera);
 
-    guiManager.gui([&](double now, double dt) {
+    guiManager->onRender([&](double now, double dt) {
         ImGui::NewFrame();
 
         ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
@@ -253,7 +253,7 @@ int main(int argc, char** argv) {
 
         t++;
         if (t >= maxSteps) {
-            window.close();
+            window->close();
         }
     });
 

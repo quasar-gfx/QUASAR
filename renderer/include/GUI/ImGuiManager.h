@@ -1,6 +1,8 @@
 #ifndef IMGUI_MANAGER_H
 #define IMGUI_MANAGER_H
 
+#include <memory>
+
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_glfw.h>
@@ -10,7 +12,7 @@
 
 class ImGuiManager : public GUIManager {
 public:
-    ImGuiManager(GLFWWindow* glfwWindow);
+    ImGuiManager(std::shared_ptr<GLFWWindow> glfwWindow);
     ~ImGuiManager();
 
     void setStyle();

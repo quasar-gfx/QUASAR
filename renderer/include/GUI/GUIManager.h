@@ -7,7 +7,7 @@ class GUIManager {
 public:
     using GuiCallback = std::function<void(double now, double dt)>;
 
-    void gui(GuiCallback callback) { guiCallback = callback; }
+    void onRender(GuiCallback callback) { guiCallback = callback; }
 
     virtual void predraw() = 0;
     virtual void postdraw() = 0;

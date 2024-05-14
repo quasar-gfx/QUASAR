@@ -1,6 +1,6 @@
 #include <GUI/ImGuiManager.h>
 
-ImGuiManager::ImGuiManager(GLFWWindow* glfwWindow) {
+ImGuiManager::ImGuiManager(std::shared_ptr<GLFWWindow> glfwWindow) {
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
 
