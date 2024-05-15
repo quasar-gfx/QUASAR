@@ -9,7 +9,6 @@
 #include <Scene.h>
 #include <Camera.h>
 #include <Framebuffer.h>
-#include <Primatives/FullScreenQuad.h>
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 #include <Windowing/GLFWWindow.h>

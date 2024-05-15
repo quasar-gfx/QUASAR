@@ -6,12 +6,10 @@
 #include <Texture.h>
 #include <Primatives/Primatives.h>
 #include <Materials/PBRMaterial.h>
-#include <Primatives/Model.h>
 #include <CubeMap.h>
 #include <Scene.h>
 #include <Camera.h>
 #include <Lights/Lights.h>
-#include <Primatives/FullScreenQuad.h>
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 #include <Windowing/GLFWWindow.h>

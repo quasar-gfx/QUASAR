@@ -5,7 +5,6 @@
 #include <memory>
 
 #include <Shaders/Shader.h>
-#include <Primatives/Entity.h>
 #include <Lights/Lights.h>
 #include <CubeMap.h>
 #include <Primatives/Mesh.h>
