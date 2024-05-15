@@ -2,7 +2,7 @@
 
 #include <glm/gtx/string_cast.hpp>
 
-void Mesh::init()  {
+void Mesh::createBuffers()  {
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);

@@ -1,9 +1,13 @@
 #include <OpenGLRenderer.h>
 
-void OpenGLRenderer::init(unsigned int width, unsigned int height) {
-    this->width = width;
-    this->height = height;
-
+OpenGLRenderer::OpenGLRenderer(unsigned int width, unsigned int height)
+        : width(width), height(height),
+          gBuffer({ .width = width, .height = height }),
+          skyboxShader({ .vertexCodeData = SHADER_SKYBOX_VERT,
+                         .vertexCodeSize = SHADER_SKYBOX_VERT_len,
+                         .fragmentCodeData = SHADER_SKYBOX_FRAG,
+                         .fragmentCodeSize = SHADER_SKYBOX_FRAG_len }),
+          outputFsQuad() {
     // enable msaa
     glEnable(GL_MULTISAMPLE);
 
@@ -15,19 +19,6 @@ void OpenGLRenderer::init(unsigned int width, unsigned int height) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
-
-    // background skybox shader
-    ShaderCreateParams skyboxShaderParams = {
-        .vertexCodeData = SHADER_SKYBOX_VERT,
-        .vertexCodeSize = SHADER_SKYBOX_VERT_len,
-        .fragmentCodeData = SHADER_SKYBOX_FRAG,
-        .fragmentCodeSize = SHADER_SKYBOX_FRAG_len
-    };
-    skyboxShader = std::make_shared<Shader>(skyboxShaderParams);
-
-    gBuffer.init({ .width = width, .height = height });
-
-    outputFsQuad.init();
 }
 
 void OpenGLRenderer::updateDirLightShadow(Scene &scene, Camera &camera) {
@@ -78,16 +69,16 @@ void OpenGLRenderer::drawSkyBox(Scene &scene, Camera &camera) {
     gBuffer.bind();
     // dont clear color or depth bit here, since we want this to draw over
 
-    skyboxShader->bind();
-    skyboxShader->setInt("environmentMap", 0);
-    skyboxShader->setMat4("view", camera.getViewMatrix());
-    skyboxShader->setMat4("projection", camera.getProjectionMatrix());
+    skyboxShader.bind();
+    skyboxShader.setInt("environmentMap", 0);
+    skyboxShader.setMat4("view", camera.getViewMatrix());
+    skyboxShader.setMat4("projection", camera.getProjectionMatrix());
 
     if (scene.envCubeMap != nullptr) {
-        scene.envCubeMap->draw(*skyboxShader, camera);
+        scene.envCubeMap->draw(skyboxShader, camera);
     }
 
-    skyboxShader->unbind();
+    skyboxShader.unbind();
 
     gBuffer.unbind();
 }

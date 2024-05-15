@@ -11,7 +11,7 @@
 #include <Scene.h>
 #include <Camera.h>
 #include <Lights/Lights.h>
-#include <FullScreenQuad.h>
+#include <Primatives/FullScreenQuad.h>
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 #include <Windowing/GLFWWindow.h>
@@ -19,17 +19,17 @@
 #include <SceneLoader.h>
 
 int main(int argc, char** argv) {
-    OpenGLApp app{};
-    app.config.title = "Test App";
+    Config config{};
+    config.title = "Test App";
 
     std::string scenePath = "../assets/scenes/sponza.json";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
-            app.config.width = atoi(argv[i + 1]);
+            config.width = atoi(argv[i + 1]);
             i++;
         }
         else if (!strcmp(argv[i], "-h") && i + 1 < argc) {
-            app.config.height = atoi(argv[i + 1]);
+            config.height = atoi(argv[i + 1]);
             i++;
         }
         else if (!strcmp(argv[i], "-s") && i + 1 < argc) {
@@ -37,18 +37,18 @@ int main(int argc, char** argv) {
             i++;
         }
         else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
-            app.config.enableVSync = atoi(argv[i + 1]);
+            config.enableVSync = atoi(argv[i + 1]);
             i++;
         }
     }
 
-    auto window = std::make_shared<GLFWWindow>(app.config);
+    auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
 
-    app.config.window = window;
-    app.config.guiManager = guiManager;
+    config.window = window;
+    config.guiManager = guiManager;
 
-    app.init();
+    OpenGLApp app(config);
 
     unsigned int screenWidth, screenHeight;
     window->getSize(&screenWidth, &screenHeight);
@@ -74,11 +74,11 @@ int main(int argc, char** argv) {
         ImGui::End();
 
         glm::vec2 winSize = glm::vec2(screenWidth, screenHeight);
-        glm::vec2 guiSize = winSize * glm::vec2(0.4f, 0.55f);
+        glm::vec2 guiSize = winSize * glm::vec2(0.4f, 0.3f);
         ImGui::SetNextWindowSize(ImVec2(guiSize.x, guiSize.y), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowPos(ImVec2(10, 60), ImGuiCond_FirstUseEver);
         flags = 0;
-        ImGui::Begin(app.config.title.c_str(), 0, flags);
+        ImGui::Begin(config.title.c_str(), 0, flags);
         ImGui::TextColored(ImVec4(1,1,0,1), "OpenGL Version: %s", glGetString(GL_VERSION));
         ImGui::TextColored(ImVec4(1,1,0,1), "GPU: %s\n", glGetString(GL_RENDERER));
 
@@ -181,27 +181,27 @@ int main(int argc, char** argv) {
         }
 
         // render all objects in scene
-        app.renderer.drawObjects(scene, camera);
+        app.renderer->drawObjects(scene, camera);
 
         // render to screen
         if (shaderIndex == 1) {
             showDepthShader.bind();
             showDepthShader.setFloat("near", camera.near);
             showDepthShader.setFloat("far", camera.far);
-            app.renderer.drawToScreen(showDepthShader);
+            app.renderer->drawToScreen(showDepthShader);
         }
         else if (shaderIndex == 2) {
             showPositionShader.bind();
-            app.renderer.drawToScreen(showPositionShader);
+            app.renderer->drawToScreen(showPositionShader);
         }
         else if (shaderIndex == 3) {
             showNormalShader.bind();
-            app.renderer.drawToScreen(showNormalShader);
+            app.renderer->drawToScreen(showNormalShader);
         }
         else {
             showColorShader.bind();
             showColorShader.setFloat("exposure", exposure);
-            app.renderer.drawToScreen(showColorShader);
+            app.renderer->drawToScreen(showColorShader);
         }
     });
 

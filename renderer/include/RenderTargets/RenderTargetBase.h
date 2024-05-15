@@ -23,15 +23,13 @@ public:
 
     Framebuffer framebuffer;
 
-    explicit RenderTargetBase() = default;
+    explicit RenderTargetBase(const RenderTargetCreateParams &params) : framebuffer() {
+        width = params.width;
+        height = params.height;
+    }
 
     ~RenderTargetBase() {
         cleanup();
-    }
-
-    virtual void init(const RenderTargetCreateParams &params) {
-        width = params.width;
-        height = params.height;
     }
 
     virtual void resize(unsigned int width, unsigned int height) {

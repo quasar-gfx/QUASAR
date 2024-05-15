@@ -9,14 +9,12 @@
 
 class Framebuffer : public OpenGLObject {
 public:
-    explicit Framebuffer() = default;
+    explicit Framebuffer() {
+        glGenFramebuffers(1, &ID);
+    }
 
     ~Framebuffer() {
         cleanup();
-    }
-
-    void init() {
-        glGenFramebuffers(1, &ID);
     }
 
     bool checkStatus(std::string name = "") {

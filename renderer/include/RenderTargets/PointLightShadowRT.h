@@ -7,15 +7,11 @@ class PointLightShadowRT : public RenderTargetBase {
 public:
     CubeMap depthCubeMap;
 
-    explicit PointLightShadowRT() = default;
-
-    void init(const RenderTargetCreateParams &params) override {
-        width = params.width;
-        height = params.height;
-
-        depthCubeMap.init(params.width, params.height, CubeMapType::SHADOW);
-
-        framebuffer.init();
+    explicit PointLightShadowRT(const RenderTargetCreateParams &params)
+            : RenderTargetBase(params),
+              depthCubeMap({ .width = params.width,
+                             .height = params.height,
+                             .type = CubeMapType::SHADOW }) {
         framebuffer.bind();
         framebuffer.attachCubeMap(depthCubeMap, GL_DEPTH_ATTACHMENT);
 

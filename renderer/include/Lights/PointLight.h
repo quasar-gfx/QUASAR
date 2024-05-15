@@ -32,12 +32,8 @@ public:
 
     explicit PointLight(const PointLightCreateParams &params)
             : position(params.position), constant(params.constant), linear(params.linear), quadratic(params.quadratic),
-                Light(params.color, params.intensity, params.zNear, params.zFar) {
-        shadowMapRenderTarget.init({
-            .width = shadowRes,
-            .height = shadowRes
-        });
-
+              Light(params.color, params.intensity, params.zNear, params.zFar),
+              shadowMapRenderTarget({ .width = shadowRes, .height = shadowRes }) {
         shadowProjectionMat = glm::perspective(glm::radians(90.0f), 1.0f, params.zNear, params.zFar);
 
         updateLookAtFace();

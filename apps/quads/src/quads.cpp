@@ -11,7 +11,7 @@
 #include <Scene.h>
 #include <Camera.h>
 #include <Lights/Lights.h>
-#include <FullScreenQuad.h>
+#include <Primatives/FullScreenQuad.h>
 #include <RenderTargets/RenderTarget.h>
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
@@ -22,23 +22,23 @@
 #define VERTICES_IN_A_QUAD 4
 
 int main(int argc, char** argv) {
-    OpenGLApp app{};
-    app.config.title = "Quads Test";
-    app.config.openglMajorVersion = 4;
-    app.config.openglMinorVersion = 3;
-    app.config.enableVSync = false;
-    app.config.showWindow = false;
+    Config config{};
+    config.title = "Quads Test";
+    config.openglMajorVersion = 4;
+    config.openglMinorVersion = 3;
+    config.enableVSync = false;
+    config.showWindow = false;
 
     int maxSteps = 10;
     int surfelSize = 4;
     std::string scenePath = "../assets/scenes/sponza.json";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
-            app.config.width = atoi(argv[i + 1]);
+            config.width = atoi(argv[i + 1]);
             i++;
         }
         else if (!strcmp(argv[i], "-h") && i + 1 < argc) {
-            app.config.height = atoi(argv[i + 1]);
+            config.height = atoi(argv[i + 1]);
             i++;
         }
         else if (!strcmp(argv[i], "-s") && i + 1 < argc) {
@@ -46,11 +46,11 @@ int main(int argc, char** argv) {
             i++;
         }
         else if (!strcmp(argv[i], "-d") && i + 1 < argc) {
-            app.config.showWindow = atoi(argv[i + 1]);
+            config.showWindow = atoi(argv[i + 1]);
             i++;
         }
         else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
-            app.config.enableVSync = atoi(argv[i + 1]);
+            config.enableVSync = atoi(argv[i + 1]);
             i++;
         }
         else if (!strcmp(argv[i], "-m") && i + 1 < argc) {
@@ -63,13 +63,13 @@ int main(int argc, char** argv) {
         }
     }
 
-    auto window = std::make_shared<GLFWWindow>(app.config);
+    auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
 
-    app.config.window = window;
-    app.config.guiManager = guiManager;
+    config.window = window;
+    config.guiManager = guiManager;
 
-    app.init();
+    OpenGLApp app(config);
 
     unsigned int screenWidth, screenHeight;
     window->getSize(&screenWidth, &screenHeight);
@@ -93,11 +93,11 @@ int main(int argc, char** argv) {
         ImGui::End();
 
         glm::vec2 winSize = glm::vec2(screenWidth, screenHeight);
-        glm::vec2 guiSize = winSize * glm::vec2(0.4f, 0.55f);
+        glm::vec2 guiSize = winSize * glm::vec2(0.4f, 0.3f);
         ImGui::SetNextWindowSize(ImVec2(guiSize.x, guiSize.y), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowPos(ImVec2(10, 60), ImGuiCond_FirstUseEver);
         flags = 0;
-        ImGui::Begin(app.config.title.c_str(), 0, flags);
+        ImGui::Begin(config.title.c_str(), 0, flags);
         ImGui::TextColored(ImVec4(1,1,0,1), "OpenGL Version: %s", glGetString(GL_VERSION));
         ImGui::TextColored(ImVec4(1,1,0,1), "GPU: %s\n", glGetString(GL_RENDERER));
         ImGui::End();
@@ -178,7 +178,7 @@ int main(int argc, char** argv) {
             camera.updateViewMatrix();
 
             // render all objects in scene
-            app.renderer.drawObjects(scene, camera);
+            app.renderer->drawObjects(scene, camera);
 
             genQuadsShader.bind();
             genQuadsShader.setMat4("viewInverse", glm::inverse(camera.getViewMatrix()));
@@ -186,21 +186,21 @@ int main(int argc, char** argv) {
             genQuadsShader.setFloat("near", camera.near);
             genQuadsShader.setFloat("far", camera.far);
             genQuadsShader.setInt("surfelSize", surfelSize);
-            glBindImageTexture(0, app.renderer.gBuffer.positionBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
-            glBindImageTexture(1, app.renderer.gBuffer.normalsBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
-            app.renderer.gBuffer.depthBuffer.bind(2);
+            glBindImageTexture(0, app.renderer->gBuffer.positionBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
+            glBindImageTexture(1, app.renderer->gBuffer.normalsBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
+            app.renderer->gBuffer.depthBuffer.bind(2);
             genQuadsShader.dispatch(width, height, 1);
             genQuadsShader.unbind();
 
             // render to screen
-            // app.renderer.drawToScreen(screenShader);
-            app.renderer.drawToRenderTarget(screenShader, renderTarget);
+            // app.renderer->drawToScreen(screenShader);
+            app.renderer->drawToRenderTarget(screenShader, renderTarget);
 
             std::cout << "\tRendering Time: " << glfwGetTime() - startTime << "s" << std::endl;
             startTime = glfwGetTime();
 
-            // app.renderer.gBuffer.colorBuffer.saveTextureToPNG("imgs/color_" + label + "_" + std::to_string(timestamp) + ".png");
-            // app.renderer.gBuffer.depthBuffer.saveDepthToFile("imgs/depth1.bin");
+            // app.renderer->gBuffer.colorBuffer.saveTextureToPNG("imgs/color_" + label + "_" + std::to_string(timestamp) + ".png");
+            // app.renderer->gBuffer.depthBuffer.saveDepthToFile("imgs/depth1.bin");
             renderTarget.bind();
             renderTarget.colorBuffer.saveTextureToPNG("imgs/color_" + label + "_" + std::to_string(timestamp) + ".png");
             renderTarget.unbind();

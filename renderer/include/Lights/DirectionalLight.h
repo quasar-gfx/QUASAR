@@ -33,11 +33,8 @@ public:
     explicit DirectionalLight(const DirectionalLightCreateParams &params)
             : direction(params.direction), distance(params.distance),
               orthoBoxSize(params.orthoBoxSize),
-              Light(params.color, params.intensity, params.zNear, params.zFar) {
-        shadowMapRenderTarget.init({
-            .width = shadowRes,
-            .height = shadowRes
-        });
+              Light(params.color, params.intensity, params.zNear, params.zFar),
+              shadowMapRenderTarget({ .width = shadowRes, .height = shadowRes }) {
         updateLightSpaceMatrix();
     }
 

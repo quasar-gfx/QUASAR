@@ -55,9 +55,8 @@ public:
             { {-1.0f, -1.0f,  1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },  // Top Left
             { {-1.0f, -1.0f, -1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} }   // Bottom Left
         };
-        this->material = material;
 
-        init();
+        createBuffers();
     }
 
     ~Cube() {

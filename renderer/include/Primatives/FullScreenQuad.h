@@ -10,13 +10,7 @@
 
 class FullScreenQuad {
 public:
-    explicit FullScreenQuad() = default;
-
-    ~FullScreenQuad() {
-        cleanup();
-    };
-
-    void init() {
+    explicit FullScreenQuad() {
         // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
         std::vector<FSQuadVertex> quadVertices = {
             { {-1.0f, 1.0f, 0.0f}, {0.0f, 1.0f} },
@@ -43,6 +37,10 @@ public:
 
         glBindVertexArray(0);
     }
+
+    ~FullScreenQuad() {
+        cleanup();
+    };
 
     void draw() {
         // disable depth test so screen-space quad isn't discarded due to depth test.

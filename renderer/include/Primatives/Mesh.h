@@ -76,8 +76,8 @@ public:
               material(params.material),
               wireframe(params.wireframe), pointcloud(params.pointcloud),
               IBL(params.IBL),
-                Entity() {
-        init();
+              Entity() {
+        createBuffers();
     }
 
     void bindSceneAndCamera(Scene &scene, Camera &camera, glm::mat4 model, Material* overrideMaterial = nullptr) override;
@@ -92,6 +92,6 @@ public:
 protected:
     TextureID VAO, VBO, EBO;
 
-    void init();
+    void createBuffers();
 };
 #endif

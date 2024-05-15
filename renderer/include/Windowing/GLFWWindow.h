@@ -10,12 +10,12 @@
 
 class GLFWWindow final : public Window {
 public:
+    GLFWwindow* window;
+
     explicit GLFWWindow(const Config &config);
     ~GLFWWindow() {
         glfwTerminate();
     }
-
-    GLFWwindow* window;
 
     void getSize(unsigned int* width, unsigned int* height) override;
 

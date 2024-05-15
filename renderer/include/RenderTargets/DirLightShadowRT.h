@@ -8,28 +8,21 @@ public:
     Texture colorBuffer;
     Texture depthBuffer;
 
-    explicit DirLightShadowRT() = default;
-
-    void init(const RenderTargetCreateParams &params) override {
-        width = params.width;
-        height = params.height;
-
-        depthBuffer = Texture({
-            .width = width,
-            .height = height,
-            .internalFormat = GL_DEPTH_COMPONENT32F,
-            .format = GL_DEPTH_COMPONENT,
-            .type = GL_FLOAT,
-            .wrapS = GL_CLAMP_TO_BORDER,
-            .wrapT = GL_CLAMP_TO_BORDER,
-            .minFilter = GL_LINEAR,
-            .magFilter = GL_LINEAR,
-            .hasBorder = true
-        });
+    explicit DirLightShadowRT(const RenderTargetCreateParams &params)
+            : RenderTargetBase(params),
+              depthBuffer({ .width = width,
+                            .height = height,
+                            .internalFormat = GL_DEPTH_COMPONENT32F,
+                            .format = GL_DEPTH_COMPONENT,
+                            .type = GL_FLOAT,
+                            .wrapS = GL_CLAMP_TO_BORDER,
+                            .wrapT = GL_CLAMP_TO_BORDER,
+                            .minFilter = GL_LINEAR,
+                            .magFilter = GL_LINEAR,
+                            .hasBorder = true }) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LESS);
 
-        framebuffer.init();
         framebuffer.bind();
         framebuffer.attachTexture(depthBuffer, GL_DEPTH_ATTACHMENT);
 

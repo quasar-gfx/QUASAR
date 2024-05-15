@@ -8,40 +8,24 @@ public:
     Texture colorBuffer;
     Texture depthBuffer;
 
-    explicit RenderTarget() = default;
-
-    explicit RenderTarget(const RenderTargetCreateParams &params) {
-        init(params);
-    }
-
-    void init(const RenderTargetCreateParams &params) override {
-        width = params.width;
-        height = params.height;
-
-        colorBuffer = Texture({
-            .width = width,
-            .height = height,
-            .internalFormat = params.internalFormat,
-            .format = params.format,
-            .type = params.type,
-            .wrapS = params.wrapS,
-            .wrapT = params.wrapT,
-            .minFilter = params.minFilter,
-            .magFilter = params.magFilter
-        });
-
-        depthBuffer = Texture({
-            .width = width,
-            .height = height,
-            .internalFormat = GL_DEPTH_COMPONENT32F,
-            .format = GL_DEPTH_COMPONENT,
-            .type = GL_FLOAT,
-            .minFilter = GL_NEAREST,
-            .magFilter = GL_NEAREST
-        });
-
-        framebuffer.init();
-
+    explicit RenderTarget(const RenderTargetCreateParams &params)
+        : RenderTargetBase(params),
+            colorBuffer({ .width = width,
+                          .height = height,
+                          .internalFormat = params.internalFormat,
+                          .format = params.format,
+                          .type = params.type,
+                          .wrapS = params.wrapS,
+                          .wrapT = params.wrapT,
+                          .minFilter = params.minFilter,
+                          .magFilter = params.magFilter }),
+            depthBuffer({ .width = width,
+                          .height = height,
+                          .internalFormat = GL_DEPTH_COMPONENT32F,
+                          .format = GL_DEPTH_COMPONENT,
+                          .type = GL_FLOAT,
+                          .minFilter = GL_NEAREST,
+                          .magFilter = GL_NEAREST }) {
         framebuffer.bind();
         framebuffer.attachTexture(colorBuffer, GL_COLOR_ATTACHMENT0);
         framebuffer.attachTexture(depthBuffer, GL_DEPTH_ATTACHMENT);

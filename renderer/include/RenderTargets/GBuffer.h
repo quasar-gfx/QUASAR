@@ -10,59 +10,42 @@ public:
     Texture colorBuffer;
     Texture depthBuffer;
 
-    explicit GeometryBuffer() = default;
-
-    void init(const RenderTargetCreateParams &params) override {
-        width = params.width;
-        height = params.height;
-
-        positionBuffer = Texture({
-            .width = width,
-            .height = height,
-            .internalFormat = GL_RGBA16F,
-            .format = GL_RGBA,
-            .type = GL_FLOAT,
-            .wrapS = GL_CLAMP_TO_EDGE,
-            .wrapT = GL_CLAMP_TO_EDGE,
-            .minFilter = GL_NEAREST,
-            .magFilter = GL_NEAREST
-        });
-
-        normalsBuffer = Texture({
-            .width = width,
-            .height = height,
-            .internalFormat = GL_RGBA16F,
-            .format = GL_RGBA,
-            .type = GL_FLOAT,
-            .wrapS = GL_CLAMP_TO_EDGE,
-            .wrapT = GL_CLAMP_TO_EDGE,
-            .minFilter = GL_NEAREST,
-            .magFilter = GL_NEAREST
-        });
-
-        colorBuffer = Texture({
-            .width = width,
-            .height = height,
-            .internalFormat = GL_RGBA16F,
-            .format = GL_RGBA,
-            .type = GL_FLOAT,
-            .wrapS = GL_CLAMP_TO_EDGE,
-            .wrapT = GL_CLAMP_TO_EDGE,
-            .minFilter = GL_LINEAR,
-            .magFilter = GL_LINEAR
-        });
-
-        depthBuffer = Texture({
-            .width = width,
-            .height = height,
-            .internalFormat = GL_DEPTH_COMPONENT32F,
-            .format = GL_DEPTH_COMPONENT,
-            .type = GL_FLOAT,
-            .minFilter = GL_NEAREST,
-            .magFilter = GL_NEAREST
-        });
-
-        framebuffer.init();
+    explicit GeometryBuffer(const RenderTargetCreateParams &params)
+            : RenderTargetBase(params),
+            positionBuffer({ .width = width,
+                             .height = height,
+                             .internalFormat = GL_RGBA16F,
+                             .format = GL_RGBA,
+                             .type = GL_FLOAT,
+                             .wrapS = GL_CLAMP_TO_EDGE,
+                             .wrapT = GL_CLAMP_TO_EDGE,
+                             .minFilter = GL_NEAREST,
+                             .magFilter = GL_NEAREST }),
+            normalsBuffer({  .width = width,
+                            .height = height,
+                            .internalFormat = GL_RGBA16F,
+                            .format = GL_RGBA,
+                            .type = GL_FLOAT,
+                            .wrapS = GL_CLAMP_TO_EDGE,
+                            .wrapT = GL_CLAMP_TO_EDGE,
+                            .minFilter = GL_NEAREST,
+                            .magFilter = GL_NEAREST }),
+            colorBuffer({ .width = width,
+                          .height = height,
+                          .internalFormat = GL_RGBA16F,
+                          .format = GL_RGBA,
+                          .type = GL_FLOAT,
+                          .wrapS = GL_CLAMP_TO_EDGE,
+                          .wrapT = GL_CLAMP_TO_EDGE,
+                          .minFilter = GL_LINEAR,
+                          .magFilter = GL_LINEAR }),
+            depthBuffer(  { .width = width,
+                          .height = height,
+                          .internalFormat = GL_DEPTH_COMPONENT32F,
+                          .format = GL_DEPTH_COMPONENT,
+                          .type = GL_FLOAT,
+                          .minFilter = GL_NEAREST,
+                          .magFilter = GL_NEAREST }) {
 
         framebuffer.bind();
         framebuffer.attachTexture(positionBuffer, GL_COLOR_ATTACHMENT0);

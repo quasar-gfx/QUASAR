@@ -60,9 +60,7 @@ public:
             }
         }
 
-        this->material = material;
-
-        init();
+        createBuffers();
     }
 
     ~Sphere() {

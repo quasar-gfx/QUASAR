@@ -14,22 +14,19 @@
 #include <Scene.h>
 #include <Camera.h>
 #include <Lights/Lights.h>
-#include <FullScreenQuad.h>
+#include <Primatives/FullScreenQuad.h>
 #include <RenderTargets/GBuffer.h>
 
 class OpenGLRenderer {
 public:
     unsigned int width, height;
 
-    std::shared_ptr<Shader> skyboxShader;
-
     GeometryBuffer gBuffer;
     FullScreenQuad outputFsQuad;
 
-    explicit OpenGLRenderer() = default;
+    explicit OpenGLRenderer(unsigned int width, unsigned int height);
     ~OpenGLRenderer() = default;
 
-    void init(unsigned int width, unsigned int height);
     void updateDirLightShadow(Scene &scene, Camera &camera);
     void updatePointLightShadows(Scene &scene, Camera &camera);
     void drawSkyBox(Scene &scene, Camera &camera);
@@ -39,6 +36,8 @@ public:
     void resize(unsigned int width, unsigned int height);
 
 private:
+    Shader skyboxShader;
+
     void drawNode(Scene &scene, Camera &camera, Node* node, glm::mat4 parentTransform, Material* overrideMaterial = nullptr);
 };
 

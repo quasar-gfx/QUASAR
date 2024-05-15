@@ -11,7 +11,7 @@
 #include <Camera.h>
 #include <Lights/Lights.h>
 #include <RenderTargets/RenderTarget.h>
-#include <FullScreenQuad.h>
+#include <Primatives/FullScreenQuad.h>
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 #include <Windowing/GLFWWindow.h>
@@ -22,19 +22,19 @@
 #include <PoseReceiver.h>
 
 int main(int argc, char** argv) {
-    OpenGLApp app{};
-    app.config.title = "Streamer";
+    Config config{};
+    config.title = "Streamer";
 
     std::string outputUrl = "udp://127.0.0.1:1234";
     std::string poseURL = "udp://127.0.0.1:4321";
     std::string scenePath = "../assets/scenes/sponza.json";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
-            app.config.width = atoi(argv[i + 1]);
+            config.width = atoi(argv[i + 1]);
             i++;
         }
         else if (!strcmp(argv[i], "-h") && i + 1 < argc) {
-            app.config.height = atoi(argv[i + 1]);
+            config.height = atoi(argv[i + 1]);
             i++;
         }
         else if (!strcmp(argv[i], "-o") && i + 1 < argc) {
@@ -50,22 +50,22 @@ int main(int argc, char** argv) {
             i++;
         }
         else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
-            app.config.enableVSync = atoi(argv[i + 1]);
+            config.enableVSync = atoi(argv[i + 1]);
             i++;
         }
         else if (!strcmp(argv[i], "-d") && i + 1 < argc) {
-            app.config.showWindow = atoi(argv[i + 1]);
+            config.showWindow = atoi(argv[i + 1]);
             i++;
         }
     }
 
-    auto window = std::make_shared<GLFWWindow>(app.config);
+    auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
 
-    app.config.window = window;
-    app.config.guiManager = guiManager;
+    config.window = window;
+    config.guiManager = guiManager;
 
-    app.init();
+    OpenGLApp app(config);
 
     unsigned int screenWidth, screenHeight;
     window->getSize(&screenWidth, &screenHeight);
@@ -89,11 +89,11 @@ int main(int argc, char** argv) {
         ImGui::End();
 
         glm::vec2 winSize = glm::vec2(screenWidth, screenHeight);
-        glm::vec2 guiSize = winSize * glm::vec2(0.4f, 0.55f);
+        glm::vec2 guiSize = winSize * glm::vec2(0.4f, 0.3f);
         ImGui::SetNextWindowSize(ImVec2(guiSize.x, guiSize.y), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowPos(ImVec2(10, 60), ImGuiCond_FirstUseEver);
         flags = 0;
-        ImGui::Begin(app.config.title.c_str(), 0, flags);
+        ImGui::Begin(config.title.c_str(), 0, flags);
         ImGui::TextColored(ImVec4(1,1,0,1), "OpenGL Version: %s", glGetString(GL_VERSION));
         ImGui::TextColored(ImVec4(1,1,0,1), "GPU: %s\n", glGetString(GL_RENDERER));
 
@@ -145,7 +145,7 @@ int main(int argc, char** argv) {
         .magFilter = GL_LINEAR
     });
 
-    int ret = videoStreamer.start(renderTarget, outputUrl);
+    int ret = videoStreamer.start(&renderTarget, outputUrl);
     if (ret < 0) {
         std::cerr << "Failed to initialize FFMpeg Video Streamer" << std::endl;
         return ret;
@@ -215,11 +215,11 @@ int main(int argc, char** argv) {
         scene.pointLights[3]->setPosition(pointLightPositions[3] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
 
         // render all objects in scene
-        app.renderer.drawObjects(scene, camera);
+        app.renderer->drawObjects(scene, camera);
 
         // render to screen
-        app.renderer.drawToScreen(screenShader);
-        app.renderer.drawToRenderTarget(screenShader, renderTarget);
+        app.renderer->drawToScreen(screenShader);
+        app.renderer->drawToRenderTarget(screenShader, renderTarget);
 
         // send video frame
         if (poseId != -1) {
