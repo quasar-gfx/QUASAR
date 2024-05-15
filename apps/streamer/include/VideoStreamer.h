@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include <Texture.h>
+#include <RenderTargets/RenderTarget.h>
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -38,7 +38,7 @@ public:
         return 1000.0f / stats.totalTimeToSendFrame;
     }
 
-    int start(Texture &texture, const std::string outputUrl);
+    int start(RenderTarget &renderTarget, const std::string outputUrl);
     void cleanup();
 
     void sendFrame(unsigned int poseId);
@@ -56,7 +56,7 @@ private:
 
     SwsContext* conversionContext;
 
-    Texture sourceTexture;
+    RenderTarget renderTarget;
     uint8_t* rgbaData;
     AVFrame* frame = av_frame_alloc();
 };

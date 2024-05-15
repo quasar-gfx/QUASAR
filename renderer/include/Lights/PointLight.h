@@ -3,7 +3,7 @@
 
 #include <Lights/Light.h>
 #include <CubeMap.h>
-#include <Framebuffer.h>
+#include <RenderTargets/PointLightShadowRT.h>
 #include <Materials/PointShadowMapMaterial.h>
 
 struct PointLightCreateParams {
@@ -27,13 +27,16 @@ public:
     unsigned int channel = -1;
 
     glm::mat4 lookAtPerFace[NUM_CUBEMAP_FACES];
-    PointLightShadowBuffer shadowMapFramebuffer;
+    PointLightShadowRT shadowMapRenderTarget;
     PointShadowMapMaterial shadowMapMaterial;
 
     explicit PointLight(const PointLightCreateParams &params)
             : position(params.position), constant(params.constant), linear(params.linear), quadratic(params.quadratic),
                 Light(params.color, params.intensity, params.zNear, params.zFar) {
-        shadowMapFramebuffer.createColorAndDepthBuffers(shadowRes, shadowRes);
+        shadowMapRenderTarget.init({
+            .width = shadowRes,
+            .height = shadowRes
+        });
 
         shadowProjectionMat = glm::perspective(glm::radians(90.0f), 1.0f, params.zNear, params.zFar);
 

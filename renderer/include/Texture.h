@@ -48,7 +48,7 @@ public:
               wrapS(params.wrapS), wrapT(params.wrapT),
               minFilter(params.minFilter), magFilter(params.magFilter) {
         if (params.path == "") {
-            create(params);
+            init(params);
         }
         else {
             loadFromFile(params);
@@ -96,7 +96,7 @@ public:
     void saveDepthToFile(std::string filename);
 
 private:
-    void create(const TextureCreateParams &params);
+    void init(const TextureCreateParams &params);
     void loadFromFile(const TextureCreateParams &params);
 };
 

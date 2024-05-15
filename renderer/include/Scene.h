@@ -9,7 +9,7 @@
 #include <Lights/Lights.h>
 #include <CubeMap.h>
 #include <Primatives/Mesh.h>
-#include <Framebuffer.h>
+#include <RenderTargets/RenderTarget.h>
 #include <FullScreenQuad.h>
 
 class Scene {
@@ -65,7 +65,7 @@ public:
     static const unsigned int numTextures = 3;
 
 private:
-    Framebuffer captureFramebuffer;
+    RenderTarget captureRenderTarget;
     Renderbuffer captureRenderBuffer;
 };
 

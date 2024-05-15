@@ -25,8 +25,9 @@ void OpenGLRenderer::init(unsigned int width, unsigned int height) {
     };
     skyboxShader = std::make_shared<Shader>(skyboxShaderParams);
 
+    gBuffer.init({ .width = width, .height = height });
+
     outputFsQuad.init();
-    gBuffer.createBuffers(width, height);
 }
 
 void OpenGLRenderer::updateDirLightShadow(Scene &scene, Camera &camera) {
@@ -34,21 +35,21 @@ void OpenGLRenderer::updateDirLightShadow(Scene &scene, Camera &camera) {
         return;
     }
 
-    scene.directionalLight->shadowMapFramebuffer.bind();
+    scene.directionalLight->shadowMapRenderTarget.bind();
     glClear(GL_DEPTH_BUFFER_BIT);
 
     for (auto& child : scene.children) {
         drawNode(scene, camera, child, glm::mat4(1.0f), &scene.directionalLight->shadowMapMaterial);
     }
 
-    scene.directionalLight->shadowMapFramebuffer.unbind();
+    scene.directionalLight->shadowMapRenderTarget.unbind();
 }
 
 void OpenGLRenderer::updatePointLightShadows(Scene &scene, Camera &camera) {
     for (int i = 0; i < scene.pointLights.size(); i++) {
         auto pointLight = scene.pointLights[i];
 
-        pointLight->shadowMapFramebuffer.bind();
+        pointLight->shadowMapRenderTarget.bind();
         glClear(GL_DEPTH_BUFFER_BIT);
 
         pointLight->shadowMapMaterial.bind();
@@ -65,7 +66,7 @@ void OpenGLRenderer::updatePointLightShadows(Scene &scene, Camera &camera) {
             drawNode(scene, camera, child, glm::mat4(1.0f), &pointLight->shadowMapMaterial);
         }
 
-        pointLight->shadowMapFramebuffer.unbind();
+        pointLight->shadowMapRenderTarget.unbind();
     }
 }
 
@@ -149,10 +150,10 @@ void OpenGLRenderer::drawToScreen(Shader &screenShader) {
     screenShader.unbind();
 }
 
-void OpenGLRenderer::drawToFramebuffer(Shader &screenShader, Framebuffer &framebuffer) {
-    framebuffer.bind();
+void OpenGLRenderer::drawToRenderTarget(Shader &screenShader, RenderTarget &renderTarget) {
+    renderTarget.bind();
     drawToScreen(screenShader);
-    framebuffer.unbind();
+    renderTarget.unbind();
 }
 
 void OpenGLRenderer::resize(unsigned int width, unsigned int height) {

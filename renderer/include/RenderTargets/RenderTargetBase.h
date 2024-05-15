@@ -1,0 +1,56 @@
+#ifndef RENDER_BASE_TARGET_H
+#define RENDER_BASE_TARGET_H
+
+#include <Texture.h>
+#include <CubeMap.h>
+#include <Framebuffer.h>
+
+struct RenderTargetCreateParams {
+    unsigned int width = 0;
+    unsigned int height = 0;
+    GLint internalFormat = GL_RGB;
+    GLenum format = GL_RGB;
+    GLenum type = GL_UNSIGNED_BYTE;
+    GLint wrapS = GL_CLAMP_TO_EDGE;
+    GLint wrapT = GL_CLAMP_TO_EDGE;
+    GLint minFilter = GL_LINEAR;
+    GLint magFilter = GL_LINEAR;
+};
+
+class RenderTargetBase {
+public:
+    unsigned int width, height;
+
+    Framebuffer framebuffer;
+
+    explicit RenderTargetBase() = default;
+
+    ~RenderTargetBase() {
+        cleanup();
+    }
+
+    virtual void init(const RenderTargetCreateParams &params) {
+        width = params.width;
+        height = params.height;
+    }
+
+    virtual void resize(unsigned int width, unsigned int height) {
+        this->width = width;
+        this->height = height;
+    }
+
+    void bind() {
+        framebuffer.bind();
+        glViewport(0, 0, width, height);
+    }
+
+    void unbind() {
+        framebuffer.unbind();
+    }
+
+    virtual void cleanup() {
+        framebuffer.cleanup();
+    }
+};
+
+#endif // RENDER_BASE_TARGET_H

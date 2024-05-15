@@ -15,15 +15,16 @@
 #include <Camera.h>
 #include <Lights/Lights.h>
 #include <FullScreenQuad.h>
+#include <RenderTargets/GBuffer.h>
 
 class OpenGLRenderer {
 public:
     unsigned int width, height;
 
-    FullScreenQuad outputFsQuad;
-    GeometryBuffer gBuffer;
-
     std::shared_ptr<Shader> skyboxShader;
+
+    GeometryBuffer gBuffer;
+    FullScreenQuad outputFsQuad;
 
     explicit OpenGLRenderer() = default;
     ~OpenGLRenderer() = default;
@@ -34,7 +35,7 @@ public:
     void drawSkyBox(Scene &scene, Camera &camera);
     void drawObjects(Scene &scene, Camera &camera);
     void drawToScreen(Shader &screenShader);
-    void drawToFramebuffer(Shader &screenShader, Framebuffer &framebuffer);
+    void drawToRenderTarget(Shader &screenShader, RenderTarget &renderTarget);
     void resize(unsigned int width, unsigned int height);
 
 private:

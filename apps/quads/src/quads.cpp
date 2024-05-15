@@ -12,6 +12,7 @@
 #include <Camera.h>
 #include <Lights/Lights.h>
 #include <FullScreenQuad.h>
+#include <RenderTargets/RenderTarget.h>
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 #include <Windowing/GLFWWindow.h>
@@ -140,8 +141,17 @@ int main(int argc, char** argv) {
     genQuadsShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
     genQuadsShader.unbind();
 
-    Framebuffer outputFramebuffer;
-    outputFramebuffer.createColorAndDepthBuffers(screenWidth, screenHeight);
+    RenderTarget renderTarget({
+        .width = screenWidth,
+        .height = screenHeight,
+        .internalFormat = GL_RGBA16,
+        .format = GL_RGBA,
+        .type = GL_FLOAT,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_LINEAR,
+        .magFilter = GL_LINEAR
+    });
 
     // camera.setProjectionMatrix(glm::radians(120.0f), (float)screenWidth / (float)screenHeight, 0.1f, 1000.0f);
 
@@ -184,16 +194,16 @@ int main(int argc, char** argv) {
 
             // render to screen
             // app.renderer.drawToScreen(screenShader);
-            app.renderer.drawToFramebuffer(screenShader, outputFramebuffer);
+            app.renderer.drawToRenderTarget(screenShader, renderTarget);
 
             std::cout << "\tRendering Time: " << glfwGetTime() - startTime << "s" << std::endl;
             startTime = glfwGetTime();
 
             // app.renderer.gBuffer.colorBuffer.saveTextureToPNG("imgs/color_" + label + "_" + std::to_string(timestamp) + ".png");
             // app.renderer.gBuffer.depthBuffer.saveDepthToFile("imgs/depth1.bin");
-            outputFramebuffer.bind();
-            outputFramebuffer.colorBuffer.saveTextureToPNG("imgs/color_" + label + "_" + std::to_string(timestamp) + ".png");
-            outputFramebuffer.unbind();
+            renderTarget.bind();
+            renderTarget.colorBuffer.saveTextureToPNG("imgs/color_" + label + "_" + std::to_string(timestamp) + ".png");
+            renderTarget.unbind();
 
             std::cout << "\tSaving Texture Time: " << glfwGetTime() - startTime << "s" << std::endl;
             startTime = glfwGetTime();

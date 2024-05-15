@@ -10,6 +10,7 @@
 #include <Scene.h>
 #include <Camera.h>
 #include <Lights/Lights.h>
+#include <RenderTargets/RenderTarget.h>
 #include <FullScreenQuad.h>
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
@@ -132,7 +133,19 @@ int main(int argc, char** argv) {
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
 
-    int ret = videoStreamer.start(app.renderer.gBuffer.colorBuffer, outputUrl);
+    RenderTarget renderTarget({
+        .width = screenWidth,
+        .height = screenHeight,
+        .internalFormat = GL_SRGB_ALPHA,
+        .format = GL_RGBA,
+        .type = GL_UNSIGNED_BYTE,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_LINEAR,
+        .magFilter = GL_LINEAR
+    });
+
+    int ret = videoStreamer.start(renderTarget, outputUrl);
     if (ret < 0) {
         std::cerr << "Failed to initialize FFMpeg Video Streamer" << std::endl;
         return ret;
@@ -206,6 +219,7 @@ int main(int argc, char** argv) {
 
         // render to screen
         app.renderer.drawToScreen(screenShader);
+        app.renderer.drawToRenderTarget(screenShader, renderTarget);
 
         // send video frame
         if (poseId != -1) {

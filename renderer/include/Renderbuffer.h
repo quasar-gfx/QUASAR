@@ -11,7 +11,7 @@ public:
 
     explicit Renderbuffer() = default;
 
-    void create(unsigned int width, unsigned int height, GLenum internalFormat = GL_DEPTH_COMPONENT24) {
+    void init(unsigned int width, unsigned int height, GLenum internalFormat = GL_DEPTH_COMPONENT24) {
         this->width = width;
         this->height = height;
 

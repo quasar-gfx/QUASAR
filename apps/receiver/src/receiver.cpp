@@ -5,7 +5,6 @@
 #include <Shaders/Shader.h>
 #include <Texture.h>
 #include <Primatives/Primatives.h>
-#include <Materials/DiffSpecMaterial.h>
 #include <CubeMap.h>
 #include <Scene.h>
 #include <Camera.h>
@@ -63,7 +62,7 @@ int main(int argc, char** argv) {
     Scene scene = Scene();
     Camera camera = Camera(screenWidth, screenHeight);
 
-    VideoTexture videoTexture = VideoTexture({
+    VideoTexture videoTexture({
         .width = app.config.width,
         .height = app.config.height,
         .internalFormat = GL_RGB,

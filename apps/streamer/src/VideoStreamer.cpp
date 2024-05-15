@@ -3,8 +3,8 @@
 #undef av_err2str
 #define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
 
-int VideoStreamer::start(Texture &texture, const std::string outputUrl) {
-    this->sourceTexture = texture;
+int VideoStreamer::start(RenderTarget &renderTarget, const std::string outputUrl) {
+    this->renderTarget = renderTarget;
     this->outputUrl = outputUrl;
 
     /* BEGIN: Setup codec to encode output (video to URL) */
@@ -26,8 +26,8 @@ int VideoStreamer::start(Texture &texture, const std::string outputUrl) {
         return -1;
     }
 
-    outputCodecContext->width = texture.width;
-    outputCodecContext->height = texture.height;
+    outputCodecContext->width = renderTarget.width;
+    outputCodecContext->height = renderTarget.height;
     outputCodecContext->time_base = {1, targetFrameRate};
     outputCodecContext->framerate = {targetFrameRate, 1};
     outputCodecContext->pix_fmt = this->pixelFormat;
@@ -74,20 +74,20 @@ int VideoStreamer::start(Texture &texture, const std::string outputUrl) {
     }
     /* END: Setup output (to write video to URL) */
 
-    conversionContext = sws_getContext(texture.width, texture.height, AV_PIX_FMT_RGBA,
-                                       texture.width, texture.height, this->pixelFormat,
+    conversionContext = sws_getContext(renderTarget.width, renderTarget.height, AV_PIX_FMT_RGBA,
+                                       renderTarget.width, renderTarget.height, this->pixelFormat,
                                        SWS_BICUBIC, nullptr, nullptr, nullptr);
     if (!conversionContext) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate conversion context\n");
         return -1;
     }
 
-    rgbaData = new uint8_t[texture.width * texture.height * 4];
+    rgbaData = new uint8_t[renderTarget.width * renderTarget.height * 4];
 
     // initialize frame
     frame->format = this->pixelFormat;
-    frame->width = sourceTexture.width;
-    frame->height = sourceTexture.height;
+    frame->width = renderTarget.width;
+    frame->height = renderTarget.height;
 
     return 0;
 }
@@ -111,14 +111,14 @@ void VideoStreamer::sendFrame(unsigned int poseId) {
     {
         uint64_t startCopyTime = av_gettime();
 
-        sourceTexture.bind(0);
-        glReadPixels(0, 0, sourceTexture.width, sourceTexture.height, GL_RGBA, GL_UNSIGNED_BYTE, rgbaData);
-        sourceTexture.unbind();
+        renderTarget.bind();
+        glReadPixels(0, 0, renderTarget.width, renderTarget.height, GL_RGBA, GL_UNSIGNED_BYTE, rgbaData);
+        renderTarget.unbind();
 
         const uint8_t* srcData[] = { rgbaData };
-        int srcStride[] = { static_cast<int>(sourceTexture.width * 4) }; // RGBA has 4 bytes per pixel
+        int srcStride[] = { static_cast<int>(renderTarget.width * 4) }; // RGBA has 4 bytes per pixel
 
-        sws_scale(conversionContext, srcData, srcStride, 0, sourceTexture.height, frame->data, frame->linesize);
+        sws_scale(conversionContext, srcData, srcStride, 0, renderTarget.height, frame->data, frame->linesize);
 
         stats.timeToCopyFrame = (av_gettime() - startCopyTime) / MICROSECONDS_IN_MILLISECOND;
     }

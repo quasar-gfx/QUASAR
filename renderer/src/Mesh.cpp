@@ -51,7 +51,7 @@ void Mesh::bindSceneAndCamera(Scene &scene, Camera &camera, glm::mat4 model, Mat
         }
         else {
             materialToUse->shader->setInt("dirLightShadowMap", texIdx);
-            scene.directionalLight->shadowMapFramebuffer.depthBuffer.bind(texIdx);
+            scene.directionalLight->shadowMapRenderTarget.depthBuffer.bind(texIdx);
             materialToUse->shader->setMat4("lightSpaceMatrix", scene.directionalLight->lightSpaceMatrix);
         }
     }
@@ -61,7 +61,7 @@ void Mesh::bindSceneAndCamera(Scene &scene, Camera &camera, glm::mat4 model, Mat
         auto pointLight = scene.pointLights[i];
         pointLight->setChannel(i);
         materialToUse->shader->setInt("pointLightShadowMaps[" + std::to_string(i) + "]", texIdx);
-        pointLight->shadowMapFramebuffer.depthCubeMap.bind(texIdx);
+        pointLight->shadowMapRenderTarget.depthCubeMap.bind(texIdx);
         pointLight->bindMaterial(materialToUse);
         texIdx++;
     }

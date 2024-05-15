@@ -1,8 +1,10 @@
 #ifndef DIRECTIONAL_LIGHT_H
 #define DIRECTIONAL_LIGHT_H
 
+#include <memory>
+
 #include <Lights/Light.h>
-#include <Framebuffer.h>
+#include <RenderTargets/DirLightShadowRT.h>
 #include <Materials/DirShadowMapMaterial.h>
 
 struct DirectionalLightCreateParams {
@@ -25,14 +27,17 @@ public:
     glm::mat4 lightView = glm::mat4(0.0);
     glm::mat4 lightSpaceMatrix = glm::mat4(0.0);
 
-    DirLightShadowBuffer shadowMapFramebuffer;
+    DirLightShadowRT shadowMapRenderTarget;
     DirShadowMapMaterial shadowMapMaterial;
 
     explicit DirectionalLight(const DirectionalLightCreateParams &params)
             : direction(params.direction), distance(params.distance),
               orthoBoxSize(params.orthoBoxSize),
               Light(params.color, params.intensity, params.zNear, params.zFar) {
-        shadowMapFramebuffer.createColorAndDepthBuffers(shadowRes, shadowRes);
+        shadowMapRenderTarget.init({
+            .width = shadowRes,
+            .height = shadowRes
+        });
         updateLightSpaceMatrix();
     }
 
