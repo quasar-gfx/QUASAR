@@ -80,6 +80,7 @@ public:
 
         positionBuffer.resize(width, height);
         normalsBuffer.resize(width, height);
+        idBuffer.resize(width, height);
         colorBuffer.resize(width, height);
         depthBuffer.resize(width, height);
     }

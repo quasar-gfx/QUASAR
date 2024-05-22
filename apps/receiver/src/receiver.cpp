@@ -191,8 +191,8 @@ int main(int argc, char** argv) {
             screenShader.setMat4("projection", proj);
             screenShader.setMat4("view", view);
 
-            screenShader.setInt("videoTexture", 4);
-            videoTexture.bind(4);
+            screenShader.setInt("videoTexture", 5);
+            videoTexture.bind(5);
             // render video frame
             pose_id_t poseId = videoTexture.draw();
 
