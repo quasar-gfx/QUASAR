@@ -127,15 +127,18 @@ void OpenGLRenderer::drawToScreen(Shader &screenShader) {
     gBuffer.positionBuffer.bind(0);
     screenShader.setInt("screenNormals", 1);
     gBuffer.normalsBuffer.bind(1);
-    screenShader.setInt("screenColor", 2);
-    gBuffer.colorBuffer.bind(2);
-    screenShader.setInt("screenDepth", 3);
-    gBuffer.depthBuffer.bind(3);
+    screenShader.setInt("idBuffer", 2);
+    gBuffer.idBuffer.bind(2);
+    screenShader.setInt("screenColor", 3);
+    gBuffer.colorBuffer.bind(3);
+    screenShader.setInt("screenDepth", 4);
+    gBuffer.depthBuffer.bind(4);
 
     outputFsQuad.draw();
 
     gBuffer.positionBuffer.unbind();
     gBuffer.normalsBuffer.unbind();
+    gBuffer.idBuffer.unbind();
     gBuffer.colorBuffer.unbind();
     gBuffer.depthBuffer.unbind();
     screenShader.unbind();

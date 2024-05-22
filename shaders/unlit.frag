@@ -1,14 +1,18 @@
 #version 410 core
 layout(location = 0) out vec4 positionBuffer;
 layout(location = 1) out vec4 normalsBuffer;
-layout(location = 2) out vec4 FragColor;
+layout(location = 2) out vec4 idBuffer;
+layout(location = 3) out vec4 FragColor;
 
-in vec2 TexCoords;
-in vec3 FragPos;
-in vec3 Normal;
-in vec3 Tangent;
-in vec3 BiTangent;
-in vec4 FragPosLightSpace;
+in VertexData {
+    flat uint VertexID;
+    vec2 TexCoords;
+    vec3 FragPos;
+    vec3 Normal;
+    vec3 Tangent;
+    vec3 BiTangent;
+    vec4 FragPosLightSpace;
+} fsIn;
 
 // material textures
 uniform sampler2D diffuseMap; // 0
@@ -20,15 +24,16 @@ uniform bool transparent;
 uniform vec3 camPos;
 
 void main() {
-    vec4 color = texture(diffuseMap, TexCoords);
+    vec4 color = texture(diffuseMap, fsIn.TexCoords);
     float alpha = (transparent) ? color.a : 1.0;
     if (alpha < 0.1)
         discard;
 
-    vec3 norm = normalize(Normal);
-    vec3 viewDir = normalize(camPos - FragPos);
+    vec3 norm = normalize(fsIn.Normal);
+    vec3 viewDir = normalize(camPos - fsIn.FragPos);
 
-    positionBuffer = vec4(FragPos, 1.0);
-    normalsBuffer = vec4(normalize(Normal), 1.0);
+    positionBuffer = vec4(fsIn.FragPos, 1.0);
+    normalsBuffer = vec4(normalize(fsIn.Normal), 1.0);
+    idBuffer = vec4(fsIn.VertexID, 0.0, 0.0, 0.0);
     FragColor = color;
 }

@@ -1,14 +1,18 @@
 #version 410 core
 layout(location = 0) out vec4 positionBuffer;
 layout(location = 1) out vec4 normalsBuffer;
-layout(location = 2) out vec4 FragColor;
+layout(location = 2) out vec4 idBuffer;
+layout(location = 3) out vec4 FragColor;
 
-in vec2 TexCoords;
-in vec3 FragPos;
-in vec3 Normal;
-in vec3 Tangent;
-in vec3 BiTangent;
-in vec4 FragPosLightSpace;
+in VertexData {
+    flat uint VertexID;
+    vec2 TexCoords;
+    vec3 FragPos;
+    vec3 Normal;
+    vec3 Tangent;
+    vec3 BiTangent;
+    vec4 FragPosLightSpace;
+} fsIn;
 
 // lights
 struct AmbientLight {
@@ -77,16 +81,16 @@ vec3 gridSamplingDisk[20] = vec3[]
 );
 
 vec3 getNormalFromMap() {
-    vec3 N   = normalize(Normal);
-    vec3 T   = normalize(Tangent);
-    vec3 B   = normalize(BiTangent);
+    vec3 N   = normalize(fsIn.Normal);
+    vec3 T   = normalize(fsIn.Tangent);
+    vec3 B   = normalize(fsIn.BiTangent);
     mat3 TBN = mat3(T, B, N);
 
     if (!normalMapped) {
         return N;
     }
 
-    vec3 normal = normalize(2.0 * texture(normalMap, TexCoords).rgb - 1.0);
+    vec3 normal = normalize(2.0 * texture(normalMap, fsIn.TexCoords).rgb - 1.0);
     return normalize(TBN * normal);
 }
 
@@ -107,10 +111,10 @@ float GeometrySchlickGGX(float NdotV, float roughness) {
     float r = (roughness + 1.0);
     float k = (r*r) / 8.0;
 
-    float nom   = NdotV;
+    float num   = NdotV;
     float denom = NdotV * (1.0 - k) + k;
 
-    return nom / denom;
+    return num / denom;
 }
 
 float GeometrySmith(float NdotV, float NdotL, float roughness) {
@@ -138,7 +142,7 @@ float calcDirLightShadow(DirectionalLight light, vec4 fragPosLightSpace) {
     // PCF
     int samples = 9;
     float shadow = 0.0;
-    vec3 normal = normalize(Normal);
+    vec3 normal = normalize(fsIn.Normal);
     vec3 lightDir = normalize(-light.direction);
     float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
     vec2 texelSize = 1.0 / textureSize(dirLightShadowMap, 0);
@@ -157,7 +161,7 @@ float calcPointLightShadows(PointLight light, samplerCube pointLightShadowMap, v
     int samples = 20;
     float shadow = 0.0;
     float bias = 0.15;
-    float viewDistance = length(camPos - FragPos);
+    float viewDistance = length(camPos - fsIn.FragPos);
     float diskRadius = (1.0 + (viewDistance / light.farPlane)) / 25.0;
     for (int i = 0; i < samples; i++) {
         float closestDepth = texture(pointLightShadowMap, fragToLight + gridSamplingDisk[i] * diskRadius).r;
@@ -205,7 +209,7 @@ vec3 calcDirLight(DirectionalLight light, vec3 N, vec3 V, vec3 albedo, float rou
     vec3 radianceOut = (kD * (albedo / PI) + specular) * radianceIn * NdotL; // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
 
     // shadow calcs
-    float shadow = calcDirLightShadow(light, FragPosLightSpace);
+    float shadow = calcDirLightShadow(light, fsIn.FragPosLightSpace);
     radianceOut *= (1.0 - shadow);
 
     return radianceOut;
@@ -216,11 +220,11 @@ vec3 calcPointLight(PointLight light, samplerCube pointLightShadowMap, vec3 N, v
         return vec3(0.0);
 
     // calculate per-light radiance
-    vec3 L = normalize(light.position - FragPos);
+    vec3 L = normalize(light.position - fsIn.FragPos);
     vec3 H = normalize(V + L);
     float NdotV = max(dot(N, V), 0.0);
     float NdotL = max(dot(N, L), 0.0);
-    float distance = length(light.position - FragPos);
+    float distance = length(light.position - fsIn.FragPos);
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
     vec3 radianceIn = light.intensity * light.color * attenuation;
 
@@ -248,7 +252,7 @@ vec3 calcPointLight(PointLight light, samplerCube pointLightShadowMap, vec3 N, v
     vec3 radianceOut = (kD * (albedo / PI) + specular) * radianceIn * NdotL; // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
 
     // shadow stuff
-    vec3 fragToLight = FragPos - light.position;
+    vec3 fragToLight = fsIn.FragPos - light.position;
     float shadow = calcPointLightShadows(light, pointLightShadowMap, fragToLight);
     radianceOut *= (1.0 - shadow);
 
@@ -257,25 +261,25 @@ vec3 calcPointLight(PointLight light, samplerCube pointLightShadowMap, vec3 N, v
 
 void main() {
     // material properties
-    vec4 color = texture(albedoMap, TexCoords);
+    vec4 color = texture(albedoMap, fsIn.TexCoords);
 
     vec3 albedo = color.rgb;
     float alpha = (transparent) ? color.a : 1.0;
     if (alpha < 0.1)
         discard;
 
-    vec2 mr = texture(metallicMap, TexCoords).rg;
+    vec2 mr = texture(metallicMap, fsIn.TexCoords).rg;
     float metallic = mr.r;
     float roughness = mr.g;
     if (!metalRoughnessCombined) {
-        metallic = texture(metallicMap, TexCoords).r;
-        roughness = texture(roughnessMap, TexCoords).r;
+        metallic = texture(metallicMap, fsIn.TexCoords).r;
+        roughness = texture(roughnessMap, fsIn.TexCoords).r;
     }
-    float ao = texture(aoMap, TexCoords).r;
+    float ao = texture(aoMap, fsIn.TexCoords).r;
 
     // input lighting data
     vec3 N = getNormalFromMap();
-    vec3 V = normalize(camPos - FragPos);
+    vec3 V = normalize(camPos - fsIn.FragPos);
     vec3 R = reflect(-V, N);
 
     // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0
@@ -315,7 +319,8 @@ void main() {
 
     radianceOut = radianceOut + ambient;
 
-    positionBuffer = vec4(FragPos, 1.0);
-    normalsBuffer = vec4(normalize(Normal), 1.0);
+    positionBuffer = vec4(fsIn.FragPos, 1.0);
+    normalsBuffer = vec4(normalize(fsIn.Normal), 1.0);
+    idBuffer = vec4(fsIn.VertexID, 0.0, 0.0, 0.0);
     FragColor = vec4(radianceOut, alpha);
 }

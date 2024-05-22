@@ -18,8 +18,8 @@ UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams &params) {
     }
 
     ShaderCreateParams UnlitMaterialParams{
-        .vertexCodeData = SHADER_MAIN_VERT,
-        .vertexCodeSize = SHADER_MAIN_VERT_len,
+        .vertexCodeData = SHADER_COMMON_VERT,
+        .vertexCodeSize = SHADER_COMMON_VERT_len,
         .fragmentCodeData = SHADER_UNLIT_FRAG,
         .fragmentCodeSize = SHADER_UNLIT_FRAG_len
     };

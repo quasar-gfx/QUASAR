@@ -2,6 +2,8 @@
 
 #include <glm/gtx/string_cast.hpp>
 
+uint32_t Vertex::nextID = 0;
+
 void Mesh::createBuffers()  {
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -15,8 +17,11 @@ void Mesh::createBuffers()  {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 
+    glEnableVertexAttribArray(ATTRIBUTE_ID);
+    glVertexAttribPointer(ATTRIBUTE_ID,         1, GL_UNSIGNED_INT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, ID));
+
     glEnableVertexAttribArray(ATTRIBUTE_POSITION);
-    glVertexAttribPointer(ATTRIBUTE_POSITION,   3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+    glVertexAttribPointer(ATTRIBUTE_POSITION,   3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
 
     glEnableVertexAttribArray(ATTRIBUTE_NORMAL);
     glVertexAttribPointer(ATTRIBUTE_NORMAL,     3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));

@@ -7,6 +7,7 @@ class GeometryBuffer : public RenderTargetBase {
 public:
     Texture positionBuffer;
     Texture normalsBuffer;
+    Texture idBuffer;
     Texture colorBuffer;
     Texture depthBuffer;
 
@@ -21,7 +22,7 @@ public:
                              .wrapT = GL_CLAMP_TO_EDGE,
                              .minFilter = GL_NEAREST,
                              .magFilter = GL_NEAREST }),
-            normalsBuffer({  .width = width,
+            normalsBuffer({ .width = width,
                             .height = height,
                             .internalFormat = GL_RGBA16F,
                             .format = GL_RGBA,
@@ -30,6 +31,15 @@ public:
                             .wrapT = GL_CLAMP_TO_EDGE,
                             .minFilter = GL_NEAREST,
                             .magFilter = GL_NEAREST }),
+            idBuffer({ .width = width,
+                       .height = height,
+                       .internalFormat = GL_R32UI,
+                       .format = GL_RED_INTEGER,
+                       .type = GL_UNSIGNED_INT,
+                       .wrapS = GL_CLAMP_TO_EDGE,
+                       .wrapT = GL_CLAMP_TO_EDGE,
+                       .minFilter = GL_NEAREST,
+                       .magFilter = GL_NEAREST }),
             colorBuffer({ .width = width,
                           .height = height,
                           .internalFormat = GL_RGBA16F,
@@ -39,7 +49,7 @@ public:
                           .wrapT = GL_CLAMP_TO_EDGE,
                           .minFilter = GL_LINEAR,
                           .magFilter = GL_LINEAR }),
-            depthBuffer(  { .width = width,
+            depthBuffer({ .width = width,
                           .height = height,
                           .internalFormat = GL_DEPTH_COMPONENT32F,
                           .format = GL_DEPTH_COMPONENT,
@@ -50,11 +60,12 @@ public:
         framebuffer.bind();
         framebuffer.attachTexture(positionBuffer, GL_COLOR_ATTACHMENT0);
         framebuffer.attachTexture(normalsBuffer, GL_COLOR_ATTACHMENT1);
-        framebuffer.attachTexture(colorBuffer, GL_COLOR_ATTACHMENT2);
+        framebuffer.attachTexture(idBuffer, GL_COLOR_ATTACHMENT2);
+        framebuffer.attachTexture(colorBuffer, GL_COLOR_ATTACHMENT3);
         framebuffer.attachTexture(depthBuffer, GL_DEPTH_ATTACHMENT);
 
-        unsigned int attachments[3] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
-        glDrawBuffers(3, attachments);
+        unsigned int attachments[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
+        glDrawBuffers(4, attachments);
 
         if (!framebuffer.checkStatus()) {
             throw std::runtime_error("GBuffer Framebuffer is not complete!");

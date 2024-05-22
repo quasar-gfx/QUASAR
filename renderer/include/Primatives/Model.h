@@ -20,13 +20,13 @@
 #include <Primatives/Entity.h>
 
 struct ModelCreateParams {
-    std::string path;
-    PBRMaterial* material;
     bool flipTextures = false;
     bool wireframe = false;
     bool pointcloud = false;
     bool gammaCorrected = false;
     bool IBL = true;
+    PBRMaterial* material;
+    std::string path;
 };
 
 class Model : public Entity {

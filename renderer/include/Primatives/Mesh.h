@@ -19,14 +19,16 @@
 #include <Camera.h>
 
 enum VertexAttribute {
-    ATTRIBUTE_POSITION   = 0,
-    ATTRIBUTE_NORMAL     = 1,
-    ATTRIBUTE_TEX_COORDS = 2,
-    ATTRIBUTE_TANGENT    = 3,
-    ATTRIBUTE_BITANGENT  = 4
+    ATTRIBUTE_ID = 0,
+    ATTRIBUTE_POSITION,
+    ATTRIBUTE_NORMAL,
+    ATTRIBUTE_TEX_COORDS,
+    ATTRIBUTE_TANGENT,
+    ATTRIBUTE_BITANGENT
 };
 
 struct Vertex {
+    uint32_t ID;
     glm::vec3 position;
     glm::vec3 normal;
     glm::vec2 texCoords;
@@ -34,8 +36,28 @@ struct Vertex {
     glm::vec3 bitangent;
 
     bool operator==(const Vertex& other) const {
-        return position == other.position && normal == other.normal && texCoords == other.texCoords && tangent == other.tangent;
+        return  position == other.position && normal == other.normal && texCoords == other.texCoords &&
+               tangent == other.tangent && bitangent == other.bitangent;
     }
+
+    Vertex() {
+        ID = nextID++;
+    }
+    Vertex(glm::vec3 position, glm::vec3 normal, glm::vec2 texCoords)
+        : position(position), normal(normal), texCoords(texCoords) {
+        ID = nextID++;
+    }
+    Vertex(glm::vec3 position, glm::vec3 normal, glm::vec2 texCoords, glm::vec3 tangent, glm::vec3 bitangent)
+        : position(position), normal(normal), texCoords(texCoords), tangent(tangent), bitangent(bitangent) {
+        ID = nextID++;
+    }
+    Vertex(glm::vec3 position, glm::vec3 normal, glm::vec2 texCoords, glm::vec3 tangent)
+        : position(position), normal(normal), texCoords(texCoords), tangent(tangent) {
+        bitangent = glm::cross(normal, tangent);
+        ID = nextID++;
+    }
+
+    static uint32_t nextID;
 };
 
 namespace std {
@@ -44,7 +66,8 @@ namespace std {
             return ((hash<glm::vec3>()(vertex.position) ^
                    (hash<glm::vec3>()(vertex.normal) << 1)) >> 1) ^
                    (hash<glm::vec2>()(vertex.texCoords) << 1 ^
-                   (hash<glm::vec3>()(vertex.tangent) << 1) >> 1);
+                   (hash<glm::vec3>()(vertex.tangent) << 1) >> 1) ^
+                   (hash<glm::vec3>()(vertex.bitangent) << 1 >> 1);
         }
     };
 }
