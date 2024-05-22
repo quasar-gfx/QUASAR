@@ -102,6 +102,7 @@ int main(int argc, char** argv) {
             ImGui::RadioButton("Show Depth", &shaderIndex, 1);
             ImGui::RadioButton("Show Positions", &shaderIndex, 2);
             ImGui::RadioButton("Show Normals", &shaderIndex, 3);
+            ImGui::RadioButton("Show Vertex IDs", &shaderIndex, 4);
         }
         ImGui::End();
     });
@@ -133,6 +134,11 @@ int main(int argc, char** argv) {
     Shader showNormalShader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayNormals.frag"
+    });
+
+    Shader showIDShader({
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../shaders/postprocessing/displayIDs.frag"
     });
 
     app.onRender([&](double now, double dt) {
@@ -195,6 +201,10 @@ int main(int argc, char** argv) {
         else if (shaderIndex == 3) {
             showNormalShader.bind();
             app.renderer->drawToScreen(showNormalShader);
+        }
+        else if (shaderIndex == 4) {
+            showIDShader.bind();
+            app.renderer->drawToScreen(showIDShader);
         }
         else {
             showColorShader.bind();
