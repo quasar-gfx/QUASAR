@@ -16,7 +16,9 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
-const std::string DATA_PATH = "../meshing/data/";
+#define VERTICES_IN_A_QUAD 4
+
+const std::string DATA_PATH = "../meshing2/data/";
 
 enum class RenderState {
     MESH,
@@ -45,7 +47,7 @@ int createMesh(Mesh* mesh, std::string label) {
         .wrapT = GL_REPEAT,
         .minFilter = GL_LINEAR_MIPMAP_LINEAR,
         .magFilter = GL_LINEAR,
-        .path = "../meshing/imgs/color_" + label + "_0.png"
+        .path = "../quads/imgs/color_" + label + "_0.png"
     });
 
     unsigned int width = diffuseTexture.width / surfelSize;
@@ -53,15 +55,30 @@ int createMesh(Mesh* mesh, std::string label) {
 
     unsigned int x = 0, y = 0;
     std::vector<Vertex> vertices;
-    for (int i = 0; vertexFile; i++) {
-        x = i % width;
-        y = i / width;
+    for (int i = 0; vertexFile; i+=VERTICES_IN_A_QUAD) {
+        x = (i / VERTICES_IN_A_QUAD) % width;
+        y = (i / VERTICES_IN_A_QUAD) / width;
 
-        Vertex vertex;
-        vertexFile.read(reinterpret_cast<char*>(&vertex.position), sizeof(glm::vec3));
-        // std::cout << vertex.position.x << " " << vertex.position.y << " " << vertex.position.z << std::endl;
-        vertex.texCoords = glm::vec2((float)x / (float)width, 1.0f - (float)y / (float)height);
-        vertices.push_back(vertex);
+        Vertex vertexUpperLeft;
+        vertexFile.read(reinterpret_cast<char*>(&vertexUpperLeft.position), sizeof(glm::vec3));
+        vertexUpperLeft.texCoords = glm::vec2((float)x / (float)(width), 1.0f - (float)(y + 1) / (float)(height));
+
+        Vertex vertexUpperRight;
+        vertexFile.read(reinterpret_cast<char*>(&vertexUpperRight.position), sizeof(glm::vec3));
+        vertexUpperRight.texCoords = glm::vec2((float)(x + 1) / (float)(width), 1.0f - (float)(y + 1) / (float)(height));
+
+        Vertex vertexLowerLeft;
+        vertexFile.read(reinterpret_cast<char*>(&vertexLowerLeft.position), sizeof(glm::vec3));
+        vertexLowerLeft.texCoords = glm::vec2((float)x / (float)(width), 1.0f - (float)y / (float)(height));
+
+        Vertex vertexLowerRight;
+        vertexFile.read(reinterpret_cast<char*>(&vertexLowerRight.position), sizeof(glm::vec3));
+        vertexLowerRight.texCoords = glm::vec2((float)(x + 1) / (float)(width), 1.0f - (float)y / (float)(height));
+
+        vertices.push_back(vertexUpperLeft);
+        vertices.push_back(vertexUpperRight);
+        vertices.push_back(vertexLowerLeft);
+        vertices.push_back(vertexLowerRight);
     }
     vertexFile.close();
 
@@ -89,7 +106,7 @@ int createMesh(Mesh* mesh, std::string label) {
 
 int main(int argc, char** argv) {
     Config config{};
-    config.title = "Meshing Visualizer";
+    config.title = "Mesh2 Visualizer";
 
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
@@ -181,7 +198,6 @@ int main(int argc, char** argv) {
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
-
     std::vector<std::string> labels = {
         "center",
         // "top_right_front",

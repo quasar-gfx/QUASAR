@@ -12,3 +12,6 @@ add_subdirectory(meshing)
 add_subdirectory(meshingviz)
 add_subdirectory(quads)
 add_subdirectory(quadsviz)
+add_subdirectory(meshing2)
+add_subdirectory(meshing2viz)
+

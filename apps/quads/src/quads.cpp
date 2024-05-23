@@ -240,7 +240,7 @@ int main(int argc, char** argv) {
                 std::cerr << "Failed to save vertex buffer" << std::endl;
             }
 
-            std::cout << "\tSaving Positions Time: " << glfwGetTime() - startTime << "s" << std::endl;
+            std::cout << "\tSaving Vertices Time: " << glfwGetTime() - startTime << "s" << std::endl;
             std::cout << "\t" << numVertices << " vertices" << std::endl;
             startTime = glfwGetTime();
 

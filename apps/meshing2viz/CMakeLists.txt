@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.19)
-project(QuadsVizualizer)
+project(Meshing2Vizualizer)
 
-set(TARGET quadsviz)
+set(TARGET meshing2viz)
 
 set(PUBLIC_HDR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 

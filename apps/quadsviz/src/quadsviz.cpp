@@ -175,7 +175,7 @@ int main(int argc, char** argv) {
         ImGui::Separator();
 
         ImGui::InputFloat3("Camera Position", (float*)&camera.position);
-        ImGui::SliderFloat("Movement speed", &camera.movementSpeed, 0.1f, 20.0f);
+        ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
 
         ImGui::Separator();
 

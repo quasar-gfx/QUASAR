@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.19)
-project(QuadsVizualizer)
+project(Meshing2)
 
-set(TARGET quadsviz)
+set(TARGET meshing2)
 
 set(PUBLIC_HDR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
@@ -14,7 +14,7 @@ file(GLOB SRCS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
 )
 
-# file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/shaders" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}/shaders ${CMAKE_CURRENT_BINARY_DIR}/shaders SYMBOLIC)
 
 add_executable(${TARGET} ${SRCS})
 

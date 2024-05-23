@@ -283,6 +283,12 @@ private:
             else if (compare(tok, json, "gammaCorrected") == 0) {
                 i = parseBool(tokens, i + 1, json, &params.gammaCorrected);
             }
+            else if (compare(tok, json, "wireframe") == 0) {
+                i = parseBool(tokens, i + 1, json, &params.wireframe);
+            }
+            else if (compare(tok, json, "pointcloud") == 0) {
+                i = parseBool(tokens, i + 1, json, &params.pointcloud);
+            }
             else if (compare(tok, json, "material") == 0) {
                 float materialIdxFloat;
                 i = parseFloat(tokens, i + 1, json, &materialIdxFloat);
@@ -342,6 +348,12 @@ private:
             }
             else if (compare(tok, json, "IBL") == 0) {
                 i = parseBool(tokens, i + 1, json, &params.IBL);
+            }
+            else if (compare(tok, json, "wireframe") == 0) {
+                i = parseBool(tokens, i + 1, json, &params.wireframe);
+            }
+            else if (compare(tok, json, "pointcloud") == 0) {
+                i = parseBool(tokens, i + 1, json, &params.pointcloud);
             }
             else {
                 i = parse(tokens, i + 1);
