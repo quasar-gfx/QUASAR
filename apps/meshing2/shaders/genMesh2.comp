@@ -89,6 +89,15 @@ void main() {
     vec3 normalLowerRight = normalize(imageLoad(normalMap, pixelCoordsLowerRight).xyz);
     vec3 normalCenter     = normalize(imageLoad(normalMap, pixelCoordsCenter).xyz);
 
+    vec3 avgNormal = vec3(0.0);
+    for (int i = pixelCoordsUpperLeft.x; i < pixelCoordsUpperRight.x; i++) {
+        for (int j = pixelCoordsLowerLeft.y; j < pixelCoordsUpperLeft.y; j++) {
+            avgNormal += imageLoad(normalMap, ivec2(i, j)).xyz;
+        }
+    }
+    avgNormal /= float(surfelSize * surfelSize);
+    avgNormal = normalize(avgNormal);
+
     uint idUpperLeft  = imageLoad(idMap, pixelCoordsUpperLeft).x;
     uint idUpperRight = imageLoad(idMap, pixelCoordsUpperRight).x;
     uint idLowerLeft  = imageLoad(idMap, pixelCoordsLowerLeft).x;
@@ -101,26 +110,13 @@ void main() {
     float depthLowerRight = texelFetch(depthMap, pixelCoordsLowerRight, 0).x;
     float depthCenter     = texelFetch(depthMap, pixelCoordsCenter, 0).x;
 
-    // if ids dont match dont make quad
-    if (idCenter != idUpperLeft || idCenter != idUpperRight ||
-        idCenter != idLowerLeft || idCenter != idLowerRight) {
-        /* // if normals dont match dont make quad
-        if (dot(normalCenter, normalUpperLeft) < 0.9 ||
-            dot(normalCenter, normalUpperRight) < 0.9 ||
-            dot(normalCenter, normalLowerLeft) < 0.9 ||
-            dot(normalCenter, normalLowerRight) < 0.9) {
-            return;
-        } */
-        return;
+    float avgDepth = 0.0;
+    for (int i = pixelCoordsUpperLeft.x; i < pixelCoordsUpperRight.x; i++) {
+        for (int j = pixelCoordsLowerLeft.y; j < pixelCoordsUpperLeft.y; j++) {
+            avgDepth += texelFetch(depthMap, ivec2(i, j), 0).x;
+        }
     }
-
-    /* float avgDepth = 0.0;
-     * for (int i = pixelCoordsUpperLeft.x; i < pixelCoordsUpperRight.x; i++) {
-     *     for (int j = pixelCoordsLowerLeft.y; j < pixelCoordsUpperLeft.y; j++) {
-     *         avgDepth += texelFetch(depthMap, ivec2(i, j), 0).x;
-     *     }
-     * }
-     * avgDepth /= float(surfelSize * surfelSize); */
+    avgDepth /= float(surfelSize * surfelSize);
 
     vec3 worldCoordUpperLeft  = projectToWorld(ndcUpperLeft, depthUpperLeft);
     vec3 worldCoordUpperRight = projectToWorld(ndcUpperRight, depthUpperRight);
@@ -128,14 +124,35 @@ void main() {
     vec3 worldCoordLowerRight = projectToWorld(ndcLowerRight, depthLowerRight);
     vec3 worldCoordCenter     = projectToWorld(ndcCenter, depthCenter);
 
-    /* vec3 avgNormal = vec3(0.0);
-     * for (int i = pixelCoordsUpperLeft.x; i < pixelCoordsUpperRight.x; i++) {
-     *     for (int j = pixelCoordsLowerLeft.y; j < pixelCoordsUpperLeft.y; j++) {
-     *         avgNormal += imageLoad(normalMap, ivec2(i, j)).xyz;
-     *     }
-     * }
-     * avgNormal /= float(surfelSize * surfelSize);
-     * avgNormal = normalize(avgNormal); */
+    // get quad normal
+    vec3 v1 = worldCoordUpperLeft - worldCoordLowerLeft;
+    vec3 v2 = worldCoordUpperRight - worldCoordUpperLeft;
+    vec3 normal = normalize(cross(v1, v2));
+
+    // if ids dont match dont make quad
+    if (idCenter != idUpperLeft || idCenter != idUpperRight ||
+        idCenter != idLowerLeft || idCenter != idLowerRight) {
+        // // if normals dont match dont make quad
+        // if (dot(avgNormal, normalUpperLeft) < 0.9 ||
+        //     dot(avgNormal, normalUpperRight) < 0.9 ||
+        //     dot(avgNormal, normalLowerLeft) < 0.9 ||
+        //     dot(avgNormal, normalLowerRight) < 0.9) {
+        //     return;
+        // }
+
+         // // if quad normal is not same as average normal dont make quad
+        // if (dot(normal, avgNormal) < 0.9) {
+        //     return;
+        // }
+
+        // float avgDepth = (depthUpperLeft + depthUpperRight + depthLowerLeft + depthLowerRight) / 4.0;
+        // depthUpperLeft = avgDepth;
+        // depthUpperRight = avgDepth;
+        // depthLowerLeft = avgDepth;
+        // depthLowerRight = avgDepth;
+
+        // return;
+    }
 
     vec4 vertexCoordUpperLeft  = vec4(worldCoordUpperLeft, 1.0);
     vec4 vertexCoordUpperRight = vec4(worldCoordUpperRight, 1.0);
