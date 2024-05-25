@@ -2,14 +2,14 @@
     "skybox": {
         "path": "../assets/textures/hdr/barcelona.hdr",
         "HDR": true,
-        "flipped": true,
+        "flipVertically": true,
         "width": 512,
         "height": 512
     },
     "models": [
         {
             "path": "/home/edward/Desktop/Models/RobotLab/RobotLab.gltf",
-            "IBL": false,
+            "IBL": 0.0,
             "gammaCorrected": true
         }
     ],
@@ -20,7 +20,7 @@
             "model": 0,
             "position": [0.0, 0.0, 0.0],
             "rotation": [0.0, 0.0, 0.0],
-            "scale" : [1.0, 1.0, 1.0]
+            "scale": [1.0, 1.0, 1.0]
         }
     ],
     "camera": {

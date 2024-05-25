@@ -169,8 +169,8 @@ private:
             if (compare(tok, json, "path") == 0) {
                 i = parseString(tokens, i + 1, json, &hdrTextureParams.path);
             }
-            else if (compare(tok, json, "flipped") == 0) {
-                i = parseBool(tokens, i + 1, json, &hdrTextureParams.flipped);
+            else if (compare(tok, json, "flipVertically") == 0) {
+                i = parseBool(tokens, i + 1, json, &hdrTextureParams.flipVertically);
             }
             else if (compare(tok, json, "width") == 0) {
                 float width;
@@ -275,7 +275,7 @@ private:
                 i = parseString(tokens, i + 1, json, &params.path);
             }
             else if (compare(tok, json, "IBL") == 0) {
-                i = parseBool(tokens, i + 1, json, &params.IBL);
+                i = parseFloat(tokens, i + 1, json, &params.IBL);
             }
             else if (compare(tok, json, "flipTextures") == 0) {
                 i = parseBool(tokens, i + 1, json, &params.flipTextures);
@@ -288,6 +288,9 @@ private:
             }
             else if (compare(tok, json, "pointcloud") == 0) {
                 i = parseBool(tokens, i + 1, json, &params.pointcloud);
+            }
+            else if (compare(tok, json, "flipTextures") == 0) {
+                i = parseBool(tokens, i + 1, json, &params.flipTextures);
             }
             else if (compare(tok, json, "material") == 0) {
                 float materialIdxFloat;
@@ -347,7 +350,7 @@ private:
                 params.material = materials[materialIdx];
             }
             else if (compare(tok, json, "IBL") == 0) {
-                i = parseBool(tokens, i + 1, json, &params.IBL);
+                i = parseFloat(tokens, i + 1, json, &params.IBL);
             }
             else if (compare(tok, json, "wireframe") == 0) {
                 i = parseBool(tokens, i + 1, json, &params.wireframe);

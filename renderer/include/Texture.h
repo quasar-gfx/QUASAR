@@ -18,7 +18,7 @@ struct TextureCreateParams {
     GLint wrapT = GL_CLAMP_TO_EDGE;
     GLint minFilter = GL_LINEAR;
     GLint magFilter = GL_LINEAR;
-    bool flipped = false;
+    bool flipVertically = false;
     bool hasBorder = false;
     bool gammaCorrected = false;
     unsigned char* data = nullptr;

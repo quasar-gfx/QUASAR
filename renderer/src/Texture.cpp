@@ -29,7 +29,7 @@ void Texture::init(const TextureCreateParams &params) {
 }
 
 void Texture::loadFromFile(const TextureCreateParams &params) {
-    stbi_set_flip_vertically_on_load(params.flipped);
+    stbi_set_flip_vertically_on_load(params.flipVertically);
 
     int texWidth, texHeight, texChannels;
     void* data = nullptr;

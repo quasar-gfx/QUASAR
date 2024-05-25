@@ -1,0 +1,77 @@
+{
+    "skybox": {
+        "path": "../assets/textures/hdr/vv_skybox.hdr",
+        "HDR": true,
+        "flipVertically": true,
+        "width": 512,
+        "height": 512
+    },
+    "models": [
+        {
+            "path": "/home/edward/Desktop/Models/VikingVillage.glb",
+            "IBL": 0.05,
+            "gammaCorrected": true,
+            "flipTextures": true
+        }
+    ],
+    "meshes": [
+    ],
+    "nodes": [
+        {
+            "model": 0,
+            "position": [0.0, 0.0, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [1.0, 1.0, 1.0]
+        }
+    ],
+    "camera": {
+        "fov": 60.0,
+        "near": 0.1,
+        "far": 1000.0,
+        "position": [0.0, 8.0, 10.0]
+    },
+    "ambientLight": {
+        "color": [1.0, 1.0, 1.0],
+        "intensity": 0.25
+    },
+    "directionalLight": {
+        "color": [1.0, 0.58, 0.29],
+        "direction": [-2.5, -5, 0],
+        "distance": 100.0,
+        "intensity": 3.0
+    },
+    "pointLights": [
+        {
+            "color": [1.0, 1.0, 1.0],
+            "position": [5, 15, 5],
+            "intensity": 50.0,
+            "constant": 0.0,
+            "linear": 0.09,
+            "quadratic": 1.0
+        },
+        {
+            "color": [1.0, 1.0, 1.0],
+            "position": [-5, 15, 5],
+            "intensity": 50.0,
+            "constant": 0.0,
+            "linear": 0.09,
+            "quadratic": 1.0
+        },
+        {
+            "color": [1.0, 1.0, 1.0],
+            "position": [5, 15, -5],
+            "intensity": 50.0,
+            "constant": 0.0,
+            "linear": 0.09,
+            "quadratic": 1.0
+        },
+        {
+            "color": [1.0, 1.0, 1.0],
+            "position": [-5, 15, -5],
+            "intensity": 50.0,
+            "constant": 0.0,
+            "linear": 0.09,
+            "quadratic": 1.0
+        }
+    ]
+}

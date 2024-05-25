@@ -151,7 +151,7 @@ void main() {
         // depthLowerLeft = avgDepth;
         // depthLowerRight = avgDepth;
 
-        // return;
+        return;
     }
 
     vec4 vertexCoordUpperLeft  = vec4(worldCoordUpperLeft, 1.0);

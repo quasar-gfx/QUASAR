@@ -4,14 +4,14 @@ Scene::Scene()
         : irradianceCubeMap({ .width = 32, .height = 32, .type = CubeMapType::STANDARD }),
           prefilterCubeMap({ .width = 128, .height = 128, .type = CubeMapType::PREFILTER }),
           captureRenderTarget({ .width = 512,
-            .height = 512,
-            .internalFormat = GL_RGB16F,
-            .format = GL_RGB,
-            .type = GL_FLOAT,
-            .wrapS = GL_CLAMP_TO_EDGE,
-            .wrapT = GL_CLAMP_TO_EDGE,
-            .minFilter = GL_LINEAR,
-            .magFilter = GL_LINEAR }),
+                                .height = 512,
+                                .internalFormat = GL_RGB16F,
+                                .format = GL_RGB,
+                                .type = GL_FLOAT,
+                                .wrapS = GL_CLAMP_TO_EDGE,
+                                .wrapT = GL_CLAMP_TO_EDGE,
+                                .minFilter = GL_LINEAR,
+                                .magFilter = GL_LINEAR }),
           brdfFsQuad(),
           equirectToCubeMapShader({
             .vertexCodeData = SHADER_CUBEMAP_VERT,
@@ -75,6 +75,8 @@ void Scene::equirectToCubeMap(CubeMap &envCubeMap, Texture &hdrTexture) {
 
 void Scene::setupIBL(CubeMap &envCubeMap) {
     hasPBREnvMap = true;
+
+    captureRenderTarget.resize(envCubeMap.width, envCubeMap.height);
 
     glDisable(GL_BLEND);
 

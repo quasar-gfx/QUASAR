@@ -24,7 +24,7 @@ struct ModelCreateParams {
     bool wireframe = false;
     bool pointcloud = false;
     bool gammaCorrected = false;
-    bool IBL = true;
+    float IBL = 1.0;
     PBRMaterial* material;
     std::string path;
 };
@@ -39,7 +39,7 @@ public:
     bool wireframe = false;
     bool pointcloud = false;
     bool gammaCorrected = false;
-    bool IBL = true;
+    float IBL = 1.0;
 
     explicit Model(const ModelCreateParams &params)
             : flipTextures(params.flipTextures),

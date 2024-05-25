@@ -2,7 +2,7 @@
     "skybox": {
         "path": "../assets/textures/hdr/barcelona.hdr",
         "HDR": true,
-        "flipped": true,
+        "flipVertically": true,
         "width": 512,
         "height": 512
     },
@@ -40,11 +40,11 @@
     "models": [
         {
             "path": "../assets/models/Sponza/Sponza.gltf",
-            "IBL": false
+            "IBL": 0.0
         },
         {
             "path": "../assets/models/backpack/backpack.obj",
-            "IBL": false,
+            "IBL": 0.0,
             "flipTextures": true
         }
     ],
@@ -64,7 +64,7 @@
         {
             "type": "plane",
             "material": 3,
-            "IBL": false
+            "IBL": 0.0
         }
     ],
     "nodes": [
@@ -72,12 +72,12 @@
             "model": 0,
             "position": [0.0, -0.05, 0.0],
             "rotation": [0.0, -90.0, 0.0],
-            "scale" : [1.0, 1.0, 1.0]
+            "scale": [1.0, 1.0, 1.0]
         },
         {
             "model": 1,
             "position": [0.5, 0.5, -5.0],
-            "scale" : [0.25, 0.25, 0.25]
+            "scale": [0.25, 0.25, 0.25]
         },
         {
             "mesh": 0,

@@ -78,7 +78,7 @@ struct MeshCreateParams {
     Material* material;
     bool wireframe = false;
     bool pointcloud = false;
-    bool IBL = true;
+    float IBL = 1.0;
 };
 
 class Mesh : public Entity {
@@ -90,7 +90,7 @@ public:
 
     bool wireframe = false;
     bool pointcloud = false;
-    bool IBL = true;
+    float IBL = 1.0;
 
     explicit Mesh() : Entity() {}
 
