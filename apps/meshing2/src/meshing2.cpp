@@ -96,8 +96,8 @@ int main(int argc, char** argv) {
         ImGui::SetNextWindowPos(ImVec2(10, 60), ImGuiCond_FirstUseEver);
         flags = 0;
         ImGui::Begin(config.title.c_str(), 0, flags);
-        ImGui::TextColored(ImVec4(1,1,0,1), "OpenGL Version: %s", glGetString(GL_VERSION));
-        ImGui::TextColored(ImVec4(1,1,0,1), "GPU: %s\n", glGetString(GL_RENDERER));
+        ImGui::Text("OpenGL Version: %s", glGetString(GL_VERSION));
+        ImGui::Text("GPU: %s\n", glGetString(GL_RENDERER));
         ImGui::End();
     });
 
@@ -122,8 +122,8 @@ int main(int argc, char** argv) {
     glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(glm::vec4), nullptr, GL_STATIC_DRAW);
 
     GLuint indexBuffer;
-    int numTriangles = width * height * 2;
-    int indexBufferSize = numTriangles * 3;
+    int trianglesDrawn = width * height * 2;
+    int indexBufferSize = trianglesDrawn * 3;
     glGenBuffers(1, &indexBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_STATIC_DRAW);

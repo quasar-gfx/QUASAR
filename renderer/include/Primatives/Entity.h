@@ -28,7 +28,7 @@ public:
     int getID() { return ID; }
 
     virtual void bindSceneAndCamera(Scene &scene, Camera &camera, glm::mat4 model, Material* overrideMaterial = nullptr) = 0;
-    virtual void draw(Material* overrideMaterial = nullptr) = 0;
+    virtual unsigned int draw(Material* overrideMaterial = nullptr) = 0;
 
     virtual EntityType getType() { return EntityType::EMPTY; }
 

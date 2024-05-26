@@ -13,10 +13,12 @@ void Model::bindSceneAndCamera(Scene &scene, Camera &camera, glm::mat4 model, Ma
     }
 }
 
-void Model::draw(Material* overrideMaterial) {
+unsigned int Model::draw(Material* overrideMaterial) {
+    unsigned int trianglesDrawn = 0;
     for (int i = 0; i < meshes.size(); i++) {
-        meshes[i].draw(overrideMaterial);
+        trianglesDrawn += meshes[i].draw(overrideMaterial);
     }
+    return trianglesDrawn;
 }
 
 void Model::loadFromFile(const ModelCreateParams &params) {

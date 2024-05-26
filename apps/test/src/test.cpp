@@ -62,6 +62,7 @@ int main(int argc, char** argv) {
 
     float exposure = 1.0f;
     int shaderIndex = 0;
+    int trianglesDrawn = 0;
     guiManager->onRender([&](double now, double dt) {
         ImGui::NewFrame();
 
@@ -77,8 +78,20 @@ int main(int argc, char** argv) {
         ImGui::SetNextWindowPos(ImVec2(10, 60), ImGuiCond_FirstUseEver);
         flags = 0;
         ImGui::Begin(config.title.c_str(), 0, flags);
-        ImGui::TextColored(ImVec4(1,1,0,1), "OpenGL Version: %s", glGetString(GL_VERSION));
-        ImGui::TextColored(ImVec4(1,1,0,1), "GPU: %s\n", glGetString(GL_RENDERER));
+        ImGui::Text("OpenGL Version: %s", glGetString(GL_VERSION));
+        ImGui::Text("GPU: %s\n", glGetString(GL_RENDERER));
+
+        ImGui::Separator();
+
+        if (trianglesDrawn < 100000) {
+            ImGui::TextColored(ImVec4(0,1,0,1), "Total Triangles: %d", trianglesDrawn);
+        }
+        else if (trianglesDrawn < 500000) {
+            ImGui::TextColored(ImVec4(1,1,0,1), "Total Triangles: %d", trianglesDrawn);
+        }
+        else {
+            ImGui::TextColored(ImVec4(1,0,0,1), "Total Triangles: %d", trianglesDrawn);
+        }
 
         ImGui::Separator();
 
@@ -185,7 +198,7 @@ int main(int argc, char** argv) {
         }
 
         // render all objects in scene
-        app.renderer->drawObjects(scene, camera);
+        trianglesDrawn = app.renderer->drawObjects(scene, camera);
 
         // render to screen
         if (shaderIndex == 1) {

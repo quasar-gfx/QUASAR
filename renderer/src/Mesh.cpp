@@ -84,7 +84,7 @@ void Mesh::bindSceneAndCamera(Scene &scene, Camera &camera, glm::mat4 model, Mat
     materialToUse->unbind();
 }
 
-void Mesh::draw(Material* overrideMaterial) {
+unsigned int Mesh::draw(Material* overrideMaterial) {
     auto materialToUse = overrideMaterial != nullptr ? overrideMaterial : material;
     materialToUse->bind();
 
@@ -110,4 +110,12 @@ void Mesh::draw(Material* overrideMaterial) {
     }
 
     materialToUse->unbind();
+
+    // return the number of Total Triangles
+    if (indices.size() > 0) {
+        return static_cast<unsigned int>(indices.size() / 3);
+    }
+    else {
+        return static_cast<unsigned int>(vertices.size() / 3);
+    }
 }

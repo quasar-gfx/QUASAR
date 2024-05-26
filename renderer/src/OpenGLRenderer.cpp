@@ -83,7 +83,7 @@ void OpenGLRenderer::drawSkyBox(Scene &scene, Camera &camera) {
     gBuffer.unbind();
 }
 
-void OpenGLRenderer::drawObjects(Scene &scene, Camera &camera) {
+unsigned int OpenGLRenderer::drawObjects(Scene &scene, Camera &camera) {
     // update shadows
     updateDirLightShadow(scene, camera);
     updatePointLightShadows(scene, camera);
@@ -93,27 +93,33 @@ void OpenGLRenderer::drawObjects(Scene &scene, Camera &camera) {
     glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    unsigned int trianglesDrawn = 0;
     for (auto& child : scene.children) {
-        drawNode(scene, camera, child, glm::mat4(1.0f));
+        trianglesDrawn += drawNode(scene, camera, child, glm::mat4(1.0f));
     }
 
     drawSkyBox(scene, camera);
 
     // now bind back to default gBuffer and draw a quad plane with the attached gBuffer color texture
     gBuffer.unbind();
+
+    return trianglesDrawn;
 }
 
-void OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, glm::mat4 parentTransform, Material* overrideMaterial) {
+unsigned int OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, glm::mat4 parentTransform, Material* overrideMaterial) {
     glm::mat4 model = parentTransform * node->getTransformParentFromLocal();
 
+    unsigned int trianglesDrawn = 0;
     if (node->entity != nullptr) {
         node->entity->bindSceneAndCamera(scene, camera, model, overrideMaterial);
-        node->entity->draw(overrideMaterial);
+        trianglesDrawn += node->entity->draw(overrideMaterial);
     }
 
     for (auto& child : node->children) {
-        drawNode(scene, camera, child, model, overrideMaterial);
+        trianglesDrawn += drawNode(scene, camera, child, model, overrideMaterial);
     }
+
+    return trianglesDrawn;
 }
 
 void OpenGLRenderer::drawToScreen(Shader &screenShader) {

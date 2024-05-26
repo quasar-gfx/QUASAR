@@ -92,8 +92,8 @@ int main(int argc, char** argv) {
         ImGui::SetNextWindowPos(ImVec2(10, 60), ImGuiCond_FirstUseEver);
         flags = 0;
         ImGui::Begin(config.title.c_str(), 0, flags);
-        ImGui::TextColored(ImVec4(1,1,0,1), "OpenGL Version: %s", glGetString(GL_VERSION));
-        ImGui::TextColored(ImVec4(1,1,0,1), "GPU: %s\n", glGetString(GL_RENDERER));
+        ImGui::Text("OpenGL Version: %s", glGetString(GL_VERSION));
+        ImGui::Text("GPU: %s\n", glGetString(GL_RENDERER));
 
         ImGui::Separator();
 

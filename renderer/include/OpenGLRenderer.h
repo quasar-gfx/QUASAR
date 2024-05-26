@@ -28,7 +28,7 @@ public:
     void updateDirLightShadow(Scene &scene, Camera &camera);
     void updatePointLightShadows(Scene &scene, Camera &camera);
     void drawSkyBox(Scene &scene, Camera &camera);
-    void drawObjects(Scene &scene, Camera &camera);
+    unsigned int drawObjects(Scene &scene, Camera &camera);
     void drawToScreen(Shader &screenShader);
     void drawToRenderTarget(Shader &screenShader, RenderTarget &renderTarget);
     void resize(unsigned int width, unsigned int height);
@@ -36,7 +36,7 @@ public:
 private:
     Shader skyboxShader;
 
-    void drawNode(Scene &scene, Camera &camera, Node* node, glm::mat4 parentTransform, Material* overrideMaterial = nullptr);
+    unsigned int drawNode(Scene &scene, Camera &camera, Node* node, glm::mat4 parentTransform, Material* overrideMaterial = nullptr);
 };
 
 #endif // OPENGL_RENDERER_H

@@ -149,7 +149,7 @@ int main(int argc, char** argv) {
     Scene scene = Scene();
     Camera camera = Camera(screenWidth, screenHeight);
 
-    int numVertices = 0;
+    int trianglesDrawn = 0;
     guiManager->onRender([&](double now, double dt) {
         ImGui::NewFrame();
 
@@ -165,12 +165,20 @@ int main(int argc, char** argv) {
         ImGui::SetNextWindowPos(ImVec2(10, 60), ImGuiCond_FirstUseEver);
         flags = 0;
         ImGui::Begin(config.title.c_str(), 0, flags);
-        ImGui::TextColored(ImVec4(1,1,0,1), "OpenGL Version: %s", glGetString(GL_VERSION));
-        ImGui::TextColored(ImVec4(1,1,0,1), "GPU: %s\n", glGetString(GL_RENDERER));
+        ImGui::Text("OpenGL Version: %s", glGetString(GL_VERSION));
+        ImGui::Text("GPU: %s\n", glGetString(GL_RENDERER));
 
         ImGui::Separator();
 
-        ImGui::Text("Number of vertices: %d", numVertices);
+        if (trianglesDrawn < 100000) {
+            ImGui::TextColored(ImVec4(0,1,0,1), "Total Triangles: %d", trianglesDrawn);
+        }
+        else if (trianglesDrawn < 500000) {
+            ImGui::TextColored(ImVec4(1,1,0,1), "Total Triangles: %d", trianglesDrawn);
+        }
+        else {
+            ImGui::TextColored(ImVec4(1,0,0,1), "Total Triangles: %d", trianglesDrawn);
+        }
 
         ImGui::Separator();
 
@@ -213,12 +221,10 @@ int main(int argc, char** argv) {
     std::vector<Mesh> meshes(labels.size());
     std::vector<Node> nodes(labels.size());
     for (int i = 0; i < labels.size(); i++) {
-        numVertices += createMesh(&meshes[i], labels[i]);
+        createMesh(&meshes[i], labels[i]);
         nodes[i] = Node(&meshes[i]);
         scene.addChildNode(&nodes[i]);
     }
-
-    std::cout << numVertices << " vertices" << std::endl;
 
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
 
@@ -292,7 +298,7 @@ int main(int argc, char** argv) {
         }
 
         // render all objects in scene
-        app.renderer->drawObjects(scene, camera);
+        trianglesDrawn = app.renderer->drawObjects(scene, camera);
 
         // render to screen
         app.renderer->drawToScreen(screenShader);
