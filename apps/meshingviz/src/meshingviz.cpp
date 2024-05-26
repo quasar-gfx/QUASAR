@@ -16,7 +16,7 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
-const std::string DATA_PATH = "../meshing/data/";
+const std::string DATA_PATH = "../meshing/";
 
 enum class RenderState {
     MESH,
@@ -28,13 +28,13 @@ int surfelSize = 4;
 RenderState renderState = RenderState::MESH;
 
 int createMesh(Mesh* mesh, std::string label) {
-    std::ifstream vertexFile(DATA_PATH + "positions_" + label + "_0.bin", std::ios::binary);
+    std::ifstream vertexFile(DATA_PATH + "data/positions_" + label + "_0.bin", std::ios::binary);
     if (!vertexFile.is_open()) {
         std::cerr << "Failed to open file with label=" << label << std::endl;
         return -1;
     }
 
-    std::ifstream indexFile(DATA_PATH + "indices_" + label + "_0.bin", std::ios::binary);
+    std::ifstream indexFile(DATA_PATH + "data/indices_" + label + "_0.bin", std::ios::binary);
     if (!indexFile.is_open()) {
         std::cerr << "Failed to open file with label=" << label << std::endl;
         return -1;
@@ -45,7 +45,7 @@ int createMesh(Mesh* mesh, std::string label) {
         .wrapT = GL_REPEAT,
         .minFilter = GL_LINEAR_MIPMAP_LINEAR,
         .magFilter = GL_LINEAR,
-        .path = "../meshing/imgs/color_" + label + "_0.png"
+        .path = DATA_PATH + "imgs/color_" + label + "_0.png"
     });
 
     unsigned int width = diffuseTexture.width / surfelSize;
@@ -213,7 +213,7 @@ int main(int argc, char** argv) {
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
 
     // load camera view and projection matrices
-    std::ifstream cameraFile(DATA_PATH + "camera.bin", std::ios::binary);
+    std::ifstream cameraFile(DATA_PATH + "data/camera.bin", std::ios::binary);
     glm::mat4 proj = glm::mat4(1.0f);
     glm::mat4 view = glm::mat4(1.0f);
     cameraFile.read(reinterpret_cast<char*>(&proj), sizeof(glm::mat4));
