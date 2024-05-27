@@ -34,14 +34,14 @@ void main() {
     uint vertexIndex = uint(gl_GlobalInvocationID.y * size.x + gl_GlobalInvocationID.x);
 
     ivec2 surfelCoords = ivec2(gl_GlobalInvocationID.xy);
-    ivec2 pixelCoords = surfelSize * surfelCoords;
-    vec2 pixelCoordsNormalized = vec2(pixelCoords) / vec2(screenSize);
-    vec2 ndc = pixelCoordsNormalized * 2.0 - 1.0;
+    ivec2 pixelCoord = surfelSize * surfelCoords;
+    vec2 pixelCoordNormalized = vec2(pixelCoord) / vec2(screenSize);
+    vec2 ndc = pixelCoordNormalized * 2.0 - 1.0;
 
-    vec4 positionData = imageLoad(positionMap, pixelCoords);
-    vec4 normalData = imageLoad(normalMap, pixelCoords);
-    ivec2 pixelCoordsCenter = pixelCoords + surfelSize / 2;
-    vec4 depthData = texelFetch(depthMap, pixelCoordsCenter, 0);
+    vec4 positionData = imageLoad(positionMap, pixelCoord);
+    vec4 normalData = imageLoad(normalMap, pixelCoord);
+    ivec2 pixelCoordCenter = pixelCoord + surfelSize / 2;
+    vec4 depthData = texelFetch(depthMap, pixelCoordCenter, 0);
 
     vec3 normal = normalize(normalData.xyz);
     vec3 position = positionData.xyz;
@@ -59,7 +59,7 @@ void main() {
     vec4 vertexCoords = worldCoords;
 
     vertices[vertexIndex] = vertexCoords;
-    // texCoords[vertexIndex] = pixelCoordsNormalized;
+    // texCoords[vertexIndex] = pixelCoordNormalized;
 
     if (surfelCoords.x < size.x - 1 && surfelCoords.y < size.y) {
         uint currentVertexIndex = vertexIndex;
