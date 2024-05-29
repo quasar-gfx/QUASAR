@@ -48,6 +48,16 @@ vec3 viewToWorld(vec3 viewspaceCoord) {
     return worldCoord.xyz;
 }
 
+float sampleDepth(sampler2D depthMap, ivec2 pixelCoord) {
+    vec2 sampleCoord = (vec2(pixelCoord) + 0.5) / screenSize;
+    return texture(depthMap, sampleCoord).x;
+}
+
+vec3 planeRayIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 planeNormal, vec3 planePoint) {
+    float t = dot(planeNormal, planePoint - rayOrigin) / dot(planeNormal, rayDirection);
+    return rayOrigin + t * rayDirection;
+}
+
 void main() {
     vec2 size = vec2(screenSize) / float(surfelSize);
 
@@ -98,11 +108,11 @@ void main() {
     uint idUpperRight = imageLoad(idMap, pixelCoordUpperRight).x;
     // uint idCenter     = imageLoad(idMap, pixelCoordCenter).x;
 
-    float depthLowerLeft  = texture(depthMap, pixelCoordLowerLeftNormalized).x;
-    float depthLowerRight = texture(depthMap, pixelCoordLowerRightNormalized).x;
-    float depthUpperLeft  = texture(depthMap, pixelCoordUpperLeftNormalized).x;
-    float depthUpperRight = texture(depthMap, pixelCoordUpperRightNormalized).x;
-    // float depthCenter     = texture(depthMap, pixelCoordCenterNormalized).x;
+    float depthLowerLeft  = sampleDepth(depthMap, pixelCoordLowerLeft);
+    float depthLowerRight = sampleDepth(depthMap, pixelCoordLowerRight);
+    float depthUpperLeft  = sampleDepth(depthMap, pixelCoordUpperLeft);
+    float depthUpperRight = sampleDepth(depthMap, pixelCoordUpperRight);
+    // float depthCenter     = sampleDepth(depthMap, pixelCoordCenter);
 
     vec2 ndcLowerLeft  = 2.0 * pixelCoordLowerLeftNormalized - 1.0;
     vec2 ndcLowerRight = 2.0 * pixelCoordLowerRightNormalized - 1.0;

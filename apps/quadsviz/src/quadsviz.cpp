@@ -226,7 +226,7 @@ int main(int argc, char** argv) {
         scene.addChildNode(&nodes[i]);
     }
 
-    scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
+    scene.backgroundColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
     // load camera view and projection matrices
     std::ifstream cameraFile(DATA_PATH + "data/camera.bin", std::ios::binary);

@@ -321,6 +321,6 @@ void main() {
 
     positionBuffer = vec4(fsIn.FragPos, 1.0);
     normalsBuffer = vec4(normalize(fsIn.Normal), 1.0);
-    idBuffer = vec4(fsIn.VertexID, 0.0, 0.0, 0.0);
+    idBuffer = vec4(gl_PrimitiveID, 0.0, 0.0, 0.0);
     FragColor = vec4(radianceOut, alpha);
 }
