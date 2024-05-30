@@ -38,7 +38,7 @@
             "material": 2
         },
         {
-            "path": "../assets/models/DamagedHelmet/DamagedHelmet.gltf",
+            "path": "../assets/models/DamagedHelmet.glb",
             "gammaCorrected": true
         }
     ],
