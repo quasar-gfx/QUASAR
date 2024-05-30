@@ -74,13 +74,13 @@ void main() {
     vec2 pixelCoordUpperRightNormalized = pixelCoordUpperRight / screenSize;
     vec2 pixelCoordLowerLeftNormalized = pixelCoordLowerLeft / screenSize;
     vec2 pixelCoordLowerRightNormalized = pixelCoordLowerRight / screenSize;
-    vec2 centerPixelNormalized = pixelCoordCenter / screenSize;
+    vec2 pixelCoordCenterNormalized = pixelCoordCenter / screenSize;
 
     vec2 ndcUpperLeft  = 2.0 * pixelCoordUpperLeftNormalized - 1.0;
     vec2 ndcUpperRight = 2.0 * pixelCoordUpperRightNormalized - 1.0;
     vec2 ndcLowerLeft  = 2.0 * pixelCoordLowerLeftNormalized - 1.0;
     vec2 ndcLowerRight = 2.0 * pixelCoordLowerRightNormalized - 1.0;
-    vec2 centerPixel = 2.0 * centerPixelNormalized - 1.0;
+    vec2 ndcCenter = 2.0 * pixelCoordCenterNormalized - 1.0;
 
     // vec3 positionUpperLeft  = imageLoad(positionMap, pixelCoordUpperLeft).xyz;
     // vec3 positionUpperRight = imageLoad(positionMap, pixelCoordUpperRight).xyz;
@@ -102,7 +102,7 @@ void main() {
     vec3 viewCoordUpperRight = ndcToView(ndcUpperRight, depthUpperRight);
     vec3 viewCoordLowerLeft  = ndcToView(ndcLowerLeft, depthLowerLeft);
     vec3 viewCoordLowerRight = ndcToView(ndcLowerRight, depthLowerRight);
-    vec3 viewCoordCenter     = ndcToView(centerPixel, depthCenter);
+    vec3 viewCoordCenter     = ndcToView(ndcCenter, depthCenter);
 
     float avgDepth = 0.0;
     int n = 0;
@@ -126,7 +126,7 @@ void main() {
     avgNormal = normalize(avgNormal);
 
     vec3 planeNormal = avgNormal;
-    vec3 planePoint = ndcToView(centerPixel, avgDepth);
+    vec3 planePoint = ndcToView(ndcCenter, avgDepth);
 
     vec3 rayOrigin = vec3(0.0);
     viewCoordUpperLeft = planeRayIntersection(rayOrigin, viewCoordUpperLeft, planeNormal, planePoint);

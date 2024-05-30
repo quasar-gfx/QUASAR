@@ -17,6 +17,8 @@
 #include <GUI/ImGuiManager.h>
 #include <SceneLoader.h>
 
+#define VERTICES_IN_A_QUAD 4
+
 int main(int argc, char** argv) {
     Config config{};
     config.title = "Meshing Test";
@@ -109,13 +111,13 @@ int main(int argc, char** argv) {
     int height = screenHeight / surfelSize;
 
     GLuint vertexBuffer;
-    int numVertices = width * height;
+    int numVertices = width * height * VERTICES_IN_A_QUAD;
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(glm::vec4), nullptr, GL_STATIC_DRAW);
 
     GLuint indexBuffer;
-    int trianglesDrawn = (width-1) * height * 2;
+    int trianglesDrawn = width * height * 2;
     int indexBufferSize = trianglesDrawn * 3;
     glGenBuffers(1, &indexBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
@@ -214,7 +216,7 @@ int main(int argc, char** argv) {
             if (pBuffer) {
                 glm::vec4* pVertices = static_cast<glm::vec4*>(pBuffer);
 
-                for (int i = 0; i < width * height; i++) {
+                for (int i = 0; i < numVertices; i++) {
                     Vertex vertex;
                     vertex.position.x = pVertices[i].x;
                     vertex.position.y = pVertices[i].y;
