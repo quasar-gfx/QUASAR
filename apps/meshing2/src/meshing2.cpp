@@ -186,9 +186,9 @@ int main(int argc, char** argv) {
             genMesh2Shader.setFloat("near", camera.near);
             genMesh2Shader.setFloat("far", camera.far);
             genMesh2Shader.setInt("surfelSize", surfelSize);
-            glBindImageTexture(0, app.renderer->gBuffer.positionBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
-            glBindImageTexture(1, app.renderer->gBuffer.normalsBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
-            glBindImageTexture(2, app.renderer->gBuffer.idBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32UI);
+            app.renderer->gBuffer.positionBuffer.bind(0);
+            app.renderer->gBuffer.normalsBuffer.bind(1);
+            app.renderer->gBuffer.idBuffer.bind(2);
             app.renderer->gBuffer.depthBuffer.bind(3);
             genMesh2Shader.dispatch(width, height, 1);
             genMesh2Shader.unbind();
