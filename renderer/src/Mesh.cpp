@@ -23,6 +23,9 @@ void Mesh::createBuffers()  {
     glEnableVertexAttribArray(ATTRIBUTE_POSITION);
     glVertexAttribPointer(ATTRIBUTE_POSITION,   3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
 
+    glEnableVertexAttribArray(ATTRIBUTE_COLOR);
+    glVertexAttribPointer(ATTRIBUTE_COLOR,      3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
+
     glEnableVertexAttribArray(ATTRIBUTE_NORMAL);
     glVertexAttribPointer(ATTRIBUTE_NORMAL,     3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
 

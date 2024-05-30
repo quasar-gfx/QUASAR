@@ -21,6 +21,7 @@
 enum VertexAttribute {
     ATTRIBUTE_ID = 0,
     ATTRIBUTE_POSITION,
+    ATTRIBUTE_COLOR,
     ATTRIBUTE_NORMAL,
     ATTRIBUTE_TEX_COORDS,
     ATTRIBUTE_TANGENT,
@@ -30,6 +31,7 @@ enum VertexAttribute {
 struct Vertex {
     uint32_t ID;
     glm::vec3 position;
+    glm::vec3 color = glm::vec3(1.0f);
     glm::vec3 normal;
     glm::vec2 texCoords;
     glm::vec3 tangent;
@@ -45,6 +47,10 @@ struct Vertex {
     }
     Vertex(glm::vec3 position, glm::vec3 normal, glm::vec2 texCoords)
         : position(position), normal(normal), texCoords(texCoords) {
+        ID = nextID++;
+    }
+    Vertex(glm::vec3 position, glm::vec3 color, glm::vec3 normal)
+        : position(position), color(color), normal(normal) {
         ID = nextID++;
     }
     Vertex(glm::vec3 position, glm::vec3 normal, glm::vec2 texCoords, glm::vec3 tangent, glm::vec3 bitangent)

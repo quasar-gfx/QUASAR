@@ -25,11 +25,13 @@ UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams &params) {
     };
     shader = std::make_shared<Shader>(UnlitMaterialParams);
 
+    color = params.color;
     transparent = params.transparent;
 }
 
 void UnlitMaterial::bind() {
     shader->bind();
+    shader->setVec3("overrideColor", color);
     shader->setBool("transparent", transparent);
 
     std::string name = "diffuseMap";

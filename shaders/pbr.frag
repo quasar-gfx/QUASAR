@@ -8,6 +8,7 @@ in VertexData {
     flat uint VertexID;
     vec2 TexCoords;
     vec3 FragPos;
+    vec3 Color;
     vec3 Normal;
     vec3 Tangent;
     vec3 BiTangent;
@@ -267,6 +268,8 @@ void main() {
     float alpha = (transparent) ? color.a : 1.0;
     if (alpha < 0.1)
         discard;
+
+    albedo *= fsIn.Color;
 
     vec2 mr = texture(metallicMap, fsIn.TexCoords).rg;
     float metallic = mr.r;

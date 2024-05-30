@@ -8,6 +8,7 @@ in VertexData {
     flat uint VertexID;
     vec2 TexCoords;
     vec3 FragPos;
+    vec3 Color;
     vec3 Normal;
     vec3 Tangent;
     vec3 BiTangent;
@@ -16,9 +17,8 @@ in VertexData {
 
 // material textures
 uniform sampler2D diffuseMap; // 0
-uniform sampler2D specularMap; // 1
-uniform float shininess;
 
+uniform vec3 overrideColor;
 uniform bool transparent;
 
 uniform vec3 camPos;
@@ -28,6 +28,13 @@ void main() {
     float alpha = (transparent) ? color.a : 1.0;
     if (alpha < 0.1)
         discard;
+
+    if (overrideColor != vec3(0.0)) {
+        color.rgb = overrideColor;
+    }
+    else {
+        color.rgb *= fsIn.Color;
+    }
 
     vec3 norm = normalize(fsIn.Normal);
     vec3 viewDir = normalize(camPos - fsIn.FragPos);
