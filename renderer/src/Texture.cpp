@@ -13,18 +13,24 @@
 
 void Texture::init(const TextureCreateParams &params) {
     glGenTextures(1, &ID);
-    glBindTexture(GL_TEXTURE_2D, ID);
-    glTexImage2D(GL_TEXTURE_2D, 0, params.internalFormat, width, height, 0, params.format, params.type, params.data);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, params.wrapS);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, params.wrapT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, params.minFilter);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, params.magFilter);
+
+    glBindTexture(target, ID);
+    if (!multiSampled) {
+        glTexImage2D(target, 0, params.internalFormat, width, height, 0, params.format, params.type, params.data);
+    }
+    else {
+        glTexImage2DMultisample(target, 4, params.internalFormat, width, height, GL_TRUE);
+    }
+    glTexParameteri(target, GL_TEXTURE_WRAP_S, params.wrapS);
+    glTexParameteri(target, GL_TEXTURE_WRAP_T, params.wrapT);
+    glTexParameteri(target, GL_TEXTURE_MIN_FILTER, params.minFilter);
+    glTexParameteri(target, GL_TEXTURE_MAG_FILTER, params.magFilter);
     if (params.minFilter == GL_LINEAR_MIPMAP_LINEAR || params.minFilter == GL_LINEAR_MIPMAP_NEAREST) {
-        glGenerateMipmap(GL_TEXTURE_2D);
+        glGenerateMipmap(target);
     }
     if (params.hasBorder) {
         float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
-        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+        glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, borderColor);
     }
 }
 
@@ -60,14 +66,19 @@ void Texture::loadFromFile(const TextureCreateParams &params) {
             format = GL_RGBA;
         }
 
-        glBindTexture(GL_TEXTURE_2D, ID);
-        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, params.type, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
+        glBindTexture(target, ID);
+        if (!multiSampled) {
+            glTexImage2D(target, 0, internalFormat, width, height, 0, format, params.type, data);
+        }
+        else {
+            glTexImage2DMultisample(target, 4, internalFormat, width, height, GL_TRUE);
+        }
+        glGenerateMipmap(target);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, params.wrapS);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, params.wrapT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, params.minFilter);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, params.magFilter);
+        glTexParameteri(target, GL_TEXTURE_WRAP_S, params.wrapS);
+        glTexParameteri(target, GL_TEXTURE_WRAP_T, params.wrapT);
+        glTexParameteri(target, GL_TEXTURE_MIN_FILTER, params.minFilter);
+        glTexParameteri(target, GL_TEXTURE_MAG_FILTER, params.magFilter);
 
         stbi_image_free(data);
     }
@@ -75,6 +86,23 @@ void Texture::loadFromFile(const TextureCreateParams &params) {
         throw std::runtime_error("Texture failed to load at path: " + params.path);
         stbi_image_free(data);
     }
+}
+
+void Texture::resize(unsigned int width, unsigned int height) {
+    this->width = width;
+    this->height = height;
+
+    bind(0);
+    if (!multiSampled) {
+        glTexImage2D(target, 0, internalFormat, width, height, 0, format, type, nullptr);
+    }
+    else {
+        glTexImage2DMultisample(target, 4, internalFormat, width, height, GL_TRUE);
+    }
+    if (minFilter == GL_LINEAR_MIPMAP_LINEAR || minFilter == GL_LINEAR_MIPMAP_NEAREST) {
+        glGenerateMipmap(target);
+    }
+    unbind();
 }
 
 void Texture::saveTextureToPNG(std::string filename) {

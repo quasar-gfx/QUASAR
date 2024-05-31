@@ -37,6 +37,10 @@ public:
         this->height = height;
     }
 
+    void blitToScreen(unsigned int width, unsigned int height) {
+        framebuffer.blitToScreen(width, height);
+    }
+
     void bind() {
         framebuffer.bind();
         glViewport(0, 0, width, height);

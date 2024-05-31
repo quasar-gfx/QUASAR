@@ -19,7 +19,9 @@ class OpenGLRenderer {
 public:
     unsigned int width, height;
 
+    GeometryBuffer gBufferMS; // multisampled
     GeometryBuffer gBuffer;
+
     FullScreenQuad outputFsQuad;
 
     explicit OpenGLRenderer(unsigned int width, unsigned int height);
@@ -27,9 +29,9 @@ public:
 
     void updateDirLightShadow(Scene &scene, Camera &camera);
     void updatePointLightShadows(Scene &scene, Camera &camera);
-    void drawSkyBox(Scene &scene, Camera &camera);
+    unsigned int drawSkyBox(Scene &scene, Camera &camera);
     unsigned int drawObjects(Scene &scene, Camera &camera);
-    void drawToScreen(Shader &screenShader);
+    void drawToScreen(Shader &screenShader, RenderTarget* overrideRenderTarget = nullptr);
     void drawToRenderTarget(Shader &screenShader, RenderTarget &renderTarget);
     void resize(unsigned int width, unsigned int height);
 

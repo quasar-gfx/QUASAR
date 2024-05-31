@@ -80,7 +80,7 @@ public:
     void convolve(Shader &convolutionShader, CubeMap &envCubeMap);
     void prefilter(Shader &prefilterShader, CubeMap &envCubeMap, Renderbuffer &captureRBO);
 
-    void draw(Shader &shader, Camera &camera);
+    unsigned int draw(Shader &shader, Camera &camera);
 
     void bind() {
         bind(0);
@@ -116,7 +116,7 @@ private:
             GLint wrapS, GLint wrapT, GLint wrapR,
             GLint minFilter, GLint magFilter);
 
-    void drawCube();
+    unsigned int drawCube();
 };
 
 #endif // CUBE_MAP_H

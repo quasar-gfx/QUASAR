@@ -233,7 +233,9 @@ void CubeMap::prefilter(Shader &prefilterShader, CubeMap &envCubeMap, Renderbuff
     prefilterShader.unbind();
 }
 
-void CubeMap::draw(Shader &shader, Camera &camera) {
+unsigned int CubeMap::draw(Shader &shader, Camera &camera) {
+    unsigned int trianglesDrawn = 0;
+
     glDepthFunc(GL_LEQUAL);
     glDepthMask(GL_FALSE);
 
@@ -244,7 +246,7 @@ void CubeMap::draw(Shader &shader, Camera &camera) {
     shader.setMat4("projection", camera.getProjectionMatrix());
 
     bind();
-    drawCube();
+    trianglesDrawn = drawCube();
     unbind();
 
     shader.unbind();
@@ -252,10 +254,16 @@ void CubeMap::draw(Shader &shader, Camera &camera) {
     // restore depth func
     glDepthMask(GL_TRUE);
     glDepthFunc(GL_LESS);
+
+    return trianglesDrawn;
 }
 
-void CubeMap::drawCube() {
+unsigned int CubeMap::drawCube() {
+    unsigned int trianglesDrawn = 36;
+
     glBindVertexArray(cubeMapVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glDrawArrays(GL_TRIANGLES, 0, trianglesDrawn);
     glBindVertexArray(0);
+
+    return trianglesDrawn;
 }

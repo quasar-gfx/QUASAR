@@ -180,6 +180,10 @@ int main(int argc, char** argv) {
             // render all objects in scene
             app.renderer->drawObjects(scene, camera);
 
+            // render to screen
+            // app.renderer->drawToScreen(screenShader);
+            app.renderer->drawToRenderTarget(screenShader, renderTarget);
+
             genMesh2Shader.bind();
             genMesh2Shader.setMat4("viewInverse", glm::inverse(camera.getViewMatrix()));
             genMesh2Shader.setMat4("projectionInverse", glm::inverse(camera.getProjectionMatrix()));
@@ -192,10 +196,6 @@ int main(int argc, char** argv) {
             app.renderer->gBuffer.depthBuffer.bind(3);
             genMesh2Shader.dispatch(width, height, 1);
             genMesh2Shader.unbind();
-
-            // render to screen
-            // app.renderer->drawToScreen(screenShader);
-            app.renderer->drawToRenderTarget(screenShader, renderTarget);
 
             std::cout << "\tRendering Time: " << glfwGetTime() - startTime << "s" << std::endl;
             startTime = glfwGetTime();

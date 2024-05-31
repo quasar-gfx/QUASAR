@@ -21,6 +21,7 @@ struct TextureCreateParams {
     bool flipVertically = false;
     bool hasBorder = false;
     bool gammaCorrected = false;
+    bool multiSampled = false;
     unsigned char* data = nullptr;
     std::string path = "";
 };
@@ -39,6 +40,8 @@ public:
     GLint minFilter = GL_LINEAR;
     GLint magFilter = GL_LINEAR;
 
+    bool multiSampled = false;
+
     explicit Texture() = default;
 
     explicit Texture(const TextureCreateParams &params)
@@ -46,7 +49,9 @@ public:
               internalFormat(params.internalFormat), format(params.format),
               type(params.type),
               wrapS(params.wrapS), wrapT(params.wrapT),
-              minFilter(params.minFilter), magFilter(params.magFilter) {
+              minFilter(params.minFilter), magFilter(params.magFilter),
+              multiSampled(params.multiSampled) {
+        target = !multiSampled ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
         if (params.path == "") {
             init(params);
         }
@@ -61,7 +66,7 @@ public:
 
     void bind(unsigned int slot = 0) {
         glActiveTexture(GL_TEXTURE0 + slot);
-        glBindTexture(GL_TEXTURE_2D, ID);
+        glBindTexture(target, ID);
     }
 
     void unbind() {
@@ -70,21 +75,11 @@ public:
 
     void unbind(unsigned int slot) {
         glActiveTexture(GL_TEXTURE0 + slot);
-        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindTexture(target, 0);
         glActiveTexture(GL_TEXTURE0);
     }
 
-    void resize(unsigned int width, unsigned int height) {
-        this->width = width;
-        this->height = height;
-
-        glBindTexture(GL_TEXTURE_2D, ID);
-        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, nullptr);
-        if (minFilter == GL_LINEAR_MIPMAP_LINEAR || minFilter == GL_LINEAR_MIPMAP_NEAREST) {
-            glGenerateMipmap(GL_TEXTURE_2D);
-        }
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }
+    void resize(unsigned int width, unsigned int height);
 
     void cleanup() {
         glDeleteTextures(1, &ID);
@@ -96,6 +91,8 @@ public:
     void saveDepthToFile(std::string filename);
 
 private:
+    GLenum target;
+
     void init(const TextureCreateParams &params);
     void loadFromFile(const TextureCreateParams &params);
 };

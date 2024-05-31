@@ -2,13 +2,14 @@
 
 OpenGLRenderer::OpenGLRenderer(unsigned int width, unsigned int height)
         : width(width), height(height),
-          gBuffer({ .width = width, .height = height }),
+          gBuffer({ .width = width, .height = height }, false),
+          gBufferMS({ .width = width, .height = height }, true),
           skyboxShader({ .vertexCodeData = SHADER_SKYBOX_VERT,
                          .vertexCodeSize = SHADER_SKYBOX_VERT_len,
                          .fragmentCodeData = SHADER_SKYBOX_FRAG,
                          .fragmentCodeSize = SHADER_SKYBOX_FRAG_len }),
           outputFsQuad() {
-    // enable msaa
+    // enable msaa for screen buffer
     glEnable(GL_MULTISAMPLE);
 
     // enable seamless cube map sampling for lower mip levels in the pre-filter map
@@ -18,6 +19,7 @@ OpenGLRenderer::OpenGLRenderer(unsigned int width, unsigned int height)
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+    // enable setting vertex size for point clouds
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 }
 
@@ -61,12 +63,13 @@ void OpenGLRenderer::updatePointLightShadows(Scene &scene, Camera &camera) {
     }
 }
 
-void OpenGLRenderer::drawSkyBox(Scene &scene, Camera &camera) {
+unsigned int OpenGLRenderer::drawSkyBox(Scene &scene, Camera &camera) {
+    unsigned int trianglesDrawn = 0;
     if (scene.envCubeMap == nullptr) {
-        return;
+        return trianglesDrawn;
     }
 
-    gBuffer.bind();
+    gBufferMS.bind();
     // dont clear color or depth bit here, since we want this to draw over
 
     skyboxShader.bind();
@@ -75,12 +78,14 @@ void OpenGLRenderer::drawSkyBox(Scene &scene, Camera &camera) {
     skyboxShader.setMat4("projection", camera.getProjectionMatrix());
 
     if (scene.envCubeMap != nullptr) {
-        scene.envCubeMap->draw(skyboxShader, camera);
+        trianglesDrawn = scene.envCubeMap->draw(skyboxShader, camera);
     }
 
     skyboxShader.unbind();
 
-    gBuffer.unbind();
+    gBufferMS.unbind();
+
+    return trianglesDrawn;
 }
 
 unsigned int OpenGLRenderer::drawObjects(Scene &scene, Camera &camera) {
@@ -89,7 +94,7 @@ unsigned int OpenGLRenderer::drawObjects(Scene &scene, Camera &camera) {
     updatePointLightShadows(scene, camera);
 
     // bind to gBuffer and draw scene as we normally would to color texture
-    gBuffer.bind();
+    gBufferMS.bind();
     glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -98,10 +103,10 @@ unsigned int OpenGLRenderer::drawObjects(Scene &scene, Camera &camera) {
         trianglesDrawn += drawNode(scene, camera, child, glm::mat4(1.0f));
     }
 
-    drawSkyBox(scene, camera);
+    trianglesDrawn += drawSkyBox(scene, camera);
 
     // now bind back to default gBuffer and draw a quad plane with the attached gBuffer color texture
-    gBuffer.unbind();
+    gBufferMS.unbind();
 
     return trianglesDrawn;
 }
@@ -122,7 +127,17 @@ unsigned int OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, 
     return trianglesDrawn;
 }
 
-void OpenGLRenderer::drawToScreen(Shader &screenShader) {
+void OpenGLRenderer::drawToScreen(Shader &screenShader, RenderTarget* overrideRenderTarget) {
+    // blit multisampled gBuffer to regular gBuffer, resolving the multisampled buffer (MSAA)
+    gBufferMS.blitToGBuffer(gBuffer);
+
+    if (overrideRenderTarget != nullptr) {
+        overrideRenderTarget->bind();
+    }
+    else {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
     glViewport(0, 0, width, height);
 
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -148,12 +163,14 @@ void OpenGLRenderer::drawToScreen(Shader &screenShader) {
     gBuffer.colorBuffer.unbind();
     gBuffer.depthBuffer.unbind();
     screenShader.unbind();
+
+    if (overrideRenderTarget != nullptr) {
+        overrideRenderTarget->unbind();
+    }
 }
 
 void OpenGLRenderer::drawToRenderTarget(Shader &screenShader, RenderTarget &renderTarget) {
-    renderTarget.bind();
-    drawToScreen(screenShader);
-    renderTarget.unbind();
+    drawToScreen(screenShader, &renderTarget);
 }
 
 void OpenGLRenderer::resize(unsigned int width, unsigned int height) {
@@ -161,5 +178,6 @@ void OpenGLRenderer::resize(unsigned int width, unsigned int height) {
     this->height = height;
 
     glViewport(0, 0, width, height);
+    gBufferMS.resize(width, height);
     gBuffer.resize(width, height);
 }

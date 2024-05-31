@@ -11,7 +11,7 @@ public:
     Texture colorBuffer;
     Texture depthBuffer;
 
-    explicit GeometryBuffer(const RenderTargetCreateParams &params)
+    explicit GeometryBuffer(const RenderTargetCreateParams &params, bool multiSampled = false)
             : RenderTargetBase(params),
             positionBuffer({ .width = width,
                              .height = height,
@@ -21,7 +21,8 @@ public:
                              .wrapS = GL_CLAMP_TO_EDGE,
                              .wrapT = GL_CLAMP_TO_EDGE,
                              .minFilter = GL_NEAREST,
-                             .magFilter = GL_NEAREST }),
+                             .magFilter = GL_NEAREST ,
+                             .multiSampled = multiSampled }),
             normalsBuffer({ .width = width,
                             .height = height,
                             .internalFormat = GL_RGBA16F,
@@ -30,7 +31,8 @@ public:
                             .wrapS = GL_CLAMP_TO_EDGE,
                             .wrapT = GL_CLAMP_TO_EDGE,
                             .minFilter = GL_NEAREST,
-                            .magFilter = GL_NEAREST }),
+                            .magFilter = GL_NEAREST ,
+                            .multiSampled = multiSampled }),
             idBuffer({ .width = width,
                        .height = height,
                        .internalFormat = GL_R32UI,
@@ -39,7 +41,8 @@ public:
                        .wrapS = GL_CLAMP_TO_EDGE,
                        .wrapT = GL_CLAMP_TO_EDGE,
                        .minFilter = GL_NEAREST,
-                       .magFilter = GL_NEAREST }),
+                       .magFilter = GL_NEAREST,
+                       .multiSampled = multiSampled }),
             colorBuffer({ .width = width,
                           .height = height,
                           .internalFormat = GL_RGBA16F,
@@ -48,14 +51,16 @@ public:
                           .wrapS = GL_CLAMP_TO_EDGE,
                           .wrapT = GL_CLAMP_TO_EDGE,
                           .minFilter = GL_LINEAR,
-                          .magFilter = GL_LINEAR }),
+                          .magFilter = GL_LINEAR,
+                          .multiSampled = multiSampled }),
             depthBuffer({ .width = width,
                           .height = height,
                           .internalFormat = GL_DEPTH_COMPONENT32F,
                           .format = GL_DEPTH_COMPONENT,
                           .type = GL_FLOAT,
                           .minFilter = GL_NEAREST,
-                          .magFilter = GL_NEAREST }) {
+                          .magFilter = GL_NEAREST,
+                          .multiSampled = multiSampled }) {
 
         framebuffer.bind();
         framebuffer.attachTexture(positionBuffer, GL_COLOR_ATTACHMENT0);
@@ -72,6 +77,31 @@ public:
         }
 
         framebuffer.unbind();
+    }
+
+    void blitToGBuffer(GeometryBuffer &gBuffer) {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gBuffer.framebuffer.ID);
+
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
+        glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+        glReadBuffer(GL_COLOR_ATTACHMENT1);
+        glDrawBuffer(GL_COLOR_ATTACHMENT1);
+        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+        glReadBuffer(GL_COLOR_ATTACHMENT2);
+        glDrawBuffer(GL_COLOR_ATTACHMENT2);
+        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+        glReadBuffer(GL_COLOR_ATTACHMENT3);
+        glDrawBuffer(GL_COLOR_ATTACHMENT3);
+        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
     void resize(unsigned int width, unsigned int height) override {
