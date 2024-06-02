@@ -19,7 +19,6 @@ class OpenGLRenderer {
 public:
     unsigned int width, height;
 
-    GeometryBuffer gBufferMS; // multisampled
     GeometryBuffer gBuffer;
 
     FullScreenQuad outputFsQuad;

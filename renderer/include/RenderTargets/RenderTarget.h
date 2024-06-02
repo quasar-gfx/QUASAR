@@ -18,14 +18,16 @@ public:
                           .wrapS = params.wrapS,
                           .wrapT = params.wrapT,
                           .minFilter = params.minFilter,
-                          .magFilter = params.magFilter }),
+                          .magFilter = params.magFilter,
+                          .multiSampled = params.multiSampled }),
             depthBuffer({ .width = width,
                           .height = height,
                           .internalFormat = GL_DEPTH_COMPONENT32F,
                           .format = GL_DEPTH_COMPONENT,
                           .type = GL_FLOAT,
                           .minFilter = GL_NEAREST,
-                          .magFilter = GL_NEAREST }) {
+                          .magFilter = GL_NEAREST,
+                          .multiSampled = params.multiSampled }) {
         framebuffer.bind();
         framebuffer.attachTexture(colorBuffer, GL_COLOR_ATTACHMENT0);
         framebuffer.attachTexture(depthBuffer, GL_DEPTH_ATTACHMENT);

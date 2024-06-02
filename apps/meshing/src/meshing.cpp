@@ -147,8 +147,6 @@ int main(int argc, char** argv) {
         .magFilter = GL_LINEAR
     });
 
-    // camera.setProjectionMatrix(glm::radians(120.0f), (float)screenWidth / (float)screenHeight, 0.1f, 1000.0f);
-
     // save camera view and projection matrices
     std::ofstream cameraFile;
     cameraFile.open("data/camera.bin", std::ios::out | std::ios::binary);
@@ -157,6 +155,9 @@ int main(int argc, char** argv) {
     cameraFile.write(reinterpret_cast<const char*>(&proj), sizeof(glm::mat4));
     cameraFile.write(reinterpret_cast<const char*>(&view), sizeof(glm::mat4));
     cameraFile.close();
+
+    // set high fov
+    camera.setProjectionMatrix(glm::radians(120.0f), (float)screenWidth / (float)screenHeight, camera.near, camera.far);
 
     glm::vec3 initialPosition = camera.position;
 

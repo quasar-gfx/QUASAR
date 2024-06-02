@@ -2,8 +2,7 @@
 
 OpenGLRenderer::OpenGLRenderer(unsigned int width, unsigned int height)
         : width(width), height(height),
-          gBuffer({ .width = width, .height = height }, false),
-          gBufferMS({ .width = width, .height = height }, true),
+          gBuffer({ .width = width, .height = height }),
           skyboxShader({ .vertexCodeData = SHADER_SKYBOX_VERT,
                          .vertexCodeSize = SHADER_SKYBOX_VERT_len,
                          .fragmentCodeData = SHADER_SKYBOX_FRAG,
@@ -69,7 +68,7 @@ unsigned int OpenGLRenderer::drawSkyBox(Scene &scene, Camera &camera) {
         return trianglesDrawn;
     }
 
-    gBufferMS.bind();
+    gBuffer.bind();
     // dont clear color or depth bit here, since we want this to draw over
 
     skyboxShader.bind();
@@ -83,7 +82,7 @@ unsigned int OpenGLRenderer::drawSkyBox(Scene &scene, Camera &camera) {
 
     skyboxShader.unbind();
 
-    gBufferMS.unbind();
+    gBuffer.unbind();
 
     return trianglesDrawn;
 }
@@ -94,7 +93,7 @@ unsigned int OpenGLRenderer::drawObjects(Scene &scene, Camera &camera) {
     updatePointLightShadows(scene, camera);
 
     // bind to gBuffer and draw scene as we normally would to color texture
-    gBufferMS.bind();
+    gBuffer.bind();
     glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -106,7 +105,7 @@ unsigned int OpenGLRenderer::drawObjects(Scene &scene, Camera &camera) {
     trianglesDrawn += drawSkyBox(scene, camera);
 
     // now bind back to default gBuffer and draw a quad plane with the attached gBuffer color texture
-    gBufferMS.unbind();
+    gBuffer.unbind();
 
     return trianglesDrawn;
 }
@@ -128,13 +127,11 @@ unsigned int OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, 
 }
 
 void OpenGLRenderer::drawToScreen(Shader &screenShader, RenderTarget* overrideRenderTarget) {
-    // blit multisampled gBuffer to regular gBuffer, resolving the multisampled buffer (MSAA)
-    gBufferMS.blitToGBuffer(gBuffer);
-
     if (overrideRenderTarget != nullptr) {
         overrideRenderTarget->bind();
     }
     else {
+        // screen buffer
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
@@ -178,6 +175,6 @@ void OpenGLRenderer::resize(unsigned int width, unsigned int height) {
     this->height = height;
 
     glViewport(0, 0, width, height);
-    gBufferMS.resize(width, height);
+    gBuffer.resize(width, height);
     gBuffer.resize(width, height);
 }

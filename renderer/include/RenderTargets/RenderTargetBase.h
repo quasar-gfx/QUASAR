@@ -15,6 +15,7 @@ struct RenderTargetCreateParams {
     GLint wrapT = GL_CLAMP_TO_EDGE;
     GLint minFilter = GL_LINEAR;
     GLint magFilter = GL_LINEAR;
+    bool multiSampled = false;
 };
 
 class RenderTargetBase {
