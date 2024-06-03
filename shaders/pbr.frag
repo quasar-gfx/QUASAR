@@ -257,7 +257,7 @@ vec3 calcPointLight(PointLight light, samplerCube pointLightShadowMap, vec3 N, v
     // add to outgoing radiance Lo
     vec3 radianceOut = (kD * (albedo / PI) + specular) * radianceIn * NdotL; // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
 
-    // shadow stuff
+    // shadow calcs
     vec3 fragToLight = fsIn.FragPos - light.position;
     float shadow = calcPointLightShadows(light, pointLightShadowMap, fragToLight);
     radianceOut *= (1.0 - shadow);
@@ -276,11 +276,13 @@ void main() {
         color.rgb *= fsIn.Color;
     }
 
+    // albedo
     vec3 albedo = color.rgb;
     float alpha = (transparent) ? color.a : 1.0;
     if (alpha < 0.1)
         discard;
 
+    // metallic and roughness
     vec2 mr = texture(metallicMap, fsIn.TexCoords).rg;
     float metallic = (u_metallic != -1.0) ? u_metallic : mr.r;
     float roughness = (u_roughness != -1.0) ? u_roughness : mr.g;
@@ -288,6 +290,8 @@ void main() {
         metallic = texture(metallicMap, fsIn.TexCoords).r;
         roughness = texture(roughnessMap, fsIn.TexCoords).r;
     }
+
+    // ambient occlusion
     float ao = texture(aoMap, fsIn.TexCoords).r;
 
     // input lighting data
@@ -307,6 +311,7 @@ void main() {
         radianceOut += calcPointLight(pointLights[i], pointLightShadowMaps[i], N, V, albedo, roughness, metallic, F0);
     }
 
+    // IBL
     vec3 ambient = ambientLight.intensity * ambientLight.color * albedo;
     if (IBL != 0.0) {
         // ambient lighting (we now use IBL as the ambient term)

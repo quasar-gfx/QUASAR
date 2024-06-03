@@ -47,7 +47,6 @@ public:
               gammaCorrected(params.gammaCorrected),
               IBL(params.IBL),
               Entity() {
-        std::cout << "Loading model: " << params.path << std::endl;
         loadFromFile(params);
     }
 

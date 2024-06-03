@@ -8,7 +8,7 @@
     },
     "models": [
         {
-            "path": "/home/edward/Desktop/Models/RobotLab/RobotLab.gltf",
+            "path": "~/Desktop/Models/RobotLab/RobotLab.gltf",
             "IBL": 0.0,
             "gammaCorrected": true
         }

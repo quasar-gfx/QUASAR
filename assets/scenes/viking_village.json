@@ -8,7 +8,7 @@
     },
     "models": [
         {
-            "path": "/home/edward/Desktop/Models/VikingVillage.glb",
+            "path": "~/Desktop/Models/VikingVillage.glb",
             "IBL": 0.05,
             "gammaCorrected": true,
             "flipTextures": true

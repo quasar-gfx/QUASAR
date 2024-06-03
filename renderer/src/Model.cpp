@@ -2,6 +2,8 @@
 #include <sstream>
 #include <iostream>
 
+#include <unistd.h>
+
 #include <stb_image.h>
 
 #include <Primatives/Model.h>
@@ -23,6 +25,15 @@ unsigned int Model::draw(Material* overrideMaterial) {
 
 void Model::loadFromFile(const ModelCreateParams &params) {
     std::string path = params.path;
+    std::cout << "Loading model: " << path << std::endl;
+
+    // use absolute path if path starts with ~/
+    if (path[0] == '~') {
+        char* home = getenv("HOME");
+        if (home != nullptr) {
+            path.replace(0, 1, home);
+        }
+    }
 
     Assimp::Importer importer;
     unsigned int flags = aiProcess_Triangulate | aiProcess_OptimizeMeshes | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace | aiProcess_FlipUVs;
