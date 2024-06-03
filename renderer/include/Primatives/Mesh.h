@@ -84,6 +84,7 @@ struct MeshCreateParams {
     Material* material;
     bool wireframe = false;
     bool pointcloud = false;
+    bool visible = true;
     float IBL = 1.0;
 };
 
@@ -96,6 +97,7 @@ public:
 
     bool wireframe = false;
     bool pointcloud = false;
+    bool visible = true;
     float IBL = 1.0;
 
     explicit Mesh() : Entity() {}
@@ -104,6 +106,7 @@ public:
             : vertices(params.vertices), indices(params.indices),
               material(params.material),
               wireframe(params.wireframe), pointcloud(params.pointcloud),
+              visible(params.visible),
               IBL(params.IBL),
               Entity() {
         createBuffers();

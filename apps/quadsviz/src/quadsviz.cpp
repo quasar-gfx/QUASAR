@@ -29,7 +29,7 @@ enum class RenderState {
 int surfelSize = 4;
 RenderState renderState = RenderState::MESH;
 
-int createMesh(Mesh* mesh, std::string label) {
+int createMesh(Mesh* mesh, Mesh* wireframeMesh, std::string label) {
     std::ifstream vertexFile(DATA_PATH + "data/positions_" + label + "_0.bin", std::ios::binary);
     if (!vertexFile.is_open()) {
         std::cerr << "Failed to open file with label=" << label << std::endl;
@@ -90,15 +90,20 @@ int createMesh(Mesh* mesh, std::string label) {
     }
     indexFile.close();
 
-    bool renderWireframe = renderState == RenderState::WIREFRAME;
-    bool renderPointcloud = renderState == RenderState::POINTCLOUD;
-
     *mesh = Mesh({
         .vertices = vertices,
         .indices = indices,
         .material = new UnlitMaterial({ .diffuseTextureID = diffuseTexture.ID }),
-        .wireframe = renderWireframe,
-        .pointcloud = renderPointcloud,
+        .wireframe = false,
+        .pointcloud = renderState == RenderState::POINTCLOUD,
+    });
+
+    *wireframeMesh = Mesh({
+        .vertices = vertices,
+        .indices = indices,
+        .material = new UnlitMaterial({ .color = glm::vec3(1.0f, 1.0f, 0.0f) }),
+        .wireframe = true,
+        .pointcloud = false,
     });
 
     return vertices.size();
@@ -206,6 +211,7 @@ int main(int argc, char** argv) {
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
+
     std::vector<std::string> labels = {
         "center",
         // "top_right_front",
@@ -219,11 +225,17 @@ int main(int argc, char** argv) {
     };
 
     std::vector<Mesh> meshes(labels.size());
-    std::vector<Node> nodes(labels.size());
+    std::vector<Mesh> wireframeMeshes(labels.size());
+    std::vector<Node> nodes(2*labels.size());
     for (int i = 0; i < labels.size(); i++) {
-        createMesh(&meshes[i], labels[i]);
-        nodes[i] = Node(&meshes[i]);
+        createMesh(&meshes[i], &wireframeMeshes[i], labels[i]);
+
+        nodes[2*i] = Node(&meshes[i]);
         scene.addChildNode(&nodes[i]);
+
+        nodes[2*i+1] = Node(&wireframeMeshes[i]);
+        nodes[2*i+1].setTranslation(glm::vec3(0.0f, 0.001f, 0.001f));
+        scene.addChildNode(&nodes[i+1]);
     }
 
     scene.backgroundColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -283,18 +295,10 @@ int main(int argc, char** argv) {
         }
 
         for (auto& mesh : meshes) {
-            if (renderState == RenderState::MESH) {
-                mesh.pointcloud = false;
-                mesh.wireframe = false;
-            }
-            else if (renderState == RenderState::POINTCLOUD) {
-                mesh.pointcloud = true;
-                mesh.wireframe = false;
-            }
-            else if (renderState == RenderState::WIREFRAME) {
-                mesh.pointcloud = false;
-                mesh.wireframe = true;
-            }
+            mesh.pointcloud = renderState == RenderState::POINTCLOUD;
+        }
+        for (auto& mesh : wireframeMeshes) {
+            mesh.visible = renderState == RenderState::WIREFRAME;
         }
 
         // render all objects in scene

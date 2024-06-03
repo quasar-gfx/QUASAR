@@ -23,6 +23,7 @@ struct ModelCreateParams {
     bool flipTextures = false;
     bool wireframe = false;
     bool pointcloud = false;
+    bool visible = true;
     bool gammaCorrected = false;
     float IBL = 1.0;
     PBRMaterial* material;
@@ -38,12 +39,14 @@ public:
     bool flipTextures = false;
     bool wireframe = false;
     bool pointcloud = false;
+    bool visible = true;
     bool gammaCorrected = false;
     float IBL = 1.0;
 
     explicit Model(const ModelCreateParams &params)
             : flipTextures(params.flipTextures),
               wireframe(params.wireframe), pointcloud(params.pointcloud),
+              visible(params.visible),
               gammaCorrected(params.gammaCorrected),
               IBL(params.IBL),
               Entity() {

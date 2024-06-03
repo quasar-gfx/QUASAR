@@ -17,6 +17,10 @@ void Model::bindSceneAndCamera(Scene &scene, Camera &camera, glm::mat4 model, Ma
 
 unsigned int Model::draw(Material* overrideMaterial) {
     unsigned int trianglesDrawn = 0;
+    if (!visible) {
+        return trianglesDrawn;
+    }
+
     for (int i = 0; i < meshes.size(); i++) {
         trianglesDrawn += meshes[i].draw(overrideMaterial);
     }

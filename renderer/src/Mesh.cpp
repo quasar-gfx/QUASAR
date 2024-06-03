@@ -88,6 +88,10 @@ void Mesh::bindSceneAndCamera(Scene &scene, Camera &camera, glm::mat4 model, Mat
 }
 
 unsigned int Mesh::draw(Material* overrideMaterial) {
+    if (!visible) {
+        return 0;
+    }
+
     auto materialToUse = overrideMaterial != nullptr ? overrideMaterial : material;
     materialToUse->bind();
 

@@ -21,7 +21,7 @@
 
 int main(int argc, char** argv) {
     Config config{};
-    config.title = "Quads Test";
+    config.title = "Meshing2 Test";
     config.openglMajorVersion = 4;
     config.openglMinorVersion = 3;
     config.enableVSync = false;
