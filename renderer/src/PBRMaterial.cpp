@@ -61,13 +61,20 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params) {
     };
     shader = std::make_unique<Shader>(pbrShaderParams);
 
-    metalRoughnessCombined = params.metalRoughnessCombined;
+    color = params.color;
+    opacity = params.opacity;
+    metallic = params.metallic;
+    roughness = params.roughness;
     transparent = params.transparent;
+    metalRoughnessCombined = params.metalRoughnessCombined;
 }
 
 void PBRMaterial::bind() {
     shader->bind();
-    shader->setFloat("shininess", shininess);
+    shader->setVec3("baseColor", color);
+    shader->setFloat("opacity", opacity);
+    shader->setFloat("u_metallic", metallic);
+    shader->setFloat("u_roughness", roughness);
     shader->setBool("metalRoughnessCombined", metalRoughnessCombined);
     shader->setBool("transparent", transparent);
 

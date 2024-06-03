@@ -18,19 +18,28 @@ in VertexData {
 // material textures
 uniform sampler2D diffuseMap; // 0
 
-uniform vec3 overrideColor;
+uniform vec3 baseColor;
+uniform float opacity;
 uniform bool transparent;
 
 uniform vec3 camPos;
 
 void main() {
     vec4 color = texture(diffuseMap, fsIn.TexCoords);
+    if (color.rgb == vec3(0.0) && baseColor != vec3(-1.0)) {
+        color.rgb = baseColor;
+        color.a = opacity;
+    }
+    else {
+        color.rgb *= fsIn.Color;
+    }
+
     float alpha = (transparent) ? color.a : 1.0;
     if (alpha < 0.1)
         discard;
 
-    if (overrideColor != vec3(0.0)) {
-        color.rgb = overrideColor;
+    if (baseColor != vec3(-1.0)) {
+        color.rgb = baseColor;
     }
     else {
         color.rgb *= fsIn.Color;

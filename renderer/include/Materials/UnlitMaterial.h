@@ -4,7 +4,8 @@
 #include <Materials/Material.h>
 
 struct UnlitMaterialCreateParams {
-    glm::vec3 color = glm::vec3(0.0f);
+    glm::vec3 color = glm::vec3(-1.0f);
+    float opacity = -1.0f;
     std::string diffuseTexturePath = "";
     TextureID diffuseTextureID;
     bool transparent = false;
@@ -12,7 +13,8 @@ struct UnlitMaterialCreateParams {
 
 class UnlitMaterial : public Material {
 public:
-    glm::vec3 color = glm::vec3(0.0f);
+    glm::vec3 color = glm::vec3(-1.0f);
+    float opacity = -1.0f;
     bool transparent = false;
 
     explicit UnlitMaterial() = default;

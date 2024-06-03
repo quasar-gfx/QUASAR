@@ -52,6 +52,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
     std::vector<unsigned int> indices;
     std::vector<TextureID> textures;
 
+    // set up vertices
     for (int i = 0; i < mesh->mNumVertices; i++) {
         Vertex vertex;
         glm::vec3 vector;
@@ -97,6 +98,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
         vertices.push_back(vertex);
     }
 
+    // set up indices
     for (int i = 0; i < mesh->mNumFaces; i++) {
         aiFace face = mesh->mFaces[i];
 
@@ -105,6 +107,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
         }
     }
 
+    // set up material
     aiMaterial* aiMat = scene->mMaterials[mesh->mMaterialIndex];
 
     MeshCreateParams meshParams{};
@@ -112,15 +115,38 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
         meshParams.material = material;
     }
     else {
-        bool transparent = false;
-        bool metalRoughnessCombined = false;
+        PBRMaterialCreateParams materialParams{};
 
-        float opacity = 1.0;
+        aiColor3D color;
+        if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS) {
+            materialParams.color = glm::vec3(color.r, color.g, color.b);
+        }
+
         aiString alphaMode;
-        aiMat->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode);
-        aiMat->Get(AI_MATKEY_OPACITY, opacity);
-        if (opacity < 1.0 || alphaMode == aiString("BLEND") || alphaMode == aiString("MASK")) {
-            transparent = true;
+        if (aiMat->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode) == AI_SUCCESS) {
+            if (alphaMode == aiString("BLEND")) {
+                materialParams.transparent = true;
+            }
+        }
+        float opacity = 1.0;
+        if (aiMat->Get(AI_MATKEY_OPACITY, opacity) == AI_SUCCESS) {
+            if (opacity < 1.0) {
+                materialParams.transparent = true;
+            }
+            if (opacity <= 0.0f) opacity = 1.0f;
+            materialParams.opacity = opacity;
+        }
+
+        float shininess;
+        if (aiMat->Get(AI_MATKEY_SHININESS, shininess) == AI_SUCCESS) {
+            // convert shininess to roughness
+            float roughness = sqrt(2.0f / (shininess + 2.0f));
+            materialParams.roughness = roughness;
+        }
+
+        float metallic;
+        if (aiMat->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLIC_FACTOR, metallic) == AI_SUCCESS) {
+            materialParams.metallic = metallic;
         }
 
         TextureID diffuseMap = loadMaterialTexture(aiMat, aiTextureType_DIFFUSE);
@@ -131,21 +157,18 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
         if (metallicMap == 0 || roughnessMap == 0) {
             // the metallic-roughness texture is sometimes stored in aiTextureType_UNKNOWN
             metallicMap = loadMaterialTexture(aiMat, aiTextureType_UNKNOWN);
-            metalRoughnessCombined = true;
+            materialParams.metalRoughnessCombined = true;
         }
         TextureID aoMap = loadMaterialTexture(aiMat, aiTextureType_AMBIENT_OCCLUSION);
 
         textures = {diffuseMap, normalMap, metallicMap, roughnessMap, aoMap};
+        materialParams.albedoTextureID = diffuseMap;
+        materialParams.normalTextureID = normalMap;
+        materialParams.metallicTextureID = metallicMap;
+        materialParams.roughnessTextureID = roughnessMap;
+        materialParams.aoTextureID = aoMap;
 
-        meshParams.material = new PBRMaterial({
-            .albedoTextureID = textures[0],
-            .normalTextureID = textures[1],
-            .metallicTextureID = textures[2],
-            .roughnessTextureID = textures[3],
-            .aoTextureID = textures[4],
-            .metalRoughnessCombined = metalRoughnessCombined,
-            .transparent = transparent
-        });
+        meshParams.material = new PBRMaterial(materialParams);
     }
 
     meshParams.vertices = vertices;

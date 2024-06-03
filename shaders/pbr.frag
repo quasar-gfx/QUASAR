@@ -66,7 +66,12 @@ uniform bool aoMapped;
 uniform bool normalMapped;
 uniform bool metalRoughnessCombined;
 
+uniform vec3 baseColor;
+uniform float opacity;
 uniform bool transparent;
+
+uniform float u_metallic;
+uniform float u_roughness;
 
 uniform vec3 camPos;
 
@@ -263,17 +268,22 @@ vec3 calcPointLight(PointLight light, samplerCube pointLightShadowMap, vec3 N, v
 void main() {
     // material properties
     vec4 color = texture(albedoMap, fsIn.TexCoords);
+    if (color.rgb == vec3(0.0) && baseColor != vec3(-1.0)) {
+        color.rgb = baseColor;
+        color.a = opacity;
+    }
+    else {
+        color.rgb *= fsIn.Color;
+    }
 
     vec3 albedo = color.rgb;
     float alpha = (transparent) ? color.a : 1.0;
     if (alpha < 0.1)
         discard;
 
-    albedo *= fsIn.Color;
-
     vec2 mr = texture(metallicMap, fsIn.TexCoords).rg;
-    float metallic = mr.r;
-    float roughness = mr.g;
+    float metallic = (u_metallic != -1.0) ? u_metallic : mr.r;
+    float roughness = (u_roughness != -1.0) ? u_roughness : mr.g;
     if (!metalRoughnessCombined) {
         metallic = texture(metallicMap, fsIn.TexCoords).r;
         roughness = texture(roughnessMap, fsIn.TexCoords).r;
