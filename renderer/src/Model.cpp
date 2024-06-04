@@ -139,7 +139,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
 
         aiString alphaMode;
         if (aiMat->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode) == AI_SUCCESS) {
-            if (alphaMode == aiString("BLEND")) {
+            if (alphaMode == aiString("BLEND") || alphaMode == aiString("MASK")) {
                 materialParams.transparent = true;
             }
         }
