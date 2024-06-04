@@ -98,11 +98,11 @@ public:
         connect(ipAddress, port);
     }
 
-    int send(const void* buf, size_t len, int flags) {
+    virtual int send(const void* buf, size_t len, int flags) {
         return ::send(socketId, buf, len, flags);
     }
 
-    int recv(void* buf, size_t len, int flags) {
+    virtual int recv(void* buf, size_t len, int flags) {
         return ::recv(socketId, buf, len, flags);
     }
 
@@ -114,6 +114,14 @@ public:
 class SocketUDP : public Socket {
 public:
     explicit SocketUDP(bool nonBlocking = false) : Socket(AF_INET, SOCK_DGRAM, 0, nonBlocking) {}
+
+    int send(const void* buf, size_t len, int flags) override {
+        return ::sendto(socketId, buf, len, flags, (struct sockaddr*)&addr, addrLen);
+    }
+
+    int recv(void* buf, size_t len, int flags) override {
+        return ::recvfrom(socketId, buf, len, flags, (struct sockaddr*)&addr, &addrLen);
+    }
 };
 
 class SocketTCP : public Socket {
