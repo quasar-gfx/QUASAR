@@ -7,7 +7,7 @@ set(PUBLIC_HDR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 set(LIBS )
 
-set(LIBS ${LIBS} renderer)
+set(LIBS ${LIBS} common)
 
 file(GLOB SRCS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
