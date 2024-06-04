@@ -23,8 +23,8 @@ int main(int argc, char** argv) {
     Config config{};
     config.title = "ATW Streamer";
 
-    std::string outputUrl = "udp://127.0.0.1:1234";
-    std::string poseURL = "udp://127.0.0.1:4321";
+    std::string videoURL = "0.0.0.0:1234";
+    std::string poseURL = "0.0.0.0:4321";
     std::string scenePath = "../assets/scenes/sponza.json";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
@@ -36,7 +36,7 @@ int main(int argc, char** argv) {
             i++;
         }
         else if (!strcmp(argv[i], "-o") && i + 1 < argc) {
-            outputUrl = argv[i + 1];
+            videoURL = argv[i + 1];
             i++;
         }
         else if (!strcmp(argv[i], "-p") && i + 1 < argc) {
@@ -76,6 +76,9 @@ int main(int argc, char** argv) {
     VideoStreamer videoStreamer = VideoStreamer();
     PoseReceiver poseReceiver = PoseReceiver(&camera, poseURL);
 
+    std::cout << "Video URL: " << videoURL << std::endl;
+    std::cout << "Pose URL: " << poseURL << std::endl;
+
     bool paused = false;
     guiManager->onRender([&](double now, double dt) {
         ImGui::NewFrame();
@@ -97,7 +100,7 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
-        ImGui::Text("Video URL: %s", outputUrl.c_str());
+        ImGui::Text("Video URL: %s", videoURL.c_str());
         ImGui::Text("Pose URL: %s", poseURL.c_str());
 
         ImGui::Separator();
@@ -143,7 +146,7 @@ int main(int argc, char** argv) {
         .magFilter = GL_LINEAR
     });
 
-    int ret = videoStreamer.start(&renderTarget, outputUrl);
+    int ret = videoStreamer.start(&renderTarget, videoURL);
     if (ret < 0) {
         std::cerr << "Failed to initialize FFMpeg Video Streamer" << std::endl;
         return ret;

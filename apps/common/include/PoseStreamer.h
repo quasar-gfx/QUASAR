@@ -29,13 +29,7 @@ public:
     std::map<pose_id_t, Pose> prevPoses;
 
     explicit PoseStreamer(Camera* camera, std::string receiverURL) : camera(camera), receiverURL(receiverURL), socket(true) {
-        size_t pos = receiverURL.find("://");
-        if (pos == std::string::npos) {
-            throw std::runtime_error("Invalid streamer URL");
-        }
-        std::string ipAddressAndPort = receiverURL.substr(pos + 3);
-
-        socket.setAddress(ipAddressAndPort);
+        socket.setAddress(receiverURL);
     }
 
     bool epsilonEqual(const glm::mat4& mat1, const glm::mat4& mat2, float epsilon = 0.001f) {

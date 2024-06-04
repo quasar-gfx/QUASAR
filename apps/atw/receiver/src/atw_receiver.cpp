@@ -22,8 +22,8 @@ int main(int argc, char** argv) {
     config.title = "ATW Receiver";
     config.sRGB = false;
 
-    std::string inputUrl = "udp://127.0.0.1:1234";
-    std::string poseURL = "udp://127.0.0.1:4321";
+    std::string videoURL = "127.0.0.1:1234";
+    std::string poseURL = "127.0.0.1:4321";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             config.width = atoi(argv[i + 1]);
@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
             i++;
         }
         else if (!strcmp(argv[i], "-i") && i + 1 < argc) {
-            inputUrl = argv[i + 1];
+            videoURL = argv[i + 1];
             i++;
         }
         else if (!strcmp(argv[i], "-p") && i + 1 < argc) {
@@ -72,8 +72,11 @@ int main(int argc, char** argv) {
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR
     });
-    videoTexture.initVideo(inputUrl);
+    videoTexture.initVideo(videoURL);
     PoseStreamer poseStreamer(&camera, poseURL);
+
+    std::cout << "Video URL: " << videoURL << std::endl;
+    std::cout << "Pose URL: " << poseURL << std::endl;
 
     bool atwEnabled = false;
     double elapedTime = 0.0f;
@@ -97,7 +100,7 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
-        ImGui::Text("Video URL: %s", inputUrl.c_str());
+        ImGui::Text("Video URL: %s", videoURL.c_str());
         ImGui::Text("Pose URL: %s", poseURL.c_str());
 
         ImGui::Separator();
@@ -190,7 +193,6 @@ int main(int argc, char** argv) {
             glm::mat4 view = camera.getViewMatrix();
             screenShader.setMat4("projection", proj);
             screenShader.setMat4("view", view);
-
             screenShader.setInt("videoTexture", 5);
             videoTexture.bind(5);
             // render video frame

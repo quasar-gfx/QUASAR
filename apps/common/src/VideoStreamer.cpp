@@ -3,9 +3,9 @@
 #undef av_err2str
 #define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
 
-int VideoStreamer::start(RenderTarget* renderTarget, const std::string outputUrl) {
+int VideoStreamer::start(RenderTarget* renderTarget, const std::string videoURL) {
     this->renderTarget = renderTarget;
-    this->outputUrl = outputUrl;
+    this->videoURL = "udp://" + videoURL;
 
     /* BEGIN: Setup codec to encode output (video to URL) */
 #ifdef __APPLE__
@@ -48,7 +48,7 @@ int VideoStreamer::start(RenderTarget* renderTarget, const std::string outputUrl
 
     /* BEGIN: Setup output (to write video to URL) */
     // Open output URL
-    ret = avformat_alloc_output_context2(&outputFormatContext, nullptr, "mpegts", outputUrl.c_str());
+    ret = avformat_alloc_output_context2(&outputFormatContext, nullptr, "mpegts", videoURL.c_str());
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate output context: %s\n", av_err2str(ret));
         return ret;
@@ -61,7 +61,7 @@ int VideoStreamer::start(RenderTarget* renderTarget, const std::string outputUrl
     }
 
     // Open output URL
-    ret = avio_open(&outputFormatContext->pb, outputUrl.c_str(), AVIO_FLAG_WRITE);
+    ret = avio_open(&outputFormatContext->pb, this->videoURL.c_str(), AVIO_FLAG_WRITE);
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Cannot open output URL\n");
         return ret;
@@ -135,9 +135,8 @@ void VideoStreamer::sendFrame(unsigned int poseId) {
         }
 
         // get packet from encoder
-        ret = avcodec_receive_packet(outputCodecContext, &outputPacket);
+        ret = avcodec_receive_packet(outputCodecContext, packet);
         if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-            av_packet_unref(&outputPacket);
             return;
         }
         else if (ret < 0) {
@@ -145,8 +144,8 @@ void VideoStreamer::sendFrame(unsigned int poseId) {
             return;
         }
 
-        outputPacket.pts = poseId; // framesSent * (outputFormatContext->streams[0]->time_base.den) / targetFrameRate;
-        outputPacket.dts = outputPacket.pts;
+        packet->pts = poseId; // framesSent * (outputFormatContext->streams[0]->time_base.den) / targetFrameRate;
+        packet->dts = packet->pts;
 
         stats.timeToEncode = (av_gettime() - startEncodeTime) / MICROSECONDS_IN_MILLISECOND;
     }
@@ -156,8 +155,7 @@ void VideoStreamer::sendFrame(unsigned int poseId) {
         uint64_t startWriteTime = av_gettime();
 
         // send packet to output URL
-        ret = av_interleaved_write_frame(outputFormatContext, &outputPacket);
-        av_packet_unref(&outputPacket);
+        ret = av_interleaved_write_frame(outputFormatContext, packet);
         if (ret < 0) {
             av_log(nullptr, AV_LOG_ERROR, "Error writing frame\n");
             return;

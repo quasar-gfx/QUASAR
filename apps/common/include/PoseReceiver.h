@@ -23,14 +23,8 @@ public:
     Pose currPose;
 
     explicit PoseReceiver(Camera* camera, std::string streamerURL) : camera(camera), streamerURL(streamerURL), socket(true) {
-        size_t pos = streamerURL.find("://");
-        if (pos == std::string::npos) {
-            throw std::runtime_error("Invalid streamer URL");
-        }
-        std::string ipAddressAndPort = streamerURL.substr(pos + 3);
-
         socket.setRecvSize(sizeof(Pose));
-        socket.bind(ipAddressAndPort);
+        socket.bind(streamerURL);
     }
 
     unsigned int receivePose() {

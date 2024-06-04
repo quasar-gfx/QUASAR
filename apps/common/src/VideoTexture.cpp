@@ -5,8 +5,8 @@
 #undef av_err2str
 #define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
 
-void VideoTexture::initVideo(const std::string &inputUrl) {
-    this->inputUrl = inputUrl + "?overrun_nonfatal=1&fifo_size=50000000";
+void VideoTexture::initVideo(const std::string &videoURL) {
+    this->videoURL = "udp://" + videoURL;
     videoReceiverThread = std::thread(&VideoTexture::receiveVideo, this);
 }
 
@@ -16,7 +16,7 @@ int VideoTexture::initFFMpeg() {
     std::cout << "Waiting to receive video..." << std::endl;
 
     /* BEGIN: Setup input (to read video from url) */
-    int ret = avformat_open_input(&inputFormatContext, inputUrl.c_str(), nullptr, nullptr); // blocking
+    int ret = avformat_open_input(&inputFormatContext, videoURL.c_str(), nullptr, nullptr); // blocking
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Cannot open input URL: %s\n", av_err2str(ret));
         return ret;
@@ -108,7 +108,7 @@ void VideoTexture::receiveVideo() {
         uint64_t receiveFrameStartTime = av_gettime();
 
         // read frame from URL
-        int ret = av_read_frame(inputFormatContext, &packet);
+        int ret = av_read_frame(inputFormatContext, packet);
         if (ret < 0) {
             av_log(nullptr, AV_LOG_ERROR, "Error reading frame: %s\n", av_err2str(ret));
             return;
@@ -116,15 +116,15 @@ void VideoTexture::receiveVideo() {
 
         stats.timeToReceiveFrame = (av_gettime() - receiveFrameStartTime) / MICROSECONDS_IN_SECOND;
 
-        poseId = packet.pts;
+        poseId = packet->pts;
 
-        if (packet.stream_index == videoStreamIndex) {
+        if (packet->stream_index == videoStreamIndex) {
             /* Decode received frame */
             {
                 uint64_t decodeStartTime = av_gettime();
 
                 // send packet to decoder
-                ret = avcodec_send_packet(inputCodecContext, &packet);
+                ret = avcodec_send_packet(inputCodecContext, packet);
                 if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                     av_log(nullptr, AV_LOG_ERROR, "Error: Could not send packet to input decoder: %s\n", av_err2str(ret));
                     return;
@@ -133,7 +133,6 @@ void VideoTexture::receiveVideo() {
                 // get frame from decoder
                 ret = avcodec_receive_frame(inputCodecContext, frame);
                 if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-                    av_packet_unref(&packet);
                     continue;
                 }
                 else if (ret < 0) {

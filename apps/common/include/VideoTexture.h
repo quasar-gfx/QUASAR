@@ -1,10 +1,6 @@
 #ifndef VIDEO_RECEIVER_H
 #define VIDEO_RECEIVER_H
 
-#include <iostream>
-#include <thread>
-#include <mutex>
-
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
@@ -13,6 +9,10 @@ extern "C" {
 #include <libavutil/imgutils.h>
 }
 
+#include <iostream>
+#include <thread>
+#include <mutex>
+
 #include <Texture.h>
 
 #define MICROSECONDS_IN_SECOND 1e6f
@@ -20,7 +20,7 @@ extern "C" {
 
 class VideoTexture : public Texture {
 public:
-    std::string inputUrl = "udp://localhost:1234";
+    std::string videoURL = "localhost:1234";
 
     unsigned int width, height;
 
@@ -39,7 +39,7 @@ public:
         cleanup();
     }
 
-    void initVideo(const std::string &inputUrl);
+    void initVideo(const std::string &videoURL);
     void cleanup();
 
     unsigned int draw();
@@ -52,12 +52,13 @@ private:
     AVFormatContext* inputFormatContext = nullptr;
     AVCodecContext* inputCodecContext = nullptr;
 
-    AVPacket packet;
+    struct SwsContext* swsContext = nullptr;
+
     int videoStreamIndex = -1;
 
     AVFrame* frameRGB = nullptr;
     uint8_t* buffer = nullptr;
-    struct SwsContext* swsContext = nullptr;
+    AVPacket* packet = av_packet_alloc();
 
     bool videoReady = false;
 

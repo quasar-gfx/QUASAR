@@ -1,10 +1,6 @@
 #ifndef VIDEOSTREAMER_H
 #define VIDEOSTREAMER_H
 
-#include <iostream>
-
-#include <RenderTargets/RenderTarget.h>
-
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
@@ -13,12 +9,16 @@ extern "C" {
 #include <libavutil/opt.h>
 }
 
+#include <iostream>
+
+#include <RenderTargets/RenderTarget.h>
+
 #define MICROSECONDS_IN_SECOND 1e6f
 #define MICROSECONDS_IN_MILLISECOND 1e3f
 
 class VideoStreamer {
 public:
-    std::string outputUrl = "udp://localhost:1234";
+    std::string videoURL = "0.0.0.0:1234";
 
     int targetFrameRate = 60;
 
@@ -38,7 +38,7 @@ public:
         return 1000.0f / stats.totalTimeToSendFrame;
     }
 
-    int start(RenderTarget* renderTarget, const std::string outputUrl);
+    int start(RenderTarget* renderTarget, const std::string videoURL);
     void cleanup();
 
     void sendFrame(unsigned int poseId);
@@ -49,8 +49,6 @@ private:
     AVFormatContext* outputFormatContext = nullptr;
     AVCodecContext* outputCodecContext = nullptr;
 
-    AVPacket outputPacket;
-
     int videoStreamIndex = -1;
     AVStream* outputVideoStream = nullptr;
 
@@ -59,6 +57,7 @@ private:
     RenderTarget* renderTarget;
     uint8_t* rgbaData;
     AVFrame* frame = av_frame_alloc();
+    AVPacket* packet = av_packet_alloc();
 };
 
 #endif // VIDEOSTREAMER_H
