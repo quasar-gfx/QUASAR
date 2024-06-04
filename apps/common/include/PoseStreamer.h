@@ -35,7 +35,7 @@ public:
         }
         std::string ipAddressAndPort = receiverURL.substr(pos + 3);
 
-        socket.connect(ipAddressAndPort);
+        socket.setAddress(ipAddressAndPort);
     }
 
     bool epsilonEqual(const glm::mat4& mat1, const glm::mat4& mat2, float epsilon = 0.001f) {

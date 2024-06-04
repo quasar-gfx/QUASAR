@@ -44,6 +44,21 @@ public:
         }
     }
 
+    void setAddress(std::string ipAddress, int port) {
+        addrLen = sizeof(addr);
+        addr.sin_family = AF_INET;
+        addr.sin_addr.s_addr = inet_addr(ipAddress.c_str());
+        addr.sin_port = htons(port);
+    }
+
+    void setAddress(std::string ipAddressAndPort) {
+        size_t pos = ipAddressAndPort.find(':');
+        std::string ipAddress = ipAddressAndPort.substr(0, pos);
+        std::string portStr = ipAddressAndPort.substr(pos + 1);
+        int port = std::stoi(portStr);
+        setAddress(ipAddress, port);
+    }
+
     void bind(const struct sockaddr* addr, socklen_t addrLen) {
         if (::bind(socketId, addr, addrLen) < 0) {
             throw std::runtime_error("Failed to bind socket");
@@ -51,10 +66,7 @@ public:
     }
 
     void bind(std::string ipAddress, int port) {
-        addrLen = sizeof(addr);
-        addr.sin_family = AF_INET;
-        addr.sin_addr.s_addr = inet_addr(ipAddress.c_str());
-        addr.sin_port = htons(port);
+        setAddress(ipAddress, port);
         bind((struct sockaddr*)&addr, addrLen);
     }
 
@@ -64,38 +76,6 @@ public:
         std::string portStr = ipAddressAndPort.substr(pos + 1);
         int port = std::stoi(portStr);
         bind(ipAddress, port);
-    }
-
-    void listen(int backlog) {
-        if (::listen(socketId, backlog) < 0) {
-            throw std::runtime_error("Failed to listen on socket");
-        }
-    }
-
-    int accept(struct sockaddr* addr, socklen_t* addrLen) {
-        return ::accept(socketId, addr, addrLen);
-    }
-
-    void connect(const struct sockaddr* addr, socklen_t addrLen) {
-        if (::connect(socketId, addr, addrLen) < 0) {
-            throw std::runtime_error("Failed to connect to socket");
-        }
-    }
-
-    void connect(std::string ipAddress, int port) {
-        addrLen = sizeof(addr);
-        addr.sin_family = AF_INET;
-        addr.sin_addr.s_addr = inet_addr(ipAddress.c_str());
-        addr.sin_port = htons(port);
-        connect((struct sockaddr*)&addr, addrLen);
-    }
-
-    void connect(std::string ipAddressAndPort) {
-        size_t pos = ipAddressAndPort.find(':');
-        std::string ipAddress = ipAddressAndPort.substr(0, pos);
-        std::string portStr = ipAddressAndPort.substr(pos + 1);
-        int port = std::stoi(portStr);
-        connect(ipAddress, port);
     }
 
     virtual int send(const void* buf, size_t len, int flags) {
@@ -127,6 +107,35 @@ public:
 class SocketTCP : public Socket {
 public:
     explicit SocketTCP(bool nonBlocking = false) : Socket(AF_INET, SOCK_STREAM, 0, nonBlocking) {}
+
+    void listen(int backlog) {
+        if (::listen(socketId, backlog) < 0) {
+            throw std::runtime_error("Failed to listen on socket");
+        }
+    }
+
+    int accept(struct sockaddr* addr, socklen_t* addrLen) {
+        return ::accept(socketId, addr, addrLen);
+    }
+
+    void connect(const struct sockaddr* addr, socklen_t addrLen) {
+        if (::connect(socketId, addr, addrLen) < 0) {
+            throw std::runtime_error("Failed to connect to socket");
+        }
+    }
+
+    void connect(std::string ipAddress, int port) {
+        setAddress(ipAddress, port);
+        connect((struct sockaddr*)&addr, addrLen);
+    }
+
+    void connect(std::string ipAddressAndPort) {
+        size_t pos = ipAddressAndPort.find(':');
+        std::string ipAddress = ipAddressAndPort.substr(0, pos);
+        std::string portStr = ipAddressAndPort.substr(pos + 1);
+        int port = std::stoi(portStr);
+        connect(ipAddress, port);
+    }
 };
 
 #endif // SOCKET_H
