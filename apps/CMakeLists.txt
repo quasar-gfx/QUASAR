@@ -6,12 +6,7 @@ include_directories(
 )
 
 add_subdirectory(test)
-add_subdirectory(streamer)
-add_subdirectory(receiver)
-add_subdirectory(meshing)
-add_subdirectory(meshingviz)
-add_subdirectory(quads)
-add_subdirectory(quadsviz)
-add_subdirectory(meshing2)
-add_subdirectory(meshing2viz)
-
+add_subdirectory(atw)
+add_subdirectory(meshwarp)
+add_subdirectory(quadwarp)
+add_subdirectory(meshwarp2)
