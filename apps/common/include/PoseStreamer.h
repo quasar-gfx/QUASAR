@@ -6,10 +6,7 @@
 #include <cstring>
 #include <map>
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netdb.h>
+#include <Socket.h>
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/epsilon.hpp>
@@ -22,10 +19,7 @@ class PoseStreamer {
 public:
     std::string receiverURL;
 
-    int socketId;
-    struct sockaddr_in recieverAddr;
-    socklen_t recieverAddrLen;
-    hostent* server;
+    SocketUDP socket;
 
     Camera* camera;
 
@@ -34,28 +28,14 @@ public:
 
     std::map<pose_id_t, Pose> prevPoses;
 
-    explicit PoseStreamer(Camera* camera, std::string receiverURL) : camera(camera), receiverURL(receiverURL) {
+    explicit PoseStreamer(Camera* camera, std::string receiverURL) : camera(camera), receiverURL(receiverURL), socket(true) {
         size_t pos = receiverURL.find("://");
         if (pos == std::string::npos) {
             throw std::runtime_error("Invalid streamer URL");
         }
+        std::string ipAddressAndPort = receiverURL.substr(pos + 3);
 
-        std::string addressAndPort = receiverURL.substr(pos + 3);
-        pos = addressAndPort.find(':');
-
-        std::string ipAddress = addressAndPort.substr(0, pos);
-        std::string portStr = addressAndPort.substr(pos + 1);
-        int port = std::stoi(portStr);
-
-        socketId = socket(AF_INET, SOCK_DGRAM, 0);
-        if (socketId < 0) {
-            throw std::runtime_error("Failed to create socket");
-        }
-
-        recieverAddrLen = sizeof(recieverAddr);
-        recieverAddr.sin_family = AF_INET;
-        recieverAddr.sin_addr.s_addr = inet_addr(ipAddress.c_str());
-        recieverAddr.sin_port = htons(port);
+        socket.connect(ipAddressAndPort);
     }
 
     bool epsilonEqual(const glm::mat4& mat1, const glm::mat4& mat2, float epsilon = 0.001f) {
@@ -102,9 +82,9 @@ public:
         //     return;
         // }
 
-        int bytesSent = sendto(socketId, &currPose, sizeof(Pose), MSG_WAITALL, (struct sockaddr*)&recieverAddr, recieverAddrLen);
+        int bytesSent = socket.send(&currPose, sizeof(Pose), 0);
         if (bytesSent < 0) {
-            throw std::runtime_error("Failed to send data");
+            return false;
         }
 
         prevPoses[currPoseId] = currPose;
