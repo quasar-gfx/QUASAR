@@ -42,14 +42,14 @@ To run streamer:
 ```
 # in out directory
 cd apps/atw/streamer
-./atw_streamer -w <width> -h <height> -o <clients's ip address> -s <optional path to scene json file>
+./atw_streamer -w <width> -h <height> -o <client's ip address>:<client's port> -s <optional path to scene json file>
 ```
 
 In a new terminal, to run receiver:
 ```
 # in out directory
 cd apps/atw/receiver
-./atw_receiver -w <width> -h <height> -p <server's ip address>
+./atw_receiver -w <width> -h <height> -p <server's ip address>:<server's port>
 ```
 
 The streamer should render, encode, and stream its output frames to the receiver, which displays in its opengl window with a locally rendered background scene.

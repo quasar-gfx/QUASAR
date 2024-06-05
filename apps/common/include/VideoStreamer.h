@@ -18,7 +18,7 @@ extern "C" {
 
 class VideoStreamer {
 public:
-    std::string videoURL = "0.0.0.0:1234";
+    std::string videoURL = "0.0.0.0:12345";
 
     unsigned int width, height;
 

@@ -23,8 +23,8 @@ int main(int argc, char** argv) {
     Config config{};
     config.title = "ATW Streamer";
 
-    std::string videoURL = "127.0.0.1:1234";
-    std::string poseURL = "0.0.0.0:4321";
+    std::string videoURL = "127.0.0.1:12345";
+    std::string poseURL = "0.0.0.0:54321";
     std::string scenePath = "../assets/scenes/sponza.json";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {

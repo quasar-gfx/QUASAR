@@ -22,7 +22,7 @@ extern "C" {
 
 class VideoTexture : public Texture {
 public:
-    std::string videoURL = "localhost:1234";
+    std::string videoURL = "localhost:12345";
 
     unsigned int width, height;
 

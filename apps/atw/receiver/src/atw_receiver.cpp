@@ -22,8 +22,8 @@ int main(int argc, char** argv) {
     config.title = "ATW Receiver";
     config.sRGB = false;
 
-    std::string videoURL = "0.0.0.0:1234";
-    std::string poseURL = "127.0.0.1:4321";
+    std::string videoURL = "0.0.0.0:12345";
+    std::string poseURL = "127.0.0.1:54321";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             config.width = atoi(argv[i + 1]);
