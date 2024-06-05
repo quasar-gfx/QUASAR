@@ -15,6 +15,8 @@ extern "C" {
 
 #include <Texture.h>
 
+#include <CameraPose.h>
+
 #define MICROSECONDS_IN_SECOND 1e6f
 #define MICROSECONDS_IN_MILLISECOND 1e3f
 
@@ -23,6 +25,8 @@ public:
     std::string videoURL = "localhost:1234";
 
     unsigned int width, height;
+
+    int targetFrameRate = 60;
 
     int frameReceived = 0;
 
@@ -42,19 +46,20 @@ public:
     void initVideo(const std::string &videoURL);
     void cleanup();
 
-    unsigned int draw();
+    pose_id_t draw();
 
     float getFrameRate() {
         return 1.0f / stats.totalTimeToReceiveFrame;
     }
 
 private:
+    AVCodecID codecID = AV_CODEC_ID_H264;
+    AVPixelFormat pixelFormat = AV_PIX_FMT_YUV420P;
+
     AVFormatContext* inputFormatContext = nullptr;
-    AVCodecContext* inputCodecContext = nullptr;
+    AVCodecContext* codecContext = nullptr;
 
     struct SwsContext* swsContext = nullptr;
-
-    int videoStreamIndex = -1;
 
     AVFrame* frameRGB = nullptr;
     uint8_t* buffer = nullptr;

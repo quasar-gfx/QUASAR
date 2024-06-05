@@ -44,10 +44,11 @@ public:
     void sendFrame(unsigned int poseId);
 
 private:
+    AVCodecID codecID = AV_CODEC_ID_H264;
     AVPixelFormat pixelFormat = AV_PIX_FMT_YUV420P;
 
     AVFormatContext* outputFormatContext = nullptr;
-    AVCodecContext* outputCodecContext = nullptr;
+    AVCodecContext* codecContext = nullptr;
 
     int videoStreamIndex = -1;
     AVStream* outputVideoStream = nullptr;

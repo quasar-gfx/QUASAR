@@ -7,47 +7,47 @@ int VideoStreamer::start(RenderTarget* renderTarget, const std::string videoURL)
     this->renderTarget = renderTarget;
     this->videoURL = "udp://" + videoURL;
 
-    /* BEGIN: Setup codec to encode output (video to URL) */
+    /* Setup codec to encode output (video to URL) */
 #ifdef __APPLE__
-    const AVCodec *outputCodec = avcodec_find_encoder_by_name("h264_videotoolbox");
-    std::cout << "Encoder: h264_videotoolbox" << std::endl;
+    std::string encoderName = "h264_videotoolbox";
+#elif __linux__
+    std::string encoderName = "h264_nvenc";
 #else
-    const AVCodec *outputCodec = avcodec_find_encoder_by_name("h264_nvenc");
-    std::cout << "Encoder: h264_nvenc" << std::endl;
+    std::string encoderName = "libx264";
 #endif
+    auto outputCodec = avcodec_find_encoder_by_name(encoderName.c_str());
+    std::cout << "Encoder: " << encoderName << std::endl;
     if (!outputCodec) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate encoder.\n");
         return -1;
     }
 
-    outputCodecContext = avcodec_alloc_context3(outputCodec);
-    if (!outputCodecContext) {
+    codecContext = avcodec_alloc_context3(outputCodec);
+    if (!codecContext) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate codec context.\n");
         return -1;
     }
 
-    outputCodecContext->width = renderTarget->width;
-    outputCodecContext->height = renderTarget->height;
-    outputCodecContext->time_base = {1, targetFrameRate};
-    outputCodecContext->framerate = {targetFrameRate, 1};
-    outputCodecContext->pix_fmt = this->pixelFormat;
-    outputCodecContext->bit_rate = 100000 * 1000;
+    codecContext->width = renderTarget->width;
+    codecContext->height = renderTarget->height;
+    codecContext->time_base = {1, targetFrameRate};
+    codecContext->framerate = {targetFrameRate, 1};
+    codecContext->pix_fmt = this->pixelFormat;
+    codecContext->bit_rate = 100000 * 1000;
 
     // Set zero latency
-    outputCodecContext->max_b_frames = 0;
-    outputCodecContext->gop_size = 0;
-    av_opt_set_int(outputCodecContext->priv_data, "zerolatency", 1, 0);
-    av_opt_set_int(outputCodecContext->priv_data, "delay", 0, 0);
+    codecContext->max_b_frames = 0;
+    codecContext->gop_size = 0;
+    av_opt_set_int(codecContext->priv_data, "zerolatency", 1, 0);
+    av_opt_set_int(codecContext->priv_data, "delay", 0, 0);
 
-    int ret = avcodec_open2(outputCodecContext, outputCodec, nullptr);
+    int ret = avcodec_open2(codecContext, outputCodec, nullptr);
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't open codec: %s\n", av_err2str(ret));
         return ret;
     }
-    /* END: Setup codec to encode output (video to URL) */
 
-    /* BEGIN: Setup output (to write video to URL) */
-    // Open output URL
+    /* Setup output (to write video to URL) */
     ret = avformat_alloc_output_context2(&outputFormatContext, nullptr, "mpegts", videoURL.c_str());
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate output context: %s\n", av_err2str(ret));
@@ -72,7 +72,6 @@ int VideoStreamer::start(RenderTarget* renderTarget, const std::string videoURL)
         av_log(nullptr, AV_LOG_ERROR, "Error writing header\n");
         return ret;
     }
-    /* END: Setup output (to write video to URL) */
 
     conversionContext = sws_getContext(renderTarget->width, renderTarget->height, AV_PIX_FMT_RGBA,
                                        renderTarget->width, renderTarget->height, this->pixelFormat,
@@ -128,14 +127,14 @@ void VideoStreamer::sendFrame(unsigned int poseId) {
         uint64_t startEncodeTime = av_gettime();
 
         // send packet to encoder
-        ret = avcodec_send_frame(outputCodecContext, frame);
+        ret = avcodec_send_frame(codecContext, frame);
         if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
             av_log(nullptr, AV_LOG_ERROR, "Error: Could not send frame to output encoder: %s\n", av_err2str(ret));
             return;
         }
 
         // get packet from encoder
-        ret = avcodec_receive_packet(outputCodecContext, packet);
+        ret = avcodec_receive_packet(codecContext, packet);
         if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
             return;
         }
