@@ -9,7 +9,7 @@ VideoTexture::VideoTexture(const TextureCreateParams &params, const std::string 
         : Texture(params)
         , width(params.width)
         , height(params.height)
-        , videoURL("udp://" + videoURL) {
+        , videoURL("udp://" + videoURL + "?overrun_nonfatal=1&fifo_size=50000000") {
     videoReceiverThread = std::thread(&VideoTexture::receiveVideo, this);
 }
 
@@ -25,7 +25,28 @@ int VideoTexture::initFFMpeg() {
         return ret;
     }
 
+    ret = avformat_find_stream_info(inputFormatContext, nullptr);
+    if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Cannot find stream info: %s\n", av_err2str(ret));
+        return ret;
+    }
+
+    // find the video stream index
+    for (int i = 0; i < inputFormatContext->nb_streams; i++) {
+        if (inputFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+            videoStreamIndex = i;
+            inputVideoStream = inputFormatContext->streams[i];
+            break;
+        }
+    }
+
+    if (videoStreamIndex == -1 || inputVideoStream == nullptr) {
+        av_log(nullptr, AV_LOG_ERROR, "No video stream found in the input URL.\n");
+        return AVERROR_STREAM_NOT_FOUND;
+    }
+
     /* Setup codec to decode input (video from URL) */
+    auto codecID = inputVideoStream->codecpar->codec_id;
     auto inputCodec = avcodec_find_decoder(codecID);
     if (!inputCodec) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate decoder.\n");
@@ -38,12 +59,11 @@ int VideoTexture::initFFMpeg() {
         return -1;
     }
 
-    codecContext->width = width;
-    codecContext->height = height;
-    codecContext->time_base = {1, targetFrameRate};
-    codecContext->framerate = {targetFrameRate, 1};
-    codecContext->pix_fmt = pixelFormat;
-    codecContext->bit_rate = targetBitRate;
+    ret = avcodec_parameters_to_context(codecContext, inputVideoStream->codecpar);
+    if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't copy codec parameters to context: %s\n", av_err2str(ret));
+        return ret;
+    }
 
     ret = avcodec_open2(codecContext, inputCodec, nullptr);
     if (ret < 0) {
@@ -57,13 +77,13 @@ int VideoTexture::initFFMpeg() {
 int VideoTexture::initOutputFrame() {
     frameRGB = av_frame_alloc();
 
-    int numBytes = av_image_get_buffer_size(AV_PIX_FMT_RGB24, width, height, 1);
+    int numBytes = av_image_get_buffer_size(openglPixelFormat, width, height, 1);
     buffer = (uint8_t*)av_malloc(numBytes * sizeof(uint8_t));
 
-    av_image_fill_arrays(frameRGB->data, frameRGB->linesize, buffer, AV_PIX_FMT_RGB24, width, height, 1);
+    av_image_fill_arrays(frameRGB->data, frameRGB->linesize, buffer, openglPixelFormat, width, height, 1);
 
     swsContext = sws_getContext(codecContext->width, codecContext->height, codecContext->pix_fmt,
-                                width, height, AV_PIX_FMT_RGB24, SWS_BILINEAR, nullptr, nullptr, nullptr);
+                                width, height, openglPixelFormat, SWS_BILINEAR, nullptr, nullptr, nullptr);
 
     return 0;
 }
@@ -96,6 +116,10 @@ void VideoTexture::receiveVideo() {
         }
 
         stats.timeToReceiveFrame = (av_gettime() - receiveFrameStartTime) / MICROSECONDS_IN_SECOND;
+
+        if (packet->stream_index != videoStreamIndex) {
+            continue;
+        }
 
         poseId = packet->pts;
 

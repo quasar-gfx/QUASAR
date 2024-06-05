@@ -26,9 +26,6 @@ public:
 
     unsigned int width, height;
 
-    int targetFrameRate = 60;
-    unsigned int targetBitRate = 100000 * 1000;
-
     int frameReceived = 0;
 
     struct Stats {
@@ -52,11 +49,12 @@ public:
     }
 
 private:
-    AVCodecID codecID = AV_CODEC_ID_H264;
-    AVPixelFormat pixelFormat = AV_PIX_FMT_YUV420P;
+    AVPixelFormat openglPixelFormat = AV_PIX_FMT_RGB24;
 
     AVFormatContext* inputFormatContext = nullptr;
     AVCodecContext* codecContext = nullptr;
+
+    int videoStreamIndex = -1;
 
     struct SwsContext* swsContext = nullptr;
 
