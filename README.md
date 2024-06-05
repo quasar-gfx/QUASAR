@@ -2,7 +2,7 @@
 
 Install dependencies:
 ```
-# Linux
+# Linux (reccomended)
 sudo apt-get install cmake libglew-dev libglfw3-dev libglm-dev libao-dev libmpg123-dev ffmpeg
 ```
 
@@ -34,40 +34,40 @@ cd apps/test
 ./test -w <width> -h <height> -s <path to scene json file>
 ```
 
-## Streamer and Receiver
+## ATW
 
-Build streamer and receiver:
+Build ATW sample:
 
 To run streamer:
 ```
 # in out directory
-cd apps/streamer
-./streamer -w <width> -h <height>
+cd apps/atw/streamer
+./atw_streamer -w <width> -h <height> -o <clients's ip address> -s <optional path to scene json file>
 ```
 
 In a new terminal, to run receiver:
 ```
 # in out directory
-cd apps/receiver
-./receiver -w <width> -h <height>
+cd apps/atw/receiver
+./atw_receiver -w <width> -h <height> -p <server's ip address>
 ```
 
 The streamer should render, encode, and stream its output frames to the receiver, which displays in its opengl window with a locally rendered background scene.
 
-## Meshing
+## MeshWarp
 
-Build meshing and meshingviz:
+Build MeshWarp sample:
 
 To run meshing:
 ```
 # in out directory
-cd apps/meshing
-./meshing -w <width> -h <height> -s <path to scene json file>
+cd apps/meshwarp/streamer
+./mw_streamer -w <width> -h <height> -s <optional path to scene json file>
 ```
 
 In a new terminal, to run meshingviz:
 ```
 # in out directory
-cd apps/meshingviz
-./meshingviz -w <width> -h <height>
+cd apps/meshwarp/receiver
+./mw_receiver -w <width> -h <height>
 ```
