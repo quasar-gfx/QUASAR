@@ -37,7 +37,6 @@ struct ShaderCreateParams {
 class Shader : public OpenGLObject {
 public:
     explicit Shader() = default;
-
     explicit Shader(const ShaderCreateParams& params) {
         if (params.vertexCodeData != nullptr && params.fragmentCodeData != nullptr) {
             loadFromData(params.vertexCodeData, params.vertexCodeSize, params.fragmentCodeData, params.fragmentCodeSize, params.geometryData, params.geometryDataSize);

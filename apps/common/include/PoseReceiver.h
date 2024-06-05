@@ -22,7 +22,10 @@ public:
     Camera* camera;
     Pose currPose;
 
-    explicit PoseReceiver(Camera* camera, std::string streamerURL) : camera(camera), streamerURL(streamerURL), socket(true) {
+    explicit PoseReceiver(Camera* camera, std::string streamerURL)
+            : camera(camera)
+            , streamerURL(streamerURL)
+            , socket(true) {
         socket.setRecvSize(sizeof(Pose));
         socket.bind(streamerURL);
     }

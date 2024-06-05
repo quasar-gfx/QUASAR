@@ -43,14 +43,17 @@ public:
     bool multiSampled = false;
 
     explicit Texture() = default;
-
     explicit Texture(const TextureCreateParams &params)
-            : width(params.width), height(params.height),
-              internalFormat(params.internalFormat), format(params.format),
-              type(params.type),
-              wrapS(params.wrapS), wrapT(params.wrapT),
-              minFilter(params.minFilter), magFilter(params.magFilter),
-              multiSampled(params.multiSampled) {
+            : width(params.width)
+            , height(params.height)
+            , internalFormat(params.internalFormat)
+            , format(params.format)
+            , type(params.type)
+            , wrapS(params.wrapS)
+            , wrapT(params.wrapT)
+            , minFilter(params.minFilter)
+            , magFilter(params.magFilter)
+            , multiSampled(params.multiSampled) {
         target = !multiSampled ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
         if (params.path == "") {
             init(params);

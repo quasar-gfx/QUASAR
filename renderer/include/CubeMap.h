@@ -49,8 +49,10 @@ public:
     unsigned int width, height;
 
     explicit CubeMap() = default;
-
-    explicit CubeMap(const CubeMapCreateParams &params) : type(params.type), width(params.width), height(params.height) {
+    explicit CubeMap(const CubeMapCreateParams &params)
+            : type(params.type)
+            , width(params.width)
+            , height(params.height) {
         if (params.rightFaceTexturePath != "" && params.leftFaceTexturePath != "" &&
             params.topFaceTexturePath != "" && params.bottomFaceTexturePath != "" &&
             params.frontFaceTexturePath != "" && params.backFaceTexturePath != "") {

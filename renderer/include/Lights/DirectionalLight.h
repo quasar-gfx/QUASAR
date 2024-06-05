@@ -31,10 +31,11 @@ public:
     DirShadowMapMaterial shadowMapMaterial;
 
     explicit DirectionalLight(const DirectionalLightCreateParams &params)
-            : direction(params.direction), distance(params.distance),
-              orthoBoxSize(params.orthoBoxSize),
-              Light(params.color, params.intensity, params.zNear, params.zFar),
-              shadowMapRenderTarget({ .width = shadowRes, .height = shadowRes }) {
+            : direction(params.direction)
+            , distance(params.distance)
+            , orthoBoxSize(params.orthoBoxSize)
+            , Light(params.color, params.intensity, params.zNear, params.zFar)
+            , shadowMapRenderTarget({ .width = shadowRes, .height = shadowRes }) {
         updateLightSpaceMatrix();
     }
 

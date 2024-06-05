@@ -71,8 +71,7 @@ int main(int argc, char** argv) {
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR
-    });
-    videoTexture.initVideo(videoURL);
+    }, videoURL);
     PoseStreamer poseStreamer(&camera, poseURL);
 
     std::cout << "Video URL: " << videoURL << std::endl;

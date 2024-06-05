@@ -1,13 +1,15 @@
 #include <OpenGLRenderer.h>
 
 OpenGLRenderer::OpenGLRenderer(unsigned int width, unsigned int height)
-        : width(width), height(height),
-          gBuffer({ .width = width, .height = height }),
-          skyboxShader({ .vertexCodeData = SHADER_SKYBOX_VERT,
-                         .vertexCodeSize = SHADER_SKYBOX_VERT_len,
-                         .fragmentCodeData = SHADER_SKYBOX_FRAG,
-                         .fragmentCodeSize = SHADER_SKYBOX_FRAG_len }),
-          outputFsQuad() {
+        : width(width), height(height)
+        , gBuffer({ .width = width, .height = height })
+        , skyboxShader({
+            .vertexCodeData = SHADER_SKYBOX_VERT,
+            .vertexCodeSize = SHADER_SKYBOX_VERT_len,
+            .fragmentCodeData = SHADER_SKYBOX_FRAG,
+            .fragmentCodeSize = SHADER_SKYBOX_FRAG_len
+        })
+        , outputFsQuad() {
     // enable msaa for screen buffer
     glEnable(GL_MULTISAMPLE);
 

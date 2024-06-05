@@ -28,7 +28,10 @@ public:
 
     std::map<pose_id_t, Pose> prevPoses;
 
-    explicit PoseStreamer(Camera* camera, std::string receiverURL) : camera(camera), receiverURL(receiverURL), socket(true) {
+    explicit PoseStreamer(Camera* camera, std::string receiverURL)
+            : camera(camera)
+            , receiverURL(receiverURL)
+            , socket(true) {
         socket.setAddress(receiverURL);
     }
 

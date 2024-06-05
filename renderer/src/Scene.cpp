@@ -1,9 +1,9 @@
 #include <Scene.h>
 
 Scene::Scene()
-        : irradianceCubeMap({ .width = 32, .height = 32, .type = CubeMapType::STANDARD }),
-          prefilterCubeMap({ .width = 128, .height = 128, .type = CubeMapType::PREFILTER }),
-          captureRenderTarget({ .width = 512,
+        : irradianceCubeMap({ .width = 32, .height = 32, .type = CubeMapType::STANDARD })
+        , prefilterCubeMap({ .width = 128, .height = 128, .type = CubeMapType::PREFILTER })
+        , captureRenderTarget({ .width = 512,
                                 .height = 512,
                                 .internalFormat = GL_RGB16F,
                                 .format = GL_RGB,
@@ -11,24 +11,24 @@ Scene::Scene()
                                 .wrapS = GL_CLAMP_TO_EDGE,
                                 .wrapT = GL_CLAMP_TO_EDGE,
                                 .minFilter = GL_LINEAR,
-                                .magFilter = GL_LINEAR }),
-          brdfFsQuad(),
-          equirectToCubeMapShader({
+                                .magFilter = GL_LINEAR })
+        , brdfFsQuad()
+        , equirectToCubeMapShader({
             .vertexCodeData = SHADER_CUBEMAP_VERT,
             .vertexCodeSize = SHADER_CUBEMAP_VERT_len,
             .fragmentCodeData = SHADER_EQUIRECTANGULAR2CUBEMAP_FRAG,
-            .fragmentCodeSize = SHADER_EQUIRECTANGULAR2CUBEMAP_FRAG_len }),
-          convolutionShader({
+            .fragmentCodeSize = SHADER_EQUIRECTANGULAR2CUBEMAP_FRAG_len })
+        , convolutionShader({
             .vertexCodeData = SHADER_CUBEMAP_VERT,
             .vertexCodeSize = SHADER_CUBEMAP_VERT_len,
             .fragmentCodeData = SHADER_IRRADIANCECONVOLUTION_FRAG,
-            .fragmentCodeSize = SHADER_IRRADIANCECONVOLUTION_FRAG_len }),
-          prefilterShader({
+            .fragmentCodeSize = SHADER_IRRADIANCECONVOLUTION_FRAG_len })
+        , prefilterShader({
             .vertexCodeData = SHADER_CUBEMAP_VERT,
             .vertexCodeSize = SHADER_CUBEMAP_VERT_len,
             .fragmentCodeData = SHADER_PREFILTER_FRAG,
-            .fragmentCodeSize = SHADER_PREFILTER_FRAG_len }),
-          brdfShader({
+            .fragmentCodeSize = SHADER_PREFILTER_FRAG_len })
+        , brdfShader({
             .vertexCodeData = SHADER_BRDF_VERT,
             .vertexCodeSize = SHADER_BRDF_VERT_len,
             .fragmentCodeData = SHADER_BRDF_FRAG,

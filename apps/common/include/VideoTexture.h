@@ -27,6 +27,7 @@ public:
     unsigned int width, height;
 
     int targetFrameRate = 60;
+    unsigned int targetBitRate = 100000 * 1000;
 
     int frameReceived = 0;
 
@@ -37,13 +38,11 @@ public:
         float totalTimeToReceiveFrame = -1.0f;
     } stats;
 
-    explicit VideoTexture(const TextureCreateParams &params) : Texture(params), width(params.width), height(params.height) { }
-
+    explicit VideoTexture(const TextureCreateParams &params, const std::string &videoURL);
     ~VideoTexture() {
         cleanup();
     }
 
-    void initVideo(const std::string &videoURL);
     void cleanup();
 
     pose_id_t draw();

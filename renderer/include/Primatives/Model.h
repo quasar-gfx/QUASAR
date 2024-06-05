@@ -44,12 +44,13 @@ public:
     float IBL = 1.0;
 
     explicit Model(const ModelCreateParams &params)
-            : flipTextures(params.flipTextures),
-              wireframe(params.wireframe), pointcloud(params.pointcloud),
-              visible(params.visible),
-              gammaCorrected(params.gammaCorrected),
-              IBL(params.IBL),
-              Entity() {
+            : flipTextures(params.flipTextures)
+            , wireframe(params.wireframe)
+            , pointcloud(params.pointcloud)
+            , visible(params.visible)
+            , gammaCorrected(params.gammaCorrected)
+            , IBL(params.IBL)
+            , Entity() {
         loadFromFile(params);
     }
 

@@ -3,10 +3,9 @@
 #undef av_err2str
 #define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
 
-int VideoStreamer::start(RenderTarget* renderTarget, const std::string videoURL) {
-    this->renderTarget = renderTarget;
-    this->videoURL = "udp://" + videoURL;
-
+VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &videoURL)
+        : renderTarget(renderTarget)
+        , videoURL("udp://" + videoURL) {
     /* Setup codec to encode output (video to URL) */
 #ifdef __APPLE__
     std::string encoderName = "h264_videotoolbox";
@@ -19,21 +18,21 @@ int VideoStreamer::start(RenderTarget* renderTarget, const std::string videoURL)
     std::cout << "Encoder: " << encoderName << std::endl;
     if (!outputCodec) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate encoder.\n");
-        return -1;
+        throw std::runtime_error("Video Streamer could not be created.");
     }
 
     codecContext = avcodec_alloc_context3(outputCodec);
     if (!codecContext) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate codec context.\n");
-        return -1;
+        throw std::runtime_error("Video Streamer could not be created.");
     }
 
     codecContext->width = renderTarget->width;
     codecContext->height = renderTarget->height;
     codecContext->time_base = {1, targetFrameRate};
     codecContext->framerate = {targetFrameRate, 1};
-    codecContext->pix_fmt = this->pixelFormat;
-    codecContext->bit_rate = 100000 * 1000;
+    codecContext->pix_fmt = videoPixelFormat;
+    codecContext->bit_rate = targetBitRate;
 
     // Set zero latency
     codecContext->max_b_frames = 0;
@@ -44,51 +43,49 @@ int VideoStreamer::start(RenderTarget* renderTarget, const std::string videoURL)
     int ret = avcodec_open2(codecContext, outputCodec, nullptr);
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't open codec: %s\n", av_err2str(ret));
-        return ret;
+        throw std::runtime_error("Video Streamer could not be created.");
     }
 
     /* Setup output (to write video to URL) */
     ret = avformat_alloc_output_context2(&outputFormatContext, nullptr, "mpegts", videoURL.c_str());
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate output context: %s\n", av_err2str(ret));
-        return ret;
+        throw std::runtime_error("Video Streamer could not be created.");
     }
 
     outputVideoStream = avformat_new_stream(outputFormatContext, outputCodec);
     if (!outputVideoStream) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not create new video stream.\n");
-        return -1;
+        throw std::runtime_error("Video Streamer could not be created.");
     }
 
     // Open output URL
     ret = avio_open(&outputFormatContext->pb, this->videoURL.c_str(), AVIO_FLAG_WRITE);
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Cannot open output URL\n");
-        return ret;
+        throw std::runtime_error("Video Streamer could not be created.");
     }
 
     ret = avformat_write_header(outputFormatContext, nullptr);
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error writing header\n");
-        return ret;
+        throw std::runtime_error("Video Streamer could not be created.");
     }
 
-    conversionContext = sws_getContext(renderTarget->width, renderTarget->height, AV_PIX_FMT_RGBA,
-                                       renderTarget->width, renderTarget->height, this->pixelFormat,
+    conversionContext = sws_getContext(renderTarget->width, renderTarget->height, openglPixelFormat,
+                                       renderTarget->width, renderTarget->height, videoPixelFormat,
                                        SWS_BICUBIC, nullptr, nullptr, nullptr);
     if (!conversionContext) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate conversion context\n");
-        return -1;
+        throw std::runtime_error("Video Streamer could not be created.");
     }
 
     rgbaData = new uint8_t[renderTarget->width * renderTarget->height * 4];
 
     // initialize frame
-    frame->format = this->pixelFormat;
+    frame->format = videoPixelFormat;
     frame->width = renderTarget->width;
     frame->height = renderTarget->height;
-
-    return 0;
 }
 
 void VideoStreamer::sendFrame(unsigned int poseId) {
@@ -169,7 +166,7 @@ void VideoStreamer::sendFrame(unsigned int poseId) {
     if (elapsedTime < (1.0f / targetFrameRate * MICROSECONDS_IN_MILLISECOND)) {
         av_usleep((1.0f / targetFrameRate * MICROSECONDS_IN_MILLISECOND) - elapsedTime);
     }
-    stats.totalTimeToSendFrame = elapsedTime / MICROSECONDS_IN_MILLISECOND;
+    stats.totalTimeToSendFrame = (av_gettime() - prevTime) / MICROSECONDS_IN_MILLISECOND;
 
     prevTime = av_gettime();
 }

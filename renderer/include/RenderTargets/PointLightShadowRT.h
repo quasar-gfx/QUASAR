@@ -8,10 +8,12 @@ public:
     CubeMap depthCubeMap;
 
     explicit PointLightShadowRT(const RenderTargetCreateParams &params)
-            : RenderTargetBase(params),
-              depthCubeMap({ .width = params.width,
-                             .height = params.height,
-                             .type = CubeMapType::SHADOW }) {
+            : RenderTargetBase(params)
+            ,  depthCubeMap({
+                .width = params.width,
+                .height = params.height,
+                .type = CubeMapType::SHADOW
+            }) {
         framebuffer.bind();
         framebuffer.attachCubeMap(depthCubeMap, GL_DEPTH_ATTACHMENT);
 

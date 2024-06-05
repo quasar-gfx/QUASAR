@@ -5,8 +5,11 @@
 #undef av_err2str
 #define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
 
-void VideoTexture::initVideo(const std::string &videoURL) {
-    this->videoURL = "udp://" + videoURL;
+VideoTexture::VideoTexture(const TextureCreateParams &params, const std::string &videoURL)
+        : Texture(params)
+        , width(params.width)
+        , height(params.height)
+        , videoURL("udp://" + videoURL) {
     videoReceiverThread = std::thread(&VideoTexture::receiveVideo, this);
 }
 
@@ -40,7 +43,7 @@ int VideoTexture::initFFMpeg() {
     codecContext->time_base = {1, targetFrameRate};
     codecContext->framerate = {targetFrameRate, 1};
     codecContext->pix_fmt = pixelFormat;
-    codecContext->bit_rate = 100000 * 1000;
+    codecContext->bit_rate = targetBitRate;
 
     ret = avcodec_open2(codecContext, inputCodec, nullptr);
     if (ret < 0) {

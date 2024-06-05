@@ -21,6 +21,7 @@ public:
     std::string videoURL = "0.0.0.0:1234";
 
     int targetFrameRate = 60;
+    unsigned int targetBitRate = 100000 * 1000;
 
     unsigned int framesSent = 0;
 
@@ -31,21 +32,21 @@ public:
         float totalTimeToSendFrame = -1.0f;
     } stats;
 
-    explicit VideoStreamer() = default;
+    explicit VideoStreamer(RenderTarget* renderTarget, const std::string &videoURL);
     ~VideoStreamer() = default;
 
     float getFrameRate() {
         return 1000.0f / stats.totalTimeToSendFrame;
     }
 
-    int start(RenderTarget* renderTarget, const std::string videoURL);
     void cleanup();
 
     void sendFrame(unsigned int poseId);
 
 private:
     AVCodecID codecID = AV_CODEC_ID_H264;
-    AVPixelFormat pixelFormat = AV_PIX_FMT_YUV420P;
+    AVPixelFormat videoPixelFormat = AV_PIX_FMT_YUV420P;
+    AVPixelFormat openglPixelFormat = AV_PIX_FMT_RGBA;
 
     AVFormatContext* outputFormatContext = nullptr;
     AVCodecContext* codecContext = nullptr;

@@ -73,7 +73,19 @@ int main(int argc, char** argv) {
     SceneLoader loader = SceneLoader();
     loader.loadScene(scenePath, scene, camera);
 
-    VideoStreamer videoStreamer = VideoStreamer();
+    RenderTarget renderTarget({
+        .width = screenWidth,
+        .height = screenHeight,
+        .internalFormat = GL_SRGB_ALPHA,
+        .format = GL_RGBA,
+        .type = GL_UNSIGNED_BYTE,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_LINEAR,
+        .magFilter = GL_LINEAR
+    });
+
+    VideoStreamer videoStreamer = VideoStreamer(&renderTarget, videoURL);
     PoseReceiver poseReceiver = PoseReceiver(&camera, poseURL);
 
     std::cout << "Video URL: " << videoURL << std::endl;
@@ -133,24 +145,6 @@ int main(int argc, char** argv) {
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
-
-    RenderTarget renderTarget({
-        .width = screenWidth,
-        .height = screenHeight,
-        .internalFormat = GL_SRGB_ALPHA,
-        .format = GL_RGBA,
-        .type = GL_UNSIGNED_BYTE,
-        .wrapS = GL_CLAMP_TO_EDGE,
-        .wrapT = GL_CLAMP_TO_EDGE,
-        .minFilter = GL_LINEAR,
-        .magFilter = GL_LINEAR
-    });
-
-    int ret = videoStreamer.start(&renderTarget, videoURL);
-    if (ret < 0) {
-        std::cerr << "Failed to initialize FFMpeg Video Streamer" << std::endl;
-        return ret;
-    }
 
     std::vector<glm::vec3> pointLightPositions(4);
     pointLightPositions[0] = scene.pointLights[0]->position;
