@@ -20,6 +20,8 @@ class VideoStreamer {
 public:
     std::string videoURL = "0.0.0.0:1234";
 
+    unsigned int width, height;
+
     int targetFrameRate = 60;
     unsigned int targetBitRate = 100000 * 1000;
 

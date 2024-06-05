@@ -5,6 +5,8 @@
 
 VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &videoURL)
         : renderTarget(renderTarget)
+        , width(renderTarget->width)
+        , height(renderTarget->height)
         , videoURL("udp://" + videoURL) {
     /* Setup codec to encode output (video to URL) */
 #ifdef __APPLE__
@@ -27,8 +29,8 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
         throw std::runtime_error("Video Streamer could not be created.");
     }
 
-    codecContext->width = renderTarget->width;
-    codecContext->height = renderTarget->height;
+    codecContext->width = width;
+    codecContext->height = height;
     codecContext->time_base = {1, targetFrameRate};
     codecContext->framerate = {targetFrameRate, 1};
     codecContext->pix_fmt = videoPixelFormat;
@@ -72,20 +74,20 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
         throw std::runtime_error("Video Streamer could not be created.");
     }
 
-    conversionContext = sws_getContext(renderTarget->width, renderTarget->height, openglPixelFormat,
-                                       renderTarget->width, renderTarget->height, videoPixelFormat,
+    conversionContext = sws_getContext(width, height, openglPixelFormat,
+                                       width, height, videoPixelFormat,
                                        SWS_BICUBIC, nullptr, nullptr, nullptr);
     if (!conversionContext) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate conversion context\n");
         throw std::runtime_error("Video Streamer could not be created.");
     }
 
-    rgbaData = new uint8_t[renderTarget->width * renderTarget->height * 4];
+    rgbaData = new uint8_t[width * height * 4];
 
     // initialize frame
     frame->format = videoPixelFormat;
-    frame->width = renderTarget->width;
-    frame->height = renderTarget->height;
+    frame->width = width;
+    frame->height = height;
 }
 
 void VideoStreamer::sendFrame(unsigned int poseId) {
@@ -123,7 +125,7 @@ void VideoStreamer::sendFrame(unsigned int poseId) {
     {
         uint64_t startEncodeTime = av_gettime();
 
-        // send packet to encoder
+        // send frame to encoder
         ret = avcodec_send_frame(codecContext, frame);
         if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
             av_log(nullptr, AV_LOG_ERROR, "Error: Could not send frame to output encoder: %s\n", av_err2str(ret));
