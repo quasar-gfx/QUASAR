@@ -6,7 +6,7 @@
 class PointShadowMapMaterial : public ShadowMapMaterial {
 public:
     explicit PointShadowMapMaterial() {
-        ShaderCreateParams pointShadowMapParams{
+        ShaderDataCreateParams pointShadowMapParams{
             .vertexCodeData = SHADER_POINTSHADOW_VERT,
             .vertexCodeSize = SHADER_POINTSHADOW_VERT_len,
             .fragmentCodeData = SHADER_POINTSHADOW_FRAG,

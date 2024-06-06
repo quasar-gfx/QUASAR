@@ -17,7 +17,7 @@ UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams &params) {
         textures.push_back(params.diffuseTextureID);
     }
 
-    ShaderCreateParams UnlitMaterialParams{
+    ShaderDataCreateParams UnlitMaterialParams{
         .vertexCodeData = SHADER_COMMON_VERT,
         .vertexCodeSize = SHADER_COMMON_VERT_len,
         .fragmentCodeData = SHADER_UNLIT_FRAG,

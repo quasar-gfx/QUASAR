@@ -1,6 +1,6 @@
 #include <Shaders/Shader.h>
 
-void Shader::loadFromFile(const std::string vertexPath, const std::string fragmentPath, const std::string geometryPath) {
+void Shader::loadFromFiles(const std::string vertexPath, const std::string fragmentPath, const std::string geometryPath) {
     std::string vertexCode;
     std::string fragmentCode;
     std::string geometryCode;
@@ -54,7 +54,7 @@ void Shader::loadFromFile(const std::string vertexPath, const std::string fragme
         loadFromData(vShaderCode, vertexCodeSize, fShaderCode, fragmentCodeSize, gShaderCode, geometryDataSize);
     }
     catch (std::ifstream::failure& e) {
-        std::cout << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ: " << e.what() << std::endl;
+        std::cerr << "Failed to read shader files: " << e.what() << std::endl;
     }
 }
 
@@ -70,30 +70,15 @@ void Shader::createAndCompileProgram(const char* vertexCodeData, const GLint ver
     std::string versionStr = "#version " + version + "\n";
 
     // compile vertex shader
-    std::vector<GLchar const*> vertexFiles = { versionStr.c_str(), vertexCodeData };
-    std::vector<GLint> vertexFilesSizes   = { static_cast<GLint>(versionStr.size()), vertexCodeSize };
-    GLuint vertex = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex, vertexFiles.size(), vertexFiles.data(), vertexFilesSizes.data());
-    glCompileShader(vertex);
-    checkCompileErrors(vertex, ShaderType::VERTEX);
+    GLuint vertex = createShader(versionStr, defines, vertexCodeData, vertexCodeSize, ShaderType::VERTEX);
 
     // compile fragment shader
-    std::vector<GLchar const*> fragmentFiles = { versionStr.c_str(), fragmentCodeData };
-    std::vector<GLint> fragmentFilesSizes   = { static_cast<GLint>(versionStr.size()), fragmentCodeSize };
-    GLuint fragment = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment, fragmentFiles.size(), fragmentFiles.data(), fragmentFilesSizes.data());
-    glCompileShader(fragment);
-    checkCompileErrors(fragment, ShaderType::FRAGMENT);
+    GLuint fragment = createShader(versionStr, defines, fragmentCodeData, fragmentCodeSize, ShaderType::FRAGMENT);
 
     // if geometry shader is given, compile geometry shader
     GLuint geometry;
     if (geometryData != nullptr) {
-        std::vector<GLchar const*> geometryFiles = { versionStr.c_str(), geometryData };
-        std::vector<GLint> geometryFilesSizes   = { static_cast<GLint>(versionStr.size()), geometryDataSize };
-        geometry = glCreateShader(GL_GEOMETRY_SHADER);
-        glShaderSource(geometry, geometryFiles.size(), geometryFiles.data(), geometryFilesSizes.data());
-        glCompileShader(geometry);
-        checkCompileErrors(geometry, ShaderType::GEOMETRY);
+        geometry = createShader(versionStr, defines, geometryData, geometryDataSize, ShaderType::GEOMETRY);
     }
 
     // shader Program
@@ -112,24 +97,5 @@ void Shader::createAndCompileProgram(const char* vertexCodeData, const GLint ver
     glDeleteShader(fragment);
     if (geometryData != nullptr) {
         glDeleteShader(geometry);
-    }
-}
-
-void Shader::checkCompileErrors(GLuint shader, ShaderType type) {
-    GLint success;
-    GLchar infoLog[1024];
-    if (type != ShaderType::PROGRAM) {
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-        if (!success) {
-            glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-            std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << static_cast<int>(type) << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
-        }
-    }
-    else {
-        glGetProgramiv(shader, GL_LINK_STATUS, &success);
-        if (!success) {
-            glGetProgramInfoLog(shader, 1024, NULL, infoLog);
-            std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << static_cast<int>(type) << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
-        }
     }
 }

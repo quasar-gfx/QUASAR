@@ -6,7 +6,7 @@
 class DirShadowMapMaterial : public ShadowMapMaterial {
 public:
     explicit DirShadowMapMaterial() {
-        ShaderCreateParams dirShadowMapParams{
+        ShaderDataCreateParams dirShadowMapParams{
             .vertexCodeData = SHADER_DIRSHADOW_VERT,
             .vertexCodeSize = SHADER_DIRSHADOW_VERT_len,
             .fragmentCodeData = SHADER_DIRSHADOW_FRAG,

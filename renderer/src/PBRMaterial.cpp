@@ -53,7 +53,7 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params) {
         textures.push_back(params.aoTextureID);
     }
 
-    ShaderCreateParams pbrShaderParams{
+    ShaderDataCreateParams pbrShaderParams{
         .vertexCodeData = SHADER_COMMON_VERT,
         .vertexCodeSize = SHADER_COMMON_VERT_len,
         .fragmentCodeData = SHADER_PBR_FRAG,

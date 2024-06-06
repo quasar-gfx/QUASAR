@@ -37,13 +37,7 @@ void ComputeShader::loadFromData(const char* computeCodeData, const GLint comput
 void ComputeShader::createAndCompileProgram(const char* computeCodeData, const GLint computeCodeSize) {
     std::string versionStr = "#version " + version + "\n";
 
-    GLchar const* computeFiles[] = { versionStr.c_str(), computeCodeData };
-    GLint computeFilesSizes[]    = { static_cast<GLint>(versionStr.size()), computeCodeSize };
-
-    GLuint compute = glCreateShader(GL_COMPUTE_SHADER);
-    glShaderSource(compute, 2, computeFiles, computeFilesSizes);
-    glCompileShader(compute);
-    checkCompileErrors(compute, ShaderType::COMPUTE);
+    GLuint compute = createShader(versionStr, defines, computeCodeData, computeCodeSize, ShaderType::COMPUTE);
 
     ID = glCreateProgram();
     glAttachShader(ID, compute);
