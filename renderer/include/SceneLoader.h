@@ -47,7 +47,7 @@ public:
 
     explicit SceneLoader() = default;
 
-    bool loadScene(std::string filename, Scene &scene, Camera &camera) {
+    bool loadScene(const std::string &filename, Scene &scene, Camera &camera) {
         auto size = getFileSize(filename);
         if (size <= 0) {
             return false;
@@ -71,7 +71,7 @@ public:
     }
 
 private:
-    std::ifstream::pos_type getFileSize(std::string filename) {
+    std::ifstream::pos_type getFileSize(const std::string &filename) {
         std::ifstream file(filename, std::ifstream::ate | std::ifstream::binary);
         file.seekg(0, std::ios::end);
         return file.tellg();

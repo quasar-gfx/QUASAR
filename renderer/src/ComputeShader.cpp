@@ -4,7 +4,7 @@
 
 #include <Shaders/ComputeShader.h>
 
-void ComputeShader::loadFromFile(std::string computePath) {
+void ComputeShader::loadFromFile(const std::string &computePath) {
     std::ifstream computeFile;
 
     computeFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);

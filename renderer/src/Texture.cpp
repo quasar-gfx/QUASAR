@@ -105,7 +105,7 @@ void Texture::resize(unsigned int width, unsigned int height) {
     unbind();
 }
 
-void Texture::saveTextureToPNG(std::string filename) {
+void Texture::saveTextureToPNG(const std::string &filename) {
     unsigned char* data = new unsigned char[width * height * 4];
 
     bind(0);
@@ -118,7 +118,7 @@ void Texture::saveTextureToPNG(std::string filename) {
     delete[] data;
 }
 
-void Texture::saveTextureToJPG(std::string filename, int quality) {
+void Texture::saveTextureToJPG(const std::string &filename, int quality) {
     unsigned char* data = new unsigned char[width * height * 4];
 
     bind(0);
@@ -131,7 +131,7 @@ void Texture::saveTextureToJPG(std::string filename, int quality) {
     delete[] data;
 }
 
-void Texture::saveTextureToHDR(std::string filename) {
+void Texture::saveTextureToHDR(const std::string &filename) {
     float* data = new float[width * height * 4];
 
     bind(0);
@@ -144,7 +144,7 @@ void Texture::saveTextureToHDR(std::string filename) {
     delete[] data;
 }
 
-void Texture::saveDepthToFile(std::string filename) {
+void Texture::saveDepthToFile(const std::string &filename) {
     std::ofstream depthFile;
     depthFile.open(filename, std::ios::out | std::ios::binary);
 

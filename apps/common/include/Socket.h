@@ -44,14 +44,14 @@ public:
         }
     }
 
-    void setAddress(std::string ipAddress, int port) {
+    void setAddress(const std::string &ipAddress, int port) {
         addrLen = sizeof(addr);
         addr.sin_family = AF_INET;
         addr.sin_addr.s_addr = inet_addr(ipAddress.c_str());
         addr.sin_port = htons(port);
     }
 
-    void setAddress(std::string ipAddressAndPort) {
+    void setAddress(const std::string &ipAddressAndPort) {
         size_t pos = ipAddressAndPort.find(':');
         std::string ipAddress = ipAddressAndPort.substr(0, pos);
         std::string portStr = ipAddressAndPort.substr(pos + 1);
@@ -65,12 +65,12 @@ public:
         }
     }
 
-    void bind(std::string ipAddress, int port) {
+    void bind(const std::string &ipAddress, int port) {
         setAddress(ipAddress, port);
         bind((struct sockaddr*)&addr, addrLen);
     }
 
-    void bind(std::string ipAddressAndPort) {
+    void bind(const std::string &ipAddressAndPort) {
         size_t pos = ipAddressAndPort.find(':');
         std::string ipAddress = ipAddressAndPort.substr(0, pos);
         std::string portStr = ipAddressAndPort.substr(pos + 1);
@@ -124,12 +124,12 @@ public:
         }
     }
 
-    void connect(std::string ipAddress, int port) {
+    void connect(const std::string &ipAddress, int port) {
         setAddress(ipAddress, port);
         connect((struct sockaddr*)&addr, addrLen);
     }
 
-    void connect(std::string ipAddressAndPort) {
+    void connect(const std::string &ipAddressAndPort) {
         size_t pos = ipAddressAndPort.find(':');
         std::string ipAddress = ipAddressAndPort.substr(0, pos);
         std::string portStr = ipAddressAndPort.substr(pos + 1);

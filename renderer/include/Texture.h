@@ -88,10 +88,10 @@ public:
         glDeleteTextures(1, &ID);
     }
 
-    void saveTextureToPNG(std::string filename);
-    void saveTextureToJPG(std::string filename, int quality = 100);
-    void saveTextureToHDR(std::string filename);
-    void saveDepthToFile(std::string filename);
+    void saveTextureToPNG(const std::string &filename);
+    void saveTextureToJPG(const std::string &filename, int quality = 100);
+    void saveTextureToHDR(const std::string &filename);
+    void saveDepthToFile(const std::string &filename);
 
 private:
     GLenum target;

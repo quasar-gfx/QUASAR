@@ -17,7 +17,7 @@ public:
         cleanup();
     }
 
-    bool checkStatus(std::string name = "") {
+    bool checkStatus(const std::string &name = "") {
         return glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
     }
 

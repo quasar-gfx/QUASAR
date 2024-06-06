@@ -24,7 +24,7 @@ public:
         }
     }
 
-    void loadFromFile(std::string computePath);
+    void loadFromFile(const std::string &computePath);
     void loadFromData(const char* computeCodeData, const GLint computeCodeSize);
 
     void dispatch(GLuint numGroupsX, GLuint numGroupsY, GLuint numGroupsZ);
