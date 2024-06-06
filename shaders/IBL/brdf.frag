@@ -1,4 +1,3 @@
-#version 410 core
 out vec2 FragColor;
 in vec2 TexCoords;
 

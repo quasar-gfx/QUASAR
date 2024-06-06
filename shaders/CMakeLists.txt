@@ -4,10 +4,10 @@ project(shaders)
 add_executable(embedfile ${CMAKE_SOURCE_DIR}/cmake/embedfile.c)
 
 file(GLOB_RECURSE SRCS
-    "*.frag"
-    "*.vert"
-    "*.geom"
-    "*.comp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.frag"
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.vert"
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.geom"
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.comp"
 )
 
 set(SHADER_HEADER "${CMAKE_BINARY_DIR}/shaders/shaders.h")

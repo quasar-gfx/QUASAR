@@ -14,45 +14,48 @@ void Shader::loadFromFile(const std::string vertexPath, const std::string fragme
     gShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 
     try {
-        // open files
+        // load vertex shader
         vShaderFile.open(vertexPath);
+
+        std::stringstream vShaderStream;
+        vShaderStream << vShaderFile.rdbuf();
+        vShaderFile.close();
+
+        vertexCode = vShaderStream.str();
+
+        // load fragment shader
         fShaderFile.open(fragmentPath);
 
-        // read file's buffer contents into streams
-        std::stringstream vShaderStream, fShaderStream;
-        vShaderStream << vShaderFile.rdbuf();
+        std::stringstream fShaderStream;
         fShaderStream << fShaderFile.rdbuf();
-
-        // close file handlers
-        vShaderFile.close();
         fShaderFile.close();
 
-        // convert stream into string
-        vertexCode = vShaderStream.str();
         fragmentCode = fShaderStream.str();
 
         // if geometry shader path is present, also load a geometry shader
         if (geometryPath != "") {
             gShaderFile.open(geometryPath);
+
             std::stringstream gShaderStream;
             gShaderStream << gShaderFile.rdbuf();
             gShaderFile.close();
+
             geometryCode = gShaderStream.str();
         }
+
+        const char* vShaderCode = vertexCode.c_str();
+        const char* fShaderCode = fragmentCode.c_str();
+        const char* gShaderCode = geometryPath != "" ? geometryCode.c_str() : nullptr;
+
+        unsigned int vertexCodeSize = vertexCode.size();
+        unsigned int fragmentCodeSize = fragmentCode.size();
+        unsigned int geometryDataSize = geometryPath != "" ? geometryCode.size() : 0;
+
+        loadFromData(vShaderCode, vertexCodeSize, fShaderCode, fragmentCodeSize, gShaderCode, geometryDataSize);
     }
     catch (std::ifstream::failure& e) {
         std::cout << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ: " << e.what() << std::endl;
     }
-
-    const char* vShaderCode = vertexCode.c_str();
-    const char* fShaderCode = fragmentCode.c_str();
-    const char* gShaderCode = geometryPath != "" ? geometryCode.c_str() : nullptr;
-
-    unsigned int vertexCodeSize = vertexCode.size();
-    unsigned int fragmentCodeSize = fragmentCode.size();
-    unsigned int geometryDataSize = geometryPath != "" ? geometryCode.size() : 0;
-
-    createAndCompileProgram(vShaderCode, vertexCodeSize, fShaderCode, fragmentCodeSize, gShaderCode, geometryDataSize);
 }
 
 void Shader::loadFromData(const char* vertexCodeData, const GLint vertexCodeSize,
@@ -64,24 +67,31 @@ void Shader::loadFromData(const char* vertexCodeData, const GLint vertexCodeSize
 void Shader::createAndCompileProgram(const char* vertexCodeData, const GLint vertexCodeSize,
                                      const char* fragmentCodeData, const GLint fragmentCodeSize,
                                      const char* geometryData, const GLint geometryDataSize) {
+    std::string versionStr = "#version " + version + "\n";
 
     // compile vertex shader
+    std::vector<GLchar const*> vertexFiles = { versionStr.c_str(), vertexCodeData };
+    std::vector<GLint> vertexFilesSizes   = { static_cast<GLint>(versionStr.size()), vertexCodeSize };
     GLuint vertex = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex, 1, &vertexCodeData, &vertexCodeSize);
+    glShaderSource(vertex, vertexFiles.size(), vertexFiles.data(), vertexFilesSizes.data());
     glCompileShader(vertex);
     checkCompileErrors(vertex, ShaderType::VERTEX);
 
     // compile fragment shader
+    std::vector<GLchar const*> fragmentFiles = { versionStr.c_str(), fragmentCodeData };
+    std::vector<GLint> fragmentFilesSizes   = { static_cast<GLint>(versionStr.size()), fragmentCodeSize };
     GLuint fragment = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment, 1, &fragmentCodeData, &fragmentCodeSize);
+    glShaderSource(fragment, fragmentFiles.size(), fragmentFiles.data(), fragmentFilesSizes.data());
     glCompileShader(fragment);
     checkCompileErrors(fragment, ShaderType::FRAGMENT);
 
     // if geometry shader is given, compile geometry shader
     GLuint geometry;
     if (geometryData != nullptr) {
+        std::vector<GLchar const*> geometryFiles = { versionStr.c_str(), geometryData };
+        std::vector<GLint> geometryFilesSizes   = { static_cast<GLint>(versionStr.size()), geometryDataSize };
         geometry = glCreateShader(GL_GEOMETRY_SHADER);
-        glShaderSource(geometry, 1, &geometryData, &geometryDataSize);
+        glShaderSource(geometry, geometryFiles.size(), geometryFiles.data(), geometryFilesSizes.data());
         glCompileShader(geometry);
         checkCompileErrors(geometry, ShaderType::GEOMETRY);
     }

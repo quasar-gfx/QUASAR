@@ -1,4 +1,3 @@
-#version 410 core
 in vec4 FragPos;
 
 uniform vec3 lightPos;

@@ -8,6 +8,7 @@
 #include <Shaders/Shader.h>
 
 struct ComputeShaderCreateParams {
+    std::string version = "410 core";
     std::string computeCodePath = "";
     const char* computeCodeData = nullptr;
     unsigned int computeCodeSize = 0;
@@ -15,7 +16,9 @@ struct ComputeShaderCreateParams {
 
 class ComputeShader : public Shader {
 public:
-    explicit ComputeShader(const ComputeShaderCreateParams& params) {
+    std::string version = "410 core";
+
+    explicit ComputeShader(const ComputeShaderCreateParams& params) : version(params.version) {
         if (params.computeCodeData != nullptr) {
             loadFromData(params.computeCodeData, params.computeCodeSize);
         }

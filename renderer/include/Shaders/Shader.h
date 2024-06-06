@@ -6,12 +6,14 @@
 #include <glm/glm.hpp>
 
 #include <string>
+#include <vector>
 #include <fstream>
 #include <sstream>
 #include <iostream>
 
 #include <OpenGLObject.h>
 
+// pre-stored shaders
 #include <shaders.h>
 
 enum class ShaderType {
@@ -23,6 +25,7 @@ enum class ShaderType {
 };
 
 struct ShaderCreateParams {
+    std::string version = "410 core";
     std::string vertexCodePath = "";
     std::string fragmentCodePath = "";
     std::string geometryCodePath = "";
@@ -32,12 +35,15 @@ struct ShaderCreateParams {
     unsigned int fragmentCodeSize = 0;
     const char* geometryData = nullptr;
     unsigned int geometryDataSize = 0;
+
 };
 
 class Shader : public OpenGLObject {
 public:
+    std::string version = "410 core";
+
     explicit Shader() = default;
-    explicit Shader(const ShaderCreateParams& params) {
+    explicit Shader(const ShaderCreateParams& params) : version(params.version) {
         if (params.vertexCodeData != nullptr && params.fragmentCodeData != nullptr) {
             loadFromData(params.vertexCodeData, params.vertexCodeSize, params.fragmentCodeData, params.fragmentCodeSize, params.geometryData, params.geometryDataSize);
         }
