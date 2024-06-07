@@ -132,8 +132,8 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
             vertex.bitangent = vector;
         }
         else {
-            vertex.tangent = glm::normalize(glm::cross(vertex.normal, glm::vec3(1.0f, 0.0f, 0.0f)));
-            vertex.bitangent = glm::normalize(glm::cross(vertex.normal, vertex.tangent));
+            vertex.bitangent = glm::normalize(glm::cross(vertex.normal, glm::vec3(1.0f, 0.0f, 0.0f)));
+            vertex.tangent = glm::normalize(glm::cross(vertex.normal, vertex.bitangent));
         }
 
         vertices.push_back(vertex);
@@ -149,7 +149,8 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
     }
 
     // set up material
-    aiMaterial* aiMat = scene->mMaterials[mesh->mMaterialIndex];
+    uint32_t materialId = mesh->mMaterialIndex;
+    aiMaterial const* aiMat = scene->mMaterials[materialId];
 
     MeshCreateParams meshParams{};
     if (material != nullptr) {
@@ -176,8 +177,8 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
                 materialParams.transparent = true;
             }
             if (opacity <= 0.0f) opacity = 1.0f;
-            materialParams.opacity = opacity;
         }
+        materialParams.opacity = opacity;
 
         float shininess;
         if (aiMat->Get(AI_MATKEY_SHININESS, shininess) == AI_SUCCESS) {
@@ -245,7 +246,7 @@ int32_t Model::getEmbeddedTextureId(const aiString &path) {
     return -1;
 }
 
-TextureID Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
+TextureID Model::loadMaterialTexture(aiMaterial const* mat, aiTextureType type) {
     // if the texture type doesn't exist, return 0
     if (mat->GetTextureCount(type) == 0) {
         return 0;

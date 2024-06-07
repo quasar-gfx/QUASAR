@@ -106,7 +106,6 @@ float DistributionGGX(vec3 N, vec3 H, float roughness) {
     float num   = a2;
     float denom = (NdotH2 * (a2 - 1.0) + 1.0);
     denom = PI * denom * denom;
-
     return num / denom;
 }
 
@@ -116,14 +115,12 @@ float GeometrySchlickGGX(float NdotV, float roughness) {
 
     float num   = NdotV;
     float denom = NdotV * (1.0 - k) + k;
-
     return num / denom;
 }
 
 float GeometrySmith(float NdotV, float NdotL, float roughness) {
     float ggx2 = GeometrySchlickGGX(NdotV, roughness);
     float ggx1 = GeometrySchlickGGX(NdotL, roughness);
-
     return ggx1 * ggx2;
 }
 
@@ -144,6 +141,12 @@ vec3 getNormal() {
 
     if (!material.normalMapped)
         return N;
+
+    // HACK: sometimes bitangent is nan, so recompute it
+    if (any(isnan(B))) {
+        B = normalize(cross(T, N));
+        T = normalize(cross(N, B));
+    }
 
 	mat3 TBN = mat3(T, B, N);
 	vec3 tangentNormal = normalize(texture(material.normalMap, fsIn.TexCoords).xyz * 2.0 - 1.0);
@@ -380,7 +383,7 @@ void main() {
     radianceOut = radianceOut + ambient;
 
     positionBuffer = vec4(fsIn.FragPos, 1.0);
-    normalsBuffer = vec4(normalize(fsIn.Normal), 1.0);
+    normalsBuffer = vec4(N, 1.0);
     idBuffer = vec4(gl_PrimitiveID, 0.0, 0.0, 0.0);
     FragColor = vec4(radianceOut, alpha);
 }
