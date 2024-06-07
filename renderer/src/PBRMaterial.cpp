@@ -59,8 +59,8 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params) {
     ShaderDataCreateParams pbrShaderParams{
         .vertexCodeData = SHADER_COMMON_VERT,
         .vertexCodeSize = SHADER_COMMON_VERT_len,
-        .fragmentCodeData = SHADER_PBR_FRAG,
-        .fragmentCodeSize = SHADER_PBR_FRAG_len,
+        .fragmentCodeData = SHADER_MATERIAL_PBR_FRAG,
+        .fragmentCodeSize = SHADER_MATERIAL_PBR_FRAG_len,
         .defines = {"#define MAX_POINT_LIGHTS " + std::to_string(params.numPointLights)}
     };
     shader = std::make_unique<Shader>(pbrShaderParams);
@@ -75,33 +75,33 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params) {
 
 void PBRMaterial::bind() {
     shader->bind();
-    shader->setVec3("baseColor", color);
-    shader->setFloat("opacity", opacity);
-    shader->setFloat("u_metallic", metallic);
-    shader->setFloat("u_roughness", roughness);
-    shader->setBool("metalRoughnessCombined", metalRoughnessCombined);
-    shader->setBool("transparent", transparent);
+    shader->setVec3("material.baseColor", color);
+    shader->setFloat("material.opacity", opacity);
+    shader->setFloat("material.metallic", metallic);
+    shader->setFloat("material.roughness", roughness);
+    shader->setBool("material.metalRoughnessCombined", metalRoughnessCombined);
+    shader->setBool("material.transparent", transparent);
 
     std::string name;
     for (int i = 0; i < textures.size(); i++) {
         glActiveTexture(GL_TEXTURE0 + i);
         switch(i) {
         case 0:
-            name = "albedoMap";
+            name = "material.albedoMap";
             break;
         case 1:
-            name = "normalMap";
-            shader->setBool("normalMapped", textures[i] != 0);
+            name = "material.normalMap";
+            shader->setBool("material.normalMapped", textures[i] != 0);
             break;
         case 2:
-            name = "metallicMap";
+            name = "material.metallicMap";
             break;
         case 3:
-            name = "roughnessMap";
+            name = "material.roughnessMap";
             break;
         case 4:
-            name = "aoMap";
-            shader->setBool("aoMapped", textures[i] != 0);
+            name = "material.aoMap";
+            shader->setBool("material.aoMapped", textures[i] != 0);
             break;
         default:
             break;

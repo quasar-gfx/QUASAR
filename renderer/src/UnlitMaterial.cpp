@@ -20,8 +20,8 @@ UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams &params) {
     ShaderDataCreateParams UnlitMaterialParams{
         .vertexCodeData = SHADER_COMMON_VERT,
         .vertexCodeSize = SHADER_COMMON_VERT_len,
-        .fragmentCodeData = SHADER_UNLIT_FRAG,
-        .fragmentCodeSize = SHADER_UNLIT_FRAG_len
+        .fragmentCodeData = SHADER_MATERIAL_UNLIT_FRAG,
+        .fragmentCodeSize = SHADER_MATERIAL_UNLIT_FRAG_len
     };
     shader = std::make_shared<Shader>(UnlitMaterialParams);
 
@@ -32,11 +32,11 @@ UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams &params) {
 
 void UnlitMaterial::bind() {
     shader->bind();
-    shader->setVec3("baseColor", color);
-    shader->setFloat("opacity", opacity);
-    shader->setBool("transparent", transparent);
+    shader->setVec3("material.baseColor", color);
+    shader->setFloat("material.opacity", opacity);
+    shader->setBool("material.transparent", transparent);
 
-    std::string name = "diffuseMap";
+    std::string name = "material.diffuseMap";
     glActiveTexture(GL_TEXTURE0);
 
     shader->setInt(name, 0);

@@ -59,11 +59,11 @@ void Scene::bindMaterial(Material* material) {
         return;
     }
 
-    material->shader->setInt("irradianceMap", material->getTextureCount() + 0);
+    material->shader->setInt("material.irradianceMap", material->getTextureCount() + 0);
     irradianceCubeMap.bind(material->getTextureCount() + 0);
-    material->shader->setInt("prefilterMap", material->getTextureCount() + 1);
+    material->shader->setInt("material.prefilterMap", material->getTextureCount() + 1);
     prefilterCubeMap.bind(material->getTextureCount() + 1);
-    material->shader->setInt("brdfLUT", material->getTextureCount() + 2);
+    material->shader->setInt("material.brdfLUT", material->getTextureCount() + 2);
     brdfLUT.bind(material->getTextureCount() + 2);
 }
 

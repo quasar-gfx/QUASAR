@@ -14,6 +14,33 @@ in VertexData {
     vec4 FragPosLightSpace;
 } fsIn;
 
+// material
+struct Material {
+    vec3 baseColor;
+    float opacity;
+    bool transparent;
+
+    float metallic;
+    float roughness;
+
+    bool normalMapped; // use normal map
+    bool aoMapped; // use ao map
+    bool metalRoughnessCombined; // use combined metal/roughness map
+
+    // material textures
+    sampler2D albedoMap; // 0
+    sampler2D normalMap; // 1
+    sampler2D metallicMap; // 2
+    sampler2D roughnessMap; // 3
+    sampler2D aoMap; // 4
+
+    // IBL
+    float IBL; // IBL contribution
+    samplerCube irradianceMap; // 5
+    samplerCube prefilterMap; // 6
+    sampler2D brdfLUT; // 7
+};
+
 // lights
 struct AmbientLight {
     vec3 color;
@@ -36,39 +63,26 @@ struct PointLight {
     float farPlane;
 };
 
-uniform int numPointLights;
+struct PBRInfo {
+    vec3 N;
+    vec3 V;
+    vec3 R;
+    vec3 albedo;
+    float metallic;
+    float roughness;
+    vec3 F0;
+};
 
+uniform Material material;
+
+uniform int numPointLights;
 uniform AmbientLight ambientLight;
 uniform DirectionalLight directionalLight;
 uniform PointLight pointLights[MAX_POINT_LIGHTS];
 
-// material textures
-uniform sampler2D albedoMap; // 0
-uniform sampler2D normalMap; // 1
-uniform sampler2D metallicMap; // 2
-uniform sampler2D roughnessMap; // 3
-uniform sampler2D aoMap; // 4
-
-// IBL
-uniform float IBL; // IBL contribution
-uniform samplerCube irradianceMap; // 5
-uniform samplerCube prefilterMap; // 6
-uniform sampler2D brdfLUT; // 7
-
 // shadow maps
 uniform sampler2D dirLightShadowMap; // 8
 uniform samplerCube pointLightShadowMaps[MAX_POINT_LIGHTS]; // 9+
-
-uniform bool aoMapped;
-uniform bool normalMapped;
-uniform bool metalRoughnessCombined;
-
-uniform vec3 baseColor;
-uniform float opacity;
-uniform bool transparent;
-
-uniform float u_metallic;
-uniform float u_roughness;
 
 uniform vec3 camPos;
 
@@ -82,19 +96,6 @@ vec3 gridSamplingDisk[20] = vec3[]
    vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
    vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
 );
-
-vec3 getNormal() {
-	vec3 N = normalize(fsIn.Normal);
-	vec3 T = normalize(fsIn.Tangent);
-	vec3 B = normalize(fsIn.BiTangent);
-
-    if (!normalMapped)
-        return N;
-
-	mat3 TBN = mat3(T, B, N);
-	vec3 tangentNormal = normalize(texture(normalMap, fsIn.TexCoords).xyz * 2.0 - 1.0);
-	return normalize(TBN * tangentNormal);
-}
 
 float DistributionGGX(vec3 N, vec3 H, float roughness) {
     float a = roughness*roughness;
@@ -134,6 +135,44 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0) {
 vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
     float val = 1.0 - cosTheta;
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * (val*val*val*val*val); // val^5
+}
+
+vec3 getNormal() {
+	vec3 N = normalize(fsIn.Normal);
+	vec3 T = normalize(fsIn.Tangent);
+	vec3 B = normalize(fsIn.BiTangent);
+
+    if (!material.normalMapped)
+        return N;
+
+	mat3 TBN = mat3(T, B, N);
+	vec3 tangentNormal = normalize(texture(material.normalMap, fsIn.TexCoords).xyz * 2.0 - 1.0);
+	return normalize(TBN * tangentNormal);
+}
+
+vec3 getIBLContribution(PBRInfo pbrInputs) {
+    vec3 N = pbrInputs.N;
+    vec3 V = pbrInputs.V;
+    vec3 R = pbrInputs.R;
+    vec3 albedo = pbrInputs.albedo;
+    float metallic = pbrInputs.metallic;
+    float roughness = pbrInputs.roughness;
+    vec3 F0 = pbrInputs.F0;
+
+    vec3 kS = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+    vec3 kD = 1.0 - kS;
+    kD *= 1.0 - metallic;
+
+    vec3 irradiance = texture(material.irradianceMap, N).rgb;
+    vec3 diffuse = irradiance * albedo;
+
+    // sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation
+    // to get the IBL specular part
+    const float MAX_REFLECTION_LOD = 4.0;
+    vec3 prefilteredColor = textureLod(material.prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+    vec2 brdf = texture(material.brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
+    vec3 specular = prefilteredColor * (kS * brdf.x + brdf.y);
+    return kD * diffuse + specular;
 }
 
 float calcDirLightShadow(DirectionalLight light, vec4 fragPosLightSpace) {
@@ -176,9 +215,17 @@ float calcPointLightShadows(PointLight light, samplerCube pointLightShadowMap, v
     return shadow;
 }
 
-vec3 calcDirLight(DirectionalLight light, vec3 N, vec3 V, vec3 albedo, float roughness, float metallic, vec3 F0) {
+vec3 calcDirLight(DirectionalLight light, PBRInfo pbrInputs) {
     if (light.intensity == 0.0)
         return vec3(0.0);
+
+    vec3 N = pbrInputs.N;
+    vec3 V = pbrInputs.V;
+    vec3 R = pbrInputs.R;
+    vec3 albedo = pbrInputs.albedo;
+    float metallic = pbrInputs.metallic;
+    float roughness = pbrInputs.roughness;
+    vec3 F0 = pbrInputs.F0;
 
     // calculate per-light radiance
     vec3 L = normalize(-light.direction);
@@ -217,9 +264,17 @@ vec3 calcDirLight(DirectionalLight light, vec3 N, vec3 V, vec3 albedo, float rou
     return radianceOut;
 }
 
-vec3 calcPointLight(PointLight light, samplerCube pointLightShadowMap, vec3 N, vec3 V, vec3 albedo, float roughness, float metallic, vec3 F0) {
+vec3 calcPointLight(PointLight light, samplerCube pointLightShadowMap, PBRInfo pbrInputs) {
     if (light.intensity == 0.0)
         return vec3(0.0);
+
+    vec3 N = pbrInputs.N;
+    vec3 V = pbrInputs.V;
+    vec3 R = pbrInputs.R;
+    vec3 albedo = pbrInputs.albedo;
+    float metallic = pbrInputs.metallic;
+    float roughness = pbrInputs.roughness;
+    vec3 F0 = pbrInputs.F0;
 
     // calculate per-light radiance
     vec3 L = normalize(light.position - fsIn.FragPos);
@@ -263,11 +318,11 @@ vec3 calcPointLight(PointLight light, samplerCube pointLightShadowMap, vec3 N, v
 
 void main() {
     // material properties
-    vec4 color = texture(albedoMap, fsIn.TexCoords);
+    vec4 color = texture(material.albedoMap, fsIn.TexCoords);
 
-    if (color.rgb == vec3(0.0) && baseColor != vec3(-1.0)) {
-        color.rgb = baseColor;
-        color.a = opacity;
+    if (color.rgb == vec3(0.0) && material.baseColor != vec3(-1.0)) {
+        color.rgb = material.baseColor;
+        color.a = material.opacity;
     }
     else {
         color.rgb *= fsIn.Color;
@@ -275,60 +330,50 @@ void main() {
 
     // albedo
     vec3 albedo = color.rgb;
-    float alpha = (transparent) ? color.a : 1.0;
+    float alpha = (material.transparent) ? color.a : 1.0;
     if (alpha < 0.1)
         discard;
 
     // metallic and roughness
-    vec2 mr = texture(metallicMap, fsIn.TexCoords).rg;
-    float metallic = (u_metallic != -1.0) ? u_metallic : mr.r;
-    float roughness = (u_roughness != -1.0) ? u_roughness : mr.g;
-    if (!metalRoughnessCombined) {
-        metallic = texture(metallicMap, fsIn.TexCoords).r;
-        roughness = texture(roughnessMap, fsIn.TexCoords).r;
+    vec2 mr = texture(material.metallicMap, fsIn.TexCoords).rg;
+    float metallic = (material.metallic != -1.0) ? material.metallic : mr.r;
+    float roughness = (material.roughness != -1.0) ? material.roughness : mr.g;
+    if (!material.metalRoughnessCombined) {
+        metallic = texture(material.metallicMap, fsIn.TexCoords).r;
+        roughness = texture(material.roughnessMap, fsIn.TexCoords).r;
     }
-
-    // ambient occlusion
-    float ao = texture(aoMap, fsIn.TexCoords).r;
 
     // input lighting data
     vec3 N = getNormal();
     vec3 V = normalize(camPos - fsIn.FragPos);
     vec3 R = reflect(-V, N);
 
+    // ambient occlusion
+    float ao = texture(material.aoMap, fsIn.TexCoords).r;
+
     // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0
     // of 0.04 and if it's a metal, use the albedo color as F0 (metallic workflow)
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo, metallic);
 
-    // reflectance equation
+    PBRInfo pbrInputs = PBRInfo(N, V, R, albedo, metallic, roughness, F0);
+
+    // apply reflectance equation for lights
     vec3 radianceOut = vec3(0.0);
-    radianceOut += calcDirLight(directionalLight, N, V, albedo, roughness, metallic, F0);
+    radianceOut += calcDirLight(directionalLight, pbrInputs);
     for (int i = 0; i < numPointLights; i++) {
-        radianceOut += calcPointLight(pointLights[i], pointLightShadowMaps[i], N, V, albedo, roughness, metallic, F0);
+        radianceOut += calcPointLight(pointLights[i], pointLightShadowMaps[i], pbrInputs);
     }
 
-    // IBL
+    // apply IBL
     vec3 ambient = ambientLight.intensity * ambientLight.color * albedo;
-    if (IBL != 0.0) {
+    if (material.IBL != 0.0) {
         // ambient lighting (we now use IBL as the ambient term)
-        vec3 kS = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
-        vec3 kD = 1.0 - kS;
-        kD *= 1.0 - metallic;
-
-        vec3 irradiance = texture(irradianceMap, N).rgb;
-        vec3 diffuse = irradiance * albedo;
-
-        // sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation
-        // to get the IBL specular part
-        const float MAX_REFLECTION_LOD = 4.0;
-        vec3 prefilteredColor = textureLod(prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
-        vec2 brdf = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
-        vec3 specular = prefilteredColor * (kS * brdf.x + brdf.y);
-        ambient += IBL * (kD * diffuse + specular);
+        ambient += material.IBL * getIBLContribution(pbrInputs);
     }
 
-    if (aoMapped) {
+    // apply ambient occlusion
+    if (material.aoMapped) {
         ambient *= ao;
     }
 

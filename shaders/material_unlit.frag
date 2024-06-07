@@ -14,26 +14,31 @@ in VertexData {
     vec4 FragPosLightSpace;
 } fsIn;
 
-// material textures
-uniform sampler2D diffuseMap; // 0
+// material
+struct Material {
+    vec3 baseColor;
+    float opacity;
+    bool transparent;
 
-uniform vec3 baseColor;
-uniform float opacity;
-uniform bool transparent;
+    // material textures
+    sampler2D diffuseMap; // 0
+};
+
+uniform Material material;
 
 uniform vec3 camPos;
 
 void main() {
-    vec4 color = texture(diffuseMap, fsIn.TexCoords);
-    if (color.rgb == vec3(0.0) && baseColor != vec3(-1.0)) {
-        color.rgb = baseColor;
-        color.a = opacity;
+    vec4 color = texture(material.diffuseMap, fsIn.TexCoords);
+    if (color.rgb == vec3(0.0) && material.baseColor != vec3(-1.0)) {
+        color.rgb = material.baseColor;
+        color.a = material.opacity;
     }
     else {
         color.rgb *= fsIn.Color;
     }
 
-    float alpha = (transparent) ? color.a : 1.0;
+    float alpha = (material.transparent) ? color.a : 1.0;
     if (alpha < 0.1)
         discard;
 
