@@ -12,6 +12,12 @@
             "IBL": 0.05,
             "gammaCorrected": true,
             "flipTextures": true
+        },
+        {
+            "path": "~/Desktop/Models/VikingVillageWater.glb",
+            "IBL": 0.6,
+            "gammaCorrected": true,
+            "flipTextures": true
         }
     ],
     "meshes": [
@@ -19,6 +25,12 @@
     "nodes": [
         {
             "model": 0,
+            "position": [0.0, 0.0, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [1.0, 1.0, 1.0]
+        },
+        {
+            "model": 1,
             "position": [0.0, 0.0, 0.0],
             "rotation": [0.0, 0.0, 0.0],
             "scale": [1.0, 1.0, 1.0]
