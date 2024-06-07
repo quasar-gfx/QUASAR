@@ -9,7 +9,7 @@
     "models": [
         {
             "path": "~/Desktop/Models/RobotLab/RobotLab.gltf",
-            "IBL": 0.0,
+            "IBL": 0.01,
             "gammaCorrected": true
         }
     ],
@@ -42,7 +42,7 @@
     "pointLights": [
         {
             "color": [1.0, 1.0, 1.0],
-            "position": [-5.2, 6.25, -18.5],
+            "position": [5, 7.5, 5],
             "intensity": 50.0,
             "constant": 0.0,
             "linear": 0.09,
@@ -50,7 +50,7 @@
         },
         {
             "color": [1.0, 1.0, 1.0],
-            "position": [4.8, 6.25, -18.5],
+            "position": [-5, 7.5, 5],
             "intensity": 50.0,
             "constant": 0.0,
             "linear": 0.09,
@@ -58,7 +58,7 @@
         },
         {
             "color": [1.0, 1.0, 1.0],
-            "position": [-7.8, 6.25, -18.5],
+            "position": [5, 7.5, -5],
             "intensity": 50.0,
             "constant": 0.0,
             "linear": 0.09,
@@ -66,7 +66,7 @@
         },
         {
             "color": [1.0, 1.0, 1.0],
-            "position": [7.0, 6.25, -18.5],
+            "position": [-5, 7.5, -5],
             "intensity": 50.0,
             "constant": 0.0,
             "linear": 0.09,

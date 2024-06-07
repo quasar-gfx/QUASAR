@@ -25,13 +25,12 @@ uniform mat4 lightSpaceMatrix;
 
 void main() {
     vsOut.VertexID = aID;
-
     vsOut.TexCoords = aTexCoords;
-    vsOut.Color = aColor;
     vsOut.FragPos = vec3(model * vec4(aPos, 1.0));
+    vsOut.Color = aColor;
     vsOut.Normal = normalize(normalMatrix * aNormal);
-    vsOut.Tangent = normalize(vec3(model * vec4(aTangent, 1.0)));
-    vsOut.BiTangent = normalize(vec3(model * vec4(aBitangent, 1.0)));
+    vsOut.Tangent = normalize(normalMatrix * aTangent);
+    vsOut.BiTangent = normalize(normalMatrix * aBitangent);
 
     vsOut.FragPosLightSpace = lightSpaceMatrix * vec4(vsOut.FragPos, 1.0);
 

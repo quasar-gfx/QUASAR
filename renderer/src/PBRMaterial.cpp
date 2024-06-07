@@ -17,6 +17,9 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params) {
         textures.push_back(params.albedoTextureID);
     }
 
+    // only gamma correct color textures
+    textureParams.gammaCorrected = false;
+
     if (params.normalTexturePath != "") {
         textureParams.path = params.normalTexturePath;
         Texture texture = Texture(textureParams);

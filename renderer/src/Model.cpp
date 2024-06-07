@@ -131,6 +131,10 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
             vector.z = mesh->mBitangents[i].z;
             vertex.bitangent = vector;
         }
+        else {
+            vertex.tangent = glm::normalize(glm::cross(vertex.normal, glm::vec3(1.0f, 0.0f, 0.0f)));
+            vertex.bitangent = glm::normalize(glm::cross(vertex.normal, vertex.tangent));
+        }
 
         vertices.push_back(vertex);
     }
@@ -260,9 +264,11 @@ TextureID Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
         return texturesLoaded[texturePath].ID;
     }
 
-    int32_t embeddedId = getEmbeddedTextureId(aiTexturePath);
+    // only gamma correct color textures
+    bool shouldGammaCorrect = (type == aiTextureType_DIFFUSE && gammaCorrected);
 
     // if texture is embedded into the file, read it from memory
+    int32_t embeddedId = getEmbeddedTextureId(aiTexturePath);
     if (embeddedId != -1) {
         const aiTexture* aiEmbeddedTexture = scene->mTextures[embeddedId];
 
@@ -277,11 +283,11 @@ TextureID Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
                 format = GL_RED;
             }
             else if (texChannels == 3) {
-                internalFormat = gammaCorrected ? GL_SRGB : GL_RGB;
+                internalFormat = shouldGammaCorrect ? GL_SRGB : GL_RGB;
                 format = GL_RGB;
             }
             else if (texChannels == 4) {
-                internalFormat = gammaCorrected ? GL_SRGB_ALPHA : GL_RGBA;
+                internalFormat = shouldGammaCorrect ? GL_SRGB_ALPHA : GL_RGBA;
                 format = GL_RGBA;
             }
 
@@ -311,7 +317,7 @@ TextureID Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
             .wrapT = GL_REPEAT,
             .minFilter = GL_LINEAR_MIPMAP_LINEAR,
             .magFilter = GL_LINEAR,
-            .gammaCorrected = gammaCorrected,
+            .gammaCorrected = shouldGammaCorrect,
             .path = texturePath
         });
         texturesLoaded[texturePath] = texture;

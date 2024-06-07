@@ -83,18 +83,17 @@ vec3 gridSamplingDisk[20] = vec3[]
    vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
 );
 
-vec3 getNormalFromMap() {
-    vec3 N   = normalize(fsIn.Normal);
-    vec3 T   = normalize(fsIn.Tangent);
-    vec3 B   = normalize(fsIn.BiTangent);
-    mat3 TBN = mat3(T, B, N);
+vec3 getNormal() {
+	vec3 N = normalize(fsIn.Normal);
+	vec3 T = normalize(fsIn.Tangent);
+	vec3 B = normalize(fsIn.BiTangent);
 
-    if (!normalMapped) {
+    if (!normalMapped)
         return N;
-    }
 
-    vec3 normal = texture(normalMap, fsIn.TexCoords).xyz * 2.0 - 1.0;
-    return normalize(TBN * normal);
+	mat3 TBN = mat3(T, B, N);
+	vec3 tangentNormal = normalize(texture(normalMap, fsIn.TexCoords).xyz * 2.0 - 1.0);
+	return normalize(TBN * tangentNormal);
 }
 
 float DistributionGGX(vec3 N, vec3 H, float roughness) {
@@ -147,7 +146,7 @@ float calcDirLightShadow(DirectionalLight light, vec4 fragPosLightSpace) {
     float shadow = 0.0;
     vec3 normal = normalize(fsIn.Normal);
     vec3 lightDir = normalize(-light.direction);
-    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+    float bias = max(0.05 * (1.0 - max(dot(normal, lightDir), 0.0)), 0.005);
     vec2 texelSize = 1.0 / textureSize(dirLightShadowMap, 0);
     for (int i = 0; i < samples; i++) {
         float pcfDepth = texture(dirLightShadowMap, projCoords.xy + gridSamplingDisk[i].xy * texelSize).r;
@@ -293,7 +292,7 @@ void main() {
     float ao = texture(aoMap, fsIn.TexCoords).r;
 
     // input lighting data
-    vec3 N = getNormalFromMap();
+    vec3 N = getNormal();
     vec3 V = normalize(camPos - fsIn.FragPos);
     vec3 R = reflect(-V, N);
 
