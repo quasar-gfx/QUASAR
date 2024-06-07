@@ -8,6 +8,8 @@ struct PBRMaterialCreateParams {
     float opacity = -1.0f;
     float metallic = -1.0f;
     float roughness = -1.0f;
+    bool transparent = false;
+    unsigned int numPointLights = 4;
     std::string albedoTexturePath = "";
     std::string normalTexturePath = "";
     std::string metallicTexturePath = "";
@@ -19,7 +21,6 @@ struct PBRMaterialCreateParams {
     TextureID roughnessTextureID;
     TextureID aoTextureID;
     bool metalRoughnessCombined = false;
-    bool transparent = false;
 };
 
 class PBRMaterial : public Material {

@@ -79,9 +79,27 @@ public:
     }
 
 protected:
-    GLuint createShader(std::string versionStr, std::vector<std::string> defines, const char* shaderData, const GLint shaderSize, ShaderType type) {
-        std::vector<GLchar const*> shaderSrcs = { versionStr.c_str(), shaderData };
-        std::vector<GLint> shaderSrcsSizes = { static_cast<GLint>(versionStr.size()), shaderSize };
+    GLuint createShader(std::string version, std::vector<std::string> defines, const char* shaderData, const GLint shaderSize, ShaderType type) {
+        std::string versionStr = "#version " + version + "\n";
+
+        std::vector<std::string> definesWithNewline;
+        for (const auto& define : defines) {
+            definesWithNewline.push_back(define + "\n");
+        }
+
+        std::vector<GLchar const*> shaderSrcs;
+        shaderSrcs.push_back(versionStr.c_str());
+        for (const auto& define : definesWithNewline) {
+            shaderSrcs.push_back(define.c_str());
+        }
+        shaderSrcs.push_back(shaderData);
+
+        std::vector<GLint> shaderSrcsSizes;
+        shaderSrcsSizes.push_back(versionStr.size());
+        for (const auto& define : definesWithNewline) {
+            shaderSrcsSizes.push_back(define.size());
+        }
+        shaderSrcsSizes.push_back(shaderSize);
 
         GLuint shader;
         switch (type) {

@@ -35,9 +35,7 @@ void ComputeShader::loadFromData(const char* computeCodeData, const GLint comput
 }
 
 void ComputeShader::createAndCompileProgram(const char* computeCodeData, const GLint computeCodeSize) {
-    std::string versionStr = "#version " + version + "\n";
-
-    GLuint compute = createShader(versionStr, defines, computeCodeData, computeCodeSize, ShaderType::COMPUTE);
+    GLuint compute = createShader(version, defines, computeCodeData, computeCodeSize, ShaderType::COMPUTE);
 
     ID = glCreateProgram();
     glAttachShader(ID, compute);

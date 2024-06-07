@@ -67,18 +67,16 @@ void Shader::loadFromData(const char* vertexCodeData, const GLint vertexCodeSize
 void Shader::createAndCompileProgram(const char* vertexCodeData, const GLint vertexCodeSize,
                                      const char* fragmentCodeData, const GLint fragmentCodeSize,
                                      const char* geometryData, const GLint geometryDataSize) {
-    std::string versionStr = "#version " + version + "\n";
-
     // compile vertex shader
-    GLuint vertex = createShader(versionStr, defines, vertexCodeData, vertexCodeSize, ShaderType::VERTEX);
+    GLuint vertex = createShader(version, defines, vertexCodeData, vertexCodeSize, ShaderType::VERTEX);
 
     // compile fragment shader
-    GLuint fragment = createShader(versionStr, defines, fragmentCodeData, fragmentCodeSize, ShaderType::FRAGMENT);
+    GLuint fragment = createShader(version, defines, fragmentCodeData, fragmentCodeSize, ShaderType::FRAGMENT);
 
     // if geometry shader is given, compile geometry shader
     GLuint geometry;
     if (geometryData != nullptr) {
-        geometry = createShader(versionStr, defines, geometryData, geometryDataSize, ShaderType::GEOMETRY);
+        geometry = createShader(version, defines, geometryData, geometryDataSize, ShaderType::GEOMETRY);
     }
 
     // shader Program

@@ -36,8 +36,6 @@ struct PointLight {
     float farPlane;
 };
 
-#define MAX_POINT_LIGHTS 4
-
 uniform int numPointLights;
 
 uniform AmbientLight ambientLight;

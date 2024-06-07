@@ -133,8 +133,9 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
         PBRMaterialCreateParams materialParams{};
 
         aiColor3D color;
+        glm::vec3 baseColor = glm::vec3(1.0f);
         if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS) {
-            materialParams.color = glm::vec3(color.r, color.g, color.b);
+            baseColor = glm::vec3(color.r, color.g, color.b);
         }
 
         aiString alphaMode;
@@ -159,10 +160,20 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
             materialParams.roughness = roughness;
         }
 
-        float metallic;
-        if (aiMat->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLIC_FACTOR, metallic) == AI_SUCCESS) {
-            materialParams.metallic = metallic;
+        if (aiMat->Get(AI_MATKEY_COLOR_SPECULAR, color) == AI_SUCCESS) {
+            // if there's a non-grey specular color, assume a metallic surface
+            if (color.r != color.g && color.r != color.b) {
+                materialParams.metallic = 1.0f;
+                baseColor = glm::vec3(color.r, color.g, color.b);
+            } else {
+                if (baseColor.r == 0.0f && baseColor.g == 0.0f && baseColor.b == 0.0f) {
+                    materialParams.metallic = 1.0f;
+                    baseColor = glm::vec3(color.r, color.g, color.b);
+                }
+            }
         }
+
+        materialParams.color = baseColor;
 
         TextureID diffuseMap = loadMaterialTexture(aiMat, aiTextureType_DIFFUSE);
         TextureID normalMap = loadMaterialTexture(aiMat, aiTextureType_NORMALS);
@@ -174,7 +185,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
             metallicMap = loadMaterialTexture(aiMat, aiTextureType_UNKNOWN);
             materialParams.metalRoughnessCombined = true;
         }
-        TextureID aoMap = loadMaterialTexture(aiMat, aiTextureType_AMBIENT_OCCLUSION);
+        TextureID aoMap = loadMaterialTexture(aiMat, aiTextureType_LIGHTMAP);
 
         textures = {diffuseMap, normalMap, metallicMap, roughnessMap, aoMap};
         materialParams.albedoTextureID = diffuseMap;

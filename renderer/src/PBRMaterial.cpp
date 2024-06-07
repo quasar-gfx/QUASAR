@@ -57,7 +57,8 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params) {
         .vertexCodeData = SHADER_COMMON_VERT,
         .vertexCodeSize = SHADER_COMMON_VERT_len,
         .fragmentCodeData = SHADER_PBR_FRAG,
-        .fragmentCodeSize = SHADER_PBR_FRAG_len
+        .fragmentCodeSize = SHADER_PBR_FRAG_len,
+        .defines = {"#define MAX_POINT_LIGHTS " + std::to_string(params.numPointLights)}
     };
     shader = std::make_unique<Shader>(pbrShaderParams);
 
