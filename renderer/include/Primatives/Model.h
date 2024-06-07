@@ -67,6 +67,7 @@ private:
     void processNode(aiNode* node, const aiScene* scene, PBRMaterial* material);
     Mesh processMesh(aiMesh* mesh, const aiScene *scene, PBRMaterial* material);
     TextureID loadMaterialTexture(aiMaterial* mat, aiTextureType type);
+    int32_t getEmbeddedTextureId(const aiString& path);
 };
 
 #endif // MODEL_H

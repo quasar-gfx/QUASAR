@@ -29,7 +29,7 @@ void main() {
     vsOut.TexCoords = aTexCoords;
     vsOut.Color = aColor;
     vsOut.FragPos = vec3(model * vec4(aPos, 1.0));
-    vsOut.Normal = normalMatrix * aNormal;
+    vsOut.Normal = normalize(normalMatrix * aNormal);
     vsOut.Tangent = normalize(vec3(model * vec4(aTangent, 1.0)));
     vsOut.BiTangent = normalize(vec3(model * vec4(aBitangent, 1.0)));
 

@@ -93,7 +93,7 @@ vec3 getNormalFromMap() {
         return N;
     }
 
-    vec3 normal = normalize(2.0 * texture(normalMap, fsIn.TexCoords).rgb - 1.0);
+    vec3 normal = texture(normalMap, fsIn.TexCoords).xyz * 2.0 - 1.0;
     return normalize(TBN * normal);
 }
 
@@ -265,6 +265,7 @@ vec3 calcPointLight(PointLight light, samplerCube pointLightShadowMap, vec3 N, v
 void main() {
     // material properties
     vec4 color = texture(albedoMap, fsIn.TexCoords);
+
     if (color.rgb == vec3(0.0) && baseColor != vec3(-1.0)) {
         color.rgb = baseColor;
         color.a = opacity;

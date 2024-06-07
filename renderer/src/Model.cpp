@@ -40,7 +40,29 @@ void Model::loadFromFile(const ModelCreateParams &params) {
     }
 
     Assimp::Importer importer;
-    unsigned int flags = aiProcess_Triangulate | aiProcess_OptimizeMeshes | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace | aiProcess_FlipUVs;
+    importer.SetPropertyInteger(AI_CONFIG_PP_SBP_REMOVE, aiPrimitiveType_LINE | aiPrimitiveType_POINT);
+    importer.SetPropertyBool(AI_CONFIG_IMPORT_COLLADA_IGNORE_UP_DIRECTION, true);
+    importer.SetPropertyBool(AI_CONFIG_PP_PTV_KEEP_HIERARCHY, true);
+
+    unsigned int flags = \
+            // normals and tangents
+            aiProcess_GenSmoothNormals |
+            aiProcess_CalcTangentSpace |
+            // UV Coordinates
+            aiProcess_GenUVCoords |
+            // topology optimization
+            aiProcess_FindInstances |
+            aiProcess_OptimizeMeshes |
+            aiProcess_JoinIdenticalVertices |
+            // misc optimization
+            aiProcess_ImproveCacheLocality |
+            aiProcess_SortByPType |
+            // we only support triangles
+            aiProcess_Triangulate |
+            // pre-transform vertices
+            aiProcess_PreTransformVertices |
+            // flip UVs
+            aiProcess_FlipUVs;
     scene = importer.ReadFile(path, flags);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         throw std::runtime_error("ERROR::ASSIMP:: " + std::string(importer.GetErrorString()));
@@ -206,6 +228,19 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
     return Mesh(meshParams);
 }
 
+int32_t Model::getEmbeddedTextureId(const aiString &path) {
+    const char *pathStr = path.C_Str();
+    if (path.length >= 2 && pathStr[0] == '*') { // seems like assimp uses * as a prefix for embedded textures
+        for (int i = 1; i < path.length; i++) {
+            if (!isdigit(pathStr[i])) {
+                return -1;
+            }
+        }
+        return std::atoi(pathStr + 1); // NOLINT
+    }
+    return -1;
+}
+
 TextureID Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
     // if the texture type doesn't exist, return 0
     if (mat->GetTextureCount(type) == 0) {
@@ -225,45 +260,46 @@ TextureID Model::loadMaterialTexture(aiMaterial* mat, aiTextureType type) {
         return texturesLoaded[texturePath].ID;
     }
 
+    int32_t embeddedId = getEmbeddedTextureId(aiTexturePath);
+
     // if texture is embedded into the file, read it from memory
-    if (aiTexturePath.length > 0 && aiTexturePath.data[0] == '*') { // seems like assimp uses * as a prefix for embedded textures
-        const aiTexture* aiTexture = scene->GetEmbeddedTexture(aiTexturePath.C_Str());
-        if (aiTexture) {
-            int texWidth, texHeight, texChannels;
-            unsigned char* data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiTexture->pcData),
-                                                        aiTexture->mWidth, &texWidth, &texHeight, &texChannels, 0);
-            if (data) {
-                GLint internalFormat;
-                GLenum format;
-                if (texChannels == 1) {
-                    internalFormat = GL_RED;
-                    format = GL_RED;
-                }
-                else if (texChannels == 3) {
-                    internalFormat = gammaCorrected ? GL_SRGB : GL_RGB;
-                    format = GL_RGB;
-                }
-                else if (texChannels == 4) {
-                    internalFormat = gammaCorrected ? GL_SRGB_ALPHA : GL_RGBA;
-                    format = GL_RGBA;
-                }
+    if (embeddedId != -1) {
+        const aiTexture* aiEmbeddedTexture = scene->mTextures[embeddedId];
 
-                Texture texture = Texture({
-                    .width = static_cast<unsigned int>(texWidth),
-                    .height = static_cast<unsigned int>(texHeight),
-                    .internalFormat = internalFormat,
-                    .format = format,
-                    .wrapS = GL_REPEAT,
-                    .wrapT = GL_REPEAT,
-                    .minFilter = GL_LINEAR_MIPMAP_LINEAR,
-                    .magFilter = GL_LINEAR,
-                    .data = data
-                });
-
-                stbi_image_free(data);
-                texturesLoaded[texturePath] = texture;
-                return texturesLoaded[texturePath].ID;
+        int texWidth, texHeight, texChannels;
+        unsigned char* data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiEmbeddedTexture->pcData),
+                                                    aiEmbeddedTexture->mWidth, &texWidth, &texHeight, &texChannels, 0);
+        if (data) {
+            GLint internalFormat;
+            GLenum format;
+            if (texChannels == 1) {
+                internalFormat = GL_RED;
+                format = GL_RED;
             }
+            else if (texChannels == 3) {
+                internalFormat = gammaCorrected ? GL_SRGB : GL_RGB;
+                format = GL_RGB;
+            }
+            else if (texChannels == 4) {
+                internalFormat = gammaCorrected ? GL_SRGB_ALPHA : GL_RGBA;
+                format = GL_RGBA;
+            }
+
+            Texture texture = Texture({
+                .width = static_cast<unsigned int>(texWidth),
+                .height = static_cast<unsigned int>(texHeight),
+                .internalFormat = internalFormat,
+                .format = format,
+                .wrapS = GL_REPEAT,
+                .wrapT = GL_REPEAT,
+                .minFilter = GL_LINEAR_MIPMAP_LINEAR,
+                .magFilter = GL_LINEAR,
+                .data = data
+            });
+
+            stbi_image_free(data);
+            texturesLoaded[texturePath] = texture;
+            return texturesLoaded[texturePath].ID;
         }
 
         return 0;
