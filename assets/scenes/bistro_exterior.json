@@ -8,8 +8,8 @@
     },
     "models": [
         {
-            "path": "~/Desktop/Models/RobotLab.glb",
-            "IBL": 0.01,
+            "path": "~/Desktop/Models/BistroExterior.glb",
+            "IBL": 0.1,
             "gammaCorrected": true,
             "flipTextures": true
         }
@@ -28,47 +28,47 @@
         "fov": 60.0,
         "near": 0.1,
         "far": 1000.0,
-        "position": [0.0, 3.0, 10.0]
+        "position": [0.0, 1.6, 10.0]
     },
     "ambientLight": {
         "color": [0.9, 0.9, 0.9],
         "intensity": 0.1
     },
     "directionalLight": {
-        "color": [1.0, 1.0, 1.0],
+        "color": [0.9, 0.85, 0.7],
         "direction": [-1.0, -5.0, 0.0],
-        "distance": 1.0,
-        "intensity": 1.0
+        "distance": 100.0,
+        "intensity": 15.0
     },
     "pointLights": [
         {
-            "color": [1.0, 1.0, 1.0],
-            "position": [5.0, 5.0, 5.0],
-            "intensity": 50.0,
+            "color": [1.0, 0.76, 0.34],
+            "position": [-4.0, 4.5, -4.0],
+            "intensity": 100.0,
             "constant": 0.0,
             "linear": 0.09,
             "quadratic": 1.0
         },
         {
-            "color": [1.0, 1.0, 1.0],
-            "position": [-5.0, 5.0, 5.0],
-            "intensity": 50.0,
+            "color": [1.0, 0.76, 0.34],
+            "position": [-2.0, 4.5, 4.5],
+            "intensity": 100.0,
             "constant": 0.0,
             "linear": 0.09,
             "quadratic": 1.0
         },
         {
-            "color": [1.0, 1.0, 1.0],
-            "position": [5.0, 5.0, -5.0],
-            "intensity": 50.0,
+            "color": [1.0, 0.76, 0.34],
+            "position": [-9.5, 4.5, 2.0],
+            "intensity": 100.0,
             "constant": 0.0,
             "linear": 0.09,
             "quadratic": 1.0
         },
         {
-            "color": [1.0, 1.0, 1.0],
-            "position": [-5.0, 5.0, -5.0],
-            "intensity": 50.0,
+            "color": [1.0, 0.76, 0.34],
+            "position": [-1.75, 4.5, 10],
+            "intensity": 100.0,
             "constant": 0.0,
             "linear": 0.09,
             "quadratic": 1.0
