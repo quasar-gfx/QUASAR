@@ -5,7 +5,7 @@
 
 struct PBRMaterialCreateParams {
     glm::vec3 color = glm::vec3(-1.0f);
-    float opacity = -1.0f;
+    float opacity = 0.0f;
     float metallic = -1.0f;
     float roughness = -1.0f;
     bool transparent = false;
@@ -26,7 +26,7 @@ struct PBRMaterialCreateParams {
 class PBRMaterial : public Material {
 public:
     glm::vec3 color = glm::vec3(-1.0f);
-    float opacity = -1.0f;
+    float opacity = 0.0f;
     float metallic = -1.0f;
     float roughness = -1.0f;
     bool transparent = false;

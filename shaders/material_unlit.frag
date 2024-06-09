@@ -29,10 +29,12 @@ uniform Material material;
 uniform vec3 camPos;
 
 void main() {
+    // material properties
     vec4 color = texture(material.diffuseMap, fsIn.TexCoords);
+
     if (color.rgb == vec3(0.0) && material.baseColor != vec3(-1.0)) {
         color.rgb = material.baseColor;
-        color.a = material.opacity;
+        color.a = (color.a != 1.0) ? color.a : material.opacity;
     }
     else {
         color.rgb *= fsIn.Color;
