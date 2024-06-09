@@ -24,22 +24,26 @@ OpenGLRenderer::OpenGLRenderer(unsigned int width, unsigned int height)
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 }
 
-void OpenGLRenderer::updateDirLightShadow(Scene &scene, Camera &camera) {
+unsigned int OpenGLRenderer::updateDirLightShadow(Scene &scene, Camera &camera) {
+    unsigned int trianglesDrawn = 0;
     if (scene.directionalLight == nullptr) {
-        return;
+        return trianglesDrawn;
     }
 
     scene.directionalLight->shadowMapRenderTarget.bind();
     glClear(GL_DEPTH_BUFFER_BIT);
 
     for (auto& child : scene.children) {
-        drawNode(scene, camera, child, glm::mat4(1.0f), &scene.directionalLight->shadowMapMaterial);
+        trianglesDrawn += drawNode(scene, camera, child, glm::mat4(1.0f), false, &scene.directionalLight->shadowMapMaterial);
     }
 
     scene.directionalLight->shadowMapRenderTarget.unbind();
+
+    return trianglesDrawn;
 }
 
-void OpenGLRenderer::updatePointLightShadows(Scene &scene, Camera &camera) {
+unsigned int OpenGLRenderer::updatePointLightShadows(Scene &scene, Camera &camera) {
+    unsigned int trianglesDrawn = 0;
     for (int i = 0; i < scene.pointLights.size(); i++) {
         auto pointLight = scene.pointLights[i];
 
@@ -57,11 +61,13 @@ void OpenGLRenderer::updatePointLightShadows(Scene &scene, Camera &camera) {
         pointLight->shadowMapMaterial.unbind();
 
         for (auto& child : scene.children) {
-            drawNode(scene, camera, child, glm::mat4(1.0f), &pointLight->shadowMapMaterial);
+            trianglesDrawn += drawNode(scene, camera, child, glm::mat4(1.0f), pointLight, &pointLight->shadowMapMaterial);
         }
 
         pointLight->shadowMapRenderTarget.unbind();
     }
+
+    return trianglesDrawn;
 }
 
 unsigned int OpenGLRenderer::drawSkyBox(Scene &scene, Camera &camera) {
@@ -90,6 +96,8 @@ unsigned int OpenGLRenderer::drawSkyBox(Scene &scene, Camera &camera) {
 }
 
 unsigned int OpenGLRenderer::drawObjects(Scene &scene, Camera &camera) {
+    unsigned int trianglesDrawn = 0;
+
     // update shadows
     updateDirLightShadow(scene, camera);
     updatePointLightShadows(scene, camera);
@@ -99,7 +107,6 @@ unsigned int OpenGLRenderer::drawObjects(Scene &scene, Camera &camera) {
     glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    unsigned int trianglesDrawn = 0;
     for (auto& child : scene.children) {
         trianglesDrawn += drawNode(scene, camera, child, glm::mat4(1.0f));
     }
@@ -112,17 +119,34 @@ unsigned int OpenGLRenderer::drawObjects(Scene &scene, Camera &camera) {
     return trianglesDrawn;
 }
 
-unsigned int OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, glm::mat4 parentTransform, Material* overrideMaterial) {
-    glm::mat4 model = parentTransform * node->getTransformParentFromLocal();
+unsigned int OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, const glm::mat4 &parentTransform, bool frustumCull, Material* overrideMaterial) {
+    const glm::mat4 &model = parentTransform * node->getTransformParentFromLocal();
 
     unsigned int trianglesDrawn = 0;
     if (node->entity != nullptr) {
         node->entity->bindSceneAndCamera(scene, camera, model, overrideMaterial);
-        trianglesDrawn += node->entity->draw(overrideMaterial);
+        bool doFrustumCull = frustumCull && node->frustumCulled;
+        trianglesDrawn += node->entity->draw(scene, camera, model, doFrustumCull, overrideMaterial);
     }
 
     for (auto& child : node->children) {
         trianglesDrawn += drawNode(scene, camera, child, model, overrideMaterial);
+    }
+
+    return trianglesDrawn;
+}
+
+unsigned int OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, const glm::mat4 &parentTransform, const PointLight* pointLight, Material* overrideMaterial) {
+    const glm::mat4 &model = parentTransform * node->getTransformParentFromLocal();
+
+    unsigned int trianglesDrawn = 0;
+    if (node->entity != nullptr) {
+        node->entity->bindSceneAndCamera(scene, camera, model, overrideMaterial);
+        trianglesDrawn += node->entity->draw(scene, camera, model, pointLight->boundingSphere, overrideMaterial);
+    }
+
+    for (auto& child : node->children) {
+        trianglesDrawn += drawNode(scene, camera, child, model, pointLight, overrideMaterial);
     }
 
     return trianglesDrawn;

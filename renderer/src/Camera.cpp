@@ -29,6 +29,7 @@ void Camera::setProjectionMatrix(float fovy, float aspect, float near, float far
 
 void Camera::updateProjectionMatrix() {
     proj = glm::perspective(fovy, aspect, near, far);
+    frustum.setFromCameraParams(position, front, right, up, near, far, aspect, fovy);
 }
 
 void Camera::setViewMatrix(glm::mat4 view) {
@@ -37,10 +38,12 @@ void Camera::setViewMatrix(glm::mat4 view) {
     glm::vec3 skew;
     glm::vec4 perspective;
     glm::decompose(glm::inverse(view), scale, rotation, position, skew, perspective);
+    updateCameraVectors();
 }
 
 void Camera::updateViewMatrix() {
     view = glm::scale(glm::mat4(1.0f), 1.0f/scale) * glm::mat4_cast(glm::conjugate(rotation)) * glm::translate(glm::mat4(1.0f), -position);
+    frustum.setFromCameraParams(position, front, right, up, near, far, aspect, fovy);
 }
 
 void Camera::processKeyboard(Keys keys, float deltaTime) {

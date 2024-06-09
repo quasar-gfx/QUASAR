@@ -41,7 +41,7 @@ void Mesh::createBuffers()  {
     glBindVertexArray(0);
 }
 
-void Mesh::bindSceneAndCamera(Scene &scene, Camera &camera, glm::mat4 model, Material* overrideMaterial) {
+void Mesh::bindSceneAndCamera(Scene &scene, Camera &camera, const glm::mat4 &model, Material* overrideMaterial) {
     auto materialToUse = overrideMaterial != nullptr ? overrideMaterial : material;
     materialToUse->bind();
 
@@ -74,26 +74,31 @@ void Mesh::bindSceneAndCamera(Scene &scene, Camera &camera, glm::mat4 model, Mat
         texIdx++;
     }
 
+    materialToUse->shader->setInt("numPointLights", static_cast<int>(scene.pointLights.size()));
+    materialToUse->shader->setFloat("material.IBL", IBL);
+
+    materialToUse->unbind();
+}
+
+unsigned int Mesh::draw(Scene &scene, Camera &camera, const glm::mat4 &model, bool frustumCull, Material* overrideMaterial) {
+    unsigned int trianglesDrawn = 0;
+    if (!visible) {
+        return trianglesDrawn;
+    }
+
+    auto& frustum = camera.frustum;
+    if (frustumCull && !frustum.aabbIsVisible(aabb, model)) {
+        return trianglesDrawn;
+    }
+
+    auto materialToUse = overrideMaterial != nullptr ? overrideMaterial : material;
+    materialToUse->bind();
+
     materialToUse->shader->setMat4("view", camera.getViewMatrix());
     materialToUse->shader->setMat4("projection", camera.getProjectionMatrix());
     materialToUse->shader->setVec3("camPos", camera.position);
     materialToUse->shader->setMat4("model", model);
     materialToUse->shader->setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
-
-    materialToUse->shader->setFloat("material.IBL", IBL);
-
-    materialToUse->shader->setInt("numPointLights", static_cast<int>(scene.pointLights.size()));
-
-    materialToUse->unbind();
-}
-
-unsigned int Mesh::draw(Material* overrideMaterial) {
-    if (!visible) {
-        return 0;
-    }
-
-    auto materialToUse = overrideMaterial != nullptr ? overrideMaterial : material;
-    materialToUse->bind();
 
     if (wireframe) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -118,11 +123,36 @@ unsigned int Mesh::draw(Material* overrideMaterial) {
 
     materialToUse->unbind();
 
-    // return the number of Total Triangles
     if (indices.size() > 0) {
-        return static_cast<unsigned int>(indices.size() / 3);
+        trianglesDrawn = static_cast<unsigned int>(indices.size() / 3);
     }
     else {
-        return static_cast<unsigned int>(vertices.size() / 3);
+        trianglesDrawn = static_cast<unsigned int>(vertices.size() / 3);
     }
+
+    return trianglesDrawn;
+}
+
+unsigned int Mesh::draw(Scene &scene, Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, Material* overrideMaterial) {
+    if (!boundingSphere.intersects(aabb)) {
+        return 0;
+    }
+    return draw(scene, camera, model, false, overrideMaterial);
+}
+
+void Mesh::updateAABB() {
+    if (vertices.empty()) {
+        return;
+    }
+
+    glm::vec3 min = vertices[0].position;
+    glm::vec3 max = vertices[0].position;
+
+    for (auto& vertex : vertices) {
+        min = glm::min(min, vertex.position);
+        max = glm::max(max, vertex.position);
+    }
+
+    // set up AABB
+    aabb.update(min, max);
 }

@@ -162,7 +162,6 @@ void Texture::saveDepthToFile(const std::string &filename) {
     if (depthFile.is_open()) {
         for (int i = 0; i < width * height; i++) {
             depthFile.write(reinterpret_cast<const char*>(&data[i]), sizeof(data[i]));
-            std::cout << data[i] << std::endl;
         }
     }
 

@@ -25,7 +25,7 @@ public:
     }
 
     void cleanup() {
-        for (auto &textureID : textures) {
+        for (auto& textureID : textures) {
             if (textureID == 0) continue;
             glDeleteTextures(1, &textureID);
         }

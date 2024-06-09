@@ -6,6 +6,7 @@
 #include <Texture.h>
 #include <Primatives/Primatives.h>
 #include <Materials/PBRMaterial.h>
+#include <Materials/UnlitMaterial.h>
 #include <CubeMap.h>
 #include <Scene.h>
 #include <Camera.h>
@@ -84,13 +85,13 @@ int main(int argc, char** argv) {
         ImGui::Separator();
 
         if (trianglesDrawn < 100000) {
-            ImGui::TextColored(ImVec4(0,1,0,1), "Total Triangles: %d", trianglesDrawn);
+            ImGui::TextColored(ImVec4(0,1,0,1), "Total Triangles Drawn: %d", trianglesDrawn);
         }
         else if (trianglesDrawn < 500000) {
-            ImGui::TextColored(ImVec4(1,1,0,1), "Total Triangles: %d", trianglesDrawn);
+            ImGui::TextColored(ImVec4(1,1,0,1), "Total Triangles Drawn: %d", trianglesDrawn);
         }
         else {
-            ImGui::TextColored(ImVec4(1,0,0,1), "Total Triangles: %d", trianglesDrawn);
+            ImGui::TextColored(ImVec4(1,0,0,1), "Total Triangles Drawn: %d", trianglesDrawn);
         }
 
         ImGui::Separator();
