@@ -61,6 +61,7 @@ public:
         }
 
         createBuffers();
+        updateAABB();
     }
 
     ~Sphere() {

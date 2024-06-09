@@ -37,7 +37,7 @@ public:
 private:
     Shader skyboxShader;
 
-    unsigned int drawNode(Scene &scene, Camera &camera, Node* node, glm::mat4 parentTransform, Material* overrideMaterial = nullptr);
+    unsigned int drawNode(Scene &scene, Camera &camera, Node* node, const glm::mat4 &parentTransform, bool frustumCull = true, Material* overrideMaterial = nullptr);
 };
 
 #endif // OPENGL_RENDERER_H

@@ -57,6 +57,7 @@ public:
         };
 
         createBuffers();
+        updateAABB();
     }
 
     ~Cube() {

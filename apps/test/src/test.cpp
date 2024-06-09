@@ -6,6 +6,7 @@
 #include <Texture.h>
 #include <Primatives/Primatives.h>
 #include <Materials/PBRMaterial.h>
+#include <Materials/UnlitMaterial.h>
 #include <CubeMap.h>
 #include <Scene.h>
 #include <Camera.h>
@@ -60,6 +61,52 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    for (auto& mesh : loader.meshes) {
+        // auto aabb = mesh->aabb;
+        // auto transform = mesh->parentNode->getTransformParentFromLocal();
+        // // make vertices from min and max
+        // auto center = glm::vec3(transform * glm::vec4(aabb.getCenter(), 1.0f));
+        // auto extents = glm::vec3(transform * aabb.getExtents())
+        // auto vertices = std::vector<Vertex>{
+
+        // };
+        // // make indices from vertices
+        // auto indices = std::vector<unsigned int>{
+        //     0, 1, 2, 2, 3, 0,
+        //     1, 5, 6, 6, 2, 1,
+        //     5, 4, 7, 7, 6, 5,
+        //     4, 0, 3, 3, 7, 4,
+        //     3, 2, 6, 6, 7, 3,
+        //     4, 5, 1, 1, 0, 4
+        // };
+        // MeshCreateParams params = {
+        //     .vertices = vertices,
+        //     .indices = indices,
+        //     .material = new UnlitMaterial({ .color = glm::vec3(1.0f, 0.0f, 0.0f) }),
+        //     .wireframe = true
+        // };
+        // auto aabbEntity = new Mesh(params);
+        // auto node = new Node(aabbEntity);
+        // scene.addChildNode(node);
+    }
+
+    for (auto& model : loader.models) {
+        auto aabb = model->aabb;
+        std::cout << aabb.getCenter().x << " " << aabb.getCenter().y << " " << aabb.getCenter().z << std::endl;
+        std::cout << aabb.getExtents().x << " " << aabb.getExtents().y << " " << aabb.getExtents().z << std::endl;
+    //     auto transform = model->parentNode->getTransformParentFromLocal();
+    //     MeshCreateParams params = {
+    //         .vertices = aabb.getVertices(transform),
+    //         .indices = aabb.getIndices(),
+    //         .material = new UnlitMaterial({ .color = glm::vec3(1.0f, 0.0f, 0.0f) }),
+    //         .wireframe = true
+    //     };
+    //     auto aabbEntity = new Mesh(params);
+    //     auto node = new Node(aabbEntity);
+    //     node->frustumCulled = false;
+    //     scene.addChildNode(node);
+    }
+
     float exposure = 1.0f;
     int shaderIndex = 0;
     int trianglesDrawn = 0;
@@ -84,13 +131,13 @@ int main(int argc, char** argv) {
         ImGui::Separator();
 
         if (trianglesDrawn < 100000) {
-            ImGui::TextColored(ImVec4(0,1,0,1), "Total Triangles: %d", trianglesDrawn);
+            ImGui::TextColored(ImVec4(0,1,0,1), "Total Triangles Drawn: %d", trianglesDrawn);
         }
         else if (trianglesDrawn < 500000) {
-            ImGui::TextColored(ImVec4(1,1,0,1), "Total Triangles: %d", trianglesDrawn);
+            ImGui::TextColored(ImVec4(1,1,0,1), "Total Triangles Drawn: %d", trianglesDrawn);
         }
         else {
-            ImGui::TextColored(ImVec4(1,0,0,1), "Total Triangles: %d", trianglesDrawn);
+            ImGui::TextColored(ImVec4(1,0,0,1), "Total Triangles Drawn: %d", trianglesDrawn);
         }
 
         ImGui::Separator();

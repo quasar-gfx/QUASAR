@@ -10,6 +10,7 @@
 #include <glm/gtx/matrix_decompose.hpp>
 
 #include <Windowing/Window.h>
+#include <Frustum.h>
 
 class Camera {
 public:
@@ -32,6 +33,8 @@ public:
 
     float movementSpeed = 5.0f;
     float mouseSensitivity = 0.05f;
+
+    Frustum frustum;
 
     explicit Camera(unsigned int width, unsigned int height);
     explicit Camera(float fovy, float aspect, float near, float far);

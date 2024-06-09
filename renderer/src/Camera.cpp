@@ -29,6 +29,7 @@ void Camera::setProjectionMatrix(float fovy, float aspect, float near, float far
 
 void Camera::updateProjectionMatrix() {
     proj = glm::perspective(fovy, aspect, near, far);
+    frustum.update(position, front, right, up, near, far, aspect, fovy);
 }
 
 void Camera::setViewMatrix(glm::mat4 view) {
@@ -37,6 +38,7 @@ void Camera::setViewMatrix(glm::mat4 view) {
     glm::vec3 skew;
     glm::vec4 perspective;
     glm::decompose(glm::inverse(view), scale, rotation, position, skew, perspective);
+    updateCameraVectors();
 }
 
 void Camera::updateViewMatrix() {
@@ -98,4 +100,5 @@ void Camera::updateCameraVectors() {
     glm::decompose(glm::inverse(newView), scale, rotation, temp, skew, perspective);
 
     updateViewMatrix();
+    frustum.update(position, front, right, up, near, far, aspect, fovy);
 }

@@ -14,6 +14,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
+#include <Vertex.h>
 #include <Shaders/Shader.h>
 #include <Primatives/Mesh.h>
 #include <Materials/PBRMaterial.h>
@@ -54,8 +55,8 @@ public:
         loadFromFile(params);
     }
 
-    void bindSceneAndCamera(Scene &scene, Camera &camera, glm::mat4 model, Material* overrideMaterial = nullptr) override;
-    unsigned int draw(Material* overrideMaterial) override;
+    void bindSceneAndCamera(Scene &scene, Camera &camera, const glm::mat4 &model, Material* overrideMaterial = nullptr) override;
+    unsigned int draw(Scene &scene, Camera &camera, const glm::mat4 &model, bool frustumCull, Material* overrideMaterial) override;
 
     EntityType getType() override { return EntityType::MESH; }
 

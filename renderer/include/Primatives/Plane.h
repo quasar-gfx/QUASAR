@@ -16,6 +16,7 @@ public:
         };
 
         createBuffers();
+        updateAABB();
     }
 
     ~Plane() {

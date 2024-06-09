@@ -33,7 +33,7 @@ void OpenGLRenderer::updateDirLightShadow(Scene &scene, Camera &camera) {
     glClear(GL_DEPTH_BUFFER_BIT);
 
     for (auto& child : scene.children) {
-        drawNode(scene, camera, child, glm::mat4(1.0f), &scene.directionalLight->shadowMapMaterial);
+        drawNode(scene, camera, child, glm::mat4(1.0f), false, &scene.directionalLight->shadowMapMaterial);
     }
 
     scene.directionalLight->shadowMapRenderTarget.unbind();
@@ -57,7 +57,7 @@ void OpenGLRenderer::updatePointLightShadows(Scene &scene, Camera &camera) {
         pointLight->shadowMapMaterial.unbind();
 
         for (auto& child : scene.children) {
-            drawNode(scene, camera, child, glm::mat4(1.0f), &pointLight->shadowMapMaterial);
+            drawNode(scene, camera, child, glm::mat4(1.0f), false, &pointLight->shadowMapMaterial);
         }
 
         pointLight->shadowMapRenderTarget.unbind();
@@ -112,13 +112,14 @@ unsigned int OpenGLRenderer::drawObjects(Scene &scene, Camera &camera) {
     return trianglesDrawn;
 }
 
-unsigned int OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, glm::mat4 parentTransform, Material* overrideMaterial) {
-    glm::mat4 model = parentTransform * node->getTransformParentFromLocal();
+unsigned int OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, const glm::mat4 &parentTransform, bool frustumCull, Material* overrideMaterial) {
+    const glm::mat4 &model = parentTransform * node->getTransformParentFromLocal();
 
     unsigned int trianglesDrawn = 0;
     if (node->entity != nullptr) {
         node->entity->bindSceneAndCamera(scene, camera, model, overrideMaterial);
-        trianglesDrawn += node->entity->draw(overrideMaterial);
+        bool doFrustumCull = frustumCull && node->frustumCulled;
+        trianglesDrawn += node->entity->draw(scene, camera, model, doFrustumCull, overrideMaterial);
     }
 
     for (auto& child : node->children) {

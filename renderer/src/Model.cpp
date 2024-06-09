@@ -9,20 +9,20 @@
 #include <Primatives/Model.h>
 #include <assimp/pbrmaterial.h>
 
-void Model::bindSceneAndCamera(Scene &scene, Camera &camera, glm::mat4 model, Material* overrideMaterial) {
-    for (int i = 0; i < meshes.size(); i++) {
-        meshes[i].bindSceneAndCamera(scene, camera, model, overrideMaterial);
+void Model::bindSceneAndCamera(Scene &scene, Camera &camera, const glm::mat4 &model, Material* overrideMaterial) {
+    for (auto& mesh : meshes) {
+        mesh.bindSceneAndCamera(scene, camera, model, overrideMaterial);
     }
 }
 
-unsigned int Model::draw(Material* overrideMaterial) {
+unsigned int Model::draw(Scene &scene, Camera &camera, const glm::mat4 &model, bool frustumCull, Material* overrideMaterial) {
     unsigned int trianglesDrawn = 0;
     if (!visible) {
         return trianglesDrawn;
     }
 
-    for (int i = 0; i < meshes.size(); i++) {
-        trianglesDrawn += meshes[i].draw(overrideMaterial);
+    for (auto& mesh : meshes) {
+        trianglesDrawn += mesh.draw(scene, camera, model, frustumCull, overrideMaterial);
     }
     return trianglesDrawn;
 }
@@ -90,6 +90,8 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
     std::vector<TextureID> textures;
 
     // set up vertices
+    glm::vec3 min = glm::vec3(FLT_MAX);
+    glm::vec3 max = glm::vec3(-FLT_MAX);
     for (int i = 0; i < mesh->mNumVertices; i++) {
         Vertex vertex;
         glm::vec3 vector;
@@ -99,6 +101,9 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
             vector.y = mesh->mVertices[i].y;
             vector.z = mesh->mVertices[i].z;
             vertex.position = vector;
+
+            min = glm::min(min, vector);
+            max = glm::max(max, vector);
         }
 
         if (mesh->HasNormals()) {
@@ -138,6 +143,9 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
 
         vertices.push_back(vertex);
     }
+
+    // set up AABB
+    aabb.update(min, max);
 
     // set up indices
     for (int i = 0; i < mesh->mNumFaces; i++) {

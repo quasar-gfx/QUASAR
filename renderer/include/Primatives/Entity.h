@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <Materials/Material.h>
+#include <AABB.h>
 
 class Node;
 class Scene;
@@ -21,14 +22,14 @@ class Entity {
 public:
     Node* parentNode = nullptr;
 
-    explicit Entity() {
-        ID = nextID++;
-    }
+    AABB aabb;
+
+    explicit Entity() : ID(nextID++), aabb() {}
 
     int getID() { return ID; }
 
-    virtual void bindSceneAndCamera(Scene &scene, Camera &camera, glm::mat4 model, Material* overrideMaterial = nullptr) = 0;
-    virtual unsigned int draw(Material* overrideMaterial = nullptr) = 0;
+    virtual void bindSceneAndCamera(Scene &scene, Camera &camera, const glm::mat4 &model, Material* overrideMaterial = nullptr) = 0;
+    virtual unsigned int draw(Scene &scene, Camera &camera, const glm::mat4 &model, bool frustumCull = true, Material* overrideMaterial = nullptr) = 0;
 
     virtual EntityType getType() { return EntityType::EMPTY; }
 
@@ -43,6 +44,8 @@ public:
     Node* parent = nullptr;
     Entity* entity = nullptr;
     std::vector<Node*> children;
+
+    bool frustumCulled = true;
 
     int getID() { return ID; }
 
