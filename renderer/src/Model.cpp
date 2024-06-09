@@ -24,6 +24,20 @@ unsigned int Model::draw(Scene &scene, Camera &camera, const glm::mat4 &model, b
     for (auto& mesh : meshes) {
         trianglesDrawn += mesh.draw(scene, camera, model, frustumCull, overrideMaterial);
     }
+
+    return trianglesDrawn;
+}
+
+unsigned int Model::draw(Scene &scene, Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, Material* overrideMaterial) {
+    unsigned int trianglesDrawn = 0;
+    if (!visible) {
+        return trianglesDrawn;
+    }
+
+    for (auto& mesh : meshes) {
+        trianglesDrawn += mesh.draw(scene, camera, model, boundingSphere, overrideMaterial);
+    }
+
     return trianglesDrawn;
 }
 

@@ -8,6 +8,7 @@
 
 #include <Materials/Material.h>
 #include <AABB.h>
+#include <BoundingSphere.h>
 
 class Node;
 class Scene;
@@ -30,6 +31,7 @@ public:
 
     virtual void bindSceneAndCamera(Scene &scene, Camera &camera, const glm::mat4 &model, Material* overrideMaterial = nullptr) = 0;
     virtual unsigned int draw(Scene &scene, Camera &camera, const glm::mat4 &model, bool frustumCull = true, Material* overrideMaterial = nullptr) = 0;
+    virtual unsigned int draw(Scene &scene, Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, Material* overrideMaterial = nullptr) = 0;
 
     virtual EntityType getType() { return EntityType::EMPTY; }
 

@@ -57,6 +57,7 @@ public:
 
     void bindSceneAndCamera(Scene &scene, Camera &camera, const glm::mat4 &model, Material* overrideMaterial = nullptr) override;
     unsigned int draw(Scene &scene, Camera &camera, const glm::mat4 &model, bool frustumCull, Material* overrideMaterial) override;
+    unsigned int draw(Scene &scene, Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, Material* overrideMaterial);
 
     EntityType getType() override { return EntityType::MESH; }
 

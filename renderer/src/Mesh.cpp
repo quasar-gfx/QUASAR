@@ -133,6 +133,13 @@ unsigned int Mesh::draw(Scene &scene, Camera &camera, const glm::mat4 &model, bo
     return trianglesDrawn;
 }
 
+unsigned int Mesh::draw(Scene &scene, Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, Material* overrideMaterial) {
+    if (!boundingSphere.intersects(aabb)) {
+        return 0;
+    }
+    return draw(scene, camera, model, false, overrideMaterial);
+}
+
 void Mesh::updateAABB() {
     if (vertices.empty()) {
         return;

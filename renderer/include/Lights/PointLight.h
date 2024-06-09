@@ -5,6 +5,7 @@
 #include <CubeMap.h>
 #include <RenderTargets/PointLightShadowRT.h>
 #include <Materials/PointShadowMapMaterial.h>
+#include <BoundingSphere.h>
 
 struct PointLightCreateParams {
     glm::vec3 color = glm::vec3(1.0f);
@@ -30,13 +31,16 @@ public:
     PointLightShadowRT shadowMapRenderTarget;
     PointShadowMapMaterial shadowMapMaterial;
 
+    BoundingSphere boundingSphere;
+
     explicit PointLight(const PointLightCreateParams &params)
             : position(params.position)
             , constant(params.constant)
             , linear(params.linear)
             , quadratic(params.quadratic)
             , Light(params.color, params.intensity, params.zNear, params.zFar)
-            , shadowMapRenderTarget({ .width = shadowRes, .height = shadowRes }) {
+            , shadowMapRenderTarget({ .width = shadowRes, .height = shadowRes })
+            , boundingSphere(position, getLightRadius()) {
         shadowProjectionMat = glm::perspective(glm::radians(90.0f), 1.0f, params.zNear, params.zFar);
 
         updateLookAtFace();
@@ -60,12 +64,25 @@ public:
     void setPosition(const glm::vec3 &position) {
         this->position = position;
         updateLookAtFace();
+        updateBoundingSphere();
     }
 
     void setAttenuation(float constant, float linear, float quadratic) {
         this->constant = constant;
         this->linear = linear;
         this->quadratic = quadratic;
+        updateBoundingSphere();
+    }
+
+    void updateBoundingSphere() {
+        boundingSphere.update(position, getLightRadius());
+    }
+
+    float getLightRadius() {
+        float radius = (-linear + sqrt(linear * linear -
+                        4 * quadratic * (constant - (256.0f / 5.0f) * intensity)))
+                        / (2.0f * quadratic);
+        return radius;
     }
 
     static const unsigned int maxPointLights = 4;

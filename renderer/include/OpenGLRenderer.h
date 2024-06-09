@@ -26,8 +26,8 @@ public:
     explicit OpenGLRenderer(unsigned int width, unsigned int height);
     ~OpenGLRenderer() = default;
 
-    void updateDirLightShadow(Scene &scene, Camera &camera);
-    void updatePointLightShadows(Scene &scene, Camera &camera);
+    unsigned int updateDirLightShadow(Scene &scene, Camera &camera);
+    unsigned int updatePointLightShadows(Scene &scene, Camera &camera);
     unsigned int drawSkyBox(Scene &scene, Camera &camera);
     unsigned int drawObjects(Scene &scene, Camera &camera);
     void drawToScreen(Shader &screenShader, RenderTarget* overrideRenderTarget = nullptr);
@@ -38,6 +38,7 @@ private:
     Shader skyboxShader;
 
     unsigned int drawNode(Scene &scene, Camera &camera, Node* node, const glm::mat4 &parentTransform, bool frustumCull = true, Material* overrideMaterial = nullptr);
+    unsigned int drawNode(Scene &scene, Camera &camera, Node* node, const glm::mat4 &parentTransform, const PointLight* pointLight, Material* overrideMaterial = nullptr);
 };
 
 #endif // OPENGL_RENDERER_H

@@ -545,6 +545,9 @@ private:
             else if (compare(tok, json, "intensity") == 0) {
                 i = parseFloat(tokens, i + 1, json, &params.intensity);
             }
+            else if (compare(tok, json, "orthoBoxSize") == 0) {
+                i = parseFloat(tokens, i + 1, json, &params.orthoBoxSize);
+            }
             else {
                 i = parse(tokens, i + 1);
             }

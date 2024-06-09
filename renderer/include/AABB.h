@@ -28,6 +28,12 @@ public:
         extents = glm::vec3(max.x - center.x, max.y - center.y, max.z - center.z);
     }
 
+    bool intersects(const AABB &other) const {
+        return (std::abs(center.x - other.center.x) < (extents.x + other.extents.x)) &&
+               (std::abs(center.y - other.center.y) < (extents.y + other.extents.y)) &&
+               (std::abs(center.z - other.center.z) < (extents.z + other.extents.z));
+    }
+
 private:
     glm::vec3 center = glm::vec3(0.0f);
     glm::vec3 extents = glm::vec3(0.0f);

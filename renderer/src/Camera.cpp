@@ -43,6 +43,7 @@ void Camera::setViewMatrix(glm::mat4 view) {
 
 void Camera::updateViewMatrix() {
     view = glm::scale(glm::mat4(1.0f), 1.0f/scale) * glm::mat4_cast(glm::conjugate(rotation)) * glm::translate(glm::mat4(1.0f), -position);
+    frustum.update(position, front, right, up, near, far, aspect, fovy);
 }
 
 void Camera::processKeyboard(Keys keys, float deltaTime) {
@@ -100,5 +101,4 @@ void Camera::updateCameraVectors() {
     glm::decompose(glm::inverse(newView), scale, rotation, temp, skew, perspective);
 
     updateViewMatrix();
-    frustum.update(position, front, right, up, near, far, aspect, fovy);
 }
