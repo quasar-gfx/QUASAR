@@ -7,8 +7,8 @@
 #include <vector>
 
 #include <Materials/Material.h>
-#include <AABB.h>
-#include <BoundingSphere.h>
+#include <Culling/AABB.h>
+#include <Culling/BoundingSphere.h>
 
 class Node;
 class Scene;

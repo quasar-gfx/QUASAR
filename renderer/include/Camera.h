@@ -10,7 +10,7 @@
 #include <glm/gtx/matrix_decompose.hpp>
 
 #include <Windowing/Window.h>
-#include <Frustum.h>
+#include <Culling/Frustum.h>
 
 class Camera {
 public:

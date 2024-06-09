@@ -7,7 +7,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <AABB.h>
+#include <Culling/AABB.h>
 
 class BoundingSphere {
 public:

@@ -99,8 +99,8 @@ unsigned int OpenGLRenderer::drawObjects(Scene &scene, Camera &camera) {
     unsigned int trianglesDrawn = 0;
 
     // update shadows
-    trianglesDrawn += updateDirLightShadow(scene, camera);
-    trianglesDrawn += updatePointLightShadows(scene, camera);
+    updateDirLightShadow(scene, camera);
+    updatePointLightShadows(scene, camera);
 
     // bind to gBuffer and draw scene as we normally would to color texture
     gBuffer.bind();

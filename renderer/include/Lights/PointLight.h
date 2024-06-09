@@ -5,7 +5,7 @@
 #include <CubeMap.h>
 #include <RenderTargets/PointLightShadowRT.h>
 #include <Materials/PointShadowMapMaterial.h>
-#include <BoundingSphere.h>
+#include <Culling/BoundingSphere.h>
 
 struct PointLightCreateParams {
     glm::vec3 color = glm::vec3(1.0f);
