@@ -38,7 +38,12 @@ void Camera::setViewMatrix(glm::mat4 view) {
     glm::vec3 skew;
     glm::vec4 perspective;
     glm::decompose(glm::inverse(view), scale, rotation, position, skew, perspective);
-    updateCameraVectors();
+
+    front = -glm::normalize(glm::vec3(view[0][2], view[1][2], view[2][2]));
+    right = glm::normalize(glm::cross(front, worldUp));
+    up = glm::normalize(glm::cross(right, front));
+
+    frustum.setFromCameraParams(position, front, right, up, near, far, aspect, fovy);
 }
 
 void Camera::updateViewMatrix() {
