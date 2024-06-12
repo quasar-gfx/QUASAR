@@ -16,6 +16,8 @@ extern "C" {
 #define MICROSECONDS_IN_SECOND 1e6f
 #define MICROSECONDS_IN_MILLISECOND 1e3f
 
+#define MBPS_TO_BPS 1e6f
+
 class VideoStreamer {
 public:
     std::string videoURL = "0.0.0.0:12345";
@@ -23,7 +25,7 @@ public:
     unsigned int width, height;
 
     int targetFrameRate = 60;
-    unsigned int targetBitRate = 100000 * 1000;
+    unsigned int targetBitRate = 50 * MBPS_TO_BPS;
 
     unsigned int framesSent = 0;
 

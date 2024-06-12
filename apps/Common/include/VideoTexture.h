@@ -20,6 +20,8 @@ extern "C" {
 #define MICROSECONDS_IN_SECOND 1e6f
 #define MICROSECONDS_IN_MILLISECOND 1e3f
 
+#define MBPS_TO_BPS 1e6f
+
 class VideoTexture : public Texture {
 public:
     std::string videoURL = "localhost:12345";

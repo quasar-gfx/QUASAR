@@ -46,14 +46,17 @@ float LinearizeDepth(float depth) {
 
 float UnLinearizeDepth(float depth) {
     depth *= far;
-    float z = (2.0 * near) / (far + near - depth * (far - near));
-    return (z + 1.0) / 2.0; // back to [0, 1]
+    if (depth == 0.0) {
+        depth = near;
+    }
+    float z = (depth * (far + near) - 2.0 * near * far) / (depth * (far - near));
+    return (z + 1.0) / 2.0;
 }
 
 float sampleDepth(sampler2D depthMap, ivec2 pixelCoord) {
     vec2 sampleCoord = (vec2(pixelCoord) + 0.5) / screenSize;
-    float depth = texture(depthMap, sampleCoord).x;
-    return UnLinearizeDepth(depth);
+    float depth = texture(depthMap, sampleCoord).r;
+    return depth;
 }
 
 void main() {
@@ -102,10 +105,10 @@ void main() {
     vec3 viewCoordUpperLeft  = ndcToView(ndcUpperLeft, depthUpperLeft);
     vec3 viewCoordUpperRight = ndcToView(ndcUpperRight, depthUpperRight);
 
-    vec4 vertexCoordUpperLeft  = vec4(viewToWorld(viewCoordUpperLeft), 1.0);
-    vec4 vertexCoordUpperRight = vec4(viewToWorld(viewCoordUpperRight), 1.0);
-    vec4 vertexCoordLowerLeft  = vec4(viewToWorld(viewCoordLowerLeft), 1.0);
-    vec4 vertexCoordLowerRight = vec4(viewToWorld(viewCoordLowerRight), 1.0);
+    vec4 vertexCoordUpperLeft  = vec4(viewToWorld(viewCoordUpperLeft), depthUpperLeft);
+    vec4 vertexCoordUpperRight = vec4(viewToWorld(viewCoordUpperRight), depthUpperRight);
+    vec4 vertexCoordLowerLeft  = vec4(viewToWorld(viewCoordLowerLeft), depthLowerLeft);
+    vec4 vertexCoordLowerRight = vec4(viewToWorld(viewCoordLowerRight), depthLowerRight);
 
     uint vertexIndexUpperLeft  = shaderIndex * VERTICES_IN_A_QUAD + 0;
     uint vertexIndexUpperRight = shaderIndex * VERTICES_IN_A_QUAD + 1;

@@ -110,7 +110,7 @@ int main(int argc, char** argv) {
     });
 
     ComputeShader genMesh2Shader({
-        .computeCodePath = "shaders/genMesh2.comp"
+        .computeCodePath = "./shaders/genMesh2.comp"
     });
 
     int width = screenWidth / surfelSize;

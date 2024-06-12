@@ -139,7 +139,7 @@ int main(int argc, char** argv) {
     // shaders
     Shader screenShader = Shader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "shaders/displayVideo.frag"
+        .fragmentCodePath = "./shaders/displayVideo.frag"
     });
 
     camera.position = glm::vec3(0.0f, 1.6f, 0.0f);
@@ -191,6 +191,11 @@ int main(int argc, char** argv) {
         // send pose to streamer
         poseStreamer.sendPose(now);
 
+        // render video frame
+        videoTexture.bind();
+        pose_id_t poseId = videoTexture.draw();
+        videoTexture.unbind();
+
         {
             screenShader.bind();
 
@@ -202,8 +207,6 @@ int main(int argc, char** argv) {
             screenShader.setMat4("view", view);
             screenShader.setInt("videoTexture", 5);
             videoTexture.bind(5);
-            // render video frame
-            pose_id_t poseId = videoTexture.draw();
 
             if (poseId != -1 && poseStreamer.getPose(poseId, &currentFramePose, now, &elapedTime)) {
                 screenShader.setMat4("remoteProjection", currentFramePose.proj);

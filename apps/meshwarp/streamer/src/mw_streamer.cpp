@@ -165,7 +165,7 @@ int main(int argc, char** argv) {
 
     Shader depthShader = Shader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayDepth.frag"
+        .fragmentCodePath = "./shaders/displayDepth.frag"
     });
 
     // save camera view and projection matrices

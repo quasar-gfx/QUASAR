@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
     });
 
     ComputeShader genQuadsShader({
-        .computeCodePath = "shaders/genQuads.comp"
+        .computeCodePath = "./shaders/genQuads.comp"
     });
 
     int width = screenWidth / surfelSize;

@@ -209,7 +209,7 @@ int main(int argc, char** argv) {
     });
 
     ComputeShader genMeshShader({
-        .computeCodePath = "shaders/genMesh.comp"
+        .computeCodePath = "./shaders/genMesh.comp"
     });
 
     int width = screenWidth / surfelSize;
@@ -277,6 +277,7 @@ int main(int argc, char** argv) {
     remoteCamera.setViewMatrix(view);
 
     pose_id_t poseId = 0;
+    Pose currentFramePose;
     std::vector<Vertex> newVertices(numVertices);
     std::vector<unsigned int> newIndices(indexBufferSize);
     app.onRender([&](double now, double dt) {
@@ -332,14 +333,16 @@ int main(int argc, char** argv) {
 
         // render depth video frame
         videoTextureDepth.bind();
-        videoTextureDepth.draw();
+        poseId = videoTextureDepth.draw();
         videoTextureDepth.unbind();
 
         genMeshShader.bind();
-        genMeshShader.setMat4("viewInverse", glm::inverse(camera.getViewMatrix()));
-        genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
-        genMeshShader.setFloat("near", remoteCamera.near);
-        genMeshShader.setFloat("far", remoteCamera.far);
+        if (poseId != -1 && poseStreamer.getPose(poseId, &currentFramePose, now, &elapedTime)) {
+            genMeshShader.setMat4("viewInverse", glm::inverse(currentFramePose.view));
+            genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+            genMeshShader.setFloat("near", remoteCamera.near);
+            genMeshShader.setFloat("far", remoteCamera.far);
+        }
         genMeshShader.setInt("surfelSize", surfelSize);
         videoTextureDepth.bind(0);
         genMeshShader.dispatch(width, height, 1);
