@@ -3,6 +3,7 @@
 #include <imgui/imgui.h>
 
 #include <Shaders/Shader.h>
+#include <Shaders/ComputeShader.h>
 #include <Texture.h>
 #include <Primatives/Primatives.h>
 #include <Materials/UnlitMaterial.h>
@@ -31,88 +32,17 @@ enum class RenderState {
     WIREFRAME
 };
 
-int surfelSize = 4;
-RenderState renderState = RenderState::MESH;
-
-int createMesh(Mesh* mesh, Mesh* wireframeMesh, const VideoTexture &videoTexture, std::string label) {
-    std::ifstream vertexFile(DATA_PATH + "data/positions_" + label + "_0.bin", std::ios::binary);
-    if (!vertexFile.is_open()) {
-        std::cerr << "Failed to open file with label=" << label << std::endl;
-        return -1;
-    }
-
-    std::ifstream indexFile(DATA_PATH + "data/indices_" + label + "_0.bin", std::ios::binary);
-    if (!indexFile.is_open()) {
-        std::cerr << "Failed to open file with label=" << label << std::endl;
-        return -1;
-    }
-
-    unsigned int width = videoTexture.width / surfelSize;
-    unsigned int height = videoTexture.height / surfelSize;
-
-    unsigned int x = 0, y = 0;
-    std::vector<Vertex> vertices;
-    for (int i = 0; vertexFile; i+=VERTICES_IN_A_QUAD) {
-        x = (i / VERTICES_IN_A_QUAD) % width;
-        y = (i / VERTICES_IN_A_QUAD) / width;
-
-        Vertex vertexUpperLeft;
-        vertexFile.read(reinterpret_cast<char*>(&vertexUpperLeft.position), sizeof(glm::vec3));
-        vertexUpperLeft.texCoords = glm::vec2((float)x / (float)(width), (float)(y + 1) / (float)(height));
-
-        Vertex vertexUpperRight;
-        vertexFile.read(reinterpret_cast<char*>(&vertexUpperRight.position), sizeof(glm::vec3));
-        vertexUpperRight.texCoords = glm::vec2((float)(x + 1) / (float)(width), (float)(y + 1) / (float)(height));
-
-        Vertex vertexLowerLeft;
-        vertexFile.read(reinterpret_cast<char*>(&vertexLowerLeft.position), sizeof(glm::vec3));
-        vertexLowerLeft.texCoords = glm::vec2((float)x / (float)(width), (float)y / (float)(height));
-
-        Vertex vertexLowerRight;
-        vertexFile.read(reinterpret_cast<char*>(&vertexLowerRight.position), sizeof(glm::vec3));
-        vertexLowerRight.texCoords = glm::vec2((float)(x + 1) / (float)(width), (float)y / (float)(height));
-
-        vertices.push_back(vertexUpperLeft);
-        vertices.push_back(vertexUpperRight);
-        vertices.push_back(vertexLowerLeft);
-        vertices.push_back(vertexLowerRight);
-    }
-    vertexFile.close();
-
-    std::vector<unsigned int> indices;
-    while (indexFile) {
-        unsigned int index;
-        indexFile.read(reinterpret_cast<char*>(&index), sizeof(unsigned int));
-        indices.push_back(index);
-    }
-    indexFile.close();
-
-    *mesh = Mesh({
-        .vertices = vertices,
-        .indices = indices,
-        .material = new UnlitMaterial({ .diffuseTextureID = videoTexture.ID }),
-        .wireframe = false,
-        .pointcloud = renderState == RenderState::POINTCLOUD,
-    });
-
-    *wireframeMesh = Mesh({
-        .vertices = vertices,
-        .indices = indices,
-        .material = new UnlitMaterial({ .color = glm::vec3(1.0f, 1.0f, 0.0f) }),
-        .wireframe = true,
-        .pointcloud = false,
-    });
-
-    return vertices.size();
-}
-
 int main(int argc, char** argv) {
     Config config{};
     config.title = "MeshWarp Reciever";
+    config.openglMajorVersion = 4;
+    config.openglMinorVersion = 3;
 
     std::string videoURL = "0.0.0.0:12345";
     std::string depthURL = "0.0.0.0:65432";
     std::string poseURL = "127.0.0.1:54321";
+    int surfelSize = 4;
+    RenderState renderState = RenderState::MESH;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             config.width = atoi(argv[i + 1]);
@@ -278,31 +208,52 @@ int main(int argc, char** argv) {
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
 
-    std::vector<std::string> labels = {
-        "center",
-        // "top_right_front",
-        // "top_right_back",
-        // "top_left_front",
-        // "top_left_back",
-        // "bottom_right_front",
-        // "bottom_right_back",
-        // "bottom_left_front",
-        // "bottom_left_back"
-    };
+    ComputeShader genMeshShader({
+        .computeCodePath = "shaders/genMesh.comp"
+    });
 
-    std::vector<Mesh> meshes(labels.size());
-    std::vector<Mesh> wireframeMeshes(labels.size());
-    std::vector<Node> nodes(2*labels.size());
-    for (int i = 0; i < labels.size(); i++) {
-        createMesh(&meshes[i], &wireframeMeshes[i], videoTextureColor, labels[i]);
+    int width = screenWidth / surfelSize;
+    int height = screenHeight / surfelSize;
 
-        nodes[2*i] = Node(&meshes[i]);
-        scene.addChildNode(&nodes[i]);
+    GLuint vertexBuffer;
+    int numVertices = width * height * VERTICES_IN_A_QUAD;
+    glGenBuffers(1, &vertexBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(glm::vec4), nullptr, GL_STATIC_DRAW);
 
-        nodes[2*i+1] = Node(&wireframeMeshes[i]);
-        nodes[2*i+1].setTranslation(glm::vec3(0.0f, 0.001f, 0.001f));
-        scene.addChildNode(&nodes[i+1]);
-    }
+    GLuint indexBuffer;
+    int numTriangles = width * height * 2;
+    int indexBufferSize = numTriangles * 3;
+    glGenBuffers(1, &indexBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_STATIC_DRAW);
+
+    genMeshShader.bind();
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffer);
+    genMeshShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
+    genMeshShader.unbind();
+
+    Mesh mesh = Mesh({
+        .vertices = {},
+        .indices = {},
+        .material = new UnlitMaterial({ .diffuseTextureID = videoTextureColor.ID }),
+        .wireframe = false,
+        .pointcloud = renderState == RenderState::POINTCLOUD,
+    });
+    Node node = Node(&mesh);
+    scene.addChildNode(&node);
+
+    Mesh wireframeMesh = Mesh({
+        .vertices = {},
+        .indices = {},
+        .material = new UnlitMaterial({ .color = glm::vec3(1.0f, 1.0f, 0.0f) }),
+        .wireframe = true,
+        .pointcloud = false,
+    });
+    Node wireframeNode = Node(&wireframeMesh);
+    wireframeNode.setTranslation(glm::vec3(0.0f, 0.001f, 0.001f));
+    scene.addChildNode(&wireframeNode);
 
     scene.backgroundColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -317,6 +268,17 @@ int main(int argc, char** argv) {
     camera.setProjectionMatrix(proj);
     camera.setViewMatrix(view);
 
+    // load remote camera
+    Camera remoteCamera = Camera(screenWidth, screenHeight);
+    std::ifstream remoteCameraFile(DATA_PATH + "data/remoteCamera.bin", std::ios::binary);
+    remoteCameraFile.read(reinterpret_cast<char*>(&proj), sizeof(glm::mat4));
+    remoteCameraFile.read(reinterpret_cast<char*>(&view), sizeof(glm::mat4));
+    remoteCamera.setProjectionMatrix(proj);
+    remoteCamera.setViewMatrix(view);
+
+    pose_id_t poseId = 0;
+    std::vector<Vertex> newVertices(numVertices);
+    std::vector<unsigned int> newIndices(indexBufferSize);
     app.onRender([&](double now, double dt) {
         // handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
@@ -363,21 +325,77 @@ int main(int argc, char** argv) {
         // send pose to streamer
         poseStreamer.sendPose(now);
 
-        // render video frame
+        // render color video frame
         videoTextureColor.bind();
-        pose_id_t poseId = videoTextureColor.draw();
+        poseId = videoTextureColor.draw();
         videoTextureColor.unbind();
 
+        // render depth video frame
         videoTextureDepth.bind();
         videoTextureDepth.draw();
         videoTextureDepth.unbind();
 
-        for (auto& mesh : meshes) {
-            mesh.pointcloud = renderState == RenderState::POINTCLOUD;
+        genMeshShader.bind();
+        genMeshShader.setMat4("viewInverse", glm::inverse(camera.getViewMatrix()));
+        genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+        genMeshShader.setFloat("near", remoteCamera.near);
+        genMeshShader.setFloat("far", remoteCamera.far);
+        genMeshShader.setInt("surfelSize", surfelSize);
+        videoTextureDepth.bind(0);
+        genMeshShader.dispatch(width, height, 1);
+        genMeshShader.unbind();
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
+        GLvoid* pBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+        if (pBuffer) {
+            glm::vec4* pVertices = static_cast<glm::vec4*>(pBuffer);
+
+            int x, y;
+            for (int i = 0; i < numVertices; i+=VERTICES_IN_A_QUAD) {
+                x = (i / VERTICES_IN_A_QUAD) % width;
+                y = (i / VERTICES_IN_A_QUAD) / width;
+
+                Vertex vertexUpperLeft;
+                vertexUpperLeft.position = glm::vec3(pVertices[i+0]);
+                vertexUpperLeft.texCoords = glm::vec2((float)x / (float)(width), (float)(y + 1) / (float)(height));
+
+                Vertex vertexUpperRight;
+                vertexUpperRight.position = glm::vec3(pVertices[i+1]);
+                vertexUpperRight.texCoords = glm::vec2((float)(x + 1) / (float)(width), (float)(y + 1) / (float)(height));
+
+                Vertex vertexLowerLeft;
+                vertexLowerLeft.position = glm::vec3(pVertices[i+2]);
+                vertexLowerLeft.texCoords = glm::vec2((float)x / (float)(width), (float)y / (float)(height));
+
+                Vertex vertexLowerRight;
+                vertexLowerRight.position = glm::vec3(pVertices[i+3]);
+                vertexLowerRight.texCoords = glm::vec2((float)(x + 1) / (float)(width), (float)y / (float)(height));
+
+                newVertices[i+0] = vertexUpperLeft;
+                newVertices[i+1] = vertexUpperRight;
+                newVertices[i+2] = vertexLowerLeft;
+                newVertices[i+3] = vertexLowerRight;
+            }
+
+            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        } else {
+            throw std::runtime_error("Failed to map vertex buffer");
         }
-        for (auto& mesh : wireframeMeshes) {
-            mesh.visible = renderState == RenderState::WIREFRAME;
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
+        GLvoid* pIndexBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+        if (pIndexBuffer) {
+            memcpy(newIndices.data(), pIndexBuffer, indexBufferSize * sizeof(unsigned int));
+            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        } else {
+            std::cerr << "Failed to save index buffer" << std::endl;
         }
+
+        mesh.pointcloud = renderState == RenderState::POINTCLOUD;
+        mesh.setBuffers(newVertices, newIndices);
+
+        wireframeMesh.visible = renderState == RenderState::WIREFRAME;
+        wireframeMesh.setBuffers(newVertices, newIndices);
 
         // render all objects in scene
         trianglesDrawn = app.renderer->drawObjects(scene, camera);

@@ -51,6 +51,8 @@ public:
     void bindSceneAndCamera(Scene &scene, Camera &camera, const glm::mat4 &model, Material* overrideMaterial = nullptr) override;
     unsigned int draw(Scene &scene, Camera &camera, const glm::mat4 &model, bool frustumCull, Material* overrideMaterial) override;
     unsigned int draw(Scene &scene, Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, Material* overrideMaterial) override;
+    void setBuffers(const std::vector<Vertex> &vertices, const std::vector<unsigned int> &indices);
+    void updateBuffers();
     void updateAABB();
 
     void cleanup() {
@@ -63,5 +65,6 @@ protected:
     TextureID VAO, VBO, EBO;
 
     void createBuffers();
+    void createAttributes();
 };
 #endif

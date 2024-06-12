@@ -142,7 +142,7 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader screenShader = Shader({
+    Shader colorShader = Shader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
@@ -214,8 +214,10 @@ int main(int argc, char** argv) {
         app.renderer->drawObjects(scene, camera);
 
         // render to screen
-        // app.renderer->drawToScreen(screenShader);
-        app.renderer->drawToRenderTarget(screenShader, renderTarget);
+        if (config.showWindow) {
+            app.renderer->drawToScreen(colorShader);
+        }
+        app.renderer->drawToRenderTarget(colorShader, renderTarget);
 
         // send video frame
         if (poseId != -1) {

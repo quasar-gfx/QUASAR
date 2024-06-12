@@ -122,8 +122,8 @@ int main(int argc, char** argv) {
     glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(glm::vec4), nullptr, GL_STATIC_DRAW);
 
     GLuint indexBuffer;
-    int trianglesDrawn = width * height * 2;
-    int indexBufferSize = trianglesDrawn * 3;
+    int numTriangles = width * height * 2;
+    int indexBufferSize = numTriangles * 3;
     glGenBuffers(1, &indexBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_STATIC_DRAW);
@@ -220,9 +220,7 @@ int main(int argc, char** argv) {
 
                 for (int i = 0; i < numVertices; i++) {
                     Vertex vertex;
-                    vertex.position.x = pVertices[i].x;
-                    vertex.position.y = pVertices[i].y;
-                    vertex.position.z = pVertices[i].z;
+                    vertex.position = glm::vec3(pVertices[i]);
 
                     // std::cout << "Vertex: " << vertex.position.x << ", " << vertex.position.y << ", " << vertex.position.z << std::endl;
 

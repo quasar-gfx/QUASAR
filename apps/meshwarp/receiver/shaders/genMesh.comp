@@ -1,8 +1,6 @@
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-layout(binding = 0) uniform sampler2D positionMap;
-layout(binding = 1) uniform sampler2D normalMap;
-layout(binding = 2) uniform sampler2D depthMap;
+layout(binding = 0) uniform sampler2D depthMap;
 
 layout(std430, binding = 0) buffer VertexBuffer {
     vec4 vertices[];
@@ -41,14 +39,21 @@ vec3 viewToWorld(vec3 viewspaceCoord) {
     return worldCoord.xyz;
 }
 
-vec3 sampleNormal(sampler2D normalMap, ivec2 pixelCoord) {
-    vec2 sampleCoord = (vec2(pixelCoord) + 0.5) / screenSize;
-    return texture(normalMap, sampleCoord).xyz;
+float LinearizeDepth(float depth) {
+    float z = depth * 2.0 - 1.0; // back to NDC
+    return (2.0 * near * far) / (far + near - z * (far - near));
+}
+
+float UnLinearizeDepth(float depth) {
+    depth *= far;
+    float z = (2.0 * near) / (far + near - depth * (far - near));
+    return (z + 1.0) / 2.0; // back to [0, 1]
 }
 
 float sampleDepth(sampler2D depthMap, ivec2 pixelCoord) {
     vec2 sampleCoord = (vec2(pixelCoord) + 0.5) / screenSize;
-    return texture(depthMap, sampleCoord).x;
+    float depth = texture(depthMap, sampleCoord).x;
+    return UnLinearizeDepth(depth);
 }
 
 void main() {
@@ -79,18 +84,6 @@ void main() {
     vec2 pixelCoordUpperLeftNormalized  = pixelCoordUpperLeft / screenSize;
     vec2 pixelCoordUpperRightNormalized = pixelCoordUpperRight / screenSize;
     // vec2 pixelCoordCenterNormalized     = pixelCoordCenter / screenSize;
-
-    // vec3 positionUpperLeft  = imageLoad(positionMap, pixelCoordUpperLeft).xyz;
-    // vec3 positionUpperRight = imageLoad(positionMap, pixelCoordUpperRight).xyz;
-    // vec3 positionLowerLeft  = imageLoad(positionMap, pixelCoordLowerLeft).xyz;
-    // vec3 positionLowerRight = imageLoad(positionMap, pixelCoordLowerRight).xyz;
-    // vec3 positionCenter     = imageLoad(positionMap, pixelCoordCenter).xyz;
-
-    vec3 normalLowerLeft  = sampleNormal(normalMap, pixelCoordLowerLeft);
-    vec3 normalLowerRight = sampleNormal(normalMap, pixelCoordLowerRight);
-    vec3 normalUpperLeft  = sampleNormal(normalMap, pixelCoordUpperLeft);
-    vec3 normalUpperRight = sampleNormal(normalMap, pixelCoordUpperRight);
-    // vec3 normalCenter     = normalize(texture(normalMap, pixelCoordCenter);
 
     float depthLowerLeft  = sampleDepth(depthMap, pixelCoordLowerLeft);
     float depthLowerRight = sampleDepth(depthMap, pixelCoordLowerRight);

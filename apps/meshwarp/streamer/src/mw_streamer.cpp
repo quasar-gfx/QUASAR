@@ -30,7 +30,6 @@ int main(int argc, char** argv) {
     config.showWindow = false;
 
     std::string scenePath = "../assets/scenes/sponza.json";
-    int surfelSize = 4;
     std::string videoURL = "127.0.0.1:12345";
     std::string depthURL = "127.0.0.1:65432";
     std::string poseURL = "0.0.0.0:54321";
@@ -53,10 +52,6 @@ int main(int argc, char** argv) {
         }
         else if (!strcmp(argv[i], "-d") && i + 1 < argc) {
             config.showWindow = atoi(argv[i + 1]);
-            i++;
-        }
-        else if (!strcmp(argv[i], "-ss") && i + 1 < argc) {
-            surfelSize = atoi(argv[i + 1]);
             i++;
         }
         else if (!strcmp(argv[i], "-o") && i + 1 < argc) {
@@ -173,32 +168,6 @@ int main(int argc, char** argv) {
         .fragmentCodePath = "../shaders/postprocessing/displayDepth.frag"
     });
 
-    ComputeShader genMeshShader({
-        .computeCodePath = "shaders/genMesh.comp"
-    });
-
-    int width = screenWidth / surfelSize;
-    int height = screenHeight / surfelSize;
-
-    GLuint vertexBuffer;
-    int numVertices = width * height * VERTICES_IN_A_QUAD;
-    glGenBuffers(1, &vertexBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(glm::vec4), nullptr, GL_STATIC_DRAW);
-
-    GLuint indexBuffer;
-    int trianglesDrawn = width * height * 2;
-    int indexBufferSize = trianglesDrawn * 3;
-    glGenBuffers(1, &indexBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_STATIC_DRAW);
-
-    genMeshShader.bind();
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffer);
-    genMeshShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
-    genMeshShader.unbind();
-
     // save camera view and projection matrices
     std::ofstream cameraFile;
     cameraFile.open("data/camera.bin", std::ios::out | std::ios::binary);
@@ -209,10 +178,18 @@ int main(int argc, char** argv) {
     cameraFile.close();
 
     // set high fov
-    camera.setFovy(glm::radians(100.0f));
+    // camera.setFovy(glm::radians(100.0f));
+
+    // save remote camera view and projection matrices
+    std::ofstream remoteCameraFile;
+    remoteCameraFile.open("data/remoteCamera.bin", std::ios::out | std::ios::binary);
+    proj = camera.getProjectionMatrix();
+    view = camera.getViewMatrix();
+    remoteCameraFile.write(reinterpret_cast<const char*>(&proj), sizeof(glm::mat4));
+    remoteCameraFile.write(reinterpret_cast<const char*>(&view), sizeof(glm::mat4));
+    remoteCameraFile.close();
 
     pose_id_t poseId = 0;
-    bool firstFrame = true;
     app.onRender([&](double now, double dt) {
         // handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
@@ -267,7 +244,9 @@ int main(int argc, char** argv) {
         app.renderer->drawObjects(scene, camera);
 
         // render to screen
-        // app.renderer->drawToScreen(colorShader);
+        if (config.showWindow) {
+            app.renderer->drawToScreen(colorShader);
+        }
         app.renderer->drawToRenderTarget(colorShader, renderTargetColor);
         depthShader.bind();
         depthShader.setFloat("near", camera.near);
@@ -279,80 +258,6 @@ int main(int argc, char** argv) {
             videoStreamerColor.sendFrame(poseId);
             videoStreamerDepth.sendFrame(poseId);
         }
-
-        // if (firstFrame) {
-        //     double startTime = glfwGetTime();
-
-        //     genMeshShader.bind();
-        //     genMeshShader.setMat4("viewInverse", glm::inverse(camera.getViewMatrix()));
-        //     genMeshShader.setMat4("projectionInverse", glm::inverse(camera.getProjectionMatrix()));
-        //     genMeshShader.setFloat("near", camera.near);
-        //     genMeshShader.setFloat("far", camera.far);
-        //     genMeshShader.setInt("surfelSize", surfelSize);
-        //     app.renderer->gBuffer.positionBuffer.bind(0);
-        //     app.renderer->gBuffer.normalsBuffer.bind(1);
-        //     app.renderer->gBuffer.depthBuffer.bind(2);
-        //     genMeshShader.dispatch(width, height, 1);
-        //     genMeshShader.unbind();
-
-        //     std::cout << "\tRendering Time: " << glfwGetTime() - startTime << "s" << std::endl;
-        //     // startTime = glfwGetTime();
-
-        //     // renderTarget.bind();
-        //     // renderTarget.colorBuffer.saveTextureToPNG("imgs/color_center_0.png");
-        //     // renderTarget.unbind();
-
-        //     // std::cout << "\tSaving Texture Time: " << glfwGetTime() - startTime << "s" << std::endl;
-        //     // startTime = glfwGetTime();
-
-        //     // std::ofstream depthFile;
-        //     // depthFile.open("data/depth_center_0.bin", std::ios::out | std::ios::binary);
-
-        //     std::ofstream positionsFile;
-        //     positionsFile.open("data/positions_center_0.bin", std::ios::out | std::ios::binary);
-
-        //     std::ofstream indicesFile;
-        //     indicesFile.open("data/indices_center_0.bin", std::ios::out | std::ios::binary);
-
-        //     glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
-        //     GLvoid* pBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-        //     if (pBuffer) {
-        //         glm::vec4* pVertices = static_cast<glm::vec4*>(pBuffer);
-
-        //         for (int i = 0; i < numVertices; i++) {
-        //             Vertex vertex;
-        //             vertex.position.x = pVertices[i].x;
-        //             vertex.position.y = pVertices[i].y;
-        //             vertex.position.z = pVertices[i].z;
-
-        //             // std::cout << "Vertex: " << vertex.position.x << ", " << vertex.position.y << ", " << vertex.position.z << std::endl;
-
-        //             positionsFile.write(reinterpret_cast<const char*>(&vertex.position), sizeof(glm::vec3));
-        //             // depthFile.write(reinterpret_cast<const char*>(&pVertices[i].w), sizeof(pVertices[i].w));
-        //         }
-
-        //         glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        //     } else {
-        //         std::cerr << "Failed to save vertex buffer" << std::endl;
-        //     }
-
-        //     std::cout << "\tSaving Vertices Time: " << glfwGetTime() - startTime << "s" << std::endl;
-        //     std::cout << "\t" << numVertices << " vertices" << std::endl;
-        //     startTime = glfwGetTime();
-
-        //     glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
-        //     GLvoid* pIndexBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-        //     if (pIndexBuffer) {
-        //         indicesFile.write(reinterpret_cast<const char*>(pIndexBuffer), indexBufferSize * sizeof(unsigned int));
-        //         glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        //     } else {
-        //         std::cerr << "Failed to save index buffer" << std::endl;
-        //     }
-
-        //     std::cout << "\tSaving Indices Time: " << glfwGetTime() - startTime << "s" << std::endl;
-
-        //     firstFrame = false;
-        // }
     });
 
     // run app loop (blocking)
