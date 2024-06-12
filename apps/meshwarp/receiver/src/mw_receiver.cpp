@@ -16,6 +16,11 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <VideoTexture.h>
+#include <PoseStreamer.h>
+
+#define VIDEO_PREVIEW_SIZE 500
+
 #define VERTICES_IN_A_QUAD 4
 
 const std::string DATA_PATH = "../streamer/";
@@ -29,7 +34,7 @@ enum class RenderState {
 int surfelSize = 4;
 RenderState renderState = RenderState::MESH;
 
-int createMesh(Mesh* mesh, Mesh* wireframeMesh, std::string label) {
+int createMesh(Mesh* mesh, Mesh* wireframeMesh, const VideoTexture &videoTexture, std::string label) {
     std::ifstream vertexFile(DATA_PATH + "data/positions_" + label + "_0.bin", std::ios::binary);
     if (!vertexFile.is_open()) {
         std::cerr << "Failed to open file with label=" << label << std::endl;
@@ -42,16 +47,8 @@ int createMesh(Mesh* mesh, Mesh* wireframeMesh, std::string label) {
         return -1;
     }
 
-    Texture diffuseTexture = Texture({
-        .wrapS = GL_REPEAT,
-        .wrapT = GL_REPEAT,
-        .minFilter = GL_LINEAR_MIPMAP_LINEAR,
-        .magFilter = GL_LINEAR,
-        .path = DATA_PATH + "imgs/color_" + label + "_0.png"
-    });
-
-    unsigned int width = diffuseTexture.width / surfelSize;
-    unsigned int height = diffuseTexture.height / surfelSize;
+    unsigned int width = videoTexture.width / surfelSize;
+    unsigned int height = videoTexture.height / surfelSize;
 
     unsigned int x = 0, y = 0;
     std::vector<Vertex> vertices;
@@ -61,19 +58,19 @@ int createMesh(Mesh* mesh, Mesh* wireframeMesh, std::string label) {
 
         Vertex vertexUpperLeft;
         vertexFile.read(reinterpret_cast<char*>(&vertexUpperLeft.position), sizeof(glm::vec3));
-        vertexUpperLeft.texCoords = glm::vec2((float)x / (float)(width), 1.0f - (float)(y + 1) / (float)(height));
+        vertexUpperLeft.texCoords = glm::vec2((float)x / (float)(width), (float)(y + 1) / (float)(height));
 
         Vertex vertexUpperRight;
         vertexFile.read(reinterpret_cast<char*>(&vertexUpperRight.position), sizeof(glm::vec3));
-        vertexUpperRight.texCoords = glm::vec2((float)(x + 1) / (float)(width), 1.0f - (float)(y + 1) / (float)(height));
+        vertexUpperRight.texCoords = glm::vec2((float)(x + 1) / (float)(width), (float)(y + 1) / (float)(height));
 
         Vertex vertexLowerLeft;
         vertexFile.read(reinterpret_cast<char*>(&vertexLowerLeft.position), sizeof(glm::vec3));
-        vertexLowerLeft.texCoords = glm::vec2((float)x / (float)(width), 1.0f - (float)y / (float)(height));
+        vertexLowerLeft.texCoords = glm::vec2((float)x / (float)(width), (float)y / (float)(height));
 
         Vertex vertexLowerRight;
         vertexFile.read(reinterpret_cast<char*>(&vertexLowerRight.position), sizeof(glm::vec3));
-        vertexLowerRight.texCoords = glm::vec2((float)(x + 1) / (float)(width), 1.0f - (float)y / (float)(height));
+        vertexLowerRight.texCoords = glm::vec2((float)(x + 1) / (float)(width), (float)y / (float)(height));
 
         vertices.push_back(vertexUpperLeft);
         vertices.push_back(vertexUpperRight);
@@ -93,7 +90,7 @@ int createMesh(Mesh* mesh, Mesh* wireframeMesh, std::string label) {
     *mesh = Mesh({
         .vertices = vertices,
         .indices = indices,
-        .material = new UnlitMaterial({ .diffuseTextureID = diffuseTexture.ID }),
+        .material = new UnlitMaterial({ .diffuseTextureID = videoTexture.ID }),
         .wireframe = false,
         .pointcloud = renderState == RenderState::POINTCLOUD,
     });
@@ -113,6 +110,9 @@ int main(int argc, char** argv) {
     Config config{};
     config.title = "MeshWarp Reciever";
 
+    std::string videoURL = "0.0.0.0:12345";
+    std::string depthURL = "0.0.0.0:65432";
+    std::string poseURL = "127.0.0.1:54321";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             config.width = atoi(argv[i + 1]);
@@ -138,6 +138,14 @@ int main(int argc, char** argv) {
             renderState = RenderState::WIREFRAME;
             i++;
         }
+        else if (!strcmp(argv[i], "-p") && i + 1 < argc) {
+            poseURL = argv[i + 1];
+            i++;
+        }
+        else if (!strcmp(argv[i], "-e") && i + 1 < argc) {
+            depthURL = argv[i + 1];
+            i++;
+        }
     }
 
     auto window = std::make_shared<GLFWWindow>(config);
@@ -154,7 +162,36 @@ int main(int argc, char** argv) {
     Scene scene = Scene();
     Camera camera = Camera(screenWidth, screenHeight);
 
+    VideoTexture videoTextureColor({
+        .width = config.width,
+        .height = config.height,
+        .internalFormat = GL_RGB,
+        .format = GL_RGB,
+        .type = GL_UNSIGNED_BYTE,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_LINEAR,
+        .magFilter = GL_LINEAR
+    }, videoURL);
+    VideoTexture videoTextureDepth({
+        .width = config.width,
+        .height = config.height,
+        .internalFormat = GL_RGB,
+        .format = GL_RGB,
+        .type = GL_UNSIGNED_BYTE,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_LINEAR,
+        .magFilter = GL_LINEAR
+    }, depthURL);
+    PoseStreamer poseStreamer(&camera, poseURL);
+
+    std::cout << "Video URL: " << videoURL << std::endl;
+    std::cout << "Depth URL: " << depthURL << std::endl;
+    std::cout << "Pose URL: " << poseURL << std::endl;
+
     int trianglesDrawn = 0;
+    double elapedTime = 0.0f;
     guiManager->onRender([&](double now, double dt) {
         ImGui::NewFrame();
 
@@ -192,9 +229,38 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
+        ImGui::Text("Video URL: %s", videoURL.c_str());
+        ImGui::Text("Pose URL: %s", poseURL.c_str());
+
+        ImGui::Separator();
+
+        ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoTextureColor.getFrameRate(), 1000.0f / videoTextureColor.getFrameRate());
+        ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: %.3f ms", elapedTime * 1000.0f);
+
+        ImGui::Separator();
+
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to receive frame: %.3f ms", videoTextureColor.stats.timeToReceiveFrame);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decode frame: %.3f ms", videoTextureColor.stats.timeToDecode);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to resize frame: %.3f ms", videoTextureColor.stats.timeToResize);
+
+        ImGui::Separator();
+
         ImGui::RadioButton("Render Mesh", (int*)&renderState, 0);
         ImGui::RadioButton("Render Point Cloud", (int*)&renderState, 1);
         ImGui::RadioButton("Render Wireframe", (int*)&renderState, 2);
+
+        ImGui::End();
+
+        ImGui::SetNextWindowPos(ImVec2(screenWidth - 2 * VIDEO_PREVIEW_SIZE - 60, 10), ImGuiCond_FirstUseEver);
+        flags = ImGuiWindowFlags_AlwaysAutoResize;
+        ImGui::Begin("Raw Color Texture", 0, flags);
+        ImGui::Image((void*)(intptr_t)videoTextureColor.ID, ImVec2(VIDEO_PREVIEW_SIZE, VIDEO_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::End();
+
+        ImGui::SetNextWindowPos(ImVec2(screenWidth - VIDEO_PREVIEW_SIZE - 30, 10), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Raw Depth Texture", 0, flags);
+        ImGui::Image((void*)(intptr_t)videoTextureDepth.ID, ImVec2(VIDEO_PREVIEW_SIZE, VIDEO_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+
         ImGui::End();
     });
 
@@ -228,7 +294,7 @@ int main(int argc, char** argv) {
     std::vector<Mesh> wireframeMeshes(labels.size());
     std::vector<Node> nodes(2*labels.size());
     for (int i = 0; i < labels.size(); i++) {
-        createMesh(&meshes[i], &wireframeMeshes[i], labels[i]);
+        createMesh(&meshes[i], &wireframeMeshes[i], videoTextureColor, labels[i]);
 
         nodes[2*i] = Node(&meshes[i]);
         scene.addChildNode(&nodes[i]);
@@ -294,6 +360,18 @@ int main(int argc, char** argv) {
             }
         }
 
+        // send pose to streamer
+        poseStreamer.sendPose(now);
+
+        // render video frame
+        videoTextureColor.bind();
+        pose_id_t poseId = videoTextureColor.draw();
+        videoTextureColor.unbind();
+
+        videoTextureDepth.bind();
+        videoTextureDepth.draw();
+        videoTextureDepth.unbind();
+
         for (auto& mesh : meshes) {
             mesh.pointcloud = renderState == RenderState::POINTCLOUD;
         }
@@ -310,6 +388,11 @@ int main(int argc, char** argv) {
 
     // run app loop (blocking)
     app.run();
+
+    std::cout << "Please do CTRL-C to exit!" << std::endl;
+
+    videoTextureColor.cleanup();
+    videoTextureDepth.cleanup();
 
     return 0;
 }

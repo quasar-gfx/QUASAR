@@ -37,7 +37,6 @@ public:
     float IBL = 1.0;
 
     explicit Mesh() : Entity() {}
-
     explicit Mesh(const MeshCreateParams &params)
             : vertices(params.vertices), indices(params.indices),
               material(params.material),

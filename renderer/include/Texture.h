@@ -67,7 +67,7 @@ public:
         bind(0);
     }
 
-    void bind(unsigned int slot = 0) {
+    void bind(unsigned int slot) {
         glActiveTexture(GL_TEXTURE0 + slot);
         glBindTexture(target, ID);
     }

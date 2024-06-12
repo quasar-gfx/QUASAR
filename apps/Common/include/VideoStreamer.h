@@ -41,6 +41,11 @@ public:
         return 1000.0f / stats.totalTimeToSendFrame;
     }
 
+    void setTargetBitRate(unsigned int targetBitRate) {
+        this->targetBitRate = targetBitRate;
+        outputFormatContext->bit_rate = targetBitRate;
+    }
+
     void cleanup();
 
     void sendFrame(unsigned int poseId);

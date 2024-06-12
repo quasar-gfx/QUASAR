@@ -30,13 +30,15 @@ public:
         socket.bind(streamerURL);
     }
 
-    unsigned int receivePose() {
+    unsigned int receivePose(bool setProj = true) {
         int bytesReceived = socket.recv(&currPose, sizeof(Pose), 0);
         if (bytesReceived < 0) {
             return -1; // throw std::runtime_error("Failed to receive data");
         }
 
-        camera->setProjectionMatrix(currPose.proj);
+        if (setProj) {
+            camera->setProjectionMatrix(currPose.proj);
+        }
         camera->setViewMatrix(currPose.view);
 
         return currPose.id;

@@ -22,10 +22,11 @@
 int main(int argc, char** argv) {
     Config config{};
     config.title = "ATW Streamer";
+    config.showWindow = false;
 
+    std::string scenePath = "../assets/scenes/sponza.json";
     std::string videoURL = "127.0.0.1:12345";
     std::string poseURL = "0.0.0.0:54321";
-    std::string scenePath = "../assets/scenes/sponza.json";
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-w") && i + 1 < argc) {
             config.width = atoi(argv[i + 1]);
@@ -33,14 +34,6 @@ int main(int argc, char** argv) {
         }
         else if (!strcmp(argv[i], "-h") && i + 1 < argc) {
             config.height = atoi(argv[i + 1]);
-            i++;
-        }
-        else if (!strcmp(argv[i], "-o") && i + 1 < argc) {
-            videoURL = argv[i + 1];
-            i++;
-        }
-        else if (!strcmp(argv[i], "-p") && i + 1 < argc) {
-            poseURL = argv[i + 1];
             i++;
         }
         else if (!strcmp(argv[i], "-s") && i + 1 < argc) {
@@ -53,6 +46,14 @@ int main(int argc, char** argv) {
         }
         else if (!strcmp(argv[i], "-d") && i + 1 < argc) {
             config.showWindow = atoi(argv[i + 1]);
+            i++;
+        }
+        else if (!strcmp(argv[i], "-o") && i + 1 < argc) {
+            videoURL = argv[i + 1];
+            i++;
+        }
+        else if (!strcmp(argv[i], "-p") && i + 1 < argc) {
+            poseURL = argv[i + 1];
             i++;
         }
     }
@@ -213,7 +214,7 @@ int main(int argc, char** argv) {
         app.renderer->drawObjects(scene, camera);
 
         // render to screen
-        app.renderer->drawToScreen(screenShader);
+        // app.renderer->drawToScreen(screenShader);
         app.renderer->drawToRenderTarget(screenShader, renderTarget);
 
         // send video frame

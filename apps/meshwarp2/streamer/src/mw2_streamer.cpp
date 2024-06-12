@@ -129,15 +129,9 @@ int main(int argc, char** argv) {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_STATIC_DRAW);
 
-    // GLuint texCoordBuffer;
-    // glGenBuffers(1, &texCoordBuffer);
-    // glBindBuffer(GL_SHADER_STORAGE_BUFFER, texCoordBuffer);
-    // glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(glm::vec2), nullptr, GL_STATIC_DRAW);
-
     genMesh2Shader.bind();
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffer);
-    // glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, texCoordBuffer);
     genMesh2Shader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
     genMesh2Shader.unbind();
 
