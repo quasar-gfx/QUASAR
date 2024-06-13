@@ -232,6 +232,7 @@ int main(int argc, char** argv) {
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffer);
     genMeshShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
+    genMeshShader.setInt("surfelSize", surfelSize);
     genMeshShader.unbind();
 
     Mesh mesh = Mesh({
@@ -276,7 +277,7 @@ int main(int argc, char** argv) {
     remoteCamera.setProjectionMatrix(proj);
     remoteCamera.setViewMatrix(view);
 
-    pose_id_t poseId = 0;
+    pose_id_t colorPoseID, depthPoseID;
     Pose currentFramePose;
     std::vector<Vertex> newVertices(numVertices);
     std::vector<unsigned int> newIndices(indexBufferSize);
@@ -326,79 +327,83 @@ int main(int argc, char** argv) {
         // send pose to streamer
         poseStreamer.sendPose(now);
 
-        // render color video frame
-        videoTextureColor.bind();
-        poseId = videoTextureColor.draw();
-        videoTextureColor.unbind();
+        colorPoseID = videoTextureColor.getPoseID();
+        depthPoseID = videoTextureDepth.getPoseID();
+        // make sure color and depth frames are in sync
+        if (colorPoseID != -1 && colorPoseID == depthPoseID) {
+            // render color video frame
+            videoTextureColor.bind();
+            colorPoseID = videoTextureColor.draw();
+            videoTextureColor.unbind();
 
-        // render depth video frame
-        videoTextureDepth.bind();
-        poseId = videoTextureDepth.draw();
-        videoTextureDepth.unbind();
+            // render depth video frame
+            videoTextureDepth.bind();
+            depthPoseID = videoTextureDepth.draw();
+            videoTextureDepth.unbind();
 
-        genMeshShader.bind();
-        if (poseId != -1 && poseStreamer.getPose(poseId, &currentFramePose, now, &elapedTime)) {
-            genMeshShader.setMat4("viewInverse", glm::inverse(currentFramePose.view));
-            genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
-            genMeshShader.setFloat("near", remoteCamera.near);
-            genMeshShader.setFloat("far", remoteCamera.far);
-        }
-        genMeshShader.setInt("surfelSize", surfelSize);
-        videoTextureDepth.bind(0);
-        genMeshShader.dispatch(width, height, 1);
-        genMeshShader.unbind();
+            genMeshShader.bind();
+            if (depthPoseID != -1 && poseStreamer.getPose(depthPoseID, &currentFramePose, now, &elapedTime)) {
+                genMeshShader.setMat4("viewInverse", glm::inverse(currentFramePose.view));
+                genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+                genMeshShader.setFloat("near", remoteCamera.near);
+                genMeshShader.setFloat("far", remoteCamera.far);
+            }
+            videoTextureDepth.bind(0);
+            genMeshShader.dispatch(width, height, 1);
+            genMeshShader.unbind();
 
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
-        GLvoid* pBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-        if (pBuffer) {
-            glm::vec4* pVertices = static_cast<glm::vec4*>(pBuffer);
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
+            GLvoid* pBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+            if (pBuffer) {
+                glm::vec4* pVertices = static_cast<glm::vec4*>(pBuffer);
 
-            int x, y;
-            for (int i = 0; i < numVertices; i+=VERTICES_IN_A_QUAD) {
-                x = (i / VERTICES_IN_A_QUAD) % width;
-                y = (i / VERTICES_IN_A_QUAD) / width;
+                int x, y;
+                for (int i = 0; i < numVertices; i+=VERTICES_IN_A_QUAD) {
+                    x = (i / VERTICES_IN_A_QUAD) % width;
+                    y = (i / VERTICES_IN_A_QUAD) / width;
 
-                Vertex vertexUpperLeft;
-                vertexUpperLeft.position = glm::vec3(pVertices[i+0]);
-                vertexUpperLeft.texCoords = glm::vec2((float)x / (float)(width), (float)(y + 1) / (float)(height));
+                    Vertex vertexUpperLeft;
+                    vertexUpperLeft.position = glm::vec3(pVertices[i+0]);
+                    vertexUpperLeft.texCoords = glm::vec2((float)x / (float)(width), (float)(y + 1) / (float)(height));
 
-                Vertex vertexUpperRight;
-                vertexUpperRight.position = glm::vec3(pVertices[i+1]);
-                vertexUpperRight.texCoords = glm::vec2((float)(x + 1) / (float)(width), (float)(y + 1) / (float)(height));
+                    Vertex vertexUpperRight;
+                    vertexUpperRight.position = glm::vec3(pVertices[i+1]);
+                    vertexUpperRight.texCoords = glm::vec2((float)(x + 1) / (float)(width), (float)(y + 1) / (float)(height));
 
-                Vertex vertexLowerLeft;
-                vertexLowerLeft.position = glm::vec3(pVertices[i+2]);
-                vertexLowerLeft.texCoords = glm::vec2((float)x / (float)(width), (float)y / (float)(height));
+                    Vertex vertexLowerLeft;
+                    vertexLowerLeft.position = glm::vec3(pVertices[i+2]);
+                    vertexLowerLeft.texCoords = glm::vec2((float)x / (float)(width), (float)y / (float)(height));
 
-                Vertex vertexLowerRight;
-                vertexLowerRight.position = glm::vec3(pVertices[i+3]);
-                vertexLowerRight.texCoords = glm::vec2((float)(x + 1) / (float)(width), (float)y / (float)(height));
+                    Vertex vertexLowerRight;
+                    vertexLowerRight.position = glm::vec3(pVertices[i+3]);
+                    vertexLowerRight.texCoords = glm::vec2((float)(x + 1) / (float)(width), (float)y / (float)(height));
 
-                newVertices[i+0] = vertexUpperLeft;
-                newVertices[i+1] = vertexUpperRight;
-                newVertices[i+2] = vertexLowerLeft;
-                newVertices[i+3] = vertexLowerRight;
+                    newVertices[i+0] = vertexUpperLeft;
+                    newVertices[i+1] = vertexUpperRight;
+                    newVertices[i+2] = vertexLowerLeft;
+                    newVertices[i+3] = vertexLowerRight;
+                }
+
+                glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+            } else {
+                throw std::runtime_error("Failed to map vertex buffer");
             }
 
-            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        } else {
-            throw std::runtime_error("Failed to map vertex buffer");
-        }
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
+            GLvoid* pIndexBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+            if (pIndexBuffer) {
+                memcpy(newIndices.data(), pIndexBuffer, indexBufferSize * sizeof(unsigned int));
+                glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+            } else {
+                std::cerr << "Failed to save index buffer" << std::endl;
+            }
 
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
-        GLvoid* pIndexBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-        if (pIndexBuffer) {
-            memcpy(newIndices.data(), pIndexBuffer, indexBufferSize * sizeof(unsigned int));
-            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        } else {
-            std::cerr << "Failed to save index buffer" << std::endl;
+            mesh.setBuffers(newVertices, newIndices);
+            wireframeMesh.setBuffers(newVertices, newIndices);
         }
 
         mesh.pointcloud = renderState == RenderState::POINTCLOUD;
-        mesh.setBuffers(newVertices, newIndices);
-
         wireframeMesh.visible = renderState == RenderState::WIREFRAME;
-        wireframeMesh.setBuffers(newVertices, newIndices);
 
         // render all objects in scene
         trianglesDrawn = app.renderer->drawObjects(scene, camera);

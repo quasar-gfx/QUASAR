@@ -46,6 +46,13 @@ public:
 
     pose_id_t draw();
 
+    pose_id_t getPoseID() {
+        if (frameRGB == nullptr) {
+            return -1;
+        }
+        return static_cast<pose_id_t>(reinterpret_cast<uintptr_t>(frameRGB->opaque));
+    }
+
     float getFrameRate() {
         return 1.0f / stats.totalTimeToReceiveFrame;
     }
