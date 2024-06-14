@@ -177,7 +177,7 @@ pose_id_t VideoTexture::draw() {
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, frameRGB->data[0]);
     frameRGBMutex.unlock();
 
-    return getposeID();
+    return getPoseID();
 }
 
 void VideoTexture::cleanup() {

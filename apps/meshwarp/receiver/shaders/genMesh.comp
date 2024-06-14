@@ -56,6 +56,7 @@ float UnLinearizeDepth(float depth) {
 float sampleDepth(sampler2D depthMap, ivec2 pixelCoord) {
     vec2 sampleCoord = (vec2(pixelCoord) + 0.5) / screenSize;
     float depth = texture(depthMap, sampleCoord).r;
+    depth = UnLinearizeDepth(depth);
     return depth;
 }
 

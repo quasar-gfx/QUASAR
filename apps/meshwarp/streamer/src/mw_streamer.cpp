@@ -87,8 +87,8 @@ int main(int argc, char** argv) {
     RenderTarget renderTargetColor({
         .width = screenWidth,
         .height = screenHeight,
-        .internalFormat = GL_RGBA16,
-        .format = GL_RGBA,
+        .internalFormat = GL_SRGB,
+        .format = GL_RGB,
         .type = GL_FLOAT,
         .wrapS = GL_CLAMP_TO_EDGE,
         .wrapT = GL_CLAMP_TO_EDGE,
@@ -97,7 +97,7 @@ int main(int argc, char** argv) {
     });
 
     RenderTarget renderTargetDepth({
-        .width = 2 * screenWidth,
+        .width = screenWidth,
         .height = screenHeight,
         .internalFormat = GL_RGBA16,
         .format = GL_RGBA,
@@ -189,6 +189,12 @@ int main(int argc, char** argv) {
     remoteCameraFile.write(reinterpret_cast<const char*>(&view), sizeof(glm::mat4));
     remoteCameraFile.close();
 
+    std::vector<glm::vec3> pointLightPositions(4);
+    pointLightPositions[0] = scene.pointLights[0]->position;
+    pointLightPositions[1] = scene.pointLights[1]->position;
+    pointLightPositions[2] = scene.pointLights[2]->position;
+    pointLightPositions[3] = scene.pointLights[3]->position;
+
     pose_id_t poseID = 0;
     app.onRender([&](double now, double dt) {
         // handle mouse input
@@ -239,6 +245,12 @@ int main(int argc, char** argv) {
 
         // receive pose
         poseID = poseReceiver.receivePose(false);
+
+        // animate lights
+        scene.pointLights[0]->setPosition(pointLightPositions[0] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
+        scene.pointLights[1]->setPosition(pointLightPositions[1] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
+        scene.pointLights[2]->setPosition(pointLightPositions[2] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
+        scene.pointLights[3]->setPosition(pointLightPositions[3] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
 
         // render all objects in scene
         app.renderer->drawObjects(scene, camera);

@@ -22,7 +22,6 @@
 int main(int argc, char** argv) {
     Config config{};
     config.title = "ATW Receiver";
-    config.sRGB = false;
 
     std::string videoURL = "0.0.0.0:12345";
     std::string poseURL = "127.0.0.1:54321";
@@ -66,7 +65,7 @@ int main(int argc, char** argv) {
     VideoTexture videoTexture({
         .width = config.width,
         .height = config.height,
-        .internalFormat = GL_RGB,
+        .internalFormat = GL_SRGB,
         .format = GL_RGB,
         .type = GL_UNSIGNED_BYTE,
         .wrapS = GL_CLAMP_TO_EDGE,

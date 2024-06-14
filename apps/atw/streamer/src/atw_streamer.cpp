@@ -77,9 +77,9 @@ int main(int argc, char** argv) {
     RenderTarget renderTarget({
         .width = screenWidth,
         .height = screenHeight,
-        .internalFormat = GL_SRGB_ALPHA,
-        .format = GL_RGBA,
-        .type = GL_UNSIGNED_BYTE,
+        .internalFormat = GL_SRGB,
+        .format = GL_RGB,
+        .type = GL_FLOAT,
         .wrapS = GL_CLAMP_TO_EDGE,
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_LINEAR,

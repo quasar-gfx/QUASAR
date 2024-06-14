@@ -46,7 +46,7 @@ public:
 
     pose_id_t draw();
 
-    pose_id_t getposeID() {
+    pose_id_t getPoseID() {
         if (frameRGB == nullptr) {
             return -1;
         }

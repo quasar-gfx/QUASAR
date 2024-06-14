@@ -95,7 +95,7 @@ int main(int argc, char** argv) {
     VideoTexture videoTextureColor({
         .width = config.width,
         .height = config.height,
-        .internalFormat = GL_RGB,
+        .internalFormat = GL_SRGB,
         .format = GL_RGB,
         .type = GL_UNSIGNED_BYTE,
         .wrapS = GL_CLAMP_TO_EDGE,
@@ -106,9 +106,9 @@ int main(int argc, char** argv) {
     VideoTexture videoTextureDepth({
         .width = config.width,
         .height = config.height,
-        .internalFormat = GL_RGB,
+        .internalFormat = GL_RGBA16,
         .format = GL_RGB,
-        .type = GL_UNSIGNED_BYTE,
+        .type = GL_FLOAT,
         .wrapS = GL_CLAMP_TO_EDGE,
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_LINEAR,
@@ -277,7 +277,7 @@ int main(int argc, char** argv) {
     remoteCamera.setProjectionMatrix(proj);
     remoteCamera.setViewMatrix(view);
 
-    pose_id_t colorposeID, depthposeID;
+    pose_id_t colorPoseID, depthPoseID;
     Pose currentFramePose;
     std::vector<Vertex> newVertices(numVertices);
     std::vector<unsigned int> newIndices(indexBufferSize);
@@ -327,22 +327,23 @@ int main(int argc, char** argv) {
         // send pose to streamer
         poseStreamer.sendPose(now);
 
-        colorposeID = videoTextureColor.getposeID();
-        depthposeID = videoTextureDepth.getposeID();
-        // make sure color and depth frames are in sync
-        if (colorposeID != -1 && colorposeID == depthposeID) {
+        // get color and depth frame pose
+        colorPoseID = videoTextureColor.getPoseID();
+        depthPoseID = videoTextureDepth.getPoseID();
+
+        if (depthPoseID != -1  && colorPoseID != -1) {
             // render color video frame
             videoTextureColor.bind();
-            colorposeID = videoTextureColor.draw();
+            colorPoseID = videoTextureColor.draw();
             videoTextureColor.unbind();
 
             // render depth video frame
             videoTextureDepth.bind();
-            depthposeID = videoTextureDepth.draw();
+            depthPoseID = videoTextureDepth.draw();
             videoTextureDepth.unbind();
 
             genMeshShader.bind();
-            if (depthposeID != -1 && poseStreamer.getPose(depthposeID, &currentFramePose, now, &elapedTime)) {
+            if (poseStreamer.getPose(depthPoseID, &currentFramePose, now, &elapedTime)) {
                 genMeshShader.setMat4("viewInverse", glm::inverse(currentFramePose.view));
                 genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
                 genMeshShader.setFloat("near", remoteCamera.near);
