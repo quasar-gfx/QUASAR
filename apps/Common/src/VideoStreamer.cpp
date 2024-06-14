@@ -23,61 +23,61 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
         throw std::runtime_error("Video Streamer could not be created.");
     }
 
-    codecContext = avcodec_alloc_context3(outputCodec);
-    if (!codecContext) {
+    codecCtx = avcodec_alloc_context3(outputCodec);
+    if (!codecCtx) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate codec context.\n");
         throw std::runtime_error("Video Streamer could not be created.");
     }
 
-    codecContext->width = width;
-    codecContext->height = height;
-    codecContext->time_base = {1, targetFrameRate};
-    codecContext->framerate = {targetFrameRate, 1};
-    codecContext->pix_fmt = videoPixelFormat;
-    codecContext->bit_rate = targetBitRate;
+    codecCtx->width = width;
+    codecCtx->height = height;
+    codecCtx->time_base = {1, targetFrameRate};
+    codecCtx->framerate = {targetFrameRate, 1};
+    codecCtx->pix_fmt = videoPixelFormat;
+    codecCtx->bit_rate = targetBitRate;
 
     // Set zero latency
-    codecContext->max_b_frames = 0;
-    codecContext->gop_size = 0;
-    av_opt_set_int(codecContext->priv_data, "zerolatency", 1, 0);
-    av_opt_set_int(codecContext->priv_data, "delay", 0, 0);
+    codecCtx->max_b_frames = 0;
+    codecCtx->gop_size = 0;
+    av_opt_set_int(codecCtx->priv_data, "zerolatency", 1, 0);
+    av_opt_set_int(codecCtx->priv_data, "delay", 0, 0);
 
-    int ret = avcodec_open2(codecContext, outputCodec, nullptr);
+    int ret = avcodec_open2(codecCtx, outputCodec, nullptr);
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't open codec: %s\n", av_err2str(ret));
         throw std::runtime_error("Video Streamer could not be created.");
     }
 
     /* Setup output (to write video to URL) */
-    ret = avformat_alloc_output_context2(&outputFormatContext, nullptr, "mpegts", videoURL.c_str());
+    ret = avformat_alloc_output_context2(&outputFormatCtx, nullptr, "mpegts", videoURL.c_str());
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate output context: %s\n", av_err2str(ret));
         throw std::runtime_error("Video Streamer could not be created.");
     }
 
-    outputVideoStream = avformat_new_stream(outputFormatContext, outputCodec);
+    outputVideoStream = avformat_new_stream(outputFormatCtx, outputCodec);
     if (!outputVideoStream) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not create new video stream.\n");
         throw std::runtime_error("Video Streamer could not be created.");
     }
 
     // Open output URL
-    ret = avio_open(&outputFormatContext->pb, this->videoURL.c_str(), AVIO_FLAG_WRITE);
+    ret = avio_open(&outputFormatCtx->pb, this->videoURL.c_str(), AVIO_FLAG_WRITE);
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Cannot open output URL\n");
         throw std::runtime_error("Video Streamer could not be created.");
     }
 
-    ret = avformat_write_header(outputFormatContext, nullptr);
+    ret = avformat_write_header(outputFormatCtx, nullptr);
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error writing header\n");
         throw std::runtime_error("Video Streamer could not be created.");
     }
 
-    conversionContext = sws_getContext(width, height, openglPixelFormat,
+    conversionCtx = sws_getContext(width, height, openglPixelFormat,
                                        width, height, videoPixelFormat,
                                        SWS_BICUBIC, nullptr, nullptr, nullptr);
-    if (!conversionContext) {
+    if (!conversionCtx) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate conversion context\n");
         throw std::runtime_error("Video Streamer could not be created.");
     }
@@ -88,12 +88,8 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
     frame->format = videoPixelFormat;
     frame->width = width;
     frame->height = height;
-}
 
-void VideoStreamer::sendFrame(unsigned int poseId) {
-    static uint64_t prevTime = av_gettime();
-
-    int ret = av_frame_get_buffer(frame, 0);
+    ret = av_frame_get_buffer(frame, 0);
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate frame data: %s\n", av_err2str(ret));
         return;
@@ -105,6 +101,10 @@ void VideoStreamer::sendFrame(unsigned int poseId) {
         return;
     }
 
+    videoStreamerThread = std::thread(&VideoStreamer::encodeAndSendFrame, this);
+}
+
+void VideoStreamer::sendFrame(unsigned int poseId) {
     /* Copy frame from OpenGL texture to AVFrame (SLOW) */
     {
         uint64_t startCopyTime = av_gettime();
@@ -116,66 +116,87 @@ void VideoStreamer::sendFrame(unsigned int poseId) {
         const uint8_t* srcData[] = { rgbaData };
         int srcStride[] = { static_cast<int>(renderTarget->width * 4) }; // RGBA has 4 bytes per pixel
 
-        sws_scale(conversionContext, srcData, srcStride, 0, renderTarget->height, frame->data, frame->linesize);
+        // lock frame mutex
+        std::lock_guard<std::mutex> lock(frameMutex);
+
+        sws_scale(conversionCtx, srcData, srcStride, 0, renderTarget->height, frame->data, frame->linesize);
+        this->poseId = poseId;
+
+        // tell thread to send frame
+        frameReady = true;
+        cv.notify_one();
 
         stats.timeToCopyFrame = (av_gettime() - startCopyTime) / MICROSECONDS_IN_MILLISECOND;
     }
+}
 
-    /* Encode frame */
-    {
-        uint64_t startEncodeTime = av_gettime();
+void VideoStreamer::encodeAndSendFrame() {
+    static uint64_t prevTime = av_gettime();
 
-        // send frame to encoder
-        ret = avcodec_send_frame(codecContext, frame);
-        if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-            av_log(nullptr, AV_LOG_ERROR, "Error: Could not send frame to output encoder: %s\n", av_err2str(ret));
-            return;
+    int ret;
+    while (true) {
+        // wait for frame to be ready
+        std::unique_lock<std::mutex> lock(frameMutex);
+        cv.wait(lock, [&] { return frameReady; });
+
+        frameReady = false;
+
+        /* Encode frame */
+        {
+            uint64_t startEncodeTime = av_gettime();
+
+            // send frame to encoder
+            ret = avcodec_send_frame(codecCtx, frame);
+            if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+                av_log(nullptr, AV_LOG_ERROR, "Error: Could not send frame to output encoder: %s\n", av_err2str(ret));
+                continue;
+            }
+
+            // get packet from encoder
+            ret = avcodec_receive_packet(codecCtx, packet);
+            if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+                continue;
+            }
+            else if (ret < 0) {
+                av_log(nullptr, AV_LOG_ERROR, "Error: Could not receive frame from encoder: %s\n", av_err2str(ret));
+                continue;
+            }
+
+            packet->pts = poseId; // framesSent * (outputFormatCtx->streams[0]->time_base.den) / targetFrameRate;
+            packet->dts = packet->pts;
+
+            stats.timeToEncode = (av_gettime() - startEncodeTime) / MICROSECONDS_IN_MILLISECOND;
         }
 
-        // get packet from encoder
-        ret = avcodec_receive_packet(codecContext, packet);
-        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-            return;
-        }
-        else if (ret < 0) {
-            av_log(nullptr, AV_LOG_ERROR, "Error: Could not receive frame from encoder: %s\n", av_err2str(ret));
-            return;
+        /* Send frame to output URL */
+        {
+            uint64_t startWriteTime = av_gettime();
+
+            // send packet to output URL
+            ret = av_interleaved_write_frame(outputFormatCtx, packet);
+            if (ret < 0) {
+                av_log(nullptr, AV_LOG_ERROR, "Error writing frame\n");
+                continue;
+            }
+
+            framesSent++;
+
+            stats.timeToSendFrame = (av_gettime() - startWriteTime) / MICROSECONDS_IN_MILLISECOND;
         }
 
-        packet->pts = poseId; // framesSent * (outputFormatContext->streams[0]->time_base.den) / targetFrameRate;
-        packet->dts = packet->pts;
+        uint64_t elapsedTime = (av_gettime() - prevTime);
+        if (elapsedTime < (1.0f / targetFrameRate * MICROSECONDS_IN_MILLISECOND)) {
+            av_usleep((1.0f / targetFrameRate * MICROSECONDS_IN_MILLISECOND) - elapsedTime);
+        }
+        stats.totalTimeToSendFrame = (av_gettime() - prevTime) / MICROSECONDS_IN_MILLISECOND;
 
-        stats.timeToEncode = (av_gettime() - startEncodeTime) / MICROSECONDS_IN_MILLISECOND;
+        prevTime = av_gettime();
     }
-
-    /* Send frame to output URL */
-    {
-        uint64_t startWriteTime = av_gettime();
-
-        // send packet to output URL
-        ret = av_interleaved_write_frame(outputFormatContext, packet);
-        if (ret < 0) {
-            av_log(nullptr, AV_LOG_ERROR, "Error writing frame\n");
-            return;
-        }
-
-        framesSent++;
-
-        stats.timeToSendFrame = (av_gettime() - startWriteTime) / MICROSECONDS_IN_MILLISECOND;
-    }
-
-    uint64_t elapsedTime = (av_gettime() - prevTime);
-    if (elapsedTime < (1.0f / targetFrameRate * MICROSECONDS_IN_MILLISECOND)) {
-        av_usleep((1.0f / targetFrameRate * MICROSECONDS_IN_MILLISECOND) - elapsedTime);
-    }
-    stats.totalTimeToSendFrame = (av_gettime() - prevTime) / MICROSECONDS_IN_MILLISECOND;
-
-    prevTime = av_gettime();
 }
 
 void VideoStreamer::cleanup() {
-    avio_closep(&outputFormatContext->pb);
-    avformat_close_input(&outputFormatContext);
-    avformat_free_context(outputFormatContext);
-    sws_freeContext(conversionContext);
+    avio_closep(&outputFormatCtx->pb);
+    avformat_close_input(&outputFormatCtx);
+    avformat_free_context(outputFormatCtx);
+    sws_freeContext(conversionCtx);
 }

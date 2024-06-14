@@ -10,6 +10,9 @@ extern "C" {
 }
 
 #include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
 #include <RenderTargets/RenderTarget.h>
 
@@ -45,7 +48,7 @@ public:
 
     void setTargetBitRate(unsigned int targetBitRate) {
         this->targetBitRate = targetBitRate;
-        outputFormatContext->bit_rate = targetBitRate;
+        outputFormatCtx->bit_rate = targetBitRate;
     }
 
     void cleanup();
@@ -57,18 +60,27 @@ private:
     AVPixelFormat videoPixelFormat = AV_PIX_FMT_YUV420P;
     AVPixelFormat openglPixelFormat = AV_PIX_FMT_RGBA;
 
-    AVFormatContext* outputFormatContext = nullptr;
-    AVCodecContext* codecContext = nullptr;
+    AVFormatContext* outputFormatCtx = nullptr;
+    AVCodecContext* codecCtx = nullptr;
 
     int videoStreamIndex = -1;
     AVStream* outputVideoStream = nullptr;
 
-    SwsContext* conversionContext;
+    SwsContext* conversionCtx;
 
     RenderTarget* renderTarget;
     uint8_t* rgbaData;
     AVFrame* frame = av_frame_alloc();
     AVPacket* packet = av_packet_alloc();
+
+    unsigned int poseId = -1;
+
+    std::thread videoStreamerThread;
+    std::mutex frameMutex;
+    std::condition_variable cv;
+    bool frameReady = false;
+
+    void encodeAndSendFrame();
 };
 
 #endif // VIDEOSTREAMER_H
