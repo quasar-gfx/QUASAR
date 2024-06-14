@@ -193,7 +193,7 @@ int main(int argc, char** argv) {
 
         // render video frame
         videoTexture.bind();
-        pose_id_t poseId = videoTexture.draw();
+        pose_id_t poseID = videoTexture.draw();
         videoTexture.unbind();
 
         {
@@ -208,7 +208,7 @@ int main(int argc, char** argv) {
             screenShader.setInt("videoTexture", 5);
             videoTexture.bind(5);
 
-            if (poseId != -1 && poseStreamer.getPose(poseId, &currentFramePose, now, &elapedTime)) {
+            if (poseID != -1 && poseStreamer.getPose(poseID, &currentFramePose, now, &elapedTime)) {
                 screenShader.setMat4("remoteProjection", currentFramePose.proj);
                 screenShader.setMat4("remoteView", currentFramePose.view);
             }

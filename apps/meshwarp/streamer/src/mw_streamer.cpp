@@ -189,7 +189,7 @@ int main(int argc, char** argv) {
     remoteCameraFile.write(reinterpret_cast<const char*>(&view), sizeof(glm::mat4));
     remoteCameraFile.close();
 
-    pose_id_t poseId = 0;
+    pose_id_t poseID = 0;
     app.onRender([&](double now, double dt) {
         // handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
@@ -238,7 +238,7 @@ int main(int argc, char** argv) {
         }
 
         // receive pose
-        poseId = poseReceiver.receivePose(false);
+        poseID = poseReceiver.receivePose(false);
 
         // render all objects in scene
         app.renderer->drawObjects(scene, camera);
@@ -254,9 +254,9 @@ int main(int argc, char** argv) {
         app.renderer->drawToRenderTarget(depthShader, renderTargetDepth);
 
         // send video frame
-        if (poseId != -1) {
-            videoStreamerColor.sendFrame(poseId);
-            videoStreamerDepth.sendFrame(poseId);
+        if (poseID != -1) {
+            videoStreamerColor.sendFrame(poseID);
+            videoStreamerDepth.sendFrame(poseID);
         }
     });
 

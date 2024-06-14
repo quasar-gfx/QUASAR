@@ -53,12 +53,12 @@ public:
 
     void cleanup();
 
-    void sendFrame(unsigned int poseId);
+    void sendFrame(unsigned int poseID);
 
 private:
     AVCodecID codecID = AV_CODEC_ID_H264;
     AVPixelFormat videoPixelFormat = AV_PIX_FMT_YUV420P;
-    AVPixelFormat openglPixelFormat = AV_PIX_FMT_RGBA;
+    AVPixelFormat openglPixelFormat = AV_PIX_FMT_RGB24;
 
     AVFormatContext* outputFormatCtx = nullptr;
     AVCodecContext* codecCtx = nullptr;
@@ -69,11 +69,11 @@ private:
     SwsContext* conversionCtx;
 
     RenderTarget* renderTarget;
-    uint8_t* rgbaData;
+    uint8_t* rgbData;
     AVFrame* frame = av_frame_alloc();
     AVPacket* packet = av_packet_alloc();
 
-    unsigned int poseId = -1;
+    unsigned int poseID = -1;
 
     std::thread videoStreamerThread;
     std::mutex frameMutex;

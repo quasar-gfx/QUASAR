@@ -153,7 +153,7 @@ int main(int argc, char** argv) {
     pointLightPositions[2] = scene.pointLights[2]->position;
     pointLightPositions[3] = scene.pointLights[3]->position;
 
-    pose_id_t poseId = 0;
+    pose_id_t poseID = 0;
     app.onRender([&](double now, double dt) {
         // handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
@@ -202,7 +202,7 @@ int main(int argc, char** argv) {
         }
 
         // receive pose
-        poseId = poseReceiver.receivePose();
+        poseID = poseReceiver.receivePose();
 
         // animate lights
         scene.pointLights[0]->setPosition(pointLightPositions[0] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
@@ -220,8 +220,8 @@ int main(int argc, char** argv) {
         app.renderer->drawToRenderTarget(colorShader, renderTarget);
 
         // send video frame
-        if (poseId != -1) {
-            videoStreamer.sendFrame(poseId);
+        if (poseID != -1) {
+            videoStreamer.sendFrame(poseID);
         }
     });
 

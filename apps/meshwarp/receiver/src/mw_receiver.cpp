@@ -277,7 +277,7 @@ int main(int argc, char** argv) {
     remoteCamera.setProjectionMatrix(proj);
     remoteCamera.setViewMatrix(view);
 
-    pose_id_t colorPoseID, depthPoseID;
+    pose_id_t colorposeID, depthposeID;
     Pose currentFramePose;
     std::vector<Vertex> newVertices(numVertices);
     std::vector<unsigned int> newIndices(indexBufferSize);
@@ -327,22 +327,22 @@ int main(int argc, char** argv) {
         // send pose to streamer
         poseStreamer.sendPose(now);
 
-        colorPoseID = videoTextureColor.getPoseID();
-        depthPoseID = videoTextureDepth.getPoseID();
+        colorposeID = videoTextureColor.getposeID();
+        depthposeID = videoTextureDepth.getposeID();
         // make sure color and depth frames are in sync
-        if (colorPoseID != -1 && colorPoseID == depthPoseID) {
+        if (colorposeID != -1 && colorposeID == depthposeID) {
             // render color video frame
             videoTextureColor.bind();
-            colorPoseID = videoTextureColor.draw();
+            colorposeID = videoTextureColor.draw();
             videoTextureColor.unbind();
 
             // render depth video frame
             videoTextureDepth.bind();
-            depthPoseID = videoTextureDepth.draw();
+            depthposeID = videoTextureDepth.draw();
             videoTextureDepth.unbind();
 
             genMeshShader.bind();
-            if (depthPoseID != -1 && poseStreamer.getPose(depthPoseID, &currentFramePose, now, &elapedTime)) {
+            if (depthposeID != -1 && poseStreamer.getPose(depthposeID, &currentFramePose, now, &elapedTime)) {
                 genMeshShader.setMat4("viewInverse", glm::inverse(currentFramePose.view));
                 genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
                 genMeshShader.setFloat("near", remoteCamera.near);

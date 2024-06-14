@@ -82,7 +82,7 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
         throw std::runtime_error("Video Streamer could not be created.");
     }
 
-    rgbaData = new uint8_t[width * height * 4];
+    rgbData = new uint8_t[width * height * 3];
 
     // initialize frame
     frame->format = videoPixelFormat;
@@ -104,30 +104,28 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
     videoStreamerThread = std::thread(&VideoStreamer::encodeAndSendFrame, this);
 }
 
-void VideoStreamer::sendFrame(unsigned int poseId) {
+void VideoStreamer::sendFrame(unsigned int poseID) {
     /* Copy frame from OpenGL texture to AVFrame (SLOW) */
-    {
-        uint64_t startCopyTime = av_gettime();
+    uint64_t startCopyTime = av_gettime();
 
-        renderTarget->bind();
-        glReadPixels(0, 0, renderTarget->width, renderTarget->height, GL_RGBA, GL_UNSIGNED_BYTE, rgbaData);
-        renderTarget->unbind();
+    renderTarget->bind();
+    glReadPixels(0, 0, renderTarget->width, renderTarget->height, GL_RGB, GL_UNSIGNED_BYTE, rgbData);
+    renderTarget->unbind();
 
-        const uint8_t* srcData[] = { rgbaData };
-        int srcStride[] = { static_cast<int>(renderTarget->width * 4) }; // RGBA has 4 bytes per pixel
+    const uint8_t* srcData[] = { rgbData };
+    int srcStride[] = { static_cast<int>(renderTarget->width * 3) }; // RGB has 3 bytes per pixel
 
-        // lock frame mutex
-        std::lock_guard<std::mutex> lock(frameMutex);
+    // lock frame mutex
+    std::lock_guard<std::mutex> lock(frameMutex);
 
-        sws_scale(conversionCtx, srcData, srcStride, 0, renderTarget->height, frame->data, frame->linesize);
-        this->poseId = poseId;
+    sws_scale(conversionCtx, srcData, srcStride, 0, renderTarget->height, frame->data, frame->linesize);
+    this->poseID = poseID;
 
-        // tell thread to send frame
-        frameReady = true;
-        cv.notify_one();
+    // tell thread to send frame
+    frameReady = true;
+    cv.notify_one();
 
-        stats.timeToCopyFrame = (av_gettime() - startCopyTime) / MICROSECONDS_IN_MILLISECOND;
-    }
+    stats.timeToCopyFrame = (av_gettime() - startCopyTime) / MICROSECONDS_IN_MILLISECOND;
 }
 
 void VideoStreamer::encodeAndSendFrame() {
@@ -162,7 +160,7 @@ void VideoStreamer::encodeAndSendFrame() {
                 continue;
             }
 
-            packet->pts = poseId; // framesSent * (outputFormatCtx->streams[0]->time_base.den) / targetFrameRate;
+            packet->pts = poseID; // framesSent * (outputFormatCtx->streams[0]->time_base.den) / targetFrameRate;
             packet->dts = packet->pts;
 
             stats.timeToEncode = (av_gettime() - startEncodeTime) / MICROSECONDS_IN_MILLISECOND;

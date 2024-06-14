@@ -24,7 +24,7 @@ public:
     Camera* camera;
 
     Pose currPose, prevPose;
-    pose_id_t currPoseId = 0;
+    pose_id_t currposeID = 0;
 
     std::map<pose_id_t, Pose> prevPoses;
 
@@ -45,17 +45,17 @@ public:
         return true;
     }
 
-    bool getPose(pose_id_t poseId, Pose* pose, double now, double* elapsedTime = nullptr) {
-        auto res = prevPoses.find(poseId);
+    bool getPose(pose_id_t poseID, Pose* pose, double now, double* elapsedTime = nullptr) {
+        auto res = prevPoses.find(poseID);
         if (res != prevPoses.end()) { // found
             *pose = res->second;
             if (elapsedTime) {
                 *elapsedTime = now - pose->timestamp;
             }
 
-            // delete all poses with id less than poseId
+            // delete all poses with id less than poseID
             for (auto it = prevPoses.begin(); it != prevPoses.end();) {
-                if (it->first < poseId) {
+                if (it->first < poseID) {
                     it = prevPoses.erase(it);
                 }
                 else {
@@ -70,7 +70,7 @@ public:
     }
 
     bool sendPose(double now) {
-        currPose.id = currPoseId;
+        currPose.id = currposeID;
         currPose.proj = camera->getProjectionMatrix();
         currPose.view = camera->getViewMatrix();
         currPose.timestamp = now;
@@ -84,8 +84,8 @@ public:
             return false;
         }
 
-        prevPoses[currPoseId] = currPose;
-        currPoseId++;
+        prevPoses[currposeID] = currPose;
+        currposeID++;
 
         // prevPose.prevViewMatrix = viewMatrix;
 

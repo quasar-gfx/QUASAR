@@ -103,7 +103,7 @@ void VideoTexture::receiveVideo() {
 
     uint64_t prevTime = av_gettime();
 
-    unsigned int poseId = -1;
+    unsigned int poseID = -1;
     AVFrame* frame = av_frame_alloc();
     while (videoReady) {
         uint64_t receiveFrameStartTime = av_gettime();
@@ -121,7 +121,7 @@ void VideoTexture::receiveVideo() {
             continue;
         }
 
-        poseId = packet->pts;
+        poseID = packet->pts;
 
         /* Decode received frame */
         {
@@ -152,7 +152,7 @@ void VideoTexture::receiveVideo() {
             uint64_t resizeStartTime = av_gettime();
 
             frameRGBMutex.lock();
-            frameRGB->opaque = reinterpret_cast<void*>(poseId);
+            frameRGB->opaque = reinterpret_cast<void*>(poseID);
             sws_scale(swsContext, (uint8_t const* const*)frame->data, frame->linesize,
                     0, codecContext->height, frameRGB->data, frameRGB->linesize);
             frameRGBMutex.unlock();
@@ -177,7 +177,7 @@ pose_id_t VideoTexture::draw() {
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, frameRGB->data[0]);
     frameRGBMutex.unlock();
 
-    return getPoseID();
+    return getposeID();
 }
 
 void VideoTexture::cleanup() {
