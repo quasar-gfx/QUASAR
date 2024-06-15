@@ -99,8 +99,8 @@ int main(int argc, char** argv) {
     RenderTarget renderTargetDepth({
         .width = screenWidth,
         .height = screenHeight,
-        .internalFormat = GL_RGBA16,
-        .format = GL_RGBA,
+        .internalFormat = GL_RGB,
+        .format = GL_RGB,
         .type = GL_FLOAT,
         .wrapS = GL_CLAMP_TO_EDGE,
         .wrapT = GL_CLAMP_TO_EDGE,
