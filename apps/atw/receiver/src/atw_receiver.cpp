@@ -106,7 +106,7 @@ int main(int argc, char** argv) {
         ImGui::Separator();
 
         ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoTexture.getFrameRate(), 1000.0f / videoTexture.getFrameRate());
-        ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: %.3f ms", elapedTime * 1000.0f);
+        ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: %.1f ms", elapedTime);
 
         ImGui::Separator();
 
@@ -188,7 +188,7 @@ int main(int argc, char** argv) {
         }
 
         // send pose to streamer
-        poseStreamer.sendPose(now);
+        poseStreamer.sendPose();
 
         // render video frame
         videoTexture.bind();
@@ -207,7 +207,7 @@ int main(int argc, char** argv) {
             screenShader.setInt("videoTexture", 5);
             videoTexture.bind(5);
 
-            if (poseID != -1 && poseStreamer.getPose(poseID, &currentFramePose, now, &elapedTime)) {
+            if (poseID != -1 && poseStreamer.getPose(poseID, &currentFramePose, &elapedTime)) {
                 screenShader.setMat4("remoteProjection", currentFramePose.proj);
                 screenShader.setMat4("remoteView", currentFramePose.view);
             }

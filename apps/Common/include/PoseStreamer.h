@@ -2,6 +2,7 @@
 #define POSE_STREAMER_H
 
 #include <iostream>
+#include <chrono>
 #include <thread>
 #include <cstring>
 #include <map>
@@ -24,7 +25,7 @@ public:
     Camera* camera;
 
     Pose currPose, prevPose;
-    pose_id_t currposeID = 0;
+    pose_id_t currPoseID = 0;
 
     std::map<pose_id_t, Pose> prevPoses;
 
@@ -45,12 +46,16 @@ public:
         return true;
     }
 
-    bool getPose(pose_id_t poseID, Pose* pose, double now, double* elapsedTime = nullptr) {
+    bool getPose(pose_id_t poseID, Pose* pose, double* elapsedTime = nullptr) {
         auto res = prevPoses.find(poseID);
         if (res != prevPoses.end()) { // found
             *pose = res->second;
             if (elapsedTime) {
-                *elapsedTime = now - pose->timestamp;
+                // get unix timestamp in ms
+                std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::system_clock::now().time_since_epoch()
+                );
+                *elapsedTime = ms.count() - pose->timestamp;
             }
 
             // delete all poses with id less than poseID
@@ -69,23 +74,27 @@ public:
         return false;
     }
 
-    bool sendPose(double now) {
-        currPose.id = currposeID;
+    bool sendPose() {
+        currPose.id = currPoseID;
         currPose.proj = camera->getProjectionMatrix();
         currPose.view = camera->getViewMatrix();
-        currPose.timestamp = now;
+        // get unix timestamp in ms
+        std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()
+        );
+        currPose.timestamp = ms.count();
 
-        // if (epsilonEqual(currPose.viewMatrix, prevPose.viewMatrix)) {
-        //     return;
-        // }
+        if (epsilonEqual(currPose.view, prevPose.view)) {
+            return false;
+        }
 
         int bytesSent = socket.send(&currPose, sizeof(Pose), 0);
         if (bytesSent < 0) {
             return false;
         }
 
-        prevPoses[currposeID] = currPose;
-        currposeID++;
+        prevPoses[currPoseID] = currPose;
+        currPoseID++;
 
         // prevPose.prevViewMatrix = viewMatrix;
 
