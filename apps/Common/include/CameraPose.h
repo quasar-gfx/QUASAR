@@ -9,7 +9,7 @@ struct Pose {
     pose_id_t id;
     glm::mat4 proj;
     glm::mat4 view;
-    double timestamp;
+    uint64_t timestamp;
 };
 
 #endif // CAMERA_POSE_H

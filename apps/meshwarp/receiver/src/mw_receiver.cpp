@@ -165,7 +165,7 @@ int main(int argc, char** argv) {
         ImGui::Separator();
 
         ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoTextureColor.getFrameRate(), 1000.0f / videoTextureColor.getFrameRate());
-        ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: %.3f ms", elapedTime * 1000.0f);
+        ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: %.1f ms", elapedTime);
 
         ImGui::Separator();
 
@@ -325,7 +325,7 @@ int main(int argc, char** argv) {
         }
 
         // send pose to streamer
-        poseStreamer.sendPose(now);
+        poseStreamer.sendPose();
 
         // get color and depth frame pose
         colorPoseID = videoTextureColor.getPoseID();
@@ -343,7 +343,7 @@ int main(int argc, char** argv) {
             videoTextureDepth.unbind();
 
             genMeshShader.bind();
-            if (poseStreamer.getPose(depthPoseID, &currentFramePose, now, &elapedTime)) {
+            if (poseStreamer.getPose(depthPoseID, &currentFramePose, &elapedTime)) {
                 genMeshShader.setMat4("viewInverse", glm::inverse(currentFramePose.view));
                 genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
                 genMeshShader.setFloat("near", remoteCamera.near);
