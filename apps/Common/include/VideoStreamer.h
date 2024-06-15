@@ -7,6 +7,9 @@ extern "C" {
 #include <libswscale/swscale.h>
 #include <libavutil/time.h>
 #include <libavutil/opt.h>
+#include <libavutil/hwcontext_cuda.h>
+#include <libavutil/imgutils.h>
+#include <libavutil/avutil.h>
 }
 
 #include <iostream>
@@ -15,6 +18,9 @@ extern "C" {
 #include <condition_variable>
 
 #include <RenderTargets/RenderTarget.h>
+
+#include <cuda_runtime.h>
+#include <cuda_gl_interop.h>
 
 #define MICROSECONDS_IN_SECOND 1e6f
 #define MICROSECONDS_IN_MILLISECOND 1e3f
@@ -57,7 +63,7 @@ public:
 
 private:
     AVCodecID codecID = AV_CODEC_ID_H264;
-    AVPixelFormat videoPixelFormat = AV_PIX_FMT_YUV420P;
+    AVPixelFormat videoPixelFormat = AV_PIX_FMT_0BGR32;
     AVPixelFormat openglPixelFormat = AV_PIX_FMT_RGB24;
 
     AVFormatContext* outputFormatCtx = nullptr;
@@ -67,6 +73,14 @@ private:
     AVStream* outputVideoStream = nullptr;
 
     SwsContext* conversionCtx;
+
+    cudaGraphicsResource* cudaResource;
+    cudaArray* cudaBuffer = nullptr;
+
+    AVBufferRef* deviceCtx;
+    AVBufferRef* cudaDeviceCtx;
+    AVBufferRef* frameCtx;
+    AVBufferRef* cudaFrameCtx;
 
     RenderTarget* renderTarget;
     uint8_t* rgbData;
@@ -80,6 +94,7 @@ private:
     std::condition_variable cv;
     bool frameReady = false;
 
+    int initCuda();
     void encodeAndSendFrame();
 };
 
