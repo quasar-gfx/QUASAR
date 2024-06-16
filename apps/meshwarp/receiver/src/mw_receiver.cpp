@@ -327,17 +327,35 @@ int main(int argc, char** argv) {
         // send pose to streamer
         poseStreamer.sendPose();
 
-        // render color video frame
-        videoTextureColor.bind();
-        colorPoseID = videoTextureColor.draw();
-        videoTextureColor.unbind();
+        colorPoseID = videoTextureColor.getLatestPoseID();
+        depthPoseID = videoTextureDepth.getLatestPoseID();
 
-        // render depth video frame
-        videoTextureDepth.bind();
-        depthPoseID = videoTextureDepth.draw();
-        videoTextureDepth.unbind();
+        // color is behind depth
+        if (colorPoseID < depthPoseID) {
+            // render color video frame
+            videoTextureColor.bind();
+            colorPoseID = videoTextureColor.draw();
+            videoTextureColor.unbind();
 
-        if (depthPoseID != -1  && colorPoseID != -1) {
+            // render depth video frame
+            videoTextureDepth.bind();
+            depthPoseID = videoTextureDepth.draw(colorPoseID);
+            videoTextureDepth.unbind();
+        }
+        // depth is behind color
+        else {
+            // render depth video frame
+            videoTextureDepth.bind();
+            depthPoseID = videoTextureDepth.draw();
+            videoTextureDepth.unbind();
+
+            // render color video frame
+            videoTextureColor.bind();
+            colorPoseID = videoTextureColor.draw(depthPoseID);
+            videoTextureColor.unbind();
+        }
+
+        if (depthPoseID != -1 && colorPoseID == depthPoseID) {
             genMeshShader.bind();
             if (poseStreamer.getPose(depthPoseID, &currentFramePose, &elapedTime)) {
                 genMeshShader.setMat4("viewInverse", glm::inverse(currentFramePose.view));

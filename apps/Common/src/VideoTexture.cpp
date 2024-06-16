@@ -71,15 +71,6 @@ int VideoTexture::initFFMpeg() {
         return ret;
     }
 
-    return 0;
-}
-
-int VideoTexture::initOutputFrame() {
-    int numBytes = av_image_get_buffer_size(openglPixelFormat, width, height, 1);
-    buffer = (uint8_t*)av_malloc(numBytes * sizeof(uint8_t));
-
-    av_image_fill_arrays(frameRGB->data, frameRGB->linesize, buffer, openglPixelFormat, width, height, 1);
-
     swsContext = sws_getContext(codecContext->width, codecContext->height, codecContext->pix_fmt,
                                 width, height, openglPixelFormat,
                                 SWS_BILINEAR, nullptr, nullptr, nullptr);
@@ -93,17 +84,11 @@ void VideoTexture::receiveVideo() {
         return;
     }
 
-    ret = initOutputFrame();
-    if (ret < 0) {
-        return;
-    }
-
     videoReady = true;
 
     uint64_t prevTime = av_gettime();
 
-    unsigned int poseID = -1;
-    AVFrame* frame = av_frame_alloc();
+    pose_id_t poseID = -1;
     while (videoReady) {
         uint64_t receiveFrameStartTime = av_gettime();
 
@@ -150,39 +135,96 @@ void VideoTexture::receiveVideo() {
         {
             uint64_t resizeStartTime = av_gettime();
 
-            frameRGBMutex.lock();
+            AVFrame* frameRGB = av_frame_alloc();
+            int numBytes = av_image_get_buffer_size(openglPixelFormat, width, height, 1);
+            uint8_t* buffer = (uint8_t*)av_malloc(numBytes * sizeof(uint8_t));
+            av_image_fill_arrays(frameRGB->data, frameRGB->linesize, buffer, openglPixelFormat, width, height, 1);
+
             frameRGB->opaque = reinterpret_cast<void*>(poseID);
-            sws_scale(swsContext, (uint8_t const* const*)frame->data, frame->linesize,
-                      0, codecContext->height, frameRGB->data, frameRGB->linesize);
-            frameRGBMutex.unlock();
+
+            sws_scale(swsContext, (uint8_t const* const*)frame->data, frame->linesize, 0, codecContext->height, frameRGB->data, frameRGB->linesize);
+
+            framesMutex.lock();
+
+            frames.push_back(frameRGB);
+            if (frames.size() > maxQueueSize) {
+                av_frame_free(&frames.front());
+                frames.erase(frames.begin());
+            }
+
+            framesMutex.unlock();
 
             stats.timeToResize = (av_gettime() - resizeStartTime) / MICROSECONDS_IN_SECOND;
         }
 
         uint64_t elapsedTime = (av_gettime() - prevTime);
         stats.totalTimeToReceiveFrame = elapsedTime / MICROSECONDS_IN_SECOND;
-        frameReceived++;
+        framesReceived++;
 
         prevTime = av_gettime();
     }
 }
 
-pose_id_t VideoTexture::draw() {
+pose_id_t VideoTexture::draw(pose_id_t poseID) {
     if (!videoReady) {
         return -1;
     }
 
-    pose_id_t poseID = getPoseID();
-
-    if (poseID == prevPoseID) {
-        return poseID;
+    if (frames.empty()) {
+        return -1;
     }
 
-    frameRGBMutex.lock();
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, frameRGB->data[0]);
-    frameRGBMutex.unlock();
+    framesMutex.lock();
 
-    prevPoseID = poseID;
+    AVFrame* frameRGB = nullptr;
+    if (poseID == -1) {
+        frameRGB = frames.back();
+    }
+    else {
+        for (auto it = frames.begin(); it != frames.end(); it++) {
+            if (reinterpret_cast<uintptr_t>((*it)->opaque) == poseID) {
+                frameRGB = *it;
+                break;
+            }
+        }
+    }
+
+    framesMutex.unlock();
+
+    if (frameRGB == nullptr) {
+        return -1;
+    }
+
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, frameRGB->data[0]);
+
+    return static_cast<pose_id_t>(reinterpret_cast<uintptr_t>(frameRGB->opaque));
+}
+
+bool VideoTexture::hasPoseID(pose_id_t poseID) {
+    if (frames.empty()) {
+        return false;
+    }
+
+    for (auto it = frames.begin(); it != frames.end(); it++) {
+        if (reinterpret_cast<uintptr_t>((*it)->opaque) == poseID) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+pose_id_t VideoTexture::getLatestPoseID() {
+    if (frames.empty()) {
+        return -1;
+    }
+
+    pose_id_t poseID;
+
+    framesMutex.lock();
+    AVFrame* frameRGB = frames.front();
+    poseID = static_cast<pose_id_t>(reinterpret_cast<uintptr_t>(frameRGB->opaque));
+    framesMutex.unlock();
 
     return poseID;
 }
@@ -192,5 +234,13 @@ void VideoTexture::cleanup() {
     Texture::cleanup();
     avformat_close_input(&inputFormatContext);
     avformat_free_context(inputFormatContext);
+    avcodec_free_context(&codecContext);
+    sws_freeContext(swsContext);
+    av_frame_free(&frame);
+    av_packet_free(&packet);
+    for (auto it = frames.begin(); it != frames.end(); it++) {
+        av_frame_free(&(*it));
+    }
+    frames.clear();
 }
 

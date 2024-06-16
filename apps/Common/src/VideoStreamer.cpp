@@ -331,4 +331,12 @@ void VideoStreamer::cleanup() {
     avformat_close_input(&outputFormatCtx);
     avformat_free_context(outputFormatCtx);
     sws_freeContext(conversionCtx);
+    avcodec_free_context(&codecCtx);
+    av_buffer_unref(&cudaFrameCtx);
+    av_buffer_unref(&frameCtx);
+    av_buffer_unref(&deviceCtx);
+    cudaGraphicsUnregisterResource(cudaResource);
+    av_frame_free(&frame);
+    av_packet_free(&packet);
+    delete[] rgbData;
 }

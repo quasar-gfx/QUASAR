@@ -10,6 +10,7 @@ extern "C" {
 }
 
 #include <iostream>
+#include <vector>
 #include <thread>
 #include <mutex>
 
@@ -24,11 +25,9 @@ extern "C" {
 
 class VideoTexture : public Texture {
 public:
-    std::string videoURL = "localhost:12345";
+    std::string videoURL = "127.0.0.1:12345";
 
     unsigned int width, height;
-
-    int frameReceived = 0;
 
     struct Stats {
         float timeToReceiveFrame = -1.0f;
@@ -44,20 +43,26 @@ public:
 
     void cleanup();
 
-    pose_id_t draw();
+    pose_id_t draw(pose_id_t poseID = -1);
+    bool hasPoseID(pose_id_t poseID);
+    pose_id_t getLatestPoseID();
 
-    pose_id_t getPoseID() {
-        if (frameRGB == nullptr) {
-            return -1;
-        }
-        return static_cast<pose_id_t>(reinterpret_cast<uintptr_t>(frameRGB->opaque));
+    void setMaxQueueSize(unsigned int maxQueueSize) {
+        this->maxQueueSize = maxQueueSize;
     }
 
     float getFrameRate() {
         return 1.0f / stats.totalTimeToReceiveFrame;
     }
 
+    unsigned int getFramesReceived() {
+        return framesReceived;
+    }
+
 private:
+    unsigned int framesReceived = 0;
+    unsigned int maxQueueSize = 5;
+
     AVPixelFormat openglPixelFormat = AV_PIX_FMT_RGB24;
 
     AVFormatContext* inputFormatContext = nullptr;
@@ -67,21 +72,22 @@ private:
 
     struct SwsContext* swsContext = nullptr;
 
-    AVFrame* frameRGB = av_frame_alloc();
-    uint8_t* buffer = nullptr;
+    AVFrame* frame = av_frame_alloc();
     AVPacket* packet = av_packet_alloc();
+
+    // AVFrame* frameRGB = av_frame_alloc();
+    // uint8_t* buffer = nullptr;
 
     bool videoReady = false;
 
     std::thread videoReceiverThread;
-    std::mutex frameRGBMutex;
+    std::mutex framesMutex;
 
-    pose_id_t prevPoseID;
+    std::vector<AVFrame*> frames;
 
     void receiveVideo();
 
     int initFFMpeg();
-    int initOutputFrame();
 };
 
 #endif // VIDEO_RECEIVER_H
