@@ -75,15 +75,14 @@ int VideoTexture::initFFMpeg() {
 }
 
 int VideoTexture::initOutputFrame() {
-    frameRGB = av_frame_alloc();
-
     int numBytes = av_image_get_buffer_size(openglPixelFormat, width, height, 1);
     buffer = (uint8_t*)av_malloc(numBytes * sizeof(uint8_t));
 
     av_image_fill_arrays(frameRGB->data, frameRGB->linesize, buffer, openglPixelFormat, width, height, 1);
 
     swsContext = sws_getContext(codecContext->width, codecContext->height, codecContext->pix_fmt,
-                                width, height, openglPixelFormat, SWS_BILINEAR, nullptr, nullptr, nullptr);
+                                width, height, openglPixelFormat,
+                                SWS_BILINEAR, nullptr, nullptr, nullptr);
 
     return 0;
 }
@@ -154,7 +153,7 @@ void VideoTexture::receiveVideo() {
             frameRGBMutex.lock();
             frameRGB->opaque = reinterpret_cast<void*>(poseID);
             sws_scale(swsContext, (uint8_t const* const*)frame->data, frame->linesize,
-                    0, codecContext->height, frameRGB->data, frameRGB->linesize);
+                      0, codecContext->height, frameRGB->data, frameRGB->linesize);
             frameRGBMutex.unlock();
 
             stats.timeToResize = (av_gettime() - resizeStartTime) / MICROSECONDS_IN_SECOND;
@@ -173,11 +172,19 @@ pose_id_t VideoTexture::draw() {
         return -1;
     }
 
+    pose_id_t poseID = getPoseID();
+
+    if (poseID == prevPoseID) {
+        return poseID;
+    }
+
     frameRGBMutex.lock();
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, frameRGB->data[0]);
     frameRGBMutex.unlock();
 
-    return getPoseID();
+    prevPoseID = poseID;
+
+    return poseID;
 }
 
 void VideoTexture::cleanup() {

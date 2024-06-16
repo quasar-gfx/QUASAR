@@ -128,7 +128,6 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
     codecCtx->height = height;
     codecCtx->time_base = {1, targetFrameRate};
     codecCtx->framerate = {targetFrameRate, 1};
-    codecCtx->pix_fmt = AV_PIX_FMT_CUDA;
     codecCtx->bit_rate = targetBitRate;
 
     // Set zero latency
@@ -170,8 +169,8 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
     }
 
     conversionCtx = sws_getContext(width, height, openglPixelFormat,
-                                       width, height, videoPixelFormat,
-                                       SWS_BICUBIC, nullptr, nullptr, nullptr);
+                                   width, height, videoPixelFormat,
+                                   SWS_BICUBIC, nullptr, nullptr, nullptr);
     if (!conversionCtx) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate conversion context\n");
         throw std::runtime_error("Video Streamer could not be created.");

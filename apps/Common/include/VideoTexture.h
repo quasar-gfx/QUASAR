@@ -67,7 +67,7 @@ private:
 
     struct SwsContext* swsContext = nullptr;
 
-    AVFrame* frameRGB = nullptr;
+    AVFrame* frameRGB = av_frame_alloc();
     uint8_t* buffer = nullptr;
     AVPacket* packet = av_packet_alloc();
 
@@ -75,6 +75,8 @@ private:
 
     std::thread videoReceiverThread;
     std::mutex frameRGBMutex;
+
+    pose_id_t prevPoseID;
 
     void receiveVideo();
 
