@@ -10,7 +10,7 @@ extern "C" {
 }
 
 #include <iostream>
-#include <vector>
+#include <deque>
 #include <atomic>
 #include <thread>
 #include <mutex>
@@ -45,7 +45,7 @@ public:
     void cleanup();
 
     pose_id_t draw(pose_id_t poseID = -1);
-    bool hasPoseID(pose_id_t poseID);
+    bool getFrameWithPoseID(pose_id_t poseID, AVFrame* res = nullptr);
     pose_id_t getLatestPoseID();
 
     void setMaxQueueSize(unsigned int maxQueueSize) {
@@ -85,7 +85,8 @@ private:
     std::thread videoReceiverThread;
     std::mutex framesMutex;
 
-    std::vector<AVFrame*> frames;
+    uint8_t* buffer = nullptr;
+    std::deque<AVFrame*> frames;
 
     void receiveVideo();
 

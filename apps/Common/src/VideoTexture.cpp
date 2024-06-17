@@ -84,6 +84,9 @@ int VideoTexture::initFFMpeg() {
                             width, height, openglPixelFormat,
                             SWS_BILINEAR, nullptr, nullptr, nullptr);
 
+    int numBytes = av_image_get_buffer_size(openglPixelFormat, width, height, 1);
+    buffer = (uint8_t*)av_malloc(numBytes * sizeof(uint8_t));
+
     return 0;
 }
 
@@ -123,9 +126,12 @@ void VideoTexture::receiveVideo() {
             // send packet to decoder
             ret = avcodec_send_packet(codecCtx, packet);
             if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+                av_packet_unref(packet);
                 av_log(nullptr, AV_LOG_ERROR, "Error: Could not send packet to input decoder: %s\n", av_err2str(ret));
                 return;
             }
+
+            av_packet_unref(packet);
 
             // get frame from decoder
             ret = avcodec_receive_frame(codecCtx, frame);
@@ -145,8 +151,6 @@ void VideoTexture::receiveVideo() {
             uint64_t resizeStartTime = av_gettime();
 
             AVFrame* frameRGB = av_frame_alloc();
-            int numBytes = av_image_get_buffer_size(openglPixelFormat, width, height, 1);
-            uint8_t* buffer = (uint8_t*)av_malloc(numBytes * sizeof(uint8_t));
             av_image_fill_arrays(frameRGB->data, frameRGB->linesize, buffer, openglPixelFormat, width, height, 1);
 
             frameRGB->opaque = reinterpret_cast<void*>(poseID);
@@ -157,8 +161,9 @@ void VideoTexture::receiveVideo() {
 
             frames.push_back(frameRGB);
             if (frames.size() > maxQueueSize) {
-                av_frame_free(&frames.front());
-                frames.erase(frames.begin());
+                AVFrame* frameToFree = frames.front();
+                av_frame_free(&frameToFree);
+                frames.pop_front();
             }
 
             framesMutex.unlock();
@@ -209,13 +214,16 @@ pose_id_t VideoTexture::draw(pose_id_t poseID) {
     return static_cast<pose_id_t>(reinterpret_cast<uintptr_t>(frameRGB->opaque));
 }
 
-bool VideoTexture::hasPoseID(pose_id_t poseID) {
+bool VideoTexture::getFrameWithPoseID(pose_id_t poseID, AVFrame* res) {
     if (frames.empty()) {
         return false;
     }
 
     for (auto it = frames.begin(); it != frames.end(); it++) {
         if (reinterpret_cast<uintptr_t>((*it)->opaque) == poseID) {
+            if (res != nullptr) {
+                res = *it;
+            }
             return true;
         }
     }
@@ -252,12 +260,16 @@ void VideoTexture::cleanup() {
     avformat_free_context(inputFormatCtx);
 
     av_frame_free(&frame);
+    av_packet_unref(packet);
     av_packet_free(&packet);
 
-    for (auto it = frames.begin(); it != frames.end(); it++) {
-        av_frame_free(&(*it));
+    av_free(buffer);
+
+    while (!frames.empty()) {
+        AVFrame* frameToFree = frames.front();
+        av_frame_free(&frameToFree);
+        frames.pop_front();
     }
-    frames.clear();
 
     Texture::cleanup();
 }
