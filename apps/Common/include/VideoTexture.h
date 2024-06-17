@@ -11,6 +11,7 @@ extern "C" {
 
 #include <iostream>
 #include <vector>
+#include <atomic>
 #include <thread>
 #include <mutex>
 
@@ -65,12 +66,12 @@ private:
 
     AVPixelFormat openglPixelFormat = AV_PIX_FMT_RGB24;
 
-    AVFormatContext* inputFormatContext = nullptr;
-    AVCodecContext* codecContext = nullptr;
+    AVFormatContext* inputFormatCtx = avformat_alloc_context();
+    AVCodecContext* codecCtx = nullptr;
 
     int videoStreamIndex = -1;
 
-    struct SwsContext* swsContext = nullptr;
+    struct SwsContext* swsCtx = nullptr;
 
     AVFrame* frame = av_frame_alloc();
     AVPacket* packet = av_packet_alloc();
@@ -78,7 +79,8 @@ private:
     // AVFrame* frameRGB = av_frame_alloc();
     // uint8_t* buffer = nullptr;
 
-    bool videoReady = false;
+    std::atomic_bool videoReady = false;
+    bool shouldTerminate = false;
 
     std::thread videoReceiverThread;
     std::mutex framesMutex;

@@ -3,23 +3,10 @@
 #undef av_err2str
 #define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
 
-inline CUdevice findCudaDevice() {
-    int deviceCount = 0;
-    cudaGetDeviceCount(&deviceCount);
-
-    if (deviceCount == 0) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: No CUDA devices found\n");
-        return -1;
-    }
-
-    CUdevice device;
-
-    char name[100];
-    cuDeviceGet(&device, 0);
-    cuDeviceGetName(name, 100, device);
-    av_log(nullptr, AV_LOG_INFO, "CUDA Device: %s\n", name);
-
-    return device;
+static int interrupt_callback(void* ctx) {
+    bool* shouldTerminatePtr = (bool*)ctx;
+    bool shouldTerminate = (shouldTerminatePtr != nullptr) ? *shouldTerminatePtr : false;
+    return shouldTerminate;
 }
 
 VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &videoURL)
@@ -35,9 +22,9 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
     }
 
     /* init ffmpeg device */
-    this->deviceCtx = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_CUDA);
-    AVHWDeviceContext *hwdev_ctx = (AVHWDeviceContext*)deviceCtx->data;
-    auto cuda_hwdev_ctx = (AVCUDADeviceContext*)hwdev_ctx->hwctx;
+    deviceCtx = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_CUDA);
+    AVHWDeviceContext *hwdevCtx = (AVHWDeviceContext*)deviceCtx->data;
+    auto cudaHwdevCtx = (AVCUDADeviceContext*)hwdevCtx->hwctx;
 
     CUcontext cuCtx;
     CUresult cuRes = cuCtxGetCurrent(&cuCtx);
@@ -46,8 +33,8 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
         throw std::runtime_error("Error: Couldn't get current CUDA context");
     }
 
-    cuda_hwdev_ctx->cuda_ctx = cuCtx;
-    cuda_hwdev_ctx->stream = nullptr;
+    cudaHwdevCtx->cuda_ctx = cuCtx;
+    cudaHwdevCtx->stream = nullptr;
 
     ret = av_hwdevice_ctx_init(deviceCtx);
     if (ret < 0) {
@@ -149,6 +136,9 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
         throw std::runtime_error("Video Streamer could not be created.");
     }
 
+    outputFormatCtx->interrupt_callback.callback = interrupt_callback;
+    outputFormatCtx->interrupt_callback.opaque = &shouldTerminate;
+
     outputVideoStream = avformat_new_stream(outputFormatCtx, outputCodec);
     if (!outputVideoStream) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not create new video stream.\n");
@@ -168,10 +158,10 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
         throw std::runtime_error("Video Streamer could not be created.");
     }
 
-    conversionCtx = sws_getContext(width, height, openglPixelFormat,
+    swsCtx = sws_getContext(width, height, openglPixelFormat,
                                    width, height, videoPixelFormat,
                                    SWS_BICUBIC, nullptr, nullptr, nullptr);
-    if (!conversionCtx) {
+    if (!swsCtx) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate conversion context\n");
         throw std::runtime_error("Video Streamer could not be created.");
     }
@@ -190,7 +180,26 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
         throw std::runtime_error("Error: Couldn't allocate frame data");
     }
 
-    videoStreamerThread = std::thread(&VideoStreamer::encodeAndSendFrame, this);
+    videoStreamerThread = std::thread(&VideoStreamer::encodeAndSendFrames, this);
+}
+
+CUdevice VideoStreamer::findCudaDevice() {
+    int deviceCount = 0;
+    cudaGetDeviceCount(&deviceCount);
+
+    if (deviceCount == 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: No CUDA devices found\n");
+        return -1;
+    }
+
+    CUdevice device;
+
+    char name[100];
+    cuDeviceGet(&device, 0);
+    cuDeviceGetName(name, 100, device);
+    av_log(nullptr, AV_LOG_INFO, "CUDA Device: %s\n", name);
+
+    return device;
 }
 
 int VideoStreamer::initCuda() {
@@ -214,13 +223,6 @@ void VideoStreamer::sendFrame(unsigned int poseID) {
     /* Copy frame from OpenGL texture to AVFrame (SLOW) */
     uint64_t startCopyTime = av_gettime();
 
-    // renderTarget->bind();
-    // glReadPixels(0, 0, renderTarget->width, renderTarget->height, GL_RGB, GL_UNSIGNED_BYTE, rgbData);
-    // renderTarget->unbind();
-
-    // const uint8_t* srcData[] = { rgbData };
-    // int srcStride[] = { static_cast<int>(renderTarget->width * 3) }; // RGB has 3 bytes per pixel
-
     cudaErr = cudaGraphicsMapResources(1, &cudaResource);
     if (cudaErr != cudaSuccess) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't map CUDA resources: %s\n", cudaGetErrorString(cudaErr));
@@ -236,11 +238,18 @@ void VideoStreamer::sendFrame(unsigned int poseID) {
     // lock frame mutex
     std::lock_guard<std::mutex> lock(frameMutex);
 
-    // sws_scale(conversionCtx, srcData, srcStride, 0, renderTarget->height, frame->data, frame->linesize);
+    // renderTarget->bind();
+    // glReadPixels(0, 0, renderTarget->width, renderTarget->height, GL_RGB, GL_UNSIGNED_BYTE, rgbData);
+    // renderTarget->unbind();
+
+    // const uint8_t* srcData[] = { rgbData };
+    // int srcStride[] = { static_cast<int>(renderTarget->width * 3) }; // RGB has 3 bytes per pixel
+
+    // sws_scale(swsCtx, srcData, srcStride, 0, renderTarget->height, frame->data, frame->linesize);
 
     cudaErr = cudaMemcpy2DFromArray(frame->data[0], frame->linesize[0],
-                                    cudaBuffer, 0, 0,
-                                    width * 4, height,
+                                    cudaBuffer,
+                                    0, 0, width * 4, height,
                                     cudaMemcpyDeviceToHost);
     if (cudaErr != cudaSuccess) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't copy CUDA buffer: %s\n", cudaGetErrorString(cudaErr));
@@ -262,8 +271,10 @@ void VideoStreamer::sendFrame(unsigned int poseID) {
     stats.timeToCopyFrame = (av_gettime() - startCopyTime) / MICROSECONDS_IN_MILLISECOND;
 }
 
-void VideoStreamer::encodeAndSendFrame() {
-    static uint64_t prevTime = av_gettime();
+void VideoStreamer::encodeAndSendFrames() {
+    sendFrames = true;
+
+    uint64_t prevTime = av_gettime();
 
     int ret;
     while (true) {
@@ -271,7 +282,12 @@ void VideoStreamer::encodeAndSendFrame() {
         std::unique_lock<std::mutex> lock(frameMutex);
         cv.wait(lock, [&] { return frameReady; });
 
-        frameReady = false;
+        if (sendFrames) {
+            frameReady = false;
+        }
+        else {
+            break;
+        }
 
         /* Encode frame */
         {
@@ -327,16 +343,29 @@ void VideoStreamer::encodeAndSendFrame() {
 }
 
 void VideoStreamer::cleanup() {
+    shouldTerminate = true;
+    sendFrames = false;
+
+    // send dummy frame to unblock thread
+    frameReady = true;
+    cv.notify_all();
+
+    if (videoStreamerThread.joinable()) {
+        videoStreamerThread.join();
+    }
+
     avio_closep(&outputFormatCtx->pb);
     avformat_close_input(&outputFormatCtx);
     avformat_free_context(outputFormatCtx);
-    sws_freeContext(conversionCtx);
-    avcodec_free_context(&codecCtx);
-    av_buffer_unref(&cudaFrameCtx);
-    av_buffer_unref(&frameCtx);
-    av_buffer_unref(&deviceCtx);
-    cudaGraphicsUnregisterResource(cudaResource);
+
+    cudaDeviceSynchronize();
+    cudaError_t cudaErr = cudaGraphicsUnregisterResource(cudaResource);
+    if (cudaErr != cudaSuccess) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't unregister CUDA resource: %s\n", cudaGetErrorString(cudaErr));
+    }
+
     av_frame_free(&frame);
     av_packet_free(&packet);
+
     delete[] rgbData;
 }

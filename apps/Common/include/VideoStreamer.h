@@ -13,6 +13,7 @@ extern "C" {
 }
 
 #include <iostream>
+#include <atomic>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
@@ -46,7 +47,9 @@ public:
     } stats;
 
     explicit VideoStreamer(RenderTarget* renderTarget, const std::string &videoURL);
-    ~VideoStreamer() = default;
+    ~VideoStreamer() {
+        cleanup();
+    }
 
     float getFrameRate() {
         return 1000.0f / stats.totalTimeToSendFrame;
@@ -62,6 +65,8 @@ public:
     void sendFrame(unsigned int poseID);
 
 private:
+    unsigned int poseID = -1;
+
     AVCodecID codecID = AV_CODEC_ID_H264;
     AVPixelFormat videoPixelFormat = AV_PIX_FMT_0BGR32;
     AVPixelFormat openglPixelFormat = AV_PIX_FMT_RGB24;
@@ -72,30 +77,32 @@ private:
     int videoStreamIndex = -1;
     AVStream* outputVideoStream = nullptr;
 
-    SwsContext* conversionCtx;
+    SwsContext* swsCtx = nullptr;
 
     cudaGraphicsResource* cudaResource;
     cudaArray* cudaBuffer = nullptr;
 
-    AVBufferRef* deviceCtx;
-    AVBufferRef* cudaDeviceCtx;
-    AVBufferRef* frameCtx;
-    AVBufferRef* cudaFrameCtx;
+    AVBufferRef* deviceCtx = nullptr;
+    AVBufferRef* cudaDeviceCtx = nullptr;
+    AVBufferRef* frameCtx = nullptr;
+    AVBufferRef* cudaFrameCtx = nullptr;
 
     RenderTarget* renderTarget;
     uint8_t* rgbData;
     AVFrame* frame = av_frame_alloc();
     AVPacket* packet = av_packet_alloc();
 
-    unsigned int poseID = -1;
-
     std::thread videoStreamerThread;
     std::mutex frameMutex;
     std::condition_variable cv;
     bool frameReady = false;
 
+    std::atomic_bool sendFrames = false;
+    bool shouldTerminate = false;
+
+    CUdevice findCudaDevice();
     int initCuda();
-    void encodeAndSendFrame();
+    void encodeAndSendFrames();
 };
 
 #endif // VIDEOSTREAMER_H

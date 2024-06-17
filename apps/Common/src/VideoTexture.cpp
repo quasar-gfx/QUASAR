@@ -5,6 +5,12 @@
 #undef av_err2str
 #define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
 
+static int interrupt_callback(void* ctx) {
+    bool* shouldTerminatePtr = (bool*)ctx;
+    bool shouldTerminate = (shouldTerminatePtr != nullptr) ? *shouldTerminatePtr : false;
+    return shouldTerminate;
+}
+
 VideoTexture::VideoTexture(const TextureCreateParams &params, const std::string &videoURL)
         : Texture(params)
         , width(params.width)
@@ -18,24 +24,27 @@ int VideoTexture::initFFMpeg() {
 
     std::cout << "Waiting to receive video..." << std::endl;
 
+    inputFormatCtx->interrupt_callback.callback = interrupt_callback;
+    inputFormatCtx->interrupt_callback.opaque = &shouldTerminate;
+
     /* Setup input (to read video from url) */
-    int ret = avformat_open_input(&inputFormatContext, videoURL.c_str(), nullptr, nullptr); // blocking
+    int ret = avformat_open_input(&inputFormatCtx, videoURL.c_str(), nullptr, nullptr); // blocking
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Cannot open input URL: %s\n", av_err2str(ret));
         return ret;
     }
 
-    ret = avformat_find_stream_info(inputFormatContext, nullptr);
+    ret = avformat_find_stream_info(inputFormatCtx, nullptr);
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Cannot find stream info: %s\n", av_err2str(ret));
         return ret;
     }
 
     // find the video stream index
-    for (int i = 0; i < inputFormatContext->nb_streams; i++) {
-        if (inputFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+    for (int i = 0; i < inputFormatCtx->nb_streams; i++) {
+        if (inputFormatCtx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
             videoStreamIndex = i;
-            inputVideoStream = inputFormatContext->streams[i];
+            inputVideoStream = inputFormatCtx->streams[i];
             break;
         }
     }
@@ -53,27 +62,27 @@ int VideoTexture::initFFMpeg() {
         return -1;
     }
 
-    codecContext = avcodec_alloc_context3(inputCodec);
-    if (!codecContext) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate codec context.\n");
+    codecCtx = avcodec_alloc_context3(inputCodec);
+    if (!codecCtx) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate codec Ctx.\n");
         return -1;
     }
 
-    ret = avcodec_parameters_to_context(codecContext, inputVideoStream->codecpar);
+    ret = avcodec_parameters_to_context(codecCtx, inputVideoStream->codecpar);
     if (ret < 0) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't copy codec parameters to context: %s\n", av_err2str(ret));
+        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't copy codec parameters to Ctx: %s\n", av_err2str(ret));
         return ret;
     }
 
-    ret = avcodec_open2(codecContext, inputCodec, nullptr);
+    ret = avcodec_open2(codecCtx, inputCodec, nullptr);
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't open codec: %s\n", av_err2str(ret));
         return ret;
     }
 
-    swsContext = sws_getContext(codecContext->width, codecContext->height, codecContext->pix_fmt,
-                                width, height, openglPixelFormat,
-                                SWS_BILINEAR, nullptr, nullptr, nullptr);
+    swsCtx = sws_getContext(codecCtx->width, codecCtx->height, codecCtx->pix_fmt,
+                            width, height, openglPixelFormat,
+                            SWS_BILINEAR, nullptr, nullptr, nullptr);
 
     return 0;
 }
@@ -93,7 +102,7 @@ void VideoTexture::receiveVideo() {
         uint64_t receiveFrameStartTime = av_gettime();
 
         // read frame from URL
-        int ret = av_read_frame(inputFormatContext, packet);
+        int ret = av_read_frame(inputFormatCtx, packet);
         if (ret < 0) {
             av_log(nullptr, AV_LOG_ERROR, "Error reading frame: %s\n", av_err2str(ret));
             return;
@@ -112,14 +121,14 @@ void VideoTexture::receiveVideo() {
             uint64_t decodeStartTime = av_gettime();
 
             // send packet to decoder
-            ret = avcodec_send_packet(codecContext, packet);
+            ret = avcodec_send_packet(codecCtx, packet);
             if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                 av_log(nullptr, AV_LOG_ERROR, "Error: Could not send packet to input decoder: %s\n", av_err2str(ret));
                 return;
             }
 
             // get frame from decoder
-            ret = avcodec_receive_frame(codecContext, frame);
+            ret = avcodec_receive_frame(codecCtx, frame);
             if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                 continue;
             }
@@ -142,7 +151,7 @@ void VideoTexture::receiveVideo() {
 
             frameRGB->opaque = reinterpret_cast<void*>(poseID);
 
-            sws_scale(swsContext, (uint8_t const* const*)frame->data, frame->linesize, 0, codecContext->height, frameRGB->data, frameRGB->linesize);
+            sws_scale(swsCtx, (uint8_t const* const*)frame->data, frame->linesize, 0, codecCtx->height, frameRGB->data, frameRGB->linesize);
 
             framesMutex.lock();
 
@@ -230,17 +239,26 @@ pose_id_t VideoTexture::getLatestPoseID() {
 }
 
 void VideoTexture::cleanup() {
-    videoReceiverThread.join();
-    Texture::cleanup();
-    avformat_close_input(&inputFormatContext);
-    avformat_free_context(inputFormatContext);
-    avcodec_free_context(&codecContext);
-    sws_freeContext(swsContext);
+    shouldTerminate = true;
+    videoReady = false;
+
+    if (videoReceiverThread.joinable()) {
+        videoReceiverThread.join();
+    }
+
+    avcodec_free_context(&codecCtx);
+
+    avformat_close_input(&inputFormatCtx);
+    avformat_free_context(inputFormatCtx);
+
     av_frame_free(&frame);
     av_packet_free(&packet);
+
     for (auto it = frames.begin(); it != frames.end(); it++) {
         av_frame_free(&(*it));
     }
     frames.clear();
+
+    Texture::cleanup();
 }
 

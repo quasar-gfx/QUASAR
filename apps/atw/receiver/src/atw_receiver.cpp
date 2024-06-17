@@ -220,9 +220,5 @@ int main(int argc, char** argv) {
     // run app loop (blocking)
     app.run();
 
-    std::cout << "Please do CTRL-C to exit!" << std::endl;
-
-    videoTexture.cleanup();
-
     return 0;
 }
