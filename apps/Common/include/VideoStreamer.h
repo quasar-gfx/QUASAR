@@ -7,9 +7,11 @@ extern "C" {
 #include <libswscale/swscale.h>
 #include <libavutil/time.h>
 #include <libavutil/opt.h>
-#include <libavutil/hwcontext_cuda.h>
 #include <libavutil/imgutils.h>
 #include <libavutil/avutil.h>
+#ifndef __APPLE__
+#include <libavutil/hwcontext_cuda.h>
+#endif
 }
 
 #include <iostream>
@@ -20,8 +22,10 @@ extern "C" {
 
 #include <RenderTargets/RenderTarget.h>
 
+#ifndef __APPLE__
 #include <cuda_runtime.h>
 #include <cuda_gl_interop.h>
+#endif
 
 #define MICROSECONDS_IN_SECOND 1e6f
 #define MICROSECONDS_IN_MILLISECOND 1e3f
@@ -79,6 +83,7 @@ private:
 
     SwsContext* swsCtx = nullptr;
 
+#ifndef __APPLE__
     cudaGraphicsResource* cudaResource;
     cudaArray* cudaBuffer = nullptr;
 
@@ -86,6 +91,7 @@ private:
     AVBufferRef* cudaDeviceCtx = nullptr;
     AVBufferRef* frameCtx = nullptr;
     AVBufferRef* cudaFrameCtx = nullptr;
+#endif
 
     RenderTarget* renderTarget;
     uint8_t* rgbData;
@@ -100,8 +106,10 @@ private:
     std::atomic_bool sendFrames = false;
     bool shouldTerminate = false;
 
+#ifndef __APPLE__
     CUdevice findCudaDevice();
     int initCuda();
+#endif
     void encodeAndSendFrames();
 };
 

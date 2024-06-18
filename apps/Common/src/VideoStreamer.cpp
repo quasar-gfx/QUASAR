@@ -16,6 +16,7 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
         , videoURL("udp://" + videoURL) {
     int ret;
 
+#ifndef __APPLE__
     ret = initCuda();
     if (ret < 0) {
         throw std::runtime_error("Error: Couldn't initialize CUDA");
@@ -86,6 +87,7 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
     }
 
     this->cudaFrameCtx = cuda_frame_ref;
+#endif
 
     /* Setup codec to encode output (video to URL) */
 #ifdef __APPLE__
@@ -108,9 +110,13 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
         throw std::runtime_error("Video Streamer could not be created.");
     }
 
+#ifndef __APPLE__
     codecCtx->pix_fmt = AV_PIX_FMT_CUDA;
     codecCtx->sw_pix_fmt = videoPixelFormat;
     codecCtx->hw_frames_ctx = av_buffer_ref(cudaFrameCtx);
+#else
+    codecCtx->pix_fmt = videoPixelFormat;
+#endif
     codecCtx->width = width;
     codecCtx->height = height;
     codecCtx->time_base = {1, targetFrameRate};
@@ -169,6 +175,7 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
     rgbData = new uint8_t[width * height * 3];
 
     /* setup frame */
+#ifndef __APPLE__
     frame->format = AV_PIX_FMT_CUDA;
     frame->width = width;
     frame->height = height;
@@ -179,10 +186,28 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate frame data: %s\n", av_err2str(ret));
         throw std::runtime_error("Error: Couldn't allocate frame data");
     }
+#else
+    frame->format = videoPixelFormat;
+    frame->width = width;
+    frame->height = height;
+
+    ret = av_frame_get_buffer(frame, 0);
+    if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate frame data: %s\n", av_err2str(ret));
+        return;
+    }
+
+    ret = av_frame_make_writable(frame);
+    if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Could not make frame writable: %s\n", av_err2str(ret));
+        return;
+    }
+#endif
 
     videoStreamerThread = std::thread(&VideoStreamer::encodeAndSendFrames, this);
 }
 
+#ifndef __APPLE__
 CUdevice VideoStreamer::findCudaDevice() {
     int deviceCount = 0;
     cudaGetDeviceCount(&deviceCount);
@@ -216,12 +241,14 @@ int VideoStreamer::initCuda() {
 
     return 0;
 }
+#endif
 
 void VideoStreamer::sendFrame(unsigned int poseID) {
-    cudaError_t cudaErr;
-
-    /* Copy frame from OpenGL texture to AVFrame (SLOW) */
+    /* Copy frame from OpenGL texture to AVFrame */
     uint64_t startCopyTime = av_gettime();
+
+#ifndef __APPLE__
+    cudaError_t cudaErr;
 
     cudaErr = cudaGraphicsMapResources(1, &cudaResource);
     if (cudaErr != cudaSuccess) {
@@ -234,19 +261,12 @@ void VideoStreamer::sendFrame(unsigned int poseID) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't get CUDA buffer: %s\n", cudaGetErrorString(cudaErr));
         return;
     }
+#endif
 
     // lock frame mutex
     std::lock_guard<std::mutex> lock(frameMutex);
 
-    // renderTarget->bind();
-    // glReadPixels(0, 0, renderTarget->width, renderTarget->height, GL_RGB, GL_UNSIGNED_BYTE, rgbData);
-    // renderTarget->unbind();
-
-    // const uint8_t* srcData[] = { rgbData };
-    // int srcStride[] = { static_cast<int>(renderTarget->width * 3) }; // RGB has 3 bytes per pixel
-
-    // sws_scale(swsCtx, srcData, srcStride, 0, renderTarget->height, frame->data, frame->linesize);
-
+#ifndef __APPLE__
     cudaErr = cudaMemcpy2DFromArray(frame->data[0], frame->linesize[0],
                                     cudaBuffer,
                                     0, 0, width * 4, height,
@@ -255,6 +275,16 @@ void VideoStreamer::sendFrame(unsigned int poseID) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't copy CUDA buffer: %s\n", cudaGetErrorString(cudaErr));
         return;
     }
+#else
+    renderTarget->bind();
+    glReadPixels(0, 0, renderTarget->width, renderTarget->height, GL_RGB, GL_UNSIGNED_BYTE, rgbData);
+    renderTarget->unbind();
+
+    const uint8_t* srcData[] = { rgbData };
+    int srcStride[] = { static_cast<int>(renderTarget->width * 3) }; // RGB has 3 bytes per pixel
+
+    sws_scale(swsCtx, srcData, srcStride, 0, renderTarget->height, frame->data, frame->linesize);
+#endif
 
     this->poseID = poseID;
 
@@ -262,11 +292,13 @@ void VideoStreamer::sendFrame(unsigned int poseID) {
     frameReady = true;
     cv.notify_one();
 
+#ifndef __APPLE__
     cudaErr = cudaGraphicsUnmapResources(1, &cudaResource);
     if (cudaErr != cudaSuccess) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't unmap CUDA resources: %s\n", cudaGetErrorString(cudaErr));
         return;
     }
+#endif
 
     stats.timeToCopyFrame = (av_gettime() - startCopyTime) / MICROSECONDS_IN_MILLISECOND;
 }
@@ -361,11 +393,13 @@ void VideoStreamer::cleanup() {
     avformat_close_input(&outputFormatCtx);
     avformat_free_context(outputFormatCtx);
 
+#ifndef __APPLE__
     cudaDeviceSynchronize();
     cudaError_t cudaErr = cudaGraphicsUnregisterResource(cudaResource);
     if (cudaErr != cudaSuccess) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't unregister CUDA resource: %s\n", cudaGetErrorString(cudaErr));
     }
+#endif
 
     av_frame_free(&frame);
     av_packet_unref(packet);
