@@ -112,7 +112,6 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
 
 #ifndef __APPLE__
     codecCtx->pix_fmt = AV_PIX_FMT_CUDA;
-    codecCtx->sw_pix_fmt = videoPixelFormat;
     codecCtx->hw_frames_ctx = av_buffer_ref(cudaFrameCtx);
 #else
     codecCtx->pix_fmt = videoPixelFormat;

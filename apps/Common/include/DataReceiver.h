@@ -15,9 +15,9 @@ public:
 
     SocketUDP socket;
 
-    unsigned int maxDataSize;
+    int maxDataSize;
 
-    explicit DataReceiver(std::string url, unsigned int maxDataSize, bool nonBlocking = true)
+    explicit DataReceiver(std::string url, int maxDataSize, bool nonBlocking = true)
             : url(url)
             , maxDataSize(maxDataSize)
             , socket(nonBlocking) {
@@ -79,7 +79,7 @@ private:
     std::deque<uint8_t *> results;
 
     std::map<data_id_t, std::map<packet_id_t, DataPacket>> datas;
-    std::map<data_id_t, unsigned int> dataSizes;
+    std::map<data_id_t, int> dataSizes;
 
     int recvPacket(DataPacket* packet) {
         return socket.recv(packet, sizeof(DataPacket), 0);
@@ -92,13 +92,13 @@ private:
                 continue;
             }
 
-            datas[packet.ID][packet.dataID] = packet;
-            dataSizes[packet.ID] += packet.size;
+            datas[packet.dataID][packet.ID] = packet;
+            dataSizes[packet.dataID] += packet.size;
 
-            if (dataSizes[packet.ID] == maxDataSize) {
+            if (dataSizes[packet.dataID] == maxDataSize) {
                 uint8_t* data = new uint8_t[maxDataSize];
-                unsigned int offset = 0;
-                for (auto& p : datas[packet.ID]) {
+                int offset = 0;
+                for (auto& p : datas[packet.dataID]) {
                     memcpy(data + offset, p.second.data, p.second.size);
                     offset += p.second.size;
                 }
@@ -107,8 +107,8 @@ private:
                 results.push_back(data);
                 m.unlock();
 
-                datas.erase(packet.ID);
-                dataSizes.erase(packet.ID);
+                datas.erase(packet.dataID);
+                dataSizes.erase(packet.dataID);
             }
         }
     }
