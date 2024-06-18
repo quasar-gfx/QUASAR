@@ -78,8 +78,8 @@ private:
 
     std::deque<uint8_t *> results;
 
-    std::map<packet_id_t, std::map<packet_id_t, DataPacket>> datas;
-    std::map<packet_id_t, unsigned int> dataSizes;
+    std::map<data_id_t, std::map<packet_id_t, DataPacket>> datas;
+    std::map<data_id_t, unsigned int> dataSizes;
 
     int recvPacket(DataPacket* packet) {
         return socket.recv(packet, sizeof(DataPacket), 0);

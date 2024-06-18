@@ -16,8 +16,6 @@ public:
 
     SocketUDP socket;
 
-    packet_id_t dataID = 0;
-
     int maxDataSize;
 
     std::queue<DataPacket> packets;
@@ -77,6 +75,8 @@ private:
     bool dataReady = false;
 
     std::atomic_bool running = false;
+
+    packet_id_t dataID = 0;
 
     int sendPacket(DataPacket* packet) {
         return socket.send(packet, sizeof(DataPacket), 0);

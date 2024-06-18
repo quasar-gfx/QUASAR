@@ -72,7 +72,11 @@ private:
     unsigned int poseID = -1;
 
     AVCodecID codecID = AV_CODEC_ID_H264;
+#ifndef __APPLE__
     AVPixelFormat videoPixelFormat = AV_PIX_FMT_0BGR32;
+#else
+    AVPixelFormat videoPixelFormat = AV_PIX_FMT_YUV420P;
+#endif
     AVPixelFormat openglPixelFormat = AV_PIX_FMT_RGB24;
 
     AVFormatContext* outputFormatCtx = nullptr;

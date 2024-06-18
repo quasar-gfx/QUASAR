@@ -58,14 +58,14 @@ The streamer should render, encode, and stream its output frames to the receiver
 
 Build MeshWarp sample:
 
-To run meshing:
+To run streamer:
 ```
 # in out directory
 cd apps/meshwarp/streamer
 ./mw_streamer -w <width> -h <height> -s <optional path to scene json file>
 ```
 
-In a new terminal, to run meshingviz:
+In a new terminal, to run receiver:
 ```
 # in out directory
 cd apps/meshwarp/receiver
