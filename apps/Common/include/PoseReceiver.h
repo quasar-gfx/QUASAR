@@ -11,6 +11,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <Camera.h>
+#include <DataReceiver.h>
 
 #include <CameraPose.h>
 
@@ -18,7 +19,7 @@ class PoseReceiver {
 public:
     std::string streamerURL;
 
-    SocketUDP socket;
+    DataReceiver receiver;
 
     Camera* camera;
     Pose currPose;
@@ -26,16 +27,16 @@ public:
     explicit PoseReceiver(Camera* camera, std::string streamerURL)
             : camera(camera)
             , streamerURL(streamerURL)
-            , socket(true) {
-        socket.setRecvSize(sizeof(Pose));
-        socket.bind(streamerURL);
-    }
+            , receiver(streamerURL, sizeof(Pose)) { }
 
-    unsigned int receivePose(bool setProj = true) {
-        int bytesReceived = socket.recv(&currPose, sizeof(Pose), 0);
-        if (bytesReceived < 0) {
-            return -1; // throw std::runtime_error("Failed to receive data");
+    pose_id_t receivePose(bool setProj = true) {
+        uint8_t* data = receiver.recv();
+        if (data == nullptr) {
+            return -1;
         }
+
+        memcpy(&currPose, data, sizeof(Pose));
+        delete[] data;
 
         if (setProj) {
             camera->setProjectionMatrix(currPose.proj);

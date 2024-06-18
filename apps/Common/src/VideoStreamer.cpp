@@ -351,7 +351,7 @@ void VideoStreamer::cleanup() {
 
     // send dummy frame to unblock thread
     frameReady = true;
-    cv.notify_all();
+    cv.notify_one();
 
     if (videoStreamerThread.joinable()) {
         videoStreamerThread.join();

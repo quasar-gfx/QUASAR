@@ -13,6 +13,7 @@
 #include <glm/gtc/epsilon.hpp>
 
 #include <Camera.h>
+#include <DataStreamer.h>
 
 #include <CameraPose.h>
 
@@ -20,7 +21,7 @@ class PoseStreamer {
 public:
     std::string receiverURL;
 
-    SocketUDP socket;
+    DataStreamer streamer;
 
     Camera* camera;
 
@@ -32,9 +33,7 @@ public:
     explicit PoseStreamer(Camera* camera, std::string receiverURL)
             : camera(camera)
             , receiverURL(receiverURL)
-            , socket(true) {
-        socket.setAddress(receiverURL);
-    }
+            , streamer(receiverURL, sizeof(Pose)) { }
 
     bool epsilonEqual(const glm::mat4& mat1, const glm::mat4& mat2, float epsilon = 0.001f) {
         for (int i = 0; i < 4; i++) {
@@ -46,16 +45,20 @@ public:
         return true;
     }
 
+    int getCurrTimeMillis() {
+        // get unix timestamp in ms
+        std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()
+        );
+        return ms.count();
+    }
+
     bool getPose(pose_id_t poseID, Pose* pose, double* elapsedTime = nullptr) {
         auto res = prevPoses.find(poseID);
         if (res != prevPoses.end()) { // found
             *pose = res->second;
             if (elapsedTime) {
-                // get unix timestamp in ms
-                std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                        std::chrono::system_clock::now().time_since_epoch()
-                );
-                *elapsedTime = ms.count() - pose->timestamp;
+                *elapsedTime = getCurrTimeMillis() - pose->timestamp;
             }
 
             // delete all poses with id less than poseID
@@ -78,27 +81,20 @@ public:
         currPose.id = currPoseID;
         currPose.proj = camera->getProjectionMatrix();
         currPose.view = camera->getViewMatrix();
-        // get unix timestamp in ms
-        std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::system_clock::now().time_since_epoch()
-        );
-        currPose.timestamp = ms.count();
+        currPose.timestamp = getCurrTimeMillis();
 
         if (epsilonEqual(currPose.view, prevPose.view)) {
             return false;
         }
 
-        int bytesSent = socket.send(&currPose, sizeof(Pose), 0);
-        if (bytesSent < 0) {
-            return false;
-        }
+        streamer.send((uint8_t*)&currPose);
 
         prevPoses[currPoseID] = currPose;
         currPoseID++;
 
         // prevPose.prevViewMatrix = viewMatrix;
 
-        return bytesSent >= 0;
+        return true;
     }
 };
 
