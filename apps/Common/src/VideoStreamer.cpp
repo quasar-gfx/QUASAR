@@ -59,8 +59,7 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
 
     auto hwframeCtx = reinterpret_cast<AVHWFramesContext*>(frameCtx->data);
     hwframeCtx->format = AV_PIX_FMT_CUDA;
-    // hwframeCtx->sw_format = AV_PIX_FMT_BGRA;
-    hwframeCtx->sw_format = videoPixelFormat;
+    hwframeCtx->sw_format = bufferPixelFormat;
     hwframeCtx->width = renderTarget->width;
     hwframeCtx->height = renderTarget->height;
     hwframeCtx->initial_pool_size = 0;
@@ -73,9 +72,7 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
     }
     auto cudaHwframeCtx = reinterpret_cast<AVHWFramesContext*>(cuda_frame_ref->data);
     cudaHwframeCtx->format = AV_PIX_FMT_CUDA;
-    // cudaHwframeCtx->sw_format = AV_PIX_FMT_BGRA;
-    cudaHwframeCtx->sw_format = videoPixelFormat;
-    // cudaHwframeCtx->sw_format = AV_PIX_FMT_YUV420P; //Try YUV420P
+    cudaHwframeCtx->sw_format = bufferPixelFormat;
     cudaHwframeCtx->width = renderTarget->width;
     cudaHwframeCtx->height = renderTarget->height;
     cudaHwframeCtx->initial_pool_size = 0;
@@ -163,21 +160,23 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
         throw std::runtime_error("Video Streamer could not be created.");
     }
 
-    swsCtx = sws_getContext(width, height, openglPixelFormat,
-                                   width, height, videoPixelFormat,
-                                   SWS_BICUBIC, nullptr, nullptr, nullptr);
+#ifdef __APPLE__
+    swsCtx = sws_getContext(width, height, bufferPixelFormat,
+                            width, height, videoPixelFormat,
+                            SWS_BICUBIC, nullptr, nullptr, nullptr);
     if (!swsCtx) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate conversion context\n");
         throw std::runtime_error("Video Streamer could not be created.");
     }
 
     rgbData = new uint8_t[width * height * 3];
+#endif
 
     /* setup frame */
-#ifndef __APPLE__
-    frame->format = AV_PIX_FMT_CUDA;
     frame->width = width;
     frame->height = height;
+#ifndef __APPLE__
+    frame->format = AV_PIX_FMT_CUDA;
     frame->hw_frames_ctx = av_buffer_ref(cudaFrameCtx);
 
     ret = av_hwframe_get_buffer(cudaFrameCtx, frame, 0);
@@ -187,9 +186,6 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
     }
 #else
     frame->format = videoPixelFormat;
-    frame->width = width;
-    frame->height = height;
-
     ret = av_frame_get_buffer(frame, 0);
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate frame data: %s\n", av_err2str(ret));
@@ -352,7 +348,7 @@ void VideoStreamer::encodeAndSendFrames() {
             uint64_t startWriteTime = av_gettime();
 
             // send packet to output URL
-            ret = av_interleaved_write_frame(outputFormatCtx, packet);
+            ret = av_write_frame(outputFormatCtx, packet);
             if (ret < 0) {
                 av_packet_unref(packet);
                 av_log(nullptr, AV_LOG_ERROR, "Error writing frame\n");

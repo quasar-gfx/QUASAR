@@ -73,11 +73,11 @@ private:
 
     AVCodecID codecID = AV_CODEC_ID_H264;
 #ifndef __APPLE__
-    AVPixelFormat videoPixelFormat = AV_PIX_FMT_0BGR32;
+    AVPixelFormat bufferPixelFormat = AV_PIX_FMT_RGBA;
 #else
-    AVPixelFormat videoPixelFormat = AV_PIX_FMT_YUV420P;
+    AVPixelFormat bufferPixelFormat = AV_PIX_FMT_RGB24;
 #endif
-    AVPixelFormat openglPixelFormat = AV_PIX_FMT_RGB24;
+    AVPixelFormat videoPixelFormat = AV_PIX_FMT_YUV420P;
 
     AVFormatContext* outputFormatCtx = nullptr;
     AVCodecContext* codecCtx = nullptr;
