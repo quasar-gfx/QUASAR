@@ -19,7 +19,7 @@ class PoseReceiver {
 public:
     std::string streamerURL;
 
-    DataReceiver receiver;
+    DataReceiverUDP receiver;
 
     Camera* camera;
     Pose currPose;

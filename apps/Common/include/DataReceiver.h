@@ -3,21 +3,22 @@
 
 #include <map>
 #include <deque>
+#include <queue>
 #include <atomic>
 #include <thread>
+
+#include <signal.h>
 
 #include <DataPacket.h>
 #include <Socket.h>
 
-class DataReceiver {
+class DataReceiverUDP {
 public:
     std::string url;
 
-    SocketUDP socket;
-
     int maxDataSize;
 
-    explicit DataReceiver(std::string url, int maxDataSize, bool nonBlocking = true)
+    explicit DataReceiverUDP(std::string url, int maxDataSize, bool nonBlocking = false)
             : url(url)
             , maxDataSize(maxDataSize)
             , socket(nonBlocking) {
@@ -25,9 +26,9 @@ public:
         socket.bind(url);
 
         running = true;
-        dataRecvingThread = std::thread(&DataReceiver::recvData, this);
+        dataRecvingThread = std::thread(&DataReceiverUDP::recvData, this);
     }
-    ~DataReceiver() {
+    ~DataReceiverUDP() {
         close();
     }
 
@@ -71,6 +72,8 @@ public:
     }
 
 private:
+    SocketUDP socket;
+
     std::thread dataRecvingThread;
     std::mutex m;
 
@@ -88,8 +91,11 @@ private:
     void recvData() {
         while (running) {
             DataPacket packet{};
-            if (recvPacket(&packet) < 0) {
-                continue;
+            int received = recvPacket(&packet);
+            if (received < 0) {
+                if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                    continue; // Retry if the socket is non-blocking and recv would block
+                }
             }
 
             datas[packet.dataID][packet.ID] = packet;
@@ -110,6 +116,86 @@ private:
                 datas.erase(packet.dataID);
                 dataSizes.erase(packet.dataID);
             }
+        }
+    }
+};
+
+class DataReceiverTCP {
+public:
+    std::string url;
+
+    int maxDataSize;
+
+    explicit DataReceiverTCP(std::string url, int maxDataSize, bool nonBlocking = false)
+            : url(url)
+            , maxDataSize(maxDataSize)
+            , socket(nonBlocking) {
+        dataRecvingThread = std::thread(&DataReceiverTCP::recvData, this);
+    }
+    ~DataReceiverTCP() {
+        close();
+    }
+
+    void close() {
+        ready = false;
+
+        if (dataRecvingThread.joinable()) {
+            dataRecvingThread.join();
+        }
+
+        socket.close();
+    }
+
+    uint8_t* recv() {
+        if (!ready) {
+            return nullptr;
+        }
+
+        if (frames.empty()) {
+            return nullptr;
+        }
+
+        uint8_t* data = frames.front();
+        frames.pop();
+
+        return data;
+    }
+
+private:
+    SocketTCP socket;
+
+    std::thread dataRecvingThread;
+
+    std::atomic_bool ready = false;
+
+    std::queue<uint8_t*> frames;
+
+    void recvData() {
+        while (!ready) {
+            if (socket.connect(url) < 0) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+            else {
+                ready = true;
+                break;
+            }
+        }
+
+        while (ready) {
+            uint8_t* data = new uint8_t[maxDataSize];
+            int currSize = 0;
+            while (currSize < maxDataSize) {
+                int received = socket.recv(data + currSize, maxDataSize - currSize, 0);
+                if (received < 0) {
+                    if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                        continue; // Retry if the socket is non-blocking and recv would block
+                    }
+                }
+
+                currSize += received;
+            }
+
+            frames.push(data);
         }
     }
 };

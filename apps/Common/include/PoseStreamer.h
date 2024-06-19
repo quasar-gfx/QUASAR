@@ -21,7 +21,7 @@ class PoseStreamer {
 public:
     std::string receiverURL;
 
-    DataStreamer streamer;
+    DataStreamerUDP streamer;
 
     Camera* camera;
 
@@ -93,10 +93,10 @@ public:
         prevPoses[currPoseID] = currPose;
         currPoseID++;
 
-        // prevPose.prevViewMatrix = viewMatrix;
-
         return true;
     }
+
+    int timer = 0;
 };
 
 #endif // POSE_STREAMER_H

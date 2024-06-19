@@ -1,5 +1,5 @@
-#ifndef DATA_STREAMER_H
-#define DATA_STREAMER_H
+#ifndef DATA_STREAMER_UDP_H
+#define DATA_STREAMER_UDP_H
 
 #include <thread>
 #include <atomic>
@@ -10,26 +10,22 @@
 #include <DataPacket.h>
 #include <Socket.h>
 
-class DataStreamer {
+class DataStreamerUDP {
 public:
     std::string url;
 
-    SocketUDP socket;
-
     int maxDataSize;
 
-    std::queue<DataPacket> packets;
-
-    explicit DataStreamer(std::string url, int maxDataSize, bool nonBlocking = true)
+    explicit DataStreamerUDP(std::string url, int maxDataSize, bool nonBlocking = false)
             : url(url)
             , maxDataSize(maxDataSize)
             , socket(nonBlocking) {
         socket.setAddress(url);
 
         running = true;
-        dataSendingThread = std::thread(&DataStreamer::sendData, this);
+        dataSendingThread = std::thread(&DataStreamerUDP::sendData, this);
     }
-    ~DataStreamer() {
+    ~DataStreamerUDP() {
         close();
     }
 
@@ -69,6 +65,8 @@ public:
     }
 
 private:
+    SocketUDP socket;
+
     std::thread dataSendingThread;
     std::mutex m;
     std::condition_variable cv;
@@ -77,6 +75,8 @@ private:
     std::atomic_bool running = false;
 
     packet_id_t dataID = 0;
+
+    std::queue<DataPacket> packets;
 
     int sendPacket(DataPacket* packet) {
         return socket.send(packet, sizeof(DataPacket), 0);
@@ -95,10 +95,95 @@ private:
             }
 
             DataPacket packet = packets.front();
-            sendPacket(&packet);
+            int sent = sendPacket(&packet);
+            if (sent < 0) {
+                if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                    continue; // Retry if the socket is non-blocking and send would block
+                }
+            }
             packets.pop();
         }
     }
 };
 
-#endif // DATA_STREAMER_H
+class DataStreamerTCP {
+public:
+    std::string url;
+
+    int maxDataSize;
+
+    explicit DataStreamerTCP(std::string url, int maxDataSize, bool nonBlocking = false, int sendSize = 65535)
+            : url(url)
+            , maxDataSize(maxDataSize)
+            , socket(nonBlocking) {
+        socket.bind(url);
+        socket.setSendSize(sendSize);
+        socket.listen(1);
+
+        dataSendingThread = std::thread(&DataStreamerTCP::sendData, this);
+    }
+    ~DataStreamerTCP() {
+        close();
+    }
+
+    void close() {
+        ready = false;
+
+        if (dataSendingThread.joinable()) {
+            dataSendingThread.join();
+        }
+
+        socket.close();
+    }
+
+    int send(const uint8_t* data) {
+        if (!ready) {
+            return -1;
+        }
+
+        uint8_t* dataCopy = new uint8_t[maxDataSize];
+        memcpy(dataCopy, data, maxDataSize);
+        datas.push(dataCopy);
+
+        return maxDataSize;
+    }
+
+private:
+    SocketTCP socket;
+
+    std::thread dataSendingThread;
+
+    std::atomic_bool ready = false;
+
+    std::queue<uint8_t*> datas;
+
+    void sendData() {
+        while (true) {
+            if (socket.accept() < 0) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+            else {
+                ready = true;
+                break;
+            }
+        }
+
+        while (ready) {
+            if (datas.empty()) {
+                continue;
+            }
+
+            uint8_t* data = datas.front();
+            datas.pop();
+
+            int sent = socket.send(data, maxDataSize, 0);
+            if (sent < 0) {
+                if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                    continue; // Retry if the socket is non-blocking and send would block
+                }
+            }
+        }
+    }
+};
+
+#endif // DATA_STREAMER_UDP_H
