@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include <args.hxx>
 #include <imgui/imgui.h>
 
 #include <Shaders/Shader.h>
@@ -46,45 +47,42 @@ int main(int argc, char** argv) {
     config.openglMajorVersion = 4;
     config.openglMinorVersion = 3;
 
-    std::string videoURL = "0.0.0.0:12345";
-    std::string depthURL = "0.0.0.0:65432";
-    std::string poseURL = "127.0.0.1:54321";
-    int surfelSize = 4;
     RenderState renderState = RenderState::MESH;
-    for (int i = 1; i < argc; i++) {
-        if (!strcmp(argv[i], "-w") && i + 1 < argc) {
-            config.width = atoi(argv[i + 1]);
-            i++;
-        }
-        else if (!strcmp(argv[i], "-h") && i + 1 < argc) {
-            config.height = atoi(argv[i + 1]);
-            i++;
-        }
-        else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
-            config.enableVSync = atoi(argv[i + 1]);
-            i++;
-        }
-        else if (!strcmp(argv[i], "-ss") && i + 1 < argc) {
-            surfelSize = atoi(argv[i + 1]);
-            i++;
-        }
-        else if (!strcmp(argv[i], "-pc") && i + 1 < argc) {
-            renderState = RenderState::POINTCLOUD;
-            i++;
-        }
-        else if (!strcmp(argv[i], "-wf") && i + 1 < argc) {
-            renderState = RenderState::WIREFRAME;
-            i++;
-        }
-        else if (!strcmp(argv[i], "-p") && i + 1 < argc) {
-            poseURL = argv[i + 1];
-            i++;
-        }
-        else if (!strcmp(argv[i], "-e") && i + 1 < argc) {
-            depthURL = argv[i + 1];
-            i++;
-        }
+
+    args::ArgumentParser parser(config.title);
+    args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
+    args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
+    args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'i', "scene"}, "../assets/scenes/sponza.json");
+    args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
+    args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 8);
+    args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "0.0.0.0:12345");
+    args::ValueFlag<std::string> depthURLIn(parser, "depth", "Depth URL", {'e', "depth-url"}, "0.0.0.0:65432");
+    args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "127.0.0.1:54321");
+    try {
+        parser.ParseCLI(argc, argv);
+    } catch (args::Help) {
+        std::cout << parser;
+        return 0;
+    } catch (args::ParseError e) {
+        std::cerr << e.what() << std::endl;
+        std::cerr << parser;
+        return 1;
     }
+
+    // parse size
+    std::string sizeStr = args::get(sizeIn);
+    size_t pos = sizeStr.find("x");
+    config.width = std::stoi(sizeStr.substr(0, pos));
+    config.height = std::stoi(sizeStr.substr(pos + 1));
+
+    config.enableVSync = args::get(vsyncIn);
+
+    std::string scenePath = args::get(scenePathIn);
+    std::string videoURL = args::get(videoURLIn);
+    std::string depthURL = args::get(depthURLIn);
+    std::string poseURL = args::get(poseURLIn);
+
+    int surfelSize = args::get(surfelSizeIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);

@@ -47,27 +47,38 @@ public:
 
     explicit SceneLoader() = default;
 
-    bool loadScene(const std::string &filename, Scene &scene, Camera &camera) {
-        auto size = getFileSize(filename);
-        if (size <= 0) {
-            return false;
+    void loadScene(const std::string &filename, Scene &scene, Camera &camera) {
+        std::ifstream sceneFile;
+
+        // ensure ifstream objects can throw exceptions
+        sceneFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+
+        try {
+            sceneFile.open(filename);
+
+            std::stringstream sceneStream;
+            sceneStream << sceneFile.rdbuf();
+            sceneFile.close();
+
+            auto size = getFileSize(filename);
+            if (size <= 0) {
+                throw std::runtime_error("Scene file is empty " + filename);
+            }
+
+            std::string sceneJSON = sceneStream.str();
+
+            JsonParser parser;
+            if (!parser.readJson(sceneJSON.data(), size)) {
+                throw std::runtime_error("Failed to parse scene file " + filename);
+            }
+
+            std::cout << "Loading scene: " << filename << std::endl;
+
+            jsmntok_t* tokens = parser.getTokens();
+            parse(tokens, 0, sceneJSON.data(), scene, camera);
+        } catch (std::ifstream::failure e) {
+            throw std::runtime_error("Failed to read scene file " + filename);
         }
-
-        std::ifstream in(filename, std::ifstream::binary | std::ifstream::in);
-        std::vector<char> json(static_cast<unsigned long>(size));
-        if (!in.read(json.data(), size)) {
-            return false;
-        }
-
-        JsonParser parser;
-        if (!parser.readJson(json.data(), size)) {
-            return false;
-        }
-
-        jsmntok_t* tokens = parser.getTokens();
-        int i = parse(tokens, 0, json.data(), scene, camera);
-
-        return i >= 0;
     }
 
 private:

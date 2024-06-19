@@ -31,10 +31,10 @@ Run test app:
 ```
 # in out directory
 cd apps/test
-./test -w <width> -h <height> -s <path to scene json file>
+./test -size 2048x2048 --scene ../assets/scenes/sponza.json
 ```
 
-## ATW
+## Asynchronous Time Warp (ATW)
 
 Build ATW sample:
 
@@ -42,17 +42,15 @@ To run streamer:
 ```
 # in out directory
 cd apps/atw/streamer
-./atw_streamer -w <width> -h <height> -o <client's ip address>:<client's port> -s <optional path to scene json file>
+./atw_streamer --size 2048x2048 --scene ../assets/scenes/sponza.json --display 1
 ```
 
 In a new terminal, to run receiver:
 ```
 # in out directory
 cd apps/atw/receiver
-./atw_receiver -w <width> -h <height> -p <server's ip address>:<server's port>
+./atw_receiver --size 2048x2048
 ```
-
-The streamer should render, encode, and stream its output frames to the receiver, which displays in its opengl window with a locally rendered background scene.
 
 ## MeshWarp
 
@@ -62,12 +60,12 @@ To run streamer:
 ```
 # in out directory
 cd apps/meshwarp/streamer
-./mw_streamer -w <width> -h <height> -s <optional path to scene json file>
+./mw_streamer --size 2048x2048 --scene ../assets/scenes/sponza.json --display 1
 ```
 
 In a new terminal, to run receiver:
 ```
 # in out directory
 cd apps/meshwarp/receiver
-./mw_receiver -w <width> -h <height>
+./mw_receiver --size 2048x2048
 ```
