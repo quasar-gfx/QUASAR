@@ -117,6 +117,8 @@ int main(int argc, char** argv) {
     std::cout << "Pose URL: " << poseURL << std::endl;
 
     bool paused = false;
+    bool pauseColor = false;
+    bool pauseDepth = false;
     guiManager->onRender([&](double now, double dt) {
         ImGui::NewFrame();
 
@@ -153,6 +155,8 @@ int main(int argc, char** argv) {
         ImGui::Separator();
 
         ImGui::Checkbox("Pause", &paused);
+        ImGui::Checkbox("Pause Color", &pauseColor);
+        ImGui::Checkbox("Pause Depth", &pauseDepth);
 
         ImGui::End();
     });
@@ -267,8 +271,8 @@ int main(int argc, char** argv) {
 
         // send video frame
         if (poseID != -1) {
-            videoStreamerColor.sendFrame(poseID);
-            videoStreamerDepth.sendFrame(poseID);
+            if (!pauseColor) videoStreamerColor.sendFrame(poseID);
+            if (!pauseDepth) videoStreamerDepth.sendFrame(poseID);
         }
     });
 

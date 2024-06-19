@@ -61,20 +61,21 @@ public:
                 *elapsedTime = getCurrTimeMillis() - pose->timestamp;
             }
 
-            // delete all poses with id less than poseID
-            for (auto it = prevPoses.begin(); it != prevPoses.end();) {
-                if (it->first < poseID) {
-                    it = prevPoses.erase(it);
-                }
-                else {
-                    ++it;
-                }
-            }
-
             return true;
         }
 
         return false;
+    }
+
+    void removePosesLessThan(pose_id_t poseID) {
+        for (auto it = prevPoses.begin(); it != prevPoses.end();) {
+            if (it->first < poseID) {
+                it = prevPoses.erase(it);
+            }
+            else {
+                ++it;
+            }
+        }
     }
 
     bool sendPose() {

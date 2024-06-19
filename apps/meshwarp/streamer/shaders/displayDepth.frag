@@ -21,5 +21,5 @@ void main() {
 
     float depth = texture(screenDepth, uv).r;
     depth = LinearizeDepth(depth) / far;
-    FragColor = vec4(vec3(depth), 1.0f);
+    FragColor = vec4(vec3(depth), 1.0);
 }

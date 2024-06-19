@@ -26,6 +26,14 @@
 
 const std::string DATA_PATH = "../streamer/";
 
+struct ResultVertex {
+    glm::vec3 position;
+    int padding1;
+    glm::vec2 texCoords;
+    int padding2;
+    int padding3;
+};
+
 enum class RenderState {
     MESH,
     POINTCLOUD,
@@ -219,7 +227,7 @@ int main(int argc, char** argv) {
     int numVertices = width * height * VERTICES_IN_A_QUAD;
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(glm::vec4), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(ResultVertex), nullptr, GL_STATIC_DRAW);
 
     GLuint indexBuffer;
     int numTriangles = width * height * 2;
@@ -278,7 +286,7 @@ int main(int argc, char** argv) {
     remoteCamera.setViewMatrix(view);
 
     pose_id_t colorPoseID, depthPoseID;
-    Pose currentFramePose;
+    Pose currentColorFramePose, currentDepthFramePose;
     std::vector<Vertex> newVertices(numVertices);
     std::vector<unsigned int> newIndices(indexBufferSize);
     app.onRender([&](double now, double dt) {
@@ -327,42 +335,29 @@ int main(int argc, char** argv) {
         // send pose to streamer
         poseStreamer.sendPose();
 
-        colorPoseID = videoTextureColor.getLatestPoseID();
-        depthPoseID = videoTextureDepth.getLatestPoseID();
+        // render color video frame
+        videoTextureColor.bind();
+        colorPoseID = videoTextureColor.draw();
+        videoTextureColor.unbind();
 
-        // color is behind depth
-        if (colorPoseID < depthPoseID) {
-            // render color video frame
-            videoTextureColor.bind();
-            colorPoseID = videoTextureColor.draw();
-            videoTextureColor.unbind();
+        // render depth video frame
+        videoTextureDepth.bind();
+        depthPoseID = videoTextureDepth.draw();
+        videoTextureDepth.unbind();
 
-            // render depth video frame
-            videoTextureDepth.bind();
-            depthPoseID = videoTextureDepth.draw(colorPoseID);
-            videoTextureDepth.unbind();
-        }
-        // depth is behind color
-        else {
-            // render depth video frame
-            videoTextureDepth.bind();
-            depthPoseID = videoTextureDepth.draw();
-            videoTextureDepth.unbind();
+        if (depthPoseID != -1 && colorPoseID != -1) {
+            poseStreamer.getPose(colorPoseID, &currentColorFramePose, &elapedTime);
+            poseStreamer.getPose(depthPoseID, &currentDepthFramePose, &elapedTime);
 
-            // render color video frame
-            videoTextureColor.bind();
-            colorPoseID = videoTextureColor.draw(depthPoseID);
-            videoTextureColor.unbind();
-        }
+            poseStreamer.removePosesLessThan(std::min(colorPoseID, depthPoseID));
 
-        if (depthPoseID != -1 && colorPoseID == depthPoseID) {
             genMeshShader.bind();
-            if (poseStreamer.getPose(depthPoseID, &currentFramePose, &elapedTime)) {
-                genMeshShader.setMat4("viewInverse", glm::inverse(currentFramePose.view));
-                genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
-                genMeshShader.setFloat("near", remoteCamera.near);
-                genMeshShader.setFloat("far", remoteCamera.far);
-            }
+            genMeshShader.setMat4("viewColor", currentColorFramePose.view);
+            genMeshShader.setMat4("viewInverseDepth", glm::inverse(currentDepthFramePose.view));
+            genMeshShader.setMat4("projection", remoteCamera.getProjectionMatrix());
+            genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+            genMeshShader.setFloat("near", remoteCamera.near);
+            genMeshShader.setFloat("far", remoteCamera.far);
             videoTextureDepth.bind(0);
             genMeshShader.dispatch(width, height, 1);
             genMeshShader.unbind();
@@ -370,7 +365,7 @@ int main(int argc, char** argv) {
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
             GLvoid* pBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
             if (pBuffer) {
-                glm::vec4* pVertices = static_cast<glm::vec4*>(pBuffer);
+                ResultVertex* pVertices = static_cast<ResultVertex*>(pBuffer);
 
                 int x, y;
                 for (int i = 0; i < numVertices; i+=VERTICES_IN_A_QUAD) {
@@ -378,20 +373,20 @@ int main(int argc, char** argv) {
                     y = (i / VERTICES_IN_A_QUAD) / width;
 
                     Vertex vertexUpperLeft;
-                    vertexUpperLeft.position = glm::vec3(pVertices[i+0]);
-                    vertexUpperLeft.texCoords = glm::vec2((float)x / (float)(width), (float)(y + 1) / (float)(height));
+                    vertexUpperLeft.position = glm::vec3(pVertices[i+0].position);
+                    vertexUpperLeft.texCoords = glm::vec2(pVertices[i+0].texCoords);
 
                     Vertex vertexUpperRight;
-                    vertexUpperRight.position = glm::vec3(pVertices[i+1]);
-                    vertexUpperRight.texCoords = glm::vec2((float)(x + 1) / (float)(width), (float)(y + 1) / (float)(height));
+                    vertexUpperRight.position = glm::vec3(pVertices[i+1].position);
+                    vertexUpperRight.texCoords = glm::vec2(pVertices[i+1].texCoords);
 
                     Vertex vertexLowerLeft;
-                    vertexLowerLeft.position = glm::vec3(pVertices[i+2]);
-                    vertexLowerLeft.texCoords = glm::vec2((float)x / (float)(width), (float)y / (float)(height));
+                    vertexLowerLeft.position = glm::vec3(pVertices[i+2].position);
+                    vertexLowerLeft.texCoords = glm::vec2(pVertices[i+2].texCoords);
 
                     Vertex vertexLowerRight;
-                    vertexLowerRight.position = glm::vec3(pVertices[i+3]);
-                    vertexLowerRight.texCoords = glm::vec2((float)(x + 1) / (float)(width), (float)y / (float)(height));
+                    vertexLowerRight.position = glm::vec3(pVertices[i+3].position);
+                    vertexLowerRight.texCoords = glm::vec2(pVertices[i+3].texCoords);
 
                     newVertices[i+0] = vertexUpperLeft;
                     newVertices[i+1] = vertexUpperRight;

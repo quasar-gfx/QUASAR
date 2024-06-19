@@ -38,9 +38,6 @@ public:
 
     unsigned int width, height;
 
-    int targetFrameRate = 60;
-    unsigned int targetBitRate = 50 * MBPS_TO_BPS;
-
     unsigned int framesSent = 0;
 
     struct Stats {
@@ -59,6 +56,12 @@ public:
         return 1000.0f / stats.totalTimeToSendFrame;
     }
 
+    void setTargetFrameRate(int targetFrameRate) {
+        this->targetFrameRate = targetFrameRate;
+        codecCtx->time_base = {1, targetFrameRate};
+        codecCtx->framerate = {targetFrameRate, 1};
+    }
+
     void setTargetBitRate(unsigned int targetBitRate) {
         this->targetBitRate = targetBitRate;
         outputFormatCtx->bit_rate = targetBitRate;
@@ -69,6 +72,9 @@ public:
     void sendFrame(unsigned int poseID);
 
 private:
+    int targetFrameRate = 60;
+    unsigned int targetBitRate = 50 * MBPS_TO_BPS;
+
     unsigned int poseID = -1;
 
     AVCodecID codecID = AV_CODEC_ID_H264;

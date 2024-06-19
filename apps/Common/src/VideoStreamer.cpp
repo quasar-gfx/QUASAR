@@ -400,5 +400,7 @@ void VideoStreamer::cleanup() {
     av_packet_unref(packet);
     av_packet_free(&packet);
 
+#ifdef __APPLE__
     delete[] rgbData;
+#endif
 }
