@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 3.19)
 project(Apps)
 
+set(CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE} -ldl")
+
+set(EXTERNAL ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
+
+include_directories(
+    ${EXTERNAL}
+)
+
 add_subdirectory(Common)
 
 add_subdirectory(test)
