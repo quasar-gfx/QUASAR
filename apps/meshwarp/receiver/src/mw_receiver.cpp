@@ -22,7 +22,7 @@
 #include <DepthReceiverTexture.h>
 #include <PoseStreamer.h>
 
-#define VIDEO_PREVIEW_SIZE 500
+#define TEXTURE_PREVIEW_SIZE 500
 
 #define VERTICES_IN_A_QUAD 4
 
@@ -188,15 +188,15 @@ int main(int argc, char** argv) {
 
         ImGui::End();
 
-        ImGui::SetNextWindowPos(ImVec2(screenWidth - 2 * VIDEO_PREVIEW_SIZE - 60, 10), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(screenWidth - 2 * TEXTURE_PREVIEW_SIZE - 60, 10), ImGuiCond_FirstUseEver);
         flags = ImGuiWindowFlags_AlwaysAutoResize;
         ImGui::Begin("Raw Color Texture", 0, flags);
-        ImGui::Image((void*)(intptr_t)videoTextureColor.ID, ImVec2(VIDEO_PREVIEW_SIZE, VIDEO_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Image((void*)(intptr_t)videoTextureColor.ID, ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
         ImGui::End();
 
-        ImGui::SetNextWindowPos(ImVec2(screenWidth - VIDEO_PREVIEW_SIZE - 30, 10), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(screenWidth - TEXTURE_PREVIEW_SIZE - 30, 10), ImGuiCond_FirstUseEver);
         ImGui::Begin("Raw Depth Texture", 0, flags);
-        ImGui::Image((void*)(intptr_t)videoTextureDepth.ID, ImVec2(VIDEO_PREVIEW_SIZE, VIDEO_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Image((void*)(intptr_t)videoTextureDepth.ID, ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
 
         ImGui::End();
     });
@@ -352,7 +352,7 @@ int main(int argc, char** argv) {
         genMeshShader.setFloat("near", remoteCamera.near);
         genMeshShader.setFloat("far", remoteCamera.far);
         videoTextureDepth.bind(0);
-        if (poseIdColor != -1 && poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTime)) {
+        if (poseIdColor != -1 && poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTimeColor)) {
             genMeshShader.setMat4("viewColor", currentColorFramePose.view);
         }
         if (poseIdDepth != -1 && poseStreamer.getPose(poseIdDepth, &currentDepthFramePose, &elapsedTimeDepth)) {

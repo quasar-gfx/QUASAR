@@ -5,6 +5,11 @@
 
 #include <CameraPose.h>
 
+#ifndef __APPLE__
+#include <cuda_gl_interop.h>
+#include <CudaUtils.h>
+#endif
+
 class DepthSender {
 public:
     std::string receiverURL;
@@ -22,23 +27,22 @@ public:
         streamer = new DataStreamerTCP(receiverURL, imageSize);
         data = new uint8_t[imageSize];
 
-        CUdevice device = findCudaDevice();
-        if (device == -1) {
-            throw std::runtime_error("No CUDA device found");
-        }
+#ifndef __APPLE__
+        CUdevice device = CudaUtils::findCudaDevice();
 
         cudaError_t cudaErr = cudaGraphicsGLRegisterImage(&cudaResource, renderTarget->colorBuffer.ID, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsReadOnly);
         if (cudaErr != cudaSuccess) {
             throw std::runtime_error("Failed to register GL image with CUDA");
         }
+#endif
     }
     ~DepthSender() {
 #ifndef __APPLE__
-            cudaDeviceSynchronize();
-            cudaError_t cudaErr = cudaGraphicsUnregisterResource(cudaResource);
-            if (cudaErr != cudaSuccess) {
-                av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't unregister CUDA resource: %s\n", cudaGetErrorString(cudaErr));
-            }
+        cudaDeviceSynchronize();
+        cudaError_t cudaErr = cudaGraphicsUnregisterResource(cudaResource);
+        if (cudaErr != cudaSuccess) {
+            av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't unregister CUDA resource: %s\n", cudaGetErrorString(cudaErr));
+        }
 #endif
 
         delete streamer;
@@ -92,25 +96,6 @@ private:
 #ifndef __APPLE__
     cudaGraphicsResource* cudaResource;
     cudaArray* cudaBuffer;
-
-    CUdevice findCudaDevice() {
-        int deviceCount = 0;
-        cudaGetDeviceCount(&deviceCount);
-
-        if (deviceCount == 0) {
-            std::cerr << "No CUDA devices found" << std::endl;
-            return -1;
-        }
-
-        CUdevice device;
-
-        char name[100];
-        cuDeviceGet(&device, 0);
-        cuDeviceGetName(name, 100, device);
-        std::cout << "CUDA Device: " << name << std::endl;
-
-        return device;
-    }
 #endif
 };
 

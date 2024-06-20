@@ -25,8 +25,8 @@ extern "C" {
 #include <CameraPose.h>
 
 #ifndef __APPLE__
-#include <cuda_runtime.h>
 #include <cuda_gl_interop.h>
+#include <CudaUtils.h>
 #endif
 
 #define MICROSECONDS_IN_SECOND 1e6f
@@ -119,7 +119,6 @@ private:
     bool shouldTerminate = false;
 
 #ifndef __APPLE__
-    CUdevice findCudaDevice();
     int initCuda();
 #endif
     void encodeAndSendFrames();

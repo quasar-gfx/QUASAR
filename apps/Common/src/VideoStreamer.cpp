@@ -203,30 +203,8 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
 }
 
 #ifndef __APPLE__
-CUdevice VideoStreamer::findCudaDevice() {
-    int deviceCount = 0;
-    cudaGetDeviceCount(&deviceCount);
-
-    if (deviceCount == 0) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: No CUDA devices found\n");
-        return -1;
-    }
-
-    CUdevice device;
-
-    char name[100];
-    cuDeviceGet(&device, 0);
-    cuDeviceGetName(name, 100, device);
-    av_log(nullptr, AV_LOG_INFO, "CUDA Device: %s\n", name);
-
-    return device;
-}
-
 int VideoStreamer::initCuda() {
-    CUdevice device = findCudaDevice();
-    if (device == -1) {
-        return -1;
-    }
+    CUdevice device = CudaUtils::findCudaDevice();
 
     cudaError_t cudaErr = cudaGraphicsGLRegisterImage(&cudaResource, renderTarget->colorBuffer.ID, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsReadOnly);
     if (cudaErr != cudaSuccess) {

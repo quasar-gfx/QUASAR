@@ -18,7 +18,7 @@
 #include <VideoTexture.h>
 #include <PoseStreamer.h>
 
-#define VIDEO_PREVIEW_SIZE 500
+#define TEXTURE_PREVIEW_SIZE 500
 
 int main(int argc, char** argv) {
     Config config{};
@@ -126,10 +126,10 @@ int main(int argc, char** argv) {
 
         ImGui::End();
 
-        ImGui::SetNextWindowPos(ImVec2(screenWidth - VIDEO_PREVIEW_SIZE - 30, 10), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(screenWidth - TEXTURE_PREVIEW_SIZE - 30, 10), ImGuiCond_FirstUseEver);
         flags = ImGuiWindowFlags_AlwaysAutoResize;
         ImGui::Begin("Raw Video Texture", 0, flags);
-        ImGui::Image((void*)(intptr_t)videoTexture.ID, ImVec2(VIDEO_PREVIEW_SIZE, VIDEO_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Image((void*)(intptr_t)videoTexture.ID, ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
         ImGui::End();
     });
 

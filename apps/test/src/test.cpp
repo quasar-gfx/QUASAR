@@ -121,6 +121,7 @@ int main(int argc, char** argv) {
             ImGui::RadioButton("Show Normals", &shaderIndex, 3);
             ImGui::RadioButton("Show Vertex IDs", &shaderIndex, 4);
         }
+
         ImGui::End();
     });
 
