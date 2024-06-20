@@ -84,6 +84,7 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
     }
 
     this->cudaFrameCtx = cuda_frame_ref;
+
 #endif
 
     /* Setup codec to encode output (video to URL) */
@@ -205,12 +206,10 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
 #ifndef __APPLE__
 int VideoStreamer::initCuda() {
     CUdevice device = CudaUtils::findCudaDevice();
-
-    cudaError_t cudaErr = cudaGraphicsGLRegisterImage(&cudaResource, renderTarget->colorBuffer.ID, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsReadOnly);
-    if (cudaErr != cudaSuccess) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't register CUDA image: %s\n", cudaGetErrorString(cudaErr));
-        return -1;
-    }
+    // register opengl texture with cuda
+    CHECK_CUDA_ERROR(cudaGraphicsGLRegisterImage(&cudaResource,
+                                                 renderTarget->colorBuffer.ID, GL_TEXTURE_2D,
+                                                 cudaGraphicsRegisterFlagsReadOnly));
 
     return 0;
 }
@@ -220,34 +219,14 @@ void VideoStreamer::sendFrame(pose_id_t poseID) {
     /* Copy frame from OpenGL texture to AVFrame */
     uint64_t startCopyTime = av_gettime();
 
-#ifndef __APPLE__
-    cudaError_t cudaErr;
-
-    cudaErr = cudaGraphicsMapResources(1, &cudaResource);
-    if (cudaErr != cudaSuccess) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't map CUDA resources: %s\n", cudaGetErrorString(cudaErr));
-        return;
-    }
-
-    cudaErr = cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0);
-    if (cudaErr != cudaSuccess) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't get CUDA buffer: %s\n", cudaGetErrorString(cudaErr));
-        return;
-    }
-#endif
-
     // lock frame mutex
     std::lock_guard<std::mutex> lock(frameMutex);
 
 #ifndef __APPLE__
-    cudaErr = cudaMemcpy2DFromArray(frame->data[0], frame->linesize[0],
-                                    cudaBuffer,
-                                    0, 0, width * 4, height,
-                                    cudaMemcpyDeviceToHost);
-    if (cudaErr != cudaSuccess) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't copy CUDA buffer: %s\n", cudaGetErrorString(cudaErr));
-        return;
-    }
+    // update cuda buffer
+    CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
+    CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
+    CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
 #else
     renderTarget->bind();
     glReadPixels(0, 0, renderTarget->width, renderTarget->height, GL_RGB, GL_UNSIGNED_BYTE, rgbData);
@@ -264,14 +243,6 @@ void VideoStreamer::sendFrame(pose_id_t poseID) {
     // tell thread to send frame
     frameReady = true;
     cv.notify_one();
-
-#ifndef __APPLE__
-    cudaErr = cudaGraphicsUnmapResources(1, &cudaResource);
-    if (cudaErr != cudaSuccess) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't unmap CUDA resources: %s\n", cudaGetErrorString(cudaErr));
-        return;
-    }
-#endif
 
     stats.timeToCopyFrame = (av_gettime() - startCopyTime) / MICROSECONDS_IN_MILLISECOND;
 }
@@ -293,6 +264,13 @@ void VideoStreamer::encodeAndSendFrames() {
         else {
             break;
         }
+
+        // copy opengl texture data to frame
+        CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(frame->data[0], frame->linesize[0],
+                                        cudaBuffer,
+                                        0, 0, width * 4, height,
+                                        cudaMemcpyDeviceToHost));
+
 
         /* Encode frame */
         {
@@ -368,10 +346,7 @@ void VideoStreamer::cleanup() {
 
 #ifndef __APPLE__
     cudaDeviceSynchronize();
-    cudaError_t cudaErr = cudaGraphicsUnregisterResource(cudaResource);
-    if (cudaErr != cudaSuccess) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't unregister CUDA resource: %s\n", cudaGetErrorString(cudaErr));
-    }
+    CHECK_CUDA_ERROR(cudaGraphicsUnregisterResource(cudaResource));
 #endif
 
     av_frame_free(&frame);

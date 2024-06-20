@@ -43,6 +43,12 @@ public:
         framebuffer.unbind();
     }
 
+    void blitToRenderTarget(RenderTarget &target) {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, target.framebuffer.ID);
+        glBlitFramebuffer(0, 0, width, height, 0, 0, target.width, target.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    }
+
     void resize(unsigned int width, unsigned int height) override {
         this->width = width;
         this->height = height;

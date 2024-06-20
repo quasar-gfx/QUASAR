@@ -1,6 +1,8 @@
 #ifndef DEPTH_SENDER_H
 #define DEPTH_SENDER_H
 
+#include <thread>
+
 #include <DataStreamer.h>
 
 #include <CameraPose.h>
@@ -27,75 +29,122 @@ public:
         streamer = new DataStreamerTCP(receiverURL, imageSize);
         data = new uint8_t[imageSize];
 
+        renderTargetCopy = new RenderTarget({
+            .width = renderTarget->width,
+            .height = renderTarget->height,
+            .internalFormat = renderTarget->colorBuffer.internalFormat,
+            .format = renderTarget->colorBuffer.format,
+            .type = renderTarget->colorBuffer.type,
+            .wrapS = renderTarget->colorBuffer.wrapS,
+            .wrapT = renderTarget->colorBuffer.wrapT,
+            .minFilter = renderTarget->colorBuffer.minFilter,
+            .magFilter = renderTarget->colorBuffer.magFilter,
+            .multiSampled = renderTarget->colorBuffer.multiSampled
+        });
+
 #ifndef __APPLE__
         CUdevice device = CudaUtils::findCudaDevice();
+        // register opengl texture with cuda
+        CHECK_CUDA_ERROR(cudaGraphicsGLRegisterImage(&cudaResource,
+                        renderTargetCopy->colorBuffer.ID, GL_TEXTURE_2D,
+                        cudaGraphicsRegisterFlagsReadOnly));
 
-        cudaError_t cudaErr = cudaGraphicsGLRegisterImage(&cudaResource, renderTarget->colorBuffer.ID, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsReadOnly);
-        if (cudaErr != cudaSuccess) {
-            throw std::runtime_error("Failed to register GL image with CUDA");
-        }
+        // start data sending thread
+        running = true;
+        dataSendingThread = std::thread(&DepthSender::sendData, this);
 #endif
     }
     ~DepthSender() {
 #ifndef __APPLE__
-        cudaDeviceSynchronize();
-        cudaError_t cudaErr = cudaGraphicsUnregisterResource(cudaResource);
-        if (cudaErr != cudaSuccess) {
-            av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't unregister CUDA resource: %s\n", cudaGetErrorString(cudaErr));
+        running = false;
+
+        // send dummy to unblock thread
+        dataReady = true;
+        cv.notify_one();
+
+        if (dataSendingThread.joinable()) {
+            dataSendingThread.join();
         }
+
+        cudaDeviceSynchronize();
+        CHECK_CUDA_ERROR(cudaGraphicsUnregisterResource(cudaResource));
 #endif
 
         delete streamer;
         delete[] data;
     }
 
-    void sendFrame(unsigned int poseID) {
-        memcpy(data, &poseID, sizeof(pose_id_t));
+    void sendFrame(pose_id_t poseID) {
+        renderTargetCopy->bind();
+        renderTarget->blitToRenderTarget(*renderTargetCopy);
+        renderTargetCopy->unbind();
 
 #ifndef __APPLE__
-        cudaError_t cudaErr;
+        std::lock_guard<std::mutex> lock(m);
 
-        cudaErr = cudaGraphicsMapResources(1, &cudaResource);
-        if (cudaErr != cudaSuccess) {
-            throw std::runtime_error("Failed to map CUDA resources");
-            return;
-        }
-
-        cudaErr = cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0);
-        if (cudaErr != cudaSuccess) {
-            throw std::runtime_error("Failed to get CUDA buffer");
-            return;
-        }
-
-        cudaErr = cudaMemcpy2DFromArray(data + sizeof(pose_id_t), renderTarget->width * sizeof(GLushort),
-                                        cudaBuffer,
-                                        0, 0, renderTarget->width * sizeof(GLushort), renderTarget->height,
-                                        cudaMemcpyDeviceToHost);
-        if (cudaErr != cudaSuccess) {
-            throw std::runtime_error("Failed to copy CUDA buffer to host");
-            return;
-        }
-
-        cudaErr = cudaGraphicsUnmapResources(1, &cudaResource);
-        if (cudaErr != cudaSuccess) {
-            throw std::runtime_error("Failed to unmap CUDA resources");
-            return;
-        }
-#else
-        renderTarget->bind();
-        glReadPixels(0, 0, renderTarget->width, renderTarget->height, GL_RED, GL_UNSIGNED_SHORT, data + sizeof(pose_id_t));
-        renderTarget->unbind();
+        // update cuda buffer
+        CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
+        CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
+        CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
 #endif
 
+        this->poseID = poseID;
+
+#ifndef __APPLE__
+        // tell thread to send data
+        dataReady = true;
+        cv.notify_one();
+#else
+        memcpy(data, &poseID, sizeof(pose_id_t));
+
+        renderTarget->bind();
+        glReadPixels(0, 0, renderTargetCopy->width, renderTargetCopy->height, GL_RED, GL_UNSIGNED_SHORT, data + sizeof(pose_id_t));
+        renderTarget->unbind();
+
         streamer->send((const uint8_t*)data);
+#endif
     }
 
 private:
+    pose_id_t poseID;
     uint8_t* data;
+    RenderTarget* renderTargetCopy;
 
 #ifndef __APPLE__
     cudaGraphicsResource* cudaResource;
     cudaArray* cudaBuffer;
+
+    std::thread dataSendingThread;
+    std::mutex m;
+    std::condition_variable cv;
+    bool dataReady = false;
+
+    std::atomic_bool running = false;
+
+    void sendData() {
+        while (true) {
+            std::unique_lock<std::mutex> lock(m);
+            cv.wait(lock, [this] { return dataReady; });
+
+            if (running) {
+                dataReady = false;
+            }
+            else {
+                break;
+            }
+
+            memcpy(data, &poseID, sizeof(pose_id_t));
+
+            // copy depth buffer to data
+            cudaError_t cudaErr;
+            CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(data + sizeof(pose_id_t), renderTargetCopy->width * sizeof(GLushort),
+                                            cudaBuffer,
+                                            0, 0, renderTargetCopy->width * sizeof(GLushort), renderTargetCopy->height,
+                                            cudaMemcpyDeviceToHost));
+
+            streamer->send((const uint8_t*)data);
+        }
+    }
 #endif
 };
 
