@@ -129,6 +129,7 @@ int main(int argc, char** argv) {
 
     int trianglesDrawn = 0;
     double elapsedTime = 0.0f;
+    bool disableMeshWarp;
     guiManager->onRender([&](double now, double dt) {
         ImGui::NewFrame();
 
@@ -182,6 +183,10 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
+        ImGui::Checkbox("Disable Mesh Warp", &disableMeshWarp);
+
+        ImGui::Separator();
+
         ImGui::RadioButton("Render Mesh", (int*)&renderState, 0);
         ImGui::RadioButton("Render Point Cloud", (int*)&renderState, 1);
         ImGui::RadioButton("Render Wireframe", (int*)&renderState, 2);
@@ -213,6 +218,11 @@ int main(int argc, char** argv) {
     Shader screenShader = Shader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
+    });
+
+    Shader videoShader = Shader({
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../shaders/postprocessing/displayTexture.frag",
     });
 
     ComputeShader genMeshShader({
@@ -344,6 +354,14 @@ int main(int argc, char** argv) {
         videoTextureDepth.bind();
         poseIdDepth = videoTextureDepth.draw();
         videoTextureDepth.unbind();
+
+        if (disableMeshWarp) {
+            videoShader.bind();
+            videoShader.setInt("tex", 5);
+            videoTextureColor.bind(5);
+            app.renderer->drawToScreen(videoShader);
+            return;
+        }
 
         // set shader uniforms
         genMeshShader.bind();

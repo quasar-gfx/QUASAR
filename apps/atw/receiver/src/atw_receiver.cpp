@@ -142,7 +142,7 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader screenShader = Shader({
+    Shader atwShader = Shader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "./shaders/displayVideo.frag"
     });
@@ -201,30 +201,30 @@ int main(int argc, char** argv) {
         pose_id_t poseID = videoTexture.draw();
         videoTexture.unbind();
 
-        {
-            screenShader.bind();
+        atwShader.bind();
 
-            screenShader.setBool("atwEnabled", atwEnabled);
+        atwShader.setBool("atwEnabled", atwEnabled);
 
-            glm::mat4 proj = camera.getProjectionMatrix();
-            glm::mat4 view = camera.getViewMatrix();
-            screenShader.setMat4("projection", proj);
-            screenShader.setMat4("view", view);
-            screenShader.setInt("videoTexture", 5);
-            videoTexture.bind(5);
+        glm::mat4 proj = camera.getProjectionMatrix();
+        glm::mat4 view = camera.getViewMatrix();
+        atwShader.setMat4("projection", proj);
+        atwShader.setMat4("view", view);
+        atwShader.setInt("videoTexture", 5);
+        videoTexture.bind(5);
 
-            if (poseID != -1 && poseStreamer.getPose(poseID, &currentFramePose, &elapedTime)) {
-                screenShader.setMat4("remoteProjection", currentFramePose.proj);
-                screenShader.setMat4("remoteView", currentFramePose.view);
-            }
+        if (poseID != -1 && poseStreamer.getPose(poseID, &currentFramePose, &elapedTime)) {
+            atwShader.setMat4("remoteProjection", currentFramePose.proj);
+            atwShader.setMat4("remoteView", currentFramePose.view);
         }
 
         // render to screen
-        app.renderer->drawToScreen(screenShader);
+        app.renderer->drawToScreen(atwShader);
     });
 
     // run app loop (blocking)
     app.run();
+
+    std::cout << "Exiting..." << std::endl;
 
     return 0;
 }

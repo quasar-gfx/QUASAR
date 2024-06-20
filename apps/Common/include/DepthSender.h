@@ -22,6 +22,10 @@ public:
 
     int imageSize;
 
+    struct Stats {
+        float timeToCopyFrame = -1.0f;
+    } stats;
+
     explicit DepthSender(RenderTarget* renderTarget, std::string receiverURL)
             : receiverURL(receiverURL)
             , renderTarget(renderTarget)
@@ -133,14 +137,20 @@ private:
                 break;
             }
 
+            auto startCopyFrame = std::chrono::high_resolution_clock::now();
+
             memcpy(data, &poseID, sizeof(pose_id_t));
 
             // copy depth buffer to data
             cudaError_t cudaErr;
             CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(data + sizeof(pose_id_t), renderTargetCopy->width * sizeof(GLushort),
-                                            cudaBuffer,
-                                            0, 0, renderTargetCopy->width * sizeof(GLushort), renderTargetCopy->height,
-                                            cudaMemcpyDeviceToHost));
+                                                   cudaBuffer,
+                                                   0, 0, renderTargetCopy->width * sizeof(GLushort), renderTargetCopy->height,
+                                                   cudaMemcpyDeviceToHost));
+
+            auto endCopyFrame = std::chrono::high_resolution_clock::now();
+
+            stats.timeToCopyFrame = std::chrono::duration<float, std::milli>(endCopyFrame - startCopyFrame).count();
 
             streamer->send((const uint8_t*)data);
         }

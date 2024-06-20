@@ -144,7 +144,7 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: %.3f ms", videoStreamerColor.stats.timeToCopyFrame);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: %.3f ms", videoStreamerColor.stats.timeToCopyFrame + videoStreamerDepth.stats.timeToCopyFrame);
         ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.3f ms", videoStreamerColor.stats.timeToEncode);
         ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: %.3f ms", videoStreamerColor.stats.timeToSendFrame);
 

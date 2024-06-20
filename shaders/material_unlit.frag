@@ -44,9 +44,6 @@ void main() {
     if (alpha < 0.1)
         discard;
 
-    vec3 norm = normalize(fsIn.Normal);
-    vec3 viewDir = normalize(camPos - fsIn.FragPos);
-
     positionBuffer = vec4(fsIn.FragPos, 1.0);
     normalsBuffer = vec4(normalize(fsIn.Normal), 1.0);
     idBuffer = vec4(fsIn.VertexID, 0.0, 0.0, 0.0);

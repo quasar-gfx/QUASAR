@@ -73,12 +73,14 @@ void Texture::loadFromFile(const TextureCreateParams &params) {
         else {
             glTexImage2DMultisample(target, 4, internalFormat, width, height, GL_TRUE);
         }
-        glGenerateMipmap(target);
 
         glTexParameteri(target, GL_TEXTURE_WRAP_S, params.wrapS);
         glTexParameteri(target, GL_TEXTURE_WRAP_T, params.wrapT);
         glTexParameteri(target, GL_TEXTURE_MIN_FILTER, params.minFilter);
         glTexParameteri(target, GL_TEXTURE_MAG_FILTER, params.magFilter);
+        if (params.minFilter == GL_LINEAR_MIPMAP_LINEAR || params.minFilter == GL_LINEAR_MIPMAP_NEAREST) {
+            glGenerateMipmap(target);
+        }
 
         stbi_image_free(data);
     }
