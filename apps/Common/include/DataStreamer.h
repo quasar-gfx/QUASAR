@@ -117,6 +117,7 @@ public:
             , maxDataSize(maxDataSize)
             , socket(nonBlocking) {
         socket.bind(url);
+        socket.setReuseAddrPort();
         socket.setSendSize(sendSize);
         socket.listen(1);
 
@@ -136,14 +137,19 @@ public:
         socket.close();
     }
 
-    int send(const uint8_t* data) {
+    int send(const uint8_t* data, bool copy = false) {
         if (!ready) {
             return -1;
         }
 
-        uint8_t* dataCopy = new uint8_t[maxDataSize];
-        memcpy(dataCopy, data, maxDataSize);
-        datas.push(dataCopy);
+        if (copy) {
+            uint8_t* dataCopy = new uint8_t[maxDataSize];
+            memcpy(dataCopy, data, maxDataSize);
+            datas.push(dataCopy);
+        }
+        else {
+            datas.push(data);
+        }
 
         return maxDataSize;
     }
@@ -155,7 +161,7 @@ private:
 
     std::atomic_bool ready = false;
 
-    std::queue<uint8_t*> datas;
+    std::queue<const uint8_t*> datas;
 
     void sendData() {
         while (true) {
@@ -173,7 +179,7 @@ private:
                 continue;
             }
 
-            uint8_t* data = datas.front();
+            const uint8_t* data = datas.front();
             datas.pop();
 
             int sent = socket.send(data, maxDataSize, 0);

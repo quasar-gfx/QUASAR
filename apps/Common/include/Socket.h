@@ -126,6 +126,13 @@ class SocketTCP : public Socket {
 public:
     explicit SocketTCP(bool nonBlocking = false) : Socket(AF_INET, SOCK_STREAM, 0, nonBlocking) {}
 
+    void setReuseAddrPort() {
+        int opt = 1;
+        if (setsockopt(socketId, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)) < 0) {
+            throw std::runtime_error("Failed to set reuse address: " + std::string(std::strerror(errno)));
+        }
+    }
+
     void listen(int backlog) {
         if (::listen(socketId, backlog) < 0) {
             throw std::runtime_error("Failed to listen on socket: " + std::string(std::strerror(errno)));

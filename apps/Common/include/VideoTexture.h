@@ -62,7 +62,7 @@ public:
 
 private:
     unsigned int framesReceived = 0;
-    unsigned int maxQueueSize = 5;
+    unsigned int maxQueueSize = 10;
 
     AVPixelFormat openglPixelFormat = AV_PIX_FMT_RGB24;
 

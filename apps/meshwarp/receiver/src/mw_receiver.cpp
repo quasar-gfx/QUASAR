@@ -19,6 +19,7 @@
 #include <GUI/ImGuiManager.h>
 
 #include <VideoTexture.h>
+#include <DepthReceiverTexture.h>
 #include <PoseStreamer.h>
 
 #define VIDEO_PREVIEW_SIZE 500
@@ -99,8 +100,8 @@ int main(int argc, char** argv) {
     Camera camera = Camera(screenWidth, screenHeight);
 
     VideoTexture videoTextureColor({
-        .width = config.width,
-        .height = config.height,
+        .width = screenWidth,
+        .height = screenHeight,
         .internalFormat = GL_SRGB,
         .format = GL_RGB,
         .type = GL_UNSIGNED_BYTE,
@@ -109,16 +110,16 @@ int main(int argc, char** argv) {
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR
     }, videoURL);
-    VideoTexture videoTextureDepth({
-        .width = config.width,
-        .height = config.height,
-        .internalFormat = GL_RGBA16,
-        .format = GL_RGB,
-        .type = GL_FLOAT,
+    DepthReceiverTexture videoTextureDepth({
+        .width = screenWidth,
+        .height = screenHeight,
+        .internalFormat = GL_R16,
+        .format = GL_RED,
+        .type = GL_UNSIGNED_SHORT,
         .wrapS = GL_CLAMP_TO_EDGE,
         .wrapT = GL_CLAMP_TO_EDGE,
-        .minFilter = GL_LINEAR,
-        .magFilter = GL_LINEAR
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST
     }, depthURL);
     PoseStreamer poseStreamer(&camera, poseURL);
 
@@ -127,7 +128,7 @@ int main(int argc, char** argv) {
     std::cout << "Pose URL: " << poseURL << std::endl;
 
     int trianglesDrawn = 0;
-    double elapedTime = 0.0f;
+    double elapsedTime = 0.0f;
     guiManager->onRender([&](double now, double dt) {
         ImGui::NewFrame();
 
@@ -171,7 +172,7 @@ int main(int argc, char** argv) {
         ImGui::Separator();
 
         ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoTextureColor.getFrameRate(), 1000.0f / videoTextureColor.getFrameRate());
-        ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: %.1f ms", elapedTime);
+        ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: %.1f ms", elapsedTime);
 
         ImGui::Separator();
 
@@ -283,8 +284,9 @@ int main(int argc, char** argv) {
     remoteCamera.setProjectionMatrix(proj);
     remoteCamera.setViewMatrix(view);
 
-    pose_id_t colorPoseID, depthPoseID;
+    pose_id_t poseIdColor, poseIdDepth;
     Pose currentColorFramePose, currentDepthFramePose;
+    double elapsedTimeColor, elapsedTimeDepth;
     std::vector<Vertex> newVertices(numVertices);
     std::vector<unsigned int> newIndices(indexBufferSize);
     app.onRender([&](double now, double dt) {
@@ -335,80 +337,86 @@ int main(int argc, char** argv) {
 
         // render color video frame
         videoTextureColor.bind();
-        colorPoseID = videoTextureColor.draw();
+        poseIdColor = videoTextureColor.draw();
         videoTextureColor.unbind();
 
         // render depth video frame
         videoTextureDepth.bind();
-        depthPoseID = videoTextureDepth.draw();
+        poseIdDepth = videoTextureDepth.draw();
         videoTextureDepth.unbind();
 
-        if (depthPoseID != -1 && colorPoseID != -1) {
-            poseStreamer.getPose(colorPoseID, &currentColorFramePose, &elapedTime);
-            poseStreamer.getPose(depthPoseID, &currentDepthFramePose, &elapedTime);
-
-            poseStreamer.removePosesLessThan(std::min(colorPoseID, depthPoseID));
-
-            genMeshShader.bind();
+        // set shader uniforms
+        genMeshShader.bind();
+        genMeshShader.setMat4("projection", remoteCamera.getProjectionMatrix());
+        genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+        genMeshShader.setFloat("near", remoteCamera.near);
+        genMeshShader.setFloat("far", remoteCamera.far);
+        videoTextureDepth.bind(0);
+        if (poseIdColor != -1 && poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTime)) {
             genMeshShader.setMat4("viewColor", currentColorFramePose.view);
-            genMeshShader.setMat4("viewInverseDepth", glm::inverse(currentDepthFramePose.view));
-            genMeshShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-            genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
-            genMeshShader.setFloat("near", remoteCamera.near);
-            genMeshShader.setFloat("far", remoteCamera.far);
-            videoTextureDepth.bind(0);
-            genMeshShader.dispatch(width, height, 1);
-            genMeshShader.unbind();
-
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
-            GLvoid* pBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-            if (pBuffer) {
-                ResultVertex* pVertices = static_cast<ResultVertex*>(pBuffer);
-
-                int x, y;
-                for (int i = 0; i < numVertices; i+=VERTICES_IN_A_QUAD) {
-                    x = (i / VERTICES_IN_A_QUAD) % width;
-                    y = (i / VERTICES_IN_A_QUAD) / width;
-
-                    Vertex vertexUpperLeft;
-                    vertexUpperLeft.position = glm::vec3(pVertices[i+0].position);
-                    vertexUpperLeft.texCoords = glm::vec2(pVertices[i+0].texCoords);
-
-                    Vertex vertexUpperRight;
-                    vertexUpperRight.position = glm::vec3(pVertices[i+1].position);
-                    vertexUpperRight.texCoords = glm::vec2(pVertices[i+1].texCoords);
-
-                    Vertex vertexLowerLeft;
-                    vertexLowerLeft.position = glm::vec3(pVertices[i+2].position);
-                    vertexLowerLeft.texCoords = glm::vec2(pVertices[i+2].texCoords);
-
-                    Vertex vertexLowerRight;
-                    vertexLowerRight.position = glm::vec3(pVertices[i+3].position);
-                    vertexLowerRight.texCoords = glm::vec2(pVertices[i+3].texCoords);
-
-                    newVertices[i+0] = vertexUpperLeft;
-                    newVertices[i+1] = vertexUpperRight;
-                    newVertices[i+2] = vertexLowerLeft;
-                    newVertices[i+3] = vertexLowerRight;
-                }
-
-                glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-            } else {
-                throw std::runtime_error("Failed to map vertex buffer");
-            }
-
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
-            GLvoid* pIndexBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-            if (pIndexBuffer) {
-                memcpy(newIndices.data(), pIndexBuffer, indexBufferSize * sizeof(unsigned int));
-                glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-            } else {
-                std::cerr << "Failed to save index buffer" << std::endl;
-            }
-
-            mesh.setBuffers(newVertices, newIndices);
-            wireframeMesh.setBuffers(newVertices, newIndices);
         }
+        if (poseIdDepth != -1 && poseStreamer.getPose(poseIdDepth, &currentDepthFramePose, &elapsedTimeDepth)) {
+            genMeshShader.setMat4("viewInverseDepth", glm::inverse(currentDepthFramePose.view));
+        }
+        elapsedTime = std::fmax(elapsedTimeColor, elapsedTimeDepth);
+
+        // dispatch compute shader
+        genMeshShader.dispatch(width, height, 1);
+        genMeshShader.unbind();
+
+        if (poseIdDepth != -1 && poseIdColor != -1) {
+            poseStreamer.removePosesLessThan(std::min(poseIdColor, poseIdDepth));
+        }
+
+        // create mesh from compute shader output
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
+        GLvoid* pBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+        if (pBuffer) {
+            ResultVertex* pVertices = static_cast<ResultVertex*>(pBuffer);
+
+            int x, y;
+            for (int i = 0; i < numVertices; i+=VERTICES_IN_A_QUAD) {
+                x = (i / VERTICES_IN_A_QUAD) % width;
+                y = (i / VERTICES_IN_A_QUAD) / width;
+
+                Vertex vertexUpperLeft;
+                vertexUpperLeft.position = glm::vec3(pVertices[i+0].position);
+                vertexUpperLeft.texCoords = glm::vec2(pVertices[i+0].texCoords);
+
+                Vertex vertexUpperRight;
+                vertexUpperRight.position = glm::vec3(pVertices[i+1].position);
+                vertexUpperRight.texCoords = glm::vec2(pVertices[i+1].texCoords);
+
+                Vertex vertexLowerLeft;
+                vertexLowerLeft.position = glm::vec3(pVertices[i+2].position);
+                vertexLowerLeft.texCoords = glm::vec2(pVertices[i+2].texCoords);
+
+                Vertex vertexLowerRight;
+                vertexLowerRight.position = glm::vec3(pVertices[i+3].position);
+                vertexLowerRight.texCoords = glm::vec2(pVertices[i+3].texCoords);
+
+                newVertices[i+0] = vertexUpperLeft;
+                newVertices[i+1] = vertexUpperRight;
+                newVertices[i+2] = vertexLowerLeft;
+                newVertices[i+3] = vertexLowerRight;
+            }
+
+            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        } else {
+            throw std::runtime_error("Failed to map vertex buffer");
+        }
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
+        GLvoid* pIndexBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+        if (pIndexBuffer) {
+            memcpy(newIndices.data(), pIndexBuffer, indexBufferSize * sizeof(unsigned int));
+            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        } else {
+            std::cerr << "Failed to save index buffer" << std::endl;
+        }
+
+        mesh.setBuffers(newVertices, newIndices);
+        wireframeMesh.setBuffers(newVertices, newIndices);
 
         mesh.pointcloud = renderState == RenderState::POINTCLOUD;
         wireframeMesh.visible = renderState == RenderState::WIREFRAME;

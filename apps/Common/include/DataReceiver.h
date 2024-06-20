@@ -184,6 +184,7 @@ private:
         while (ready) {
             uint8_t* data = new uint8_t[maxDataSize];
             int currSize = 0;
+            // std::cout << currSize << " / " << maxDataSize << std::endl;
             while (currSize < maxDataSize) {
                 int received = socket.recv(data + currSize, maxDataSize - currSize, 0);
                 if (received < 0) {

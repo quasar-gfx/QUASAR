@@ -22,6 +22,8 @@ extern "C" {
 
 #include <RenderTargets/RenderTarget.h>
 
+#include <CameraPose.h>
+
 #ifndef __APPLE__
 #include <cuda_runtime.h>
 #include <cuda_gl_interop.h>
@@ -69,13 +71,13 @@ public:
 
     void cleanup();
 
-    void sendFrame(unsigned int poseID);
+    void sendFrame(pose_id_t poseID);
 
 private:
     int targetFrameRate = 60;
     unsigned int targetBitRate = 50 * MBPS_TO_BPS;
 
-    unsigned int poseID = -1;
+    pose_id_t poseID = -1;
 
     AVCodecID codecID = AV_CODEC_ID_H264;
 #ifndef __APPLE__
@@ -95,7 +97,7 @@ private:
 
 #ifndef __APPLE__
     cudaGraphicsResource* cudaResource;
-    cudaArray* cudaBuffer = nullptr;
+    cudaArray* cudaBuffer;
 
     AVBufferRef* deviceCtx = nullptr;
     AVBufferRef* cudaDeviceCtx = nullptr;

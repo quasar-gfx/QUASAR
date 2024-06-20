@@ -238,7 +238,7 @@ int VideoStreamer::initCuda() {
 }
 #endif
 
-void VideoStreamer::sendFrame(unsigned int poseID) {
+void VideoStreamer::sendFrame(pose_id_t poseID) {
     /* Copy frame from OpenGL texture to AVFrame */
     uint64_t startCopyTime = av_gettime();
 

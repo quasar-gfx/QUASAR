@@ -19,9 +19,10 @@
 #include <SceneLoader.h>
 
 #include <VideoStreamer.h>
+#include <DepthSender.h>
 #include <PoseReceiver.h>
 
-#define VERTICES_IN_A_QUAD 4
+#define VIDEO_PREVIEW_SIZE 500
 
 int main(int argc, char** argv) {
     Config config{};
@@ -94,17 +95,17 @@ int main(int argc, char** argv) {
     RenderTarget renderTargetDepth({
         .width = screenWidth,
         .height = screenHeight,
-        .internalFormat = GL_RGB,
-        .format = GL_RGB,
-        .type = GL_FLOAT,
+        .internalFormat = GL_R16,
+        .format = GL_RED,
+        .type = GL_UNSIGNED_SHORT,
         .wrapS = GL_CLAMP_TO_EDGE,
         .wrapT = GL_CLAMP_TO_EDGE,
-        .minFilter = GL_LINEAR,
-        .magFilter = GL_LINEAR
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST
     });
 
     VideoStreamer videoStreamerColor = VideoStreamer(&renderTargetColor, videoURL);
-    VideoStreamer videoStreamerDepth = VideoStreamer(&renderTargetDepth, depthURL);
+    DepthSender videoStreamerDepth = DepthSender(&renderTargetDepth, depthURL);
     PoseReceiver poseReceiver = PoseReceiver(&camera, poseURL);
 
     std::cout << "Video URL: " << videoURL << std::endl;
@@ -152,6 +153,11 @@ int main(int argc, char** argv) {
         ImGui::Checkbox("Pause", &paused);
         ImGui::Checkbox("Pause Color", &pauseColor);
         ImGui::Checkbox("Pause Depth", &pauseDepth);
+
+        ImGui::SetNextWindowPos(ImVec2(screenWidth - VIDEO_PREVIEW_SIZE - 30, 10), ImGuiCond_FirstUseEver);
+        flags = ImGuiWindowFlags_AlwaysAutoResize;
+        ImGui::Begin("Raw Depth Texture", 0, flags);
+        ImGui::Image((void*)(intptr_t)renderTargetDepth.colorBuffer.ID, ImVec2(VIDEO_PREVIEW_SIZE, VIDEO_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
 
         ImGui::End();
     });
