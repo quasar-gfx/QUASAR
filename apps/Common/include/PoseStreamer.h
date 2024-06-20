@@ -2,6 +2,7 @@
 #define POSE_STREAMER_H
 
 #include <iostream>
+#include <chrono>
 #include <thread>
 #include <cstring>
 #include <map>
@@ -12,6 +13,7 @@
 #include <glm/gtc/epsilon.hpp>
 
 #include <Camera.h>
+#include <DataStreamer.h>
 
 #include <CameraPose.h>
 
@@ -19,21 +21,19 @@ class PoseStreamer {
 public:
     std::string receiverURL;
 
-    SocketUDP socket;
+    DataStreamerUDP streamer;
 
     Camera* camera;
 
     Pose currPose, prevPose;
-    pose_id_t currPoseId = 0;
+    pose_id_t currPoseID = 0;
 
     std::map<pose_id_t, Pose> prevPoses;
 
     explicit PoseStreamer(Camera* camera, std::string receiverURL)
             : camera(camera)
             , receiverURL(receiverURL)
-            , socket(true) {
-        socket.setAddress(receiverURL);
-    }
+            , streamer(receiverURL, sizeof(Pose)) { }
 
     bool epsilonEqual(const glm::mat4& mat1, const glm::mat4& mat2, float epsilon = 0.001f) {
         for (int i = 0; i < 4; i++) {
@@ -45,22 +45,20 @@ public:
         return true;
     }
 
-    bool getPose(pose_id_t poseId, Pose* pose, double now, double* elapsedTime = nullptr) {
-        auto res = prevPoses.find(poseId);
+    int getCurrTimeMillis() {
+        // get unix timestamp in ms
+        std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()
+        );
+        return ms.count();
+    }
+
+    bool getPose(pose_id_t poseID, Pose* pose, double* elapsedTime = nullptr) {
+        auto res = prevPoses.find(poseID);
         if (res != prevPoses.end()) { // found
             *pose = res->second;
             if (elapsedTime) {
-                *elapsedTime = now - pose->timestamp;
-            }
-
-            // delete all poses with id less than poseId
-            for (auto it = prevPoses.begin(); it != prevPoses.end();) {
-                if (it->first < poseId) {
-                    it = prevPoses.erase(it);
-                }
-                else {
-                    ++it;
-                }
+                *elapsedTime = getCurrTimeMillis() - pose->timestamp;
             }
 
             return true;
@@ -69,28 +67,36 @@ public:
         return false;
     }
 
-    bool sendPose(double now) {
-        currPose.id = currPoseId;
+    void removePosesLessThan(pose_id_t poseID) {
+        for (auto it = prevPoses.begin(); it != prevPoses.end();) {
+            if (it->first < poseID) {
+                it = prevPoses.erase(it);
+            }
+            else {
+                ++it;
+            }
+        }
+    }
+
+    bool sendPose() {
+        currPose.id = currPoseID;
         currPose.proj = camera->getProjectionMatrix();
         currPose.view = camera->getViewMatrix();
-        currPose.timestamp = now;
+        currPose.timestamp = getCurrTimeMillis();
 
-        // if (epsilonEqual(currPose.viewMatrix, prevPose.viewMatrix)) {
-        //     return;
-        // }
-
-        int bytesSent = socket.send(&currPose, sizeof(Pose), 0);
-        if (bytesSent < 0) {
+        if (epsilonEqual(currPose.view, prevPose.view)) {
             return false;
         }
 
-        prevPoses[currPoseId] = currPose;
-        currPoseId++;
+        streamer.send((uint8_t*)&currPose);
 
-        // prevPose.prevViewMatrix = viewMatrix;
+        prevPoses[currPoseID] = currPose;
+        currPoseID++;
 
-        return bytesSent >= 0;
+        return true;
     }
+
+    int timer = 0;
 };
 
 #endif // POSE_STREAMER_H

@@ -10,6 +10,8 @@ extern "C" {
 }
 
 #include <iostream>
+#include <deque>
+#include <atomic>
 #include <thread>
 #include <mutex>
 
@@ -20,13 +22,13 @@ extern "C" {
 #define MICROSECONDS_IN_SECOND 1e6f
 #define MICROSECONDS_IN_MILLISECOND 1e3f
 
+#define MBPS_TO_BPS 1e6f
+
 class VideoTexture : public Texture {
 public:
-    std::string videoURL = "localhost:12345";
+    std::string videoURL = "127.0.0.1:12345";
 
     unsigned int width, height;
-
-    int frameReceived = 0;
 
     struct Stats {
         float timeToReceiveFrame = -1.0f;
@@ -42,35 +44,53 @@ public:
 
     void cleanup();
 
-    pose_id_t draw();
+    pose_id_t draw(pose_id_t poseID = -1);
+    bool getFrameWithPoseID(pose_id_t poseID, AVFrame* res = nullptr);
+    pose_id_t getLatestPoseID();
+
+    void setMaxQueueSize(unsigned int maxQueueSize) {
+        this->maxQueueSize = maxQueueSize;
+    }
 
     float getFrameRate() {
         return 1.0f / stats.totalTimeToReceiveFrame;
     }
 
+    unsigned int getFramesReceived() {
+        return framesReceived;
+    }
+
 private:
+    unsigned int framesReceived = 0;
+    unsigned int maxQueueSize = 10;
+
     AVPixelFormat openglPixelFormat = AV_PIX_FMT_RGB24;
 
-    AVFormatContext* inputFormatContext = nullptr;
-    AVCodecContext* codecContext = nullptr;
+    AVFormatContext* inputFormatCtx = avformat_alloc_context();
+    AVCodecContext* codecCtx = nullptr;
 
     int videoStreamIndex = -1;
 
-    struct SwsContext* swsContext = nullptr;
+    struct SwsContext* swsCtx = nullptr;
 
-    AVFrame* frameRGB = nullptr;
-    uint8_t* buffer = nullptr;
+    AVFrame* frame = av_frame_alloc();
     AVPacket* packet = av_packet_alloc();
 
-    bool videoReady = false;
+    // AVFrame* frameRGB = av_frame_alloc();
+    // uint8_t* buffer = nullptr;
+
+    std::atomic_bool videoReady = false;
+    bool shouldTerminate = false;
 
     std::thread videoReceiverThread;
-    std::mutex frameRGBMutex;
+    std::mutex framesMutex;
+
+    uint8_t* buffer = nullptr;
+    std::deque<AVFrame*> frames;
 
     void receiveVideo();
 
     int initFFMpeg();
-    int initOutputFrame();
 };
 
 #endif // VIDEO_RECEIVER_H

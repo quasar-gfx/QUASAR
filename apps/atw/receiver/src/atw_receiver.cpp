@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include <args.hxx>
 #include <imgui/imgui.h>
 
 #include <Shaders/Shader.h>
@@ -17,35 +18,41 @@
 #include <VideoTexture.h>
 #include <PoseStreamer.h>
 
+#define VIDEO_PREVIEW_SIZE 500
+
 int main(int argc, char** argv) {
     Config config{};
     config.title = "ATW Receiver";
-    config.sRGB = false;
 
-    std::string videoURL = "0.0.0.0:12345";
-    std::string poseURL = "127.0.0.1:54321";
-    for (int i = 1; i < argc; i++) {
-        if (!strcmp(argv[i], "-w") && i + 1 < argc) {
-            config.width = atoi(argv[i + 1]);
-            i++;
-        }
-        else if (!strcmp(argv[i], "-h") && i + 1 < argc) {
-            config.height = atoi(argv[i + 1]);
-            i++;
-        }
-        else if (!strcmp(argv[i], "-i") && i + 1 < argc) {
-            videoURL = argv[i + 1];
-            i++;
-        }
-        else if (!strcmp(argv[i], "-p") && i + 1 < argc) {
-            poseURL = argv[i + 1];
-            i++;
-        }
-        else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
-            config.enableVSync = atoi(argv[i + 1]);
-            i++;
-        }
+    args::ArgumentParser parser(config.title);
+    args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
+    args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
+    args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'i', "scene"}, "../assets/scenes/sponza.json");
+    args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
+    args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "0.0.0.0:12345");
+    args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "127.0.0.1:54321");
+    try {
+        parser.ParseCLI(argc, argv);
+    } catch (args::Help) {
+        std::cout << parser;
+        return 0;
+    } catch (args::ParseError e) {
+        std::cerr << e.what() << std::endl;
+        std::cerr << parser;
+        return 1;
     }
+
+    // parse size
+    std::string sizeStr = args::get(sizeIn);
+    size_t pos = sizeStr.find("x");
+    config.width = std::stoi(sizeStr.substr(0, pos));
+    config.height = std::stoi(sizeStr.substr(pos + 1));
+
+    config.enableVSync = args::get(vsyncIn);
+
+    std::string scenePath = args::get(scenePathIn);
+    std::string videoURL = args::get(videoURLIn);
+    std::string poseURL = args::get(poseURLIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -64,7 +71,7 @@ int main(int argc, char** argv) {
     VideoTexture videoTexture({
         .width = config.width,
         .height = config.height,
-        .internalFormat = GL_RGB,
+        .internalFormat = GL_SRGB,
         .format = GL_RGB,
         .type = GL_UNSIGNED_BYTE,
         .wrapS = GL_CLAMP_TO_EDGE,
@@ -105,7 +112,7 @@ int main(int argc, char** argv) {
         ImGui::Separator();
 
         ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoTexture.getFrameRate(), 1000.0f / videoTexture.getFrameRate());
-        ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: %.3f ms", elapedTime * 1000.0f);
+        ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: %.1f ms", elapedTime);
 
         ImGui::Separator();
 
@@ -117,6 +124,12 @@ int main(int argc, char** argv) {
 
         ImGui::Checkbox("ATW Enabled", &atwEnabled);
 
+        ImGui::End();
+
+        ImGui::SetNextWindowPos(ImVec2(screenWidth - VIDEO_PREVIEW_SIZE - 30, 10), ImGuiCond_FirstUseEver);
+        flags = ImGuiWindowFlags_AlwaysAutoResize;
+        ImGui::Begin("Raw Video Texture", 0, flags);
+        ImGui::Image((void*)(intptr_t)videoTexture.ID, ImVec2(VIDEO_PREVIEW_SIZE, VIDEO_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
         ImGui::End();
     });
 
@@ -131,7 +144,7 @@ int main(int argc, char** argv) {
     // shaders
     Shader screenShader = Shader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "shaders/displayVideo.frag"
+        .fragmentCodePath = "./shaders/displayVideo.frag"
     });
 
     camera.position = glm::vec3(0.0f, 1.6f, 0.0f);
@@ -181,7 +194,12 @@ int main(int argc, char** argv) {
         }
 
         // send pose to streamer
-        poseStreamer.sendPose(now);
+        poseStreamer.sendPose();
+
+        // render video frame
+        videoTexture.bind();
+        pose_id_t poseID = videoTexture.draw();
+        videoTexture.unbind();
 
         {
             screenShader.bind();
@@ -194,10 +212,8 @@ int main(int argc, char** argv) {
             screenShader.setMat4("view", view);
             screenShader.setInt("videoTexture", 5);
             videoTexture.bind(5);
-            // render video frame
-            pose_id_t poseId = videoTexture.draw();
 
-            if (poseId != -1 && poseStreamer.getPose(poseId, &currentFramePose, now, &elapedTime)) {
+            if (poseID != -1 && poseStreamer.getPose(poseID, &currentFramePose, &elapedTime)) {
                 screenShader.setMat4("remoteProjection", currentFramePose.proj);
                 screenShader.setMat4("remoteView", currentFramePose.view);
             }
@@ -209,10 +225,6 @@ int main(int argc, char** argv) {
 
     // run app loop (blocking)
     app.run();
-
-    std::cout << "Please do CTRL-C to exit!" << std::endl;
-
-    videoTexture.cleanup();
 
     return 0;
 }

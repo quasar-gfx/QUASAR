@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include <args.hxx>
 #include <imgui/imgui.h>
 
 #include <Shaders/Shader.h>
@@ -27,39 +28,37 @@ int main(int argc, char** argv) {
     config.enableVSync = false;
     config.showWindow = false;
 
-    int maxSteps = 10;
-    int surfelSize = 4;
-    std::string scenePath = "../assets/scenes/sponza.json";
-    for (int i = 1; i < argc; i++) {
-        if (!strcmp(argv[i], "-w") && i + 1 < argc) {
-            config.width = atoi(argv[i + 1]);
-            i++;
-        }
-        else if (!strcmp(argv[i], "-h") && i + 1 < argc) {
-            config.height = atoi(argv[i + 1]);
-            i++;
-        }
-        else if (!strcmp(argv[i], "-s") && i + 1 < argc) {
-            scenePath = argv[i + 1];
-            i++;
-        }
-        else if (!strcmp(argv[i], "-d") && i + 1 < argc) {
-            config.showWindow = atoi(argv[i + 1]);
-            i++;
-        }
-        else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
-            config.enableVSync = atoi(argv[i + 1]);
-            i++;
-        }
-        else if (!strcmp(argv[i], "-m") && i + 1 < argc) {
-            maxSteps = atoi(argv[i + 1]);
-            i++;
-        }
-        else if (!strcmp(argv[i], "-ss") && i + 1 < argc) {
-            surfelSize = atoi(argv[i + 1]);
-            i++;
-        }
+    args::ArgumentParser parser(config.title);
+    args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
+    args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
+    args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'i', "scene"}, "../assets/scenes/sponza.json");
+    args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
+    args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 8);
+    args::ValueFlag<int> renderStateIn(parser, "render", "Render state", {'r', "render-state"}, 0);
+    args::ValueFlag<int> maxStepsIn(parser, "steps", "Max steps", {'m', "max-steps"}, 10);
+    try {
+        parser.ParseCLI(argc, argv);
+    } catch (args::Help) {
+        std::cout << parser;
+        return 0;
+    } catch (args::ParseError e) {
+        std::cerr << e.what() << std::endl;
+        std::cerr << parser;
+        return 1;
     }
+
+    // parse size
+    std::string sizeStr = args::get(sizeIn);
+    size_t pos = sizeStr.find("x");
+    config.width = std::stoi(sizeStr.substr(0, pos));
+    config.height = std::stoi(sizeStr.substr(pos + 1));
+
+    config.enableVSync = args::get(vsyncIn);
+
+    std::string scenePath = args::get(scenePathIn);
+
+    int surfelSize = args::get(surfelSizeIn);
+    int maxSteps = args::get(maxStepsIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -75,11 +74,7 @@ int main(int argc, char** argv) {
     Scene scene = Scene();
     Camera camera = Camera(screenWidth, screenHeight);
     SceneLoader loader = SceneLoader();
-    bool res = loader.loadScene(scenePath, scene, camera);
-    if (!res) {
-        std::cerr << "Failed to load scene: " << scenePath << std::endl;
-        return 1;
-    }
+    loader.loadScene(scenePath, scene, camera);
 
     guiManager->onRender([&](double now, double dt) {
         ImGui::NewFrame();
@@ -110,7 +105,7 @@ int main(int argc, char** argv) {
     });
 
     ComputeShader genMesh2Shader({
-        .computeCodePath = "shaders/genMesh2.comp"
+        .computeCodePath = "./shaders/genMesh2.comp"
     });
 
     int width = screenWidth / surfelSize;
@@ -123,21 +118,15 @@ int main(int argc, char** argv) {
     glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(glm::vec4), nullptr, GL_STATIC_DRAW);
 
     GLuint indexBuffer;
-    int trianglesDrawn = width * height * 2;
-    int indexBufferSize = trianglesDrawn * 3;
+    int numTriangles = width * height * 2;
+    int indexBufferSize = numTriangles * 3;
     glGenBuffers(1, &indexBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_STATIC_DRAW);
 
-    // GLuint texCoordBuffer;
-    // glGenBuffers(1, &texCoordBuffer);
-    // glBindBuffer(GL_SHADER_STORAGE_BUFFER, texCoordBuffer);
-    // glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(glm::vec2), nullptr, GL_STATIC_DRAW);
-
     genMesh2Shader.bind();
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffer);
-    // glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, texCoordBuffer);
     genMesh2Shader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
     genMesh2Shader.unbind();
 
@@ -228,9 +217,7 @@ int main(int argc, char** argv) {
 
                 for (int i = 0; i < numVertices; i++) {
                     Vertex vertex;
-                    vertex.position.x = pVertices[i].x;
-                    vertex.position.y = pVertices[i].y;
-                    vertex.position.z = pVertices[i].z;
+                    vertex.position = glm::vec3(pVertices[i]);
 
                     // std::cout << "Vertex: " << vertex.position.x << ", " << vertex.position.y << ", " << vertex.position.z << std::endl;
 

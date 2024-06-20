@@ -161,7 +161,13 @@ void OpenGLRenderer::drawToScreen(Shader &screenShader, RenderTarget* overrideRe
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    glViewport(0, 0, width, height);
+    if (overrideRenderTarget != nullptr) {
+        glViewport(0, 0, overrideRenderTarget->width, overrideRenderTarget->height);
+    }
+    else {
+        // screen buffer
+        glViewport(0, 0, width, height);
+    }
 
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);

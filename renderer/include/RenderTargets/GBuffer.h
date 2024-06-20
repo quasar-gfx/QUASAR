@@ -64,7 +64,7 @@ public:
             , depthBuffer({
                 .width = width,
                 .height = height,
-                .internalFormat = GL_DEPTH_COMPONENT32F,
+                .internalFormat = GL_DEPTH_COMPONENT24,
                 .format = GL_DEPTH_COMPONENT,
                 .type = GL_FLOAT,
                 .minFilter = GL_NEAREST,

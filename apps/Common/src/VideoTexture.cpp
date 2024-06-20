@@ -1,0 +1,276 @@
+#include <glad/glad.h>
+
+#include <VideoTexture.h>
+
+#undef av_err2str
+#define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
+
+static int interrupt_callback(void* ctx) {
+    bool* shouldTerminatePtr = (bool*)ctx;
+    bool shouldTerminate = (shouldTerminatePtr != nullptr) ? *shouldTerminatePtr : false;
+    return shouldTerminate;
+}
+
+VideoTexture::VideoTexture(const TextureCreateParams &params, const std::string &videoURL)
+        : Texture(params)
+        , width(params.width)
+        , height(params.height)
+        , videoURL("udp://" + videoURL + "?overrun_nonfatal=1&fifo_size=50000000") {
+    videoReceiverThread = std::thread(&VideoTexture::receiveVideo, this);
+}
+
+int VideoTexture::initFFMpeg() {
+    AVStream* inputVideoStream = nullptr;
+
+    std::cout << "Waiting to receive video..." << std::endl;
+
+    inputFormatCtx->interrupt_callback.callback = interrupt_callback;
+    inputFormatCtx->interrupt_callback.opaque = &shouldTerminate;
+
+    /* Setup input (to read video from url) */
+    int ret = avformat_open_input(&inputFormatCtx, videoURL.c_str(), nullptr, nullptr); // blocking
+    if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Cannot open input URL: %s\n", av_err2str(ret));
+        return ret;
+    }
+
+    ret = avformat_find_stream_info(inputFormatCtx, nullptr);
+    if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Cannot find stream info: %s\n", av_err2str(ret));
+        return ret;
+    }
+
+    // find the video stream index
+    for (int i = 0; i < inputFormatCtx->nb_streams; i++) {
+        if (inputFormatCtx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+            videoStreamIndex = i;
+            inputVideoStream = inputFormatCtx->streams[i];
+            break;
+        }
+    }
+
+    if (videoStreamIndex == -1 || inputVideoStream == nullptr) {
+        av_log(nullptr, AV_LOG_ERROR, "No video stream found in the input URL.\n");
+        return AVERROR_STREAM_NOT_FOUND;
+    }
+
+    /* Setup codec to decode input (video from URL) */
+    auto codecID = inputVideoStream->codecpar->codec_id;
+    auto inputCodec = avcodec_find_decoder(codecID);
+    if (!inputCodec) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate decoder.\n");
+        return -1;
+    }
+
+    codecCtx = avcodec_alloc_context3(inputCodec);
+    if (!codecCtx) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate codec Ctx.\n");
+        return -1;
+    }
+
+    ret = avcodec_parameters_to_context(codecCtx, inputVideoStream->codecpar);
+    if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't copy codec parameters to Ctx: %s\n", av_err2str(ret));
+        return ret;
+    }
+
+    ret = avcodec_open2(codecCtx, inputCodec, nullptr);
+    if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't open codec: %s\n", av_err2str(ret));
+        return ret;
+    }
+
+    swsCtx = sws_getContext(codecCtx->width, codecCtx->height, codecCtx->pix_fmt,
+                            width, height, openglPixelFormat,
+                            SWS_BILINEAR, nullptr, nullptr, nullptr);
+
+    int numBytes = av_image_get_buffer_size(openglPixelFormat, width, height, 1);
+    buffer = (uint8_t*)av_malloc(numBytes * sizeof(uint8_t));
+
+    return 0;
+}
+
+void VideoTexture::receiveVideo() {
+    int ret = initFFMpeg();
+    if (ret < 0) {
+        return;
+    }
+
+    videoReady = true;
+
+    uint64_t prevTime = av_gettime();
+
+    pose_id_t poseID = -1;
+    while (videoReady) {
+        uint64_t receiveFrameStartTime = av_gettime();
+
+        // read frame from URL
+        int ret = av_read_frame(inputFormatCtx, packet);
+        if (ret < 0) {
+            av_log(nullptr, AV_LOG_ERROR, "Error reading frame: %s\n", av_err2str(ret));
+            return;
+        }
+
+        stats.timeToReceiveFrame = (av_gettime() - receiveFrameStartTime) / MICROSECONDS_IN_SECOND;
+
+        if (packet->stream_index != videoStreamIndex) {
+            continue;
+        }
+
+        poseID = packet->pts;
+
+        /* Decode received frame */
+        {
+            uint64_t decodeStartTime = av_gettime();
+
+            // send packet to decoder
+            ret = avcodec_send_packet(codecCtx, packet);
+            if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+                av_packet_unref(packet);
+                av_log(nullptr, AV_LOG_ERROR, "Error: Could not send packet to input decoder: %s\n", av_err2str(ret));
+                return;
+            }
+
+            av_packet_unref(packet);
+
+            // get frame from decoder
+            ret = avcodec_receive_frame(codecCtx, frame);
+            if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+                continue;
+            }
+            else if (ret < 0) {
+                av_log(nullptr, AV_LOG_ERROR, "Error: Could not receive raw frame from input decoder: %s\n", av_err2str(ret));
+                return;
+            }
+
+            stats.timeToDecode = (av_gettime() - decodeStartTime) / MICROSECONDS_IN_SECOND;
+        }
+
+        /* Resize video frame to fit output texture size */
+        {
+            uint64_t resizeStartTime = av_gettime();
+
+            AVFrame* frameRGB = av_frame_alloc();
+            av_image_fill_arrays(frameRGB->data, frameRGB->linesize, buffer, openglPixelFormat, width, height, 1);
+
+            frameRGB->opaque = reinterpret_cast<void*>(poseID);
+
+            sws_scale(swsCtx, (uint8_t const* const*)frame->data, frame->linesize, 0, codecCtx->height, frameRGB->data, frameRGB->linesize);
+
+            framesMutex.lock();
+
+            frames.push_back(frameRGB);
+            if (frames.size() > maxQueueSize) {
+                AVFrame* frameToFree = frames.front();
+                av_frame_free(&frameToFree);
+                frames.pop_front();
+            }
+
+            framesMutex.unlock();
+
+            stats.timeToResize = (av_gettime() - resizeStartTime) / MICROSECONDS_IN_SECOND;
+        }
+
+        uint64_t elapsedTime = (av_gettime() - prevTime);
+        stats.totalTimeToReceiveFrame = elapsedTime / MICROSECONDS_IN_SECOND;
+        framesReceived++;
+
+        prevTime = av_gettime();
+    }
+}
+
+pose_id_t VideoTexture::draw(pose_id_t poseID) {
+    if (!videoReady) {
+        return -1;
+    }
+
+    if (frames.empty()) {
+        return -1;
+    }
+
+    framesMutex.lock();
+
+    AVFrame* frameRGB = nullptr;
+    if (poseID == -1) {
+        frameRGB = frames.back();
+    }
+    else {
+        for (auto it = frames.begin(); it != frames.end(); it++) {
+            if (reinterpret_cast<uintptr_t>((*it)->opaque) == poseID) {
+                frameRGB = *it;
+                break;
+            }
+        }
+    }
+
+    framesMutex.unlock();
+
+    if (frameRGB == nullptr) {
+        return -1;
+    }
+
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, frameRGB->data[0]);
+
+    return static_cast<pose_id_t>(reinterpret_cast<uintptr_t>(frameRGB->opaque));
+}
+
+bool VideoTexture::getFrameWithPoseID(pose_id_t poseID, AVFrame* res) {
+    if (frames.empty()) {
+        return false;
+    }
+
+    for (auto it = frames.begin(); it != frames.end(); it++) {
+        if (reinterpret_cast<uintptr_t>((*it)->opaque) == poseID) {
+            if (res != nullptr) {
+                res = *it;
+            }
+            return true;
+        }
+    }
+
+    return false;
+}
+
+pose_id_t VideoTexture::getLatestPoseID() {
+    if (frames.empty()) {
+        return -1;
+    }
+
+    pose_id_t poseID;
+
+    framesMutex.lock();
+    AVFrame* frameRGB = frames.front();
+    poseID = static_cast<pose_id_t>(reinterpret_cast<uintptr_t>(frameRGB->opaque));
+    framesMutex.unlock();
+
+    return poseID;
+}
+
+void VideoTexture::cleanup() {
+    shouldTerminate = true;
+    videoReady = false;
+
+    if (videoReceiverThread.joinable()) {
+        videoReceiverThread.join();
+    }
+
+    avcodec_free_context(&codecCtx);
+
+    avformat_close_input(&inputFormatCtx);
+    avformat_free_context(inputFormatCtx);
+
+    av_frame_free(&frame);
+    av_packet_unref(packet);
+    av_packet_free(&packet);
+
+    av_free(buffer);
+
+    while (!frames.empty()) {
+        AVFrame* frameToFree = frames.front();
+        av_frame_free(&frameToFree);
+        frames.pop_front();
+    }
+
+    Texture::cleanup();
+}
+

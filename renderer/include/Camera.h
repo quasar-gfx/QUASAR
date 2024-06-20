@@ -39,6 +39,11 @@ public:
     explicit Camera(unsigned int width, unsigned int height);
     explicit Camera(float fovy, float aspect, float near, float far);
 
+    void setFovy(float fovy) { this->fovy = fovy; setProjectionMatrix(fovy, aspect, near, far); }
+    void setAspect(float aspect) { this->aspect = aspect; setProjectionMatrix(fovy, aspect, near, far); }
+    void setNear(float near) { this->near = near; setProjectionMatrix(fovy, aspect, near, far); }
+    void setFar(float far) { this->far = far; setProjectionMatrix(fovy, aspect, near, far); }
+
     glm::mat4 getProjectionMatrix() { return proj; }
     void setProjectionMatrix(glm::mat4 proj);
     void setProjectionMatrix(float fovy, float aspect, float near, float far);

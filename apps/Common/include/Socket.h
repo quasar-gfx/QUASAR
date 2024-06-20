@@ -3,13 +3,15 @@
 
 #include <unistd.h>
 #include <stdexcept>
-
+#include <cstring>
 #include <fcntl.h>
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <string>
+#include <iostream>
+#include <cerrno>
 
 class Socket {
 public:
@@ -20,27 +22,36 @@ public:
     explicit Socket(int domain, int type, int protocol, bool nonBlocking = false) {
         socketId = socket(domain, type, protocol);
         if (socketId < 0) {
-            throw std::runtime_error("Failed to create socket");
+            throw std::runtime_error("Failed to create socket: " + std::string(std::strerror(errno)));
         }
 
         if (nonBlocking) {
             setNonBlocking();
         }
     }
+    ~Socket() {
+        close();
+    }
 
     void setNonBlocking() {
         int flags = fcntl(socketId, F_GETFL, 0);
         if (flags == -1) {
-            throw std::runtime_error("Error getting socket flags");
+            throw std::runtime_error("Error getting socket flags: " + std::string(std::strerror(errno)));
         }
         if (fcntl(socketId, F_SETFL, flags | O_NONBLOCK) == -1) {
-            throw std::runtime_error("Error setting socket to non-blocking");
+            throw std::runtime_error("Error setting socket to non-blocking: " + std::string(std::strerror(errno)));
         }
     }
 
     void setRecvSize(int size) {
         if (setsockopt(socketId, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size)) < 0) {
-            throw std::runtime_error("Failed to set receive buffer size");
+            throw std::runtime_error("Failed to set receive buffer size: " + std::string(std::strerror(errno)));
+        }
+    }
+
+    void setSendSize(int size) {
+        if (setsockopt(socketId, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size)) < 0) {
+            throw std::runtime_error("Failed to set send buffer size: " + std::string(std::strerror(errno)));
         }
     }
 
@@ -53,15 +64,22 @@ public:
 
     void setAddress(const std::string &ipAddressAndPort) {
         size_t pos = ipAddressAndPort.find(':');
+        if (pos == std::string::npos) {
+            throw std::invalid_argument("Invalid address format, expected ip:port");
+        }
         std::string ipAddress = ipAddressAndPort.substr(0, pos);
-        std::string portStr = ipAddressAndPort.substr(pos + 1);
-        int port = std::stoi(portStr);
+        int port;
+        try {
+            port = std::stoi(ipAddressAndPort.substr(pos + 1));
+        } catch (const std::exception &e) {
+            throw std::invalid_argument("Invalid port number");
+        }
         setAddress(ipAddress, port);
     }
 
     void bind(const struct sockaddr* addr, socklen_t addrLen) {
         if (::bind(socketId, addr, addrLen) < 0) {
-            throw std::runtime_error("Failed to bind socket");
+            throw std::runtime_error("Failed to bind socket: " + std::string(std::strerror(errno)));
         }
     }
 
@@ -71,11 +89,8 @@ public:
     }
 
     void bind(const std::string &ipAddressAndPort) {
-        size_t pos = ipAddressAndPort.find(':');
-        std::string ipAddress = ipAddressAndPort.substr(0, pos);
-        std::string portStr = ipAddressAndPort.substr(pos + 1);
-        int port = std::stoi(portStr);
-        bind(ipAddress, port);
+        setAddress(ipAddressAndPort);
+        bind((struct sockaddr*)&addr, addrLen);
     }
 
     virtual int send(const void* buf, size_t len, int flags) {
@@ -87,7 +102,10 @@ public:
     }
 
     void close() {
-        ::close(socketId);
+        if (socketId != -1) {
+            ::close(socketId);
+            socketId = -1;
+        }
     }
 };
 
@@ -108,34 +126,55 @@ class SocketTCP : public Socket {
 public:
     explicit SocketTCP(bool nonBlocking = false) : Socket(AF_INET, SOCK_STREAM, 0, nonBlocking) {}
 
+    void setReuseAddrPort() {
+        int opt = 1;
+        if (setsockopt(socketId, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)) < 0) {
+            throw std::runtime_error("Failed to set reuse address: " + std::string(std::strerror(errno)));
+        }
+    }
+
     void listen(int backlog) {
         if (::listen(socketId, backlog) < 0) {
-            throw std::runtime_error("Failed to listen on socket");
+            throw std::runtime_error("Failed to listen on socket: " + std::string(std::strerror(errno)));
         }
     }
 
     int accept(struct sockaddr* addr, socklen_t* addrLen) {
-        return ::accept(socketId, addr, addrLen);
-    }
-
-    void connect(const struct sockaddr* addr, socklen_t addrLen) {
-        if (::connect(socketId, addr, addrLen) < 0) {
-            throw std::runtime_error("Failed to connect to socket");
+        clientSocketID = ::accept(socketId, addr, addrLen);
+        if (clientSocketID < 0) {
+            return -1;
         }
+        return 0;
     }
 
-    void connect(const std::string &ipAddress, int port) {
+    int accept() {
+        return accept((struct sockaddr*)&addr, &addrLen);
+    }
+
+    int connect(const struct sockaddr* addr, socklen_t addrLen) {
+        return ::connect(socketId, addr, addrLen);
+    }
+
+    int connect(const std::string &ipAddress, int port) {
         setAddress(ipAddress, port);
-        connect((struct sockaddr*)&addr, addrLen);
+        return connect((struct sockaddr*)&addr, addrLen);
     }
 
-    void connect(const std::string &ipAddressAndPort) {
-        size_t pos = ipAddressAndPort.find(':');
-        std::string ipAddress = ipAddressAndPort.substr(0, pos);
-        std::string portStr = ipAddressAndPort.substr(pos + 1);
-        int port = std::stoi(portStr);
-        connect(ipAddress, port);
+    int connect(const std::string &ipAddressAndPort) {
+        setAddress(ipAddressAndPort);
+        return connect((struct sockaddr*)&addr, addrLen);
     }
+
+    int send(const void* buf, size_t len, int flags) override {
+        return ::send(clientSocketID, buf, len, flags);
+    }
+
+    int recv(void* buf, size_t len, int flags) override {
+        return ::recv(socketId, buf, len, flags);
+    }
+
+private:
+    int clientSocketID = -1;
 };
 
 #endif // SOCKET_H

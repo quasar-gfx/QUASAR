@@ -1,8 +1,10 @@
 #include <iostream>
 
+#include <args.hxx>
 #include <imgui/imgui.h>
 
 #include <Shaders/Shader.h>
+#include <Shaders/ComputeShader.h>
 #include <Texture.h>
 #include <Primatives/Primatives.h>
 #include <Materials/UnlitMaterial.h>
@@ -16,9 +18,23 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <VideoTexture.h>
+#include <DepthReceiverTexture.h>
+#include <PoseStreamer.h>
+
+#define VIDEO_PREVIEW_SIZE 500
+
 #define VERTICES_IN_A_QUAD 4
 
 const std::string DATA_PATH = "../streamer/";
+
+struct ResultVertex {
+    glm::vec3 position;
+    int padding1;
+    glm::vec2 texCoords;
+    int padding2;
+    int padding3;
+};
 
 enum class RenderState {
     MESH,
@@ -26,119 +42,48 @@ enum class RenderState {
     WIREFRAME
 };
 
-int surfelSize = 4;
-RenderState renderState = RenderState::MESH;
-
-int createMesh(Mesh* mesh, Mesh* wireframeMesh, std::string label) {
-    std::ifstream vertexFile(DATA_PATH + "data/positions_" + label + "_0.bin", std::ios::binary);
-    if (!vertexFile.is_open()) {
-        std::cerr << "Failed to open file with label=" << label << std::endl;
-        return -1;
-    }
-
-    std::ifstream indexFile(DATA_PATH + "data/indices_" + label + "_0.bin", std::ios::binary);
-    if (!indexFile.is_open()) {
-        std::cerr << "Failed to open file with label=" << label << std::endl;
-        return -1;
-    }
-
-    Texture diffuseTexture = Texture({
-        .wrapS = GL_REPEAT,
-        .wrapT = GL_REPEAT,
-        .minFilter = GL_LINEAR_MIPMAP_LINEAR,
-        .magFilter = GL_LINEAR,
-        .path = DATA_PATH + "imgs/color_" + label + "_0.png"
-    });
-
-    unsigned int width = diffuseTexture.width / surfelSize;
-    unsigned int height = diffuseTexture.height / surfelSize;
-
-    unsigned int x = 0, y = 0;
-    std::vector<Vertex> vertices;
-    for (int i = 0; vertexFile; i+=VERTICES_IN_A_QUAD) {
-        x = (i / VERTICES_IN_A_QUAD) % width;
-        y = (i / VERTICES_IN_A_QUAD) / width;
-
-        Vertex vertexUpperLeft;
-        vertexFile.read(reinterpret_cast<char*>(&vertexUpperLeft.position), sizeof(glm::vec3));
-        vertexUpperLeft.texCoords = glm::vec2((float)x / (float)(width), 1.0f - (float)(y + 1) / (float)(height));
-
-        Vertex vertexUpperRight;
-        vertexFile.read(reinterpret_cast<char*>(&vertexUpperRight.position), sizeof(glm::vec3));
-        vertexUpperRight.texCoords = glm::vec2((float)(x + 1) / (float)(width), 1.0f - (float)(y + 1) / (float)(height));
-
-        Vertex vertexLowerLeft;
-        vertexFile.read(reinterpret_cast<char*>(&vertexLowerLeft.position), sizeof(glm::vec3));
-        vertexLowerLeft.texCoords = glm::vec2((float)x / (float)(width), 1.0f - (float)y / (float)(height));
-
-        Vertex vertexLowerRight;
-        vertexFile.read(reinterpret_cast<char*>(&vertexLowerRight.position), sizeof(glm::vec3));
-        vertexLowerRight.texCoords = glm::vec2((float)(x + 1) / (float)(width), 1.0f - (float)y / (float)(height));
-
-        vertices.push_back(vertexUpperLeft);
-        vertices.push_back(vertexUpperRight);
-        vertices.push_back(vertexLowerLeft);
-        vertices.push_back(vertexLowerRight);
-    }
-    vertexFile.close();
-
-    std::vector<unsigned int> indices;
-    while (indexFile) {
-        unsigned int index;
-        indexFile.read(reinterpret_cast<char*>(&index), sizeof(unsigned int));
-        indices.push_back(index);
-    }
-    indexFile.close();
-
-    *mesh = Mesh({
-        .vertices = vertices,
-        .indices = indices,
-        .material = new UnlitMaterial({ .diffuseTextureID = diffuseTexture.ID }),
-        .wireframe = false,
-        .pointcloud = renderState == RenderState::POINTCLOUD,
-    });
-
-    *wireframeMesh = Mesh({
-        .vertices = vertices,
-        .indices = indices,
-        .material = new UnlitMaterial({ .color = glm::vec3(1.0f, 1.0f, 0.0f) }),
-        .wireframe = true,
-        .pointcloud = false,
-    });
-
-    return vertices.size();
-}
-
 int main(int argc, char** argv) {
     Config config{};
     config.title = "MeshWarp Reciever";
+    config.openglMajorVersion = 4;
+    config.openglMinorVersion = 3;
 
-    for (int i = 1; i < argc; i++) {
-        if (!strcmp(argv[i], "-w") && i + 1 < argc) {
-            config.width = atoi(argv[i + 1]);
-            i++;
-        }
-        else if (!strcmp(argv[i], "-h") && i + 1 < argc) {
-            config.height = atoi(argv[i + 1]);
-            i++;
-        }
-        else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
-            config.enableVSync = atoi(argv[i + 1]);
-            i++;
-        }
-        else if (!strcmp(argv[i], "-ss") && i + 1 < argc) {
-            surfelSize = atoi(argv[i + 1]);
-            i++;
-        }
-        else if (!strcmp(argv[i], "-pc") && i + 1 < argc) {
-            renderState = RenderState::POINTCLOUD;
-            i++;
-        }
-        else if (!strcmp(argv[i], "-wf") && i + 1 < argc) {
-            renderState = RenderState::WIREFRAME;
-            i++;
-        }
+    RenderState renderState = RenderState::MESH;
+
+    args::ArgumentParser parser(config.title);
+    args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
+    args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
+    args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'i', "scene"}, "../assets/scenes/sponza.json");
+    args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
+    args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 8);
+    args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "0.0.0.0:12345");
+    args::ValueFlag<std::string> depthURLIn(parser, "depth", "Depth URL", {'e', "depth-url"}, "0.0.0.0:65432");
+    args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "127.0.0.1:54321");
+    try {
+        parser.ParseCLI(argc, argv);
+    } catch (args::Help) {
+        std::cout << parser;
+        return 0;
+    } catch (args::ParseError e) {
+        std::cerr << e.what() << std::endl;
+        std::cerr << parser;
+        return 1;
     }
+
+    // parse size
+    std::string sizeStr = args::get(sizeIn);
+    size_t pos = sizeStr.find("x");
+    config.width = std::stoi(sizeStr.substr(0, pos));
+    config.height = std::stoi(sizeStr.substr(pos + 1));
+
+    config.enableVSync = args::get(vsyncIn);
+
+    std::string scenePath = args::get(scenePathIn);
+    std::string videoURL = args::get(videoURLIn);
+    std::string depthURL = args::get(depthURLIn);
+    std::string poseURL = args::get(poseURLIn);
+
+    int surfelSize = args::get(surfelSizeIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -154,7 +99,36 @@ int main(int argc, char** argv) {
     Scene scene = Scene();
     Camera camera = Camera(screenWidth, screenHeight);
 
+    VideoTexture videoTextureColor({
+        .width = screenWidth,
+        .height = screenHeight,
+        .internalFormat = GL_SRGB,
+        .format = GL_RGB,
+        .type = GL_UNSIGNED_BYTE,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_LINEAR,
+        .magFilter = GL_LINEAR
+    }, videoURL);
+    DepthReceiverTexture videoTextureDepth({
+        .width = screenWidth,
+        .height = screenHeight,
+        .internalFormat = GL_R16,
+        .format = GL_RED,
+        .type = GL_UNSIGNED_SHORT,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST
+    }, depthURL);
+    PoseStreamer poseStreamer(&camera, poseURL);
+
+    std::cout << "Video URL: " << videoURL << std::endl;
+    std::cout << "Depth URL: " << depthURL << std::endl;
+    std::cout << "Pose URL: " << poseURL << std::endl;
+
     int trianglesDrawn = 0;
+    double elapsedTime = 0.0f;
     guiManager->onRender([&](double now, double dt) {
         ImGui::NewFrame();
 
@@ -192,9 +166,38 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
+        ImGui::Text("Video URL: %s", videoURL.c_str());
+        ImGui::Text("Pose URL: %s", poseURL.c_str());
+
+        ImGui::Separator();
+
+        ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoTextureColor.getFrameRate(), 1000.0f / videoTextureColor.getFrameRate());
+        ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: %.1f ms", elapsedTime);
+
+        ImGui::Separator();
+
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to receive frame: %.3f ms", videoTextureColor.stats.timeToReceiveFrame);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decode frame: %.3f ms", videoTextureColor.stats.timeToDecode);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to resize frame: %.3f ms", videoTextureColor.stats.timeToResize);
+
+        ImGui::Separator();
+
         ImGui::RadioButton("Render Mesh", (int*)&renderState, 0);
         ImGui::RadioButton("Render Point Cloud", (int*)&renderState, 1);
         ImGui::RadioButton("Render Wireframe", (int*)&renderState, 2);
+
+        ImGui::End();
+
+        ImGui::SetNextWindowPos(ImVec2(screenWidth - 2 * VIDEO_PREVIEW_SIZE - 60, 10), ImGuiCond_FirstUseEver);
+        flags = ImGuiWindowFlags_AlwaysAutoResize;
+        ImGui::Begin("Raw Color Texture", 0, flags);
+        ImGui::Image((void*)(intptr_t)videoTextureColor.ID, ImVec2(VIDEO_PREVIEW_SIZE, VIDEO_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::End();
+
+        ImGui::SetNextWindowPos(ImVec2(screenWidth - VIDEO_PREVIEW_SIZE - 30, 10), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Raw Depth Texture", 0, flags);
+        ImGui::Image((void*)(intptr_t)videoTextureDepth.ID, ImVec2(VIDEO_PREVIEW_SIZE, VIDEO_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+
         ImGui::End();
     });
 
@@ -212,31 +215,53 @@ int main(int argc, char** argv) {
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
 
-    std::vector<std::string> labels = {
-        "center",
-        // "top_right_front",
-        // "top_right_back",
-        // "top_left_front",
-        // "top_left_back",
-        // "bottom_right_front",
-        // "bottom_right_back",
-        // "bottom_left_front",
-        // "bottom_left_back"
-    };
+    ComputeShader genMeshShader({
+        .computeCodePath = "./shaders/genMesh.comp"
+    });
 
-    std::vector<Mesh> meshes(labels.size());
-    std::vector<Mesh> wireframeMeshes(labels.size());
-    std::vector<Node> nodes(2*labels.size());
-    for (int i = 0; i < labels.size(); i++) {
-        createMesh(&meshes[i], &wireframeMeshes[i], labels[i]);
+    int width = screenWidth / surfelSize;
+    int height = screenHeight / surfelSize;
 
-        nodes[2*i] = Node(&meshes[i]);
-        scene.addChildNode(&nodes[i]);
+    GLuint vertexBuffer;
+    int numVertices = width * height * VERTICES_IN_A_QUAD;
+    glGenBuffers(1, &vertexBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(ResultVertex), nullptr, GL_STATIC_DRAW);
 
-        nodes[2*i+1] = Node(&wireframeMeshes[i]);
-        nodes[2*i+1].setTranslation(glm::vec3(0.0f, 0.001f, 0.001f));
-        scene.addChildNode(&nodes[i+1]);
-    }
+    GLuint indexBuffer;
+    int numTriangles = width * height * 2;
+    int indexBufferSize = numTriangles * 3;
+    glGenBuffers(1, &indexBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_STATIC_DRAW);
+
+    genMeshShader.bind();
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffer);
+    genMeshShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
+    genMeshShader.setInt("surfelSize", surfelSize);
+    genMeshShader.unbind();
+
+    Mesh mesh = Mesh({
+        .vertices = {},
+        .indices = {},
+        .material = new UnlitMaterial({ .diffuseTextureID = videoTextureColor.ID }),
+        .wireframe = false,
+        .pointcloud = renderState == RenderState::POINTCLOUD,
+    });
+    Node node = Node(&mesh);
+    scene.addChildNode(&node);
+
+    Mesh wireframeMesh = Mesh({
+        .vertices = {},
+        .indices = {},
+        .material = new UnlitMaterial({ .color = glm::vec3(1.0f, 1.0f, 0.0f) }),
+        .wireframe = true,
+        .pointcloud = false,
+    });
+    Node wireframeNode = Node(&wireframeMesh);
+    wireframeNode.setTranslation(glm::vec3(0.0f, 0.001f, 0.001f));
+    scene.addChildNode(&wireframeNode);
 
     scene.backgroundColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -251,6 +276,19 @@ int main(int argc, char** argv) {
     camera.setProjectionMatrix(proj);
     camera.setViewMatrix(view);
 
+    // load remote camera
+    Camera remoteCamera = Camera(screenWidth, screenHeight);
+    std::ifstream remoteCameraFile(DATA_PATH + "data/remoteCamera.bin", std::ios::binary);
+    remoteCameraFile.read(reinterpret_cast<char*>(&proj), sizeof(glm::mat4));
+    remoteCameraFile.read(reinterpret_cast<char*>(&view), sizeof(glm::mat4));
+    remoteCamera.setProjectionMatrix(proj);
+    remoteCamera.setViewMatrix(view);
+
+    pose_id_t poseIdColor, poseIdDepth;
+    Pose currentColorFramePose, currentDepthFramePose;
+    double elapsedTimeColor, elapsedTimeDepth;
+    std::vector<Vertex> newVertices(numVertices);
+    std::vector<unsigned int> newIndices(indexBufferSize);
     app.onRender([&](double now, double dt) {
         // handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
@@ -294,12 +332,94 @@ int main(int argc, char** argv) {
             }
         }
 
-        for (auto& mesh : meshes) {
-            mesh.pointcloud = renderState == RenderState::POINTCLOUD;
+        // send pose to streamer
+        poseStreamer.sendPose();
+
+        // render color video frame
+        videoTextureColor.bind();
+        poseIdColor = videoTextureColor.draw();
+        videoTextureColor.unbind();
+
+        // render depth video frame
+        videoTextureDepth.bind();
+        poseIdDepth = videoTextureDepth.draw();
+        videoTextureDepth.unbind();
+
+        // set shader uniforms
+        genMeshShader.bind();
+        genMeshShader.setMat4("projection", remoteCamera.getProjectionMatrix());
+        genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+        genMeshShader.setFloat("near", remoteCamera.near);
+        genMeshShader.setFloat("far", remoteCamera.far);
+        videoTextureDepth.bind(0);
+        if (poseIdColor != -1 && poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTime)) {
+            genMeshShader.setMat4("viewColor", currentColorFramePose.view);
         }
-        for (auto& mesh : wireframeMeshes) {
-            mesh.visible = renderState == RenderState::WIREFRAME;
+        if (poseIdDepth != -1 && poseStreamer.getPose(poseIdDepth, &currentDepthFramePose, &elapsedTimeDepth)) {
+            genMeshShader.setMat4("viewInverseDepth", glm::inverse(currentDepthFramePose.view));
         }
+        elapsedTime = std::fmax(elapsedTimeColor, elapsedTimeDepth);
+
+        // dispatch compute shader
+        genMeshShader.dispatch(width, height, 1);
+        genMeshShader.unbind();
+
+        if (poseIdDepth != -1 && poseIdColor != -1) {
+            poseStreamer.removePosesLessThan(std::min(poseIdColor, poseIdDepth));
+        }
+
+        // create mesh from compute shader output
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
+        GLvoid* pBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+        if (pBuffer) {
+            ResultVertex* pVertices = static_cast<ResultVertex*>(pBuffer);
+
+            int x, y;
+            for (int i = 0; i < numVertices; i+=VERTICES_IN_A_QUAD) {
+                x = (i / VERTICES_IN_A_QUAD) % width;
+                y = (i / VERTICES_IN_A_QUAD) / width;
+
+                Vertex vertexUpperLeft;
+                vertexUpperLeft.position = glm::vec3(pVertices[i+0].position);
+                vertexUpperLeft.texCoords = glm::vec2(pVertices[i+0].texCoords);
+
+                Vertex vertexUpperRight;
+                vertexUpperRight.position = glm::vec3(pVertices[i+1].position);
+                vertexUpperRight.texCoords = glm::vec2(pVertices[i+1].texCoords);
+
+                Vertex vertexLowerLeft;
+                vertexLowerLeft.position = glm::vec3(pVertices[i+2].position);
+                vertexLowerLeft.texCoords = glm::vec2(pVertices[i+2].texCoords);
+
+                Vertex vertexLowerRight;
+                vertexLowerRight.position = glm::vec3(pVertices[i+3].position);
+                vertexLowerRight.texCoords = glm::vec2(pVertices[i+3].texCoords);
+
+                newVertices[i+0] = vertexUpperLeft;
+                newVertices[i+1] = vertexUpperRight;
+                newVertices[i+2] = vertexLowerLeft;
+                newVertices[i+3] = vertexLowerRight;
+            }
+
+            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        } else {
+            throw std::runtime_error("Failed to map vertex buffer");
+        }
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
+        GLvoid* pIndexBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+        if (pIndexBuffer) {
+            memcpy(newIndices.data(), pIndexBuffer, indexBufferSize * sizeof(unsigned int));
+            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        } else {
+            std::cerr << "Failed to save index buffer" << std::endl;
+        }
+
+        mesh.setBuffers(newVertices, newIndices);
+        wireframeMesh.setBuffers(newVertices, newIndices);
+
+        mesh.pointcloud = renderState == RenderState::POINTCLOUD;
+        wireframeMesh.visible = renderState == RenderState::WIREFRAME;
 
         // render all objects in scene
         trianglesDrawn = app.renderer->drawObjects(scene, camera);

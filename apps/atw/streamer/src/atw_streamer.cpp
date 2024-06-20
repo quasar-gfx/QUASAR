@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include <args.hxx>
 #include <imgui/imgui.h>
 
 #include <Shaders/Shader.h>
@@ -22,40 +23,39 @@
 int main(int argc, char** argv) {
     Config config{};
     config.title = "ATW Streamer";
+    config.showWindow = false;
 
-    std::string videoURL = "127.0.0.1:12345";
-    std::string poseURL = "0.0.0.0:54321";
-    std::string scenePath = "../assets/scenes/sponza.json";
-    for (int i = 1; i < argc; i++) {
-        if (!strcmp(argv[i], "-w") && i + 1 < argc) {
-            config.width = atoi(argv[i + 1]);
-            i++;
-        }
-        else if (!strcmp(argv[i], "-h") && i + 1 < argc) {
-            config.height = atoi(argv[i + 1]);
-            i++;
-        }
-        else if (!strcmp(argv[i], "-o") && i + 1 < argc) {
-            videoURL = argv[i + 1];
-            i++;
-        }
-        else if (!strcmp(argv[i], "-p") && i + 1 < argc) {
-            poseURL = argv[i + 1];
-            i++;
-        }
-        else if (!strcmp(argv[i], "-s") && i + 1 < argc) {
-            scenePath = argv[i + 1];
-            i++;
-        }
-        else if (!strcmp(argv[i], "-v") && i + 1 < argc) {
-            config.enableVSync = atoi(argv[i + 1]);
-            i++;
-        }
-        else if (!strcmp(argv[i], "-d") && i + 1 < argc) {
-            config.showWindow = atoi(argv[i + 1]);
-            i++;
-        }
+    args::ArgumentParser parser(config.title);
+    args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
+    args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
+    args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'i', "scene"}, "../assets/scenes/sponza.json");
+    args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
+    args::ValueFlag<bool> displayIn(parser, "display", "Show window", {'d', "display"}, true);
+    args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "127.0.0.1:12345");
+    args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "0.0.0.0:54321");
+    try {
+        parser.ParseCLI(argc, argv);
+    } catch (args::Help) {
+        std::cout << parser;
+        return 0;
+    } catch (args::ParseError e) {
+        std::cerr << e.what() << std::endl;
+        std::cerr << parser;
+        return 1;
     }
+
+    // parse size
+    std::string sizeStr = args::get(sizeIn);
+    size_t pos = sizeStr.find("x");
+    config.width = std::stoi(sizeStr.substr(0, pos));
+    config.height = std::stoi(sizeStr.substr(pos + 1));
+
+    config.enableVSync = args::get(vsyncIn);
+    config.showWindow = args::get(displayIn);
+
+    std::string scenePath = args::get(scenePathIn);
+    std::string videoURL = args::get(videoURLIn);
+    std::string poseURL = args::get(poseURLIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -76,9 +76,9 @@ int main(int argc, char** argv) {
     RenderTarget renderTarget({
         .width = screenWidth,
         .height = screenHeight,
-        .internalFormat = GL_SRGB_ALPHA,
-        .format = GL_RGBA,
-        .type = GL_UNSIGNED_BYTE,
+        .internalFormat = GL_SRGB,
+        .format = GL_RGB,
+        .type = GL_FLOAT,
         .wrapS = GL_CLAMP_TO_EDGE,
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_LINEAR,
@@ -141,7 +141,7 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader screenShader = Shader({
+    Shader colorShader = Shader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
@@ -152,7 +152,7 @@ int main(int argc, char** argv) {
     pointLightPositions[2] = scene.pointLights[2]->position;
     pointLightPositions[3] = scene.pointLights[3]->position;
 
-    pose_id_t poseId = 0;
+    pose_id_t poseID = 0;
     app.onRender([&](double now, double dt) {
         // handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
@@ -201,7 +201,7 @@ int main(int argc, char** argv) {
         }
 
         // receive pose
-        poseId = poseReceiver.receivePose();
+        poseID = poseReceiver.receivePose();
 
         // animate lights
         scene.pointLights[0]->setPosition(pointLightPositions[0] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
@@ -213,12 +213,14 @@ int main(int argc, char** argv) {
         app.renderer->drawObjects(scene, camera);
 
         // render to screen
-        app.renderer->drawToScreen(screenShader);
-        app.renderer->drawToRenderTarget(screenShader, renderTarget);
+        if (config.showWindow) {
+            app.renderer->drawToScreen(colorShader);
+        }
+        app.renderer->drawToRenderTarget(colorShader, renderTarget);
 
         // send video frame
-        if (poseId != -1) {
-            videoStreamer.sendFrame(poseId);
+        if (poseID != -1) {
+            videoStreamer.sendFrame(poseID);
         }
     });
 

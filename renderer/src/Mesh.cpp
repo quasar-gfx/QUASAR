@@ -9,13 +9,12 @@ void Mesh::createBuffers()  {
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
 
+    updateBuffers();
+    createAttributes();
+}
+
+void Mesh::createAttributes() {
     glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(ATTRIBUTE_ID);
     glVertexAttribPointer(ATTRIBUTE_ID,         1, GL_UNSIGNED_INT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, ID));
@@ -39,6 +38,43 @@ void Mesh::createBuffers()  {
     glVertexAttribPointer(ATTRIBUTE_BITANGENT,  4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, bitangent));
 
     glBindVertexArray(0);
+}
+
+void Mesh::updateBuffers() {
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+    glBindVertexArray(0);
+}
+
+void Mesh::setBuffers(const std::vector<Vertex> &vertices, const std::vector<unsigned int> &indices) {
+    this->vertices = vertices;
+    this->indices = indices;
+
+    updateBuffers();
+    updateAABB();
+}
+
+void Mesh::updateAABB() {
+    if (vertices.empty()) {
+        return;
+    }
+
+    glm::vec3 min = vertices[0].position;
+    glm::vec3 max = vertices[0].position;
+
+    for (auto& vertex : vertices) {
+        min = glm::min(min, vertex.position);
+        max = glm::max(max, vertex.position);
+    }
+
+    // set up AABB
+    aabb.update(min, max);
 }
 
 void Mesh::bindSceneAndCamera(Scene &scene, Camera &camera, const glm::mat4 &model, Material* overrideMaterial) {
@@ -138,21 +174,4 @@ unsigned int Mesh::draw(Scene &scene, Camera &camera, const glm::mat4 &model, co
         return 0;
     }
     return draw(scene, camera, model, false, overrideMaterial);
-}
-
-void Mesh::updateAABB() {
-    if (vertices.empty()) {
-        return;
-    }
-
-    glm::vec3 min = vertices[0].position;
-    glm::vec3 max = vertices[0].position;
-
-    for (auto& vertex : vertices) {
-        min = glm::min(min, vertex.position);
-        max = glm::max(max, vertex.position);
-    }
-
-    // set up AABB
-    aabb.update(min, max);
 }
