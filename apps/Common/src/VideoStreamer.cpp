@@ -263,11 +263,13 @@ void VideoStreamer::encodeAndSendFrames() {
             break;
         }
 
+#ifndef __APPLE__
         // copy opengl texture data to frame
         CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(frame->data[0], frame->linesize[0],
                                         cudaBuffer,
                                         0, 0, width * 4, height,
                                         cudaMemcpyDeviceToHost));
+#endif
 
 
         /* Encode frame */

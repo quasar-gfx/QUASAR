@@ -96,13 +96,13 @@ public:
         dataReady = true;
         cv.notify_one();
 #else
-        memcpy(data, &poseID, sizeof(pose_id_t));
+        memcpy(data.data(), &poseID, sizeof(pose_id_t));
 
         bind();
-        glReadPixels(0, 0, width, height, GL_RED, GL_UNSIGNED_SHORT, data + sizeof(pose_id_t));
+        glReadPixels(0, 0, width, height, GL_RED, GL_UNSIGNED_SHORT, data.data() + sizeof(pose_id_t));
         unbind();
 
-        streamer.send((const uint8_t*)data, imageSize);
+        streamer.send(data);
 #endif
     }
 
