@@ -80,7 +80,7 @@ private:
     bool shouldTerminate = false;
 
     std::thread videoReceiverThread;
-    std::mutex framesMutex;
+    std::mutex m;
 
     uint8_t* buffer = nullptr;
     std::deque<AVFrame*> frames;

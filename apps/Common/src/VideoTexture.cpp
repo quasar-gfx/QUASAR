@@ -157,7 +157,7 @@ void VideoTexture::receiveVideo() {
 
             sws_scale(swsCtx, (uint8_t const* const*)frame->data, frame->linesize, 0, codecCtx->height, frameRGB->data, frameRGB->linesize);
 
-            framesMutex.lock();
+            std::unique_lock<std::mutex> lock(m);
 
             frames.push_back(frameRGB);
             if (frames.size() > maxQueueSize) {
@@ -166,7 +166,7 @@ void VideoTexture::receiveVideo() {
                 frames.pop_front();
             }
 
-            framesMutex.unlock();
+            m.unlock();
 
             stats.timeToResize = (av_gettime() - resizeStartTime) / MICROSECONDS_IN_SECOND;
         }
@@ -180,6 +180,7 @@ void VideoTexture::receiveVideo() {
 }
 
 pose_id_t VideoTexture::draw(pose_id_t poseID) {
+    std::lock_guard<std::mutex> lock(m);
     if (!videoReady) {
         return -1;
     }
@@ -187,8 +188,6 @@ pose_id_t VideoTexture::draw(pose_id_t poseID) {
     if (frames.empty()) {
         return -1;
     }
-
-    framesMutex.lock();
 
     AVFrame* frameRGB = nullptr;
     if (poseID == -1) {
@@ -203,8 +202,6 @@ pose_id_t VideoTexture::draw(pose_id_t poseID) {
         }
     }
 
-    framesMutex.unlock();
-
     if (frameRGB == nullptr) {
         return -1;
     }
@@ -215,6 +212,7 @@ pose_id_t VideoTexture::draw(pose_id_t poseID) {
 }
 
 bool VideoTexture::getFrameWithPoseID(pose_id_t poseID, AVFrame* res) {
+    std::lock_guard<std::mutex> lock(m);
     if (frames.empty()) {
         return false;
     }
@@ -232,16 +230,15 @@ bool VideoTexture::getFrameWithPoseID(pose_id_t poseID, AVFrame* res) {
 }
 
 pose_id_t VideoTexture::getLatestPoseID() {
+    std::lock_guard<std::mutex> lock(m);
     if (frames.empty()) {
         return -1;
     }
 
     pose_id_t poseID;
 
-    framesMutex.lock();
     AVFrame* frameRGB = frames.front();
     poseID = static_cast<pose_id_t>(reinterpret_cast<uintptr_t>(frameRGB->opaque));
-    framesMutex.unlock();
 
     return poseID;
 }

@@ -81,24 +81,26 @@ public:
         renderTargetCopy->unbind();
 
 #ifndef __APPLE__
+        // add cuda buffer
+        cudaArray* cudaBuffer;
+        CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
+        CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
+        CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
+
         {
             // lock mutex
             std::lock_guard<std::mutex> lock(m);
 
-            // update cuda buffer
-            CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
-            CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
-            CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
-#endif
+            CudaBuffer cudaBufferStruct = { poseID, cudaBuffer };
+            cudaBufferQueue.push(cudaBufferStruct);
 
-            this->poseID = poseID;
-
-#ifndef __APPLE__
             // tell thread to send data
             dataReady = true;
         }
         cv.notify_one();
 #else
+        this->poseID = poseID;
+
         memcpy(data.data(), &poseID, sizeof(pose_id_t));
 
         bind();
@@ -112,13 +114,19 @@ public:
 private:
     DataStreamerTCP streamer;
 
-    pose_id_t poseID;
     std::vector<uint8_t> data;
     RenderTarget* renderTargetCopy;
 
-#ifndef __APPLE__
+#ifdef __APPLE__
+    pose_id_t poseID;
+#else
     cudaGraphicsResource* cudaResource;
-    cudaArray* cudaBuffer;
+
+    struct CudaBuffer {
+        pose_id_t poseID;
+        cudaArray* buffer;
+    };
+    std::queue<CudaBuffer> cudaBufferQueue;
 
     std::thread dataSendingThread;
     std::mutex m;
@@ -141,15 +149,21 @@ private:
 
             auto startCopyFrame = std::chrono::high_resolution_clock::now();
 
-            memcpy(data.data(), &poseID, sizeof(pose_id_t));
-
             // copy depth buffer to data
+            CudaBuffer cudaBufferStruct = cudaBufferQueue.front();
+            cudaArray* cudaBuffer = cudaBufferStruct.buffer;
+            pose_id_t poseIDToSend = cudaBufferStruct.poseID;
+
+            memcpy(data.data(), &poseIDToSend, sizeof(pose_id_t));
+
+            cudaBufferQueue.pop();
+
+            lock.unlock();
+
             CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(data.data() + sizeof(pose_id_t), width * sizeof(GLushort),
                                                    cudaBuffer,
                                                    0, 0, width * sizeof(GLushort), height,
                                                    cudaMemcpyDeviceToHost));
-
-            lock.unlock();
 
             auto endCopyFrame = std::chrono::high_resolution_clock::now();
 

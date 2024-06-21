@@ -19,6 +19,7 @@ extern "C" {
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <queue>
 
 #include <RenderTargets/RenderTarget.h>
 
@@ -75,8 +76,6 @@ private:
     int targetFrameRate = 60;
     unsigned int targetBitRate = 50 * MBPS_TO_BPS;
 
-    pose_id_t poseID = -1;
-
     AVCodecID codecID = AV_CODEC_ID_H264;
     AVPixelFormat bufferPixelFormat = AV_PIX_FMT_RGBA;
     AVPixelFormat videoPixelFormat = AV_PIX_FMT_YUV420P;
@@ -91,16 +90,22 @@ private:
 
 #ifndef __APPLE__
     cudaGraphicsResource* cudaResource;
-    cudaArray* cudaBuffer;
+
+    struct CudaBuffer {
+        pose_id_t poseID;
+        cudaArray* buffer;
+    };
+    std::queue<CudaBuffer> cudaBufferQueue;
+#else
+    pose_id_t poseID = -1;
 #endif
 
-    RenderTarget* renderTarget;
     std::vector<uint8_t> rgbaData;
     AVFrame* frame = av_frame_alloc();
     AVPacket* packet = av_packet_alloc();
 
     std::thread videoStreamerThread;
-    std::mutex frameMutex;
+    std::mutex m;
     std::condition_variable cv;
     bool frameReady = false;
 

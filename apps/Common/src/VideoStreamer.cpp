@@ -136,22 +136,30 @@ void VideoStreamer::sendFrame(pose_id_t poseID) {
     /* Copy frame from OpenGL texture to AVFrame */
     uint64_t startCopyTime = av_gettime();
 
-    {
-        // lock frame mutex
-        std::lock_guard<std::mutex> lock(frameMutex);
-
 #ifndef __APPLE__
-        // update cuda buffer
-        CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
-        CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
-        CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
+    // add cuda buffer
+    cudaArray* cudaBuffer;
+    CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
+    CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
+    CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
+
+    {
+        // lock mutex
+        std::lock_guard<std::mutex> lock(m);
+
+        CudaBuffer cudaBufferStruct = { poseID, cudaBuffer };
+        cudaBufferQueue.push(cudaBufferStruct);
 #else
+    {
+        // lock mutex
+        std::lock_guard<std::mutex> lock(m);
+
         bind();
         glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgbaData.data());
         unbind();
-#endif
 
         this->poseID = poseID;
+#endif
 
         // tell thread to send frame
         frameReady = true;
@@ -169,7 +177,7 @@ void VideoStreamer::encodeAndSendFrames() {
     int ret;
     while (true) {
         // wait for frame to be ready
-        std::unique_lock<std::mutex> lock(frameMutex);
+        std::unique_lock<std::mutex> lock(m);
         cv.wait(lock, [this] { return frameReady; });
 
         if (sendFrames) {
@@ -181,15 +189,23 @@ void VideoStreamer::encodeAndSendFrames() {
 
 #ifndef __APPLE__
         // copy opengl texture data to frame
+        CudaBuffer cudaBufferStruct = cudaBufferQueue.front();
+        cudaArray* cudaBuffer = cudaBufferStruct.buffer;
+        pose_id_t poseIDToSend = cudaBufferStruct.poseID;
+
+        cudaBufferQueue.pop();
+
+        lock.unlock();
+
         CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(rgbaData.data(), width * 4,
                                                cudaBuffer,
                                                0, 0, width * 4, height,
                                                cudaMemcpyDeviceToHost));
-#endif
 
+#else
         pose_id_t poseIDToSend = this->poseID;
-
         lock.unlock();
+#endif
 
         // convert RGBA to YUV
         const uint8_t* srcData[] = { rgbaData.data() };
