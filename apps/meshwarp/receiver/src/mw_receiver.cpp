@@ -356,10 +356,13 @@ int main(int argc, char** argv) {
         videoTextureDepth.unbind();
 
         if (disableMeshWarp) {
+            if (poseIdColor != -1) poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTime);
+
             videoShader.bind();
             videoShader.setInt("tex", 5);
             videoTextureColor.bind(5);
             app.renderer->drawToScreen(videoShader);
+
             return;
         }
 
@@ -443,6 +446,8 @@ int main(int argc, char** argv) {
         trianglesDrawn = app.renderer->drawObjects(scene, camera);
 
         // render to screen
+        screenShader.bind();
+        screenShader.setBool("doToneMapping", false); // video is already tone mapped
         app.renderer->drawToScreen(screenShader);
     });
 
