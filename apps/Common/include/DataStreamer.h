@@ -50,10 +50,12 @@ public:
             packet.size = std::min(PACKET_DATA_SIZE, maxDataSize - i);
             memcpy(packet.data, data + i, PACKET_DATA_SIZE);
 
-            packets.push(packet);
+            {
+                std::lock_guard<std::mutex> lock(m);
+                packets.push(packet);
 
-            std::lock_guard<std::mutex> lock(m);
-            dataReady = true;
+                dataReady = true;
+            }
             cv.notify_one();
         }
 
@@ -110,12 +112,15 @@ class DataStreamerTCP {
 public:
     std::string url;
 
-    explicit DataStreamerTCP(std::string url, bool nonBlocking = false, int sendSize = 65535)
+    int maxDataSize;
+
+    explicit DataStreamerTCP(std::string url, int maxDataSize = 65535, bool nonBlocking = false)
             : url(url)
+            , maxDataSize(maxDataSize)
             , socket(nonBlocking) {
         socket.bind(url);
         socket.setReuseAddrPort();
-        socket.setSendSize(sendSize);
+        socket.setSendSize(maxDataSize);
         socket.listen(1);
 
         dataSendingThread = std::thread(&DataStreamerTCP::sendData, this);
@@ -138,14 +143,17 @@ public:
             return -1;
         }
 
-        if (copy) {
-            datas.push(data);
-        } else {
-            datas.push(std::move(data));
-        }
+        {
+            std::lock_guard<std::mutex> lock(m);
 
-        std::lock_guard<std::mutex> lock(m);
-        dataReady = true;
+            if (copy) {
+                datas.push(data);
+            } else {
+                datas.push(std::move(data));
+            }
+
+            dataReady = true;
+        }
         cv.notify_one();
 
         return data.size();

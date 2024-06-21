@@ -78,11 +78,7 @@ private:
     pose_id_t poseID = -1;
 
     AVCodecID codecID = AV_CODEC_ID_H264;
-#ifndef __APPLE__
     AVPixelFormat bufferPixelFormat = AV_PIX_FMT_RGBA;
-#else
-    AVPixelFormat bufferPixelFormat = AV_PIX_FMT_RGB24;
-#endif
     AVPixelFormat videoPixelFormat = AV_PIX_FMT_YUV420P;
 
     AVFormatContext* outputFormatCtx = nullptr;
@@ -96,15 +92,10 @@ private:
 #ifndef __APPLE__
     cudaGraphicsResource* cudaResource;
     cudaArray* cudaBuffer;
-
-    AVBufferRef* deviceCtx = nullptr;
-    AVBufferRef* cudaDeviceCtx = nullptr;
-    AVBufferRef* frameCtx = nullptr;
-    AVBufferRef* cudaFrameCtx = nullptr;
 #endif
 
     RenderTarget* renderTarget;
-    std::vector<uint8_t> rgbData;
+    std::vector<uint8_t> rgbaData;
     AVFrame* frame = av_frame_alloc();
     AVPacket* packet = av_packet_alloc();
 

@@ -20,69 +20,6 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
         throw std::runtime_error("Error: Couldn't initialize CUDA");
     }
 
-    /* init ffmpeg device */
-    deviceCtx = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_CUDA);
-    AVHWDeviceContext *hwdevCtx = (AVHWDeviceContext*)deviceCtx->data;
-    auto cudaHwdevCtx = (AVCUDADeviceContext*)hwdevCtx->hwctx;
-
-    CUcontext cuCtx;
-    CUresult cuRes = cuCtxGetCurrent(&cuCtx);
-    if (cuRes != CUDA_SUCCESS) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't get current CUDA context: %s\n", av_err2str(cuRes));
-        throw std::runtime_error("Error: Couldn't get current CUDA context");
-    }
-
-    cudaHwdevCtx->cuda_ctx = cuCtx;
-    cudaHwdevCtx->stream = nullptr;
-
-    ret = av_hwdevice_ctx_init(deviceCtx);
-    if (ret < 0) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't initialize CUDA device context: %s\n", av_err2str(ret));
-        throw std::runtime_error("Error: Couldn't initialize CUDA device context");
-    }
-
-    /* init ffmpeg cuda device */
-    ret = av_hwdevice_ctx_create(&cudaDeviceCtx, AV_HWDEVICE_TYPE_CUDA, nullptr, nullptr, 0);
-    if (ret < 0) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't create CUDA device context: %s\n", av_err2str(ret));
-        throw std::runtime_error("Error: Couldn't create CUDA device context");
-    }
-
-    /* init ffmpeg frame context */
-    frameCtx = av_hwframe_ctx_alloc(deviceCtx);
-    if (!frameCtx) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate frame context\n");
-        throw std::runtime_error("Error: Couldn't allocate frame context");
-    }
-
-    auto hwframeCtx = reinterpret_cast<AVHWFramesContext*>(frameCtx->data);
-    hwframeCtx->format = AV_PIX_FMT_CUDA;
-    hwframeCtx->sw_format = bufferPixelFormat;
-    hwframeCtx->width = width;
-    hwframeCtx->height = height;
-    hwframeCtx->initial_pool_size = 0;
-
-    /* init ffmpeg cuda frame context */
-    auto cuda_frame_ref = av_hwframe_ctx_alloc(cudaDeviceCtx);
-    if (!cuda_frame_ref) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate CUDA frame context\n");
-        throw std::runtime_error("Error: Couldn't allocate CUDA frame context");
-    }
-    auto cudaHwframeCtx = reinterpret_cast<AVHWFramesContext*>(cuda_frame_ref->data);
-    cudaHwframeCtx->format = AV_PIX_FMT_CUDA;
-    cudaHwframeCtx->sw_format = bufferPixelFormat;
-    cudaHwframeCtx->width = width;
-    cudaHwframeCtx->height = height;
-    cudaHwframeCtx->initial_pool_size = 0;
-
-    ret = av_hwframe_ctx_init(cuda_frame_ref);
-    if (ret < 0) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't initialize CUDA frame context: %s\n", av_err2str(ret));
-        throw std::runtime_error("Error: Couldn't initialize CUDA frame context");
-    }
-
-    this->cudaFrameCtx = cuda_frame_ref;
-
 #endif
 
     /* Setup codec to encode output (video to URL) */
@@ -106,12 +43,7 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
         throw std::runtime_error("Video Streamer could not be created.");
     }
 
-#ifndef __APPLE__
-    codecCtx->pix_fmt = AV_PIX_FMT_CUDA;
-    codecCtx->hw_frames_ctx = av_buffer_ref(cudaFrameCtx);
-#else
     codecCtx->pix_fmt = videoPixelFormat;
-#endif
     codecCtx->width = width;
     codecCtx->height = height;
     codecCtx->time_base = {1, targetFrameRate};
@@ -159,7 +91,6 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
         throw std::runtime_error("Video Streamer could not be created.");
     }
 
-#ifdef __APPLE__
     swsCtx = sws_getContext(width, height, bufferPixelFormat,
                             width, height, videoPixelFormat,
                             SWS_BICUBIC, nullptr, nullptr, nullptr);
@@ -168,22 +99,11 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
         throw std::runtime_error("Video Streamer could not be created.");
     }
 
-    rgbData = std::vector<uint8_t>(width * height * 3);
-#endif
+    rgbaData = std::vector<uint8_t>(width * height * 4);
 
     /* setup frame */
     frame->width = width;
     frame->height = height;
-#ifndef __APPLE__
-    frame->format = AV_PIX_FMT_CUDA;
-    frame->hw_frames_ctx = av_buffer_ref(cudaFrameCtx);
-
-    ret = av_hwframe_get_buffer(cudaFrameCtx, frame, 0);
-    if (ret < 0) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate frame data: %s\n", av_err2str(ret));
-        throw std::runtime_error("Error: Couldn't allocate frame data");
-    }
-#else
     frame->format = videoPixelFormat;
     ret = av_frame_get_buffer(frame, 0);
     if (ret < 0) {
@@ -196,7 +116,6 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not make frame writable: %s\n", av_err2str(ret));
         return;
     }
-#endif
 
     videoStreamerThread = std::thread(&VideoStreamer::encodeAndSendFrames, this);
 }
@@ -217,29 +136,26 @@ void VideoStreamer::sendFrame(pose_id_t poseID) {
     /* Copy frame from OpenGL texture to AVFrame */
     uint64_t startCopyTime = av_gettime();
 
-    // lock frame mutex
-    std::lock_guard<std::mutex> lock(frameMutex);
+    {
+        // lock frame mutex
+        std::lock_guard<std::mutex> lock(frameMutex);
 
 #ifndef __APPLE__
-    // update cuda buffer
-    CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
-    CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
-    CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
+        // update cuda buffer
+        CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
+        CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
+        CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
 #else
-    bind();
-    glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgbData.data());
-    unbind();
-
-    const uint8_t* srcData[] = { rgbData.data() };
-    int srcStride[] = { static_cast<int>(width * 3) }; // RGB has 3 bytes per pixel
-
-    sws_scale(swsCtx, srcData, srcStride, 0, height, frame->data, frame->linesize);
+        bind();
+        glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgbaData.data());
+        unbind();
 #endif
 
-    this->poseID = poseID;
+        this->poseID = poseID;
 
-    // tell thread to send frame
-    frameReady = true;
+        // tell thread to send frame
+        frameReady = true;
+    }
     cv.notify_one();
 
     stats.timeToCopyFrame = (av_gettime() - startCopyTime) / MICROSECONDS_IN_MILLISECOND;
@@ -265,12 +181,21 @@ void VideoStreamer::encodeAndSendFrames() {
 
 #ifndef __APPLE__
         // copy opengl texture data to frame
-        CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(frame->data[0], frame->linesize[0],
-                                        cudaBuffer,
-                                        0, 0, width * 4, height,
-                                        cudaMemcpyDeviceToHost));
+        CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(rgbaData.data(), width * 4,
+                                               cudaBuffer,
+                                               0, 0, width * 4, height,
+                                               cudaMemcpyDeviceToHost));
 #endif
 
+        pose_id_t poseIDToSend = this->poseID;
+
+        lock.unlock();
+
+        // convert RGBA to YUV
+        const uint8_t* srcData[] = { rgbaData.data() };
+        int srcStride[] = { static_cast<int>(width * 4) }; // RGBA has 4 bytes per pixel
+
+        sws_scale(swsCtx, srcData, srcStride, 0, height, frame->data, frame->linesize);
 
         /* Encode frame */
         {
@@ -293,7 +218,7 @@ void VideoStreamer::encodeAndSendFrames() {
                 continue;
             }
 
-            packet->pts = poseID; // framesSent * (outputFormatCtx->streams[0]->time_base.den) / targetFrameRate;
+            packet->pts = poseIDToSend; // framesSent * (outputFormatCtx->streams[0]->time_base.den) / targetFrameRate;
             packet->dts = packet->pts;
 
             stats.timeToEncode = (av_gettime() - startEncodeTime) / MICROSECONDS_IN_MILLISECOND;

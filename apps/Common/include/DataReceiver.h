@@ -104,8 +104,10 @@ private:
                     offset += p.second.size;
                 }
 
-                std::lock_guard<std::mutex> lock(m);
-                results.push_back(std::move(data));
+                {
+                    std::unique_lock<std::mutex> lock(m);
+                    results.push_back(std::move(data));
+                }
 
                 datas.erase(packet.dataID);
                 dataSizes.erase(packet.dataID);

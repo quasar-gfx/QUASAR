@@ -81,19 +81,22 @@ public:
         renderTargetCopy->unbind();
 
 #ifndef __APPLE__
-        std::lock_guard<std::mutex> lock(m);
+        {
+            // lock mutex
+            std::lock_guard<std::mutex> lock(m);
 
-        // update cuda buffer
-        CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
-        CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
-        CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
+            // update cuda buffer
+            CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
+            CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
+            CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
 #endif
 
-        this->poseID = poseID;
+            this->poseID = poseID;
 
 #ifndef __APPLE__
-        // tell thread to send data
-        dataReady = true;
+            // tell thread to send data
+            dataReady = true;
+        }
         cv.notify_one();
 #else
         memcpy(data.data(), &poseID, sizeof(pose_id_t));
@@ -141,11 +144,12 @@ private:
             memcpy(data.data(), &poseID, sizeof(pose_id_t));
 
             // copy depth buffer to data
-            cudaError_t cudaErr;
             CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(data.data() + sizeof(pose_id_t), width * sizeof(GLushort),
                                                    cudaBuffer,
                                                    0, 0, width * sizeof(GLushort), height,
                                                    cudaMemcpyDeviceToHost));
+
+            lock.unlock();
 
             auto endCopyFrame = std::chrono::high_resolution_clock::now();
 
