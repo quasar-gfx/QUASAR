@@ -22,8 +22,6 @@ class RenderTargetBase {
 public:
     unsigned int width, height;
 
-    Framebuffer framebuffer;
-
     explicit RenderTargetBase(const RenderTargetCreateParams &params) : framebuffer() {
         width = params.width;
         height = params.height;
@@ -54,6 +52,9 @@ public:
     virtual void cleanup() {
         framebuffer.cleanup();
     }
+
+protected:
+    Framebuffer framebuffer;
 };
 
 #endif // RENDER_BASE_TARGET_H

@@ -34,11 +34,9 @@ extern "C" {
 
 #define MBPS_TO_BPS 1e6f
 
-class VideoStreamer {
+class VideoStreamer : public RenderTarget {
 public:
     std::string videoURL = "0.0.0.0:12345";
-
-    unsigned int width, height;
 
     unsigned int framesSent = 0;
 
@@ -49,7 +47,7 @@ public:
         float totalTimeToSendFrame = -1.0f;
     } stats;
 
-    explicit VideoStreamer(RenderTarget* renderTarget, const std::string &videoURL);
+    explicit VideoStreamer(const RenderTargetCreateParams &params, const std::string &videoURL);
     ~VideoStreamer() {
         cleanup();
     }

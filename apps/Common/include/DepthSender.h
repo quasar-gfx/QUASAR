@@ -12,13 +12,9 @@
 #include <CudaUtils.h>
 #endif
 
-class DepthSender {
+class DepthSender : public RenderTarget {
 public:
     std::string receiverURL;
-
-    unsigned int width, height;
-
-    RenderTarget* renderTarget;
 
     int imageSize;
 
@@ -26,26 +22,24 @@ public:
         float timeToCopyFrame = -1.0f;
     } stats;
 
-    explicit DepthSender(RenderTarget* renderTarget, std::string receiverURL)
+    explicit DepthSender(const RenderTargetCreateParams &params, std::string receiverURL)
             : receiverURL(receiverURL)
-            , renderTarget(renderTarget)
-            , width(renderTarget->width)
-            , height(renderTarget->height)
-            , imageSize(sizeof(pose_id_t) + renderTarget->width * renderTarget->height * sizeof(GLushort))
-            , streamer(receiverURL) {
+            , imageSize(sizeof(pose_id_t) + params.width * params.height * sizeof(GLushort))
+            , streamer(receiverURL)
+            , RenderTarget(params) {
         data = std::vector<uint8_t>(imageSize);
 
         renderTargetCopy = new RenderTarget({
-            .width = renderTarget->width,
-            .height = renderTarget->height,
-            .internalFormat = renderTarget->colorBuffer.internalFormat,
-            .format = renderTarget->colorBuffer.format,
-            .type = renderTarget->colorBuffer.type,
-            .wrapS = renderTarget->colorBuffer.wrapS,
-            .wrapT = renderTarget->colorBuffer.wrapT,
-            .minFilter = renderTarget->colorBuffer.minFilter,
-            .magFilter = renderTarget->colorBuffer.magFilter,
-            .multiSampled = renderTarget->colorBuffer.multiSampled
+            .width = width,
+            .height = height,
+            .internalFormat = colorBuffer.internalFormat,
+            .format = colorBuffer.format,
+            .type = colorBuffer.type,
+            .wrapS = colorBuffer.wrapS,
+            .wrapT = colorBuffer.wrapT,
+            .minFilter = colorBuffer.minFilter,
+            .magFilter = colorBuffer.magFilter,
+            .multiSampled = colorBuffer.multiSampled
         });
 
 #ifndef __APPLE__
@@ -83,7 +77,7 @@ public:
 
     void sendFrame(pose_id_t poseID) {
         renderTargetCopy->bind();
-        renderTarget->blitToRenderTarget(*renderTargetCopy);
+        blitToRenderTarget(*renderTargetCopy);
         renderTargetCopy->unbind();
 
 #ifndef __APPLE__
@@ -104,9 +98,9 @@ public:
 #else
         memcpy(data, &poseID, sizeof(pose_id_t));
 
-        renderTarget->bind();
+        bind();
         glReadPixels(0, 0, width, height, GL_RED, GL_UNSIGNED_SHORT, data + sizeof(pose_id_t));
-        renderTarget->unbind();
+        unbind();
 
         streamer.send((const uint8_t*)data, imageSize);
 #endif

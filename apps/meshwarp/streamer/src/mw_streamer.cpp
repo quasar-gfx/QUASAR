@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
     SceneLoader loader = SceneLoader();
     loader.loadScene(scenePath, scene, camera);
 
-    RenderTarget renderTargetColor({
+    VideoStreamer videoStreamerColorRT = VideoStreamer({
         .width = screenWidth,
         .height = screenHeight,
         .internalFormat = GL_SRGB,
@@ -90,9 +90,8 @@ int main(int argc, char** argv) {
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR
-    });
-
-    RenderTarget renderTargetDepth({
+    }, videoURL);
+    DepthSender videoStreamerDepthRT = DepthSender({
         .width = screenWidth,
         .height = screenHeight,
         .internalFormat = GL_R16,
@@ -102,10 +101,7 @@ int main(int argc, char** argv) {
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST
-    });
-
-    VideoStreamer videoStreamerColor = VideoStreamer(&renderTargetColor, videoURL);
-    DepthSender videoStreamerDepth = DepthSender(&renderTargetDepth, depthURL);
+    }, depthURL);
     PoseReceiver poseReceiver = PoseReceiver(&camera, poseURL);
 
     std::cout << "Video URL: " << videoURL << std::endl;
@@ -140,13 +136,13 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
-        ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoStreamerColor.getFrameRate(), 1000.0f / videoStreamerColor.getFrameRate());
+        ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoStreamerColorRT.getFrameRate(), 1000.0f / videoStreamerColorRT.getFrameRate());
 
         ImGui::Separator();
 
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: %.3f ms", videoStreamerColor.stats.timeToCopyFrame + videoStreamerDepth.stats.timeToCopyFrame);
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.3f ms", videoStreamerColor.stats.timeToEncode);
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: %.3f ms", videoStreamerColor.stats.timeToSendFrame);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: %.3f ms", videoStreamerColorRT.stats.timeToCopyFrame + videoStreamerDepthRT.stats.timeToCopyFrame);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.3f ms", videoStreamerColorRT.stats.timeToEncode);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: %.3f ms", videoStreamerColorRT.stats.timeToSendFrame);
 
         ImGui::Separator();
 
@@ -159,7 +155,7 @@ int main(int argc, char** argv) {
         ImGui::SetNextWindowPos(ImVec2(screenWidth - TEXTURE_PREVIEW_SIZE - 30, 10), ImGuiCond_FirstUseEver);
         flags = ImGuiWindowFlags_AlwaysAutoResize;
         ImGui::Begin("Raw Depth Texture", 0, flags);
-        ImGui::Image((void*)(intptr_t)renderTargetDepth.colorBuffer.ID, ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Image((void*)(intptr_t)videoStreamerDepthRT.colorBuffer.ID, ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
         ImGui::End();
     });
 
@@ -265,16 +261,16 @@ int main(int argc, char** argv) {
         if (config.showWindow) {
             app.renderer->drawToScreen(colorShader);
         }
-        app.renderer->drawToRenderTarget(colorShader, renderTargetColor);
+        app.renderer->drawToRenderTarget(colorShader, videoStreamerColorRT);
         depthShader.bind();
         depthShader.setFloat("near", camera.near);
         depthShader.setFloat("far", camera.far);
-        app.renderer->drawToRenderTarget(depthShader, renderTargetDepth);
+        app.renderer->drawToRenderTarget(depthShader, videoStreamerDepthRT);
 
         // send video frame
         if (poseID != -1) {
-            if (!pauseColor) videoStreamerColor.sendFrame(poseID);
-            if (!pauseDepth) videoStreamerDepth.sendFrame(poseID);
+            if (!pauseColor) videoStreamerColorRT.sendFrame(poseID);
+            if (!pauseDepth) videoStreamerDepthRT.sendFrame(poseID);
         }
     });
 

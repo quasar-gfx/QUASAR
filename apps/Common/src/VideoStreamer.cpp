@@ -9,11 +9,9 @@ static int interrupt_callback(void* ctx) {
     return shouldTerminate;
 }
 
-VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &videoURL)
-        : renderTarget(renderTarget)
-        , width(renderTarget->width)
-        , height(renderTarget->height)
-        , videoURL("udp://" + videoURL) {
+VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::string &videoURL)
+        : videoURL("udp://" + videoURL)
+        , RenderTarget(params) {
     int ret;
 
 #ifndef __APPLE__
@@ -60,8 +58,8 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
     auto hwframeCtx = reinterpret_cast<AVHWFramesContext*>(frameCtx->data);
     hwframeCtx->format = AV_PIX_FMT_CUDA;
     hwframeCtx->sw_format = bufferPixelFormat;
-    hwframeCtx->width = renderTarget->width;
-    hwframeCtx->height = renderTarget->height;
+    hwframeCtx->width = width;
+    hwframeCtx->height = height;
     hwframeCtx->initial_pool_size = 0;
 
     /* init ffmpeg cuda frame context */
@@ -73,8 +71,8 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
     auto cudaHwframeCtx = reinterpret_cast<AVHWFramesContext*>(cuda_frame_ref->data);
     cudaHwframeCtx->format = AV_PIX_FMT_CUDA;
     cudaHwframeCtx->sw_format = bufferPixelFormat;
-    cudaHwframeCtx->width = renderTarget->width;
-    cudaHwframeCtx->height = renderTarget->height;
+    cudaHwframeCtx->width = width;
+    cudaHwframeCtx->height = height;
     cudaHwframeCtx->initial_pool_size = 0;
 
     ret = av_hwframe_ctx_init(cuda_frame_ref);
@@ -208,7 +206,7 @@ int VideoStreamer::initCuda() {
     CUdevice device = CudaUtils::findCudaDevice();
     // register opengl texture with cuda
     CHECK_CUDA_ERROR(cudaGraphicsGLRegisterImage(&cudaResource,
-                                                 renderTarget->colorBuffer.ID, GL_TEXTURE_2D,
+                                                 colorBuffer.ID, GL_TEXTURE_2D,
                                                  cudaGraphicsRegisterFlagsReadOnly));
 
     return 0;
@@ -228,14 +226,14 @@ void VideoStreamer::sendFrame(pose_id_t poseID) {
     CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
     CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
 #else
-    renderTarget->bind();
-    glReadPixels(0, 0, renderTarget->width, renderTarget->height, GL_RGB, GL_UNSIGNED_BYTE, rgbData.data());
-    renderTarget->unbind();
+    bind();
+    glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgbData.data());
+    unbind();
 
     const uint8_t* srcData[] = { rgbData.data() };
-    int srcStride[] = { static_cast<int>(renderTarget->width * 3) }; // RGB has 3 bytes per pixel
+    int srcStride[] = { static_cast<int>(width * 3) }; // RGB has 3 bytes per pixel
 
-    sws_scale(swsCtx, srcData, srcStride, 0, renderTarget->height, frame->data, frame->linesize);
+    sws_scale(swsCtx, srcData, srcStride, 0, height, frame->data, frame->linesize);
 #endif
 
     this->poseID = poseID;

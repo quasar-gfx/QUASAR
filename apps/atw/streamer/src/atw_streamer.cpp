@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
     SceneLoader loader = SceneLoader();
     loader.loadScene(scenePath, scene, camera);
 
-    RenderTarget renderTarget({
+    VideoStreamer videoStreamerRT = VideoStreamer({
         .width = screenWidth,
         .height = screenHeight,
         .internalFormat = GL_SRGB,
@@ -83,9 +83,7 @@ int main(int argc, char** argv) {
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR
-    });
-
-    VideoStreamer videoStreamer = VideoStreamer(&renderTarget, videoURL);
+    }, videoURL);
     PoseReceiver poseReceiver = PoseReceiver(&camera, poseURL);
 
     std::cout << "Video URL: " << videoURL << std::endl;
@@ -117,13 +115,13 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
-        ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoStreamer.getFrameRate(), 1000.0f / videoStreamer.getFrameRate());
+        ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoStreamerRT.getFrameRate(), 1000.0f / videoStreamerRT.getFrameRate());
 
         ImGui::Separator();
 
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: %.3f ms", videoStreamer.stats.timeToCopyFrame);
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.3f ms", videoStreamer.stats.timeToEncode);
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: %.3f ms", videoStreamer.stats.timeToSendFrame);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: %.3f ms", videoStreamerRT.stats.timeToCopyFrame);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.3f ms", videoStreamerRT.stats.timeToEncode);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: %.3f ms", videoStreamerRT.stats.timeToSendFrame);
 
         ImGui::Separator();
 
@@ -216,11 +214,11 @@ int main(int argc, char** argv) {
         if (config.showWindow) {
             app.renderer->drawToScreen(colorShader);
         }
-        app.renderer->drawToRenderTarget(colorShader, renderTarget);
+        app.renderer->drawToRenderTarget(colorShader, videoStreamerRT);
 
         // send video frame
         if (poseID != -1) {
-            videoStreamer.sendFrame(poseID);
+            videoStreamerRT.sendFrame(poseID);
         }
     });
 
