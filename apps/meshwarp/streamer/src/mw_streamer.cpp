@@ -24,6 +24,13 @@
 
 #define TEXTURE_PREVIEW_SIZE 500
 
+enum class PauseState {
+    PLAY,
+    PAUSE_COLOR,
+    PAUSE_DEPTH,
+    PAUSE_BOTH
+};
+
 int main(int argc, char** argv) {
     Config config{};
     config.title = "MeshWarp Streamer";
@@ -108,9 +115,7 @@ int main(int argc, char** argv) {
     std::cout << "Depth URL: " << depthURL << std::endl;
     std::cout << "Pose URL: " << poseURL << std::endl;
 
-    bool paused = false;
-    bool pauseColor = false;
-    bool pauseDepth = false;
+    PauseState pauseState = PauseState::PLAY;
     guiManager->onRender([&](double now, double dt) {
         ImGui::NewFrame();
 
@@ -146,9 +151,10 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
-        ImGui::Checkbox("Pause", &paused);
-        ImGui::Checkbox("Pause Color", &pauseColor);
-        ImGui::Checkbox("Pause Depth", &pauseDepth);
+        ImGui::RadioButton("Play All", (int*)&pauseState, 0);
+        ImGui::RadioButton("Pause Color", (int*)&pauseState, 1);
+        ImGui::RadioButton("Pause Depth", (int*)&pauseState, 2);
+        ImGui::RadioButton("Pause Both", (int*)&pauseState, 3);
 
         ImGui::End();
 
@@ -241,7 +247,7 @@ int main(int argc, char** argv) {
             }
         }
 
-        if (paused) {
+        if (pauseState == PauseState::PAUSE_BOTH) {
             return;
         }
 
@@ -269,8 +275,8 @@ int main(int argc, char** argv) {
 
         // send video frame
         if (poseID != -1) {
-            if (!pauseColor) videoStreamerColorRT.sendFrame(poseID);
-            if (!pauseDepth) videoStreamerDepthRT.sendFrame(poseID);
+            if (pauseState != PauseState::PAUSE_COLOR) videoStreamerColorRT.sendFrame(poseID);
+            if (pauseState != PauseState::PAUSE_DEPTH) videoStreamerDepthRT.sendFrame(poseID);
         }
     });
 
