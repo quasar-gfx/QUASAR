@@ -202,20 +202,15 @@ int main(int argc, char** argv) {
         videoTexture.unbind();
 
         atwShader.bind();
-
         atwShader.setBool("atwEnabled", atwEnabled);
-
-        glm::mat4 proj = camera.getProjectionMatrix();
-        glm::mat4 view = camera.getViewMatrix();
-        atwShader.setMat4("projection", proj);
-        atwShader.setMat4("view", view);
-        atwShader.setInt("videoTexture", 5);
-        videoTexture.bind(5);
-
+        atwShader.setMat4("projectionInverse", glm::inverse(camera.getProjectionMatrix()));
+        atwShader.setMat4("viewInverse", glm::inverse(camera.getViewMatrix()));
         if (poseID != -1 && poseStreamer.getPose(poseID, &currentFramePose, &elapedTime)) {
             atwShader.setMat4("remoteProjection", currentFramePose.proj);
             atwShader.setMat4("remoteView", currentFramePose.view);
         }
+        atwShader.setInt("videoTexture", 5);
+        videoTexture.bind(5);
 
         // render to screen
         app.renderer->drawToScreen(atwShader);

@@ -45,7 +45,6 @@ public:
     void cleanup();
 
     pose_id_t draw(pose_id_t poseID = -1);
-    bool getFrameWithPoseID(pose_id_t poseID, AVFrame* res = nullptr);
     pose_id_t getLatestPoseID();
 
     void setMaxQueueSize(unsigned int maxQueueSize) {
@@ -82,8 +81,18 @@ private:
     std::thread videoReceiverThread;
     std::mutex m;
 
-    uint8_t* buffer = nullptr;
-    std::deque<AVFrame*> frames;
+    struct FrameData {
+        pose_id_t poseID;
+        AVFrame* frame;
+        uint8_t* buffer;
+
+        void free() {
+            av_frame_free(&frame);
+            delete[] buffer;
+        }
+    };
+
+    std::deque<FrameData> frames;
 
     void receiveVideo();
 

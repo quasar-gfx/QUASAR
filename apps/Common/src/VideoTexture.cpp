@@ -84,9 +84,6 @@ int VideoTexture::initFFMpeg() {
                             width, height, openglPixelFormat,
                             SWS_BILINEAR, nullptr, nullptr, nullptr);
 
-    int numBytes = av_image_get_buffer_size(openglPixelFormat, width, height, 1);
-    buffer = (uint8_t*)av_malloc(numBytes * sizeof(uint8_t));
-
     return 0;
 }
 
@@ -151,6 +148,9 @@ void VideoTexture::receiveVideo() {
             uint64_t resizeStartTime = av_gettime();
 
             AVFrame* frameRGB = av_frame_alloc();
+
+            int numBytes = av_image_get_buffer_size(openglPixelFormat, width, height, 1);
+            uint8_t* buffer = (uint8_t*)av_malloc(numBytes * sizeof(uint8_t));
             av_image_fill_arrays(frameRGB->data, frameRGB->linesize, buffer, openglPixelFormat, width, height, 1);
 
             frameRGB->opaque = reinterpret_cast<void*>(poseID);
@@ -159,10 +159,11 @@ void VideoTexture::receiveVideo() {
 
             std::unique_lock<std::mutex> lock(m);
 
-            frames.push_back(frameRGB);
+            FrameData frameData = {poseID, frameRGB, buffer};
+            frames.push_back(frameData);
             if (frames.size() > maxQueueSize) {
-                AVFrame* frameToFree = frames.front();
-                av_frame_free(&frameToFree);
+                FrameData frameToFree = frames.front();
+                frameToFree.free();
                 frames.pop_front();
             }
 
@@ -189,14 +190,19 @@ pose_id_t VideoTexture::draw(pose_id_t poseID) {
         return -1;
     }
 
+    pose_id_t res = -1;
     AVFrame* frameRGB = nullptr;
     if (poseID == -1) {
-        frameRGB = frames.back();
+        FrameData frameData = frames.back();
+        frameRGB = frameData.frame;
+        res = frameData.poseID;
     }
     else {
         for (auto it = frames.begin(); it != frames.end(); it++) {
-            if (reinterpret_cast<uintptr_t>((*it)->opaque) == poseID) {
-                frameRGB = *it;
+            FrameData frameData = *it;
+            if (frameData.poseID == poseID) {
+                frameRGB = frameData.frame;
+                res = frameData.poseID;
                 break;
             }
         }
@@ -208,25 +214,7 @@ pose_id_t VideoTexture::draw(pose_id_t poseID) {
 
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, frameRGB->data[0]);
 
-    return static_cast<pose_id_t>(reinterpret_cast<uintptr_t>(frameRGB->opaque));
-}
-
-bool VideoTexture::getFrameWithPoseID(pose_id_t poseID, AVFrame* res) {
-    std::lock_guard<std::mutex> lock(m);
-    if (frames.empty()) {
-        return false;
-    }
-
-    for (auto it = frames.begin(); it != frames.end(); it++) {
-        if (reinterpret_cast<uintptr_t>((*it)->opaque) == poseID) {
-            if (res != nullptr) {
-                res = *it;
-            }
-            return true;
-        }
-    }
-
-    return false;
+    return res;
 }
 
 pose_id_t VideoTexture::getLatestPoseID() {
@@ -237,9 +225,8 @@ pose_id_t VideoTexture::getLatestPoseID() {
 
     pose_id_t poseID;
 
-    AVFrame* frameRGB = frames.front();
-    poseID = static_cast<pose_id_t>(reinterpret_cast<uintptr_t>(frameRGB->opaque));
-
+    FrameData frameData = frames.back();
+    poseID = frameData.poseID;
     return poseID;
 }
 
@@ -260,11 +247,11 @@ void VideoTexture::cleanup() {
     av_packet_unref(packet);
     av_packet_free(&packet);
 
-    av_free(buffer);
+    // av_free(buffer);
 
     while (!frames.empty()) {
-        AVFrame* frameToFree = frames.front();
-        av_frame_free(&frameToFree);
+        FrameData frameData = frames.front();
+        frameData.free();
         frames.pop_front();
     }
 
