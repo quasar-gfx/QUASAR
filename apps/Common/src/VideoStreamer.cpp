@@ -170,7 +170,7 @@ VideoStreamer::VideoStreamer(RenderTarget* renderTarget, const std::string &vide
         throw std::runtime_error("Video Streamer could not be created.");
     }
 
-    rgbData = new uint8_t[width * height * 3];
+    rgbData = std::vector<uint8_t>(width * height * 3);
 #endif
 
     /* setup frame */
@@ -229,10 +229,10 @@ void VideoStreamer::sendFrame(pose_id_t poseID) {
     CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
 #else
     renderTarget->bind();
-    glReadPixels(0, 0, renderTarget->width, renderTarget->height, GL_RGB, GL_UNSIGNED_BYTE, rgbData);
+    glReadPixels(0, 0, renderTarget->width, renderTarget->height, GL_RGB, GL_UNSIGNED_BYTE, rgbData.data());
     renderTarget->unbind();
 
-    const uint8_t* srcData[] = { rgbData };
+    const uint8_t* srcData[] = { rgbData.data() };
     int srcStride[] = { static_cast<int>(renderTarget->width * 3) }; // RGB has 3 bytes per pixel
 
     sws_scale(swsCtx, srcData, srcStride, 0, renderTarget->height, frame->data, frame->linesize);
@@ -256,7 +256,7 @@ void VideoStreamer::encodeAndSendFrames() {
     while (true) {
         // wait for frame to be ready
         std::unique_lock<std::mutex> lock(frameMutex);
-        cv.wait(lock, [&] { return frameReady; });
+        cv.wait(lock, [this] { return frameReady; });
 
         if (sendFrames) {
             frameReady = false;
@@ -352,8 +352,4 @@ void VideoStreamer::cleanup() {
     av_frame_free(&frame);
     av_packet_unref(packet);
     av_packet_free(&packet);
-
-#ifdef __APPLE__
-    delete[] rgbData;
-#endif
 }

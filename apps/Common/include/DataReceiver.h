@@ -38,35 +38,30 @@ public:
         if (dataRecvingThread.joinable()) {
             dataRecvingThread.join();
         }
-
-        socket.close();
     }
 
-    uint8_t* recv(bool first = false) {
+    std::vector<uint8_t> recv(bool first = false) {
+        std::lock_guard<std::mutex> lock(m);
+
         if (results.empty()) {
-            return nullptr;
+            return {};
         }
 
-        uint8_t* data = nullptr;
-
-        m.lock();
+        std::vector<uint8_t> data;
 
         if (first) {
-            data = results.front();
+            data = std::move(results.front());
             results.pop_front();
         }
         else {
-            data = results.back();
+            data = std::move(results.back());
             results.pop_back();
 
-            // clear all previous results
+            // Clear all previous results
             while (!results.empty()) {
-                delete[] results.front();
                 results.pop_front();
             }
         }
-
-        m.unlock();
 
         return data;
     }
@@ -79,10 +74,10 @@ private:
 
     std::atomic_bool running = false;
 
-    std::deque<uint8_t *> results;
+    std::deque<std::vector<uint8_t>> results;
 
-    std::map<data_id_t, std::map<packet_id_t, DataPacket>> datas;
-    std::map<data_id_t, int> dataSizes;
+    std::map<packet_id_t, std::map<int, DataPacket>> datas;
+    std::map<packet_id_t, int> dataSizes;
 
     int recvPacket(DataPacket* packet) {
         return socket.recv(packet, sizeof(DataPacket), 0);
@@ -94,7 +89,7 @@ private:
             int received = recvPacket(&packet);
             if (received < 0) {
                 if (errno == EWOULDBLOCK || errno == EAGAIN) {
-                    continue; // Retry if the socket is non-blocking and recv would block
+                    continue; // retry if the socket is non-blocking and recv would block
                 }
             }
 
@@ -102,36 +97,36 @@ private:
             dataSizes[packet.dataID] += packet.size;
 
             if (dataSizes[packet.dataID] == maxDataSize) {
-                uint8_t* data = new uint8_t[maxDataSize];
+                std::vector<uint8_t> data(maxDataSize);
                 int offset = 0;
                 for (auto& p : datas[packet.dataID]) {
-                    memcpy(data + offset, p.second.data, p.second.size);
+                    memcpy(data.data() + offset, p.second.data, p.second.size);
                     offset += p.second.size;
                 }
 
-                m.lock();
-                results.push_back(data);
-                m.unlock();
+                std::lock_guard<std::mutex> lock(m);
+                results.push_back(std::move(data));
 
                 datas.erase(packet.dataID);
                 dataSizes.erase(packet.dataID);
             }
         }
+
+        socket.close();
     }
 };
+
 
 class DataReceiverTCP {
 public:
     std::string url;
 
-    int maxDataSize;
-
-    explicit DataReceiverTCP(std::string url, int maxDataSize, bool nonBlocking = false)
+    explicit DataReceiverTCP(std::string url, bool nonBlocking = false)
             : url(url)
-            , maxDataSize(maxDataSize)
             , socket(nonBlocking) {
         dataRecvingThread = std::thread(&DataReceiverTCP::recvData, this);
     }
+
     ~DataReceiverTCP() {
         close();
     }
@@ -142,20 +137,18 @@ public:
         if (dataRecvingThread.joinable()) {
             dataRecvingThread.join();
         }
-
-        socket.close();
     }
 
-    uint8_t* recv() {
+    std::vector<uint8_t> recv() {
         if (!ready) {
-            return nullptr;
+            return {};
         }
 
         if (frames.empty()) {
-            return nullptr;
+            return {};
         }
 
-        uint8_t* data = frames.front();
+        std::vector<uint8_t> data = std::move(frames.front());
         frames.pop();
 
         return data;
@@ -168,36 +161,73 @@ private:
 
     std::atomic_bool ready = false;
 
-    std::queue<uint8_t*> frames;
+    std::queue<std::vector<uint8_t>> frames;
 
     void recvData() {
-        while (!ready) {
+        while (true) {
             if (socket.connect(url) < 0) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            }
-            else {
+            } else {
                 ready = true;
                 break;
             }
         }
 
         while (ready) {
-            uint8_t* data = new uint8_t[maxDataSize];
-            int currSize = 0;
-            // std::cout << currSize << " / " << maxDataSize << std::endl;
-            while (currSize < maxDataSize) {
-                int received = socket.recv(data + currSize, maxDataSize - currSize, 0);
+            std::vector<uint8_t> data;
+            uint8_t buffer[PACKET_DATA_SIZE];
+
+            int received = 0;
+            int expectedSize = 0;
+
+            // read header first (includes size of the data packet)
+            while (ready && expectedSize == 0) {
+                received = socket.recv(buffer, sizeof(expectedSize), 0);
                 if (received < 0) {
                     if (errno == EWOULDBLOCK || errno == EAGAIN) {
-                        continue; // Retry if the socket is non-blocking and recv would block
+                        continue; // retry if the socket is non-blocking and recv would block
                     }
+                    break;
                 }
 
-                currSize += received;
+                if (received == sizeof(expectedSize)) {
+                    memcpy(&expectedSize, buffer, sizeof(expectedSize));
+                    data.reserve(expectedSize);
+                    break;
+                }
             }
 
-            frames.push(data);
+            if (expectedSize == 0) {
+                continue;
+            }
+
+            // Now read the actual data based on the expected size
+            int totalReceived = 0;
+            while (ready && totalReceived < expectedSize) {
+                received = socket.recv(buffer, std::min(PACKET_DATA_SIZE, expectedSize - totalReceived), 0);
+                if (received < 0) {
+                    if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                        continue; // retry if the socket is non-blocking and recv would block
+                    }
+                    break;
+                }
+
+                data.insert(data.end(), buffer, buffer + received);
+                totalReceived += received;
+
+                if (received == 0) {
+                    // connection closed
+                    ready = false;
+                    break;
+                }
+            }
+
+            if (totalReceived == expectedSize && !data.empty()) {
+                frames.push(std::move(data));
+            }
         }
+
+        socket.close();
     }
 };
 

@@ -21,15 +21,6 @@ class PoseStreamer {
 public:
     std::string receiverURL;
 
-    DataStreamerUDP streamer;
-
-    Camera* camera;
-
-    Pose currPose, prevPose;
-    pose_id_t currPoseID = 0;
-
-    std::map<pose_id_t, Pose> prevPoses;
-
     explicit PoseStreamer(Camera* camera, std::string receiverURL)
             : camera(camera)
             , receiverURL(receiverURL)
@@ -96,7 +87,15 @@ public:
         return true;
     }
 
-    int timer = 0;
+private:
+    DataStreamerUDP streamer;
+
+    Camera* camera;
+
+    Pose currPose, prevPose;
+    pose_id_t currPoseID = 0;
+
+    std::map<pose_id_t, Pose> prevPoses;
 };
 
 #endif // POSE_STREAMER_H

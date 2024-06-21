@@ -16,7 +16,7 @@ class DepthSender {
 public:
     std::string receiverURL;
 
-    DataStreamerTCP* streamer;
+    unsigned int width, height;
 
     RenderTarget* renderTarget;
 
@@ -29,9 +29,11 @@ public:
     explicit DepthSender(RenderTarget* renderTarget, std::string receiverURL)
             : receiverURL(receiverURL)
             , renderTarget(renderTarget)
-            , imageSize(sizeof(pose_id_t) + renderTarget->width * renderTarget->height * sizeof(GLushort)) {
-        streamer = new DataStreamerTCP(receiverURL, imageSize);
-        data = new uint8_t[imageSize];
+            , width(renderTarget->width)
+            , height(renderTarget->height)
+            , imageSize(sizeof(pose_id_t) + renderTarget->width * renderTarget->height * sizeof(GLushort))
+            , streamer(receiverURL) {
+        data = std::vector<uint8_t>(imageSize);
 
         renderTargetCopy = new RenderTarget({
             .width = renderTarget->width,
@@ -50,8 +52,8 @@ public:
         CUdevice device = CudaUtils::findCudaDevice();
         // register opengl texture with cuda
         CHECK_CUDA_ERROR(cudaGraphicsGLRegisterImage(&cudaResource,
-                        renderTargetCopy->colorBuffer.ID, GL_TEXTURE_2D,
-                        cudaGraphicsRegisterFlagsReadOnly));
+                                                     renderTargetCopy->colorBuffer.ID, GL_TEXTURE_2D,
+                                                     cudaGraphicsRegisterFlagsReadOnly));
 
         // start data sending thread
         running = true;
@@ -59,6 +61,10 @@ public:
 #endif
     }
     ~DepthSender() {
+        close();
+    }
+
+    void close() {
 #ifndef __APPLE__
         running = false;
 
@@ -73,9 +79,6 @@ public:
         cudaDeviceSynchronize();
         CHECK_CUDA_ERROR(cudaGraphicsUnregisterResource(cudaResource));
 #endif
-
-        delete streamer;
-        delete[] data;
     }
 
     void sendFrame(pose_id_t poseID) {
@@ -102,16 +105,18 @@ public:
         memcpy(data, &poseID, sizeof(pose_id_t));
 
         renderTarget->bind();
-        glReadPixels(0, 0, renderTargetCopy->width, renderTargetCopy->height, GL_RED, GL_UNSIGNED_SHORT, data + sizeof(pose_id_t));
+        glReadPixels(0, 0, width, height, GL_RED, GL_UNSIGNED_SHORT, data + sizeof(pose_id_t));
         renderTarget->unbind();
 
-        streamer->send((const uint8_t*)data);
+        streamer.send((const uint8_t*)data, imageSize);
 #endif
     }
 
 private:
+    DataStreamerTCP streamer;
+
     pose_id_t poseID;
-    uint8_t* data;
+    std::vector<uint8_t> data;
     RenderTarget* renderTargetCopy;
 
 #ifndef __APPLE__
@@ -139,20 +144,20 @@ private:
 
             auto startCopyFrame = std::chrono::high_resolution_clock::now();
 
-            memcpy(data, &poseID, sizeof(pose_id_t));
+            memcpy(data.data(), &poseID, sizeof(pose_id_t));
 
             // copy depth buffer to data
             cudaError_t cudaErr;
-            CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(data + sizeof(pose_id_t), renderTargetCopy->width * sizeof(GLushort),
+            CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(data.data() + sizeof(pose_id_t), width * sizeof(GLushort),
                                                    cudaBuffer,
-                                                   0, 0, renderTargetCopy->width * sizeof(GLushort), renderTargetCopy->height,
+                                                   0, 0, width * sizeof(GLushort), height,
                                                    cudaMemcpyDeviceToHost));
 
             auto endCopyFrame = std::chrono::high_resolution_clock::now();
 
             stats.timeToCopyFrame = std::chrono::duration<float, std::milli>(endCopyFrame - startCopyFrame).count();
 
-            streamer->send((const uint8_t*)data);
+            streamer.send(data);
         }
     }
 #endif

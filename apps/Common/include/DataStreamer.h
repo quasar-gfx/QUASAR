@@ -39,8 +39,6 @@ public:
         if (dataSendingThread.joinable()) {
             dataSendingThread.join();
         }
-
-        socket.close();
     }
 
     int send(const uint8_t* data) {
@@ -98,11 +96,13 @@ private:
             int sent = sendPacket(&packet);
             if (sent < 0) {
                 if (errno == EWOULDBLOCK || errno == EAGAIN) {
-                    continue; // Retry if the socket is non-blocking and send would block
+                    continue; // retry if the socket is non-blocking and send would block
                 }
             }
             packets.pop();
         }
+
+        socket.close();
     }
 };
 
@@ -110,11 +110,8 @@ class DataStreamerTCP {
 public:
     std::string url;
 
-    int maxDataSize;
-
-    explicit DataStreamerTCP(std::string url, int maxDataSize, bool nonBlocking = false, int sendSize = 65535)
+    explicit DataStreamerTCP(std::string url, bool nonBlocking = false, int sendSize = 65535)
             : url(url)
-            , maxDataSize(maxDataSize)
             , socket(nonBlocking) {
         socket.bind(url);
         socket.setReuseAddrPort();
@@ -123,6 +120,7 @@ public:
 
         dataSendingThread = std::thread(&DataStreamerTCP::sendData, this);
     }
+
     ~DataStreamerTCP() {
         close();
     }
@@ -133,63 +131,97 @@ public:
         if (dataSendingThread.joinable()) {
             dataSendingThread.join();
         }
-
-        socket.close();
     }
 
-    int send(const uint8_t* data, bool copy = false) {
+    int send(std::vector<uint8_t> data, bool copy = false) {
         if (!ready) {
             return -1;
         }
 
         if (copy) {
-            uint8_t* dataCopy = new uint8_t[maxDataSize];
-            memcpy(dataCopy, data, maxDataSize);
-            datas.push(dataCopy);
-        }
-        else {
             datas.push(data);
+        } else {
+            datas.push(std::move(data));
         }
 
-        return maxDataSize;
+        std::lock_guard<std::mutex> lock(m);
+        dataReady = true;
+        cv.notify_one();
+
+        return data.size();
     }
 
 private:
     SocketTCP socket;
 
     std::thread dataSendingThread;
+    std::mutex m;
+    std::condition_variable cv;
+    bool dataReady = false;
 
     std::atomic_bool ready = false;
 
-    std::queue<const uint8_t*> datas;
+    std::queue<std::vector<uint8_t>> datas;
 
     void sendData() {
         while (true) {
             if (socket.accept() < 0) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            }
-            else {
+            } else {
                 ready = true;
                 break;
             }
         }
 
         while (ready) {
-            if (datas.empty()) {
-                continue;
+            std::unique_lock<std::mutex> lock(m);
+            cv.wait(lock, [this] { return dataReady; });
+
+            if (ready) {
+                dataReady = false;
+            }
+            else {
+                break;
             }
 
-            const uint8_t* data = datas.front();
+            std::vector<uint8_t> data = std::move(datas.front());
             datas.pop();
 
-            int sent = socket.send(data, maxDataSize, 0);
-            if (sent < 0) {
-                if (errno == EWOULDBLOCK || errno == EAGAIN) {
-                    continue; // Retry if the socket is non-blocking and send would block
+            // add header
+            int dataSize = data.size();
+            std::vector<uint8_t> header(sizeof(dataSize));
+            memcpy(header.data(), &dataSize, sizeof(dataSize));
+
+            // send header
+            int totalSent = 0;
+            while (totalSent < header.size()) {
+                int sent = socket.send(header.data() + totalSent, header.size() - totalSent, 0);
+                if (sent < 0) {
+                    if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                        continue; // retry if the socket is non-blocking and send would block
+                    }
+                } else {
+                    totalSent += sent;
+                }
+            }
+
+            // send data
+            totalSent = 0;
+            while (totalSent < data.size()) {
+                int sent = socket.send(data.data() + totalSent, data.size() - totalSent, 0);
+                if (sent < 0) {
+                    if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                        continue; // retry if the socket is non-blocking and send would block
+                    }
+                } else {
+                    totalSent += sent;
                 }
             }
         }
+
+        socket.close();
     }
 };
+
 
 #endif // DATA_STREAMER_UDP_H

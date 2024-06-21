@@ -76,9 +76,6 @@ private:
     AVFrame* frame = av_frame_alloc();
     AVPacket* packet = av_packet_alloc();
 
-    // AVFrame* frameRGB = av_frame_alloc();
-    // uint8_t* buffer = nullptr;
-
     std::atomic_bool videoReady = false;
     bool shouldTerminate = false;
 

@@ -13,68 +13,64 @@ class DepthReceiverTexture : public Texture {
 public:
     std::string streamerURL;
 
-    DataReceiverTCP* receiver;
-
-    int imageSize;
-
     unsigned int maxQueueSize = 10;
 
     explicit DepthReceiverTexture(const TextureCreateParams &params, std::string streamerURL)
             : streamerURL(streamerURL)
-            , imageSize(sizeof(pose_id_t) + params.width * params.height * sizeof(GLushort))
-            , Texture(params) {
-        receiver = new DataReceiverTCP(streamerURL, imageSize);
-    }
-    ~DepthReceiverTexture() {
-        delete receiver;
-    }
+            , receiver(streamerURL)
+            , Texture(params) { }
 
     void setMaxQueueSize(unsigned int maxQueueSize) {
         this->maxQueueSize = maxQueueSize;
     }
 
     pose_id_t draw(pose_id_t poseID = -1) {
-        uint8_t* data = receiver->recv();
-        if (data == nullptr) {
+        std::vector<uint8_t> data = receiver.recv();
+        if (data.empty()) {
             return -1;
         }
 
-        datas.push_back(data);
+        datas.push_back(std::move(data));
 
         if (datas.size() > maxQueueSize) {
-            uint8_t* dataToFree = datas.front();
-            delete[] dataToFree;
             datas.pop_front();
         }
 
-        uint8_t* res = nullptr;
+        std::vector<uint8_t> res;
+        bool found = false;
+
         if (poseID == -1) {
-            res = datas.front();
+            res = std::move(datas.front());
             datas.pop_front();
+            found = true;
         }
         else {
-            for (auto it = datas.begin(); it != datas.end(); it++) {
-                if (reinterpret_cast<uintptr_t>(*it) == poseID) {
-                    res = *it;
+            for (auto it = datas.begin(); it != datas.end(); ++it) {
+                if (*reinterpret_cast<pose_id_t*>(it->data()) == poseID) {
+                    res = std::move(*it);
+                    datas.erase(it);
+                    found = true;
                     break;
                 }
             }
         }
 
-        if (res == nullptr) {
+        if (!found) {
             return -1;
         }
 
         pose_id_t resPoseID;
-        memcpy(&resPoseID, res, sizeof(pose_id_t));
+        memcpy(&resPoseID, res.data(), sizeof(pose_id_t));
 
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RED, GL_UNSIGNED_SHORT, res + sizeof(pose_id_t));
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RED, GL_UNSIGNED_SHORT, res.data() + sizeof(pose_id_t));
 
         return resPoseID;
     }
 
 private:
-    std::deque<uint8_t*> datas;
+    DataReceiverTCP receiver;
+
+    std::deque<std::vector<uint8_t>> datas;
 };
 
 #endif // IMAGE_RECEIVER_H

@@ -106,7 +106,7 @@ private:
 #endif
 
     RenderTarget* renderTarget;
-    uint8_t* rgbData;
+    std::vector<uint8_t> rgbData;
     AVFrame* frame = av_frame_alloc();
     AVPacket* packet = av_packet_alloc();
 
