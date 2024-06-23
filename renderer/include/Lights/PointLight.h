@@ -14,6 +14,7 @@ struct PointLightCreateParams {
     float constant = 1.0f;
     float linear = 0.09f;
     float quadratic = 0.032f;
+    float intensityThreshold = 1.0f;
     float zNear = 0.1f;
     float zFar = 100.0f;
 };
@@ -24,6 +25,7 @@ public:
     float constant = 1.0f;
     float linear = 0.09f;
     float quadratic = 0.032f;
+    float intensityThreshold = 1.0f;
 
     unsigned int channel = -1;
 
@@ -38,6 +40,7 @@ public:
             , constant(params.constant)
             , linear(params.linear)
             , quadratic(params.quadratic)
+            , intensityThreshold(params.intensityThreshold)
             , Light(params.color, params.intensity, params.zNear, params.zFar)
             , shadowMapRenderTarget({ .width = shadowRes, .height = shadowRes })
             , boundingSphere(position, getLightRadius()) {
@@ -79,10 +82,23 @@ public:
     }
 
     float getLightRadius() {
-        float radius = (-linear + sqrt(linear * linear -
-                        4 * quadratic * (constant - (256.0f / 5.0f) * intensity)))
-                        / (2.0f * quadratic);
-        return radius;
+        float discriminant = linear * linear - 4.0f * quadratic * (constant - intensity / intensityThreshold);
+        if (discriminant < 0.0f) {
+            return 0.0f; // light does not reach the intensity threshold
+        }
+
+        float root1 = (-linear + std::sqrt(discriminant)) / (2.0f * quadratic);
+        float root2 = (-linear - std::sqrt(discriminant)) / (2.0f * quadratic);
+
+        if (root1 > 0.0f && root2 > 0.0f) {
+            return std::max(root1, root2);
+        } else if (root1 > 0.0f) {
+            return root1;
+        } else if (root2 > 0.0f) {
+            return root2;
+        } else {
+            return 0.0f;
+        }
     }
 
     static const unsigned int maxPointLights = 4;

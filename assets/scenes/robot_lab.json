@@ -44,34 +44,34 @@
         {
             "color": [1.0, 1.0, 1.0],
             "position": [5.0, 5.0, 5.0],
-            "intensity": 50.0,
-            "constant": 0.0,
-            "linear": 0.09,
-            "quadratic": 1.0
+            "intensity": 7.5,
+            "constant": 1.0,
+            "linear": 0.14,
+            "quadratic": 0.07
         },
         {
             "color": [1.0, 1.0, 1.0],
             "position": [-5.0, 5.0, 5.0],
-            "intensity": 50.0,
-            "constant": 0.0,
-            "linear": 0.09,
-            "quadratic": 1.0
+            "intensity": 7.5,
+            "constant": 1.0,
+            "linear": 0.14,
+            "quadratic": 0.07
         },
         {
             "color": [1.0, 1.0, 1.0],
             "position": [5.0, 5.0, -5.0],
-            "intensity": 50.0,
-            "constant": 0.0,
-            "linear": 0.09,
-            "quadratic": 1.0
+            "intensity": 7.5,
+            "constant": 1.0,
+            "linear": 0.14,
+            "quadratic": 0.07
         },
         {
             "color": [1.0, 1.0, 1.0],
             "position": [-5.0, 5.0, -5.0],
-            "intensity": 50.0,
-            "constant": 0.0,
-            "linear": 0.09,
-            "quadratic": 1.0
+            "intensity": 7.5,
+            "constant": 1.0,
+            "linear": 0.14,
+            "quadratic": 0.07
         }
     ]
 }
