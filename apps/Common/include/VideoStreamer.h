@@ -21,6 +21,8 @@ extern "C" {
 #include <condition_variable>
 #include <queue>
 
+#include <TimeUtils.h>
+
 #include <RenderTargets/RenderTarget.h>
 
 #include <CameraPose.h>
@@ -30,11 +32,6 @@ extern "C" {
 #include <CudaUtils.h>
 #endif
 
-#define MICROSECONDS_IN_SECOND 1e6f
-#define MICROSECONDS_IN_MILLISECOND 1e3f
-
-#define MBPS_TO_BPS 1e6f
-
 class VideoStreamer : public RenderTarget {
 public:
     std::string videoURL = "0.0.0.0:12345";
@@ -42,10 +39,11 @@ public:
     unsigned int framesSent = 0;
 
     struct Stats {
-        float timeToEncode = -1.0f;
-        float timeToCopyFrame = -1.0f;
-        float timeToSendFrame = -1.0f;
-        float totalTimeToSendFrame = -1.0f;
+        float timeToEncodeMs = -1.0f;
+        float timeToCopyFrameMs = -1.0f;
+        float timeToSendMs = -1.0f;
+        float totalTimeToSendMs = -1.0f;
+        float bitrateMbps = -1.0f;
     } stats;
 
     explicit VideoStreamer(const RenderTargetCreateParams &params, const std::string &videoURL);
@@ -54,7 +52,7 @@ public:
     }
 
     float getFrameRate() {
-        return 1000.0f / stats.totalTimeToSendFrame;
+        return MICROSECONDS_IN_MILLISECOND / stats.totalTimeToSendMs;
     }
 
     void setTargetFrameRate(int targetFrameRate) {

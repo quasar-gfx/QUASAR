@@ -12,6 +12,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/epsilon.hpp>
 
+#include <TimeUtils.h>
 #include <Camera.h>
 #include <DataStreamer.h>
 
@@ -36,20 +37,12 @@ public:
         return true;
     }
 
-    int getCurrTimeMillis() {
-        // get unix timestamp in ms
-        std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::system_clock::now().time_since_epoch()
-        );
-        return ms.count();
-    }
-
     bool getPose(pose_id_t poseID, Pose* pose, double* elapsedTime = nullptr) {
         auto res = prevPoses.find(poseID);
         if (res != prevPoses.end()) { // found
             *pose = res->second;
             if (elapsedTime) {
-                *elapsedTime = getCurrTimeMillis() - pose->timestamp;
+                *elapsedTime = timeutils::getCurrTimeMs() - pose->timestamp;
             }
 
             return true;
@@ -73,7 +66,7 @@ public:
         currPose.id = currPoseID;
         currPose.proj = camera->getProjectionMatrix();
         currPose.view = camera->getViewMatrix();
-        currPose.timestamp = getCurrTimeMillis();
+        currPose.timestamp = timeutils::getCurrTimeMs();
 
         if (epsilonEqual(currPose.view, prevPose.view)) {
             return false;

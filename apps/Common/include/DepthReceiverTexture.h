@@ -15,6 +15,11 @@ public:
 
     unsigned int maxQueueSize = 10;
 
+    struct Stats {
+        float timeToReceiveMs = -1.0f;
+        float bitrateMbps = -1.0f;
+    } stats;
+
     explicit DepthReceiverTexture(const TextureCreateParams &params, std::string streamerURL)
             : streamerURL(streamerURL)
             , receiver(streamerURL)
@@ -63,6 +68,9 @@ public:
         memcpy(&resPoseID, res.data(), sizeof(pose_id_t));
 
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RED, GL_UNSIGNED_SHORT, res.data() + sizeof(pose_id_t));
+
+        stats.timeToReceiveMs = receiver.stats.timeToReceiveMs;
+        stats.bitrateMbps = receiver.stats.bitrateMbps;
 
         return resPoseID;
     }

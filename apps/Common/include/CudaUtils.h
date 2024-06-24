@@ -17,7 +17,7 @@
         exit(EXIT_FAILURE);                                 \
     } } while(0)
 
-namespace CudaUtils {
+namespace cudautils {
 
 extern CUdevice gDevice;
 

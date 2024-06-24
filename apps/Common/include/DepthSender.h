@@ -19,7 +19,9 @@ public:
     int imageSize;
 
     struct Stats {
-        float timeToCopyFrame = -1.0f;
+        float timeToCopyFrameMs = -1.0f;
+        float timeToSendMs = -1.0f;
+        float bitrateMbps = -1.0f;
     } stats;
 
     explicit DepthSender(const RenderTargetCreateParams &params, std::string receiverURL)
@@ -43,7 +45,7 @@ public:
         });
 
 #ifndef __APPLE__
-        CUdevice device = CudaUtils::findCudaDevice();
+        CUdevice device = cudautils::findCudaDevice();
         // register opengl texture with cuda
         CHECK_CUDA_ERROR(cudaGraphicsGLRegisterImage(&cudaResource,
                                                      renderTargetCopy->colorBuffer.ID, GL_TEXTURE_2D,
@@ -109,6 +111,9 @@ public:
 
         streamer.send(data);
 #endif
+
+        stats.timeToSendMs = streamer.stats.timeToSendMs;
+        stats.bitrateMbps = streamer.stats.bitrateMbps;
     }
 
 private:
@@ -147,7 +152,7 @@ private:
                 break;
             }
 
-            auto startCopyFrame = std::chrono::high_resolution_clock::now();
+            auto copyStartTime = std::chrono::high_resolution_clock::now();
 
             // copy depth buffer to data
             CudaBuffer cudaBufferStruct = cudaBufferQueue.front();
@@ -167,7 +172,7 @@ private:
 
             auto endCopyFrame = std::chrono::high_resolution_clock::now();
 
-            stats.timeToCopyFrame = std::chrono::duration<float, std::milli>(endCopyFrame - startCopyFrame).count();
+            stats.timeToCopyFrameMs = std::chrono::duration<float, std::milli>(endCopyFrame - copyStartTime).count();
 
             streamer.send(data);
         }

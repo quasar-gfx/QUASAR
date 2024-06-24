@@ -1,11 +1,13 @@
-#ifndef DATA_STREAMER_UDP_H
-#define DATA_STREAMER_UDP_H
+#ifndef DATA_STREAMER_H
+#define DATA_STREAMER_H
 
 #include <thread>
 #include <atomic>
 #include <mutex>
 #include <condition_variable>
 #include <queue>
+
+#include <TimeUtils.h>
 
 #include <DataPacket.h>
 #include <Socket.h>
@@ -114,6 +116,11 @@ public:
 
     int maxDataSize;
 
+    struct Stats {
+        float timeToSendMs = -1.0f;
+        float bitrateMbps = -1.0f;
+    } stats;
+
     explicit DataStreamerTCP(std::string url, int maxDataSize = 65535, bool nonBlocking = false)
             : url(url)
             , maxDataSize(maxDataSize)
@@ -148,7 +155,8 @@ public:
 
             if (copy) {
                 datas.push(data);
-            } else {
+            }
+            else {
                 datas.push(std::move(data));
             }
 
@@ -175,7 +183,8 @@ private:
         while (true) {
             if (socket.accept() < 0) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            } else {
+            }
+            else {
                 ready = true;
                 break;
             }
@@ -195,6 +204,8 @@ private:
             std::vector<uint8_t> data = std::move(datas.front());
             datas.pop();
 
+            int startSendTime = timeutils::getCurrTimeMs();
+
             // add header
             int dataSize = data.size();
             std::vector<uint8_t> header(sizeof(dataSize));
@@ -208,7 +219,8 @@ private:
                     if (errno == EWOULDBLOCK || errno == EAGAIN) {
                         continue; // retry if the socket is non-blocking and send would block
                     }
-                } else {
+                }
+                else {
                     totalSent += sent;
                 }
             }
@@ -221,15 +233,18 @@ private:
                     if (errno == EWOULDBLOCK || errno == EAGAIN) {
                         continue; // retry if the socket is non-blocking and send would block
                     }
-                } else {
+                }
+                else {
                     totalSent += sent;
                 }
             }
+
+            stats.timeToSendMs = (timeutils::getCurrTimeMs() - startSendTime);
+            stats.bitrateMbps = ((data.size() * 8) / (stats.timeToSendMs * MILLISECONDS_IN_SECOND));
         }
 
         socket.close();
     }
 };
 
-
-#endif // DATA_STREAMER_UDP_H
+#endif // DATA_STREAMER_H

@@ -2,9 +2,9 @@
 
 #include <CudaUtils.h>
 
-CUdevice CudaUtils::gDevice = -1;
+CUdevice cudautils::gDevice = -1;
 
-CUdevice CudaUtils::findCudaDevice() {
+CUdevice cudautils::findCudaDevice() {
     if (gDevice != -1) {
         return gDevice;
     }

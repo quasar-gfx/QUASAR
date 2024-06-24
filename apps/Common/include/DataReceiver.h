@@ -7,7 +7,7 @@
 #include <atomic>
 #include <thread>
 
-#include <signal.h>
+#include <TimeUtils.h>
 
 #include <DataPacket.h>
 #include <Socket.h>
@@ -123,6 +123,11 @@ class DataReceiverTCP {
 public:
     std::string url;
 
+    struct Stats {
+        float timeToReceiveMs = -1.0f;
+        float bitrateMbps = -1.0f;
+    } stats;
+
     explicit DataReceiverTCP(std::string url, bool nonBlocking = false)
             : url(url)
             , socket(nonBlocking) {
@@ -182,6 +187,8 @@ private:
             int received = 0;
             int expectedSize = 0;
 
+            int receiveStartTime = timeutils::getCurrTimeMs();
+
             // read header first (includes size of the data packet)
             while (ready && expectedSize == 0) {
                 received = socket.recv(buffer, sizeof(expectedSize), 0);
@@ -225,6 +232,8 @@ private:
             }
 
             if (totalReceived == expectedSize && !data.empty()) {
+                stats.timeToReceiveMs = (timeutils::getCurrTimeMs() - receiveStartTime);
+                stats.bitrateMbps = ((data.size() * 8) / (stats.timeToReceiveMs * MILLISECONDS_IN_SECOND));
                 frames.push(std::move(data));
             }
         }

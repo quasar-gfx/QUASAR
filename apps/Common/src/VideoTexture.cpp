@@ -1,5 +1,3 @@
-#include <glad/glad.h>
-
 #include <VideoTexture.h>
 
 #undef av_err2str
@@ -13,8 +11,6 @@ static int interrupt_callback(void* ctx) {
 
 VideoTexture::VideoTexture(const TextureCreateParams &params, const std::string &videoURL)
         : Texture(params)
-        , width(params.width)
-        , height(params.height)
         , videoURL("udp://" + videoURL + "?overrun_nonfatal=1&fifo_size=50000000") {
     videoReceiverThread = std::thread(&VideoTexture::receiveVideo, this);
 }
@@ -95,11 +91,12 @@ void VideoTexture::receiveVideo() {
 
     videoReady = true;
 
-    uint64_t prevTime = av_gettime();
+    int prevTime = timeutils::getCurrTimeMs();
 
+    size_t bytesReceived = 0;
     pose_id_t poseID = -1;
     while (videoReady) {
-        uint64_t receiveFrameStartTime = av_gettime();
+        int receiveFrameStartTime = timeutils::getCurrTimeMs();
 
         // read frame from URL
         int ret = av_read_frame(inputFormatCtx, packet);
@@ -108,17 +105,18 @@ void VideoTexture::receiveVideo() {
             return;
         }
 
-        stats.timeToReceiveFrame = (av_gettime() - receiveFrameStartTime) / MICROSECONDS_IN_SECOND;
+        stats.timeToReceiveMs = (timeutils::getCurrTimeMs() - receiveFrameStartTime);
 
         if (packet->stream_index != videoStreamIndex) {
             continue;
         }
 
+        bytesReceived = packet->size;
         poseID = packet->pts;
 
         /* Decode received frame */
         {
-            uint64_t decodeStartTime = av_gettime();
+            int decodeStartTime = timeutils::getCurrTimeMs();
 
             // send packet to decoder
             ret = avcodec_send_packet(codecCtx, packet);
@@ -140,12 +138,12 @@ void VideoTexture::receiveVideo() {
                 return;
             }
 
-            stats.timeToDecode = (av_gettime() - decodeStartTime) / MICROSECONDS_IN_SECOND;
+            stats.timeToDecodeMs = (timeutils::getCurrTimeMs() - decodeStartTime);
         }
 
         /* Resize video frame to fit output texture size */
         {
-            uint64_t resizeStartTime = av_gettime();
+            int resizeStartTime = timeutils::getCurrTimeMs();
 
             AVFrame* frameRGB = av_frame_alloc();
 
@@ -169,14 +167,16 @@ void VideoTexture::receiveVideo() {
 
             m.unlock();
 
-            stats.timeToResize = (av_gettime() - resizeStartTime) / MICROSECONDS_IN_SECOND;
+            stats.timeToResizeMs = (timeutils::getCurrTimeMs() - resizeStartTime);
         }
 
-        uint64_t elapsedTime = (av_gettime() - prevTime);
-        stats.totalTimeToReceiveFrame = elapsedTime / MICROSECONDS_IN_SECOND;
+        int elapsedTime = (timeutils::getCurrTimeMs() - prevTime);
+        stats.totalTimeToReceiveMs = elapsedTime;
         framesReceived++;
 
-        prevTime = av_gettime();
+        stats.bitrateMbps = ((bytesReceived * 8) / (stats.totalTimeToReceiveMs * MILLISECONDS_IN_SECOND));
+
+        prevTime = timeutils::getCurrTimeMs();
     }
 }
 

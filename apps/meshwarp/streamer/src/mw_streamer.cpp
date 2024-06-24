@@ -46,6 +46,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "127.0.0.1:12345");
     args::ValueFlag<std::string> depthURLIn(parser, "depth", "Depth URL", {'e', "depth-url"}, "127.0.0.1:65432");
     args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "0.0.0.0:54321");
+    args::ValueFlag<float> fovIn(parser, "fov", "Field of view", {'f', "fov"}, 60.0f);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -145,9 +146,10 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: %.3f ms", videoStreamerColorRT.stats.timeToCopyFrame + videoStreamerDepthRT.stats.timeToCopyFrame);
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.3f ms", videoStreamerColorRT.stats.timeToEncode);
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: %.3f ms", videoStreamerColorRT.stats.timeToSendFrame);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: %.3f ms", videoStreamerColorRT.stats.timeToCopyFrameMs + videoStreamerDepthRT.stats.timeToCopyFrameMs);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.3f ms", videoStreamerColorRT.stats.timeToEncodeMs);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: %.3f ms", videoStreamerColorRT.stats.timeToSendMs);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: %.3f Mbps", videoStreamerColorRT.stats.bitrateMbps + videoStreamerDepthRT.stats.bitrateMbps);
 
         ImGui::Separator();
 
@@ -185,8 +187,8 @@ int main(int argc, char** argv) {
     cameraFile.write(reinterpret_cast<const char*>(&view), sizeof(glm::mat4));
     cameraFile.close();
 
-    // set high fov
-    // camera.setFovy(glm::radians(100.0f));
+    // set fov
+    camera.setFovy(glm::radians(args::get(fovIn)));
 
     // save remote camera view and projection matrices
     std::ofstream remoteCameraFile;

@@ -15,26 +15,22 @@ extern "C" {
 #include <thread>
 #include <mutex>
 
+#include <TimeUtils.h>
+
 #include <Texture.h>
 
 #include <CameraPose.h>
-
-#define MICROSECONDS_IN_SECOND 1e6f
-#define MICROSECONDS_IN_MILLISECOND 1e3f
-
-#define MBPS_TO_BPS 1e6f
 
 class VideoTexture : public Texture {
 public:
     std::string videoURL = "127.0.0.1:12345";
 
-    unsigned int width, height;
-
     struct Stats {
-        float timeToReceiveFrame = -1.0f;
-        float timeToDecode = -1.0f;
-        float timeToResize = -1.0f;
-        float totalTimeToReceiveFrame = -1.0f;
+        float timeToReceiveMs = -1.0f;
+        float timeToDecodeMs = -1.0f;
+        float timeToResizeMs = -1.0f;
+        float totalTimeToReceiveMs = -1.0f;
+        float bitrateMbps = -1.0f;
     } stats;
 
     explicit VideoTexture(const TextureCreateParams &params, const std::string &videoURL);
@@ -52,7 +48,7 @@ public:
     }
 
     float getFrameRate() {
-        return 1.0f / stats.totalTimeToReceiveFrame;
+        return MICROSECONDS_IN_MILLISECOND / stats.totalTimeToReceiveMs;
     }
 
     unsigned int getFramesReceived() {
