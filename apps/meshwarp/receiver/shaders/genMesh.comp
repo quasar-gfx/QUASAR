@@ -3,11 +3,13 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 layout(binding = 0) uniform sampler2D depthMap;
 
 struct Vertex {
+    uint id;
     vec3 position;
-    int padding1;
+    vec3 color;
+    vec3 normal;
     vec2 texCoords;
-    int padding2;
-    int padding3;
+    vec3 tangent;
+    vec3 bitangent;
 };
 
 layout(std430, binding = 0) buffer VertexBuffer {
@@ -77,30 +79,17 @@ float LinearizeDepth(float depth) {
 
 float UnLinearizeDepth(float depth) {
     depth *= far;
-    if (depth == 0.0) {
-        depth = near;
-    }
+    depth = max(depth, near);
     float z = (depth * (far + near) - 2.0 * near * far) / (depth * (far - near));
     return (z + 1.0) / 2.0;
 }
 
 float sampleDepth(sampler2D depthMap, ivec2 pixelCoord) {
     vec2 sampleCoord = (vec2(pixelCoord) + 0.5) / screenSize;
-    vec3 depth = texture(depthMap, sampleCoord).rgb;
-    // depth = UnLinearizeDepth(depth);
-    // undo:
-    // res.r = fract(depth);
-    // res.g = fract(depth * 256.0);
-    // res.b = fract(depth * 65536.0);
-
-    float res = 0.0;
-    res += depth.r;
-    res += depth.g / 256.0;
-    res += depth.b / 65536.0;
-
-    res = UnLinearizeDepth(res);
-
-    return res;
+    float depth = texture(depthMap, sampleCoord).r;
+    depth = UnLinearizeDepth(depth);
+    depth = min(depth, 0.99999);
+    return depth;
 }
 
 void main() {
@@ -163,6 +152,11 @@ void main() {
     vertices[vertexIndexUpperRight].position = vertexCoordUpperRight;
     vertices[vertexIndexLowerLeft] .position = vertexCoordLowerLeft;
     vertices[vertexIndexLowerRight].position = vertexCoordLowerRight;
+
+    vertices[vertexIndexUpperLeft] .color = vec3(1.0, 1.0, 1.0);
+    vertices[vertexIndexUpperRight].color = vec3(1.0, 1.0, 1.0);
+    vertices[vertexIndexLowerLeft] .color = vec3(1.0, 1.0, 1.0);
+    vertices[vertexIndexLowerRight].color = vec3(1.0, 1.0, 1.0);
 
     vertices[vertexIndexUpperLeft] .texCoords = worldToScreen(viewColor, vertexCoordUpperLeft.xyz);
     vertices[vertexIndexUpperRight].texCoords = worldToScreen(viewColor, vertexCoordUpperRight.xyz);

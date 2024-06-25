@@ -74,17 +74,17 @@ void main() {
 
     ************************/
 
-    ivec2 pixelCoordLowerLeft  = surfelSize * (ivec2(surfelCoords) + ivec2(0, 0));
-    ivec2 pixelCoordLowerRight = surfelSize * (ivec2(surfelCoords) + ivec2(1, 0));
-    ivec2 pixelCoordUpperLeft  = surfelSize * (ivec2(surfelCoords) + ivec2(0, 1));
-    ivec2 pixelCoordUpperRight = surfelSize * (ivec2(surfelCoords) + ivec2(1, 1));
-    // ivec2 pixelCoordCenter     = surfelSize * (ivec2(surfelCoords) + ivec2(0.5, 0.5));
+    ivec2 pixelCoordLowerLeft  = ivec2(surfelSize * (surfelCoords + vec2(0.0, 0.0)));
+    ivec2 pixelCoordLowerRight = ivec2(surfelSize * (surfelCoords + vec2(1.0, 0.0)));
+    ivec2 pixelCoordUpperLeft  = ivec2(surfelSize * (surfelCoords + vec2(0.0, 1.0)));
+    ivec2 pixelCoordUpperRight = ivec2(surfelSize * (surfelCoords + vec2(1.0, 1.0)));
+    ivec2 pixelCoordCenter     = ivec2(surfelSize * (surfelCoords + vec2(0.5, 0.5)));
 
     vec2 pixelCoordLowerLeftNormalized  = pixelCoordLowerLeft / screenSize;
     vec2 pixelCoordLowerRightNormalized = pixelCoordLowerRight / screenSize;
     vec2 pixelCoordUpperLeftNormalized  = pixelCoordUpperLeft / screenSize;
     vec2 pixelCoordUpperRightNormalized = pixelCoordUpperRight / screenSize;
-    // vec2 pixelCoordCenterNormalized     = pixelCoordCenter / screenSize;
+    vec2 pixelCoordCenterNormalized     = pixelCoordCenter / screenSize;
 
     // vec3 positionUpperLeft  = texture(positionMap, pixelCoordUpperLeft / screenSize).xyz;
     // vec3 positionUpperRight = texture(positionMap, pixelCoordUpperRight / screenSize).xyz;
@@ -96,7 +96,7 @@ void main() {
     vec3 normalLowerRight = sampleNormal(normalMap, pixelCoordLowerRight);
     vec3 normalUpperLeft  = sampleNormal(normalMap, pixelCoordUpperLeft);
     vec3 normalUpperRight = sampleNormal(normalMap, pixelCoordUpperRight);
-    // vec3 normalCenter     = normalize(texture(normalMap, pixelCoordCenter);
+    vec3 normalCenter     = sampleNormal(normalMap, pixelCoordCenter);
 
     vec3 avgNormal = (normalLowerLeft + normalLowerRight + normalUpperLeft + normalUpperRight) / 4.0;
     avgNormal = normalize(avgNormal);
@@ -105,25 +105,25 @@ void main() {
     uint idLowerRight = uint(texture(idMap, pixelCoordLowerRightNormalized).x);
     uint idUpperLeft  = uint(texture(idMap, pixelCoordUpperLeftNormalized).x);
     uint idUpperRight = uint(texture(idMap, pixelCoordUpperRightNormalized).x);
-    // uint idCenter     = uint(texture(idMap, pixelCoordCenterNormalized).x);
+    uint idCenter     = uint(texture(idMap, pixelCoordCenterNormalized).x);
 
     float depthLowerLeft  = sampleDepth(depthMap, pixelCoordLowerLeft);
     float depthLowerRight = sampleDepth(depthMap, pixelCoordLowerRight);
     float depthUpperLeft  = sampleDepth(depthMap, pixelCoordUpperLeft);
     float depthUpperRight = sampleDepth(depthMap, pixelCoordUpperRight);
-    // float depthCenter     = sampleDepth(depthMap, pixelCoordCenter);
+    float depthCenter     = sampleDepth(depthMap, pixelCoordCenter);
 
     vec2 ndcLowerLeft  = 2.0 * pixelCoordLowerLeftNormalized - 1.0;
     vec2 ndcLowerRight = 2.0 * pixelCoordLowerRightNormalized - 1.0;
     vec2 ndcUpperLeft  = 2.0 * pixelCoordUpperLeftNormalized - 1.0;
     vec2 ndcUpperRight = 2.0 * pixelCoordUpperRightNormalized - 1.0;
-    // vec2 ndcCenter     = 2.0 * pixelCoordCenterNormalized - 1.0;
+    vec2 ndcCenter     = 2.0 * pixelCoordCenterNormalized - 1.0;
 
     vec3 viewCoordLowerLeft  = ndcToView(ndcLowerLeft, depthLowerLeft);
     vec3 viewCoordLowerRight = ndcToView(ndcLowerRight, depthLowerRight);
     vec3 viewCoordUpperLeft  = ndcToView(ndcUpperLeft, depthUpperLeft);
     vec3 viewCoordUpperRight = ndcToView(ndcUpperRight, depthUpperRight);
-    // vec3 viewCoordCenter     = ndcToView(ndcCenter, depthCenter);
+    vec3 viewCoordCenter     = ndcToView(ndcCenter, depthCenter);
 
     // get quad normal
     // vec3 v1 = viewCoordLowerLeft - viewCoordUpperLeft;
@@ -140,19 +140,41 @@ void main() {
     //     return;
     // }
 
-    if (idLowerLeft != idLowerRight) {
-        depthLowerRight = depthLowerLeft;
-    }
-    if (idLowerLeft != idUpperLeft) {
-        depthUpperLeft = depthLowerLeft;
-    }
-    if (idLowerLeft != idUpperRight) {
-        depthUpperRight = depthLowerLeft;
-    }
     viewCoordLowerLeft  = ndcToView(ndcLowerLeft, depthLowerLeft);
     viewCoordLowerRight = ndcToView(ndcLowerRight, depthLowerRight);
     viewCoordUpperLeft  = ndcToView(ndcUpperLeft, depthUpperLeft);
     viewCoordUpperRight = ndcToView(ndcUpperRight, depthUpperRight);
+    if (idLowerLeft != idLowerRight || idLowerRight != idUpperRight || idUpperRight != idUpperLeft) {
+        float avgDepth = 0.0;
+        int n = 0;
+        for (int y = pixelCoordLowerLeft.y; y <= pixelCoordUpperLeft.y; y++) {
+            for (int x = pixelCoordUpperLeft.x; x <= pixelCoordUpperRight.x; x++) {
+                avgDepth += sampleDepth(depthMap, ivec2(x, y));
+                n++;
+            }
+        }
+        avgDepth /= float(n);
+
+        vec3 avgNormal = vec3(0.0);
+        n = 0;
+        for (int y = pixelCoordLowerLeft.y; y <= pixelCoordUpperLeft.y; y++) {
+            for (int x = pixelCoordUpperLeft.x; x <= pixelCoordUpperRight.x; x++) {
+                avgNormal += sampleNormal(normalMap, ivec2(x, y));
+                n++;
+            }
+        }
+        avgNormal /= float(n);
+        avgNormal = normalize(avgNormal);
+
+        vec3 planeNormal = avgNormal;
+        vec3 planePoint = ndcToView(ndcCenter, avgDepth);
+
+        vec3 rayOrigin = vec3(0.0);
+        viewCoordUpperLeft = planeRayIntersection(rayOrigin, viewCoordUpperLeft, planeNormal, planePoint);
+        viewCoordUpperRight = planeRayIntersection(rayOrigin, viewCoordUpperRight, planeNormal, planePoint);
+        viewCoordLowerLeft = planeRayIntersection(rayOrigin, viewCoordLowerLeft, planeNormal, planePoint);
+        viewCoordLowerRight = planeRayIntersection(rayOrigin, viewCoordLowerRight, planeNormal, planePoint);
+    }
 
     vec4 vertexCoordUpperLeft  = vec4(viewToWorld(viewCoordUpperLeft), 1.0);
     vec4 vertexCoordUpperRight = vec4(viewToWorld(viewCoordUpperRight), 1.0);

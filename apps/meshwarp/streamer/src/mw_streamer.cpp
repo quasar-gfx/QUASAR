@@ -167,6 +167,14 @@ int main(int argc, char** argv) {
         ImGui::End();
     });
 
+    app.onResize([&](unsigned int width, unsigned int height) {
+        screenWidth = width;
+        screenHeight = height;
+
+        camera.aspect = (float)screenWidth / (float)screenHeight;
+        camera.updateProjectionMatrix();
+    });
+
     // shaders
     Shader colorShader = Shader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",

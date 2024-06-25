@@ -28,14 +28,6 @@
 
 const std::string DATA_PATH = "../streamer/";
 
-struct ResultVertex {
-    glm::vec3 position;
-    int padding1;
-    glm::vec2 texCoords;
-    int padding2;
-    int padding3;
-};
-
 enum class RenderState {
     MESH,
     POINTCLOUD,
@@ -237,7 +229,7 @@ int main(int argc, char** argv) {
     int numVertices = width * height * VERTICES_IN_A_QUAD;
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(ResultVertex), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vertex), nullptr, GL_STATIC_DRAW);
 
     GLuint indexBuffer;
     int numTriangles = width * height * 2;
@@ -394,37 +386,10 @@ int main(int argc, char** argv) {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
         GLvoid* pBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
         if (pBuffer) {
-            ResultVertex* pVertices = static_cast<ResultVertex*>(pBuffer);
-
-            int x, y;
-            for (int i = 0; i < numVertices; i+=VERTICES_IN_A_QUAD) {
-                x = (i / VERTICES_IN_A_QUAD) % width;
-                y = (i / VERTICES_IN_A_QUAD) / width;
-
-                Vertex vertexUpperLeft;
-                vertexUpperLeft.position = glm::vec3(pVertices[i+0].position);
-                vertexUpperLeft.texCoords = glm::vec2(pVertices[i+0].texCoords);
-
-                Vertex vertexUpperRight;
-                vertexUpperRight.position = glm::vec3(pVertices[i+1].position);
-                vertexUpperRight.texCoords = glm::vec2(pVertices[i+1].texCoords);
-
-                Vertex vertexLowerLeft;
-                vertexLowerLeft.position = glm::vec3(pVertices[i+2].position);
-                vertexLowerLeft.texCoords = glm::vec2(pVertices[i+2].texCoords);
-
-                Vertex vertexLowerRight;
-                vertexLowerRight.position = glm::vec3(pVertices[i+3].position);
-                vertexLowerRight.texCoords = glm::vec2(pVertices[i+3].texCoords);
-
-                newVertices[i+0] = vertexUpperLeft;
-                newVertices[i+1] = vertexUpperRight;
-                newVertices[i+2] = vertexLowerLeft;
-                newVertices[i+3] = vertexLowerRight;
-            }
-
+            memcpy(newVertices.data(), pBuffer, numVertices * sizeof(Vertex));
             glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        } else {
+        }
+        else {
             throw std::runtime_error("Failed to map vertex buffer");
         }
 
@@ -433,7 +398,8 @@ int main(int argc, char** argv) {
         if (pIndexBuffer) {
             memcpy(newIndices.data(), pIndexBuffer, indexBufferSize * sizeof(unsigned int));
             glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        } else {
+        }
+        else {
             std::cerr << "Failed to save index buffer" << std::endl;
         }
 

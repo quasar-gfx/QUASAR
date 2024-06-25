@@ -17,13 +17,13 @@ enum VertexAttribute {
 };
 
 struct Vertex {
-    uint32_t ID;
-    glm::vec3 position;
-    glm::vec3 color = glm::vec3(1.0f);
-    glm::vec3 normal;
-    glm::vec2 texCoords;
-    glm::vec3 tangent;
-    glm::vec3 bitangent;
+    alignas(16) uint32_t ID;
+    alignas(16) glm::vec3 position;
+    alignas(16) glm::vec3 color = glm::vec3(1.0f);
+    alignas(16) glm::vec3 normal;
+    alignas(16) glm::vec2 texCoords;
+    alignas(16) glm::vec3 tangent;
+    alignas(16) glm::vec3 bitangent;
 
     bool operator==(const Vertex& other) const {
         return position == other.position && normal == other.normal && texCoords == other.texCoords &&
