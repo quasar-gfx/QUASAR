@@ -118,6 +118,13 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
         return;
     }
 
+    /* setup packet */
+    ret = av_packet_make_writable(packet);
+    if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Could not make packet writable: %s\n", av_err2str(ret));
+        return;
+    }
+
     videoStreamerThread = std::thread(&VideoStreamer::encodeAndSendFrames, this);
 }
 
@@ -135,7 +142,7 @@ int VideoStreamer::initCuda() {
 
 void VideoStreamer::sendFrame(pose_id_t poseID) {
     /* Copy frame from OpenGL texture to AVFrame */
-    int startCopyTime = timeutils::getCurrTimeMs();
+    int startCopyTime = timeutils::getCurrTimeMillis();
 
 #ifndef __APPLE__
     // add cuda buffer
@@ -167,13 +174,13 @@ void VideoStreamer::sendFrame(pose_id_t poseID) {
     }
     cv.notify_one();
 
-    stats.timeToCopyFrameMs = (timeutils::getCurrTimeMs() - startCopyTime);
+    stats.timeToCopyFrameMs = (timeutils::getCurrTimeMillis() - startCopyTime);
 }
 
 void VideoStreamer::encodeAndSendFrames() {
     sendFrames = true;
 
-    int prevTime = timeutils::getCurrTimeMs();
+    int prevTime = timeutils::getCurrTimeMillis();
 
     size_t bytesSent = 0;
     int ret;
@@ -217,7 +224,7 @@ void VideoStreamer::encodeAndSendFrames() {
 
         /* Encode frame */
         {
-            int startEncodeTime = timeutils::getCurrTimeMs();
+            int startEncodeTime = timeutils::getCurrTimeMicros();
 
             // send frame to encoder
             ret = avcodec_send_frame(codecCtx, frame);
@@ -236,18 +243,23 @@ void VideoStreamer::encodeAndSendFrames() {
                 continue;
             }
 
-            packet->pts = poseIDToSend; // framesSent * (outputFormatCtx->streams[0]->time_base.den) / targetFrameRate;
+            packet->pts = framesSent * (outputFormatCtx->streams[0]->time_base.den) / targetFrameRate;
             packet->dts = packet->pts;
 
-            stats.timeToEncodeMs = (timeutils::getCurrTimeMs() - startEncodeTime);
+            stats.timeToEncodeMs = (timeutils::getCurrTimeMicros() - startEncodeTime) / MILLISECONDS_IN_SECOND;
         }
 
         /* Send frame to output URL */
         {
-            int startWriteTime = timeutils::getCurrTimeMs();
+            int startWriteTime = timeutils::getCurrTimeMicros();
+
+            // add poseID to packet data; bit hacky, but works
+            packet->data = (uint8_t*)av_realloc(packet->data, packet->size + sizeof(pose_id_t));
+            memcpy(packet->data + packet->size, &poseIDToSend, sizeof(pose_id_t));
+            packet->size += sizeof(pose_id_t);
 
             // send packet to output URL
-            ret = av_write_frame(outputFormatCtx, packet);
+            ret = av_interleaved_write_frame(outputFormatCtx, packet);
             if (ret < 0) {
                 av_packet_unref(packet);
                 av_log(nullptr, AV_LOG_ERROR, "Error writing frame\n");
@@ -260,18 +272,18 @@ void VideoStreamer::encodeAndSendFrames() {
 
             framesSent++;
 
-            stats.timeToSendMs = (timeutils::getCurrTimeMs() - startWriteTime);
+            stats.timeToSendMs = (timeutils::getCurrTimeMillis() - startWriteTime);
         }
 
-        int elapsedTime = (timeutils::getCurrTimeMs() - prevTime);
-        if (elapsedTime < (1.0f / targetFrameRate)) {
-            av_usleep((1.0f / targetFrameRate) - elapsedTime);
+        int elapsedTimeSec = (timeutils::getCurrTimeMillis() - prevTime) * MILLISECONDS_IN_SECOND;
+        if (elapsedTimeSec < (1.0f / targetFrameRate)) {
+            av_usleep((1.0f / targetFrameRate) - elapsedTimeSec);
         }
-        stats.totalTimeToSendMs = (timeutils::getCurrTimeMs() - prevTime);
+        stats.totalTimeToSendMs = (timeutils::getCurrTimeMillis() - prevTime);
 
         stats.bitrateMbps = ((bytesSent * 8) / (stats.totalTimeToSendMs * MILLISECONDS_IN_SECOND));
 
-        prevTime = timeutils::getCurrTimeMs();
+        prevTime = timeutils::getCurrTimeMillis();
     }
 }
 

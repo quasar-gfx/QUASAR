@@ -42,7 +42,7 @@ public:
         if (res != prevPoses.end()) { // found
             *pose = res->second;
             if (elapsedTime) {
-                *elapsedTime = timeutils::getCurrTimeMs() - pose->timestamp;
+                *elapsedTime = timeutils::getCurrTimeMillis() - pose->timestamp;
             }
 
             return true;
@@ -66,7 +66,7 @@ public:
         currPose.id = currPoseID;
         currPose.proj = camera->getProjectionMatrix();
         currPose.view = camera->getViewMatrix();
-        currPose.timestamp = timeutils::getCurrTimeMs();
+        currPose.timestamp = timeutils::getCurrTimeMillis();
 
         if (epsilonEqual(currPose.view, prevPose.view)) {
             return false;

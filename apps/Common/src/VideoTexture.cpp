@@ -91,12 +91,12 @@ void VideoTexture::receiveVideo() {
 
     videoReady = true;
 
-    int prevTime = timeutils::getCurrTimeMs();
+    int prevTime = timeutils::getCurrTimeMillis();
 
     size_t bytesReceived = 0;
     pose_id_t poseID = -1;
     while (videoReady) {
-        int receiveFrameStartTime = timeutils::getCurrTimeMs();
+        int receiveFrameStartTime = timeutils::getCurrTimeMillis();
 
         // read frame from URL
         int ret = av_read_frame(inputFormatCtx, packet);
@@ -105,18 +105,20 @@ void VideoTexture::receiveVideo() {
             return;
         }
 
-        stats.timeToReceiveMs = (timeutils::getCurrTimeMs() - receiveFrameStartTime);
+        stats.timeToReceiveMs = (timeutils::getCurrTimeMillis() - receiveFrameStartTime);
 
         if (packet->stream_index != videoStreamIndex) {
             continue;
         }
 
+        // extract poseID from packet
+        memcpy(&poseID, packet->data + packet->size - sizeof(pose_id_t), sizeof(pose_id_t));
+
         bytesReceived = packet->size;
-        poseID = packet->pts;
 
         /* Decode received frame */
         {
-            int decodeStartTime = timeutils::getCurrTimeMs();
+            int decodeStartTime = timeutils::getCurrTimeMillis();
 
             // send packet to decoder
             ret = avcodec_send_packet(codecCtx, packet);
@@ -138,12 +140,12 @@ void VideoTexture::receiveVideo() {
                 return;
             }
 
-            stats.timeToDecodeMs = (timeutils::getCurrTimeMs() - decodeStartTime);
+            stats.timeToDecodeMs = (timeutils::getCurrTimeMillis() - decodeStartTime);
         }
 
         /* Resize video frame to fit output texture size */
         {
-            int resizeStartTime = timeutils::getCurrTimeMs();
+            int resizeStartTime = timeutils::getCurrTimeMillis();
 
             AVFrame* frameRGB = av_frame_alloc();
 
@@ -165,16 +167,16 @@ void VideoTexture::receiveVideo() {
 
             m.unlock();
 
-            stats.timeToResizeMs = (timeutils::getCurrTimeMs() - resizeStartTime);
+            stats.timeToResizeMs = (timeutils::getCurrTimeMillis() - resizeStartTime);
         }
 
-        int elapsedTime = (timeutils::getCurrTimeMs() - prevTime);
-        stats.totalTimeToReceiveMs = elapsedTime;
+        int elapsedTimeMs = (timeutils::getCurrTimeMillis() - prevTime);
+        stats.totalTimeToReceiveMs = elapsedTimeMs;
         framesReceived++;
 
         stats.bitrateMbps = ((bytesReceived * 8) / (stats.totalTimeToReceiveMs * MILLISECONDS_IN_SECOND));
 
-        prevTime = timeutils::getCurrTimeMs();
+        prevTime = timeutils::getCurrTimeMillis();
     }
 }
 

@@ -158,10 +158,10 @@ void main() {
     vertices[vertexIndexLowerLeft] .color = vec3(1.0, 1.0, 1.0);
     vertices[vertexIndexLowerRight].color = vec3(1.0, 1.0, 1.0);
 
-    vertices[vertexIndexUpperLeft] .texCoords = worldToScreen(viewColor, vertexCoordUpperLeft.xyz);
-    vertices[vertexIndexUpperRight].texCoords = worldToScreen(viewColor, vertexCoordUpperRight.xyz);
-    vertices[vertexIndexLowerLeft] .texCoords = worldToScreen(viewColor, vertexCoordLowerLeft.xyz);
-    vertices[vertexIndexLowerRight].texCoords = worldToScreen(viewColor, vertexCoordLowerRight.xyz);
+    vertices[vertexIndexUpperLeft] .texCoords = worldToScreen(viewColor, vertexCoordUpperLeft);
+    vertices[vertexIndexUpperRight].texCoords = worldToScreen(viewColor, vertexCoordUpperRight);
+    vertices[vertexIndexLowerLeft] .texCoords = worldToScreen(viewColor, vertexCoordLowerLeft);
+    vertices[vertexIndexLowerRight].texCoords = worldToScreen(viewColor, vertexCoordLowerRight);
 
     indices[shaderIndex * 6 + 0] = vertexIndexUpperLeft;
     indices[shaderIndex * 6 + 1] = vertexIndexUpperRight;
