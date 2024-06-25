@@ -151,8 +151,6 @@ void VideoTexture::receiveVideo() {
             uint8_t* buffer = (uint8_t*)av_malloc(numBytes * sizeof(uint8_t));
             av_image_fill_arrays(frameRGB->data, frameRGB->linesize, buffer, openglPixelFormat, width, height, 1);
 
-            frameRGB->opaque = reinterpret_cast<void*>(poseID);
-
             sws_scale(swsCtx, (uint8_t const* const*)frame->data, frame->linesize, 0, codecCtx->height, frameRGB->data, frameRGB->linesize);
 
             std::unique_lock<std::mutex> lock(m);

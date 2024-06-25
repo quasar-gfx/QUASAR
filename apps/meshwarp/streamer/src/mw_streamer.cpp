@@ -19,7 +19,7 @@
 #include <SceneLoader.h>
 
 #include <VideoStreamer.h>
-#include <DepthSender.h>
+#include <DepthStreamer.h>
 #include <PoseReceiver.h>
 
 #define TEXTURE_PREVIEW_SIZE 500
@@ -99,7 +99,7 @@ int main(int argc, char** argv) {
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR
     }, videoURL);
-    DepthSender videoStreamerDepthRT = DepthSender({
+    DepthStreamer videoStreamerDepthRT = DepthStreamer({
         .width = screenWidth,
         .height = screenHeight,
         .internalFormat = GL_R16,
@@ -146,10 +146,10 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: %.3f ms", videoStreamerColorRT.stats.timeToCopyFrameMs + videoStreamerDepthRT.stats.timeToCopyFrameMs);
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.3f ms", videoStreamerColorRT.stats.timeToEncodeMs);
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: %.3f ms", videoStreamerColorRT.stats.timeToSendMs);
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: %.3f Mbps", videoStreamerColorRT.stats.bitrateMbps + videoStreamerDepthRT.stats.bitrateMbps);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: %.1f ms", videoStreamerColorRT.stats.timeToCopyFrameMs + videoStreamerDepthRT.stats.timeToCopyFrameMs);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.1f ms", videoStreamerColorRT.stats.timeToEncodeMs);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: %.1f ms", videoStreamerColorRT.stats.timeToSendMs);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: %.1f Mbps", videoStreamerColorRT.stats.bitrateMbps + videoStreamerDepthRT.stats.bitrateMbps);
 
         ImGui::Separator();
 

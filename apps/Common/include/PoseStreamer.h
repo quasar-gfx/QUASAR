@@ -7,14 +7,14 @@
 #include <cstring>
 #include <map>
 
-#include <Socket.h>
+#include <Networking/Socket.h>
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/epsilon.hpp>
 
-#include <TimeUtils.h>
+#include <Utils/TimeUtils.h>
 #include <Camera.h>
-#include <DataStreamer.h>
+#include <Networking/DataStreamerUDP.h>
 
 #include <CameraPose.h>
 

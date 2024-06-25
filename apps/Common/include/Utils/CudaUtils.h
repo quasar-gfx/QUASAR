@@ -24,6 +24,7 @@ extern CUdevice gDevice;
 CUdevice findCudaDevice();
 
 }
-#endif
+
+#endif // __APPLE__
 
 #endif // CUDA_UTILS_H

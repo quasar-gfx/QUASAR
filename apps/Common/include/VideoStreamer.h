@@ -21,7 +21,7 @@ extern "C" {
 #include <condition_variable>
 #include <queue>
 
-#include <TimeUtils.h>
+#include <Utils/TimeUtils.h>
 
 #include <RenderTargets/RenderTarget.h>
 
@@ -29,7 +29,7 @@ extern "C" {
 
 #ifndef __APPLE__
 #include <cuda_gl_interop.h>
-#include <CudaUtils.h>
+#include <Utils/CudaUtils.h>
 #endif
 
 class VideoStreamer : public RenderTarget {

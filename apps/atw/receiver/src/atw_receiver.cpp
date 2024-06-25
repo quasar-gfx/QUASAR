@@ -116,10 +116,10 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to receive frame: %.3f ms", videoTexture.stats.timeToReceiveMs);
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decode frame: %.3f ms", videoTexture.stats.timeToDecodeMs);
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to resize frame: %.3f ms", videoTexture.stats.timeToResizeMs);
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: %.3f Mbps", videoTexture.stats.bitrateMbps);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to receive frame: %.1f ms", videoTexture.stats.timeToReceiveMs);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decode frame: %.1f ms", videoTexture.stats.timeToDecodeMs);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to resize frame: %.1f ms", videoTexture.stats.timeToResizeMs);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: %.1f Mbps", videoTexture.stats.bitrateMbps);
 
         ImGui::Separator();
 
@@ -209,6 +209,8 @@ int main(int argc, char** argv) {
         if (poseID != -1 && poseStreamer.getPose(poseID, &currentFramePose, &elapedTime)) {
             atwShader.setMat4("remoteProjection", currentFramePose.proj);
             atwShader.setMat4("remoteView", currentFramePose.view);
+
+            poseStreamer.removePosesLessThan(poseID);
         }
         atwShader.setInt("videoTexture", 5);
         videoTexture.bind(5);

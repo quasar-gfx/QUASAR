@@ -1,6 +1,6 @@
 #ifndef __APPLE__
 
-#include <CudaUtils.h>
+#include <Utils/CudaUtils.h>
 
 CUdevice cudautils::gDevice = -1;
 

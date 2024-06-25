@@ -6,12 +6,12 @@
 #include <thread>
 #include <cstring>
 
-#include <Socket.h>
+#include <Networking/Socket.h>
 
 #include <glm/gtc/type_ptr.hpp>
 
 #include <Camera.h>
-#include <DataReceiver.h>
+#include <Networking/DataReceiverUDP.h>
 
 #include <CameraPose.h>
 
