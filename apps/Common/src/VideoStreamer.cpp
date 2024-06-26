@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include <Utils/TimeUtils.h>
 #include <VideoStreamer.h>
 
@@ -255,7 +257,7 @@ void VideoStreamer::encodeAndSendFrames() {
 
             // add poseID to packet data; bit hacky, but works
             packet->data = (uint8_t*)av_realloc(packet->data, packet->size + sizeof(pose_id_t));
-            memcpy(packet->data + packet->size, &poseIDToSend, sizeof(pose_id_t));
+            std::memcpy(packet->data + packet->size, &poseIDToSend, sizeof(pose_id_t));
             packet->size += sizeof(pose_id_t);
 
             // send packet to output URL
@@ -277,7 +279,7 @@ void VideoStreamer::encodeAndSendFrames() {
 
         int elapsedTimeSec = (timeutils::getCurrTimeMillis() - prevTime) * MILLISECONDS_IN_SECOND;
         if (elapsedTimeSec < (1.0f / targetFrameRate)) {
-            av_usleep((1.0f / targetFrameRate) - elapsedTimeSec);
+            av_usleep((1.0f / targetFrameRate - elapsedTimeSec) * MICROSECONDS_IN_MILLISECOND);
         }
         stats.totalTimeToSendMs = (timeutils::getCurrTimeMillis() - prevTime);
 

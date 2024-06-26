@@ -35,7 +35,7 @@ public:
             return -1;
         }
 
-        memcpy(&currPose, data.data(), sizeof(Pose));
+        std::memcpy(&currPose, data.data(), sizeof(Pose));
 
         if (setProj) {
             camera->setProjectionMatrix(currPose.proj);

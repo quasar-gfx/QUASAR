@@ -36,7 +36,7 @@ pose_id_t DepthReceiverTexture::draw(pose_id_t poseID) {
     }
 
     pose_id_t resPoseID;
-    memcpy(&resPoseID, res.data(), sizeof(pose_id_t));
+    std::memcpy(&resPoseID, res.data(), sizeof(pose_id_t));
 
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RED, GL_UNSIGNED_SHORT, res.data() + sizeof(pose_id_t));
 

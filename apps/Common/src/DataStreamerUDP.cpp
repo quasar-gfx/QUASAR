@@ -19,7 +19,7 @@ int DataStreamerUDP::send(const uint8_t* data) {
         packet.ID = packetID++;
         packet.dataID = dataID;
         packet.size = std::min(PACKET_DATA_SIZE_UDP, maxDataSize - i);
-        memcpy(packet.data, data + i, PACKET_DATA_SIZE_UDP);
+        std::memcpy(packet.data, data + i, PACKET_DATA_SIZE_UDP);
 
         {
             std::lock_guard<std::mutex> lock(m);

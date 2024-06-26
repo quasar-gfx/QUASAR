@@ -55,7 +55,7 @@ void DataReceiverUDP::recvData() {
             std::vector<uint8_t> data(maxDataSize);
             int offset = 0;
             for (auto& p : datas[packet.dataID]) {
-                memcpy(data.data() + offset, p.second.data, p.second.size);
+                std::memcpy(data.data() + offset, p.second.data, p.second.size);
                 offset += p.second.size;
             }
 

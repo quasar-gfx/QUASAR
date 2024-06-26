@@ -76,7 +76,7 @@ void DepthStreamer::sendFrame(pose_id_t poseID) {
 #else
     this->poseID = poseID;
 
-    memcpy(data.data(), &poseID, sizeof(pose_id_t));
+    std::memcpy(data.data(), &poseID, sizeof(pose_id_t));
 
     bind();
     glReadPixels(0, 0, width, height, GL_RED, GL_UNSIGNED_SHORT, data.data() + sizeof(pose_id_t));
@@ -109,7 +109,7 @@ void DepthStreamer::sendData() {
         cudaArray* cudaBuffer = cudaBufferStruct.buffer;
         pose_id_t poseIDToSend = cudaBufferStruct.poseID;
 
-        memcpy(data.data(), &poseIDToSend, sizeof(pose_id_t));
+        std::memcpy(data.data(), &poseIDToSend, sizeof(pose_id_t));
 
         cudaBufferQueue.pop();
 

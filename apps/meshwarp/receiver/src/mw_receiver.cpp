@@ -386,7 +386,7 @@ int main(int argc, char** argv) {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
         GLvoid* pBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
         if (pBuffer) {
-            memcpy(newVertices.data(), pBuffer, numVertices * sizeof(Vertex));
+            std::memcpy(newVertices.data(), pBuffer, numVertices * sizeof(Vertex));
             glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
         }
         else {
@@ -396,7 +396,7 @@ int main(int argc, char** argv) {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
         GLvoid* pIndexBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
         if (pIndexBuffer) {
-            memcpy(newIndices.data(), pIndexBuffer, indexBufferSize * sizeof(GLuint));
+            std::memcpy(newIndices.data(), pIndexBuffer, indexBufferSize * sizeof(GLuint));
             glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
         }
         else {

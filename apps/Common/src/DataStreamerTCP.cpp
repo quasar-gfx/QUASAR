@@ -60,7 +60,7 @@ void DataStreamerTCP::sendData() {
         // add header
         int dataSize = data.size();
         std::vector<uint8_t> header(sizeof(dataSize));
-        memcpy(header.data(), &dataSize, sizeof(dataSize));
+        std::memcpy(header.data(), &dataSize, sizeof(dataSize));
 
         // send header
         int totalSent = 0;

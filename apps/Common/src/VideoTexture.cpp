@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include <VideoTexture.h>
 
 #undef av_err2str
@@ -114,7 +116,7 @@ void VideoTexture::receiveVideo() {
         bytesReceived = packet->size;
 
         // extract poseID from packet
-        memcpy(&poseID, packet->data + packet->size - sizeof(pose_id_t), sizeof(pose_id_t));
+        std::memcpy(&poseID, packet->data + packet->size - sizeof(pose_id_t), sizeof(pose_id_t));
 
         // remove poseID from packet
         packet->size -= sizeof(pose_id_t);

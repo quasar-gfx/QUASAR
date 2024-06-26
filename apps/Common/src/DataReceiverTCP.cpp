@@ -57,7 +57,7 @@ void DataReceiverTCP::recvData() {
             }
 
             if (received == sizeof(expectedSize)) {
-                memcpy(&expectedSize, buffer, sizeof(expectedSize));
+                std::memcpy(&expectedSize, buffer, sizeof(expectedSize));
                 data.reserve(expectedSize);
                 break;
             }
