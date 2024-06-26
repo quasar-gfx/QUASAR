@@ -226,13 +226,13 @@ int main(int argc, char** argv) {
     int height = screenHeight / surfelSize;
 
     GLuint vertexBuffer;
-    int numVertices = width * height * VERTICES_IN_A_QUAD;
+    int numVertices = width * height;
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vertex), nullptr, GL_STATIC_DRAW);
 
     GLuint indexBuffer;
-    int numTriangles = width * height * 2;
+    int numTriangles = (width-1) * (height-1) * 2;
     int indexBufferSize = numTriangles * 3;
     glGenBuffers(1, &indexBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
@@ -396,7 +396,7 @@ int main(int argc, char** argv) {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
         GLvoid* pIndexBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
         if (pIndexBuffer) {
-            memcpy(newIndices.data(), pIndexBuffer, indexBufferSize * sizeof(unsigned int));
+            memcpy(newIndices.data(), pIndexBuffer, indexBufferSize * sizeof(GLuint));
             glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
         }
         else {

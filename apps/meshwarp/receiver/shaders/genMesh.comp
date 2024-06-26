@@ -32,8 +32,6 @@ uniform float far;
 
 uniform int surfelSize;
 
-#define VERTICES_IN_A_QUAD 4
-
 vec3 ndcToView(vec2 ndc, float depth) {
     vec4 ndcPos;
     ndcPos.xy = ndc;
@@ -99,75 +97,40 @@ void main() {
 
     ivec2 surfelCoords = ivec2(gl_GlobalInvocationID.xy);
 
-    /************************
+    ivec2 pixelCoords = surfelSize * ivec2(surfelCoords);
+    vec2 pixelCoordsNormalized = pixelCoords / screenSize;
 
-            ul -- ur
-            |    / |
-            |   c  |
-            |  /   |
-       -->  ll -- lr
+    float depth = sampleDepth(depthMap, pixelCoords);
 
-    ************************/
+    vec2 ndc = 2.0 * pixelCoordsNormalized - 1.0;
+    vec3 viewCoord = ndcToView(ndc, depth);
+    vec3 worldCoord = viewToWorld(viewInverseDepth, viewCoord);
 
-    ivec2 pixelCoordLowerLeft  = surfelSize * (ivec2(surfelCoords) + ivec2(0, 0));
-    ivec2 pixelCoordLowerRight = surfelSize * (ivec2(surfelCoords) + ivec2(1, 0));
-    ivec2 pixelCoordUpperLeft  = surfelSize * (ivec2(surfelCoords) + ivec2(0, 1));
-    ivec2 pixelCoordUpperRight = surfelSize * (ivec2(surfelCoords) + ivec2(1, 1));
-    // ivec2 pixelCoordCenter     = surfelSize * (ivec2(surfelCoords) + ivec2(0.5, 0.5));
+    vertices[shaderIndex].position = worldCoord;
+    vertices[shaderIndex].color = vec3(1.0, 1.0, 1.0);
+    vertices[shaderIndex].texCoords = worldToScreen(viewColor, worldCoord);
 
-    vec2 pixelCoordLowerLeftNormalized  = pixelCoordLowerLeft / screenSize;
-    vec2 pixelCoordLowerRightNormalized = pixelCoordLowerRight / screenSize;
-    vec2 pixelCoordUpperLeftNormalized  = pixelCoordUpperLeft / screenSize;
-    vec2 pixelCoordUpperRightNormalized = pixelCoordUpperRight / screenSize;
-    // vec2 pixelCoordCenterNormalized     = pixelCoordCenter / screenSize;
+    if (pixelCoords.x < screenSize.x - surfelSize && pixelCoords.y < screenSize.y - surfelSize) {
+        /************************
 
-    float depthLowerLeft  = sampleDepth(depthMap, pixelCoordLowerLeft);
-    float depthLowerRight = sampleDepth(depthMap, pixelCoordLowerRight);
-    float depthUpperLeft  = sampleDepth(depthMap, pixelCoordUpperLeft);
-    float depthUpperRight = sampleDepth(depthMap, pixelCoordUpperRight);
-    // float depthCenter     = sampleDepth(depthMap, pixelCoordCenter);
+                ul -- ur
+                |    / |
+                |   c  |
+                |  /   |
+                ll -- lr
 
-    vec2 ndcLowerLeft  = 2.0 * pixelCoordLowerLeftNormalized - 1.0;
-    vec2 ndcLowerRight = 2.0 * pixelCoordLowerRightNormalized - 1.0;
-    vec2 ndcUpperLeft  = 2.0 * pixelCoordUpperLeftNormalized - 1.0;
-    vec2 ndcUpperRight = 2.0 * pixelCoordUpperRightNormalized - 1.0;
-    // vec2 ndcCenter     = 2.0 * pixelCoordCenterNormalized - 1.0;
+        ************************/
+        uint lowerLeftIdx = shaderIndex;
+        uint lowerRightIdx = shaderIndex + 1;
+        uint upperLeftIdx = shaderIndex + uint(size.x);
+        uint upperRightIdx = shaderIndex + uint(size.x) + 1;
 
-    vec3 viewCoordLowerLeft  = ndcToView(ndcLowerLeft, depthLowerLeft);
-    vec3 viewCoordLowerRight = ndcToView(ndcLowerRight, depthLowerRight);
-    vec3 viewCoordUpperLeft  = ndcToView(ndcUpperLeft, depthUpperLeft);
-    vec3 viewCoordUpperRight = ndcToView(ndcUpperRight, depthUpperRight);
+        indices[shaderIndex * 6 + 0] = upperLeftIdx;
+        indices[shaderIndex * 6 + 1] = upperRightIdx;
+        indices[shaderIndex * 6 + 2] = lowerLeftIdx;
 
-    vec3 vertexCoordUpperLeft  = viewToWorld(viewInverseDepth, viewCoordUpperLeft);
-    vec3 vertexCoordUpperRight = viewToWorld(viewInverseDepth, viewCoordUpperRight);
-    vec3 vertexCoordLowerLeft  = viewToWorld(viewInverseDepth, viewCoordLowerLeft);
-    vec3 vertexCoordLowerRight = viewToWorld(viewInverseDepth, viewCoordLowerRight);
-
-    uint vertexIndexUpperLeft  = shaderIndex * VERTICES_IN_A_QUAD + 0;
-    uint vertexIndexUpperRight = shaderIndex * VERTICES_IN_A_QUAD + 1;
-    uint vertexIndexLowerLeft  = shaderIndex * VERTICES_IN_A_QUAD + 2;
-    uint vertexIndexLowerRight = shaderIndex * VERTICES_IN_A_QUAD + 3;
-
-    vertices[vertexIndexUpperLeft] .position = vertexCoordUpperLeft;
-    vertices[vertexIndexUpperRight].position = vertexCoordUpperRight;
-    vertices[vertexIndexLowerLeft] .position = vertexCoordLowerLeft;
-    vertices[vertexIndexLowerRight].position = vertexCoordLowerRight;
-
-    vertices[vertexIndexUpperLeft] .color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexUpperRight].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexLowerLeft] .color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexLowerRight].color = vec3(1.0, 1.0, 1.0);
-
-    vertices[vertexIndexUpperLeft] .texCoords = worldToScreen(viewColor, vertexCoordUpperLeft);
-    vertices[vertexIndexUpperRight].texCoords = worldToScreen(viewColor, vertexCoordUpperRight);
-    vertices[vertexIndexLowerLeft] .texCoords = worldToScreen(viewColor, vertexCoordLowerLeft);
-    vertices[vertexIndexLowerRight].texCoords = worldToScreen(viewColor, vertexCoordLowerRight);
-
-    indices[shaderIndex * 6 + 0] = vertexIndexUpperLeft;
-    indices[shaderIndex * 6 + 1] = vertexIndexUpperRight;
-    indices[shaderIndex * 6 + 2] = vertexIndexLowerLeft;
-
-    indices[shaderIndex * 6 + 3] = vertexIndexUpperRight;
-    indices[shaderIndex * 6 + 4] = vertexIndexLowerRight;
-    indices[shaderIndex * 6 + 5] = vertexIndexLowerLeft;
+        indices[shaderIndex * 6 + 3] = upperRightIdx;
+        indices[shaderIndex * 6 + 4] = lowerRightIdx;
+        indices[shaderIndex * 6 + 5] = lowerLeftIdx;
+    }
 }
