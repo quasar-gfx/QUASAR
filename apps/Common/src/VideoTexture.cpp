@@ -111,10 +111,13 @@ void VideoTexture::receiveVideo() {
             continue;
         }
 
+        bytesReceived = packet->size;
+
         // extract poseID from packet
         memcpy(&poseID, packet->data + packet->size - sizeof(pose_id_t), sizeof(pose_id_t));
 
-        bytesReceived = packet->size;
+        // remove poseID from packet
+        packet->size -= sizeof(pose_id_t);
 
         /* Decode received frame */
         {
