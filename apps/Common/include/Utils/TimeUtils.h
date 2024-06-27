@@ -33,6 +33,30 @@ namespace timeutils {
         );
         return ns.count();
     }
+
+    inline float microsToMillis(int micros) {
+        return (float)micros / MICROSECONDS_IN_MILLISECOND;
+    }
+
+    inline float microsToSeconds(int micros) {
+        return (float)micros / MICROSECONDS_IN_SECOND;
+    }
+
+    inline float millisToMicros(int millis) {
+        return (float)millis * MICROSECONDS_IN_MILLISECOND;
+    }
+
+    inline float millisToSeconds(int millis) {
+        return (float)millis / MILLISECONDS_IN_SECOND;
+    }
+
+    inline float secondsToMicros(int seconds) {
+        return (float)seconds * MICROSECONDS_IN_SECOND;
+    }
+
+    inline float secondsToMillis(int seconds) {
+        return (float)seconds * MILLISECONDS_IN_SECOND;
+    }
 }
 
 #endif // TIME_UTILS_H

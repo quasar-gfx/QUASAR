@@ -109,9 +109,9 @@ void DepthStreamer::sendData() {
         cudaArray* cudaBuffer = cudaBufferStruct.buffer;
         pose_id_t poseIDToSend = cudaBufferStruct.poseID;
 
-        std::memcpy(data.data(), &poseIDToSend, sizeof(pose_id_t));
-
         cudaBufferQueue.pop();
+
+        std::memcpy(data.data(), &poseIDToSend, sizeof(pose_id_t));
 
         lock.unlock();
 

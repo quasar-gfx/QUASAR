@@ -52,7 +52,7 @@ public:
     }
 
     float getFrameRate() {
-        return MICROSECONDS_IN_MILLISECOND / stats.totalTimeToSendMs;
+        return 1.0f / timeutils::millisToSeconds(stats.totalTimeToSendMs);
     }
 
     void setTargetFrameRate(int targetFrameRate) {

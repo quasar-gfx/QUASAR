@@ -48,7 +48,7 @@ public:
     }
 
     float getFrameRate() {
-        return MICROSECONDS_IN_MILLISECOND / stats.totalTimeToReceiveMs;
+        return 1.0f / timeutils::millisToSeconds(stats.totalTimeToReceiveMs);
     }
 
     unsigned int getFramesReceived() {

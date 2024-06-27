@@ -144,7 +144,7 @@ int VideoStreamer::initCuda() {
 
 void VideoStreamer::sendFrame(pose_id_t poseID) {
     /* Copy frame from OpenGL texture to AVFrame */
-    int startCopyTime = timeutils::getCurrTimeMillis();
+    int startCopyTime = timeutils::getCurrTimeMicros();
 
 #ifndef __APPLE__
     // add cuda buffer
@@ -176,13 +176,13 @@ void VideoStreamer::sendFrame(pose_id_t poseID) {
     }
     cv.notify_one();
 
-    stats.timeToCopyFrameMs = (timeutils::getCurrTimeMillis() - startCopyTime);
+    stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - startCopyTime);
 }
 
 void VideoStreamer::encodeAndSendFrames() {
     sendFrames = true;
 
-    int prevTime = timeutils::getCurrTimeMillis();
+    int prevTime = timeutils::getCurrTimeMicros();
 
     size_t bytesSent = 0;
     int ret;
@@ -248,7 +248,7 @@ void VideoStreamer::encodeAndSendFrames() {
             packet->pts = framesSent * (outputFormatCtx->streams[0]->time_base.den) / targetFrameRate;
             packet->dts = packet->pts;
 
-            stats.timeToEncodeMs = (timeutils::getCurrTimeMicros() - startEncodeTime) / MILLISECONDS_IN_SECOND;
+            stats.timeToEncodeMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - startEncodeTime);
         }
 
         /* Send frame to output URL */
@@ -260,6 +260,8 @@ void VideoStreamer::encodeAndSendFrames() {
             std::memcpy(packet->data + packet->size, &poseIDToSend, sizeof(pose_id_t));
             packet->size += sizeof(pose_id_t);
 
+            bytesSent = packet->size;
+
             // send packet to output URL
             ret = av_interleaved_write_frame(outputFormatCtx, packet);
             if (ret < 0) {
@@ -268,24 +270,22 @@ void VideoStreamer::encodeAndSendFrames() {
                 continue;
             }
 
-            bytesSent = packet->size;
-
             av_packet_unref(packet);
 
             framesSent++;
 
-            stats.timeToSendMs = (timeutils::getCurrTimeMillis() - startWriteTime);
+            stats.timeToSendMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - startWriteTime);
         }
 
-        int elapsedTimeSec = (timeutils::getCurrTimeMillis() - prevTime) * MILLISECONDS_IN_SECOND;
+        float elapsedTimeSec = timeutils::microsToSeconds(timeutils::getCurrTimeMicros() - prevTime);
         if (elapsedTimeSec < (1.0f / targetFrameRate)) {
-            av_usleep((1.0f / targetFrameRate - elapsedTimeSec) * MICROSECONDS_IN_MILLISECOND);
+            av_usleep(timeutils::secondsToMicros(1.0f / targetFrameRate - elapsedTimeSec));
         }
-        stats.totalTimeToSendMs = (timeutils::getCurrTimeMillis() - prevTime);
+        stats.totalTimeToSendMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - prevTime);
 
-        stats.bitrateMbps = ((bytesSent * 8) / (stats.totalTimeToSendMs * MILLISECONDS_IN_SECOND));
+        stats.bitrateMbps = ((bytesSent * 8) / timeutils::millisToSeconds(stats.totalTimeToSendMs)) / MBPS_TO_BPS;
 
-        prevTime = timeutils::getCurrTimeMillis();
+        prevTime = timeutils::getCurrTimeMicros();
     }
 }
 

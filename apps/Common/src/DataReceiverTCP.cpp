@@ -44,7 +44,7 @@ void DataReceiverTCP::recvData() {
         int received = 0;
         int expectedSize = 0;
 
-        int receiveStartTime = timeutils::getCurrTimeMillis();
+        int receiveStartTime = timeutils::getCurrTimeMicros();
 
         // read header first (includes size of the data packet)
         while (ready && expectedSize == 0) {
@@ -89,8 +89,8 @@ void DataReceiverTCP::recvData() {
         }
 
         if (totalReceived == expectedSize && !data.empty()) {
-            stats.timeToReceiveMs = (timeutils::getCurrTimeMillis() - receiveStartTime);
-            stats.bitrateMbps = ((data.size() * 8) / (stats.timeToReceiveMs * MILLISECONDS_IN_SECOND));
+            stats.timeToReceiveMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - receiveStartTime);
+            stats.bitrateMbps = ((data.size() * 8) / timeutils::millisToSeconds(stats.timeToReceiveMs)) / MBPS_TO_BPS;
             frames.push(std::move(data));
         }
     }
