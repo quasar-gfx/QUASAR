@@ -84,13 +84,12 @@ void DepthStreamer::sendFrame(pose_id_t poseID) {
 
     streamer.send(data);
 #endif
-
-    stats.timeToSendMs = streamer.stats.timeToSendMs;
-    stats.bitrateMbps = streamer.stats.bitrateMbps;
 }
 
 #ifndef __APPLE__
 void DepthStreamer::sendData() {
+    float prevTime = timeutils::getCurrTimeMicros();
+
     while (true) {
         std::unique_lock<std::mutex> lock(m);
         cv.wait(lock, [this] { return dataReady; });
@@ -102,7 +101,7 @@ void DepthStreamer::sendData() {
             break;
         }
 
-        auto copyStartTime = std::chrono::high_resolution_clock::now();
+        float startTime = timeutils::getCurrTimeMicros();
 
         // copy depth buffer to data
         CudaBuffer cudaBufferStruct = cudaBufferQueue.front();
@@ -116,15 +115,23 @@ void DepthStreamer::sendData() {
         lock.unlock();
 
         CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(data.data() + sizeof(pose_id_t), width * sizeof(GLushort),
-                                                cudaBuffer,
-                                                0, 0, width * sizeof(GLushort), height,
-                                                cudaMemcpyDeviceToHost));
+                                               cudaBuffer,
+                                               0, 0, width * sizeof(GLushort), height,
+                                               cudaMemcpyDeviceToHost));
 
-        auto endCopyFrame = std::chrono::high_resolution_clock::now();
+        stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - startTime);
 
-        stats.timeToCopyFrameMs = std::chrono::duration<float, std::milli>(endCopyFrame - copyStartTime).count();
+        float elapsedTimeSec = timeutils::microsToSeconds(timeutils::getCurrTimeMicros() - prevTime);
+        if (elapsedTimeSec < (1.0f / targetFrameRate)) {
+            std::this_thread::sleep_for(std::chrono::microseconds((int)timeutils::secondsToMicros(1.0f / targetFrameRate - elapsedTimeSec)));
+        }
+        stats.timeToSendMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - prevTime);
+
+        stats.bitrateMbps = ((imageSize * 8) / timeutils::millisToSeconds(stats.timeToSendMs)) / MBPS_TO_BPS;
 
         streamer.send(data);
+
+        prevTime = timeutils::getCurrTimeMicros();
     }
 }
 #endif

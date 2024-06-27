@@ -52,6 +52,10 @@ public:
     }
 
     void removePosesLessThan(pose_id_t poseID) {
+        if (poseID == -1) {
+            return;
+        }
+
         for (auto it = prevPoses.begin(); it != prevPoses.end();) {
             if (it->first < poseID) {
                 it = prevPoses.erase(it);

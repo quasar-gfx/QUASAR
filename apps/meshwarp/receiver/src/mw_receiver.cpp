@@ -26,6 +26,8 @@
 
 #define VERTICES_IN_A_QUAD 4
 
+#define NUM_SHADER_THREADS 16
+
 const std::string DATA_PATH = "../streamer/";
 
 enum class RenderState {
@@ -121,7 +123,7 @@ int main(int argc, char** argv) {
 
     int trianglesDrawn = 0;
     double elapsedTime = 0.0f;
-    bool disableMeshWarp;
+    bool mwEnabled = true;
     guiManager->onRender([&](double now, double dt) {
         ImGui::NewFrame();
 
@@ -176,7 +178,7 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
-        ImGui::Checkbox("Disable Mesh Warp", &disableMeshWarp);
+        ImGui::Checkbox("Mesh Warp Enabled", &mwEnabled);
 
         ImGui::Separator();
 
@@ -287,7 +289,7 @@ int main(int argc, char** argv) {
     remoteCamera.setProjectionMatrix(proj);
     remoteCamera.setViewMatrix(view);
 
-    pose_id_t poseIdColor, poseIdDepth;
+    pose_id_t poseIdColor = -1, poseIdDepth = -1;
     Pose currentColorFramePose, currentDepthFramePose;
     double elapsedTimeColor, elapsedTimeDepth;
     std::vector<Vertex> newVertices(numVertices);
@@ -345,10 +347,10 @@ int main(int argc, char** argv) {
 
         // render depth video frame
         videoTextureDepth.bind();
-        poseIdDepth = videoTextureDepth.draw();
+        poseIdDepth = videoTextureDepth.draw(poseIdColor);
         videoTextureDepth.unbind();
 
-        if (disableMeshWarp) {
+        if (!mwEnabled) {
             if (poseIdColor != -1) poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTime);
 
             videoShader.bind();
@@ -366,21 +368,19 @@ int main(int argc, char** argv) {
         genMeshShader.setFloat("near", remoteCamera.near);
         genMeshShader.setFloat("far", remoteCamera.far);
         videoTextureDepth.bind(0);
-        if (poseIdColor != -1 && poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTimeColor)) {
+        if (poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTimeColor)) {
             genMeshShader.setMat4("viewColor", currentColorFramePose.view);
         }
-        if (poseIdDepth != -1 && poseStreamer.getPose(poseIdDepth, &currentDepthFramePose, &elapsedTimeDepth)) {
+        if (poseStreamer.getPose(poseIdDepth, &currentDepthFramePose, &elapsedTimeDepth)) {
             genMeshShader.setMat4("viewInverseDepth", glm::inverse(currentDepthFramePose.view));
         }
         elapsedTime = std::fmax(elapsedTimeColor, elapsedTimeDepth);
 
         // dispatch compute shader
-        genMeshShader.dispatch(width, height, 1);
+        genMeshShader.dispatch((width + NUM_SHADER_THREADS - 1) / NUM_SHADER_THREADS, (height + NUM_SHADER_THREADS - 1) / NUM_SHADER_THREADS, 1);
         genMeshShader.unbind();
 
-        if (poseIdDepth != -1 && poseIdColor != -1) {
-            poseStreamer.removePosesLessThan(std::min(poseIdColor, poseIdDepth));
-        }
+        poseStreamer.removePosesLessThan(std::min(poseIdColor, poseIdDepth));
 
         // create mesh from compute shader output
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);

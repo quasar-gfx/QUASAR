@@ -91,7 +91,7 @@ void DataStreamerTCP::sendData() {
         }
 
         stats.timeToSendMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - startSendTime);
-        stats.bitrateMbps = ((data.size() * 8) / timeutils::millisToSeconds(stats.timeToSendMs)) / MBPS_TO_BPS;
+        stats.bitrateMbps = ((sizeof(dataSize) + data.size() * 8) / timeutils::millisToSeconds(stats.timeToSendMs)) / MBPS_TO_BPS;
     }
 
     socket.close();

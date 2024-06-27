@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
     std::cout << "Video URL: " << videoURL << std::endl;
     std::cout << "Pose URL: " << poseURL << std::endl;
 
-    bool atwEnabled = false;
+    bool atwEnabled = true;
     double elapedTime = 0.0f;
     guiManager->onRender([&](double now, double dt) {
         ImGui::NewFrame();

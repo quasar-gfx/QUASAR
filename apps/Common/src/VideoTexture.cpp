@@ -78,7 +78,10 @@ int VideoTexture::initFFMpeg() {
         return ret;
     }
 
-    swsCtx = sws_getContext(codecCtx->width, codecCtx->height, codecCtx->pix_fmt,
+    videoWidth = codecCtx->width;
+    videoHeight = codecCtx->height;
+
+    swsCtx = sws_getContext(videoWidth, videoHeight, codecCtx->pix_fmt,
                             width, height, openglPixelFormat,
                             SWS_BILINEAR, nullptr, nullptr, nullptr);
 
@@ -93,7 +96,7 @@ void VideoTexture::receiveVideo() {
 
     videoReady = true;
 
-    int prevTime = timeutils::getCurrTimeMicros();
+    float prevTime = timeutils::getCurrTimeMicros();
 
     size_t bytesReceived = 0;
     pose_id_t poseID = -1;
@@ -158,7 +161,7 @@ void VideoTexture::receiveVideo() {
             uint8_t* buffer = (uint8_t*)av_malloc(numBytes * sizeof(uint8_t));
             av_image_fill_arrays(frameRGB->data, frameRGB->linesize, buffer, openglPixelFormat, width, height, 1);
 
-            sws_scale(swsCtx, (uint8_t const* const*)frame->data, frame->linesize, 0, codecCtx->height, frameRGB->data, frameRGB->linesize);
+            sws_scale(swsCtx, (uint8_t const* const*)frame->data, frame->linesize, 0, videoHeight, frameRGB->data, frameRGB->linesize);
 
             std::unique_lock<std::mutex> lock(m);
 

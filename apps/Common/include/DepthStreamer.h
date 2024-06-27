@@ -33,9 +33,19 @@ public:
 
     void close();
 
+    float getFrameRate() {
+        return 1.0f / timeutils::millisToSeconds(stats.timeToSendMs);
+    }
+
+    void setTargetFrameRate(int targetFrameRate) {
+        this->targetFrameRate = targetFrameRate;
+    }
+
     void sendFrame(pose_id_t poseID);
 
 private:
+    int targetFrameRate = 60;
+
     DataStreamerTCP streamer;
 
     std::vector<uint8_t> data;

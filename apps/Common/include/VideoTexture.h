@@ -33,6 +33,8 @@ public:
         float bitrateMbps = -1.0f;
     } stats;
 
+    unsigned int videoWidth, videoHeight;
+
     explicit VideoTexture(const TextureCreateParams &params, const std::string &videoURL);
     ~VideoTexture() {
         cleanup();

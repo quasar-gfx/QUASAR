@@ -1,8 +1,13 @@
+#include <Utils/TimeUtils.h>
+
 #include <DepthReceiverTexture.h>
 
 pose_id_t DepthReceiverTexture::draw(pose_id_t poseID) {
+    static float prevTime = timeutils::getCurrTimeMicros();
+
     std::vector<uint8_t> data = receiver.recv();
     if (data.empty()) {
+        prevTime = timeutils::getCurrTimeMicros();
         return -1;
     }
 
@@ -32,6 +37,7 @@ pose_id_t DepthReceiverTexture::draw(pose_id_t poseID) {
     }
 
     if (!found) {
+        prevTime = timeutils::getCurrTimeMicros();
         return -1;
     }
 
@@ -40,8 +46,11 @@ pose_id_t DepthReceiverTexture::draw(pose_id_t poseID) {
 
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RED, GL_UNSIGNED_SHORT, res.data() + sizeof(pose_id_t));
 
-    stats.timeToReceiveMs = receiver.stats.timeToReceiveMs;
-    stats.bitrateMbps = receiver.stats.bitrateMbps;
+    stats.timeToReceiveMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - prevTime);
+
+    stats.bitrateMbps = ((res.size() * 8) / timeutils::millisToSeconds(stats.timeToReceiveMs)) / MBPS_TO_BPS;
+
+    prevTime = timeutils::getCurrTimeMicros();
 
     return resPoseID;
 }
