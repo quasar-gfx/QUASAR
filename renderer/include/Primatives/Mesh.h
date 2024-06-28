@@ -52,6 +52,7 @@ public:
     unsigned int draw(Scene &scene, Camera &camera, const glm::mat4 &model, bool frustumCull, Material* overrideMaterial) override;
     unsigned int draw(Scene &scene, Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, Material* overrideMaterial) override;
     void setBuffers(const std::vector<Vertex> &vertices, const std::vector<unsigned int> &indices);
+    void setBuffers(GLuint vertexBufferSSBO, GLuint indexBufferSSBO);
     void updateBuffers();
     void updateAABB();
 
@@ -62,7 +63,9 @@ public:
     EntityType getType() override { return EntityType::MESH; }
 
 protected:
-    GLuint VAO, VBO, EBO;
+    GLuint vertexArrayBuffer;
+    GLuint vertexBuffer;
+    GLuint indexBuffer;
 
     void createBuffers();
     void createAttributes();

@@ -22,11 +22,11 @@ public:
             { {1.0f, 1.0f, 0.0f}, {1.0f, 1.0f} }
         };
 
-        glGenVertexArrays(1, &quadVAO);
-        glGenBuffers(1, &quadVBO);
+        glGenVertexArrays(1, &vertexArrayBuffer);
+        glGenBuffers(1, &vertexBuffer);
 
-        glBindVertexArray(quadVAO);
-        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+        glBindVertexArray(vertexArrayBuffer);
+        glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
 
         glBufferData(GL_ARRAY_BUFFER, quadVertices.size() * sizeof(FSQuadVertex), quadVertices.data(), GL_STATIC_DRAW);
 
@@ -46,7 +46,7 @@ public:
         // disable depth test so screen-space quad isn't discarded due to depth test.
         glDisable(GL_DEPTH_TEST);
 
-        glBindVertexArray(quadVAO);
+        glBindVertexArray(vertexArrayBuffer);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
 
@@ -55,8 +55,8 @@ public:
     }
 
     void cleanup() {
-        glDeleteVertexArrays(1, &quadVAO);
-        glDeleteBuffers(1, &quadVBO);
+        glDeleteVertexArrays(1, &vertexArrayBuffer);
+        glDeleteBuffers(1, &vertexBuffer);
     }
 
 private:
@@ -65,7 +65,8 @@ private:
         glm::vec2 texCoords;
     };
 
-    GLuint quadVAO, quadVBO;
+    GLuint vertexArrayBuffer;
+    GLuint vertexBuffer;
 };
 
 #endif // FULL_SCREEN_QUAD_H

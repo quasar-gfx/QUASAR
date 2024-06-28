@@ -5,16 +5,16 @@
 uint32_t Vertex::nextID = 0;
 
 void Mesh::createBuffers()  {
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
+    glGenVertexArrays(1, &vertexArrayBuffer);
+    glGenBuffers(1, &vertexBuffer);
+    glGenBuffers(1, &indexBuffer);
 
     updateBuffers();
     createAttributes();
 }
 
 void Mesh::createAttributes() {
-    glBindVertexArray(VAO);
+    glBindVertexArray(vertexArrayBuffer);
 
     glEnableVertexAttribArray(ATTRIBUTE_ID);
     glVertexAttribPointer(ATTRIBUTE_ID,         1, GL_UNSIGNED_INT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, ID));
@@ -41,12 +41,12 @@ void Mesh::createAttributes() {
 }
 
 void Mesh::updateBuffers() {
-    glBindVertexArray(VAO);
+    glBindVertexArray(vertexArrayBuffer);
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 
     glBindVertexArray(0);
@@ -58,6 +58,20 @@ void Mesh::setBuffers(const std::vector<Vertex> &vertices, const std::vector<uns
 
     updateBuffers();
     updateAABB();
+}
+
+void Mesh::setBuffers(GLuint vertexBufferSSBO, GLuint indexBufferSSBO) {
+    // copy vertex buffer
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBufferSSBO);
+    glBindBuffer(GL_COPY_READ_BUFFER, vertexBufferSSBO);
+    glBindBuffer(GL_COPY_WRITE_BUFFER, vertexBuffer);
+    glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, vertices.size() * sizeof(Vertex));
+
+    // copy index buffer
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBufferSSBO);
+    glBindBuffer(GL_COPY_READ_BUFFER, indexBufferSSBO);
+    glBindBuffer(GL_COPY_WRITE_BUFFER, indexBuffer);
+    glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, indices.size() * sizeof(unsigned int));
 }
 
 void Mesh::updateAABB() {
@@ -142,11 +156,10 @@ unsigned int Mesh::draw(Scene &scene, Camera &camera, const glm::mat4 &model, bo
 
     GLenum primativeType = pointcloud ? GL_POINTS : GL_TRIANGLES;
 
-    glBindVertexArray(VAO);
+    glBindVertexArray(vertexArrayBuffer);
     if (indices.size() > 0) {
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
         glDrawElements(primativeType, static_cast<unsigned int>(indices.size()), GL_UNSIGNED_INT, 0);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     }
     else {
         glDrawArrays(primativeType, 0, static_cast<unsigned int>(vertices.size()));

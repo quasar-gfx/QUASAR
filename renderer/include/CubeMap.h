@@ -109,7 +109,8 @@ private:
         glm::vec3 position;
     };
 
-    GLuint cubeMapVAO, cubeMapVBO;
+    GLuint vertexArrayBuffer;
+    GLuint vertexBuffer;
 
     void initBuffers();
 

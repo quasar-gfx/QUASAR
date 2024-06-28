@@ -120,11 +120,11 @@ void CubeMap::initBuffers() {
         { {1.0f, -1.0f, 1.0f} },
     };
 
-    glGenVertexArrays(1, &cubeMapVAO);
-    glGenBuffers(1, &cubeMapVBO);
+    glGenVertexArrays(1, &vertexArrayBuffer);
+    glGenBuffers(1, &vertexBuffer);
 
-    glBindVertexArray(cubeMapVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, cubeMapVBO);
+    glBindVertexArray(vertexArrayBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
 
     glBufferData(GL_ARRAY_BUFFER, skyboxVertices.size() * sizeof(CubeMapVertex), skyboxVertices.data(), GL_STATIC_DRAW);
 
@@ -261,7 +261,7 @@ unsigned int CubeMap::draw(Shader &shader, Camera &camera) {
 unsigned int CubeMap::drawCube() {
     unsigned int trianglesDrawn = 36;
 
-    glBindVertexArray(cubeMapVAO);
+    glBindVertexArray(vertexArrayBuffer);
     glDrawArrays(GL_TRIANGLES, 0, trianglesDrawn);
     glBindVertexArray(0);
 

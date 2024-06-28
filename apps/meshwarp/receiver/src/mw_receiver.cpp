@@ -238,33 +238,35 @@ int main(int argc, char** argv) {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
 
+    Mesh mesh = Mesh({
+        .vertices = std::vector<Vertex>(numVertices),
+        .indices = std::vector<unsigned int>(indexBufferSize),
+        .material = new UnlitMaterial({ .diffuseTextureID = videoTextureColor.ID }),
+        .wireframe = false,
+        .pointcloud = renderState == RenderState::POINTCLOUD,
+    });
+    Node node = Node(&mesh);
+    node.frustumCulled = false;
+    scene.addChildNode(&node);
+
+    Mesh meshWireframe = Mesh({
+        .vertices = std::vector<Vertex>(numVertices),
+        .indices = std::vector<unsigned int>(indexBufferSize),
+        .material = new UnlitMaterial({ .color = glm::vec3(1.0f, 1.0f, 0.0f) }),
+        .wireframe = true,
+        .pointcloud = false,
+    });
+    Node wireframeNode = Node(&meshWireframe);
+    wireframeNode.frustumCulled = false;
+    wireframeNode.setTranslation(glm::vec3(0.0f, 0.001f, 0.001f));
+    scene.addChildNode(&wireframeNode);
+
     genMeshShader.bind();
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffer);
     genMeshShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
     genMeshShader.setInt("surfelSize", surfelSize);
     genMeshShader.unbind();
-
-    Mesh mesh = Mesh({
-        .vertices = {},
-        .indices = {},
-        .material = new UnlitMaterial({ .diffuseTextureID = videoTextureColor.ID }),
-        .wireframe = false,
-        .pointcloud = renderState == RenderState::POINTCLOUD,
-    });
-    Node node = Node(&mesh);
-    scene.addChildNode(&node);
-
-    Mesh wireframeMesh = Mesh({
-        .vertices = {},
-        .indices = {},
-        .material = new UnlitMaterial({ .color = glm::vec3(1.0f, 1.0f, 0.0f) }),
-        .wireframe = true,
-        .pointcloud = false,
-    });
-    Node wireframeNode = Node(&wireframeMesh);
-    wireframeNode.setTranslation(glm::vec3(0.0f, 0.001f, 0.001f));
-    scene.addChildNode(&wireframeNode);
 
     scene.backgroundColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -374,38 +376,19 @@ int main(int argc, char** argv) {
         }
         elapsedTime = std::fmax(elapsedTimeColor, elapsedTimeDepth);
 
-        // dispatch compute shader
+        // dispatch compute shader to generate vertices and indices for mesh
         genMeshShader.dispatch(width, height, 1);
         genMeshShader.unbind();
 
         poseStreamer.removePosesLessThan(std::min(poseIdColor, poseIdDepth));
 
         // create mesh from compute shader output
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
-        GLvoid* pBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-        if (pBuffer) {
-            std::memcpy(newVertices.data(), pBuffer, numVertices * sizeof(Vertex));
-            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        }
-        else {
-            throw std::runtime_error("Failed to map vertex buffer");
-        }
+        mesh.setBuffers(vertexBuffer, indexBuffer);
+        meshWireframe.setBuffers(vertexBuffer, indexBuffer);
 
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
-        GLvoid* pIndexBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-        if (pIndexBuffer) {
-            std::memcpy(newIndices.data(), pIndexBuffer, indexBufferSize * sizeof(GLuint));
-            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        }
-        else {
-            std::cerr << "Failed to save index buffer" << std::endl;
-        }
-
-        mesh.setBuffers(newVertices, newIndices);
-        wireframeMesh.setBuffers(newVertices, newIndices);
-
+        // set render state
         mesh.pointcloud = renderState == RenderState::POINTCLOUD;
-        wireframeMesh.visible = renderState == RenderState::WIREFRAME;
+        meshWireframe.visible = renderState == RenderState::WIREFRAME;
 
         // render all objects in scene
         trianglesDrawn = app.renderer->drawObjects(scene, camera);
