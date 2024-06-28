@@ -120,7 +120,7 @@ int main(int argc, char** argv) {
     std::cout << "Pose URL: " << poseURL << std::endl;
 
     int trianglesDrawn = 0;
-    double elapsedTime = 0.0f;
+    double elapsedTimeColor, elapsedTimeDepth;
     bool mwEnabled = true;
     guiManager->onRender([&](double now, double dt) {
         ImGui::NewFrame();
@@ -165,14 +165,14 @@ int main(int argc, char** argv) {
         ImGui::Separator();
 
         ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoTextureColor.getFrameRate(), 1000.0f / videoTextureColor.getFrameRate());
-        ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: %.1f ms", elapsedTime);
+        ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: RGB (%.1f ms), D (%.1f ms)", elapsedTimeColor, elapsedTimeDepth);
 
         ImGui::Separator();
 
         ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to receive frame: %.1f ms", videoTextureColor.stats.timeToReceiveMs);
         ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decode frame: %.1f ms", videoTextureColor.stats.timeToDecodeMs);
         ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to resize frame: %.1f ms", videoTextureColor.stats.timeToResizeMs);
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: %.1f Mbps", videoTextureColor.stats.bitrateMbps + videoTextureDepth.stats.bitrateMbps);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: RGB (%.1f Mbps), D (%.1f Mbps)", videoTextureColor.stats.bitrateMbps, videoTextureDepth.stats.bitrateMbps);
 
         ImGui::Separator();
 
@@ -291,7 +291,6 @@ int main(int argc, char** argv) {
 
     pose_id_t poseIdColor = -1, poseIdDepth = -1;
     Pose currentColorFramePose, currentDepthFramePose;
-    double elapsedTimeColor, elapsedTimeDepth;
     std::vector<Vertex> newVertices(numVertices);
     std::vector<unsigned int> newIndices(indexBufferSize);
     app.onRender([&](double now, double dt) {
@@ -351,7 +350,7 @@ int main(int argc, char** argv) {
         videoTextureDepth.unbind();
 
         if (!mwEnabled) {
-            if (poseIdColor != -1) poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTime);
+            if (poseIdColor != -1) poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTimeColor);
 
             videoShader.bind();
             videoShader.setInt("tex", 5);
@@ -374,7 +373,6 @@ int main(int argc, char** argv) {
         if (poseStreamer.getPose(poseIdDepth, &currentDepthFramePose, &elapsedTimeDepth)) {
             genMeshShader.setMat4("viewInverseDepth", glm::inverse(currentDepthFramePose.view));
         }
-        elapsedTime = std::fmax(elapsedTimeColor, elapsedTimeDepth);
 
         // dispatch compute shader to generate vertices and indices for mesh
         genMeshShader.dispatch(width, height, 1);
