@@ -9,7 +9,7 @@
 
 #include <CameraPose.h>
 
-class DepthReceiverTexture : public Texture {
+class DepthVideoTexture : public Texture {
 public:
     std::string streamerURL;
 
@@ -18,13 +18,17 @@ public:
         float bitrateMbps = -1.0f;
     } stats;
 
-    explicit DepthReceiverTexture(const TextureCreateParams &params, std::string streamerURL)
+    explicit DepthVideoTexture(const TextureCreateParams &params, std::string streamerURL)
             : streamerURL(streamerURL)
             , receiver(streamerURL)
             , Texture(params) { }
 
     void setMaxQueueSize(unsigned int maxQueueSize) {
         this->maxQueueSize = maxQueueSize;
+    }
+
+    float getFrameRate() {
+        return 1.0f / timeutils::millisToSeconds(stats.timeToReceiveMs);
     }
 
     pose_id_t draw(pose_id_t poseID = -1);

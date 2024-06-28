@@ -1,8 +1,8 @@
 #include <Utils/TimeUtils.h>
 
-#include <DepthReceiverTexture.h>
+#include <DepthVideoTexture.h>
 
-pose_id_t DepthReceiverTexture::draw(pose_id_t poseID) {
+pose_id_t DepthVideoTexture::draw(pose_id_t poseID) {
     static float prevTime = timeutils::getCurrTimeMicros();\
 
     std::vector<uint8_t> data = receiver.recv();

@@ -19,7 +19,7 @@
 #include <GUI/ImGuiManager.h>
 
 #include <VideoTexture.h>
-#include <DepthReceiverTexture.h>
+#include <DepthVideoTexture.h>
 #include <PoseStreamer.h>
 
 #define TEXTURE_PREVIEW_SIZE 500
@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR
     }, videoURL);
-    DepthReceiverTexture videoTextureDepth({
+    DepthVideoTexture videoTextureDepth({
         .width = screenWidth,
         .height = screenHeight,
         .internalFormat = GL_R16,
@@ -164,7 +164,7 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
-        ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoTextureColor.getFrameRate(), 1000.0f / videoTextureColor.getFrameRate());
+        ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: RGB (%.1f FPS), D (%.1f FPS)", videoTextureColor.getFrameRate(), videoTextureDepth.getFrameRate());
         ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: RGB (%.1f ms), D (%.1f ms)", elapsedTimeColor, elapsedTimeDepth);
 
         ImGui::Separator();
