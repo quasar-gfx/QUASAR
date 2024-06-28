@@ -24,8 +24,8 @@ DepthStreamer::DepthStreamer(const RenderTargetCreateParams &params, std::string
     CUdevice device = cudautils::findCudaDevice();
     // register opengl texture with cuda
     CHECK_CUDA_ERROR(cudaGraphicsGLRegisterImage(&cudaResource,
-                                                    renderTargetCopy->colorBuffer.ID, GL_TEXTURE_2D,
-                                                    cudaGraphicsRegisterFlagsReadOnly));
+                                                 renderTargetCopy->colorBuffer.ID, GL_TEXTURE_2D,
+                                                 cudaGraphicsRegisterFlagsReadOnly));
 
     // start data sending thread
     running = true;
@@ -110,9 +110,9 @@ void DepthStreamer::sendData() {
 
         cudaBufferQueue.pop();
 
-        std::memcpy(data.data(), &poseIDToSend, sizeof(pose_id_t));
-
         lock.unlock();
+
+        std::memcpy(data.data(), &poseIDToSend, sizeof(pose_id_t));
 
         CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(data.data() + sizeof(pose_id_t), width * sizeof(GLushort),
                                                cudaBuffer,

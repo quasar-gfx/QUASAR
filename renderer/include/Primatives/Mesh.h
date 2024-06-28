@@ -62,7 +62,7 @@ public:
     EntityType getType() override { return EntityType::MESH; }
 
 protected:
-    TextureID VAO, VBO, EBO;
+    GLuint VAO, VBO, EBO;
 
     void createBuffers();
     void createAttributes();

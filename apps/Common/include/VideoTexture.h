@@ -58,6 +58,7 @@ public:
     }
 
 private:
+    pose_id_t prevPoseID = -1;
     unsigned int framesReceived = 0;
     unsigned int maxQueueSize = 10;
 

@@ -30,11 +30,17 @@ public:
     pose_id_t draw(pose_id_t poseID = -1);
 
 private:
+    pose_id_t prevPoseID = -1;
     unsigned int maxQueueSize = 10;
+
+    struct FrameData {
+        pose_id_t poseID;
+        std::vector<uint8_t> buffer;
+    };
 
     DataReceiverTCP receiver;
 
-    std::deque<std::vector<uint8_t>> datas;
+    std::deque<FrameData> datas;
 };
 
 #endif // DEPTH_RECEIVER_H

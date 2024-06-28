@@ -194,22 +194,22 @@ pose_id_t VideoTexture::draw(pose_id_t poseID) {
     }
 
     if (frames.empty()) {
-        return -1;
+        return prevPoseID;
     }
 
-    pose_id_t res = -1;
+    pose_id_t resPoseID = -1;
     AVFrame* frameRGB = nullptr;
     if (poseID == -1) {
         FrameData frameData = frames.back();
         frameRGB = frameData.frame;
-        res = frameData.poseID;
+        resPoseID = frameData.poseID;
     }
     else {
         for (auto it = frames.begin(); it != frames.end(); it++) {
             FrameData frameData = *it;
             if (frameData.poseID == poseID) {
                 frameRGB = frameData.frame;
-                res = frameData.poseID;
+                resPoseID = frameData.poseID;
                 break;
             }
         }
@@ -221,7 +221,9 @@ pose_id_t VideoTexture::draw(pose_id_t poseID) {
 
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, frameRGB->data[0]);
 
-    return res;
+    prevPoseID = resPoseID;
+
+    return resPoseID;
 }
 
 pose_id_t VideoTexture::getLatestPoseID() {

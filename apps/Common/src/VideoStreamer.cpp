@@ -15,6 +15,19 @@ static int interrupt_callback(void* ctx) {
 VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::string &videoURL)
         : videoURL("udp://" + videoURL)
         , RenderTarget(params) {
+    renderTargetCopy = new RenderTarget({
+        .width = width,
+        .height = height,
+        .internalFormat = colorBuffer.internalFormat,
+        .format = colorBuffer.format,
+        .type = colorBuffer.type,
+        .wrapS = colorBuffer.wrapS,
+        .wrapT = colorBuffer.wrapT,
+        .minFilter = colorBuffer.minFilter,
+        .magFilter = colorBuffer.magFilter,
+        .multiSampled = colorBuffer.multiSampled
+    });
+
     int ret;
 
 #ifndef __APPLE__
@@ -135,7 +148,7 @@ int VideoStreamer::initCuda() {
     CUdevice device = cudautils::findCudaDevice();
     // register opengl texture with cuda
     CHECK_CUDA_ERROR(cudaGraphicsGLRegisterImage(&cudaResource,
-                                                 colorBuffer.ID, GL_TEXTURE_2D,
+                                                 renderTargetCopy->colorBuffer.ID, GL_TEXTURE_2D,
                                                  cudaGraphicsRegisterFlagsReadOnly));
 
     return 0;
@@ -143,6 +156,10 @@ int VideoStreamer::initCuda() {
 #endif
 
 void VideoStreamer::sendFrame(pose_id_t poseID) {
+    renderTargetCopy->bind();
+    blitToRenderTarget(*renderTargetCopy);
+    renderTargetCopy->unbind();
+
     /* Copy frame from OpenGL texture to AVFrame */
     int startCopyTime = timeutils::getCurrTimeMicros();
 
@@ -164,11 +181,11 @@ void VideoStreamer::sendFrame(pose_id_t poseID) {
         // lock mutex
         std::lock_guard<std::mutex> lock(m);
 
+        this->poseID = poseID;
+
         bind();
         glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgbaData.data());
         unbind();
-
-        this->poseID = poseID;
 #endif
 
         // tell thread to send frame

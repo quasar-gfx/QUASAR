@@ -26,8 +26,6 @@
 
 #define VERTICES_IN_A_QUAD 4
 
-#define NUM_SHADER_THREADS 16
-
 const std::string DATA_PATH = "../streamer/";
 
 enum class RenderState {
@@ -231,14 +229,14 @@ int main(int argc, char** argv) {
     int numVertices = width * height;
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vertex), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
 
     GLuint indexBuffer;
     int numTriangles = (width-1) * (height-1) * 2;
     int indexBufferSize = numTriangles * 3;
     glGenBuffers(1, &indexBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
 
     genMeshShader.bind();
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
@@ -347,7 +345,7 @@ int main(int argc, char** argv) {
 
         // render depth video frame
         videoTextureDepth.bind();
-        poseIdDepth = videoTextureDepth.draw(poseIdColor);
+        poseIdDepth = videoTextureDepth.draw();
         videoTextureDepth.unbind();
 
         if (!mwEnabled) {
@@ -377,7 +375,7 @@ int main(int argc, char** argv) {
         elapsedTime = std::fmax(elapsedTimeColor, elapsedTimeDepth);
 
         // dispatch compute shader
-        genMeshShader.dispatch((width + NUM_SHADER_THREADS - 1) / NUM_SHADER_THREADS, (height + NUM_SHADER_THREADS - 1) / NUM_SHADER_THREADS, 1);
+        genMeshShader.dispatch(width, height, 1);
         genMeshShader.unbind();
 
         poseStreamer.removePosesLessThan(std::min(poseIdColor, poseIdDepth));

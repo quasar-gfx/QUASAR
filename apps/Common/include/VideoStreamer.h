@@ -74,6 +74,8 @@ private:
     int targetFrameRate = 60;
     unsigned int targetBitRate = 50 * MBPS_TO_BPS;
 
+    RenderTarget* renderTargetCopy;
+
     AVCodecID codecID = AV_CODEC_ID_H264;
     AVPixelFormat bufferPixelFormat = AV_PIX_FMT_RGBA;
     AVPixelFormat videoPixelFormat = AV_PIX_FMT_YUV420P;
