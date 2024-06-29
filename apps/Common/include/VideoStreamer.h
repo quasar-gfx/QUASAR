@@ -36,7 +36,7 @@ class VideoStreamer : public RenderTarget {
 public:
     std::string videoURL = "0.0.0.0:12345";
 
-    unsigned int framesSent = 0;
+    uint64_t framesSent = 0;
 
     struct Stats {
         float timeToEncodeMs = -1.0f;

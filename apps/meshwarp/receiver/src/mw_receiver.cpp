@@ -122,6 +122,7 @@ int main(int argc, char** argv) {
     int trianglesDrawn = 0;
     double elapsedTimeColor, elapsedTimeDepth;
     bool mwEnabled = true;
+    bool sync = true;
     guiManager->onRender([&](double now, double dt) {
         ImGui::NewFrame();
 
@@ -177,6 +178,10 @@ int main(int argc, char** argv) {
         ImGui::Separator();
 
         ImGui::Checkbox("Mesh Warp Enabled", &mwEnabled);
+
+        ImGui::Separator();
+
+        ImGui::Checkbox("Sync Color and Depth", &sync);
 
         ImGui::Separator();
 
@@ -346,7 +351,12 @@ int main(int argc, char** argv) {
 
         // render depth video frame
         videoTextureDepth.bind();
-        poseIdDepth = videoTextureDepth.draw();
+        if (sync) {
+            poseIdDepth = videoTextureDepth.draw(poseIdColor);
+        }
+        else {
+            poseIdDepth = videoTextureDepth.draw();
+        }
         videoTextureDepth.unbind();
 
         if (!mwEnabled) {

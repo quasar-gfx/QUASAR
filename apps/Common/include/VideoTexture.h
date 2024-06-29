@@ -53,13 +53,9 @@ public:
         return 1.0f / timeutils::millisToSeconds(stats.totalTimeToReceiveMs);
     }
 
-    unsigned int getFramesReceived() {
-        return framesReceived;
-    }
-
 private:
     pose_id_t prevPoseID = -1;
-    unsigned int framesReceived = 0;
+    uint64_t framesReceived = 0;
     unsigned int maxQueueSize = 10;
 
     AVPixelFormat openglPixelFormat = AV_PIX_FMT_RGB24;
