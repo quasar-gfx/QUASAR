@@ -1,5 +1,5 @@
-#ifndef VIDEO_RECEIVER_H
-#define VIDEO_RECEIVER_H
+#ifndef VIDEO_TEXTURE_H
+#define VIDEO_TEXTURE_H
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -94,4 +94,4 @@ private:
     int initFFMpeg();
 };
 
-#endif // VIDEO_RECEIVER_H
+#endif // VIDEO_TEXTURE_H
