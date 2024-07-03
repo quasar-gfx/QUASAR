@@ -11,7 +11,7 @@
 
 void Model::bindSceneAndCamera(Scene &scene, Camera &camera, const glm::mat4 &model, Material* overrideMaterial) {
     for (auto& mesh : meshes) {
-        mesh.bindSceneAndCamera(scene, camera, model, overrideMaterial);
+        mesh->bindSceneAndCamera(scene, camera, model, overrideMaterial);
     }
 }
 
@@ -22,7 +22,7 @@ unsigned int Model::draw(Scene &scene, Camera &camera, const glm::mat4 &model, b
     }
 
     for (auto& mesh : meshes) {
-        trianglesDrawn += mesh.draw(scene, camera, model, frustumCull, overrideMaterial);
+        trianglesDrawn += mesh->draw(scene, camera, model, frustumCull, overrideMaterial);
     }
 
     return trianglesDrawn;
@@ -35,7 +35,7 @@ unsigned int Model::draw(Scene &scene, Camera &camera, const glm::mat4 &model, c
     }
 
     for (auto& mesh : meshes) {
-        trianglesDrawn += mesh.draw(scene, camera, model, boundingSphere, overrideMaterial);
+        trianglesDrawn += mesh->draw(scene, camera, model, boundingSphere, overrideMaterial);
     }
 
     return trianglesDrawn;
@@ -98,7 +98,7 @@ void Model::processNode(aiNode* node, const aiScene* scene, PBRMaterial* materia
     }
 }
 
-Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* material) {
+Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* material) {
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
     std::vector<TextureID> textures;
@@ -252,7 +252,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materia
     meshParams.pointcloud = pointcloud;
     meshParams.IBL = IBL;
 
-    return Mesh(meshParams);
+    return new Mesh(meshParams);
 }
 
 int32_t Model::getEmbeddedTextureId(const aiString &path) {
@@ -345,5 +345,15 @@ TextureID Model::loadMaterialTexture(aiMaterial const* mat, aiTextureType type) 
         });
         texturesLoaded[texturePath] = texture;
         return texturesLoaded[texturePath].ID;
+    }
+}
+
+Model::~Model() {
+    for (auto mesh : meshes) {
+        delete mesh;
+    }
+
+    for (auto& texture : texturesLoaded) {
+        glDeleteTextures(1, &texture.second.ID);
     }
 }

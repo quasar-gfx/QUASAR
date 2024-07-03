@@ -18,10 +18,6 @@ public:
         createBuffers();
         updateAABB();
     }
-
-    ~Plane() {
-        cleanup();
-    }
 };
 
 #endif // PLANE_H

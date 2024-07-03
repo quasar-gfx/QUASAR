@@ -36,11 +36,7 @@ public:
     unsigned int videoWidth, videoHeight;
 
     explicit VideoTexture(const TextureCreateParams &params, const std::string &videoURL);
-    ~VideoTexture() {
-        cleanup();
-    }
-
-    void cleanup();
+    ~VideoTexture();
 
     pose_id_t draw(pose_id_t poseID = -1);
     pose_id_t getLatestPoseID();

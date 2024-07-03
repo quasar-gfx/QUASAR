@@ -124,7 +124,7 @@
             "intensity": 25.0,
             "constant": 0.0,
             "linear": 0.09,
-            "quadratic": 1.0
+            "quadratic": 0.8
         },
         {
             "color": [0.9, 0.9, 1.0],
@@ -132,7 +132,7 @@
             "intensity": 25.0,
             "constant": 0.0,
             "linear": 0.09,
-            "quadratic": 1.0
+            "quadratic": 0.8
         },
         {
             "color": [0.9, 0.9, 1.0],
@@ -140,7 +140,7 @@
             "intensity": 25.0,
             "constant": 0.0,
             "linear": 0.09,
-            "quadratic": 1.0
+            "quadratic": 0.8
         },
         {
             "color": [0.9, 0.9, 1.0],
@@ -148,7 +148,7 @@
             "intensity": 25.0,
             "constant": 0.0,
             "linear": 0.09,
-            "quadratic": 1.0
+            "quadratic": 0.8
         }
     ]
 }

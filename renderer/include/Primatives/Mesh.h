@@ -56,10 +56,6 @@ public:
     void updateBuffers();
     void updateAABB();
 
-    void cleanup() {
-        material->cleanup();
-    }
-
     EntityType getType() override { return EntityType::MESH; }
 
 protected:

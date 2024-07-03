@@ -12,9 +12,8 @@ public:
     explicit Framebuffer() {
         glGenFramebuffers(1, &ID);
     }
-
     ~Framebuffer() {
-        cleanup();
+        glDeleteFramebuffers(1, &ID);
     }
 
     bool checkStatus(const std::string &name = "") {
@@ -46,10 +45,6 @@ public:
 
     void unbind() {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
-
-    void cleanup() {
-        glDeleteFramebuffers(1, &ID);
     }
 };
 

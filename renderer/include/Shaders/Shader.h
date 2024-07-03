@@ -48,10 +48,6 @@ public:
                       const char* fragmentCodeData, const GLint fragmentCodeSize,
                       const char* geometryData = nullptr, const GLint geometryDataSize = 0);
 
-    ~Shader() {
-        cleanup();
-    }
-
 private:
     void createAndCompileProgram(const char* vertexCodeData, const GLint vertexCodeSize,
                                  const char* fragmentCodeData, const GLint fragmentCodeSize,

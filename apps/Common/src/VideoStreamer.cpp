@@ -306,7 +306,7 @@ void VideoStreamer::encodeAndSendFrames() {
     }
 }
 
-void VideoStreamer::cleanup() {
+VideoStreamer::~VideoStreamer() {
     shouldTerminate = true;
     sendFrames = false;
 

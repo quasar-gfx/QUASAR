@@ -239,7 +239,7 @@ pose_id_t VideoTexture::getLatestPoseID() {
     return poseID;
 }
 
-void VideoTexture::cleanup() {
+VideoTexture::~VideoTexture() {
     shouldTerminate = true;
     videoReady = false;
 
@@ -263,7 +263,5 @@ void VideoTexture::cleanup() {
         frameData.free();
         frames.pop_front();
     }
-
-    Texture::cleanup();
 }
 

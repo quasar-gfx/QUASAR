@@ -14,7 +14,6 @@ public:
 
     virtual void bind() = 0;
     virtual void unbind() = 0;
-    virtual void cleanup() = 0;
 };
 
 #endif // OPENGL_OBJECT_H

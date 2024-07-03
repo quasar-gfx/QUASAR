@@ -12,6 +12,16 @@ Scene::Scene()
                                 .wrapT = GL_CLAMP_TO_EDGE,
                                 .minFilter = GL_LINEAR,
                                 .magFilter = GL_LINEAR })
+        , captureRenderBuffer({ .width = 512, .height = 512 })
+        , brdfLUT({
+            .internalFormat = GL_RG16F,
+            .format = GL_RG,
+            .type = GL_FLOAT,
+            .wrapS = GL_CLAMP_TO_EDGE,
+            .wrapT = GL_CLAMP_TO_EDGE,
+            .minFilter = GL_LINEAR,
+            .magFilter = GL_LINEAR
+        })
         , brdfFsQuad()
         , equirectToCubeMapShader({
             .vertexCodeData = SHADER_CUBEMAP_VERT,
@@ -92,17 +102,7 @@ void Scene::setupIBL(CubeMap &envCubeMap) {
     prefilterCubeMap.prefilter(prefilterShader, envCubeMap, captureRenderBuffer);
     captureRenderTarget.unbind();
 
-    brdfLUT = Texture({
-        .width = envCubeMap.width,
-        .height = envCubeMap.height,
-        .internalFormat = GL_RG16F,
-        .format = GL_RG,
-        .type = GL_FLOAT,
-        .wrapS = GL_CLAMP_TO_EDGE,
-        .wrapT = GL_CLAMP_TO_EDGE,
-        .minFilter = GL_LINEAR,
-        .magFilter = GL_LINEAR
-    });
+    brdfLUT.resize(envCubeMap.width, envCubeMap.height);
 
     captureRenderTarget.bind();
     captureRenderBuffer.bind();

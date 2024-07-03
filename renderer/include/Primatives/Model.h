@@ -33,7 +33,7 @@ struct ModelCreateParams {
 
 class Model : public Entity {
 public:
-    std::vector<Mesh> meshes;
+    std::vector<Mesh*> meshes;
 
     std::string rootDirectory;
 
@@ -54,6 +54,7 @@ public:
             , Entity() {
         loadFromFile(params);
     }
+    ~Model();
 
     void bindSceneAndCamera(Scene &scene, Camera &camera, const glm::mat4 &model, Material* overrideMaterial = nullptr) override;
     unsigned int draw(Scene &scene, Camera &camera, const glm::mat4 &model, bool frustumCull, Material* overrideMaterial) override;
@@ -67,7 +68,7 @@ private:
 
     void loadFromFile(const ModelCreateParams &params);
     void processNode(aiNode* node, const aiScene* scene, PBRMaterial* material);
-    Mesh processMesh(aiMesh* mesh, const aiScene *scene, PBRMaterial* material);
+    Mesh* processMesh(aiMesh* mesh, const aiScene *scene, PBRMaterial* material);
     TextureID loadMaterialTexture(aiMaterial const* mat, aiTextureType type);
     int32_t getEmbeddedTextureId(const aiString& path);
 };

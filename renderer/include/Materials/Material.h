@@ -12,6 +12,13 @@ public:
     std::vector<TextureID> textures;
     std::shared_ptr<Shader> shader;
 
+    ~Material() {
+        for (auto& textureID : textures) {
+            if (textureID == 0) continue;
+            glDeleteTextures(1, &textureID);
+        }
+    }
+
     virtual void bind() = 0;
 
     virtual unsigned int getTextureCount() = 0;
@@ -22,13 +29,6 @@ public:
             glBindTexture(GL_TEXTURE_2D, 0);
         }
         shader->unbind();
-    }
-
-    void cleanup() {
-        for (auto& textureID : textures) {
-            if (textureID == 0) continue;
-            glDeleteTextures(1, &textureID);
-        }
     }
 };
 

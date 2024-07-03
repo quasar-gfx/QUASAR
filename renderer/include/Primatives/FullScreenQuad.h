@@ -39,7 +39,8 @@ public:
     }
 
     ~FullScreenQuad() {
-        cleanup();
+        glDeleteVertexArrays(1, &vertexArrayBuffer);
+        glDeleteBuffers(1, &vertexBuffer);
     };
 
     void draw() {
@@ -52,11 +53,6 @@ public:
 
         // reenable depth test
         glEnable(GL_DEPTH_TEST);
-    }
-
-    void cleanup() {
-        glDeleteVertexArrays(1, &vertexArrayBuffer);
-        glDeleteBuffers(1, &vertexBuffer);
     }
 
 private:

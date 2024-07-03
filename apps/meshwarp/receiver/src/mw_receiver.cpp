@@ -332,13 +332,13 @@ int main(int argc, char** argv) {
 
                 camera.processMouseMovement(xoffset, yoffset, true);
             }
+        }
 
-            // handle keyboard input
-            auto keys = window->getKeys();
-            camera.processKeyboard(keys, dt);
-            if (keys.ESC_PRESSED) {
-                window->close();
-            }
+        // handle keyboard input
+        auto keys = window->getKeys();
+        camera.processKeyboard(keys, dt);
+        if (keys.ESC_PRESSED) {
+            window->close();
         }
 
         // send pose to streamer

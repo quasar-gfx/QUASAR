@@ -146,10 +146,10 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: %.1f ms", videoStreamerColorRT.stats.timeToCopyFrameMs + videoStreamerDepthRT.stats.timeToCopyFrameMs);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: RGB (%.1f ms), D (%.1f ms)", videoStreamerColorRT.stats.timeToCopyFrameMs, videoStreamerDepthRT.stats.timeToCopyFrameMs);
         ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.1f ms", videoStreamerColorRT.stats.timeToEncodeMs);
         ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: %.1f ms", videoStreamerColorRT.stats.timeToSendMs);
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: %.1f Mbps", videoStreamerColorRT.stats.bitrateMbps + videoStreamerDepthRT.stats.bitrateMbps);
+        ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: RGB (%.1f Mbps), D (%.1f Mbps)", videoStreamerColorRT.stats.bitrateMbps, videoStreamerDepthRT.stats.bitrateMbps);
 
         ImGui::Separator();
 
@@ -248,13 +248,13 @@ int main(int argc, char** argv) {
 
                 camera.processMouseMovement(xoffset, yoffset, true);
             }
+        }
 
-            // handle keyboard input
-            auto keys = window->getKeys();
-            camera.processKeyboard(keys, dt);
-            if (keys.ESC_PRESSED) {
-                window->close();
-            }
+        // handle keyboard input
+        auto keys = window->getKeys();
+        camera.processKeyboard(keys, dt);
+        if (keys.ESC_PRESSED) {
+            window->close();
         }
 
         if (pauseState == PauseState::PAUSE_BOTH) {

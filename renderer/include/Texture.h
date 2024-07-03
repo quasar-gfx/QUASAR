@@ -1,7 +1,7 @@
 #ifndef TEXTURE_H
 #define TEXTURE_H
 
-#include <glad/glad.h>
+#include <iostream>
 #include <string>
 
 #include <OpenGLObject.h>
@@ -53,7 +53,8 @@ public:
             , wrapT(params.wrapT)
             , minFilter(params.minFilter)
             , magFilter(params.magFilter)
-            , multiSampled(params.multiSampled) {
+            , multiSampled(params.multiSampled)
+            , OpenGLObject() {
         target = !multiSampled ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
         if (params.path == "") {
             init(params);
@@ -62,6 +63,7 @@ public:
             loadFromFile(params);
         }
     }
+    ~Texture() = default;
 
     void bind() {
         bind(0);

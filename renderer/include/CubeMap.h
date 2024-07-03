@@ -57,7 +57,7 @@ public:
             params.topFaceTexturePath != "" && params.bottomFaceTexturePath != "" &&
             params.frontFaceTexturePath != "" && params.backFaceTexturePath != "") {
             initBuffers();
-            std::vector faceTexturePaths = {
+            std::vector<std::string> faceTexturePaths = {
                 params.rightFaceTexturePath,
                 params.leftFaceTexturePath,
                 params.topFaceTexturePath,
@@ -73,7 +73,9 @@ public:
     }
 
     ~CubeMap() {
-        cleanup();
+        glDeleteBuffers(1, &vertexArrayBuffer);
+        glDeleteBuffers(1, &vertexBuffer);
+        glDeleteTextures(1, &ID);
     }
 
     void init(unsigned int width, unsigned int height, CubeMapType type);
@@ -95,10 +97,6 @@ public:
 
     void unbind() {
         glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-    }
-
-    void cleanup() {
-        glDeleteTextures(1, &ID);
     }
 
     static const glm::mat4 captureProjection;

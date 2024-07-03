@@ -46,6 +46,17 @@ public:
     std::vector<PBRMaterial*> materials;
 
     explicit SceneLoader() = default;
+    ~SceneLoader() {
+        for (auto model : models) {
+            delete model;
+        }
+        for (auto mesh : meshes) {
+            delete mesh;
+        }
+        for (auto material : materials) {
+            delete material;
+        }
+    }
 
     void loadScene(const std::string &filename, Scene &scene, Camera &camera) {
         std::ifstream sceneFile;

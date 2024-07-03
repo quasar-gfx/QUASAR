@@ -47,9 +47,7 @@ public:
     } stats;
 
     explicit VideoStreamer(const RenderTargetCreateParams &params, const std::string &videoURL);
-    ~VideoStreamer() {
-        cleanup();
-    }
+    ~VideoStreamer();
 
     float getFrameRate() {
         return 1.0f / timeutils::millisToSeconds(stats.totalTimeToSendMs);
@@ -65,8 +63,6 @@ public:
         this->targetBitRate = targetBitRate;
         outputFormatCtx->bit_rate = targetBitRate;
     }
-
-    void cleanup();
 
     void sendFrame(pose_id_t poseID);
 

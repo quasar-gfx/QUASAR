@@ -59,10 +59,6 @@ public:
         createBuffers();
         updateAABB();
     }
-
-    ~Cube() {
-        cleanup();
-    }
 };
 
 #endif // CUBE_H

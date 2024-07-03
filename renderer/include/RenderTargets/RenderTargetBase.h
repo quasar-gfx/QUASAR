@@ -26,10 +26,7 @@ public:
         width = params.width;
         height = params.height;
     }
-
-    ~RenderTargetBase() {
-        cleanup();
-    }
+    ~RenderTargetBase() = default;
 
     virtual void resize(unsigned int width, unsigned int height) {
         this->width = width;
@@ -47,10 +44,6 @@ public:
 
     void unbind() {
         framebuffer.unbind();
-    }
-
-    virtual void cleanup() {
-        framebuffer.cleanup();
     }
 
 protected:

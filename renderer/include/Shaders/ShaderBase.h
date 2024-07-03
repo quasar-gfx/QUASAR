@@ -20,6 +20,9 @@ enum class ShaderType {
 class ShaderBase : public OpenGLObject {
 public:
     explicit ShaderBase() = default;
+    ~ShaderBase() {
+        glDeleteProgram(ID);
+    }
 
     void bind() {
         glUseProgram(ID);
@@ -27,10 +30,6 @@ public:
 
     void unbind() {
         glUseProgram(0);
-    }
-
-    void cleanup() {
-        glDeleteProgram(ID);
     }
 
     void setBool(const std::string &name, bool value) const {

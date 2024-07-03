@@ -38,10 +38,6 @@ public:
 
     void dispatch(GLuint numGroupsX, GLuint numGroupsY, GLuint numGroupsZ);
 
-    ~ComputeShader() {
-        cleanup();
-    }
-
 private:
     void createAndCompileProgram(const char* computeCodeData, const GLint computeCodeSize);
 };

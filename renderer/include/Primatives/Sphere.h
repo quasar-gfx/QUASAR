@@ -63,10 +63,6 @@ public:
         createBuffers();
         updateAABB();
     }
-
-    ~Sphere() {
-        cleanup();
-    }
 };
 
 #endif // SPHERE_H
