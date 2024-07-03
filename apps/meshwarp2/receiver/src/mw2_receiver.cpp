@@ -18,6 +18,7 @@
 #include <GUI/ImGuiManager.h>
 
 #define VERTICES_IN_A_QUAD 4
+#define NUM_SUB_QUADS 4
 
 const std::string DATA_PATH = "../streamer/";
 
@@ -54,12 +55,12 @@ int createMesh(Mesh* mesh, Mesh* wireframeMesh, std::string label) {
     unsigned int width = diffuseTexture.width / surfelSize;
     unsigned int height = diffuseTexture.height / surfelSize;
 
-    int numVertices = width * height * VERTICES_IN_A_QUAD;
+    int numVertices = width * height * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
     std::vector<Vertex> vertices(numVertices);
     vertexFile.read(reinterpret_cast<char*>(vertices.data()), vertices.size() * sizeof(Vertex));
     vertexFile.close();
 
-    int numTriangles = width * height * 2;
+    int numTriangles = width * height * NUM_SUB_QUADS * 2;
     int indexBufferSize = numTriangles * 3;
     std::vector<unsigned int> indices(indexBufferSize);
     indexFile.read(reinterpret_cast<char*>(indices.data()), indices.size() * sizeof(unsigned int));
