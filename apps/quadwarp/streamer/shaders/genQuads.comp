@@ -4,8 +4,18 @@ layout(binding = 0) uniform sampler2D positionMap;
 layout(binding = 1) uniform sampler2D normalMap;
 layout(binding = 2) uniform sampler2D depthMap;
 
+struct Vertex {
+    uint id;
+    vec3 position;
+    vec3 color;
+    vec3 normal;
+    vec2 texCoords;
+    vec3 tangent;
+    vec3 bitangent;
+};
+
 layout(std430, binding = 0) buffer VertexBuffer {
-    vec4 vertices[];
+    Vertex vertices[];
 };
 
 layout(std430, binding = 1) buffer IndexBuffer {
@@ -42,12 +52,12 @@ vec3 viewToWorld(vec3 viewspaceCoord) {
 }
 
 vec3 sampleNormal(sampler2D normalMap, ivec2 pixelCoord) {
-    vec2 sampleCoord = (vec2(pixelCoord) + 0.5) / screenSize;
+    vec2 sampleCoord = vec2(pixelCoord) / screenSize;
     return texture(normalMap, sampleCoord).xyz;
 }
 
 float sampleDepth(sampler2D depthMap, ivec2 pixelCoord) {
-    vec2 sampleCoord = (vec2(pixelCoord) + 0.5) / screenSize;
+    vec2 sampleCoord = vec2(pixelCoord) / screenSize;
     return texture(depthMap, sampleCoord).x;
 }
 
@@ -63,11 +73,11 @@ void main() {
 
     vec2 surfelCoords = vec2(gl_GlobalInvocationID.xy);
 
-    ivec2 pixelCoordLowerLeft  = ivec2(surfelSize * (surfelCoords + vec2(0.0, 0.0)));
-    ivec2 pixelCoordLowerRight = ivec2(surfelSize * (surfelCoords + vec2(1.0, 0.0)));
-    ivec2 pixelCoordUpperLeft  = ivec2(surfelSize * (surfelCoords + vec2(0.0, 1.0)));
-    ivec2 pixelCoordUpperRight = ivec2(surfelSize * (surfelCoords + vec2(1.0, 1.0)));
-    ivec2 pixelCoordCenter     = ivec2(surfelSize * (surfelCoords + vec2(0.5, 0.5)));
+    ivec2 pixelCoordLowerLeft  = ivec2(surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(0.0, 0.0)));
+    ivec2 pixelCoordLowerRight = ivec2(surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(1.0, 0.0)));
+    ivec2 pixelCoordUpperLeft  = ivec2(surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(0.0, 1.0)));
+    ivec2 pixelCoordUpperRight = ivec2(surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(1.0, 1.0)));
+    ivec2 pixelCoordCenter     = ivec2(surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(0.5, 0.5)));
 
     vec2 pixelCoordUpperLeftNormalized = pixelCoordUpperLeft / screenSize;
     vec2 pixelCoordUpperRightNormalized = pixelCoordUpperRight / screenSize;
@@ -133,20 +143,28 @@ void main() {
     viewCoordLowerLeft = planeRayIntersection(rayOrigin, viewCoordLowerLeft, planeNormal, planePoint);
     viewCoordLowerRight = planeRayIntersection(rayOrigin, viewCoordLowerRight, planeNormal, planePoint);
 
-    vec4 vertexCoordUpperLeft  = vec4(viewToWorld(viewCoordUpperLeft), 1.0);
-    vec4 vertexCoordUpperRight = vec4(viewToWorld(viewCoordUpperRight), 1.0);
-    vec4 vertexCoordLowerLeft  = vec4(viewToWorld(viewCoordLowerLeft), 1.0);
-    vec4 vertexCoordLowerRight = vec4(viewToWorld(viewCoordLowerRight), 1.0);
-
     uint vertexIndexUpperLeft  = shaderIndex * VERTICES_IN_A_QUAD + 0;
     uint vertexIndexUpperRight = shaderIndex * VERTICES_IN_A_QUAD + 1;
     uint vertexIndexLowerLeft  = shaderIndex * VERTICES_IN_A_QUAD + 2;
     uint vertexIndexLowerRight = shaderIndex * VERTICES_IN_A_QUAD + 3;
 
-    vertices[vertexIndexUpperLeft] = vertexCoordUpperLeft;
-    vertices[vertexIndexUpperRight] = vertexCoordUpperRight;
-    vertices[vertexIndexLowerLeft] = vertexCoordLowerLeft;
-    vertices[vertexIndexLowerRight] = vertexCoordLowerRight;
+    vertices[vertexIndexUpperLeft] .position = viewToWorld(viewCoordUpperLeft);
+    vertices[vertexIndexUpperRight].position = viewToWorld(viewCoordUpperRight);
+    vertices[vertexIndexLowerLeft] .position = viewToWorld(viewCoordLowerLeft);
+    vertices[vertexIndexLowerRight].position = viewToWorld(viewCoordLowerRight);
+
+    vertices[vertexIndexUpperLeft] .color = vec3(1.0, 1.0, 1.0);
+    vertices[vertexIndexUpperRight].color = vec3(1.0, 1.0, 1.0);
+    vertices[vertexIndexLowerLeft] .color = vec3(1.0, 1.0, 1.0);
+    vertices[vertexIndexLowerRight].color = vec3(1.0, 1.0, 1.0);
+
+    uint x = shaderIndex % uint(size.x);
+    uint y = shaderIndex / uint(size.x);
+
+    vertices[vertexIndexUpperLeft] .texCoords = vec2(x / size.x, 1 - (y + 1) / size.y);
+    vertices[vertexIndexUpperRight].texCoords = vec2((x + 1) / size.x, 1 - (y + 1) / size.y);
+    vertices[vertexIndexLowerLeft] .texCoords = vec2(x / size.x, 1 - y / size.y);
+    vertices[vertexIndexLowerRight].texCoords = vec2((x + 1) / size.x, 1 - y / size.y);
 
     /************************
 

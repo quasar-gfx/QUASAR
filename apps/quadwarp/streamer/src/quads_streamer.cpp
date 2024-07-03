@@ -114,7 +114,7 @@ int main(int argc, char** argv) {
     int numVertices = width * height * VERTICES_IN_A_QUAD;
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(glm::vec4), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vertex), nullptr, GL_STATIC_DRAW);
 
     GLuint indexBuffer;
     int numTriangles = width * height * 2;
@@ -199,8 +199,8 @@ int main(int argc, char** argv) {
             // std::ofstream depthFile;
             // depthFile.open("data/depth_" + label + "_" + std::to_string(timestamp) + ".bin", std::ios::out | std::ios::binary);
 
-            std::ofstream positionsFile;
-            positionsFile.open("data/positions_" + label + "_" + std::to_string(timestamp) + ".bin", std::ios::out | std::ios::binary);
+            std::ofstream verticesFile;
+            verticesFile.open("data/vertices_" + label + "_" + std::to_string(timestamp) + ".bin", std::ios::out | std::ios::binary);
 
             // std::ofstream texCoordsFile;
             // texCoordsFile.open("data/tex_coords_" + label + "_" + std::to_string(timestamp) + ".bin", std::ios::out | std::ios::binary);
@@ -209,20 +209,9 @@ int main(int argc, char** argv) {
             indicesFile.open("data/indices_" + label + "_" + std::to_string(timestamp) + ".bin", std::ios::out | std::ios::binary);
 
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
-            GLvoid* pBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-            if (pBuffer) {
-                glm::vec4* pVertices = static_cast<glm::vec4*>(pBuffer);
-
-                for (int i = 0; i < numVertices; i++) {
-                    Vertex vertex;
-                    vertex.position = glm::vec3(pVertices[i]);
-
-                    // std::cout << "Vertex: " << vertex.position.x << ", " << vertex.position.y << ", " << vertex.position.z << std::endl;
-
-                    positionsFile.write(reinterpret_cast<const char*>(&vertex.position), sizeof(glm::vec3));
-                    // depthFile.write(reinterpret_cast<const char*>(&pVertices[i].w), sizeof(pVertices[i].w));
-                }
-
+            GLvoid* pVertexBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+            if (pVertexBuffer) {
+                verticesFile.write(reinterpret_cast<const char*>(pVertexBuffer), numVertices * sizeof(Vertex));
                 glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
             } else {
                 std::cerr << "Failed to save vertex buffer" << std::endl;

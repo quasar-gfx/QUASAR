@@ -31,15 +31,15 @@ int surfelSize = 4;
 RenderState renderState = RenderState::MESH;
 
 int createMesh(Mesh* mesh, Mesh* wireframeMesh, std::string label) {
-    std::ifstream vertexFile(DATA_PATH + "data/positions_" + label + "_0.bin", std::ios::binary);
+    std::ifstream vertexFile(DATA_PATH + "data/vertices_" + label + "_0.bin", std::ios::binary);
     if (!vertexFile.is_open()) {
-        std::cerr << "Failed to open file with label=" << label << std::endl;
+        std::cerr << "Failed to open vertex file with label=" << label << std::endl;
         return -1;
     }
 
     std::ifstream indexFile(DATA_PATH + "data/indices_" + label + "_0.bin", std::ios::binary);
     if (!indexFile.is_open()) {
-        std::cerr << "Failed to open file with label=" << label << std::endl;
+        std::cerr << "Failed to open index file with label=" << label << std::endl;
         return -1;
     }
 
@@ -54,41 +54,15 @@ int createMesh(Mesh* mesh, Mesh* wireframeMesh, std::string label) {
     unsigned int width = diffuseTexture.width / surfelSize;
     unsigned int height = diffuseTexture.height / surfelSize;
 
-    unsigned int x = 0, y = 0;
-    std::vector<Vertex> vertices;
-    for (int i = 0; vertexFile; i+=VERTICES_IN_A_QUAD) {
-        x = (i / VERTICES_IN_A_QUAD) % width;
-        y = (i / VERTICES_IN_A_QUAD) / width;
-
-        Vertex vertexUpperLeft;
-        vertexFile.read(reinterpret_cast<char*>(&vertexUpperLeft.position), sizeof(glm::vec3));
-        vertexUpperLeft.texCoords = glm::vec2((float)x / (float)(width), 1.0f - (float)(y + 1) / (float)(height));
-
-        Vertex vertexUpperRight;
-        vertexFile.read(reinterpret_cast<char*>(&vertexUpperRight.position), sizeof(glm::vec3));
-        vertexUpperRight.texCoords = glm::vec2((float)(x + 1) / (float)(width), 1.0f - (float)(y + 1) / (float)(height));
-
-        Vertex vertexLowerLeft;
-        vertexFile.read(reinterpret_cast<char*>(&vertexLowerLeft.position), sizeof(glm::vec3));
-        vertexLowerLeft.texCoords = glm::vec2((float)x / (float)(width), 1.0f - (float)y / (float)(height));
-
-        Vertex vertexLowerRight;
-        vertexFile.read(reinterpret_cast<char*>(&vertexLowerRight.position), sizeof(glm::vec3));
-        vertexLowerRight.texCoords = glm::vec2((float)(x + 1) / (float)(width), 1.0f - (float)y / (float)(height));
-
-        vertices.push_back(vertexUpperLeft);
-        vertices.push_back(vertexUpperRight);
-        vertices.push_back(vertexLowerLeft);
-        vertices.push_back(vertexLowerRight);
-    }
+    int numVertices = width * height * VERTICES_IN_A_QUAD;
+    std::vector<Vertex> vertices(numVertices);
+    vertexFile.read(reinterpret_cast<char*>(vertices.data()), vertices.size() * sizeof(Vertex));
     vertexFile.close();
 
-    std::vector<unsigned int> indices;
-    while (indexFile) {
-        unsigned int index;
-        indexFile.read(reinterpret_cast<char*>(&index), sizeof(unsigned int));
-        indices.push_back(index);
-    }
+    int numTriangles = width * height * 2;
+    int indexBufferSize = numTriangles * 3;
+    std::vector<unsigned int> indices(indexBufferSize);
+    indexFile.read(reinterpret_cast<char*>(indices.data()), indices.size() * sizeof(unsigned int));
     indexFile.close();
 
     *mesh = Mesh({
