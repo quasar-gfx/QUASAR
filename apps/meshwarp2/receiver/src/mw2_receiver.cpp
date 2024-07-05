@@ -47,20 +47,20 @@ int createMesh(Mesh* mesh, Mesh* wireframeMesh, std::string label) {
     Texture diffuseTexture = Texture({
         .wrapS = GL_REPEAT,
         .wrapT = GL_REPEAT,
-        .minFilter = GL_LINEAR_MIPMAP_LINEAR,
-        .magFilter = GL_LINEAR,
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST,
         .path = DATA_PATH + "imgs/color_" + label + "_0.png"
     });
 
     unsigned int width = diffuseTexture.width / surfelSize;
     unsigned int height = diffuseTexture.height / surfelSize;
 
-    int numVertices = width * height * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
+    int numVertices = width * height * VERTICES_IN_A_QUAD;
     std::vector<Vertex> vertices(numVertices);
     vertexFile.read(reinterpret_cast<char*>(vertices.data()), vertices.size() * sizeof(Vertex));
     vertexFile.close();
 
-    int numTriangles = width * height * NUM_SUB_QUADS * 2;
+    int numTriangles = width * height * 2;
     int indexBufferSize = numTriangles * 3;
     std::vector<unsigned int> indices(indexBufferSize);
     indexFile.read(reinterpret_cast<char*>(indices.data()), indices.size() * sizeof(unsigned int));
@@ -214,11 +214,11 @@ int main(int argc, char** argv) {
         scene.addChildNode(&nodes[i]);
 
         nodes[2*i+1] = Node(&wireframeMeshes[i]);
-        nodes[2*i+1].setTranslation(glm::vec3(0.0f, 0.001f, 0.001f));
+        nodes[2*i+1].setTranslation(glm::vec3(0.0f, 0.0005f, 0.0005f));
         scene.addChildNode(&nodes[i+1]);
     }
 
-    scene.backgroundColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
 
     // load camera view and projection matrices
     std::ifstream cameraFile(DATA_PATH + "data/camera.bin", std::ios::binary);

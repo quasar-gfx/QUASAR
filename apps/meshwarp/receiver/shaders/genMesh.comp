@@ -82,8 +82,7 @@ float UnLinearizeDepth(float depth) {
     return (z + 1.0) / 2.0;
 }
 
-float sampleDepth(sampler2D depthMap, ivec2 pixelCoord) {
-    vec2 sampleCoord = vec2(pixelCoord) / screenSize;
+float sampleDepth(sampler2D depthMap, vec2 sampleCoord) {
     float depth = texture(depthMap, sampleCoord).r;
     depth = UnLinearizeDepth(depth);
     depth = min(depth, 0.99999);
@@ -95,12 +94,12 @@ void main() {
 
     uint shaderIndex = uint(gl_GlobalInvocationID.y * size.x + gl_GlobalInvocationID.x);
 
-    ivec2 surfelCoord = ivec2(gl_GlobalInvocationID.xy);
+    vec2 surfelCoord = vec2(gl_GlobalInvocationID.xy);
 
-    ivec2 pixelCoord = ivec2(surfelSize * (surfelCoord + vec2(0.5, 0.5)));
+    vec2 pixelCoord = surfelSize * (surfelCoord + vec2(0.5, 0.5));
     vec2 pixelCoordNormalized = vec2(pixelCoord) / screenSize;
 
-    float depth = sampleDepth(depthMap, pixelCoord);
+    float depth = sampleDepth(depthMap, pixelCoordNormalized);
 
     vec2 ndc = 2.0 * pixelCoordNormalized - 1.0;
     vec3 viewCoord = ndcToView(ndc, depth);

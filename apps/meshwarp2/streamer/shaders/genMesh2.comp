@@ -53,14 +53,17 @@ vec3 viewToWorld(vec3 viewspaceCoord) {
     return worldCoord.xyz;
 }
 
-vec3 sampleNormal(sampler2D normalMap, ivec2 pixelCoord) {
-    vec2 sampleCoord = vec2(pixelCoord) / screenSize;
+vec3 sampleNormal(sampler2D normalMap, vec2 sampleCoord) {
     return texture(normalMap, sampleCoord).xyz;
 }
 
-float sampleDepth(sampler2D depthMap, ivec2 pixelCoord) {
-    vec2 sampleCoord = vec2(pixelCoord) / screenSize;
+float sampleDepth(sampler2D depthMap, vec2 sampleCoord) {
     return texture(depthMap, sampleCoord).x;
+}
+
+float LinearizeDepth(float depth) {
+    float z = depth * 2.0 - 1.0; // back to NDC
+    return (2.0 * near * far) / (far + near - z * (far - near));
 }
 
 vec3 planeRayIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 planeNormal, vec3 planePoint) {
@@ -68,106 +71,163 @@ vec3 planeRayIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 planeNormal, v
     return rayOrigin + t * rayDirection;
 }
 
+float sobel(float tl, float t, float tr, float l, float c, float r, float bl, float b, float br) {
+    float sobelX = tr + 2.0 * r + br - tl - 2.0 * l - bl;
+    float sobelY = tl + 2.0 * t + tr - bl - 2.0 * b - br;
+    return sqrt(sobelX * sobelX + sobelY * sobelY);
+}
+
 void main() {
     vec2 size = vec2(screenSize) / float(surfelSize);
 
     uint shaderIndex = uint(gl_GlobalInvocationID.y * size.x + gl_GlobalInvocationID.x);
 
-    ivec2 surfelCoords = ivec2(gl_GlobalInvocationID.xy);
+    vec2 surfelCoords = vec2(gl_GlobalInvocationID.xy);
 
     /************************
 
-            ul - uc - ur
-            |        / |
-            cl    c   cr
-            |  /       |
-       -->  ll - lc - lr
+        tll -- tl -- tr -- trr
+        |      |    / |     |
+        |      |   c  |     |
+        |      |  /   |     |
+       bll -- (bl) -- br -- brr
+        |      |      |     |
+        |      |      |     |
+        |      |      |     |
+      bbll -- bbl -- bbr -- bbrr
 
     ************************/
 
-    ivec2 pixelCoordLowerLeft  = ivec2(surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(0.0, 0.0)));
-    ivec2 pixelCoordLowerRight = ivec2(surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(1.0, 0.0)));
-    ivec2 pixelCoordUpperLeft  = ivec2(surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(0.0, 1.0)));
-    ivec2 pixelCoordUpperRight = ivec2(surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(1.0, 1.0)));
-    ivec2 pixelCoordCenter     = ivec2(surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(0.5, 0.5)));
+    vec2 pixelCoordBottomBottomLeftLeft   = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(-1.0, -1.0));
+    vec2 pixelCoordBottomBottomLeft       = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(0.0, -1.0));
+    vec2 pixelCoordBottomBottomRight      = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(1.0, -1.0));
+    vec2 pixelCoordBottomBottomRightRight = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(2.0, -1.0));
+    vec2 pixelCoordBottomLeftLeft         = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(-1.0, 0.0));
+    vec2 pixelCoordBottomLeft             = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(0.0, 0.0));
+    vec2 pixelCoordBottomRight            = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(1.0, 0.0));
+    vec2 pixelCoordBottomRightRight       = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(2.0, 0.0));
+    vec2 pixelCoordTopLeftLeft            = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(-1.0, 1.0));
+    vec2 pixelCoordTopLeft                = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(0.0, 1.0));
+    vec2 pixelCoordTopRight               = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(1.0, 1.0));
+    vec2 pixelCoordTopRightRight          = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(2.0, 1.0));
+    // vec2 pixelCoordCenter     = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(0.5, 0.5));
 
-    vec2 pixelCoordLowerLeftNormalized  = pixelCoordLowerLeft / screenSize;
-    vec2 pixelCoordLowerRightNormalized = pixelCoordLowerRight / screenSize;
-    vec2 pixelCoordUpperLeftNormalized  = pixelCoordUpperLeft / screenSize;
-    vec2 pixelCoordUpperRightNormalized = pixelCoordUpperRight / screenSize;
-    vec2 pixelCoordCenterNormalized     = pixelCoordCenter / screenSize;
+    vec2 pixelCoordBottomBottomLeftLeftNormalized   = pixelCoordBottomBottomLeftLeft / screenSize;
+    vec2 pixelCoordBottomBottomLeftNormalized       = pixelCoordBottomBottomLeft / screenSize;
+    vec2 pixelCoordBottomBottomRightNormalized      = pixelCoordBottomBottomRight / screenSize;
+    vec2 pixelCoordBottomBottomRightRightNormalized = pixelCoordBottomBottomRightRight / screenSize;
+    vec2 pixelCoordBottomLeftLeftNormalized         = pixelCoordBottomLeftLeft / screenSize;
+    vec2 pixelCoordBottomLeftNormalized             = pixelCoordBottomLeft / screenSize;
+    vec2 pixelCoordBottomRightNormalized            = pixelCoordBottomRight / screenSize;
+    vec2 pixelCoordBottomRightRightNormalized       = pixelCoordBottomRightRight / screenSize;
+    vec2 pixelCoordTopLeftLeftNormalized            = pixelCoordTopLeftLeft / screenSize;
+    vec2 pixelCoordTopLeftNormalized                = pixelCoordTopLeft / screenSize;
+    vec2 pixelCoordTopRightNormalized               = pixelCoordTopRight / screenSize;
+    vec2 pixelCoordTopRightRightNormalized          = pixelCoordTopRightRight / screenSize;
+    // vec2 pixelCoordCenterNormalized     = pixelCoordCenter / screenSize;
 
-    // vec3 positionUpperLeft  = texture(positionMap, pixelCoordUpperLeft / screenSize).xyz;
-    // vec3 positionUpperRight = texture(positionMap, pixelCoordUpperRight / screenSize).xyz;
-    // vec3 positionLowerLeft  = texture(positionMap, pixelCoordLowerLeft / screenSize).xyz;
-    // vec3 positionLowerRight = texture(positionMap, pixelCoordLowerRight / screenSize).xyz;
-    // vec3 positionCenter     = texture(positionMap, pixelCoordCenter / screenSize).xyz;
+    // vec3 normalBottomLeft  = sampleNormal(normalMap, pixelCoordBottomLeft);
+    // vec3 normalBottomRight = sampleNormal(normalMap, pixelCoordBottomRight);
+    // vec3 normalTopLeft  = sampleNormal(normalMap, pixelCoordTopLeft);
+    // vec3 normalTopRight = sampleNormal(normalMap, pixelCoordTopRight);
+    // vec3 normalCenter     = sampleNormal(normalMap, pixelCoordCenter);
 
-    vec3 normalLowerLeft  = sampleNormal(normalMap, pixelCoordLowerLeft);
-    vec3 normalLowerRight = sampleNormal(normalMap, pixelCoordLowerRight);
-    vec3 normalUpperLeft  = sampleNormal(normalMap, pixelCoordUpperLeft);
-    vec3 normalUpperRight = sampleNormal(normalMap, pixelCoordUpperRight);
-    vec3 normalCenter     = sampleNormal(normalMap, pixelCoordCenter);
+    // uint idBottomLeft  = uint(texture(idMap, pixelCoordBottomLeftNormalized).x);
+    // uint idBottomRight = uint(texture(idMap, pixelCoordBottomRightNormalized).x);
+    // uint idTopLeft  = uint(texture(idMap, pixelCoordTopLeftNormalized).x);
+    // uint idTopRight = uint(texture(idMap, pixelCoordTopRightNormalized).x);
+    // uint idCenter     = uint(texture(idMap, pixelCoordCenterNormalized).x);
 
-    vec3 avgNormal = (normalLowerLeft + normalLowerRight + normalUpperLeft + normalUpperRight) / 4.0;
-    avgNormal = normalize(avgNormal);
+    vec2 ndcBottomBottomLeftLeft   = 2.0 * pixelCoordBottomBottomLeftLeftNormalized - 1.0;
+    vec2 ndcBottomBottomLeft       = 2.0 * pixelCoordBottomBottomLeftNormalized - 1.0;
+    vec2 ndcBottomBottomRight      = 2.0 * pixelCoordBottomBottomRightNormalized - 1.0;
+    vec2 ndcBottomBottomRightRight = 2.0 * pixelCoordBottomBottomRightRightNormalized - 1.0;
+    vec2 ndcBottomLeftLeft         = 2.0 * pixelCoordBottomLeftLeftNormalized - 1.0;
+    vec2 ndcBottomLeft             = 2.0 * pixelCoordBottomLeftNormalized - 1.0;
+    vec2 ndcBottomRight            = 2.0 * pixelCoordBottomRightNormalized - 1.0;
+    vec2 ndcBottomRightRight       = 2.0 * pixelCoordBottomRightRightNormalized - 1.0;
+    vec2 ndcTopLeftLeft            = 2.0 * pixelCoordTopLeftLeftNormalized - 1.0;
+    vec2 ndcTopLeft                = 2.0 * pixelCoordTopLeftNormalized - 1.0;
+    vec2 ndcTopRight               = 2.0 * pixelCoordTopRightNormalized - 1.0;
+    vec2 ndcTopRightRight          = 2.0 * pixelCoordTopRightRightNormalized - 1.0;
+    // vec2 ndcCenter     = 2.0 * pixelCoordCenterNormalized - 1.0;
 
-    uint idLowerLeft  = uint(texture(idMap, pixelCoordLowerLeftNormalized).x);
-    uint idLowerRight = uint(texture(idMap, pixelCoordLowerRightNormalized).x);
-    uint idUpperLeft  = uint(texture(idMap, pixelCoordUpperLeftNormalized).x);
-    uint idUpperRight = uint(texture(idMap, pixelCoordUpperRightNormalized).x);
-    uint idCenter     = uint(texture(idMap, pixelCoordCenterNormalized).x);
+    float depthBottomBottomLeftLeft = sampleDepth(depthMap, pixelCoordBottomBottomLeftLeftNormalized);
+    float depthBottomBottomLeft  = sampleDepth(depthMap, pixelCoordBottomBottomLeftNormalized);
+    float depthBottomBottomRight = sampleDepth(depthMap, pixelCoordBottomBottomRightNormalized);
+    float depthBottomBottomRightRight = sampleDepth(depthMap, pixelCoordBottomBottomRightRightNormalized);
+    float depthBottomLeftLeft = sampleDepth(depthMap, pixelCoordBottomLeftLeftNormalized);
+    float depthBottomLeft  = sampleDepth(depthMap, pixelCoordBottomLeftNormalized);
+    float depthBottomRight = sampleDepth(depthMap, pixelCoordBottomRightNormalized);
+    float depthBottomRightRight = sampleDepth(depthMap, pixelCoordBottomRightRightNormalized);
+    float depthTopLeftLeft = sampleDepth(depthMap, pixelCoordTopLeftLeftNormalized);
+    float depthTopLeft  = sampleDepth(depthMap, pixelCoordTopLeftNormalized);
+    float depthTopRight = sampleDepth(depthMap, pixelCoordTopRightNormalized);
+    float depthTopRightRight = sampleDepth(depthMap, pixelCoordTopRightRightNormalized);
+    // float depthCenter     = sampleDepth(depthMap, pixelCoordCenterNormalized);
 
-    float depthLowerLeft  = sampleDepth(depthMap, pixelCoordLowerLeft);
-    float depthLowerRight = sampleDepth(depthMap, pixelCoordLowerRight);
-    float depthUpperLeft  = sampleDepth(depthMap, pixelCoordUpperLeft);
-    float depthUpperRight = sampleDepth(depthMap, pixelCoordUpperRight);
-    float depthCenter     = sampleDepth(depthMap, pixelCoordCenter);
+    vec3 viewCoordBottomBottomLeftLeft = ndcToView(ndcBottomBottomLeftLeft, depthBottomBottomLeftLeft);
+    vec3 viewCoordBottomBottomLeft  = ndcToView(ndcBottomBottomLeft, depthBottomBottomLeft);
+    vec3 viewCoordBottomBottomRight = ndcToView(ndcBottomBottomRight, depthBottomBottomRight);
+    vec3 viewCoordBottomBottomRightRight = ndcToView(ndcBottomBottomRightRight, depthBottomBottomRightRight);
+    vec3 viewCoordBottomLeftLeft = ndcToView(ndcBottomLeftLeft, depthBottomLeftLeft);
+    vec3 viewCoordBottomLeft  = ndcToView(ndcBottomLeft, depthBottomLeft);
+    vec3 viewCoordBottomRight = ndcToView(ndcBottomRight, depthBottomRight);
+    vec3 viewCoordBottomRightRight = ndcToView(ndcBottomRightRight, depthBottomRightRight);
+    vec3 viewCoordTopLeftLeft = ndcToView(ndcTopLeftLeft, depthTopLeftLeft);
+    vec3 viewCoordTopLeft  = ndcToView(ndcTopLeft, depthTopLeft);
+    vec3 viewCoordTopRight = ndcToView(ndcTopRight, depthTopRight);
+    vec3 viewCoordTopRightRight = ndcToView(ndcTopRightRight, depthTopRightRight);
+    // vec3 viewCoordCenter     = ndcToView(ndcCenter, depthCenter);
 
-    vec2 ndcLowerLeft  = 2.0 * pixelCoordLowerLeftNormalized - 1.0;
-    vec2 ndcLowerRight = 2.0 * pixelCoordLowerRightNormalized - 1.0;
-    vec2 ndcUpperLeft  = 2.0 * pixelCoordUpperLeftNormalized - 1.0;
-    vec2 ndcUpperRight = 2.0 * pixelCoordUpperRightNormalized - 1.0;
-    vec2 ndcCenter     = 2.0 * pixelCoordCenterNormalized - 1.0;
+    // if (sobel(
+    //         depthTopLeftLeft, depthTopLeft, depthTopRight,
+    //         depthBottomLeftLeft, depthBottomLeft, depthBottomRight,
+    //         depthBottomBottomLeftLeft, depthBottomBottomLeft, depthBottomRight
+    //     ) > 0.005) {
+    //     return;
+    // }
+    //
+    // if (sobel(
+    //         depthTopLeft, depthTopRight, depthTopRightRight,
+    //         depthBottomLeft, depthBottomRight, depthBottomRightRight,
+    //         depthBottomBottomLeft, depthBottomBottomRight, depthBottomBottomRightRight
+    //     ) > 0.005) {
+    //     return;
+    // }
 
-    vec3 viewCoordLowerLeft  = ndcToView(ndcLowerLeft, depthLowerLeft);
-    vec3 viewCoordLowerRight = ndcToView(ndcLowerRight, depthLowerRight);
-    vec3 viewCoordUpperLeft  = ndcToView(ndcUpperLeft, depthUpperLeft);
-    vec3 viewCoordUpperRight = ndcToView(ndcUpperRight, depthUpperRight);
-    vec3 viewCoordCenter     = ndcToView(ndcCenter, depthCenter);
+    // if (idBottomLeft != idBottomRight || idBottomRight != idTopRight || idTopRight != idTopLeft) {
+    //     return;
+    // }
 
-    if (idLowerLeft != idLowerRight || idLowerRight != idUpperRight || idUpperRight != idUpperLeft) {
-        return;
-    }
+    uint vertexIndexTopLeft  = shaderIndex * VERTICES_IN_A_QUAD + 0;
+    uint vertexIndexTopRight = shaderIndex * VERTICES_IN_A_QUAD + 1;
+    uint vertexIndexBottomLeft  = shaderIndex * VERTICES_IN_A_QUAD + 2;
+    uint vertexIndexBottomRight = shaderIndex * VERTICES_IN_A_QUAD + 3;
 
-    uint vertexIndexUpperLeft  = shaderIndex * VERTICES_IN_A_QUAD + 0;
-    uint vertexIndexUpperRight = shaderIndex * VERTICES_IN_A_QUAD + 1;
-    uint vertexIndexLowerLeft  = shaderIndex * VERTICES_IN_A_QUAD + 2;
-    uint vertexIndexLowerRight = shaderIndex * VERTICES_IN_A_QUAD + 3;
+    vertices[vertexIndexTopLeft] .position = viewToWorld(viewCoordTopLeft);
+    vertices[vertexIndexTopRight].position = viewToWorld(viewCoordTopRight);
+    vertices[vertexIndexBottomLeft] .position = viewToWorld(viewCoordBottomLeft);
+    vertices[vertexIndexBottomRight].position = viewToWorld(viewCoordBottomRight);
 
-    vertices[vertexIndexUpperLeft] .position = viewToWorld(viewCoordUpperLeft);
-    vertices[vertexIndexUpperRight].position = viewToWorld(viewCoordUpperRight);
-    vertices[vertexIndexLowerLeft] .position = viewToWorld(viewCoordLowerLeft);
-    vertices[vertexIndexLowerRight].position = viewToWorld(viewCoordLowerRight);
-
-    vertices[vertexIndexUpperLeft] .color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexUpperRight].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexLowerLeft] .color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexLowerRight].color = vec3(1.0, 1.0, 1.0);
+    vertices[vertexIndexTopLeft] .color = vec3(1.0, 1.0, 1.0);
+    vertices[vertexIndexTopRight].color = vec3(1.0, 1.0, 1.0);
+    vertices[vertexIndexBottomLeft] .color = vec3(1.0, 1.0, 1.0);
+    vertices[vertexIndexBottomRight].color = vec3(1.0, 1.0, 1.0);
 
     uint x = shaderIndex % uint(size.x);
     uint y = shaderIndex / uint(size.x);
 
-    vertices[vertexIndexUpperLeft] .texCoords = vec2(x / size.x, 1 - (y + 1) / size.y);
-    vertices[vertexIndexUpperRight].texCoords = vec2((x + 1) / size.x, 1 - (y + 1) / size.y);
-    vertices[vertexIndexLowerLeft] .texCoords = vec2(x / size.x, 1 - y / size.y);
-    vertices[vertexIndexLowerRight].texCoords = vec2((x + 1) / size.x, 1 - y / size.y);
+    vertices[vertexIndexTopLeft] .texCoords = vec2(x / size.x, 1 - (y + 1) / size.y);
+    vertices[vertexIndexTopRight].texCoords = vec2((x + 1) / size.x, 1 - (y + 1) / size.y);
+    vertices[vertexIndexBottomLeft] .texCoords = vec2(x / size.x, 1 - y / size.y);
+    vertices[vertexIndexBottomRight].texCoords = vec2((x + 1) / size.x, 1 - y / size.y);
 
-    indices[shaderIndex * 6 + 0] = vertexIndexUpperLeft;
-    indices[shaderIndex * 6 + 1] = vertexIndexUpperRight;
-    indices[shaderIndex * 6 + 2] = vertexIndexLowerLeft;
+    indices[shaderIndex * 6 + 0] = vertexIndexTopLeft;
+    indices[shaderIndex * 6 + 1] = vertexIndexTopRight;
+    indices[shaderIndex * 6 + 2] = vertexIndexBottomLeft;
 
-    indices[shaderIndex * 6 + 3] = vertexIndexUpperRight;
-    indices[shaderIndex * 6 + 4] = vertexIndexLowerRight;
-    indices[shaderIndex * 6 + 5] = vertexIndexLowerLeft;
+    indices[shaderIndex * 6 + 3] = vertexIndexTopRight;
+    indices[shaderIndex * 6 + 4] = vertexIndexBottomRight;
+    indices[shaderIndex * 6 + 5] = vertexIndexBottomLeft;
 }
