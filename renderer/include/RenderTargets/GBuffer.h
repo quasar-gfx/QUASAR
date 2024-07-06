@@ -16,8 +16,8 @@ public:
             , positionBuffer({
                 .width = width,
                 .height = height,
-                .internalFormat = GL_RGBA16F,
-                .format = GL_RGBA,
+                .internalFormat = GL_RGB16F,
+                .format = GL_RGB,
                 .type = GL_FLOAT,
                 .wrapS = GL_CLAMP_TO_EDGE,
                 .wrapT = GL_CLAMP_TO_EDGE,
@@ -28,8 +28,8 @@ public:
             , normalsBuffer({
                 .width = width,
                 .height = height,
-                .internalFormat = GL_RGBA16F,
-                .format = GL_RGBA,
+                .internalFormat = GL_RGB16F,
+                .format = GL_RGB,
                 .type = GL_FLOAT,
                 .wrapS = GL_CLAMP_TO_EDGE,
                 .wrapT = GL_CLAMP_TO_EDGE,

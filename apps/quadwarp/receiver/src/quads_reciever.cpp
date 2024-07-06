@@ -49,6 +49,7 @@ int createMesh(Mesh* mesh, Mesh* wireframeMesh, std::string label) {
         .wrapT = GL_REPEAT,
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST,
+        .flipVertically = true,
         .path = DATA_PATH + "imgs/color_" + label + "_0.png"
     });
 

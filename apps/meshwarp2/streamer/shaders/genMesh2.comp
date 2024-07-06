@@ -25,6 +25,8 @@ layout(std430, binding = 1) buffer IndexBuffer {
 
 uniform vec2 screenSize;
 
+uniform mat4 view;
+uniform mat4 projection;
 uniform mat4 viewInverse;
 uniform mat4 projectionInverse;
 
@@ -53,8 +55,29 @@ vec3 viewToWorld(vec3 viewspaceCoord) {
     return worldCoord.xyz;
 }
 
+vec3 worldToView(mat4 view, vec3 worldCoord) {
+    vec4 viewCoord = view * vec4(worldCoord, 1.0);
+    viewCoord = viewCoord / viewCoord.w;
+    return viewCoord.xyz;
+}
+
+vec2 viewToNDC(vec3 viewCoord) {
+    vec4 ndcCoord = projection * vec4(viewCoord, 1.0);
+    ndcCoord = ndcCoord / ndcCoord.w;
+    return ndcCoord.xy;
+}
+
+vec2 ndcToScreen(vec2 ndc) {
+    return (ndc + 1.0) / 2.0;
+}
+
+vec2 worldToScreen(mat4 view, vec3 worldCoord) {
+    vec2 ndc = viewToNDC(worldToView(view, worldCoord));
+    return ndcToScreen(ndc);
+}
+
 vec3 sampleNormal(sampler2D normalMap, vec2 sampleCoord) {
-    return texture(normalMap, sampleCoord).xyz;
+    return normalize(texture(normalMap, sampleCoord).xyz);
 }
 
 float sampleDepth(sampler2D depthMap, vec2 sampleCoord) {
@@ -82,7 +105,7 @@ void main() {
 
     uint shaderIndex = uint(gl_GlobalInvocationID.y * size.x + gl_GlobalInvocationID.x);
 
-    vec2 surfelCoords = vec2(gl_GlobalInvocationID.xy);
+    vec2 surfelCenterCoords = vec2(gl_GlobalInvocationID.xy) + vec2(0.5, 0.5);
 
     /************************
 
@@ -98,19 +121,19 @@ void main() {
 
     ************************/
 
-    vec2 pixelCoordBottomBottomLeftLeft   = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(-1.0, -1.0));
-    vec2 pixelCoordBottomBottomLeft       = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(0.0, -1.0));
-    vec2 pixelCoordBottomBottomRight      = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(1.0, -1.0));
-    vec2 pixelCoordBottomBottomRightRight = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(2.0, -1.0));
-    vec2 pixelCoordBottomLeftLeft         = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(-1.0, 0.0));
-    vec2 pixelCoordBottomLeft             = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(0.0, 0.0));
-    vec2 pixelCoordBottomRight            = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(1.0, 0.0));
-    vec2 pixelCoordBottomRightRight       = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(2.0, 0.0));
-    vec2 pixelCoordTopLeftLeft            = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(-1.0, 1.0));
-    vec2 pixelCoordTopLeft                = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(0.0, 1.0));
-    vec2 pixelCoordTopRight               = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(1.0, 1.0));
-    vec2 pixelCoordTopRightRight          = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(2.0, 1.0));
-    // vec2 pixelCoordCenter     = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(0.5, 0.5));
+    vec2 pixelCoordBottomBottomLeftLeft   = surfelSize * (surfelCenterCoords + vec2(-1.0, -1.0));
+    vec2 pixelCoordBottomBottomLeft       = surfelSize * (surfelCenterCoords + vec2(0.0, -1.0));
+    vec2 pixelCoordBottomBottomRight      = surfelSize * (surfelCenterCoords + vec2(1.0, -1.0));
+    vec2 pixelCoordBottomBottomRightRight = surfelSize * (surfelCenterCoords + vec2(2.0, -1.0));
+    vec2 pixelCoordBottomLeftLeft         = surfelSize * (surfelCenterCoords + vec2(-1.0, 0.0));
+    vec2 pixelCoordBottomLeft             = surfelSize * (surfelCenterCoords + vec2(0.0, 0.0));
+    vec2 pixelCoordBottomRight            = surfelSize * (surfelCenterCoords + vec2(1.0, 0.0));
+    vec2 pixelCoordBottomRightRight       = surfelSize * (surfelCenterCoords + vec2(2.0, 0.0));
+    vec2 pixelCoordTopLeftLeft            = surfelSize * (surfelCenterCoords + vec2(-1.0, 1.0));
+    vec2 pixelCoordTopLeft                = surfelSize * (surfelCenterCoords + vec2(0.0, 1.0));
+    vec2 pixelCoordTopRight               = surfelSize * (surfelCenterCoords + vec2(1.0, 1.0));
+    vec2 pixelCoordTopRightRight          = surfelSize * (surfelCenterCoords + vec2(2.0, 1.0));
+    // vec2 pixelCoordCenter     = surfelSize * (surfelCenterCoords + vec2(0.5, 0.5));
 
     vec2 pixelCoordBottomBottomLeftLeftNormalized   = pixelCoordBottomBottomLeftLeft / screenSize;
     vec2 pixelCoordBottomBottomLeftNormalized       = pixelCoordBottomBottomLeft / screenSize;
@@ -200,13 +223,13 @@ void main() {
     //     return;
     // }
 
-    uint vertexIndexTopLeft  = shaderIndex * VERTICES_IN_A_QUAD + 0;
-    uint vertexIndexTopRight = shaderIndex * VERTICES_IN_A_QUAD + 1;
+    uint vertexIndexTopLeft     = shaderIndex * VERTICES_IN_A_QUAD + 0;
+    uint vertexIndexTopRight    = shaderIndex * VERTICES_IN_A_QUAD + 1;
     uint vertexIndexBottomLeft  = shaderIndex * VERTICES_IN_A_QUAD + 2;
     uint vertexIndexBottomRight = shaderIndex * VERTICES_IN_A_QUAD + 3;
 
-    vertices[vertexIndexTopLeft] .position = viewToWorld(viewCoordTopLeft);
-    vertices[vertexIndexTopRight].position = viewToWorld(viewCoordTopRight);
+    vertices[vertexIndexTopLeft]    .position = viewToWorld(viewCoordTopLeft);
+    vertices[vertexIndexTopRight]   .position = viewToWorld(viewCoordTopRight);
     vertices[vertexIndexBottomLeft] .position = viewToWorld(viewCoordBottomLeft);
     vertices[vertexIndexBottomRight].position = viewToWorld(viewCoordBottomRight);
 
@@ -218,10 +241,10 @@ void main() {
     uint x = shaderIndex % uint(size.x);
     uint y = shaderIndex / uint(size.x);
 
-    vertices[vertexIndexTopLeft] .texCoords = vec2(x / size.x, 1 - (y + 1) / size.y);
-    vertices[vertexIndexTopRight].texCoords = vec2((x + 1) / size.x, 1 - (y + 1) / size.y);
-    vertices[vertexIndexBottomLeft] .texCoords = vec2(x / size.x, 1 - y / size.y);
-    vertices[vertexIndexBottomRight].texCoords = vec2((x + 1) / size.x, 1 - y / size.y);
+    vertices[vertexIndexTopLeft] .texCoords    = worldToScreen(view, viewToWorld(viewCoordTopLeft));
+    vertices[vertexIndexTopRight].texCoords    = worldToScreen(view, viewToWorld(viewCoordTopRight));
+    vertices[vertexIndexBottomLeft] .texCoords = worldToScreen(view, viewToWorld(viewCoordBottomLeft));
+    vertices[vertexIndexBottomRight].texCoords = worldToScreen(view, viewToWorld(viewCoordBottomRight));
 
     indices[shaderIndex * 6 + 0] = vertexIndexTopLeft;
     indices[shaderIndex * 6 + 1] = vertexIndexTopRight;

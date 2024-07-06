@@ -99,8 +99,8 @@ int main(int argc, char** argv) {
     // shaders
     Shader screenShader = Shader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        // .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
-        .fragmentCodePath = "../shaders/postprocessing/displayNormals.frag",
+        .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
+        // .fragmentCodePath = "../shaders/postprocessing/displayNormals.frag"
         // .fragmentCodePath = "../shaders/postprocessing/displayIDs.frag"
     });
 
@@ -128,6 +128,7 @@ int main(int argc, char** argv) {
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffer);
     genMesh2Shader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
+    genMesh2Shader.setInt("surfelSize", surfelSize);
     genMesh2Shader.unbind();
 
     RenderTarget renderTarget({
@@ -174,11 +175,12 @@ int main(int argc, char** argv) {
             app.renderer->drawToRenderTarget(screenShader, renderTarget);
 
             genMesh2Shader.bind();
+            genMesh2Shader.setMat4("view", camera.getViewMatrix());
+            genMesh2Shader.setMat4("projection", camera.getProjectionMatrix());
             genMesh2Shader.setMat4("viewInverse", glm::inverse(camera.getViewMatrix()));
             genMesh2Shader.setMat4("projectionInverse", glm::inverse(camera.getProjectionMatrix()));
             genMesh2Shader.setFloat("near", camera.near);
             genMesh2Shader.setFloat("far", camera.far);
-            genMesh2Shader.setInt("surfelSize", surfelSize);
             app.renderer->gBuffer.positionBuffer.bind(0);
             app.renderer->gBuffer.normalsBuffer.bind(1);
             app.renderer->gBuffer.idBuffer.bind(2);

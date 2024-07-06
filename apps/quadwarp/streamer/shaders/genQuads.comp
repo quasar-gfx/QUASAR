@@ -25,6 +25,8 @@ layout(std430, binding = 1) buffer IndexBuffer {
 
 uniform vec2 screenSize;
 
+uniform mat4 view;
+uniform mat4 projection;
 uniform mat4 viewInverse;
 uniform mat4 projectionInverse;
 
@@ -53,8 +55,29 @@ vec3 viewToWorld(vec3 viewspaceCoord) {
     return worldCoord.xyz;
 }
 
+vec3 worldToView(mat4 view, vec3 worldCoord) {
+    vec4 viewCoord = view * vec4(worldCoord, 1.0);
+    viewCoord = viewCoord / viewCoord.w;
+    return viewCoord.xyz;
+}
+
+vec2 viewToNDC(vec3 viewCoord) {
+    vec4 ndcCoord = projection * vec4(viewCoord, 1.0);
+    ndcCoord = ndcCoord / ndcCoord.w;
+    return ndcCoord.xy;
+}
+
+vec2 ndcToScreen(vec2 ndc) {
+    return (ndc + 1.0) / 2.0;
+}
+
+vec2 worldToScreen(mat4 view, vec3 worldCoord) {
+    vec2 ndc = viewToNDC(worldToView(view, worldCoord));
+    return ndcToScreen(ndc);
+}
+
 vec3 sampleNormal(sampler2D normalMap, vec2 sampleCoord) {
-    return texture(normalMap, sampleCoord).xyz;
+    return normalize(texture(normalMap, sampleCoord).xyz);
 }
 
 float sampleDepth(sampler2D depthMap, vec2 sampleCoord) {
@@ -62,8 +85,21 @@ float sampleDepth(sampler2D depthMap, vec2 sampleCoord) {
 }
 
 vec3 planeRayIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 planePoint, vec3 planeNormal) {
-    float t = dot(planeNormal, planePoint - rayOrigin) / dot(planeNormal, rayDirection);
-    return rayOrigin + t * rayDirection;
+    float denominator = dot(rayDirection, planeNormal);
+
+    if (abs(denominator) < 0.0001) {
+        return vec3(1.0/0.0, 1.0/0.0, 1.0/0.0);
+    }
+
+    float t = dot(planePoint - rayOrigin, planeNormal) / denominator;
+
+    if (t < 0.0) {
+        return vec3(1.0/0.0, 1.0/0.0, 1.0/0.0);
+    }
+
+    vec3 intersection = rayOrigin + t * rayDirection;
+
+    return intersection;
 }
 
 void createSubQuad(
@@ -75,10 +111,10 @@ void createSubQuad(
 {
     /************************
 
-            ul -- ur
+            tl -- tr
             |   / |
             | /   |
-            ll -- lr
+            bl -- br
 
     ************************/
     vec3 rayOrigin = vec3(0.0);
@@ -98,22 +134,22 @@ void createSubQuad(
     uint vertexIndexTopLeft  = shaderIndex * NUM_SUB_QUADS * VERTICES_IN_A_QUAD + vertexOffset + 0;
     vertices[vertexIndexTopLeft] .position = viewToWorld(viewCoordTopLeft);
     vertices[vertexIndexTopLeft] .color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexTopLeft] .texCoords = vec2(x / size.x, 1 - (y + 0.5) / size.y);
+    vertices[vertexIndexTopLeft] .texCoords = worldToScreen(view, viewToWorld(viewCoordTopLeft));
 
     uint vertexIndexTopRight = shaderIndex * NUM_SUB_QUADS * VERTICES_IN_A_QUAD + vertexOffset + 1;
     vertices[vertexIndexTopRight].position = viewToWorld(viewCoordTopRight);
     vertices[vertexIndexTopRight].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexTopRight].texCoords = vec2((x + 0.5) / size.x, 1 - (y + 0.5) / size.y);
+    vertices[vertexIndexTopRight].texCoords = worldToScreen(view, viewToWorld(viewCoordTopRight));
 
     uint vertexIndexBottomLeft  = shaderIndex * NUM_SUB_QUADS * VERTICES_IN_A_QUAD + vertexOffset + 2;
     vertices[vertexIndexBottomLeft] .position = viewToWorld(viewCoordBottomLeft);
     vertices[vertexIndexBottomLeft] .color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexBottomLeft] .texCoords = vec2(x / size.x, 1 - y / size.y);
+    vertices[vertexIndexBottomLeft] .texCoords = worldToScreen(view, viewToWorld(viewCoordBottomLeft));
 
     uint vertexIndexBottomRight = shaderIndex * NUM_SUB_QUADS * VERTICES_IN_A_QUAD + vertexOffset + 3;
     vertices[vertexIndexBottomRight].position = viewToWorld(viewCoordBottomRight);
     vertices[vertexIndexBottomRight].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexBottomRight].texCoords = vec2((x + 0.5) / size.x, 1 - y / size.y);
+    vertices[vertexIndexBottomRight].texCoords = worldToScreen(view, viewToWorld(viewCoordBottomRight));
 
     indices[shaderIndex * NUM_SUB_QUADS * 6 + indexOffset + 0] = vertexIndexTopLeft;
     indices[shaderIndex * NUM_SUB_QUADS * 6 + indexOffset + 1] = vertexIndexTopRight;
@@ -124,13 +160,12 @@ void createSubQuad(
     indices[shaderIndex * NUM_SUB_QUADS * 6 + indexOffset + 5] = vertexIndexBottomLeft;
 }
 
-
 void main() {
     vec2 size = vec2(screenSize) / float(surfelSize);
 
     uint shaderIndex = uint(gl_GlobalInvocationID.y * size.x + gl_GlobalInvocationID.x);
 
-    vec2 surfelCoords = vec2(gl_GlobalInvocationID.xy);
+    vec2 surfelCenterCoord = vec2(gl_GlobalInvocationID.xy) + vec2(0.5, 0.5);
 
     uint x = shaderIndex % uint(size.x);
     uint y = shaderIndex / uint(size.x);
@@ -139,51 +174,51 @@ void main() {
 
             tl  - (tc) - tr
             |      |     |
-           (lc) - (c) - (rc)
+           (cl) - (c) - (cr)
             |      |     |
        -->  bl  - (bc) - br
 
     ************************/
 
-    vec2 pixelCoordBottomLeft   = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(0.0, 0.0));
-    vec2 pixelCoordBottomCenter = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(0.5, 0.0));
-    vec2 pixelCoordBottomRight  = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(1.0, 0.0));
-    vec2 pixelCoordLeftCenter   = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(0.0, 0.5));
-    vec2 pixelCoordCenter       = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(0.5, 0.5));
-    vec2 pixelCoordRightCenter  = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(1.0, 0.5));
-    vec2 pixelCoordTopCenter    = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(0.5, 1.0));
-    vec2 pixelCoordTopLeft      = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(0.0, 1.0));
-    vec2 pixelCoordTopRight     = surfelSize * (surfelCoords + vec2(0.5, 0.5) + vec2(1.0, 1.0));
+    vec2 pixelCoordBottomLeft   = surfelSize * (surfelCenterCoord + vec2(0.0, 0.0));
+    vec2 pixelCoordBottomCenter = surfelSize * (surfelCenterCoord + vec2(0.5, 0.0));
+    vec2 pixelCoordBottomRight  = surfelSize * (surfelCenterCoord + vec2(1.0, 0.0));
+    vec2 pixelCoordCenterLeft   = surfelSize * (surfelCenterCoord + vec2(0.0, 0.5));
+    vec2 pixelCoordCenter       = surfelSize * (surfelCenterCoord + vec2(0.5, 0.5));
+    vec2 pixelCoordCenterRight  = surfelSize * (surfelCenterCoord + vec2(1.0, 0.5));
+    vec2 pixelCoordTopLeft      = surfelSize * (surfelCenterCoord + vec2(0.0, 1.0));
+    vec2 pixelCoordTopCenter    = surfelSize * (surfelCenterCoord + vec2(0.5, 1.0));
+    vec2 pixelCoordTopRight     = surfelSize * (surfelCenterCoord + vec2(1.0, 1.0));
 
-    vec2 pixelCoordBottomLeftNormalized   = pixelCoordBottomLeft / screenSize;
-    vec2 pixelCoordBottomCenterNormalized = pixelCoordBottomCenter / screenSize;
-    vec2 pixelCoordBottomRightNormalized  = pixelCoordBottomRight / screenSize;
-    vec2 pixelCoordLeftCenterNormalized   = pixelCoordLeftCenter / screenSize;
-    vec2 pixelCoordCenterNormalized       = pixelCoordCenter / screenSize;
-    vec2 pixelCoordRightCenterNormalized  = pixelCoordRightCenter / screenSize;
-    vec2 pixelCoordTopCenterNormalized    = pixelCoordTopCenter / screenSize;
-    vec2 pixelCoordTopLeftNormalized      = pixelCoordTopLeft / screenSize;
-    vec2 pixelCoordTopRightNormalized     = pixelCoordTopRight / screenSize;
+    vec2 uvBottomLeft   = pixelCoordBottomLeft / screenSize;
+    vec2 uvBottomCenter = pixelCoordBottomCenter / screenSize;
+    vec2 uvBottomRight  = pixelCoordBottomRight / screenSize;
+    vec2 uvCenterLeft   = pixelCoordCenterLeft / screenSize;
+    vec2 uvCenter       = pixelCoordCenter / screenSize;
+    vec2 uvCenterRight  = pixelCoordCenterRight / screenSize;
+    vec2 uvTopLeft      = pixelCoordTopLeft / screenSize;
+    vec2 uvTopCenter    = pixelCoordTopCenter / screenSize;
+    vec2 uvTopRight     = pixelCoordTopRight / screenSize;
 
-    vec2 ndcBottomLeft   = 2.0 * pixelCoordBottomLeftNormalized - 1.0;
-    vec2 ndcBottomCenter = 2.0 * pixelCoordBottomCenterNormalized - 1.0;
-    vec2 ndcBottomRight  = 2.0 * pixelCoordBottomRightNormalized - 1.0;
-    vec2 ndcLeftCenter   = 2.0 * pixelCoordLeftCenterNormalized - 1.0;
-    vec2 ndcCenter       = 2.0 * pixelCoordCenterNormalized - 1.0;
-    vec2 ndcRightCenter  = 2.0 * pixelCoordRightCenterNormalized - 1.0;
-    vec2 ndcTopCenter    = 2.0 * pixelCoordTopCenterNormalized - 1.0;
-    vec2 ndcTopLeft      = 2.0 * pixelCoordTopLeftNormalized - 1.0;
-    vec2 ndcTopRight     = 2.0 * pixelCoordTopRightNormalized - 1.0;
+    vec2 ndcBottomLeft   = 2.0 * uvBottomLeft - 1.0;
+    vec2 ndcBottomCenter = 2.0 * uvBottomCenter - 1.0;
+    vec2 ndcBottomRight  = 2.0 * uvBottomRight - 1.0;
+    vec2 ndcCenterLeft   = 2.0 * uvCenterLeft - 1.0;
+    vec2 ndcCenter       = 2.0 * uvCenter - 1.0;
+    vec2 ndcCenterRight  = 2.0 * uvCenterRight - 1.0;
+    vec2 ndcTopLeft      = 2.0 * uvTopLeft - 1.0;
+    vec2 ndcTopCenter    = 2.0 * uvTopCenter - 1.0;
+    vec2 ndcTopRight     = 2.0 * uvTopRight - 1.0;
 
-    vec3 normalBottomLeft  = sampleNormal(normalMap, pixelCoordBottomLeftNormalized);
-    vec3 normalBottomRight = sampleNormal(normalMap, pixelCoordBottomRightNormalized);
-    vec3 normalTopLeft     = sampleNormal(normalMap, pixelCoordTopLeftNormalized);
-    vec3 normalTopRight    = sampleNormal(normalMap, pixelCoordTopRightNormalized);
+    vec3 normalBottomLeft  = sampleNormal(normalMap, uvBottomLeft);
+    vec3 normalBottomRight = sampleNormal(normalMap, uvBottomRight);
+    vec3 normalTopLeft     = sampleNormal(normalMap, uvTopLeft);
+    vec3 normalTopRight    = sampleNormal(normalMap, uvTopRight);
 
-    float depthBottomLeft  = sampleDepth(depthMap, pixelCoordBottomLeftNormalized);
-    float depthBottomRight = sampleDepth(depthMap, pixelCoordBottomRightNormalized);
-    float depthTopLeft     = sampleDepth(depthMap, pixelCoordTopLeftNormalized);
-    float depthTopRight    = sampleDepth(depthMap, pixelCoordTopRightNormalized);
+    float depthBottomLeft  = sampleDepth(depthMap, uvBottomLeft);
+    float depthBottomRight = sampleDepth(depthMap, uvBottomRight);
+    float depthTopLeft     = sampleDepth(depthMap, uvTopLeft);
+    float depthTopRight    = sampleDepth(depthMap, uvTopRight);
 
     vec3 viewCoordBottomLeft  = ndcToView(ndcBottomLeft, depthBottomLeft);
     vec3 viewCoordBottomRight = ndcToView(ndcBottomRight, depthBottomRight);
@@ -198,57 +233,57 @@ void main() {
 
     /************************
 
-            lc - c
+            cl -  c
             |  /  |
        -->  bl - bc
 
     ************************/
     createSubQuad(
         viewCoordBottomLeft, normalBottomLeft,
-        ndcBottomLeft, ndcBottomCenter, ndcLeftCenter, ndcCenter,
+        ndcBottomLeft, ndcBottomCenter, ndcCenterLeft, ndcCenter,
         x, y, size,
         shaderIndex, 0, 0
     );
 
     /************************
 
-       -->  tl - tc
-            |     |
-            lc - c
-
-    ************************/
-    createSubQuad(
-        viewCoordTopLeft, normalTopLeft,
-        ndcLeftCenter, ndcCenter, ndcTopLeft, ndcTopCenter,
-        x, y + 0.5, size,
-        shaderIndex, 4, 6
-    );
-
-    /************************
-
-            tc - tr  <--
-            |     |
-            c  - rc
-
-    ************************/
-    createSubQuad(
-        viewCoordTopRight, normalTopRight,
-        ndcCenter, ndcRightCenter, ndcTopCenter, ndcTopRight,
-        x + 0.5, y + 0.5, size,
-        shaderIndex, 8, 12
-    );
-
-    /************************
-
-            c  - rc
+            c  - cr
             |     |
             bc - br  <--
 
     ************************/
     createSubQuad(
         viewCoordBottomRight, normalBottomRight,
-        ndcBottomCenter, ndcBottomRight, ndcCenter, ndcRightCenter,
+        ndcBottomCenter, ndcBottomRight, ndcCenter, ndcCenterRight,
         x + 0.5, y, size,
+        shaderIndex, 4, 6
+    );
+
+    /************************
+
+       -->  tl - tc
+            |     |
+            cl -  c
+
+    ************************/
+    createSubQuad(
+        viewCoordTopLeft, normalTopLeft,
+        ndcCenterLeft, ndcCenter, ndcTopLeft, ndcTopCenter,
+        x, y + 0.5, size,
+        shaderIndex, 8, 12
+    );
+
+    /************************
+
+            tc - tr  <--
+            |     |
+            c  - cr
+
+    ************************/
+    createSubQuad(
+        viewCoordTopRight, normalTopRight,
+        ndcCenter, ndcCenterRight, ndcTopCenter, ndcTopRight,
+        x + 0.5, y + 0.5, size,
         shaderIndex, 12, 18
     );
 }
