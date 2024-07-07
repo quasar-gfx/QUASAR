@@ -9,10 +9,10 @@ public:
 
     void onRender(GuiCallback callback) { guiCallback = callback; }
 
-    virtual void predraw() = 0;
-    virtual void postdraw() = 0;
+    virtual void predraw() const = 0;
+    virtual void postdraw() const = 0;
 
-    void draw(double now, double dt) {
+    void draw(double now, double dt) const {
         predraw();
 
         if (guiCallback) {

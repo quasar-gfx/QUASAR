@@ -91,7 +91,7 @@ void Mesh::updateAABB() {
     aabb.update(min, max);
 }
 
-void Mesh::bindSceneAndCamera(Scene &scene, Camera &camera, const glm::mat4 &model, Material* overrideMaterial) {
+void Mesh::bindSceneAndCamera(const Scene &scene, const Camera &camera, const glm::mat4 &model, const Material* overrideMaterial) {
     auto materialToUse = overrideMaterial != nullptr ? overrideMaterial : material;
     materialToUse->bind();
 
@@ -117,8 +117,7 @@ void Mesh::bindSceneAndCamera(Scene &scene, Camera &camera, const glm::mat4 &mod
     for (int i = 0; i < scene.pointLights.size(); i++) {
         auto pointLight = scene.pointLights[i];
         pointLight->setChannel(i);
-        materialToUse->shader->setInt("pointLightShadowMaps[" + std::to_string(i) + "]", texIdx);
-        pointLight->shadowMapRenderTarget.depthCubeMap.bind(texIdx);
+        materialToUse->shader->setTexture("pointLightShadowMaps[" + std::to_string(i) + "]", pointLight->shadowMapRenderTarget.depthCubeMap, texIdx);
         pointLight->bindMaterial(materialToUse);
         texIdx++;
     }
@@ -129,7 +128,7 @@ void Mesh::bindSceneAndCamera(Scene &scene, Camera &camera, const glm::mat4 &mod
     materialToUse->unbind();
 }
 
-unsigned int Mesh::draw(Scene &scene, Camera &camera, const glm::mat4 &model, bool frustumCull, Material* overrideMaterial) {
+unsigned int Mesh::draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
     unsigned int trianglesDrawn = 0;
     if (!visible) {
         return trianglesDrawn;
@@ -181,7 +180,7 @@ unsigned int Mesh::draw(Scene &scene, Camera &camera, const glm::mat4 &model, bo
     return trianglesDrawn;
 }
 
-unsigned int Mesh::draw(Scene &scene, Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, Material* overrideMaterial) {
+unsigned int Mesh::draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
     if (!boundingSphere.intersects(aabb)) {
         return 0;
     }

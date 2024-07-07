@@ -27,13 +27,13 @@ public:
 
     explicit Entity() : ID(nextID++), aabb() {}
 
-    int getID() { return ID; }
+    int getID() const { return ID; }
 
-    virtual void bindSceneAndCamera(Scene &scene, Camera &camera, const glm::mat4 &model, Material* overrideMaterial = nullptr) = 0;
-    virtual unsigned int draw(Scene &scene, Camera &camera, const glm::mat4 &model, bool frustumCull = true, Material* overrideMaterial = nullptr) = 0;
-    virtual unsigned int draw(Scene &scene, Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, Material* overrideMaterial = nullptr) = 0;
+    virtual void bindSceneAndCamera(const Scene &scene, const Camera &camera, const glm::mat4 &model, const Material* overrideMaterial = nullptr) = 0;
+    virtual unsigned int draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, bool frustumCull = true, const Material* overrideMaterial = nullptr) = 0;
+    virtual unsigned int draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) = 0;
 
-    virtual EntityType getType() { return EntityType::EMPTY; }
+    virtual EntityType getType() const { return EntityType::EMPTY; }
 
 private:
     unsigned int ID;
@@ -49,7 +49,7 @@ public:
 
     bool frustumCulled = true;
 
-    int getID() { return ID; }
+    int getID() const { return ID; }
 
     explicit Node() {
         ID = nextID++;
@@ -85,20 +85,20 @@ public:
         this->scale = scale;
     }
 
-    glm::vec3 getPosition() {
+    glm::vec3 getPosition() const {
         return position;
     }
 
-    glm::quat getRotationQuat() {
+    glm::quat getRotationQuat() const {
         return rotationQuat;
     }
 
-    glm::vec3 getRotationEuler() {
+    glm::vec3 getRotationEuler() const {
         glm::vec3 euler = glm::eulerAngles(rotationQuat);
         return euler;
     }
 
-    glm::vec3 getScale() {
+    glm::vec3 getScale() const {
         return scale;
     }
 
@@ -108,15 +108,15 @@ public:
         glm::decompose(transform, scale, rotationQuat, position, skew, perspective);
     }
 
-    glm::mat4 getTransformParentFromLocal() {
+    glm::mat4 getTransformParentFromLocal() const {
         return glm::translate(glm::mat4(1.0f), position) * glm::mat4_cast(rotationQuat) * glm::scale(glm::mat4(1.0f), scale);
     }
 
-    glm::mat4 getTransformLocalFromParent() {
+    glm::mat4 getTransformLocalFromParent() const {
         return glm::scale(glm::mat4(1.0f), 1.0f/scale) * glm::mat4_cast(glm::conjugate(rotationQuat)) * glm::translate(glm::mat4(1.0f), -position);
     }
 
-    glm::mat4 getTransformLocalFromWorld() {
+    glm::mat4 getTransformLocalFromWorld() const {
         glm::mat4 transformLocalFromWorld = getTransformLocalFromParent();
 
         Node* parent = this->parent;

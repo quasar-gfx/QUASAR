@@ -53,7 +53,7 @@ public:
         this->channel = channel;
     }
 
-    void bindMaterial(Material* material) override {
+    void bindMaterial(const Material* material) override {
         std::string idxStr = std::to_string(this->channel);
         material->shader->setVec3("pointLights["+idxStr+"].position", position);
         material->shader->setVec3("pointLights["+idxStr+"].color", color);

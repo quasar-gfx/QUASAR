@@ -16,10 +16,6 @@ public:
         };
         shader = std::make_shared<Shader>(pointShadowMapParams);
     }
-
-    void bind() const override {
-        shader->bind();
-    }
 };
 
 #endif // POINT_SHADOW_MAP_MATERIAL_H

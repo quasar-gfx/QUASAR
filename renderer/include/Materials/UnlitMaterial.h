@@ -22,7 +22,7 @@ public:
 
     void bind() const override;
 
-    unsigned int getTextureCount() override { return 1; }
+    unsigned int getTextureCount() const override { return 1; }
 };
 
 #endif // TEXTURED_MATERIAL_H

@@ -95,7 +95,7 @@ public:
     void saveTextureToHDR(const std::string &filename);
     void saveDepthToFile(const std::string &filename);
 
-private:
+protected:
     GLenum target;
 
     void init(const TextureCreateParams &params);

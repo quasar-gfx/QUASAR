@@ -26,7 +26,6 @@ public:
         glBindRenderbuffer(GL_RENDERBUFFER, ID);
         glRenderbufferStorage(GL_RENDERBUFFER, internalFormat, width, height);
     }
-
     ~Renderbuffer() {
         glDeleteRenderbuffers(1, &ID);
     }

@@ -38,12 +38,12 @@ public:
     void setNear(float near) { this->near = near; updateProjectionMatrix(); }
     void setFar(float far) { this->far = far; updateProjectionMatrix(); }
 
-    glm::mat4 getProjectionMatrix() { return proj; }
+    glm::mat4 getProjectionMatrix() const { return proj; }
     void setProjectionMatrix(glm::mat4 proj);
     void setProjectionMatrix(float fovy, float aspect, float near, float far);
     void updateProjectionMatrix();
 
-    glm::mat4 getViewMatrix() { return view; }
+    glm::mat4 getViewMatrix() const { return view; }
     void setViewMatrix(glm::mat4 view);
     void updateViewMatrix();
 

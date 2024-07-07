@@ -38,7 +38,7 @@ public:
 
     void bind() const override;
 
-    unsigned int getTextureCount() override { return 5; }
+    unsigned int getTextureCount() const override { return 5; }
 };
 
 #endif // PBR_MATERIAL_H

@@ -30,15 +30,15 @@ public:
     unsigned int updatePointLightShadows(Scene &scene, Camera &camera);
     unsigned int drawSkyBox(Scene &scene, Camera &camera);
     unsigned int drawObjects(Scene &scene, Camera &camera);
-    void drawToScreen(Shader &screenShader, RenderTarget* overrideRenderTarget = nullptr);
-    void drawToRenderTarget(Shader &screenShader, RenderTarget &renderTarget);
+    void drawToScreen(const Shader &screenShader, const RenderTarget* overrideRenderTarget = nullptr);
+    void drawToRenderTarget(const Shader &screenShader, const RenderTarget &renderTarget);
     void resize(unsigned int width, unsigned int height);
 
 private:
     Shader skyboxShader;
 
-    unsigned int drawNode(Scene &scene, Camera &camera, Node* node, const glm::mat4 &parentTransform, bool frustumCull = true, Material* overrideMaterial = nullptr);
-    unsigned int drawNode(Scene &scene, Camera &camera, Node* node, const glm::mat4 &parentTransform, const PointLight* pointLight, Material* overrideMaterial = nullptr);
+    unsigned int drawNode(Scene &scene, Camera &camera, Node* node, const glm::mat4 &parentTransform, bool frustumCull = true, const Material* overrideMaterial = nullptr);
+    unsigned int drawNode(Scene &scene, Camera &camera, Node* node, const glm::mat4 &parentTransform, const PointLight* pointLight, const Material* overrideMaterial = nullptr);
 };
 
 #endif // OPENGL_RENDERER_H

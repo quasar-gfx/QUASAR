@@ -17,7 +17,7 @@ ImGuiManager::~ImGuiManager() {
     ImGui::DestroyContext();
 }
 
-void ImGuiManager::setStyle() {
+void ImGuiManager::setStyle() const {
     auto& fonts = ImGui::GetIO().Fonts;
     fonts->AddFontFromFileTTF("../assets/fonts/trebucbd.ttf", 24.0f);
 
@@ -26,12 +26,12 @@ void ImGuiManager::setStyle() {
     style.WindowRounding = 8;
 }
 
-void ImGuiManager::predraw() {
+void ImGuiManager::predraw() const {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
 }
 
-void ImGuiManager::postdraw() {
+void ImGuiManager::postdraw() const {
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }

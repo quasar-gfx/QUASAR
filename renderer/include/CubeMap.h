@@ -10,7 +10,6 @@
 #include <string>
 
 #include <Shaders/Shader.h>
-#include <Texture.h>
 #include <Renderbuffer.h>
 #include <Camera.h>
 
@@ -40,19 +39,28 @@ struct CubeMapCreateParams {
     GLint magFilter = GL_LINEAR;
 };
 
-class CubeMap : public OpenGLObject {
+class CubeMap : public Texture {
 public:
     CubeMapType type;
 
     unsigned int maxMipLevels = 1;
 
-    unsigned int width, height;
+    GLint wrapR = GL_CLAMP_TO_EDGE;
 
     explicit CubeMap() = default;
     explicit CubeMap(const CubeMapCreateParams &params)
             : type(params.type)
-            , width(params.width)
-            , height(params.height) {
+            , wrapR(params.wrapR)
+            , Texture({
+                .width = params.width,
+                .height = params.height,
+                .format = params.format,
+                .wrapS = params.wrapS,
+                .wrapT = params.wrapT,
+                .minFilter = params.minFilter,
+                .magFilter = params.magFilter
+            }) {
+        target = GL_TEXTURE_CUBE_MAP;
         if (params.rightFaceTexturePath != "" && params.leftFaceTexturePath != "" &&
             params.topFaceTexturePath != "" && params.bottomFaceTexturePath != "" &&
             params.frontFaceTexturePath != "" && params.backFaceTexturePath != "") {
@@ -80,11 +88,11 @@ public:
 
     void init(unsigned int width, unsigned int height, CubeMapType type);
 
-    void loadFromEquirectTexture(Shader &equirectToCubeMapShader, Texture &equirectTexture);
-    void convolve(Shader &convolutionShader, CubeMap &envCubeMap);
-    void prefilter(Shader &prefilterShader, CubeMap &envCubeMap, Renderbuffer &captureRBO);
+    void loadFromEquirectTexture(const Shader &equirectToCubeMapShader, const Texture &equirectTexture) const;
+    void convolve(const Shader &convolutionShader, const CubeMap &envCubeMap) const;
+    void prefilter(const Shader &prefilterShader, const CubeMap &envCubeMap, Renderbuffer &captureRBO) const;
 
-    unsigned int draw(Shader &shader, Camera &camera);
+    unsigned int draw(const Shader &shader, const Camera &camera) const;
 
     void bind() const {
         bind(0);
@@ -92,11 +100,11 @@ public:
 
     void bind(unsigned int slot) const {
         glActiveTexture(GL_TEXTURE0 + slot);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, ID);
+        glBindTexture(target, ID);
     }
 
     void unbind() const {
-        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+        glBindTexture(target, 0);
     }
 
     static const glm::mat4 captureProjection;
@@ -111,13 +119,12 @@ private:
     GLuint vertexBuffer;
 
     void initBuffers();
-
     void loadFromFiles(std::vector<std::string> faceFilePaths,
             GLenum format,
             GLint wrapS, GLint wrapT, GLint wrapR,
             GLint minFilter, GLint magFilter);
 
-    unsigned int drawCube();
+    unsigned int drawCube() const;
 };
 
 #endif // CUBE_MAP_H

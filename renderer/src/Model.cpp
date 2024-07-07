@@ -9,13 +9,13 @@
 #include <Primatives/Model.h>
 #include <assimp/pbrmaterial.h>
 
-void Model::bindSceneAndCamera(Scene &scene, Camera &camera, const glm::mat4 &model, Material* overrideMaterial) {
+void Model::bindSceneAndCamera(const Scene &scene, const Camera &camera, const glm::mat4 &model, const Material* overrideMaterial) {
     for (auto& mesh : meshes) {
         mesh->bindSceneAndCamera(scene, camera, model, overrideMaterial);
     }
 }
 
-unsigned int Model::draw(Scene &scene, Camera &camera, const glm::mat4 &model, bool frustumCull, Material* overrideMaterial) {
+unsigned int Model::draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
     unsigned int trianglesDrawn = 0;
     if (!visible) {
         return trianglesDrawn;
@@ -28,7 +28,7 @@ unsigned int Model::draw(Scene &scene, Camera &camera, const glm::mat4 &model, b
     return trianglesDrawn;
 }
 
-unsigned int Model::draw(Scene &scene, Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, Material* overrideMaterial) {
+unsigned int Model::draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
     unsigned int trianglesDrawn = 0;
     if (!visible) {
         return trianglesDrawn;

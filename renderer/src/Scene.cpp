@@ -64,26 +64,23 @@ void Scene::addPointLight(PointLight* pointLight) {
     pointLights.push_back(pointLight);
 }
 
-void Scene::bindMaterial(Material* material) {
+void Scene::bindMaterial(const Material* material) const {
     if (!hasPBREnvMap) {
         return;
     }
 
-    material->shader->setInt("material.irradianceMap", material->getTextureCount() + 0);
-    irradianceCubeMap.bind(material->getTextureCount() + 0);
-    material->shader->setInt("material.prefilterMap", material->getTextureCount() + 1);
-    prefilterCubeMap.bind(material->getTextureCount() + 1);
-    material->shader->setInt("material.brdfLUT", material->getTextureCount() + 2);
-    brdfLUT.bind(material->getTextureCount() + 2);
+    material->shader->setTexture("material.irradianceMap", irradianceCubeMap, material->getTextureCount());
+    material->shader->setTexture("material.prefilterMap", prefilterCubeMap, material->getTextureCount() + 1);
+    material->shader->setTexture("material.brdfLUT", brdfLUT, material->getTextureCount() + 2);
 }
 
-void Scene::equirectToCubeMap(CubeMap &envCubeMap, Texture &hdrTexture) {
+void Scene::equirectToCubeMap(const CubeMap &envCubeMap, const Texture &hdrTexture) {
     captureRenderTarget.bind();
     envCubeMap.loadFromEquirectTexture(equirectToCubeMapShader, hdrTexture);
     captureRenderTarget.unbind();
 }
 
-void Scene::setupIBL(CubeMap &envCubeMap) {
+void Scene::setupIBL(const CubeMap &envCubeMap) {
     hasPBREnvMap = true;
 
     captureRenderTarget.resize(envCubeMap.width, envCubeMap.height);

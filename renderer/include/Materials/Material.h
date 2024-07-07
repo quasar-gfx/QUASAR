@@ -12,6 +12,7 @@ public:
     std::vector<TextureID> textures;
     std::shared_ptr<Shader> shader;
 
+    explicit Material() = default;
     ~Material() {
         for (auto& textureID : textures) {
             if (textureID == 0) continue;
@@ -19,9 +20,11 @@ public:
         }
     }
 
-    virtual void bind() const = 0;
+    virtual void bind() const {
+        shader->bind();
+    }
 
-    virtual unsigned int getTextureCount() = 0;
+    virtual unsigned int getTextureCount() const = 0;
 
     void unbind() const {
         for (int i = 0; i < textures.size(); i++) {

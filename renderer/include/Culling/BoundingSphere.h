@@ -27,7 +27,7 @@ public:
         this->radius = radius;
     }
 
-    bool intersects(const BoundingSphere &other) {
+    bool intersects(const BoundingSphere &other) const {
         return glm::distance(center, other.center) < (radius + other.radius);
     }
 

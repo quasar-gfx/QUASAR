@@ -15,10 +15,10 @@ public:
     ImGuiManager(std::shared_ptr<GLFWWindow> glfwWindow);
     ~ImGuiManager();
 
-    void setStyle();
+    void setStyle() const;
 
-    void predraw() override;
-    void postdraw() override;
+    void predraw() const override;
+    void postdraw() const override;
 };
 
 #endif // IMGUI_MANAGER_H

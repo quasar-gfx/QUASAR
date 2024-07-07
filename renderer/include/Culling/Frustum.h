@@ -36,7 +36,7 @@ public:
         planes[5] = { position, glm::cross(frontMultFar + up * halfVSide, right) };
     }
 
-    bool aabbIsVisible(const AABB &aabb, const glm::mat4 &model) {
+    bool aabbIsVisible(const AABB &aabb, const glm::mat4 &model) const {
 		glm::vec3 center = glm::vec3(model * glm::vec4(aabb.getCenter(), 1.0f));
 
 		glm::vec3 right = glm::vec3(model[0]) * aabb.getExtents().x;
@@ -65,7 +65,7 @@ public:
         return true;
     };
 
-    bool aabbIsOnOrForwardPlane(const AABB &aabb, const FPlane &plane) {
+    bool aabbIsOnOrForwardPlane(const AABB &aabb, const FPlane &plane) const {
         auto extents = aabb.getExtents();
         auto center = aabb.getCenter();
 

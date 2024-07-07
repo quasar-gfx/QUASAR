@@ -22,7 +22,7 @@ public:
     explicit Light(const glm::vec3 &color = glm::vec3(1.0f), float intensity = 1.0f, float zNear = 1.0f, float zFar = 25.0f)
         : color(color), intensity(intensity), zNear(zNear), zFar(zFar) { }
 
-    virtual void bindMaterial(Material* material) = 0;
+    virtual void bindMaterial(const Material* material) = 0;
 };
 
 #endif // LIGHT_H

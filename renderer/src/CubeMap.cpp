@@ -163,13 +163,12 @@ void CubeMap::loadFromFiles(std::vector<std::string> faceFilePaths,
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, magFilter);
 }
 
-void CubeMap::loadFromEquirectTexture(Shader &equirectToCubeMapShader, Texture &equirectTexture) {
+void CubeMap::loadFromEquirectTexture(const Shader &equirectToCubeMapShader, const Texture &equirectTexture) const {
     equirectToCubeMapShader.bind();
 
-    equirectToCubeMapShader.setInt("equirectangularMap", 0);
+    equirectToCubeMapShader.setTexture("equirectangularMap", equirectTexture, 0);
     equirectToCubeMapShader.setMat4("projection", captureProjection);
 
-    equirectTexture.bind(0);
     glViewport(0, 0, width, height);
 
     for (int i = 0; i < NUM_CUBEMAP_FACES; i++) {
@@ -184,13 +183,12 @@ void CubeMap::loadFromEquirectTexture(Shader &equirectToCubeMapShader, Texture &
     equirectToCubeMapShader.unbind();
 }
 
-void CubeMap::convolve(Shader &convolutionShader, CubeMap &envCubeMap) {
+void CubeMap::convolve(const Shader &convolutionShader, const CubeMap &envCubeMap) const {
     convolutionShader.bind();
 
-    convolutionShader.setInt("environmentMap", 0);
+    convolutionShader.setTexture("environmentMap", envCubeMap, 0);
     convolutionShader.setMat4("projection", captureProjection);
 
-    envCubeMap.bind(0);
     glViewport(0, 0, width, height);
 
     for (int i = 0; i < NUM_CUBEMAP_FACES; i++) {
@@ -203,13 +201,11 @@ void CubeMap::convolve(Shader &convolutionShader, CubeMap &envCubeMap) {
     convolutionShader.unbind();
 }
 
-void CubeMap::prefilter(Shader &prefilterShader, CubeMap &envCubeMap, Renderbuffer &captureRBO) {
+void CubeMap::prefilter(const Shader &prefilterShader, const CubeMap &envCubeMap, Renderbuffer &captureRBO) const {
     prefilterShader.bind();
 
-    prefilterShader.setInt("environmentMap", 0);
+    prefilterShader.setTexture("environmentMap", envCubeMap, 0);
     prefilterShader.setMat4("projection", captureProjection);
-
-    envCubeMap.bind(0);
 
     for (int mip = 0; mip < maxMipLevels; mip++) {
         unsigned int mipWidth = static_cast<unsigned int>(width * std::pow(0.5f, mip));
@@ -233,7 +229,7 @@ void CubeMap::prefilter(Shader &prefilterShader, CubeMap &envCubeMap, Renderbuff
     prefilterShader.unbind();
 }
 
-unsigned int CubeMap::draw(Shader &shader, Camera &camera) {
+unsigned int CubeMap::draw(const Shader &shader, const Camera &camera) const {
     unsigned int trianglesDrawn = 0;
 
     glDepthFunc(GL_LEQUAL);
@@ -258,7 +254,7 @@ unsigned int CubeMap::draw(Shader &shader, Camera &camera) {
     return trianglesDrawn;
 }
 
-unsigned int CubeMap::drawCube() {
+unsigned int CubeMap::drawCube() const {
     unsigned int trianglesDrawn = 36;
 
     glBindVertexArray(vertexArrayBuffer);

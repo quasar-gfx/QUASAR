@@ -119,7 +119,7 @@ unsigned int OpenGLRenderer::drawObjects(Scene &scene, Camera &camera) {
     return trianglesDrawn;
 }
 
-unsigned int OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, const glm::mat4 &parentTransform, bool frustumCull, Material* overrideMaterial) {
+unsigned int OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, const glm::mat4 &parentTransform, bool frustumCull, const Material* overrideMaterial) {
     const glm::mat4 &model = parentTransform * node->getTransformParentFromLocal();
 
     unsigned int trianglesDrawn = 0;
@@ -136,7 +136,7 @@ unsigned int OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, 
     return trianglesDrawn;
 }
 
-unsigned int OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, const glm::mat4 &parentTransform, const PointLight* pointLight, Material* overrideMaterial) {
+unsigned int OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, const glm::mat4 &parentTransform, const PointLight* pointLight, const Material* overrideMaterial) {
     const glm::mat4 &model = parentTransform * node->getTransformParentFromLocal();
 
     unsigned int trianglesDrawn = 0;
@@ -152,7 +152,7 @@ unsigned int OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, 
     return trianglesDrawn;
 }
 
-void OpenGLRenderer::drawToScreen(Shader &screenShader, RenderTarget* overrideRenderTarget) {
+void OpenGLRenderer::drawToScreen(const Shader &screenShader, const RenderTarget* overrideRenderTarget) {
     if (overrideRenderTarget != nullptr) {
         overrideRenderTarget->bind();
         glViewport(0, 0, overrideRenderTarget->width, overrideRenderTarget->height);
@@ -183,7 +183,7 @@ void OpenGLRenderer::drawToScreen(Shader &screenShader, RenderTarget* overrideRe
     }
 }
 
-void OpenGLRenderer::drawToRenderTarget(Shader &screenShader, RenderTarget &renderTarget) {
+void OpenGLRenderer::drawToRenderTarget(const Shader &screenShader, const RenderTarget &renderTarget) {
     drawToScreen(screenShader, &renderTarget);
 }
 
