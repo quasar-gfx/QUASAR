@@ -86,16 +86,16 @@ public:
 
     unsigned int draw(Shader &shader, Camera &camera);
 
-    void bind() {
+    void bind() const {
         bind(0);
     }
 
-    void bind(unsigned int slot) {
+    void bind(unsigned int slot) const {
         glActiveTexture(GL_TEXTURE0 + slot);
         glBindTexture(GL_TEXTURE_CUBE_MAP, ID);
     }
 
-    void unbind() {
+    void unbind() const {
         glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
     }
 

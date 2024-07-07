@@ -8,6 +8,7 @@
 #include <glm/glm.hpp>
 
 #include <OpenGLObject.h>
+#include <Texture.h>
 
 enum class ShaderType {
     PROGRAM,
@@ -24,11 +25,11 @@ public:
         glDeleteProgram(ID);
     }
 
-    void bind() {
+    void bind() const {
         glUseProgram(ID);
     }
 
-    void unbind() {
+    void unbind() const {
         glUseProgram(0);
     }
 
@@ -75,6 +76,11 @@ public:
 
     void setMat4(const std::string &name, const glm::mat4 &mat) const {
         glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
+    }
+
+    void setTexture(const std::string &name, const Texture &texture, int slot) const {
+        texture.bind(slot);
+        setInt(name, slot);
     }
 
 protected:

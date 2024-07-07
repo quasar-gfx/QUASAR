@@ -19,11 +19,11 @@ public:
         }
     }
 
-    virtual void bind() = 0;
+    virtual void bind() const = 0;
 
     virtual unsigned int getTextureCount() = 0;
 
-    void unbind() {
+    void unbind() const {
         for (int i = 0; i < textures.size(); i++) {
             glActiveTexture(GL_TEXTURE0 + i);
             glBindTexture(GL_TEXTURE_2D, 0);

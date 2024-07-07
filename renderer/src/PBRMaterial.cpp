@@ -73,7 +73,7 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params) {
     metalRoughnessCombined = params.metalRoughnessCombined;
 }
 
-void PBRMaterial::bind() {
+void PBRMaterial::bind() const {
     shader->bind();
     shader->setVec3("material.baseColor", color);
     shader->setFloat("material.opacity", opacity);

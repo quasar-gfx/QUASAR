@@ -36,7 +36,7 @@ public:
     explicit PBRMaterial() = default;
     explicit PBRMaterial(const PBRMaterialCreateParams &params);
 
-    void bind() override;
+    void bind() const override;
 
     unsigned int getTextureCount() override { return 5; }
 };

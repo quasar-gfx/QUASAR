@@ -37,12 +37,12 @@ public:
         framebuffer.blitToScreen(width, height);
     }
 
-    void bind() {
+    void bind() const {
         framebuffer.bind();
         glViewport(0, 0, width, height);
     }
 
-    void unbind() {
+    void unbind() const {
         framebuffer.unbind();
     }
 

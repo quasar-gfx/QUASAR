@@ -15,7 +15,7 @@ public:
         shader = std::make_shared<Shader>(dirShadowMapParams);
     }
 
-    void bind() override {
+    void bind() const override {
         shader->bind();
     }
 };

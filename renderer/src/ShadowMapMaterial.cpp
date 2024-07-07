@@ -1,5 +1,5 @@
 #include <Materials/ShadowMapMaterial.h>
 
-void ShadowMapMaterial::bind() {
+void ShadowMapMaterial::bind() const {
     shader->bind();
 }

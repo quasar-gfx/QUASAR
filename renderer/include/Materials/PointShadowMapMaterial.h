@@ -17,7 +17,7 @@ public:
         shader = std::make_shared<Shader>(pointShadowMapParams);
     }
 
-    void bind() override {
+    void bind() const override {
         shader->bind();
     }
 };

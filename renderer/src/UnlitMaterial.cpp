@@ -30,7 +30,7 @@ UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams &params) {
     transparent = params.transparent;
 }
 
-void UnlitMaterial::bind() {
+void UnlitMaterial::bind() const {
     shader->bind();
     shader->setVec3("material.baseColor", color);
     shader->setFloat("material.opacity", opacity);

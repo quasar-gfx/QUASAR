@@ -38,11 +38,11 @@ public:
         glRenderbufferStorage(GL_RENDERBUFFER, internalFormat, width, height);
     }
 
-    void bind() {
+    void bind() const {
         glBindRenderbuffer(GL_RENDERBUFFER, ID);
     }
 
-    void unbind() {
+    void unbind() const {
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
     }
 };

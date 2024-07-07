@@ -155,17 +155,11 @@ unsigned int OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, 
 void OpenGLRenderer::drawToScreen(Shader &screenShader, RenderTarget* overrideRenderTarget) {
     if (overrideRenderTarget != nullptr) {
         overrideRenderTarget->bind();
-    }
-    else {
-        // screen buffer
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
-
-    if (overrideRenderTarget != nullptr) {
         glViewport(0, 0, overrideRenderTarget->width, overrideRenderTarget->height);
     }
     else {
         // screen buffer
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glViewport(0, 0, width, height);
     }
 
@@ -173,24 +167,15 @@ void OpenGLRenderer::drawToScreen(Shader &screenShader, RenderTarget* overrideRe
     glClear(GL_COLOR_BUFFER_BIT);
 
     screenShader.bind();
-    screenShader.setInt("screenPositions", 0);
-    gBuffer.positionBuffer.bind(0);
-    screenShader.setInt("screenNormals", 1);
-    gBuffer.normalsBuffer.bind(1);
-    screenShader.setInt("idBuffer", 2);
-    gBuffer.idBuffer.bind(2);
-    screenShader.setInt("screenColor", 3);
-    gBuffer.colorBuffer.bind(3);
-    screenShader.setInt("screenDepth", 4);
-    gBuffer.depthBuffer.bind(4);
+
+    screenShader.setTexture("screenPositions", gBuffer.positionBuffer, 0);
+    screenShader.setTexture("screenNormals", gBuffer.normalsBuffer, 1);
+    screenShader.setTexture("idBuffer", gBuffer.idBuffer, 2);
+    screenShader.setTexture("screenColor", gBuffer.colorBuffer, 3);
+    screenShader.setTexture("screenDepth", gBuffer.depthBuffer, 4);
 
     outputFsQuad.draw();
 
-    gBuffer.positionBuffer.unbind();
-    gBuffer.normalsBuffer.unbind();
-    gBuffer.idBuffer.unbind();
-    gBuffer.colorBuffer.unbind();
-    gBuffer.depthBuffer.unbind();
     screenShader.unbind();
 
     if (overrideRenderTarget != nullptr) {

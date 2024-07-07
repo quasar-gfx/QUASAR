@@ -7,7 +7,7 @@ class ShadowMapMaterial : public Material {
 public:
     explicit ShadowMapMaterial() = default;
 
-    void bind() override;
+    void bind() const override;
 
     unsigned int getTextureCount() override { return 0; }
 };

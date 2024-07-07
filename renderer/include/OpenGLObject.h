@@ -12,8 +12,8 @@ public:
     explicit OpenGLObject() : ID(0) {}
     ~OpenGLObject() {};
 
-    virtual void bind() = 0;
-    virtual void unbind() = 0;
+    virtual void bind() const = 0;
+    virtual void unbind() const = 0;
 };
 
 #endif // OPENGL_OBJECT_H

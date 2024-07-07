@@ -39,11 +39,11 @@ public:
         glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
     }
 
-    void bind() {
+    void bind() const {
         glBindFramebuffer(GL_FRAMEBUFFER, ID);
     }
 
-    void unbind() {
+    void unbind() const {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 };

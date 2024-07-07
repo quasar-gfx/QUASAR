@@ -20,7 +20,7 @@ public:
     explicit UnlitMaterial() = default;
     explicit UnlitMaterial(const UnlitMaterialCreateParams &params);
 
-    void bind() override;
+    void bind() const override;
 
     unsigned int getTextureCount() override { return 1; }
 };

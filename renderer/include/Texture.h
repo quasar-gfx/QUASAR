@@ -65,20 +65,20 @@ public:
     }
     ~Texture() = default;
 
-    void bind() {
+    void bind() const {
         bind(0);
     }
 
-    void bind(unsigned int slot) {
+    void bind(unsigned int slot) const {
         glActiveTexture(GL_TEXTURE0 + slot);
         glBindTexture(target, ID);
     }
 
-    void unbind() {
+    void unbind() const {
         unbind(0);
     }
 
-    void unbind(unsigned int slot) {
+    void unbind(unsigned int slot) const {
         glActiveTexture(GL_TEXTURE0 + slot);
         glBindTexture(target, 0);
         glActiveTexture(GL_TEXTURE0);

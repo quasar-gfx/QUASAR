@@ -108,8 +108,7 @@ void Mesh::bindSceneAndCamera(Scene &scene, Camera &camera, const glm::mat4 &mod
             materialToUse->shader->setMat4("lightSpaceMatrix", scene.directionalLight->lightSpaceMatrix * model);
         }
         else {
-            materialToUse->shader->setInt("dirLightShadowMap", texIdx);
-            scene.directionalLight->shadowMapRenderTarget.depthBuffer.bind(texIdx);
+            materialToUse->shader->setTexture("dirLightShadowMap", scene.directionalLight->shadowMapRenderTarget.depthBuffer, texIdx);
             materialToUse->shader->setMat4("lightSpaceMatrix", scene.directionalLight->lightSpaceMatrix);
         }
     }

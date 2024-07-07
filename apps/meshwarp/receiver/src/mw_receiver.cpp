@@ -364,8 +364,7 @@ int main(int argc, char** argv) {
             if (poseIdColor != -1) poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTimeColor);
 
             videoShader.bind();
-            videoShader.setInt("tex", 5);
-            videoTextureColor.bind(5);
+            videoShader.setTexture("tex", videoTextureColor, 5);
             app.renderer->drawToScreen(videoShader);
 
             return;

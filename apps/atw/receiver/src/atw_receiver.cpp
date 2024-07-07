@@ -212,8 +212,7 @@ int main(int argc, char** argv) {
 
             poseStreamer.removePosesLessThan(poseID);
         }
-        atwShader.setInt("videoTexture", 5);
-        videoTexture.bind(5);
+        atwShader.setTexture("videoTexture", videoTexture, 5);
 
         // render to screen
         app.renderer->drawToScreen(atwShader);
