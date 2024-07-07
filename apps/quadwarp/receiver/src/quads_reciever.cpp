@@ -168,7 +168,8 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
-        ImGui::InputFloat3("Camera Position", (float*)&camera.position);
+        glm::vec3 position = camera.getPosition();
+        ImGui::InputFloat3("Camera Position", (float*)&position);
         ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
 
         ImGui::Separator();
@@ -215,7 +216,7 @@ int main(int argc, char** argv) {
         scene.addChildNode(&nodes[i]);
 
         nodes[2*i+1] = Node(&wireframeMeshes[i]);
-        nodes[2*i+1].setTranslation(glm::vec3(0.0f, 0.0005f, 0.0005f));
+        nodes[2*i+1].setPosition(glm::vec3(0.0f, 0.0005f, 0.0005f));
         scene.addChildNode(&nodes[i+1]);
     }
 

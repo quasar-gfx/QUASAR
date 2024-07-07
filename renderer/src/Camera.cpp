@@ -2,12 +2,12 @@
 
 Camera::Camera(unsigned int width, unsigned int height) {
     setProjectionMatrix(glm::radians(60.0f), (float)width / (float)height, 0.1f, 1000.0f);
-    updateCameraVectors();
+    updateCameraOrientation();
 }
 
 Camera::Camera(float fovy, float aspect, float near, float far) {
     setProjectionMatrix(fovy, aspect, near, far);
-    updateCameraVectors();
+    updateCameraOrientation();
 }
 
 void Camera::setProjectionMatrix(glm::mat4 proj) {
@@ -34,20 +34,14 @@ void Camera::updateProjectionMatrix() {
 
 void Camera::setViewMatrix(glm::mat4 view) {
     this->view = view;
-
-    glm::vec3 skew;
-    glm::vec4 perspective;
-    glm::decompose(glm::inverse(view), scale, rotation, position, skew, perspective);
-
-    front = -glm::normalize(glm::vec3(view[0][2], view[1][2], view[2][2]));
-    right = glm::normalize(glm::cross(front, worldUp));
-    up = glm::normalize(glm::cross(right, front));
-
+    setTransformParentFromLocal(glm::inverse(view));
+    updateCameraOrientation();
     frustum.setFromCameraParams(position, front, right, up, near, far, aspect, fovy);
 }
 
 void Camera::updateViewMatrix() {
-    view = glm::scale(glm::mat4(1.0f), 1.0f/scale) * glm::mat4_cast(glm::conjugate(rotation)) * glm::translate(glm::mat4(1.0f), -position);
+    view = getTransformLocalFromParent();
+    updateCameraOrientation();
     frustum.setFromCameraParams(position, front, right, up, near, far, aspect, fovy);
 }
 
@@ -62,9 +56,9 @@ void Camera::processKeyboard(Keys keys, float deltaTime) {
     if (keys.D_PRESSED)
         position += right * velocity;
     if (keys.Q_PRESSED)
-        position += up * velocity;
-    if (keys.E_PRESSED)
         position -= up * velocity;
+    if (keys.E_PRESSED)
+        position += up * velocity;
 
     updateViewMatrix();
 }
@@ -84,10 +78,19 @@ void Camera::processMouseMovement(float xoffset, float yoffset, bool constrainPi
             pitch = -89.0f;
     }
 
-    updateCameraVectors();
+    setOrientationFromYawPitch();
 }
 
-void Camera::updateCameraVectors() {
+void Camera::updateCameraOrientation() {
+    front = -glm::normalize(glm::vec3(view[0][2], view[1][2], view[2][2]));
+    right = glm::normalize(glm::cross(front, worldUp));
+    up = glm::normalize(glm::cross(right, front));
+
+    yaw = glm::degrees(atan2(front.z, front.x));
+    pitch = glm::degrees(asin(front.y));
+}
+
+void Camera::setOrientationFromYawPitch() {
     // calculate the new front vector
     glm::vec3 newFront;
     newFront.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
@@ -100,10 +103,7 @@ void Camera::updateCameraVectors() {
     up = glm::normalize(glm::cross(right, front));
 
     glm::mat4 newView = glm::lookAt(position, position + front, up);
-
-    glm::vec3 temp, skew;
-    glm::vec4 perspective;
-    glm::decompose(glm::inverse(newView), scale, rotation, temp, skew, perspective);
+    setTransformParentFromLocal(glm::inverse(newView));
 
     updateViewMatrix();
 }

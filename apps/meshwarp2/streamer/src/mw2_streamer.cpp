@@ -154,7 +154,7 @@ int main(int argc, char** argv) {
     cameraFile.write(reinterpret_cast<const char*>(&view), sizeof(glm::mat4));
     cameraFile.close();
 
-    glm::vec3 initialPosition = camera.position;
+    glm::vec3 initialPosition = camera.getPosition();
 
     unsigned int t = 0;
     float z = 0.0f;
@@ -164,7 +164,7 @@ int main(int argc, char** argv) {
 
             double startTime = glfwGetTime();
 
-            camera.position = position;
+            camera.setPosition(position);
             camera.updateViewMatrix();
 
             // render all objects in scene

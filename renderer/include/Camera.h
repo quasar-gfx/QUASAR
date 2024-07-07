@@ -9,15 +9,12 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/matrix_decompose.hpp>
 
+#include <Primatives/Entity.h>
 #include <Windowing/Window.h>
 #include <Culling/Frustum.h>
 
-class Camera {
+class Camera : public Node {
 public:
-    glm::vec3 position = glm::vec3(0.0f);
-    glm::quat rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-    glm::vec3 scale = glm::vec3(1.0f);
-
     glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
     glm::vec3 right = glm::vec3(-1.0f, 0.0f, 0.0f);
@@ -28,9 +25,6 @@ public:
     float near;
     float far;
 
-    float yaw = -90.0f;
-    float pitch = 0.0f;
-
     float movementSpeed = 5.0f;
     float mouseSensitivity = 0.05f;
 
@@ -39,10 +33,10 @@ public:
     explicit Camera(unsigned int width, unsigned int height);
     explicit Camera(float fovy, float aspect, float near, float far);
 
-    void setFovy(float fovy) { this->fovy = fovy; setProjectionMatrix(fovy, aspect, near, far); }
-    void setAspect(float aspect) { this->aspect = aspect; setProjectionMatrix(fovy, aspect, near, far); }
-    void setNear(float near) { this->near = near; setProjectionMatrix(fovy, aspect, near, far); }
-    void setFar(float far) { this->far = far; setProjectionMatrix(fovy, aspect, near, far); }
+    void setFovy(float fovy) { this->fovy = fovy; updateProjectionMatrix(); }
+    void setAspect(float aspect) { this->aspect = aspect; updateProjectionMatrix(); }
+    void setNear(float near) { this->near = near; updateProjectionMatrix(); }
+    void setFar(float far) { this->far = far; updateProjectionMatrix(); }
 
     glm::mat4 getProjectionMatrix() { return proj; }
     void setProjectionMatrix(glm::mat4 proj);
@@ -60,8 +54,12 @@ private:
     glm::mat4 view;
     glm::mat4 proj;
 
+    float yaw = -90.0f;
+    float pitch = 0.0f;
+
+    void updateCameraOrientation();
     // calculates the front vector from the Camera's (updated) Euler Angles
-    void updateCameraVectors();
+    void setOrientationFromYawPitch();
 };
 
 #endif // CAMERA_H

@@ -445,7 +445,7 @@ private:
             else if (compare(tok, json, "position") == 0) {
                 glm::vec3 position;
                 i = parseVec3(tokens, i + 1, json, &position);
-                node->setTranslation(position);
+                node->setPosition(position);
             }
             else if (compare(tok, json, "rotation") == 0) {
                 glm::vec3 rotation;
@@ -503,7 +503,14 @@ private:
                 camera.far = far;
             }
             else if (compare(tok, json, "position") == 0) {
-                i = parseVec3(tokens, i + 1, json, &camera.position);
+                glm::vec3 position;
+                i = parseVec3(tokens, i + 1, json, &position);
+                camera.setPosition(position);
+            }
+            else if (compare(tok, json, "rotation") == 0) {
+                glm::vec3 rotation;
+                i = parseVec3(tokens, i + 1, json, &rotation);
+                camera.setRotationEuler(rotation);
             }
             else {
                 i = parse(tokens, i + 1);

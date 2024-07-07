@@ -99,7 +99,8 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
-        ImGui::InputFloat3("Camera Position", (float*)&camera.position);
+        glm::vec3 position = camera.getPosition();
+        ImGui::InputFloat3("Camera Position", (float*)&position);
         ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
 
         ImGui::Separator();

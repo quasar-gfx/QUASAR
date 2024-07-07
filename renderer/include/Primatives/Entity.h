@@ -54,7 +54,6 @@ public:
     explicit Node() {
         ID = nextID++;
     }
-
     explicit Node(Entity* entity) {
         ID = nextID++;
         setEntity(entity);
@@ -70,8 +69,8 @@ public:
         node->parent = this;
     }
 
-    void setTranslation(glm::vec3 translation) {
-        this->translation = translation;
+    void setPosition(glm::vec3 position) {
+        this->position = position;
     }
 
     void setRotationQuat(glm::quat quat) {
@@ -86,8 +85,8 @@ public:
         this->scale = scale;
     }
 
-    glm::vec3 getTranslation() {
-        return translation;
+    glm::vec3 getPosition() {
+        return position;
     }
 
     glm::quat getRotationQuat() {
@@ -106,15 +105,15 @@ public:
     void setTransformParentFromLocal(glm::mat4 transform) {
         glm::vec3 skew;
         glm::vec4 perspective;
-        glm::decompose(transform, scale, rotationQuat, translation, skew, perspective);
+        glm::decompose(transform, scale, rotationQuat, position, skew, perspective);
     }
 
     glm::mat4 getTransformParentFromLocal() {
-        return glm::translate(glm::mat4(1.0f), translation) * glm::mat4_cast(rotationQuat) * glm::scale(glm::mat4(1.0f), scale);
+        return glm::translate(glm::mat4(1.0f), position) * glm::mat4_cast(rotationQuat) * glm::scale(glm::mat4(1.0f), scale);
     }
 
     glm::mat4 getTransformLocalFromParent() {
-        return glm::scale(glm::mat4(1.0f), 1.0f/scale) * glm::mat4_cast(glm::conjugate(rotationQuat)) * glm::translate(glm::mat4(1.0f), -translation);
+        return glm::scale(glm::mat4(1.0f), 1.0f/scale) * glm::mat4_cast(glm::conjugate(rotationQuat)) * glm::translate(glm::mat4(1.0f), -position);
     }
 
     glm::mat4 getTransformLocalFromWorld() {
@@ -130,10 +129,10 @@ public:
         return transformLocalFromWorld;
     }
 
-private:
+protected:
     unsigned int ID;
 
-    glm::vec3 translation = glm::vec3(0.0f);
+    glm::vec3 position = glm::vec3(0.0f);
     glm::quat rotationQuat = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
     glm::vec3 scale = glm::vec3(1.0f);
 

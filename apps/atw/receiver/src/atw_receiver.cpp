@@ -148,7 +148,7 @@ int main(int argc, char** argv) {
         .fragmentCodePath = "./shaders/displayVideo.frag"
     });
 
-    camera.position = glm::vec3(0.0f, 1.6f, 0.0f);
+    camera.setPosition(glm::vec3(0.0f, 1.6f, 0.0f));
 
     Pose currentFramePose;
     app.onRender([&](double now, double dt) {

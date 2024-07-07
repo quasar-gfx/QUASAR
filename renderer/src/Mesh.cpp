@@ -146,7 +146,7 @@ unsigned int Mesh::draw(Scene &scene, Camera &camera, const glm::mat4 &model, bo
 
     materialToUse->shader->setMat4("view", camera.getViewMatrix());
     materialToUse->shader->setMat4("projection", camera.getProjectionMatrix());
-    materialToUse->shader->setVec3("camPos", camera.position);
+    materialToUse->shader->setVec3("camPos", camera.getPosition());
     materialToUse->shader->setMat4("model", model);
     materialToUse->shader->setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
 
