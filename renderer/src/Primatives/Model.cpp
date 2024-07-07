@@ -193,13 +193,11 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
                 materialParams.transparent = true;
             }
         }
-        float opacity = 1.0;
-        if (aiMat->Get(AI_MATKEY_OPACITY, opacity) == AI_SUCCESS) {
-            if (opacity < 1.0) {
-                materialParams.transparent = true;
-            }
-            if (opacity <= 0.0f) opacity = 1.0f;
+        float opacity;
+        if (aiMat->Get(AI_MATKEY_OPACITY, opacity) != AI_SUCCESS) {
+            opacity = 1.0f;
         }
+        if (opacity <= 0.0f) opacity = 1.0f;
         materialParams.opacity = opacity;
 
         float shininess;
@@ -221,8 +219,22 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
                 }
             }
         }
-
         materialParams.color = baseColor;
+
+        // float metallicFactor = 1.0f;
+        // if (aiMat->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLIC_FACTOR, metallicFactor) == AI_SUCCESS) {
+        //     materialParams.metallic = metallicFactor;
+        // }
+
+        // float roughnessFactor = 1.0f;
+        // if (aiMat->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_ROUGHNESS_FACTOR, roughnessFactor) == AI_SUCCESS) {
+        //     materialParams.roughness = roughnessFactor;
+        // }
+
+        // aiColor4D baseColorFactor;
+        // if (aiMat->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_FACTOR, baseColorFactor) == AI_SUCCESS) {
+        //     materialParams.color = glm::vec3(baseColorFactor.r, baseColorFactor.g, baseColorFactor.b);
+        // }
 
         TextureID diffuseMap = loadMaterialTexture(aiMat, aiTextureType_DIFFUSE);
         TextureID normalMap = loadMaterialTexture(aiMat, aiTextureType_NORMALS);

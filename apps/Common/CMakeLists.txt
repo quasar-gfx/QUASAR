@@ -41,7 +41,7 @@ find_path(SWS_INCLUDE_DIR libswscale/swscale.h)
 find_library(SWS_LIBRARY swscale)
 set(LIBS ${LIBS} ${SWS_LIBRARY})
 
-file(GLOB SRCS
+file(GLOB_RECURSE SRCS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
 )

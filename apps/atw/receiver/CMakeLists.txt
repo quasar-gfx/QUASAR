@@ -9,7 +9,7 @@ set(LIBS )
 
 set(LIBS ${LIBS} common)
 
-file(GLOB SRCS
+file(GLOB_RECURSE SRCS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
 )

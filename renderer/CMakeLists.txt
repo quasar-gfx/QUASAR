@@ -5,7 +5,7 @@ set(TARGET renderer)
 
 set(PUBLIC_HDR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-file(GLOB SRCS
+file(GLOB_RECURSE SRCS
     "${RENDERER}/src/*.cpp"
     "${RENDERER}/src/*.c"
 )
