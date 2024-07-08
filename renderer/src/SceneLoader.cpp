@@ -569,8 +569,7 @@ int SceneLoader::parsePointLight(jsmntok_t* tokens, int i, const char* json, Sce
     for (int j = 0; j < size; j++) {
         const jsmntok_t tok = tokens[i];
         if (compare(tok, json, "color") == 0) {
-            glm::vec3 color;
-            i = parseVec3(tokens, i + 1, json, &color);
+            i = parseVec3(tokens, i + 1, json, &params.color);
         }
         else if (compare(tok, json, "position") == 0) {
             i = parseVec3(tokens, i + 1, json, &params.position);

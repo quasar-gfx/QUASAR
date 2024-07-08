@@ -3,8 +3,8 @@
         "path": "../assets/textures/hdr/vv_skybox.hdr",
         "HDR": true,
         "flipVertically": true,
-        "width": 512,
-        "height": 512
+        "width": 1024,
+        "height": 1024
     },
     "models": [
         {
@@ -31,7 +31,7 @@
         },
         {
             "model": 1,
-            "position": [0.0, 0.0, 0.0],
+            "position": [0.0, -2, 0.0],
             "rotation": [0.0, 0.0, 0.0],
             "scale": [1.0, 1.0, 1.0]
         }
@@ -57,7 +57,7 @@
     "pointLights": [
         {
             "color": [1.0, 1.0, 1.0],
-            "position": [5, 15, 5],
+            "position": [10, 15, 10],
             "intensity": 50.0,
             "constant": 0.0,
             "linear": 0.09,
@@ -65,7 +65,7 @@
         },
         {
             "color": [1.0, 1.0, 1.0],
-            "position": [-5, 15, 5],
+            "position": [-10, 15, 10],
             "intensity": 50.0,
             "constant": 0.0,
             "linear": 0.09,
@@ -73,7 +73,7 @@
         },
         {
             "color": [1.0, 1.0, 1.0],
-            "position": [5, 15, -5],
+            "position": [10, 15, -10],
             "intensity": 50.0,
             "constant": 0.0,
             "linear": 0.09,
@@ -81,7 +81,7 @@
         },
         {
             "color": [1.0, 1.0, 1.0],
-            "position": [-5, 15, -5],
+            "position": [-10, 15, -10],
             "intensity": 50.0,
             "constant": 0.0,
             "linear": 0.09,

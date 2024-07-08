@@ -3,8 +3,8 @@
         "path": "../assets/textures/hdr/barcelona.hdr",
         "HDR": true,
         "flipVertically": true,
-        "width": 512,
-        "height": 512
+        "width": 1024,
+        "height": 1024
     },
     "models": [
         {

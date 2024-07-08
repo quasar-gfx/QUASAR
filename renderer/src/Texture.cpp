@@ -35,15 +35,25 @@ void Texture::init(const TextureCreateParams &params) {
 }
 
 void Texture::loadFromFile(const TextureCreateParams &params) {
+    std::string path = params.path;
+
+    // use absolute path if path starts with ~/
+    if (path[0] == '~') {
+        char* home = getenv("HOME");
+        if (home != nullptr) {
+            path.replace(0, 1, home);
+        }
+    }
+
     stbi_set_flip_vertically_on_load(params.flipVertically);
 
     int texWidth, texHeight, texChannels;
     void* data = nullptr;
     if (params.type == GL_UNSIGNED_BYTE) {
-        data = stbi_load(params.path.c_str(), &texWidth, &texHeight, &texChannels, 0);
+        data = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, 0);
     }
     else if (params.type == GL_FLOAT) {
-        data = stbi_loadf(params.path.c_str(), &texWidth, &texHeight, &texChannels, 0);
+        data = stbi_loadf(path.c_str(), &texWidth, &texHeight, &texChannels, 0);
     }
 
     if (data) {
