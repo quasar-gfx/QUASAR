@@ -10,8 +10,7 @@
         {
             "path": "~/Desktop/Models/SunTemple.glb",
             "IBL": 0.5,
-            "gammaCorrected": true,
-            "flipTextures": true
+            "gammaCorrected": true
         }
     ],
     "meshes": [

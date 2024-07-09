@@ -40,12 +40,12 @@
     "models": [
         {
             "path": "../assets/models/Sponza/Sponza.gltf",
-            "IBL": 0.0
+            "IBL": 0.0,
+            "flipTextures": true
         },
         {
             "path": "../assets/models/backpack/backpack.obj",
-            "IBL": 0.0,
-            "flipTextures": true
+            "IBL": 0.0
         }
     ],
     "meshes": [

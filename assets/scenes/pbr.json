@@ -35,11 +35,13 @@
     "models": [
         {
             "path": "../assets/models/cerberus/cerberus.fbx",
-            "material": 2
+            "material": 2,
+            "flipTextures": true
         },
         {
             "path": "../assets/models/DamagedHelmet.glb",
-            "gammaCorrected": true
+            "gammaCorrected": true,
+            "flipTextures": true
         }
     ],
     "meshes": [

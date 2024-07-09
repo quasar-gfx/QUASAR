@@ -10,8 +10,7 @@
         {
             "path": "~/Desktop/Models/San_Miguel/San_Miguel.glb",
             "IBL": 0.1,
-            "gammaCorrected": true,
-            "flipTextures": true
+            "gammaCorrected": true
         }
     ],
     "meshes": [

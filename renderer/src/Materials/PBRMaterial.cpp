@@ -67,9 +67,10 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params) {
 
     color = params.color;
     opacity = params.opacity;
+    transparent = params.transparent;
+    maskThreshold = params.maskThreshold;
     metallic = params.metallic;
     roughness = params.roughness;
-    transparent = params.transparent;
     metalRoughnessCombined = params.metalRoughnessCombined;
 }
 
@@ -77,10 +78,11 @@ void PBRMaterial::bind() const {
     shader->bind();
     shader->setVec3("material.baseColor", color);
     shader->setFloat("material.opacity", opacity);
+    shader->setBool("material.transparent", transparent);
+    shader->setFloat("material.maskThreshold", maskThreshold);
     shader->setFloat("material.metallic", metallic);
     shader->setFloat("material.roughness", roughness);
     shader->setBool("material.metalRoughnessCombined", metalRoughnessCombined);
-    shader->setBool("material.transparent", transparent);
 
     std::string name;
     for (int i = 0; i < textures.size(); i++) {

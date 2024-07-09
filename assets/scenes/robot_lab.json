@@ -10,8 +10,7 @@
         {
             "path": "~/Desktop/Models/RobotLab.glb",
             "IBL": 0.01,
-            "gammaCorrected": true,
-            "flipTextures": true
+            "gammaCorrected": true
         }
     ],
     "meshes": [

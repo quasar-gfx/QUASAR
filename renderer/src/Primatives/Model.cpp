@@ -74,9 +74,7 @@ void Model::loadFromFile(const ModelCreateParams &params) {
             // we only support triangles
             aiProcess_Triangulate |
             // pre-transform vertices
-            aiProcess_PreTransformVertices |
-            // flip UVs
-            aiProcess_FlipUVs;
+            aiProcess_PreTransformVertices;
     scene = importer.ReadFile(path, flags);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         throw std::runtime_error("ERROR::ASSIMP:: " + std::string(importer.GetErrorString()));
@@ -189,10 +187,17 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
 
         aiString alphaMode;
         if (aiMat->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode) == AI_SUCCESS) {
-            if (alphaMode == aiString("BLEND") || alphaMode == aiString("MASK")) {
+            if (alphaMode == aiString("BLEND")) {
                 materialParams.transparent = true;
             }
+            else if (alphaMode == aiString("MASK")) {
+                materialParams.transparent = true;
+                float maskThreshold = 0.1;
+                aiMat->Get(AI_MATKEY_GLTF_ALPHACUTOFF, maskThreshold);
+                materialParams.maskThreshold = maskThreshold;
+            }
         }
+
         float opacity;
         if (aiMat->Get(AI_MATKEY_OPACITY, opacity) != AI_SUCCESS) {
             opacity = 1.0f;
@@ -201,11 +206,13 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
         materialParams.opacity = opacity;
 
         float shininess;
-        if (aiMat->Get(AI_MATKEY_SHININESS, shininess) == AI_SUCCESS) {
-            // convert shininess to roughness
-            float roughness = sqrt(2.0f / (shininess + 2.0f));
-            materialParams.roughness = roughness;
+        if (aiMat->Get(AI_MATKEY_SHININESS, shininess) != AI_SUCCESS) {
+            shininess = 0.0f;
         }
+
+        // convert shininess to roughness
+        float roughness = sqrt(2.0f / (shininess + 2.0f));
+        materialParams.roughness = roughness;
 
         if (aiMat->Get(AI_MATKEY_COLOR_SPECULAR, color) == AI_SUCCESS) {
             // if there's a non-grey specular color, assume a metallic surface

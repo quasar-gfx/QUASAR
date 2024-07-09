@@ -10,14 +10,12 @@
         {
             "path": "~/Desktop/Models/VikingVillage.glb",
             "IBL": 0.05,
-            "gammaCorrected": true,
-            "flipTextures": true
+            "gammaCorrected": true
         },
         {
             "path": "~/Desktop/Models/VikingVillageWater.glb",
             "IBL": 0.6,
-            "gammaCorrected": true,
-            "flipTextures": true
+            "gammaCorrected": true
         }
     ],
     "meshes": [

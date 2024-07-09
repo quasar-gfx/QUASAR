@@ -18,7 +18,9 @@ in VertexData {
 struct Material {
     vec3 baseColor;
     float opacity;
+
     bool transparent;
+    float maskThreshold;
 
     // material textures
     sampler2D diffuseMap; // 0
@@ -41,7 +43,7 @@ void main() {
     }
 
     float alpha = (material.transparent) ? color.a : 1.0;
-    if (alpha < 0.1)
+    if (alpha < material.maskThreshold)
         discard;
 
     positionBuffer = vec4(fsIn.FragPos, 1.0);
