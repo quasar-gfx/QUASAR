@@ -10,9 +10,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <assimp/Importer.hpp>
 #include <assimp/scene.h>
-#include <assimp/postprocess.h>
 
 #include <Vertex.h>
 #include <Shaders/Shader.h>
@@ -44,6 +42,8 @@ public:
     bool gammaCorrected = false;
     float IBL = 1.0;
 
+    bool isGLTF = false;
+
     explicit Model(const ModelCreateParams &params)
             : flipTextures(params.flipTextures)
             , wireframe(params.wireframe)
@@ -68,9 +68,11 @@ private:
 
     void loadFromFile(const ModelCreateParams &params);
     void processNode(aiNode* node, const aiScene* scene, PBRMaterial* material);
-    Mesh* processMesh(aiMesh* mesh, const aiScene *scene, PBRMaterial* material);
-    TextureID loadMaterialTexture(aiMaterial const* mat, aiTextureType type);
-    int32_t getEmbeddedTextureId(const aiString& path);
+    Mesh* processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* material);
+    void processGLTFMaterial(aiMaterial const* aiMat, PBRMaterialCreateParams &materialParams);
+    void processNonGLTFMaterial(aiMaterial const* aiMat, PBRMaterialCreateParams &materialParams);
+    TextureID loadMaterialTexture(aiMaterial const* aiMat, aiString aiTexturePath, bool shouldGammaCorrect = false);
+    int32_t getEmbeddedTextureId(const aiString &path);
 };
 
 #endif // MODEL_H

@@ -17,13 +17,16 @@ in VertexData {
 // material
 struct Material {
     vec3 baseColor;
+    vec3 baseColorFactor;
     float opacity;
 
     bool transparent;
     float maskThreshold;
 
     float metallic;
+    float metallicFactor;
     float roughness;
+    float roughnessFactor;
 
     bool normalMapped; // use normal map
     bool aoMapped; // use ao map
@@ -326,7 +329,7 @@ void main() {
     vec4 color = texture(material.albedoMap, fsIn.TexCoords);
 
     if (color.rgb == vec3(0.0) && material.baseColor != vec3(-1.0)) {
-        color.rgb = material.baseColor;
+        color.rgb = material.baseColorFactor * material.baseColor;
         color.a = (color.a != 1.0) ? color.a : material.opacity;
     }
     else {
@@ -347,6 +350,8 @@ void main() {
         metallic = texture(material.metallicMap, fsIn.TexCoords).r;
         roughness = texture(material.roughnessMap, fsIn.TexCoords).r;
     }
+    metallic = material.metallicFactor * metallic;
+    roughness = material.roughnessFactor * roughness;
 
     // input lighting data
     vec3 N = getNormal();

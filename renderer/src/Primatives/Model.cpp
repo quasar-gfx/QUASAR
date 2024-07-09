@@ -6,8 +6,13 @@
 
 #include <stb_image.h>
 
-#include <Primatives/Model.h>
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
 #include <assimp/pbrmaterial.h>
+
+#include <Primatives/Model.h>
+
+using Assimp::Importer;
 
 void Model::bindSceneAndCamera(const Scene &scene, const Camera &camera, const glm::mat4 &model, const Material* overrideMaterial) {
     for (auto& mesh : meshes) {
@@ -80,6 +85,9 @@ void Model::loadFromFile(const ModelCreateParams &params) {
         throw std::runtime_error("ERROR::ASSIMP:: " + std::string(importer.GetErrorString()));
     }
 
+    std::string extension = path.substr(path.find_last_of('.') + 1);
+    isGLTF = extension == "gltf" || extension == "glb";
+
     rootDirectory = path.substr(0, path.find_last_of('/'))  + '/';
 
     processNode(scene->mRootNode, scene, params.material);
@@ -99,7 +107,6 @@ void Model::processNode(aiNode* node, const aiScene* scene, PBRMaterial* materia
 Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* material) {
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
-    std::vector<TextureID> textures;
 
     // set up vertices
     glm::vec3 min = glm::vec3(FLT_MAX);
@@ -179,23 +186,17 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
     else {
         PBRMaterialCreateParams materialParams{};
 
+        if (isGLTF) {
+            processGLTFMaterial(aiMat, materialParams);
+        }
+        else {
+            processNonGLTFMaterial(aiMat, materialParams);
+        }
+
         aiColor3D color;
         glm::vec3 baseColor = glm::vec3(1.0f);
         if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS) {
             baseColor = glm::vec3(color.r, color.g, color.b);
-        }
-
-        aiString alphaMode;
-        if (aiMat->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode) == AI_SUCCESS) {
-            if (alphaMode == aiString("BLEND")) {
-                materialParams.transparent = true;
-            }
-            else if (alphaMode == aiString("MASK")) {
-                materialParams.transparent = true;
-                float maskThreshold = 0.1;
-                aiMat->Get(AI_MATKEY_GLTF_ALPHACUTOFF, maskThreshold);
-                materialParams.maskThreshold = maskThreshold;
-            }
         }
 
         float opacity;
@@ -228,40 +229,6 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
         }
         materialParams.color = baseColor;
 
-        // float metallicFactor = 1.0f;
-        // if (aiMat->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLIC_FACTOR, metallicFactor) == AI_SUCCESS) {
-        //     materialParams.metallic = metallicFactor;
-        // }
-
-        // float roughnessFactor = 1.0f;
-        // if (aiMat->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_ROUGHNESS_FACTOR, roughnessFactor) == AI_SUCCESS) {
-        //     materialParams.roughness = roughnessFactor;
-        // }
-
-        // aiColor4D baseColorFactor;
-        // if (aiMat->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_FACTOR, baseColorFactor) == AI_SUCCESS) {
-        //     materialParams.color = glm::vec3(baseColorFactor.r, baseColorFactor.g, baseColorFactor.b);
-        // }
-
-        TextureID diffuseMap = loadMaterialTexture(aiMat, aiTextureType_DIFFUSE);
-        TextureID normalMap = loadMaterialTexture(aiMat, aiTextureType_NORMALS);
-        TextureID metallicMap = loadMaterialTexture(aiMat, aiTextureType_METALNESS);
-        TextureID roughnessMap = loadMaterialTexture(aiMat, aiTextureType_DIFFUSE_ROUGHNESS);
-        // sometimes gltf models have metal and roughness in a single texture
-        if (metallicMap == 0 || roughnessMap == 0) {
-            // the metallic-roughness texture is sometimes stored in aiTextureType_UNKNOWN
-            metallicMap = loadMaterialTexture(aiMat, aiTextureType_UNKNOWN);
-            materialParams.metalRoughnessCombined = true;
-        }
-        TextureID aoMap = loadMaterialTexture(aiMat, aiTextureType_LIGHTMAP);
-
-        textures = {diffuseMap, normalMap, metallicMap, roughnessMap, aoMap};
-        materialParams.albedoTextureID = diffuseMap;
-        materialParams.normalTextureID = normalMap;
-        materialParams.metallicTextureID = metallicMap;
-        materialParams.roughnessTextureID = roughnessMap;
-        materialParams.aoTextureID = aoMap;
-
         meshParams.material = new PBRMaterial(materialParams);
     }
 
@@ -272,6 +239,117 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
     meshParams.IBL = IBL;
 
     return new Mesh(meshParams);
+}
+
+void Model::processGLTFMaterial(const aiMaterial* aiMat, PBRMaterialCreateParams &materialParams) {
+    aiString baseColorPath;
+    aiString normalPath;
+    aiString AOPath;
+    aiString MRPath;
+    aiTextureMapMode mapMode[3];
+    aiString alphaMode;
+
+    aiColor4D baseColorFactor;
+    float metallicFactor = 1.0;
+    float roughnessFactor = 1.0;
+
+    if (aiMat->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode) == AI_SUCCESS) {
+        if (alphaMode == aiString("BLEND")) {
+            materialParams.transparent = true;
+        }
+        else if (alphaMode == aiString("MASK")) {
+            materialParams.transparent = true;
+            float maskThreshold = 0.1;
+            aiMat->Get(AI_MATKEY_GLTF_ALPHACUTOFF, maskThreshold);
+            materialParams.maskThreshold = maskThreshold;
+        }
+    }
+
+    // load textures
+    if (aiMat->GetTexture(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_TEXTURE, &baseColorPath,
+                          nullptr, nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
+        TextureID diffuseMap = loadMaterialTexture(aiMat, baseColorPath, true);
+        materialParams.albedoTextureID = diffuseMap;
+    }
+
+    if (aiMat->GetTexture(aiTextureType_NORMALS, 0, &normalPath, nullptr,
+                          nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
+        TextureID normalMap = loadMaterialTexture(aiMat, normalPath);
+        materialParams.normalTextureID = normalMap;
+    }
+
+    materialParams.metalRoughnessCombined = true;
+    if (aiMat->GetTexture(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLICROUGHNESS_TEXTURE, &MRPath,
+                          nullptr, nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
+        TextureID metallicRoughnessMap = loadMaterialTexture(aiMat, MRPath);
+        materialParams.metallicTextureID = metallicRoughnessMap;
+    }
+
+    if (aiMat->GetTexture(aiTextureType_LIGHTMAP, 0, &AOPath, nullptr,
+                          nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
+        TextureID aoMap = loadMaterialTexture(aiMat, AOPath);
+        materialParams.aoTextureID = aoMap;
+    }
+
+    if (aiMat->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLIC_FACTOR, metallicFactor) == AI_SUCCESS) {
+        materialParams.metallicFactor = metallicFactor;
+    }
+
+    if (aiMat->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_ROUGHNESS_FACTOR, roughnessFactor) == AI_SUCCESS) {
+        materialParams.roughnessFactor = roughnessFactor;
+    }
+
+    if (aiMat->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_FACTOR, baseColorFactor) == AI_SUCCESS) {
+        materialParams.colorFactor = glm::vec3(baseColorFactor.r, baseColorFactor.g, baseColorFactor.b);
+    }
+}
+
+void Model::processNonGLTFMaterial(const aiMaterial* aiMat, PBRMaterialCreateParams &materialParams) {
+    aiString baseColorPath;
+    aiString normalPath;
+    aiString AOPath;
+    aiString MPath;
+    aiString RPath;
+    aiTextureMapMode mapMode[3];
+
+    // load textures
+    if (aiMat->GetTexture(aiTextureType_DIFFUSE, 0, &baseColorPath, nullptr,
+                          nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
+        TextureID diffuseMap = loadMaterialTexture(aiMat, baseColorPath, true);
+        materialParams.albedoTextureID = diffuseMap;
+    }
+
+    if (aiMat->GetTexture(aiTextureType_NORMALS, 0, &normalPath, nullptr,
+                          nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
+        TextureID normalMap = loadMaterialTexture(aiMat, normalPath);
+        materialParams.normalTextureID = normalMap;
+    }
+
+    if (aiMat->GetTexture(aiTextureType_METALNESS, 0, &MPath, nullptr,
+                          nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
+        TextureID metallicMap = loadMaterialTexture(aiMat, MPath);
+        materialParams.metallicTextureID = metallicMap;
+    }
+    if (aiMat->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &RPath, nullptr,
+                          nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
+        TextureID roughnessMap = loadMaterialTexture(aiMat, RPath);
+        materialParams.roughnessTextureID = roughnessMap;
+    }
+    // if the metallic-roughness texture is not found, try to load a combined texture
+    if (materialParams.metallicTextureID == 0 || materialParams.roughnessTextureID == 0) {
+        if (aiMat->GetTexture(aiTextureType_UNKNOWN, 0, &MPath, nullptr,
+                              nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
+            TextureID metallicRoughnessMap = loadMaterialTexture(aiMat, MPath);
+            materialParams.metallicTextureID = metallicRoughnessMap;
+            materialParams.metalRoughnessCombined = true;
+        }
+    }
+
+    if (aiMat->GetTexture(aiTextureType_LIGHTMAP, 0, &AOPath, nullptr,
+                          nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
+        TextureID aoMap = loadMaterialTexture(aiMat, AOPath);
+        materialParams.aoTextureID = aoMap;
+    }
 }
 
 int32_t Model::getEmbeddedTextureId(const aiString &path) {
@@ -287,16 +365,7 @@ int32_t Model::getEmbeddedTextureId(const aiString &path) {
     return -1;
 }
 
-TextureID Model::loadMaterialTexture(aiMaterial const* mat, aiTextureType type) {
-    // if the texture type doesn't exist, return 0
-    if (mat->GetTextureCount(type) == 0) {
-        return 0;
-    }
-
-    // else if the texture type exists, load the texture
-    aiString aiTexturePath;
-    mat->GetTexture(type, 0, &aiTexturePath); // only grab the first texture of each type
-
+TextureID Model::loadMaterialTexture(aiMaterial const* aiMat, aiString aiTexturePath, bool shouldGammaCorrect) {
     std::string texturePath = rootDirectory;
     texturePath = texturePath.append(aiTexturePath.C_Str());
     std::replace(texturePath.begin(), texturePath.end(), '\\', '/');
@@ -306,8 +375,7 @@ TextureID Model::loadMaterialTexture(aiMaterial const* mat, aiTextureType type) 
         return texturesLoaded[texturePath].ID;
     }
 
-    // only gamma correct color textures
-    bool shouldGammaCorrect = (type == aiTextureType_DIFFUSE && gammaCorrected);
+    shouldGammaCorrect &= gammaCorrected;
 
     // if texture is embedded into the file, read it from memory
     int32_t embeddedId = getEmbeddedTextureId(aiTexturePath);
