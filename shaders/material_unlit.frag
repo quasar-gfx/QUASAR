@@ -21,15 +21,15 @@ const int AlphaTransparent = 2;
 // material
 struct Material {
     vec3 baseColor;
-    float opacity;
+    vec4 baseColorFactor;
 
     int alphaMode;
     float maskThreshold;
 
-    bool diffuseMapped; // use diffuse map
+    bool hasBaseColorMap; // use diffuse map
 
     // material textures
-    sampler2D diffuseMap; // 0
+    sampler2D baseColorMap; // 0
 };
 
 uniform Material material;
@@ -37,23 +37,21 @@ uniform Material material;
 uniform vec3 camPos;
 
 void main() {
-    // material properties
-    vec4 color = texture(material.diffuseMap, fsIn.TexCoords);
-
-    if (!material.diffuseMapped) {
-        color.rgb = material.baseColor;
-        color.a = material.opacity;
+    vec4 baseColor;
+    if (material.hasBaseColorMap) {
+        baseColor = texture(material.baseColorMap, fsIn.TexCoords) * material.baseColorFactor;
     }
     else {
-        color.rgb *= fsIn.Color;
+        baseColor = material.baseColorFactor;
     }
+    baseColor.rgb *= fsIn.Color;
 
-    float alpha = (material.alphaMode == AlphaOpaque) ? 1.0 : color.a;
+    float alpha = (material.alphaMode == AlphaOpaque) ? 1.0 : baseColor.a;
     if (alpha < material.maskThreshold)
         discard;
 
     positionBuffer = vec4(fsIn.FragPos, 1.0);
     normalsBuffer = vec4(normalize(fsIn.Normal), 1.0);
     idBuffer = vec4(fsIn.VertexID, 0.0, 0.0, 0.0);
-    FragColor = vec4(color.rgb, alpha);
+    FragColor = vec4(baseColor.rgb, alpha);
 }

@@ -258,7 +258,7 @@ int main(int argc, char** argv) {
     Mesh meshWireframe = Mesh({
         .vertices = std::vector<Vertex>(numVertices),
         .indices = std::vector<unsigned int>(indexBufferSize),
-        .material = new UnlitMaterial({ .color = glm::vec3(1.0f, 1.0f, 0.0f) }),
+        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
         .wireframe = true,
         .pointcloud = false,
     });

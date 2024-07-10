@@ -36,11 +36,13 @@
         {
             "path": "../assets/models/cerberus/cerberus.fbx",
             "material": 2,
+            "IBL": 1.0,
             "flipTextures": true
         },
         {
             "path": "../assets/models/DamagedHelmet.glb",
             "gammaCorrected": true,
+            "IBL": 1.0,
             "flipTextures": true
         }
     ],

@@ -4,8 +4,8 @@
 #include <Materials/Material.h>
 
 struct UnlitMaterialCreateParams {
-    glm::vec3 color = glm::vec3(1.0f);
-    float opacity = 1.0f;
+    glm::vec4 baseColor = glm::vec4(1.0f);
+    glm::vec4 baseColorFactor = glm::vec4(1.0f);
     AlphaMode alphaMode = AlphaMode::OPAQUE;
     float maskThreshold = 0.5f;
     std::string diffuseTexturePath = "";
@@ -14,8 +14,8 @@ struct UnlitMaterialCreateParams {
 
 class UnlitMaterial : public Material {
 public:
-    glm::vec3 color = glm::vec3(1.0f);
-    float opacity = 1.0f;
+    glm::vec4 baseColor = glm::vec4(1.0f);
+    glm::vec4 baseColorFactor = glm::vec4(1.0f);
     AlphaMode alphaMode = AlphaMode::OPAQUE;
     float maskThreshold = 0.5f;
 

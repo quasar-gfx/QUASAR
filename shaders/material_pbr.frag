@@ -20,9 +20,8 @@ const int AlphaTransparent = 2;
 
 // material
 struct Material {
-    vec3 baseColor;
-    vec3 baseColorFactor;
-    float opacity;
+    vec4 baseColor;
+    vec4 baseColorFactor;
 
     int alphaMode;
     float maskThreshold;
@@ -32,23 +31,25 @@ struct Material {
     float roughness;
     float roughnessFactor;
 
-    bool albedoMapped; // use albedo map
-    bool normalMapped; // use normal map
-    bool aoMapped; // use ao map
+    bool hasBaseColorMap; // use albedo map
+    bool hasNormalMap; // use normal map
+    bool hasAOMap; // use ao map
+    bool hasEmissiveMap; // use emissive map
     bool metalRoughnessCombined; // use combined metal/roughness map
 
     // material textures
-    sampler2D albedoMap; // 0
+    sampler2D baseColorMap; // 0
     sampler2D normalMap; // 1
     sampler2D metallicMap; // 2
     sampler2D roughnessMap; // 3
     sampler2D aoMap; // 4
+    sampler2D emissiveMap; // 5
 
     // IBL
     float IBL; // IBL contribution
-    samplerCube irradianceMap; // 5
-    samplerCube prefilterMap; // 6
-    sampler2D brdfLUT; // 7
+    samplerCube irradianceMap; // 6
+    samplerCube prefilterMap; // 7
+    sampler2D brdfLUT; // 8
 };
 
 // lights
@@ -91,8 +92,8 @@ uniform DirectionalLight directionalLight;
 uniform PointLight pointLights[MAX_POINT_LIGHTS];
 
 // shadow maps
-uniform sampler2D dirLightShadowMap; // 8
-uniform samplerCube pointLightShadowMaps[MAX_POINT_LIGHTS]; // 9+
+uniform sampler2D dirLightShadowMap; // 9
+uniform samplerCube pointLightShadowMaps[MAX_POINT_LIGHTS]; // 10+
 
 uniform vec3 camPos;
 
@@ -149,7 +150,7 @@ vec3 getNormal() {
 	vec3 T = normalize(fsIn.Tangent);
 	vec3 B = normalize(fsIn.BiTangent);
 
-    if (!material.normalMapped)
+    if (!material.hasNormalMap)
         return N;
 
     // HACK: sometimes bitangent is nan, so recompute it
@@ -330,20 +331,18 @@ vec3 calcPointLight(PointLight light, samplerCube pointLightShadowMap, PBRInfo p
 }
 
 void main() {
-    // material properties
-    vec4 color = texture(material.albedoMap, fsIn.TexCoords);
-
-    if (!material.albedoMapped) {
-        color.rgb = material.baseColorFactor * material.baseColor;
-        color.a = material.opacity;
+    vec4 baseColor;
+    if (material.hasBaseColorMap) {
+        baseColor = texture(material.baseColorMap, fsIn.TexCoords) * material.baseColorFactor;
     }
     else {
-        color.rgb *= fsIn.Color;
+        baseColor = material.baseColorFactor;
     }
+    baseColor.rgb *= fsIn.Color;
 
     // albedo
-    vec3 albedo = color.rgb;
-    float alpha = (material.alphaMode == AlphaOpaque) ? 1.0 : color.a;
+    vec3 albedo = baseColor.rgb;
+    float alpha = (material.alphaMode == AlphaOpaque) ? 1.0 : baseColor.a;
     if (alpha < material.maskThreshold)
         discard;
 
@@ -363,11 +362,8 @@ void main() {
     vec3 V = normalize(camPos - fsIn.FragPos);
     vec3 R = reflect(-V, N);
 
-    // ambient occlusion
-    float ao = texture(material.aoMap, fsIn.TexCoords).r;
-
     // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0
-    // of 0.04 and if it's a metal, use the albedo color as F0 (metallic workflow)
+    // of 0.04 and if it's a metal, use the albedo baseColor as F0 (metallic workflow)
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo, metallic);
 
@@ -387,8 +383,15 @@ void main() {
         ambient += material.IBL * getIBLContribution(pbrInputs);
     }
 
+    // apply emissive component
+    if (material.hasEmissiveMap) {
+        vec3 emissive = texture(material.emissiveMap, fsIn.TexCoords).rgb;
+        radianceOut += emissive;
+    }
+
     // apply ambient occlusion
-    if (material.aoMapped) {
+    if (material.hasAOMap) {
+        float ao = texture(material.aoMap, fsIn.TexCoords).r;
         ambient *= ao;
     }
 

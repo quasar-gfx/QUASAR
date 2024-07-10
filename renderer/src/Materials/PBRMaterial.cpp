@@ -56,6 +56,15 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params) {
         textures.push_back(params.aoTextureID);
     }
 
+    if (params.emissiveTexturePath != "") {
+        textureParams.path = params.emissiveTexturePath;
+        Texture texture = Texture(textureParams);
+        textures.push_back(texture.ID);
+    }
+    else {
+        textures.push_back(params.emissiveTextureID);
+    }
+
     ShaderDataCreateParams pbrShaderParams{
         .vertexCodeData = SHADER_COMMON_VERT,
         .vertexCodeSize = SHADER_COMMON_VERT_len,
@@ -65,9 +74,8 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params) {
     };
     shader = std::make_unique<Shader>(pbrShaderParams);
 
-    color = params.color;
-    colorFactor = params.colorFactor;
-    opacity = params.opacity;
+    baseColor = params.baseColor;
+    baseColorFactor = params.baseColorFactor;
     alphaMode = params.alphaMode;
     maskThreshold = params.maskThreshold;
     metallic = params.metallic;
@@ -79,9 +87,8 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params) {
 
 void PBRMaterial::bind() const {
     shader->bind();
-    shader->setVec3("material.baseColor", color);
-    shader->setVec3("material.baseColorFactor", colorFactor);
-    shader->setFloat("material.opacity", opacity);
+    shader->setVec4("material.baseColor", baseColor);
+    shader->setVec4("material.baseColorFactor", baseColorFactor);
     shader->setInt("material.alphaMode", static_cast<int>(alphaMode));
     shader->setFloat("material.maskThreshold", maskThreshold);
     shader->setFloat("material.metallic", metallic);
@@ -95,12 +102,12 @@ void PBRMaterial::bind() const {
         glActiveTexture(GL_TEXTURE0 + i);
         switch(i) {
         case 0:
-            name = "material.albedoMap";
-            shader->setBool("material.albedoMapped", textures[i] != 0);
+            name = "material.baseColorMap";
+            shader->setBool("material.hasBaseColorMap", textures[i] != 0);
             break;
         case 1:
             name = "material.normalMap";
-            shader->setBool("material.normalMapped", textures[i] != 0);
+            shader->setBool("material.hasNormalMap", textures[i] != 0);
             break;
         case 2:
             name = "material.metallicMap";
@@ -110,7 +117,11 @@ void PBRMaterial::bind() const {
             break;
         case 4:
             name = "material.aoMap";
-            shader->setBool("material.aoMapped", textures[i] != 0);
+            shader->setBool("material.hasAOMap", textures[i] != 0);
+            break;
+        case 5:
+            name = "material.emissiveMap";
+            shader->setBool("material.hasEmissiveMap", textures[i] != 0);
             break;
         default:
             break;

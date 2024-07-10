@@ -9,7 +9,7 @@
     "models": [
         {
             "path": "~/Desktop/Models/San_Miguel/San_Miguel.glb",
-            "IBL": 0.1,
+            "IBL": 1.0,
             "gammaCorrected": true
         }
     ],

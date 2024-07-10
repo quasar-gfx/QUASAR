@@ -1,3 +1,4 @@
+// adpated from: https://github.com/google/filament/blob/main/libs/filamentapp/src/MeshAssimp.cpp
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -8,6 +9,7 @@
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
+#include <assimp/cimport.h>
 #include <assimp/pbrmaterial.h>
 
 #include <Primatives/Model.h>
@@ -86,7 +88,11 @@ void Model::loadFromFile(const ModelCreateParams &params) {
     }
 
     std::string extension = path.substr(path.find_last_of('.') + 1);
-    isGLTF = extension == "gltf" || extension == "glb";
+    size_t index = importer.GetImporterIndex(extension.c_str());
+    const aiImporterDesc* importerDesc = importer.GetImporterInfo(index);
+    isGLTF = importerDesc &&
+            (!strncmp("glTF Importer",  importerDesc->mName, 13) ||
+             !strncmp("glTF2 Importer", importerDesc->mName, 14));
 
     rootDirectory = path.substr(0, path.find_last_of('/'))  + '/';
 
@@ -194,9 +200,9 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
         }
 
         aiColor3D color;
-        glm::vec3 baseColor = glm::vec3(1.0f);
+        glm::vec4 baseColor = glm::vec4(1.0f);
         if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS) {
-            baseColor = glm::vec3(color.r, color.g, color.b);
+            baseColor = glm::vec4(color.r, color.g, color.b, baseColor.a);
         }
 
         float opacity;
@@ -204,7 +210,7 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
             opacity = 1.0f;
         }
         if (opacity <= 0.0f) opacity = 1.0f;
-        materialParams.opacity = opacity;
+        baseColor.a = opacity;
 
         float shininess;
         if (aiMat->Get(AI_MATKEY_SHININESS, shininess) != AI_SUCCESS) {
@@ -220,14 +226,15 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
             // if there's a non-grey specular color, assume a metallic surface
             if (color.r != color.g && color.r != color.b) {
                 materialParams.metallic = 1.0f;
-                materialParams.color = glm::vec3(color.r, color.g, color.b);
+                baseColor = glm::vec4(color.r, color.g, color.b, baseColor.a);
             } else {
                 if (baseColor.r == 0.0f && baseColor.g == 0.0f && baseColor.b == 0.0f) {
                     materialParams.metallic = 1.0f;
-                    materialParams.color = glm::vec3(color.r, color.g, color.b);
+                    baseColor = glm::vec4(color.r, color.g, color.b, baseColor.a);
                 }
             }
         }
+        materialParams.baseColor = baseColor;
 
         meshParams.material = new PBRMaterial(materialParams);
     }
@@ -242,12 +249,13 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
 }
 
 void Model::processGLTFMaterial(const aiMaterial* aiMat, PBRMaterialCreateParams &materialParams) {
+    aiString alphaMode;
     aiString baseColorPath;
     aiString normalPath;
     aiString AOPath;
     aiString MRPath;
+    aiString emissivePath;
     aiTextureMapMode mapMode[3];
-    aiString alphaMode;
 
     aiColor4D baseColorFactor;
     float metallicFactor = 1.0;
@@ -268,8 +276,8 @@ void Model::processGLTFMaterial(const aiMaterial* aiMat, PBRMaterialCreateParams
     // load textures
     if (aiMat->GetTexture(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_TEXTURE, &baseColorPath,
                           nullptr, nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
-        TextureID diffuseMap = loadMaterialTexture(aiMat, baseColorPath, true);
-        materialParams.albedoTextureID = diffuseMap;
+        TextureID baseColorMap = loadMaterialTexture(aiMat, baseColorPath, true);
+        materialParams.albedoTextureID = baseColorMap;
     }
 
     if (aiMat->GetTexture(aiTextureType_NORMALS, 0, &normalPath, nullptr,
@@ -291,6 +299,13 @@ void Model::processGLTFMaterial(const aiMaterial* aiMat, PBRMaterialCreateParams
         materialParams.aoTextureID = aoMap;
     }
 
+    if (aiMat->GetTexture(aiTextureType_EMISSIVE, 0, &emissivePath, nullptr,
+                          nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
+        TextureID emissiveMap = loadMaterialTexture(aiMat, emissivePath);
+        materialParams.emissiveTextureID = emissiveMap;
+    }
+
+    // load factors
     if (aiMat->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLIC_FACTOR, metallicFactor) == AI_SUCCESS) {
         materialParams.metallicFactor = metallicFactor;
     }
@@ -300,7 +315,14 @@ void Model::processGLTFMaterial(const aiMaterial* aiMat, PBRMaterialCreateParams
     }
 
     if (aiMat->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_FACTOR, baseColorFactor) == AI_SUCCESS) {
-        materialParams.colorFactor = glm::vec3(baseColorFactor.r, baseColorFactor.g, baseColorFactor.b);
+        materialParams.baseColorFactor = glm::vec4(baseColorFactor.r, baseColorFactor.g, baseColorFactor.b, baseColorFactor.a);
+    }
+
+    aiBool isSpecularGlossiness = false;
+    if (aiMat->Get(AI_MATKEY_GLTF_PBRSPECULARGLOSSINESS, isSpecularGlossiness) == AI_SUCCESS) {
+        if (isSpecularGlossiness) {
+            std::cout << "PBR Specular-Glossiness workflows are not supported" << std::endl;
+        }
     }
 }
 
@@ -310,13 +332,14 @@ void Model::processNonGLTFMaterial(const aiMaterial* aiMat, PBRMaterialCreatePar
     aiString AOPath;
     aiString MPath;
     aiString RPath;
+    aiString emissivePath;
     aiTextureMapMode mapMode[3];
 
     // load textures
     if (aiMat->GetTexture(aiTextureType_DIFFUSE, 0, &baseColorPath, nullptr,
                           nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
-        TextureID diffuseMap = loadMaterialTexture(aiMat, baseColorPath, true);
-        materialParams.albedoTextureID = diffuseMap;
+        TextureID baseColorMap = loadMaterialTexture(aiMat, baseColorPath, true);
+        materialParams.albedoTextureID = baseColorMap;
     }
 
     if (aiMat->GetTexture(aiTextureType_NORMALS, 0, &normalPath, nullptr,
@@ -350,10 +373,16 @@ void Model::processNonGLTFMaterial(const aiMaterial* aiMat, PBRMaterialCreatePar
         TextureID aoMap = loadMaterialTexture(aiMat, AOPath);
         materialParams.aoTextureID = aoMap;
     }
+
+    if (aiMat->GetTexture(aiTextureType_EMISSIVE, 0, &emissivePath, nullptr,
+                          nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
+        TextureID emissiveMap = loadMaterialTexture(aiMat, emissivePath);
+        materialParams.emissiveTextureID = emissiveMap;
+    }
 }
 
 int32_t Model::getEmbeddedTextureId(const aiString &path) {
-    const char *pathStr = path.C_Str();
+    const char* pathStr = path.C_Str();
     if (path.length >= 2 && pathStr[0] == '*') { // seems like assimp uses * as a prefix for embedded textures
         for (int i = 1; i < path.length; i++) {
             if (!isdigit(pathStr[i])) {

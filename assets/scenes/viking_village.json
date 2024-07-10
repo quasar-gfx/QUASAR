@@ -9,12 +9,12 @@
     "models": [
         {
             "path": "~/Desktop/Models/VikingVillage.glb",
-            "IBL": 0.05,
+            "IBL": 1.0,
             "gammaCorrected": true
         },
         {
             "path": "~/Desktop/Models/VikingVillageWater.glb",
-            "IBL": 0.6,
+            "IBL": 1.0,
             "gammaCorrected": true
         }
     ],
@@ -43,14 +43,14 @@
     },
     "ambientLight": {
         "color": [1.0, 1.0, 1.0],
-        "intensity": 0.25
+        "intensity": 0.1
     },
     "directionalLight": {
         "color": [1.0, 0.58, 0.29],
         "direction": [-2.5, -5, 0],
         "distance": 100.0,
         "intensity": 5.0,
-        "orthoBoxSize": 200.0
+        "orthoBoxSize": 250.0
     },
     "pointLights": [
         {

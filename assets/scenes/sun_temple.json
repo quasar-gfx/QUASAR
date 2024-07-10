@@ -9,7 +9,7 @@
     "models": [
         {
             "path": "~/Desktop/Models/SunTemple.glb",
-            "IBL": 0.5,
+            "IBL": 1.0,
             "gammaCorrected": true
         }
     ],
@@ -43,7 +43,7 @@
     "pointLights": [
         {
             "color": [1.0, 0.75, 0.0],
-            "position": [5.0, 5.0, 5.0],
+            "position": [0.0, 5.0, 5.0],
             "intensity": 7.5,
             "constant": 1.0,
             "linear": 0.14,
@@ -51,7 +51,7 @@
         },
         {
             "color": [1.0, 0.75, 0.0],
-            "position": [-5.0, 5.0, 5.0],
+            "position": [0.0, 5.0, 25.0],
             "intensity": 7.5,
             "constant": 1.0,
             "linear": 0.14,
@@ -59,7 +59,7 @@
         },
         {
             "color": [1.0, 0.75, 0.0],
-            "position": [5.0, 5.0, -5.0],
+            "position": [0.0, 5.0, 45.0],
             "intensity": 7.5,
             "constant": 1.0,
             "linear": 0.14,
@@ -67,7 +67,7 @@
         },
         {
             "color": [1.0, 0.75, 0.0],
-            "position": [-5.0, 5.0, -5.0],
+            "position": [0.0, 5.0, 60.0],
             "intensity": 7.5,
             "constant": 1.0,
             "linear": 0.14,

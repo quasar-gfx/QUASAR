@@ -78,7 +78,7 @@ int createMesh(Mesh* mesh, Mesh* wireframeMesh, std::string label) {
     *wireframeMesh = Mesh({
         .vertices = vertices,
         .indices = indices,
-        .material = new UnlitMaterial({ .color = glm::vec3(1.0f, 1.0f, 0.0f) }),
+        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
         .wireframe = true,
         .pointcloud = false,
     });
