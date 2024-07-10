@@ -14,13 +14,17 @@ in VertexData {
     vec4 FragPosLightSpace;
 } fsIn;
 
+const int AlphaOpaque      = 0;
+const int AlphaMasked      = 1;
+const int AlphaTransparent = 2;
+
 // material
 struct Material {
     vec3 baseColor;
     vec3 baseColorFactor;
     float opacity;
 
-    bool transparent;
+    int alphaMode;
     float maskThreshold;
 
     float metallic;
@@ -28,6 +32,7 @@ struct Material {
     float roughness;
     float roughnessFactor;
 
+    bool albedoMapped; // use albedo map
     bool normalMapped; // use normal map
     bool aoMapped; // use ao map
     bool metalRoughnessCombined; // use combined metal/roughness map
@@ -328,9 +333,9 @@ void main() {
     // material properties
     vec4 color = texture(material.albedoMap, fsIn.TexCoords);
 
-    if (color.rgb == vec3(0.0) && material.baseColor != vec3(-1.0)) {
+    if (!material.albedoMapped) {
         color.rgb = material.baseColorFactor * material.baseColor;
-        color.a = (color.a != 1.0) ? color.a : material.opacity;
+        color.a = material.opacity;
     }
     else {
         color.rgb *= fsIn.Color;
@@ -338,7 +343,7 @@ void main() {
 
     // albedo
     vec3 albedo = color.rgb;
-    float alpha = (material.transparent) ? color.a : 1.0;
+    float alpha = (material.alphaMode == AlphaOpaque) ? 1.0 : color.a;
     if (alpha < material.maskThreshold)
         discard;
 

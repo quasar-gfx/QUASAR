@@ -4,20 +4,20 @@
 #include <Materials/Material.h>
 
 struct UnlitMaterialCreateParams {
-    glm::vec3 color = glm::vec3(-1.0f);
-    float opacity = 0.0f;
-    bool transparent = false;
-    float maskThreshold = 0.1f;
+    glm::vec3 color = glm::vec3(1.0f);
+    float opacity = 1.0f;
+    AlphaMode alphaMode = AlphaMode::OPAQUE;
+    float maskThreshold = 0.5f;
     std::string diffuseTexturePath = "";
     TextureID diffuseTextureID;
 };
 
 class UnlitMaterial : public Material {
 public:
-    glm::vec3 color = glm::vec3(-1.0f);
-    float opacity = 0.0f;
-    bool transparent = false;
-    float maskThreshold = 0.1f;
+    glm::vec3 color = glm::vec3(1.0f);
+    float opacity = 1.0f;
+    AlphaMode alphaMode = AlphaMode::OPAQUE;
+    float maskThreshold = 0.5f;
 
     explicit UnlitMaterial() = default;
     explicit UnlitMaterial(const UnlitMaterialCreateParams &params);

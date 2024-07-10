@@ -7,6 +7,12 @@
 #include <Shaders/Shader.h>
 #include <Texture.h>
 
+enum class AlphaMode : uint8_t {
+    OPAQUE = 0,
+    MASKED,
+    TRANSPARENT
+};
+
 class Material {
 public:
     std::vector<TextureID> textures;

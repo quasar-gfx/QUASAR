@@ -27,7 +27,7 @@ UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams &params) {
 
     color = params.color;
     opacity = params.opacity;
-    transparent = params.transparent;
+    alphaMode = params.alphaMode;
     maskThreshold = params.maskThreshold;
 }
 
@@ -35,11 +35,12 @@ void UnlitMaterial::bind() const {
     shader->bind();
     shader->setVec3("material.baseColor", color);
     shader->setFloat("material.opacity", opacity);
-    shader->setBool("material.transparent", transparent);
+    shader->setInt("material.alphaMode", static_cast<int>(alphaMode));
     shader->setFloat("material.maskThreshold", maskThreshold);
 
     std::string name = "material.diffuseMap";
     glActiveTexture(GL_TEXTURE0);
+    shader->setBool("material.diffuseMapped", textures[0] != 0);
 
     shader->setInt(name, 0);
     glBindTexture(GL_TEXTURE_2D, textures[0]);

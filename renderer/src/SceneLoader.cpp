@@ -226,8 +226,21 @@ int SceneLoader::parseMaterial(jsmntok_t* tokens, int i, const char* json, Scene
         else if (compare(tok, json, "aoTexturePath") == 0) {
             i = parseString(tokens, i + 1, json, &params.aoTexturePath);
         }
-        else if (compare(tok, json, "transparent") == 0) {
-            i = parseBool(tokens, i + 1, json, &params.transparent);
+        else if (compare(tok, json, "alphaMode") == 0) {
+            std::string alphaMode;
+            i = parseString(tokens, i + 1, json, &alphaMode);
+            if (alphaMode == "opaque") {
+                params.alphaMode = AlphaMode::OPAQUE;
+            }
+            else if (alphaMode == "masked") {
+                params.alphaMode = AlphaMode::MASKED;
+            }
+            else if (alphaMode == "transparent") {
+                params.alphaMode = AlphaMode::TRANSPARENT;
+            }
+        }
+        else if (compare(tok, json, "maskThreshold") == 0) {
+            i = parseFloat(tokens, i + 1, json, &params.maskThreshold);
         }
         else {
             i = parse(tokens, i + 1);

@@ -14,13 +14,19 @@ in VertexData {
     vec4 FragPosLightSpace;
 } fsIn;
 
+const int AlphaOpaque      = 0;
+const int AlphaMasked      = 1;
+const int AlphaTransparent = 2;
+
 // material
 struct Material {
     vec3 baseColor;
     float opacity;
 
-    bool transparent;
+    int alphaMode;
     float maskThreshold;
+
+    bool diffuseMapped; // use diffuse map
 
     // material textures
     sampler2D diffuseMap; // 0
@@ -34,15 +40,15 @@ void main() {
     // material properties
     vec4 color = texture(material.diffuseMap, fsIn.TexCoords);
 
-    if (color.rgb == vec3(0.0) && material.baseColor != vec3(-1.0)) {
+    if (!material.diffuseMapped) {
         color.rgb = material.baseColor;
-        color.a = (color.a != 1.0) ? color.a : material.opacity;
+        color.a = material.opacity;
     }
     else {
         color.rgb *= fsIn.Color;
     }
 
-    float alpha = (material.transparent) ? color.a : 1.0;
+    float alpha = (material.alphaMode == AlphaOpaque) ? 1.0 : color.a;
     if (alpha < material.maskThreshold)
         discard;
 

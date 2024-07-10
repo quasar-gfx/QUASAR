@@ -68,7 +68,7 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params) {
     color = params.color;
     colorFactor = params.colorFactor;
     opacity = params.opacity;
-    transparent = params.transparent;
+    alphaMode = params.alphaMode;
     maskThreshold = params.maskThreshold;
     metallic = params.metallic;
     metallicFactor = params.metallicFactor;
@@ -82,7 +82,7 @@ void PBRMaterial::bind() const {
     shader->setVec3("material.baseColor", color);
     shader->setVec3("material.baseColorFactor", colorFactor);
     shader->setFloat("material.opacity", opacity);
-    shader->setBool("material.transparent", transparent);
+    shader->setInt("material.alphaMode", static_cast<int>(alphaMode));
     shader->setFloat("material.maskThreshold", maskThreshold);
     shader->setFloat("material.metallic", metallic);
     shader->setFloat("material.metallicFactor", metallicFactor);
@@ -96,6 +96,7 @@ void PBRMaterial::bind() const {
         switch(i) {
         case 0:
             name = "material.albedoMap";
+            shader->setBool("material.albedoMapped", textures[i] != 0);
             break;
         case 1:
             name = "material.normalMap";

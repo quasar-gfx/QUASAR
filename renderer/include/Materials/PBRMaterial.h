@@ -4,11 +4,11 @@
 #include <Materials/Material.h>
 
 struct PBRMaterialCreateParams {
-    glm::vec3 color = glm::vec3(-1.0f);
+    glm::vec3 color = glm::vec3(1.0f);
     glm::vec3 colorFactor = glm::vec3(1.0f);
-    float opacity = 0.0f;
-    bool transparent = false;
-    float maskThreshold = 0.1f;
+    float opacity = 1.0f;
+    AlphaMode alphaMode = AlphaMode::OPAQUE;
+    float maskThreshold = 0.5f;
     float metallic = -1.0f;
     float metallicFactor = 1.0f;
     float roughness = -1.0f;
@@ -29,11 +29,11 @@ struct PBRMaterialCreateParams {
 
 class PBRMaterial : public Material {
 public:
-    glm::vec3 color = glm::vec3(-1.0f);
+    glm::vec3 color = glm::vec3(1.0f);
     glm::vec3 colorFactor = glm::vec3(1.0f);
-    float opacity = 0.0f;
-    bool transparent = false;
-    float maskThreshold = 0.1f;
+    float opacity = 1.0f;
+    AlphaMode alphaMode = AlphaMode::OPAQUE;
+    float maskThreshold = 0.5f;
 
     float metallic = -1.0f;
     float metallicFactor = 1.0f;

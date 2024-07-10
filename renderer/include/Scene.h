@@ -22,7 +22,7 @@ public:
 
     bool hasPBREnvMap = false;
 
-    glm::vec4 backgroundColor = glm::vec4(0.1f, 0.1f, 0.1f, 1.0f);
+    glm::vec4 backgroundColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
     // create an irradiance cubemap, and rescale capture FBO to irradiance scale
     CubeMap irradianceCubeMap;

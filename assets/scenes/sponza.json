@@ -34,7 +34,8 @@
         {
             "PBR": true,
             "albedoTexturePath": "../assets/textures/window.png",
-            "transparent": true
+            "alphaMode": "masked",
+            "maskThreshold": 0.1
         }
     ],
     "models": [

@@ -215,19 +215,19 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
         float roughness = sqrt(2.0f / (shininess + 2.0f));
         materialParams.roughness = roughness;
 
+        materialParams.metallic = 0.0f;
         if (aiMat->Get(AI_MATKEY_COLOR_SPECULAR, color) == AI_SUCCESS) {
             // if there's a non-grey specular color, assume a metallic surface
             if (color.r != color.g && color.r != color.b) {
                 materialParams.metallic = 1.0f;
-                baseColor = glm::vec3(color.r, color.g, color.b);
+                materialParams.color = glm::vec3(color.r, color.g, color.b);
             } else {
                 if (baseColor.r == 0.0f && baseColor.g == 0.0f && baseColor.b == 0.0f) {
                     materialParams.metallic = 1.0f;
-                    baseColor = glm::vec3(color.r, color.g, color.b);
+                    materialParams.color = glm::vec3(color.r, color.g, color.b);
                 }
             }
         }
-        materialParams.color = baseColor;
 
         meshParams.material = new PBRMaterial(materialParams);
     }
@@ -254,12 +254,12 @@ void Model::processGLTFMaterial(const aiMaterial* aiMat, PBRMaterialCreateParams
     float roughnessFactor = 1.0;
 
     if (aiMat->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode) == AI_SUCCESS) {
-        if (alphaMode == aiString("BLEND")) {
-            materialParams.transparent = true;
+        if (strcmp(alphaMode.C_Str(), "BLEND") == 0) {
+            materialParams.alphaMode = AlphaMode::TRANSPARENT;
         }
-        else if (alphaMode == aiString("MASK")) {
-            materialParams.transparent = true;
-            float maskThreshold = 0.1;
+        else if (strcmp(alphaMode.C_Str(), "MASK") == 0) {
+            materialParams.alphaMode = AlphaMode::MASKED;
+            float maskThreshold = 0.5;
             aiMat->Get(AI_MATKEY_GLTF_ALPHACUTOFF, maskThreshold);
             materialParams.maskThreshold = maskThreshold;
         }
