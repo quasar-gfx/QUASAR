@@ -94,6 +94,14 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
         throw std::runtime_error("Video Streamer could not be created.");
     }
 
+    outputVideoStream->time_base = codecCtx->time_base;
+
+    ret = avcodec_parameters_from_context(outputVideoStream->codecpar, codecCtx);
+    if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Could not initialize stream codec parameters: %s\n", av_err2str(ret));
+        throw std::runtime_error("Video Streamer could not be created.");
+    }
+
     // Open output URL
     ret = avio_open(&outputFormatCtx->pb, this->videoURL.c_str(), AVIO_FLAG_WRITE);
     if (ret < 0) {
@@ -262,7 +270,8 @@ void VideoStreamer::encodeAndSendFrames() {
                 continue;
             }
 
-            packet->pts = framesSent * (outputFormatCtx->streams[0]->time_base.den) / targetFrameRate;
+            AVRational timeBase = outputFormatCtx->streams[videoStreamIndex]->time_base;
+            packet->pts = av_rescale_q(framesSent, (AVRational){1, targetFrameRate}, timeBase);
             packet->dts = packet->pts;
 
             stats.timeToEncodeMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - startEncodeTime);

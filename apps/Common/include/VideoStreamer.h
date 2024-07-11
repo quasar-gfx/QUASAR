@@ -79,7 +79,7 @@ private:
     AVFormatContext* outputFormatCtx = nullptr;
     AVCodecContext* codecCtx = nullptr;
 
-    int videoStreamIndex = -1;
+    int videoStreamIndex = 0;
     AVStream* outputVideoStream = nullptr;
 
     SwsContext* swsCtx = nullptr;

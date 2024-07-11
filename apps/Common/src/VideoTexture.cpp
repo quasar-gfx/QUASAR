@@ -25,8 +25,13 @@ int VideoTexture::initFFMpeg() {
     inputFormatCtx->interrupt_callback.callback = interrupt_callback;
     inputFormatCtx->interrupt_callback.opaque = &shouldTerminate;
 
+    AVDictionary* options = nullptr;
+    av_dict_set(&options, "protocol_whitelist", "file,udp,rtp", 0);
+    av_dict_set(&options, "buffer_size", "1000k", 0);
+    av_dict_set(&options, "max_delay", "500k", 0);
+
     /* Setup input (to read video from url) */
-    int ret = avformat_open_input(&inputFormatCtx, videoURL.c_str(), nullptr, nullptr); // blocking
+    int ret = avformat_open_input(&inputFormatCtx, videoURL.c_str(), nullptr, &options); // blocking
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Cannot open input URL: %s\n", av_err2str(ret));
         return ret;
