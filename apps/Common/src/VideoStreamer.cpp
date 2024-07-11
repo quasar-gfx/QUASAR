@@ -13,7 +13,7 @@ static int interrupt_callback(void* ctx) {
 }
 
 VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::string &videoURL, unsigned int targetBitRateMbps)
-        : videoURL("udp://" + videoURL)
+        : videoURL("rtp://" + videoURL)
         , targetBitRate(targetBitRateMbps * MBPS_TO_BPS)
         , RenderTarget(params) {
     videoWidth = width + poseIDOffset;
@@ -83,7 +83,7 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
     }
 
     /* Setup output (to write video to URL) */
-    ret = avformat_alloc_output_context2(&outputFormatCtx, nullptr, "mpegts", videoURL.c_str());
+    ret = avformat_alloc_output_context2(&outputFormatCtx, nullptr, "rtp", videoURL.c_str());
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate output context: %s\n", av_err2str(ret));
         throw std::runtime_error("Video Streamer could not be created.");
