@@ -20,7 +20,7 @@ const int AlphaTransparent = 2;
 
 // material
 struct Material {
-    vec3 baseColor;
+    vec4 baseColor;
     vec4 baseColorFactor;
 
     int alphaMode;
@@ -42,7 +42,7 @@ void main() {
         baseColor = texture(material.baseColorMap, fsIn.TexCoords) * material.baseColorFactor;
     }
     else {
-        baseColor = material.baseColorFactor;
+        baseColor = material.baseColor * material.baseColorFactor;
     }
     baseColor.rgb *= fsIn.Color;
 
