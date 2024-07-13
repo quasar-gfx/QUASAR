@@ -13,13 +13,13 @@ brew install cmake glew glfw3 glm ffmpeg
 
 # Building
 ```
-mkdir out
-cd out
+mkdir build
+cd build
 cmake ..
 make -j
 ```
 
-In the `out` directory, there will be a folder called `apps`,
+In the `build` directory, there will be a folder called `apps`,
 
 # Sample Apps
 
@@ -29,7 +29,7 @@ The test app loads a scene and allows you to fly through it.
 
 Run test app:
 ```
-# in out directory
+# in build directory
 cd apps/test
 ./test -size 2048x2048 --scene ../assets/scenes/sponza.json
 ```
@@ -40,14 +40,14 @@ Build ATW sample:
 
 To run streamer:
 ```
-# in out directory
+# in build directory
 cd apps/atw/streamer
 ./atw_streamer --size 2048x2048 --scene ../assets/scenes/sponza.json --display 1
 ```
 
 In a new terminal, to run receiver:
 ```
-# in out directory
+# in build directory
 cd apps/atw/receiver
 ./atw_receiver --size 2048x2048
 ```
@@ -58,14 +58,14 @@ Build MeshWarp sample:
 
 To run streamer:
 ```
-# in out directory
+# in build directory
 cd apps/meshwarp/streamer
 ./mw_streamer --size 2048x2048 --scene ../assets/scenes/sponza.json --display 1
 ```
 
 In a new terminal, to run receiver:
 ```
-# in out directory
+# in build directory
 cd apps/meshwarp/receiver
 ./mw_receiver --size 2048x2048
 ```

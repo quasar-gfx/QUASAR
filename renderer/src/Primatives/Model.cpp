@@ -1,6 +1,4 @@
 // adpated from: https://github.com/google/filament/blob/main/libs/filamentapp/src/MeshAssimp.cpp
-#include <fstream>
-#include <sstream>
 #include <iostream>
 
 #include <unistd.h>
@@ -13,8 +11,6 @@
 #include <assimp/pbrmaterial.h>
 
 #include <Primatives/Model.h>
-
-using Assimp::Importer;
 
 void Model::bindSceneAndCamera(const Scene &scene, const Camera &camera, const glm::mat4 &model, const Material* overrideMaterial) {
     for (auto& mesh : meshes) {
