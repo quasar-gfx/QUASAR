@@ -385,7 +385,8 @@ int main(int argc, char** argv) {
         }
 
         // dispatch compute shader to generate vertices and indices for mesh
-        genMeshShader.dispatch(width, height, 1);
+        genMeshShader.dispatch(width / 16, height / 16, 1);
+        genMeshShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         genMeshShader.unbind();
 
         poseStreamer.removePosesLessThan(std::min(poseIdColor, poseIdDepth));

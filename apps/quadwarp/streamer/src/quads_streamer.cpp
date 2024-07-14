@@ -187,6 +187,7 @@ int main(int argc, char** argv) {
             app.renderer->gBuffer.idBuffer.bind(2);
             app.renderer->gBuffer.depthBuffer.bind(3);
             genQuadsShader.dispatch(width, height, 1);
+            genQuadsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
             genQuadsShader.unbind();
 
             std::cout << "\tRendering Time: " << glfwGetTime() - startTime << "s" << std::endl;

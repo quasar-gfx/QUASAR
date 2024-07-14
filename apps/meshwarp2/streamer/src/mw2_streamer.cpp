@@ -186,6 +186,7 @@ int main(int argc, char** argv) {
             app.renderer->gBuffer.idBuffer.bind(2);
             app.renderer->gBuffer.depthBuffer.bind(3);
             genMesh2Shader.dispatch(width, height, 1);
+            genMesh2Shader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
             genMesh2Shader.unbind();
 
             std::cout << "\tRendering Time: " << glfwGetTime() - startTime << "s" << std::endl;

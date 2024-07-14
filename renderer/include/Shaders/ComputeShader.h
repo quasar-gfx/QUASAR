@@ -2,9 +2,6 @@
 #define COMPUTE_SHADER_H
 
 #include <string>
-#include <fstream>
-#include <sstream>
-#include <iostream>
 
 #include <Shaders/ShaderBase.h>
 
@@ -37,6 +34,7 @@ public:
     void loadFromData(const char* computeCodeData, const GLint computeCodeSize);
 
     void dispatch(GLuint numGroupsX, GLuint numGroupsY, GLuint numGroupsZ);
+    void memoryBarrier(GLbitfield barriers);
 
 private:
     void createAndCompileProgram(const char* computeCodeData, const GLint computeCodeSize);
