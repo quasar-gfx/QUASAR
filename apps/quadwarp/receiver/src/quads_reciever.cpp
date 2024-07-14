@@ -216,7 +216,6 @@ int main(int argc, char** argv) {
         scene.addChildNode(&nodes[i]);
 
         nodes[2*i+1] = Node(&wireframeMeshes[i]);
-        nodes[2*i+1].setPosition(glm::vec3(0.0f, 0.0005f, 0.0005f));
         scene.addChildNode(&nodes[i+1]);
     }
 
@@ -282,6 +281,8 @@ int main(int argc, char** argv) {
         for (auto& mesh : wireframeMeshes) {
             mesh.visible = renderState == RenderState::WIREFRAME;
         }
+
+        nodes[1].setPosition(nodes[0].getPosition() - camera.getForwardVector() * 0.0005f);
 
         // render all objects in scene
         trianglesDrawn = app.renderer->drawObjects(scene, camera);

@@ -47,6 +47,8 @@ public:
     void setViewMatrix(glm::mat4 view);
     void updateViewMatrix();
 
+    glm::vec3 getForwardVector() const { return front; }
+
     void processKeyboard(Keys keys, float deltaTime);
     void processMouseMovement(float xoffset, float yoffset, bool constrainPitch = true);
 

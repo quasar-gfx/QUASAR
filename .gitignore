@@ -1,6 +1,10 @@
-.vscode/
-.cache/
 .DS_Store
-
-build/
-out/
+.idea/
+.vscode/
+/.cache/
+/compile_commands.json
+imgui.ini
+cmake-*
+ImportExecutables-*.cmake
+/build*
+/out*

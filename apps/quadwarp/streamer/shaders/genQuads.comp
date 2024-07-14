@@ -35,8 +35,9 @@ uniform float far;
 
 uniform int surfelSize;
 
-#define VERTICES_IN_A_QUAD 4
-#define NUM_SUB_QUADS 4
+#define VERTICES_IN_A_QUAD  4
+#define INDICES_IN_A_QUAD   6
+#define NUM_SUB_QUADS       4
 
 vec3 ndcToView(vec2 ndc, float depth) {
     vec4 ndcPos;
@@ -104,7 +105,7 @@ vec3 planeRayIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 planePoint, ve
 
 void createSubQuad(
         vec3 planePoint, vec3 planeNormal,
-        vec2 ndcBottomLeft, vec2 ndcBottomRight, vec2 ndcTopLeft, vec2 ndcTopRight,
+        vec2 ndcTopLeft, vec2 ndcTopRight, vec2 ndcBottomLeft, vec2 ndcBottomRight,
         float x, float y, vec2 size,
         uint shaderIndex, uint vertexOffset, uint indexOffset
     )
@@ -167,9 +168,6 @@ void main() {
 
     vec2 surfelCenterCoord = vec2(gl_GlobalInvocationID.xy) + vec2(0.5, 0.5);
 
-    uint x = shaderIndex % uint(size.x);
-    uint y = shaderIndex / uint(size.x);
-
     /************************
 
             tl  - (tc) - tr
@@ -225,6 +223,9 @@ void main() {
     vec3 viewCoordTopLeft     = ndcToView(ndcTopLeft, depthTopLeft);
     vec3 viewCoordTopRight    = ndcToView(ndcTopRight, depthTopRight);
 
+    uint x = shaderIndex % uint(size.x);
+    uint y = shaderIndex / uint(size.x);
+
     // void createSubQuad(
     //     vec3 planeNormal, vec3 planePoint,
     //     vec2 ndcBottomLeft, vec2 ndcBottomRight, vec2 ndcTopLeft, vec2 ndcTopRight,
@@ -240,9 +241,9 @@ void main() {
     ************************/
     createSubQuad(
         viewCoordBottomLeft, normalBottomLeft,
-        ndcBottomLeft, ndcBottomCenter, ndcCenterLeft, ndcCenter,
+        ndcCenterLeft, ndcCenter, ndcBottomLeft, ndcBottomCenter,
         x, y, size,
-        shaderIndex, 0, 0
+        shaderIndex, 0 * VERTICES_IN_A_QUAD, 0 * INDICES_IN_A_QUAD
     );
 
     /************************
@@ -254,9 +255,9 @@ void main() {
     ************************/
     createSubQuad(
         viewCoordBottomRight, normalBottomRight,
-        ndcBottomCenter, ndcBottomRight, ndcCenter, ndcCenterRight,
+        ndcCenter, ndcCenterRight, ndcBottomCenter, ndcBottomRight,
         x + 0.5, y, size,
-        shaderIndex, 4, 6
+        shaderIndex, 1 * VERTICES_IN_A_QUAD, 1 * INDICES_IN_A_QUAD
     );
 
     /************************
@@ -268,9 +269,9 @@ void main() {
     ************************/
     createSubQuad(
         viewCoordTopLeft, normalTopLeft,
-        ndcCenterLeft, ndcCenter, ndcTopLeft, ndcTopCenter,
+        ndcTopLeft, ndcTopCenter, ndcCenterLeft, ndcCenter,
         x, y + 0.5, size,
-        shaderIndex, 8, 12
+        shaderIndex, 2 * VERTICES_IN_A_QUAD, 2 * INDICES_IN_A_QUAD
     );
 
     /************************
@@ -282,8 +283,8 @@ void main() {
     ************************/
     createSubQuad(
         viewCoordTopRight, normalTopRight,
-        ndcCenter, ndcCenterRight, ndcTopCenter, ndcTopRight,
+        ndcTopCenter, ndcTopRight, ndcCenter, ndcCenterRight,
         x + 0.5, y + 0.5, size,
-        shaderIndex, 12, 18
+        shaderIndex, 3 * VERTICES_IN_A_QUAD, 3 * INDICES_IN_A_QUAD
     );
 }
