@@ -141,7 +141,7 @@ unsigned int OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, 
 
     unsigned int trianglesDrawn = 0;
     if (node->entity != nullptr) {
-        node->entity->bindSceneAndCamera(scene, camera, model, overrideMaterial);
+        // don't have to bind to scene and camera here, since we are only drawing shadows
         trianglesDrawn += node->entity->draw(scene, camera, model, pointLight->boundingSphere, overrideMaterial);
     }
 

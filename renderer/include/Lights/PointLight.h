@@ -17,6 +17,8 @@ struct PointLightCreateParams {
     float intensityThreshold = 1.0f;
     float zNear = 0.1f;
     float zFar = 100.0f;
+    float fov = 90.0f;
+    unsigned int shadowMapRes = 1024;
 };
 
 class PointLight : public Light {
@@ -41,10 +43,16 @@ public:
             , linear(params.linear)
             , quadratic(params.quadratic)
             , intensityThreshold(params.intensityThreshold)
-            , Light(params.color, params.intensity, params.zNear, params.zFar)
-            , shadowMapRenderTarget({ .width = shadowRes, .height = shadowRes })
+            , Light({
+                .color = params.color,
+                .intensity = params.intensity,
+                .zNear = params.zNear,
+                .zFar = params.zFar,
+                .shadowMapRes = params.shadowMapRes
+            })
+            , shadowMapRenderTarget({ .width = shadowMapRes, .height = shadowMapRes })
             , boundingSphere(position, getLightRadius()) {
-        shadowProjectionMat = glm::perspective(glm::radians(90.0f), 1.0f, params.zNear, params.zFar);
+        shadowProjectionMat = glm::perspective(glm::radians(params.fov), 1.0f, params.zNear, params.zFar);
 
         updateLookAtFace();
     }
@@ -54,7 +62,12 @@ public:
     }
 
     void bindMaterial(const Material* material) override {
-        std::string idxStr = std::to_string(this->channel);
+        if (channel == -1) {
+            std::cerr << "Point light channel is not set!" << std::endl;
+            return;
+        }
+
+        std::string idxStr = std::to_string(channel);
         material->shader->setVec3("pointLights["+idxStr+"].position", position);
         material->shader->setVec3("pointLights["+idxStr+"].color", color);
         material->shader->setFloat("pointLights["+idxStr+"].intensity", intensity);

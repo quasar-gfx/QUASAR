@@ -7,6 +7,14 @@
 #include <Primatives/Entity.h>
 #include <Materials/Material.h>
 
+struct LightCreateParams {
+    glm::vec3 color = glm::vec3(1.0f);
+    float intensity = 1.0f;
+    float zNear = 1.0f;
+    float zFar = 25.0f;
+    unsigned int shadowMapRes = 2048;
+};
+
 class Light {
 public:
     glm::vec3 color = glm::vec3(1.0f);
@@ -17,10 +25,14 @@ public:
 
     glm::mat4 shadowProjectionMat = glm::mat4(0.0);
 
-    unsigned int shadowRes = 2048;
+    unsigned int shadowMapRes = 2048;
 
-    explicit Light(const glm::vec3 &color = glm::vec3(1.0f), float intensity = 1.0f, float zNear = 1.0f, float zFar = 25.0f)
-        : color(color), intensity(intensity), zNear(zNear), zFar(zFar) { }
+    explicit Light(const LightCreateParams &params)
+            : color(params.color)
+            , intensity(params.intensity)
+            , zNear(params.zNear)
+            , zFar(params.zFar)
+            , shadowMapRes(params.shadowMapRes) { }
 
     virtual void bindMaterial(const Material* material) = 0;
 };

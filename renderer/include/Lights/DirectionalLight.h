@@ -15,6 +15,7 @@ struct DirectionalLightCreateParams {
     float orthoBoxSize = 75.0f;
     float zNear = 1.0f;
     float zFar = 750.0f;
+    unsigned int shadowMapRes = 2048;
 };
 
 class DirectionalLight : public Light {
@@ -34,8 +35,14 @@ public:
             : direction(params.direction)
             , distance(params.distance)
             , orthoBoxSize(params.orthoBoxSize)
-            , Light(params.color, params.intensity, params.zNear, params.zFar)
-            , shadowMapRenderTarget({ .width = shadowRes, .height = shadowRes }) {
+            , Light({
+                .color = params.color,
+                .intensity = params.intensity,
+                .zNear = params.zNear,
+                .zFar = params.zFar,
+                .shadowMapRes = params.shadowMapRes
+            })
+            , shadowMapRenderTarget({ .width = shadowMapRes, .height = shadowMapRes }) {
         updateLightSpaceMatrix();
     }
 

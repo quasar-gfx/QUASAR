@@ -10,7 +10,11 @@ struct AmbientLightCreateParams {
 
 class AmbientLight : public Light {
 public:
-    explicit AmbientLight(const AmbientLightCreateParams &params) : Light(params.color, params.intensity) {}
+    explicit AmbientLight(const AmbientLightCreateParams &params)
+        : Light({
+            .color = params.color,
+            .intensity = params.intensity
+        }) {}
 
     void bindMaterial(const Material* material) override {
         material->shader->setVec3("ambientLight.color", color);
