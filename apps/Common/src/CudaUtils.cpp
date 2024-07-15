@@ -4,7 +4,7 @@
 
 CUdevice cudautils::gDevice = -1;
 
-CUdevice cudautils::findCudaDevice() {
+CUdevice cudautils::checkCudaDevice() {
     if (gDevice != -1) {
         return gDevice;
     }

@@ -153,7 +153,7 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
 
 #ifndef __APPLE__
 int VideoStreamer::initCuda() {
-    CUdevice device = cudautils::findCudaDevice();
+    cudautils::checkCudaDevice();
     // register opengl texture with cuda
     CHECK_CUDA_ERROR(cudaGraphicsGLRegisterImage(&cudaResource,
                                                  renderTargetCopy->colorBuffer.ID, GL_TEXTURE_2D,

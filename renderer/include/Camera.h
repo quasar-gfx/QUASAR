@@ -15,11 +15,6 @@
 
 class Camera : public Node {
 public:
-    glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f);
-    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-    glm::vec3 right = glm::vec3(-1.0f, 0.0f, 0.0f);
-    glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
-
     float aspect;
     float fovy;
     float near;
@@ -48,16 +43,23 @@ public:
     void updateViewMatrix();
 
     glm::vec3 getForwardVector() const { return front; }
+    glm::vec3 getRightVector() const { return right; }
+    glm::vec3 getUpVector() const { return up; }
 
     void processKeyboard(Keys keys, float deltaTime);
     void processMouseMovement(float xoffset, float yoffset, bool constrainPitch = true);
 
-private:
+protected:
     glm::mat4 view;
     glm::mat4 proj;
 
     float yaw = -90.0f;
     float pitch = 0.0f;
+
+    glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 right = glm::vec3(-1.0f, 0.0f, 0.0f);
+    glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
     void updateCameraOrientation();
     // calculates the front vector from the Camera's (updated) Euler Angles

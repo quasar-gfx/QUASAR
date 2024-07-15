@@ -95,11 +95,20 @@ vec3 planeRayIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 planeNormal, v
     return rayOrigin + t * rayDirection;
 }
 
-void createQuad(
+void createSubQuad(
         vec3 viewCoordTopLeft, vec3 viewCoordTopRight, vec3 viewCoordBottomLeft, vec3 viewCoordBottomRight,
         float x, float y, vec2 size,
         uint shaderIndex, uint vertexOffset, uint indexOffset)
 {
+    /************************
+
+            tl -- tr
+            |   / |
+            | /   |
+            bl -- br
+
+    ************************/
+
     uint vertexIndexTopLeft = shaderIndex * NUM_SUB_QUADS * VERTICES_IN_A_QUAD + vertexOffset + 0;
     vertices[vertexIndexTopLeft].position = viewToWorld(viewCoordTopLeft);
     vertices[vertexIndexTopLeft].color = vec3(1.0, 1.0, 1.0);
@@ -136,7 +145,7 @@ void main() {
 
     /************************
 
-      (ptl)    --   (pt)   --  (ptr)
+      (ptl)  ----   (pt) ----  (ptr)
         |            |           |
         |  - stl -  st  -  str - |
         |            |           |
@@ -144,7 +153,7 @@ void main() {
         |            |           |
         |  - sbl -  sb  -  sbr - |
         |            |           |
-      (pbl)    --   (pb)   --  (pbr)
+      (pbl)  ----   (pb) ----  (pbr)
 
     ************************/
 
@@ -222,51 +231,63 @@ void main() {
     uint x = shaderIndex % uint(size.x);
     uint y = shaderIndex / uint(size.x);
 
-    /***************
+    /**********************
 
-       stl - st
-        |     |
-        sl -  sc
+     (stl) - (st) - str
+        |     |     |
+      (sl) - (sc) - sr
+        |     |     |
+       sbl - sb - sbr
 
-    ***************/
-    createQuad(
+    **********************/
+    createSubQuad(
         surfelViewTopLeft, surfelViewTop, surfelViewLeft, surfelViewCenter,
         x, y + 0.5, size,
-        shaderIndex, 0 * VERTICES_IN_A_QUAD, 0 * INDICES_IN_A_QUAD);
+        shaderIndex, 0 * VERTICES_IN_A_QUAD, 0 * INDICES_IN_A_QUAD
+    );
 
-    /***************
+    /**********************
 
-        st - str
-        |     |
-        sc - sr
+       stl - (st) - (str)
+        |     |       |
+        sl - (sc) - (sr)
+        |     |       |
+       sbl -  sb  -  sbr
 
-    ***************/
-    createQuad(
+    **********************/
+    createSubQuad(
         surfelViewTop, surfelViewTopRight, surfelViewCenter, surfelViewRight,
         x + 0.5, y + 0.5, size,
-        shaderIndex, 1 * VERTICES_IN_A_QUAD, 1 * INDICES_IN_A_QUAD);
+        shaderIndex, 1 * VERTICES_IN_A_QUAD, 1 * INDICES_IN_A_QUAD
+    );
 
-    /***************
+    /**********************
 
-        sl - sc
-        |     |
-        sbl - sb
+        stl -  st - str
+        |      |     |
+       (sl) - (sc) - sr
+        |      |     |
+      (sbl) - (sb) - sbr
 
-    ***************/
-    createQuad(
+    **********************/
+    createSubQuad(
         surfelViewLeft, surfelViewCenter, surfelViewBottomLeft, surfelViewBottom,
         x, y, size,
-        shaderIndex, 2 * VERTICES_IN_A_QUAD, 2 * INDICES_IN_A_QUAD);
+        shaderIndex, 2 * VERTICES_IN_A_QUAD, 2 * INDICES_IN_A_QUAD
+    );
 
-    /***************
+    /**********************
 
-        sc - sr
-        |     |
-        sb - sbr
+        stl -  st - str
+        |      |     |
+        sl - (sc) - (sr)
+        |      |     |
+       sbl - (sb) - (sbr)
 
-    ***************/
-    createQuad(
+    **********************/
+    createSubQuad(
         surfelViewCenter, surfelViewRight, surfelViewBottom, surfelViewBottomRight,
         x + 0.5, y, size,
-        shaderIndex, 3 * VERTICES_IN_A_QUAD, 3 * INDICES_IN_A_QUAD);
+        shaderIndex, 3 * VERTICES_IN_A_QUAD, 3 * INDICES_IN_A_QUAD
+    );
 }

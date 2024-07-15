@@ -232,59 +232,67 @@ void main() {
     //     uint shaderIndex, uint vertexOffset, uint indexOffset
     // )
 
-    /************************
+    /**********************
 
-            cl -  c
-            |  /  |
-       -->  bl - bc
+     (ptl) - (st) - str
+        |     |     |
+      (sl) - (sc) - sr
+        |     |     |
+       pbl - sb - pbr
 
-    ************************/
-    createSubQuad(
-        viewCoordBottomLeft, normalBottomLeft,
-        ndcCenterLeft, ndcCenter, ndcBottomLeft, ndcBottomCenter,
-        x, y, size,
-        shaderIndex, 0 * VERTICES_IN_A_QUAD, 0 * INDICES_IN_A_QUAD
-    );
-
-    /************************
-
-            c  - cr
-            |     |
-            bc - br  <--
-
-    ************************/
-    createSubQuad(
-        viewCoordBottomRight, normalBottomRight,
-        ndcCenter, ndcCenterRight, ndcBottomCenter, ndcBottomRight,
-        x + 0.5, y, size,
-        shaderIndex, 1 * VERTICES_IN_A_QUAD, 1 * INDICES_IN_A_QUAD
-    );
-
-    /************************
-
-       -->  tl - tc
-            |     |
-            cl -  c
-
-    ************************/
+    **********************/
     createSubQuad(
         viewCoordTopLeft, normalTopLeft,
         ndcTopLeft, ndcTopCenter, ndcCenterLeft, ndcCenter,
         x, y + 0.5, size,
-        shaderIndex, 2 * VERTICES_IN_A_QUAD, 2 * INDICES_IN_A_QUAD
+        shaderIndex, 0 * VERTICES_IN_A_QUAD, 0 * INDICES_IN_A_QUAD
     );
 
-    /************************
+    /**********************
 
-            tc - tr  <--
-            |     |
-            c  - cr
+       ptl - (st) - (ptr)
+        |     |       |
+        sl - (sc) - (sr)
+        |     |       |
+       pbl -  sb  -  pbr
 
-    ************************/
+    **********************/
     createSubQuad(
         viewCoordTopRight, normalTopRight,
         ndcTopCenter, ndcTopRight, ndcCenter, ndcCenterRight,
         x + 0.5, y + 0.5, size,
+        shaderIndex, 1 * VERTICES_IN_A_QUAD, 1 * INDICES_IN_A_QUAD
+    );
+
+    /**********************
+
+        ptl -  st - ptr
+        |      |     |
+       (sl) - (sc) - sr
+        |      |     |
+      (pbl) - (sb) - pbr
+
+    **********************/
+    createSubQuad(
+        viewCoordBottomLeft, normalBottomLeft,
+        ndcCenterLeft, ndcCenter, ndcBottomLeft, ndcBottomCenter,
+        x, y, size,
+        shaderIndex, 2 * VERTICES_IN_A_QUAD, 2 * INDICES_IN_A_QUAD
+    );
+
+    /**********************
+
+        ptl -  st - ptr
+        |      |     |
+        sl - (sc) - (sr)
+        |      |     |
+       pbl - (sb) - (pbr)
+
+    **********************/
+    createSubQuad(
+        viewCoordBottomRight, normalBottomRight,
+        ndcCenter, ndcCenterRight, ndcBottomCenter, ndcBottomRight,
+        x + 0.5, y, size,
         shaderIndex, 3 * VERTICES_IN_A_QUAD, 3 * INDICES_IN_A_QUAD
     );
 }

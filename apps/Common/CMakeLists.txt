@@ -13,10 +13,8 @@ find_package(Threads REQUIRED)
 set(LIBS ${LIBS} Threads::Threads)
 
 if (NOT APPLE)
-    find_package(CUDA 11.0 REQUIRED)
-    set(LIBS ${LIBS} ${CUDA_LIBRARIES})
-
     find_package(CUDAToolkit REQUIRED)
+    set(LIBS ${LIBS} ${CUDA_LIBRARIES})
     set(LIBS ${LIBS} CUDA::cudart)
     set(LIBS ${LIBS} CUDA::cuda_driver)
 endif()

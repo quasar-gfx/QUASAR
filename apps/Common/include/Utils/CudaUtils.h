@@ -21,7 +21,7 @@ namespace cudautils {
 
 extern CUdevice gDevice;
 
-CUdevice findCudaDevice();
+CUdevice checkCudaDevice();
 
 }
 

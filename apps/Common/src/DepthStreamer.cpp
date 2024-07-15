@@ -21,7 +21,7 @@ DepthStreamer::DepthStreamer(const RenderTargetCreateParams &params, std::string
     });
 
 #ifndef __APPLE__
-    CUdevice device = cudautils::findCudaDevice();
+    cudautils::checkCudaDevice();
     // register opengl texture with cuda
     CHECK_CUDA_ERROR(cudaGraphicsGLRegisterImage(&cudaResource,
                                                  renderTargetCopy->colorBuffer.ID, GL_TEXTURE_2D,
