@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'i', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
-    args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 8);
+    args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
     args::ValueFlag<int> renderStateIn(parser, "render", "Render state", {'r', "render-state"}, 0);
     args::ValueFlag<int> maxStepsIn(parser, "steps", "Max steps", {'m', "max-steps"}, 10);
     try {
@@ -144,8 +144,6 @@ int main(int argc, char** argv) {
         .magFilter = GL_LINEAR
     });
 
-    // camera.setProjectionMatrix(glm::radians(120.0f), (float)screenWidth / (float)screenHeight, 0.1f, 1000.0f);
-
     // save camera view and projection matrices
     std::ofstream cameraFile;
     cameraFile.open("data/camera.bin", std::ios::out | std::ios::binary);
@@ -193,8 +191,6 @@ int main(int argc, char** argv) {
             std::cout << "\tRendering Time: " << glfwGetTime() - startTime << "s" << std::endl;
             startTime = glfwGetTime();
 
-            // app.renderer->gBuffer.colorBuffer.saveTextureToPNG("imgs/color_" + label + "_" + std::to_string(timestamp) + ".png");
-            // app.renderer->gBuffer.depthBuffer.saveDepthToFile("imgs/depth1.bin");
             renderTarget.bind();
             renderTarget.colorBuffer.saveTextureToPNG("imgs/color_" + label + "_" + std::to_string(timestamp) + ".png");
             renderTarget.unbind();
@@ -202,17 +198,8 @@ int main(int argc, char** argv) {
             std::cout << "\tSaving Texture Time: " << glfwGetTime() - startTime << "s" << std::endl;
             startTime = glfwGetTime();
 
-            // std::ofstream depthFile;
-            // depthFile.open("data/depth_" + label + "_" + std::to_string(timestamp) + ".bin", std::ios::out | std::ios::binary);
-
             std::ofstream verticesFile;
             verticesFile.open("data/vertices_" + label + "_" + std::to_string(timestamp) + ".bin", std::ios::out | std::ios::binary);
-
-            // std::ofstream texCoordsFile;
-            // texCoordsFile.open("data/tex_coords_" + label + "_" + std::to_string(timestamp) + ".bin", std::ios::out | std::ios::binary);
-
-            std::ofstream indicesFile;
-            indicesFile.open("data/indices_" + label + "_" + std::to_string(timestamp) + ".bin", std::ios::out | std::ios::binary);
 
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
             GLvoid* pVertexBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
@@ -226,6 +213,9 @@ int main(int argc, char** argv) {
             std::cout << "\tSaving Vertices Time: " << glfwGetTime() - startTime << "s" << std::endl;
             std::cout << "\t" << numVertices << " vertices" << std::endl;
             startTime = glfwGetTime();
+
+            std::ofstream indicesFile;
+            indicesFile.open("data/indices_" + label + "_" + std::to_string(timestamp) + ".bin", std::ios::out | std::ios::binary);
 
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
             GLvoid* pIndexBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);

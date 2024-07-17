@@ -31,7 +31,7 @@ enum class RenderState {
 int surfelSize = 4;
 RenderState renderState = RenderState::MESH;
 
-int createMesh(Mesh* mesh, Mesh* wireframeMesh, std::string label) {
+int createMesh(Mesh &mesh, Mesh &wireframeMesh, std::string label) {
     std::ifstream vertexFile(DATA_PATH + "data/vertices_" + label + "_0.bin", std::ios::binary);
     if (!vertexFile.is_open()) {
         std::cerr << "Failed to open vertex file with label=" << label << std::endl;
@@ -44,7 +44,7 @@ int createMesh(Mesh* mesh, Mesh* wireframeMesh, std::string label) {
         return -1;
     }
 
-    Texture diffuseTexture = Texture({
+    Texture colorTexture = Texture({
         .wrapS = GL_REPEAT,
         .wrapT = GL_REPEAT,
         .minFilter = GL_NEAREST,
@@ -53,8 +53,8 @@ int createMesh(Mesh* mesh, Mesh* wireframeMesh, std::string label) {
         .path = DATA_PATH + "imgs/color_" + label + "_0.png"
     });
 
-    unsigned int width = diffuseTexture.width / surfelSize;
-    unsigned int height = diffuseTexture.height / surfelSize;
+    unsigned int width = colorTexture.width / surfelSize;
+    unsigned int height = colorTexture.height / surfelSize;
 
     int numVertices = width * height * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
     std::vector<Vertex> vertices(numVertices);
@@ -67,15 +67,15 @@ int createMesh(Mesh* mesh, Mesh* wireframeMesh, std::string label) {
     indexFile.read(reinterpret_cast<char*>(indices.data()), indices.size() * sizeof(unsigned int));
     indexFile.close();
 
-    *mesh = Mesh({
+    mesh = Mesh({
         .vertices = vertices,
         .indices = indices,
-        .material = new UnlitMaterial({ .diffuseTextureID = diffuseTexture.ID }),
+        .material = new UnlitMaterial({ .diffuseTextureID = colorTexture.ID }),
         .wireframe = false,
         .pointcloud = renderState == RenderState::POINTCLOUD,
     });
 
-    *wireframeMesh = Mesh({
+    wireframeMesh = Mesh({
         .vertices = vertices,
         .indices = indices,
         .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
@@ -95,7 +95,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'i', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
-    args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 8);
+    args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
     args::ValueFlag<int> renderStateIn(parser, "render", "Render state", {'r', "render-state"}, 0);
     try {
         parser.ParseCLI(argc, argv);
@@ -210,7 +210,7 @@ int main(int argc, char** argv) {
     std::vector<Mesh> wireframeMeshes(labels.size());
     std::vector<Node> nodes(2*labels.size());
     for (int i = 0; i < labels.size(); i++) {
-        createMesh(&meshes[i], &wireframeMeshes[i], labels[i]);
+        createMesh(meshes[i], wireframeMeshes[i], labels[i]);
 
         nodes[2*i] = Node(&meshes[i]);
         scene.addChildNode(&nodes[i]);

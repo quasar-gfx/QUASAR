@@ -90,9 +90,27 @@ float LinearizeDepth(float depth) {
     return (2.0 * near * far) / (far + near - z * (far - near));
 }
 
-vec3 planeRayIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 planeNormal, vec3 planePoint) {
-    float t = dot(planeNormal, planePoint - rayOrigin) / dot(planeNormal, rayDirection);
-    return rayOrigin + t * rayDirection;
+float NormalizeDepth(float depth) {
+    float z = (depth - near) / (far - near);
+    return (1.0 - (1.0 / (1.0 + z * (far - near) / near)));
+}
+
+vec3 planeRayIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 planePoint, vec3 planeNormal) {
+    float denominator = dot(rayDirection, planeNormal);
+
+    if (abs(denominator) < 0.0001) {
+        return vec3(1.0/0.0, 1.0/0.0, 1.0/0.0);
+    }
+
+    float t = dot(planePoint - rayOrigin, planeNormal) / denominator;
+
+    if (t < 0.0) {
+        return vec3(1.0/0.0, 1.0/0.0, 1.0/0.0);
+    }
+
+    vec3 intersection = rayOrigin + t * rayDirection;
+
+    return intersection;
 }
 
 void createSubQuad(
@@ -227,6 +245,88 @@ void main() {
     vec3 surfelViewTopLeft     = ndcToView(surfelNDCTopLeft, surfelDepthTopLeft);
     vec3 surfelViewTop         = ndcToView(surfelNDCTop, surfelDepthTop);
     vec3 surfelViewTopRight    = ndcToView(surfelNDCTopRight, surfelDepthTopRight);
+
+    // mat3 B = mat3(
+    //     1.0, 0.0, 0.0,
+    //     0.0, 1.0, 0.0,
+    //     surfelNDCCenter.x / near, surfelNDCCenter.y / near, 1.0
+    // );
+    mat3 B = mat3(
+        1.0, 0.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 1.0
+    );
+    // B = transpose(B);
+    mat3 Binv = inverse(B);
+
+    vec3 surfelQFSBottomLeft  = B * surfelViewBottomLeft;
+    vec3 surfelQFSBottom      = B * surfelViewBottom;
+    vec3 surfelQFSBottomRight = B * surfelViewBottomRight;
+    vec3 surfelQFSLeft        = B * surfelViewLeft;
+    vec3 surfelQFSCenter      = B * surfelViewCenter;
+    vec3 surfelQFSRight       = B * surfelViewRight;
+    vec3 surfelQFSTopLeft     = B * surfelViewTopLeft;
+    vec3 surfelQFSTop         = B * surfelViewTop;
+    vec3 surfelQFSTopRight    = B * surfelViewTopRight;
+
+    vec3 surfelNormalCenter = sampleNormal(normalMap, uvCenter);
+
+    vec3 qfsOrigin = vec3(0.0, 0.0, 0.0);
+    vec3 rayDirection;
+
+    rayDirection = normalize(surfelQFSBottomLeft - qfsOrigin);
+    vec3 surfelQFSBottomLeftPlane = planeRayIntersection(qfsOrigin, rayDirection, surfelQFSCenter, surfelNormalCenter);
+
+    rayDirection = normalize(surfelQFSBottomRight - qfsOrigin);
+    vec3 surfelQFSBottomRightPlane = planeRayIntersection(qfsOrigin, rayDirection, surfelQFSCenter, surfelNormalCenter);
+
+    rayDirection = normalize(surfelQFSTopLeft - qfsOrigin);
+    vec3 surfelQFSTopLeftPlane = planeRayIntersection(qfsOrigin, rayDirection, surfelQFSCenter, surfelNormalCenter);
+
+    rayDirection = normalize(surfelQFSTopRight - qfsOrigin);
+    vec3 surfelQFSTopRightPlane = planeRayIntersection(qfsOrigin, rayDirection, surfelQFSCenter, surfelNormalCenter);
+
+    vec3 surfelQFSBottomPlane = (surfelQFSBottomLeftPlane + surfelQFSBottomRightPlane) / 2;
+    vec3 surfelQFSLeftPlane = (surfelQFSBottomLeftPlane + surfelQFSTopLeftPlane) / 2;
+    vec3 surfelQFSRightPlane = (surfelQFSBottomRightPlane + surfelQFSTopRightPlane) / 2;
+    vec3 surfelQFSTopPlane = (surfelQFSTopLeftPlane + surfelQFSTopRightPlane) / 2;
+
+    const float thres = .925;
+
+    if (NormalizeDepth(abs(surfelQFSBottomLeft.z - surfelQFSBottomLeftPlane.z)) >= thres) {
+        surfelQFSBottomLeft = surfelQFSBottomLeftPlane;
+    }
+    if (NormalizeDepth(abs(surfelQFSBottom.z - surfelQFSBottomPlane.z)) >= thres) {
+        surfelQFSBottom = surfelQFSBottomPlane;
+    }
+    if (NormalizeDepth(abs(surfelQFSBottomRight.z - surfelQFSBottomRightPlane.z)) >= thres) {
+        surfelQFSBottomRight = surfelQFSBottomRightPlane;
+    }
+    if (NormalizeDepth(abs(surfelQFSLeft.z - surfelQFSLeftPlane.z)) >= thres) {
+        surfelQFSLeft = surfelQFSLeftPlane;
+    }
+    if (NormalizeDepth(abs(surfelQFSRight.z - surfelQFSRightPlane.z)) >= thres) {
+        surfelQFSRight = surfelQFSRightPlane;
+    }
+    if (NormalizeDepth(abs(surfelQFSTopLeft.z - surfelQFSTopLeftPlane.z)) >= thres) {
+        surfelQFSTopLeft = surfelQFSTopLeftPlane;
+    }
+    if (NormalizeDepth(abs(surfelQFSTop.z - surfelQFSTopPlane.z)) >= thres) {
+        surfelQFSTop = surfelQFSTopPlane;
+    }
+    if (NormalizeDepth(abs(surfelQFSTopRight.z - surfelQFSTopRightPlane.z)) >= thres) {
+        surfelQFSTopRight = surfelQFSTopRightPlane;
+    }
+
+    surfelViewBottomLeft  = Binv * surfelQFSBottomLeft;
+    surfelViewBottom      = Binv * surfelQFSBottom;
+    surfelViewBottomRight = Binv * surfelQFSBottomRight;
+    surfelViewLeft        = Binv * surfelQFSLeft;
+    surfelViewCenter      = Binv * surfelQFSCenter;
+    surfelViewRight       = Binv * surfelQFSRight;
+    surfelViewTopLeft     = Binv * surfelQFSTopLeft;
+    surfelViewTop         = Binv * surfelQFSTop;
+    surfelViewTopRight    = Binv * surfelQFSTopRight;
 
     uint x = shaderIndex % uint(size.x);
     uint y = shaderIndex / uint(size.x);

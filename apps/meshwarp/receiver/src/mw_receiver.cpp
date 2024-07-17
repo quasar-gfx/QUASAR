@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'i', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
-    args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 8);
+    args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
     args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "0.0.0.0:12345");
     args::ValueFlag<std::string> depthURLIn(parser, "depth", "Depth URL", {'e', "depth-url"}, "0.0.0.0:65432");
     args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "127.0.0.1:54321");
@@ -262,10 +262,10 @@ int main(int argc, char** argv) {
         .wireframe = true,
         .pointcloud = false,
     });
-    Node wireframeNode = Node(&meshWireframe);
-    wireframeNode.frustumCulled = false;
-    wireframeNode.setPosition(glm::vec3(0.0f, 0.001f, 0.001f));
-    scene.addChildNode(&wireframeNode);
+    Node nodeWireframe = Node(&meshWireframe);
+    nodeWireframe.frustumCulled = false;
+    nodeWireframe.setPosition(glm::vec3(0.0f, 0.001f, 0.001f));
+    scene.addChildNode(&nodeWireframe);
 
     genMeshShader.bind();
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
@@ -399,7 +399,7 @@ int main(int argc, char** argv) {
         mesh.pointcloud = renderState == RenderState::POINTCLOUD;
         meshWireframe.visible = renderState == RenderState::WIREFRAME;
 
-        wireframeNode.setPosition(node.getPosition() - camera.getForwardVector() * 0.0005f);
+        nodeWireframe.setPosition(node.getPosition() - camera.getForwardVector() * 0.0005f);
 
         // render all objects in scene
         trianglesDrawn = app.renderer->drawObjects(scene, camera);
