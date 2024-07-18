@@ -85,7 +85,7 @@ float UnLinearizeDepth(float depth) {
 float sampleDepth(sampler2D depthMap, vec2 sampleCoord) {
     float depth = texture(depthMap, sampleCoord).r;
     depth = UnLinearizeDepth(depth);
-    depth = min(depth, 0.99999);
+    depth = clamp(depth, 0.0, 0.99999);
     return depth;
 }
 

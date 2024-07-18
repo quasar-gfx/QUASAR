@@ -83,7 +83,7 @@ vec3 sampleNormal(sampler2D normalMap, vec2 sampleCoord) {
 
 float sampleDepth(sampler2D depthMap, vec2 sampleCoord) {
     float depth = texture(depthMap, sampleCoord).x;
-    depth = min(depth, 0.99999);
+    depth = clamp(depth, 0.0, 0.99999);
     return depth;
 }
 
@@ -93,6 +93,7 @@ float LinearizeDepth(float depth) {
 }
 
 float NormalizeDepth(float depth) {
+    depth = clamp(depth, near, far);
     float z = (depth - near) / (far - near);
     return (1.0 - (1.0 / (1.0 + z * (far - near) / near)));
 }
@@ -158,12 +159,39 @@ void createSubQuad(
     indices[shaderIndex * NUM_SUB_QUADS * 6 + indexOffset + 5] = vertexIndexBottomLeft;
 }
 
+bool pointsLieOnLine(vec3 p1, vec3 p2, vec3 d, float epsilon) {
+    // Avoid division by zero by checking if any component of the direction vector is zero
+    bool checkX = abs(d.x) > epsilon;
+    bool checkY = abs(d.y) > epsilon;
+    bool checkZ = abs(d.z) > epsilon;
+
+    float t1_x = checkX ? p1.x / d.x : 0.0;
+    float t1_y = checkY ? p1.y / d.y : 0.0;
+    float t1_z = checkZ ? p1.z / d.z : 0.0;
+
+    float t2_x = checkX ? p2.x / d.x : 0.0;
+    float t2_y = checkY ? p2.y / d.y : 0.0;
+    float t2_z = checkZ ? p2.z / d.z : 0.0;
+
+    // If a component of d is zero, only compare components that are not zero
+    bool t1Consistent = (checkX && checkY) ? (abs(t1_x - t1_y) < epsilon) : true;
+    t1Consistent = (checkX && checkZ) ? (t1Consistent && (abs(t1_x - t1_z) < epsilon)) : t1Consistent;
+    t1Consistent = (checkY && checkZ) ? (t1Consistent && (abs(t1_y - t1_z) < epsilon)) : t1Consistent;
+
+    bool t2Consistent = (checkX && checkY) ? (abs(t2_x - t2_y) < epsilon) : true;
+    t2Consistent = (checkX && checkZ) ? (t2Consistent && (abs(t2_x - t2_z) < epsilon)) : t2Consistent;
+    t2Consistent = (checkY && checkZ) ? (t2Consistent && (abs(t2_y - t2_z) < epsilon)) : t2Consistent;
+
+    return t1Consistent && t2Consistent;
+}
+
+
 void main() {
     vec2 size = vec2(screenSize) / float(surfelSize);
 
     uint shaderIndex = uint(gl_GlobalInvocationID.y * size.x + gl_GlobalInvocationID.x);
 
-    /************************
+    /**********************************
 
       (ptl)  ----   (pt) ----  (ptr)
         |            |           |
@@ -175,7 +203,7 @@ void main() {
         |            |           |
       (pbl)  ----   (pb) ----  (pbr)
 
-    ************************/
+    **********************************/
 
     vec2 surfelCoordBottomLeft  = vec2(gl_GlobalInvocationID.xy);
 
@@ -218,6 +246,16 @@ void main() {
     float pixelDepthTop         = sampleDepth(depthMap, uvTop);
     float pixelDepthTopRight    = sampleDepth(depthMap, uvTopRight);
 
+    vec2 pixelNDCBottomLeft  = 2.0 * uvBottomLeft - 1.0;
+    vec2 pixelNDCBottom      = 2.0 * uvBottom - 1.0;
+    vec2 pixelNDCBottomRight = 2.0 * uvBottomRight - 1.0;
+    vec2 pixelNDCLeft        = 2.0 * uvLeft - 1.0;
+    vec2 pixelNDCCenter      = 2.0 * uvCenter - 1.0;
+    vec2 pixelNDCRight       = 2.0 * uvRight - 1.0;
+    vec2 pixelNDCTopLeft     = 2.0 * uvTopLeft - 1.0;
+    vec2 pixelNDCTop         = 2.0 * uvTop - 1.0;
+    vec2 pixelNDCTopRight    = 2.0 * uvTopRight - 1.0;
+
     vec2 surfelNDCBottomLeft  = 2.0 * (surfelCoordBottomLeft / screenSize) - 1.0;
     vec2 surfelNDCBottom      = 2.0 * (surfelCoordBottom / screenSize) - 1.0;
     vec2 surfelNDCBottomRight = 2.0 * (surfelCoordBottomRight / screenSize) - 1.0;
@@ -228,25 +266,15 @@ void main() {
     vec2 surfelNDCTop         = 2.0 * (surfelCoordTop / screenSize) - 1.0;
     vec2 surfelNDCTopRight    = 2.0 * (surfelCoordTopRight / screenSize) - 1.0;
 
-    float surfelDepthBottomLeft  = (pixelDepthCenter + pixelDepthBottomLeft + pixelDepthLeft + pixelDepthBottom) / 4;
-    float surfelDepthBottom      = (pixelDepthCenter + pixelDepthBottom) / 2;
-    float surfelDepthBottomRight = (pixelDepthCenter + pixelDepthBottomRight + pixelDepthRight + pixelDepthBottom) / 4;
-    float surfelDepthLeft        = (pixelDepthCenter + pixelDepthLeft) / 2;
-    float surfelDepthCenter      = (pixelDepthCenter);
-    float surfelDepthRight       = (pixelDepthCenter + pixelDepthRight) / 2;
-    float surfelDepthTopLeft     = (pixelDepthCenter + pixelDepthTopLeft + pixelDepthLeft + pixelDepthTop) / 4;
-    float surfelDepthTop         = (pixelDepthCenter + pixelDepthTop) / 2;
-    float surfelDepthTopRight    = (pixelDepthCenter + pixelDepthTopRight + pixelDepthRight + pixelDepthTop) / 4;
-
-    vec3 surfelViewBottomLeft  = ndcToView(surfelNDCBottomLeft, surfelDepthBottomLeft);
-    vec3 surfelViewBottom      = ndcToView(surfelNDCBottom, surfelDepthBottom);
-    vec3 surfelViewBottomRight = ndcToView(surfelNDCBottomRight, surfelDepthBottomRight);
-    vec3 surfelViewLeft        = ndcToView(surfelNDCLeft, surfelDepthLeft);
-    vec3 surfelViewCenter      = ndcToView(surfelNDCCenter, surfelDepthCenter);
-    vec3 surfelViewRight       = ndcToView(surfelNDCRight, surfelDepthRight);
-    vec3 surfelViewTopLeft     = ndcToView(surfelNDCTopLeft, surfelDepthTopLeft);
-    vec3 surfelViewTop         = ndcToView(surfelNDCTop, surfelDepthTop);
-    vec3 surfelViewTopRight    = ndcToView(surfelNDCTopRight, surfelDepthTopRight);
+    vec3 pixelViewBottomLeft  = ndcToView(pixelNDCBottomLeft, pixelDepthBottomLeft);
+    vec3 pixelViewBottom      = ndcToView(pixelNDCBottom, pixelDepthBottom);
+    vec3 pixelViewBottomRight = ndcToView(pixelNDCBottomRight, pixelDepthBottomRight);
+    vec3 pixelViewLeft        = ndcToView(pixelNDCLeft, pixelDepthLeft);
+    vec3 pixelViewCenter      = ndcToView(pixelNDCCenter, pixelDepthCenter);
+    vec3 pixelViewRight       = ndcToView(pixelNDCRight, pixelDepthRight);
+    vec3 pixelViewTopLeft     = ndcToView(pixelNDCTopLeft, pixelDepthTopLeft);
+    vec3 pixelViewTop         = ndcToView(pixelNDCTop, pixelDepthTop);
+    vec3 pixelViewTopRight    = ndcToView(pixelNDCTopRight, pixelDepthTopRight);
 
     // mat3 B = mat3(
     //     1.0, 0.0, 0.0,
@@ -261,74 +289,131 @@ void main() {
     // B = transpose(B);
     mat3 Binv = inverse(B);
 
-    vec3 surfelQFSBottomLeft  = B * surfelViewBottomLeft;
-    vec3 surfelQFSBottom      = B * surfelViewBottom;
-    vec3 surfelQFSBottomRight = B * surfelViewBottomRight;
-    vec3 surfelQFSLeft        = B * surfelViewLeft;
-    vec3 surfelQFSCenter      = B * surfelViewCenter;
-    vec3 surfelQFSRight       = B * surfelViewRight;
-    vec3 surfelQFSTopLeft     = B * surfelViewTopLeft;
-    vec3 surfelQFSTop         = B * surfelViewTop;
-    vec3 surfelQFSTopRight    = B * surfelViewTopRight;
+    vec3 pixelCoordQFSBottomLeft  = B * pixelViewBottomLeft;
+    vec3 pixelCoordQFSBottom      = B * pixelViewBottom;
+    vec3 pixelCoordQFSBottomRight = B * pixelViewBottomRight;
+    vec3 pixelCoordQFSLeft        = B * pixelViewLeft;
+    vec3 pixelCoordQFSCenter      = B * pixelViewCenter;
+    vec3 pixelCoordQFSRight       = B * pixelViewRight;
+    vec3 pixelCoordQFSTopLeft     = B * pixelViewTopLeft;
+    vec3 pixelCoordQFSTop         = B * pixelViewTop;
+    vec3 pixelCoordQFSTopRight    = B * pixelViewTopRight;
 
-    vec3 surfelNormalCenter = sampleNormal(normalMap, uvCenter);
+    vec3 surfelQFSCenter          = pixelCoordQFSCenter;
 
-    vec3 qfsOrigin = vec3(0.0, 0.0, 0.0);
+    /**********************************
+
+      (ptl)  ----   (pt) ----  (ptr)
+        |            |           |
+        |  - stl -  st  -  str - |
+        |            |           |
+     (pl)  - sl - (pc/sc) - sr - (pr)
+        |            |           |
+        |  - sbl -  sb  -  sbr - |
+        |            |           |
+      (pbl)  ----   (pb) ----  (pbr)
+
+    **********************************/
+
+    vec3 pixelNormalBottomLeft = sampleNormal(normalMap, uvBottomLeft);
+    vec3 pixelNormalBottom = sampleNormal(normalMap, uvBottom);
+    vec3 pixelNormalBottomRight = sampleNormal(normalMap, uvBottomRight);
+    vec3 pixelNormalLeft = sampleNormal(normalMap, uvLeft);
+    vec3 pixelNormalCenter = sampleNormal(normalMap, uvCenter);
+    vec3 pixelNormalRight = sampleNormal(normalMap, uvRight);
+    vec3 pixelNormalTopLeft = sampleNormal(normalMap, uvTopLeft);
+    vec3 pixelNormalTop = sampleNormal(normalMap, uvTop);
+    vec3 pixelNormalTopRight = sampleNormal(normalMap, uvTopRight);
+
+    vec3 rayOrigin = vec3(0.0, 0.0, 0.0);
     vec3 rayDirection;
 
-    rayDirection = normalize(surfelQFSBottomLeft - qfsOrigin);
-    vec3 surfelQFSBottomLeftPlane = planeRayIntersection(qfsOrigin, rayDirection, surfelQFSCenter, surfelNormalCenter);
+    rayDirection = normalize(ndcToView(surfelNDCBottomLeft, 1.0) - rayOrigin);
+    vec3 surfelQFSBottomLeftPlane = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSCenter, pixelNormalCenter);
+    vec3 surfelQFSBottomLeftPlanePixelBottomLeft = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSBottomLeft, pixelNormalBottomLeft);
 
-    rayDirection = normalize(surfelQFSBottomRight - qfsOrigin);
-    vec3 surfelQFSBottomRightPlane = planeRayIntersection(qfsOrigin, rayDirection, surfelQFSCenter, surfelNormalCenter);
+    rayDirection = normalize(ndcToView(surfelNDCBottom, 1.0) - rayOrigin);
+    vec3 surfelQFSBottomPlane = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSCenter, pixelNormalCenter);
+    vec3 surfelQFSBottomPlanePixelBottom = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSBottom, pixelNormalBottom);
 
-    rayDirection = normalize(surfelQFSTopLeft - qfsOrigin);
-    vec3 surfelQFSTopLeftPlane = planeRayIntersection(qfsOrigin, rayDirection, surfelQFSCenter, surfelNormalCenter);
+    rayDirection = normalize(ndcToView(surfelNDCBottomRight, 1.0) - rayOrigin);
+    vec3 surfelQFSBottomRightPlane = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSCenter, pixelNormalCenter);
+    vec3 surfelQFSBottomRightPlanePixelBottomRight = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSBottomRight, pixelNormalBottomRight);
 
-    rayDirection = normalize(surfelQFSTopRight - qfsOrigin);
-    vec3 surfelQFSTopRightPlane = planeRayIntersection(qfsOrigin, rayDirection, surfelQFSCenter, surfelNormalCenter);
+    rayDirection = normalize(ndcToView(surfelNDCLeft, 1.0) - rayOrigin);
+    vec3 surfelQFSLeftPlane = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSCenter, pixelNormalCenter);
+    vec3 surfelQFSLeftPlanePixelLeft = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSLeft, pixelNormalLeft);
 
-    vec3 surfelQFSBottomPlane = (surfelQFSBottomLeftPlane + surfelQFSBottomRightPlane) / 2;
-    vec3 surfelQFSLeftPlane = (surfelQFSBottomLeftPlane + surfelQFSTopLeftPlane) / 2;
-    vec3 surfelQFSRightPlane = (surfelQFSBottomRightPlane + surfelQFSTopRightPlane) / 2;
-    vec3 surfelQFSTopPlane = (surfelQFSTopLeftPlane + surfelQFSTopRightPlane) / 2;
+    rayDirection = normalize(ndcToView(surfelNDCRight, 1.0) - rayOrigin);
+    vec3 surfelQFSRightPlane = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSCenter, pixelNormalCenter);
+    vec3 surfelQFSRightPlanePixelRight = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSRight, pixelNormalRight);
 
-    const float thres = 0.9;
+    rayDirection = normalize(ndcToView(surfelNDCTopLeft, 1.0) - rayOrigin);
+    vec3 surfelQFSTopLeftPlane = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSCenter, pixelNormalCenter);
+    vec3 surfelQFSTopLeftPlanePixelTopLeft = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSTopLeft, pixelNormalTopLeft);
 
-    if (NormalizeDepth(abs(surfelQFSBottomLeft.z - surfelQFSBottomLeftPlane.z)) >= thres) {
+    rayDirection = normalize(ndcToView(surfelNDCTop, 1.0) - rayOrigin);
+    vec3 surfelQFSTopPlane = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSCenter, pixelNormalCenter);
+    vec3 surfelQFSTopPlanePixelTop = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSTop, pixelNormalTop);
+
+    rayDirection = normalize(ndcToView(surfelNDCTopRight, 1.0) - rayOrigin);
+    vec3 surfelQFSTopRightPlane = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSCenter, pixelNormalCenter);
+    vec3 surfelQFSTopRightPlanePixelTopRight = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSTopRight, pixelNormalTopRight);
+
+    const float thres = 0.0;
+
+    float surfelDepthBottomLeft = (pixelDepthCenter + pixelDepthBottomLeft + pixelDepthLeft + pixelDepthBottom) / 4;
+    vec3 surfelQFSBottomLeft = B * ndcToView(surfelNDCBottomLeft, surfelDepthBottomLeft);
+    if ((distance(surfelQFSBottomLeftPlane, surfelQFSBottomLeftPlanePixelBottomLeft)) > thres) {
         surfelQFSBottomLeft = surfelQFSBottomLeftPlane;
     }
-    if (NormalizeDepth(abs(surfelQFSBottom.z - surfelQFSBottomPlane.z)) >= thres) {
+    float surfelDepthBottom = (pixelDepthCenter + pixelDepthBottom) / 2;
+    vec3 surfelQFSBottom = B * ndcToView(surfelNDCBottom, surfelDepthBottom);
+    if ((distance(surfelQFSBottomPlane, surfelQFSBottomPlanePixelBottom)) > thres) {
         surfelQFSBottom = surfelQFSBottomPlane;
     }
-    if (NormalizeDepth(abs(surfelQFSBottomRight.z - surfelQFSBottomRightPlane.z)) >= thres) {
+    float surfelDepthBottomRight = (pixelDepthCenter + pixelDepthBottomRight + pixelDepthRight + pixelDepthBottom) / 4;
+    vec3 surfelQFSBottomRight = B * ndcToView(surfelNDCBottomRight, surfelDepthBottomRight);
+    if ((distance(surfelQFSBottomRightPlane, surfelQFSBottomRightPlanePixelBottomRight)) > thres) {
         surfelQFSBottomRight = surfelQFSBottomRightPlane;
     }
-    if (NormalizeDepth(abs(surfelQFSLeft.z - surfelQFSLeftPlane.z)) >= thres) {
+
+    float surfelDepthLeft = (pixelDepthCenter + pixelDepthLeft) / 2;
+    vec3 surfelQFSLeft = B * ndcToView(surfelNDCLeft, surfelDepthLeft);
+    if ((distance(surfelQFSLeftPlane, surfelQFSLeftPlanePixelLeft)) > thres) {
         surfelQFSLeft = surfelQFSLeftPlane;
     }
-    if (NormalizeDepth(abs(surfelQFSRight.z - surfelQFSRightPlane.z)) >= thres) {
+    float surfelDepthRight = (pixelDepthCenter + pixelDepthRight) / 2;
+    vec3 surfelQFSRight = B * ndcToView(surfelNDCRight, surfelDepthRight);
+    if ((distance(surfelQFSRightPlane, surfelQFSRightPlanePixelRight)) > thres) {
         surfelQFSRight = surfelQFSRightPlane;
     }
-    if (NormalizeDepth(abs(surfelQFSTopLeft.z - surfelQFSTopLeftPlane.z)) >= thres) {
+
+    float surfelDepthTopLeft = (pixelDepthCenter + pixelDepthTopLeft + pixelDepthLeft + pixelDepthTop) / 4;
+    vec3 surfelQFSTopLeft = B * ndcToView(surfelNDCTopLeft, surfelDepthTopLeft);
+    if ((distance(surfelQFSTopLeftPlane, surfelQFSTopLeftPlanePixelTopLeft)) > thres) {
         surfelQFSTopLeft = surfelQFSTopLeftPlane;
     }
-    if (NormalizeDepth(abs(surfelQFSTop.z - surfelQFSTopPlane.z)) >= thres) {
+    float surfelDepthTop = (pixelDepthCenter + pixelDepthTop) / 2;
+    vec3 surfelQFSTop = B * ndcToView(surfelNDCTop, surfelDepthTop);
+    if ((distance(surfelQFSTopPlane, surfelQFSTopPlanePixelTop)) > thres) {
         surfelQFSTop = surfelQFSTopPlane;
     }
-    if (NormalizeDepth(abs(surfelQFSTopRight.z - surfelQFSTopRightPlane.z)) >= thres) {
+    float surfelDepthTopRight = (pixelDepthCenter + pixelDepthTopRight + pixelDepthRight + pixelDepthTop) / 4;
+    vec3 surfelQFSTopRight = B * ndcToView(surfelNDCTopRight, surfelDepthTopRight);
+    if ((distance(surfelQFSTopRightPlane, surfelQFSTopRightPlanePixelTopRight)) > thres) {
         surfelQFSTopRight = surfelQFSTopRightPlane;
     }
 
-    surfelViewBottomLeft  = Binv * surfelQFSBottomLeft;
-    surfelViewBottom      = Binv * surfelQFSBottom;
-    surfelViewBottomRight = Binv * surfelQFSBottomRight;
-    surfelViewLeft        = Binv * surfelQFSLeft;
-    surfelViewCenter      = Binv * surfelQFSCenter;
-    surfelViewRight       = Binv * surfelQFSRight;
-    surfelViewTopLeft     = Binv * surfelQFSTopLeft;
-    surfelViewTop         = Binv * surfelQFSTop;
-    surfelViewTopRight    = Binv * surfelQFSTopRight;
+    vec3 surfelViewBottomLeft  = Binv * surfelQFSBottomLeft;
+    vec3 surfelViewBottom      = Binv * surfelQFSBottom;
+    vec3 surfelViewBottomRight = Binv * surfelQFSBottomRight;
+    vec3 surfelViewLeft        = Binv * surfelQFSLeft;
+    vec3 surfelViewCenter      = Binv * surfelQFSCenter;
+    vec3 surfelViewRight       = Binv * surfelQFSRight;
+    vec3 surfelViewTopLeft     = Binv * surfelQFSTopLeft;
+    vec3 surfelViewTop         = Binv * surfelQFSTop;
+    vec3 surfelViewTopRight    = Binv * surfelQFSTopRight;
 
     uint x = shaderIndex % uint(size.x);
     uint y = shaderIndex / uint(size.x);
