@@ -223,7 +223,8 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
             if (color.r != color.g && color.r != color.b) {
                 materialParams.metallic = 1.0f;
                 baseColor = glm::vec4(color.r, color.g, color.b, baseColor.a);
-            } else {
+            }
+            else {
                 if (baseColor.r == 0.0f && baseColor.g == 0.0f && baseColor.b == 0.0f) {
                     materialParams.metallic = 1.0f;
                     baseColor = glm::vec4(color.r, color.g, color.b, baseColor.a);

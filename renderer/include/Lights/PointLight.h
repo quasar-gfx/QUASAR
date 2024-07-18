@@ -109,7 +109,8 @@ public:
             return root1;
         } else if (root2 > 0.0f) {
             return root2;
-        } else {
+        }
+            else {
             return 0.0f;
         }
     }

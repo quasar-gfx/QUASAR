@@ -157,6 +157,7 @@ int main(int argc, char** argv) {
 
         glm::vec3 position = camera.getPosition();
         ImGui::InputFloat3("Camera Position", (float*)&position);
+        camera.setPosition(position);
         ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
 
         ImGui::Separator();
@@ -244,6 +245,13 @@ int main(int argc, char** argv) {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
 
+    genMeshShader.bind();
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffer);
+    genMeshShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
+    genMeshShader.setInt("surfelSize", surfelSize);
+    genMeshShader.unbind();
+
     Mesh mesh = Mesh({
         .vertices = std::vector<Vertex>(numVertices),
         .indices = std::vector<unsigned int>(indexBufferSize),
@@ -266,13 +274,6 @@ int main(int argc, char** argv) {
     nodeWireframe.frustumCulled = false;
     nodeWireframe.setPosition(glm::vec3(0.0f, 0.001f, 0.001f));
     scene.addChildNode(&nodeWireframe);
-
-    genMeshShader.bind();
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffer);
-    genMeshShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
-    genMeshShader.setInt("surfelSize", surfelSize);
-    genMeshShader.unbind();
 
     scene.backgroundColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
