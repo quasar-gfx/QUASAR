@@ -124,9 +124,11 @@ unsigned int OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, 
 
     unsigned int trianglesDrawn = 0;
     if (node->entity != nullptr) {
-        node->entity->bindSceneAndCamera(scene, camera, model, overrideMaterial);
-        bool doFrustumCull = frustumCull && node->frustumCulled;
-        trianglesDrawn += node->entity->draw(scene, camera, model, doFrustumCull, overrideMaterial);
+        if (node->visible) {
+            node->entity->bindMaterial(scene, camera, model, overrideMaterial);
+            bool doFrustumCull = frustumCull && node->frustumCulled;
+            trianglesDrawn += node->entity->draw(scene, camera, model, doFrustumCull, overrideMaterial);
+        }
     }
 
     for (auto& child : node->children) {
@@ -141,8 +143,10 @@ unsigned int OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, 
 
     unsigned int trianglesDrawn = 0;
     if (node->entity != nullptr) {
-        // don't have to bind to scene and camera here, since we are only drawing shadows
-        trianglesDrawn += node->entity->draw(scene, camera, model, pointLight->boundingSphere, overrideMaterial);
+        if (node->visible) {
+            // don't have to bind to scene and camera here, since we are only drawing shadows
+            trianglesDrawn += node->entity->draw(scene, camera, model, pointLight->boundingSphere, overrideMaterial);
+        }
     }
 
     for (auto& child : node->children) {

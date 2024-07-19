@@ -23,6 +23,8 @@ uniform mat4 model;
 uniform mat3 normalMatrix;
 uniform mat4 lightSpaceMatrix;
 
+uniform float pointSize = 5.0;
+
 void main() {
     vsOut.VertexID = aID;
     vsOut.TexCoords = aTexCoords;
@@ -34,6 +36,6 @@ void main() {
 
     vsOut.FragPosLightSpace = lightSpaceMatrix * vec4(vsOut.FragPos, 1.0);
 
-    gl_PointSize = 5.0;
+    gl_PointSize = pointSize;
     gl_Position = projection * view * vec4(vsOut.FragPos, 1.0);
 }

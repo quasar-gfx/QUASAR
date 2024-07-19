@@ -94,12 +94,18 @@ int main(int argc, char** argv) {
     SceneLoader loader = SceneLoader();
     loader.loadScene(scenePath, remoteScene, remoteCamera);
 
+    camera.setPosition(remoteCamera.getPosition());
+    camera.setRotationQuat(remoteCamera.getRotationQuat());
+    camera.updateViewMatrix();
+
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
 
     int trianglesDrawn = 0;
     bool rerender = true;
-    int showNormals = 0;
-    bool showNormalsChanged = false;
+    bool showDepth = false;
+    bool showNormals = false;
+    bool dontCopyCameraPose = false;
+    float threshold = 0.93f;
     guiManager->onRender([&](double now, double dt) {
         ImGui::NewFrame();
 
@@ -145,11 +151,19 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
-        int prevshowNormals = showNormals;
-        ImGui::RadioButton("Show Color", (int*)&showNormals, 0);
-        ImGui::RadioButton("Show Normals", (int*)&showNormals, 1);
-        if (prevshowNormals != showNormals) {
-            showNormalsChanged = true;
+        ImGui::Checkbox("Show Depth Map as Point Cloud", &showDepth);
+
+        ImGui::Separator();
+
+        if (ImGui::Checkbox("Show Normals Instead of Color", &showNormals)) {
+            dontCopyCameraPose = true;
+            rerender = true;
+        }
+
+        ImGui::Separator();
+
+        if (ImGui::SliderFloat("Threshold", &threshold, 0.0f, 1.0f)) {
+            dontCopyCameraPose = true;
             rerender = true;
         }
 
@@ -208,18 +222,25 @@ int main(int argc, char** argv) {
     int numVertices = remoteWidth * remoteHeight * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vertex), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
+
+    GLuint vertexBufferDepth;
+    int numVerticesDepth = remoteWidth * remoteHeight;
+    glGenBuffers(1, &vertexBufferDepth);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBufferDepth);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, numVerticesDepth * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
 
     GLuint indexBuffer;
     int numTriangles = remoteWidth * remoteHeight * NUM_SUB_QUADS * 2;
     int indexBufferSize = numTriangles * 3;
     glGenBuffers(1, &indexBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
 
     genMeshShader.bind();
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, vertexBufferDepth);
     genMeshShader.setVec2("screenSize", glm::vec2(remoteWidth, remoteHeight));
     genMeshShader.setInt("surfelSize", surfelSize);
     genMeshShader.unbind();
@@ -244,8 +265,18 @@ int main(int argc, char** argv) {
     });
     Node nodeWireframe = Node(&meshWireframe);
     nodeWireframe.frustumCulled = false;
-    nodeWireframe.setPosition(glm::vec3(0.0f, 0.001f, 0.001f));
     scene.addChildNode(&nodeWireframe);
+
+    Mesh meshDepth = Mesh({
+        .vertices = std::vector<Vertex>(numVerticesDepth),
+        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
+        .wireframe = false,
+        .pointcloud = true,
+        .pointSize = 7.5f
+    });
+    Node nodeDepth = Node(&meshDepth);
+    nodeDepth.frustumCulled = false;
+    scene.addChildNode(&nodeDepth);
 
     std::vector<std::string> labels = {
         "center",
@@ -303,12 +334,12 @@ int main(int argc, char** argv) {
         }
 
         if (rerender) {
-            if (!showNormalsChanged) {
+            if (!dontCopyCameraPose) {
                 remoteCamera.setPosition(camera.getPosition());
                 remoteCamera.setRotationQuat(camera.getRotationQuat());
                 remoteCamera.updateViewMatrix();
             }
-            showNormalsChanged = false;
+            dontCopyCameraPose = false;
 
             double startTime = glfwGetTime();
 
@@ -316,7 +347,7 @@ int main(int argc, char** argv) {
             app.renderer->drawObjects(remoteScene, remoteCamera);
 
             // render to render target
-            if (showNormals == 0) {
+            if (!showNormals) {
                 app.renderer->drawToRenderTarget(screenShader2Color, renderTarget);
             }
             else {
@@ -330,6 +361,7 @@ int main(int argc, char** argv) {
             genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
             genMeshShader.setFloat("near", remoteCamera.near);
             genMeshShader.setFloat("far", remoteCamera.far);
+            genMeshShader.setFloat("threshold", threshold);
             app.renderer->gBuffer.positionBuffer.bind(0);
             app.renderer->gBuffer.normalsBuffer.bind(1);
             app.renderer->gBuffer.idBuffer.bind(2);
@@ -342,14 +374,18 @@ int main(int argc, char** argv) {
 
             mesh.setBuffers(vertexBuffer, indexBuffer);
             meshWireframe.setBuffers(vertexBuffer, indexBuffer);
+            meshDepth.setBuffers(vertexBufferDepth);
 
             rerender = false;
         }
 
         mesh.pointcloud = renderState == RenderState::POINTCLOUD;
-        meshWireframe.visible = renderState == RenderState::WIREFRAME;
 
-        nodeWireframe.setPosition(node.getPosition() - camera.getForwardVector() * 0.0005f);
+        nodeWireframe.visible = renderState == RenderState::WIREFRAME;
+        nodeDepth.visible = showDepth;
+
+        nodeWireframe.setPosition(node.getPosition() - camera.getForwardVector() * 0.001f);
+        nodeDepth.setPosition(node.getPosition() - camera.getForwardVector() * 0.0015f);
 
         // render all objects in scene
         trianglesDrawn = app.renderer->drawObjects(scene, camera);

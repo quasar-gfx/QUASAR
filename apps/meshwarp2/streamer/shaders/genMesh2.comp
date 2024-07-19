@@ -23,6 +23,10 @@ layout(std430, binding = 1) buffer IndexBuffer {
     uint indices[];
 };
 
+layout(std430, binding = 2) buffer VertexBufferDepth {
+    Vertex verticesDepth[];
+};
+
 uniform vec2 screenSize;
 
 uniform mat4 view;
@@ -34,6 +38,8 @@ uniform float near;
 uniform float far;
 
 uniform int surfelSize;
+
+uniform float threshold;
 
 #define VERTICES_IN_A_QUAD  4
 #define INDICES_IN_A_QUAD   6
@@ -205,6 +211,7 @@ void main() {
 
     **********************************/
 
+    // get coords
     vec2 surfelCoordBottomLeft  = vec2(gl_GlobalInvocationID.xy);
 
     vec2 pixelCoordBottomLeft  = surfelSize * (surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(-1.0, -1.0));
@@ -226,6 +233,7 @@ void main() {
     vec2 surfelCoordTop         = surfelSize * (surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.5, 1.0));
     vec2 surfelCoordTopRight    = surfelSize * (surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(1.0, 1.0));
 
+    // sample texture maps
     vec2 uvBottomLeft  = pixelCoordBottomLeft  / screenSize;
     vec2 uvBottom      = pixelCoordBottom      / screenSize;
     vec2 uvBottomRight = pixelCoordBottomRight / screenSize;
@@ -246,6 +254,7 @@ void main() {
     float pixelDepthTop         = sampleDepth(depthMap, uvTop);
     float pixelDepthTopRight    = sampleDepth(depthMap, uvTopRight);
 
+    // project points to view space
     vec2 pixelNDCBottomLeft  = 2.0 * uvBottomLeft - 1.0;
     vec2 pixelNDCBottom      = 2.0 * uvBottom - 1.0;
     vec2 pixelNDCBottomRight = 2.0 * uvBottomRight - 1.0;
@@ -315,6 +324,7 @@ void main() {
 
     **********************************/
 
+    // sample normal map
     vec3 pixelNormalBottomLeft = sampleNormal(normalMap, uvBottomLeft);
     vec3 pixelNormalBottom = sampleNormal(normalMap, uvBottom);
     vec3 pixelNormalBottomRight = sampleNormal(normalMap, uvBottomRight);
@@ -325,12 +335,15 @@ void main() {
     vec3 pixelNormalTop = sampleNormal(normalMap, uvTop);
     vec3 pixelNormalTopRight = sampleNormal(normalMap, uvTopRight);
 
+    // find plane points
     vec3 rayOrigin = vec3(0.0, 0.0, 0.0);
     vec3 rayDirection;
 
     rayDirection = normalize(ndcToView(surfelNDCBottomLeft, 1.0) - rayOrigin);
     vec3 surfelQFSBottomLeftPlane = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSCenter, pixelNormalCenter);
     vec3 surfelQFSBottomLeftPlanePixelBottomLeft = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSBottomLeft, pixelNormalBottomLeft);
+    vec3 surfelQFSBottomLeftPlanePixelBottom = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSBottom, pixelNormalBottom);
+    vec3 surfelQFSBottomLeftPlanePixelLeft = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSLeft, pixelNormalLeft);
 
     rayDirection = normalize(ndcToView(surfelNDCBottom, 1.0) - rayOrigin);
     vec3 surfelQFSBottomPlane = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSCenter, pixelNormalCenter);
@@ -339,6 +352,8 @@ void main() {
     rayDirection = normalize(ndcToView(surfelNDCBottomRight, 1.0) - rayOrigin);
     vec3 surfelQFSBottomRightPlane = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSCenter, pixelNormalCenter);
     vec3 surfelQFSBottomRightPlanePixelBottomRight = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSBottomRight, pixelNormalBottomRight);
+    vec3 surfelQFSBottomRightPlanePixelBottom = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSBottom, pixelNormalBottom);
+    vec3 surfelQFSBottomRightPlanePixelRight = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSRight, pixelNormalRight);
 
     rayDirection = normalize(ndcToView(surfelNDCLeft, 1.0) - rayOrigin);
     vec3 surfelQFSLeftPlane = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSCenter, pixelNormalCenter);
@@ -351,6 +366,8 @@ void main() {
     rayDirection = normalize(ndcToView(surfelNDCTopLeft, 1.0) - rayOrigin);
     vec3 surfelQFSTopLeftPlane = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSCenter, pixelNormalCenter);
     vec3 surfelQFSTopLeftPlanePixelTopLeft = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSTopLeft, pixelNormalTopLeft);
+    vec3 surfelQFSTopLeftPlanePixelLeft = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSLeft, pixelNormalLeft);
+    vec3 surfelQFSTopLeftPlanePixelTop = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSTop, pixelNormalTop);
 
     rayDirection = normalize(ndcToView(surfelNDCTop, 1.0) - rayOrigin);
     vec3 surfelQFSTopPlane = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSCenter, pixelNormalCenter);
@@ -359,49 +376,148 @@ void main() {
     rayDirection = normalize(ndcToView(surfelNDCTopRight, 1.0) - rayOrigin);
     vec3 surfelQFSTopRightPlane = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSCenter, pixelNormalCenter);
     vec3 surfelQFSTopRightPlanePixelTopRight = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSTopRight, pixelNormalTopRight);
+    vec3 surfelQFSTopRightPlanePixelTop = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSTop, pixelNormalTop);
+    vec3 surfelQFSTopRightPlanePixelRight = planeRayIntersection(rayOrigin, rayDirection, pixelCoordQFSRight, pixelNormalRight);
 
-    const float thres = 0.0;
+    // adjust points
+    float dist1, dist2, dist3, minDist;
 
-    float surfelDepthBottomLeft = (pixelDepthCenter + pixelDepthBottomLeft + pixelDepthLeft + pixelDepthBottom) / 4;
-    vec3 surfelQFSBottomLeft = B * ndcToView(surfelNDCBottomLeft, surfelDepthBottomLeft);
-    if ((distance(surfelQFSBottomLeftPlane, surfelQFSBottomLeftPlanePixelBottomLeft)) > thres) {
+    vec3 surfelQFSBottomLeft;
+    // find plane with closest distance to surfel point
+    dist1 = NormalizeDepth(distance(surfelQFSBottomLeftPlane.z, surfelQFSBottomLeftPlanePixelBottomLeft.z));
+    dist2 = NormalizeDepth(distance(surfelQFSBottomLeftPlane.z, surfelQFSBottomLeftPlanePixelBottom.z));
+    dist3 = NormalizeDepth(distance(surfelQFSBottomLeftPlane.z, surfelQFSBottomLeftPlanePixelLeft.z));
+    minDist = min(dist1, min(dist2, dist3));
+    if (minDist <= threshold) {
+        float surfelDepthBottomLeft = pixelDepthCenter;
+        float n = 1;
+        if (dist1 <= threshold) {
+            surfelDepthBottomLeft += pixelDepthBottomLeft;
+            n++;
+        }
+        if (dist2 <= threshold) {
+            surfelDepthBottomLeft += pixelDepthBottom;
+            n++;
+        }
+        if (dist3 <= threshold) {
+            surfelDepthBottomLeft += pixelDepthLeft;
+            n++;
+        }
+        surfelDepthBottomLeft /= n;
+        vec3 surfelQFSBottomLeftInterp = B * ndcToView(surfelNDCBottomLeft, surfelDepthBottomLeft);
+        surfelQFSBottomLeft = surfelQFSBottomLeftInterp;
+    }
+    else {
         surfelQFSBottomLeft = surfelQFSBottomLeftPlane;
     }
+
     float surfelDepthBottom = (pixelDepthCenter + pixelDepthBottom) / 2;
     vec3 surfelQFSBottom = B * ndcToView(surfelNDCBottom, surfelDepthBottom);
-    if ((distance(surfelQFSBottomPlane, surfelQFSBottomPlanePixelBottom)) > thres) {
+    if (NormalizeDepth(distance(surfelQFSBottomPlane.z, surfelQFSBottomPlanePixelBottom.z)) >= threshold) {
         surfelQFSBottom = surfelQFSBottomPlane;
     }
-    float surfelDepthBottomRight = (pixelDepthCenter + pixelDepthBottomRight + pixelDepthRight + pixelDepthBottom) / 4;
-    vec3 surfelQFSBottomRight = B * ndcToView(surfelNDCBottomRight, surfelDepthBottomRight);
-    if ((distance(surfelQFSBottomRightPlane, surfelQFSBottomRightPlanePixelBottomRight)) > thres) {
+
+    vec3 surfelQFSBottomRight;
+    // find plane with closest distance to surfel point
+    dist1 = NormalizeDepth(distance(surfelQFSBottomRightPlane.z, surfelQFSBottomRightPlanePixelBottomRight.z));
+    dist2 = NormalizeDepth(distance(surfelQFSBottomRightPlane.z, surfelQFSBottomRightPlanePixelBottom.z));
+    dist3 = NormalizeDepth(distance(surfelQFSBottomRightPlane.z, surfelQFSBottomRightPlanePixelRight.z));
+    minDist = min(dist1, min(dist2, dist3));
+    if (minDist <= threshold) {
+        float surfelDepthBottomRight = pixelDepthCenter;
+        float n = 1;
+        if (dist1 <= threshold) {
+            surfelDepthBottomRight += pixelDepthBottomRight;
+            n++;
+        }
+        if (dist2 <= threshold) {
+            surfelDepthBottomRight += pixelDepthBottom;
+            n++;
+        }
+        if (dist3 <= threshold) {
+            surfelDepthBottomRight += pixelDepthRight;
+            n++;
+        }
+        surfelDepthBottomRight /= n;
+        vec3 surfelQFSBottomRightInterp = B * ndcToView(surfelNDCBottomRight, surfelDepthBottomRight);
+        surfelQFSBottomRight = surfelQFSBottomRightInterp;
+    }
+    else {
         surfelQFSBottomRight = surfelQFSBottomRightPlane;
     }
 
     float surfelDepthLeft = (pixelDepthCenter + pixelDepthLeft) / 2;
     vec3 surfelQFSLeft = B * ndcToView(surfelNDCLeft, surfelDepthLeft);
-    if ((distance(surfelQFSLeftPlane, surfelQFSLeftPlanePixelLeft)) > thres) {
+    if (NormalizeDepth(distance(surfelQFSLeftPlane.z, surfelQFSLeftPlanePixelLeft.z)) >= threshold) {
         surfelQFSLeft = surfelQFSLeftPlane;
     }
     float surfelDepthRight = (pixelDepthCenter + pixelDepthRight) / 2;
     vec3 surfelQFSRight = B * ndcToView(surfelNDCRight, surfelDepthRight);
-    if ((distance(surfelQFSRightPlane, surfelQFSRightPlanePixelRight)) > thres) {
+    if (NormalizeDepth(distance(surfelQFSRightPlane.z, surfelQFSRightPlanePixelRight.z)) >= threshold) {
         surfelQFSRight = surfelQFSRightPlane;
     }
 
-    float surfelDepthTopLeft = (pixelDepthCenter + pixelDepthTopLeft + pixelDepthLeft + pixelDepthTop) / 4;
-    vec3 surfelQFSTopLeft = B * ndcToView(surfelNDCTopLeft, surfelDepthTopLeft);
-    if ((distance(surfelQFSTopLeftPlane, surfelQFSTopLeftPlanePixelTopLeft)) > thres) {
+    vec3 surfelQFSTopLeft;
+    // find plane with closest distance to surfel point
+    dist1 = NormalizeDepth(distance(surfelQFSTopLeftPlane.z, surfelQFSTopLeftPlanePixelTopLeft.z));
+    dist2 = NormalizeDepth(distance(surfelQFSTopLeftPlane.z, surfelQFSTopLeftPlanePixelTop.z));
+    dist3 = NormalizeDepth(distance(surfelQFSTopLeftPlane.z, surfelQFSTopLeftPlanePixelLeft.z));
+    minDist = min(dist1, min(dist2, dist3));
+    if (minDist <= threshold) {
+        float surfelDepthTopLeft = pixelDepthCenter;
+        float n = 1;
+        if (dist1 <= threshold) {
+            surfelDepthTopLeft += pixelDepthTopLeft;
+            n++;
+        }
+        if (dist2 <= threshold) {
+            surfelDepthTopLeft += pixelDepthTop;
+            n++;
+        }
+        if (dist3 <= threshold) {
+            surfelDepthTopLeft += pixelDepthLeft;
+            n++;
+        }
+        surfelDepthTopLeft /= n;
+        vec3 surfelQFSTopLeftInterp = B * ndcToView(surfelNDCTopLeft, surfelDepthTopLeft);
+        surfelQFSTopLeft = surfelQFSTopLeftInterp;
+    }
+    else {
         surfelQFSTopLeft = surfelQFSTopLeftPlane;
     }
+
     float surfelDepthTop = (pixelDepthCenter + pixelDepthTop) / 2;
     vec3 surfelQFSTop = B * ndcToView(surfelNDCTop, surfelDepthTop);
-    if ((distance(surfelQFSTopPlane, surfelQFSTopPlanePixelTop)) > thres) {
+    if (NormalizeDepth(distance(surfelQFSTopPlane.z, surfelQFSTopPlanePixelTop.z)) >= threshold) {
         surfelQFSTop = surfelQFSTopPlane;
     }
-    float surfelDepthTopRight = (pixelDepthCenter + pixelDepthTopRight + pixelDepthRight + pixelDepthTop) / 4;
-    vec3 surfelQFSTopRight = B * ndcToView(surfelNDCTopRight, surfelDepthTopRight);
-    if ((distance(surfelQFSTopRightPlane, surfelQFSTopRightPlanePixelTopRight)) > thres) {
+
+    vec3 surfelQFSTopRight;
+    // find plane with closest distance to surfel point
+    dist1 = NormalizeDepth(distance(surfelQFSTopRightPlane.z, surfelQFSTopRightPlanePixelTopRight.z));
+    dist2 = NormalizeDepth(distance(surfelQFSTopRightPlane.z, surfelQFSTopRightPlanePixelTop.z));
+    dist3 = NormalizeDepth(distance(surfelQFSTopRightPlane.z, surfelQFSTopRightPlanePixelRight.z));
+    minDist = min(dist1, min(dist2, dist3));
+    if (minDist <= threshold) {
+        float surfelDepthTopRight = pixelDepthCenter;
+        float n = 1;
+        if (dist1 <= threshold) {
+            surfelDepthTopRight += pixelDepthTopRight;
+            n++;
+        }
+        if (dist2 <= threshold) {
+            surfelDepthTopRight += pixelDepthTop;
+            n++;
+        }
+        if (dist3 <= threshold) {
+            surfelDepthTopRight += pixelDepthRight;
+            n++;
+        }
+        surfelDepthTopRight /= n;
+        vec3 surfelQFSTopRightInterp = B * ndcToView(surfelNDCTopRight, surfelDepthTopRight);
+        surfelQFSTopRight = surfelQFSTopRightInterp;
+    }
+    else {
         surfelQFSTopRight = surfelQFSTopRightPlane;
     }
 
@@ -477,4 +593,8 @@ void main() {
         x + 0.5, y, size,
         shaderIndex, 3 * VERTICES_IN_A_QUAD, 3 * INDICES_IN_A_QUAD
     );
+
+    verticesDepth[shaderIndex].position = viewToWorld(pixelViewCenter);
+    verticesDepth[shaderIndex].color = vec3(1.0, 1.0, 1.0);
+    verticesDepth[shaderIndex].texCoords = worldToScreen(view, viewToWorld(pixelViewCenter));
 }

@@ -12,17 +12,14 @@
 
 #include <Primatives/Model.h>
 
-void Model::bindSceneAndCamera(const Scene &scene, const Camera &camera, const glm::mat4 &model, const Material* overrideMaterial) {
+void Model::bindMaterial(const Scene &scene, const Camera &camera, const glm::mat4 &model, const Material* overrideMaterial) {
     for (auto& mesh : meshes) {
-        mesh->bindSceneAndCamera(scene, camera, model, overrideMaterial);
+        mesh->bindMaterial(scene, camera, model, overrideMaterial);
     }
 }
 
 unsigned int Model::draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
     unsigned int trianglesDrawn = 0;
-    if (!visible) {
-        return trianglesDrawn;
-    }
 
     for (auto& mesh : meshes) {
         trianglesDrawn += mesh->draw(scene, camera, model, frustumCull, overrideMaterial);
@@ -33,9 +30,6 @@ unsigned int Model::draw(const Scene &scene, const Camera &camera, const glm::ma
 
 unsigned int Model::draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
     unsigned int trianglesDrawn = 0;
-    if (!visible) {
-        return trianglesDrawn;
-    }
 
     for (auto& mesh : meshes) {
         trianglesDrawn += mesh->draw(scene, camera, model, boundingSphere, overrideMaterial);

@@ -20,7 +20,7 @@ struct MeshCreateParams {
     Material* material;
     bool wireframe = false;
     bool pointcloud = false;
-    bool visible = true;
+    float pointSize = 5.0;
     float IBL = 1.0;
 };
 
@@ -33,26 +33,28 @@ public:
 
     bool wireframe = false;
     bool pointcloud = false;
-    bool visible = true;
+    float pointSize = 5.0;
     float IBL = 1.0;
 
     explicit Mesh() : Entity() {}
     explicit Mesh(const MeshCreateParams &params)
-            : vertices(params.vertices), indices(params.indices),
-              material(params.material),
-              wireframe(params.wireframe), pointcloud(params.pointcloud),
-              visible(params.visible),
-              IBL(params.IBL),
-              Entity() {
+            : vertices(params.vertices)
+            , indices(params.indices)
+            , material(params.material)
+            , wireframe(params.wireframe)
+            , pointcloud(params.pointcloud)
+            , pointSize(params.pointSize)
+            , IBL(params.IBL)
+            , Entity() {
         createBuffers();
         updateAABB();
     }
 
-    void bindSceneAndCamera(const Scene &scene, const Camera &camera, const glm::mat4 &model, const Material* overrideMaterial = nullptr) override;
+    void bindMaterial(const Scene &scene, const Camera &camera, const glm::mat4 &model, const Material* overrideMaterial = nullptr) override;
     unsigned int draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) override;
     unsigned int draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) override;
     void setBuffers(const std::vector<Vertex> &vertices, const std::vector<unsigned int> &indices);
-    void setBuffers(GLuint vertexBufferSSBO, GLuint indexBufferSSBO);
+    void setBuffers(GLuint vertexBufferSSBO, GLuint indexBufferSSBO = -1);
     void updateBuffers();
     void updateAABB();
 

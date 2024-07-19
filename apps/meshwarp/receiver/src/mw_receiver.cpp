@@ -272,7 +272,6 @@ int main(int argc, char** argv) {
     });
     Node nodeWireframe = Node(&meshWireframe);
     nodeWireframe.frustumCulled = false;
-    nodeWireframe.setPosition(glm::vec3(0.0f, 0.001f, 0.001f));
     scene.addChildNode(&nodeWireframe);
 
     scene.backgroundColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -398,9 +397,9 @@ int main(int argc, char** argv) {
 
         // set render state
         mesh.pointcloud = renderState == RenderState::POINTCLOUD;
-        meshWireframe.visible = renderState == RenderState::WIREFRAME;
+        nodeWireframe.visible = renderState == RenderState::WIREFRAME;
 
-        nodeWireframe.setPosition(node.getPosition() - camera.getForwardVector() * 0.0005f);
+        nodeWireframe.setPosition(node.getPosition() - camera.getForwardVector() * 0.001f);
 
         // render all objects in scene
         trianglesDrawn = app.renderer->drawObjects(scene, camera);

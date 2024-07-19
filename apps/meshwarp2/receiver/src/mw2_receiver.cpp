@@ -279,11 +279,11 @@ int main(int argc, char** argv) {
         for (auto& mesh : meshes) {
             mesh.pointcloud = renderState == RenderState::POINTCLOUD;
         }
-        for (auto& mesh : wireframeMeshes) {
-            mesh.visible = renderState == RenderState::WIREFRAME;
+        for (int i = 0; i < labels.size(); i++) {
+            nodes[2*i].visible = renderState == RenderState::WIREFRAME;
         }
 
-        nodes[1].setPosition(nodes[0].getPosition() - camera.getForwardVector() * 0.0005f);
+        nodes[1].setPosition(nodes[0].getPosition() - camera.getForwardVector() * 0.001f);
 
         // render all objects in scene
         trianglesDrawn = app.renderer->drawObjects(scene, camera);

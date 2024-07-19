@@ -94,12 +94,16 @@ int main(int argc, char** argv) {
     SceneLoader loader = SceneLoader();
     loader.loadScene(scenePath, remoteScene, remoteCamera);
 
+    camera.setPosition(remoteCamera.getPosition());
+    camera.setRotationQuat(remoteCamera.getRotationQuat());
+    camera.updateViewMatrix();
+
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
 
     int trianglesDrawn = 0;
     bool rerender = true;
-    int showNormals = 0;
-    bool showNormalsChanged = false;
+    bool showNormals = false;
+    bool dontCopyCameraPose = false;
     guiManager->onRender([&](double now, double dt) {
         ImGui::NewFrame();
 
@@ -145,11 +149,8 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
-        int prevshowNormals = showNormals;
-        ImGui::RadioButton("Show Color", (int*)&showNormals, 0);
-        ImGui::RadioButton("Show Normals", (int*)&showNormals, 1);
-        if (prevshowNormals != showNormals) {
-            showNormalsChanged = true;
+        if (ImGui::Checkbox("Show Normals Instead of Color", &showNormals)) {
+            dontCopyCameraPose = true;
             rerender = true;
         }
 
@@ -208,14 +209,14 @@ int main(int argc, char** argv) {
     int numVertices = remoteWidth * remoteHeight * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vertex), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
 
     GLuint indexBuffer;
     int numTriangles = remoteWidth * remoteHeight * NUM_SUB_QUADS * 2;
     int indexBufferSize = numTriangles * 3;
     glGenBuffers(1, &indexBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
 
     genMeshShader.bind();
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
@@ -244,7 +245,6 @@ int main(int argc, char** argv) {
     });
     Node nodeWireframe = Node(&meshWireframe);
     nodeWireframe.frustumCulled = false;
-    nodeWireframe.setPosition(glm::vec3(0.0f, 0.001f, 0.001f));
     scene.addChildNode(&nodeWireframe);
 
     std::vector<std::string> labels = {
@@ -303,12 +303,12 @@ int main(int argc, char** argv) {
         }
 
         if (rerender) {
-            if (!showNormalsChanged) {
+            if (!dontCopyCameraPose) {
                 remoteCamera.setPosition(camera.getPosition());
                 remoteCamera.setRotationQuat(camera.getRotationQuat());
                 remoteCamera.updateViewMatrix();
             }
-            showNormalsChanged = false;
+            dontCopyCameraPose = false;
 
             double startTime = glfwGetTime();
 
@@ -316,7 +316,7 @@ int main(int argc, char** argv) {
             app.renderer->drawObjects(remoteScene, remoteCamera);
 
             // render to render target
-            if (showNormals == 0) {
+            if (!showNormals) {
                 app.renderer->drawToRenderTarget(screenShader2Color, renderTarget);
             }
             else {
@@ -347,9 +347,9 @@ int main(int argc, char** argv) {
         }
 
         mesh.pointcloud = renderState == RenderState::POINTCLOUD;
-        meshWireframe.visible = renderState == RenderState::WIREFRAME;
+        nodeWireframe.visible = renderState == RenderState::WIREFRAME;
 
-        nodeWireframe.setPosition(node.getPosition() - camera.getForwardVector() * 0.0005f);
+        nodeWireframe.setPosition(node.getPosition() - camera.getForwardVector() * 0.001f);
 
         // render all objects in scene
         trianglesDrawn = app.renderer->drawObjects(scene, camera);
