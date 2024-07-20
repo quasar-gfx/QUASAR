@@ -8,7 +8,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/cimport.h>
-#include <assimp/pbrmaterial.h>
+#include <assimp/GltfMaterial.h>
 
 #include <Primatives/Model.h>
 
@@ -181,52 +181,7 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
     }
     else {
         PBRMaterialCreateParams materialParams{};
-
-        if (isGLTF) {
-            processGLTFMaterial(aiMat, materialParams);
-        }
-        else {
-            processNonGLTFMaterial(aiMat, materialParams);
-        }
-
-        aiColor3D color;
-        glm::vec4 baseColor = glm::vec4(1.0f);
-        if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS) {
-            baseColor = glm::vec4(color.r, color.g, color.b, baseColor.a);
-        }
-
-        float opacity;
-        if (aiMat->Get(AI_MATKEY_OPACITY, opacity) != AI_SUCCESS) {
-            opacity = 1.0f;
-        }
-        if (opacity <= 0.0f) opacity = 1.0f;
-        baseColor.a = opacity;
-
-        float shininess;
-        if (aiMat->Get(AI_MATKEY_SHININESS, shininess) != AI_SUCCESS) {
-            shininess = 0.0f;
-        }
-
-        // convert shininess to roughness
-        float roughness = sqrt(2.0f / (shininess + 2.0f));
-        materialParams.roughness = roughness;
-
-        materialParams.metallic = 0.0f;
-        if (aiMat->Get(AI_MATKEY_COLOR_SPECULAR, color) == AI_SUCCESS) {
-            // if there's a non-grey specular color, assume a metallic surface
-            if (color.r != color.g && color.r != color.b) {
-                materialParams.metallic = 1.0f;
-                baseColor = glm::vec4(color.r, color.g, color.b, baseColor.a);
-            }
-            else {
-                if (baseColor.r == 0.0f && baseColor.g == 0.0f && baseColor.b == 0.0f) {
-                    materialParams.metallic = 1.0f;
-                    baseColor = glm::vec4(color.r, color.g, color.b, baseColor.a);
-                }
-            }
-        }
-        materialParams.baseColor = baseColor;
-
+        processMaterial(aiMat, materialParams);
         meshParams.material = new PBRMaterial(materialParams);
     }
 
@@ -239,18 +194,57 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
     return new Mesh(meshParams);
 }
 
-void Model::processGLTFMaterial(const aiMaterial* aiMat, PBRMaterialCreateParams &materialParams) {
+void Model::processMaterial(const aiMaterial* aiMat, PBRMaterialCreateParams &materialParams) {
     aiString alphaMode;
     aiString baseColorPath;
     aiString normalPath;
     aiString AOPath;
-    aiString MRPath;
+    aiString MPath, RPath, MRPath;
     aiString emissivePath;
     aiTextureMapMode mapMode[3];
 
     aiColor4D baseColorFactor;
+    aiColor3D emissiveFactor;
     float metallicFactor = 1.0;
     float roughnessFactor = 1.0;
+
+    aiColor3D color;
+    glm::vec4 baseColor = glm::vec4(1.0f);
+    if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS) {
+        baseColor = glm::vec4(color.r, color.g, color.b, baseColor.a);
+    }
+
+    float opacity;
+    if (aiMat->Get(AI_MATKEY_OPACITY, opacity) != AI_SUCCESS) {
+        opacity = 1.0f;
+    }
+    if (opacity <= 0.0f) opacity = 1.0f;
+    baseColor.a = opacity;
+
+    float shininess;
+    if (aiMat->Get(AI_MATKEY_SHININESS, shininess) != AI_SUCCESS) {
+        shininess = 0.0f;
+    }
+
+    // convert shininess to roughness
+    float roughness = sqrt(2.0f / (shininess + 2.0f));
+    materialParams.roughness = roughness;
+
+    materialParams.metallic = 0.0f;
+    if (aiMat->Get(AI_MATKEY_COLOR_SPECULAR, color) == AI_SUCCESS) {
+        // if there's a non-grey specular color, assume a metallic surface
+        if (color.r != color.g && color.r != color.b) {
+            materialParams.metallic = 1.0f;
+            baseColor = glm::vec4(color.r, color.g, color.b, baseColor.a);
+        }
+        else {
+            if (baseColor.r == 0.0f && baseColor.g == 0.0f && baseColor.b == 0.0f) {
+                materialParams.metallic = 1.0f;
+                baseColor = glm::vec4(color.r, color.g, color.b, baseColor.a);
+            }
+        }
+    }
+    materialParams.baseColor = baseColor;
 
     if (aiMat->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode) == AI_SUCCESS) {
         if (strcmp(alphaMode.C_Str(), "BLEND") == 0) {
@@ -264,32 +258,50 @@ void Model::processGLTFMaterial(const aiMaterial* aiMat, PBRMaterialCreateParams
         }
     }
 
-    // load textures
-    if (aiMat->GetTexture(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_TEXTURE, &baseColorPath,
+    // load base color texture
+    if (aiMat->GetTexture(aiTextureType_DIFFUSE, 0, &baseColorPath,
                           nullptr, nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
         TextureID baseColorMap = loadMaterialTexture(aiMat, baseColorPath, true);
         materialParams.albedoTextureID = baseColorMap;
     }
 
+    // load normal map
     if (aiMat->GetTexture(aiTextureType_NORMALS, 0, &normalPath, nullptr,
                           nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
         TextureID normalMap = loadMaterialTexture(aiMat, normalPath);
         materialParams.normalTextureID = normalMap;
     }
 
-    materialParams.metalRoughnessCombined = true;
-    if (aiMat->GetTexture(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLICROUGHNESS_TEXTURE, &MRPath,
-                          nullptr, nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
-        TextureID metallicRoughnessMap = loadMaterialTexture(aiMat, MRPath);
-        materialParams.metallicTextureID = metallicRoughnessMap;
+    // load metallic and roughness textures
+    if (aiMat->GetTexture(aiTextureType_METALNESS, 0, &MPath, nullptr,
+                        nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
+        TextureID metallicMap = loadMaterialTexture(aiMat, MPath);
+        materialParams.metallicTextureID = metallicMap;
+    }
+    if (aiMat->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &RPath, nullptr,
+                        nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
+        TextureID roughnessMap = loadMaterialTexture(aiMat, RPath);
+        materialParams.roughnessTextureID = roughnessMap;
+    }
+    // if is GLTF and metallic and roughness textures are not set, try to load combined metallic-roughness texture
+    if (isGLTF &&
+        (materialParams.metallicTextureID == 0 || materialParams.roughnessTextureID == 0)) {
+        if (aiMat->GetTexture(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLICROUGHNESS_TEXTURE, &MRPath, nullptr,
+                            nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
+            TextureID metallicRoughnessMap = loadMaterialTexture(aiMat, MRPath);
+            materialParams.metallicTextureID = metallicRoughnessMap;
+            materialParams.metalRoughnessCombined = true;
+        }
     }
 
-    if (aiMat->GetTexture(aiTextureType_LIGHTMAP, 0, &AOPath, nullptr,
+    // load ambient occlusion map
+    if (aiMat->GetTexture(aiTextureType_AMBIENT_OCCLUSION, 0, &AOPath, nullptr,
                           nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
         TextureID aoMap = loadMaterialTexture(aiMat, AOPath);
         materialParams.aoTextureID = aoMap;
     }
 
+    // load emissive map
     if (aiMat->GetTexture(aiTextureType_EMISSIVE, 0, &emissivePath, nullptr,
                           nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
         TextureID emissiveMap = loadMaterialTexture(aiMat, emissivePath);
@@ -297,78 +309,20 @@ void Model::processGLTFMaterial(const aiMaterial* aiMat, PBRMaterialCreateParams
     }
 
     // load factors
-    if (aiMat->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLIC_FACTOR, metallicFactor) == AI_SUCCESS) {
-        materialParams.metallicFactor = metallicFactor;
-    }
-
-    if (aiMat->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_ROUGHNESS_FACTOR, roughnessFactor) == AI_SUCCESS) {
-        materialParams.roughnessFactor = roughnessFactor;
-    }
-
-    if (aiMat->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_FACTOR, baseColorFactor) == AI_SUCCESS) {
+    if (aiMat->Get(AI_MATKEY_BASE_COLOR, baseColorFactor) == AI_SUCCESS) {
         materialParams.baseColorFactor = glm::vec4(baseColorFactor.r, baseColorFactor.g, baseColorFactor.b, baseColorFactor.a);
     }
 
-    aiBool isSpecularGlossiness = false;
-    if (aiMat->Get(AI_MATKEY_GLTF_PBRSPECULARGLOSSINESS, isSpecularGlossiness) == AI_SUCCESS) {
-        if (isSpecularGlossiness) {
-            std::cout << "PBR Specular-Glossiness workflows are not supported" << std::endl;
-        }
-    }
-}
-
-void Model::processNonGLTFMaterial(const aiMaterial* aiMat, PBRMaterialCreateParams &materialParams) {
-    aiString baseColorPath;
-    aiString normalPath;
-    aiString AOPath;
-    aiString MPath;
-    aiString RPath;
-    aiString emissivePath;
-    aiTextureMapMode mapMode[3];
-
-    // load textures
-    if (aiMat->GetTexture(aiTextureType_DIFFUSE, 0, &baseColorPath, nullptr,
-                          nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
-        TextureID baseColorMap = loadMaterialTexture(aiMat, baseColorPath, true);
-        materialParams.albedoTextureID = baseColorMap;
+    if (aiMat->Get(AI_MATKEY_COLOR_EMISSIVE, emissiveFactor) == AI_SUCCESS) {
+        materialParams.emissiveFactor = glm::vec3(emissiveFactor.r, emissiveFactor.g, emissiveFactor.b);
     }
 
-    if (aiMat->GetTexture(aiTextureType_NORMALS, 0, &normalPath, nullptr,
-                          nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
-        TextureID normalMap = loadMaterialTexture(aiMat, normalPath);
-        materialParams.normalTextureID = normalMap;
+    if (aiMat->Get(AI_MATKEY_METALLIC_FACTOR, metallicFactor) == AI_SUCCESS) {
+        materialParams.metallicFactor = metallicFactor;
     }
 
-    if (aiMat->GetTexture(aiTextureType_METALNESS, 0, &MPath, nullptr,
-                          nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
-        TextureID metallicMap = loadMaterialTexture(aiMat, MPath);
-        materialParams.metallicTextureID = metallicMap;
-    }
-    if (aiMat->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &RPath, nullptr,
-                          nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
-        TextureID roughnessMap = loadMaterialTexture(aiMat, RPath);
-        materialParams.roughnessTextureID = roughnessMap;
-    }
-    // if the metallic-roughness texture is not found, try to load a combined texture
-    if (materialParams.metallicTextureID == 0 || materialParams.roughnessTextureID == 0) {
-        if (aiMat->GetTexture(aiTextureType_UNKNOWN, 0, &MPath, nullptr,
-                              nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
-            TextureID metallicRoughnessMap = loadMaterialTexture(aiMat, MPath);
-            materialParams.metallicTextureID = metallicRoughnessMap;
-            materialParams.metalRoughnessCombined = true;
-        }
-    }
-
-    if (aiMat->GetTexture(aiTextureType_LIGHTMAP, 0, &AOPath, nullptr,
-                          nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
-        TextureID aoMap = loadMaterialTexture(aiMat, AOPath);
-        materialParams.aoTextureID = aoMap;
-    }
-
-    if (aiMat->GetTexture(aiTextureType_EMISSIVE, 0, &emissivePath, nullptr,
-                          nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
-        TextureID emissiveMap = loadMaterialTexture(aiMat, emissivePath);
-        materialParams.emissiveTextureID = emissiveMap;
+    if (aiMat->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughnessFactor) == AI_SUCCESS) {
+        materialParams.roughnessFactor = roughnessFactor;
     }
 }
 

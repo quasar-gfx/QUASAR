@@ -1,6 +1,16 @@
 #include <Materials/PBRMaterial.h>
 
-PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params) {
+PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params)
+        : baseColor(params.baseColor)
+        , baseColorFactor(params.baseColorFactor)
+        , alphaMode(params.alphaMode)
+        , maskThreshold(params.maskThreshold)
+        , emissiveFactor(params.emissiveFactor)
+        , metallic(params.metallic)
+        , metallicFactor(params.metallicFactor)
+        , roughness(params.roughness)
+        , roughnessFactor(params.roughnessFactor)
+        , metalRoughnessCombined(params.metalRoughnessCombined) {
     TextureCreateParams textureParams{
         .wrapS = GL_REPEAT,
         .wrapT = GL_REPEAT,
@@ -73,16 +83,6 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params) {
         .defines = {"#define MAX_POINT_LIGHTS " + std::to_string(params.numPointLights)}
     };
     shader = std::make_unique<Shader>(pbrShaderParams);
-
-    baseColor = params.baseColor;
-    baseColorFactor = params.baseColorFactor;
-    alphaMode = params.alphaMode;
-    maskThreshold = params.maskThreshold;
-    metallic = params.metallic;
-    metallicFactor = params.metallicFactor;
-    roughness = params.roughness;
-    roughnessFactor = params.roughnessFactor;
-    metalRoughnessCombined = params.metalRoughnessCombined;
 }
 
 void PBRMaterial::bind() const {
@@ -91,6 +91,7 @@ void PBRMaterial::bind() const {
     shader->setVec4("material.baseColorFactor", baseColorFactor);
     shader->setInt("material.alphaMode", static_cast<int>(alphaMode));
     shader->setFloat("material.maskThreshold", maskThreshold);
+    shader->setVec3("material.emissiveFactor", emissiveFactor);
     shader->setFloat("material.metallic", metallic);
     shader->setFloat("material.metallicFactor", metallicFactor);
     shader->setFloat("material.roughness", roughness);
@@ -111,9 +112,11 @@ void PBRMaterial::bind() const {
             break;
         case 2:
             name = "material.metallicMap";
+            shader->setBool("material.hasMetallicMap", textures[i] != 0);
             break;
         case 3:
             name = "material.roughnessMap";
+            shader->setBool("material.hasRoughnessMap", textures[i] != 0);
             break;
         case 4:
             name = "material.aoMap";

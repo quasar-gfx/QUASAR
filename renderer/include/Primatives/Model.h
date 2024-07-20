@@ -66,8 +66,7 @@ private:
     void loadFromFile(const ModelCreateParams &params);
     void processNode(aiNode* node, const aiScene* scene, PBRMaterial* material);
     Mesh* processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* material);
-    void processGLTFMaterial(aiMaterial const* aiMat, PBRMaterialCreateParams &materialParams);
-    void processNonGLTFMaterial(aiMaterial const* aiMat, PBRMaterialCreateParams &materialParams);
+    void processMaterial(aiMaterial const* aiMat, PBRMaterialCreateParams &materialParams);
     TextureID loadMaterialTexture(aiMaterial const* aiMat, aiString aiTexturePath, bool shouldGammaCorrect = false);
     int32_t getEmbeddedTextureId(const aiString &path);
 };

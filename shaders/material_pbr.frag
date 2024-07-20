@@ -26,6 +26,8 @@ struct Material {
     int alphaMode;
     float maskThreshold;
 
+    vec3 emissiveFactor;
+
     float metallic;
     float metallicFactor;
     float roughness;
@@ -33,6 +35,8 @@ struct Material {
 
     bool hasBaseColorMap; // use albedo map
     bool hasNormalMap; // use normal map
+    bool hasMetallicMap; // use metallic map
+    bool hasRoughnessMap; // use roughness map
     bool hasAOMap; // use ao map
     bool hasEmissiveMap; // use emissive map
     bool metalRoughnessCombined; // use combined metal/roughness map
@@ -347,12 +351,16 @@ void main() {
         discard;
 
     // metallic and roughness
-    vec2 mr = texture(material.metallicMap, fsIn.TexCoords).rg;
-    float metallic = (material.metallic != -1.0) ? material.metallic : mr.r;
-    float roughness = (material.roughness != -1.0) ? material.roughness : mr.g;
-    if (!material.metalRoughnessCombined) {
-        metallic = texture(material.metallicMap, fsIn.TexCoords).r;
-        roughness = texture(material.roughnessMap, fsIn.TexCoords).r;
+    float metallic;
+    float roughness;
+    if (material.metalRoughnessCombined) {
+        vec2 mr = texture(material.metallicMap, fsIn.TexCoords).rg;
+        metallic = (!material.hasMetallicMap) ? material.metallic : mr.r;
+        roughness = (!material.hasRoughnessMap) ? material.roughness : mr.g;
+    }
+    else {
+        metallic = (!material.hasMetallicMap) ? material.metallic : texture(material.metallicMap, fsIn.TexCoords).r;
+        roughness = (!material.hasRoughnessMap) ? material.roughness : texture(material.roughnessMap, fsIn.TexCoords).r;
     }
     metallic = material.metallicFactor * metallic;
     roughness = material.roughnessFactor * roughness;
@@ -376,17 +384,14 @@ void main() {
         radianceOut += calcPointLight(pointLights[i], pointLightShadowMaps[i], pbrInputs);
     }
 
-    // apply IBL
     vec3 ambient = ambientLight.intensity * ambientLight.color * albedo;
-    if (material.IBL != 0.0) {
-        // ambient lighting (we now use IBL as the ambient term)
-        ambient += material.IBL * getIBLContribution(pbrInputs);
-    }
+    // apply IBL
+    ambient += material.IBL * getIBLContribution(pbrInputs);
 
     // apply emissive component
     if (material.hasEmissiveMap) {
         vec3 emissive = texture(material.emissiveMap, fsIn.TexCoords).rgb;
-        radianceOut += emissive;
+        radianceOut += material.emissiveFactor * emissive;
     }
 
     // apply ambient occlusion
