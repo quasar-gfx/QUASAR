@@ -1,8 +1,6 @@
 #ifndef RENDERBUFFER_H
 #define RENDERBUFFER_H
 
-#include <glad/glad.h>
-
 #include <OpenGLObject.h>
 
 struct RenderbufferCreateParams {

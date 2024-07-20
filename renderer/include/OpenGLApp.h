@@ -1,8 +1,6 @@
 #ifndef OPENGL_APP_H
 #define OPENGL_APP_H
 
-#include <glad/glad.h>
-
 #include <functional>
 
 #include <OpenGLRenderer.h>

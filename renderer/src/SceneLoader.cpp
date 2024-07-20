@@ -618,8 +618,6 @@ int SceneLoader::parsePointLights(jsmntok_t* tokens, int i, const char* json, Sc
 
     int size = tokens[i++].size;
     for (int j = 0; j < size; j++) {
-        const jsmntok_t tok = tokens[i];
-
         i = parsePointLight(tokens, i, json, scene, camera);
     }
 

@@ -3,8 +3,6 @@
 
 #include <memory>
 
-#include <glad/glad.h>
-
 #include <Shaders/Shader.h>
 #include <Shaders/ComputeShader.h>
 #include <Texture.h>
