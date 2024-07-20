@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'i', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
-    args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 8);
+    args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
     args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "0.0.0.0:12345");
     args::ValueFlag<std::string> depthURLIn(parser, "depth", "Depth URL", {'e', "depth-url"}, "0.0.0.0:65432");
     args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "127.0.0.1:54321");
@@ -157,6 +157,7 @@ int main(int argc, char** argv) {
 
         glm::vec3 position = camera.getPosition();
         ImGui::InputFloat3("Camera Position", (float*)&position);
+        camera.setPosition(position);
         ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
 
         ImGui::Separator();
@@ -244,6 +245,13 @@ int main(int argc, char** argv) {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
 
+    genMeshShader.bind();
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffer);
+    genMeshShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
+    genMeshShader.setInt("surfelSize", surfelSize);
+    genMeshShader.unbind();
+
     Mesh mesh = Mesh({
         .vertices = std::vector<Vertex>(numVertices),
         .indices = std::vector<unsigned int>(indexBufferSize),
@@ -262,17 +270,9 @@ int main(int argc, char** argv) {
         .wireframe = true,
         .pointcloud = false,
     });
-    Node wireframeNode = Node(&meshWireframe);
-    wireframeNode.frustumCulled = false;
-    wireframeNode.setPosition(glm::vec3(0.0f, 0.001f, 0.001f));
-    scene.addChildNode(&wireframeNode);
-
-    genMeshShader.bind();
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffer);
-    genMeshShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
-    genMeshShader.setInt("surfelSize", surfelSize);
-    genMeshShader.unbind();
+    Node nodeWireframe = Node(&meshWireframe);
+    nodeWireframe.frustumCulled = false;
+    scene.addChildNode(&nodeWireframe);
 
     scene.backgroundColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -397,9 +397,9 @@ int main(int argc, char** argv) {
 
         // set render state
         mesh.pointcloud = renderState == RenderState::POINTCLOUD;
-        meshWireframe.visible = renderState == RenderState::WIREFRAME;
+        nodeWireframe.visible = renderState == RenderState::WIREFRAME;
 
-        wireframeNode.setPosition(node.getPosition() - camera.getForwardVector() * 0.0005f);
+        nodeWireframe.setPosition(node.getPosition() - camera.getForwardVector() * 0.001f);
 
         // render all objects in scene
         trianglesDrawn = app.renderer->drawObjects(scene, camera);

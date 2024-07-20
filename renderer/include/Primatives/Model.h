@@ -22,7 +22,6 @@ struct ModelCreateParams {
     bool flipTextures = false;
     bool wireframe = false;
     bool pointcloud = false;
-    bool visible = true;
     bool gammaCorrected = false;
     float IBL = 1.0;
     PBRMaterial* material;
@@ -38,7 +37,6 @@ public:
     bool flipTextures = false;
     bool wireframe = false;
     bool pointcloud = false;
-    bool visible = true;
     bool gammaCorrected = false;
     float IBL = 1.0;
 
@@ -48,7 +46,6 @@ public:
             : flipTextures(params.flipTextures)
             , wireframe(params.wireframe)
             , pointcloud(params.pointcloud)
-            , visible(params.visible)
             , gammaCorrected(params.gammaCorrected)
             , IBL(params.IBL)
             , Entity() {
@@ -56,7 +53,7 @@ public:
     }
     ~Model();
 
-    void bindSceneAndCamera(const Scene &scene, const Camera &camera, const glm::mat4 &model, const Material* overrideMaterial = nullptr) override;
+    void bindMaterial(const Scene &scene, const Camera &camera, const glm::mat4 &model, const Material* overrideMaterial = nullptr) override;
     unsigned int draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) override;
     unsigned int draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) override;
 
@@ -69,8 +66,7 @@ private:
     void loadFromFile(const ModelCreateParams &params);
     void processNode(aiNode* node, const aiScene* scene, PBRMaterial* material);
     Mesh* processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* material);
-    void processGLTFMaterial(aiMaterial const* aiMat, PBRMaterialCreateParams &materialParams);
-    void processNonGLTFMaterial(aiMaterial const* aiMat, PBRMaterialCreateParams &materialParams);
+    void processMaterial(aiMaterial const* aiMat, PBRMaterialCreateParams &materialParams);
     TextureID loadMaterialTexture(aiMaterial const* aiMat, aiString aiTexturePath, bool shouldGammaCorrect = false);
     int32_t getEmbeddedTextureId(const aiString &path);
 };

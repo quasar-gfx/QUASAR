@@ -67,6 +67,10 @@ void Mesh::setBuffers(GLuint vertexBufferSSBO, GLuint indexBufferSSBO) {
     glBindBuffer(GL_COPY_WRITE_BUFFER, vertexBuffer);
     glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, vertices.size() * sizeof(Vertex));
 
+    if (indexBufferSSBO == -1) {
+        return;
+    }
+
     // copy index buffer
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBufferSSBO);
     glBindBuffer(GL_COPY_READ_BUFFER, indexBufferSSBO);
@@ -91,7 +95,7 @@ void Mesh::updateAABB() {
     aabb.update(min, max);
 }
 
-void Mesh::bindSceneAndCamera(const Scene &scene, const Camera &camera, const glm::mat4 &model, const Material* overrideMaterial) {
+void Mesh::bindMaterial(const Scene &scene, const Camera &camera, const glm::mat4 &model, const Material* overrideMaterial) {
     auto materialToUse = overrideMaterial != nullptr ? overrideMaterial : material;
     materialToUse->bind();
 
@@ -125,14 +129,13 @@ void Mesh::bindSceneAndCamera(const Scene &scene, const Camera &camera, const gl
     materialToUse->shader->setInt("numPointLights", static_cast<int>(scene.pointLights.size()));
     materialToUse->shader->setFloat("material.IBL", IBL);
 
+    materialToUse->shader->setFloat("pointSize", pointSize);
+
     materialToUse->unbind();
 }
 
 unsigned int Mesh::draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
     unsigned int trianglesDrawn = 0;
-    if (!visible) {
-        return trianglesDrawn;
-    }
 
     auto& frustum = camera.frustum;
     if (frustumCull && !frustum.aabbIsVisible(aabb, model)) {

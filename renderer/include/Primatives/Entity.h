@@ -29,7 +29,7 @@ public:
 
     int getID() const { return ID; }
 
-    virtual void bindSceneAndCamera(const Scene &scene, const Camera &camera, const glm::mat4 &model, const Material* overrideMaterial = nullptr) = 0;
+    virtual void bindMaterial(const Scene &scene, const Camera &camera, const glm::mat4 &model, const Material* overrideMaterial = nullptr) = 0;
     virtual unsigned int draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, bool frustumCull = true, const Material* overrideMaterial = nullptr) = 0;
     virtual unsigned int draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) = 0;
 
@@ -48,6 +48,7 @@ public:
     std::vector<Node*> children;
 
     bool frustumCulled = true;
+    bool visible = true;
 
     int getID() const { return ID; }
 

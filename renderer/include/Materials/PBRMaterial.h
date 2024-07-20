@@ -8,9 +8,10 @@ struct PBRMaterialCreateParams {
     glm::vec4 baseColorFactor = glm::vec4(1.0f);
     AlphaMode alphaMode = AlphaMode::OPAQUE;
     float maskThreshold = 0.5f;
-    float metallic = -1.0f;
+    glm::vec3 emissiveFactor = glm::vec3(1.0f);
+    float metallic = 0.0f;
     float metallicFactor = 1.0f;
-    float roughness = -1.0f;
+    float roughness = 1.0f;
     float roughnessFactor = 1.0f;
     unsigned int numPointLights = 4;
     std::string albedoTexturePath = "";
@@ -35,10 +36,11 @@ public:
     float opacity = 1.0f;
     AlphaMode alphaMode = AlphaMode::OPAQUE;
     float maskThreshold = 0.5f;
+    glm::vec3 emissiveFactor = glm::vec3(1.0f);
 
-    float metallic = -1.0f;
+    float metallic = 0.0f;
     float metallicFactor = 1.0f;
-    float roughness = -1.0f;
+    float roughness = 1.0f;
     float roughnessFactor = 1.0f;
     bool metalRoughnessCombined = false;
 

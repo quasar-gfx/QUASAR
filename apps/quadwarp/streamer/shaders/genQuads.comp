@@ -82,7 +82,9 @@ vec3 sampleNormal(sampler2D normalMap, vec2 sampleCoord) {
 }
 
 float sampleDepth(sampler2D depthMap, vec2 sampleCoord) {
-    return texture(depthMap, sampleCoord).x;
+    float depth = texture(depthMap, sampleCoord).x;
+    depth = clamp(depth, 0.0, 0.99999);
+    return depth;
 }
 
 vec3 planeRayIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 planePoint, vec3 planeNormal) {
