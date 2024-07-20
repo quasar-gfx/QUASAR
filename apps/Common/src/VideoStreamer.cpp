@@ -168,9 +168,6 @@ void VideoStreamer::sendFrame(pose_id_t poseID) {
     blitToRenderTarget(*renderTargetCopy);
     renderTargetCopy->unbind();
 
-    /* Copy frame from OpenGL texture to AVFrame */
-    int startCopyTime = timeutils::getCurrTimeMicros();
-
 #ifndef __APPLE__
     // add cuda buffer
     cudaArray* cudaBuffer;
@@ -200,8 +197,6 @@ void VideoStreamer::sendFrame(pose_id_t poseID) {
         frameReady = true;
     }
     cv.notify_one();
-
-    stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - startCopyTime);
 }
 
 void VideoStreamer::encodeAndSendFrames() {
@@ -224,6 +219,9 @@ void VideoStreamer::encodeAndSendFrames() {
         }
 
 #ifndef __APPLE__
+        /* Copy frame from OpenGL texture to AVFrame */
+        int startCopyTime = timeutils::getCurrTimeMicros();
+
         // copy opengl texture data to frame
         CudaBuffer cudaBufferStruct = cudaBufferQueue.front();
         cudaArray* cudaBuffer = cudaBufferStruct.buffer;
@@ -237,6 +235,8 @@ void VideoStreamer::encodeAndSendFrames() {
                                                cudaBuffer,
                                                0, 0, width * 4, height,
                                                cudaMemcpyDeviceToHost));
+
+        stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - startCopyTime);
 
 #else
         pose_id_t poseIDToSend = this->poseID;
@@ -305,7 +305,8 @@ void VideoStreamer::encodeAndSendFrames() {
 
         float elapsedTimeSec = timeutils::microsToSeconds(timeutils::getCurrTimeMicros() - prevTime);
         if (elapsedTimeSec < (1.0f / targetFrameRate)) {
-            av_usleep(timeutils::secondsToMicros(1.0f / targetFrameRate - elapsedTimeSec));
+            std::this_thread::sleep_for(std::chrono::microseconds((int)timeutils::secondsToMicros(1.0f / targetFrameRate - elapsedTimeSec)));
+
         }
         stats.totalTimeToSendMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - prevTime);
 

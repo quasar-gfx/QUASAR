@@ -142,7 +142,7 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
-        ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoStreamerColorRT.getFrameRate(), 1000.0f / videoStreamerColorRT.getFrameRate());
+        ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: RGB (%.1f fps), D (%.1f fps)", videoStreamerColorRT.getFrameRate(), videoStreamerDepthRT.getFrameRate());
 
         ImGui::Separator();
 
@@ -288,6 +288,8 @@ int main(int argc, char** argv) {
             if (pauseState != PauseState::PAUSE_COLOR) videoStreamerColorRT.sendFrame(poseID);
             if (pauseState != PauseState::PAUSE_DEPTH) videoStreamerDepthRT.sendFrame(poseID);
         }
+
+        // std::this_thread::sleep_for(std::chrono::milliseconds(10));
     });
 
     // run app loop (blocking)
