@@ -29,20 +29,22 @@ void Camera::setProjectionMatrix(float fovy, float aspect, float near, float far
 
 void Camera::updateProjectionMatrix() {
     proj = glm::perspective(fovy, aspect, near, far);
-    frustum.setFromCameraParams(position, front, right, up, near, far, aspect, fovy);
+    // frustum.setFromCameraParams(position, front, right, up, near, far, aspect, fovy);
+    frustum.setFromCameraMatrices(view, proj);
 }
 
 void Camera::setViewMatrix(glm::mat4 view) {
     this->view = view;
-    setTransformParentFromLocal(glm::inverse(view));
     updateCameraOrientation();
-    frustum.setFromCameraParams(position, front, right, up, near, far, aspect, fovy);
+    // frustum.setFromCameraParams(position, front, right, up, near, far, aspect, fovy);
+    frustum.setFromCameraMatrices(view, proj);
 }
 
 void Camera::updateViewMatrix() {
     view = getTransformLocalFromParent();
     updateCameraOrientation();
-    frustum.setFromCameraParams(position, front, right, up, near, far, aspect, fovy);
+    // frustum.setFromCameraParams(position, front, right, up, near, far, aspect, fovy);
+    frustum.setFromCameraMatrices(view, proj);
 }
 
 void Camera::processKeyboard(Keys keys, float deltaTime) {

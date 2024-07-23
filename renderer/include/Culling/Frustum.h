@@ -6,34 +6,79 @@
 
 #include <Culling/AABB.h>
 
-struct FPlane {
-	glm::vec3 normal = { 0.f, 1.f, 0.f };
-	float constant = 0.f;
-
-	FPlane() = default;
-	FPlane(const glm::vec3& p1, const glm::vec3& norm) : normal(glm::normalize(norm)), constant(-glm::dot(normal, p1)) {}
-    FPlane(const glm::vec3& norm, float dist) : normal(glm::normalize(norm)), constant(dist) {}
-
-	float signedDistance(const glm::vec3& point) const {
-		return glm::dot(normal, point) + constant;
-	}
-};
-
 class Frustum {
 public:
+    struct FPlane {
+    public:
+        glm::vec3 normal = { 0.0f, 1.0f, 0.0f };
+        float constant = 0.0f;
+
+        explicit FPlane() = default;
+        explicit FPlane(const glm::vec3 &p1, const glm::vec3 &norm) : normal(glm::normalize(norm)), constant(-glm::dot(normal, p1)) {}
+        explicit FPlane(const glm::vec3 &norm, float constant) : normal(norm), constant(constant) {
+            float length = glm::length(normal);
+            normal /= length;
+            constant /= length;
+        }
+
+        float signedDistance(const glm::vec3 &point) const {
+            return glm::dot(normal, point) + constant;
+        }
+    };
+
     explicit Frustum() = default;
+
+    void setFromCameraMatrices(const glm::mat4 &view, const glm::mat4 &projection) {
+        glm::mat4 viewProjectionMatrix = projection * view;
+
+        planes[LEFT].normal.x = viewProjectionMatrix[0][3] + viewProjectionMatrix[0][0];
+        planes[LEFT].normal.y = viewProjectionMatrix[1][3] + viewProjectionMatrix[1][0];
+        planes[LEFT].normal.z = viewProjectionMatrix[2][3] + viewProjectionMatrix[2][0];
+        planes[LEFT].constant = viewProjectionMatrix[3][3] + viewProjectionMatrix[3][0];
+
+        planes[RIGHT].normal.x = viewProjectionMatrix[0][3] - viewProjectionMatrix[0][0];
+        planes[RIGHT].normal.y = viewProjectionMatrix[1][3] - viewProjectionMatrix[1][0];
+        planes[RIGHT].normal.z = viewProjectionMatrix[2][3] - viewProjectionMatrix[2][0];
+        planes[RIGHT].constant = viewProjectionMatrix[3][3] - viewProjectionMatrix[3][0];
+
+        planes[BOTTOM].normal.x = viewProjectionMatrix[0][3] + viewProjectionMatrix[0][1];
+        planes[BOTTOM].normal.y = viewProjectionMatrix[1][3] + viewProjectionMatrix[1][1];
+        planes[BOTTOM].normal.z = viewProjectionMatrix[2][3] + viewProjectionMatrix[2][1];
+        planes[BOTTOM].constant = viewProjectionMatrix[3][3] + viewProjectionMatrix[3][1];
+
+        planes[TOP].normal.x = viewProjectionMatrix[0][3] - viewProjectionMatrix[0][1];
+        planes[TOP].normal.y = viewProjectionMatrix[1][3] - viewProjectionMatrix[1][1];
+        planes[TOP].normal.z = viewProjectionMatrix[2][3] - viewProjectionMatrix[2][1];
+        planes[TOP].constant = viewProjectionMatrix[3][3] - viewProjectionMatrix[3][1];
+
+        planes[NEAR].normal.x = viewProjectionMatrix[0][3] + viewProjectionMatrix[0][2];
+        planes[NEAR].normal.y = viewProjectionMatrix[1][3] + viewProjectionMatrix[1][2];
+        planes[NEAR].normal.z = viewProjectionMatrix[2][3] + viewProjectionMatrix[2][2];
+        planes[NEAR].constant = viewProjectionMatrix[3][3] + viewProjectionMatrix[3][2];
+
+        planes[FAR].normal.x = viewProjectionMatrix[0][3] - viewProjectionMatrix[0][2];
+        planes[FAR].normal.y = viewProjectionMatrix[1][3] - viewProjectionMatrix[1][2];
+        planes[FAR].normal.z = viewProjectionMatrix[2][3] - viewProjectionMatrix[2][2];
+        planes[FAR].constant = viewProjectionMatrix[3][3] - viewProjectionMatrix[3][2];
+
+        for (auto &plane : planes) {
+            float length = glm::length(plane.normal);
+            plane.normal /= length;
+            plane.constant /= length;
+        }
+    }
 
     void setFromCameraParams(const glm::vec3 &position, const glm::vec3 &front, const glm::vec3 &right, const glm::vec3 &up, float zNear, float zFar, float aspect, float fovY) {
         float halfVSide = zFar * tanf(fovY * 0.5f);
         float halfHSide = halfVSide * aspect;
         glm::vec3 frontMultFar = zFar * front;
 
-        planes[0] = { position + zNear * front, front };
-        planes[1] = { position + frontMultFar, -front };
-        planes[2] = { position, glm::cross(frontMultFar - right * halfHSide, up) };
-        planes[3] = { position, glm::cross(up, frontMultFar + right * halfHSide) };
-        planes[4] = { position, glm::cross(right, frontMultFar - up * halfVSide) };
-        planes[5] = { position, glm::cross(frontMultFar + up * halfVSide, right) };
+        planes[LEFT]   = FPlane(position, glm::cross(up, frontMultFar + right * halfHSide));
+        planes[RIGHT]  = FPlane(position, glm::cross(frontMultFar - right * halfHSide, up));
+        planes[BOTTOM] = FPlane(position, glm::cross(frontMultFar + up * halfVSide, right));
+        planes[TOP]    = FPlane(position, glm::cross(right, frontMultFar - up * halfVSide));
+        planes[NEAR]   = FPlane(position + zNear * front, front);
+        planes[FAR]    = FPlane(position + frontMultFar, -front);
     }
 
     bool aabbIsVisible(const AABB &aabb, const glm::mat4 &model) const {
@@ -57,7 +102,7 @@ public:
 
 		AABB globalAABB = AABB(center, newIi, newIj, newIk);
 
-		for (auto& plane : planes) {
+		for (auto &plane : planes) {
             if (!aabbIsOnOrForwardPlane(globalAABB, plane)) {
                 return false;
             }
@@ -74,7 +119,17 @@ public:
     }
 
 private:
-	std::vector<FPlane> planes = std::vector<FPlane>(6);
+    enum {
+        LEFT = 0,
+        RIGHT,
+        BOTTOM,
+        TOP,
+        NEAR,
+        FAR,
+        COUNT
+    };
+
+	std::vector<FPlane> planes = std::vector<FPlane>(COUNT);
 };
 
 #endif // FRUSTUM_H
