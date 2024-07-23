@@ -43,8 +43,8 @@ vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
     return viewCoord.xyz;
 }
 
-vec3 viewToWorld(mat4 viewInverse, vec3 viewspaceCoord) {
-    vec4 worldCoord = viewInverse * vec4(viewspaceCoord, 1.0);
+vec3 viewToWorld(mat4 viewInverse, vec3 viewCoord) {
+    vec4 worldCoord = viewInverse * vec4(viewCoord, 1.0);
     worldCoord = worldCoord / worldCoord.w;
     return worldCoord.xyz;
 }

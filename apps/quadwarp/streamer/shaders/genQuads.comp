@@ -58,8 +58,8 @@ vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
     return viewCoord.xyz;
 }
 
-vec3 viewToWorld(mat4 viewInverse, vec3 viewspaceCoord) {
-    vec4 worldCoord = viewInverse * vec4(viewspaceCoord, 1.0);
+vec3 viewToWorld(mat4 viewInverse, vec3 viewCoord) {
+    vec4 worldCoord = viewInverse * vec4(viewCoord, 1.0);
     worldCoord = worldCoord / worldCoord.w;
     return worldCoord.xyz;
 }
@@ -99,10 +99,6 @@ vec3 normalToView(mat4 view, vec3 normalWorld) {
     // extract the rotation part of the view matrix
     mat3 rotationMatrix = mat3(view);
     vec3 normalView = normalize(rotationMatrix * normalWorld);
-    // if normal is facing away from camera, flip it
-    if (dot(normalView, forward) < epilson) {
-        normalView = -normalView;
-    }
     return normalView;
 }
 
