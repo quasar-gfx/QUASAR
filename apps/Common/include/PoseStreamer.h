@@ -10,7 +10,6 @@
 #include <Networking/Socket.h>
 
 #include <glm/gtc/type_ptr.hpp>
-#include <glm/gtc/epsilon.hpp>
 
 #include <Utils/TimeUtils.h>
 #include <Camera.h>
@@ -27,7 +26,7 @@ public:
             , receiverURL(receiverURL)
             , streamer(receiverURL, sizeof(Pose)) { }
 
-    bool epsilonEqual(const glm::mat4& mat1, const glm::mat4& mat2, float epsilon = 0.001f) {
+    bool epsilonEqual(const glm::mat4& mat1, const glm::mat4& mat2, float epsilon = 1e-5) {
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; ++j) {
                 if (std::abs(mat1[i][j] - mat2[i][j]) > epsilon)

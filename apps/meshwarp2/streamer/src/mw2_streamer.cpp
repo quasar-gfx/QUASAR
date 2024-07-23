@@ -105,7 +105,7 @@ int main(int argc, char** argv) {
     bool showDepth = false;
     bool showNormals = false;
     bool dontCopyCameraPose = false;
-    float threshold = 0.93f;
+    float threshold = 0.95f;
     guiManager->onRender([&](double now, double dt) {
         ImGui::NewFrame();
 

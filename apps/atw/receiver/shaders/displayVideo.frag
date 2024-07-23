@@ -19,7 +19,7 @@ uniform mat4 viewInverse;
 uniform mat4 remoteProjection;
 uniform mat4 remoteView;
 
-vec3 ndcToView(vec2 ndc, float depth) {
+vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
     vec4 ndcPos;
     ndcPos.xy = ndc;
     ndcPos.z = 2.0 * depth - 1.0;
@@ -64,8 +64,8 @@ void main() {
     }
 
     vec2 ndc = TexCoords * 2.0 - 1.0;
-    vec3 viewPose = ndcToView(ndc, 1.0);
-    vec3 worldPose = viewToWorld(viewInverse, viewPose);
+    vec3 viewCoord = ndcToView(projectionInverse, ndc, 1.0);
+    vec3 worldPose = viewToWorld(viewInverse, viewCoord);
     vec2 TexCoordsRemote = worldToScreen(remoteView, remoteProjection, worldPose);
 
     FragColor = vec4(texture(videoTexture, TexCoordsRemote).rgb, 1.0);
