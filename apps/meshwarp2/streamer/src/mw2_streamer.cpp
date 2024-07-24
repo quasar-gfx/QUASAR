@@ -24,14 +24,7 @@
 
 const std::string DATA_PATH = "./";
 
-enum class RenderState {
-    MESH,
-    POINTCLOUD,
-    WIREFRAME
-};
-
 int surfelSize = 4;
-RenderState renderState = RenderState::MESH;
 
 int main(int argc, char** argv) {
     Config config{};
@@ -46,7 +39,6 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'i', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
-    args::ValueFlag<int> renderStateIn(parser, "render", "Render state", {'r', "render-state"}, 0);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -103,6 +95,7 @@ int main(int argc, char** argv) {
     bool rerender = true;
     bool showDepth = false;
     bool showNormals = false;
+    bool renderWireframe = false;
     bool doOrientationCorrection = true;
     bool dontCopyCameraPose = false;
     float distanceThreshold = 0.95f;
@@ -146,9 +139,10 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
-        ImGui::RadioButton("Render Mesh", (int*)&renderState, 0);
-        ImGui::RadioButton("Render Point Cloud", (int*)&renderState, 1);
-        ImGui::RadioButton("Render Wireframe", (int*)&renderState, 2);
+        if (ImGui::Checkbox("Render Wireframe", &renderWireframe)) {
+            dontCopyCameraPose = true;
+            rerender = true;
+        }
 
         ImGui::Separator();
 
@@ -255,8 +249,7 @@ int main(int argc, char** argv) {
         .vertices = std::vector<Vertex>(numVertices),
         .indices = std::vector<unsigned int>(indexBufferSize),
         .material = new UnlitMaterial({ .diffuseTextureID = renderTarget.colorBuffer.ID }),
-        .wireframe = false,
-        .pointcloud = renderState == RenderState::POINTCLOUD,
+        .wireframe = false
     });
     Node node = Node(&mesh);
     node.frustumCulled = false;
@@ -266,8 +259,7 @@ int main(int argc, char** argv) {
         .vertices = std::vector<Vertex>(numVertices),
         .indices = std::vector<unsigned int>(indexBufferSize),
         .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-        .wireframe = true,
-        .pointcloud = false,
+        .wireframe = true
     });
     Node nodeWireframe = Node(&meshWireframe);
     nodeWireframe.frustumCulled = false;
@@ -386,9 +378,7 @@ int main(int argc, char** argv) {
             rerender = false;
         }
 
-        mesh.pointcloud = renderState == RenderState::POINTCLOUD;
-
-        nodeWireframe.visible = renderState == RenderState::WIREFRAME;
+        nodeWireframe.visible = renderWireframe;
         nodeDepth.visible = showDepth;
 
         nodeWireframe.setPosition(node.getPosition() - camera.getForwardVector() * 0.001f);
