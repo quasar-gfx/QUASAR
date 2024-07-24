@@ -100,12 +100,13 @@ int main(int argc, char** argv) {
 
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
 
-    int trianglesDrawn = 0;
     bool rerender = true;
     bool showDepth = false;
     bool showNormals = false;
+    bool doOrientationCorrection = true;
     bool dontCopyCameraPose = false;
-    float threshold = 0.95f;
+    float distanceThreshold = 0.95f;
+    int trianglesDrawn = 0;
     guiManager->onRender([&](double now, double dt) {
         ImGui::NewFrame();
 
@@ -162,7 +163,12 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
-        if (ImGui::SliderFloat("Threshold", &threshold, 0.0f, 1.0f)) {
+        if (ImGui::Checkbox("Do Orientation Correction", &doOrientationCorrection)) {
+            dontCopyCameraPose = true;
+            rerender = true;
+        }
+
+        if (ImGui::SliderFloat("Distance Threshold", &distanceThreshold, 0.0f, 1.0f)) {
             dontCopyCameraPose = true;
             rerender = true;
         }
@@ -361,7 +367,8 @@ int main(int argc, char** argv) {
             genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
             genMeshShader.setFloat("near", remoteCamera.near);
             genMeshShader.setFloat("far", remoteCamera.far);
-            genMeshShader.setFloat("threshold", threshold);
+            genMeshShader.setBool("doOrientationCorrection", doOrientationCorrection);
+            genMeshShader.setFloat("distanceThreshold", distanceThreshold);
             app.renderer->gBuffer.positionBuffer.bind(0);
             app.renderer->gBuffer.normalsBuffer.bind(1);
             app.renderer->gBuffer.idBuffer.bind(2);

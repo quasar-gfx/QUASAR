@@ -39,7 +39,7 @@ const float epilson = 1e-5;
 
 const vec3 forward = vec3(0.0, 0.0, -1.0);
 
-#define MAX_DEPTH 0.99999
+#define MAX_DEPTH 0.9999
 
 #define VERTICES_IN_A_QUAD  4
 #define INDICES_IN_A_QUAD   6
@@ -86,7 +86,12 @@ vec2 worldToScreen(mat4 view, mat4 projection, vec3 worldCoord) {
 }
 
 vec3 sampleNormal(sampler2D normalMap, vec2 sampleCoord) {
-    return normalize(texture(normalMap, sampleCoord).xyz);
+    vec3 normal = normalize(texture(normalMap, sampleCoord).xyz);
+    // skybox normals might be NaN
+    if (any(isnan(normal))) {
+        return -forward;
+    }
+    return normal;
 }
 
 float sampleDepth(sampler2D depthMap, vec2 sampleCoord) {
@@ -128,10 +133,9 @@ vec3 planeRayIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 planePoint, ve
     return intersection;
 }
 
-void createSubQuad(
+void storeQuad(
         vec3 planePoint, vec3 planeNormal,
         vec2 ndcTopLeft, vec2 ndcTopRight, vec2 ndcBottomLeft, vec2 ndcBottomRight,
-        float x, float y, vec2 size,
         uint shaderIndex, uint vertexOffset, uint indexOffset
     )
 {
@@ -248,10 +252,7 @@ void main() {
     vec3 viewCoordTopLeft     = ndcToView(projectionInverse, ndcTopLeft, depthTopLeft);
     vec3 viewCoordTopRight    = ndcToView(projectionInverse, ndcTopRight, depthTopRight);
 
-    uint x = shaderIndex % uint(size.x);
-    uint y = shaderIndex / uint(size.x);
-
-    // void createSubQuad(
+    // void storeQuad(
     //     vec3 planeNormal, vec3 planePoint,
     //     vec2 ndcBottomLeft, vec2 ndcBottomRight, vec2 ndcTopLeft, vec2 ndcTopRight,
     //     uint shaderIndex, uint vertexOffset, uint indexOffset
@@ -266,10 +267,9 @@ void main() {
        pbl - sb - pbr
 
     **********************/
-    createSubQuad(
+    storeQuad(
         viewCoordTopLeft, normalTopLeft,
         ndcTopLeft, ndcTopCenter, ndcCenterLeft, ndcCenter,
-        x, y + 0.5, size,
         shaderIndex, 0 * VERTICES_IN_A_QUAD, 0 * INDICES_IN_A_QUAD
     );
 
@@ -282,10 +282,9 @@ void main() {
        pbl -  sb  -  pbr
 
     **********************/
-    createSubQuad(
+    storeQuad(
         viewCoordTopRight, normalTopRight,
         ndcTopCenter, ndcTopRight, ndcCenter, ndcCenterRight,
-        x + 0.5, y + 0.5, size,
         shaderIndex, 1 * VERTICES_IN_A_QUAD, 1 * INDICES_IN_A_QUAD
     );
 
@@ -298,10 +297,9 @@ void main() {
       (pbl) - (sb) - pbr
 
     **********************/
-    createSubQuad(
+    storeQuad(
         viewCoordBottomLeft, normalBottomLeft,
         ndcCenterLeft, ndcCenter, ndcBottomLeft, ndcBottomCenter,
-        x, y, size,
         shaderIndex, 2 * VERTICES_IN_A_QUAD, 2 * INDICES_IN_A_QUAD
     );
 
@@ -314,10 +312,9 @@ void main() {
        pbl - (sb) - (pbr)
 
     **********************/
-    createSubQuad(
+    storeQuad(
         viewCoordBottomRight, normalBottomRight,
         ndcCenter, ndcCenterRight, ndcBottomCenter, ndcBottomRight,
-        x + 0.5, y, size,
         shaderIndex, 3 * VERTICES_IN_A_QUAD, 3 * INDICES_IN_A_QUAD
     );
 }
