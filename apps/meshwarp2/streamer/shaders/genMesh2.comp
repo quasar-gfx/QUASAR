@@ -94,16 +94,6 @@ const vec3 up = vec3(0.0, 1.0, 0.0);
 const vec3 left = vec3(-1.0, 0.0, 0.0);
 const vec3 right = vec3(1.0, 0.0, 0.0);
 
-// define the corners of the near and far planes in normalized device coordinates
-const vec3 nearCornersNDC[4] = vec3[4](
-    vec3(-1, -1, -1), vec3(1, -1, -1), vec3(-1, 1, -1), vec3(1, 1, -1)
-);
-const vec3 farCornersNDC[4] = vec3[4](
-    vec3(-1, -1, 1), vec3(1, -1, 1), vec3(-1, 1, 1), vec3(1, 1, 1)
-);
-// define the corners of the near and far planes in view space
-vec3 nearPointsView[4], farPointsView[4];
-
 #define MAX_DEPTH 0.9999
 
 #define VERTICES_IN_A_QUAD  4
@@ -198,21 +188,18 @@ float signedDistanceToPlane(vec3 point, Plane plane) {
 
 bool planeIntersectsQuad(Plane plane, vec3 p[4]) {
     // get signed distance of each point to the plane
-    float signedDist1 = signedDistanceToPlane(p[0], plane);
-    float signedDist2 = signedDistanceToPlane(p[1], plane);
-    float signedDist3 = signedDistanceToPlane(p[2], plane);
-    float signedDist4 = signedDistanceToPlane(p[3], plane);
+    float d0 = signedDistanceToPlane(p[0], plane);
+    float d1 = signedDistanceToPlane(p[1], plane);
+    float d2 = signedDistanceToPlane(p[2], plane);
+    float d3 = signedDistanceToPlane(p[3], plane);
 
     // check if all points are on the same side of the plane
-    if ((signedDist1 > epilson && signedDist2 > epilson && signedDist3 > epilson && signedDist4 > epilson) ||
-        (signedDist1 <= -epilson && signedDist2 <= -epilson && signedDist3 <= -epilson && signedDist4 <= -epilson)) {
-        return false;
-    }
-    // else, the plane intersects the quad
-    return true;
+    bool posSide = (d0 > 0.0) || (d1 > 0.0) || (d2 > 0.0) || (d3 > 0.0);
+    bool negSide = (d0 < 0.0) || (d1 < 0.0) || (d2 < 0.0) || (d3 < 0.0);
+    return posSide && negSide;
 }
 
-bool planeIntersectsNearFar(vec3 planePointView, vec3 planeNormalView) {
+bool planeIntersectsNearFar(vec3 planePointView, vec3 planeNormalView, vec3 nearPointsView[4], vec3 farPointsView[4]) {
     Plane plane = Plane(planeNormalView, -dot(planeNormalView, planePointView));
 
     // check if the plane intersects any of the four points of the near and far clipping planes
@@ -222,8 +209,20 @@ bool planeIntersectsNearFar(vec3 planePointView, vec3 planeNormalView) {
     return intersectsNear || intersectsFar;
 }
 
-vec3 adjustNormal(vec3 normalView, vec3 pixelPointView) {
-    if (planeIntersectsNearFar(pixelPointView, normalView)) {
+vec3 adjustNormal(
+    vec3 normalView,
+    vec3 pixelPointView,
+    vec2 frustumNDCBottomLeft, vec2 frustumNDCBottomRight, vec2 frustumNDCTopLeft, vec2 frustumNDCTopRight
+) {
+    vec2 frustumNDCs[4] = vec2[4](frustumNDCBottomLeft, frustumNDCBottomRight, frustumNDCTopLeft, frustumNDCTopRight);
+
+    vec3 frustumNearPointsView[4], frustumFarPointsView[4];
+    for (int i = 0; i < 4; i++) {
+        frustumNearPointsView[i] = ndcToView(projectionInverse, frustumNDCs[i], -1.0);
+        frustumFarPointsView[i]  = ndcToView(projectionInverse, frustumNDCs[i], 1.0);
+    }
+
+    if (planeIntersectsNearFar(pixelPointView, normalView, frustumNearPointsView, frustumFarPointsView)) {
         /************************
 
             2 ---------- 3
@@ -236,10 +235,10 @@ vec3 adjustNormal(vec3 normalView, vec3 pixelPointView) {
 
         ************************/
         // get normals of diagonally opposite points of near and far clipping planes
-        vec3 normal1 = normalize(cross(nearPointsView[1] - nearPointsView[0], farPointsView[2]  - nearPointsView[0])); // up
-        vec3 normal2 = normalize(cross(nearPointsView[2] - nearPointsView[3], farPointsView[1]  - nearPointsView[3])); // down
-        vec3 normal3 = normalize(cross( farPointsView[1] - nearPointsView[0], nearPointsView[2] - nearPointsView[0])); // left
-        vec3 normal4 = normalize(cross(nearPointsView[3] - nearPointsView[1], farPointsView[0]  - nearPointsView[1])); // right
+        vec3 normal1 = normalize(cross(frustumNearPointsView[1] - frustumNearPointsView[0], frustumFarPointsView[2]  - frustumNearPointsView[0])); // up
+        vec3 normal2 = normalize(cross(frustumNearPointsView[2] - frustumNearPointsView[3], frustumFarPointsView[1]  - frustumNearPointsView[3])); // down
+        vec3 normal3 = normalize(cross( frustumFarPointsView[1] - frustumNearPointsView[0], frustumNearPointsView[2] - frustumNearPointsView[0])); // left
+        vec3 normal4 = normalize(cross(frustumNearPointsView[3] - frustumNearPointsView[1], frustumFarPointsView[0]  - frustumNearPointsView[1])); // right
 
         // find closest normal to normalView
         float dot1 = dot(normalView, normal1);
@@ -285,8 +284,6 @@ vec3 findQuadPointCorner(
     vec3 surfelViewPlanePixelNeighbor3,
     float pixelDepthCenter, float pixelDepthNeighbor1, float pixelDepthNeighbor2, float pixelDepthNeighbor3
 ) {
-    vec3 resultCoord;
-
     // find distance of depth of point on this pixel's plane to the same point on neighboring pixels' planes
     float dist1 = NormalizeDepth(distance(surfelViewPlane.z, surfelViewPlanePixelNeighbor1.z));
     float dist2 = NormalizeDepth(distance(surfelViewPlane.z, surfelViewPlanePixelNeighbor2.z));
@@ -371,12 +368,6 @@ void storeQuad(
 }
 
 void main() {
-    // transform the corners of the near and far clipping planes to view space
-    for (int i = 0; i < 4; i++) {
-        nearPointsView[i] = ndcToView(projectionInverse, nearCornersNDC[i].xy, nearCornersNDC[i].z);
-        farPointsView[i] = ndcToView(projectionInverse, farCornersNDC[i].xy, farCornersNDC[i].z);
-    }
-
     vec2 size = vec2(screenSize) / float(surfelSize);
 
     uint shaderIndex = uint(gl_GlobalInvocationID.y * size.x + gl_GlobalInvocationID.x);
@@ -506,15 +497,7 @@ void main() {
     pixelNormals.topRight    = normalToView(view, sampleNormal(normalMap, uvs.topRight));
 
     if (doOrientationCorrection) {
-        pixelNormals.bottomLeft  = adjustNormal(pixelNormals.bottomLeft, pixelCoordsView.bottomLeft);
-        pixelNormals.bottom      = adjustNormal(pixelNormals.bottom, pixelCoordsView.bottom);
-        pixelNormals.bottomRight = adjustNormal(pixelNormals.bottomRight, pixelCoordsView.bottomRight);
-        pixelNormals.left        = adjustNormal(pixelNormals.left, pixelCoordsView.left);
-        pixelNormals.center      = adjustNormal(pixelNormals.center, pixelCoordsView.center);
-        pixelNormals.right       = adjustNormal(pixelNormals.right, pixelCoordsView.right);
-        pixelNormals.topLeft     = adjustNormal(pixelNormals.topLeft, pixelCoordsView.topLeft);
-        pixelNormals.top         = adjustNormal(pixelNormals.top, pixelCoordsView.top);
-        pixelNormals.topRight    = adjustNormal(pixelNormals.topRight, pixelCoordsView.topRight);
+        pixelNormals.center = adjustNormal(pixelNormals.center, pixelCoordsView.center, surfelNDCs.bottomLeft, surfelNDCs.bottomRight, surfelNDCs.topLeft, surfelNDCs.topRight);
     }
 
     // project all points to the far plane

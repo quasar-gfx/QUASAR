@@ -139,6 +139,13 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
+        if (ImGui::Checkbox("Show Normals Instead of Color", &showNormals)) {
+            dontCopyCameraPose = true;
+            rerender = true;
+        }
+
+        ImGui::Separator();
+
         if (ImGui::Checkbox("Render Wireframe", &renderWireframe)) {
             dontCopyCameraPose = true;
             rerender = true;
@@ -147,13 +154,6 @@ int main(int argc, char** argv) {
         ImGui::Separator();
 
         ImGui::Checkbox("Show Depth Map as Point Cloud", &showDepth);
-
-        ImGui::Separator();
-
-        if (ImGui::Checkbox("Show Normals Instead of Color", &showNormals)) {
-            dontCopyCameraPose = true;
-            rerender = true;
-        }
 
         ImGui::Separator();
 
