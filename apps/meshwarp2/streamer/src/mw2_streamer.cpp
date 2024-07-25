@@ -96,7 +96,8 @@ int main(int argc, char** argv) {
     bool showDepth = false;
     bool showNormals = false;
     bool renderWireframe = false;
-    bool doOrientationCorrection = true;
+    bool doAverageNormals = true;
+    bool doOrientationCorrection = false;
     bool dontCopyCameraPose = false;
     float distanceThreshold = 0.95f;
     int trianglesDrawn = 0;
@@ -146,18 +147,17 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
 
-        if (ImGui::Checkbox("Render Wireframe", &renderWireframe)) {
-            dontCopyCameraPose = true;
-            rerender = true;
-        }
-
-        ImGui::Separator();
-
+        ImGui::Checkbox("Render Wireframe", &renderWireframe);
         ImGui::Checkbox("Show Depth Map as Point Cloud", &showDepth);
 
         ImGui::Separator();
 
-        if (ImGui::Checkbox("Do Orientation Correction", &doOrientationCorrection)) {
+        if (ImGui::Checkbox("Average Normals", &doAverageNormals)) {
+            dontCopyCameraPose = true;
+            rerender = true;
+        }
+
+        if (ImGui::Checkbox("Correct Normal Orientation", &doOrientationCorrection)) {
             dontCopyCameraPose = true;
             rerender = true;
         }
@@ -359,6 +359,7 @@ int main(int argc, char** argv) {
             genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
             genMeshShader.setFloat("near", remoteCamera.near);
             genMeshShader.setFloat("far", remoteCamera.far);
+            genMeshShader.setBool("doAverageNormals", doAverageNormals);
             genMeshShader.setBool("doOrientationCorrection", doOrientationCorrection);
             genMeshShader.setFloat("distanceThreshold", distanceThreshold);
             app.renderer->gBuffer.positionBuffer.bind(0);

@@ -1,8 +1,11 @@
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
+precision highp sampler2D;
+precision highp image2D;
+
 layout(binding = 0) uniform sampler2D positionMap;
 layout(binding = 1) uniform sampler2D normalMap;
-layout(binding = 2) uniform sampler2D idMap;
+layout(binding = 2) uniform sampler2D idBuffer;
 layout(binding = 3) uniform sampler2D depthMap;
 
 struct Vertex {
@@ -83,6 +86,7 @@ uniform float far;
 
 uniform int surfelSize;
 
+uniform bool doAverageNormals;
 uniform bool doOrientationCorrection;
 uniform float distanceThreshold;
 
@@ -261,6 +265,39 @@ vec3 adjustNormal(
     return normalView;
 }
 
+vec3 averageNormals(MultiQuad pixelNormalsView, MultiQuad pixelCoordsView) {
+    vec3 normal = pixelNormalsView.center;
+    int n = 1;
+    if (NormalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.bottomLeft)) < distanceThreshold) {
+        normal += pixelNormalsView.bottomLeft; n++;
+    }
+    if (NormalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.bottom)) < distanceThreshold) {
+        normal += pixelNormalsView.bottom; n++;
+    }
+    if (NormalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.bottomRight)) < distanceThreshold) {
+        normal += pixelNormalsView.bottomRight; n++;
+    }
+    if (NormalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.left)) < distanceThreshold) {
+        normal += pixelNormalsView.left; n++;
+    }
+    if (NormalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.right)) < distanceThreshold) {
+        normal += pixelNormalsView.right; n++;
+    }
+    if (NormalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.topLeft)) < distanceThreshold) {
+        normal += pixelNormalsView.topLeft; n++;
+    }
+    if (NormalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.top)) < distanceThreshold) {
+        normal += pixelNormalsView.top; n++;
+    }
+    if (NormalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.topRight)) < distanceThreshold) {
+        normal += pixelNormalsView.topRight; n++;
+    }
+    normal /= float(n);
+    normal = normalize(normal);
+
+    return normal;
+}
+
 vec3 planeRayIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 planePoint, vec3 planeNormal) {
     float denominator = dot(rayDirection, planeNormal);
     if (abs(denominator) < epilson) {
@@ -282,23 +319,23 @@ vec3 findQuadPointCorner(
     vec3 surfelViewPlanePixelNeighbor1,
     vec3 surfelViewPlanePixelNeighbor2,
     vec3 surfelViewPlanePixelNeighbor3,
-    float pixelDepthCenter, float pixelDepthNeighbor1, float pixelDepthNeighbor2, float pixelDepthNeighbor3
-) {
+    float pixelDepthCenter, float pixelDepthNeighbor1, float pixelDepthNeighbor2, float pixelDepthNeighbor3)
+{
     // find distance of depth of point on this pixel's plane to the same point on neighboring pixels' planes
-    float dist1 = NormalizeDepth(distance(surfelViewPlane.z, surfelViewPlanePixelNeighbor1.z));
-    float dist2 = NormalizeDepth(distance(surfelViewPlane.z, surfelViewPlanePixelNeighbor2.z));
-    float dist3 = NormalizeDepth(distance(surfelViewPlane.z, surfelViewPlanePixelNeighbor3.z));
+    float dist1 = NormalizeDepth(distance(surfelViewPlane, surfelViewPlanePixelNeighbor1));
+    float dist2 = NormalizeDepth(distance(surfelViewPlane, surfelViewPlanePixelNeighbor2));
+    float dist3 = NormalizeDepth(distance(surfelViewPlane, surfelViewPlanePixelNeighbor3));
 
     // add the contribution of each neighboring pixel to interpolated depth, if it is within distanceThreshold
     float depth = pixelDepthCenter;
     int n = 1;
-    if (dist1 <= distanceThreshold) {
+    if (dist1 < distanceThreshold) {
         depth += pixelDepthNeighbor1; n++;
     }
-    if (dist2 <= distanceThreshold) {
+    if (dist2 < distanceThreshold) {
         depth += pixelDepthNeighbor2; n++;
     }
-    if (dist3 <= distanceThreshold) {
+    if (dist3 < distanceThreshold) {
         depth += pixelDepthNeighbor3; n++;
     }
     depth /= float(n);
@@ -315,10 +352,10 @@ vec3 findQuadPointEdge(
     vec2 surfelNDC,
     vec3 surfelViewPlane,
     vec3 surfelViewPlanePixelNeighbor,
-    float pixelDepthCenter, float pixelDepthNeighbor
-) {
+    float pixelDepthCenter, float pixelDepthNeighbor)
+{
     // return interpolated point if neighboring pixel's depth is within distanceThreshold
-    if (NormalizeDepth(distance(surfelViewPlane.z, surfelViewPlanePixelNeighbor.z)) <= distanceThreshold) {
+    if (NormalizeDepth(distance(surfelViewPlane, surfelViewPlanePixelNeighbor)) < distanceThreshold) {
         float depth = (pixelDepthCenter + pixelDepthNeighbor) / 2.0;
         return ndcToView(projectionInverse, surfelNDC, depth);
     }
@@ -485,19 +522,23 @@ void main() {
     **********************************/
 
     // sample normal map
-    MultiQuad pixelNormals;
-    pixelNormals.bottomLeft  = normalToView(view, sampleNormal(normalMap, uvs.bottomLeft));
-    pixelNormals.bottom      = normalToView(view, sampleNormal(normalMap, uvs.bottom));
-    pixelNormals.bottomRight = normalToView(view, sampleNormal(normalMap, uvs.bottomRight));
-    pixelNormals.left        = normalToView(view, sampleNormal(normalMap, uvs.left));
-    pixelNormals.center      = normalToView(view, sampleNormal(normalMap, uvs.center));
-    pixelNormals.right       = normalToView(view, sampleNormal(normalMap, uvs.right));
-    pixelNormals.topLeft     = normalToView(view, sampleNormal(normalMap, uvs.topLeft));
-    pixelNormals.top         = normalToView(view, sampleNormal(normalMap, uvs.top));
-    pixelNormals.topRight    = normalToView(view, sampleNormal(normalMap, uvs.topRight));
+    MultiQuad pixelNormalsView;
+    pixelNormalsView.bottomLeft  = normalToView(view, sampleNormal(normalMap, uvs.bottomLeft));
+    pixelNormalsView.bottom      = normalToView(view, sampleNormal(normalMap, uvs.bottom));
+    pixelNormalsView.bottomRight = normalToView(view, sampleNormal(normalMap, uvs.bottomRight));
+    pixelNormalsView.left        = normalToView(view, sampleNormal(normalMap, uvs.left));
+    pixelNormalsView.center      = normalToView(view, sampleNormal(normalMap, uvs.center));
+    pixelNormalsView.right       = normalToView(view, sampleNormal(normalMap, uvs.right));
+    pixelNormalsView.topLeft     = normalToView(view, sampleNormal(normalMap, uvs.topLeft));
+    pixelNormalsView.top         = normalToView(view, sampleNormal(normalMap, uvs.top));
+    pixelNormalsView.topRight    = normalToView(view, sampleNormal(normalMap, uvs.topRight));
+
+    if (doAverageNormals) {
+        pixelNormalsView.center = averageNormals(pixelNormalsView, pixelCoordsView);
+    }
 
     if (doOrientationCorrection) {
-        pixelNormals.center = adjustNormal(pixelNormals.center, pixelCoordsView.center, surfelNDCs.bottomLeft, surfelNDCs.bottomRight, surfelNDCs.topLeft, surfelNDCs.topRight);
+        pixelNormalsView.center = adjustNormal(pixelNormalsView.center, pixelCoordsView.center, surfelNDCs.bottomLeft, surfelNDCs.bottomRight, surfelNDCs.topLeft, surfelNDCs.topRight);
     }
 
     // project all points to the far plane
@@ -516,44 +557,44 @@ void main() {
     vec3 rayDirection;
 
     rayDirection = normalize(surfelCoordsFarPlane.bottomLeft - origin);
-    vec3 surfelViewBottomLeftPlane = planeRayIntersection(origin, rayDirection, pixelCoordsView.center, pixelNormals.center);
-    vec3 surfelViewBottomLeftPlanePixelBottomLeft = planeRayIntersection(origin, rayDirection, pixelCoordsView.bottomLeft, pixelNormals.bottomLeft);
-    vec3 surfelViewBottomLeftPlanePixelBottom = planeRayIntersection(origin, rayDirection, pixelCoordsView.bottom, pixelNormals.bottom);
-    vec3 surfelViewBottomLeftPlanePixelLeft = planeRayIntersection(origin, rayDirection, pixelCoordsView.left, pixelNormals.left);
+    vec3 surfelViewBottomLeftPlane = planeRayIntersection(origin, rayDirection, pixelCoordsView.center, pixelNormalsView.center);
+    vec3 surfelViewBottomLeftPlanePixelBottomLeft = planeRayIntersection(origin, rayDirection, pixelCoordsView.bottomLeft, pixelNormalsView.bottomLeft);
+    vec3 surfelViewBottomLeftPlanePixelBottom = planeRayIntersection(origin, rayDirection, pixelCoordsView.bottom, pixelNormalsView.bottom);
+    vec3 surfelViewBottomLeftPlanePixelLeft = planeRayIntersection(origin, rayDirection, pixelCoordsView.left, pixelNormalsView.left);
 
     rayDirection = normalize(surfelCoordsFarPlane.bottom - origin);
-    vec3 surfelViewBottomPlane = planeRayIntersection(origin, rayDirection, pixelCoordsView.center, pixelNormals.center);
-    vec3 surfelViewBottomPlanePixelBottom = planeRayIntersection(origin, rayDirection, pixelCoordsView.bottom, pixelNormals.bottom);
+    vec3 surfelViewBottomPlane = planeRayIntersection(origin, rayDirection, pixelCoordsView.center, pixelNormalsView.center);
+    vec3 surfelViewBottomPlanePixelBottom = planeRayIntersection(origin, rayDirection, pixelCoordsView.bottom, pixelNormalsView.bottom);
 
     rayDirection = normalize(surfelCoordsFarPlane.bottomRight - origin);
-    vec3 surfelViewBottomRightPlane = planeRayIntersection(origin, rayDirection, pixelCoordsView.center, pixelNormals.center);
-    vec3 surfelViewBottomRightPlanePixelBottomRight = planeRayIntersection(origin, rayDirection, pixelCoordsView.bottomRight, pixelNormals.bottomRight);
-    vec3 surfelViewBottomRightPlanePixelBottom = planeRayIntersection(origin, rayDirection, pixelCoordsView.bottom, pixelNormals.bottom);
-    vec3 surfelViewBottomRightPlanePixelRight = planeRayIntersection(origin, rayDirection, pixelCoordsView.right, pixelNormals.right);
+    vec3 surfelViewBottomRightPlane = planeRayIntersection(origin, rayDirection, pixelCoordsView.center, pixelNormalsView.center);
+    vec3 surfelViewBottomRightPlanePixelBottomRight = planeRayIntersection(origin, rayDirection, pixelCoordsView.bottomRight, pixelNormalsView.bottomRight);
+    vec3 surfelViewBottomRightPlanePixelBottom = planeRayIntersection(origin, rayDirection, pixelCoordsView.bottom, pixelNormalsView.bottom);
+    vec3 surfelViewBottomRightPlanePixelRight = planeRayIntersection(origin, rayDirection, pixelCoordsView.right, pixelNormalsView.right);
 
     rayDirection = normalize(surfelCoordsFarPlane.left - origin);
-    vec3 surfelViewLeftPlane = planeRayIntersection(origin, rayDirection, pixelCoordsView.center, pixelNormals.center);
-    vec3 surfelViewLeftPlanePixelLeft = planeRayIntersection(origin, rayDirection, pixelCoordsView.left, pixelNormals.left);
+    vec3 surfelViewLeftPlane = planeRayIntersection(origin, rayDirection, pixelCoordsView.center, pixelNormalsView.center);
+    vec3 surfelViewLeftPlanePixelLeft = planeRayIntersection(origin, rayDirection, pixelCoordsView.left, pixelNormalsView.left);
 
     rayDirection = normalize(surfelCoordsFarPlane.right - origin);
-    vec3 surfelViewRightPlane = planeRayIntersection(origin, rayDirection, pixelCoordsView.center, pixelNormals.center);
-    vec3 surfelViewRightPlanePixelRight = planeRayIntersection(origin, rayDirection, pixelCoordsView.right, pixelNormals.right);
+    vec3 surfelViewRightPlane = planeRayIntersection(origin, rayDirection, pixelCoordsView.center, pixelNormalsView.center);
+    vec3 surfelViewRightPlanePixelRight = planeRayIntersection(origin, rayDirection, pixelCoordsView.right, pixelNormalsView.right);
 
     rayDirection = normalize(surfelCoordsFarPlane.topLeft - origin);
-    vec3 surfelViewTopLeftPlane = planeRayIntersection(origin, rayDirection, pixelCoordsView.center, pixelNormals.center);
-    vec3 surfelViewTopLeftPlanePixelTopLeft = planeRayIntersection(origin, rayDirection, pixelCoordsView.topLeft, pixelNormals.topLeft);
-    vec3 surfelViewTopLeftPlanePixelLeft = planeRayIntersection(origin, rayDirection, pixelCoordsView.left, pixelNormals.left);
-    vec3 surfelViewTopLeftPlanePixelTop = planeRayIntersection(origin, rayDirection, pixelCoordsView.top, pixelNormals.top);
+    vec3 surfelViewTopLeftPlane = planeRayIntersection(origin, rayDirection, pixelCoordsView.center, pixelNormalsView.center);
+    vec3 surfelViewTopLeftPlanePixelTopLeft = planeRayIntersection(origin, rayDirection, pixelCoordsView.topLeft, pixelNormalsView.topLeft);
+    vec3 surfelViewTopLeftPlanePixelLeft = planeRayIntersection(origin, rayDirection, pixelCoordsView.left, pixelNormalsView.left);
+    vec3 surfelViewTopLeftPlanePixelTop = planeRayIntersection(origin, rayDirection, pixelCoordsView.top, pixelNormalsView.top);
 
     rayDirection = normalize(surfelCoordsFarPlane.top - origin);
-    vec3 surfelViewTopPlane = planeRayIntersection(origin, rayDirection, pixelCoordsView.center, pixelNormals.center);
-    vec3 surfelViewTopPlanePixelTop = planeRayIntersection(origin, rayDirection, pixelCoordsView.top, pixelNormals.top);
+    vec3 surfelViewTopPlane = planeRayIntersection(origin, rayDirection, pixelCoordsView.center, pixelNormalsView.center);
+    vec3 surfelViewTopPlanePixelTop = planeRayIntersection(origin, rayDirection, pixelCoordsView.top, pixelNormalsView.top);
 
     rayDirection = normalize(surfelCoordsFarPlane.topRight - origin);
-    vec3 surfelViewTopRightPlane = planeRayIntersection(origin, rayDirection, pixelCoordsView.center, pixelNormals.center);
-    vec3 surfelViewTopRightPlanePixelTopRight = planeRayIntersection(origin, rayDirection, pixelCoordsView.topRight, pixelNormals.topRight);
-    vec3 surfelViewTopRightPlanePixelTop = planeRayIntersection(origin, rayDirection, pixelCoordsView.top, pixelNormals.top);
-    vec3 surfelViewTopRightPlanePixelRight = planeRayIntersection(origin, rayDirection, pixelCoordsView.right, pixelNormals.right);
+    vec3 surfelViewTopRightPlane = planeRayIntersection(origin, rayDirection, pixelCoordsView.center, pixelNormalsView.center);
+    vec3 surfelViewTopRightPlanePixelTopRight = planeRayIntersection(origin, rayDirection, pixelCoordsView.topRight, pixelNormalsView.topRight);
+    vec3 surfelViewTopRightPlanePixelTop = planeRayIntersection(origin, rayDirection, pixelCoordsView.top, pixelNormalsView.top);
+    vec3 surfelViewTopRightPlanePixelRight = planeRayIntersection(origin, rayDirection, pixelCoordsView.right, pixelNormalsView.right);
 
     /**********************************
 
