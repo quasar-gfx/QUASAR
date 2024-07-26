@@ -105,7 +105,7 @@ uniform float far;
 
 uniform int surfelSize;
 
-uniform bool doAverageNormals;
+uniform bool doAverageNormal;
 uniform bool doOrientationCorrection;
 uniform float distanceThreshold;
 
@@ -232,7 +232,7 @@ bool planeIntersectsNearFar(vec3 planePointView, vec3 planeNormalView, vec3 near
     return intersectsNear || intersectsFar;
 }
 
-vec3 averageNormal(MultiQuad pixelNormalsView, MultiQuad pixelCoordsView) {
+vec3 averageNormals(MultiQuad pixelNormalsView, MultiQuad pixelCoordsView) {
     vec3 normal = pixelNormalsView.center;
     int n = 1;
     if (NormalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.bottomLeft)) < distanceThreshold) {
@@ -261,7 +261,6 @@ vec3 averageNormal(MultiQuad pixelNormalsView, MultiQuad pixelCoordsView) {
     }
     normal /= float(n);
     normal = normalize(normal);
-
     return normal;
 }
 
@@ -277,8 +276,35 @@ vec3 adjustNormal(vec3 normalView, vec3 pixelPointView, Quad2D frustumNDCs) {
     if (planeIntersectsNearFar(pixelPointView, normalView, frustumNearPointsView, frustumFarPointsView)) {
         vec2 frustumCenterNDC = (frustumNDCs.bottomLeft + frustumNDCs.bottomRight + frustumNDCs.topLeft + frustumNDCs.topRight) / 4.0;
         vec3 frustumCenterView = ndcToView(projectionInverse, frustumCenterNDC, 1.0);
-        vec3 frustumNormalView = normalize(frustumCenterView - pixelPointView);
-        return frustumNormalView;
+        vec3 frustumNormalView = normalize(origin - frustumCenterView);
+
+        // make sure normal view is within 45 degrees of frustum normal, if not, rotate it to be
+        float dotProduct = dot(normalView, frustumNormalView);
+        if (dotProduct < cos(radians(45.0))) {
+            vec3 rotationAxis = normalize(cross(normalView, frustumNormalView));
+
+            float maxAngle = radians(45.0);
+            float angle = acos(dotProduct);
+            if (angle > maxAngle) {
+                angle = maxAngle;
+            }
+
+            mat3 rotationMatrix = mat3(
+                cos(angle) + rotationAxis.x * rotationAxis.x * (1.0 - cos(angle)),
+                rotationAxis.x * rotationAxis.y * (1.0 - cos(angle)) - rotationAxis.z * sin(angle),
+                rotationAxis.x * rotationAxis.z * (1.0 - cos(angle)) + rotationAxis.y * sin(angle),
+
+                rotationAxis.y * rotationAxis.x * (1.0 - cos(angle)) + rotationAxis.z * sin(angle),
+                cos(angle) + rotationAxis.y * rotationAxis.y * (1.0 - cos(angle)),
+                rotationAxis.y * rotationAxis.z * (1.0 - cos(angle)) - rotationAxis.x * sin(angle),
+
+                rotationAxis.z * rotationAxis.x * (1.0 - cos(angle)) - rotationAxis.y * sin(angle),
+                rotationAxis.z * rotationAxis.y * (1.0 - cos(angle)) + rotationAxis.x * sin(angle),
+                cos(angle) + rotationAxis.z * rotationAxis.z * (1.0 - cos(angle))
+            );
+
+            normalView = rotationMatrix * normalView;
+        }
     }
     return normalView;
 }
@@ -325,7 +351,7 @@ vec3 findQuadPointCorner(
     }
     depth /= float(n);
 
-    // only return the interpolated point if all neighboring pixels' depths are within distanceThreshold
+    // only return the interpolated point if all neighboring pixels are within distanceThreshold
     vec3 surfelViewBottomLeftInterp = ndcToView(projectionInverse, surfelNDC, depth);
     if (n >= 3) {
         return surfelViewBottomLeftInterp;
@@ -519,8 +545,8 @@ void main() {
     pixelNormalsView.top         = normalToView(view, sampleNormal(normalMap, uvs.top));
     pixelNormalsView.topRight    = normalToView(view, sampleNormal(normalMap, uvs.topRight));
 
-    if (doAverageNormals) {
-        pixelNormalsView.center = averageNormal(pixelNormalsView, pixelCoordsView);
+    if (doAverageNormal) {
+        pixelNormalsView.center = averageNormals(pixelNormalsView, pixelCoordsView);
     }
 
     if (doOrientationCorrection) {
