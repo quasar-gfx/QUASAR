@@ -11,7 +11,7 @@ include_directories(
 
 add_subdirectory(Common)
 
-add_subdirectory(test)
+add_subdirectory(scene_viewer)
 add_subdirectory(atw)
 add_subdirectory(meshwarp)
 add_subdirectory(quadwarp)

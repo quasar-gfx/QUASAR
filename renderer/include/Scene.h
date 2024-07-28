@@ -2,7 +2,6 @@
 #define SCENE_H
 
 #include <vector>
-#include <memory>
 
 #include <Shaders/Shader.h>
 #include <Lights/Lights.h>

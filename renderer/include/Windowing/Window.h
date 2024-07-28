@@ -28,7 +28,7 @@ class Window {
 public:
     virtual ~Window() = default;
 
-    virtual void getSize(unsigned int* width, unsigned int* height) = 0;
+    virtual void getSize(unsigned int &width, unsigned int &height) = 0;
     virtual bool resized() = 0;
 
     virtual Mouse getMouseButtons() = 0;

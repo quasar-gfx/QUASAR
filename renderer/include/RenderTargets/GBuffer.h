@@ -124,6 +124,14 @@ public:
         colorBuffer.resize(width, height);
         depthBuffer.resize(width, height);
     }
+
+    void saveColorAsPNG(const std::string &path) {
+        colorBuffer.saveAsPNG(path);
+    }
+
+    void saveColorAsHDR(const std::string &path) {
+        colorBuffer.saveAsHDR(path);
+    }
 };
 
 #endif // GBUFFER_H

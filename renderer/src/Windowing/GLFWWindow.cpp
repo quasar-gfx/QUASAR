@@ -33,15 +33,15 @@ GLFWWindow::GLFWWindow(const Config &config) {
     }
 }
 
-void GLFWWindow::getSize(unsigned int* width, unsigned int* height) {
+void GLFWWindow::getSize(unsigned int &width, unsigned int &height) {
     int frameBufferWidth, frameBufferHeight;
     glfwGetFramebufferSize(window, &frameBufferWidth, &frameBufferHeight);
     while (frameBufferWidth == 0 || frameBufferHeight == 0) {
         glfwGetFramebufferSize(window, &frameBufferWidth, &frameBufferHeight);
         glfwWaitEvents();
     }
-    *width = frameBufferWidth;
-    *height = frameBufferHeight;
+    width = frameBufferWidth;
+    height = frameBufferHeight;
 }
 
 bool GLFWWindow::resized() {

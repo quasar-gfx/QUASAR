@@ -60,6 +60,10 @@ void SceneLoader::loadScene(const std::string &filename, Scene &scene, Camera &c
     } catch (std::ifstream::failure e) {
         throw std::runtime_error("Failed to read scene file " + filename);
     }
+
+    models.clear();
+    meshes.clear();
+    materials.clear();
 }
 
 std::ifstream::pos_type SceneLoader::getFileSize(const std::string &filename) {

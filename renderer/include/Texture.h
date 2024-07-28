@@ -90,9 +90,9 @@ public:
         glDeleteTextures(1, &ID);
     }
 
-    void saveTextureToPNG(const std::string &filename);
-    void saveTextureToJPG(const std::string &filename, int quality = 100);
-    void saveTextureToHDR(const std::string &filename);
+    void saveAsPNG(const std::string &filename);
+    void saveAsJPG(const std::string &filename, int quality = 100);
+    void saveAsHDR(const std::string &filename);
     void saveDepthToFile(const std::string &filename);
 
 protected:

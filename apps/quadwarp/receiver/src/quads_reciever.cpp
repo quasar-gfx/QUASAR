@@ -93,7 +93,7 @@ int main(int argc, char** argv) {
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
-    args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'i', "scene"}, "../assets/scenes/sponza.json");
+    args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
     args::ValueFlag<int> renderStateIn(parser, "render", "Render state", {'r', "render-state"}, 0);
@@ -110,7 +110,7 @@ int main(int argc, char** argv) {
 
     // parse size
     std::string sizeStr = args::get(sizeIn);
-    size_t pos = sizeStr.find("x");
+    size_t pos = sizeStr.find('x');
     config.width = std::stoi(sizeStr.substr(0, pos));
     config.height = std::stoi(sizeStr.substr(pos + 1));
 
@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
     OpenGLApp app(config);
 
     unsigned int screenWidth, screenHeight;
-    window->getSize(&screenWidth, &screenHeight);
+    window->getSize(screenWidth, screenHeight);
 
     Scene scene = Scene();
     Camera camera = Camera(screenWidth, screenHeight);
@@ -148,7 +148,7 @@ int main(int argc, char** argv) {
         glm::vec2 winSize = glm::vec2(screenWidth, screenHeight);
         glm::vec2 guiSize = winSize * glm::vec2(0.4f, 0.3f);
         ImGui::SetNextWindowSize(ImVec2(guiSize.x, guiSize.y), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowPos(ImVec2(10, 60), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(10, 90), ImGuiCond_FirstUseEver);
         flags = 0;
         ImGui::Begin(config.title.c_str(), 0, flags);
         ImGui::Text("OpenGL Version: %s", glGetString(GL_VERSION));

@@ -30,7 +30,7 @@ void OpenGLApp::run() {
 
         if (window->resized()) {
             unsigned int width, height;
-            window->getSize(&width, &height);
+            window->getSize(width, height);
 
             std::cout << "Resized to " << width << "x" << height << std::endl;
             renderer->resize(width, height);

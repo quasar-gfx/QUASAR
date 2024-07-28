@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> size2In(parser, "size", "Size of pre-rendered content", {'S', "size2"}, "800x600");
-    args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'i', "scene"}, "../assets/scenes/sponza.json");
+    args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
     args::ValueFlag<int> renderStateIn(parser, "render", "Render state", {'r', "render-state"}, 0);
@@ -60,13 +60,13 @@ int main(int argc, char** argv) {
 
     // parse size
     std::string sizeStr = args::get(sizeIn);
-    size_t pos = sizeStr.find("x");
+    size_t pos = sizeStr.find('x');
     config.width = std::stoi(sizeStr.substr(0, pos));
     config.height = std::stoi(sizeStr.substr(pos + 1));
 
     // parse size2
     std::string size2Str = args::get(size2In);
-    pos = size2Str.find("x");
+    pos = size2Str.find('x');
     int size2Width = std::stoi(size2Str.substr(0, pos));
     int size2Height = std::stoi(size2Str.substr(pos + 1));
 
@@ -85,7 +85,7 @@ int main(int argc, char** argv) {
     OpenGLApp app(config);
 
     unsigned int screenWidth, screenHeight;
-    window->getSize(&screenWidth, &screenHeight);
+    window->getSize(screenWidth, screenHeight);
 
     Scene scene = Scene();
     Scene remoteScene = Scene();
@@ -105,61 +105,117 @@ int main(int argc, char** argv) {
     bool showNormals = false;
     bool dontCopyCameraPose = false;
     guiManager->onRender([&](double now, double dt) {
-        ImGui::NewFrame();
-
-        ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
-        int flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar;
-        ImGui::Begin("", 0, flags);
-        ImGui::Text("%.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
-        ImGui::End();
+        static bool showFPS = true;
+        static bool showUI = true;
+        static bool showCaptureWindow = false;
+        static bool saveAsHDR = false;
+        static char fileName[256] = "screenshot";
 
         glm::vec2 winSize = glm::vec2(screenWidth, screenHeight);
-        glm::vec2 guiSize = winSize * glm::vec2(0.4f, 0.3f);
-        ImGui::SetNextWindowSize(ImVec2(guiSize.x, guiSize.y), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowPos(ImVec2(10, 60), ImGuiCond_FirstUseEver);
-        flags = 0;
-        ImGui::Begin(config.title.c_str(), 0, flags);
-        ImGui::Text("OpenGL Version: %s", glGetString(GL_VERSION));
-        ImGui::Text("GPU: %s\n", glGetString(GL_RENDERER));
 
-        ImGui::Separator();
+        ImGui::NewFrame();
 
-        if (trianglesDrawn < 100000) {
-            ImGui::TextColored(ImVec4(0,1,0,1), "Total Triangles Drawn: %d", trianglesDrawn);
+        unsigned int flags = 0;
+        ImGui::BeginMainMenuBar();
+        if (ImGui::BeginMenu("File")) {
+            if (ImGui::MenuItem("Exit")) {
+                window->close();
+            }
+            ImGui::EndMenu();
         }
-        else if (trianglesDrawn < 500000) {
-            ImGui::TextColored(ImVec4(1,1,0,1), "Total Triangles Drawn: %d", trianglesDrawn);
+        if (ImGui::BeginMenu("View")) {
+            ImGui::MenuItem("FPS", 0, &showFPS);
+            ImGui::MenuItem("UI", 0, &showUI);
+            ImGui::MenuItem("Frame Capture", 0, &showCaptureWindow);
+            ImGui::EndMenu();
         }
-        else {
-            ImGui::TextColored(ImVec4(1,0,0,1), "Total Triangles Drawn: %d", trianglesDrawn);
-        }
+        ImGui::EndMainMenuBar();
 
-        ImGui::Separator();
-
-        glm::vec3 position = camera.getPosition();
-        ImGui::InputFloat3("Camera Position", (float*)&position);
-        camera.setPosition(position);
-        ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
-
-        ImGui::Separator();
-
-        ImGui::RadioButton("Render Mesh", (int*)&renderState, 0);
-        ImGui::RadioButton("Render Point Cloud", (int*)&renderState, 1);
-        ImGui::RadioButton("Render Wireframe", (int*)&renderState, 2);
-
-        ImGui::Separator();
-
-        if (ImGui::Checkbox("Show Normals Instead of Color", &showNormals)) {
-            dontCopyCameraPose = true;
-            rerender = true;
+        if (showFPS) {
+            ImGui::SetNextWindowPos(ImVec2(10, 40), ImGuiCond_FirstUseEver);
+            flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar;
+            ImGui::Begin("", 0, flags);
+            ImGui::Text("%.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+            ImGui::End();
         }
 
-        ImGui::Separator();
+        if (showUI) {
+            ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(10, 90), ImGuiCond_FirstUseEver);
+            ImGui::Begin(config.title.c_str(), &showUI, flags);
+            ImGui::Text("OpenGL Version: %s", glGetString(GL_VERSION));
+            ImGui::Text("GPU: %s\n", glGetString(GL_RENDERER));
 
-        if (ImGui::Button("Rerender", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
-            rerender = true;
+            ImGui::Separator();
+
+            if (trianglesDrawn < 100000) {
+                ImGui::TextColored(ImVec4(0,1,0,1), "Total Triangles Drawn: %d", trianglesDrawn);
+            }
+            else if (trianglesDrawn < 500000) {
+                ImGui::TextColored(ImVec4(1,1,0,1), "Total Triangles Drawn: %d", trianglesDrawn);
+            }
+            else {
+                ImGui::TextColored(ImVec4(1,0,0,1), "Total Triangles Drawn: %d", trianglesDrawn);
+            }
+
+            ImGui::Separator();
+
+            glm::vec3 position = camera.getPosition();
+            ImGui::InputFloat3("Camera Position", (float*)&position);
+            camera.setPosition(position);
+            ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
+
+            ImGui::Separator();
+
+            ImGui::RadioButton("Render Mesh", (int*)&renderState, 0);
+            ImGui::RadioButton("Render Point Cloud", (int*)&renderState, 1);
+            ImGui::RadioButton("Render Wireframe", (int*)&renderState, 2);
+
+            ImGui::Separator();
+
+            if (ImGui::Checkbox("Show Normals Instead of Color", &showNormals)) {
+                dontCopyCameraPose = true;
+                rerender = true;
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::Button("Rerender", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+                rerender = true;
+            }
+            ImGui::End();
         }
-        ImGui::End();
+
+        if (showCaptureWindow) {
+            ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(winSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
+            ImGui::Begin("Frame Capture", &showCaptureWindow);
+
+            ImGui::Text("Enter File Name:");
+            ImGui::InputText("##file path", fileName, IM_ARRAYSIZE(fileName));
+            std::string fileNameStr = fileName;
+
+            ImGui::Checkbox("Save as HDR", &saveAsHDR);
+
+            ImGui::Separator();
+
+            if (ImGui::Button("Capture Current Frame")) {
+                if (saveAsHDR) {
+                    if (fileNameStr.find(".hdr") == std::string::npos) {
+                        fileNameStr += ".hdr";
+                    }
+                    app.renderer->gBuffer.saveColorAsHDR(fileNameStr);
+                }
+                else {
+                    if (fileNameStr.find(".png") == std::string::npos) {
+                        fileNameStr += ".png";
+                    }
+                    app.renderer->gBuffer.saveColorAsPNG(fileNameStr);
+                }
+            }
+
+            ImGui::End();
+        }
     });
 
     app.onResize([&](unsigned int width, unsigned int height) {

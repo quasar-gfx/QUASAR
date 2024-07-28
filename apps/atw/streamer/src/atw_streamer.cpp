@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
-    args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'i', "scene"}, "../assets/scenes/sponza.json");
+    args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<bool> displayIn(parser, "display", "Show window", {'d', "display"}, true);
     args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "127.0.0.1:12345");
@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
 
     // parse size
     std::string sizeStr = args::get(sizeIn);
-    size_t pos = sizeStr.find("x");
+    size_t pos = sizeStr.find('x');
     config.width = std::stoi(sizeStr.substr(0, pos));
     config.height = std::stoi(sizeStr.substr(pos + 1));
 
@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
     OpenGLApp app(config);
 
     unsigned int screenWidth, screenHeight;
-    window->getSize(&screenWidth, &screenHeight);
+    window->getSize(screenWidth, screenHeight);
 
     Scene scene = Scene();
     Camera camera = Camera(screenWidth, screenHeight);
@@ -91,44 +91,100 @@ int main(int argc, char** argv) {
 
     bool paused = false;
     guiManager->onRender([&](double now, double dt) {
-        ImGui::NewFrame();
-
-        ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
-        int flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar;
-        ImGui::Begin("", 0, flags);
-        ImGui::Text("%.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
-        ImGui::End();
+        static bool showFPS = true;
+        static bool showUI = true;
+        static bool showCaptureWindow = false;
+        static bool saveAsHDR = false;
+        static char fileName[256] = "screenshot";
 
         glm::vec2 winSize = glm::vec2(screenWidth, screenHeight);
-        glm::vec2 guiSize = winSize * glm::vec2(0.4f, 0.3f);
-        ImGui::SetNextWindowSize(ImVec2(guiSize.x, guiSize.y), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowPos(ImVec2(10, 60), ImGuiCond_FirstUseEver);
-        flags = 0;
-        ImGui::Begin(config.title.c_str(), 0, flags);
-        ImGui::Text("OpenGL Version: %s", glGetString(GL_VERSION));
-        ImGui::Text("GPU: %s\n", glGetString(GL_RENDERER));
 
-        ImGui::Separator();
+        ImGui::NewFrame();
 
-        ImGui::Text("Video URL: %s", videoURL.c_str());
-        ImGui::Text("Pose URL: %s", poseURL.c_str());
+        unsigned int flags = 0;
+        ImGui::BeginMainMenuBar();
+        if (ImGui::BeginMenu("File")) {
+            if (ImGui::MenuItem("Exit")) {
+                window->close();
+            }
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("View")) {
+            ImGui::MenuItem("FPS", 0, &showFPS);
+            ImGui::MenuItem("UI", 0, &showUI);
+            ImGui::MenuItem("Frame Capture", 0, &showCaptureWindow);
+            ImGui::EndMenu();
+        }
+        ImGui::EndMainMenuBar();
 
-        ImGui::Separator();
+        if (showFPS) {
+            ImGui::SetNextWindowPos(ImVec2(10, 40), ImGuiCond_FirstUseEver);
+            flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar;
+            ImGui::Begin("", 0, flags);
+            ImGui::Text("%.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+            ImGui::End();
+        }
 
-        ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoStreamerRT.getFrameRate(), 1000.0f / videoStreamerRT.getFrameRate());
+        if (showUI) {
+            ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(10, 90), ImGuiCond_FirstUseEver);
+            ImGui::Begin(config.title.c_str(), &showUI);
+            ImGui::Text("OpenGL Version: %s", glGetString(GL_VERSION));
+            ImGui::Text("GPU: %s\n", glGetString(GL_RENDERER));
 
-        ImGui::Separator();
+            ImGui::Separator();
 
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: %.1f ms", videoStreamerRT.stats.timeToCopyFrameMs);
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.1f ms", videoStreamerRT.stats.timeToEncodeMs);
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: %.1f ms", videoStreamerRT.stats.timeToSendMs);
-        ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: %.1f Mbps", videoStreamerRT.stats.bitrateMbps);
+            ImGui::Text("Video URL: %s", videoURL.c_str());
+            ImGui::Text("Pose URL: %s", poseURL.c_str());
 
-        ImGui::Separator();
+            ImGui::Separator();
 
-        ImGui::Checkbox("Pause", &paused);
+            ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoStreamerRT.getFrameRate(), 1000.0f / videoStreamerRT.getFrameRate());
 
-        ImGui::End();
+            ImGui::Separator();
+
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: %.1f ms", videoStreamerRT.stats.timeToCopyFrameMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.1f ms", videoStreamerRT.stats.timeToEncodeMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: %.1f ms", videoStreamerRT.stats.timeToSendMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: %.1f Mbps", videoStreamerRT.stats.bitrateMbps);
+
+            ImGui::Separator();
+
+            ImGui::Checkbox("Pause", &paused);
+
+            ImGui::End();
+        }
+
+        if (showCaptureWindow) {
+            ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(winSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
+            ImGui::Begin("Frame Capture", &showCaptureWindow);
+
+            ImGui::Text("Enter File Name:");
+            ImGui::InputText("##file path", fileName, IM_ARRAYSIZE(fileName));
+            std::string fileNameStr = fileName;
+
+            ImGui::Checkbox("Save as HDR", &saveAsHDR);
+
+            ImGui::Separator();
+
+            if (ImGui::Button("Capture Current Frame")) {
+                if (saveAsHDR) {
+                    if (fileNameStr.find(".hdr") == std::string::npos) {
+                        fileNameStr += ".hdr";
+                    }
+                    app.renderer->gBuffer.saveColorAsHDR(fileNameStr);
+                }
+                else {
+                    if (fileNameStr.find(".png") == std::string::npos) {
+                        fileNameStr += ".png";
+                    }
+                    app.renderer->gBuffer.saveColorAsPNG(fileNameStr);
+                }
+            }
+
+            ImGui::End();
+        }
     });
 
     app.onResize([&](unsigned int width, unsigned int height) {
@@ -153,48 +209,6 @@ int main(int argc, char** argv) {
 
     pose_id_t poseID = 0;
     app.onRender([&](double now, double dt) {
-        // handle mouse input
-        if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
-            auto mouseButtons = window->getMouseButtons();
-            window->setMouseCursor(!mouseButtons.LEFT_PRESSED);
-            static bool dragging = false;
-            static bool prevMouseLeftPressed = false;
-            static float lastX = screenWidth / 2.0;
-            static float lastY = screenHeight / 2.0;
-            if (!prevMouseLeftPressed && mouseButtons.LEFT_PRESSED) {
-                dragging = true;
-                prevMouseLeftPressed = true;
-
-                auto cursorPos = window->getCursorPos();
-                lastX = static_cast<float>(cursorPos.x);
-                lastY = static_cast<float>(cursorPos.y);
-            }
-            if (prevMouseLeftPressed && !mouseButtons.LEFT_PRESSED) {
-                dragging = false;
-                prevMouseLeftPressed = false;
-            }
-            if (dragging) {
-                auto cursorPos = window->getCursorPos();
-                float xpos = static_cast<float>(cursorPos.x);
-                float ypos = static_cast<float>(cursorPos.y);
-
-                float xoffset = xpos - lastX;
-                float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-
-                lastX = xpos;
-                lastY = ypos;
-
-                camera.processMouseMovement(xoffset, yoffset, true);
-            }
-        }
-
-        // handle keyboard input
-        auto keys = window->getKeys();
-        camera.processKeyboard(keys, dt);
-        if (keys.ESC_PRESSED) {
-            window->close();
-        }
-
         if (paused) {
             return;
         }

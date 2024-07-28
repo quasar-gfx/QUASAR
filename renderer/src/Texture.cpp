@@ -117,7 +117,7 @@ void Texture::resize(unsigned int width, unsigned int height) {
     unbind();
 }
 
-void Texture::saveTextureToPNG(const std::string &filename) {
+void Texture::saveAsPNG(const std::string &filename) {
     unsigned char* data = new unsigned char[width * height * 4];
 
     bind(0);
@@ -130,7 +130,7 @@ void Texture::saveTextureToPNG(const std::string &filename) {
     delete[] data;
 }
 
-void Texture::saveTextureToJPG(const std::string &filename, int quality) {
+void Texture::saveAsJPG(const std::string &filename, int quality) {
     unsigned char* data = new unsigned char[width * height * 4];
 
     bind(0);
@@ -143,7 +143,7 @@ void Texture::saveTextureToJPG(const std::string &filename, int quality) {
     delete[] data;
 }
 
-void Texture::saveTextureToHDR(const std::string &filename) {
+void Texture::saveAsHDR(const std::string &filename) {
     float* data = new float[width * height * 4];
 
     bind(0);

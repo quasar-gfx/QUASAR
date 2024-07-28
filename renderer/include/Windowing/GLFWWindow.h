@@ -17,7 +17,7 @@ public:
         glfwTerminate();
     }
 
-    void getSize(unsigned int* width, unsigned int* height) override;
+    void getSize(unsigned int &width, unsigned int &height) override;
 
     bool resized() override;
 

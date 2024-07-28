@@ -56,6 +56,18 @@ public:
         colorBuffer.resize(width, height);
         depthBuffer.resize(width, height);
     }
+
+    void saveColorAsPNG(const std::string &path) {
+        bind();
+        colorBuffer.saveAsPNG(path);
+        unbind();
+    }
+
+    void saveColorAsHDR(const std::string &path) {
+        bind();
+        colorBuffer.saveAsHDR(path);
+        unbind();
+    }
 };
 
 #endif // RENDER_TARGET_H
