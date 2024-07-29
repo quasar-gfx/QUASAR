@@ -60,6 +60,8 @@ public:
 
     void bindMaterial(const Material* material) const;
 
+    void clear();
+
     static const unsigned int numTextures = 3;
 
 private:

@@ -118,3 +118,12 @@ void Scene::setupIBL(const CubeMap &envCubeMap) {
 
     glEnable(GL_BLEND);
 }
+
+void Scene::clear() {
+    children.clear();
+    pointLights.clear();
+    envCubeMap = nullptr;
+    ambientLight = nullptr;
+    directionalLight = nullptr;
+    hasPBREnvMap = false;
+}

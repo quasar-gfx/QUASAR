@@ -78,8 +78,11 @@ public:
         this->rotationQuat = quat;
     }
 
-    void setRotationEuler(glm::vec3 euler) {
-        this->rotationQuat = glm::quat(glm::radians(euler));
+    void setRotationEuler(glm::vec3 euler, bool radians = false) {
+        if (!radians) {
+            euler = glm::radians(euler);
+        }
+        this->rotationQuat = glm::quat(euler);
     }
 
     void setScale(glm::vec3 scale) {
@@ -94,8 +97,11 @@ public:
         return rotationQuat;
     }
 
-    glm::vec3 getRotationEuler() const {
+    glm::vec3 getRotationEuler(bool radians = false) const {
         glm::vec3 euler = glm::eulerAngles(rotationQuat);
+        if (!radians) {
+            euler = glm::degrees(euler);
+        }
         return euler;
     }
 

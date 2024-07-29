@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
         static bool showUI = true;
         static bool showCaptureWindow = false;
         static bool saveAsHDR = false;
-        static char fileName[256] = "screenshot";
+        static char fileNameBase[256] = "screenshot";
 
         glm::vec2 winSize = glm::vec2(screenWidth, screenHeight);
 
@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
         unsigned int flags = 0;
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("Exit")) {
+            if (ImGui::MenuItem("Exit", "ESC")) {
                 window->close();
             }
             ImGui::EndMenu();
@@ -124,15 +124,20 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             glm::vec3 position = camera.getPosition();
-            ImGui::InputFloat3("Camera Position", (float*)&position);
-            camera.setPosition(position);
+            if (ImGui::InputFloat3("Camera Position", (float*)&position)) {
+                camera.setPosition(position);
+            }
+            glm::vec3 rotation = camera.getRotationEuler();
+            if (ImGui::InputFloat3("Camera Rotation", (float*)&rotation)) {
+                camera.setRotationEuler(rotation);
+            }
             ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
 
             ImGui::Separator();
 
             if (ImGui::CollapsingHeader("Directional Light Settings")) {
                 ImGui::TextColored(ImVec4(1,1,1,1), "Directional Light Settings");
-                ImGui::ColorEdit3("Color", (float *)&scene.directionalLight->color);
+                ImGui::ColorEdit3("Color", (float*)&scene.directionalLight->color);
                 ImGui::SliderFloat("Strength", &scene.directionalLight->intensity, 0.1f, 100.0f);
                 ImGui::SliderFloat3("Direction", (float*)&scene.directionalLight->direction, -5.0f, 5.0f);
             }
@@ -156,9 +161,9 @@ int main(int argc, char** argv) {
             ImGui::SetNextWindowPos(ImVec2(winSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
             ImGui::Begin("Frame Capture", &showCaptureWindow);
 
-            ImGui::Text("Enter File Name:");
-            ImGui::InputText("##file path", fileName, IM_ARRAYSIZE(fileName));
-            std::string fileNameStr = fileName;
+            ImGui::Text("Base File Name:");
+            ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
+            std::string fileName = std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
@@ -166,16 +171,10 @@ int main(int argc, char** argv) {
 
             if (ImGui::Button("Capture Current Frame")) {
                 if (saveAsHDR) {
-                    if (fileNameStr.find(".hdr") == std::string::npos) {
-                        fileNameStr += ".hdr";
-                    }
-                    app.renderer->gBuffer.saveColorAsHDR(fileNameStr);
+                    app.renderer->gBuffer.saveColorAsHDR(fileName + ".hdr");
                 }
                 else {
-                    if (fileNameStr.find(".png") == std::string::npos) {
-                        fileNameStr += ".png";
-                    }
-                    app.renderer->gBuffer.saveColorAsPNG(fileNameStr);
+                    app.renderer->gBuffer.saveColorAsPNG(fileName + ".png");
                 }
             }
 

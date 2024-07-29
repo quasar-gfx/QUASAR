@@ -22,6 +22,7 @@ public:
     ~SceneLoader();
 
     void loadScene(const std::string &filename, Scene &scene, Camera &camera);
+    void clearScene(Scene &scene, Camera &camera);
 
 private:
     std::ifstream::pos_type getFileSize(const std::string &filename);

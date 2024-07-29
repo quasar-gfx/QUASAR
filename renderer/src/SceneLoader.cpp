@@ -29,6 +29,7 @@ private:
 };
 
 void SceneLoader::loadScene(const std::string &filename, Scene &scene, Camera &camera) {
+
     std::ifstream sceneFile;
 
     // ensure ifstream objects can throw exceptions
@@ -63,6 +64,25 @@ void SceneLoader::loadScene(const std::string &filename, Scene &scene, Camera &c
 
     models.clear();
     meshes.clear();
+    materials.clear();
+}
+
+void SceneLoader::clearScene(Scene &scene, Camera &camera) {
+    scene.clear();
+
+    for (auto model : models) {
+        delete model;
+    }
+    models.clear();
+
+    for (auto mesh : meshes) {
+        delete mesh;
+    }
+    meshes.clear();
+
+    for (auto material : materials) {
+        delete material;
+    }
     materials.clear();
 }
 
