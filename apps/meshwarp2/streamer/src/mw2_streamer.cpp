@@ -136,7 +136,7 @@ int main(int argc, char** argv) {
     bool doOrientationCorrection = true;
     bool dontCopyCameraPose = false;
     float distanceThreshold = 0.8f;
-    float angleThreshold = 20.0f;
+    float angleThreshold = 45.0f;
     int trianglesDrawn = 0;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
@@ -235,7 +235,7 @@ int main(int argc, char** argv) {
                 rerender = true;
             }
 
-            if (ImGui::SliderFloat("Angle Threshold", &angleThreshold, 0.0f, 90.0f)) {
+            if (ImGui::SliderFloat("Angle Threshold", &angleThreshold, 0.0f, 180.0f)) {
                 dontCopyCameraPose = true;
                 rerender = true;
             }
