@@ -1,5 +1,7 @@
 #include <glad/glad.h>
 
+#include <iostream>
+
 #include <Windowing/GLFWWindow.h>
 
 GLFWWindow::GLFWWindow(const Config &config) {

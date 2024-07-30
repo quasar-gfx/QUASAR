@@ -2,9 +2,6 @@
 #define SHADER_H
 
 #include <string>
-#include <fstream>
-#include <sstream>
-#include <iostream>
 
 #include <Shaders/ShaderBase.h>
 

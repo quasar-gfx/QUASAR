@@ -1,8 +1,6 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
-#include <functional>
-
 struct Mouse {
     bool LEFT_PRESSED = false;
     bool MIDDLE_PRESSED = false;

@@ -1,6 +1,7 @@
 #ifndef SHADER_BASE_H
 #define SHADER_BASE_H
 
+#include <iostream>
 #include <vector>
 
 #include <glm/glm.hpp>

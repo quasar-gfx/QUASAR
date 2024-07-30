@@ -136,6 +136,7 @@ int main(int argc, char** argv) {
     bool doOrientationCorrection = true;
     bool dontCopyCameraPose = false;
     float distanceThreshold = 0.8f;
+    float angleThreshold = 20.0f;
     int trianglesDrawn = 0;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
@@ -230,6 +231,11 @@ int main(int argc, char** argv) {
             }
 
             if (ImGui::SliderFloat("Distance Threshold", &distanceThreshold, 0.0f, 1.0f)) {
+                dontCopyCameraPose = true;
+                rerender = true;
+            }
+
+            if (ImGui::SliderFloat("Angle Threshold", &angleThreshold, 0.0f, 90.0f)) {
                 dontCopyCameraPose = true;
                 rerender = true;
             }
@@ -440,6 +446,7 @@ int main(int argc, char** argv) {
             genMeshShader.setBool("doAverageNormal", doAverageNormal);
             genMeshShader.setBool("doOrientationCorrection", doOrientationCorrection);
             genMeshShader.setFloat("distanceThreshold", distanceThreshold);
+            genMeshShader.setFloat("angleThreshold", glm::radians(angleThreshold));
             app.renderer->gBuffer.positionBuffer.bind(0);
             app.renderer->gBuffer.normalsBuffer.bind(1);
             app.renderer->gBuffer.idBuffer.bind(2);

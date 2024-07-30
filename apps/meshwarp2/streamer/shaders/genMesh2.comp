@@ -108,6 +108,7 @@ uniform int surfelSize;
 uniform bool doAverageNormal;
 uniform bool doOrientationCorrection;
 uniform float distanceThreshold;
+uniform float angleThreshold;
 
 const float epilson = 1e-5;
 
@@ -236,28 +237,44 @@ vec3 averageNormals(MultiQuad pixelNormalsView, MultiQuad pixelCoordsView) {
     vec3 normal = pixelNormalsView.center;
     int n = 1;
     if (NormalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.bottomLeft)) < distanceThreshold) {
-        normal += pixelNormalsView.bottomLeft; n++;
+        if (dot(normal, pixelNormalsView.bottomLeft) < cos(angleThreshold)) {
+            normal += pixelNormalsView.bottomLeft; n++;
+        }
     }
     if (NormalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.bottom)) < distanceThreshold) {
-        normal += pixelNormalsView.bottom; n++;
+        if (dot(normal, pixelNormalsView.bottom) < cos(angleThreshold)) {
+            normal += pixelNormalsView.bottom; n++;
+        }
     }
     if (NormalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.bottomRight)) < distanceThreshold) {
-        normal += pixelNormalsView.bottomRight; n++;
+        if (dot(normal, pixelNormalsView.bottomRight) < cos(angleThreshold)) {
+            normal += pixelNormalsView.bottomRight; n++;
+        }
     }
     if (NormalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.left)) < distanceThreshold) {
-        normal += pixelNormalsView.left; n++;
+        if (dot(normal, pixelNormalsView.left) < cos(angleThreshold)) {
+            normal += pixelNormalsView.left; n++;
+        }
     }
     if (NormalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.right)) < distanceThreshold) {
-        normal += pixelNormalsView.right; n++;
+        if (dot(normal, pixelNormalsView.right) < cos(angleThreshold)) {
+            normal += pixelNormalsView.right; n++;
+        }
     }
     if (NormalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.topLeft)) < distanceThreshold) {
-        normal += pixelNormalsView.topLeft; n++;
+        if (dot(normal, pixelNormalsView.topLeft) < cos(angleThreshold)) {
+            normal += pixelNormalsView.topLeft; n++;
+        }
     }
     if (NormalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.top)) < distanceThreshold) {
-        normal += pixelNormalsView.top; n++;
+        if (dot(normal, pixelNormalsView.top) < cos(angleThreshold)) {
+            normal += pixelNormalsView.top; n++;
+        }
     }
     if (NormalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.topRight)) < distanceThreshold) {
-        normal += pixelNormalsView.topRight; n++;
+        if (dot(normal, pixelNormalsView.topRight) < cos(angleThreshold)) {
+            normal += pixelNormalsView.topRight; n++;
+        }
     }
     normal /= float(n);
     normal = normalize(normal);
@@ -280,10 +297,10 @@ vec3 adjustNormal(vec3 normalView, vec3 pixelPointView, Quad2D frustumNDCs) {
 
         // make sure normal view is within 45 degrees of frustum normal, if not, rotate it to be
         float dotProduct = dot(normalView, frustumNormalView);
-        if (dotProduct < cos(radians(45.0))) {
+        if (dotProduct < cos(angleThreshold)) {
             vec3 rotationAxis = normalize(cross(normalView, frustumNormalView));
 
-            float maxAngle = radians(45.0);
+            float maxAngle = angleThreshold;
             float angle = acos(dotProduct);
             if (angle > maxAngle) {
                 angle = maxAngle;

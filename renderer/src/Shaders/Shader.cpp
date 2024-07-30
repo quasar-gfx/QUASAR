@@ -1,3 +1,7 @@
+#include <string>
+#include <fstream>
+#include <sstream>
+
 #include <Shaders/Shader.h>
 
 void Shader::loadFromFiles(const std::string vertexPath, const std::string fragmentPath, const std::string geometryPath) {

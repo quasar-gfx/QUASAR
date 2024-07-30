@@ -4,6 +4,8 @@
 #define JSMN_STATIC
 #include <jsmn.h>
 
+#include <fstream>
+
 #include <Scene.h>
 #include <Camera.h>
 #include <Primatives/Primatives.h>

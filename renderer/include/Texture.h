@@ -1,7 +1,6 @@
 #ifndef TEXTURE_H
 #define TEXTURE_H
 
-#include <iostream>
 #include <string>
 
 #include <OpenGLObject.h>
