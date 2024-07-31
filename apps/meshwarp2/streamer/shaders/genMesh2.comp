@@ -233,10 +233,6 @@ bool planeIntersectsNearFar(vec3 planePointView, vec3 planeNormalView, vec3 near
     return intersectsNear || intersectsFar;
 }
 
-bool angleWithinThreshold(vec3 normal1, vec3 normal2, float threshold) {
-    return dot(normal1, normal2) >= cos(threshold);
-}
-
 vec3 averageNormals(MultiQuad pixelNormalsView, MultiQuad pixelCoordsView) {
     vec3 normal = pixelNormalsView.center;
     int n = 1;
@@ -269,59 +265,41 @@ vec3 averageNormals(MultiQuad pixelNormalsView, MultiQuad pixelCoordsView) {
     return normal;
 }
 
-vec3 rotateNormalAroundAxis(vec3 normal, vec3 axis, float angle) {
-    float s = sin(angle);
-    float c = cos(angle);
-    float t = 1.0 - c;
-
-    mat3 rotationMatrix = mat3(
-        t * axis.x * axis.x + c,
-        t * axis.x * axis.y - s * axis.z,
-        t * axis.x * axis.z + s * axis.y,
-
-        t * axis.x * axis.y + s * axis.z,
-        t * axis.y * axis.y + c,
-        t * axis.y * axis.z - s * axis.x,
-
-        t * axis.x * axis.z - s * axis.y,
-        t * axis.y * axis.z + s * axis.x,
-        t * axis.z * axis.z + c
-    );
-
-    return rotationMatrix * normal;
-}
-
-vec3 adjustNormal(vec3 normalView, vec3 pixelPointView, Quad2D frustumNDCs) {
-    vec2 frustumNDC[4] = vec2[4](frustumNDCs.bottomLeft, frustumNDCs.bottomRight, frustumNDCs.topLeft, frustumNDCs.topRight);
-
-    vec3 frustumNearPointsView[4], frustumFarPointsView[4];
-    for (int i = 0; i < 4; i++) {
-        frustumNearPointsView[i] = ndcToView(projectionInverse, frustumNDC[i], -1.0);
-        frustumFarPointsView[i]  = ndcToView(projectionInverse, frustumNDC[i], 1.0);
+vec3 constrainToMaxAngle(vec3 vectorNormalized, vec3 axisNormalized, float maxAngle) {
+    float dotProduct = dot(vectorNormalized, axisNormalized);
+    float angle = acos(dotProduct);
+    if (angle > maxAngle) {
+        vec3 rotationAxis = normalize(cross(vectorNormalized, axisNormalized));
+        float cosMaxAngle = cos(maxAngle);
+        float sinMaxAngle = sin(maxAngle);
+        vec3 crossProduct = cross(rotationAxis, vectorNormalized);
+        vectorNormalized = vectorNormalized * cosMaxAngle + \
+                           cross(rotationAxis, vectorNormalized) * sinMaxAngle + \
+                           rotationAxis * dot(rotationAxis, vectorNormalized) * (1.0 - cosMaxAngle);
     }
 
-    if (planeIntersectsNearFar(pixelPointView, normalView, frustumNearPointsView, frustumFarPointsView)) {
-        vec2 frustumCenterNDC = (frustumNDCs.bottomLeft + frustumNDCs.bottomRight + frustumNDCs.topLeft + frustumNDCs.topRight) / 4.0;
-        vec3 frustumCenterView = ndcToView(projectionInverse, frustumCenterNDC, 1.0);
-        vec3 frustumNormalView = normalize(origin - frustumCenterView);
-
-        // make sure normal view is within 45 degrees of frustum normal, if not, rotate it to be
-        if (angleWithinThreshold(normalView, frustumNormalView, radians(45.0f))) {
-            vec3 rotationAxis = normalize(cross(normalView, frustumNormalView));
-            float dotProduct = dot(normalView, frustumNormalView);
-
-            float maxAngle = angleThreshold;
-            float angle = acos(dotProduct);
-            if (angle > maxAngle) {
-                angle = maxAngle;
-            }
-
-            normalView = rotateNormalAroundAxis(normalView, rotationAxis, angle);
-        }
-    }
-    return normalView;
+    return normalize(vectorNormalized);
 }
 
+// vec3 adjustNormal(vec3 normalView, vec3 pixelPointView, Quad2D frustumNDCs) {
+//     vec2 frustumNDC[4] = vec2[4](frustumNDCs.bottomLeft, frustumNDCs.bottomRight, frustumNDCs.topLeft, frustumNDCs.topRight);
+//
+//     vec3 frustumNearPointsView[4], frustumFarPointsView[4];
+//     for (int i = 0; i < 4; i++) {
+//         frustumNearPointsView[i] = ndcToView(projectionInverse, frustumNDC[i], -1.0);
+//         frustumFarPointsView[i]  = ndcToView(projectionInverse, frustumNDC[i], 1.0);
+//     }
+//
+//     if (planeIntersectsNearFar(pixelPointView, normalView, frustumNearPointsView, frustumFarPointsView)) {
+//         vec2 frustumCenterNDC = (frustumNDCs.bottomLeft + frustumNDCs.bottomRight + frustumNDCs.topLeft + frustumNDCs.topRight) / 4.0;
+//         vec3 frustumCenterView = ndcToView(projectionInverse, frustumCenterNDC, 1.0);
+//         vec3 frustumNormalView = normalize(origin - frustumCenterView);
+//
+//         normalView = constrainToMaxAngle(normalView, frustumNormalView, angleThreshold);
+//     }
+//     return normalView;
+// }
+//
 vec3 planeRayIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 planePoint, vec3 planeNormal) {
     float denominator = dot(rayDirection, planeNormal);
     if (abs(denominator) < epilson) {
@@ -741,19 +719,10 @@ void main() {
     MultiQuad surfelView = createSurfels(surfelNDCs, pixelCoordsView, pixelNormalsView, pixelDepths);
 
     if (doOrientationCorrection && quadHasExtremeOrientation(surfelView)) {
-        // rotate center normal to be within 45 degrees of frustum normal
         vec3 frustumNormalView = normalize(origin - surfelView.center);
-        vec3 rotationAxis = normalize(cross(pixelNormalsView.center, frustumNormalView));
-        float dotProduct = dot(pixelNormalsView.center, frustumNormalView);
-
-        float maxAngle = angleThreshold;
-        float angle = acos(dotProduct);
-        if (angle > maxAngle) {
-            angle = maxAngle;
-        }
 
         // recreate surfels with rotated normal
-        pixelNormalsView.center = rotateNormalAroundAxis(pixelNormalsView.center, rotationAxis, angle);
+        pixelNormalsView.center = constrainToMaxAngle(pixelNormalsView.center, frustumNormalView, angleThreshold);
         surfelView = createSurfels(surfelNDCs, pixelCoordsView, pixelNormalsView, pixelDepths);
     }
 

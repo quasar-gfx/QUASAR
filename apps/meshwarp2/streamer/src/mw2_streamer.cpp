@@ -129,6 +129,7 @@ int main(int argc, char** argv) {
     glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
 
     bool rerender = true;
+    int rerenderInterval = 0;
     bool showDepth = false;
     bool showNormals = false;
     bool renderWireframe = false;
@@ -138,6 +139,8 @@ int main(int argc, char** argv) {
     float distanceThreshold = 0.8f;
     float angleThreshold = 45.0f;
     int trianglesDrawn = 0;
+    const int intervalValues[] = {0, 100, 200, 500, 1000};
+    const char* intervalLabels[] = {"0ms", "100ms", "200ms", "500ms", "1000ms"};
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = true;
@@ -145,6 +148,7 @@ int main(int argc, char** argv) {
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
         static bool showMeshCaptureWindow = false;
+        static int intervalIndex = 0;
 
         glm::vec2 winSize = glm::vec2(screenWidth, screenHeight);
 
@@ -245,6 +249,11 @@ int main(int argc, char** argv) {
             if (ImGui::Button("Rerender", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
                 rerender = true;
             }
+
+            if (ImGui::Combo("Rerender Interval", &intervalIndex, intervalLabels, IM_ARRAYSIZE(intervalLabels))) {
+                rerenderInterval = intervalValues[intervalIndex];
+            }
+
             ImGui::End();
         }
 
@@ -372,6 +381,7 @@ int main(int argc, char** argv) {
     nodeDepth.frustumCulled = false;
     scene.addChildNode(&nodeDepth);
 
+    double startRenderTime = window->getTime();
     app.onRender([&](double now, double dt) {
         // handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
@@ -415,6 +425,10 @@ int main(int argc, char** argv) {
             window->close();
         }
 
+        if (rerenderInterval > 0 && now - startRenderTime > rerenderInterval / 1000.0) {
+            rerender = true;
+            startRenderTime = now;
+        }
         if (rerender) {
             if (!dontCopyCameraPose) {
                 remoteCamera.setPosition(camera.getPosition());
