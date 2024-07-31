@@ -1,4 +1,5 @@
 #include <OpenGLRenderer.h>
+#include <Materials/UnlitMaterial.h>
 
 OpenGLRenderer::OpenGLRenderer(unsigned int width, unsigned int height)
         : width(width), height(height)
@@ -46,6 +47,8 @@ unsigned int OpenGLRenderer::updatePointLightShadows(Scene &scene, Camera &camer
     unsigned int trianglesDrawn = 0;
     for (int i = 0; i < scene.pointLights.size(); i++) {
         auto pointLight = scene.pointLights[i];
+        if (pointLight->intensity == 0)
+            continue;
 
         pointLight->shadowMapRenderTarget.bind();
         glClear(GL_DEPTH_BUFFER_BIT);
@@ -107,10 +110,36 @@ unsigned int OpenGLRenderer::drawObjects(Scene &scene, Camera &camera) {
     glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    // draw point lights, if debug is set
+    for (auto& pointLight : scene.pointLights) {
+        if (pointLight->debug) {
+            auto material = new UnlitMaterial({ .baseColor = glm::vec4(pointLight->color, 1.0) });
+            Sphere light = Sphere({
+                .material = material,
+                .wireframe = false
+            }, 32, 32);
+            Node nodeLight = Node(&light);
+            nodeLight.setPosition(pointLight->position);
+            nodeLight.setScale(glm::vec3(0.1));
+            trianglesDrawn += drawNode(scene, camera, &nodeLight, glm::mat4(1.0f), false);
+
+            Sphere radius = Sphere({
+                .material = material,
+                .wireframe = true
+            }, 32, 32);
+            Node nodeRadius = Node(&radius);
+            nodeRadius.setPosition(pointLight->position);
+            nodeRadius.setScale(glm::vec3(pointLight->getLightRadius()));
+            trianglesDrawn += drawNode(scene, camera, &nodeRadius, glm::mat4(1.0f), false);
+        }
+    }
+
+    // draw scene
     for (auto& child : scene.children) {
         trianglesDrawn += drawNode(scene, camera, child, glm::mat4(1.0f));
     }
 
+    // draw skybox
     trianglesDrawn += drawSkyBox(scene, camera);
 
     // now bind back to default gBuffer and draw a quad plane with the attached gBuffer color texture

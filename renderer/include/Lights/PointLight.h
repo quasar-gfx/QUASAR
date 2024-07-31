@@ -19,6 +19,7 @@ struct PointLightCreateParams {
     float shadowFar = 100.0f;
     float shadowFov = 90.0f;
     unsigned int shadowMapRes = 1024;
+    bool debug = false;
 };
 
 class PointLight : public Light {
@@ -29,7 +30,9 @@ public:
     float quadratic = 0.032f;
     float intensityThreshold = 1.0f;
 
-    unsigned int channel = -1;
+    bool debug = false;
+
+    int channel = -1;
 
     glm::mat4 lookAtPerFace[NUM_CUBEMAP_FACES];
     PointLightShadowRT shadowMapRenderTarget;
@@ -51,7 +54,8 @@ public:
                 .shadowMapRes = params.shadowMapRes
             })
             , shadowMapRenderTarget({ .width = shadowMapRes, .height = shadowMapRes })
-            , boundingSphere(position, getLightRadius()) {
+            , boundingSphere(position, getLightRadius())
+            , debug(params.debug) {
         shadowProjectionMat = glm::perspective(glm::radians(params.shadowFov), 1.0f, params.shadowNear, params.shadowFar);
 
         updateLookAtFace();

@@ -650,6 +650,9 @@ int SceneLoader::parsePointLight(jsmntok_t* tokens, int i, const char* json, Sce
             i = parseFloat(tokens, i + 1, json, &shadowMapRes);
             params.shadowMapRes = static_cast<unsigned int>(shadowMapRes);
         }
+        else if (compare(tok, json, "debug") == 0) {
+            i = parseBool(tokens, i + 1, json, &params.debug);
+        }
         else {
             i = parse(tokens, i + 1);
         }
