@@ -42,36 +42,36 @@
     },
     "pointLights": [
         {
-            "color": [1.0, 1.0, 1.0],
+            "color": [0.95, 0.95, 1.0],
             "position": [5.0, 5.0, 5.0],
-            "intensity": 7.5,
+            "intensity": 3.0,
             "constant": 1.0,
-            "linear": 0.14,
-            "quadratic": 0.07
+            "linear": 0.07,
+            "quadratic": 0.017
         },
         {
-            "color": [1.0, 1.0, 1.0],
+            "color": [0.95, 0.95, 1.0],
             "position": [-5.0, 5.0, 5.0],
-            "intensity": 7.5,
+            "intensity": 3.0,
             "constant": 1.0,
-            "linear": 0.14,
-            "quadratic": 0.07
+            "linear": 0.07,
+            "quadratic": 0.017
         },
         {
-            "color": [1.0, 1.0, 1.0],
+            "color": [0.95, 0.95, 1.0],
             "position": [5.0, 5.0, -5.0],
-            "intensity": 7.5,
+            "intensity": 3.0,
             "constant": 1.0,
-            "linear": 0.14,
-            "quadratic": 0.07
+            "linear": 0.07,
+            "quadratic": 0.017
         },
         {
-            "color": [1.0, 1.0, 1.0],
+            "color": [0.95, 0.95, 1.0],
             "position": [-5.0, 5.0, -5.0],
-            "intensity": 7.5,
+            "intensity": 3.0,
             "constant": 1.0,
-            "linear": 0.14,
-            "quadratic": 0.07
+            "linear": 0.07,
+            "quadratic": 0.017
         }
     ]
 }

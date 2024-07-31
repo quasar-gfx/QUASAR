@@ -1,8 +1,6 @@
 #ifndef DIRECTIONAL_LIGHT_H
 #define DIRECTIONAL_LIGHT_H
 
-#include <memory>
-
 #include <Lights/Light.h>
 #include <RenderTargets/DirLightShadowRT.h>
 #include <Materials/DirShadowMapMaterial.h>
@@ -13,8 +11,8 @@ struct DirectionalLightCreateParams {
     float distance = 100.0f;
     float intensity = 1.0f;
     float orthoBoxSize = 75.0f;
-    float zNear = 1.0f;
-    float zFar = 750.0f;
+    float shadowNear = 1.0f;
+    float shadowFar = 750.0f;
     unsigned int shadowMapRes = 2048;
 };
 
@@ -38,8 +36,8 @@ public:
             , Light({
                 .color = params.color,
                 .intensity = params.intensity,
-                .zNear = params.zNear,
-                .zFar = params.zFar,
+                .shadowNear = params.shadowNear,
+                .shadowFar = params.shadowFar,
                 .shadowMapRes = params.shadowMapRes
             })
             , shadowMapRenderTarget({ .width = shadowMapRes, .height = shadowMapRes }) {
@@ -59,7 +57,7 @@ private:
         float right = -left;
         float top = left;
         float bottom = -top;
-        shadowProjectionMat = glm::ortho(left, right, bottom, top, zNear, zFar);
+        shadowProjectionMat = glm::ortho(left, right, bottom, top, shadowNear, shadowFar);
         lightView = glm::lookAt(distance * -direction, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         lightSpaceMatrix = shadowProjectionMat * lightView;
     }

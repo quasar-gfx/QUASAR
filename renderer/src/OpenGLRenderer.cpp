@@ -52,7 +52,7 @@ unsigned int OpenGLRenderer::updatePointLightShadows(Scene &scene, Camera &camer
 
         pointLight->shadowMapMaterial.bind();
         pointLight->shadowMapMaterial.shader->setVec3("lightPos", pointLight->position);
-        pointLight->shadowMapMaterial.shader->setFloat("farPlane", pointLight->zFar);
+        pointLight->shadowMapMaterial.shader->setFloat("farPlane", pointLight->shadowFar);
 
         glm::mat4 shadowProj = pointLight->shadowProjectionMat;
         for (int face = 0; face < NUM_CUBEMAP_FACES; face++) {

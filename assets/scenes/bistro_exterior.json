@@ -35,44 +35,45 @@
         "intensity": 0.1
     },
     "directionalLight": {
-        "color": [0.9, 0.85, 0.7],
+        "color": [1.0, 0.98, 0.92],
         "direction": [-1.0, -5.0, 0.0],
-        "distance": 100.0,
-        "intensity": 10.0,
-        "orthoBoxSize": 250.0
+        "distance": 50.0,
+        "intensity": 5.0,
+        "orthoBoxSize": 250.0,
+        "shadowMapRes": 4096
     },
     "pointLights": [
         {
-            "color": [1.0, 0.76, 0.34],
-            "position": [-4.0, 4.5, -4.0],
-            "intensity": 100.0,
-            "constant": 0.0,
+            "color": [1.0, 0.84, 0.7],
+            "position": [-4.0, 5.0, -4.0],
+            "intensity": 10.0,
+            "constant": 1.0,
             "linear": 0.09,
-            "quadratic": 1.0
+            "quadratic": 0.032
         },
         {
-            "color": [1.0, 0.76, 0.34],
-            "position": [-2.0, 4.5, 4.5],
-            "intensity": 100.0,
-            "constant": 0.0,
+            "color": [1.0, 0.84, 0.7],
+            "position": [-2.0, 5.0, 4.5],
+            "intensity": 10.0,
+            "constant": 1.0,
             "linear": 0.09,
-            "quadratic": 1.0
+            "quadratic": 0.032
         },
         {
-            "color": [1.0, 0.76, 0.34],
-            "position": [-9.5, 4.5, 2.0],
-            "intensity": 100.0,
-            "constant": 0.0,
+            "color": [1.0, 0.84, 0.7],
+            "position": [-9.5, 5.0, 2.0],
+            "intensity": 10.0,
+            "constant": 1.0,
             "linear": 0.09,
-            "quadratic": 1.0
+            "quadratic": 0.032
         },
         {
-            "color": [1.0, 0.76, 0.34],
-            "position": [-1.75, 4.5, 10],
-            "intensity": 100.0,
-            "constant": 0.0,
+            "color": [1.0, 0.84, 0.7],
+            "position": [-1.75, 5.0, 10],
+            "intensity": 10.0,
+            "constant": 1.0,
             "linear": 0.09,
-            "quadratic": 1.0
+            "quadratic": 0.032
         }
     ]
 }

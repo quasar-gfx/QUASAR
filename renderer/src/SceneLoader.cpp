@@ -585,6 +585,17 @@ int SceneLoader::parseDirectionalLight(jsmntok_t* tokens, int i, const char* jso
         else if (compare(tok, json, "orthoBoxSize") == 0) {
             i = parseFloat(tokens, i + 1, json, &params.orthoBoxSize);
         }
+        else if (compare(tok, json, "shadowFar") == 0) {
+            i = parseFloat(tokens, i + 1, json, &params.shadowFar);
+        }
+        else if (compare(tok, json, "shadowNear") == 0) {
+            i = parseFloat(tokens, i + 1, json, &params.shadowNear);
+        }
+        else if (compare(tok, json, "shadowMapRes") == 0) {
+            float shadowMapRes;
+            i = parseFloat(tokens, i + 1, json, &shadowMapRes);
+            params.shadowMapRes = static_cast<unsigned int>(shadowMapRes);
+        }
         else {
             i = parse(tokens, i + 1);
         }
@@ -624,6 +635,20 @@ int SceneLoader::parsePointLight(jsmntok_t* tokens, int i, const char* json, Sce
         }
         else if (compare(tok, json, "quadratic") == 0) {
             i = parseFloat(tokens, i + 1, json, &params.quadratic);
+        }
+        else if (compare(tok, json, "shadowFar") == 0) {
+            i = parseFloat(tokens, i + 1, json, &params.shadowFar);
+        }
+        else if (compare(tok, json, "shadowNear") == 0) {
+            i = parseFloat(tokens, i + 1, json, &params.shadowNear);
+        }
+        else if (compare(tok, json, "shadowFov") == 0) {
+            i = parseFloat(tokens, i + 1, json, &params.shadowFov);
+        }
+        else if (compare(tok, json, "shadowMapRes") == 0) {
+            float shadowMapRes;
+            i = parseFloat(tokens, i + 1, json, &shadowMapRes);
+            params.shadowMapRes = static_cast<unsigned int>(shadowMapRes);
         }
         else {
             i = parse(tokens, i + 1);

@@ -10,8 +10,8 @@
 struct LightCreateParams {
     glm::vec3 color = glm::vec3(1.0f);
     float intensity = 1.0f;
-    float zNear = 1.0f;
-    float zFar = 25.0f;
+    float shadowNear = 1.0f;
+    float shadowFar = 25.0f;
     unsigned int shadowMapRes = 2048;
 };
 
@@ -20,8 +20,8 @@ public:
     glm::vec3 color = glm::vec3(1.0f);
     float intensity = 1.0f;
 
-    float zNear = 1.0f;
-    float zFar = 2000.0f;
+    float shadowNear = 1.0f;
+    float shadowFar = 2000.0f;
 
     glm::mat4 shadowProjectionMat = glm::mat4(0.0);
 
@@ -30,8 +30,8 @@ public:
     explicit Light(const LightCreateParams &params)
             : color(params.color)
             , intensity(params.intensity)
-            , zNear(params.zNear)
-            , zFar(params.zFar)
+            , shadowNear(params.shadowNear)
+            , shadowFar(params.shadowFar)
             , shadowMapRes(params.shadowMapRes) { }
 
     virtual void bindMaterial(const Material* material) = 0;

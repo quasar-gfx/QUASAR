@@ -15,9 +15,9 @@ struct PointLightCreateParams {
     float linear = 0.09f;
     float quadratic = 0.032f;
     float intensityThreshold = 1.0f;
-    float zNear = 0.1f;
-    float zFar = 100.0f;
-    float fov = 90.0f;
+    float shadowNear = 0.1f;
+    float shadowFar = 100.0f;
+    float shadowFov = 90.0f;
     unsigned int shadowMapRes = 1024;
 };
 
@@ -46,13 +46,13 @@ public:
             , Light({
                 .color = params.color,
                 .intensity = params.intensity,
-                .zNear = params.zNear,
-                .zFar = params.zFar,
+                .shadowNear = params.shadowNear,
+                .shadowFar = params.shadowFar,
                 .shadowMapRes = params.shadowMapRes
             })
             , shadowMapRenderTarget({ .width = shadowMapRes, .height = shadowMapRes })
             , boundingSphere(position, getLightRadius()) {
-        shadowProjectionMat = glm::perspective(glm::radians(params.fov), 1.0f, params.zNear, params.zFar);
+        shadowProjectionMat = glm::perspective(glm::radians(params.shadowFov), 1.0f, params.shadowNear, params.shadowFar);
 
         updateLookAtFace();
     }
@@ -74,7 +74,7 @@ public:
         material->shader->setFloat("pointLights["+idxStr+"].constant", constant);
         material->shader->setFloat("pointLights["+idxStr+"].linear", linear);
         material->shader->setFloat("pointLights["+idxStr+"].quadratic", quadratic);
-        material->shader->setFloat("pointLights["+idxStr+"].farPlane", zFar);
+        material->shader->setFloat("pointLights["+idxStr+"].farPlane", shadowFar);
     }
 
     void setPosition(const glm::vec3 &position) {
@@ -105,12 +105,14 @@ public:
 
         if (root1 > 0.0f && root2 > 0.0f) {
             return std::max(root1, root2);
-        } else if (root1 > 0.0f) {
+        }
+        else if (root1 > 0.0f) {
             return root1;
-        } else if (root2 > 0.0f) {
+        }
+        else if (root2 > 0.0f) {
             return root2;
         }
-            else {
+        else {
             return 0.0f;
         }
     }
