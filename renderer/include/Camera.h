@@ -7,7 +7,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/matrix_decompose.hpp>
 
-#include <Primatives/Entity.h>
+#include <Primatives/Node.h>
 #include <Windowing/Window.h>
 #include <Culling/Frustum.h>
 

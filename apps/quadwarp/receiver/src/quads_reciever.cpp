@@ -2,19 +2,10 @@
 #include <fstream>
 
 #include <args.hxx>
-#include <imgui/imgui.h>
 
-#include <Shaders/Shader.h>
-#include <Texture.h>
-#include <Primatives/Primatives.h>
-#include <Materials/UnlitMaterial.h>
-#include <Materials/PBRMaterial.h>
-#include <CubeMap.h>
-#include <Scene.h>
-#include <Camera.h>
-#include <Lights/Lights.h>
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
+#include <SceneLoader.h>
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
@@ -83,7 +74,7 @@ int main(int argc, char** argv) {
 
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
 
-    int trianglesDrawn = 0;
+    RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = true;
@@ -128,15 +119,19 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (trianglesDrawn < 100000) {
-                ImGui::TextColored(ImVec4(0,1,0,1), "Total Triangles Drawn: %d", trianglesDrawn);
-            }
-            else if (trianglesDrawn < 500000) {
-                ImGui::TextColored(ImVec4(1,1,0,1), "Total Triangles Drawn: %d", trianglesDrawn);
-            }
-            else {
-                ImGui::TextColored(ImVec4(1,0,0,1), "Total Triangles Drawn: %d", trianglesDrawn);
-            }
+            if (renderStats.trianglesDrawn < 100000)
+                ImGui::TextColored(ImVec4(0,1,0,1), "Total Triangles Drawn: %d", renderStats.trianglesDrawn);
+            else if (renderStats.trianglesDrawn < 500000)
+                ImGui::TextColored(ImVec4(1,1,0,1), "Total Triangles Drawn: %d", renderStats.trianglesDrawn);
+            else
+                ImGui::TextColored(ImVec4(1,0,0,1), "Total Triangles Drawn: %d", renderStats.trianglesDrawn);
+
+            if (renderStats.drawCalls < 200)
+                ImGui::TextColored(ImVec4(0,1,0,1), "Total Draw Calls: %d", renderStats.drawCalls);
+            else if (renderStats.drawCalls < 500)
+                ImGui::TextColored(ImVec4(1,1,0,1), "Total Draw Calls: %d", renderStats.drawCalls);
+            else
+                ImGui::TextColored(ImVec4(1,0,0,1), "Total Draw Calls: %d", renderStats.drawCalls);
 
             ImGui::Separator();
 
@@ -308,7 +303,7 @@ int main(int argc, char** argv) {
         nodeWireframe.setPosition(node.getPosition() - camera.getForwardVector() * 0.001f);
 
         // render all objects in scene
-        trianglesDrawn = app.renderer->drawObjects(scene, camera);
+        renderStats = app.renderer->drawObjects(scene, camera);
 
         // render to screen
         app.renderer->drawToScreen(screenShader);

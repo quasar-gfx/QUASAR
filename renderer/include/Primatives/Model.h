@@ -52,8 +52,8 @@ public:
     ~Model();
 
     void bindMaterial(const Scene &scene, const Camera &camera, const glm::mat4 &model, const Material* overrideMaterial = nullptr) override;
-    unsigned int draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) override;
-    unsigned int draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) override;
+    RenderStats draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) override;
+    RenderStats draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) override;
 
     EntityType getType() const override { return EntityType::MESH; }
 

@@ -25,26 +25,27 @@ OpenGLRenderer::OpenGLRenderer(unsigned int width, unsigned int height)
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 }
 
-unsigned int OpenGLRenderer::updateDirLightShadow(Scene &scene, Camera &camera) {
-    unsigned int trianglesDrawn = 0;
+RenderStats OpenGLRenderer::updateDirLightShadow(Scene &scene, Camera &camera) {
+    RenderStats stats;
     if (scene.directionalLight == nullptr) {
-        return trianglesDrawn;
+        return stats;
     }
 
     scene.directionalLight->shadowMapRenderTarget.bind();
     glClear(GL_DEPTH_BUFFER_BIT);
 
     for (auto& child : scene.children) {
-        trianglesDrawn += drawNode(scene, camera, child, glm::mat4(1.0f), false, &scene.directionalLight->shadowMapMaterial);
+        stats += drawNode(scene, camera, child, glm::mat4(1.0f), false, &scene.directionalLight->shadowMapMaterial);
     }
 
     scene.directionalLight->shadowMapRenderTarget.unbind();
 
-    return trianglesDrawn;
+    return stats;
 }
 
-unsigned int OpenGLRenderer::updatePointLightShadows(Scene &scene, Camera &camera) {
-    unsigned int trianglesDrawn = 0;
+RenderStats OpenGLRenderer::updatePointLightShadows(Scene &scene, Camera &camera) {
+    RenderStats stats;
+
     for (int i = 0; i < scene.pointLights.size(); i++) {
         auto pointLight = scene.pointLights[i];
         if (pointLight->intensity == 0)
@@ -64,19 +65,20 @@ unsigned int OpenGLRenderer::updatePointLightShadows(Scene &scene, Camera &camer
         pointLight->shadowMapMaterial.unbind();
 
         for (auto& child : scene.children) {
-            trianglesDrawn += drawNode(scene, camera, child, glm::mat4(1.0f), pointLight, &pointLight->shadowMapMaterial);
+            stats += drawNode(scene, camera, child, glm::mat4(1.0f), pointLight, &pointLight->shadowMapMaterial);
         }
 
         pointLight->shadowMapRenderTarget.unbind();
     }
 
-    return trianglesDrawn;
+    return stats;
 }
 
-unsigned int OpenGLRenderer::drawSkyBox(Scene &scene, Camera &camera) {
-    unsigned int trianglesDrawn = 0;
+RenderStats OpenGLRenderer::drawSkyBox(Scene &scene, Camera &camera) {
+    RenderStats stats;
+
     if (scene.envCubeMap == nullptr) {
-        return trianglesDrawn;
+        return stats;
     }
 
     gBuffer.bind();
@@ -88,18 +90,18 @@ unsigned int OpenGLRenderer::drawSkyBox(Scene &scene, Camera &camera) {
     skyboxShader.setMat4("projection", camera.getProjectionMatrix());
 
     if (scene.envCubeMap != nullptr) {
-        trianglesDrawn = scene.envCubeMap->draw(skyboxShader, camera);
+        stats = scene.envCubeMap->draw(skyboxShader, camera);
     }
 
     skyboxShader.unbind();
 
     gBuffer.unbind();
 
-    return trianglesDrawn;
+    return stats;
 }
 
-unsigned int OpenGLRenderer::drawObjects(Scene &scene, Camera &camera) {
-    unsigned int trianglesDrawn = 0;
+RenderStats OpenGLRenderer::drawObjects(Scene &scene, Camera &camera) {
+    RenderStats stats;
 
     // update shadows
     updateDirLightShadow(scene, camera);
@@ -121,7 +123,7 @@ unsigned int OpenGLRenderer::drawObjects(Scene &scene, Camera &camera) {
             Node nodeLight = Node(&light);
             nodeLight.setPosition(pointLight->position);
             nodeLight.setScale(glm::vec3(0.1));
-            trianglesDrawn += drawNode(scene, camera, &nodeLight, glm::mat4(1.0f), false);
+            stats += drawNode(scene, camera, &nodeLight, glm::mat4(1.0f), false);
 
             Sphere radius = Sphere({
                 .material = material,
@@ -130,62 +132,66 @@ unsigned int OpenGLRenderer::drawObjects(Scene &scene, Camera &camera) {
             Node nodeRadius = Node(&radius);
             nodeRadius.setPosition(pointLight->position);
             nodeRadius.setScale(glm::vec3(pointLight->getLightRadius()));
-            trianglesDrawn += drawNode(scene, camera, &nodeRadius, glm::mat4(1.0f), false);
+            stats += drawNode(scene, camera, &nodeRadius, glm::mat4(1.0f), false);
         }
     }
 
     // draw scene
     for (auto& child : scene.children) {
-        trianglesDrawn += drawNode(scene, camera, child, glm::mat4(1.0f));
+        stats += drawNode(scene, camera, child, glm::mat4(1.0f));
     }
 
     // draw skybox
-    trianglesDrawn += drawSkyBox(scene, camera);
+    stats += drawSkyBox(scene, camera);
 
     // now bind back to default gBuffer and draw a quad plane with the attached gBuffer color texture
     gBuffer.unbind();
 
-    return trianglesDrawn;
+    return stats;
 }
 
-unsigned int OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, const glm::mat4 &parentTransform, bool frustumCull, const Material* overrideMaterial) {
+RenderStats OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, const glm::mat4 &parentTransform,
+                                     bool frustumCull, const Material* overrideMaterial) {
     const glm::mat4 &model = parentTransform * node->getTransformParentFromLocal();
 
-    unsigned int trianglesDrawn = 0;
+    RenderStats stats;
     if (node->entity != nullptr) {
         if (node->visible) {
             node->entity->bindMaterial(scene, camera, model, overrideMaterial);
             bool doFrustumCull = frustumCull && node->frustumCulled;
-            trianglesDrawn += node->entity->draw(scene, camera, model, doFrustumCull, overrideMaterial);
+            stats += node->entity->draw(scene, camera, model, doFrustumCull, overrideMaterial);
         }
     }
 
     for (auto& child : node->children) {
-        trianglesDrawn += drawNode(scene, camera, child, model, overrideMaterial);
+        stats += drawNode(scene, camera, child, model, overrideMaterial);
     }
 
-    return trianglesDrawn;
+    return stats;
 }
 
-unsigned int OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, const glm::mat4 &parentTransform, const PointLight* pointLight, const Material* overrideMaterial) {
+RenderStats OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, const glm::mat4 &parentTransform,
+                                     const PointLight* pointLight, const Material* overrideMaterial) {
     const glm::mat4 &model = parentTransform * node->getTransformParentFromLocal();
 
-    unsigned int trianglesDrawn = 0;
+    RenderStats stats;
     if (node->entity != nullptr) {
         if (node->visible) {
             // don't have to bind to scene and camera here, since we are only drawing shadows
-            trianglesDrawn += node->entity->draw(scene, camera, model, pointLight->boundingSphere, overrideMaterial);
+            stats += node->entity->draw(scene, camera, model, pointLight->boundingSphere, overrideMaterial);
         }
     }
 
     for (auto& child : node->children) {
-        trianglesDrawn += drawNode(scene, camera, child, model, pointLight, overrideMaterial);
+        stats += drawNode(scene, camera, child, model, pointLight, overrideMaterial);
     }
 
-    return trianglesDrawn;
+    return stats;
 }
 
-void OpenGLRenderer::drawToScreen(const Shader &screenShader, const RenderTarget* overrideRenderTarget) {
+RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const RenderTarget* overrideRenderTarget) {
+    RenderStats stats;
+
     if (overrideRenderTarget != nullptr) {
         overrideRenderTarget->bind();
         glViewport(0, 0, overrideRenderTarget->width, overrideRenderTarget->height);
@@ -207,17 +213,19 @@ void OpenGLRenderer::drawToScreen(const Shader &screenShader, const RenderTarget
     screenShader.setTexture("screenColor", gBuffer.colorBuffer, 3);
     screenShader.setTexture("screenDepth", gBuffer.depthBuffer, 4);
 
-    outputFsQuad.draw();
+    stats += outputFsQuad.draw();
 
     screenShader.unbind();
 
     if (overrideRenderTarget != nullptr) {
         overrideRenderTarget->unbind();
     }
+
+    return stats;
 }
 
-void OpenGLRenderer::drawToRenderTarget(const Shader &screenShader, const RenderTarget &renderTarget) {
-    drawToScreen(screenShader, &renderTarget);
+RenderStats OpenGLRenderer::drawToRenderTarget(const Shader &screenShader, const RenderTarget &renderTarget) {
+    return drawToScreen(screenShader, &renderTarget);
 }
 
 void OpenGLRenderer::resize(unsigned int width, unsigned int height) {

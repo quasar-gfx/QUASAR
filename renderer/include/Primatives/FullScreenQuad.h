@@ -43,16 +43,23 @@ public:
         glDeleteBuffers(1, &vertexBuffer);
     };
 
-    void draw() {
+    RenderStats draw() {
+        RenderStats stats;
+        stats.trianglesDrawn = 2;
+
         // disable depth test so screen-space quad isn't discarded due to depth test.
         glDisable(GL_DEPTH_TEST);
 
         glBindVertexArray(vertexArrayBuffer);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glDrawArrays(GL_TRIANGLES, 0, stats.trianglesDrawn * 3);
         glBindVertexArray(0);
 
         // reenable depth test
         glEnable(GL_DEPTH_TEST);
+
+        stats.drawCalls = 1;
+
+        return stats;
     }
 
 private:

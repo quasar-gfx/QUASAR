@@ -14,7 +14,6 @@ extern "C" {
 #endif
 }
 
-#include <iostream>
 #include <atomic>
 #include <thread>
 #include <mutex>
@@ -22,9 +21,7 @@ extern "C" {
 #include <queue>
 
 #include <Utils/TimeUtils.h>
-
 #include <RenderTargets/RenderTarget.h>
-
 #include <CameraPose.h>
 
 #ifndef __APPLE__

@@ -1,17 +1,10 @@
 #include <iostream>
 
 #include <args.hxx>
-#include <imgui/imgui.h>
 
-#include <Shaders/Shader.h>
-#include <Texture.h>
-#include <Primatives/Primatives.h>
-#include <CubeMap.h>
-#include <Scene.h>
-#include <Camera.h>
-#include <Framebuffer.h>
 #include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
+#include <SceneLoader.h>
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
@@ -86,6 +79,7 @@ int main(int argc, char** argv) {
 
     bool atwEnabled = true;
     double elapedTime = 0.0f;
+    RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = true;
@@ -129,6 +123,22 @@ int main(int argc, char** argv) {
             ImGui::Begin(config.title.c_str(), &showUI);
             ImGui::Text("OpenGL Version: %s", glGetString(GL_VERSION));
             ImGui::Text("GPU: %s\n", glGetString(GL_RENDERER));
+
+            ImGui::Separator();
+
+            if (renderStats.trianglesDrawn < 100000)
+                ImGui::TextColored(ImVec4(0,1,0,1), "Total Triangles Drawn: %d", renderStats.trianglesDrawn);
+            else if (renderStats.trianglesDrawn < 500000)
+                ImGui::TextColored(ImVec4(1,1,0,1), "Total Triangles Drawn: %d", renderStats.trianglesDrawn);
+            else
+                ImGui::TextColored(ImVec4(1,0,0,1), "Total Triangles Drawn: %d", renderStats.trianglesDrawn);
+
+            if (renderStats.drawCalls < 200)
+                ImGui::TextColored(ImVec4(0,1,0,1), "Total Draw Calls: %d", renderStats.drawCalls);
+            else if (renderStats.drawCalls < 500)
+                ImGui::TextColored(ImVec4(1,1,0,1), "Total Draw Calls: %d", renderStats.drawCalls);
+            else
+                ImGui::TextColored(ImVec4(1,0,0,1), "Total Draw Calls: %d", renderStats.drawCalls);
 
             ImGui::Separator();
 
@@ -269,7 +279,7 @@ int main(int argc, char** argv) {
         atwShader.setTexture("videoTexture", videoTexture, 5);
 
         // render to screen
-        app.renderer->drawToScreen(atwShader);
+        renderStats = app.renderer->drawToScreen(atwShader);
     });
 
     // run app loop (blocking)

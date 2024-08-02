@@ -90,7 +90,7 @@ public:
     void convolve(const Shader &convolutionShader, const CubeMap &envCubeMap) const;
     void prefilter(const Shader &prefilterShader, const CubeMap &envCubeMap, Renderbuffer &captureRBO) const;
 
-    unsigned int draw(const Shader &shader, const Camera &camera) const;
+    RenderStats draw(const Shader &shader, const Camera &camera) const;
 
     void bind() const {
         bind(0);
@@ -122,7 +122,7 @@ private:
             GLint wrapS, GLint wrapT, GLint wrapR,
             GLint minFilter, GLint magFilter);
 
-    unsigned int drawCube() const;
+    RenderStats drawCube() const;
 };
 
 #endif // CUBE_MAP_H

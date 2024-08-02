@@ -134,12 +134,12 @@ void Mesh::bindMaterial(const Scene &scene, const Camera &camera, const glm::mat
     materialToUse->unbind();
 }
 
-unsigned int Mesh::draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
-    unsigned int trianglesDrawn = 0;
+RenderStats Mesh::draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
+    RenderStats stats;
 
     auto& frustum = camera.frustum;
     if (frustumCull && !frustum.aabbIsVisible(aabb, model)) {
-        return trianglesDrawn;
+        return stats;
     }
 
     auto materialToUse = overrideMaterial != nullptr ? overrideMaterial : material;
@@ -174,18 +174,20 @@ unsigned int Mesh::draw(const Scene &scene, const Camera &camera, const glm::mat
     materialToUse->unbind();
 
     if (indices.size() > 0) {
-        trianglesDrawn = static_cast<unsigned int>(indices.size() / 3);
+        stats.trianglesDrawn = static_cast<unsigned int>(indices.size() / 3);
     }
     else {
-        trianglesDrawn = static_cast<unsigned int>(vertices.size() / 3);
+        stats.trianglesDrawn = static_cast<unsigned int>(vertices.size() / 3);
     }
+    stats.drawCalls = 1;
 
-    return trianglesDrawn;
+    return stats;
 }
 
-unsigned int Mesh::draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
+RenderStats Mesh::draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
+    RenderStats stats;
     if (!boundingSphere.intersects(aabb)) {
-        return 0;
+        return stats;
     }
     return draw(scene, camera, model, false, overrideMaterial);
 }

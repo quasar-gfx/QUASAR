@@ -18,24 +18,24 @@ void Model::bindMaterial(const Scene &scene, const Camera &camera, const glm::ma
     }
 }
 
-unsigned int Model::draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
-    unsigned int trianglesDrawn = 0;
+RenderStats Model::draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
+    RenderStats stats;
 
     for (auto& mesh : meshes) {
-        trianglesDrawn += mesh->draw(scene, camera, model, frustumCull, overrideMaterial);
+        stats += mesh->draw(scene, camera, model, frustumCull, overrideMaterial);
     }
 
-    return trianglesDrawn;
+    return stats;
 }
 
-unsigned int Model::draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
-    unsigned int trianglesDrawn = 0;
+RenderStats Model::draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
+    RenderStats stats;
 
     for (auto& mesh : meshes) {
-        trianglesDrawn += mesh->draw(scene, camera, model, boundingSphere, overrideMaterial);
+        stats += mesh->draw(scene, camera, model, boundingSphere, overrideMaterial);
     }
 
-    return trianglesDrawn;
+    return stats;
 }
 
 void Model::loadFromFile(const ModelCreateParams &params) {
