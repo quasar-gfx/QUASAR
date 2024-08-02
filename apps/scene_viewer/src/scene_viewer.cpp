@@ -150,7 +150,7 @@ int main(int argc, char** argv) {
                 ImGui::RadioButton("Show Depth", &shaderIndex, 1);
                 ImGui::RadioButton("Show Positions", &shaderIndex, 2);
                 ImGui::RadioButton("Show Normals", &shaderIndex, 3);
-                ImGui::RadioButton("Show Vertex IDs", &shaderIndex, 4);
+                ImGui::RadioButton("Show Primative IDs", &shaderIndex, 4);
             }
 
             ImGui::End();
