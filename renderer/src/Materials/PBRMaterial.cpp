@@ -80,7 +80,12 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params)
         .vertexCodeSize = SHADER_COMMON_VERT_len,
         .fragmentCodeData = SHADER_MATERIAL_PBR_FRAG,
         .fragmentCodeSize = SHADER_MATERIAL_PBR_FRAG_len,
-        .defines = {"#define MAX_POINT_LIGHTS " + std::to_string(params.numPointLights)}
+        .defines = {
+            "#define MAX_POINT_LIGHTS " + std::to_string(params.numPointLights),
+            "#define ALPHA_OPAQUE " + std::to_string(static_cast<uint8_t>(AlphaMode::OPAQUE)),
+            "#define ALPHA_MASK " + std::to_string(static_cast<uint8_t>(AlphaMode::MASKED)),
+            "#define ALPHA_BLEND " + std::to_string(static_cast<uint8_t>(AlphaMode::TRANSPARENT))
+        }
     };
     shader = std::make_unique<Shader>(pbrShaderParams);
 }

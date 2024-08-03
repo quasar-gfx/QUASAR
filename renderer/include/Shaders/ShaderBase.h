@@ -83,19 +83,34 @@ public:
     }
 
 protected:
-    GLuint createShader(std::string version, std::vector<std::string> defines, const char* shaderData, const GLint shaderSize, ShaderType type) {
+    GLuint createShader(std::string version, std::vector<std::string> defines,
+                        const char* shaderData, const GLint shaderSize, ShaderType type) {
         std::string versionStr = "#version " + version + "\n";
 
         std::vector<std::string> definesWithNewline;
+        // add platform defines
+#ifdef _WIN32
+        definesWithNewline.push_back("#define WINDOWS\n");
+#elif __linux__
+        definesWithNewline.push_back("#define LINUX\n");
+#elif __APPLE__
+        definesWithNewline.push_back("#define APPLE\n");
+#elif __ANDROID__
+        definesWithNewline.push_back("#define ANDROID\n");
+#endif
+        // add user defines
         for (const auto& define : defines) {
             definesWithNewline.push_back(define + "\n");
         }
 
         std::vector<GLchar const*> shaderSrcs;
+        // add version string
         shaderSrcs.push_back(versionStr.c_str());
+        // add defines
         for (const auto& define : definesWithNewline) {
             shaderSrcs.push_back(define.c_str());
         }
+        // add shader data
         shaderSrcs.push_back(shaderData);
 
         std::vector<GLint> shaderSrcsSizes;

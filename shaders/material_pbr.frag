@@ -3,6 +3,11 @@ layout(location = 1) out vec4 normalsBuffer;
 layout(location = 2) out vec4 idBuffer;
 layout(location = 3) out vec4 FragColor;
 
+#ifdef ANDROID
+#extension GL_OVR_multiview : enable
+layout(num_views = 2) in;
+#endif
+
 in VertexData {
     flat uint VertexID;
     vec2 TexCoords;
@@ -13,10 +18,6 @@ in VertexData {
     vec3 BiTangent;
     vec4 FragPosLightSpace;
 } fsIn;
-
-const int AlphaOpaque      = 0;
-const int AlphaMasked      = 1;
-const int AlphaTransparent = 2;
 
 // material
 struct Material {
@@ -346,7 +347,7 @@ void main() {
 
     // albedo
     vec3 albedo = baseColor.rgb;
-    float alpha = (material.alphaMode == AlphaOpaque) ? 1.0 : baseColor.a;
+    float alpha = (material.alphaMode == ALPHA_OPAQUE) ? 1.0 : baseColor.a;
     if (alpha < material.maskThreshold)
         discard;
 

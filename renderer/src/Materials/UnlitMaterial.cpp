@@ -1,6 +1,10 @@
 #include <Materials/UnlitMaterial.h>
 
-UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams &params) {
+UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams &params)
+        : baseColor(params.baseColor)
+        , baseColorFactor(params.baseColorFactor)
+        , alphaMode(params.alphaMode)
+        , maskThreshold(params.maskThreshold) {
     TextureCreateParams textureParams{
         .wrapS = GL_REPEAT,
         .wrapT = GL_REPEAT,
@@ -17,18 +21,18 @@ UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams &params) {
         textures.push_back(params.diffuseTextureID);
     }
 
-    ShaderDataCreateParams UnlitMaterialParams{
+    ShaderDataCreateParams unlitShaderParams{
         .vertexCodeData = SHADER_COMMON_VERT,
         .vertexCodeSize = SHADER_COMMON_VERT_len,
         .fragmentCodeData = SHADER_MATERIAL_UNLIT_FRAG,
-        .fragmentCodeSize = SHADER_MATERIAL_UNLIT_FRAG_len
+        .fragmentCodeSize = SHADER_MATERIAL_UNLIT_FRAG_len,
+        .defines = {
+            "#define ALPHA_OPAQUE " + std::to_string(static_cast<uint8_t>(AlphaMode::OPAQUE)),
+            "#define ALPHA_MASK " + std::to_string(static_cast<uint8_t>(AlphaMode::MASKED)),
+            "#define ALPHA_BLEND " + std::to_string(static_cast<uint8_t>(AlphaMode::TRANSPARENT))
+        }
     };
-    shader = std::make_shared<Shader>(UnlitMaterialParams);
-
-    baseColor = params.baseColor;
-    baseColorFactor = params.baseColorFactor;
-    alphaMode = params.alphaMode;
-    maskThreshold = params.maskThreshold;
+    shader = std::make_shared<Shader>(unlitShaderParams);
 }
 
 void UnlitMaterial::bind() const {

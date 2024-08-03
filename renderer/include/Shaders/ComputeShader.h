@@ -6,14 +6,22 @@
 #include <Shaders/ShaderBase.h>
 
 struct ComputeShaderDataCreateParams {
+#ifndef __ANDROID__
     std::string version = "430 core";
+#else
+    std::string version = "310 es";
+#endif
     const char* computeCodeData = nullptr;
     unsigned int computeCodeSize = 0;
     std::vector<std::string> defines;
 };
 
 struct ComputeShaderFileCreateParams {
+#ifndef __ANDROID__
     std::string version = "430 core";
+#else
+    std::string version = "310 es";
+#endif
     std::string computeCodePath = "";
     std::vector<std::string> defines;
 };

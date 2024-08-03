@@ -9,7 +9,11 @@
 #include <shaders.h>
 
 struct ShaderDataCreateParams {
+#ifndef __ANDROID__
     std::string version = "410 core";
+#else
+    std::string version = "310 es";
+#endif
     const char* vertexCodeData = nullptr;
     unsigned int vertexCodeSize = 0;
     const char* fragmentCodeData = nullptr;
@@ -20,7 +24,11 @@ struct ShaderDataCreateParams {
 };
 
 struct ShaderFileCreateParams {
+#ifndef __ANDROID__
     std::string version = "410 core";
+#else
+    std::string version = "310 es";
+#endif
     std::string vertexCodePath = "";
     std::string fragmentCodePath = "";
     std::string geometryCodePath = "";
