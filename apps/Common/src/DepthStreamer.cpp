@@ -88,7 +88,7 @@ void DepthStreamer::sendFrame(pose_id_t poseID) {
 
 #ifndef __APPLE__
 void DepthStreamer::sendData() {
-    float prevTime = timeutils::getCurrTimeMicros();
+    float prevTime = timeutils::getTimeMicros();
 
     while (true) {
         std::unique_lock<std::mutex> lock(m);
@@ -101,7 +101,7 @@ void DepthStreamer::sendData() {
             break;
         }
 
-        float startTime = timeutils::getCurrTimeMicros();
+        float startTime = timeutils::getTimeMicros();
 
         // copy depth buffer to data
         CudaBuffer cudaBufferStruct = cudaBufferQueue.front();
@@ -119,19 +119,19 @@ void DepthStreamer::sendData() {
                                                0, 0, width * sizeof(GLushort), height,
                                                cudaMemcpyDeviceToHost));
 
-        stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - startTime);
+        stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
-        float elapsedTimeSec = timeutils::microsToSeconds(timeutils::getCurrTimeMicros() - prevTime);
+        float elapsedTimeSec = timeutils::microsToSeconds(timeutils::getTimeMicros() - prevTime);
         if (elapsedTimeSec < (1.0f / targetFrameRate)) {
             std::this_thread::sleep_for(std::chrono::microseconds((int)timeutils::secondsToMicros(1.0f / targetFrameRate - elapsedTimeSec)));
         }
-        stats.timeToSendMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - prevTime);
+        stats.timeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
 
         stats.bitrateMbps = ((imageSize * 8) / timeutils::millisToSeconds(stats.timeToSendMs)) / MBPS_TO_BPS;
 
         streamer.send(data);
 
-        prevTime = timeutils::getCurrTimeMicros();
+        prevTime = timeutils::getTimeMicros();
     }
 }
 #endif

@@ -1,12 +1,4 @@
-#include <iostream>
-#include <fstream>
-
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include <stb_image_write.h>
-
+#include <Utils/FileIO.h>
 #include <Texture.h>
 
 void Texture::init(const TextureCreateParams &params) {
@@ -43,15 +35,15 @@ void Texture::loadFromFile(const TextureCreateParams &params) {
         }
     }
 
-    stbi_set_flip_vertically_on_load(params.flipVertically);
+    FileIO::flipVerticallyOnLoad(params.flipVertically);
 
     int texWidth, texHeight, texChannels;
     void* data = nullptr;
     if (params.type == GL_UNSIGNED_BYTE) {
-        data = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, 0);
+        data = FileIO::loadImage(path, &texWidth, &texHeight, &texChannels);
     }
     else if (params.type == GL_FLOAT) {
-        data = stbi_loadf(path.c_str(), &texWidth, &texHeight, &texChannels, 0);
+        data = FileIO::loadImageHDR(path, &texWidth, &texHeight, &texChannels);
     }
 
     if (data) {
@@ -90,11 +82,11 @@ void Texture::loadFromFile(const TextureCreateParams &params) {
             glGenerateMipmap(target);
         }
 
-        stbi_image_free(data);
+        FileIO::freeImage(data);
     }
     else {
         throw std::runtime_error("Texture failed to load at path: " + params.path);
-        stbi_image_free(data);
+        FileIO::freeImage(data);
     }
 }
 
@@ -116,40 +108,43 @@ void Texture::resize(unsigned int width, unsigned int height) {
 }
 
 void Texture::saveAsPNG(const std::string &filename) {
+
     unsigned char* data = new unsigned char[width * height * 4];
 
     bind(0);
     glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
     unbind();
 
-    stbi_flip_vertically_on_write(true);
-    stbi_write_png(filename.c_str(), width, height, 4, data, width * 4);
+    FileIO::flipVerticallyOnWrite(true);
+    FileIO::saveAsPNG(filename, width, height, 4, data);
 
     delete[] data;
 }
 
 void Texture::saveAsJPG(const std::string &filename, int quality) {
+
     unsigned char* data = new unsigned char[width * height * 4];
 
     bind(0);
     glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
     unbind();
 
-    stbi_flip_vertically_on_write(true);
-    stbi_write_jpg(filename.c_str(), width, height, 4, data, quality);
+    FileIO::flipVerticallyOnWrite(true);
+    FileIO::saveAsJPG(filename, width, height, 4, data, quality);
 
     delete[] data;
 }
 
 void Texture::saveAsHDR(const std::string &filename) {
+
     float* data = new float[width * height * 4];
 
     bind(0);
     glReadPixels(0, 0, width, height, GL_RGBA, GL_FLOAT, data);
     unbind();
 
-    stbi_flip_vertically_on_write(true);
-    stbi_write_hdr(filename.c_str(), width, height, 4, data);
+    FileIO::flipVerticallyOnWrite(true);
+    FileIO::saveAsHDR(filename, width, height, 4, data);
 
     delete[] data;
 }
@@ -170,9 +165,7 @@ void Texture::saveDepthToFile(const std::string &filename) {
     float* data = (float*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
 
     if (depthFile.is_open()) {
-        for (int i = 0; i < width * height; i++) {
-            depthFile.write(reinterpret_cast<const char*>(&data[i]), sizeof(data[i]));
-        }
+        depthFile.write(reinterpret_cast<const char*>(data), width * height * sizeof(float));
     }
 
     glUnmapBuffer(GL_PIXEL_PACK_BUFFER);

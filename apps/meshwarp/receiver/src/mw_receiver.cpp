@@ -334,21 +334,20 @@ int main(int argc, char** argv) {
     scene.backgroundColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
     // load camera view and projection matrices
-    std::ifstream cameraFile(DATA_PATH + "data/camera.bin", std::ios::binary);
+    auto cameraData = FileIO::loadBinaryFile(DATA_PATH + "data/camera.bin");
     glm::mat4 proj = glm::mat4(1.0f);
     glm::mat4 view = glm::mat4(1.0f);
-    cameraFile.read(reinterpret_cast<char*>(&proj), sizeof(glm::mat4));
-    cameraFile.read(reinterpret_cast<char*>(&view), sizeof(glm::mat4));
-    cameraFile.close();
+    std::memcpy(&proj, cameraData.data(), sizeof(glm::mat4));
+    std::memcpy(&view, cameraData.data() + sizeof(glm::mat4), sizeof(glm::mat4));
 
     camera.setProjectionMatrix(proj);
     camera.setViewMatrix(view);
 
     // load remote camera
     Camera remoteCamera = Camera(screenWidth, screenHeight);
-    std::ifstream remoteCameraFile(DATA_PATH + "data/remoteCamera.bin", std::ios::binary);
-    remoteCameraFile.read(reinterpret_cast<char*>(&proj), sizeof(glm::mat4));
-    remoteCameraFile.read(reinterpret_cast<char*>(&view), sizeof(glm::mat4));
+    auto remoteCameraData = FileIO::loadBinaryFile(DATA_PATH + "data/remoteCamera.bin");
+    std::memcpy(&proj, remoteCameraData.data(), sizeof(glm::mat4));
+    std::memcpy(&view, remoteCameraData.data() + sizeof(glm::mat4), sizeof(glm::mat4));
     remoteCamera.setProjectionMatrix(proj);
     remoteCamera.setViewMatrix(view);
 

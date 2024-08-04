@@ -101,12 +101,12 @@ void VideoTexture::receiveVideo() {
 
     videoReady = true;
 
-    float prevTime = timeutils::getCurrTimeMicros();
+    float prevTime = timeutils::getTimeMicros();
 
     size_t bytesReceived = 0;
     pose_id_t poseID = -1;
     while (videoReady) {
-        int receiveFrameStartTime = timeutils::getCurrTimeMicros();
+        int receiveFrameStartTime = timeutils::getTimeMicros();
 
         // read frame from URL
         int ret = av_read_frame(inputFormatCtx, packet);
@@ -115,7 +115,7 @@ void VideoTexture::receiveVideo() {
             return;
         }
 
-        stats.timeToReceiveMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - receiveFrameStartTime);
+        stats.timeToReceiveMs = timeutils::microsToMillis(timeutils::getTimeMicros() - receiveFrameStartTime);
 
         if (packet->stream_index != videoStreamIndex) {
             continue;
@@ -131,7 +131,7 @@ void VideoTexture::receiveVideo() {
 
         /* Decode received frame */
         {
-            int decodeStartTime = timeutils::getCurrTimeMicros();
+            int decodeStartTime = timeutils::getTimeMicros();
 
             // send packet to decoder
             ret = avcodec_send_packet(codecCtx, packet);
@@ -153,12 +153,12 @@ void VideoTexture::receiveVideo() {
                 return;
             }
 
-            stats.timeToDecodeMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - decodeStartTime);
+            stats.timeToDecodeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - decodeStartTime);
         }
 
         /* Resize video frame to fit output texture size */
         {
-            int resizeStartTime = timeutils::getCurrTimeMicros();
+            int resizeStartTime = timeutils::getTimeMicros();
 
             AVFrame* frameRGB = av_frame_alloc();
 
@@ -180,15 +180,15 @@ void VideoTexture::receiveVideo() {
 
             m.unlock();
 
-            stats.timeToResizeMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - resizeStartTime);
+            stats.timeToResizeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - resizeStartTime);
         }
 
-        stats.totalTimeToReceiveMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - prevTime);
+        stats.totalTimeToReceiveMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
         framesReceived++;
 
         stats.bitrateMbps = ((bytesReceived * 8) / timeutils::millisToSeconds(stats.totalTimeToReceiveMs)) / MBPS_TO_BPS;
 
-        prevTime = timeutils::getCurrTimeMicros();
+        prevTime = timeutils::getTimeMicros();
     }
 }
 

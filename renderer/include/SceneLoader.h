@@ -27,8 +27,6 @@ public:
     void clearScene(Scene &scene, Camera &camera);
 
 private:
-    std::ifstream::pos_type getFileSize(const std::string &filename);
-
     int compare(jsmntok_t tok, const char* jsonChunk, const char* str);
 
     int parse(jsmntok_t const* tokens, int i);

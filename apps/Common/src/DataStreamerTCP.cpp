@@ -55,7 +55,7 @@ void DataStreamerTCP::sendData() {
         std::vector<uint8_t> data = std::move(datas.front());
         datas.pop();
 
-        int startSendTime = timeutils::getCurrTimeMicros();
+        int startSendTime = timeutils::getTimeMicros();
 
         // add header
         int dataSize = data.size();
@@ -90,7 +90,7 @@ void DataStreamerTCP::sendData() {
             }
         }
 
-        stats.timeToSendMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - startSendTime);
+        stats.timeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startSendTime);
         stats.bitrateMbps = ((sizeof(dataSize) + data.size() * 8) / timeutils::millisToSeconds(stats.timeToSendMs)) / MBPS_TO_BPS;
     }
 

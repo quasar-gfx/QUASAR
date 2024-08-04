@@ -3,11 +3,11 @@
 #include <DepthVideoTexture.h>
 
 pose_id_t DepthVideoTexture::draw(pose_id_t poseID) {
-    static float prevTime = timeutils::getCurrTimeMicros();\
+    static float prevTime = timeutils::getTimeMicros();\
 
     std::vector<uint8_t> data = receiver.recv();
     if (data.empty()) {
-        prevTime = timeutils::getCurrTimeMicros();
+        prevTime = timeutils::getTimeMicros();
         return prevPoseID;
     }
 
@@ -42,18 +42,18 @@ pose_id_t DepthVideoTexture::draw(pose_id_t poseID) {
     }
 
     if (!found) {
-        prevTime = timeutils::getCurrTimeMicros();
+        prevTime = timeutils::getTimeMicros();
         return prevPoseID;
     }
 
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RED, GL_UNSIGNED_SHORT, res.data());
 
-    stats.timeToReceiveMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - prevTime);
+    stats.timeToReceiveMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
 
     stats.bitrateMbps = ((sizeof(pose_id_t) + res.size() * 8) / timeutils::millisToSeconds(stats.timeToReceiveMs)) / MBPS_TO_BPS;
 
     prevPoseID = resPoseID;
-    prevTime = timeutils::getCurrTimeMicros();
+    prevTime = timeutils::getTimeMicros();
 
     return resPoseID;
 }

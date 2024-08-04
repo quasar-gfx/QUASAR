@@ -197,17 +197,8 @@ int main(int argc, char** argv) {
     std::string indicesFileName = DATA_PATH + "indices.bin";
     std::string colorFileName = DATA_PATH + "color.png";
 
-    std::ifstream vertexFile(verticesFileName, std::ios::binary);
-    if (!vertexFile.is_open()) {
-        std::cerr << "Failed to open vertex file" << std::endl;
-        return -1;
-    }
-
-    std::ifstream indexFile(indicesFileName, std::ios::binary);
-    if (!indexFile.is_open()) {
-        std::cerr << "Failed to open index file" << std::endl;
-        return -1;
-    }
+    auto vertexData = FileIO::loadBinaryFile(verticesFileName);
+    auto indexData = FileIO::loadBinaryFile(indicesFileName);
 
     Texture colorTexture = Texture({
         .wrapS = GL_REPEAT,
@@ -223,14 +214,12 @@ int main(int argc, char** argv) {
 
     int numVertices = remoteWidth * remoteHeight * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
     std::vector<Vertex> vertices(numVertices);
-    vertexFile.read(reinterpret_cast<char*>(vertices.data()), vertices.size() * sizeof(Vertex));
-    vertexFile.close();
+    std::memcpy(vertices.data(), vertexData.data(), vertexData.size());
 
     int numTriangles = remoteWidth * remoteHeight * NUM_SUB_QUADS * 2;
     int indexBufferSize = numTriangles * 3;
     std::vector<unsigned int> indices(indexBufferSize);
-    indexFile.read(reinterpret_cast<char*>(indices.data()), indices.size() * sizeof(unsigned int));
-    indexFile.close();
+    std::memcpy(indices.data(), indexData.data(), indexData.size());
 
     Mesh mesh = Mesh({
         .vertices = vertices,

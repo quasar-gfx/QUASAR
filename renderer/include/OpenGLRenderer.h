@@ -1,6 +1,8 @@
 #ifndef OPENGL_RENDERER_H
 #define OPENGL_RENDERER_H
 
+#include <Utils/FileIO.h>
+#include <Utils/TimeUtils.h>
 #include <Texture.h>
 #include <CubeMap.h>
 #include <Scene.h>

@@ -1,5 +1,4 @@
-#include <sstream>
-
+#include <Utils/FileIO.h>
 #include <SceneLoader.h>
 
 class JsonParser {
@@ -31,42 +30,21 @@ private:
 };
 
 void SceneLoader::loadScene(const std::string &filename, Scene &scene, Camera &camera) {
-
-    std::ifstream sceneFile;
-
-    // ensure ifstream objects can throw exceptions
-    sceneFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-
-    try {
-        sceneFile.open(filename);
-
-        std::stringstream sceneStream;
-        sceneStream << sceneFile.rdbuf();
-        sceneFile.close();
-
-        auto size = getFileSize(filename);
-        if (size <= 0) {
-            throw std::runtime_error("Scene file is empty " + filename);
-        }
-
-        std::string sceneJSON = sceneStream.str();
-
-        JsonParser parser;
-        if (!parser.readJson(sceneJSON.data(), size)) {
-            throw std::runtime_error("Failed to parse scene file " + filename);
-        }
-
-        std::cout << "Loading scene: " << filename << std::endl;
-
-        jsmntok_t* tokens = parser.getTokens();
-        parse(tokens, 0, sceneJSON.data(), scene, camera);
-    } catch (std::ifstream::failure e) {
-        throw std::runtime_error("Failed to read scene file " + filename);
+    unsigned int size;
+    std::string sceneJSON = FileIO::loadTextFile(filename, &size);
+    if (size == 0) {
+        throw std::runtime_error("Scene file is empty: " + filename);
     }
 
-    models.clear();
-    meshes.clear();
-    materials.clear();
+    JsonParser parser;
+    if (!parser.readJson(sceneJSON.data(), size)) {
+        throw std::runtime_error("Failed to parse scene file " + filename);
+    }
+
+    std::cout << "Loading scene: " << filename << std::endl;
+
+    jsmntok_t* tokens = parser.getTokens();
+    parse(tokens, 0, sceneJSON.data(), scene, camera);
 }
 
 void SceneLoader::clearScene(Scene &scene, Camera &camera) {
@@ -86,12 +64,6 @@ void SceneLoader::clearScene(Scene &scene, Camera &camera) {
         delete material;
     }
     materials.clear();
-}
-
-std::ifstream::pos_type SceneLoader::getFileSize(const std::string &filename) {
-    std::ifstream file(filename, std::ifstream::ate | std::ifstream::binary);
-    file.seekg(0, std::ios::end);
-    return file.tellg();
 }
 
 int SceneLoader::compare(jsmntok_t tok, const char* jsonChunk, const char* str) {

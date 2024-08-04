@@ -202,7 +202,7 @@ void VideoStreamer::sendFrame(pose_id_t poseID) {
 void VideoStreamer::encodeAndSendFrames() {
     sendFrames = true;
 
-    int prevTime = timeutils::getCurrTimeMicros();
+    int prevTime = timeutils::getTimeMicros();
 
     size_t bytesSent = 0;
     int ret;
@@ -220,7 +220,7 @@ void VideoStreamer::encodeAndSendFrames() {
 
 #ifndef __APPLE__
         /* Copy frame from OpenGL texture to AVFrame */
-        int startCopyTime = timeutils::getCurrTimeMicros();
+        int startCopyTime = timeutils::getTimeMicros();
 
         // copy opengl texture data to frame
         CudaBuffer cudaBufferStruct = cudaBufferQueue.front();
@@ -236,7 +236,7 @@ void VideoStreamer::encodeAndSendFrames() {
                                                0, 0, width * 4, height,
                                                cudaMemcpyDeviceToHost));
 
-        stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - startCopyTime);
+        stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startCopyTime);
 
 #else
         pose_id_t poseIDToSend = this->poseID;
@@ -251,7 +251,7 @@ void VideoStreamer::encodeAndSendFrames() {
 
         /* Encode frame */
         {
-            int startEncodeTime = timeutils::getCurrTimeMicros();
+            int startEncodeTime = timeutils::getTimeMicros();
 
             // send frame to encoder
             ret = avcodec_send_frame(codecCtx, frame);
@@ -274,12 +274,12 @@ void VideoStreamer::encodeAndSendFrames() {
             packet->pts = av_rescale_q(framesSent, (AVRational){1, targetFrameRate}, timeBase);
             packet->dts = packet->pts;
 
-            stats.timeToEncodeMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - startEncodeTime);
+            stats.timeToEncodeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startEncodeTime);
         }
 
         /* Send frame to output URL */
         {
-            int startWriteTime = timeutils::getCurrTimeMicros();
+            int startWriteTime = timeutils::getTimeMicros();
 
             // add poseID to packet data; bit hacky, but works
             packet->data = (uint8_t*)av_realloc(packet->data, packet->size + sizeof(pose_id_t));
@@ -300,19 +300,19 @@ void VideoStreamer::encodeAndSendFrames() {
 
             framesSent++;
 
-            stats.timeToSendMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - startWriteTime);
+            stats.timeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startWriteTime);
         }
 
-        float elapsedTimeSec = timeutils::microsToSeconds(timeutils::getCurrTimeMicros() - prevTime);
+        float elapsedTimeSec = timeutils::microsToSeconds(timeutils::getTimeMicros() - prevTime);
         if (elapsedTimeSec < (1.0f / targetFrameRate)) {
             std::this_thread::sleep_for(std::chrono::microseconds((int)timeutils::secondsToMicros(1.0f / targetFrameRate - elapsedTimeSec)));
 
         }
-        stats.totalTimeToSendMs = timeutils::microsToMillis(timeutils::getCurrTimeMicros() - prevTime);
+        stats.totalTimeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
 
         stats.bitrateMbps = ((bytesSent * 8) / timeutils::millisToSeconds(stats.totalTimeToSendMs)) / MBPS_TO_BPS;
 
-        prevTime = timeutils::getCurrTimeMicros();
+        prevTime = timeutils::getTimeMicros();
     }
 }
 

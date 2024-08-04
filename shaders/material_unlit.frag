@@ -3,11 +3,6 @@ layout(location = 1) out vec4 normalsBuffer;
 layout(location = 2) out vec4 idBuffer;
 layout(location = 3) out vec4 FragColor;
 
-#ifdef ANDROID
-#extension GL_OVR_multiview : enable
-layout(num_views = 2) in;
-#endif
-
 in VertexData {
     flat uint VertexID;
     vec2 TexCoords;

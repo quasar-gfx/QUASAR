@@ -1,65 +1,26 @@
-#include <string>
-#include <fstream>
-#include <sstream>
-
+#include <Utils/FileIO.h>
 #include <Shaders/Shader.h>
 
 void Shader::loadFromFiles(const std::string vertexPath, const std::string fragmentPath, const std::string geometryPath) {
-    std::string vertexCode;
-    std::string fragmentCode;
+
+    std::string vertexCode = FileIO::loadTextFile(vertexPath);
+    std::string fragmentCode = FileIO::loadTextFile(fragmentPath);
+
+    // if geometry shader path is present, also load a geometry shader
     std::string geometryCode;
-    std::ifstream vShaderFile;
-    std::ifstream fShaderFile;
-    std::ifstream gShaderFile;
-
-    // ensure ifstream objects can throw exceptions
-    vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-    fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-    gShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-
-    try {
-        // load vertex shader
-        vShaderFile.open(vertexPath);
-
-        std::stringstream vShaderStream;
-        vShaderStream << vShaderFile.rdbuf();
-        vShaderFile.close();
-
-        vertexCode = vShaderStream.str();
-
-        // load fragment shader
-        fShaderFile.open(fragmentPath);
-
-        std::stringstream fShaderStream;
-        fShaderStream << fShaderFile.rdbuf();
-        fShaderFile.close();
-
-        fragmentCode = fShaderStream.str();
-
-        // if geometry shader path is present, also load a geometry shader
-        if (geometryPath != "") {
-            gShaderFile.open(geometryPath);
-
-            std::stringstream gShaderStream;
-            gShaderStream << gShaderFile.rdbuf();
-            gShaderFile.close();
-
-            geometryCode = gShaderStream.str();
-        }
-
-        const char* vShaderCode = vertexCode.c_str();
-        const char* fShaderCode = fragmentCode.c_str();
-        const char* gShaderCode = geometryPath != "" ? geometryCode.c_str() : nullptr;
-
-        unsigned int vertexCodeSize = vertexCode.size();
-        unsigned int fragmentCodeSize = fragmentCode.size();
-        unsigned int geometryDataSize = geometryPath != "" ? geometryCode.size() : 0;
-
-        loadFromData(vShaderCode, vertexCodeSize, fShaderCode, fragmentCodeSize, gShaderCode, geometryDataSize);
+    if (geometryPath != "") {
+        geometryCode = FileIO::loadTextFile(geometryPath);
     }
-    catch (std::ifstream::failure& e) {
-        std::cerr << "Failed to read shader files: " << e.what() << std::endl;
-    }
+
+    const char* vShaderCode = vertexCode.c_str();
+    const char* fShaderCode = fragmentCode.c_str();
+    const char* gShaderCode = geometryPath != "" ? geometryCode.c_str() : nullptr;
+
+    unsigned int vertexCodeSize = vertexCode.size();
+    unsigned int fragmentCodeSize = fragmentCode.size();
+    unsigned int geometryDataSize = geometryPath != "" ? geometryCode.size() : 0;
+
+    loadFromData(vShaderCode, vertexCodeSize, fShaderCode, fragmentCodeSize, gShaderCode, geometryDataSize);
 }
 
 void Shader::loadFromData(const char* vertexCodeData, const GLint vertexCodeSize,

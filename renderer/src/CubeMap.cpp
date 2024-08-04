@@ -1,5 +1,4 @@
-#include <stb_image.h>
-
+#include <Utils/FileIO.h>
 #include <CubeMap.h>
 
 const glm::mat4 CubeMap::captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
@@ -143,18 +142,19 @@ void CubeMap::loadFromFiles(std::vector<std::string> faceFilePaths,
     glBindTexture(GL_TEXTURE_CUBE_MAP, ID);
 
     int textureWidth, textureHeight, nrChannels;
-    this->width = textureWidth;
-    this->height = textureHeight;
     for (unsigned int i = 0; i < faceFilePaths.size(); i++) {
-        void* data = stbi_load(faceFilePaths[i].c_str(), &textureWidth, &textureHeight, &nrChannels, 0);
+        void* data = FileIO::loadImage(faceFilePaths[i], &textureWidth, &textureHeight, &nrChannels, 0);
         if (data) {
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, format, textureWidth, textureHeight, 0, format, GL_UNSIGNED_BYTE, data);
-            stbi_image_free(data);
+            FileIO::freeImage(data);
         }
         else {
             throw std::runtime_error("Cubemap tex failed to load at path: " + faceFilePaths[i]);
         }
     }
+
+    width = textureWidth;
+    height = textureHeight;
 
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, wrapS);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, wrapT);

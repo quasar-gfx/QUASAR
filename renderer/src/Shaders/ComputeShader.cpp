@@ -1,33 +1,14 @@
-#include <fstream>
-#include <sstream>
-#include <iostream>
-
+#include <Utils/FileIO.h>
 #include <Shaders/ComputeShader.h>
 
 void ComputeShader::loadFromFile(const std::string &computePath) {
-    std::ifstream computeFile;
 
-    // ensure ifstream objects can throw exceptions
-    computeFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    std::string computeCode = FileIO::loadTextFile(computePath);
 
-    try {
-        // load compute shader
-        computeFile.open(computePath);
+    const char* cShaderCode = computeCode.c_str();
+    unsigned int computeCodeSize = computeCode.size();
 
-        std::stringstream computeStream;
-        computeStream << computeFile.rdbuf();
-        computeFile.close();
-
-        std::string computeCode = computeStream.str();
-
-        const char* cShaderCode = computeCode.c_str();
-        unsigned int computeCodeSize = computeCode.size();
-
-        loadFromData(cShaderCode, computeCodeSize);
-    }
-    catch (std::ifstream::failure e) {
-        std::cerr << "Failed to read compute shader file: " << computePath << std::endl;
-    }
+    loadFromData(cShaderCode, computeCodeSize);
 }
 
 void ComputeShader::loadFromData(const char* computeCodeData, const GLint computeCodeSize) {

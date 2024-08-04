@@ -1,15 +1,13 @@
 // adpated from: https://github.com/google/filament/blob/main/libs/filamentapp/src/MeshAssimp.cpp
 #include <iostream>
-
 #include <unistd.h>
-
-#include <stb_image.h>
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/cimport.h>
 #include <assimp/GltfMaterial.h>
 
+#include <Utils/FileIO.h>
 #include <Primatives/Model.h>
 
 void Model::bindMaterial(const Scene &scene, const Camera &camera, const glm::mat4 &model, const Material* overrideMaterial) {
@@ -357,8 +355,9 @@ TextureID Model::loadMaterialTexture(aiMaterial const* aiMat, aiString aiTexture
         const aiTexture* aiEmbeddedTexture = scene->mTextures[embeddedId];
 
         int texWidth, texHeight, texChannels;
-        unsigned char* data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiEmbeddedTexture->pcData),
-                                                    aiEmbeddedTexture->mWidth, &texWidth, &texHeight, &texChannels, 0);
+        unsigned char* data = FileIO::loadImageFromMemory(reinterpret_cast<unsigned char*>(aiEmbeddedTexture->pcData),
+                                                         aiEmbeddedTexture->mWidth,
+                                                         &texWidth, &texHeight, &texChannels, 0);
         if (data) {
             GLint internalFormat;
             GLenum format;
@@ -387,7 +386,7 @@ TextureID Model::loadMaterialTexture(aiMaterial const* aiMat, aiString aiTexture
                 .data = data
             });
 
-            stbi_image_free(data);
+            FileIO::freeImage(data);
             texturesLoaded[texturePath] = texture;
             return texturesLoaded[texturePath].ID;
         }
