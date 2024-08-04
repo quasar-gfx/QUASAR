@@ -128,9 +128,11 @@ protected:
             case ShaderType::FRAGMENT:
                 shader = glCreateShader(GL_FRAGMENT_SHADER);
                 break;
+#ifndef __ANDROID__
             case ShaderType::GEOMETRY:
                 shader = glCreateShader(GL_GEOMETRY_SHADER);
                 break;
+#endif
             case ShaderType::COMPUTE:
                 shader = glCreateShader(GL_COMPUTE_SHADER);
                 break;

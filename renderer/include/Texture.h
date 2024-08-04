@@ -54,7 +54,12 @@ public:
             , magFilter(params.magFilter)
             , multiSampled(params.multiSampled)
             , OpenGLObject() {
+#ifndef __ANDROID__
         target = !multiSampled ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
+#else // gles3 does not have GL_TEXTURE_2D_MULTISAMPLE
+        target = GL_TEXTURE_2D;
+        multiSampled = false;
+#endif
         if (params.path == "") {
             init(params);
         }
@@ -89,10 +94,12 @@ public:
         glDeleteTextures(1, &ID);
     }
 
+#ifndef __ANDROID__
     void saveAsPNG(const std::string &filename);
     void saveAsJPG(const std::string &filename, int quality = 100);
     void saveAsHDR(const std::string &filename);
     void saveDepthToFile(const std::string &filename);
+#endif
 
 protected:
     GLenum target;

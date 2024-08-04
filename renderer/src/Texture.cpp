@@ -8,9 +8,11 @@ void Texture::init(const TextureCreateParams &params) {
     if (!multiSampled) {
         glTexImage2D(target, 0, params.internalFormat, width, height, 0, params.format, params.type, params.data);
     }
+#ifndef __ANDROID__
     else {
         glTexImage2DMultisample(target, 4, params.internalFormat, width, height, GL_TRUE);
     }
+#endif
     glTexParameteri(target, GL_TEXTURE_WRAP_S, params.wrapS);
     glTexParameteri(target, GL_TEXTURE_WRAP_T, params.wrapT);
     glTexParameteri(target, GL_TEXTURE_MIN_FILTER, params.minFilter);
@@ -18,10 +20,12 @@ void Texture::init(const TextureCreateParams &params) {
     if (params.minFilter == GL_LINEAR_MIPMAP_LINEAR || params.minFilter == GL_LINEAR_MIPMAP_NEAREST) {
         glGenerateMipmap(target);
     }
+#ifndef __ANDROID__
     if (params.hasBorder) {
         float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
         glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, borderColor);
     }
+#endif
 }
 
 void Texture::loadFromFile(const TextureCreateParams &params) {
@@ -62,7 +66,11 @@ void Texture::loadFromFile(const TextureCreateParams &params) {
             format = GL_RGB;
         }
         else if (texChannels == 4) {
+#ifndef __ANDROID__
             internalFormat = params.gammaCorrected ? GL_SRGB_ALPHA : GL_RGBA;
+#else
+            internalFormat = GL_RGBA;
+#endif
             format = GL_RGBA;
         }
 
@@ -70,9 +78,11 @@ void Texture::loadFromFile(const TextureCreateParams &params) {
         if (!multiSampled) {
             glTexImage2D(target, 0, internalFormat, width, height, 0, format, params.type, data);
         }
+#ifndef __ANDROID__
         else {
             glTexImage2DMultisample(target, 4, internalFormat, width, height, GL_TRUE);
         }
+#endif
 
         glTexParameteri(target, GL_TEXTURE_WRAP_S, params.wrapS);
         glTexParameteri(target, GL_TEXTURE_WRAP_T, params.wrapT);
@@ -98,15 +108,18 @@ void Texture::resize(unsigned int width, unsigned int height) {
     if (!multiSampled) {
         glTexImage2D(target, 0, internalFormat, width, height, 0, format, type, nullptr);
     }
+#ifndef __ANDROID__
     else {
         glTexImage2DMultisample(target, 4, internalFormat, width, height, GL_TRUE);
     }
+#endif
     if (minFilter == GL_LINEAR_MIPMAP_LINEAR || minFilter == GL_LINEAR_MIPMAP_NEAREST) {
         glGenerateMipmap(target);
     }
     unbind();
 }
 
+#ifndef __ANDROID__
 void Texture::saveAsPNG(const std::string &filename) {
 
     unsigned char* data = new unsigned char[width * height * 4];
@@ -172,3 +185,4 @@ void Texture::saveDepthToFile(const std::string &filename) {
 
     depthFile.close();
 }
+#endif
