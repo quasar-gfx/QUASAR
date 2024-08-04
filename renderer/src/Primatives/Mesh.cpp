@@ -151,9 +151,11 @@ RenderStats Mesh::draw(const Scene &scene, const Camera &camera, const glm::mat4
     materialToUse->shader->setMat4("model", model);
     materialToUse->shader->setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
 
+#ifndef __ANDROID__
     if (wireframe) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     }
+#endif
 
     GLenum primativeType = pointcloud ? GL_POINTS : GL_TRIANGLES;
 
@@ -167,9 +169,11 @@ RenderStats Mesh::draw(const Scene &scene, const Camera &camera, const glm::mat4
     }
     glBindVertexArray(0);
 
+#ifndef __ANDROID__
     if (wireframe) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
+#endif
 
     materialToUse->unbind();
 

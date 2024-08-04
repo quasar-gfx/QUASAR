@@ -8,7 +8,7 @@ void Texture::init(const TextureCreateParams &params) {
     if (!multiSampled) {
         glTexImage2D(target, 0, params.internalFormat, width, height, 0, params.format, params.type, params.data);
     }
-#ifndef __ANDROID__
+#ifndef __ANDROID__ // gles3.2 does not have glTexImage2DMultisample
     else {
         glTexImage2DMultisample(target, 4, params.internalFormat, width, height, GL_TRUE);
     }
@@ -20,12 +20,10 @@ void Texture::init(const TextureCreateParams &params) {
     if (params.minFilter == GL_LINEAR_MIPMAP_LINEAR || params.minFilter == GL_LINEAR_MIPMAP_NEAREST) {
         glGenerateMipmap(target);
     }
-#ifndef __ANDROID__
     if (params.hasBorder) {
         float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
         glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, borderColor);
     }
-#endif
 }
 
 void Texture::loadFromFile(const TextureCreateParams &params) {
@@ -119,7 +117,6 @@ void Texture::resize(unsigned int width, unsigned int height) {
     unbind();
 }
 
-#ifndef __ANDROID__
 void Texture::saveAsPNG(const std::string &filename) {
 
     unsigned char* data = new unsigned char[width * height * 4];
@@ -162,6 +159,7 @@ void Texture::saveAsHDR(const std::string &filename) {
     delete[] data;
 }
 
+#ifndef __ANDROID__
 void Texture::saveDepthToFile(const std::string &filename) {
     std::ofstream depthFile;
     depthFile.open(filename, std::ios::out | std::ios::binary);

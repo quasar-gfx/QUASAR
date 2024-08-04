@@ -17,7 +17,9 @@ public:
         framebuffer.bind();
         framebuffer.attachCubeMap(depthCubeMap, GL_DEPTH_ATTACHMENT);
 
+#ifndef __ANDROID__
         glDrawBuffer(GL_NONE);
+#endif
         glReadBuffer(GL_NONE);
 
         if (!framebuffer.checkStatus()) {

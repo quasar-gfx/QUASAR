@@ -23,6 +23,7 @@ public:
 
     Frustum frustum;
 
+    explicit Camera();
     explicit Camera(unsigned int width, unsigned int height);
     explicit Camera(float fovy, float aspect, float near, float far);
 

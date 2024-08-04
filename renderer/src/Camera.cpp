@@ -1,5 +1,10 @@
 #include <Camera.h>
 
+Camera::Camera() {
+    setProjectionMatrix(glm::radians(60.0f), 16.0f / 9.0f, 0.1f, 1000.0f);
+    updateCameraOrientation();
+}
+
 Camera::Camera(unsigned int width, unsigned int height) {
     setProjectionMatrix(glm::radians(60.0f), (float)width / (float)height, 0.1f, 1000.0f);
     updateCameraOrientation();
