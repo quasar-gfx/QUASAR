@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 project(shaders)
 
-add_executable(embedfile ${CMAKE_SOURCE_DIR}/cmake/embedfile.c)
+set(EMBEDFILE_SCRIPT ${CMAKE_SOURCE_DIR}/cmake/embedfile.py)
 
 file(GLOB_RECURSE SRCS
     "${CMAKE_CURRENT_SOURCE_DIR}/*.frag"
@@ -30,7 +30,7 @@ foreach(GLSL_SRC ${SRCS})
 
     add_custom_command(
             OUTPUT ${SHADER_HEADER}
-            COMMAND embedfile ${FILE_NAME_UPPER} ${GLSL_SRC} ${SHADER_HEADER}
+            COMMAND ${EMBEDFILE_SCRIPT} ${FILE_NAME_UPPER} ${GLSL_SRC} ${SHADER_HEADER}
             DEPENDS ${GLSL_SRC}
             APPEND)
 

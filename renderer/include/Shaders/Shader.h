@@ -5,10 +5,8 @@
 
 #include <Shaders/ShaderBase.h>
 
-#ifndef __ANDROID__
 // pre-stored shaders
 #include <shaders.h>
-#endif
 
 struct ShaderDataCreateParams {
 #ifndef __ANDROID__
