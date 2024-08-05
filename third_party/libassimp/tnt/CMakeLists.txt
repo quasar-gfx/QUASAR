@@ -42,6 +42,12 @@ set(PUBLIC_HDRS
     ${PUBLIC_HDR_DIR}/${TARGET}/vector3.h
     ${PUBLIC_HDR_DIR}/${TARGET}/version.h
 )
+if (ANDROID)
+set(PUBLIC_HDRS ${PUBLIC_HDRS}
+    ${PUBLIC_HDR_DIR}/${TARGET}/port/AndroidJNI/AndroidJNIIOSystem.h
+    ${PUBLIC_HDR_DIR}/${TARGET}/port/AndroidJNI/BundledAssetIOSystem.h
+)
+endif()
 
 # private headers dependencies
 set(PRIVATE_HDRS
@@ -222,6 +228,12 @@ set(SRCS
     ${SRC_DIR}/contrib/unzip/ioapi.c
     ${SRC_DIR}/contrib/unzip/unzip.c
 )
+if (ANDROID)
+set(SRCS ${SRCS}
+    ${SRC_DIR}/port/AndroidJNI/AndroidJNIIOSystem.cpp
+    ${SRC_DIR}/port/AndroidJNI/BundledAssetIOSystem.cpp
+)
+endif()
 
 add_definitions(
     -DASSIMP_BUILD_NO_3D_IMPORTER
@@ -278,6 +290,12 @@ add_definitions(
     -DASSIMP_BUILD_NO_STEP_IMPORTER
     -DASSIMP_BUILD_NO_EXPORT
 )
+
+if (ANDROID)
+add_definitions(
+    -DASSIMP_ANDROID_JNIIOSYSTEM
+)
+endif()
 
 add_definitions(
     -DASSIMP_BUILD_NO_OWN_ZLIB

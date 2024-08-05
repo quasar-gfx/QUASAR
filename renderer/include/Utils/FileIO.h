@@ -8,6 +8,8 @@
 
 #ifdef __ANDROID__
 #include <android/asset_manager.h>
+#include <android/asset_manager_jni.h>
+#include <android/native_activity.h>
 #endif
 
 class FileIO {
@@ -30,12 +32,18 @@ public:
     static void saveAsHDR(const std::string &filename, int width, int height, int channels, const float *data);
 
 #ifdef __ANDROID__
-    static void registerAssetManager(AAssetManager* assetManager);
+    static void registerIOSystem(ANativeActivity* activity);
+    static ANativeActivity* getNativeActivity() {
+        return activity;
+    }
+    static AAssetManager* getAssetManager() {
+        return activity->assetManager;
+    }
 #endif
 
 private:
 #ifdef __ANDROID__
-    static AAssetManager* assetManager;
+    static ANativeActivity* activity;
 #endif
 };
 

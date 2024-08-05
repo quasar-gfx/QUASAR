@@ -101,6 +101,8 @@ protected:
 #ifdef __ANDROID__
         definesWithNewline.push_back("#extension GL_OVR_multiview : enable\n");
         definesWithNewline.push_back("#extension GL_EXT_shader_io_blocks : enable\n");
+        definesWithNewline.push_back("#extension GL_EXT_geometry_shader : enable\n");
+        definesWithNewline.push_back("#extension GL_EXT_texture_cube_map_array : enable\n");
         definesWithNewline.push_back("precision mediump float;\n");
         definesWithNewline.push_back("#define ANDROID\n");
 #endif

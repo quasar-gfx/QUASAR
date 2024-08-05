@@ -47,9 +47,11 @@ struct Material {
 
     // IBL
     float IBL; // IBL contribution
+#ifndef ANDROID
     samplerCube irradianceMap; // 6
     samplerCube prefilterMap; // 7
     sampler2D brdfLUT; // 8
+#endif
 };
 
 // lights
@@ -93,7 +95,9 @@ uniform PointLight pointLights[MAX_POINT_LIGHTS];
 
 // shadow maps
 uniform sampler2D dirLightShadowMap; // 9
+#ifndef ANDROID
 uniform samplerCube pointLightShadowMaps[MAX_POINT_LIGHTS]; // 10+
+#endif
 
 uniform vec3 camPos;
 
@@ -165,6 +169,7 @@ vec3 getNormal() {
 }
 
 vec3 getIBLContribution(PBRInfo pbrInputs) {
+#ifndef ANDROID
     vec3 N = pbrInputs.N;
     vec3 V = pbrInputs.V;
     vec3 R = pbrInputs.R;
@@ -187,6 +192,9 @@ vec3 getIBLContribution(PBRInfo pbrInputs) {
     vec2 brdf = texture(material.brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
     vec3 specular = prefilteredColor * (kS * brdf.x + brdf.y);
     return kD * diffuse + specular;
+#else
+    return vec3(0.0);
+#endif
 }
 
 float calcDirLightShadow(DirectionalLight light, vec4 fragPosLightSpace) {
@@ -200,7 +208,7 @@ float calcDirLightShadow(DirectionalLight light, vec4 fragPosLightSpace) {
     vec3 normal = normalize(fsIn.Normal);
     vec3 lightDir = normalize(-light.direction);
     float bias = max(0.05 * (1.0 - max(dot(normal, lightDir), 0.0)), 0.005);
-    vec2 texelSize = 1.0 / textureSize(dirLightShadowMap, 0);
+    vec2 texelSize = 1.0 / vec2(textureSize(dirLightShadowMap, 0));
     for (int i = 0; i < samples; i++) {
         float pcfDepth = texture(dirLightShadowMap, projCoords.xy + gridSamplingDisk[i].xy * texelSize).r;
         shadow += projCoords.z - bias > pcfDepth ? 0.111111 : 0.0;
@@ -278,7 +286,11 @@ vec3 calcDirLight(DirectionalLight light, PBRInfo pbrInputs) {
     return radianceOut;
 }
 
+#ifndef ANDROID
 vec3 calcPointLight(PointLight light, samplerCube pointLightShadowMap, PBRInfo pbrInputs) {
+#else
+vec3 calcPointLight(PointLight light, PBRInfo pbrInputs) {
+#endif
     if (light.intensity == 0.0)
         return vec3(0.0);
 
@@ -324,8 +336,10 @@ vec3 calcPointLight(PointLight light, samplerCube pointLightShadowMap, PBRInfo p
 
     // shadow calcs
     vec3 fragToLight = fsIn.FragPos - light.position;
+#ifndef ANDROID
     float shadow = calcPointLightShadows(light, pointLightShadowMap, fragToLight);
     radianceOut *= (1.0 - shadow);
+#endif
 
     return radianceOut;
 }
@@ -377,7 +391,11 @@ void main() {
     vec3 radianceOut = vec3(0.0);
     radianceOut += calcDirLight(directionalLight, pbrInputs);
     for (int i = 0; i < numPointLights; i++) {
+#ifndef ANDROID
         radianceOut += calcPointLight(pointLights[i], pointLightShadowMaps[i], pbrInputs);
+#else
+        radianceOut += calcPointLight(pointLights[i], pbrInputs);
+#endif
     }
 
     vec3 ambient = ambientLight.intensity * ambientLight.color * albedo;

@@ -94,7 +94,6 @@ void Texture::loadFromFile(const TextureCreateParams &params) {
     }
     else {
         throw std::runtime_error("Texture failed to load at path: " + params.path);
-        FileIO::freeImage(data);
     }
 }
 

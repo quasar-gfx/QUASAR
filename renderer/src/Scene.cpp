@@ -65,13 +65,11 @@ void Scene::addPointLight(PointLight* pointLight) {
 }
 
 void Scene::bindMaterial(const Material* material) const {
-    if (!hasPBREnvMap) {
-        return;
+    if (hasPBREnvMap) {
+        material->shader->setTexture("material.irradianceMap", irradianceCubeMap, material->getTextureCount());
+        material->shader->setTexture("material.prefilterMap", prefilterCubeMap, material->getTextureCount() + 1);
+        material->shader->setTexture("material.brdfLUT", brdfLUT, material->getTextureCount() + 2);
     }
-
-    material->shader->setTexture("material.irradianceMap", irradianceCubeMap, material->getTextureCount());
-    material->shader->setTexture("material.prefilterMap", prefilterCubeMap, material->getTextureCount() + 1);
-    material->shader->setTexture("material.brdfLUT", brdfLUT, material->getTextureCount() + 2);
 }
 
 void Scene::equirectToCubeMap(const CubeMap &envCubeMap, const Texture &hdrTexture) {

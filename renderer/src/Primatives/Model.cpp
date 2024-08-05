@@ -10,6 +10,10 @@
 #include <Utils/FileIO.h>
 #include <Primatives/Model.h>
 
+#ifdef __ANDROID__
+#include <assimp/port/AndroidJNI/AndroidJNIIOSystem.h>
+#endif
+
 void Model::bindMaterial(const Scene &scene, const Camera &camera, const glm::mat4 &model, const Material* overrideMaterial) {
     for (auto& mesh : meshes) {
         mesh->bindMaterial(scene, camera, model, overrideMaterial);
@@ -52,6 +56,12 @@ void Model::loadFromFile(const ModelCreateParams &params) {
     importer.SetPropertyInteger(AI_CONFIG_PP_SBP_REMOVE, aiPrimitiveType_LINE | aiPrimitiveType_POINT);
     importer.SetPropertyBool(AI_CONFIG_IMPORT_COLLADA_IGNORE_UP_DIRECTION, true);
     importer.SetPropertyBool(AI_CONFIG_PP_PTV_KEEP_HIERARCHY, true);
+#ifdef __ANDROID__
+    Assimp::AndroidJNIIOSystem *ioSystem = new Assimp::AndroidJNIIOSystem(FileIO::getNativeActivity());
+    if (ioSystem != nullptr) {
+        importer.SetIOHandler(ioSystem);
+    }
+#endif
 
     unsigned int flags = \
             // normals and tangents
@@ -175,12 +185,12 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
 
     MeshCreateParams meshParams{};
     if (material != nullptr) {
-        meshParams.material = material;
+        this->material = material;
     }
     else {
         PBRMaterialCreateParams materialParams{};
         processMaterial(aiMat, materialParams);
-        meshParams.material = new PBRMaterial(materialParams);
+        this->material = new PBRMaterial(materialParams);
     }
 
     meshParams.vertices = vertices;
@@ -188,6 +198,7 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
     meshParams.wireframe = wireframe;
     meshParams.pointcloud = pointcloud;
     meshParams.IBL = IBL;
+    meshParams.material = this->material;
 
     return new Mesh(meshParams);
 }

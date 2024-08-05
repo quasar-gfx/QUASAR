@@ -14,6 +14,7 @@ class Camera;
 enum class EntityType {
     EMPTY,
     MESH,
+    MODEL,
     FULL_SCREEN_QUAD
 };
 

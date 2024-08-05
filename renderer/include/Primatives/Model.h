@@ -38,6 +38,8 @@ public:
     bool gammaCorrected = false;
     float IBL = 1.0;
 
+    PBRMaterial* material;
+
     bool isGLTF = false;
 
     explicit Model(const ModelCreateParams &params)
@@ -55,7 +57,7 @@ public:
     RenderStats draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) override;
     RenderStats draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) override;
 
-    EntityType getType() const override { return EntityType::MESH; }
+    EntityType getType() const override { return EntityType::MODEL; }
 
 private:
     const aiScene* scene;

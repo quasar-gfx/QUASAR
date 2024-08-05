@@ -7,7 +7,7 @@
 #include <stb_image_write.h>
 
 #ifdef __ANDROID__
-#define CHECK_ASSET_MANAGER() if (assetManager == nullptr) { throw std::runtime_error("Asset manager not set!"); }
+#define CHECK_ANDROID_ACTIVITY() if (activity == nullptr) { throw std::runtime_error("Android App Activity not set!"); }
 #endif
 
 std::string FileIO::loadTextFile(const std::string &filename, unsigned int* sizePtr) {
@@ -28,9 +28,9 @@ std::string FileIO::loadTextFile(const std::string &filename, unsigned int* size
     file.close();
     return content;
 #else
-    CHECK_ASSET_MANAGER();
+    CHECK_ANDROID_ACTIVITY();
 
-    AAsset *file = AAssetManager_open(assetManager, filename.c_str(), AASSET_MODE_BUFFER);
+    AAsset *file = AAssetManager_open(getAssetManager(), filename.c_str(), AASSET_MODE_BUFFER);
     size_t fileLength = AAsset_getLength(file);
     std::string text;
     text.resize(fileLength);
@@ -61,9 +61,9 @@ std::vector<char> FileIO::loadBinaryFile(const std::string &filename, unsigned i
     file.close();
     return buffer;
 #else
-    CHECK_ASSET_MANAGER();
+    CHECK_ANDROID_ACTIVITY();
 
-    AAsset *file = AAssetManager_open(assetManager, filename.c_str(), AASSET_MODE_BUFFER);
+    AAsset *file = AAssetManager_open(getAssetManager(), filename.c_str(), AASSET_MODE_BUFFER);
     size_t fileLength = AAsset_getLength(file);
     std::vector<char> binary(fileLength);
     AAsset_read(file, (void *)binary.data(), fileLength);
@@ -83,9 +83,9 @@ std::ifstream::pos_type FileIO::getFileSize(const std::string &filename) {
     file.close();
     return size;
 #else
-    CHECK_ASSET_MANAGER();
+    CHECK_ANDROID_ACTIVITY();
 
-    AAsset *file = AAssetManager_open(assetManager, filename.c_str(), AASSET_MODE_BUFFER);
+    AAsset *file = AAssetManager_open(getAssetManager(), filename.c_str(), AASSET_MODE_BUFFER);
     std::ifstream::pos_type size = AAsset_getLength(file);
     AAsset_close(file);
     return size;
@@ -108,9 +108,9 @@ unsigned char* FileIO::loadImage(const std::string &filename, int* width, int* h
     }
     return data;
 #else
-    CHECK_ASSET_MANAGER();
+    CHECK_ANDROID_ACTIVITY();
 
-    AAsset *file = AAssetManager_open(assetManager, filename.c_str(), AASSET_MODE_BUFFER);
+    AAsset *file = AAssetManager_open(getAssetManager(), filename.c_str(), AASSET_MODE_BUFFER);
     size_t fileLength = AAsset_getLength(file);
     unsigned char* data = stbi_load_from_memory((unsigned char*)AAsset_getBuffer(file), fileLength, width, height, channels, desiredChannels);
     AAsset_close(file);
@@ -137,9 +137,9 @@ float* FileIO::loadImageHDR(const std::string &filename, int* width, int* height
     }
     return data;
 #else
-    CHECK_ASSET_MANAGER();
+    CHECK_ANDROID_ACTIVITY();
 
-    AAsset *file = AAssetManager_open(assetManager, filename.c_str(), AASSET_MODE_BUFFER);
+    AAsset *file = AAssetManager_open(getAssetManager(), filename.c_str(), AASSET_MODE_BUFFER);
     size_t fileLength = AAsset_getLength(file);
     float* data = stbi_loadf_from_memory((unsigned char*)AAsset_getBuffer(file), fileLength, width, height, channels, desiredChannels);
     AAsset_close(file);
@@ -173,9 +173,9 @@ void FileIO::saveAsHDR(const std::string &filename, int width, int height, int c
 }
 
 #ifdef __ANDROID__
-AAssetManager* FileIO::assetManager = nullptr;
+ANativeActivity* FileIO::activity = nullptr;
 
-void FileIO::registerAssetManager(AAssetManager* assetManager) {
-    FileIO::assetManager = assetManager;
+void FileIO::registerIOSystem(ANativeActivity* activity) {
+    FileIO::activity = activity;
 }
 #endif

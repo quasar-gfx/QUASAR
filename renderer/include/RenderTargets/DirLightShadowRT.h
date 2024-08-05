@@ -15,7 +15,7 @@ public:
                 .height = height,
                 .internalFormat = GL_DEPTH_COMPONENT24,
                 .format = GL_DEPTH_COMPONENT,
-                .type = GL_FLOAT,
+                .type = GL_UNSIGNED_INT,
                 .wrapS = GL_CLAMP_TO_BORDER,
                 .wrapT = GL_CLAMP_TO_BORDER,
                 .minFilter = GL_LINEAR,
