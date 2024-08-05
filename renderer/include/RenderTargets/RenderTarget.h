@@ -27,7 +27,7 @@ public:
                 .height = height,
                 .internalFormat = GL_DEPTH_COMPONENT24,
                 .format = GL_DEPTH_COMPONENT,
-                .type = GL_FLOAT,
+                .type = GL_UNSIGNED_INT,
                 .minFilter = GL_NEAREST,
                 .magFilter = GL_NEAREST,
                 .multiSampled = params.multiSampled

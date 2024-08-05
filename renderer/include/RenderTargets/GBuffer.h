@@ -13,6 +13,28 @@ public:
 
     explicit GeometryBuffer(const RenderTargetCreateParams &params)
             : RenderTargetBase(params)
+            , colorBuffer({
+                .width = width,
+                .height = height,
+                .internalFormat = GL_RGBA16F,
+                .format = GL_RGBA,
+                .type = GL_FLOAT,
+                .wrapS = GL_CLAMP_TO_EDGE,
+                .wrapT = GL_CLAMP_TO_EDGE,
+                .minFilter = GL_LINEAR,
+                .magFilter = GL_LINEAR,
+                .multiSampled = params.multiSampled
+            })
+            , depthBuffer({
+                .width = width,
+                .height = height,
+                .internalFormat = GL_DEPTH_COMPONENT24,
+                .format = GL_DEPTH_COMPONENT,
+                .type = GL_FLOAT,
+                .minFilter = GL_NEAREST,
+                .magFilter = GL_NEAREST,
+                .multiSampled = params.multiSampled
+            })
             , positionBuffer({
                 .width = width,
                 .height = height,
@@ -48,35 +70,13 @@ public:
                 .minFilter = GL_NEAREST,
                 .magFilter = GL_NEAREST,
                 .multiSampled = params.multiSampled
-            })
-            , colorBuffer({
-                .width = width,
-                .height = height,
-                .internalFormat = GL_RGBA16F,
-                .format = GL_RGBA,
-                .type = GL_FLOAT,
-                .wrapS = GL_CLAMP_TO_EDGE,
-                .wrapT = GL_CLAMP_TO_EDGE,
-                .minFilter = GL_LINEAR,
-                .magFilter = GL_LINEAR,
-                .multiSampled = params.multiSampled
-            })
-            , depthBuffer({
-                .width = width,
-                .height = height,
-                .internalFormat = GL_DEPTH_COMPONENT24,
-                .format = GL_DEPTH_COMPONENT,
-                .type = GL_FLOAT,
-                .minFilter = GL_NEAREST,
-                .magFilter = GL_NEAREST,
-                .multiSampled = params.multiSampled
             }) {
 
         framebuffer.bind();
-        framebuffer.attachTexture(positionBuffer, GL_COLOR_ATTACHMENT0);
-        framebuffer.attachTexture(normalsBuffer, GL_COLOR_ATTACHMENT1);
-        framebuffer.attachTexture(idBuffer, GL_COLOR_ATTACHMENT2);
-        framebuffer.attachTexture(colorBuffer, GL_COLOR_ATTACHMENT3);
+        framebuffer.attachTexture(colorBuffer, GL_COLOR_ATTACHMENT0);
+        framebuffer.attachTexture(positionBuffer, GL_COLOR_ATTACHMENT1);
+        framebuffer.attachTexture(normalsBuffer, GL_COLOR_ATTACHMENT2);
+        framebuffer.attachTexture(idBuffer, GL_COLOR_ATTACHMENT3);
         framebuffer.attachTexture(depthBuffer, GL_DEPTH_ATTACHMENT);
 
         unsigned int attachments[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };

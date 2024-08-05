@@ -6,11 +6,6 @@ layout(location = 4) in vec2 aTexCoords;
 layout(location = 5) in vec3 aTangent;
 layout(location = 6) in vec3 aBitangent;
 
-#ifdef ANDROID
-#extension GL_OVR_multiview : enable
-layout(num_views = 2) in;
-#endif
-
 out VertexData {
     flat uint VertexID;
     vec2 TexCoords;
@@ -26,6 +21,8 @@ out VertexData {
 uniform mat4 projection;
 uniform mat4 view;
 #else
+layout(num_views = 2) in;
+
 uniform mat4 projection[2];
 uniform mat4 view[2];
 #endif
@@ -34,7 +31,7 @@ uniform mat4 model;
 uniform mat3 normalMatrix;
 uniform mat4 lightSpaceMatrix;
 
-uniform float pointSize = 5.0;
+uniform float pointSize;
 
 void main() {
     vsOut.VertexID = aID;

@@ -91,13 +91,20 @@ protected:
         // add platform defines
 #ifdef _WIN32
         definesWithNewline.push_back("#define WINDOWS\n");
-#elif __linux__
+#endif
+#ifdef __linux__
         definesWithNewline.push_back("#define LINUX\n");
-#elif __APPLE__
+#endif
+#ifdef __APPLE__
         definesWithNewline.push_back("#define APPLE\n");
-#elif __ANDROID__
+#endif
+#ifdef __ANDROID__
+        definesWithNewline.push_back("#extension GL_OVR_multiview : enable\n");
+        definesWithNewline.push_back("#extension GL_EXT_shader_io_blocks : enable\n");
+        definesWithNewline.push_back("precision mediump float;\n");
         definesWithNewline.push_back("#define ANDROID\n");
 #endif
+
         // add user defines
         for (const auto& define : defines) {
             definesWithNewline.push_back(define + "\n");

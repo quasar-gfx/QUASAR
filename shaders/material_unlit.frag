@@ -1,7 +1,7 @@
-layout(location = 0) out vec4 positionBuffer;
-layout(location = 1) out vec4 normalsBuffer;
-layout(location = 2) out vec4 idBuffer;
-layout(location = 3) out vec4 FragColor;
+layout(location = 0) out vec4 FragColor;
+layout(location = 1) out vec4 positionBuffer;
+layout(location = 2) out vec4 normalsBuffer;
+layout(location = 3) out vec4 idBuffer;
 
 in VertexData {
     flat uint VertexID;
