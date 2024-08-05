@@ -10,6 +10,7 @@ set(PRIVATE_HDR_DIR     ${OUR_DIR}/code)
 
 # public headers dependencies
 set(PUBLIC_HDRS
+    ${PUBLIC_HDR_DIR}/${TARGET}/AssertHandler.h
     ${PUBLIC_HDR_DIR}/${TARGET}/Base64.hpp
     ${PUBLIC_HDR_DIR}/${TARGET}/DefaultIOStream.h
     ${PUBLIC_HDR_DIR}/${TARGET}/DefaultIOSystem.h
@@ -120,6 +121,7 @@ set(PRIVATE_HDRS
 set(SRCS
     ${PRIVATE_HDR_DIR}/Common/Base64.cpp
     ${PRIVATE_HDR_DIR}/Common/material.cpp
+    ${PRIVATE_HDR_DIR}/Common/AssertHandler.cpp
     ${PRIVATE_HDR_DIR}/Common/Assimp.cpp
     ${PRIVATE_HDR_DIR}/Common/BaseImporter.cpp
     ${PRIVATE_HDR_DIR}/Common/BaseProcess.cpp
@@ -274,7 +276,7 @@ add_definitions(
     -DASSIMP_BUILD_NO_X_IMPORTER
     -DASSIMP_BUILD_NO_XX_IMPORTER
     -DASSIMP_BUILD_NO_STEP_IMPORTER
-    -DASSIMP_BUILD_NO_EXPORTER
+    -DASSIMP_BUILD_NO_EXPORT
 )
 
 add_definitions(
