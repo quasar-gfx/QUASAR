@@ -1,14 +1,14 @@
-# OpenGL FFMPEG Video Streaming
+# OpenGL Remote Rendering
 
 Install dependencies:
 ```
 # Linux (reccomended)
-sudo apt-get install cmake libglew-dev libglfw3-dev libglm-dev libao-dev libmpg123-dev ffmpeg
+sudo apt-get install cmake libglew-dev libglfw3-dev libao-dev libmpg123-dev ffmpeg
 ```
 
 ```
-# Mac
-brew install cmake glew glfw3 glm ffmpeg
+# Mac (not reccomended for streaming; only reciever works)
+brew install cmake glew glfw3 ffmpeg
 ```
 
 # Building
@@ -54,7 +54,7 @@ cd apps/atw/receiver
 
 ## MeshWarp
 
-Build MeshWarp sample:
+To run MeshWarp sample:
 
 To run streamer:
 ```
