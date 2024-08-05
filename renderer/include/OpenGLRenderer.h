@@ -9,7 +9,6 @@
 #include <Camera.h>
 #include <Shaders/Shader.h>
 #include <Shaders/ComputeShader.h>
-#include <Primatives/Primatives.h>
 #include <Materials/PBRMaterial.h>
 #include <Materials/UnlitMaterial.h>
 #include <Lights/Lights.h>

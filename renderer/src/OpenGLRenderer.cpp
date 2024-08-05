@@ -1,4 +1,5 @@
 #include <OpenGLRenderer.h>
+#include <Primatives/Sphere.h>
 #include <Materials/UnlitMaterial.h>
 
 OpenGLRenderer::OpenGLRenderer(unsigned int width, unsigned int height)

@@ -101,11 +101,24 @@ void FileIO::flipVerticallyOnWrite(bool flip) {
 }
 
 unsigned char* FileIO::loadImage(const std::string &filename, int* width, int* height, int* channels, int desiredChannels) {
+#ifndef __ANDROID__
     unsigned char* data = stbi_load(filename.c_str(), width, height, channels, desiredChannels);
     if (!data) {
         throw std::runtime_error("Failed to load image: " + filename);
     }
     return data;
+#else
+    CHECK_ASSET_MANAGER();
+
+    AAsset *file = AAssetManager_open(assetManager, filename.c_str(), AASSET_MODE_BUFFER);
+    size_t fileLength = AAsset_getLength(file);
+    unsigned char* data = stbi_load_from_memory((unsigned char*)AAsset_getBuffer(file), fileLength, width, height, channels, desiredChannels);
+    AAsset_close(file);
+    if (!data) {
+        throw std::runtime_error("Failed to load image: " + filename);
+    }
+    return data;
+#endif
 }
 
 unsigned char* FileIO::loadImageFromMemory(const unsigned char* data, int size, int* width, int* height, int* channels, int desiredChannels) {
@@ -117,11 +130,24 @@ unsigned char* FileIO::loadImageFromMemory(const unsigned char* data, int size, 
 }
 
 float* FileIO::loadImageHDR(const std::string &filename, int* width, int* height, int* channels, int desiredChannels) {
+#ifndef __ANDROID__
     float* data = stbi_loadf(filename.c_str(), width, height, channels, desiredChannels);
     if (!data) {
         throw std::runtime_error("Failed to load HDR image: " + filename);
     }
     return data;
+#else
+    CHECK_ASSET_MANAGER();
+
+    AAsset *file = AAssetManager_open(assetManager, filename.c_str(), AASSET_MODE_BUFFER);
+    size_t fileLength = AAsset_getLength(file);
+    float* data = stbi_loadf_from_memory((unsigned char*)AAsset_getBuffer(file), fileLength, width, height, channels, desiredChannels);
+    AAsset_close(file);
+    if (!data) {
+        throw std::runtime_error("Failed to load HDR image: " + filename);
+    }
+    return data;
+#endif
 }
 
 void FileIO::freeImage(void* imageData) {
