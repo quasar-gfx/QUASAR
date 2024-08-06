@@ -1,3 +1,4 @@
+#include <iostream>
 #include <cstring>
 
 #include <VideoTexture.h>
@@ -11,7 +12,7 @@ static int interrupt_callback(void* ctx) {
     return shouldTerminate;
 }
 
-VideoTexture::VideoTexture(const TextureCreateParams &params, const std::string &videoURL)
+VideoTexture::VideoTexture(const TextureDataCreateParams &params, const std::string &videoURL)
         : Texture(params)
         , videoURL("udp://" + videoURL + "?overrun_nonfatal=1&fifo_size=50000000") {
     videoReceiverThread = std::thread(&VideoTexture::receiveVideo, this);

@@ -1,7 +1,7 @@
 #include <Utils/FileIO.h>
 #include <Texture.h>
 
-void Texture::init(const TextureCreateParams &params) {
+void Texture::loadFromData(const TextureDataCreateParams &params) {
     glGenTextures(1, &ID);
 
     glBindTexture(target, ID);
@@ -26,7 +26,7 @@ void Texture::init(const TextureCreateParams &params) {
     }
 }
 
-void Texture::loadFromFile(const TextureCreateParams &params) {
+void Texture::loadFromFile(const TextureFileCreateParams &params) {
     std::string path = params.path;
 
     // use absolute path if path starts with ~/

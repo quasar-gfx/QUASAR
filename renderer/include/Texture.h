@@ -7,7 +7,7 @@
 
 typedef GLuint TextureID;
 
-struct TextureCreateParams {
+struct TextureDataCreateParams {
     unsigned int width = 0;
     unsigned int height = 0;
     GLint internalFormat = GL_RGB;
@@ -17,11 +17,23 @@ struct TextureCreateParams {
     GLint wrapT = GL_CLAMP_TO_EDGE;
     GLint minFilter = GL_LINEAR;
     GLint magFilter = GL_LINEAR;
-    bool flipVertically = false;
     bool hasBorder = false;
     bool gammaCorrected = false;
     bool multiSampled = false;
     unsigned char* data = nullptr;
+};
+
+struct TextureFileCreateParams {
+    GLint internalFormat = GL_RGB;
+    GLenum format = GL_RGB;
+    GLenum type = GL_UNSIGNED_BYTE;
+    GLint wrapS = GL_CLAMP_TO_EDGE;
+    GLint wrapT = GL_CLAMP_TO_EDGE;
+    GLint minFilter = GL_LINEAR;
+    GLint magFilter = GL_LINEAR;
+    bool flipVertically = false;
+    bool gammaCorrected = false;
+    bool multiSampled = false;
     std::string path = "";
 };
 
@@ -42,7 +54,7 @@ public:
     bool multiSampled = false;
 
     explicit Texture() = default;
-    explicit Texture(const TextureCreateParams &params)
+    explicit Texture(const TextureDataCreateParams &params)
             : width(params.width)
             , height(params.height)
             , internalFormat(params.internalFormat)
@@ -55,12 +67,12 @@ public:
             , multiSampled(params.multiSampled)
             , OpenGLObject() {
         target = !multiSampled ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
-        if (params.path == "") {
-            init(params);
-        }
-        else {
-            loadFromFile(params);
-        }
+        loadFromData(params);
+    }
+    explicit Texture(const TextureFileCreateParams &params)
+            : OpenGLObject() {
+        target = !params.multiSampled ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
+        loadFromFile(params);
     }
     ~Texture() = default;
 
@@ -99,8 +111,8 @@ public:
 protected:
     GLenum target;
 
-    void init(const TextureCreateParams &params);
-    void loadFromFile(const TextureCreateParams &params);
+    void loadFromData(const TextureDataCreateParams &params);
+    void loadFromFile(const TextureFileCreateParams &params);
 };
 
 #endif // TEXTURE_H

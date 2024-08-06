@@ -9,7 +9,6 @@ extern "C" {
 #include <libavutil/imgutils.h>
 }
 
-#include <iostream>
 #include <deque>
 #include <atomic>
 #include <thread>
@@ -35,7 +34,7 @@ public:
 
     unsigned int videoWidth, videoHeight;
 
-    explicit VideoTexture(const TextureCreateParams &params, const std::string &videoURL);
+    explicit VideoTexture(const TextureDataCreateParams &params, const std::string &videoURL);
     ~VideoTexture();
 
     pose_id_t draw(pose_id_t poseID = -1);

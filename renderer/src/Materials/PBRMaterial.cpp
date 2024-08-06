@@ -11,7 +11,7 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params)
         , roughness(params.roughness)
         , roughnessFactor(params.roughnessFactor)
         , metalRoughnessCombined(params.metalRoughnessCombined) {
-    TextureCreateParams textureParams{
+    TextureFileCreateParams textureParams{
         .wrapS = GL_REPEAT,
         .wrapT = GL_REPEAT,
         .minFilter = GL_LINEAR_MIPMAP_LINEAR,

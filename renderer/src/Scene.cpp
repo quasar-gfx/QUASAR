@@ -20,7 +20,8 @@ Scene::Scene()
             .wrapS = GL_CLAMP_TO_EDGE,
             .wrapT = GL_CLAMP_TO_EDGE,
             .minFilter = GL_LINEAR,
-            .magFilter = GL_LINEAR
+            .magFilter = GL_LINEAR,
+            .data = nullptr
         })
         , brdfFsQuad()
         , equirectToCubeMapShader({

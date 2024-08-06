@@ -140,7 +140,7 @@ int SceneLoader::parseVec4(jsmntok_t* tokens, int i, const char* json, glm::vec4
 int SceneLoader::parseSkybox(jsmntok_t* tokens, int i, const char* json, Scene &scene, Camera &camera) {
     CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
-    TextureCreateParams hdrTextureParams{
+    TextureFileCreateParams hdrTextureParams{
         .internalFormat = GL_RGB16F,
         .format = GL_RGB,
         .type = GL_FLOAT,

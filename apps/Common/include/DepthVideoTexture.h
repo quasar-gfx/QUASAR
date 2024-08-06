@@ -6,7 +6,7 @@
 #include <Texture.h>
 
 #include <Networking/DataReceiverTCP.h>
-
+#include <Utils/TimeUtils.h>
 #include <CameraPose.h>
 
 class DepthVideoTexture : public Texture {
@@ -18,7 +18,7 @@ public:
         float bitrateMbps = -1.0f;
     } stats;
 
-    explicit DepthVideoTexture(const TextureCreateParams &params, std::string streamerURL)
+    explicit DepthVideoTexture(const TextureDataCreateParams &params, std::string streamerURL)
             : streamerURL(streamerURL)
             , receiver(streamerURL)
             , Texture(params) { }

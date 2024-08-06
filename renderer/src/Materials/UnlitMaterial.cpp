@@ -5,7 +5,7 @@ UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams &params)
         , baseColorFactor(params.baseColorFactor)
         , alphaMode(params.alphaMode)
         , maskThreshold(params.maskThreshold) {
-    TextureCreateParams textureParams{
+    TextureFileCreateParams textureParams{
         .wrapS = GL_REPEAT,
         .wrapT = GL_REPEAT,
         .minFilter = GL_LINEAR_MIPMAP_LINEAR,
