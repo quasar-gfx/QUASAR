@@ -8,11 +8,11 @@ void Texture::init(const TextureCreateParams &params) {
     if (!multiSampled) {
         glTexImage2D(target, 0, params.internalFormat, width, height, 0, params.format, params.type, params.data);
     }
-#ifndef __ANDROID__ // gles3.2 does not have glTexImage2DMultisample
+#ifdef GL_CORE
     else {
         glTexImage2DMultisample(target, 4, params.internalFormat, width, height, GL_TRUE);
     }
-#endif
+#endif // gles does not have glTexImage2DMultisample
     glTexParameteri(target, GL_TEXTURE_WRAP_S, params.wrapS);
     glTexParameteri(target, GL_TEXTURE_WRAP_T, params.wrapT);
     glTexParameteri(target, GL_TEXTURE_MIN_FILTER, params.minFilter);
@@ -56,7 +56,7 @@ void Texture::loadFromFile(const TextureCreateParams &params) {
 
         GLenum internalFormat, format;
         if (texChannels == 1) {
-#ifndef __ANDROID__
+#ifdef GL_CORE
             internalFormat = GL_RED;
             format = GL_RED;
 #else
@@ -69,7 +69,7 @@ void Texture::loadFromFile(const TextureCreateParams &params) {
             format = GL_RGB;
         }
         else if (texChannels == 4) {
-#ifndef __ANDROID__
+#ifdef GL_CORE
             internalFormat = params.gammaCorrected ? GL_SRGB_ALPHA : GL_RGBA;
 #else
             internalFormat = GL_RGBA;
@@ -81,7 +81,7 @@ void Texture::loadFromFile(const TextureCreateParams &params) {
         if (!multiSampled) {
             glTexImage2D(target, 0, internalFormat, width, height, 0, format, params.type, data);
         }
-#ifndef __ANDROID__
+#ifdef GL_CORE
         else {
             glTexImage2DMultisample(target, 4, internalFormat, width, height, GL_TRUE);
         }
@@ -110,7 +110,7 @@ void Texture::resize(unsigned int width, unsigned int height) {
     if (!multiSampled) {
         glTexImage2D(target, 0, internalFormat, width, height, 0, format, type, nullptr);
     }
-#ifndef __ANDROID__
+#ifdef GL_CORE
     else {
         glTexImage2DMultisample(target, 4, internalFormat, width, height, GL_TRUE);
     }
@@ -163,7 +163,7 @@ void Texture::saveAsHDR(const std::string &filename) {
     delete[] data;
 }
 
-#ifndef __ANDROID__
+#ifdef GL_CORE
 void Texture::saveDepthToFile(const std::string &filename) {
     std::ofstream depthFile;
     depthFile.open(filename, std::ios::out | std::ios::binary);

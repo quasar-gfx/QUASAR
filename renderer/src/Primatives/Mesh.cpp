@@ -211,7 +211,7 @@ RenderStats Mesh::draw(const Camera cameras[], const glm::mat4 &model, const Bou
 }
 
 RenderStats Mesh::draw() {
-#ifndef __ANDROID__
+#ifdef GL_CORE
     if (wireframe) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     }
@@ -229,7 +229,7 @@ RenderStats Mesh::draw() {
     }
     glBindVertexArray(0);
 
-#ifndef __ANDROID__
+#ifdef GL_CORE
     if (wireframe) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }

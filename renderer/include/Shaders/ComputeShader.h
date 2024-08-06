@@ -6,7 +6,7 @@
 #include <Shaders/ShaderBase.h>
 
 struct ComputeShaderDataCreateParams {
-#ifndef __ANDROID__
+#ifdef GL_CORE
     std::string version = "430 core";
 #else
     std::string version = "310 es";
@@ -17,7 +17,7 @@ struct ComputeShaderDataCreateParams {
 };
 
 struct ComputeShaderFileCreateParams {
-#ifndef __ANDROID__
+#ifdef GL_CORE
     std::string version = "430 core";
 #else
     std::string version = "310 es";

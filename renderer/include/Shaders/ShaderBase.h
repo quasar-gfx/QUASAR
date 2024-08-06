@@ -88,23 +88,29 @@ protected:
         std::string versionStr = "#version " + version + "\n";
 
         std::vector<std::string> definesWithNewline;
-        // add platform defines
-#ifdef _WIN32
-        definesWithNewline.push_back("#define WINDOWS\n");
-#endif
-#ifdef __linux__
-        definesWithNewline.push_back("#define LINUX\n");
-#endif
-#ifdef __APPLE__
-        definesWithNewline.push_back("#define APPLE\n");
-#endif
-#ifdef __ANDROID__
+
+        // add default defines
+#ifdef GL_ES
         definesWithNewline.push_back("#extension GL_OVR_multiview : enable\n");
         definesWithNewline.push_back("#extension GL_EXT_shader_io_blocks : enable\n");
         definesWithNewline.push_back("#extension GL_EXT_geometry_shader : enable\n");
         definesWithNewline.push_back("#extension GL_EXT_texture_cube_map_array : enable\n");
         definesWithNewline.push_back("precision mediump float;\n");
+        definesWithNewline.push_back("#define PLATFORM_ES\n");
+#endif
+
+        // add platform defines
+#if defined(__ANDROID__)
         definesWithNewline.push_back("#define ANDROID\n");
+#elif defined(_WIN32) || defined(_WIN64)
+        definesWithNewline.push_back("#define WINDOWS\n");
+        definesWithNewline.push_back("#define PLATFORM_CORE\n");
+#elif defined(__linux__)
+        definesWithNewline.push_back("#define LINUX\n");
+        definesWithNewline.push_back("#define PLATFORM_CORE\n");
+#elif defined(__APPLE__)
+        definesWithNewline.push_back("#define APPLE\n");
+        definesWithNewline.push_back("#define PLATFORM_CORE\n");
 #endif
 
         // add user defines

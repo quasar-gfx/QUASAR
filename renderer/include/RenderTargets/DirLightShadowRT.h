@@ -28,7 +28,7 @@ public:
         framebuffer.bind();
         framebuffer.attachTexture(depthBuffer, GL_DEPTH_ATTACHMENT);
 
-#ifndef __ANDROID__
+#ifdef GL_CORE
         glDrawBuffer(GL_NONE);
 #endif
         glReadBuffer(GL_NONE);
