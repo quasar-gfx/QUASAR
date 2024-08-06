@@ -174,12 +174,9 @@ RenderStats Mesh::draw(const Camera &camera, const glm::mat4 &model, bool frustu
 RenderStats Mesh::draw(const Camera cameras[], const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
     RenderStats stats;
 
-    auto& frustumLeft = cameras[0].frustum;
-    if (frustumCull && !frustumLeft.aabbIsVisible(aabb, model)) {
-        return stats;
-    }
-    auto& frustumRight = cameras[1].frustum;
-    if (frustumCull && !frustumRight.aabbIsVisible(aabb, model)) {
+    auto &frustumLeft = cameras[0].frustum;
+    auto &frustumRight = cameras[1].frustum;
+    if (frustumCull && !frustumLeft.aabbIsVisible(aabb, model) && !frustumRight.aabbIsVisible(aabb, model)) {
         return stats;
     }
 
