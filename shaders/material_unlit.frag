@@ -1,7 +1,7 @@
 layout(location = 0) out vec4 FragColor;
-layout(location = 1) out vec4 positionBuffer;
-layout(location = 2) out vec4 normalsBuffer;
-layout(location = 3) out vec4 idBuffer;
+layout(location = 1) out vec4 FragPosition;
+layout(location = 2) out vec4 FragNormal;
+layout(location = 3) out vec4 FragIDs;
 
 in VertexData {
     flat uint VertexID;
@@ -46,8 +46,8 @@ void main() {
     if (alpha < material.maskThreshold)
         discard;
 
-    positionBuffer = vec4(fsIn.FragPos, 1.0);
-    normalsBuffer = vec4(normalize(fsIn.Normal), 1.0);
-    idBuffer = vec4(fsIn.VertexID, 0.0, 0.0, 0.0);
     FragColor = vec4(baseColor.rgb, alpha);
+    FragPosition = vec4(fsIn.FragPos, 1.0);
+    FragNormal = vec4(normalize(fsIn.Normal), 1.0);
+    FragIDs = vec4(gl_PrimitiveID, fsIn.VertexID, 0.0, 0.0);
 }

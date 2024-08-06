@@ -208,11 +208,12 @@ RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const Rende
 
     screenShader.bind();
 
-    screenShader.setTexture("screenPositions", gBuffer.positionBuffer, 0);
-    screenShader.setTexture("screenNormals", gBuffer.normalsBuffer, 1);
-    screenShader.setTexture("idBuffer", gBuffer.idBuffer, 2);
-    screenShader.setTexture("screenColor", gBuffer.colorBuffer, 3);
-    screenShader.setTexture("screenDepth", gBuffer.depthBuffer, 4);
+    // set gbuffer texture uniforms
+    screenShader.setTexture("screenColor", gBuffer.colorBuffer, 0);
+    screenShader.setTexture("screenDepth", gBuffer.depthBuffer, 1);
+    screenShader.setTexture("screenPositions", gBuffer.positionBuffer, 2);
+    screenShader.setTexture("screenNormals", gBuffer.normalsBuffer, 3);
+    screenShader.setTexture("idBuffer", gBuffer.idBuffer, 4);
 
     stats += outputFsQuad.draw();
 
