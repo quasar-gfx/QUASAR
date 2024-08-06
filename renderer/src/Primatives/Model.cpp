@@ -14,27 +14,47 @@
 #include <assimp/port/AndroidJNI/AndroidJNIIOSystem.h>
 #endif
 
-void Model::bindMaterial(const Scene &scene, const Camera &camera, const glm::mat4 &model, const Material* overrideMaterial) {
+void Model::bindMaterial(const Scene &scene, const glm::mat4 &model, const Material* overrideMaterial) {
     for (auto& mesh : meshes) {
-        mesh->bindMaterial(scene, camera, model, overrideMaterial);
+        mesh->bindMaterial(scene, model, overrideMaterial);
     }
 }
 
-RenderStats Model::draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
+RenderStats Model::draw(const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
     RenderStats stats;
 
     for (auto& mesh : meshes) {
-        stats += mesh->draw(scene, camera, model, frustumCull, overrideMaterial);
+        stats += mesh->draw(camera, model, frustumCull, overrideMaterial);
     }
 
     return stats;
 }
 
-RenderStats Model::draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
+RenderStats Model::draw(const Camera cameras[], const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
     RenderStats stats;
 
     for (auto& mesh : meshes) {
-        stats += mesh->draw(scene, camera, model, boundingSphere, overrideMaterial);
+        stats += mesh->draw(cameras, model, frustumCull, overrideMaterial);
+    }
+
+    return stats;
+}
+
+RenderStats Model::draw(const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
+    RenderStats stats;
+
+    for (auto& mesh : meshes) {
+        stats += mesh->draw(camera, model, boundingSphere, overrideMaterial);
+    }
+
+    return stats;
+}
+
+RenderStats Model::draw(const Camera cameras[], const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
+    RenderStats stats;
+
+    for (auto& mesh : meshes) {
+        stats += mesh->draw(cameras, model, boundingSphere, overrideMaterial);
     }
 
     return stats;

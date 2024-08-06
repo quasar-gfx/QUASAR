@@ -158,9 +158,9 @@ RenderStats OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, c
     RenderStats stats;
     if (node->entity != nullptr) {
         if (node->visible) {
-            node->entity->bindMaterial(scene, camera, model, overrideMaterial);
+            node->entity->bindMaterial(scene, model, overrideMaterial);
             bool doFrustumCull = frustumCull && node->frustumCulled;
-            stats += node->entity->draw(scene, camera, model, doFrustumCull, overrideMaterial);
+            stats += node->entity->draw(camera, model, doFrustumCull, overrideMaterial);
         }
     }
 
@@ -179,7 +179,7 @@ RenderStats OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, c
     if (node->entity != nullptr) {
         if (node->visible) {
             // don't have to bind to scene and camera here, since we are only drawing shadows
-            stats += node->entity->draw(scene, camera, model, pointLight->boundingSphere, overrideMaterial);
+            stats += node->entity->draw(camera, model, pointLight->boundingSphere, overrideMaterial);
         }
     }
 

@@ -53,9 +53,11 @@ public:
     }
     ~Model();
 
-    void bindMaterial(const Scene &scene, const Camera &camera, const glm::mat4 &model, const Material* overrideMaterial = nullptr) override;
-    RenderStats draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) override;
-    RenderStats draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) override;
+    void bindMaterial(const Scene &scene, const glm::mat4 &model, const Material* overrideMaterial = nullptr) override;
+    virtual RenderStats draw(const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) override;
+    virtual RenderStats draw(const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) override;
+    virtual RenderStats draw(const Camera cameras[], const glm::mat4 &model, bool frustumCull = true, const Material* overrideMaterial = nullptr) override;
+    virtual RenderStats draw(const Camera cameras[], const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) override;
 
     EntityType getType() const override { return EntityType::MODEL; }
 

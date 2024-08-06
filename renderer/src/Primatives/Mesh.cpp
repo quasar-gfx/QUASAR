@@ -95,7 +95,22 @@ void Mesh::updateAABB() {
     aabb.update(min, max);
 }
 
-void Mesh::bindMaterial(const Scene &scene, const Camera &camera, const glm::mat4 &model, const Material* overrideMaterial) {
+void Mesh::setMaterialCameraParams(const Camera &camera, const Material* material) {
+    material->shader->setMat4("view", camera.getViewMatrix());
+    material->shader->setMat4("projection", camera.getProjectionMatrix());
+    material->shader->setVec3("camPos", camera.getPosition());
+}
+
+void Mesh::setMaterialCameraParams(const Camera cameras[], const Material* material) {
+    for (int i = 0; i < 2; i++) {
+        material->shader->setMat4("view["+std::to_string(i)+"]", cameras[i].getViewMatrix());
+        material->shader->setMat4("projection["+std::to_string(i)+"]", cameras[i].getProjectionMatrix());
+    }
+    // use the average of the two camera positions for the head center
+    material->shader->setVec3("camPos", (cameras[0].getPosition() + cameras[1].getPosition()) / 2.0f);
+}
+
+void Mesh::bindMaterial(const Scene &scene, const glm::mat4 &model, const Material* overrideMaterial) {
     auto materialToUse = overrideMaterial != nullptr ? overrideMaterial : material;
     materialToUse->bind();
 
@@ -134,7 +149,7 @@ void Mesh::bindMaterial(const Scene &scene, const Camera &camera, const glm::mat
     materialToUse->unbind();
 }
 
-RenderStats Mesh::draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
+RenderStats Mesh::draw(const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
     RenderStats stats;
 
     auto& frustum = camera.frustum;
@@ -145,12 +160,60 @@ RenderStats Mesh::draw(const Scene &scene, const Camera &camera, const glm::mat4
     auto materialToUse = overrideMaterial != nullptr ? overrideMaterial : material;
     materialToUse->bind();
 
-    materialToUse->shader->setMat4("view", camera.getViewMatrix());
-    materialToUse->shader->setMat4("projection", camera.getProjectionMatrix());
-    materialToUse->shader->setVec3("camPos", camera.getPosition());
+    setMaterialCameraParams(camera, materialToUse);
     materialToUse->shader->setMat4("model", model);
     materialToUse->shader->setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
 
+    stats = draw();
+
+    materialToUse->unbind();
+
+    return stats;
+}
+
+RenderStats Mesh::draw(const Camera cameras[], const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
+    RenderStats stats;
+
+    auto& frustumLeft = cameras[0].frustum;
+    if (frustumCull && !frustumLeft.aabbIsVisible(aabb, model)) {
+        return stats;
+    }
+    auto& frustumRight = cameras[1].frustum;
+    if (frustumCull && !frustumRight.aabbIsVisible(aabb, model)) {
+        return stats;
+    }
+
+    auto materialToUse = overrideMaterial != nullptr ? overrideMaterial : material;
+    materialToUse->bind();
+
+    setMaterialCameraParams(cameras, materialToUse);
+    materialToUse->shader->setMat4("model", model);
+    materialToUse->shader->setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
+
+    stats = draw();
+
+    materialToUse->unbind();
+
+    return stats;
+}
+
+RenderStats Mesh::draw(const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
+    RenderStats stats;
+    if (!boundingSphere.intersects(aabb)) {
+        return stats;
+    }
+    return draw(camera, model, false, overrideMaterial);
+}
+
+RenderStats Mesh::draw(const Camera cameras[], const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
+    RenderStats stats;
+    if (!boundingSphere.intersects(aabb)) {
+        return stats;
+    }
+    return draw(cameras, model, false, overrideMaterial);
+}
+
+RenderStats Mesh::draw() {
 #ifndef __ANDROID__
     if (wireframe) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -175,8 +238,7 @@ RenderStats Mesh::draw(const Scene &scene, const Camera &camera, const glm::mat4
     }
 #endif
 
-    materialToUse->unbind();
-
+    RenderStats stats;
     if (indices.size() > 0) {
         stats.trianglesDrawn = static_cast<unsigned int>(indices.size() / 3);
     }
@@ -186,12 +248,4 @@ RenderStats Mesh::draw(const Scene &scene, const Camera &camera, const glm::mat4
     stats.drawCalls = 1;
 
     return stats;
-}
-
-RenderStats Mesh::draw(const Scene &scene, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
-    RenderStats stats;
-    if (!boundingSphere.intersects(aabb)) {
-        return stats;
-    }
-    return draw(scene, camera, model, false, overrideMaterial);
 }
