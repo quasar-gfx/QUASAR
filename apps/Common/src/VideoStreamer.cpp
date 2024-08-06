@@ -30,7 +30,7 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
 
     int ret;
 
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__ANDROID__)
     ret = initCuda();
     if (ret < 0) {
         throw std::runtime_error("Error: Couldn't initialize CUDA");
@@ -151,7 +151,7 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
     videoStreamerThread = std::thread(&VideoStreamer::encodeAndSendFrames, this);
 }
 
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__ANDROID__)
 int VideoStreamer::initCuda() {
     cudautils::checkCudaDevice();
     // register opengl texture with cuda
@@ -168,7 +168,7 @@ void VideoStreamer::sendFrame(pose_id_t poseID) {
     blitToRenderTarget(*renderTargetCopy);
     renderTargetCopy->unbind();
 
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__ANDROID__)
     // add cuda buffer
     cudaArray* cudaBuffer;
     CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
@@ -218,7 +218,7 @@ void VideoStreamer::encodeAndSendFrames() {
             break;
         }
 
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__ANDROID__)
         /* Copy frame from OpenGL texture to AVFrame */
         int startCopyTime = timeutils::getTimeMicros();
 
@@ -335,7 +335,7 @@ VideoStreamer::~VideoStreamer() {
     avformat_close_input(&outputFormatCtx);
     avformat_free_context(outputFormatCtx);
 
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__ANDROID__)
     cudaDeviceSynchronize();
     CHECK_CUDA_ERROR(cudaGraphicsUnregisterResource(cudaResource));
 #endif

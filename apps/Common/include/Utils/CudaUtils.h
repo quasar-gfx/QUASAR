@@ -1,7 +1,7 @@
 #ifndef CUDA_UTILS_H
 #define CUDA_UTILS_H
 
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__ANDROID__)
 
 #include <iostream>
 

@@ -20,7 +20,7 @@ DepthStreamer::DepthStreamer(const RenderTargetCreateParams &params, std::string
         .multiSampled = colorBuffer.multiSampled
     });
 
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__ANDROID__)
     cudautils::checkCudaDevice();
     // register opengl texture with cuda
     CHECK_CUDA_ERROR(cudaGraphicsGLRegisterImage(&cudaResource,
@@ -34,7 +34,7 @@ DepthStreamer::DepthStreamer(const RenderTargetCreateParams &params, std::string
 }
 
 void DepthStreamer::close() {
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__ANDROID__)
     running = false;
 
     // send dummy to unblock thread
@@ -55,7 +55,7 @@ void DepthStreamer::sendFrame(pose_id_t poseID) {
     blitToRenderTarget(*renderTargetCopy);
     renderTargetCopy->unbind();
 
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__ANDROID__)
     // add cuda buffer
     cudaArray* cudaBuffer;
     CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
@@ -86,7 +86,7 @@ void DepthStreamer::sendFrame(pose_id_t poseID) {
 #endif
 }
 
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__ANDROID__)
 void DepthStreamer::sendData() {
     float prevTime = timeutils::getTimeMicros();
 

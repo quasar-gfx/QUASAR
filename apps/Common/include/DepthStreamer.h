@@ -9,7 +9,7 @@
 
 #include <CameraPose.h>
 
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__ANDROID__)
 #include <cuda_gl_interop.h>
 #include <Utils/CudaUtils.h>
 #endif
@@ -51,9 +51,7 @@ private:
     std::vector<uint8_t> data;
     RenderTarget* renderTargetCopy;
 
-#ifdef __APPLE__
-    pose_id_t poseID;
-#else
+#if !defined(__APPLE__) && !defined(__ANDROID__)
     cudaGraphicsResource* cudaResource;
 
     struct CudaBuffer {
@@ -70,6 +68,8 @@ private:
     std::atomic_bool running = false;
 
     void sendData();
+#else
+    pose_id_t poseID;
 #endif
 };
 

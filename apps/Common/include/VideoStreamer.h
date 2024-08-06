@@ -9,7 +9,7 @@ extern "C" {
 #include <libavutil/opt.h>
 #include <libavutil/imgutils.h>
 #include <libavutil/avutil.h>
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__ANDROID__)
 #include <libavutil/hwcontext_cuda.h>
 #endif
 }
@@ -24,7 +24,7 @@ extern "C" {
 #include <RenderTargets/RenderTarget.h>
 #include <CameraPose.h>
 
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__ANDROID__)
 #include <cuda_gl_interop.h>
 #include <Utils/CudaUtils.h>
 #endif
@@ -81,7 +81,7 @@ private:
 
     SwsContext* swsCtx = nullptr;
 
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__ANDROID__)
     cudaGraphicsResource* cudaResource;
 
     struct CudaBuffer {
@@ -105,7 +105,7 @@ private:
     std::atomic_bool sendFrames = false;
     bool shouldTerminate = false;
 
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__ANDROID__)
     int initCuda();
 #endif
     void encodeAndSendFrames();

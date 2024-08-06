@@ -1,4 +1,4 @@
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__ANDROID__)
 
 #include <Utils/CudaUtils.h>
 
