@@ -80,6 +80,11 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params)
         .vertexCodeSize = SHADER_COMMON_VERT_len,
         .fragmentCodeData = SHADER_MATERIAL_PBR_FRAG,
         .fragmentCodeSize = SHADER_MATERIAL_PBR_FRAG_len,
+#ifdef GL_ES
+        .extensions = {
+            "#extension GL_EXT_texture_cube_map_array : enable"
+        },
+#endif
         .defines = {
             "#define MAX_POINT_LIGHTS " + std::to_string(params.numPointLights),
             "#define ALPHA_OPAQUE " + std::to_string(static_cast<uint8_t>(AlphaMode::OPAQUE)),

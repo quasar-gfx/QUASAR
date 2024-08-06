@@ -33,15 +33,15 @@ void Shader::createAndCompileProgram(const char* vertexCodeData, const GLint ver
                                      const char* fragmentCodeData, const GLint fragmentCodeSize,
                                      const char* geometryData, const GLint geometryDataSize) {
     // compile vertex shader
-    GLuint vertex = createShader(version, defines, vertexCodeData, vertexCodeSize, ShaderType::VERTEX);
+    GLuint vertex = createShader(version, extensions, defines, vertexCodeData, vertexCodeSize, ShaderType::VERTEX);
 
     // compile fragment shader
-    GLuint fragment = createShader(version, defines, fragmentCodeData, fragmentCodeSize, ShaderType::FRAGMENT);
+    GLuint fragment = createShader(version, extensions, defines, fragmentCodeData, fragmentCodeSize, ShaderType::FRAGMENT);
 
     // if geometry shader is given, compile geometry shader
     GLuint geometry;
     if (geometryData != nullptr) {
-        geometry = createShader(version, defines, geometryData, geometryDataSize, ShaderType::GEOMETRY);
+        geometry = createShader(version, extensions, defines, geometryData, geometryDataSize, ShaderType::GEOMETRY);
     }
 
     // shader Program

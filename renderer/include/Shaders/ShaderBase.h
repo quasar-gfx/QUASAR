@@ -83,18 +83,36 @@ public:
     }
 
 protected:
-    GLuint createShader(std::string version, std::vector<std::string> defines,
+    GLuint createShader(std::string version, std::vector<std::string> extensions, std::vector<std::string> defines,
                         const char* shaderData, const GLint shaderSize, ShaderType type) {
+        std::vector<GLchar const*> shaderSrcs;
+        std::vector<GLint> shaderSrcsSizes;
+
+        // add version string
         std::string versionStr = "#version " + version + "\n";
+        shaderSrcs.push_back(versionStr.c_str());
+        shaderSrcsSizes.push_back(versionStr.size());
+
+        std::vector<std::string> extensionsWithNewline;
+#ifdef GL_ES
+        extensionsWithNewline.push_back("#extension GL_EXT_shader_io_blocks : enable\n");
+#endif
+#if defined(__ANDROID__)
+        extensionsWithNewline.push_back("#extension GL_OVR_multiview : enable\n");
+#endif
+        // user extensions
+        for (const auto& extension : extensions) {
+            extensionsWithNewline.push_back(extension + "\n");
+        }
+
+        // add extensions
+        for (const auto& extension : extensionsWithNewline) {
+            shaderSrcs.push_back(extension.c_str());
+            shaderSrcsSizes.push_back(extension.size());
+        }
 
         std::vector<std::string> definesWithNewline;
-
-        // add default defines
 #ifdef GL_ES
-        definesWithNewline.push_back("#extension GL_OVR_multiview : enable\n");
-        definesWithNewline.push_back("#extension GL_EXT_shader_io_blocks : enable\n");
-        definesWithNewline.push_back("#extension GL_EXT_geometry_shader : enable\n");
-        definesWithNewline.push_back("#extension GL_EXT_texture_cube_map_array : enable\n");
         definesWithNewline.push_back("precision mediump float;\n");
         definesWithNewline.push_back("#define PLATFORM_ES\n");
 #endif
@@ -112,27 +130,19 @@ protected:
         definesWithNewline.push_back("#define APPLE\n");
         definesWithNewline.push_back("#define PLATFORM_CORE\n");
 #endif
-
-        // add user defines
+        // user defines
         for (const auto& define : defines) {
             definesWithNewline.push_back(define + "\n");
         }
 
-        std::vector<GLchar const*> shaderSrcs;
-        // add version string
-        shaderSrcs.push_back(versionStr.c_str());
         // add defines
         for (const auto& define : definesWithNewline) {
             shaderSrcs.push_back(define.c_str());
-        }
-        // add shader data
-        shaderSrcs.push_back(shaderData);
-
-        std::vector<GLint> shaderSrcsSizes;
-        shaderSrcsSizes.push_back(versionStr.size());
-        for (const auto& define : definesWithNewline) {
             shaderSrcsSizes.push_back(define.size());
         }
+
+        // add shader data
+        shaderSrcs.push_back(shaderData);
         shaderSrcsSizes.push_back(shaderSize);
 
         GLuint shader;

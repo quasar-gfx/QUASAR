@@ -20,6 +20,7 @@ struct ShaderDataCreateParams {
     unsigned int fragmentCodeSize = 0;
     const char* geometryData = nullptr;
     unsigned int geometryDataSize = 0;
+    std::vector<std::string> extensions;
     std::vector<std::string> defines;
 };
 
@@ -32,19 +33,27 @@ struct ShaderFileCreateParams {
     std::string vertexCodePath = "";
     std::string fragmentCodePath = "";
     std::string geometryCodePath = "";
+    std::vector<std::string> extensions;
     std::vector<std::string> defines;
 };
 
 class Shader : public ShaderBase {
 public:
     std::string version = "410 core";
+    std::vector<std::string> extensions;
     std::vector<std::string> defines;
 
     explicit Shader() = default;
-    explicit Shader(const ShaderFileCreateParams& params) : version(params.version), defines(params.defines) {
+    explicit Shader(const ShaderFileCreateParams& params)
+            : version(params.version)
+            , extensions(params.extensions)
+            , defines(params.defines) {
         loadFromFiles(params.vertexCodePath, params.fragmentCodePath, params.geometryCodePath);
     }
-    explicit Shader(const ShaderDataCreateParams& params) : version(params.version), defines(params.defines) {
+    explicit Shader(const ShaderDataCreateParams& params)
+            : version(params.version)
+            , extensions(params.extensions)
+            , defines(params.defines) {
         loadFromData(params.vertexCodeData, params.vertexCodeSize, params.fragmentCodeData, params.fragmentCodeSize, params.geometryData, params.geometryDataSize);
     }
 

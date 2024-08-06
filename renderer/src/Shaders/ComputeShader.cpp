@@ -16,7 +16,7 @@ void ComputeShader::loadFromData(const char* computeCodeData, const GLint comput
 }
 
 void ComputeShader::createAndCompileProgram(const char* computeCodeData, const GLint computeCodeSize) {
-    GLuint compute = createShader(version, defines, computeCodeData, computeCodeSize, ShaderType::COMPUTE);
+    GLuint compute = createShader(version, extensions, defines, computeCodeData, computeCodeSize, ShaderType::COMPUTE);
 
     ID = glCreateProgram();
     glAttachShader(ID, compute);

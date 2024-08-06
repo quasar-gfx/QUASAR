@@ -13,6 +13,7 @@ struct ComputeShaderDataCreateParams {
 #endif
     const char* computeCodeData = nullptr;
     unsigned int computeCodeSize = 0;
+    std::vector<std::string> extensions;
     std::vector<std::string> defines;
 };
 
@@ -23,18 +24,26 @@ struct ComputeShaderFileCreateParams {
     std::string version = "310 es";
 #endif
     std::string computeCodePath = "";
+    std::vector<std::string> extensions;
     std::vector<std::string> defines;
 };
 
 class ComputeShader : public ShaderBase {
 public:
     std::string version = "430 core";
+    std::vector<std::string> extensions;
     std::vector<std::string> defines;
 
-    explicit ComputeShader(const ComputeShaderDataCreateParams& params) : version(params.version), defines(params.defines) {
+    explicit ComputeShader(const ComputeShaderDataCreateParams& params)
+            : version(params.version)
+            , extensions(params.extensions)
+            , defines(params.defines) {
         loadFromData(params.computeCodeData, params.computeCodeSize);
     }
-    explicit ComputeShader(const ComputeShaderFileCreateParams& params) : version(params.version), defines(params.defines) {
+    explicit ComputeShader(const ComputeShaderFileCreateParams& params)
+            : version(params.version)
+            , extensions(params.extensions)
+            , defines(params.defines) {
         loadFromFile(params.computeCodePath);
     }
 
