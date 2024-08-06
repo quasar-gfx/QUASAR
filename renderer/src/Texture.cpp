@@ -56,8 +56,13 @@ void Texture::loadFromFile(const TextureCreateParams &params) {
 
         GLenum internalFormat, format;
         if (texChannels == 1) {
+#ifndef __ANDROID__
             internalFormat = GL_RED;
             format = GL_RED;
+#else
+            internalFormat = GL_LUMINANCE;
+            format = GL_LUMINANCE;
+#endif
         }
         else if (texChannels == 3) {
             internalFormat = params.gammaCorrected ? GL_SRGB : GL_RGB;

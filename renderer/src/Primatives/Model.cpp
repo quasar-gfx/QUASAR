@@ -393,8 +393,13 @@ TextureID Model::loadMaterialTexture(aiMaterial const* aiMat, aiString aiTexture
             GLint internalFormat;
             GLenum format;
             if (texChannels == 1) {
+#ifndef __ANDROID__
                 internalFormat = GL_RED;
                 format = GL_RED;
+#else
+                internalFormat = GL_LUMINANCE;
+                format = GL_LUMINANCE;
+#endif
             }
             else if (texChannels == 3) {
                 internalFormat = shouldGammaCorrect ? GL_SRGB : GL_RGB;
