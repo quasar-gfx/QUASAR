@@ -23,10 +23,10 @@ public:
     explicit OpenGLRenderer(unsigned int width, unsigned int height);
     ~OpenGLRenderer() = default;
 
-    RenderStats updateDirLightShadow(Scene &scene, Camera &camera);
-    RenderStats updatePointLightShadows(Scene &scene, Camera &camera);
-    RenderStats drawSkyBox(Scene &scene, Camera &camera);
-    RenderStats drawObjects(Scene &scene, Camera &camera);
+    RenderStats updateDirLightShadow(const Scene &scene, const Camera &camera);
+    RenderStats updatePointLightShadows(const Scene &scene, const Camera &camera);
+    RenderStats drawSkyBox(const Scene &scene, const Camera &camera);
+    RenderStats drawObjects(const Scene &scene, const Camera &camera);
     RenderStats drawToScreen(const Shader &screenShader, const RenderTarget* overrideRenderTarget = nullptr);
     RenderStats drawToRenderTarget(const Shader &screenShader, const RenderTarget &renderTarget);
     void resize(unsigned int width, unsigned int height);
@@ -36,9 +36,9 @@ private:
 
     FullScreenQuad outputFsQuad;
 
-    RenderStats drawNode(Scene &scene, Camera &camera, Node* node, const glm::mat4 &parentTransform,
+    RenderStats drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,
                          bool frustumCull = true, const Material* overrideMaterial = nullptr);
-    RenderStats drawNode(Scene &scene, Camera &camera, Node* node, const glm::mat4 &parentTransform,
+    RenderStats drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,
                          const PointLight* pointLight, const Material* overrideMaterial = nullptr);
 };
 

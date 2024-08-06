@@ -26,7 +26,7 @@ OpenGLRenderer::OpenGLRenderer(unsigned int width, unsigned int height)
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 }
 
-RenderStats OpenGLRenderer::updateDirLightShadow(Scene &scene, Camera &camera) {
+RenderStats OpenGLRenderer::updateDirLightShadow(const Scene &scene, const Camera &camera) {
     RenderStats stats;
     if (scene.directionalLight == nullptr) {
         return stats;
@@ -44,7 +44,7 @@ RenderStats OpenGLRenderer::updateDirLightShadow(Scene &scene, Camera &camera) {
     return stats;
 }
 
-RenderStats OpenGLRenderer::updatePointLightShadows(Scene &scene, Camera &camera) {
+RenderStats OpenGLRenderer::updatePointLightShadows(const Scene &scene, const Camera &camera) {
     RenderStats stats;
 
     for (int i = 0; i < scene.pointLights.size(); i++) {
@@ -75,7 +75,7 @@ RenderStats OpenGLRenderer::updatePointLightShadows(Scene &scene, Camera &camera
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawSkyBox(Scene &scene, Camera &camera) {
+RenderStats OpenGLRenderer::drawSkyBox(const Scene &scene, const Camera &camera) {
     RenderStats stats;
 
     if (scene.envCubeMap == nullptr) {
@@ -101,7 +101,7 @@ RenderStats OpenGLRenderer::drawSkyBox(Scene &scene, Camera &camera) {
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawObjects(Scene &scene, Camera &camera) {
+RenderStats OpenGLRenderer::drawObjects(const Scene &scene, const Camera &camera) {
     RenderStats stats;
 
     // update shadows
@@ -151,7 +151,7 @@ RenderStats OpenGLRenderer::drawObjects(Scene &scene, Camera &camera) {
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, const glm::mat4 &parentTransform,
+RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,
                                      bool frustumCull, const Material* overrideMaterial) {
     const glm::mat4 &model = parentTransform * node->getTransformParentFromLocal();
 
@@ -171,7 +171,7 @@ RenderStats OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, c
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawNode(Scene &scene, Camera &camera, Node* node, const glm::mat4 &parentTransform,
+RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,
                                      const PointLight* pointLight, const Material* overrideMaterial) {
     const glm::mat4 &model = parentTransform * node->getTransformParentFromLocal();
 

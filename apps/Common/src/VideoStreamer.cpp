@@ -305,8 +305,11 @@ void VideoStreamer::encodeAndSendFrames() {
 
         float elapsedTimeSec = timeutils::microsToSeconds(timeutils::getTimeMicros() - prevTime);
         if (elapsedTimeSec < (1.0f / targetFrameRate)) {
-            std::this_thread::sleep_for(std::chrono::microseconds((int)timeutils::secondsToMicros(1.0f / targetFrameRate - elapsedTimeSec)));
-
+            std::this_thread::sleep_for(
+                std::chrono::microseconds(
+                    (int)timeutils::secondsToMicros(1.0f / targetFrameRate - elapsedTimeSec)
+                )
+            );
         }
         stats.totalTimeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
 

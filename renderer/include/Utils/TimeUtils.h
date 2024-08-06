@@ -35,28 +35,28 @@ inline int getTimeNanos() {
     return ns.count();
 }
 
-inline float microsToMillis(int micros) {
-    return (float)micros / MICROSECONDS_IN_MILLISECOND;
+inline float microsToMillis(float micros) {
+    return micros / MICROSECONDS_IN_MILLISECOND;
 }
 
-inline float microsToSeconds(int micros) {
-    return (float)micros / MICROSECONDS_IN_SECOND;
+inline float microsToSeconds(float micros) {
+    return micros / MICROSECONDS_IN_SECOND;
 }
 
-inline float millisToMicros(int millis) {
-    return (float)millis * MICROSECONDS_IN_MILLISECOND;
+inline float millisToMicros(float millis) {
+    return millis * MICROSECONDS_IN_MILLISECOND;
 }
 
-inline float millisToSeconds(int millis) {
-    return (float)millis / MILLISECONDS_IN_SECOND;
+inline float millisToSeconds(float millis) {
+    return millis / MILLISECONDS_IN_SECOND;
 }
 
-inline float secondsToMicros(int seconds) {
-    return (float)seconds * MICROSECONDS_IN_SECOND;
+inline float secondsToMicros(float seconds) {
+    return seconds * MICROSECONDS_IN_SECOND;
 }
 
-inline float secondsToMillis(int seconds) {
-    return (float)seconds * MILLISECONDS_IN_SECOND;
+inline float secondsToMillis(float seconds) {
+    return seconds * MILLISECONDS_IN_SECOND;
 }
 
 }

@@ -102,10 +102,6 @@ int main(int argc, char** argv) {
     }, depthURL);
     PoseReceiver poseReceiver = PoseReceiver(&camera, poseURL);
 
-    std::cout << "Video URL: " << videoURL << std::endl;
-    std::cout << "Depth URL: " << depthURL << std::endl;
-    std::cout << "Pose URL: " << poseURL << std::endl;
-
     PauseState pauseState = PauseState::PLAY;
     RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
