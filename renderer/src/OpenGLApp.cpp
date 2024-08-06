@@ -9,6 +9,15 @@
 #include <OpenGLApp.h>
 
 OpenGLApp::OpenGLApp(const Config &config) : window(config.window), guiManager(config.guiManager) {
+    // check version
+    if (config.openglMajorVersion < 3 || (config.openglMajorVersion == 3 && config.openglMinorVersion < 3)) {
+        throw std::runtime_error("OpenGL version must be 3.3 or higher");
+    }
+#ifdef __APPLE__
+    if (config.openglMajorVersion == 4 && config.openglMinorVersion > 1) {
+        throw std::runtime_error("OpenGL version cannot be higher than 4.1 on MacOS");
+    }
+#endif
     // enable face culling
     if (config.backfaceCulling) {
         glEnable(GL_CULL_FACE);

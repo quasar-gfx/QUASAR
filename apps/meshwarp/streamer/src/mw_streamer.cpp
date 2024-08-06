@@ -24,8 +24,6 @@ enum class PauseState {
 int main(int argc, char** argv) {
     Config config{};
     config.title = "MeshWarp Streamer";
-    config.openglMajorVersion = 4;
-    config.openglMinorVersion = 3;
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});

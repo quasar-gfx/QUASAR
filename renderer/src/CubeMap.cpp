@@ -17,7 +17,7 @@ void CubeMap::init(unsigned int width, unsigned int height, CubeMapType type) {
     glGenTextures(1, &ID);
     glBindTexture(GL_TEXTURE_CUBE_MAP, ID);
 
-    switch(type) {
+    switch (type) {
     case CubeMapType::STANDARD:
         for (int i = 0; i < NUM_CUBEMAP_FACES; i++) {
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);

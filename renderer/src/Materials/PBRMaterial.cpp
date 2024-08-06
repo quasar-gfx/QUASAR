@@ -106,7 +106,7 @@ void PBRMaterial::bind() const {
     std::string name;
     for (int i = 0; i < textures.size(); i++) {
         glActiveTexture(GL_TEXTURE0 + i);
-        switch(i) {
+        switch (i) {
         case 0:
             name = "material.baseColorMap";
             shader->setBool("material.hasBaseColorMap", textures[i] != 0);

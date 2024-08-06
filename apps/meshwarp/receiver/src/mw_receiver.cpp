@@ -27,8 +27,6 @@ enum class RenderState {
 int main(int argc, char** argv) {
     Config config{};
     config.title = "MeshWarp Reciever";
-    config.openglMajorVersion = 4;
-    config.openglMinorVersion = 3;
 
     RenderState renderState = RenderState::MESH;
 
