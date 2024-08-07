@@ -1,13 +1,12 @@
 #include <iostream>
 
-#include <Utils/Platform.h>
 #include <Windowing/GLFWWindow.h>
 
 GLFWWindow::GLFWWindow(const Config &config) {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, config.openglMajorVersion);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, config.openglMinorVersion);
-    glfwWindowHint(GLFW_SAMPLES, config.numSamples);
+    glfwWindowHint(GLFW_SAMPLES, config.pipeline.multiSampleState.numSamples);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_VISIBLE, config.showWindow);
 

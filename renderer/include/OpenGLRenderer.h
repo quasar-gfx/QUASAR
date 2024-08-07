@@ -14,11 +14,15 @@
 #include <Lights/Lights.h>
 #include <RenderTargets/GBuffer.h>
 
+#include <GraphicsPipeline.h>
+
 class OpenGLRenderer {
 public:
     unsigned int width, height;
 
     GeometryBuffer gBuffer;
+
+    GraphicsPipeline pipeline;
 
     explicit OpenGLRenderer(unsigned int width, unsigned int height);
     ~OpenGLRenderer() = default;
@@ -30,6 +34,8 @@ public:
     RenderStats drawToScreen(const Shader &screenShader, const RenderTarget* overrideRenderTarget = nullptr);
     RenderStats drawToRenderTarget(const Shader &screenShader, const RenderTarget &renderTarget);
     void resize(unsigned int width, unsigned int height);
+
+    void setGraphicsPipeline(const GraphicsPipeline &pipeline) { this->pipeline = pipeline; }
 
 private:
     Shader skyboxShader;

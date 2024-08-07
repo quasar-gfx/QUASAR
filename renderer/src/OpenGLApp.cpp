@@ -18,17 +18,9 @@ OpenGLApp::OpenGLApp(const Config &config) : window(config.window), guiManager(c
         throw std::runtime_error("OpenGL version cannot be higher than 4.1 on MacOS");
     }
 #endif
-    // enable face culling
-    if (config.backfaceCulling) {
-        glEnable(GL_CULL_FACE);
-    }
-
-    // enable srgb framebuffers
-    if (config.sRGB) {
-        glEnable(GL_FRAMEBUFFER_SRGB);
-    }
 
     renderer = std::make_unique<OpenGLRenderer>(config.width, config.height);
+    renderer->setGraphicsPipeline(config.pipeline);
 }
 
 void OpenGLApp::run() {

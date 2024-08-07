@@ -1,10 +1,10 @@
 #ifndef GLFW_WINDOW_H
 #define GLFW_WINDOW_H
 
-#include <GLFW/glfw3.h>
-
 #include <Windowing/Window.h>
 #include <OpenGLAppConfig.h>
+
+#include <GLFW/glfw3.h>
 
 class GLFWWindow final : public Window {
 public:

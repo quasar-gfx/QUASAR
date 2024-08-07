@@ -4,21 +4,20 @@
 #include <string>
 #include <memory>
 
+#include <GraphicsPipeline.h>
 #include <Windowing/Window.h>
 #include <GUI/GUIManager.h>
 
 struct Config {
     bool enableVSync = true;
     bool showWindow = true;
-    bool sRGB = true;
-    bool backfaceCulling = false;
     unsigned char openglMajorVersion = 4;
 #ifndef __APPLE__
     unsigned char openglMinorVersion = 6;
 #else
     unsigned char openglMinorVersion = 1;
 #endif
-    unsigned char numSamples = 4;
+    GraphicsPipeline pipeline;
     unsigned int width = 800;
     unsigned int height = 600;
     std::string title = "OpenGL App";

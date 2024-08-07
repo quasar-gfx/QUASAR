@@ -91,16 +91,6 @@ OpenGLRenderer::OpenGLRenderer(unsigned int width, unsigned int height)
             .fragmentCodeSize = SHADER_SKYBOX_FRAG_len
         })
         , outputFsQuad() {
-    // enable msaa for screen buffer
-    glEnable(GL_MULTISAMPLE);
-
-    // enable seamless cube map sampling for lower mip levels in the pre-filter map
-    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-
-    // enable alpha blending
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
     // enable setting vertex size for point clouds
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 
@@ -189,6 +179,8 @@ RenderStats OpenGLRenderer::drawSkyBox(const Scene &scene, const Camera &camera)
 }
 
 RenderStats OpenGLRenderer::drawObjects(const Scene &scene, const Camera &camera) {
+    pipeline.apply();
+
     RenderStats stats;
 
     // update shadows
