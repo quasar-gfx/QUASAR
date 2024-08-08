@@ -46,9 +46,11 @@ int VideoTexture::initFFMpeg() {
 
     // find the video stream index
     for (int i = 0; i < inputFormatCtx->nb_streams; i++) {
-        if (inputFormatCtx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+        AVStream *stream = inputFormatCtx->streams[i];
+        AVCodecParameters *codec_params = stream->codecpar;
+        if (codec_params->codec_type == AVMEDIA_TYPE_VIDEO) {
             videoStreamIndex = i;
-            inputVideoStream = inputFormatCtx->streams[i];
+            inputVideoStream = stream;
             break;
         }
     }
@@ -59,14 +61,19 @@ int VideoTexture::initFFMpeg() {
     }
 
     /* Setup codec to decode input (video from URL) */
-    auto codecID = inputVideoStream->codecpar->codec_id;
-    auto inputCodec = avcodec_find_decoder(codecID);
-    if (!inputCodec) {
+#if defined(__linux__) && !defined(__ANDROID__)
+    std::string decoderName = "h264_cuvid";
+    auto codec = avcodec_find_decoder_by_name(decoderName.c_str());
+#else
+    auto codec = avcodec_find_decoder(inputVideoStream->codecpar->codec_id);
+#endif
+    if (!codec) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate decoder.\n");
         return -1;
     }
+    std::cout << "Decoder: " << codec->name << std::endl;
 
-    codecCtx = avcodec_alloc_context3(inputCodec);
+    codecCtx = avcodec_alloc_context3(codec);
     if (!codecCtx) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate codec Ctx.\n");
         return -1;
@@ -78,7 +85,7 @@ int VideoTexture::initFFMpeg() {
         return ret;
     }
 
-    ret = avcodec_open2(codecCtx, inputCodec, nullptr);
+    ret = avcodec_open2(codecCtx, codec, nullptr);
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't open codec: %s\n", av_err2str(ret));
         return ret;

@@ -101,6 +101,8 @@ OpenGLRenderer::OpenGLRenderer(unsigned int width, unsigned int height)
     glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_FALSE);
     glDebugMessageControl(GL_DONT_CARE, GL_DEBUG_TYPE_ERROR, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 #endif
+
+    pipeline.apply();
 }
 
 RenderStats OpenGLRenderer::updateDirLightShadow(const Scene &scene, const Camera &camera) {
@@ -270,7 +272,7 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, N
 }
 
 RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const RenderTarget* overrideRenderTarget) {
-    RenderStats stats;
+    pipeline.apply();
 
     if (overrideRenderTarget != nullptr) {
         overrideRenderTarget->bind();
@@ -294,7 +296,7 @@ RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const Rende
     screenShader.setTexture("screenNormals", gBuffer.normalsBuffer, 3);
     screenShader.setTexture("idBuffer", gBuffer.idBuffer, 4);
 
-    stats += outputFsQuad.draw();
+    RenderStats stats = outputFsQuad.draw();
 
     screenShader.unbind();
 

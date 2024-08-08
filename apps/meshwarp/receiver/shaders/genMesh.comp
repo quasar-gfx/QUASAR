@@ -112,24 +112,24 @@ void main() {
     if (pixelCoord.x < screenSize.x - surfelSize && pixelCoord.y < screenSize.y - surfelSize) {
         /************************
 
-                ul -- ur
+                tl -- tr
                 |    / |
                 |   c  |
                 |  /   |
-                ll -- lr
+                bl -- br
 
         ************************/
-        uint lowerLeftIdx = shaderIndex;
-        uint lowerRightIdx = shaderIndex + 1;
-        uint upperLeftIdx = shaderIndex + uint(size.x);
-        uint upperRightIdx = shaderIndex + uint(size.x) + 1;
+        uint bottomLeftIdx = shaderIndex;
+        uint bottomRightIdx = shaderIndex + 1;
+        uint topLeftIdx = shaderIndex + uint(size.x);
+        uint topRightIdx = shaderIndex + uint(size.x) + 1;
 
-        indices[shaderIndex * 6 + 0] = upperLeftIdx;
-        indices[shaderIndex * 6 + 1] = upperRightIdx;
-        indices[shaderIndex * 6 + 2] = lowerLeftIdx;
+        indices[shaderIndex * 6 + 0] = topLeftIdx;
+        indices[shaderIndex * 6 + 1] = bottomLeftIdx;
+        indices[shaderIndex * 6 + 2] = topRightIdx;
 
-        indices[shaderIndex * 6 + 3] = upperRightIdx;
-        indices[shaderIndex * 6 + 4] = lowerRightIdx;
-        indices[shaderIndex * 6 + 5] = lowerLeftIdx;
+        indices[shaderIndex * 6 + 3] = topRightIdx;
+        indices[shaderIndex * 6 + 4] = bottomLeftIdx;
+        indices[shaderIndex * 6 + 5] = bottomRightIdx;
     }
 }

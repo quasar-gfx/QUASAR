@@ -566,12 +566,12 @@ void storeQuad(
     vertices[vertexIndexBottomRight].texCoords = worldToScreen(view, projection, viewToWorld(viewInverse, quad.bottomRight));
 
     indices[shaderIndex * NUM_SUB_QUADS * 6 + indexOffset + 0] = vertexIndexTopLeft;
-    indices[shaderIndex * NUM_SUB_QUADS * 6 + indexOffset + 1] = vertexIndexTopRight;
-    indices[shaderIndex * NUM_SUB_QUADS * 6 + indexOffset + 2] = vertexIndexBottomLeft;
+    indices[shaderIndex * NUM_SUB_QUADS * 6 + indexOffset + 1] = vertexIndexBottomLeft;
+    indices[shaderIndex * NUM_SUB_QUADS * 6 + indexOffset + 2] = vertexIndexTopRight;
 
     indices[shaderIndex * NUM_SUB_QUADS * 6 + indexOffset + 3] = vertexIndexTopRight;
-    indices[shaderIndex * NUM_SUB_QUADS * 6 + indexOffset + 4] = vertexIndexBottomRight;
-    indices[shaderIndex * NUM_SUB_QUADS * 6 + indexOffset + 5] = vertexIndexBottomLeft;
+    indices[shaderIndex * NUM_SUB_QUADS * 6 + indexOffset + 4] = vertexIndexBottomLeft;
+    indices[shaderIndex * NUM_SUB_QUADS * 6 + indexOffset + 5] = vertexIndexBottomRight;
 }
 
 void main() {
