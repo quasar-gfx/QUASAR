@@ -24,6 +24,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<bool> displayIn(parser, "display", "Show window", {'d', "display"}, true);
     args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "127.0.0.1:12345");
     args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "0.0.0.0:54321");
+    args::ValueFlag<int> targetBitrateIn(parser, "targetBitrate", "Target bitrate (Mbps)", {'b', "target-bitrate"}, 50);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -47,6 +48,8 @@ int main(int argc, char** argv) {
     std::string scenePath = args::get(scenePathIn);
     std::string videoURL = args::get(videoURLIn);
     std::string poseURL = args::get(poseURLIn);
+
+    unsigned int targetBitrate = args::get(targetBitrateIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -74,7 +77,7 @@ int main(int argc, char** argv) {
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR
-    }, videoURL);
+    }, videoURL, targetBitrate);
     PoseReceiver poseReceiver = PoseReceiver(&camera, poseURL);
 
     std::cout << "Video URL: " << videoURL << std::endl;

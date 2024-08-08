@@ -12,8 +12,9 @@ static int interrupt_callback(void* ctx) {
     return shouldTerminate;
 }
 
-VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::string &videoURL)
+VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::string &videoURL, unsigned int targetBitRateMbps)
         : videoURL("udp://" + videoURL)
+        , targetBitRate(targetBitRateMbps * MBPS_TO_BPS)
         , RenderTarget(params) {
     renderTargetCopy = new RenderTarget({
         .width = width,

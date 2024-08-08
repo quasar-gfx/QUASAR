@@ -43,7 +43,7 @@ public:
         float bitrateMbps = -1.0f;
     } stats;
 
-    explicit VideoStreamer(const RenderTargetCreateParams &params, const std::string &videoURL);
+    explicit VideoStreamer(const RenderTargetCreateParams &params, const std::string &videoURL, unsigned int targetBitRateMbps = 50);
     ~VideoStreamer();
 
     float getFrameRate() {
@@ -65,7 +65,7 @@ public:
 
 private:
     int targetFrameRate = 60;
-    unsigned int targetBitRate = 50 * MBPS_TO_BPS;
+    unsigned int targetBitRate;
 
     RenderTarget* renderTargetCopy;
 
