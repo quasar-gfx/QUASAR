@@ -37,7 +37,7 @@ struct MultiSampleState {
 };
 
 struct RasterState {
-    bool cullFaceEnabled = false;
+    bool cullFaceEnabled = true;
     GLenum cullFaceMode = GL_BACK; // GL_FRONT, GL_BACK, GL_FRONT_AND_BACK
     GLenum frontFace = GL_CCW; // GL_CW, GL_CCW
     bool scissorTestEnabled = false;
