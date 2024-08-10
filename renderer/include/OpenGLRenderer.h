@@ -20,6 +20,8 @@ class OpenGLRenderer {
 public:
     unsigned int width, height;
 
+    unsigned int numLayers = 4;
+
     GeometryBuffer gBuffer;
 
     GraphicsPipeline pipeline;
@@ -27,15 +29,20 @@ public:
     explicit OpenGLRenderer(unsigned int width, unsigned int height);
     ~OpenGLRenderer() = default;
 
+    void setGraphicsPipeline(const GraphicsPipeline &pipeline) { this->pipeline = pipeline; }
+
     RenderStats updateDirLightShadow(const Scene &scene, const Camera &camera);
     RenderStats updatePointLightShadows(const Scene &scene, const Camera &camera);
+
+    RenderStats drawScene(const Scene &scene, const Camera &camera);
+    RenderStats drawLights(const Scene &scene, const Camera &camera);
     RenderStats drawSkyBox(const Scene &scene, const Camera &camera);
     RenderStats drawObjects(const Scene &scene, const Camera &camera);
+
     RenderStats drawToScreen(const Shader &screenShader, const RenderTarget* overrideRenderTarget = nullptr);
     RenderStats drawToRenderTarget(const Shader &screenShader, const RenderTarget &renderTarget);
-    void resize(unsigned int width, unsigned int height);
 
-    void setGraphicsPipeline(const GraphicsPipeline &pipeline) { this->pipeline = pipeline; }
+    void resize(unsigned int width, unsigned int height);
 
 private:
     Shader skyboxShader;

@@ -154,48 +154,29 @@ RenderStats OpenGLRenderer::updatePointLightShadows(const Scene &scene, const Ca
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawSkyBox(const Scene &scene, const Camera &camera) {
-    RenderStats stats;
-
-    if (scene.envCubeMap == nullptr) {
-        return stats;
-    }
-
+RenderStats OpenGLRenderer::drawScene(const Scene &scene, const Camera &camera) {
+    // bind to gBuffer and draw scene as we normally would to color texture
     gBuffer.bind();
-    // dont clear color or depth bit here, since we want this to draw over
+    glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    skyboxShader.bind();
-    skyboxShader.setInt("environmentMap", 0);
-    skyboxShader.setMat4("view", camera.getViewMatrix());
-    skyboxShader.setMat4("projection", camera.getProjectionMatrix());
-
-    if (scene.envCubeMap != nullptr) {
-        stats = scene.envCubeMap->draw(skyboxShader, camera);
+    RenderStats stats;
+    for (auto& child : scene.children) {
+        stats += drawNode(scene, camera, child, glm::mat4(1.0f));
     }
-
-    skyboxShader.unbind();
 
     gBuffer.unbind();
 
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawObjects(const Scene &scene, const Camera &camera) {
-    pipeline.apply();
+RenderStats OpenGLRenderer::drawLights(const Scene &scene, const Camera &camera) {
+    gBuffer.bind();
+    // dont clear color or depth bit here, since we want this to draw over
 
     RenderStats stats;
-
-    // update shadows
-    updateDirLightShadow(scene, camera);
-    updatePointLightShadows(scene, camera);
-
-    // bind to gBuffer and draw scene as we normally would to color texture
-    gBuffer.bind();
-    glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    // draw point lights, if debug is set
     for (auto& pointLight : scene.pointLights) {
+        // only draw if debug is set
         if (pointLight->debug) {
             auto material = new UnlitMaterial({ .baseColor = glm::vec4(pointLight->color, 1.0) });
             Sphere light = Sphere({
@@ -218,16 +199,53 @@ RenderStats OpenGLRenderer::drawObjects(const Scene &scene, const Camera &camera
         }
     }
 
-    // draw scene
-    for (auto& child : scene.children) {
-        stats += drawNode(scene, camera, child, glm::mat4(1.0f));
+    gBuffer.unbind();
+
+    return stats;
+}
+
+RenderStats OpenGLRenderer::drawSkyBox(const Scene &scene, const Camera &camera) {
+    RenderStats stats;
+
+    if (scene.envCubeMap == nullptr) {
+        return stats;
     }
+
+    auto &skybox = *scene.envCubeMap;
+
+    gBuffer.bind();
+    // dont clear color or depth bit here, since we want this to draw over
+
+    skyboxShader.bind();
+    skyboxShader.setTexture("environmentMap", skybox, 0);
+    skyboxShader.unbind();
+
+    if (scene.envCubeMap != nullptr) {
+        stats = scene.envCubeMap->draw(skyboxShader, camera);
+    }
+
+    gBuffer.unbind();
+
+    return stats;
+}
+
+RenderStats OpenGLRenderer::drawObjects(const Scene &scene, const Camera &camera) {
+    pipeline.apply();
+
+    RenderStats stats;
+
+    // update shadows
+    updateDirLightShadow(scene, camera);
+    updatePointLightShadows(scene, camera);
+
+    // draw all objects in the scene
+    stats += drawScene(scene, camera);
+
+    // draw lights for debugging
+    stats += drawLights(scene, camera);
 
     // draw skybox
     stats += drawSkyBox(scene, camera);
-
-    // now bind back to default gBuffer and draw a quad plane with the attached gBuffer color texture
-    gBuffer.unbind();
 
     return stats;
 }
