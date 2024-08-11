@@ -235,18 +235,20 @@ RenderStats OpenGLRenderer::drawSkyBox(const Scene &scene, const Camera &camera)
 
     auto &skybox = *scene.envCubeMap;
 
-    peelingLayers[0]->bind();
-    // dont clear color or depth bit here, since we want this to draw over
+    for (auto &layer : peelingLayers) {
+        layer->bind();
+        // dont clear color or depth bit here, since we want this to draw over
 
-    skyboxShader.bind();
-    skyboxShader.setTexture("environmentMap", skybox, 0);
-    skyboxShader.unbind();
+        skyboxShader.bind();
+        skyboxShader.setTexture("environmentMap", skybox, 0);
+        skyboxShader.unbind();
 
-    if (scene.envCubeMap != nullptr) {
-        stats = scene.envCubeMap->draw(skyboxShader, camera);
+        if (scene.envCubeMap != nullptr) {
+            stats = scene.envCubeMap->draw(skyboxShader, camera);
+        }
+
+        layer->unbind();
     }
-
-    peelingLayers[0]->unbind();
 
     return stats;
 }

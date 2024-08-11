@@ -9,7 +9,7 @@ uniform sampler2D screenNormals;
 uniform sampler2D idBuffer;
 
 uniform int maxLayers;
-uniform sampler2D peelingLayers[2];
+uniform sampler2D peelingLayers[4];
 
 uniform bool doToneMapping = true;
 uniform float exposure = 1.0;

@@ -20,7 +20,7 @@ class OpenGLRenderer {
 public:
     unsigned int width, height;
 
-    unsigned int maxLayers = 3;
+    unsigned int maxLayers = 4;
 
     GeometryBuffer gBuffer;
     std::vector<GeometryBuffer*> peelingLayers;
