@@ -109,6 +109,15 @@ OpenGLRenderer::OpenGLRenderer(unsigned int width, unsigned int height)
     pipeline.apply();
 }
 
+void OpenGLRenderer::resize(unsigned int width, unsigned int height) {
+    this->width = width;
+    this->height = height;
+
+    glViewport(0, 0, width, height);
+    gBuffer.resize(width, height);
+    gBuffer.resize(width, height);
+}
+
 RenderStats OpenGLRenderer::updateDirLightShadow(const Scene &scene, const Camera &camera) {
     RenderStats stats;
     if (scene.directionalLight == nullptr) {
@@ -184,7 +193,7 @@ RenderStats OpenGLRenderer::drawScene(const Scene &scene, const Camera &camera) 
 }
 
 RenderStats OpenGLRenderer::drawLights(const Scene &scene, const Camera &camera) {
-    gBuffer.bind();
+    peelingLayers[0]->bind();
     // dont clear color or depth bit here, since we want this to draw over
 
     RenderStats stats;
@@ -212,7 +221,7 @@ RenderStats OpenGLRenderer::drawLights(const Scene &scene, const Camera &camera)
         }
     }
 
-    gBuffer.unbind();
+    peelingLayers[0]->unbind();
 
     return stats;
 }
@@ -226,7 +235,7 @@ RenderStats OpenGLRenderer::drawSkyBox(const Scene &scene, const Camera &camera)
 
     auto &skybox = *scene.envCubeMap;
 
-    gBuffer.bind();
+    peelingLayers[0]->bind();
     // dont clear color or depth bit here, since we want this to draw over
 
     skyboxShader.bind();
@@ -237,7 +246,7 @@ RenderStats OpenGLRenderer::drawSkyBox(const Scene &scene, const Camera &camera)
         stats = scene.envCubeMap->draw(skyboxShader, camera);
     }
 
-    gBuffer.unbind();
+    peelingLayers[0]->unbind();
 
     return stats;
 }
@@ -345,13 +354,4 @@ RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const Rende
 
 RenderStats OpenGLRenderer::drawToRenderTarget(const Shader &screenShader, const RenderTarget &renderTarget) {
     return drawToScreen(screenShader, &renderTarget);
-}
-
-void OpenGLRenderer::resize(unsigned int width, unsigned int height) {
-    this->width = width;
-    this->height = height;
-
-    glViewport(0, 0, width, height);
-    gBuffer.resize(width, height);
-    gBuffer.resize(width, height);
 }

@@ -32,18 +32,18 @@ public:
 
     void setGraphicsPipeline(const GraphicsPipeline &pipeline) { this->pipeline = pipeline; }
 
-    RenderStats updateDirLightShadow(const Scene &scene, const Camera &camera);
-    RenderStats updatePointLightShadows(const Scene &scene, const Camera &camera);
-
-    RenderStats drawScene(const Scene &scene, const Camera &camera);
-    RenderStats drawLights(const Scene &scene, const Camera &camera);
-    RenderStats drawSkyBox(const Scene &scene, const Camera &camera);
-    RenderStats drawObjects(const Scene &scene, const Camera &camera);
-
-    RenderStats drawToScreen(const Shader &screenShader, const RenderTarget* overrideRenderTarget = nullptr);
-    RenderStats drawToRenderTarget(const Shader &screenShader, const RenderTarget &renderTarget);
-
     void resize(unsigned int width, unsigned int height);
+
+    virtual RenderStats updateDirLightShadow(const Scene &scene, const Camera &camera);
+    virtual RenderStats updatePointLightShadows(const Scene &scene, const Camera &camera);
+
+    virtual RenderStats drawScene(const Scene &scene, const Camera &camera);
+    virtual RenderStats drawLights(const Scene &scene, const Camera &camera);
+    virtual RenderStats drawSkyBox(const Scene &scene, const Camera &camera);
+    virtual RenderStats drawObjects(const Scene &scene, const Camera &camera);
+
+    virtual RenderStats drawToScreen(const Shader &screenShader, const RenderTarget* overrideRenderTarget = nullptr);
+    virtual RenderStats drawToRenderTarget(const Shader &screenShader, const RenderTarget &renderTarget);
 
 private:
     Shader skyboxShader;
