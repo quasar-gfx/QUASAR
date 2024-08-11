@@ -50,11 +50,17 @@ public:
 
     int getID() const { return ID; }
 
-    virtual void bindMaterial(const Scene &scene, const glm::mat4 &model, const Material* overrideMaterial = nullptr) = 0;
-    virtual RenderStats draw(const Camera &camera, const glm::mat4 &model, bool frustumCull = true, const Material* overrideMaterial = nullptr) = 0;
-    virtual RenderStats draw(const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) = 0;
-    virtual RenderStats draw(const Camera cameras[], const glm::mat4 &model, bool frustumCull = true, const Material* overrideMaterial = nullptr) = 0;
-    virtual RenderStats draw(const Camera cameras[], const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) = 0;
+    virtual void bindMaterial(const Scene &scene, const glm::mat4 &model,
+                              const Material* overrideMaterial = nullptr, const Texture* prevDepthMap = nullptr) = 0;
+
+    virtual RenderStats draw(const Camera &camera, const glm::mat4 &model,
+                             bool frustumCull = true, const Material* overrideMaterial = nullptr) = 0;
+    virtual RenderStats draw(const Camera &camera, const glm::mat4 &model,
+                             const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) = 0;
+    virtual RenderStats draw(const Camera cameras[], const glm::mat4 &model,
+                             bool frustumCull = true, const Material* overrideMaterial = nullptr) = 0;
+    virtual RenderStats draw(const Camera cameras[], const glm::mat4 &model,
+                             const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) = 0;
 
     virtual EntityType getType() const { return EntityType::EMPTY; }
 

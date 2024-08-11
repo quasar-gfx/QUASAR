@@ -102,6 +102,10 @@ OpenGLRenderer::OpenGLRenderer(unsigned int width, unsigned int height)
     glDebugMessageControl(GL_DONT_CARE, GL_DEBUG_TYPE_ERROR, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 #endif
 
+    for (int i = 0; i < maxLayers; i++) {
+        peelingLayers.push_back(new GeometryBuffer({ .width = width, .height = height }));
+    }
+
     pipeline.apply();
 }
 
@@ -155,17 +159,26 @@ RenderStats OpenGLRenderer::updatePointLightShadows(const Scene &scene, const Ca
 }
 
 RenderStats OpenGLRenderer::drawScene(const Scene &scene, const Camera &camera) {
-    // bind to gBuffer and draw scene as we normally would to color texture
-    gBuffer.bind();
-    glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     RenderStats stats;
-    for (auto& child : scene.children) {
-        stats += drawNode(scene, camera, child, glm::mat4(1.0f));
-    }
 
-    gBuffer.unbind();
+    for (int i = 0; i < maxLayers; i++) {
+        auto& currentGBuffer = peelingLayers[i];
+
+        currentGBuffer->bind();
+        glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        Texture* prevDepthMap = nullptr;
+        if (i >= 1) {
+            prevDepthMap = &peelingLayers[i-1]->depthBuffer;
+        }
+
+        for (auto& child : scene.children) {
+            stats += drawNode(scene, camera, child, glm::mat4(1.0f), true, nullptr, prevDepthMap);
+        }
+
+        currentGBuffer->unbind();
+    }
 
     return stats;
 }
@@ -251,13 +264,13 @@ RenderStats OpenGLRenderer::drawObjects(const Scene &scene, const Camera &camera
 }
 
 RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,
-                                     bool frustumCull, const Material* overrideMaterial) {
+                                     bool frustumCull, const Material* overrideMaterial, const Texture* prevDepthMap) {
     const glm::mat4 &model = parentTransform * node->getTransformParentFromLocal();
 
     RenderStats stats;
     if (node->entity != nullptr) {
         if (node->visible) {
-            node->entity->bindMaterial(scene, model, overrideMaterial);
+            node->entity->bindMaterial(scene, model, overrideMaterial, prevDepthMap);
             bool doFrustumCull = frustumCull && node->frustumCulled;
             stats += node->entity->draw(camera, model, doFrustumCull, overrideMaterial);
         }
@@ -313,6 +326,11 @@ RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const Rende
     screenShader.setTexture("screenPositions", gBuffer.positionBuffer, 2);
     screenShader.setTexture("screenNormals", gBuffer.normalsBuffer, 3);
     screenShader.setTexture("idBuffer", gBuffer.idBuffer, 4);
+
+    screenShader.setInt("maxLayers", maxLayers);
+    for (int i = 0; i < maxLayers; i++) {
+        screenShader.setTexture("peelingLayers[" + std::to_string(i) + "]", peelingLayers[i]->colorBuffer, 5 + i);
+    }
 
     RenderStats stats = outputFsQuad.draw();
 

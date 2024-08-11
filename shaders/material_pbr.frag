@@ -101,6 +101,9 @@ uniform samplerCube pointLightShadowMaps[MAX_POINT_LIGHTS]; // 10+
 
 uniform vec3 camPos;
 
+uniform bool peelDepth;
+uniform sampler2D prevDepthMap;
+
 const float PI = 3.1415926535897932384626433832795;
 
 vec3 gridSamplingDisk[20] = vec3[]
@@ -344,7 +347,23 @@ vec3 calcPointLight(PointLight light, PBRInfo pbrInputs) {
     return radianceOut;
 }
 
+const float near = 0.1;
+const float far = 1000.0;
+float LinearizeDepth(float depth) {
+    float z = depth * 2.0 - 1.0; // back to NDC
+    return (2.0 * near * far) / (far + near - z * (far - near));
+}
+
 void main() {
+    if (peelDepth) {
+        float depth = gl_FragCoord.z;
+        vec2 screenCoords = gl_FragCoord.xy / vec2(textureSize(prevDepthMap, 0));
+        float prevDepth = texture(prevDepthMap, screenCoords).r;
+        // if the current fragment is closer than the previous fragment, discard it
+        if (depth <= prevDepth)
+            discard;
+    }
+
     vec4 baseColor;
     if (material.hasBaseColorMap) {
         baseColor = texture(material.baseColorMap, fsIn.TexCoords) * material.baseColorFactor;

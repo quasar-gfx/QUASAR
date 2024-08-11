@@ -33,7 +33,6 @@ class PBRMaterial : public Material {
 public:
     glm::vec4 baseColor = glm::vec4(1.0f);
     glm::vec4 baseColorFactor = glm::vec4(1.0f);
-    float opacity = 1.0f;
     AlphaMode alphaMode = AlphaMode::OPAQUE;
     float maskThreshold = 0.5f;
     glm::vec3 emissiveFactor = glm::vec3(1.0f);

@@ -20,9 +20,10 @@ class OpenGLRenderer {
 public:
     unsigned int width, height;
 
-    unsigned int numLayers = 4;
+    unsigned int maxLayers = 3;
 
     GeometryBuffer gBuffer;
+    std::vector<GeometryBuffer*> peelingLayers;
 
     GraphicsPipeline pipeline;
 
@@ -50,7 +51,7 @@ private:
     FullScreenQuad outputFsQuad;
 
     RenderStats drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,
-                         bool frustumCull = true, const Material* overrideMaterial = nullptr);
+                         bool frustumCull = true, const Material* overrideMaterial = nullptr, const Texture* prevDepthMap = nullptr);
     RenderStats drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,
                          const PointLight* pointLight, const Material* overrideMaterial = nullptr);
 };
