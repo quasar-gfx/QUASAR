@@ -2,7 +2,6 @@
 
 #include <args.hxx>
 
-#include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 #include <SceneLoader.h>
 #include <Windowing/GLFWWindow.h>

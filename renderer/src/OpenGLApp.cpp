@@ -5,7 +5,6 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <Primatives/Entity.h>
-#include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 
 OpenGLApp::OpenGLApp(const Config &config) : window(config.window), guiManager(config.guiManager) {
@@ -19,7 +18,7 @@ OpenGLApp::OpenGLApp(const Config &config) : window(config.window), guiManager(c
     }
 #endif
 
-    renderer = std::make_unique<OpenGLRenderer>(config.width, config.height);
+    renderer = std::make_unique<DepthPeelingRenderer>(config.width, config.height);
     renderer->setGraphicsPipeline(config.pipeline);
 }
 

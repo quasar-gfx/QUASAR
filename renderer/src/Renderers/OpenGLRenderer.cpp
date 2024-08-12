@@ -1,4 +1,4 @@
-#include <OpenGLRenderer.h>
+#include <Renderers/OpenGLRenderer.h>
 #include <Primatives/Sphere.h>
 #include <Materials/UnlitMaterial.h>
 
@@ -83,7 +83,6 @@ void APIENTRY glDebugCallback(GLenum source, GLenum type, GLuint id, GLenum seve
 
 OpenGLRenderer::OpenGLRenderer(unsigned int width, unsigned int height)
         : width(width), height(height)
-        , gBuffer({ .width = width, .height = height })
         , skyboxShader({
             .vertexCodeData = SHADER_SKYBOX_VERT,
             .vertexCodeSize = SHADER_SKYBOX_VERT_len,
@@ -102,10 +101,6 @@ OpenGLRenderer::OpenGLRenderer(unsigned int width, unsigned int height)
     glDebugMessageControl(GL_DONT_CARE, GL_DEBUG_TYPE_ERROR, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 #endif
 
-    for (int i = 0; i < maxLayers; i++) {
-        peelingLayers.push_back(new GeometryBuffer({ .width = width, .height = height }));
-    }
-
     pipeline.apply();
 }
 
@@ -114,8 +109,6 @@ void OpenGLRenderer::resize(unsigned int width, unsigned int height) {
     this->height = height;
 
     glViewport(0, 0, width, height);
-    gBuffer.resize(width, height);
-    gBuffer.resize(width, height);
 }
 
 RenderStats OpenGLRenderer::updateDirLightShadow(const Scene &scene, const Camera &camera) {
@@ -170,30 +163,17 @@ RenderStats OpenGLRenderer::updatePointLightShadows(const Scene &scene, const Ca
 RenderStats OpenGLRenderer::drawScene(const Scene &scene, const Camera &camera) {
     RenderStats stats;
 
-    for (int i = 0; i < maxLayers; i++) {
-        auto& currentGBuffer = peelingLayers[i];
+    glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        currentGBuffer->bind();
-        glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        Texture* prevDepthMap = nullptr;
-        if (i >= 1) {
-            prevDepthMap = &peelingLayers[i-1]->depthBuffer;
-        }
-
-        for (auto& child : scene.children) {
-            stats += drawNode(scene, camera, child, glm::mat4(1.0f), true, nullptr, prevDepthMap);
-        }
-
-        currentGBuffer->unbind();
+    for (auto& child : scene.children) {
+        stats += drawNode(scene, camera, child, glm::mat4(1.0f), true);
     }
 
     return stats;
 }
 
 RenderStats OpenGLRenderer::drawLights(const Scene &scene, const Camera &camera) {
-    peelingLayers[0]->bind();
     // dont clear color or depth bit here, since we want this to draw over
 
     RenderStats stats;
@@ -221,12 +201,12 @@ RenderStats OpenGLRenderer::drawLights(const Scene &scene, const Camera &camera)
         }
     }
 
-    peelingLayers[0]->unbind();
-
     return stats;
 }
 
 RenderStats OpenGLRenderer::drawSkyBox(const Scene &scene, const Camera &camera) {
+    // dont clear color or depth bit here, since we want this to draw over
+
     RenderStats stats;
 
     if (scene.envCubeMap == nullptr) {
@@ -235,19 +215,12 @@ RenderStats OpenGLRenderer::drawSkyBox(const Scene &scene, const Camera &camera)
 
     auto &skybox = *scene.envCubeMap;
 
-    for (auto &layer : peelingLayers) {
-        layer->bind();
-        // dont clear color or depth bit here, since we want this to draw over
+    skyboxShader.bind();
+    skyboxShader.setTexture("environmentMap", skybox, 0);
+    skyboxShader.unbind();
 
-        skyboxShader.bind();
-        skyboxShader.setTexture("environmentMap", skybox, 0);
-        skyboxShader.unbind();
-
-        if (scene.envCubeMap != nullptr) {
-            stats = scene.envCubeMap->draw(skyboxShader, camera);
-        }
-
-        layer->unbind();
+    if (scene.envCubeMap != nullptr) {
+        stats = scene.envCubeMap->draw(skyboxShader, camera);
     }
 
     return stats;
@@ -331,17 +304,7 @@ RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const Rende
 
     screenShader.bind();
 
-    // set gbuffer texture uniforms
-    screenShader.setTexture("screenColor", gBuffer.colorBuffer, 0);
-    screenShader.setTexture("screenDepth", gBuffer.depthBuffer, 1);
-    screenShader.setTexture("screenPositions", gBuffer.positionBuffer, 2);
-    screenShader.setTexture("screenNormals", gBuffer.normalsBuffer, 3);
-    screenShader.setTexture("idBuffer", gBuffer.idBuffer, 4);
-
-    screenShader.setInt("maxLayers", maxLayers);
-    for (int i = 0; i < maxLayers; i++) {
-        screenShader.setTexture("peelingLayers[" + std::to_string(i) + "]", peelingLayers[i]->colorBuffer, 5 + i);
-    }
+    setScreenShaderUniforms(screenShader);
 
     RenderStats stats = outputFsQuad.draw();
 

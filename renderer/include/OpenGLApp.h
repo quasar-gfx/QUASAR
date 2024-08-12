@@ -3,7 +3,7 @@
 
 #include <functional>
 
-#include <OpenGLRenderer.h>
+#include <Renderers/DepthPeelingRenderer.h>
 #include <OpenGLAppConfig.h>
 #include <Windowing/Window.h>
 
@@ -15,7 +15,7 @@ public:
     explicit OpenGLApp(const Config &config);
     ~OpenGLApp() = default;
 
-    std::unique_ptr<OpenGLRenderer> renderer;
+    std::unique_ptr<DepthPeelingRenderer> renderer;
 
     void run();
 

@@ -12,18 +12,12 @@
 #include <Materials/PBRMaterial.h>
 #include <Materials/UnlitMaterial.h>
 #include <Lights/Lights.h>
-#include <RenderTargets/GBuffer.h>
 
 #include <GraphicsPipeline.h>
 
 class OpenGLRenderer {
 public:
     unsigned int width, height;
-
-    unsigned int maxLayers = 4;
-
-    GeometryBuffer gBuffer;
-    std::vector<GeometryBuffer*> peelingLayers;
 
     GraphicsPipeline pipeline;
 
@@ -32,10 +26,12 @@ public:
 
     void setGraphicsPipeline(const GraphicsPipeline &pipeline) { this->pipeline = pipeline; }
 
-    void resize(unsigned int width, unsigned int height);
+    virtual void setScreenShaderUniforms(const Shader &screenShader) {};
 
-    virtual RenderStats updateDirLightShadow(const Scene &scene, const Camera &camera);
-    virtual RenderStats updatePointLightShadows(const Scene &scene, const Camera &camera);
+    virtual void resize(unsigned int width, unsigned int height);
+
+    RenderStats updateDirLightShadow(const Scene &scene, const Camera &camera);
+    RenderStats updatePointLightShadows(const Scene &scene, const Camera &camera);
 
     virtual RenderStats drawScene(const Scene &scene, const Camera &camera);
     virtual RenderStats drawLights(const Scene &scene, const Camera &camera);
@@ -45,7 +41,7 @@ public:
     virtual RenderStats drawToScreen(const Shader &screenShader, const RenderTarget* overrideRenderTarget = nullptr);
     virtual RenderStats drawToRenderTarget(const Shader &screenShader, const RenderTarget &renderTarget);
 
-private:
+protected:
     Shader skyboxShader;
 
     FullScreenQuad outputFsQuad;
