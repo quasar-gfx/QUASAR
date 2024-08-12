@@ -3,6 +3,7 @@
 #include <args.hxx>
 
 #include <OpenGLApp.h>
+#include <Renderers/DepthPeelingRenderer.h>
 #include <SceneLoader.h>
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
@@ -46,6 +47,7 @@ int main(int argc, char** argv) {
     config.guiManager = guiManager;
 
     OpenGLApp app(config);
+    DepthPeelingRenderer renderer(config);
 
     unsigned int screenWidth, screenHeight;
     window->getSize(screenWidth, screenHeight);
@@ -166,10 +168,10 @@ int main(int argc, char** argv) {
 
             if (ImGui::Button("Capture Current Frame")) {
                 if (saveAsHDR) {
-                    app.renderer->gBuffer.saveColorAsHDR(fileName + ".hdr");
+                    renderer.gBuffer.saveColorAsHDR(fileName + ".hdr");
                 }
                 else {
-                    app.renderer->gBuffer.saveColorAsPNG(fileName + ".png");
+                    renderer.gBuffer.saveColorAsPNG(fileName + ".png");
                 }
             }
 
@@ -180,48 +182,50 @@ int main(int argc, char** argv) {
 
         ImGui::SetNextWindowPos(ImVec2(screenWidth - 4 * TEXTURE_PREVIEW_SIZE - 120, 40), ImGuiCond_FirstUseEver);
         ImGui::Begin("Layer 0 Color", 0, flags);
-        ImGui::Image((void*)(intptr_t)(app.renderer->peelingLayers[0]->colorBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[0]->colorBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
         ImGui::End();
 
         ImGui::SetNextWindowPos(ImVec2(screenWidth - 3 * TEXTURE_PREVIEW_SIZE - 90, 40), ImGuiCond_FirstUseEver);
         ImGui::Begin("Layer 1 Color", 0, flags);
-        ImGui::Image((void*)(intptr_t)(app.renderer->peelingLayers[1]->colorBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[1]->colorBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
         ImGui::End();
 
         ImGui::SetNextWindowPos(ImVec2(screenWidth - 2 * TEXTURE_PREVIEW_SIZE - 60, 40), ImGuiCond_FirstUseEver);
         ImGui::Begin("Layer 2 Color", 0, flags);
-        ImGui::Image((void*)(intptr_t)(app.renderer->peelingLayers[2]->colorBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[2]->colorBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
         ImGui::End();
 
         ImGui::SetNextWindowPos(ImVec2(screenWidth - TEXTURE_PREVIEW_SIZE - 30, 40), ImGuiCond_FirstUseEver);
         ImGui::Begin("Layer 3 Color", 0, flags);
-        ImGui::Image((void*)(intptr_t)(app.renderer->peelingLayers[3]->colorBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[3]->colorBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
         ImGui::End();
 
         ImGui::SetNextWindowPos(ImVec2(screenWidth - 4 * TEXTURE_PREVIEW_SIZE - 120, 40 + 60 + TEXTURE_PREVIEW_SIZE), ImGuiCond_FirstUseEver);
         ImGui::Begin("Layer 0 Depth", 0, flags);
-        ImGui::Image((void*)(intptr_t)(app.renderer->peelingLayers[0]->depthBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[0]->depthBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
         ImGui::End();
 
         ImGui::SetNextWindowPos(ImVec2(screenWidth - 3 * TEXTURE_PREVIEW_SIZE - 90, 40 + 60 + TEXTURE_PREVIEW_SIZE), ImGuiCond_FirstUseEver);
         ImGui::Begin("Layer 1 Depth", 0, flags);
-        ImGui::Image((void*)(intptr_t)(app.renderer->peelingLayers[1]->depthBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[1]->depthBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
         ImGui::End();
 
         ImGui::SetNextWindowPos(ImVec2(screenWidth - 2 * TEXTURE_PREVIEW_SIZE - 60, 40 + 60 + TEXTURE_PREVIEW_SIZE), ImGuiCond_FirstUseEver);
         ImGui::Begin("Layer 2 Depth", 0, flags);
-        ImGui::Image((void*)(intptr_t)(app.renderer->peelingLayers[2]->depthBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[2]->depthBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
         ImGui::End();
 
         ImGui::SetNextWindowPos(ImVec2(screenWidth - TEXTURE_PREVIEW_SIZE - 30, 40 + 60 + TEXTURE_PREVIEW_SIZE), ImGuiCond_FirstUseEver);
         ImGui::Begin("Layer 3 Depth", 0, flags);
-        ImGui::Image((void*)(intptr_t)(app.renderer->peelingLayers[3]->depthBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[3]->depthBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
         ImGui::End();
     });
 
     app.onResize([&](unsigned int width, unsigned int height) {
         screenWidth = width;
         screenHeight = height;
+
+        renderer.resize(width, height);
 
         camera.aspect = (float)screenWidth / (float)screenHeight;
         camera.updateProjectionMatrix();
@@ -297,31 +301,31 @@ int main(int argc, char** argv) {
         }
 
         // render all objects in scene
-        renderStats = app.renderer->drawObjects(scene, camera);
+        renderStats = renderer.drawObjects(scene, camera);
 
         // render to screen
         if (shaderIndex == 1) {
             showDepthShader.bind();
             showDepthShader.setFloat("near", camera.near);
             showDepthShader.setFloat("far", camera.far);
-            app.renderer->drawToScreen(showDepthShader);
+            renderer.drawToScreen(showDepthShader);
         }
         else if (shaderIndex == 2) {
             showPositionShader.bind();
-            app.renderer->drawToScreen(showPositionShader);
+            renderer.drawToScreen(showPositionShader);
         }
         else if (shaderIndex == 3) {
             showNormalShader.bind();
-            app.renderer->drawToScreen(showNormalShader);
+            renderer.drawToScreen(showNormalShader);
         }
         else if (shaderIndex == 4) {
             showIDShader.bind();
-            app.renderer->drawToScreen(showIDShader);
+            renderer.drawToScreen(showIDShader);
         }
         else {
             showColorShader.bind();
             showColorShader.setFloat("exposure", exposure);
-            app.renderer->drawToScreen(showColorShader);
+            renderer.drawToScreen(showColorShader);
         }
     });
 

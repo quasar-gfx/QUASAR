@@ -81,8 +81,8 @@ void APIENTRY glDebugCallback(GLenum source, GLenum type, GLuint id, GLenum seve
 }
 #endif
 
-OpenGLRenderer::OpenGLRenderer(unsigned int width, unsigned int height)
-        : width(width), height(height)
+OpenGLRenderer::OpenGLRenderer(const Config &config)
+        : width(config.width), height(config.height)
         , skyboxShader({
             .vertexCodeData = SHADER_SKYBOX_VERT,
             .vertexCodeSize = SHADER_SKYBOX_VERT_len,
@@ -101,6 +101,7 @@ OpenGLRenderer::OpenGLRenderer(unsigned int width, unsigned int height)
     glDebugMessageControl(GL_DONT_CARE, GL_DEBUG_TYPE_ERROR, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 #endif
 
+    setGraphicsPipeline(config.pipeline);
     pipeline.apply();
 }
 
@@ -161,11 +162,10 @@ RenderStats OpenGLRenderer::updatePointLightShadows(const Scene &scene, const Ca
 }
 
 RenderStats OpenGLRenderer::drawScene(const Scene &scene, const Camera &camera) {
-    RenderStats stats;
-
     glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    RenderStats stats;
     for (auto& child : scene.children) {
         stats += drawNode(scene, camera, child, glm::mat4(1.0f), true);
     }
@@ -303,11 +303,8 @@ RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const Rende
     glClear(GL_COLOR_BUFFER_BIT);
 
     screenShader.bind();
-
     setScreenShaderUniforms(screenShader);
-
     RenderStats stats = outputFsQuad.draw();
-
     screenShader.unbind();
 
     if (overrideRenderTarget != nullptr) {

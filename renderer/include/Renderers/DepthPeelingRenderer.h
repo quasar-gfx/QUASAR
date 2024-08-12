@@ -11,7 +11,7 @@ public:
     GeometryBuffer gBuffer;
     std::vector<GeometryBuffer*> peelingLayers;
 
-    explicit DepthPeelingRenderer(unsigned int width, unsigned int height);
+    explicit DepthPeelingRenderer(const Config &config);
     ~DepthPeelingRenderer() = default;
 
     void setScreenShaderUniforms(const Shader &screenShader) override;
@@ -21,6 +21,12 @@ public:
     RenderStats drawScene(const Scene &scene, const Camera &camera) override;
     RenderStats drawLights(const Scene &scene, const Camera &camera) override;
     RenderStats drawSkyBox(const Scene &scene, const Camera &camera) override;
+    RenderStats drawObjects(const Scene &scene, const Camera &camera) override;
+
+    RenderStats compositeLayers();
+
+private:
+    Shader compositeLayersShader;
 };
 
 #endif // DEPTH_PEELING_H

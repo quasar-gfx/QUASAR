@@ -3,7 +3,6 @@
 
 #include <functional>
 
-#include <Renderers/DepthPeelingRenderer.h>
 #include <OpenGLAppConfig.h>
 #include <Windowing/Window.h>
 
@@ -15,14 +14,10 @@ public:
     explicit OpenGLApp(const Config &config);
     ~OpenGLApp() = default;
 
-    std::unique_ptr<DepthPeelingRenderer> renderer;
-
-    void run();
-
     void onRender(RenderCallback callback) { renderCallback = callback; };
     void onResize(ResizeCallback callback) { resizeCallback = callback; };
 
-    void resize(unsigned int width, unsigned int height);
+    virtual void run();
 
 private:
     RenderCallback renderCallback;

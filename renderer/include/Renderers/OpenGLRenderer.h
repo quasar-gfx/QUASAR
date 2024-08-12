@@ -13,7 +13,7 @@
 #include <Materials/UnlitMaterial.h>
 #include <Lights/Lights.h>
 
-#include <GraphicsPipeline.h>
+#include <OpenGLAppConfig.h>
 
 class OpenGLRenderer {
 public:
@@ -21,7 +21,7 @@ public:
 
     GraphicsPipeline pipeline;
 
-    explicit OpenGLRenderer(unsigned int width, unsigned int height);
+    explicit OpenGLRenderer(const Config &config);
     ~OpenGLRenderer() = default;
 
     void setGraphicsPipeline(const GraphicsPipeline &pipeline) { this->pipeline = pipeline; }

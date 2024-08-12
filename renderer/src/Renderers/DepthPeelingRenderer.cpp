@@ -1,8 +1,14 @@
 #include <Renderers/DepthPeelingRenderer.h>
 
-DepthPeelingRenderer::DepthPeelingRenderer(unsigned int width, unsigned int height)
-        : gBuffer({ .width = width, .height = height })
-        , OpenGLRenderer(width, height) {
+DepthPeelingRenderer::DepthPeelingRenderer(const Config &config)
+        : gBuffer({ .width = config.width, .height = config.height })
+        , compositeLayersShader({
+            .vertexCodeData = SHADER_POSTPROCESS_VERT,
+            .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
+            .fragmentCodeData = SHADER_COMPOSITELAYERS_FRAG,
+            .fragmentCodeSize = SHADER_COMPOSITELAYERS_FRAG_len
+        })
+        , OpenGLRenderer(config) {
 
     for (int i = 0; i < maxLayers; i++) {
         peelingLayers.push_back(new GeometryBuffer({ .width = width, .height = height }));
@@ -64,6 +70,38 @@ RenderStats DepthPeelingRenderer::drawSkyBox(const Scene &scene, const Camera &c
     return stats;
 }
 
+RenderStats DepthPeelingRenderer::drawObjects(const Scene &scene, const Camera &camera) {
+    RenderStats stats;
+    stats = OpenGLRenderer::drawObjects(scene, camera);
+    stats += compositeLayers();
+    return stats;
+}
+
+RenderStats DepthPeelingRenderer::compositeLayers() {
+    RenderStats stats;
+
+    gBuffer.bind();
+    glViewport(0, 0, width, height);
+
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    compositeLayersShader.bind();
+
+    compositeLayersShader.setInt("maxLayers", maxLayers);
+    for (int i = 0; i < maxLayers; i++) {
+        compositeLayersShader.setTexture("peelingLayers[" + std::to_string(i) + "]", peelingLayers[i]->colorBuffer, i);
+    }
+
+    stats += outputFsQuad.draw();
+
+    compositeLayersShader.unbind();
+
+    gBuffer.unbind();
+
+    return stats;
+}
+
 void DepthPeelingRenderer::setScreenShaderUniforms(const Shader &screenShader) {
     // set gbuffer texture uniforms
     screenShader.setTexture("screenColor", gBuffer.colorBuffer, 0);
@@ -71,9 +109,4 @@ void DepthPeelingRenderer::setScreenShaderUniforms(const Shader &screenShader) {
     screenShader.setTexture("screenPositions", gBuffer.positionBuffer, 2);
     screenShader.setTexture("screenNormals", gBuffer.normalsBuffer, 3);
     screenShader.setTexture("idBuffer", gBuffer.idBuffer, 4);
-
-    screenShader.setInt("maxLayers", maxLayers);
-    for (int i = 0; i < maxLayers; i++) {
-        screenShader.setTexture("peelingLayers[" + std::to_string(i) + "]", peelingLayers[i]->colorBuffer, 5 + i);
-    }
 }

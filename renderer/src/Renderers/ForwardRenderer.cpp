@@ -1,8 +1,8 @@
 #include <Renderers/ForwardRenderer.h>
 
-ForwardRenderer::ForwardRenderer(unsigned int width, unsigned int height)
-        : gBuffer({ .width = width, .height = height })
-        , OpenGLRenderer(width, height) {
+ForwardRenderer::ForwardRenderer(const Config &config)
+        : gBuffer({ .width = config.width, .height = config.height })
+        , OpenGLRenderer(config) {
 }
 
 void ForwardRenderer::resize(unsigned int width, unsigned int height) {
@@ -14,7 +14,7 @@ RenderStats ForwardRenderer::drawScene(const Scene &scene, const Camera &camera)
     RenderStats stats;
 
     gBuffer.bind();
-    OpenGLRenderer::drawScene(scene, camera);
+    stats = OpenGLRenderer::drawScene(scene, camera);
     gBuffer.unbind();
 
     return stats;
