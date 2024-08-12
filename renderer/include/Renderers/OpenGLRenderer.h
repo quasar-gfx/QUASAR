@@ -12,45 +12,42 @@
 #include <Materials/PBRMaterial.h>
 #include <Materials/UnlitMaterial.h>
 #include <Lights/Lights.h>
-#include <RenderTargets/GBuffer.h>
 
-#include <GraphicsPipeline.h>
+#include <OpenGLAppConfig.h>
 
 class OpenGLRenderer {
 public:
     unsigned int width, height;
 
-    unsigned int numLayers = 4;
-
-    GeometryBuffer gBuffer;
-
     GraphicsPipeline pipeline;
 
-    explicit OpenGLRenderer(unsigned int width, unsigned int height);
+    explicit OpenGLRenderer(const Config &config);
     ~OpenGLRenderer() = default;
 
     void setGraphicsPipeline(const GraphicsPipeline &pipeline) { this->pipeline = pipeline; }
 
+    virtual void setScreenShaderUniforms(const Shader &screenShader) {};
+
+    virtual void resize(unsigned int width, unsigned int height);
+
     RenderStats updateDirLightShadow(const Scene &scene, const Camera &camera);
     RenderStats updatePointLightShadows(const Scene &scene, const Camera &camera);
 
-    RenderStats drawScene(const Scene &scene, const Camera &camera);
-    RenderStats drawLights(const Scene &scene, const Camera &camera);
-    RenderStats drawSkyBox(const Scene &scene, const Camera &camera);
-    RenderStats drawObjects(const Scene &scene, const Camera &camera);
+    virtual RenderStats drawScene(const Scene &scene, const Camera &camera);
+    virtual RenderStats drawLights(const Scene &scene, const Camera &camera);
+    virtual RenderStats drawSkyBox(const Scene &scene, const Camera &camera);
+    virtual RenderStats drawObjects(const Scene &scene, const Camera &camera);
 
-    RenderStats drawToScreen(const Shader &screenShader, const RenderTarget* overrideRenderTarget = nullptr);
-    RenderStats drawToRenderTarget(const Shader &screenShader, const RenderTarget &renderTarget);
+    virtual RenderStats drawToScreen(const Shader &screenShader, const RenderTarget* overrideRenderTarget = nullptr);
+    virtual RenderStats drawToRenderTarget(const Shader &screenShader, const RenderTarget &renderTarget);
 
-    void resize(unsigned int width, unsigned int height);
-
-private:
+protected:
     Shader skyboxShader;
 
     FullScreenQuad outputFsQuad;
 
     RenderStats drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,
-                         bool frustumCull = true, const Material* overrideMaterial = nullptr);
+                         bool frustumCull = true, const Material* overrideMaterial = nullptr, const Texture* prevDepthMap = nullptr);
     RenderStats drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,
                          const PointLight* pointLight, const Material* overrideMaterial = nullptr);
 };

@@ -5,7 +5,6 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <Primatives/Entity.h>
-#include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
 
 OpenGLApp::OpenGLApp(const Config &config) : window(config.window), guiManager(config.guiManager) {
@@ -18,9 +17,6 @@ OpenGLApp::OpenGLApp(const Config &config) : window(config.window), guiManager(c
         throw std::runtime_error("OpenGL version cannot be higher than 4.1 on MacOS");
     }
 #endif
-
-    renderer = std::make_unique<OpenGLRenderer>(config.width, config.height);
-    renderer->setGraphicsPipeline(config.pipeline);
 }
 
 void OpenGLApp::run() {
@@ -34,7 +30,6 @@ void OpenGLApp::run() {
             window->getSize(width, height);
 
             std::cout << "Resized to " << width << "x" << height << std::endl;
-            renderer->resize(width, height);
 
             if (resizeCallback) {
                 resizeCallback(width, height);
@@ -53,8 +48,4 @@ void OpenGLApp::run() {
 
         prevTime = currTime;
     }
-}
-
-void OpenGLApp::resize(unsigned int width, unsigned int height) {
-    renderer->resize(width, height);
 }

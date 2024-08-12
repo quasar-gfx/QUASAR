@@ -110,7 +110,7 @@ void Mesh::setMaterialCameraParams(const Camera cameras[], const Material* mater
     material->shader->setVec3("camPos", (cameras[0].getPosition() + cameras[1].getPosition()) / 2.0f);
 }
 
-void Mesh::bindMaterial(const Scene &scene, const glm::mat4 &model, const Material* overrideMaterial) {
+void Mesh::bindMaterial(const Scene &scene, const glm::mat4 &model, const Material* overrideMaterial, const Texture* prevDepthMap) {
     auto materialToUse = overrideMaterial != nullptr ? overrideMaterial : material;
     materialToUse->bind();
 
@@ -145,6 +145,12 @@ void Mesh::bindMaterial(const Scene &scene, const glm::mat4 &model, const Materi
     materialToUse->shader->setFloat("material.IBL", IBL);
 
     materialToUse->shader->setFloat("pointSize", pointSize);
+
+    materialToUse->shader->setBool("peelDepth", prevDepthMap != nullptr);
+    if (prevDepthMap != nullptr) {
+        materialToUse->shader->setTexture("prevDepthMap", *prevDepthMap, texIdx);
+        texIdx++;
+    }
 
     materialToUse->unbind();
 }

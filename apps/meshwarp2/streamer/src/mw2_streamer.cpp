@@ -2,8 +2,8 @@
 
 #include <args.hxx>
 
-#include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
+#include <Renderers/ForwardRenderer.h>
 #include <SceneLoader.h>
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
@@ -64,6 +64,7 @@ int main(int argc, char** argv) {
     config.guiManager = guiManager;
 
     OpenGLApp app(config);
+    ForwardRenderer renderer(config);
 
     unsigned int screenWidth, screenHeight;
     window->getSize(screenWidth, screenHeight);
@@ -263,10 +264,10 @@ int main(int argc, char** argv) {
 
             if (ImGui::Button("Capture Current Frame")) {
                 if (saveAsHDR) {
-                    app.renderer->gBuffer.saveColorAsHDR(fileName + ".hdr");
+                    renderer.gBuffer.saveColorAsHDR(fileName + ".hdr");
                 }
                 else {
-                    app.renderer->gBuffer.saveColorAsPNG(fileName + ".png");
+                    renderer.gBuffer.saveColorAsPNG(fileName + ".png");
                 }
             }
 
@@ -308,6 +309,8 @@ int main(int argc, char** argv) {
     app.onResize([&](unsigned int width, unsigned int height) {
         screenWidth = width;
         screenHeight = height;
+
+        renderer.resize(width, height);
 
         camera.aspect = (float)screenWidth / (float)screenHeight;
         camera.updateProjectionMatrix();
@@ -431,14 +434,14 @@ int main(int argc, char** argv) {
             double startTime = glfwGetTime();
 
             // render all objects in remoteScene
-            app.renderer->drawObjects(remoteScene, remoteCamera);
+            renderer.drawObjects(remoteScene, remoteCamera);
 
             // render to render target
             if (!showNormals) {
-                app.renderer->drawToRenderTarget(screenShader2Color, renderTarget);
+                renderer.drawToRenderTarget(screenShader2Color, renderTarget);
             }
             else {
-                app.renderer->drawToRenderTarget(screenShader2Normals, renderTarget);
+                renderer.drawToRenderTarget(screenShader2Normals, renderTarget);
             }
 
             genMeshShader.bind();
@@ -452,10 +455,10 @@ int main(int argc, char** argv) {
             genMeshShader.setBool("doOrientationCorrection", doOrientationCorrection);
             genMeshShader.setFloat("distanceThreshold", distanceThreshold);
             genMeshShader.setFloat("angleThreshold", glm::radians(angleThreshold));
-            app.renderer->gBuffer.positionBuffer.bind(0);
-            app.renderer->gBuffer.normalsBuffer.bind(1);
-            app.renderer->gBuffer.idBuffer.bind(2);
-            app.renderer->gBuffer.depthBuffer.bind(3);
+            renderer.gBuffer.positionBuffer.bind(0);
+            renderer.gBuffer.normalsBuffer.bind(1);
+            renderer.gBuffer.idBuffer.bind(2);
+            renderer.gBuffer.depthBuffer.bind(3);
             genMeshShader.dispatch(remoteWidth, remoteHeight, 1);
             genMeshShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
             genMeshShader.unbind();
@@ -476,10 +479,10 @@ int main(int argc, char** argv) {
         nodeDepth.setPosition(node.getPosition() - camera.getForwardVector() * 0.0015f);
 
         // render all objects in scene
-        renderStats = app.renderer->drawObjects(scene, camera);
+        renderStats = renderer.drawObjects(scene, camera);
 
         // render to screen
-        app.renderer->drawToScreen(screenShader);
+        renderer.drawToScreen(screenShader);
     });
 
     // run app loop (blocking)
