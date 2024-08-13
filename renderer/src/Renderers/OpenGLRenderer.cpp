@@ -1,4 +1,4 @@
-#include <OpenGLRenderer.h>
+#include <Renderers/OpenGLRenderer.h>
 #include <Primatives/Sphere.h>
 #include <Materials/UnlitMaterial.h>
 
@@ -81,9 +81,8 @@ void APIENTRY glDebugCallback(GLenum source, GLenum type, GLuint id, GLenum seve
 }
 #endif
 
-OpenGLRenderer::OpenGLRenderer(unsigned int width, unsigned int height)
-        : width(width), height(height)
-        , gBuffer({ .width = width, .height = height })
+OpenGLRenderer::OpenGLRenderer(const Config &config)
+        : width(config.width), height(config.height)
         , skyboxShader({
             .vertexCodeData = SHADER_SKYBOX_VERT,
             .vertexCodeSize = SHADER_SKYBOX_VERT_len,
@@ -102,7 +101,15 @@ OpenGLRenderer::OpenGLRenderer(unsigned int width, unsigned int height)
     glDebugMessageControl(GL_DONT_CARE, GL_DEBUG_TYPE_ERROR, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 #endif
 
+    setGraphicsPipeline(config.pipeline);
     pipeline.apply();
+}
+
+void OpenGLRenderer::resize(unsigned int width, unsigned int height) {
+    this->width = width;
+    this->height = height;
+
+    glViewport(0, 0, width, height);
 }
 
 RenderStats OpenGLRenderer::updateDirLightShadow(const Scene &scene, const Camera &camera) {
@@ -154,48 +161,26 @@ RenderStats OpenGLRenderer::updatePointLightShadows(const Scene &scene, const Ca
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawSkyBox(const Scene &scene, const Camera &camera) {
+RenderStats OpenGLRenderer::drawScene(const Scene &scene, const Camera &camera, uint32_t clearMask) {
+    if (clearMask != 0) {
+        glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
+        glClear(clearMask);
+    }
+
     RenderStats stats;
-
-    if (scene.envCubeMap == nullptr) {
-        return stats;
+    for (auto& child : scene.children) {
+        stats += drawNode(scene, camera, child, glm::mat4(1.0f), true);
     }
-
-    gBuffer.bind();
-    // dont clear color or depth bit here, since we want this to draw over
-
-    skyboxShader.bind();
-    skyboxShader.setInt("environmentMap", 0);
-    skyboxShader.setMat4("view", camera.getViewMatrix());
-    skyboxShader.setMat4("projection", camera.getProjectionMatrix());
-
-    if (scene.envCubeMap != nullptr) {
-        stats = scene.envCubeMap->draw(skyboxShader, camera);
-    }
-
-    skyboxShader.unbind();
-
-    gBuffer.unbind();
 
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawObjects(const Scene &scene, const Camera &camera) {
-    pipeline.apply();
+RenderStats OpenGLRenderer::drawLights(const Scene &scene, const Camera &camera) {
+    // dont clear color or depth bit here, since we want this to draw over
 
     RenderStats stats;
-
-    // update shadows
-    updateDirLightShadow(scene, camera);
-    updatePointLightShadows(scene, camera);
-
-    // bind to gBuffer and draw scene as we normally would to color texture
-    gBuffer.bind();
-    glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    // draw point lights, if debug is set
     for (auto& pointLight : scene.pointLights) {
+        // only draw if debug is set
         if (pointLight->debug) {
             auto material = new UnlitMaterial({ .baseColor = glm::vec4(pointLight->color, 1.0) });
             Sphere light = Sphere({
@@ -218,28 +203,68 @@ RenderStats OpenGLRenderer::drawObjects(const Scene &scene, const Camera &camera
         }
     }
 
-    // draw scene
-    for (auto& child : scene.children) {
-        stats += drawNode(scene, camera, child, glm::mat4(1.0f));
+    return stats;
+}
+
+RenderStats OpenGLRenderer::drawSkyBox(const Scene &scene, const Camera &camera) {
+    // dont clear color or depth bit here, since we want this to draw over
+
+    RenderStats stats;
+
+    if (scene.envCubeMap == nullptr) {
+        return stats;
     }
+
+    auto &skybox = *scene.envCubeMap;
+
+    skyboxShader.bind();
+    skyboxShader.setTexture("environmentMap", skybox, 0);
+    skyboxShader.unbind();
+
+    // disable writing to the depth buffer
+    glDepthFunc(GL_LEQUAL);
+    glDepthMask(GL_FALSE);
+
+    if (scene.envCubeMap != nullptr) {
+        stats = scene.envCubeMap->draw(skyboxShader, camera);
+    }
+
+    // restore depth func
+    glDepthFunc(GL_LESS);
+    glDepthMask(GL_TRUE);
+
+    return stats;
+}
+
+RenderStats OpenGLRenderer::drawObjects(const Scene &scene, const Camera &camera, uint32_t clearMask) {
+    pipeline.apply();
+
+    RenderStats stats;
+
+    // update shadows
+    updateDirLightShadow(scene, camera);
+    updatePointLightShadows(scene, camera);
+
+    // draw all objects in the scene
+    stats += drawScene(scene, camera, clearMask);
+
+    // draw lights for debugging
+    stats += drawLights(scene, camera);
 
     // draw skybox
     stats += drawSkyBox(scene, camera);
-
-    // now bind back to default gBuffer and draw a quad plane with the attached gBuffer color texture
-    gBuffer.unbind();
 
     return stats;
 }
 
 RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,
-                                     bool frustumCull, const Material* overrideMaterial) {
+                                     bool frustumCull, const Material* overrideMaterial, const Texture* prevDepthMap) {
     const glm::mat4 &model = parentTransform * node->getTransformParentFromLocal();
 
     RenderStats stats;
     if (node->entity != nullptr) {
         if (node->visible) {
-            node->entity->bindMaterial(scene, model, overrideMaterial);
+            node->entity->bindMaterial(scene, model, overrideMaterial, prevDepthMap);
             bool doFrustumCull = frustumCull && node->frustumCulled;
             stats += node->entity->draw(camera, model, doFrustumCull, overrideMaterial);
         }
@@ -288,16 +313,8 @@ RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const Rende
     glClear(GL_COLOR_BUFFER_BIT);
 
     screenShader.bind();
-
-    // set gbuffer texture uniforms
-    screenShader.setTexture("screenColor", gBuffer.colorBuffer, 0);
-    screenShader.setTexture("screenDepth", gBuffer.depthBuffer, 1);
-    screenShader.setTexture("screenPositions", gBuffer.positionBuffer, 2);
-    screenShader.setTexture("screenNormals", gBuffer.normalsBuffer, 3);
-    screenShader.setTexture("idBuffer", gBuffer.idBuffer, 4);
-
+    setScreenShaderUniforms(screenShader);
     RenderStats stats = outputFsQuad.draw();
-
     screenShader.unbind();
 
     if (overrideRenderTarget != nullptr) {
@@ -309,13 +326,4 @@ RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const Rende
 
 RenderStats OpenGLRenderer::drawToRenderTarget(const Shader &screenShader, const RenderTarget &renderTarget) {
     return drawToScreen(screenShader, &renderTarget);
-}
-
-void OpenGLRenderer::resize(unsigned int width, unsigned int height) {
-    this->width = width;
-    this->height = height;
-
-    glViewport(0, 0, width, height);
-    gBuffer.resize(width, height);
-    gBuffer.resize(width, height);
 }

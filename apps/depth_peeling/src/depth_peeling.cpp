@@ -1,39 +1,24 @@
 #include <iostream>
-#include <fstream>
 
 #include <args.hxx>
 
 #include <OpenGLApp.h>
-#include <Renderers/ForwardRenderer.h>
+#include <Renderers/DepthPeelingRenderer.h>
 #include <SceneLoader.h>
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
-#define VERTICES_IN_A_QUAD 4
-#define NUM_SUB_QUADS 4
-
-const std::string DATA_PATH = "../streamer/";
-
-enum class RenderState {
-    MESH,
-    POINTCLOUD,
-    WIREFRAME
-};
-
-int surfelSize = 4;
-RenderState renderState = RenderState::MESH;
+#define TEXTURE_PREVIEW_SIZE 300
 
 int main(int argc, char** argv) {
     Config config{};
-    config.title = "MeshWarp2 Receiver";
+    config.title = "Depth Peeling";
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
-    args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
-    args::ValueFlag<int> renderStateIn(parser, "render", "Render state", {'r', "render-state"}, 0);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -55,9 +40,6 @@ int main(int argc, char** argv) {
 
     std::string scenePath = args::get(scenePathIn);
 
-    renderState = static_cast<RenderState>(args::get(renderStateIn));
-    surfelSize = args::get(surfelSizeIn);
-
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
 
@@ -65,16 +47,18 @@ int main(int argc, char** argv) {
     config.guiManager = guiManager;
 
     OpenGLApp app(config);
-    ForwardRenderer renderer(config);
+    DepthPeelingRenderer renderer(config);
 
     unsigned int screenWidth, screenHeight;
     window->getSize(screenWidth, screenHeight);
 
     Scene scene = Scene();
     Camera camera = Camera(screenWidth, screenHeight);
+    SceneLoader loader = SceneLoader();
+    loader.loadScene(scenePath, scene, camera);
 
-    scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
-
+    float exposure = 1.0f;
+    int shaderIndex = 0;
     RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
@@ -112,7 +96,7 @@ int main(int argc, char** argv) {
         }
 
         if (showUI) {
-            ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowPos(ImVec2(10, 90), ImGuiCond_FirstUseEver);
             ImGui::Begin(config.title.c_str(), &showUI);
             ImGui::Text("OpenGL Version: %s", glGetString(GL_VERSION));
@@ -148,9 +132,24 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::RadioButton("Render Mesh", (int*)&renderState, 0);
-            ImGui::RadioButton("Render Point Cloud", (int*)&renderState, 1);
-            ImGui::RadioButton("Render Wireframe", (int*)&renderState, 2);
+            if (ImGui::CollapsingHeader("Directional Light Settings")) {
+                ImGui::TextColored(ImVec4(1,1,1,1), "Directional Light Settings");
+                ImGui::ColorEdit3("Color", (float*)&scene.directionalLight->color);
+                ImGui::SliderFloat("Strength", &scene.directionalLight->intensity, 0.1f, 100.0f);
+                ImGui::SliderFloat3("Direction", (float*)&scene.directionalLight->direction, -5.0f, 5.0f);
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::CollapsingHeader("Post Processing Settings")) {
+                ImGui::SliderFloat("Exposure", &exposure, 0.1f, 5.0f);
+                ImGui::RadioButton("Show Color", &shaderIndex, 0);
+                ImGui::RadioButton("Show Depth", &shaderIndex, 1);
+                ImGui::RadioButton("Show Positions", &shaderIndex, 2);
+                ImGui::RadioButton("Show Normals", &shaderIndex, 3);
+                ImGui::RadioButton("Show Primative IDs", &shaderIndex, 4);
+            }
+
             ImGui::End();
         }
 
@@ -178,6 +177,48 @@ int main(int argc, char** argv) {
 
             ImGui::End();
         }
+
+        flags = ImGuiWindowFlags_AlwaysAutoResize;
+
+        ImGui::SetNextWindowPos(ImVec2(screenWidth - 4 * TEXTURE_PREVIEW_SIZE - 120, 40), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Layer 0 Color", 0, flags);
+        ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[0]->colorBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::End();
+
+        ImGui::SetNextWindowPos(ImVec2(screenWidth - 3 * TEXTURE_PREVIEW_SIZE - 90, 40), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Layer 1 Color", 0, flags);
+        ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[1]->colorBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::End();
+
+        ImGui::SetNextWindowPos(ImVec2(screenWidth - 2 * TEXTURE_PREVIEW_SIZE - 60, 40), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Layer 2 Color", 0, flags);
+        ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[2]->colorBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::End();
+
+        ImGui::SetNextWindowPos(ImVec2(screenWidth - TEXTURE_PREVIEW_SIZE - 30, 40), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Layer 3 Color", 0, flags);
+        ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[3]->colorBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::End();
+
+        ImGui::SetNextWindowPos(ImVec2(screenWidth - 4 * TEXTURE_PREVIEW_SIZE - 120, 40 + 60 + TEXTURE_PREVIEW_SIZE), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Layer 0 Depth", 0, flags);
+        ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[0]->depthBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::End();
+
+        ImGui::SetNextWindowPos(ImVec2(screenWidth - 3 * TEXTURE_PREVIEW_SIZE - 90, 40 + 60 + TEXTURE_PREVIEW_SIZE), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Layer 1 Depth", 0, flags);
+        ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[1]->depthBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::End();
+
+        ImGui::SetNextWindowPos(ImVec2(screenWidth - 2 * TEXTURE_PREVIEW_SIZE - 60, 40 + 60 + TEXTURE_PREVIEW_SIZE), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Layer 2 Depth", 0, flags);
+        ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[2]->depthBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::End();
+
+        ImGui::SetNextWindowPos(ImVec2(screenWidth - TEXTURE_PREVIEW_SIZE - 30, 40 + 60 + TEXTURE_PREVIEW_SIZE), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Layer 3 Depth", 0, flags);
+        ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[3]->depthBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::End();
     });
 
     app.onResize([&](unsigned int width, unsigned int height) {
@@ -191,60 +232,30 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader screenShader = Shader({
+    Shader showColorShader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
 
-    std::string verticesFileName = DATA_PATH + "vertices.bin";
-    std::string indicesFileName = DATA_PATH + "indices.bin";
-    std::string colorFileName = DATA_PATH + "color.png";
-
-    auto vertexData = FileIO::loadBinaryFile(verticesFileName);
-    auto indexData = FileIO::loadBinaryFile(indicesFileName);
-
-    Texture colorTexture = Texture({
-        .wrapS = GL_REPEAT,
-        .wrapT = GL_REPEAT,
-        .minFilter = GL_NEAREST,
-        .magFilter = GL_NEAREST,
-        .flipVertically = true,
-        .path = colorFileName
+    Shader showDepthShader({
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../shaders/postprocessing/displayDepth.frag"
     });
 
-    unsigned int remoteWidth = colorTexture.width / surfelSize;
-    unsigned int remoteHeight = colorTexture.height / surfelSize;
-
-    int numVertices = remoteWidth * remoteHeight * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
-    std::vector<Vertex> vertices(numVertices);
-    std::memcpy(vertices.data(), vertexData.data(), vertexData.size());
-
-    int numTriangles = remoteWidth * remoteHeight * NUM_SUB_QUADS * 2;
-    int indexBufferSize = numTriangles * 3;
-    std::vector<unsigned int> indices(indexBufferSize);
-    std::memcpy(indices.data(), indexData.data(), indexData.size());
-
-    Mesh mesh = Mesh({
-        .vertices = vertices,
-        .indices = indices,
-        .material = new UnlitMaterial({ .diffuseTextureID = colorTexture.ID }),
-        .wireframe = false,
-        .pointcloud = renderState == RenderState::POINTCLOUD,
+    Shader showPositionShader({
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../shaders/postprocessing/displayPositions.frag"
     });
-    Node node(&mesh);
-    node.frustumCulled = false;
-    scene.addChildNode(&node);
 
-    Mesh meshWireframe = Mesh({
-        .vertices = vertices,
-        .indices = indices,
-        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-        .wireframe = true,
-        .pointcloud = false,
+    Shader showNormalShader({
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../shaders/postprocessing/displayNormals.frag"
     });
-    Node nodeWireframe(&meshWireframe);
-    nodeWireframe.frustumCulled = false;
-    scene.addChildNode(&nodeWireframe);
+
+    Shader showIDShader({
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../shaders/postprocessing/displayIDs.frag"
+    });
 
     app.onRender([&](double now, double dt) {
         // handle mouse input
@@ -289,16 +300,33 @@ int main(int argc, char** argv) {
             window->close();
         }
 
-        mesh.pointcloud = renderState == RenderState::POINTCLOUD;
-        nodeWireframe.visible = renderState == RenderState::WIREFRAME;
-
-        nodeWireframe.setPosition(node.getPosition() - camera.getForwardVector() * 0.001f);
-
         // render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);
 
         // render to screen
-        renderer.drawToScreen(screenShader);
+        if (shaderIndex == 1) {
+            showDepthShader.bind();
+            showDepthShader.setFloat("near", camera.near);
+            showDepthShader.setFloat("far", camera.far);
+            renderer.drawToScreen(showDepthShader);
+        }
+        else if (shaderIndex == 2) {
+            showPositionShader.bind();
+            renderer.drawToScreen(showPositionShader);
+        }
+        else if (shaderIndex == 3) {
+            showNormalShader.bind();
+            renderer.drawToScreen(showNormalShader);
+        }
+        else if (shaderIndex == 4) {
+            showIDShader.bind();
+            renderer.drawToScreen(showIDShader);
+        }
+        else {
+            showColorShader.bind();
+            showColorShader.setFloat("exposure", exposure);
+            renderer.drawToScreen(showColorShader);
+        }
     });
 
     // run app loop (blocking)

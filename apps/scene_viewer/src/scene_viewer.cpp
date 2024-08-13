@@ -2,11 +2,13 @@
 
 #include <args.hxx>
 
-#include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
+#include <Renderers/ForwardRenderer.h>
 #include <SceneLoader.h>
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
+
+#define TEXTURE_PREVIEW_SIZE 300
 
 int main(int argc, char** argv) {
     Config config{};
@@ -45,6 +47,7 @@ int main(int argc, char** argv) {
     config.guiManager = guiManager;
 
     OpenGLApp app(config);
+    ForwardRenderer renderer(config);
 
     unsigned int screenWidth, screenHeight;
     window->getSize(screenWidth, screenHeight);
@@ -165,10 +168,10 @@ int main(int argc, char** argv) {
 
             if (ImGui::Button("Capture Current Frame")) {
                 if (saveAsHDR) {
-                    app.renderer->gBuffer.saveColorAsHDR(fileName + ".hdr");
+                    renderer.gBuffer.saveColorAsHDR(fileName + ".hdr");
                 }
                 else {
-                    app.renderer->gBuffer.saveColorAsPNG(fileName + ".png");
+                    renderer.gBuffer.saveColorAsPNG(fileName + ".png");
                 }
             }
 
@@ -179,6 +182,8 @@ int main(int argc, char** argv) {
     app.onResize([&](unsigned int width, unsigned int height) {
         screenWidth = width;
         screenHeight = height;
+
+        renderer.resize(width, height);
 
         camera.aspect = (float)screenWidth / (float)screenHeight;
         camera.updateProjectionMatrix();
@@ -254,31 +259,31 @@ int main(int argc, char** argv) {
         }
 
         // render all objects in scene
-        renderStats = app.renderer->drawObjects(scene, camera);
+        renderStats = renderer.drawObjects(scene, camera);
 
         // render to screen
         if (shaderIndex == 1) {
             showDepthShader.bind();
             showDepthShader.setFloat("near", camera.near);
             showDepthShader.setFloat("far", camera.far);
-            app.renderer->drawToScreen(showDepthShader);
+            renderer.drawToScreen(showDepthShader);
         }
         else if (shaderIndex == 2) {
             showPositionShader.bind();
-            app.renderer->drawToScreen(showPositionShader);
+            renderer.drawToScreen(showPositionShader);
         }
         else if (shaderIndex == 3) {
             showNormalShader.bind();
-            app.renderer->drawToScreen(showNormalShader);
+            renderer.drawToScreen(showNormalShader);
         }
         else if (shaderIndex == 4) {
             showIDShader.bind();
-            app.renderer->drawToScreen(showIDShader);
+            renderer.drawToScreen(showIDShader);
         }
         else {
             showColorShader.bind();
             showColorShader.setFloat("exposure", exposure);
-            app.renderer->drawToScreen(showColorShader);
+            renderer.drawToScreen(showColorShader);
         }
     });
 

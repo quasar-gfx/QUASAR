@@ -14,9 +14,9 @@
 #include <assimp/port/AndroidJNI/AndroidJNIIOSystem.h>
 #endif
 
-void Model::bindMaterial(const Scene &scene, const glm::mat4 &model, const Material* overrideMaterial) {
+void Model::bindMaterial(const Scene &scene, const glm::mat4 &model, const Material* overrideMaterial, const Texture* prevDepthMap) {
     for (auto& mesh : meshes) {
-        mesh->bindMaterial(scene, model, overrideMaterial);
+        mesh->bindMaterial(scene, model, overrideMaterial, prevDepthMap);
     }
 }
 

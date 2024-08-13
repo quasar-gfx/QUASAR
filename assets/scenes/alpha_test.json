@@ -1,0 +1,93 @@
+{
+    "skybox": {
+        "path": "../assets/textures/hdr/barcelona.hdr",
+        "HDR": true,
+        "flipVertically": true,
+        "width": 1024,
+        "height": 1024
+    },
+    "materials": [
+        {
+            "PBR": true,
+            "albedoTexturePath": "../assets/textures/window.png",
+            "alphaMode": "masked",
+            "maskThreshold": 0.1
+        }
+    ],
+    "models": [
+    ],
+    "meshes": [
+        {
+            "type": "plane",
+            "material": 0
+        }
+    ],
+    "nodes": [
+        {
+            "mesh": 0,
+            "position": [0.0, 0.0, -10.0],
+            "rotation": [-90.0, 0.0, 0.0]
+        },
+        {
+            "mesh": 0,
+            "position": [0.0, 0.0, -7.5],
+            "rotation": [-90.0, 0.0, 0.0]
+        },
+        {
+            "mesh": 0,
+            "position": [0.0, 0.0, -5.0],
+            "rotation": [-90.0, 0.0, 0.0]
+        }
+    ],
+    "camera": {
+        "fov": 60.0,
+        "near": 0.1,
+        "far": 1000.0,
+        "position": [0.0, 0.0, 0.0],
+        "rotation": [0.0, 0.0, 0.0]
+    },
+    "ambientLight": {
+        "color": [0.9, 0.9, 0.9],
+        "intensity": 0.1
+    },
+    "directionalLight": {
+        "color": [1.0, 0.9, 0.75],
+        "direction": [-1.0, -5.0, 0.0],
+        "distance": 10.0,
+        "intensity": 1.0
+    },
+    "pointLights": [
+        {
+            "color": [0.9, 0.9, 1.0],
+            "position": [-1.45, 2.5, -6.2],
+            "intensity": 25.0,
+            "constant": 0.0,
+            "linear": 0.09,
+            "quadratic": 1.0
+        },
+        {
+            "color": [0.9, 0.9, 1.0],
+            "position": [2.2, 2.5, -6.2],
+            "intensity": 25.0,
+            "constant": 0.0,
+            "linear": 0.09,
+            "quadratic": 1.0
+        },
+        {
+            "color": [0.9, 0.9, 1.0],
+            "position": [-1.45, 2.5, 4.89],
+            "intensity": 25.0,
+            "constant": 0.0,
+            "linear": 0.09,
+            "quadratic": 1.0
+        },
+        {
+            "color": [0.9, 0.9, 1.0],
+            "position": [2.2, 2.5, 4.89],
+            "intensity": 25.0,
+            "constant": 0.0,
+            "linear": 0.09,
+            "quadratic": 1.0
+        }
+    ]
+}
