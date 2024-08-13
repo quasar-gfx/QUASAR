@@ -40,6 +40,16 @@ RenderStats Model::draw(const Camera cameras[], const glm::mat4 &model, bool fru
     return stats;
 }
 
+RenderStats Model::draw(const VRCamera cameras, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
+    RenderStats stats;
+
+    for (auto& mesh : meshes) {
+        stats += mesh->draw(cameras, model, frustumCull, overrideMaterial);
+    }
+
+    return stats;
+}
+
 RenderStats Model::draw(const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
     RenderStats stats;
 
@@ -51,6 +61,16 @@ RenderStats Model::draw(const Camera &camera, const glm::mat4 &model, const Boun
 }
 
 RenderStats Model::draw(const Camera cameras[], const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
+    RenderStats stats;
+
+    for (auto& mesh : meshes) {
+        stats += mesh->draw(cameras, model, boundingSphere, overrideMaterial);
+    }
+
+    return stats;
+}
+
+RenderStats Model::draw(const VRCamera cameras, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
     RenderStats stats;
 
     for (auto& mesh : meshes) {

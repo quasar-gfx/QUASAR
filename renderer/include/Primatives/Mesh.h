@@ -10,6 +10,7 @@
 #include <Materials/Material.h>
 #include <Scene.h>
 #include <Camera.h>
+#include <VRCamera.h>
 
 struct MeshCreateParams {
     std::vector<Vertex> vertices;
@@ -52,6 +53,8 @@ public:
     virtual RenderStats draw(const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) override;
     virtual RenderStats draw(const Camera cameras[], const glm::mat4 &model, bool frustumCull = true, const Material* overrideMaterial = nullptr) override;
     virtual RenderStats draw(const Camera cameras[], const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) override;
+    virtual RenderStats draw(const VRCamera cameras, const glm::mat4 &model, bool frustumCull = true, const Material* overrideMaterial = nullptr) override;
+    virtual RenderStats draw(const VRCamera cameras, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) override;
     virtual RenderStats draw();
     void setBuffers(const std::vector<Vertex> &vertices, const std::vector<unsigned int> &indices);
     void setBuffers(GLuint vertexBufferSSBO, GLuint indexBufferSSBO = -1);
@@ -70,5 +73,6 @@ protected:
 
     void setMaterialCameraParams(const Camera &camera, const Material* material);
     void setMaterialCameraParams(const Camera cameras[], const Material* material);
+    void setMaterialCameraParams(const VRCamera camera, const Material* material);
 };
 #endif

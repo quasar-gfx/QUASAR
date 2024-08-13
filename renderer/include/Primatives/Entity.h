@@ -10,6 +10,7 @@
 class Node;
 class Scene;
 class Camera;
+class VRCamera;
 
 enum class EntityType {
     EMPTY,
@@ -55,6 +56,9 @@ public:
     virtual RenderStats draw(const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) = 0;
     virtual RenderStats draw(const Camera cameras[], const glm::mat4 &model, bool frustumCull = true, const Material* overrideMaterial = nullptr) = 0;
     virtual RenderStats draw(const Camera cameras[], const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) = 0;
+    virtual RenderStats draw(const VRCamera cameras, const glm::mat4 &model, bool frustumCull = true, const Material* overrideMaterial = nullptr) = 0;
+    virtual RenderStats draw(const VRCamera cameras, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) = 0;
+
 
     virtual EntityType getType() const { return EntityType::EMPTY; }
 
