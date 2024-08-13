@@ -23,15 +23,17 @@ void DepthPeelingRenderer::resize(unsigned int width, unsigned int height) {
     }
 }
 
-RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &camera) {
+RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &camera, uint32_t clearMask) {
     RenderStats stats;
 
     for (int i = 0; i < maxLayers; i++) {
         auto& currentGBuffer = peelingLayers[i];
 
         currentGBuffer->bind();
-        glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        if (clearMask != 0) {
+            glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
+            glClear(clearMask);
+        }
 
         Texture* prevDepthMap = nullptr;
         if (i >= 1) {
@@ -70,9 +72,9 @@ RenderStats DepthPeelingRenderer::drawSkyBox(const Scene &scene, const Camera &c
     return stats;
 }
 
-RenderStats DepthPeelingRenderer::drawObjects(const Scene &scene, const Camera &camera) {
+RenderStats DepthPeelingRenderer::drawObjects(const Scene &scene, const Camera &camera, uint32_t clearMask) {
     RenderStats stats;
-    stats = OpenGLRenderer::drawObjects(scene, camera);
+    stats = OpenGLRenderer::drawObjects(scene, camera, clearMask);
     stats += compositeLayers();
     return stats;
 }

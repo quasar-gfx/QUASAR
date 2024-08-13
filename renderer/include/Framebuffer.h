@@ -15,7 +15,41 @@ public:
     }
 
     bool checkStatus(const std::string &name = "") {
-        return glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+        GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if (status != GL_FRAMEBUFFER_COMPLETE) {
+            std::cerr << "Framebuffer is not complete: ";
+            switch (status) {
+            case GL_FRAMEBUFFER_UNDEFINED:
+                std::cerr << "GL_FRAMEBUFFER_UNDEFINED";
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+                std::cerr << "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT";
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+                std::cerr << "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT";
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+                std::cerr << "GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER";
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+                std::cerr << "GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER";
+                break;
+            case GL_FRAMEBUFFER_UNSUPPORTED:
+                std::cerr << "GL_FRAMEBUFFER_UNSUPPORTED";
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+                std::cerr << "GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE";
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:
+                std::cerr << "GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS";
+                break;
+            default:
+                std::cerr << "Unknown error";
+            }
+            std::cerr << std::endl;
+            return false;
+        }
+        return true;
     }
 
     void attachTexture(const Texture &texture, GLenum attachment) {

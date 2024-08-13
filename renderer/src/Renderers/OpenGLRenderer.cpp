@@ -161,9 +161,11 @@ RenderStats OpenGLRenderer::updatePointLightShadows(const Scene &scene, const Ca
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawScene(const Scene &scene, const Camera &camera) {
-    glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+RenderStats OpenGLRenderer::drawScene(const Scene &scene, const Camera &camera, uint32_t clearMask) {
+    if (clearMask != 0) {
+        glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
+        glClear(clearMask);
+    }
 
     RenderStats stats;
     for (auto& child : scene.children) {
@@ -219,14 +221,22 @@ RenderStats OpenGLRenderer::drawSkyBox(const Scene &scene, const Camera &camera)
     skyboxShader.setTexture("environmentMap", skybox, 0);
     skyboxShader.unbind();
 
+    // disable writing to the depth buffer
+    glDepthFunc(GL_LEQUAL);
+    glDepthMask(GL_FALSE);
+
     if (scene.envCubeMap != nullptr) {
         stats = scene.envCubeMap->draw(skyboxShader, camera);
     }
 
+    // restore depth func
+    glDepthFunc(GL_LESS);
+    glDepthMask(GL_TRUE);
+
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawObjects(const Scene &scene, const Camera &camera) {
+RenderStats OpenGLRenderer::drawObjects(const Scene &scene, const Camera &camera, uint32_t clearMask) {
     pipeline.apply();
 
     RenderStats stats;
@@ -236,7 +246,7 @@ RenderStats OpenGLRenderer::drawObjects(const Scene &scene, const Camera &camera
     updatePointLightShadows(scene, camera);
 
     // draw all objects in the scene
-    stats += drawScene(scene, camera);
+    stats += drawScene(scene, camera, clearMask);
 
     // draw lights for debugging
     stats += drawLights(scene, camera);

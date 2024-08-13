@@ -15,7 +15,7 @@ public:
 
     void resize(unsigned int width, unsigned int height) override;
 
-    RenderStats drawScene(const Scene &scene, const Camera &camera) override;
+    RenderStats drawScene(const Scene &scene, const Camera &camera, uint32_t clearMask) override;
     RenderStats drawLights(const Scene &scene, const Camera &camera) override;
     RenderStats drawSkyBox(const Scene &scene, const Camera &camera) override;
 };

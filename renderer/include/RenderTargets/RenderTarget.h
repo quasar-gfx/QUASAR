@@ -25,16 +25,16 @@ public:
             , depthBuffer({
                 .width = width,
                 .height = height,
-                .internalFormat = GL_DEPTH_COMPONENT24,
-                .format = GL_DEPTH_COMPONENT,
-                .type = GL_UNSIGNED_INT,
+                .internalFormat = GL_DEPTH24_STENCIL8,
+                .format = GL_DEPTH_STENCIL,
+                .type = GL_UNSIGNED_INT_24_8,
                 .minFilter = GL_NEAREST,
                 .magFilter = GL_NEAREST,
                 .multiSampled = params.multiSampled
             }) {
         framebuffer.bind();
         framebuffer.attachTexture(colorBuffer, GL_COLOR_ATTACHMENT0);
-        framebuffer.attachTexture(depthBuffer, GL_DEPTH_ATTACHMENT);
+        framebuffer.attachTexture(depthBuffer, GL_DEPTH_STENCIL_ATTACHMENT);
 
         if (!framebuffer.checkStatus()) {
             throw std::runtime_error("Framebuffer is not complete!");
@@ -46,7 +46,7 @@ public:
     void blitToRenderTarget(RenderTarget &target) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, target.framebuffer.ID);
-        glBlitFramebuffer(0, 0, width, height, 0, 0, target.width, target.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        glBlitFramebuffer(0, 0, width, height, 0, 0, target.width, target.height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
     }
 
     void resize(unsigned int width, unsigned int height) override {

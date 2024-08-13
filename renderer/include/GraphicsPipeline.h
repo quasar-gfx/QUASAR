@@ -17,6 +17,7 @@ struct StencilState {
     GLenum stencilFail = GL_KEEP; // GL_KEEP, GL_ZERO, GL_REPLACE, GL_INCR, GL_INCR_WRAP, GL_DECR, GL_DECR_WRAP, GL_INVERT
     GLenum stencilPassDepthFail = GL_KEEP;
     GLenum stencilPassDepthPass = GL_KEEP;
+    GLuint writeStencilMask = 0xFF;
 };
 
 struct BlendState {
@@ -100,6 +101,7 @@ struct GraphicsPipeline {
             glStencilOp(stencilState.stencilFail,
                         stencilState.stencilPassDepthFail,
                         stencilState.stencilPassDepthPass);
+            glStencilMask(stencilState.writeStencilMask);
         }
         else {
             glDisable(GL_STENCIL_TEST);

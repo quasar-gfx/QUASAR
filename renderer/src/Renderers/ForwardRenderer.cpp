@@ -10,11 +10,11 @@ void ForwardRenderer::resize(unsigned int width, unsigned int height) {
     gBuffer.resize(width, height);
 }
 
-RenderStats ForwardRenderer::drawScene(const Scene &scene, const Camera &camera) {
+RenderStats ForwardRenderer::drawScene(const Scene &scene, const Camera &camera, uint32_t clearMask) {
     RenderStats stats;
 
     gBuffer.bind();
-    stats = OpenGLRenderer::drawScene(scene, camera);
+    stats = OpenGLRenderer::drawScene(scene, camera, clearMask);
     gBuffer.unbind();
 
     return stats;

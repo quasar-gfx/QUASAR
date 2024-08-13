@@ -232,9 +232,6 @@ void CubeMap::prefilter(const Shader &prefilterShader, const CubeMap &envCubeMap
 RenderStats CubeMap::draw(const Shader &shader, const Camera &camera) const {
     RenderStats stats;
 
-    glDepthFunc(GL_LEQUAL);
-    glDepthMask(GL_FALSE);
-
     shader.bind();
 
     // remove translation from the view matrix
@@ -247,10 +244,6 @@ RenderStats CubeMap::draw(const Shader &shader, const Camera &camera) const {
     unbind();
 
     shader.unbind();
-
-    // restore depth func
-    glDepthMask(GL_TRUE);
-    glDepthFunc(GL_LESS);
 
     stats.drawCalls = 1;
 
