@@ -83,7 +83,7 @@ public:
             return false;
         }
 #else
-    currPose.projL = camera->getProjectionMatrix();
+        currPose.proj = camera->getProjectionMatrix();
         currPose.view = camera->getViewMatrix();
         if (epsilonEqual(currPose.view, prevPose.view)) {
             return false;
