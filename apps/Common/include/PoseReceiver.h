@@ -11,6 +11,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <Camera.h>
+#include <VRCamera.h>
 #include <Networking/DataReceiverUDP.h>
 
 #include <CameraPose.h>
@@ -21,6 +22,11 @@ public:
 
     explicit PoseReceiver(Camera* camera, std::string streamerURL)
             : camera(camera)
+            , streamerURL(streamerURL)
+            , receiver(streamerURL, sizeof(Pose)) { }
+    
+    explicit PoseReceiver(VRCamera* vrcamera, std::string streamerURL)
+            : vrcamera(vrcamera)
             , streamerURL(streamerURL)
             , receiver(streamerURL, sizeof(Pose)) { }
 
@@ -37,18 +43,30 @@ public:
 
         std::memcpy(&currPose, data.data(), sizeof(Pose));
 
+#ifdef VR
+        if (setProj) {
+            vrcamera->left.setProjectionMatrix(currPose.projL);
+            vrcamera->right.setProjectionMatrix(currPose.projR);
+        }
+        vrcamera->left.setViewMatrix(currPose.viewL);
+        vrcamera->right.setViewMatrix(currPose.viewR);
+        
+        return currPose.id;
+#else
         if (setProj) {
             camera->setProjectionMatrix(currPose.proj);
         }
         camera->setViewMatrix(currPose.view);
 
         return currPose.id;
+#endif
     }
 
 private:
     DataReceiverUDP receiver;
 
     Camera* camera;
+    VRCamera* vrcamera;
     Pose currPose;
 };
 

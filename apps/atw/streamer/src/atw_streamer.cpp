@@ -65,11 +65,10 @@ int main(int argc, char** argv) {
 
     Scene scene = Scene();
 #ifdef VR
-    Camera camera = Camera(screenWidth / 2, screenHeight);
-    Camera cameraRight = Camera(screenWidth / 2, screenHeight);
+    VRCamera camera = VRCamera(Camera(screenWidth / 2, screenHeight), Camera(screenWidth / 2, screenHeight));
     SceneLoader loader = SceneLoader();
-    loader.loadScene(scenePath, scene, camera);
-    loader.loadScene(scenePath, scene, cameraRight);
+    loader.loadScene(scenePath, scene, camera.left);
+    loader.loadScene(scenePath, scene, camera.right);
 #else
     Camera camera = Camera(screenWidth, screenHeight);
     SceneLoader loader = SceneLoader();
@@ -231,16 +230,14 @@ int main(int argc, char** argv) {
         screenWidth = width;
         screenHeight = height;
 
-
-#ifdef VR
-        camera.aspect = (float)screenWidth / 2 / (float)screenHeight;
-        camera.updateProjectionMatrix();
-
-        cameraRight.aspect = (float)screenWidth / 2 / (float)screenHeight;
-        cameraRight.updateProjectionMatrix();
-#else
         renderer.resize(width, height);
+#ifdef VR
+        camera.left.aspect = (float)screenWidth / 2 / (float)screenHeight;
+        camera.left.updateProjectionMatrix();
 
+        camera.right.aspect = (float)screenWidth / 2 / (float)screenHeight;
+        camera.right.updateProjectionMatrix();
+#else
         camera.aspect = (float)screenWidth / (float)screenHeight;
         camera.updateProjectionMatrix();
 #endif
@@ -273,10 +270,11 @@ int main(int argc, char** argv) {
         scene.pointLights[2]->setPosition(pointLightPositions[2] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
         scene.pointLights[3]->setPosition(pointLightPositions[3] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
 
-        // render all objects in scene
-        renderStats = renderer.drawObjects(scene, camera);
+
 #ifdef VR
-        renderStats = renderer.drawObjects(scene, cameraRight);
+        // render all objects in scene
+        renderStats = renderer.drawObjects(scene, camera.left);
+        renderStats = renderer.drawObjects(scene, camera.right);
         renderer.drawToRenderTarget(colorShader, videoStreamerRT);
         renderer.drawToRenderTarget(colorShader, videoStreamerRTright);
 
@@ -291,7 +289,8 @@ int main(int argc, char** argv) {
         renderer.drawToRenderTarget(sidebysideShader, videoStreamerRTcombined);
         renderer.drawToScreen(sidebysideShader);
 #else
-        
+        // render all objects in scene
+        renderStats = renderer.drawObjects(scene, camera);
         // render to screen
         if (config.showWindow) {
             renderer.drawToScreen(colorShader);
