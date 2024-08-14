@@ -63,10 +63,17 @@ int main(int argc, char** argv) {
     window->getSize(screenWidth, screenHeight);
 
     Scene scene = Scene();
+#ifdef VR
+    Camera camera = Camera(screenWidth / 2, screenHeight);
+    Camera cameraRight = Camera(screenWidth / 2, screenHeight);
+    SceneLoader loader = SceneLoader();
+    loader.loadScene(scenePath, scene, camera);
+    loader.loadScene(scenePath, scene, cameraRight);
+#else
     Camera camera = Camera(screenWidth, screenHeight);
     SceneLoader loader = SceneLoader();
     loader.loadScene(scenePath, scene, camera);
-
+#endif
     VideoStreamer videoStreamerRT = VideoStreamer({
         .width = screenWidth,
         .height = screenHeight,
@@ -78,6 +85,33 @@ int main(int argc, char** argv) {
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR
     }, videoURL, targetBitrate);
+#ifdef VR
+    // rt2
+    VideoStreamer videoStreamerRTright = VideoStreamer({
+        .width = screenWidth,
+        .height = screenHeight,
+        .internalFormat = GL_SRGB,
+        .format = GL_RGB,
+        .type = GL_FLOAT,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_LINEAR,
+        .magFilter = GL_LINEAR
+    }, videoURL, targetBitrate);
+
+    // rt3
+    VideoStreamer videoStreamerRTcombined = VideoStreamer({
+        .width = screenWidth,
+        .height = screenHeight,
+        .internalFormat = GL_SRGB,
+        .format = GL_RGB,
+        .type = GL_FLOAT,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_LINEAR,
+        .magFilter = GL_LINEAR
+    }, videoURL, targetBitrate);
+#endif
     PoseReceiver poseReceiver = PoseReceiver(&camera, poseURL);
 
     std::cout << "Video URL: " << videoURL << std::endl;
@@ -196,8 +230,17 @@ int main(int argc, char** argv) {
         screenWidth = width;
         screenHeight = height;
 
+
+#ifdef VR
+        camera.aspect = (float)screenWidth / 2 / (float)screenHeight;
+        camera.updateProjectionMatrix();
+
+        cameraRight.aspect = (float)screenWidth / 2 / (float)screenHeight;
+        cameraRight.updateProjectionMatrix();
+#else
         camera.aspect = (float)screenWidth / (float)screenHeight;
         camera.updateProjectionMatrix();
+#endif
     });
 
     // shaders
@@ -229,13 +272,28 @@ int main(int argc, char** argv) {
 
         // render all objects in scene
         renderStats = app.renderer->drawObjects(scene, camera);
+#ifdef VR
+        renderStats = app.renderer->drawObjects(scene, cameraRight);
+        app.renderer->drawToRenderTarget(colorShader, videoStreamerRT);
+        app.renderer->drawToRenderTarget(colorShader, videoStreamerRTright);
 
+        // shaders
+        Shader sidebysideShader = Shader({
+            .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+            .fragmentCodePath = "../shaders/postprocessing/sidebyside.frag"
+        });
+        sidebysideShader.setTexture("camera1Buffer", app.renderer->gBuffer.colorBuffer, 5);
+        sidebysideShader.setTexture("camera2Buffer", app.renderer->gBuffer.colorBuffer, 6);
+
+        app.renderer->drawToRenderTarget(sidebysideShader, videoStreamerRTcombined);
+        app.renderer->drawToScreen(sidebysideShader);
+#else
         // render to screen
         if (config.showWindow) {
             app.renderer->drawToScreen(colorShader);
         }
         app.renderer->drawToRenderTarget(colorShader, videoStreamerRT);
-
+#endif
         // send video frame
         if (poseID != -1) {
             videoStreamerRT.sendFrame(poseID);
