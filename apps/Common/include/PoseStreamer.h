@@ -13,6 +13,7 @@
 
 #include <Utils/TimeUtils.h>
 #include <Camera.h>
+#include <VRCamera.h>
 #include <Networking/DataStreamerUDP.h>
 
 #include <CameraPose.h>
@@ -23,6 +24,11 @@ public:
 
     explicit PoseStreamer(Camera* camera, std::string receiverURL)
             : camera(camera)
+            , receiverURL(receiverURL)
+            , streamer(receiverURL, sizeof(Pose)) { }
+
+    explicit PoseStreamer(VRCamera* vrcamera, std::string receiverURL)
+            : vrcamera(vrcamera)
             , receiverURL(receiverURL)
             , streamer(receiverURL, sizeof(Pose)) { }
 
@@ -67,14 +73,23 @@ public:
 
     bool sendPose() {
         currPose.id = currPoseID;
+#ifdef VR
+        currPose.projL = vrcamera->left.getProjectionMatrix();
+        currPose.projR = vrcamera->right.getProjectionMatrix();
+        currPose.viewL = vrcamera->left.getViewMatrix();
+        currPose.viewR = vrcamera->right.getViewMatrix();
+        if (epsilonEqual(currPose.viewL, prevPose.viewL) ||
+            epsilonEqual(currPose.viewR, prevPose.viewR)) {
+            return false;
+        }
+#else
         currPose.proj = camera->getProjectionMatrix();
         currPose.view = camera->getViewMatrix();
-        currPose.timestamp = timeutils::getTimeMillis();
-
         if (epsilonEqual(currPose.view, prevPose.view)) {
             return false;
         }
-
+#endif
+        currPose.timestamp = timeutils::getTimeMillis();
         streamer.send((uint8_t*)&currPose);
 
         prevPoses[currPoseID] = currPose;
@@ -87,7 +102,7 @@ private:
     DataStreamerUDP streamer;
 
     Camera* camera;
-
+    VRCamera* vrcamera;
     Pose currPose, prevPose;
     pose_id_t currPoseID = 0;
 

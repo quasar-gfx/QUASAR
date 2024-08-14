@@ -54,7 +54,7 @@ public:
         this->scale = scale;
     }
 
-    glm::vec3 getPosition() const {
+    virtual glm::vec3 getPosition() const {
         return position;
     }
 

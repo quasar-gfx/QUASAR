@@ -2,8 +2,8 @@
 
 #include <args.hxx>
 
-#include <OpenGLRenderer.h>
 #include <OpenGLApp.h>
+#include <Renderers/ForwardRenderer.h>
 #include <SceneLoader.h>
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
@@ -58,6 +58,7 @@ int main(int argc, char** argv) {
     config.guiManager = guiManager;
 
     OpenGLApp app(config);
+    ForwardRenderer renderer(config);
 
     unsigned int screenWidth, screenHeight;
     window->getSize(screenWidth, screenHeight);
@@ -215,10 +216,10 @@ int main(int argc, char** argv) {
 
             if (ImGui::Button("Capture Current Frame")) {
                 if (saveAsHDR) {
-                    app.renderer->gBuffer.saveColorAsHDR(fileName + ".hdr");
+                    renderer.gBuffer.saveColorAsHDR(fileName + ".hdr");
                 }
                 else {
-                    app.renderer->gBuffer.saveColorAsPNG(fileName + ".png");
+                    renderer.gBuffer.saveColorAsPNG(fileName + ".png");
                 }
             }
 
@@ -238,6 +239,8 @@ int main(int argc, char** argv) {
         cameraRight.aspect = (float)screenWidth / 2 / (float)screenHeight;
         cameraRight.updateProjectionMatrix();
 #else
+        renderer.resize(width, height);
+
         camera.aspect = (float)screenWidth / (float)screenHeight;
         camera.updateProjectionMatrix();
 #endif
@@ -271,28 +274,29 @@ int main(int argc, char** argv) {
         scene.pointLights[3]->setPosition(pointLightPositions[3] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
 
         // render all objects in scene
-        renderStats = app.renderer->drawObjects(scene, camera);
+        renderStats = renderer.drawObjects(scene, camera);
 #ifdef VR
-        renderStats = app.renderer->drawObjects(scene, cameraRight);
-        app.renderer->drawToRenderTarget(colorShader, videoStreamerRT);
-        app.renderer->drawToRenderTarget(colorShader, videoStreamerRTright);
+        renderStats = renderer.drawObjects(scene, cameraRight);
+        renderer.drawToRenderTarget(colorShader, videoStreamerRT);
+        renderer.drawToRenderTarget(colorShader, videoStreamerRTright);
 
         // shaders
         Shader sidebysideShader = Shader({
             .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
             .fragmentCodePath = "../shaders/postprocessing/sidebyside.frag"
         });
-        sidebysideShader.setTexture("camera1Buffer", app.renderer->gBuffer.colorBuffer, 5);
-        sidebysideShader.setTexture("camera2Buffer", app.renderer->gBuffer.colorBuffer, 6);
+        sidebysideShader.setTexture("camera1Buffer", renderer.gBuffer.colorBuffer, 5);
+        sidebysideShader.setTexture("camera2Buffer", renderer.gBuffer.colorBuffer, 6);
 
-        app.renderer->drawToRenderTarget(sidebysideShader, videoStreamerRTcombined);
-        app.renderer->drawToScreen(sidebysideShader);
+        renderer.drawToRenderTarget(sidebysideShader, videoStreamerRTcombined);
+        renderer.drawToScreen(sidebysideShader);
 #else
+        
         // render to screen
         if (config.showWindow) {
-            app.renderer->drawToScreen(colorShader);
+            renderer.drawToScreen(colorShader);
         }
-        app.renderer->drawToRenderTarget(colorShader, videoStreamerRT);
+        renderer.drawToRenderTarget(colorShader, videoStreamerRT);
 #endif
         // send video frame
         if (poseID != -1) {
