@@ -23,15 +23,15 @@ In the `build` directory, there will be a folder called `apps`,
 
 # Sample Apps
 
-## Test
+## Scene Viewer
 
-The test app loads a scene and allows you to fly through it.
+The Scene Viewer app loads a scene and lets you to fly through it.
 
-Run test app:
+Run Scene Viewer app:
 ```
 # in build directory
-cd apps/test
-./test -size 2048x2048 --scene ../assets/scenes/sponza.json
+cd apps/scene_viewer
+./scene_viewer -size 2048x2048 --scene ../assets/scenes/sponza.json
 ```
 
 ## Asynchronous Time Warp (ATW)
