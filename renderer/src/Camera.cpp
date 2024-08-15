@@ -15,7 +15,7 @@ Camera::Camera(float fovy, float aspect, float near, float far) {
     updateCameraOrientation();
 }
 
-void Camera::setProjectionMatrix(glm::mat4 proj) {
+void Camera::setProjectionMatrix(const glm::mat4 &proj) {
     this->proj = proj;
 
     fovy = atan(1.0f / proj[1][1]) * 2.0f;
@@ -38,7 +38,7 @@ void Camera::updateProjectionMatrix() {
     frustum.setFromCameraMatrices(view, proj);
 }
 
-void Camera::setViewMatrix(glm::mat4 view) {
+void Camera::setViewMatrix(const glm::mat4 &view) {
     this->view = view;
     updateCameraOrientation();
     // frustum.setFromCameraParams(position, front, right, up, near, far, aspect, fovy);

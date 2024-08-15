@@ -55,13 +55,9 @@ public:
                              bool frustumCull = true, const Material* overrideMaterial = nullptr) override;
     virtual RenderStats draw(const Camera &camera, const glm::mat4 &model,
                              const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) override;
-    virtual RenderStats draw(const Camera cameras[], const glm::mat4 &model,
+    virtual RenderStats draw(const VRCamera &cameras, const glm::mat4 &model,
                              bool frustumCull = true, const Material* overrideMaterial = nullptr) override;
-    virtual RenderStats draw(const Camera cameras[], const glm::mat4 &model,
-                             const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) override;
-    virtual RenderStats draw(const VRCamera cameras, const glm::mat4 &model,
-                             bool frustumCull = true, const Material* overrideMaterial = nullptr) override;
-    virtual RenderStats draw(const VRCamera cameras, const glm::mat4 &model,
+    virtual RenderStats draw(const VRCamera &cameras, const glm::mat4 &model,
                              const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) override;
     virtual RenderStats draw();
     void setBuffers(const std::vector<Vertex> &vertices, const std::vector<unsigned int> &indices);
@@ -80,7 +76,6 @@ protected:
     void createAttributes();
 
     void setMaterialCameraParams(const Camera &camera, const Material* material);
-    void setMaterialCameraParams(const Camera cameras[], const Material* material);
-    void setMaterialCameraParams(const VRCamera camera, const Material* material);
+    void setMaterialCameraParams(const VRCamera &camera, const Material* material);
 };
 #endif

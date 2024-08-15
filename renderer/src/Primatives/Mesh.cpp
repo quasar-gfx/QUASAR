@@ -101,21 +101,11 @@ void Mesh::setMaterialCameraParams(const Camera &camera, const Material* materia
     material->shader->setVec3("camPos", camera.getPosition());
 }
 
-void Mesh::setMaterialCameraParams(const Camera cameras[], const Material* material) {
-    for (int i = 0; i < 2; i++) {
-        material->shader->setMat4("view["+std::to_string(i)+"]", cameras[i].getViewMatrix());
-        material->shader->setMat4("projection["+std::to_string(i)+"]", cameras[i].getProjectionMatrix());
-    }
-    // use the average of the two camera positions for the head center
-    material->shader->setVec3("camPos", (cameras[0].getPosition() + cameras[1].getPosition()) / 2.0f);
-}
-
-void Mesh::setMaterialCameraParams(const VRCamera camera, const Material* material) {
+void Mesh::setMaterialCameraParams(const VRCamera &camera, const Material* material) {
     material->shader->setMat4("view[0]", camera.left.getViewMatrix());
     material->shader->setMat4("projection[0]", camera.left.getProjectionMatrix());
     material->shader->setMat4("view[1]", camera.right.getViewMatrix());
     material->shader->setMat4("projection[1]", camera.right.getProjectionMatrix());
-    // use the average of the two camera positions for the head center
     material->shader->setVec3("camPos", camera.getPosition());
 }
 
@@ -186,30 +176,7 @@ RenderStats Mesh::draw(const Camera &camera, const glm::mat4 &model, bool frustu
     return stats;
 }
 
-RenderStats Mesh::draw(const Camera cameras[], const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
-    RenderStats stats;
-
-    auto &frustumLeft = cameras[0].frustum;
-    auto &frustumRight = cameras[1].frustum;
-    if (frustumCull && !frustumLeft.aabbIsVisible(aabb, model) && !frustumRight.aabbIsVisible(aabb, model)) {
-        return stats;
-    }
-
-    auto materialToUse = overrideMaterial != nullptr ? overrideMaterial : material;
-    materialToUse->bind();
-
-    setMaterialCameraParams(cameras, materialToUse);
-    materialToUse->shader->setMat4("model", model);
-    materialToUse->shader->setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
-
-    stats = draw();
-
-    materialToUse->unbind();
-
-    return stats;
-}
-
-RenderStats Mesh::draw(const VRCamera cameras, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
+RenderStats Mesh::draw(const VRCamera &cameras, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
     RenderStats stats;
 
     auto &frustumLeft = cameras.left.frustum;
@@ -240,15 +207,7 @@ RenderStats Mesh::draw(const Camera &camera, const glm::mat4 &model, const Bound
     return draw(camera, model, false, overrideMaterial);
 }
 
-RenderStats Mesh::draw(const Camera cameras[], const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
-    RenderStats stats;
-    if (!boundingSphere.intersects(aabb)) {
-        return stats;
-    }
-    return draw(cameras, model, false, overrideMaterial);
-}
-
-RenderStats Mesh::draw(const VRCamera cameras, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
+RenderStats Mesh::draw(const VRCamera &cameras, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
     RenderStats stats;
     if (!boundingSphere.intersects(aabb)) {
         return stats;

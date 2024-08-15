@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
 
     Scene scene = Scene();
 #ifdef VR
-    VRCamera camera = VRCamera(Camera(screenWidth / 2, screenHeight), Camera(screenWidth / 2, screenHeight));
+    VRCamera camera = VRCamera(screenWidth / 2, screenHeight);
     SceneLoader loader = SceneLoader();
     loader.loadScene(scenePath, scene, camera.left);
     loader.loadScene(scenePath, scene, camera.right);
@@ -74,6 +74,7 @@ int main(int argc, char** argv) {
     SceneLoader loader = SceneLoader();
     loader.loadScene(scenePath, scene, camera);
 #endif
+
     VideoStreamer videoStreamerRT = VideoStreamer({
         .width = screenWidth,
         .height = screenHeight,
@@ -86,7 +87,6 @@ int main(int argc, char** argv) {
         .magFilter = GL_LINEAR
     }, videoURL, targetBitrate);
 #ifdef VR
-    // rt2
     VideoStreamer videoStreamerRTright = VideoStreamer({
         .width = screenWidth,
         .height = screenHeight,
@@ -99,7 +99,6 @@ int main(int argc, char** argv) {
         .magFilter = GL_LINEAR
     }, videoURL, targetBitrate);
 
-    // rt3
     VideoStreamer videoStreamerRTcombined = VideoStreamer({
         .width = screenWidth,
         .height = screenHeight,
@@ -248,6 +247,13 @@ int main(int argc, char** argv) {
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
+#ifdef VR
+    // shaders
+    Shader sideBySideShader = Shader({
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../shaders/postprocessing/sidebyside.frag"
+    });
+#endif
 
     std::vector<glm::vec3> pointLightPositions(4);
     pointLightPositions[0] = scene.pointLights[0]->position;
@@ -270,7 +276,6 @@ int main(int argc, char** argv) {
         scene.pointLights[2]->setPosition(pointLightPositions[2] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
         scene.pointLights[3]->setPosition(pointLightPositions[3] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
 
-
 #ifdef VR
         // render all objects in scene
         renderStats = renderer.drawObjects(scene, camera.left);
@@ -278,25 +283,25 @@ int main(int argc, char** argv) {
         renderer.drawToRenderTarget(colorShader, videoStreamerRT);
         renderer.drawToRenderTarget(colorShader, videoStreamerRTright);
 
-        // shaders
-        Shader sidebysideShader = Shader({
-            .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-            .fragmentCodePath = "../shaders/postprocessing/sidebyside.frag"
-        });
-        sidebysideShader.setTexture("camera1Buffer", renderer.gBuffer.colorBuffer, 5);
-        sidebysideShader.setTexture("camera2Buffer", renderer.gBuffer.colorBuffer, 6);
+        sideBySideShader.setTexture("camera1Buffer", renderer.gBuffer.colorBuffer, 5);
+        sideBySideShader.setTexture("camera2Buffer", renderer.gBuffer.colorBuffer, 6);
 
-        renderer.drawToRenderTarget(sidebysideShader, videoStreamerRTcombined);
-        renderer.drawToScreen(sidebysideShader);
+        // render to screen
+        if (config.showWindow) {
+            renderer.drawToScreen(sideBySideShader);
+        }
+        renderer.drawToRenderTarget(sideBySideShader, videoStreamerRTcombined);
 #else
         // render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);
+
         // render to screen
         if (config.showWindow) {
             renderer.drawToScreen(colorShader);
         }
         renderer.drawToRenderTarget(colorShader, videoStreamerRT);
 #endif
+
         // send video frame
         if (poseID != -1) {
             videoStreamerRT.sendFrame(poseID);
