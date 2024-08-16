@@ -24,11 +24,13 @@ public:
             : camera(camera)
             , streamerURL(streamerURL)
             , receiver(streamerURL, sizeof(Pose)) { }
-    
+
+#ifdef VR
     explicit PoseReceiver(VRCamera* vrcamera, std::string streamerURL)
             : vrcamera(vrcamera)
             , streamerURL(streamerURL)
             , receiver(streamerURL, sizeof(Pose)) { }
+#endif
 
     pose_id_t receivePose(bool setProj = true) {
         std::vector<uint8_t> data = receiver.recv();
@@ -45,28 +47,26 @@ public:
 
 #ifdef VR
         if (setProj) {
-            vrcamera->left.setProjectionMatrix(currPose.projL);
-            vrcamera->right.setProjectionMatrix(currPose.projR);
+            vrcamera->setProjectionMatrix(currPose.projL);
         }
         vrcamera->left.setViewMatrix(currPose.viewL);
         vrcamera->right.setViewMatrix(currPose.viewR);
-        
-        return currPose.id;
 #else
         if (setProj) {
             camera->setProjectionMatrix(currPose.proj);
         }
         camera->setViewMatrix(currPose.view);
-
-        return currPose.id;
 #endif
+        return currPose.id;
     }
 
 private:
     DataReceiverUDP receiver;
 
     Camera* camera;
+#ifdef VR
     VRCamera* vrcamera;
+#endif
     Pose currPose;
 };
 

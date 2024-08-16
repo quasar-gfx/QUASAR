@@ -23,7 +23,6 @@ public:
             : url(url)
             , maxDataSize(maxDataSize)
             , socket(nonBlocking) {
-        socket.setRecvSize(sizeof(DataPacketUDP));
         socket.bind(url);
 
         running = true;
