@@ -347,7 +347,7 @@ int main(int argc, char** argv) {
     Mesh mesh = Mesh({
         .vertices = std::vector<Vertex>(numVertices),
         .indices = std::vector<unsigned int>(indexBufferSize),
-        .material = new UnlitMaterial({ .diffuseTextureID = renderTarget.colorBuffer.ID }),
+        .material = new UnlitMaterial({ .diffuseTexture = &renderTarget.colorBuffer }),
         .wireframe = false
     });
     Node node = Node(&mesh);

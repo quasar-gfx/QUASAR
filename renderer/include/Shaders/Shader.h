@@ -43,14 +43,14 @@ public:
     std::vector<std::string> extensions;
     std::vector<std::string> defines;
 
-    explicit Shader() = default;
-    explicit Shader(const ShaderFileCreateParams& params)
+    Shader() = default;
+    Shader(const ShaderFileCreateParams& params)
             : version(params.version)
             , extensions(params.extensions)
             , defines(params.defines) {
         loadFromFiles(params.vertexCodePath, params.fragmentCodePath, params.geometryCodePath);
     }
-    explicit Shader(const ShaderDataCreateParams& params)
+    Shader(const ShaderDataCreateParams& params)
             : version(params.version)
             , extensions(params.extensions)
             , defines(params.defines) {

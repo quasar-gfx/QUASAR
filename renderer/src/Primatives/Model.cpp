@@ -290,35 +290,35 @@ void Model::processMaterial(const aiMaterial* aiMat, PBRMaterialCreateParams &ma
     // load base color texture
     if (aiMat->GetTexture(aiTextureType_DIFFUSE, 0, &baseColorPath,
                           nullptr, nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
-        TextureID baseColorMap = loadMaterialTexture(aiMat, baseColorPath, true);
-        materialParams.albedoTextureID = baseColorMap;
+        Texture* baseColorMap = loadMaterialTexture(aiMat, baseColorPath, true);
+        materialParams.albedoTexture = baseColorMap;
     }
 
     // load normal map
     if (aiMat->GetTexture(aiTextureType_NORMALS, 0, &normalPath, nullptr,
                           nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
-        TextureID normalMap = loadMaterialTexture(aiMat, normalPath);
-        materialParams.normalTextureID = normalMap;
+        Texture* normalMap = loadMaterialTexture(aiMat, normalPath);
+        materialParams.normalTexture = normalMap;
     }
 
     // load metallic and roughness textures
     if (aiMat->GetTexture(aiTextureType_METALNESS, 0, &MPath, nullptr,
                         nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
-        TextureID metallicMap = loadMaterialTexture(aiMat, MPath);
-        materialParams.metallicTextureID = metallicMap;
+        Texture* metallicMap = loadMaterialTexture(aiMat, MPath);
+        materialParams.metallicTexture = metallicMap;
     }
     if (aiMat->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &RPath, nullptr,
                         nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
-        TextureID roughnessMap = loadMaterialTexture(aiMat, RPath);
-        materialParams.roughnessTextureID = roughnessMap;
+        Texture* roughnessMap = loadMaterialTexture(aiMat, RPath);
+        materialParams.roughnessTexture = roughnessMap;
     }
     // if is GLTF and metallic and roughness textures are not set, try to load combined metallic-roughness texture
     if (isGLTF &&
-        (materialParams.metallicTextureID == 0 || materialParams.roughnessTextureID == 0)) {
+        (materialParams.metallicTexture == nullptr || materialParams.roughnessTexture == nullptr)) {
         if (aiMat->GetTexture(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLICROUGHNESS_TEXTURE, &MRPath, nullptr,
                             nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
-            TextureID metallicRoughnessMap = loadMaterialTexture(aiMat, MRPath);
-            materialParams.metallicTextureID = metallicRoughnessMap;
+            Texture* metallicRoughnessMap = loadMaterialTexture(aiMat, MRPath);
+            materialParams.metallicTexture = metallicRoughnessMap;
             materialParams.metalRoughnessCombined = true;
         }
     }
@@ -326,15 +326,15 @@ void Model::processMaterial(const aiMaterial* aiMat, PBRMaterialCreateParams &ma
     // load ambient occlusion map
     if (aiMat->GetTexture(aiTextureType_LIGHTMAP, 0, &AOPath, nullptr,
                           nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
-        TextureID aoMap = loadMaterialTexture(aiMat, AOPath);
-        materialParams.aoTextureID = aoMap;
+        Texture* aoMap = loadMaterialTexture(aiMat, AOPath);
+        materialParams.aoTexture = aoMap;
     }
 
     // load emissive map
     if (aiMat->GetTexture(aiTextureType_EMISSIVE, 0, &emissivePath, nullptr,
                           nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
-        TextureID emissiveMap = loadMaterialTexture(aiMat, emissivePath);
-        materialParams.emissiveTextureID = emissiveMap;
+        Texture* emissiveMap = loadMaterialTexture(aiMat, emissivePath);
+        materialParams.emissiveTexture = emissiveMap;
     }
 
     // load factors
@@ -368,14 +368,14 @@ int32_t Model::getEmbeddedTextureId(const aiString &path) {
     return -1;
 }
 
-TextureID Model::loadMaterialTexture(aiMaterial const* aiMat, aiString aiTexturePath, bool shouldGammaCorrect) {
+Texture* Model::loadMaterialTexture(aiMaterial const* aiMat, aiString aiTexturePath, bool shouldGammaCorrect) {
     std::string texturePath = rootDirectory;
     texturePath = texturePath.append(aiTexturePath.C_Str());
     std::replace(texturePath.begin(), texturePath.end(), '\\', '/');
 
     // if we've loaded this texture already, return the already loaded texture
     if (texturesLoaded.count(texturePath) > 0) {
-        return texturesLoaded[texturePath].ID;
+        return texturesLoaded[texturePath];
     }
 
     shouldGammaCorrect &= gammaCorrected;
@@ -387,8 +387,8 @@ TextureID Model::loadMaterialTexture(aiMaterial const* aiMat, aiString aiTexture
 
         int texWidth, texHeight, texChannels;
         unsigned char* data = FileIO::loadImageFromMemory(reinterpret_cast<unsigned char*>(aiEmbeddedTexture->pcData),
-                                                         aiEmbeddedTexture->mWidth,
-                                                         &texWidth, &texHeight, &texChannels, 0);
+                                                          aiEmbeddedTexture->mWidth,
+                                                          &texWidth, &texHeight, &texChannels, 0);
         if (data) {
             GLint internalFormat;
             GLenum format;
@@ -414,7 +414,7 @@ TextureID Model::loadMaterialTexture(aiMaterial const* aiMat, aiString aiTexture
                 format = GL_RGBA;
             }
 
-            Texture texture = Texture({
+            Texture* texture = new Texture({
                 .width = static_cast<unsigned int>(texWidth),
                 .height = static_cast<unsigned int>(texHeight),
                 .internalFormat = internalFormat,
@@ -428,14 +428,14 @@ TextureID Model::loadMaterialTexture(aiMaterial const* aiMat, aiString aiTexture
 
             FileIO::freeImage(data);
             texturesLoaded[texturePath] = texture;
-            return texturesLoaded[texturePath].ID;
+            return texturesLoaded[texturePath];
         }
 
-        return 0;
+        return nullptr;
     }
     // else load the texture from external file
     else {
-        Texture texture = Texture({
+        Texture* texture = new Texture({
             .wrapS = GL_REPEAT,
             .wrapT = GL_REPEAT,
             .minFilter = GL_LINEAR_MIPMAP_LINEAR,
@@ -444,7 +444,7 @@ TextureID Model::loadMaterialTexture(aiMaterial const* aiMat, aiString aiTexture
             .path = texturePath
         });
         texturesLoaded[texturePath] = texture;
-        return texturesLoaded[texturePath].ID;
+        return texturesLoaded[texturePath];
     }
 }
 
@@ -454,6 +454,6 @@ Model::~Model() {
     }
 
     for (auto& texture : texturesLoaded) {
-        glDeleteTextures(1, &texture.second.ID);
+        delete texture.second;
     }
 }

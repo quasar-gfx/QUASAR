@@ -11,9 +11,9 @@
 
 class AABB {
 public:
-    explicit AABB() = default;
-    explicit AABB(const glm::vec3 &min, const glm::vec3 &max) : center((min + max) * 0.5f), extents(max.x - center.x, max.y - center.y, max.z - center.z) {}
-    explicit AABB(const glm::vec3& center, float iI, float iJ, float iK) : center(center), extents(iI, iJ, iK) {}
+    AABB() = default;
+    AABB(const glm::vec3 &min, const glm::vec3 &max) : center((min + max) * 0.5f), extents(max.x - center.x, max.y - center.y, max.z - center.z) {}
+    AABB(const glm::vec3& center, float iI, float iJ, float iK) : center(center), extents(iI, iJ, iK) {}
 
     glm::vec3 getCenter() const {
         return center;

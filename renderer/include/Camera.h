@@ -23,9 +23,9 @@ public:
 
     Frustum frustum;
 
-    explicit Camera();
-    explicit Camera(unsigned int width, unsigned int height);
-    explicit Camera(float fovy, float aspect, float near, float far);
+    Camera();
+    Camera(unsigned int width, unsigned int height);
+    Camera(float fovy, float aspect, float near, float far);
 
     void setFovy(float fovy) { this->fovy = fovy; updateProjectionMatrix(); }
     void setAspect(float aspect) { this->aspect = aspect; updateProjectionMatrix(); }

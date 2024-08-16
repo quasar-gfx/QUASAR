@@ -8,8 +8,8 @@
 
 class BoundingSphere {
 public:
-    explicit BoundingSphere() = default;
-    explicit BoundingSphere(const glm::vec3 &center, float radius) : center(center), radius(radius) {}
+    BoundingSphere() = default;
+    BoundingSphere(const glm::vec3 &center, float radius) : center(center), radius(radius) {}
 
     glm::vec3 getCenter() const {
         return center;

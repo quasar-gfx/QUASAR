@@ -22,12 +22,12 @@ class PoseStreamer {
 public:
     std::string receiverURL;
 
-    explicit PoseStreamer(Camera* camera, std::string receiverURL)
+    PoseStreamer(Camera* camera, std::string receiverURL)
             : camera(camera)
             , receiverURL(receiverURL)
             , streamer(receiverURL, sizeof(Pose)) { }
 
-    explicit PoseStreamer(VRCamera* vrcamera, std::string receiverURL)
+    PoseStreamer(VRCamera* vrcamera, std::string receiverURL)
             : vrcamera(vrcamera)
             , receiverURL(receiverURL)
             , streamer(receiverURL, sizeof(Pose)) { }

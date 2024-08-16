@@ -20,7 +20,7 @@ public:
     std::vector<Mesh*> meshes;
     std::vector<PBRMaterial*> materials;
 
-    explicit SceneLoader() = default;
+    SceneLoader() = default;
     ~SceneLoader();
 
     void loadScene(const std::string &filename, Scene &scene, Camera &camera);

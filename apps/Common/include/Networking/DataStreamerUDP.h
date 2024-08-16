@@ -18,7 +18,7 @@ public:
 
     int maxDataSize;
 
-    explicit DataStreamerUDP(std::string url, int maxDataSize, bool nonBlocking = false)
+    DataStreamerUDP(std::string url, int maxDataSize, bool nonBlocking = false)
             : url(url)
             , maxDataSize(maxDataSize)
             , socket(nonBlocking) {

@@ -9,9 +9,9 @@ public:
     Camera left;
     Camera right;
 
-    explicit VRCamera();
-    explicit VRCamera(unsigned int width, unsigned int height);
-    explicit VRCamera(float fovy, float aspect, float near, float far);
+    VRCamera();
+    VRCamera(unsigned int width, unsigned int height);
+    VRCamera(float fovy, float aspect, float near, float far);
 
     void setFovy(float fovy);
     void setAspect(float aspect);

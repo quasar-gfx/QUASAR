@@ -11,7 +11,7 @@ public:
     Texture colorBuffer;
     Texture depthBuffer;
 
-    explicit GeometryBuffer(const RenderTargetCreateParams &params)
+    GeometryBuffer(const RenderTargetCreateParams &params)
             : RenderTargetBase(params)
             , colorBuffer({
                 .width = width,

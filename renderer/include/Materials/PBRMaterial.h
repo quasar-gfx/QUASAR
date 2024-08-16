@@ -20,12 +20,12 @@ struct PBRMaterialCreateParams {
     std::string roughnessTexturePath = "";
     std::string aoTexturePath = "";
     std::string emissiveTexturePath = "";
-    TextureID albedoTextureID;
-    TextureID normalTextureID;
-    TextureID metallicTextureID;
-    TextureID roughnessTextureID;
-    TextureID aoTextureID;
-    TextureID emissiveTextureID;
+    Texture* albedoTexture;
+    Texture* normalTexture;
+    Texture* metallicTexture;
+    Texture* roughnessTexture;
+    Texture* aoTexture;
+    Texture* emissiveTexture;
     bool metalRoughnessCombined = false;
 };
 
@@ -43,8 +43,8 @@ public:
     float roughnessFactor = 1.0f;
     bool metalRoughnessCombined = false;
 
-    explicit PBRMaterial() = default;
-    explicit PBRMaterial(const PBRMaterialCreateParams &params);
+    PBRMaterial() = default;
+    PBRMaterial(const PBRMaterialCreateParams &params);
 
     void bind() const override;
 

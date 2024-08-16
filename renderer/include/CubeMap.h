@@ -45,8 +45,8 @@ public:
 
     GLint wrapR = GL_CLAMP_TO_EDGE;
 
-    explicit CubeMap() = default;
-    explicit CubeMap(const CubeMapCreateParams &params)
+    CubeMap() = default;
+    CubeMap(const CubeMapCreateParams &params)
             : type(params.type)
             , wrapR(params.wrapR)
             , Texture({

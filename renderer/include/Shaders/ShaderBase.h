@@ -19,7 +19,7 @@ enum class ShaderType {
 
 class ShaderBase : public OpenGLObject {
 public:
-    explicit ShaderBase() = default;
+    ShaderBase() = default;
     ~ShaderBase() {
         glDeleteProgram(ID);
     }

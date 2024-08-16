@@ -5,8 +5,6 @@
 
 #include <OpenGLObject.h>
 
-typedef GLuint TextureID;
-
 struct TextureDataCreateParams {
     unsigned int width = 0;
     unsigned int height = 0;
@@ -53,8 +51,10 @@ public:
 
     bool multiSampled = false;
 
-    explicit Texture() = default;
-    explicit Texture(const TextureDataCreateParams &params)
+    Texture() {
+        target = GL_TEXTURE_2D;
+    }
+    Texture(const TextureDataCreateParams &params)
             : width(params.width)
             , height(params.height)
             , internalFormat(params.internalFormat)
@@ -64,17 +64,18 @@ public:
             , wrapT(params.wrapT)
             , minFilter(params.minFilter)
             , magFilter(params.magFilter)
-            , multiSampled(params.multiSampled)
-            , OpenGLObject() {
+            , multiSampled(params.multiSampled) {
         target = !multiSampled ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
         loadFromData(params);
     }
-    explicit Texture(const TextureFileCreateParams &params)
-            : OpenGLObject() {
+    Texture(const TextureFileCreateParams &params) {
         target = !params.multiSampled ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
         loadFromFile(params);
     }
-    ~Texture() = default;
+
+    ~Texture() {
+        cleanup();
+    }
 
     void bind() const {
         bind(0);

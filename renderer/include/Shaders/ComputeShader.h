@@ -34,13 +34,13 @@ public:
     std::vector<std::string> extensions;
     std::vector<std::string> defines;
 
-    explicit ComputeShader(const ComputeShaderDataCreateParams& params)
+    ComputeShader(const ComputeShaderDataCreateParams& params)
             : version(params.version)
             , extensions(params.extensions)
             , defines(params.defines) {
         loadFromData(params.computeCodeData, params.computeCodeSize);
     }
-    explicit ComputeShader(const ComputeShaderFileCreateParams& params)
+    ComputeShader(const ComputeShaderFileCreateParams& params)
             : version(params.version)
             , extensions(params.extensions)
             , defines(params.defines) {

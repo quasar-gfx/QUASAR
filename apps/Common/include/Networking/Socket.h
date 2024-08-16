@@ -19,7 +19,7 @@ public:
     struct sockaddr_in addr;
     socklen_t addrLen;
 
-    explicit Socket(int domain, int type, int protocol, bool nonBlocking = false) {
+    Socket(int domain, int type, int protocol, bool nonBlocking = false) {
         socketId = socket(domain, type, protocol);
         if (socketId < 0) {
             throw std::runtime_error("Failed to create socket: " + std::string(std::strerror(errno)));
@@ -111,7 +111,7 @@ public:
 
 class SocketUDP : public Socket {
 public:
-    explicit SocketUDP(bool nonBlocking = false) : Socket(AF_INET, SOCK_DGRAM, 0, nonBlocking) {}
+    SocketUDP(bool nonBlocking = false) : Socket(AF_INET, SOCK_DGRAM, 0, nonBlocking) {}
 
     int send(const void* buf, size_t len, int flags) override {
         return ::sendto(socketId, buf, len, flags, (struct sockaddr*)&addr, addrLen);
@@ -124,7 +124,7 @@ public:
 
 class SocketTCP : public Socket {
 public:
-    explicit SocketTCP(bool nonBlocking = false) : Socket(AF_INET, SOCK_STREAM, 0, nonBlocking) {}
+    SocketTCP(bool nonBlocking = false) : Socket(AF_INET, SOCK_STREAM, 0, nonBlocking) {}
 
     void setReuseAddrPort() {
         int opt = 1;

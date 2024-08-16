@@ -5,7 +5,7 @@
 
 class Plane : public Mesh {
 public:
-    explicit Plane(const MeshCreateParams &params, bool twoSided = true) : Mesh(params) {
+    Plane(const MeshCreateParams &params, bool twoSided = true) : Mesh(params) {
         if (twoSided) {
             this->vertices = {
                 // Top face (facing up)

@@ -19,7 +19,7 @@ public:
 
     int maxDataSize;
 
-    explicit DataReceiverUDP(std::string url, int maxDataSize, bool nonBlocking = false)
+    DataReceiverUDP(std::string url, int maxDataSize, bool nonBlocking = false)
             : url(url)
             , maxDataSize(maxDataSize)
             , socket(nonBlocking) {

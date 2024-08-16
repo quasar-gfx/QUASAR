@@ -13,9 +13,9 @@ public:
         glm::vec3 normal = { 0.0f, 1.0f, 0.0f };
         float constant = 0.0f;
 
-        explicit FPlane() = default;
-        explicit FPlane(const glm::vec3 &p1, const glm::vec3 &norm) : normal(glm::normalize(norm)), constant(-glm::dot(normal, p1)) {}
-        explicit FPlane(const glm::vec3 &norm, float constant) : normal(norm), constant(constant) {
+        FPlane() = default;
+        FPlane(const glm::vec3 &p1, const glm::vec3 &norm) : normal(glm::normalize(norm)), constant(-glm::dot(normal, p1)) {}
+        FPlane(const glm::vec3 &norm, float constant) : normal(norm), constant(constant) {
             float length = glm::length(normal);
             normal /= length;
             constant /= length;
@@ -26,7 +26,7 @@ public:
         }
     };
 
-    explicit Frustum() = default;
+    Frustum() = default;
 
     void setFromCameraMatrices(const glm::mat4 &view, const glm::mat4 &projection) {
         glm::mat4 viewProjectionMatrix = projection * view;

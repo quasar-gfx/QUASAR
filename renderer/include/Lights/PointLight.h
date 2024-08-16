@@ -40,7 +40,7 @@ public:
 
     BoundingSphere boundingSphere;
 
-    explicit PointLight(const PointLightCreateParams &params)
+    PointLight(const PointLightCreateParams &params)
             : position(params.position)
             , constant(params.constant)
             , linear(params.linear)

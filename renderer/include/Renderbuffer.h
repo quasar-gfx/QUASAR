@@ -15,7 +15,7 @@ public:
 
     GLint internalFormat = GL_RGB;
 
-    explicit Renderbuffer(const RenderbufferCreateParams &params)
+    Renderbuffer(const RenderbufferCreateParams &params)
             : width(params.width)
             , height(params.height)
             , internalFormat(params.internalFormat)

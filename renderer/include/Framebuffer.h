@@ -7,7 +7,7 @@
 
 class Framebuffer : public OpenGLObject {
 public:
-    explicit Framebuffer() {
+    Framebuffer() {
         glGenFramebuffers(1, &ID);
     }
     ~Framebuffer() {

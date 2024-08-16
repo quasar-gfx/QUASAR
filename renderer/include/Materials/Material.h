@@ -15,16 +15,11 @@ enum class AlphaMode : uint8_t {
 
 class Material {
 public:
-    std::vector<TextureID> textures;
+    std::vector<Texture*> textures;
     std::shared_ptr<Shader> shader;
 
-    explicit Material() = default;
-    ~Material() {
-        for (auto& textureID : textures) {
-            if (textureID == 0) continue;
-            glDeleteTextures(1, &textureID);
-        }
-    }
+    Material() = default;
+    ~Material() = default;
 
     virtual void bind() const {
         shader->bind();
