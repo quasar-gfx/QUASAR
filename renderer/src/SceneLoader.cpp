@@ -141,8 +141,6 @@ int SceneLoader::parseSkybox(jsmntok_t* tokens, int i, const char* json, Scene &
     CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
     TextureFileCreateParams hdrTextureParams{
-        .internalFormat = GL_RGB16F,
-        .format = GL_RGB,
         .type = GL_FLOAT,
         .wrapS = GL_CLAMP_TO_EDGE,
         .wrapT = GL_CLAMP_TO_EDGE,

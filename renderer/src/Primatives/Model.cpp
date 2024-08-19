@@ -423,6 +423,7 @@ Texture* Model::loadMaterialTexture(aiMaterial const* aiMat, aiString aiTextureP
                 .wrapT = GL_REPEAT,
                 .minFilter = GL_LINEAR_MIPMAP_LINEAR,
                 .magFilter = GL_LINEAR,
+                .alignment = 1,
                 .data = data
             });
 

@@ -28,12 +28,14 @@ public:
             case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
                 std::cerr << "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT";
                 break;
+#ifdef GL_CORE
             case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
                 std::cerr << "GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER";
                 break;
             case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
                 std::cerr << "GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER";
                 break;
+#endif
             case GL_FRAMEBUFFER_UNSUPPORTED:
                 std::cerr << "GL_FRAMEBUFFER_UNSUPPORTED";
                 break;
