@@ -2,7 +2,8 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <Node.h>
+#include <Primatives/Node.h>
+
 
 class Camera : public Node {
 protected:
@@ -19,10 +20,9 @@ public:
     Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
            glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f),
            float yaw = -90.0f, float pitch = 0.0f);
-    Camera();
     Camera(unsigned int width, unsigned int height);
     Camera(float fovy, float aspect, float near, float far);
-    
+
     virtual ~Camera() = default;
     virtual bool isVR() const = 0;
     virtual glm::mat4 getViewMatrix() const;

@@ -49,8 +49,8 @@ public:
         if (setProj) {
             vrcamera->setProjectionMatrix(currPose.projL);
         }
-        vrcamera->left.setViewMatrix(currPose.viewL);
-        vrcamera->right.setViewMatrix(currPose.viewR);
+        vrcamera->left->setViewMatrix(currPose.viewL);
+        vrcamera->right->setViewMatrix(currPose.viewR);
 #else
         if (setProj) {
             camera->setProjectionMatrix(currPose.proj);

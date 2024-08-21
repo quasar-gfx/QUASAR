@@ -67,9 +67,9 @@ int main(int argc, char** argv) {
 #ifdef VR
     VRCamera camera = VRCamera(screenWidth / 2, screenHeight);
     SceneLoader loader = SceneLoader();
-    loader.loadScene(scenePath, scene, camera.left);
-    camera.right.setViewMatrix(camera.left.getViewMatrix());
-    camera.right.setProjectionMatrix(camera.left.getProjectionMatrix());
+    loader.loadScene(scenePath, scene, *camera.left);
+    camera.right->setViewMatrix(camera.left->getViewMatrix());
+    camera.right->setProjectionMatrix(camera.left->getProjectionMatrix());
 #else
     PerspectiveCamera camera = PerspectiveCamera(screenWidth, screenHeight);
     SceneLoader loader = SceneLoader();
@@ -232,11 +232,11 @@ int main(int argc, char** argv) {
 
         renderer.resize(width, height);
 #ifdef VR
-        camera.left.aspect = (float)screenWidth / 2 / (float)screenHeight;
-        camera.left.updateProjectionMatrix();
+        camera.left->aspect = (float)screenWidth / 2 / (float)screenHeight;
+        camera.left->updateProjectionMatrix();
 
-        camera.right.aspect = (float)screenWidth / 2 / (float)screenHeight;
-        camera.right.updateProjectionMatrix();
+        camera.right->aspect = (float)screenWidth / 2 / (float)screenHeight;
+        camera.right->updateProjectionMatrix();
 #else
         camera.aspect = (float)screenWidth / (float)screenHeight;
         camera.updateProjectionMatrix();
@@ -279,8 +279,8 @@ int main(int argc, char** argv) {
 
 #ifdef VR
         // render all objects in scene
-        renderStats = renderer.drawObjects(scene, camera.left);
-        renderStats = renderer.drawObjects(scene, camera.right);
+        renderStats = renderer.drawObjects(scene, *camera.left);
+        renderStats = renderer.drawObjects(scene, *camera.right);
         renderer.drawToRenderTarget(colorShader, videoStreamerRT);
         renderer.drawToRenderTarget(colorShader, videoStreamerRTright);
 
