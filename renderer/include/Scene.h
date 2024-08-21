@@ -45,7 +45,7 @@ public:
     // BRDF shader
     Shader brdfShader;
 
-    explicit Scene();
+    Scene();
 
     void addChildNode(Node* node);
 

@@ -9,7 +9,7 @@ struct UnlitMaterialCreateParams {
     AlphaMode alphaMode = AlphaMode::OPAQUE;
     float maskThreshold = 0.5f;
     std::string diffuseTexturePath = "";
-    TextureID diffuseTextureID;
+    Texture* diffuseTexture;
 };
 
 class UnlitMaterial : public Material {
@@ -19,8 +19,8 @@ public:
     AlphaMode alphaMode = AlphaMode::OPAQUE;
     float maskThreshold = 0.5f;
 
-    explicit UnlitMaterial() = default;
-    explicit UnlitMaterial(const UnlitMaterialCreateParams &params);
+    UnlitMaterial() = default;
+    UnlitMaterial(const UnlitMaterialCreateParams &params);
 
     void bind() const override;
 

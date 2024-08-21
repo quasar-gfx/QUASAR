@@ -42,13 +42,12 @@ public:
 
     bool isGLTF = false;
 
-    explicit Model(const ModelCreateParams &params)
+    Model(const ModelCreateParams &params)
             : flipTextures(params.flipTextures)
             , wireframe(params.wireframe)
             , pointcloud(params.pointcloud)
             , gammaCorrected(params.gammaCorrected)
-            , IBL(params.IBL)
-            , Entity() {
+            , IBL(params.IBL) {
         loadFromFile(params);
     }
     ~Model();
@@ -69,13 +68,13 @@ public:
 
 private:
     const aiScene* scene;
-    std::unordered_map<std::string, Texture> texturesLoaded;
+    std::unordered_map<std::string, Texture*> texturesLoaded;
 
     void loadFromFile(const ModelCreateParams &params);
     void processNode(aiNode* node, const aiScene* scene, PBRMaterial* material);
     Mesh* processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* material);
     void processMaterial(aiMaterial const* aiMat, PBRMaterialCreateParams &materialParams);
-    TextureID loadMaterialTexture(aiMaterial const* aiMat, aiString aiTexturePath, bool shouldGammaCorrect = false);
+    Texture* loadMaterialTexture(aiMaterial const* aiMat, aiString aiTexturePath, bool shouldGammaCorrect = false);
     int32_t getEmbeddedTextureId(const aiString &path);
 };
 

@@ -18,7 +18,7 @@ public:
         float bitrateMbps = -1.0f;
     } stats;
 
-    explicit DepthVideoTexture(const TextureDataCreateParams &params, std::string streamerURL)
+    DepthVideoTexture(const TextureDataCreateParams &params, std::string streamerURL)
             : streamerURL(streamerURL)
             , receiver(streamerURL)
             , Texture(params) { }

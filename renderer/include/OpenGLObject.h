@@ -9,8 +9,8 @@ public:
 
     operator GLuint() const { return ID; }
 
-    explicit OpenGLObject() : ID(0) {}
-    ~OpenGLObject() {};
+    OpenGLObject() : ID(0) {}
+    ~OpenGLObject() = default;
 
     virtual void bind() const = 0;
     virtual void unbind() const = 0;

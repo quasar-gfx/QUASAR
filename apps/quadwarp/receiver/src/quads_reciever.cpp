@@ -227,7 +227,7 @@ int main(int argc, char** argv) {
     Mesh mesh = Mesh({
         .vertices = vertices,
         .indices = indices,
-        .material = new UnlitMaterial({ .diffuseTextureID = colorTexture.ID }),
+        .material = new UnlitMaterial({ .diffuseTexture = &colorTexture }),
         .wireframe = false,
         .pointcloud = renderState == RenderState::POINTCLOUD,
     });

@@ -10,7 +10,7 @@ struct AmbientLightCreateParams {
 
 class AmbientLight : public Light {
 public:
-    explicit AmbientLight(const AmbientLightCreateParams &params)
+    AmbientLight(const AmbientLightCreateParams &params)
         : Light({
             .color = params.color,
             .intensity = params.intensity

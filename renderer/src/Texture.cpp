@@ -1,28 +1,26 @@
 #include <Utils/FileIO.h>
 #include <Texture.h>
 
-void Texture::loadFromData(const TextureDataCreateParams &params) {
+void Texture::loadFromData(unsigned char* data) {
     glGenTextures(1, &ID);
+
+    glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
 
     glBindTexture(target, ID);
     if (!multiSampled) {
-        glTexImage2D(target, 0, params.internalFormat, width, height, 0, params.format, params.type, params.data);
+        glTexImage2D(target, 0, internalFormat, width, height, 0, format, type, data);
     }
 #ifdef GL_CORE
     else {
-        glTexImage2DMultisample(target, 4, params.internalFormat, width, height, GL_TRUE);
+        glTexImage2DMultisample(target, 4, internalFormat, width, height, GL_TRUE);
     }
 #endif // gles does not have glTexImage2DMultisample
-    glTexParameteri(target, GL_TEXTURE_WRAP_S, params.wrapS);
-    glTexParameteri(target, GL_TEXTURE_WRAP_T, params.wrapT);
-    glTexParameteri(target, GL_TEXTURE_MIN_FILTER, params.minFilter);
-    glTexParameteri(target, GL_TEXTURE_MAG_FILTER, params.magFilter);
-    if (params.minFilter == GL_LINEAR_MIPMAP_LINEAR || params.minFilter == GL_LINEAR_MIPMAP_NEAREST) {
+    glTexParameteri(target, GL_TEXTURE_WRAP_S, wrapS);
+    glTexParameteri(target, GL_TEXTURE_WRAP_T, wrapT);
+    glTexParameteri(target, GL_TEXTURE_MIN_FILTER, minFilter);
+    glTexParameteri(target, GL_TEXTURE_MAG_FILTER, magFilter);
+    if (minFilter == GL_LINEAR_MIPMAP_LINEAR || minFilter == GL_LINEAR_MIPMAP_NEAREST) {
         glGenerateMipmap(target);
-    }
-    if (params.hasBorder) {
-        float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
-        glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, borderColor);
     }
 }
 
@@ -41,23 +39,25 @@ void Texture::loadFromFile(const TextureFileCreateParams &params) {
 
     int texWidth, texHeight, texChannels;
     void* data = nullptr;
-    if (params.type == GL_UNSIGNED_BYTE) {
+    if (type == GL_UNSIGNED_BYTE) {
         data = FileIO::loadImage(path, &texWidth, &texHeight, &texChannels);
     }
-    else if (params.type == GL_FLOAT) {
+    else if (type == GL_FLOAT) {
         data = FileIO::loadImageHDR(path, &texWidth, &texHeight, &texChannels);
     }
 
     if (data) {
-        glGenTextures(1, &ID);
-
         this->width = texWidth;
         this->height = texHeight;
 
-        GLenum internalFormat, format;
         if (texChannels == 1) {
 #ifdef GL_CORE
-            internalFormat = GL_RED;
+            if (type == GL_UNSIGNED_BYTE) {
+                internalFormat = GL_RED;
+            }
+            else {
+                internalFormat = GL_R16F;
+            }
             format = GL_RED;
 #else
             internalFormat = GL_LUMINANCE;
@@ -65,35 +65,29 @@ void Texture::loadFromFile(const TextureFileCreateParams &params) {
 #endif
         }
         else if (texChannels == 3) {
-            internalFormat = params.gammaCorrected ? GL_SRGB : GL_RGB;
+            if (type == GL_UNSIGNED_BYTE) {
+                internalFormat = params.gammaCorrected ? GL_SRGB : GL_RGB;
+            }
+            else {
+                internalFormat = GL_RGB16F;
+            }
             format = GL_RGB;
         }
         else if (texChannels == 4) {
 #ifdef GL_CORE
-            internalFormat = params.gammaCorrected ? GL_SRGB_ALPHA : GL_RGBA;
+            if (type == GL_UNSIGNED_BYTE) {
+                internalFormat = params.gammaCorrected ? GL_SRGB_ALPHA : GL_RGBA;
+            }
+            else {
+                internalFormat = GL_RGBA16F;
+            }
 #else
             internalFormat = GL_RGBA;
 #endif
             format = GL_RGBA;
         }
 
-        glBindTexture(target, ID);
-        if (!multiSampled) {
-            glTexImage2D(target, 0, internalFormat, width, height, 0, format, params.type, data);
-        }
-#ifdef GL_CORE
-        else {
-            glTexImage2DMultisample(target, 4, internalFormat, width, height, GL_TRUE);
-        }
-#endif
-
-        glTexParameteri(target, GL_TEXTURE_WRAP_S, params.wrapS);
-        glTexParameteri(target, GL_TEXTURE_WRAP_T, params.wrapT);
-        glTexParameteri(target, GL_TEXTURE_MIN_FILTER, params.minFilter);
-        glTexParameteri(target, GL_TEXTURE_MAG_FILTER, params.magFilter);
-        if (params.minFilter == GL_LINEAR_MIPMAP_LINEAR || params.minFilter == GL_LINEAR_MIPMAP_NEAREST) {
-            glGenerateMipmap(target);
-        }
+        loadFromData(static_cast<unsigned char*>(data));
 
         FileIO::freeImage(data);
     }

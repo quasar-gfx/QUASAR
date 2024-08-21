@@ -21,7 +21,7 @@ public:
 
     GraphicsPipeline pipeline;
 
-    explicit OpenGLRenderer(const Config &config);
+    OpenGLRenderer(const Config &config);
     ~OpenGLRenderer() = default;
 
     void setGraphicsPipeline(const GraphicsPipeline &pipeline) { this->pipeline = pipeline; }

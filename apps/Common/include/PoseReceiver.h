@@ -26,7 +26,7 @@ public:
             , receiver(streamerURL, sizeof(Pose)) { }
 
 #ifdef VR
-    explicit PoseReceiver(VRCamera* vrcamera, std::string streamerURL)
+    PoseReceiver(VRCamera* vrcamera, std::string streamerURL)
             : vrcamera(vrcamera)
             , streamerURL(streamerURL)
             , receiver(streamerURL, sizeof(Pose)) { }

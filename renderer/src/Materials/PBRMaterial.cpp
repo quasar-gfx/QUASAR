@@ -20,11 +20,11 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params)
 
     if (params.albedoTexturePath != "") {
         textureParams.path = params.albedoTexturePath;
-        Texture texture = Texture(textureParams);
-        textures.push_back(texture.ID);
+        Texture* texture = new Texture(textureParams);
+        textures.push_back(texture);
     }
     else {
-        textures.push_back(params.albedoTextureID);
+        textures.push_back(params.albedoTexture);
     }
 
     // only gamma correct color textures
@@ -32,47 +32,47 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params)
 
     if (params.normalTexturePath != "") {
         textureParams.path = params.normalTexturePath;
-        Texture texture = Texture(textureParams);
-        textures.push_back(texture.ID);
+        Texture* texture = new Texture(textureParams);
+        textures.push_back(texture);
     }
     else {
-        textures.push_back(params.normalTextureID);
+        textures.push_back(params.normalTexture);
     }
 
     if (params.metallicTexturePath != "") {
         textureParams.path = params.metallicTexturePath;
-        Texture texture = Texture(textureParams);
-        textures.push_back(texture.ID);
+        Texture* texture = new Texture(textureParams);
+        textures.push_back(texture);
     }
     else {
-        textures.push_back(params.metallicTextureID);
+        textures.push_back(params.metallicTexture);
     }
 
     if (params.roughnessTexturePath != "") {
         textureParams.path = params.roughnessTexturePath;
-        Texture texture = Texture(textureParams);
-        textures.push_back(texture.ID);
+        Texture* texture = new Texture(textureParams);
+        textures.push_back(texture);
     }
     else {
-        textures.push_back(params.roughnessTextureID);
+        textures.push_back(params.roughnessTexture);
     }
 
     if (params.aoTexturePath != "") {
         textureParams.path = params.aoTexturePath;
-        Texture texture = Texture(textureParams);
-        textures.push_back(texture.ID);
+        Texture* texture = new Texture(textureParams);
+        textures.push_back(texture);
     }
     else {
-        textures.push_back(params.aoTextureID);
+        textures.push_back(params.aoTexture);
     }
 
     if (params.emissiveTexturePath != "") {
         textureParams.path = params.emissiveTexturePath;
-        Texture texture = Texture(textureParams);
-        textures.push_back(texture.ID);
+        Texture* texture = new Texture(textureParams);
+        textures.push_back(texture);
     }
     else {
-        textures.push_back(params.emissiveTextureID);
+        textures.push_back(params.emissiveTexture);
     }
 
     ShaderDataCreateParams pbrShaderParams{
@@ -114,33 +114,38 @@ void PBRMaterial::bind() const {
         switch (i) {
         case 0:
             name = "material.baseColorMap";
-            shader->setBool("material.hasBaseColorMap", textures[i] != 0);
+            shader->setBool("material.hasBaseColorMap", textures[i] != nullptr);
             break;
         case 1:
             name = "material.normalMap";
-            shader->setBool("material.hasNormalMap", textures[i] != 0);
+            shader->setBool("material.hasNormalMap", textures[i] != nullptr);
             break;
         case 2:
             name = "material.metallicMap";
-            shader->setBool("material.hasMetallicMap", textures[i] != 0);
+            shader->setBool("material.hasMetallicMap", textures[i] != nullptr);
             break;
         case 3:
             name = "material.roughnessMap";
-            shader->setBool("material.hasRoughnessMap", textures[i] != 0);
+            shader->setBool("material.hasRoughnessMap", textures[i] != nullptr);
             break;
         case 4:
             name = "material.aoMap";
-            shader->setBool("material.hasAOMap", textures[i] != 0);
+            shader->setBool("material.hasAOMap", textures[i] != nullptr);
             break;
         case 5:
             name = "material.emissiveMap";
-            shader->setBool("material.hasEmissiveMap", textures[i] != 0);
+            shader->setBool("material.hasEmissiveMap", textures[i] != nullptr);
             break;
         default:
             break;
         }
 
-        shader->setInt(name, i);
-        glBindTexture(GL_TEXTURE_2D, textures[i]);
+        if (textures[i] != nullptr) {
+            shader->setTexture(name, *textures[i], i);
+        }
+        else {
+            shader->setInt(name, i);
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
     }
 }

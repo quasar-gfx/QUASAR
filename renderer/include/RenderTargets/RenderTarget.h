@@ -8,7 +8,7 @@ public:
     Texture colorBuffer;
     Texture depthBuffer;
 
-    explicit RenderTarget(const RenderTargetCreateParams &params)
+    RenderTarget(const RenderTargetCreateParams &params)
             : RenderTargetBase(params)
             , colorBuffer({
                 .width = width,

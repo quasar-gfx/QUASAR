@@ -10,9 +10,9 @@ public:
     std::unique_ptr<PerspectiveCamera> left;
     std::unique_ptr<PerspectiveCamera> right;
 
-    explicit VRCamera();
-    explicit VRCamera(unsigned int width, unsigned int height);
-    explicit VRCamera(float fovy, float aspect, float near, float far);
+    VRCamera();
+    VRCamera(unsigned int width, unsigned int height);
+    VRCamera(float fovy, float aspect, float near, float far);
 
     bool isVR() const override;
     void setFovy(float fovy);

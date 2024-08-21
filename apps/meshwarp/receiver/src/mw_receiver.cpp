@@ -312,7 +312,7 @@ int main(int argc, char** argv) {
     Mesh mesh = Mesh({
         .vertices = std::vector<Vertex>(numVertices),
         .indices = std::vector<unsigned int>(indexBufferSize),
-        .material = new UnlitMaterial({ .diffuseTextureID = videoTextureColor.ID }),
+        .material = new UnlitMaterial({ .diffuseTexture = &videoTextureColor }),
         .wireframe = false,
         .pointcloud = renderState == RenderState::POINTCLOUD,
     });

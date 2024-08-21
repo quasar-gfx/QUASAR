@@ -11,7 +11,7 @@ public:
     using RenderCallback = std::function<void(double now, double dt)>;
     using ResizeCallback = std::function<void(unsigned int width, unsigned int height)>;
 
-    explicit OpenGLApp(const Config &config);
+    OpenGLApp(const Config &config);
     ~OpenGLApp() = default;
 
     void onRender(RenderCallback callback) { renderCallback = callback; };

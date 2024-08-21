@@ -47,7 +47,7 @@ public:
 
     AABB aabb;
 
-    explicit Entity() : ID(nextID++), aabb() {}
+    Entity() : ID(nextID++), aabb() {}
 
     int getID() const { return ID; }
 

@@ -34,16 +34,15 @@ public:
     float pointSize = 5.0;
     float IBL = 1.0;
 
-    explicit Mesh() : Entity() {}
-    explicit Mesh(const MeshCreateParams &params)
+    Mesh() = default;
+    Mesh(const MeshCreateParams &params)
             : vertices(params.vertices)
             , indices(params.indices)
             , material(params.material)
             , wireframe(params.wireframe)
             , pointcloud(params.pointcloud)
             , pointSize(params.pointSize)
-            , IBL(params.IBL)
-            , Entity() {
+            , IBL(params.IBL) {
         createBuffers();
         updateAABB();
     }

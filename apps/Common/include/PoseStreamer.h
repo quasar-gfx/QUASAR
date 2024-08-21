@@ -27,7 +27,7 @@ public:
             , receiverURL(receiverURL)
             , streamer(receiverURL, sizeof(Pose)) { }
 
-    explicit PoseStreamer(VRCamera* vrcamera, std::string receiverURL)
+    PoseStreamer(VRCamera* vrcamera, std::string receiverURL)
             : vrcamera(vrcamera)
             , receiverURL(receiverURL)
             , streamer(receiverURL, sizeof(Pose)) { }

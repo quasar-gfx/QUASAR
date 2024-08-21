@@ -23,7 +23,7 @@ public:
         float bitrateMbps = -1.0f;
     } stats;
 
-    explicit DataStreamerTCP(std::string url, int maxDataSize = 65535, bool nonBlocking = false)
+    DataStreamerTCP(std::string url, int maxDataSize = 65535, bool nonBlocking = false)
             : url(url)
             , maxDataSize(maxDataSize)
             , socket(nonBlocking) {

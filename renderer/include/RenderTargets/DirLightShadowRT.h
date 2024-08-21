@@ -8,7 +8,7 @@ public:
     Texture colorBuffer;
     Texture depthBuffer;
 
-    explicit DirLightShadowRT(const RenderTargetCreateParams &params)
+    DirLightShadowRT(const RenderTargetCreateParams &params)
             : RenderTargetBase(params)
             , depthBuffer({
                 .width = width,

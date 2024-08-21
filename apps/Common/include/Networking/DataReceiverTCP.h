@@ -18,7 +18,7 @@ public:
         float bitrateMbps = -1.0f;
     } stats;
 
-    explicit DataReceiverTCP(std::string url, bool nonBlocking = false)
+    DataReceiverTCP(std::string url, bool nonBlocking = false)
             : url(url)
             , socket(nonBlocking) {
         dataRecvingThread = std::thread(&DataReceiverTCP::recvData, this);

@@ -17,10 +17,10 @@ public:
 
     int getID() const { return ID; }
 
-    explicit Node() {
+    Node() {
         ID = nextID++;
     }
-    explicit Node(Entity* entity) {
+    Node(Entity* entity) {
         ID = nextID++;
         setEntity(entity);
     }

@@ -14,11 +14,11 @@ UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams &params)
 
     if (params.diffuseTexturePath != "") {
         textureParams.path = params.diffuseTexturePath;
-        Texture texture = Texture(textureParams);
-        textures.push_back(texture.ID);
+        Texture* texture = new Texture(textureParams);
+        textures.push_back(texture);
     }
     else {
-        textures.push_back(params.diffuseTextureID);
+        textures.push_back(params.diffuseTexture);
     }
 
     ShaderDataCreateParams unlitShaderParams{
@@ -44,8 +44,13 @@ void UnlitMaterial::bind() const {
 
     std::string name = "material.baseColorMap";
     glActiveTexture(GL_TEXTURE0);
-    shader->setBool("material.hasBaseColorMap", textures[0] != 0);
+    shader->setBool("material.hasBaseColorMap", textures[0] != nullptr);
 
-    shader->setInt(name, 0);
-    glBindTexture(GL_TEXTURE_2D, textures[0]);
+    if (textures[0] != nullptr) {
+        shader->setTexture(name, *textures[0], 0);
+    }
+    else {
+        shader->setInt(name, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
 }

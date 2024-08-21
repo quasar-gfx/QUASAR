@@ -5,8 +5,6 @@
 
 #include <OpenGLObject.h>
 
-typedef GLuint TextureID;
-
 struct TextureDataCreateParams {
     unsigned int width = 0;
     unsigned int height = 0;
@@ -19,13 +17,12 @@ struct TextureDataCreateParams {
     GLint magFilter = GL_LINEAR;
     bool hasBorder = false;
     bool gammaCorrected = false;
+    GLint alignment = 4;
     bool multiSampled = false;
     unsigned char* data = nullptr;
 };
 
 struct TextureFileCreateParams {
-    GLint internalFormat = GL_RGB;
-    GLenum format = GL_RGB;
     GLenum type = GL_UNSIGNED_BYTE;
     GLint wrapS = GL_CLAMP_TO_EDGE;
     GLint wrapT = GL_CLAMP_TO_EDGE;
@@ -33,6 +30,7 @@ struct TextureFileCreateParams {
     GLint magFilter = GL_LINEAR;
     bool flipVertically = false;
     bool gammaCorrected = false;
+    GLint alignment = 1;
     bool multiSampled = false;
     std::string path = "";
 };
@@ -51,10 +49,14 @@ public:
     GLint minFilter = GL_LINEAR;
     GLint magFilter = GL_LINEAR;
 
+    GLint alignment = 4;
+
     bool multiSampled = false;
 
-    explicit Texture() = default;
-    explicit Texture(const TextureDataCreateParams &params)
+    Texture() {
+        target = GL_TEXTURE_2D;
+    }
+    Texture(const TextureDataCreateParams &params)
             : width(params.width)
             , height(params.height)
             , internalFormat(params.internalFormat)
@@ -64,17 +66,31 @@ public:
             , wrapT(params.wrapT)
             , minFilter(params.minFilter)
             , magFilter(params.magFilter)
-            , multiSampled(params.multiSampled)
-            , OpenGLObject() {
+            , alignment(params.alignment)
+            , multiSampled(params.multiSampled) {
         target = !multiSampled ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
-        loadFromData(params);
+        loadFromData(params.data);
+
+        if (params.hasBorder) {
+            float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
+            glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, borderColor);
+        }
     }
-    explicit Texture(const TextureFileCreateParams &params)
-            : OpenGLObject() {
+    Texture(const TextureFileCreateParams &params)
+            : type(params.type)
+            , wrapS(params.wrapS)
+            , wrapT(params.wrapT)
+            , minFilter(params.minFilter)
+            , magFilter(params.magFilter)
+            , alignment(params.alignment)
+            , multiSampled(params.multiSampled) {
         target = !params.multiSampled ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
         loadFromFile(params);
     }
-    ~Texture() = default;
+
+    ~Texture() {
+        cleanup();
+    }
 
     void bind() const {
         bind(0);
@@ -111,7 +127,7 @@ public:
 protected:
     GLenum target;
 
-    void loadFromData(const TextureDataCreateParams &params);
+    void loadFromData(unsigned char* data);
     void loadFromFile(const TextureFileCreateParams &params);
 };
 

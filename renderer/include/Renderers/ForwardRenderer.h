@@ -8,7 +8,7 @@ class ForwardRenderer : public OpenGLRenderer {
 public:
     GeometryBuffer gBuffer;
 
-    explicit ForwardRenderer(const Config &config);
+    ForwardRenderer(const Config &config);
     ~ForwardRenderer() = default;
 
     void setScreenShaderUniforms(const Shader &screenShader) override;

@@ -11,7 +11,7 @@ public:
     GeometryBuffer gBuffer;
     std::vector<GeometryBuffer*> peelingLayers;
 
-    explicit DepthPeelingRenderer(const Config &config);
+    DepthPeelingRenderer(const Config &config);
     ~DepthPeelingRenderer() = default;
 
     void setScreenShaderUniforms(const Shader &screenShader) override;
