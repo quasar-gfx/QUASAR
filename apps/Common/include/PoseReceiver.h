@@ -20,17 +20,11 @@ class PoseReceiver {
 public:
     std::string streamerURL;
 
-    explicit PoseReceiver(PerspectiveCamera* camera, std::string streamerURL)
+    explicit PoseReceiver(Camera* camera, std::string streamerURL)
             : camera(camera)
             , streamerURL(streamerURL)
             , receiver(streamerURL, sizeof(Pose)) { }
 
-#ifdef VR
-    PoseReceiver(VRCamera* vrcamera, std::string streamerURL)
-            : vrcamera(vrcamera)
-            , streamerURL(streamerURL)
-            , receiver(streamerURL, sizeof(Pose)) { }
-#endif
 
     pose_id_t receivePose(bool setProj = true) {
         std::vector<uint8_t> data = receiver.recv();
@@ -45,28 +39,27 @@ public:
 
         std::memcpy(&currPose, data.data(), sizeof(Pose));
 
-#ifdef VR
-        if (setProj) {
-            vrcamera->setProjectionMatrix(currPose.projL);
+        if (VRCamera* vrCamera = dynamic_cast<VRCamera*>(camera)) {
+            if (setProj) {
+                vrCamera->setProjectionMatrix(currPose.vr.projL);
+            }
+            vrCamera->left->setViewMatrix(currPose.vr.viewL);
+            vrCamera->right->setViewMatrix(currPose.vr.viewR);
+        } else if (PerspectiveCamera* perspectiveCamera = dynamic_cast<PerspectiveCamera*>(camera)) {
+            if (setProj) {
+                perspectiveCamera->setProjectionMatrix(currPose.non_vr.proj);
+            }
+            perspectiveCamera->setViewMatrix(currPose.non_vr.view);
+        } else {
+            std::cerr << "Error: camera is neither a VRCamera nor a PerspectiveCamera instance" << std::endl;
         }
-        vrcamera->left->setViewMatrix(currPose.viewL);
-        vrcamera->right->setViewMatrix(currPose.viewR);
-#else
-        if (setProj) {
-            camera->setProjectionMatrix(currPose.proj);
-        }
-        camera->setViewMatrix(currPose.view);
-#endif
         return currPose.id;
     }
 
 private:
     DataReceiverUDP receiver;
 
-    PerspectiveCamera* camera;
-#ifdef VR
-    VRCamera* vrcamera;
-#endif
+    Camera* camera;
     Pose currPose;
 };
 

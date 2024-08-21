@@ -22,15 +22,11 @@ class PoseStreamer {
 public:
     std::string receiverURL;
 
-    explicit PoseStreamer(PerspectiveCamera* camera, std::string receiverURL)
+    explicit PoseStreamer(Camera* camera, std::string receiverURL)
             : camera(camera)
             , receiverURL(receiverURL)
             , streamer(receiverURL, sizeof(Pose)) { }
 
-    PoseStreamer(VRCamera* vrcamera, std::string receiverURL)
-            : vrcamera(vrcamera)
-            , receiverURL(receiverURL)
-            , streamer(receiverURL, sizeof(Pose)) { }
 
     bool epsilonEqual(const glm::mat4& mat1, const glm::mat4& mat2, float epsilon = 1e-5) {
         for (int i = 0; i < 4; i++) {
@@ -73,22 +69,24 @@ public:
 
     bool sendPose() {
         currPose.id = currPoseID;
-#ifdef VR
-        currPose.projL = vrcamera->left.getProjectionMatrix();
-        currPose.projR = vrcamera->right.getProjectionMatrix();
-        currPose.viewL = vrcamera->left.getViewMatrix();
-        currPose.viewR = vrcamera->right.getViewMatrix();
-        if (epsilonEqual(currPose.viewL, prevPose.viewL) ||
-            epsilonEqual(currPose.viewR, prevPose.viewR)) {
-            return false;
+        if (camera->isVR()) {
+            VRCamera* vrCamera = dynamic_cast<VRCamera*>(camera);
+            currPose.vr.projL = vrCamera->left->getProjectionMatrix();
+            currPose.vr.projR = vrCamera->right->getProjectionMatrix();
+            currPose.vr.viewL = vrCamera->left->getViewMatrix();
+            currPose.vr.viewR = vrCamera->right->getViewMatrix();
+            if (epsilonEqual(currPose.vr.viewL, prevPose.vr.viewL) ||
+                epsilonEqual(currPose.vr.viewR, prevPose.vr.viewR)) {
+                return false;
+            }
+        } else {
+            PerspectiveCamera* perspectiveCamera = dynamic_cast<PerspectiveCamera*>(camera);
+            currPose.non_vr.proj = perspectiveCamera->getProjectionMatrix();
+            currPose.non_vr.view = perspectiveCamera->getViewMatrix();
+            if (epsilonEqual(currPose.non_vr.view, prevPose.non_vr.view)) {
+                return false;
+            }
         }
-#else
-        currPose.proj = camera->getProjectionMatrix();
-        currPose.view = camera->getViewMatrix();
-        if (epsilonEqual(currPose.view, prevPose.view)) {
-            return false;
-        }
-#endif
         currPose.timestamp = timeutils::getTimeMillis();
         streamer.send((uint8_t*)&currPose);
 
@@ -101,8 +99,7 @@ public:
 private:
     DataStreamerUDP streamer;
 
-    PerspectiveCamera* camera;
-    VRCamera* vrcamera;
+    Camera* camera;
     Pose currPose, prevPose;
     pose_id_t currPoseID = 0;
 
