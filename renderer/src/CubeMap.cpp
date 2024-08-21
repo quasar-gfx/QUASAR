@@ -229,7 +229,7 @@ void CubeMap::prefilter(const Shader &prefilterShader, const CubeMap &envCubeMap
     prefilterShader.unbind();
 }
 
-RenderStats CubeMap::draw(const Shader &shader, const Camera &camera) const {
+RenderStats CubeMap::draw(const Shader &shader, const PerspectiveCamera &camera) const {
     RenderStats stats;
 
     shader.bind();

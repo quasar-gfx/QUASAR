@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
     window->getSize(screenWidth, screenHeight);
 
     Scene scene = Scene();
-    Camera camera = Camera(screenWidth, screenHeight);
+    PerspectiveCamera camera = PerspectiveCamera(screenWidth, screenHeight);
 
     VideoTexture videoTextureColor({
         .width = screenWidth,
@@ -177,11 +177,11 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             glm::vec3 position = camera.getPosition();
-            if (ImGui::InputFloat3("Camera Position", (float*)&position)) {
+            if (ImGui::InputFloat3("PerspectiveCamera Position", (float*)&position)) {
                 camera.setPosition(position);
             }
             glm::vec3 rotation = camera.getRotationEuler();
-            if (ImGui::InputFloat3("Camera Rotation", (float*)&rotation)) {
+            if (ImGui::InputFloat3("PerspectiveCamera Rotation", (float*)&rotation)) {
                 camera.setRotationEuler(rotation);
             }
 
@@ -344,7 +344,7 @@ int main(int argc, char** argv) {
     camera.setViewMatrix(view);
 
     // load remote camera
-    Camera remoteCamera = Camera(screenWidth, screenHeight);
+    PerspectiveCamera remoteCamera = PerspectiveCamera(screenWidth, screenHeight);
     auto remoteCameraData = FileIO::loadBinaryFile(DATA_PATH + "data/remoteCamera.bin");
     std::memcpy(&proj, remoteCameraData.data(), sizeof(glm::mat4));
     std::memcpy(&view, remoteCameraData.data() + sizeof(glm::mat4), sizeof(glm::mat4));

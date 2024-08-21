@@ -20,7 +20,7 @@ void Model::bindMaterial(const Scene &scene, const glm::mat4 &model, const Mater
     }
 }
 
-RenderStats Model::draw(const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
+RenderStats Model::draw(const PerspectiveCamera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
     RenderStats stats;
 
     for (auto& mesh : meshes) {
@@ -40,7 +40,7 @@ RenderStats Model::draw(const VRCamera &cameras, const glm::mat4 &model, bool fr
     return stats;
 }
 
-RenderStats Model::draw(const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
+RenderStats Model::draw(const PerspectiveCamera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
     RenderStats stats;
 
     for (auto& mesh : meshes) {

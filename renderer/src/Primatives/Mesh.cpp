@@ -95,17 +95,17 @@ void Mesh::updateAABB() {
     aabb.update(min, max);
 }
 
-void Mesh::setMaterialCameraParams(const Camera &camera, const Material* material) {
+void Mesh::setMaterialCameraParams(const PerspectiveCamera &camera, const Material* material) {
     material->shader->setMat4("view", camera.getViewMatrix());
     material->shader->setMat4("projection", camera.getProjectionMatrix());
     material->shader->setVec3("camPos", camera.getPosition());
 }
 
 void Mesh::setMaterialCameraParams(const VRCamera &camera, const Material* material) {
-    material->shader->setMat4("view[0]", camera.left.getViewMatrix());
-    material->shader->setMat4("projection[0]", camera.left.getProjectionMatrix());
-    material->shader->setMat4("view[1]", camera.right.getViewMatrix());
-    material->shader->setMat4("projection[1]", camera.right.getProjectionMatrix());
+    material->shader->setMat4("view[0]", camera.left->getViewMatrix());
+    material->shader->setMat4("projection[0]", camera.left->getProjectionMatrix());
+    material->shader->setMat4("view[1]", camera.right->getViewMatrix());
+    material->shader->setMat4("projection[1]", camera.right->getProjectionMatrix());
     material->shader->setVec3("camPos", camera.getPosition());
 }
 
@@ -154,7 +154,7 @@ void Mesh::bindMaterial(const Scene &scene, const glm::mat4 &model, const Materi
     materialToUse->unbind();
 }
 
-RenderStats Mesh::draw(const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
+RenderStats Mesh::draw(const PerspectiveCamera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
     RenderStats stats;
 
     auto& frustum = camera.frustum;
@@ -179,8 +179,8 @@ RenderStats Mesh::draw(const Camera &camera, const glm::mat4 &model, bool frustu
 RenderStats Mesh::draw(const VRCamera &cameras, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
     RenderStats stats;
 
-    auto &frustumLeft = cameras.left.frustum;
-    auto &frustumRight = cameras.right.frustum;
+    auto &frustumLeft = cameras.left->frustum;
+    auto &frustumRight = cameras.right->frustum;
     if (frustumCull && !frustumLeft.aabbIsVisible(aabb, model) && !frustumRight.aabbIsVisible(aabb, model)) {
         return stats;
     }
@@ -199,7 +199,7 @@ RenderStats Mesh::draw(const VRCamera &cameras, const glm::mat4 &model, bool fru
     return stats;
 }
 
-RenderStats Mesh::draw(const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
+RenderStats Mesh::draw(const PerspectiveCamera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
     RenderStats stats;
     if (!boundingSphere.intersects(aabb)) {
         return stats;

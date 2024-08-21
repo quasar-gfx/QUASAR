@@ -10,7 +10,7 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
-#include <Camera.h>
+#include <PerspectiveCamera.h>
 #include <VRCamera.h>
 #include <Networking/DataReceiverUDP.h>
 
@@ -20,7 +20,7 @@ class PoseReceiver {
 public:
     std::string streamerURL;
 
-    explicit PoseReceiver(Camera* camera, std::string streamerURL)
+    explicit PoseReceiver(PerspectiveCamera* camera, std::string streamerURL)
             : camera(camera)
             , streamerURL(streamerURL)
             , receiver(streamerURL, sizeof(Pose)) { }
@@ -63,7 +63,7 @@ public:
 private:
     DataReceiverUDP receiver;
 
-    Camera* camera;
+    PerspectiveCamera* camera;
 #ifdef VR
     VRCamera* vrcamera;
 #endif

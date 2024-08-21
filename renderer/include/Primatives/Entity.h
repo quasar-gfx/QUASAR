@@ -9,7 +9,7 @@
 
 class Node;
 class Scene;
-class Camera;
+class PerspectiveCamera;
 class VRCamera;
 
 enum class EntityType {
@@ -55,10 +55,10 @@ public:
                               const Material* overrideMaterial = nullptr,
                               const Texture* prevDepthMap = nullptr) = 0;
 
-    virtual RenderStats draw(const Camera &camera, const glm::mat4 &model,
+    virtual RenderStats draw(const PerspectiveCamera &camera, const glm::mat4 &model,
                              bool frustumCull = true,
                              const Material* overrideMaterial = nullptr) = 0;
-    virtual RenderStats draw(const Camera &camera, const glm::mat4 &model,
+    virtual RenderStats draw(const PerspectiveCamera &camera, const glm::mat4 &model,
                              const BoundingSphere &boundingSphere,
                              const Material* overrideMaterial = nullptr) = 0;
     virtual RenderStats draw(const VRCamera &cameras, const glm::mat4 &model,

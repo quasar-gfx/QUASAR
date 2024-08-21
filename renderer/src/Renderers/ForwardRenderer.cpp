@@ -10,7 +10,7 @@ void ForwardRenderer::resize(unsigned int width, unsigned int height) {
     gBuffer.resize(width, height);
 }
 
-RenderStats ForwardRenderer::drawScene(const Scene &scene, const Camera &camera, uint32_t clearMask) {
+RenderStats ForwardRenderer::drawScene(const Scene &scene, const PerspectiveCamera &camera, uint32_t clearMask) {
     RenderStats stats;
 
     gBuffer.bind();
@@ -20,7 +20,7 @@ RenderStats ForwardRenderer::drawScene(const Scene &scene, const Camera &camera,
     return stats;
 }
 
-RenderStats ForwardRenderer::drawLights(const Scene &scene, const Camera &camera) {
+RenderStats ForwardRenderer::drawLights(const Scene &scene, const PerspectiveCamera &camera) {
     RenderStats stats;
 
     gBuffer.bind();
@@ -30,7 +30,7 @@ RenderStats ForwardRenderer::drawLights(const Scene &scene, const Camera &camera
     return stats;
 }
 
-RenderStats ForwardRenderer::drawSkyBox(const Scene &scene, const Camera &camera) {
+RenderStats ForwardRenderer::drawSkyBox(const Scene &scene, const PerspectiveCamera &camera) {
     RenderStats stats;
 
     gBuffer.bind();

@@ -29,7 +29,7 @@ private:
     jsmntok_t* tokens;
 };
 
-void SceneLoader::loadScene(const std::string &filename, Scene &scene, Camera &camera) {
+void SceneLoader::loadScene(const std::string &filename, Scene &scene, PerspectiveCamera &camera) {
     unsigned int size;
     std::string sceneJSON = FileIO::loadTextFile(filename, &size);
     if (size == 0) {
@@ -47,7 +47,7 @@ void SceneLoader::loadScene(const std::string &filename, Scene &scene, Camera &c
     parse(tokens, 0, sceneJSON.data(), scene, camera);
 }
 
-void SceneLoader::clearScene(Scene &scene, Camera &camera) {
+void SceneLoader::clearScene(Scene &scene, PerspectiveCamera &camera) {
     scene.clear();
 
     for (auto model : models) {
@@ -137,7 +137,7 @@ int SceneLoader::parseVec4(jsmntok_t* tokens, int i, const char* json, glm::vec4
     return i;
 }
 
-int SceneLoader::parseSkybox(jsmntok_t* tokens, int i, const char* json, Scene &scene, Camera &camera) {
+int SceneLoader::parseSkybox(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera) {
     CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
     TextureFileCreateParams hdrTextureParams{
@@ -197,7 +197,7 @@ int SceneLoader::parseSkybox(jsmntok_t* tokens, int i, const char* json, Scene &
     return i;
 }
 
-int SceneLoader::parseMaterial(jsmntok_t* tokens, int i, const char* json, Scene &scene, Camera &camera) {
+int SceneLoader::parseMaterial(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera) {
     CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
     std::string type;
@@ -254,7 +254,7 @@ int SceneLoader::parseMaterial(jsmntok_t* tokens, int i, const char* json, Scene
     return i;
 }
 
-int SceneLoader::parseMaterials(jsmntok_t* tokens, int i, const char* json, Scene &scene, Camera &camera) {
+int SceneLoader::parseMaterials(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera) {
     CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
 
     int size = tokens[i++].size;
@@ -265,7 +265,7 @@ int SceneLoader::parseMaterials(jsmntok_t* tokens, int i, const char* json, Scen
     return i;
 }
 
-int SceneLoader::parseModel(jsmntok_t* tokens, int i, const char* json, Scene &scene, Camera &camera) {
+int SceneLoader::parseModel(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera) {
     CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
     ModelCreateParams params{};
@@ -318,7 +318,7 @@ int SceneLoader::parseModel(jsmntok_t* tokens, int i, const char* json, Scene &s
     return i;
 }
 
-int SceneLoader::parseModels(jsmntok_t* tokens, int i, const char* json, Scene &scene, Camera &camera) {
+int SceneLoader::parseModels(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera) {
     CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
 
     int size = tokens[i++].size;
@@ -329,7 +329,7 @@ int SceneLoader::parseModels(jsmntok_t* tokens, int i, const char* json, Scene &
     return i;
 }
 
-int SceneLoader::parseMesh(jsmntok_t* tokens, int i, const char* json, Scene &scene, Camera &camera) {
+int SceneLoader::parseMesh(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera) {
     CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
     std::string meshType = "cube";
@@ -383,7 +383,7 @@ int SceneLoader::parseMesh(jsmntok_t* tokens, int i, const char* json, Scene &sc
     return i;
 }
 
-int SceneLoader::parseMeshes(jsmntok_t* tokens, int i, const char* json, Scene &scene, Camera &camera) {
+int SceneLoader::parseMeshes(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera) {
     CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
 
     int size = tokens[i++].size;
@@ -394,7 +394,7 @@ int SceneLoader::parseMeshes(jsmntok_t* tokens, int i, const char* json, Scene &
     return i;
 }
 
-int SceneLoader::parseNode(jsmntok_t* tokens, int i, const char* json, Scene &scene, Camera &camera) {
+int SceneLoader::parseNode(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera) {
     CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
     Node* node = new Node();
@@ -450,7 +450,7 @@ int SceneLoader::parseNode(jsmntok_t* tokens, int i, const char* json, Scene &sc
     return i;
 }
 
-int SceneLoader::parseNodes(jsmntok_t* tokens, int i, const char* json, Scene &scene, Camera &camera) {
+int SceneLoader::parseNodes(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera) {
     CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
 
     int size = tokens[i++].size;
@@ -461,7 +461,7 @@ int SceneLoader::parseNodes(jsmntok_t* tokens, int i, const char* json, Scene &s
     return i;
 }
 
-int SceneLoader::parseCamera(jsmntok_t* tokens, int i, const char* json, Scene &scene, Camera &camera) {
+int SceneLoader::parseCamera(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera) {
     CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
     int size = tokens[i++].size;
@@ -506,7 +506,7 @@ int SceneLoader::parseCamera(jsmntok_t* tokens, int i, const char* json, Scene &
     return i;
 }
 
-int SceneLoader::parseAmbientLight(jsmntok_t* tokens, int i, const char* json, Scene &scene, Camera &camera) {
+int SceneLoader::parseAmbientLight(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera) {
     CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
     AmbientLightCreateParams params{};
@@ -534,7 +534,7 @@ int SceneLoader::parseAmbientLight(jsmntok_t* tokens, int i, const char* json, S
     return i;
 }
 
-int SceneLoader::parseDirectionalLight(jsmntok_t* tokens, int i, const char* json, Scene &scene, Camera &camera) {
+int SceneLoader::parseDirectionalLight(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera) {
     CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
     DirectionalLightCreateParams params{};
@@ -582,7 +582,7 @@ int SceneLoader::parseDirectionalLight(jsmntok_t* tokens, int i, const char* jso
     return i;
 }
 
-int SceneLoader::parsePointLight(jsmntok_t* tokens, int i, const char* json, Scene &scene, Camera &camera) {
+int SceneLoader::parsePointLight(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera) {
     CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
     PointLightCreateParams params{};
@@ -639,7 +639,7 @@ int SceneLoader::parsePointLight(jsmntok_t* tokens, int i, const char* json, Sce
     return i;
 }
 
-int SceneLoader::parsePointLights(jsmntok_t* tokens, int i, const char* json, Scene &scene, Camera &camera) {
+int SceneLoader::parsePointLights(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera) {
     CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
 
     int size = tokens[i++].size;
@@ -650,7 +650,7 @@ int SceneLoader::parsePointLights(jsmntok_t* tokens, int i, const char* json, Sc
     return i;
 }
 
-int SceneLoader::parse(jsmntok_t* tokens, int i, const char* json, Scene &scene, Camera &camera) {
+int SceneLoader::parse(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera) {
     CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
     int size = tokens[i++].size;

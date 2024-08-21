@@ -23,7 +23,7 @@ void DepthPeelingRenderer::resize(unsigned int width, unsigned int height) {
     }
 }
 
-RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &camera, uint32_t clearMask) {
+RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const PerspectiveCamera &camera, uint32_t clearMask) {
     RenderStats stats;
 
     for (int i = 0; i < maxLayers; i++) {
@@ -50,7 +50,7 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &ca
     return stats;
 }
 
-RenderStats DepthPeelingRenderer::drawLights(const Scene &scene, const Camera &camera) {
+RenderStats DepthPeelingRenderer::drawLights(const Scene &scene, const PerspectiveCamera &camera) {
     RenderStats stats;
 
     gBuffer.bind();
@@ -60,7 +60,7 @@ RenderStats DepthPeelingRenderer::drawLights(const Scene &scene, const Camera &c
     return stats;
 }
 
-RenderStats DepthPeelingRenderer::drawSkyBox(const Scene &scene, const Camera &camera) {
+RenderStats DepthPeelingRenderer::drawSkyBox(const Scene &scene, const PerspectiveCamera &camera) {
     RenderStats stats;
 
     for (auto layer : peelingLayers) {
@@ -72,7 +72,7 @@ RenderStats DepthPeelingRenderer::drawSkyBox(const Scene &scene, const Camera &c
     return stats;
 }
 
-RenderStats DepthPeelingRenderer::drawObjects(const Scene &scene, const Camera &camera, uint32_t clearMask) {
+RenderStats DepthPeelingRenderer::drawObjects(const Scene &scene, const PerspectiveCamera &camera, uint32_t clearMask) {
     RenderStats stats;
     stats = OpenGLRenderer::drawObjects(scene, camera, clearMask);
     stats += compositeLayers();

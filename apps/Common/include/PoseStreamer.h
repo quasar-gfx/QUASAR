@@ -12,7 +12,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <Utils/TimeUtils.h>
-#include <Camera.h>
+#include <PerspectiveCamera.h>
 #include <VRCamera.h>
 #include <Networking/DataStreamerUDP.h>
 
@@ -22,7 +22,7 @@ class PoseStreamer {
 public:
     std::string receiverURL;
 
-    explicit PoseStreamer(Camera* camera, std::string receiverURL)
+    explicit PoseStreamer(PerspectiveCamera* camera, std::string receiverURL)
             : camera(camera)
             , receiverURL(receiverURL)
             , streamer(receiverURL, sizeof(Pose)) { }
@@ -101,7 +101,7 @@ public:
 private:
     DataStreamerUDP streamer;
 
-    Camera* camera;
+    PerspectiveCamera* camera;
     VRCamera* vrcamera;
     Pose currPose, prevPose;
     pose_id_t currPoseID = 0;

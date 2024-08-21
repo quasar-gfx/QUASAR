@@ -71,8 +71,8 @@ int main(int argc, char** argv) {
 
     Scene scene = Scene();
     Scene remoteScene = Scene();
-    Camera camera = Camera(screenWidth, screenHeight);
-    Camera remoteCamera = Camera(screenWidth, screenHeight);
+    PerspectiveCamera camera = PerspectiveCamera(screenWidth, screenHeight);
+    PerspectiveCamera remoteCamera = PerspectiveCamera(screenWidth, screenHeight);
     SceneLoader loader = SceneLoader();
     loader.loadScene(scenePath, remoteScene, remoteCamera);
 

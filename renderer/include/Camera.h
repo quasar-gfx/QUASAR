@@ -1,68 +1,51 @@
-#ifndef CAMERA_H
-#define CAMERA_H
+#pragma once
 
-#define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/matrix_decompose.hpp>
-
-#include <Primatives/Node.h>
-#include <Windowing/Window.h>
-#include <Culling/Frustum.h>
+#include <Node.h>
 
 class Camera : public Node {
+protected:
+    glm::vec3 position;
+    glm::vec3 front;
+    glm::vec3 up;
+    glm::vec3 right;
+    glm::vec3 worldUp;
+
+    float yaw;
+    float pitch;
+
 public:
-    float aspect;
-    float fovy;
-    float near;
-    float far;
+    Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
+           glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f),
+           float yaw = -90.0f, float pitch = 0.0f);
 
-    float movementSpeed = 5.0f;
-    float mouseSensitivity = 0.05f;
+    virtual ~Camera() = default;
+    virtual bool isVR() const = 0;
+    virtual glm::mat4 getViewMatrix() const;
+    virtual glm::mat4 getProjectionMatrix() const = 0;
+    virtual glm::mat4 getEyeViewMatrix(bool isLeftEye) const {
+        // Default implementation just returns the regular view matrix
+        return getViewMatrix();
+    }
+    void setPosition(const glm::vec3& newPosition);
+    glm::vec3 getPosition() const;
 
-    Frustum frustum;
+    void setFront(const glm::vec3& newFront);
+    glm::vec3 getFront() const;
 
-    explicit Camera();
-    explicit Camera(unsigned int width, unsigned int height);
-    explicit Camera(float fovy, float aspect, float near, float far);
+    void setUp(const glm::vec3& newUp);
+    glm::vec3 getUp() const;
 
-    void setFovy(float fovy) { this->fovy = fovy; updateProjectionMatrix(); }
-    void setAspect(float aspect) { this->aspect = aspect; updateProjectionMatrix(); }
-    void setNear(float near) { this->near = near; updateProjectionMatrix(); }
-    void setFar(float far) { this->far = far; updateProjectionMatrix(); }
+    void setRight(const glm::vec3& newRight);
+    glm::vec3 getRight() const;
 
-    glm::mat4 getProjectionMatrix() const { return proj; }
-    void setProjectionMatrix(const glm::mat4 &proj);
-    void setProjectionMatrix(float fovy, float aspect, float near, float far);
-    void updateProjectionMatrix();
+    void setYaw(float newYaw);
+    float getYaw() const;
 
-    glm::mat4 getViewMatrix() const { return view; }
-    void setViewMatrix(const glm::mat4 &view);
-    void updateViewMatrix();
-
-    glm::vec3 getForwardVector() const { return front; }
-    glm::vec3 getRightVector() const { return right; }
-    glm::vec3 getUpVector() const { return up; }
-
-    void processKeyboard(Keys keys, float deltaTime);
-    void processMouseMovement(float xoffset, float yoffset, bool constrainPitch = true);
+    void setPitch(float newPitch);
+    float getPitch() const;
 
 protected:
-    glm::mat4 view;
-    glm::mat4 proj;
-
-    float yaw = -90.0f;
-    float pitch = 0.0f;
-
-    glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f);
-    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-    glm::vec3 right = glm::vec3(-1.0f, 0.0f, 0.0f);
-    glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
-
-    void updateCameraOrientation();
-    // calculates the front vector from the Camera's (updated) Euler Angles
-    void setOrientationFromYawPitch();
+    virtual void updateCameraVectors();
 };
-
-#endif // CAMERA_H

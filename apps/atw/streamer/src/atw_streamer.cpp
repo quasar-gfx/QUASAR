@@ -68,9 +68,10 @@ int main(int argc, char** argv) {
     VRCamera camera = VRCamera(screenWidth / 2, screenHeight);
     SceneLoader loader = SceneLoader();
     loader.loadScene(scenePath, scene, camera.left);
-    loader.loadScene(scenePath, scene, camera.right);
+    camera.right.setViewMatrix(camera.left.getViewMatrix());
+    camera.right.setProjectionMatrix(camera.left.getProjectionMatrix());
 #else
-    Camera camera = Camera(screenWidth, screenHeight);
+    PerspectiveCamera camera = PerspectiveCamera(screenWidth, screenHeight);
     SceneLoader loader = SceneLoader();
     loader.loadScene(scenePath, scene, camera);
 #endif
@@ -283,8 +284,10 @@ int main(int argc, char** argv) {
         renderer.drawToRenderTarget(colorShader, videoStreamerRT);
         renderer.drawToRenderTarget(colorShader, videoStreamerRTright);
 
-        sideBySideShader.setTexture("camera1Buffer", renderer.gBuffer.colorBuffer, 5);
-        sideBySideShader.setTexture("camera2Buffer", renderer.gBuffer.colorBuffer, 6);
+        sideBySideShader.bind();
+        sideBySideShader.setTexture("camera1Buffer", videoStreamerRT.colorBuffer, 5);
+        sideBySideShader.setTexture("camera2Buffer", videoStreamerRTright.colorBuffer, 6);
+        sideBySideShader.unbind();
 
         // render to screen
         if (config.showWindow) {
