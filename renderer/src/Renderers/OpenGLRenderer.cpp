@@ -105,11 +105,18 @@ OpenGLRenderer::OpenGLRenderer(const Config &config)
     pipeline.apply();
 }
 
+void OpenGLRenderer::setViewport(unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
+    glViewport(x, y, width, height);
+}
+
+void OpenGLRenderer::setScissor(unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
+    pipeline.rasterState.scissorTestEnabled = true;
+    glScissor(x, y, width, height);
+}
+
 void OpenGLRenderer::resize(unsigned int width, unsigned int height) {
     this->width = width;
     this->height = height;
-
-    glViewport(0, 0, width, height);
 }
 
 RenderStats OpenGLRenderer::updateDirLightShadow(const Scene &scene, const PerspectiveCamera &camera) {
@@ -299,15 +306,9 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const PerspectiveCamera
 RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const RenderTarget* overrideRenderTarget) {
     pipeline.apply();
 
-    if (overrideRenderTarget != nullptr) {
-        overrideRenderTarget->bind();
-        glViewport(0, 0, overrideRenderTarget->width, overrideRenderTarget->height);
-    }
-    else {
-        // screen buffer
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glViewport(0, 0, width, height);
-    }
+    // screen buffer
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    setViewport(0, 0, width, height);
 
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -317,13 +318,24 @@ RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const Rende
     RenderStats stats = outputFsQuad.draw();
     screenShader.unbind();
 
-    if (overrideRenderTarget != nullptr) {
-        overrideRenderTarget->unbind();
-    }
-
     return stats;
 }
 
 RenderStats OpenGLRenderer::drawToRenderTarget(const Shader &screenShader, const RenderTarget &renderTarget) {
-    return drawToScreen(screenShader, &renderTarget);
+    pipeline.apply();
+
+    // render target
+    renderTarget.bind();
+
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    screenShader.bind();
+    setScreenShaderUniforms(screenShader);
+    RenderStats stats = outputFsQuad.draw();
+    screenShader.unbind();
+
+    renderTarget.unbind();
+
+    return stats;
 }

@@ -28,6 +28,9 @@ public:
 
     virtual void setScreenShaderUniforms(const Shader &screenShader) {};
 
+    void setViewport(unsigned int x, unsigned int y, unsigned int width, unsigned int height);
+    void setScissor(unsigned int x, unsigned int y, unsigned int width, unsigned int height);
+
     virtual void resize(unsigned int width, unsigned int height);
 
     RenderStats updateDirLightShadow(const Scene &scene, const PerspectiveCamera &camera);

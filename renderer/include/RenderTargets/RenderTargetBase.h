@@ -39,7 +39,6 @@ public:
 
     void bind() const {
         framebuffer.bind();
-        glViewport(0, 0, width, height);
     }
 
     void unbind() const {

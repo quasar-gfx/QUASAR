@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "127.0.0.1:12345");
     args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "0.0.0.0:54321");
     args::ValueFlag<int> targetBitrateIn(parser, "targetBitrate", "Target bitrate (Mbps)", {'b', "target-bitrate"}, 50);
-    args::Flag vrModeIn(parser, "vr", "Enable VR mode", {'r', "vr"});
+    args::ValueFlag<bool> vrModeIn(parser, "vr", "Enable VR mode", {'r', "vr"}, false);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
     std::string poseURL = args::get(poseURLIn);
 
     unsigned int targetBitrate = args::get(targetBitrateIn);
-    bool vrMode = vrModeIn;
+    bool vrMode = args::get(vrModeIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -92,36 +92,6 @@ int main(int argc, char** argv) {
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR
     }, videoURL, targetBitrate);
-
-    VideoStreamer *videoStreamerRTright;
-    VideoStreamer *videoStreamerRTcombined;
-    if (vrMode) {
-        videoStreamerRTright = new VideoStreamer({
-                .width = screenWidth,
-                .height = screenHeight,
-                .internalFormat = GL_SRGB,
-                .format = GL_RGB,
-                .type = GL_FLOAT,
-                .wrapS = GL_CLAMP_TO_EDGE,
-                .wrapT = GL_CLAMP_TO_EDGE,
-                .minFilter = GL_LINEAR,
-                .magFilter = GL_LINEAR
-            }, videoURL, targetBitrate
-        );
-
-        videoStreamerRTcombined = new VideoStreamer({
-                .width = screenWidth,
-                .height = screenHeight,
-                .internalFormat = GL_SRGB,
-                .format = GL_RGB,
-                .type = GL_FLOAT,
-                .wrapS = GL_CLAMP_TO_EDGE,
-                .wrapT = GL_CLAMP_TO_EDGE,
-                .minFilter = GL_LINEAR,
-                .magFilter = GL_LINEAR
-            }, videoURL, targetBitrate
-        );
-    }
 
     PoseReceiver poseReceiver = PoseReceiver(camera.get(), poseURL);
 
@@ -261,11 +231,6 @@ int main(int argc, char** argv) {
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
 
-    Shader sideBySideShader = Shader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/sidebyside.frag"
-    });
-
     std::vector<glm::vec3> pointLightPositions(4);
     pointLightPositions[0] = scene.pointLights[0]->position;
     pointLightPositions[1] = scene.pointLights[1]->position;
@@ -295,28 +260,31 @@ int main(int argc, char** argv) {
 
         if (vrMode) {
             auto* vrCamera = static_cast<VRCamera*>(camera.get());
+
+            // left eye
+            renderer.setScissor(0, 0, screenWidth / 2, screenHeight);
+            renderer.setViewport(0, 0, screenWidth / 2, screenHeight);
             renderStats = renderer.drawObjects(scene, vrCamera->left);
             renderer.drawToRenderTarget(colorShader, videoStreamerRT);
+
+            // right eye
+            renderer.setScissor(screenWidth / 2, 0, screenWidth / 2, screenHeight);
+            renderer.setViewport(screenWidth / 2, 0, screenWidth / 2, screenHeight);
             renderStats = renderer.drawObjects(scene, vrCamera->right);
-            renderer.drawToRenderTarget(colorShader, *videoStreamerRTright);
+            renderer.drawToRenderTarget(colorShader, videoStreamerRT);
 
-            sideBySideShader.bind();
-            sideBySideShader.setTexture("camera1Buffer", videoStreamerRT.colorBuffer, 5);
-            sideBySideShader.setTexture("camera2Buffer", videoStreamerRTright->colorBuffer, 6);
-            sideBySideShader.unbind();
-
-            if (config.showWindow) {
-                renderer.drawToScreen(sideBySideShader);
-            }
-            renderer.drawToRenderTarget(sideBySideShader, *videoStreamerRTcombined);
+            // restore
+            renderer.setScissor(0, 0, screenWidth, screenHeight);
+            renderer.setViewport(0, 0, screenWidth, screenHeight);
         }
         else {
             auto* perspectiveCamera = static_cast<PerspectiveCamera*>(camera.get());
             renderStats = renderer.drawObjects(scene, *perspectiveCamera);
-            if (config.showWindow) {
-                renderer.drawToScreen(colorShader);
-            }
             renderer.drawToRenderTarget(colorShader, videoStreamerRT);
+        }
+
+        if (config.showWindow) {
+            renderer.drawToScreen(colorShader);
         }
 
         // send video frame
