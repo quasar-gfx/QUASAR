@@ -1,16 +1,9 @@
-#ifndef PERSPECTIVECAMERA_H
-#define PERSPECTIVECAMERA_H
+#ifndef PERSPECTIVE_CAMERA_H
+#define PERSPECTIVE_CAMERA_H
 
-#define GLM_FORCE_RADIANS
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/matrix_decompose.hpp>
-
-#include <Primatives/Node.h>
 #include <Windowing/Window.h>
+#include <Cameras/Camera.h>
 #include <Culling/Frustum.h>
-#include "Camera.h"
 
 class PerspectiveCamera : public Camera {
 public:
@@ -67,4 +60,4 @@ protected:
     void setOrientationFromYawPitch();
 };
 
-#endif // PERSPECTIVECAMERA_H
+#endif // PERSPECTIVE_CAMERA_H

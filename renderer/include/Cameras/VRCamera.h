@@ -1,9 +1,9 @@
-#ifndef VRCAMERA_H
-#define VRCAMERA_H
+#ifndef VR_CAMERA_H
+#define VR_CAMERA_H
 
-#include <PerspectiveCamera.h>
+#include <Cameras/Camera.h>
+#include <Cameras/PerspectiveCamera.h>
 #include <Culling/Frustum.h>
-#include <Camera.h>
 
 class VRCamera : public Camera {
 public:
@@ -16,10 +16,10 @@ public:
 
     void setProjectionMatrix(const glm::mat4 &proj);
     void setProjectionMatrix(float fovy, float aspect, float near, float far);
+    glm::mat4 getProjectionMatrix() const;
+    void updateProjectionMatrix();
 
     void setViewMatrices(const glm::mat4 (&views)[2]);
-
-    glm::mat4 getProjectionMatrix() const;
     glm::mat4 getEyeViewMatrix(bool isLeftEye) const;
 
     glm::vec3 getPosition() const override {
@@ -31,4 +31,4 @@ public:
     bool isVR() const override { return true; }
 };
 
-#endif // VRCAMERA_H
+#endif // VR_CAMERA_H

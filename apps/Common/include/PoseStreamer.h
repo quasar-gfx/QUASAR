@@ -12,8 +12,8 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <Utils/TimeUtils.h>
-#include <PerspectiveCamera.h>
-#include <VRCamera.h>
+#include <Cameras/PerspectiveCamera.h>
+#include <Cameras/VRCamera.h>
 #include <Networking/DataStreamerUDP.h>
 
 #include <CameraPose.h>
@@ -26,7 +26,6 @@ public:
             : camera(camera)
             , receiverURL(receiverURL)
             , streamer(receiverURL, sizeof(Pose)) { }
-
 
     bool epsilonEqual(const glm::mat4& mat1, const glm::mat4& mat2, float epsilon = 1e-5) {
         for (int i = 0; i < 4; i++) {
@@ -70,19 +69,18 @@ public:
     bool sendPose() {
         currPose.id = currPoseID;
         if (camera->isVR()) {
-            VRCamera* vrCamera = static_cast<VRCamera*>(camera);
-            currPose.stereo.projL = vrCamera->left.getProjectionMatrix();
-            currPose.stereo.projR = vrCamera->right.getProjectionMatrix();
-            currPose.stereo.viewL = vrCamera->left.getViewMatrix();
-            currPose.stereo.viewR = vrCamera->right.getViewMatrix();
-            if (epsilonEqual(currPose.stereo.viewL, prevPose.stereo.viewL) ||
+            auto* vrCamera = static_cast<VRCamera*>(camera);
+            currPose.setProjectionMatrices({vrCamera->left.getProjectionMatrix(), vrCamera->right.getProjectionMatrix()});
+            currPose.setViewMatrices({vrCamera->left.getViewMatrix(), vrCamera->right.getViewMatrix()});
+            if (epsilonEqual(currPose.stereo.viewL, prevPose.stereo.viewL) &&
                 epsilonEqual(currPose.stereo.viewR, prevPose.stereo.viewR)) {
                 return false;
             }
-        } else {
-            PerspectiveCamera* perspectiveCamera = static_cast<PerspectiveCamera*>(camera);
-            currPose.mono.proj = perspectiveCamera->getProjectionMatrix();
-            currPose.mono.view = perspectiveCamera->getViewMatrix();
+        }
+        else {
+            auto* perspectiveCamera = static_cast<PerspectiveCamera*>(camera);
+            currPose.setViewMatrix(perspectiveCamera->getViewMatrix());
+            currPose.setProjectionMatrix(perspectiveCamera->getProjectionMatrix());
             if (epsilonEqual(currPose.mono.view, prevPose.mono.view)) {
                 return false;
             }

@@ -74,12 +74,13 @@ int main(int argc, char** argv) {
         vrCamera->right.setViewMatrix(vrCamera->left.getViewMatrix());
         vrCamera->right.setProjectionMatrix(vrCamera->left.getProjectionMatrix());
         camera = std::move(vrCamera);
-    } else {
+    }
+    else {
         auto perspectiveCamera = std::make_unique<PerspectiveCamera>(screenWidth, screenHeight);
         loader.loadScene(scenePath, scene, *perspectiveCamera);
         camera = std::move(perspectiveCamera);
     }
-    
+
     VideoStreamer videoStreamerRT = VideoStreamer({
         .width = screenWidth,
         .height = screenHeight,
@@ -95,8 +96,7 @@ int main(int argc, char** argv) {
     VideoStreamer *videoStreamerRTright;
     VideoStreamer *videoStreamerRTcombined;
     if (vrMode) {
-        videoStreamerRTright = new VideoStreamer(
-            {
+        videoStreamerRTright = new VideoStreamer({
                 .width = screenWidth,
                 .height = screenHeight,
                 .internalFormat = GL_SRGB,
@@ -109,8 +109,7 @@ int main(int argc, char** argv) {
             }, videoURL, targetBitrate
         );
 
-        videoStreamerRTcombined = new VideoStreamer(
-            {
+        videoStreamerRTcombined = new VideoStreamer({
                 .width = screenWidth,
                 .height = screenHeight,
                 .internalFormat = GL_SRGB,
@@ -245,11 +244,11 @@ int main(int argc, char** argv) {
         renderer.resize(width, height);
         if (vrMode) {
             auto vrCamera = static_cast<VRCamera*>(camera.get());
-            vrCamera->left.aspect = (float)screenWidth / 2 / (float)screenHeight;
-            vrCamera->left.updateProjectionMatrix();
-            vrCamera->right.aspect = (float)screenWidth / 2 / (float)screenHeight;
-            vrCamera->right.updateProjectionMatrix();
-        } else {
+            vrCamera->left.aspect = (float)(screenWidth / 2) / (float)screenHeight;
+            vrCamera->right.aspect = (float)(screenWidth / 2) / (float)screenHeight;
+            vrCamera->updateProjectionMatrix();
+        }
+        else {
             auto perspectiveCamera = static_cast<PerspectiveCamera*>(camera.get());
             perspectiveCamera->aspect = (float)screenWidth / (float)screenHeight;
             perspectiveCamera->updateProjectionMatrix();
@@ -262,13 +261,10 @@ int main(int argc, char** argv) {
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
 
-    Shader *sideBySideShader;
-    if (vrMode) {
-        sideBySideShader = new Shader({
-            .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-            .fragmentCodePath = "../shaders/postprocessing/sidebyside.frag"
-        });
-    }
+    Shader sideBySideShader = Shader({
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../shaders/postprocessing/sidebyside.frag"
+    });
 
     std::vector<glm::vec3> pointLightPositions(4);
     pointLightPositions[0] = scene.pointLights[0]->position;
@@ -278,6 +274,12 @@ int main(int argc, char** argv) {
 
     pose_id_t poseID = 0;
     app.onRender([&](double now, double dt) {
+        // handle keyboard input
+        auto keys = window->getKeys();
+        if (keys.ESC_PRESSED) {
+            window->close();
+        }
+
         if (paused) {
             return;
         }
@@ -292,23 +294,24 @@ int main(int argc, char** argv) {
         scene.pointLights[3]->setPosition(pointLightPositions[3] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
 
         if (vrMode) {
-            auto vrCamera = static_cast<VRCamera*>(camera.get());
+            auto* vrCamera = static_cast<VRCamera*>(camera.get());
             renderStats = renderer.drawObjects(scene, vrCamera->left);
-            renderStats = renderer.drawObjects(scene, vrCamera->right);
             renderer.drawToRenderTarget(colorShader, videoStreamerRT);
+            renderStats = renderer.drawObjects(scene, vrCamera->right);
             renderer.drawToRenderTarget(colorShader, *videoStreamerRTright);
 
-            sideBySideShader->bind();
-            sideBySideShader->setTexture("camera1Buffer", videoStreamerRT.colorBuffer, 5);
-            sideBySideShader->setTexture("camera2Buffer", videoStreamerRTright->colorBuffer, 6);
-            sideBySideShader->unbind();
+            sideBySideShader.bind();
+            sideBySideShader.setTexture("camera1Buffer", videoStreamerRT.colorBuffer, 5);
+            sideBySideShader.setTexture("camera2Buffer", videoStreamerRTright->colorBuffer, 6);
+            sideBySideShader.unbind();
 
             if (config.showWindow) {
-                renderer.drawToScreen(*sideBySideShader);
+                renderer.drawToScreen(sideBySideShader);
             }
-            renderer.drawToRenderTarget(*sideBySideShader, *videoStreamerRTcombined);
-        } else {
-            auto perspectiveCamera = static_cast<PerspectiveCamera*>(camera.get());
+            renderer.drawToRenderTarget(sideBySideShader, *videoStreamerRTcombined);
+        }
+        else {
+            auto* perspectiveCamera = static_cast<PerspectiveCamera*>(camera.get());
             renderStats = renderer.drawObjects(scene, *perspectiveCamera);
             if (config.showWindow) {
                 renderer.drawToScreen(colorShader);

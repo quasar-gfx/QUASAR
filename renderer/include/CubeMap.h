@@ -9,7 +9,7 @@
 
 #include <Shaders/Shader.h>
 #include <Renderbuffer.h>
-#include <PerspectiveCamera.h>
+#include <Cameras/PerspectiveCamera.h>
 
 #define NUM_CUBEMAP_FACES 6
 

@@ -10,8 +10,8 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
-#include <PerspectiveCamera.h>
-#include <VRCamera.h>
+#include <Cameras/PerspectiveCamera.h>
+#include <Cameras/VRCamera.h>
 #include <Networking/DataReceiverUDP.h>
 
 #include <CameraPose.h>
@@ -24,7 +24,6 @@ public:
             : camera(camera)
             , streamerURL(streamerURL)
             , receiver(streamerURL, sizeof(Pose)) { }
-
 
     pose_id_t receivePose(bool setProj = true) {
         std::vector<uint8_t> data = receiver.recv();
@@ -39,19 +38,19 @@ public:
 
         std::memcpy(&currPose, data.data(), sizeof(Pose));
 
-        if (VRCamera* vrCamera = dynamic_cast<VRCamera*>(camera)) {
+        if (camera->isVR()) {
+            auto* vrCamera = static_cast<VRCamera*>(camera);
             if (setProj) {
                 vrCamera->setProjectionMatrix(currPose.stereo.projL);
             }
-            vrCamera->left.setViewMatrix(currPose.stereo.viewL);
-            vrCamera->right.setViewMatrix(currPose.stereo.viewR);
-        } else if (PerspectiveCamera* perspectiveCamera = dynamic_cast<PerspectiveCamera*>(camera)) {
+            vrCamera->setViewMatrices({currPose.stereo.viewL, currPose.stereo.viewR});
+        }
+        else {
+            auto* perspectiveCamera = static_cast<PerspectiveCamera*>(camera);
             if (setProj) {
                 perspectiveCamera->setProjectionMatrix(currPose.mono.proj);
             }
             perspectiveCamera->setViewMatrix(currPose.mono.view);
-        } else {
-            std::cerr << "Error: camera is neither a VRCamera nor a PerspectiveCamera instance" << std::endl;
         }
         return currPose.id;
     }

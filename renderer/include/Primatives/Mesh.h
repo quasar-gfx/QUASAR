@@ -9,8 +9,8 @@
 #include <Primatives/Entity.h>
 #include <Materials/Material.h>
 #include <Scene.h>
-#include <PerspectiveCamera.h>
-#include <VRCamera.h>
+#include <Cameras/PerspectiveCamera.h>
+#include <Cameras/VRCamera.h>
 
 struct MeshCreateParams {
     std::vector<Vertex> vertices;

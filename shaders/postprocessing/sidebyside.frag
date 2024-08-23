@@ -16,7 +16,8 @@ void main() {
     if (TexCoords.x < 0.5) {
         vec2 adjustedCoords = vec2(TexCoords.x * 2.0, TexCoords.y);
         color = texture(camera1Buffer, adjustedCoords);
-    } else {
+    }
+    else {
         vec2 adjustedCoords = vec2((TexCoords.x - 0.5) * 2.0, TexCoords.y);
         color = texture(camera2Buffer, adjustedCoords);
     }

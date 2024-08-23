@@ -97,17 +97,18 @@ void Mesh::updateAABB() {
 
 void Mesh::setMaterialCameraParams(const Camera &camera, const Material* material) {
     if (camera.isVR()) {
-        auto& vrcamera = static_cast<const VRCamera&>(camera);
-        material->shader->setMat4("view[0]", vrcamera.left.getViewMatrix());
-        material->shader->setMat4("projection[0]", vrcamera.left.getProjectionMatrix());
-        material->shader->setMat4("view[1]", vrcamera.right.getViewMatrix());
-        material->shader->setMat4("projection[1]", vrcamera.right.getProjectionMatrix());
-        material->shader->setVec3("camPos", vrcamera.getPosition());
-    } else {
-        auto& monocamera = static_cast<const PerspectiveCamera&>(camera);
-        material->shader->setMat4("view", monocamera.getViewMatrix());
-        material->shader->setMat4("projection", monocamera.getProjectionMatrix());
-        material->shader->setVec3("camPos", monocamera.getPosition());        
+        auto& vrCamera = static_cast<const VRCamera&>(camera);
+        material->shader->setMat4("view[0]", vrCamera.left.getViewMatrix());
+        material->shader->setMat4("projection[0]", vrCamera.left.getProjectionMatrix());
+        material->shader->setMat4("view[1]", vrCamera.right.getViewMatrix());
+        material->shader->setMat4("projection[1]", vrCamera.right.getProjectionMatrix());
+        material->shader->setVec3("camPos", vrCamera.getPosition());
+    }
+    else {
+        auto& monoCamera = static_cast<const PerspectiveCamera&>(camera);
+        material->shader->setMat4("view", monoCamera.getViewMatrix());
+        material->shader->setMat4("projection", monoCamera.getProjectionMatrix());
+        material->shader->setVec3("camPos", monoCamera.getPosition());
     }
 }
 
@@ -166,7 +167,8 @@ RenderStats Mesh::draw(const Camera &camera, const glm::mat4 &model, bool frustu
         if (frustumCull && !frustumLeft.aabbIsVisible(aabb, model) && !frustumRight.aabbIsVisible(aabb, model)) {
             return stats;
         }
-    } else {
+    }
+    else {
         auto monocamera = static_cast<const PerspectiveCamera*>(&camera);
         auto& frustum = monocamera->frustum;
         if (frustumCull && !frustum.aabbIsVisible(aabb, model)) {

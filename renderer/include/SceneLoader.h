@@ -7,7 +7,7 @@
 #include <fstream>
 
 #include <Scene.h>
-#include <PerspectiveCamera.h>
+#include <Cameras/PerspectiveCamera.h>
 #include <Primatives/Primatives.h>
 
 #define CHECK_TOKTYPE(tok_, type_) if ((tok_).type != (type_)) { return -1; }
