@@ -20,7 +20,7 @@ class PoseReceiver {
 public:
     std::string streamerURL;
 
-    explicit PoseReceiver(Camera* camera, std::string streamerURL)
+    PoseReceiver(Camera* camera, std::string streamerURL)
             : camera(camera)
             , streamerURL(streamerURL)
             , receiver(streamerURL, sizeof(Pose)) { }
