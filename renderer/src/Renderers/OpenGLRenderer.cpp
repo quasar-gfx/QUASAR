@@ -105,15 +105,6 @@ OpenGLRenderer::OpenGLRenderer(const Config &config)
     pipeline.apply();
 }
 
-void OpenGLRenderer::setViewport(unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
-    glViewport(x, y, width, height);
-}
-
-void OpenGLRenderer::setScissor(unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
-    pipeline.rasterState.scissorTestEnabled = true;
-    glScissor(x, y, width, height);
-}
-
 void OpenGLRenderer::resize(unsigned int width, unsigned int height) {
     this->width = width;
     this->height = height;
@@ -125,14 +116,17 @@ RenderStats OpenGLRenderer::updateDirLightShadow(const Scene &scene, const Camer
         return stats;
     }
 
-    scene.directionalLight->shadowMapRenderTarget.bind();
+    auto& shadowMapRT = scene.directionalLight->shadowMapRenderTarget;
+
+    shadowMapRT.bind();
+    shadowMapRT.setViewport(0, 0, shadowMapRT.width, shadowMapRT.height);
     glClear(GL_DEPTH_BUFFER_BIT);
 
     for (auto& child : scene.children) {
         stats += drawNode(scene, camera, child, glm::mat4(1.0f), false, &scene.directionalLight->shadowMapMaterial);
     }
 
-    scene.directionalLight->shadowMapRenderTarget.unbind();
+    shadowMapRT.unbind();
 
     return stats;
 }
@@ -145,7 +139,10 @@ RenderStats OpenGLRenderer::updatePointLightShadows(const Scene &scene, const Ca
         if (pointLight->intensity == 0)
             continue;
 
-        pointLight->shadowMapRenderTarget.bind();
+        auto& shadowMapRT = pointLight->shadowMapRenderTarget;
+
+        shadowMapRT.bind();
+        shadowMapRT.setViewport(0, 0, shadowMapRT.width, shadowMapRT.height);
         glClear(GL_DEPTH_BUFFER_BIT);
 
         pointLight->shadowMapMaterial.bind();
@@ -162,7 +159,7 @@ RenderStats OpenGLRenderer::updatePointLightShadows(const Scene &scene, const Ca
             stats += drawNode(scene, camera, child, glm::mat4(1.0f), pointLight, &pointLight->shadowMapMaterial);
         }
 
-        pointLight->shadowMapRenderTarget.unbind();
+        shadowMapRT.unbind();
     }
 
     return stats;
@@ -306,9 +303,14 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, N
 RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const RenderTarget* overrideRenderTarget) {
     pipeline.apply();
 
-    // screen buffer
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    setViewport(0, 0, width, height);
+    if (overrideRenderTarget != nullptr) {
+        overrideRenderTarget->bind();
+    }
+    else {
+        // screen buffer
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glViewport(0, 0, width, height);
+    }
 
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -317,25 +319,14 @@ RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const Rende
     setScreenShaderUniforms(screenShader);
     RenderStats stats = outputFsQuad.draw();
     screenShader.unbind();
+
+    if (overrideRenderTarget != nullptr) {
+        overrideRenderTarget->unbind();
+    }
 
     return stats;
 }
 
 RenderStats OpenGLRenderer::drawToRenderTarget(const Shader &screenShader, const RenderTarget &renderTarget) {
-    pipeline.apply();
-
-    // render target
-    renderTarget.bind();
-
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    screenShader.bind();
-    setScreenShaderUniforms(screenShader);
-    RenderStats stats = outputFsQuad.draw();
-    screenShader.unbind();
-
-    renderTarget.unbind();
-
-    return stats;
+    return drawToScreen(screenShader, &renderTarget);
 }

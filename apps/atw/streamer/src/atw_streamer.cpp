@@ -261,28 +261,27 @@ int main(int argc, char** argv) {
         if (vrMode) {
             auto* vrCamera = static_cast<VRCamera*>(camera.get());
 
+            renderer.pipeline.rasterState.scissorTestEnabled = true;
+
             // left eye
-            renderer.setScissor(0, 0, screenWidth / 2, screenHeight);
-            renderer.setViewport(0, 0, screenWidth / 2, screenHeight);
+            renderer.gBuffer.setScissor(0, 0, screenWidth / 2, screenHeight);
+            renderer.gBuffer.setViewport(0, 0, screenWidth / 2, screenHeight);
             renderStats = renderer.drawObjects(scene, vrCamera->left);
-            renderer.drawToRenderTarget(colorShader, videoStreamerRT);
 
             // right eye
-            renderer.setScissor(screenWidth / 2, 0, screenWidth / 2, screenHeight);
-            renderer.setViewport(screenWidth / 2, 0, screenWidth / 2, screenHeight);
+            renderer.gBuffer.setScissor(screenWidth / 2, 0, screenWidth / 2, screenHeight);
+            renderer.gBuffer.setViewport(screenWidth / 2, 0, screenWidth / 2, screenHeight);
             renderStats = renderer.drawObjects(scene, vrCamera->right);
-            renderer.drawToRenderTarget(colorShader, videoStreamerRT);
 
-            // restore
-            renderer.setScissor(0, 0, screenWidth, screenHeight);
-            renderer.setViewport(0, 0, screenWidth, screenHeight);
+            renderer.drawToRenderTarget(colorShader, videoStreamerRT);
         }
         else {
             auto* perspectiveCamera = static_cast<PerspectiveCamera*>(camera.get());
             renderStats = renderer.drawObjects(scene, *perspectiveCamera);
-            renderer.drawToRenderTarget(colorShader, videoStreamerRT);
         }
 
+        // copy rendered result to video render target
+        renderer.drawToRenderTarget(colorShader, videoStreamerRT);
         if (config.showWindow) {
             renderer.drawToScreen(colorShader);
         }
