@@ -1,6 +1,6 @@
 {
     "skybox": {
-        "path": "../assets/textures/hdr/barcelona.hdr",
+        "path": "../assets/textures/ibr/kloppenheim.hdr",
         "HDR": true,
         "flipVertically": true,
         "width": 1024,
@@ -90,7 +90,7 @@
         "rotation": [0.0, 0.0, 0.0]
     },
     "ambientLight": {
-        "color": [0.9, 0.9, 0.9],
+        "color": [1.0, 1.0, 1.0],
         "intensity": 0.1
     },
     "directionalLight": {
