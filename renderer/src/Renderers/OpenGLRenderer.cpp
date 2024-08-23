@@ -119,7 +119,7 @@ void OpenGLRenderer::resize(unsigned int width, unsigned int height) {
     this->height = height;
 }
 
-RenderStats OpenGLRenderer::updateDirLightShadow(const Scene &scene, const PerspectiveCamera &camera) {
+RenderStats OpenGLRenderer::updateDirLightShadow(const Scene &scene, const Camera &camera) {
     RenderStats stats;
     if (scene.directionalLight == nullptr) {
         return stats;
@@ -137,7 +137,7 @@ RenderStats OpenGLRenderer::updateDirLightShadow(const Scene &scene, const Persp
     return stats;
 }
 
-RenderStats OpenGLRenderer::updatePointLightShadows(const Scene &scene, const PerspectiveCamera &camera) {
+RenderStats OpenGLRenderer::updatePointLightShadows(const Scene &scene, const Camera &camera) {
     RenderStats stats;
 
     for (int i = 0; i < scene.pointLights.size(); i++) {
@@ -168,7 +168,7 @@ RenderStats OpenGLRenderer::updatePointLightShadows(const Scene &scene, const Pe
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawScene(const Scene &scene, const PerspectiveCamera &camera, uint32_t clearMask) {
+RenderStats OpenGLRenderer::drawScene(const Scene &scene, const Camera &camera, uint32_t clearMask) {
     if (clearMask != 0) {
         glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
         glClear(clearMask);
@@ -182,7 +182,7 @@ RenderStats OpenGLRenderer::drawScene(const Scene &scene, const PerspectiveCamer
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawLights(const Scene &scene, const PerspectiveCamera &camera) {
+RenderStats OpenGLRenderer::drawLights(const Scene &scene, const Camera &camera) {
     // dont clear color or depth bit here, since we want this to draw over
 
     RenderStats stats;
@@ -213,7 +213,7 @@ RenderStats OpenGLRenderer::drawLights(const Scene &scene, const PerspectiveCame
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawSkyBox(const Scene &scene, const PerspectiveCamera &camera) {
+RenderStats OpenGLRenderer::drawSkyBox(const Scene &scene, const Camera &camera) {
     // dont clear color or depth bit here, since we want this to draw over
 
     RenderStats stats;
@@ -243,7 +243,7 @@ RenderStats OpenGLRenderer::drawSkyBox(const Scene &scene, const PerspectiveCame
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawObjects(const Scene &scene, const PerspectiveCamera &camera, uint32_t clearMask) {
+RenderStats OpenGLRenderer::drawObjects(const Scene &scene, const Camera &camera, uint32_t clearMask) {
     pipeline.apply();
 
     RenderStats stats;
@@ -264,7 +264,7 @@ RenderStats OpenGLRenderer::drawObjects(const Scene &scene, const PerspectiveCam
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawNode(const Scene &scene, const PerspectiveCamera &camera, Node* node, const glm::mat4 &parentTransform,
+RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,
                                      bool frustumCull, const Material* overrideMaterial, const Texture* prevDepthMap) {
     const glm::mat4 &model = parentTransform * node->getTransformParentFromLocal();
 
@@ -284,7 +284,7 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const PerspectiveCamera
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawNode(const Scene &scene, const PerspectiveCamera &camera, Node* node, const glm::mat4 &parentTransform,
+RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,
                                      const PointLight* pointLight, const Material* overrideMaterial) {
     const glm::mat4 &model = parentTransform * node->getTransformParentFromLocal();
 

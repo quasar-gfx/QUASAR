@@ -6,7 +6,7 @@
 #include <Texture.h>
 #include <CubeMap.h>
 #include <Scene.h>
-#include <Cameras/PerspectiveCamera.h>
+#include <Cameras/Camera.h>
 #include <Shaders/Shader.h>
 #include <Shaders/ComputeShader.h>
 #include <Materials/PBRMaterial.h>
@@ -33,13 +33,13 @@ public:
 
     virtual void resize(unsigned int width, unsigned int height);
 
-    RenderStats updateDirLightShadow(const Scene &scene, const PerspectiveCamera &camera);
-    RenderStats updatePointLightShadows(const Scene &scene, const PerspectiveCamera &camera);
+    RenderStats updateDirLightShadow(const Scene &scene, const Camera &camera);
+    RenderStats updatePointLightShadows(const Scene &scene, const Camera &camera);
 
-    virtual RenderStats drawScene(const Scene &scene, const PerspectiveCamera &camera, uint32_t clearMask);
-    virtual RenderStats drawLights(const Scene &scene, const PerspectiveCamera &camera);
-    virtual RenderStats drawSkyBox(const Scene &scene, const PerspectiveCamera &camera);
-    virtual RenderStats drawObjects(const Scene &scene, const PerspectiveCamera &camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    virtual RenderStats drawScene(const Scene &scene, const Camera &camera, uint32_t clearMask);
+    virtual RenderStats drawLights(const Scene &scene, const Camera &camera);
+    virtual RenderStats drawSkyBox(const Scene &scene, const Camera &camera);
+    virtual RenderStats drawObjects(const Scene &scene, const Camera &camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
     virtual RenderStats drawToScreen(const Shader &screenShader, const RenderTarget* overrideRenderTarget = nullptr);
     virtual RenderStats drawToRenderTarget(const Shader &screenShader, const RenderTarget &renderTarget);
@@ -49,9 +49,9 @@ protected:
 
     FullScreenQuad outputFsQuad;
 
-    RenderStats drawNode(const Scene &scene, const PerspectiveCamera &camera, Node* node, const glm::mat4 &parentTransform,
+    RenderStats drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,
                          bool frustumCull = true, const Material* overrideMaterial = nullptr, const Texture* prevDepthMap = nullptr);
-    RenderStats drawNode(const Scene &scene, const PerspectiveCamera &camera, Node* node, const glm::mat4 &parentTransform,
+    RenderStats drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,
                          const PointLight* pointLight, const Material* overrideMaterial = nullptr);
 };
 

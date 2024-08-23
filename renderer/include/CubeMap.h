@@ -9,7 +9,7 @@
 
 #include <Shaders/Shader.h>
 #include <Renderbuffer.h>
-#include <Cameras/PerspectiveCamera.h>
+#include <Cameras/Camera.h>
 
 #define NUM_CUBEMAP_FACES 6
 
@@ -90,7 +90,7 @@ public:
     void convolve(const Shader &convolutionShader, const CubeMap &envCubeMap) const;
     void prefilter(const Shader &prefilterShader, const CubeMap &envCubeMap, Renderbuffer &captureRBO) const;
 
-    RenderStats draw(const Shader &shader, const PerspectiveCamera &camera) const;
+    RenderStats draw(const Shader &shader, const Camera &camera) const;
 
     void bind() const {
         bind(0);
@@ -118,9 +118,9 @@ private:
 
     void initBuffers();
     void loadFromFiles(std::vector<std::string> faceFilePaths,
-            GLenum format,
-            GLint wrapS, GLint wrapT, GLint wrapR,
-            GLint minFilter, GLint magFilter);
+                       GLenum format,
+                       GLint wrapS, GLint wrapT, GLint wrapR,
+                       GLint minFilter, GLint magFilter);
 
     RenderStats drawCube() const;
 };
