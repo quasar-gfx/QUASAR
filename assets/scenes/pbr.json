@@ -1,6 +1,6 @@
 {
     "skybox": {
-        "path": "../assets/textures/hdr/newport_loft.hdr",
+        "path": "../assets/textures/ibr/newport_loft.hdr",
         "HDR": true,
         "flipVertically": true,
         "width": 1024,
@@ -37,13 +37,14 @@
             "path": "../assets/models/cerberus/cerberus.fbx",
             "material": 2,
             "IBL": 1.0,
-            "flipTextures": true
+            "flipTextures": true,
+            "gammaCorrected": true
         },
         {
             "path": "../assets/models/DamagedHelmet.glb",
-            "gammaCorrected": true,
             "IBL": 1.0,
-            "flipTextures": true
+            "flipTextures": true,
+            "gammaCorrected": true
         }
     ],
     "meshes": [

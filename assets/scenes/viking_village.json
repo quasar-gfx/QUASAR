@@ -1,6 +1,6 @@
 {
     "skybox": {
-        "path": "../assets/textures/hdr/vv_skybox.hdr",
+        "path": "../assets/textures/ibr/vv_skybox.hdr",
         "HDR": true,
         "flipVertically": true,
         "width": 1024,
