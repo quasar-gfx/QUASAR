@@ -49,7 +49,7 @@ public:
     void processKeyboard(Keys keys, float deltaTime);
     void processMouseMovement(float xoffset, float yoffset, bool constrainPitch = true);
 
-    bool isVR() const { return false; }
+    bool isVR() const override { return false; }
 protected:
     glm::mat4 view;
     glm::mat4 proj;

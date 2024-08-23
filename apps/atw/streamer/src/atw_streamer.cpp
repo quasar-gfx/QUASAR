@@ -70,9 +70,9 @@ int main(int argc, char** argv) {
     SceneLoader loader = SceneLoader();
     if (vrMode) {
         auto vrCamera = std::make_unique<VRCamera>(screenWidth / 2, screenHeight);
-        loader.loadScene(scenePath, scene, *vrCamera->left);
-        vrCamera->right->setViewMatrix(vrCamera->left->getViewMatrix());
-        vrCamera->right->setProjectionMatrix(vrCamera->left->getProjectionMatrix());
+        loader.loadScene(scenePath, scene, vrCamera->left);
+        vrCamera->right.setViewMatrix(vrCamera->left.getViewMatrix());
+        vrCamera->right.setProjectionMatrix(vrCamera->left.getProjectionMatrix());
         camera = std::move(vrCamera);
     } else {
         auto perspectiveCamera = std::make_unique<PerspectiveCamera>(screenWidth, screenHeight);
@@ -245,10 +245,10 @@ int main(int argc, char** argv) {
         renderer.resize(width, height);
         if (vrMode) {
             auto vrCamera = static_cast<VRCamera*>(camera.get());
-            vrCamera->left->aspect = (float)screenWidth / 2 / (float)screenHeight;
-            vrCamera->left->updateProjectionMatrix();
-            vrCamera->right->aspect = (float)screenWidth / 2 / (float)screenHeight;
-            vrCamera->right->updateProjectionMatrix();
+            vrCamera->left.aspect = (float)screenWidth / 2 / (float)screenHeight;
+            vrCamera->left.updateProjectionMatrix();
+            vrCamera->right.aspect = (float)screenWidth / 2 / (float)screenHeight;
+            vrCamera->right.updateProjectionMatrix();
         } else {
             auto perspectiveCamera = static_cast<PerspectiveCamera*>(camera.get());
             perspectiveCamera->aspect = (float)screenWidth / (float)screenHeight;
@@ -293,8 +293,8 @@ int main(int argc, char** argv) {
 
         if (vrMode) {
             auto vrCamera = static_cast<VRCamera*>(camera.get());
-            renderStats = renderer.drawObjects(scene, *vrCamera->left);
-            renderStats = renderer.drawObjects(scene, *vrCamera->right);
+            renderStats = renderer.drawObjects(scene, vrCamera->left);
+            renderStats = renderer.drawObjects(scene, vrCamera->right);
             renderer.drawToRenderTarget(colorShader, videoStreamerRT);
             renderer.drawToRenderTarget(colorShader, *videoStreamerRTright);
 

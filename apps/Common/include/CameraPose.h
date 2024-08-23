@@ -13,11 +13,13 @@ struct Pose {
             glm::mat4 viewR;
             glm::mat4 projL;
             glm::mat4 projR;
-        } vr;
+        } stereo;
         struct {
             glm::mat4 proj;
+            glm::mat4 pad1;
             glm::mat4 view;
-        } non_vr;
+            glm::mat4 pad2;
+        } mono;
     };
     int timestamp;
 };

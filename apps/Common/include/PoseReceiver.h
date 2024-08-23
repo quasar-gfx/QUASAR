@@ -41,15 +41,15 @@ public:
 
         if (VRCamera* vrCamera = dynamic_cast<VRCamera*>(camera)) {
             if (setProj) {
-                vrCamera->setProjectionMatrix(currPose.vr.projL);
+                vrCamera->setProjectionMatrix(currPose.stereo.projL);
             }
-            vrCamera->left->setViewMatrix(currPose.vr.viewL);
-            vrCamera->right->setViewMatrix(currPose.vr.viewR);
+            vrCamera->left.setViewMatrix(currPose.stereo.viewL);
+            vrCamera->right.setViewMatrix(currPose.stereo.viewR);
         } else if (PerspectiveCamera* perspectiveCamera = dynamic_cast<PerspectiveCamera*>(camera)) {
             if (setProj) {
-                perspectiveCamera->setProjectionMatrix(currPose.non_vr.proj);
+                perspectiveCamera->setProjectionMatrix(currPose.mono.proj);
             }
-            perspectiveCamera->setViewMatrix(currPose.non_vr.view);
+            perspectiveCamera->setViewMatrix(currPose.mono.view);
         } else {
             std::cerr << "Error: camera is neither a VRCamera nor a PerspectiveCamera instance" << std::endl;
         }

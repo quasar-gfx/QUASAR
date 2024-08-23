@@ -50,13 +50,9 @@ public:
     virtual void bindMaterial(const Scene &scene, const glm::mat4 &model,
                               const Material* overrideMaterial = nullptr, const Texture* prevDepthMap = nullptr) override;
 
-    virtual RenderStats draw(const PerspectiveCamera &camera, const glm::mat4 &model,
+    virtual RenderStats draw(const Camera &camera, const glm::mat4 &model,
                              bool frustumCull = true, const Material* overrideMaterial = nullptr) override;
-    virtual RenderStats draw(const PerspectiveCamera &camera, const glm::mat4 &model,
-                             const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) override;
-    virtual RenderStats draw(const VRCamera &cameras, const glm::mat4 &model,
-                             bool frustumCull = true, const Material* overrideMaterial = nullptr) override;
-    virtual RenderStats draw(const VRCamera &cameras, const glm::mat4 &model,
+    virtual RenderStats draw(const Camera &camera, const glm::mat4 &model,
                              const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) override;
     virtual RenderStats draw();
     void setBuffers(const std::vector<Vertex> &vertices, const std::vector<unsigned int> &indices);
@@ -74,7 +70,6 @@ protected:
     void createBuffers();
     void createAttributes();
 
-    void setMaterialCameraParams(const PerspectiveCamera &camera, const Material* material);
-    void setMaterialCameraParams(const VRCamera &camera, const Material* material);
+    void setMaterialCameraParams(const Camera &camera, const Material* material);
 };
 #endif

@@ -70,20 +70,20 @@ public:
     bool sendPose() {
         currPose.id = currPoseID;
         if (camera->isVR()) {
-            VRCamera* vrCamera = dynamic_cast<VRCamera*>(camera);
-            currPose.vr.projL = vrCamera->left->getProjectionMatrix();
-            currPose.vr.projR = vrCamera->right->getProjectionMatrix();
-            currPose.vr.viewL = vrCamera->left->getViewMatrix();
-            currPose.vr.viewR = vrCamera->right->getViewMatrix();
-            if (epsilonEqual(currPose.vr.viewL, prevPose.vr.viewL) ||
-                epsilonEqual(currPose.vr.viewR, prevPose.vr.viewR)) {
+            VRCamera* vrCamera = static_cast<VRCamera*>(camera);
+            currPose.stereo.projL = vrCamera->left.getProjectionMatrix();
+            currPose.stereo.projR = vrCamera->right.getProjectionMatrix();
+            currPose.stereo.viewL = vrCamera->left.getViewMatrix();
+            currPose.stereo.viewR = vrCamera->right.getViewMatrix();
+            if (epsilonEqual(currPose.stereo.viewL, prevPose.stereo.viewL) ||
+                epsilonEqual(currPose.stereo.viewR, prevPose.stereo.viewR)) {
                 return false;
             }
         } else {
-            PerspectiveCamera* perspectiveCamera = dynamic_cast<PerspectiveCamera*>(camera);
-            currPose.non_vr.proj = perspectiveCamera->getProjectionMatrix();
-            currPose.non_vr.view = perspectiveCamera->getViewMatrix();
-            if (epsilonEqual(currPose.non_vr.view, prevPose.non_vr.view)) {
+            PerspectiveCamera* perspectiveCamera = static_cast<PerspectiveCamera*>(camera);
+            currPose.mono.proj = perspectiveCamera->getProjectionMatrix();
+            currPose.mono.view = perspectiveCamera->getViewMatrix();
+            if (epsilonEqual(currPose.mono.view, prevPose.mono.view)) {
                 return false;
             }
         }

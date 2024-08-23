@@ -434,10 +434,10 @@ int main(int argc, char** argv) {
         genMeshShader.setFloat("far", remoteCamera.far);
         videoTextureDepth.bind(0);
         if (poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTimeColor)) {
-            genMeshShader.setMat4("viewColor", currentColorFramePose.non_vr.view);
+            genMeshShader.setMat4("viewColor", currentColorFramePose.mono.view);
         }
         if (poseStreamer.getPose(poseIdDepth, &currentDepthFramePose, &elapsedTimeDepth)) {
-            genMeshShader.setMat4("viewInverseDepth", glm::inverse(currentDepthFramePose.non_vr.view));
+            genMeshShader.setMat4("viewInverseDepth", glm::inverse(currentDepthFramePose.mono.view));
         }
 
         // dispatch compute shader to generate vertices and indices for mesh
