@@ -51,22 +51,17 @@ void Texture::loadFromFile(const TextureFileCreateParams &params) {
         this->height = texHeight;
 
         if (texChannels == 1) {
-#ifdef GL_CORE
             if (type == GL_UNSIGNED_BYTE) {
-                internalFormat = GL_RED;
+                internalFormat = GL_R8;
             }
             else {
                 internalFormat = GL_R16F;
             }
             format = GL_RED;
-#else
-            internalFormat = GL_LUMINANCE;
-            format = GL_LUMINANCE;
-#endif
         }
         else if (texChannels == 3) {
             if (type == GL_UNSIGNED_BYTE) {
-                internalFormat = params.gammaCorrected ? GL_SRGB : GL_RGB;
+                internalFormat = params.gammaCorrected ? GL_SRGB8 : GL_RGB;
             }
             else {
                 internalFormat = GL_RGB16F;
@@ -74,16 +69,12 @@ void Texture::loadFromFile(const TextureFileCreateParams &params) {
             format = GL_RGB;
         }
         else if (texChannels == 4) {
-#ifdef GL_CORE
             if (type == GL_UNSIGNED_BYTE) {
-                internalFormat = params.gammaCorrected ? GL_SRGB_ALPHA : GL_RGBA;
+                internalFormat = params.gammaCorrected ? GL_SRGB8_ALPHA8 : GL_RGBA;
             }
             else {
                 internalFormat = GL_RGBA16F;
             }
-#else
-            internalFormat = GL_RGBA;
-#endif
             format = GL_RGBA;
         }
 

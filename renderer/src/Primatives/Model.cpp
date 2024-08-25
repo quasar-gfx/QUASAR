@@ -373,24 +373,15 @@ Texture* Model::loadMaterialTexture(aiMaterial const* aiMat, aiString aiTextureP
             GLint internalFormat;
             GLenum format;
             if (texChannels == 1) {
-#ifdef GL_CORE
-                internalFormat = GL_RED;
-                format = GL_RED;
-#else
-                internalFormat = GL_LUMINANCE;
-                format = GL_LUMINANCE;
-#endif
+                internalFormat = GL_R8;
+                format = GL_R8;
             }
             else if (texChannels == 3) {
                 internalFormat = shouldGammaCorrect ? GL_SRGB : GL_RGB;
                 format = GL_RGB;
             }
             else if (texChannels == 4) {
-#ifdef GL_CORE
-                internalFormat = shouldGammaCorrect ? GL_SRGB_ALPHA : GL_RGBA;
-#else
-                internalFormat = GL_RGBA;
-#endif
+                internalFormat = shouldGammaCorrect ? GL_SRGB8_ALPHA8 : GL_RGBA;
                 format = GL_RGBA;
             }
 

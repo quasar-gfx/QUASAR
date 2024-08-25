@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
     VideoTexture videoTextureColor({
         .width = screenWidth,
         .height = screenHeight,
-        .internalFormat = GL_SRGB,
+        .internalFormat = GL_SRGB8,
         .format = GL_RGB,
         .type = GL_UNSIGNED_BYTE,
         .wrapS = GL_CLAMP_TO_EDGE,

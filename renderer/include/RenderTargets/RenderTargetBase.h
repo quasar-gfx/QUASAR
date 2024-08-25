@@ -1,5 +1,5 @@
-#ifndef RENDER_BASE_TARGET_H
-#define RENDER_BASE_TARGET_H
+#ifndef RENDER_TARGET_BASE_H
+#define RENDER_TARGET_BASE_H
 
 #include <Texture.h>
 #include <CubeMap.h>
@@ -83,4 +83,4 @@ protected:
     Framebuffer framebuffer;
 };
 
-#endif // RENDER_BASE_TARGET_H
+#endif // RENDER_TARGET_BASE_H

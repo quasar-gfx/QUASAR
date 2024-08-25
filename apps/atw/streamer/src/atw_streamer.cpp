@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
     VideoStreamer videoStreamerRT = VideoStreamer({
         .width = screenWidth,
         .height = screenHeight,
-        .internalFormat = GL_SRGB,
+        .internalFormat = GL_SRGB8,
         .format = GL_RGB,
         .type = GL_FLOAT,
         .wrapS = GL_CLAMP_TO_EDGE,
