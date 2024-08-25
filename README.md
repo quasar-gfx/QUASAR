@@ -69,3 +69,13 @@ In a new terminal, to run receiver:
 cd apps/meshwarp/receiver
 ./mw_receiver --size 2048x2048
 ```
+
+## QuadWarp
+
+To run QuadWarp sample:
+
+```
+# in build directory
+cd apps/quadwarp/streamer
+./quads_streamer --size 2048x2048 --size2 512x512 --scene ../assets/scenes/sponza.json
+```

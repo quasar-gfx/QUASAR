@@ -8,7 +8,6 @@ ForwardRenderer::ForwardRenderer(const Config &config)
 void ForwardRenderer::resize(unsigned int width, unsigned int height) {
     OpenGLRenderer::resize(width, height);
     gBuffer.resize(width, height);
-    std::cout << "ForwardRenderer::resize(" << width << ", " << height << ")" << std::endl;
 }
 
 RenderStats ForwardRenderer::drawScene(const Scene &scene, const Camera &camera, uint32_t clearMask) {

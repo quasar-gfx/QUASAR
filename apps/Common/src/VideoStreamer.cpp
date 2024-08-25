@@ -190,7 +190,7 @@ void VideoStreamer::sendFrame(pose_id_t poseID) {
         this->poseID = poseID;
 
         bind();
-        glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgbaData.data());
+        glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, rgbaData.data());
         unbind();
 #endif
 
