@@ -1,17 +1,11 @@
-#ifndef CAMERA_H
-#define CAMERA_H
+#ifndef PERSPECTIVE_CAMERA_H
+#define PERSPECTIVE_CAMERA_H
 
-#define GLM_FORCE_RADIANS
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/matrix_decompose.hpp>
-
-#include <Primatives/Node.h>
 #include <Windowing/Window.h>
+#include <Cameras/Camera.h>
 #include <Culling/Frustum.h>
 
-class Camera : public Node {
+class PerspectiveCamera : public Camera {
 public:
     float aspect;
     float fovy;
@@ -23,9 +17,9 @@ public:
 
     Frustum frustum;
 
-    Camera();
-    Camera(unsigned int width, unsigned int height);
-    Camera(float fovy, float aspect, float near, float far);
+    PerspectiveCamera();
+    PerspectiveCamera(unsigned int width, unsigned int height);
+    PerspectiveCamera(float fovy, float aspect, float near, float far);
 
     void setFovy(float fovy) { this->fovy = fovy; updateProjectionMatrix(); }
     void setAspect(float aspect) { this->aspect = aspect; updateProjectionMatrix(); }
@@ -48,6 +42,7 @@ public:
     void processKeyboard(Keys keys, float deltaTime);
     void processMouseMovement(float xoffset, float yoffset, bool constrainPitch = true);
 
+    bool isVR() const override { return false; }
 protected:
     glm::mat4 view;
     glm::mat4 proj;
@@ -61,8 +56,8 @@ protected:
     glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
     void updateCameraOrientation();
-    // calculates the front vector from the Camera's (updated) Euler Angles
+    // calculates the front vector from the PerspectiveCamera's (updated) Euler Angles
     void setOrientationFromYawPitch();
 };
 
-#endif // CAMERA_H
+#endif // PERSPECTIVE_CAMERA_H

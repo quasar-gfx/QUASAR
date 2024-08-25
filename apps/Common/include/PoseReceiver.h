@@ -10,8 +10,8 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
-#include <Camera.h>
-#include <VRCamera.h>
+#include <Cameras/PerspectiveCamera.h>
+#include <Cameras/VRCamera.h>
 #include <Networking/DataReceiverUDP.h>
 
 #include <CameraPose.h>
@@ -24,13 +24,6 @@ public:
             : camera(camera)
             , streamerURL(streamerURL)
             , receiver(streamerURL, sizeof(Pose)) { }
-
-#ifdef VR
-    PoseReceiver(VRCamera* vrcamera, std::string streamerURL)
-            : vrcamera(vrcamera)
-            , streamerURL(streamerURL)
-            , receiver(streamerURL, sizeof(Pose)) { }
-#endif
 
     pose_id_t receivePose(bool setProj = true) {
         std::vector<uint8_t> data = receiver.recv();
@@ -45,18 +38,20 @@ public:
 
         std::memcpy(&currPose, data.data(), sizeof(Pose));
 
-#ifdef VR
-        if (setProj) {
-            vrcamera->setProjectionMatrix(currPose.projL);
+        if (camera->isVR()) {
+            auto* vrCamera = static_cast<VRCamera*>(camera);
+            if (setProj) {
+                vrCamera->setProjectionMatrix(currPose.stereo.projL);
+            }
+            vrCamera->setViewMatrices({currPose.stereo.viewL, currPose.stereo.viewR});
         }
-        vrcamera->left.setViewMatrix(currPose.viewL);
-        vrcamera->right.setViewMatrix(currPose.viewR);
-#else
-        if (setProj) {
-            camera->setProjectionMatrix(currPose.proj);
+        else {
+            auto* perspectiveCamera = static_cast<PerspectiveCamera*>(camera);
+            if (setProj) {
+                perspectiveCamera->setProjectionMatrix(currPose.mono.proj);
+            }
+            perspectiveCamera->setViewMatrix(currPose.mono.view);
         }
-        camera->setViewMatrix(currPose.view);
-#endif
         return currPose.id;
     }
 
@@ -64,9 +59,6 @@ private:
     DataReceiverUDP receiver;
 
     Camera* camera;
-#ifdef VR
-    VRCamera* vrcamera;
-#endif
     Pose currPose;
 };
 

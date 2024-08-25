@@ -1,21 +1,21 @@
-#include <Camera.h>
+#include <Cameras/PerspectiveCamera.h>
 
-Camera::Camera() {
+PerspectiveCamera::PerspectiveCamera() {
     setProjectionMatrix(glm::radians(60.0f), 16.0f / 9.0f, 0.1f, 1000.0f);
     updateCameraOrientation();
 }
 
-Camera::Camera(unsigned int width, unsigned int height) {
+PerspectiveCamera::PerspectiveCamera(unsigned int width, unsigned int height) {
     setProjectionMatrix(glm::radians(60.0f), (float)width / (float)height, 0.1f, 1000.0f);
     updateCameraOrientation();
 }
 
-Camera::Camera(float fovy, float aspect, float near, float far) {
+PerspectiveCamera::PerspectiveCamera(float fovy, float aspect, float near, float far) {
     setProjectionMatrix(fovy, aspect, near, far);
     updateCameraOrientation();
 }
 
-void Camera::setProjectionMatrix(const glm::mat4 &proj) {
+void PerspectiveCamera::setProjectionMatrix(const glm::mat4 &proj) {
     this->proj = proj;
 
     fovy = atan(1.0f / proj[1][1]) * 2.0f;
@@ -24,7 +24,7 @@ void Camera::setProjectionMatrix(const glm::mat4 &proj) {
     far = proj[3][2] / (proj[2][2] + 1.0f);
 }
 
-void Camera::setProjectionMatrix(float fovy, float aspect, float near, float far) {
+void PerspectiveCamera::setProjectionMatrix(float fovy, float aspect, float near, float far) {
     this->fovy = fovy;
     this->aspect = aspect;
     this->near = near;
@@ -32,27 +32,27 @@ void Camera::setProjectionMatrix(float fovy, float aspect, float near, float far
     updateProjectionMatrix();
 }
 
-void Camera::updateProjectionMatrix() {
+void PerspectiveCamera::updateProjectionMatrix() {
     proj = glm::perspective(fovy, aspect, near, far);
     // frustum.setFromCameraParams(position, front, right, up, near, far, aspect, fovy);
     frustum.setFromCameraMatrices(view, proj);
 }
 
-void Camera::setViewMatrix(const glm::mat4 &view) {
+void PerspectiveCamera::setViewMatrix(const glm::mat4 &view) {
     this->view = view;
     updateCameraOrientation();
     // frustum.setFromCameraParams(position, front, right, up, near, far, aspect, fovy);
     frustum.setFromCameraMatrices(view, proj);
 }
 
-void Camera::updateViewMatrix() {
+void PerspectiveCamera::updateViewMatrix() {
     view = getTransformLocalFromParent();
     updateCameraOrientation();
     // frustum.setFromCameraParams(position, front, right, up, near, far, aspect, fovy);
     frustum.setFromCameraMatrices(view, proj);
 }
 
-void Camera::processKeyboard(Keys keys, float deltaTime) {
+void PerspectiveCamera::processKeyboard(Keys keys, float deltaTime) {
     float velocity = movementSpeed * deltaTime;
     if (keys.W_PRESSED)
         position += front * velocity;
@@ -70,7 +70,7 @@ void Camera::processKeyboard(Keys keys, float deltaTime) {
     updateViewMatrix();
 }
 
-void Camera::processMouseMovement(float xoffset, float yoffset, bool constrainPitch) {
+void PerspectiveCamera::processMouseMovement(float xoffset, float yoffset, bool constrainPitch) {
     xoffset *= mouseSensitivity;
     yoffset *= mouseSensitivity;
 
@@ -88,7 +88,7 @@ void Camera::processMouseMovement(float xoffset, float yoffset, bool constrainPi
     setOrientationFromYawPitch();
 }
 
-void Camera::updateCameraOrientation() {
+void PerspectiveCamera::updateCameraOrientation() {
     front = -glm::normalize(glm::vec3(view[0][2], view[1][2], view[2][2]));
     right = glm::normalize(glm::cross(front, worldUp));
     up = glm::normalize(glm::cross(right, front));
@@ -97,7 +97,7 @@ void Camera::updateCameraOrientation() {
     pitch = glm::degrees(asin(front.y));
 }
 
-void Camera::setOrientationFromYawPitch() {
+void PerspectiveCamera::setOrientationFromYawPitch() {
     // calculate the new front vector
     glm::vec3 newFront;
     newFront.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));

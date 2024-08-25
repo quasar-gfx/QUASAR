@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
     window->getSize(screenWidth, screenHeight);
 
     Scene scene = Scene();
-    Camera camera = Camera(screenWidth, screenHeight);
+    PerspectiveCamera camera = PerspectiveCamera(screenWidth, screenHeight);
 
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
 
@@ -137,11 +137,11 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             glm::vec3 position = camera.getPosition();
-            if (ImGui::InputFloat3("Camera Position", (float*)&position)) {
+            if (ImGui::InputFloat3("PerspectiveCamera Position", (float*)&position)) {
                 camera.setPosition(position);
             }
             glm::vec3 rotation = camera.getRotationEuler();
-            if (ImGui::InputFloat3("Camera Rotation", (float*)&rotation)) {
+            if (ImGui::InputFloat3("PerspectiveCamera Rotation", (float*)&rotation)) {
                 camera.setRotationEuler(rotation);
             }
             ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);

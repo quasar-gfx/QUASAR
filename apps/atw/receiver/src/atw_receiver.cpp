@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
     window->getSize(screenWidth, screenHeight);
 
     Scene scene = Scene();
-    Camera camera = Camera(screenWidth, screenHeight);
+    PerspectiveCamera camera = PerspectiveCamera(screenWidth, screenHeight);
 
     VideoTexture videoTexture({
         .width = config.width,
@@ -274,8 +274,8 @@ int main(int argc, char** argv) {
         atwShader.setMat4("projectionInverse", glm::inverse(camera.getProjectionMatrix()));
         atwShader.setMat4("viewInverse", glm::inverse(camera.getViewMatrix()));
         if (poseID != -1 && poseStreamer.getPose(poseID, &currentFramePose, &elapedTime)) {
-            atwShader.setMat4("remoteProjection", currentFramePose.proj);
-            atwShader.setMat4("remoteView", currentFramePose.view);
+            atwShader.setMat4("remoteProjection", currentFramePose.mono.proj);
+            atwShader.setMat4("remoteView", currentFramePose.mono.view);
 
             poseStreamer.removePosesLessThan(poseID);
         }

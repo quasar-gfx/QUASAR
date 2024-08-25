@@ -9,7 +9,7 @@
 
 #include <Shaders/Shader.h>
 #include <Renderbuffer.h>
-#include <Camera.h>
+#include <Cameras/Camera.h>
 
 #define NUM_CUBEMAP_FACES 6
 
@@ -118,9 +118,9 @@ private:
 
     void initBuffers();
     void loadFromFiles(std::vector<std::string> faceFilePaths,
-            GLenum format,
-            GLint wrapS, GLint wrapT, GLint wrapR,
-            GLint minFilter, GLint magFilter);
+                       GLenum format,
+                       GLint wrapS, GLint wrapT, GLint wrapR,
+                       GLint minFilter, GLint magFilter);
 
     RenderStats drawCube() const;
 };

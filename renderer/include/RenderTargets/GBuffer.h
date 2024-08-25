@@ -115,8 +115,7 @@ public:
     }
 
     void resize(unsigned int width, unsigned int height) override {
-        this->width = width;
-        this->height = height;
+        RenderTargetBase::resize(width, height);
 
         positionBuffer.resize(width, height);
         normalsBuffer.resize(width, height);

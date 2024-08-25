@@ -1,5 +1,7 @@
 #include <Utils/FileIO.h>
 #include <CubeMap.h>
+#include <Cameras/PerspectiveCamera.h>
+#include <Cameras/VRCamera.h>
 
 const glm::mat4 CubeMap::captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
 const glm::mat4 CubeMap::captureViews[] = {
@@ -234,10 +236,23 @@ RenderStats CubeMap::draw(const Shader &shader, const Camera &camera) const {
 
     shader.bind();
 
+    glm::mat4 view;
+    glm::mat4 projection;
+    if (camera.isVR()) {
+        auto& vrCamera = static_cast<const VRCamera&>(camera);
+        view = glm::mat4(glm::mat3(vrCamera.left.getViewMatrix()));
+        projection = vrCamera.getProjectionMatrix();
+    }
+    else {
+        auto& monoCamera = static_cast<const PerspectiveCamera&>(camera);
+        view = monoCamera.getViewMatrix();
+        projection = monoCamera.getProjectionMatrix();
+    }
+
     // remove translation from the view matrix
-    glm::mat4 view = glm::mat4(glm::mat3(camera.getViewMatrix()));
+    view = glm::mat4(glm::mat3(view));
     shader.setMat4("view", view);
-    shader.setMat4("projection", camera.getProjectionMatrix());
+    shader.setMat4("projection", projection);
 
     bind();
     stats += drawCube();

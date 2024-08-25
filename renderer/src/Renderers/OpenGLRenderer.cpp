@@ -108,8 +108,6 @@ OpenGLRenderer::OpenGLRenderer(const Config &config)
 void OpenGLRenderer::resize(unsigned int width, unsigned int height) {
     this->width = width;
     this->height = height;
-
-    glViewport(0, 0, width, height);
 }
 
 RenderStats OpenGLRenderer::updateDirLightShadow(const Scene &scene, const Camera &camera) {
@@ -118,14 +116,17 @@ RenderStats OpenGLRenderer::updateDirLightShadow(const Scene &scene, const Camer
         return stats;
     }
 
-    scene.directionalLight->shadowMapRenderTarget.bind();
+    auto& shadowMapRT = scene.directionalLight->shadowMapRenderTarget;
+
+    shadowMapRT.bind();
+    shadowMapRT.setViewport(0, 0, shadowMapRT.width, shadowMapRT.height);
     glClear(GL_DEPTH_BUFFER_BIT);
 
     for (auto& child : scene.children) {
         stats += drawNode(scene, camera, child, glm::mat4(1.0f), false, &scene.directionalLight->shadowMapMaterial);
     }
 
-    scene.directionalLight->shadowMapRenderTarget.unbind();
+    shadowMapRT.unbind();
 
     return stats;
 }
@@ -138,7 +139,10 @@ RenderStats OpenGLRenderer::updatePointLightShadows(const Scene &scene, const Ca
         if (pointLight->intensity == 0)
             continue;
 
-        pointLight->shadowMapRenderTarget.bind();
+        auto& shadowMapRT = pointLight->shadowMapRenderTarget;
+
+        shadowMapRT.bind();
+        shadowMapRT.setViewport(0, 0, shadowMapRT.width, shadowMapRT.height);
         glClear(GL_DEPTH_BUFFER_BIT);
 
         pointLight->shadowMapMaterial.bind();
@@ -155,7 +159,7 @@ RenderStats OpenGLRenderer::updatePointLightShadows(const Scene &scene, const Ca
             stats += drawNode(scene, camera, child, glm::mat4(1.0f), pointLight, &pointLight->shadowMapMaterial);
         }
 
-        pointLight->shadowMapRenderTarget.unbind();
+        shadowMapRT.unbind();
     }
 
     return stats;
@@ -301,7 +305,6 @@ RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const Rende
 
     if (overrideRenderTarget != nullptr) {
         overrideRenderTarget->bind();
-        glViewport(0, 0, overrideRenderTarget->width, overrideRenderTarget->height);
     }
     else {
         // screen buffer

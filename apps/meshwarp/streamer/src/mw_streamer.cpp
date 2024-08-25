@@ -76,7 +76,7 @@ int main(int argc, char** argv) {
     window->getSize(screenWidth, screenHeight);
 
     Scene scene = Scene();
-    Camera camera = Camera(screenWidth, screenHeight);
+    PerspectiveCamera camera = PerspectiveCamera(screenWidth, screenHeight);
     SceneLoader loader = SceneLoader();
     loader.loadScene(scenePath, scene, camera);
 

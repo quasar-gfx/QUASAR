@@ -6,7 +6,7 @@
 #include <Texture.h>
 #include <CubeMap.h>
 #include <Scene.h>
-#include <Camera.h>
+#include <Cameras/Camera.h>
 #include <Shaders/Shader.h>
 #include <Shaders/ComputeShader.h>
 #include <Materials/PBRMaterial.h>

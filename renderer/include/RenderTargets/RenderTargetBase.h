@@ -22,24 +22,57 @@ class RenderTargetBase {
 public:
     unsigned int width, height;
 
+    struct Scissor {
+        unsigned int x, y, width, height;
+
+        void apply() const {
+            glScissor(x, y, width, height);
+        }
+    } scissor;
+
+    struct Viewport {
+        unsigned int x, y, width, height;
+
+        void apply() const {
+            glViewport(x, y, width, height);
+        }
+    } viewport;
+
     RenderTargetBase(const RenderTargetCreateParams &params) : framebuffer() {
         width = params.width;
         height = params.height;
+
+        setViewport(0, 0, width, height);
+        setScissor(0, 0, width, height);
     }
     ~RenderTargetBase() = default;
 
     virtual void resize(unsigned int width, unsigned int height) {
         this->width = width;
         this->height = height;
+
+        setViewport(0, 0, width, height);
+        setScissor(0, 0, width, height);
     }
 
     void blitToScreen(unsigned int width, unsigned int height) {
         framebuffer.blitToScreen(width, height);
     }
 
+    void setScissor(unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
+        scissor = { x, y, width, height };
+        scissor.apply();
+    }
+
+    void setViewport(unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
+        viewport = { x, y, width, height };
+        viewport.apply();
+    }
+
     void bind() const {
         framebuffer.bind();
-        glViewport(0, 0, width, height);
+        scissor.apply();
+        viewport.apply();
     }
 
     void unbind() const {

@@ -9,8 +9,8 @@
 #include <Primatives/Entity.h>
 #include <Materials/Material.h>
 #include <Scene.h>
-#include <Camera.h>
-#include <VRCamera.h>
+#include <Cameras/PerspectiveCamera.h>
+#include <Cameras/VRCamera.h>
 
 struct MeshCreateParams {
     std::vector<Vertex> vertices;
@@ -54,10 +54,6 @@ public:
                              bool frustumCull = true, const Material* overrideMaterial = nullptr) override;
     virtual RenderStats draw(const Camera &camera, const glm::mat4 &model,
                              const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) override;
-    virtual RenderStats draw(const VRCamera &cameras, const glm::mat4 &model,
-                             bool frustumCull = true, const Material* overrideMaterial = nullptr) override;
-    virtual RenderStats draw(const VRCamera &cameras, const glm::mat4 &model,
-                             const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) override;
     virtual RenderStats draw();
     void setBuffers(const std::vector<Vertex> &vertices, const std::vector<unsigned int> &indices);
     void setBuffers(GLuint vertexBufferSSBO, GLuint indexBufferSSBO = -1);
@@ -75,6 +71,5 @@ protected:
     void createAttributes();
 
     void setMaterialCameraParams(const Camera &camera, const Material* material);
-    void setMaterialCameraParams(const VRCamera &camera, const Material* material);
 };
 #endif
