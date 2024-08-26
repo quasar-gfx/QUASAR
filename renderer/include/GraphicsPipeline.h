@@ -57,7 +57,9 @@ struct GraphicsPipeline {
     void apply() {
         // Multisample Configuration
         if (multiSampleState.multiSampleEnabled) {
+#ifdef GL_CORE
             glEnable(GL_MULTISAMPLE);
+#endif
             if (multiSampleState.sampleShadingEnabled) {
                 glEnable(GL_SAMPLE_SHADING);
                 glMinSampleShading(multiSampleState.minSampleShading);
@@ -71,22 +73,30 @@ struct GraphicsPipeline {
             else {
                 glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
             }
+#ifdef GL_CORE
             if (multiSampleState.alphaToOneEnabled) {
                 glEnable(GL_SAMPLE_ALPHA_TO_ONE);
             }
             else {
                 glDisable(GL_SAMPLE_ALPHA_TO_ONE);
             }
+#endif
         }
         else {
+#ifdef GL_CORE
             glDisable(GL_MULTISAMPLE);
+#endif
         }
 
         // Depth Configuration
         if (depthState.depthTestEnabled) {
             glEnable(GL_DEPTH_TEST);
             glDepthFunc(depthState.depthFunc);
+#ifdef GL_CORE
             glClearDepth(depthState.clearDepth);
+#else
+            glClearDepthf(depthState.clearDepth);
+#endif
         }
         else {
             glDisable(GL_DEPTH_TEST);
@@ -148,6 +158,7 @@ struct GraphicsPipeline {
             glDisable(GL_POLYGON_OFFSET_FILL);
         }
 
+#ifdef GL_CORE
         // sRGB Framebuffer Configuration
         if (rasterState.sRGB) {
             glEnable(GL_FRAMEBUFFER_SRGB);
@@ -155,6 +166,7 @@ struct GraphicsPipeline {
         else {
             glDisable(GL_FRAMEBUFFER_SRGB);
         }
+#endif
     }
 };
 

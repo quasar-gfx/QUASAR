@@ -49,6 +49,11 @@ void VRCamera::setProjectionMatrix(float fovy, float aspect, float near, float f
     right.setProjectionMatrix(fovy, aspect, near, far);
 }
 
+void VRCamera::setProjectionMatrices(const glm::mat4 (&projs)[2]) {
+    left.setProjectionMatrix(projs[0]);
+    right.setProjectionMatrix(projs[1]);
+}
+
 void VRCamera::setViewMatrices(const glm::mat4 (&views)[2]) {
     left.setViewMatrix(views[0]);
     right.setViewMatrix(views[1]);

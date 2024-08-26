@@ -3,7 +3,7 @@
 #include <Materials/UnlitMaterial.h>
 
 #ifndef __APPLE__
-void APIENTRY glDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam) {
+void glDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam) {
     std::cout << "OpenGL Debug message (" << id << "): " << message << std::endl;
 
     switch (source) {
@@ -90,8 +90,10 @@ OpenGLRenderer::OpenGLRenderer(const Config &config)
             .fragmentCodeSize = SHADER_SKYBOX_FRAG_len
         })
         , outputFsQuad() {
+#ifdef GL_CORE
     // enable setting vertex size for point clouds
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+#endif
 
 #ifndef __APPLE__
     glEnable(GL_DEBUG_OUTPUT);
