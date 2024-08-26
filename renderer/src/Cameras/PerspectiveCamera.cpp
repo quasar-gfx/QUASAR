@@ -34,21 +34,19 @@ void PerspectiveCamera::setProjectionMatrix(float fovy, float aspect, float near
 
 void PerspectiveCamera::updateProjectionMatrix() {
     proj = glm::perspective(fovy, aspect, near, far);
-    // frustum.setFromCameraParams(position, front, right, up, near, far, aspect, fovy);
     frustum.setFromCameraMatrices(view, proj);
 }
 
 void PerspectiveCamera::setViewMatrix(const glm::mat4 &view) {
     this->view = view;
+    setTransformLocalFromParent(view);
     updateCameraOrientation();
-    // frustum.setFromCameraParams(position, front, right, up, near, far, aspect, fovy);
     frustum.setFromCameraMatrices(view, proj);
 }
 
 void PerspectiveCamera::updateViewMatrix() {
     view = getTransformLocalFromParent();
     updateCameraOrientation();
-    // frustum.setFromCameraParams(position, front, right, up, near, far, aspect, fovy);
     frustum.setFromCameraMatrices(view, proj);
 }
 

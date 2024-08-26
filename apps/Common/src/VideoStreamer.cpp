@@ -238,7 +238,6 @@ void VideoStreamer::encodeAndSendFrames() {
                                                cudaMemcpyDeviceToHost));
 
         stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startCopyTime);
-
 #else
         pose_id_t poseIDToSend = this->poseID;
         lock.unlock();

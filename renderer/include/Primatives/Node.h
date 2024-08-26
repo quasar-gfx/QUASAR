@@ -80,6 +80,16 @@ public:
         glm::decompose(transform, scale, rotationQuat, position, skew, perspective);
     }
 
+    void setTransformLocalFromParent(glm::mat4 transform) {
+        glm::vec3 skew;
+        glm::vec4 perspective;
+        glm::decompose(transform, scale, rotationQuat, position, skew, perspective);
+
+        position = -position;
+        rotationQuat = glm::conjugate(rotationQuat);
+        scale = 1.0f/scale;
+    }
+
     glm::mat4 getTransformParentFromLocal() const {
         return glm::translate(glm::mat4(1.0f), position) * glm::mat4_cast(rotationQuat) * glm::scale(glm::mat4(1.0f), scale);
     }
