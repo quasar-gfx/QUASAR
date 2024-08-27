@@ -91,7 +91,7 @@ public:
 
     void blitToGBuffer(GeometryBuffer &gBuffer) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gBuffer.framebuffer.ID);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gBuffer.getFramebufferID());
 
         glReadBuffer(GL_COLOR_ATTACHMENT0);
         glDrawBuffer(GL_COLOR_ATTACHMENT0);
@@ -110,6 +110,17 @@ public:
         glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
         glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    void blitToRenderTarget(RenderTarget &renderTarget) {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, renderTarget.getFramebufferID());
+
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
+        glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        glBlitFramebuffer(0, 0, width, height, 0, 0, renderTarget.width, renderTarget.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }

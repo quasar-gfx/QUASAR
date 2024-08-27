@@ -69,6 +69,10 @@ public:
         viewport.apply();
     }
 
+    GLuint getFramebufferID() const {
+        return framebuffer.ID;
+    }
+
     void bind() const {
         framebuffer.bind();
         scissor.apply();

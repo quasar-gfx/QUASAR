@@ -322,12 +322,12 @@ int main(int argc, char** argv) {
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
 
-    Shader screenShader2Color = Shader({
+    Shader screenShaderColor = Shader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
 
-    Shader screenShader2Normals = Shader({
+    Shader screenShaderNormals = Shader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayNormals.frag"
     });
@@ -438,10 +438,10 @@ int main(int argc, char** argv) {
 
             // render to render target
             if (!showNormals) {
-                renderer.drawToRenderTarget(screenShader2Color, renderTarget);
+                renderer.drawToRenderTarget(screenShaderColor, renderTarget);
             }
             else {
-                renderer.drawToRenderTarget(screenShader2Normals, renderTarget);
+                renderer.drawToRenderTarget(screenShaderNormals, renderTarget);
             }
 
             genQuadsShader.bind();
