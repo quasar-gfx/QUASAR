@@ -3,7 +3,7 @@
 #include <args.hxx>
 
 #include <OpenGLApp.h>
-#include <Renderers/ForwardRenderer.h>
+#include <Renderers/DepthPeelingRenderer.h>
 #include <SceneLoader.h>
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
@@ -64,7 +64,7 @@ int main(int argc, char** argv) {
     config.guiManager = guiManager;
 
     OpenGLApp app(config);
-    ForwardRenderer renderer(config);
+    DepthPeelingRenderer renderer(config);
 
     unsigned int screenWidth, screenHeight;
     window->getSize(screenWidth, screenHeight);
@@ -455,10 +455,10 @@ int main(int argc, char** argv) {
             genMeshShader.setBool("doOrientationCorrection", doOrientationCorrection);
             genMeshShader.setFloat("distanceThreshold", distanceThreshold);
             genMeshShader.setFloat("angleThreshold", glm::radians(angleThreshold));
-            renderer.gBuffer.positionBuffer.bind(0);
-            renderer.gBuffer.normalsBuffer.bind(1);
-            renderer.gBuffer.idBuffer.bind(2);
-            renderer.gBuffer.depthBuffer.bind(3);
+            genMeshShader.setTexture(renderer.peelingLayers[0]->positionBuffer, 0);
+            genMeshShader.setTexture(renderer.peelingLayers[0]->normalsBuffer, 1);
+            genMeshShader.setTexture(renderer.peelingLayers[0]->idBuffer, 2);
+            genMeshShader.setTexture(renderer.peelingLayers[0]->depthBuffer, 3);
             genMeshShader.dispatch(remoteWidth, remoteHeight, 1);
             genMeshShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
             genMeshShader.unbind();

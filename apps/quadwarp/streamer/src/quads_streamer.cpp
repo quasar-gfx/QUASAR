@@ -455,10 +455,10 @@ int main(int argc, char** argv) {
             genQuadsShader.setBool("doOrientationCorrection", doOrientationCorrection);
             genQuadsShader.setFloat("distanceThreshold", distanceThreshold);
             genQuadsShader.setFloat("angleThreshold", glm::radians(angleThreshold));
-            renderer.gBuffer.positionBuffer.bind(0);
-            renderer.gBuffer.normalsBuffer.bind(1);
-            renderer.gBuffer.idBuffer.bind(2);
-            renderer.gBuffer.depthBuffer.bind(3);
+            genQuadsShader.setTexture(renderer.gBuffer.positionBuffer, 0);
+            genQuadsShader.setTexture(renderer.gBuffer.normalsBuffer, 1);
+            genQuadsShader.setTexture(renderer.gBuffer.idBuffer, 2);
+            genQuadsShader.setTexture(renderer.gBuffer.depthBuffer, 3);
             genQuadsShader.dispatch(remoteWidth, remoteHeight, 1);
             genQuadsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
             genQuadsShader.unbind();

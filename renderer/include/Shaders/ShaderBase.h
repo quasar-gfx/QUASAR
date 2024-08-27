@@ -77,6 +77,10 @@ public:
         glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
     }
 
+    void setTexture(const Texture &texture, int slot) const {
+        texture.bind(slot);
+    }
+
     void setTexture(const std::string &name, const Texture &texture, int slot) const {
         texture.bind(slot);
         setInt(name, slot);
