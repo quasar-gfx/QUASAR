@@ -26,12 +26,12 @@ void ImGuiManager::setStyle() const {
     style.WindowRounding = 8;
 }
 
-void ImGuiManager::predraw() const {
+void ImGuiManager::beginDrawing() const {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
 }
 
-void ImGuiManager::postdraw() const {
+void ImGuiManager::endDrawing() const {
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }

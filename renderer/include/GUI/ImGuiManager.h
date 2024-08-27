@@ -17,8 +17,8 @@ public:
 
     void setStyle() const;
 
-    void predraw() const override;
-    void postdraw() const override;
+    void beginDrawing() const override;
+    void endDrawing() const override;
 };
 
 #endif // IMGUI_MANAGER_H

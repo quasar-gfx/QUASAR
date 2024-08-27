@@ -23,6 +23,23 @@ void DepthPeelingRenderer::resize(unsigned int width, unsigned int height) {
     }
 }
 
+void DepthPeelingRenderer::setScreenShaderUniforms(const Shader &screenShader) {
+    // set gbuffer texture uniforms
+    screenShader.setTexture("screenColor", gBuffer.colorBuffer, 0);
+    screenShader.setTexture("screenDepth", gBuffer.depthBuffer, 1);
+    screenShader.setTexture("screenPositions", gBuffer.positionBuffer, 2);
+    screenShader.setTexture("screenNormals", gBuffer.normalsBuffer, 3);
+    screenShader.setTexture("idBuffer", gBuffer.idBuffer, 4);
+}
+
+void DepthPeelingRenderer::beginRendering() {
+    gBuffer.bind();
+}
+
+void DepthPeelingRenderer::endRendering() {
+    gBuffer.unbind();
+}
+
 RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &camera, uint32_t clearMask) {
     RenderStats stats;
 
@@ -46,16 +63,6 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &ca
 
         currentGBuffer->unbind();
     }
-
-    return stats;
-}
-
-RenderStats DepthPeelingRenderer::drawLights(const Scene &scene, const Camera &camera) {
-    RenderStats stats;
-
-    gBuffer.bind();
-    stats = OpenGLRenderer::drawLights(scene, camera);
-    gBuffer.unbind();
 
     return stats;
 }
@@ -101,13 +108,4 @@ RenderStats DepthPeelingRenderer::compositeLayers() {
     gBuffer.unbind();
 
     return stats;
-}
-
-void DepthPeelingRenderer::setScreenShaderUniforms(const Shader &screenShader) {
-    // set gbuffer texture uniforms
-    screenShader.setTexture("screenColor", gBuffer.colorBuffer, 0);
-    screenShader.setTexture("screenDepth", gBuffer.depthBuffer, 1);
-    screenShader.setTexture("screenPositions", gBuffer.positionBuffer, 2);
-    screenShader.setTexture("screenNormals", gBuffer.normalsBuffer, 3);
-    screenShader.setTexture("idBuffer", gBuffer.idBuffer, 4);
 }

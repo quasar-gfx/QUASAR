@@ -168,6 +168,8 @@ RenderStats OpenGLRenderer::updatePointLightShadows(const Scene &scene, const Ca
 }
 
 RenderStats OpenGLRenderer::drawScene(const Scene &scene, const Camera &camera, uint32_t clearMask) {
+    beginRendering();
+
     if (clearMask != 0) {
         glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
         glClear(clearMask);
@@ -178,10 +180,14 @@ RenderStats OpenGLRenderer::drawScene(const Scene &scene, const Camera &camera, 
         stats += drawNode(scene, camera, child, glm::mat4(1.0f), true);
     }
 
+    endRendering();
+
     return stats;
 }
 
 RenderStats OpenGLRenderer::drawLights(const Scene &scene, const Camera &camera) {
+    beginRendering();
+
     // dont clear color or depth bit here, since we want this to draw over
 
     RenderStats stats;
@@ -209,10 +215,14 @@ RenderStats OpenGLRenderer::drawLights(const Scene &scene, const Camera &camera)
         }
     }
 
+    endRendering();
+
     return stats;
 }
 
 RenderStats OpenGLRenderer::drawSkyBox(const Scene &scene, const Camera &camera) {
+    beginRendering();
+
     // dont clear color or depth bit here, since we want this to draw over
 
     RenderStats stats;
@@ -238,6 +248,8 @@ RenderStats OpenGLRenderer::drawSkyBox(const Scene &scene, const Camera &camera)
     // restore depth func
     glDepthFunc(GL_LESS);
     glDepthMask(GL_TRUE);
+
+    endRendering();
 
     return stats;
 }

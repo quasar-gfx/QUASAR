@@ -30,6 +30,9 @@ public:
 
     virtual void resize(unsigned int width, unsigned int height);
 
+    virtual void beginRendering() {}
+    virtual void endRendering() {}
+
     RenderStats updateDirLightShadow(const Scene &scene, const Camera &camera);
     RenderStats updatePointLightShadows(const Scene &scene, const Camera &camera);
 

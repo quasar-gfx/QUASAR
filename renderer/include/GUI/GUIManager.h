@@ -9,17 +9,17 @@ public:
 
     void onRender(GuiCallback callback) { guiCallback = callback; }
 
-    virtual void predraw() const = 0;
-    virtual void postdraw() const = 0;
+    virtual void beginDrawing() const = 0;
+    virtual void endDrawing() const = 0;
 
     void draw(double now, double dt) const {
-        predraw();
+        beginDrawing();
 
         if (guiCallback) {
             guiCallback(now, dt);
         }
 
-        postdraw();
+        endDrawing();
     }
 
 private:
