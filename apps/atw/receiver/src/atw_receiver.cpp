@@ -63,8 +63,8 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera = PerspectiveCamera(screenWidth, screenHeight);
 
     VideoTexture videoTexture({
-        .width = config.width,
-        .height = config.height,
+        .width = screenWidth,
+        .height = screenHeight,
         .internalFormat = GL_SRGB8,
         .format = GL_RGB,
         .type = GL_UNSIGNED_BYTE,

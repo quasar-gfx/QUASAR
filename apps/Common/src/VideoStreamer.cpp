@@ -16,7 +16,6 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
         : videoURL("udp://" + videoURL)
         , targetBitRate(targetBitRateMbps * MBPS_TO_BPS)
         , RenderTarget(params) {
-
     videoWidth = width + poseIDOffset;
     videoHeight = height;
 
@@ -130,6 +129,9 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
     }
 
     rgbaVideoFrameData = std::vector<uint8_t>(videoWidth * videoHeight * 4);
+#if defined(__APPLE__) || defined(__ANDROID__)
+    openglFrameData = std::vector<uint8_t>(width * height * 4);
+#endif
 
     /* setup frame */
     frame->width = videoWidth;
@@ -170,9 +172,7 @@ int VideoStreamer::initCuda() {
 
 void VideoStreamer::sendFrame(pose_id_t poseID) {
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-    bind();
     blitToRenderTarget(*renderTargetCopy);
-    unbind();
 
     // add cuda buffer
     cudaArray* cudaBuffer;
@@ -193,9 +193,7 @@ void VideoStreamer::sendFrame(pose_id_t poseID) {
 
         this->poseID = poseID;
 
-        bind();
-        glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, rgbaVideoFrameData.data());
-        unbind();
+        glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, openglFrameData.data());
 #endif
 
         // tell thread to send frame
@@ -259,16 +257,25 @@ void VideoStreamer::encodeAndSendFrames() {
         stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startCopyTime);
 #else
         pose_id_t poseIDToSend = this->poseID;
+
+        for (int row = 0; row < height; row++) {
+            int srcIndex = row * width * 4;
+            int dstIndex = row * videoWidth * 4;
+            std::memcpy(rgbaVideoFrameData.data() + dstIndex, openglFrameData.data() + srcIndex, width * 4);
+        }
+
         lock.unlock();
 #endif
 
         packPoseIDIntoVideoFrame(poseIDToSend);
 
-        // convert RGBA to YUV
-        const uint8_t* srcData[] = { rgbaVideoFrameData.data() };
-        int srcStride[] = { static_cast<int>(videoWidth * 4) }; // RGBA has 4 bytes per pixel
+        /* convert RGBA to YUV */
+        {
+            const uint8_t* srcData[] = { rgbaVideoFrameData.data() };
+            int srcStride[] = { static_cast<int>(videoWidth * 4) }; // RGBA has 4 bytes per pixel
 
-        sws_scale(swsCtx, srcData, srcStride, 0, videoHeight, frame->data, frame->linesize);
+            sws_scale(swsCtx, srcData, srcStride, 0, videoHeight, frame->data, frame->linesize);
+        }
 
         /* Encode frame */
         {

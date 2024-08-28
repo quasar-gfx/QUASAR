@@ -97,6 +97,8 @@ private:
     std::queue<CudaBuffer> cudaBufferQueue;
 #else
     pose_id_t poseID = -1;
+
+    std::vector<uint8_t> openglFrameData;
 #endif
 
     std::vector<uint8_t> rgbaVideoFrameData;
