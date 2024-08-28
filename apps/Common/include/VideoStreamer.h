@@ -69,10 +69,12 @@ private:
 
     int poseIDOffset = sizeof(pose_id_t) * 8;
 
+    unsigned int videoWidth, videoHeight;
+
     RenderTarget* renderTargetCopy;
 
     AVCodecID codecID = AV_CODEC_ID_H264;
-    AVPixelFormat bufferPixelFormat = AV_PIX_FMT_RGBA;
+    AVPixelFormat rgbaPixelFormat = AV_PIX_FMT_RGBA;
     AVPixelFormat videoPixelFormat = AV_PIX_FMT_YUV420P;
 
     AVFormatContext* outputFormatCtx = nullptr;
@@ -82,6 +84,8 @@ private:
     AVStream* outputVideoStream = nullptr;
 
     SwsContext* swsCtx = nullptr;
+
+    void packPoseIDIntoVideoFrame(pose_id_t poseID);
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     cudaGraphicsResource* cudaResource;
@@ -95,7 +99,7 @@ private:
     pose_id_t poseID = -1;
 #endif
 
-    std::vector<uint8_t> rgbaData;
+    std::vector<uint8_t> rgbaVideoFrameData;
     AVFrame* frame = av_frame_alloc();
     AVPacket* packet = av_packet_alloc();
 

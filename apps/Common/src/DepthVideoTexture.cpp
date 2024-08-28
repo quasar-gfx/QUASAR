@@ -46,6 +46,8 @@ pose_id_t DepthVideoTexture::draw(pose_id_t poseID) {
         return prevPoseID;
     }
 
+    int stride = width;
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, stride);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RED, GL_UNSIGNED_SHORT, res.data());
 
     stats.timeToReceiveMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);

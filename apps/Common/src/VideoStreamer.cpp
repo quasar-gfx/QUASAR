@@ -16,7 +16,9 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
         : videoURL("udp://" + videoURL)
         , targetBitRate(targetBitRateMbps * MBPS_TO_BPS)
         , RenderTarget(params) {
-    resize(params.width + poseIDOffset, params.height);
+
+    videoWidth = width + poseIDOffset;
+    videoHeight = height;
 
     renderTargetCopy = new RenderTarget({
         .width = width,
@@ -63,8 +65,8 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
     }
 
     codecCtx->pix_fmt = videoPixelFormat;
-    codecCtx->width = width;
-    codecCtx->height = height;
+    codecCtx->width = videoWidth;
+    codecCtx->height = videoHeight;
     codecCtx->time_base = {1, targetFrameRate};
     codecCtx->framerate = {targetFrameRate, 1};
     codecCtx->bit_rate = targetBitRate;
@@ -118,19 +120,20 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
         throw std::runtime_error("Video Streamer could not be created.");
     }
 
-    swsCtx = sws_getContext(width, height, bufferPixelFormat,
-                            width, height, videoPixelFormat,
+    // rgba to yuv conversion
+    swsCtx = sws_getContext(videoWidth, videoHeight, rgbaPixelFormat,
+                            videoWidth, videoHeight, videoPixelFormat,
                             SWS_BICUBIC, nullptr, nullptr, nullptr);
     if (!swsCtx) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate conversion context\n");
         throw std::runtime_error("Video Streamer could not be created.");
     }
 
-    rgbaData = std::vector<uint8_t>(width * height * 4);
+    rgbaVideoFrameData = std::vector<uint8_t>(videoWidth * videoHeight * 4);
 
     /* setup frame */
-    frame->width = width;
-    frame->height = height;
+    frame->width = videoWidth;
+    frame->height = videoHeight;
     frame->format = videoPixelFormat;
     ret = av_frame_get_buffer(frame, 0);
     if (ret < 0) {
@@ -166,11 +169,11 @@ int VideoStreamer::initCuda() {
 #endif
 
 void VideoStreamer::sendFrame(pose_id_t poseID) {
+#if !defined(__APPLE__) && !defined(__ANDROID__)
     bind();
     blitToRenderTarget(*renderTargetCopy);
     unbind();
 
-#if !defined(__APPLE__) && !defined(__ANDROID__)
     // add cuda buffer
     cudaArray* cudaBuffer;
     CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
@@ -191,7 +194,7 @@ void VideoStreamer::sendFrame(pose_id_t poseID) {
         this->poseID = poseID;
 
         bind();
-        glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, rgbaData.data());
+        glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, rgbaVideoFrameData.data());
         unbind();
 #endif
 
@@ -199,6 +202,19 @@ void VideoStreamer::sendFrame(pose_id_t poseID) {
         frameReady = true;
     }
     cv.notify_one();
+}
+
+void VideoStreamer::packPoseIDIntoVideoFrame(pose_id_t poseID) {
+    for (int i = 0; i < poseIDOffset; i++) {
+        uint8_t value = (poseID & (1 << i)) ? 255 : 0;
+        for (int j = 0; j < videoHeight; j++) {
+            int index = j * videoWidth * 4 + (videoWidth - 1 - i) * 4;
+            rgbaVideoFrameData[index + 0] = value; // R
+            rgbaVideoFrameData[index + 1] = value; // G
+            rgbaVideoFrameData[index + 2] = value; // B
+            rgbaVideoFrameData[index + 3] = value; // A
+        }
+    }
 }
 
 void VideoStreamer::encodeAndSendFrames() {
@@ -233,7 +249,8 @@ void VideoStreamer::encodeAndSendFrames() {
 
         lock.unlock();
 
-        CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(rgbaData.data(), width * 4,
+        CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(rgbaVideoFrameData.data(),
+                                               videoWidth * 4,
                                                cudaBuffer,
                                                0, 0,
                                                width * 4, height,
@@ -245,22 +262,13 @@ void VideoStreamer::encodeAndSendFrames() {
         lock.unlock();
 #endif
 
-        for (int i = 0; i < poseIDOffset; i++) {
-            uint8_t value = (poseIDToSend & (1 << i)) ? 255 : 0;
-            for (int j = 0; j < height; j++) {
-                int index = j * width * 4 + (width - 1 - i) * 4;
-                rgbaData[index + 0] = value; // R
-                rgbaData[index + 1] = value; // G
-                rgbaData[index + 2] = value; // B
-                rgbaData[index + 3] = value; // A
-            }
-        }
+        packPoseIDIntoVideoFrame(poseIDToSend);
 
         // convert RGBA to YUV
-        const uint8_t* srcData[] = { rgbaData.data() };
-        int srcStride[] = { static_cast<int>(width * 4) }; // RGBA has 4 bytes per pixel
+        const uint8_t* srcData[] = { rgbaVideoFrameData.data() };
+        int srcStride[] = { static_cast<int>(videoWidth * 4) }; // RGBA has 4 bytes per pixel
 
-        sws_scale(swsCtx, srcData, srcStride, 0, height, frame->data, frame->linesize);
+        sws_scale(swsCtx, srcData, srcStride, 0, videoHeight, frame->data, frame->linesize);
 
         /* Encode frame */
         {

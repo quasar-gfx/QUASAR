@@ -133,6 +133,24 @@ int VideoTexture::initFFMpeg() {
     return 0;
 }
 
+pose_id_t VideoTexture::unpackPoseIDFromFrame(AVFrame* frame) {
+    // extract poseID from frame
+    pose_id_t poseID = 0;
+    for (int i = 0; i < poseIDOffset; i++) {
+        int votes = 0;
+        for (int j = 0; j < height; j++) {
+            int index = j * internalWidth * 3 + (internalWidth - 1 - i) * 3;
+            uint8_t value = frame->data[0][index];
+            if (value > 127) {
+                votes++;
+            }
+        }
+        poseID |= (votes > height / 2) << i;
+    }
+
+    return poseID;
+}
+
 void VideoTexture::receiveVideo() {
     int ret = initFFMpeg();
     if (ret < 0) {
@@ -202,20 +220,7 @@ void VideoTexture::receiveVideo() {
 
             sws_scale(swsCtx, (uint8_t const* const*)frame->data, frame->linesize, 0, videoHeight, frameRGB->data, frameRGB->linesize);
 
-            // extract poseID from frame
-            pose_id_t poseIDFromFrame = 0;
-            for (int i = 0; i < poseIDOffset; i++) {
-                int votes = 0;
-                for (int j = 0; j < height; j++) {
-                    int index = j * internalWidth * 3 + (internalWidth - 1 - i) * 3;
-                    uint8_t value = frameRGB->data[0][index];
-                    if (value > 127) {
-                        votes++;
-                    }
-                }
-                poseIDFromFrame |= (votes > height / 2) << i;
-            }
-            poseID = poseIDFromFrame;
+            poseID = unpackPoseIDFromFrame(frameRGB);
 
             {
                 std::unique_lock<std::mutex> lock(m);

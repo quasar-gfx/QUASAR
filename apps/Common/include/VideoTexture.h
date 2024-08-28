@@ -33,7 +33,6 @@ public:
     } stats;
 
     unsigned int videoWidth, videoHeight;
-    unsigned int internalWidth, internalHeight;
 
     VideoTexture(const TextureDataCreateParams &params, const std::string &videoURL);
     ~VideoTexture();
@@ -55,6 +54,8 @@ private:
     pose_id_t prevPoseID = -1;
     uint64_t framesReceived = 0;
     unsigned int maxQueueSize = 10;
+
+    unsigned int internalWidth, internalHeight;
 
     int poseIDOffset = sizeof(pose_id_t) * 8;
 
@@ -88,6 +89,8 @@ private:
     };
 
     std::deque<FrameData> frames;
+
+    pose_id_t unpackPoseIDFromFrame(AVFrame* frame);
 
     void receiveVideo();
 
