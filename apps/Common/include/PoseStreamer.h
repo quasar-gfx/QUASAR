@@ -21,10 +21,12 @@
 class PoseStreamer {
 public:
     std::string receiverURL;
+    unsigned int rate;
 
-    PoseStreamer(Camera* camera, std::string receiverURL)
+    PoseStreamer(Camera* camera, std::string receiverURL, unsigned int rate = 60)
             : camera(camera)
             , receiverURL(receiverURL)
+            , rate(rate)
             , streamer(receiverURL, sizeof(Pose)) { }
 
     bool epsilonEqual(const glm::mat4& mat1, const glm::mat4& mat2, float epsilon = 1e-5) {
@@ -67,6 +69,12 @@ public:
     }
 
     bool sendPose() {
+        static float lastSendTime = timeutils::getTimeMicros();
+        if (timeutils::getTimeMicros() - lastSendTime < MICROSECONDS_IN_SECOND / rate) {
+            return false;
+        }
+        lastSendTime = timeutils::getTimeMicros();
+
         Pose currPose;
         currPose.id = currPoseID;
         if (camera->isVR()) {

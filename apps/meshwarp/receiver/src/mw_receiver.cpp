@@ -399,11 +399,7 @@ int main(int argc, char** argv) {
         }
 
         // send pose to streamer
-        static double lastTime = 0.0;
-        if (now - lastTime > 0.032) {
-            poseStreamer.sendPose();
-            lastTime = now;
-        }
+        poseStreamer.sendPose();
 
         // render color video frame
         videoTextureColor.bind();
