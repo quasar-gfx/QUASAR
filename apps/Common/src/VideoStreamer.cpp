@@ -16,7 +16,7 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
         : videoURL("udp://" + videoURL)
         , targetBitRate(targetBitRateMbps * MBPS_TO_BPS)
         , RenderTarget(params) {
-    resize(params.width + sizeof(pose_id_t) * 8, params.height);
+    resize(params.width + poseIDOffset, params.height);
 
     renderTargetCopy = new RenderTarget({
         .width = width,
@@ -245,7 +245,7 @@ void VideoStreamer::encodeAndSendFrames() {
         lock.unlock();
 #endif
 
-        for (int i = 0; i < sizeof(pose_id_t) * 8; i++) {
+        for (int i = 0; i < poseIDOffset; i++) {
             uint8_t value = (poseIDToSend & (1 << i)) ? 255 : 0;
             for (int j = 0; j < height; j++) {
                 int index = j * width * 4 + (width - 1 - i) * 4;

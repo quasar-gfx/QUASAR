@@ -15,9 +15,36 @@ static int interrupt_callback(void* ctx) {
 VideoTexture::VideoTexture(const TextureDataCreateParams &params, const std::string &videoURL)
         : Texture(params)
         , videoURL("udp://" + videoURL + "?overrun_nonfatal=1&fifo_size=50000000") {
-    resize(params.width + sizeof(pose_id_t) * 8, params.height);
     videoReceiverThread = std::thread(&VideoTexture::receiveVideo, this);
 }
+
+VideoTexture::~VideoTexture() {
+    shouldTerminate = true;
+    videoReady = false;
+
+    if (videoReceiverThread.joinable()) {
+        videoReceiverThread.join();
+    }
+
+    avcodec_free_context(&codecCtx);
+
+    avformat_close_input(&inputFormatCtx);
+    avformat_free_context(inputFormatCtx);
+
+    av_frame_free(&frame);
+    av_packet_unref(packet);
+    av_packet_free(&packet);
+
+    // av_free(buffer);
+
+    while (!frames.empty()) {
+        FrameData frameData = frames.front();
+        frameData.free();
+        frames.pop_front();
+    }
+}
+
+
 
 int VideoTexture::initFFMpeg() {
     AVStream* inputVideoStream = nullptr;
@@ -96,8 +123,11 @@ int VideoTexture::initFFMpeg() {
     videoHeight = codecCtx->height;
     std::cout << "Video resolution: " << videoWidth << "x" << videoHeight << std::endl;
 
+    internalWidth = videoWidth;
+    internalHeight = videoHeight;
+
     swsCtx = sws_getContext(videoWidth, videoHeight, codecCtx->pix_fmt,
-                            width, height, openglPixelFormat,
+                            internalWidth, internalHeight, openglPixelFormat,
                             SWS_BILINEAR, nullptr, nullptr, nullptr);
 
     return 0;
@@ -166,18 +196,18 @@ void VideoTexture::receiveVideo() {
 
             AVFrame* frameRGB = av_frame_alloc();
 
-            int numBytes = av_image_get_buffer_size(openglPixelFormat, width, height, 1);
+            int numBytes = av_image_get_buffer_size(openglPixelFormat, internalWidth, internalHeight, 1);
             uint8_t* buffer = (uint8_t*)av_malloc(numBytes * sizeof(uint8_t));
-            av_image_fill_arrays(frameRGB->data, frameRGB->linesize, buffer, openglPixelFormat, width, height, 1);
+            av_image_fill_arrays(frameRGB->data, frameRGB->linesize, buffer, openglPixelFormat, internalWidth, internalHeight, 1);
 
             sws_scale(swsCtx, (uint8_t const* const*)frame->data, frame->linesize, 0, videoHeight, frameRGB->data, frameRGB->linesize);
 
             // extract poseID from frame
             pose_id_t poseIDFromFrame = 0;
-            for (int i = 0; i < sizeof(pose_id_t) * 8; i++) {
+            for (int i = 0; i < poseIDOffset; i++) {
                 int votes = 0;
                 for (int j = 0; j < height; j++) {
-                    int index = j * width * 3 + (width - 1 - i) * 3;
+                    int index = j * internalWidth * 3 + (internalWidth - 1 - i) * 3;
                     uint8_t value = frameRGB->data[0][index];
                     if (value > 127) {
                         votes++;
@@ -243,7 +273,9 @@ pose_id_t VideoTexture::draw(pose_id_t poseID) {
         }
     }
 
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width - 0, height, GL_RGB, GL_UNSIGNED_BYTE, frameRGB->data[0]);
+    int stride = internalWidth;
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, stride);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, frameRGB->data[0]);
 
     prevPoseID = resPoseID;
 
@@ -263,29 +295,8 @@ pose_id_t VideoTexture::getLatestPoseID() {
     return poseID;
 }
 
-VideoTexture::~VideoTexture() {
-    shouldTerminate = true;
-    videoReady = false;
-
-    if (videoReceiverThread.joinable()) {
-        videoReceiverThread.join();
-    }
-
-    avcodec_free_context(&codecCtx);
-
-    avformat_close_input(&inputFormatCtx);
-    avformat_free_context(inputFormatCtx);
-
-    av_frame_free(&frame);
-    av_packet_unref(packet);
-    av_packet_free(&packet);
-
-    // av_free(buffer);
-
-    while (!frames.empty()) {
-        FrameData frameData = frames.front();
-        frameData.free();
-        frames.pop_front();
-    }
+void VideoTexture::resize(unsigned int width, unsigned int height) {
+    internalWidth = width + poseIDOffset;
+    internalHeight = height;
+    Texture::resize(width, height);
 }
-

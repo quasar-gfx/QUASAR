@@ -33,6 +33,7 @@ public:
     } stats;
 
     unsigned int videoWidth, videoHeight;
+    unsigned int internalWidth, internalHeight;
 
     VideoTexture(const TextureDataCreateParams &params, const std::string &videoURL);
     ~VideoTexture();
@@ -48,10 +49,14 @@ public:
         return 1.0f / timeutils::millisToSeconds(stats.totalTimeToReceiveMs);
     }
 
+    void resize(unsigned int width, unsigned int height);
+
 private:
     pose_id_t prevPoseID = -1;
     uint64_t framesReceived = 0;
     unsigned int maxQueueSize = 10;
+
+    int poseIDOffset = sizeof(pose_id_t) * 8;
 
     AVPixelFormat openglPixelFormat = AV_PIX_FMT_RGB24;
 

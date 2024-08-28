@@ -67,6 +67,8 @@ private:
     int targetFrameRate = 60;
     unsigned int targetBitRate;
 
+    int poseIDOffset = sizeof(pose_id_t) * 8;
+
     RenderTarget* renderTargetCopy;
 
     AVCodecID codecID = AV_CODEC_ID_H264;
