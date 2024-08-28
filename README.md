@@ -3,11 +3,26 @@
 Install dependencies:
 ```
 # Linux (reccomended)
-sudo apt-get install cmake libglew-dev libglfw3-dev libao-dev libmpg123-dev ffmpeg
+sudo apt-get install \
+    cmake \
+    libglew-dev \
+    libglfw3-dev \
+    libao-dev \
+    libmpg123-dev \
+    ffmpeg \
+    libavdevice-dev \
+    libavcodec-dev \
+    libavformat-dev \
+    libavutil-dev \
+    libswscale-dev \
+    libswresample-dev \
+    libavfilter-dev \
+    cuda-12
 ```
+NVIDIA GPUs are highly reccomended.
 
 ```
-# Mac (not reccomended for streaming; only reciever works)
+# Mac (not reccomended for streaming, but works)
 brew install cmake glew glfw3 ffmpeg
 ```
 
@@ -31,7 +46,7 @@ Run Scene Viewer app:
 ```
 # in build directory
 cd apps/scene_viewer
-./scene_viewer -size 2048x2048 --scene ../assets/scenes/sponza.json
+./scene_viewer --size 2048x2048 --scene ../assets/scenes/sponza.json
 ```
 
 ## Asynchronous Time Warp (ATW)

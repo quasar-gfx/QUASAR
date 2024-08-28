@@ -172,7 +172,9 @@ int VideoStreamer::initCuda() {
 
 void VideoStreamer::sendFrame(pose_id_t poseID) {
 #if !defined(__APPLE__) && !defined(__ANDROID__)
+    bind();
     blitToRenderTarget(*renderTargetCopy);
+    unbind();
 
     // add cuda buffer
     cudaArray* cudaBuffer;
@@ -193,7 +195,9 @@ void VideoStreamer::sendFrame(pose_id_t poseID) {
 
         this->poseID = poseID;
 
+        bind();
         glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, openglFrameData.data());
+        unbind();
 #endif
 
         // tell thread to send frame

@@ -135,17 +135,18 @@ int VideoTexture::initFFMpeg() {
 
 pose_id_t VideoTexture::unpackPoseIDFromFrame(AVFrame* frame) {
     // extract poseID from frame
+    const int numVotes = 32;
     pose_id_t poseID = 0;
     for (int i = 0; i < poseIDOffset; i++) {
         int votes = 0;
-        for (int j = 0; j < height; j++) {
+        for (int j = 0; j < numVotes; j++) {
             int index = j * internalWidth * 3 + (internalWidth - 1 - i) * 3;
             uint8_t value = frame->data[0][index];
             if (value > 127) {
                 votes++;
             }
         }
-        poseID |= (votes > height / 2) << i;
+        poseID |= (votes > numVotes / 2) << i;
     }
 
     return poseID;
