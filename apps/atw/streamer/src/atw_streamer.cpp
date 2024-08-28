@@ -258,27 +258,7 @@ int main(int argc, char** argv) {
         scene.pointLights[2]->setPosition(pointLightPositions[2] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
         scene.pointLights[3]->setPosition(pointLightPositions[3] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
 
-        if (vrMode) {
-            auto* vrCamera = static_cast<VRCamera*>(camera.get());
-
-            renderer.pipeline.rasterState.scissorTestEnabled = true;
-
-            // left eye
-            renderer.gBuffer.setScissor(0, 0, screenWidth / 2, screenHeight);
-            renderer.gBuffer.setViewport(0, 0, screenWidth / 2, screenHeight);
-            renderStats = renderer.drawObjects(scene, vrCamera->left);
-
-            // right eye
-            renderer.gBuffer.setScissor(screenWidth / 2, 0, screenWidth / 2, screenHeight);
-            renderer.gBuffer.setViewport(screenWidth / 2, 0, screenWidth / 2, screenHeight);
-            renderStats = renderer.drawObjects(scene, vrCamera->right);
-
-            renderer.drawToRenderTarget(colorShader, videoStreamerRT);
-        }
-        else {
-            auto* perspectiveCamera = static_cast<PerspectiveCamera*>(camera.get());
-            renderStats = renderer.drawObjects(scene, *perspectiveCamera);
-        }
+        renderer.drawObjects(scene, *camera);
 
         // copy rendered result to video render target
         renderer.drawToRenderTarget(colorShader, videoStreamerRT);

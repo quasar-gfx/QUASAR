@@ -40,6 +40,30 @@ RenderStats ForwardRenderer::drawSkyBox(const Scene &scene, const Camera &camera
     return stats;
 }
 
+RenderStats ForwardRenderer::drawObjects(const Scene &scene, const Camera &camera, uint32_t clearMask) {
+    RenderStats stats;
+    if (camera.isVR()) {
+        auto* vrCamera = static_cast<const VRCamera*>(&camera);
+
+        pipeline.rasterState.scissorTestEnabled = true;
+
+        // left eye
+        gBuffer.setScissor(0, 0, width / 2, height);
+        gBuffer.setViewport(0, 0, width / 2, height);
+        stats = drawObjects(scene, vrCamera->left);
+
+        // right eye
+        gBuffer.setScissor(width / 2, 0, width / 2, height);
+        gBuffer.setViewport(width / 2, 0, width / 2, height);
+        stats = drawObjects(scene, vrCamera->right);
+    }
+    else {
+        stats = OpenGLRenderer::drawObjects(scene, camera, clearMask);
+    }
+    
+    return stats;
+}
+
 void ForwardRenderer::setScreenShaderUniforms(const Shader &screenShader) {
     // set gbuffer texture uniforms
     screenShader.setTexture("screenColor", gBuffer.colorBuffer, 0);
