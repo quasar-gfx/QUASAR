@@ -21,10 +21,12 @@
 class PoseStreamer {
 public:
     std::string receiverURL;
+    unsigned int rate;
 
-    PoseStreamer(Camera* camera, std::string receiverURL)
+    PoseStreamer(Camera* camera, std::string receiverURL, unsigned int rate = 60)
             : camera(camera)
             , receiverURL(receiverURL)
+            , rate(rate)
             , streamer(receiverURL, sizeof(Pose)) { }
 
     bool epsilonEqual(const glm::mat4& mat1, const glm::mat4& mat2, float epsilon = 1e-5) {
@@ -67,29 +69,38 @@ public:
     }
 
     bool sendPose() {
+        static float lastSendTime = timeutils::getTimeMicros();
+        if (timeutils::getTimeMicros() - lastSendTime < MICROSECONDS_IN_SECOND / rate) {
+            return false;
+        }
+        lastSendTime = timeutils::getTimeMicros();
+
+        Pose currPose;
         currPose.id = currPoseID;
         if (camera->isVR()) {
             auto* vrCamera = static_cast<VRCamera*>(camera);
             currPose.setProjectionMatrices({vrCamera->left.getProjectionMatrix(), vrCamera->right.getProjectionMatrix()});
             currPose.setViewMatrices({vrCamera->left.getViewMatrix(), vrCamera->right.getViewMatrix()});
-            if (epsilonEqual(currPose.stereo.viewL, prevPose.stereo.viewL) &&
-                epsilonEqual(currPose.stereo.viewR, prevPose.stereo.viewR)) {
-                return false;
-            }
+            // if (epsilonEqual(currPose.stereo.viewL, prevPose.stereo.viewL) &&
+            //     epsilonEqual(currPose.stereo.viewR, prevPose.stereo.viewR)) {
+            //     return false;
+            // }
         }
         else {
             auto* perspectiveCamera = static_cast<PerspectiveCamera*>(camera);
             currPose.setViewMatrix(perspectiveCamera->getViewMatrix());
             currPose.setProjectionMatrix(perspectiveCamera->getProjectionMatrix());
-            if (epsilonEqual(currPose.mono.view, prevPose.mono.view)) {
-                return false;
-            }
+            // if (epsilonEqual(currPose.mono.view, prevPose.mono.view)) {
+            //     return false;
+            // }
         }
         currPose.timestamp = timeutils::getTimeMillis();
         streamer.send((uint8_t*)&currPose);
 
         prevPoses[currPoseID] = currPose;
         currPoseID++;
+
+        prevPose = currPose;
 
         return true;
     }
@@ -98,7 +109,7 @@ private:
     DataStreamerUDP streamer;
 
     Camera* camera;
-    Pose currPose, prevPose;
+    Pose prevPose;
     pose_id_t currPoseID = 0;
 
     std::map<pose_id_t, Pose> prevPoses;

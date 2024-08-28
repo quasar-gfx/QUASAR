@@ -48,10 +48,16 @@ public:
         return 1.0f / timeutils::millisToSeconds(stats.totalTimeToReceiveMs);
     }
 
+    void resize(unsigned int width, unsigned int height);
+
 private:
     pose_id_t prevPoseID = -1;
     uint64_t framesReceived = 0;
     unsigned int maxQueueSize = 10;
+
+    unsigned int internalWidth, internalHeight;
+
+    int poseIDOffset = sizeof(pose_id_t) * 8;
 
     AVPixelFormat openglPixelFormat = AV_PIX_FMT_RGB24;
 
@@ -83,6 +89,8 @@ private:
     };
 
     std::deque<FrameData> frames;
+
+    pose_id_t unpackPoseIDFromFrame(AVFrame* frame);
 
     void receiveVideo();
 

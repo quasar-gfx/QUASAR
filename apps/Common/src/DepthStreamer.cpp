@@ -2,10 +2,10 @@
 
 DepthStreamer::DepthStreamer(const RenderTargetCreateParams &params, std::string receiverURL)
         : receiverURL(receiverURL)
-        , imageSize(sizeof(pose_id_t) + params.width * params.height * sizeof(GLushort))
+        , imageSize(params.width * params.height * sizeof(GLushort))
         , streamer(receiverURL)
         , RenderTarget(params) {
-    data = std::vector<uint8_t>(imageSize);
+    data = std::vector<uint8_t>(sizeof(pose_id_t) + imageSize);
 
     renderTargetCopy = new RenderTarget({
         .width = width,
@@ -51,11 +51,11 @@ void DepthStreamer::close() {
 }
 
 void DepthStreamer::sendFrame(pose_id_t poseID) {
-    renderTargetCopy->bind();
-    blitToRenderTarget(*renderTargetCopy);
-    renderTargetCopy->unbind();
-
 #if !defined(__APPLE__) && !defined(__ANDROID__)
+    bind();
+    blitToRenderTarget(*renderTargetCopy);
+    unbind();
+
     // add cuda buffer
     cudaArray* cudaBuffer;
     CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));

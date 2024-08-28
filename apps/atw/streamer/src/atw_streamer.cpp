@@ -100,6 +100,7 @@ int main(int argc, char** argv) {
 
     bool paused = false;
     RenderStats renderStats;
+    pose_id_t currentFramePoseID;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = true;
@@ -158,8 +159,6 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::Separator();
-
             ImGui::Text("Video URL: %s", videoURL.c_str());
             ImGui::Text("Pose URL: %s", poseURL.c_str());
 
@@ -173,6 +172,10 @@ int main(int argc, char** argv) {
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.1f ms", videoStreamerRT.stats.timeToEncodeMs);
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: %.1f ms", videoStreamerRT.stats.timeToSendMs);
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: %.1f Mbps", videoStreamerRT.stats.bitrateMbps);
+
+            ImGui::Separator();
+
+            ImGui::Text("Remote Pose ID: %d", currentFramePoseID);
 
             ImGui::Separator();
 
@@ -237,7 +240,6 @@ int main(int argc, char** argv) {
     pointLightPositions[2] = scene.pointLights[2]->position;
     pointLightPositions[3] = scene.pointLights[3]->position;
 
-    pose_id_t poseID = 0;
     app.onRender([&](double now, double dt) {
         // handle keyboard input
         auto keys = window->getKeys();
@@ -250,7 +252,7 @@ int main(int argc, char** argv) {
         }
 
         // receive pose
-        poseID = poseReceiver.receivePose();
+        pose_id_t poseID = poseReceiver.receivePose();
 
         // animate lights
         scene.pointLights[0]->setPosition(pointLightPositions[0] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
@@ -258,27 +260,7 @@ int main(int argc, char** argv) {
         scene.pointLights[2]->setPosition(pointLightPositions[2] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
         scene.pointLights[3]->setPosition(pointLightPositions[3] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
 
-        if (vrMode) {
-            auto* vrCamera = static_cast<VRCamera*>(camera.get());
-
-            renderer.pipeline.rasterState.scissorTestEnabled = true;
-
-            // left eye
-            renderer.gBuffer.setScissor(0, 0, screenWidth / 2, screenHeight);
-            renderer.gBuffer.setViewport(0, 0, screenWidth / 2, screenHeight);
-            renderStats = renderer.drawObjects(scene, vrCamera->left);
-
-            // right eye
-            renderer.gBuffer.setScissor(screenWidth / 2, 0, screenWidth / 2, screenHeight);
-            renderer.gBuffer.setViewport(screenWidth / 2, 0, screenWidth / 2, screenHeight);
-            renderStats = renderer.drawObjects(scene, vrCamera->right);
-
-            renderer.drawToRenderTarget(colorShader, videoStreamerRT);
-        }
-        else {
-            auto* perspectiveCamera = static_cast<PerspectiveCamera*>(camera.get());
-            renderStats = renderer.drawObjects(scene, *perspectiveCamera);
-        }
+        renderer.drawObjects(scene, *camera);
 
         // copy rendered result to video render target
         renderer.drawToRenderTarget(colorShader, videoStreamerRT);
@@ -288,6 +270,7 @@ int main(int argc, char** argv) {
 
         // send video frame
         if (poseID != -1) {
+            currentFramePoseID = poseID;
             videoStreamerRT.sendFrame(poseID);
         }
     });

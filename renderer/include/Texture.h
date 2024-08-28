@@ -3,6 +3,8 @@
 
 #include <string>
 
+#include <glm/gtc/type_ptr.hpp>
+
 #include <OpenGLObject.h>
 
 struct TextureDataCreateParams {
@@ -16,6 +18,7 @@ struct TextureDataCreateParams {
     GLint minFilter = GL_LINEAR;
     GLint magFilter = GL_LINEAR;
     bool hasBorder = false;
+    glm::vec4 borderColor = glm::vec4(1.0f);
     bool gammaCorrected = false;
     GLint alignment = 4;
     bool multiSampled = false;
@@ -72,8 +75,7 @@ public:
         loadFromData(params.data);
 
         if (params.hasBorder) {
-            float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
-            glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, borderColor);
+            glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(params.borderColor));
         }
     }
     Texture(const TextureFileCreateParams &params)
