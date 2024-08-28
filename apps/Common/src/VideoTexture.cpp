@@ -15,6 +15,7 @@ static int interrupt_callback(void* ctx) {
 VideoTexture::VideoTexture(const TextureDataCreateParams &params, const std::string &videoURL)
         : Texture(params)
         , videoURL("udp://" + videoURL + "?overrun_nonfatal=1&fifo_size=50000000") {
+    resize(params.width + sizeof(pose_id_t) * 8, params.height);
     videoReceiverThread = std::thread(&VideoTexture::receiveVideo, this);
 }
 
@@ -93,6 +94,7 @@ int VideoTexture::initFFMpeg() {
 
     videoWidth = codecCtx->width;
     videoHeight = codecCtx->height;
+    std::cout << "Video resolution: " << videoWidth << "x" << videoHeight << std::endl;
 
     swsCtx = sws_getContext(videoWidth, videoHeight, codecCtx->pix_fmt,
                             width, height, openglPixelFormat,
@@ -130,12 +132,6 @@ void VideoTexture::receiveVideo() {
         }
 
         bytesReceived = packet->size;
-
-        // extract poseID from packet
-        std::memcpy(&poseID, packet->data + packet->size - sizeof(pose_id_t), sizeof(pose_id_t));
-
-        // remove poseID from packet
-        packet->size -= sizeof(pose_id_t);
 
         /* Decode received frame */
         {
@@ -176,17 +172,32 @@ void VideoTexture::receiveVideo() {
 
             sws_scale(swsCtx, (uint8_t const* const*)frame->data, frame->linesize, 0, videoHeight, frameRGB->data, frameRGB->linesize);
 
-            std::unique_lock<std::mutex> lock(m);
-
-            FrameData frameData = {poseID, frameRGB, buffer};
-            frames.push_back(frameData);
-            if (frames.size() > maxQueueSize) {
-                FrameData frameToFree = frames.front();
-                frameToFree.free();
-                frames.pop_front();
+            // extract poseID from frame
+            pose_id_t poseIDFromFrame = 0;
+            for (int i = 0; i < sizeof(pose_id_t) * 8; i++) {
+                int votes = 0;
+                for (int j = 0; j < height; j++) {
+                    int index = j * width * 3 + (width - 1 - i) * 3;
+                    uint8_t value = frameRGB->data[0][index];
+                    if (value > 127) {
+                        votes++;
+                    }
+                }
+                poseIDFromFrame |= (votes > height / 2) << i;
             }
+            poseID = poseIDFromFrame;
 
-            m.unlock();
+            {
+                std::unique_lock<std::mutex> lock(m);
+
+                FrameData frameData = {poseID, frameRGB, buffer};
+                frames.push_back(frameData);
+                if (frames.size() > maxQueueSize) {
+                    FrameData frameToFree = frames.front();
+                    frameToFree.free();
+                    frames.pop_front();
+                }
+            }
 
             stats.timeToResizeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - resizeStartTime);
         }
@@ -226,13 +237,13 @@ pose_id_t VideoTexture::draw(pose_id_t poseID) {
                 break;
             }
         }
+
+        if (frameRGB == nullptr) {
+            return -1;
+        }
     }
 
-    if (frameRGB == nullptr) {
-        return -1;
-    }
-
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, frameRGB->data[0]);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width - 0, height, GL_RGB, GL_UNSIGNED_BYTE, frameRGB->data[0]);
 
     prevPoseID = resPoseID;
 

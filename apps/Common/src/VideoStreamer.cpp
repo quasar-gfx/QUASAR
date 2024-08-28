@@ -16,6 +16,8 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
         : videoURL("udp://" + videoURL)
         , targetBitRate(targetBitRateMbps * MBPS_TO_BPS)
         , RenderTarget(params) {
+    resize(params.width + sizeof(pose_id_t) * 8, params.height);
+
     renderTargetCopy = new RenderTarget({
         .width = width,
         .height = height,
@@ -159,15 +161,14 @@ int VideoStreamer::initCuda() {
     CHECK_CUDA_ERROR(cudaGraphicsGLRegisterImage(&cudaResource,
                                                  renderTargetCopy->colorBuffer.ID, GL_TEXTURE_2D,
                                                  cudaGraphicsRegisterFlagsReadOnly));
-
     return 0;
 }
 #endif
 
 void VideoStreamer::sendFrame(pose_id_t poseID) {
-    renderTargetCopy->bind();
+    bind();
     blitToRenderTarget(*renderTargetCopy);
-    renderTargetCopy->unbind();
+    unbind();
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     // add cuda buffer
@@ -234,7 +235,8 @@ void VideoStreamer::encodeAndSendFrames() {
 
         CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(rgbaData.data(), width * 4,
                                                cudaBuffer,
-                                               0, 0, width * 4, height,
+                                               0, 0,
+                                               width * 4, height,
                                                cudaMemcpyDeviceToHost));
 
         stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startCopyTime);
@@ -242,6 +244,17 @@ void VideoStreamer::encodeAndSendFrames() {
         pose_id_t poseIDToSend = this->poseID;
         lock.unlock();
 #endif
+
+        for (int i = 0; i < sizeof(pose_id_t) * 8; i++) {
+            uint8_t value = (poseIDToSend & (1 << i)) ? 255 : 0;
+            for (int j = 0; j < height; j++) {
+                int index = j * width * 4 + (width - 1 - i) * 4;
+                rgbaData[index + 0] = value; // R
+                rgbaData[index + 1] = value; // G
+                rgbaData[index + 2] = value; // B
+                rgbaData[index + 3] = value; // A
+            }
+        }
 
         // convert RGBA to YUV
         const uint8_t* srcData[] = { rgbaData.data() };
@@ -280,11 +293,6 @@ void VideoStreamer::encodeAndSendFrames() {
         /* Send frame to output URL */
         {
             int startWriteTime = timeutils::getTimeMicros();
-
-            // add poseID to packet data; bit hacky, but works
-            packet->data = (uint8_t*)av_realloc(packet->data, packet->size + sizeof(pose_id_t));
-            std::memcpy(packet->data + packet->size, &poseIDToSend, sizeof(pose_id_t));
-            packet->size += sizeof(pose_id_t);
 
             bytesSent = packet->size;
 

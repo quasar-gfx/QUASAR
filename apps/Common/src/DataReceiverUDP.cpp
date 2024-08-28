@@ -23,12 +23,7 @@ std::vector<uint8_t> DataReceiverUDP::recv(bool first) {
     }
     else {
         data = std::move(results.back());
-        results.pop_back();
-
-        // Clear all previous results
-        while (!results.empty()) {
-            results.pop_front();
-        }
+        results.clear();
     }
 
     return data;

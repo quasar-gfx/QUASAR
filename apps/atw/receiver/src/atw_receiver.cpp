@@ -68,15 +68,20 @@ int main(int argc, char** argv) {
         .internalFormat = GL_SRGB8,
         .format = GL_RGB,
         .type = GL_UNSIGNED_BYTE,
-        .wrapS = GL_CLAMP_TO_EDGE,
-        .wrapT = GL_CLAMP_TO_EDGE,
+        .wrapS = GL_CLAMP_TO_BORDER,
+        .wrapT = GL_CLAMP_TO_BORDER,
         .minFilter = GL_LINEAR,
-        .magFilter = GL_LINEAR
+        .magFilter = GL_LINEAR,
+        .hasBorder = true,
+        .borderColor = glm::vec4(0.0f),
     }, videoURL);
     PoseStreamer poseStreamer(&camera, poseURL);
 
     std::cout << "Video URL: " << videoURL << std::endl;
     std::cout << "Pose URL: " << poseURL << std::endl;
+
+    Pose currentFramePose, prevPose;
+    pose_id_t prevPoseID = -1;
 
     bool atwEnabled = true;
     double elapedTime = 0.0f;
@@ -158,6 +163,30 @@ int main(int argc, char** argv) {
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to resize frame: %.1f ms", videoTexture.stats.timeToResizeMs);
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: %.1f Mbps", videoTexture.stats.bitrateMbps);
 
+            // show currentFramePose
+            ImGui::Separator();
+
+            glm::vec3 position = camera.getPosition();
+            if (ImGui::InputFloat3("Camera Position", (float*)&position)) {
+                camera.setPosition(position);
+            }
+            glm::vec3 rotation = camera.getRotationEuler();
+            if (ImGui::InputFloat3("Camera Rotation", (float*)&rotation)) {
+                camera.setRotationEuler(rotation);
+            }
+
+            ImGui::Text("Remote Pose ID: %d", currentFramePose.id);
+
+            glm::mat4 pose = glm::inverse(currentFramePose.mono.view);
+            glm::vec3 skew, scale;
+            glm::quat rotationQuat;
+            glm::vec3 remotePosition;
+            glm::vec4 perspective;
+            glm::decompose(pose, scale, rotationQuat, remotePosition, skew, perspective);
+            glm::vec3 remoteRotation = glm::degrees(glm::eulerAngles(rotationQuat));
+            ImGui::InputFloat3("Remote Position", (float*)&remotePosition);
+            ImGui::InputFloat3("Remote Rotation", (float*)&remoteRotation);
+
             ImGui::Separator();
 
             ImGui::Checkbox("ATW Enabled", &atwEnabled);
@@ -217,7 +246,6 @@ int main(int argc, char** argv) {
 
     camera.setPosition(glm::vec3(0.0f, 1.6f, 0.0f));
 
-    Pose currentFramePose;
     app.onRender([&](double now, double dt) {
         // handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
@@ -262,7 +290,11 @@ int main(int argc, char** argv) {
         }
 
         // send pose to streamer
-        poseStreamer.sendPose();
+        static double lastTime = 0.0;
+        if (now - lastTime > 0.032) {
+            poseStreamer.sendPose();
+            lastTime = now;
+        }
 
         // render video frame
         videoTexture.bind();
@@ -273,16 +305,19 @@ int main(int argc, char** argv) {
         atwShader.setBool("atwEnabled", atwEnabled);
         atwShader.setMat4("projectionInverse", glm::inverse(camera.getProjectionMatrix()));
         atwShader.setMat4("viewInverse", glm::inverse(camera.getViewMatrix()));
-        if (poseID != -1 && poseStreamer.getPose(poseID, &currentFramePose, &elapedTime)) {
+        if (poseID != prevPoseID && poseStreamer.getPose(poseID, &currentFramePose, &elapedTime)) {
             atwShader.setMat4("remoteProjection", currentFramePose.mono.proj);
             atwShader.setMat4("remoteView", currentFramePose.mono.view);
 
             poseStreamer.removePosesLessThan(poseID);
+            prevPose = currentFramePose;
         }
         atwShader.setTexture("videoTexture", videoTexture, 5);
 
         // render to screen
         renderStats = renderer.drawToScreen(atwShader);
+
+        prevPoseID = poseID;
     });
 
     // run app loop (blocking)

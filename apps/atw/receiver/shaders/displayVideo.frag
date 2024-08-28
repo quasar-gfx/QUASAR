@@ -12,7 +12,6 @@ uniform sampler2D videoTexture;
 
 uniform bool atwEnabled;
 
-uniform mat4 projection;
 uniform mat4 projectionInverse;
 uniform mat4 viewInverse;
 
