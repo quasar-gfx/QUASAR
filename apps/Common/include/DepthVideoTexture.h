@@ -1,5 +1,5 @@
-#ifndef DEPTH_RECEIVER_H
-#define DEPTH_RECEIVER_H
+#ifndef DEPTH_VIDEO_TEXTURE_H
+#define DEPTH_VIDEO_TEXTURE_H
 
 #include <deque>
 
@@ -9,7 +9,7 @@
 #include <Utils/TimeUtils.h>
 #include <CameraPose.h>
 
-class DepthVideoTexture : public Texture {
+class DepthVideoTexture : public Texture, public DataReceiverTCP {
 public:
     std::string streamerURL;
 
@@ -20,7 +20,7 @@ public:
 
     DepthVideoTexture(const TextureDataCreateParams &params, std::string streamerURL)
             : streamerURL(streamerURL)
-            , receiver(streamerURL)
+            , DataReceiverTCP(streamerURL, false)
             , Texture(params) { }
 
     void setMaxQueueSize(unsigned int maxQueueSize) {
@@ -32,19 +32,22 @@ public:
     }
 
     pose_id_t draw(pose_id_t poseID = -1);
+    pose_id_t getLatestPoseID();
 
 private:
     pose_id_t prevPoseID = -1;
     unsigned int maxQueueSize = 10;
+
+    std::mutex m;
 
     struct FrameData {
         pose_id_t poseID;
         std::vector<uint8_t> buffer;
     };
 
-    DataReceiverTCP receiver;
+    std::deque<FrameData> depthFrames;
 
-    std::deque<FrameData> datas;
+    void onDataReceived(const std::vector<uint8_t>& data) override;
 };
 
-#endif // DEPTH_RECEIVER_H
+#endif // DEPTH_VIDEO_TEXTURE_H

@@ -109,6 +109,7 @@ int main(int argc, char** argv) {
     std::cout << "Pose URL: " << poseURL << std::endl;
 
     double elapsedTimeColor, elapsedTimeDepth;
+    pose_id_t poseIdColor = -1, poseIdDepth = -1;
     bool mwEnabled = true;
     bool sync = true;
     RenderStats renderStats;
@@ -177,11 +178,11 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             glm::vec3 position = camera.getPosition();
-            if (ImGui::InputFloat3("PerspectiveCamera Position", (float*)&position)) {
+            if (ImGui::InputFloat3("Camera Position", (float*)&position)) {
                 camera.setPosition(position);
             }
             glm::vec3 rotation = camera.getRotationEuler();
-            if (ImGui::InputFloat3("PerspectiveCamera Rotation", (float*)&rotation)) {
+            if (ImGui::InputFloat3("Camera Rotation", (float*)&rotation)) {
                 camera.setRotationEuler(rotation);
             }
 
@@ -201,6 +202,10 @@ int main(int argc, char** argv) {
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decode frame: %.1f ms", videoTextureColor.stats.timeToDecodeMs);
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to resize frame: %.1f ms", videoTextureColor.stats.timeToResizeMs);
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: RGB (%.1f Mbps), D (%.1f Mbps)", videoTextureColor.stats.bitrateMbps, videoTextureDepth.stats.bitrateMbps);
+
+            ImGui::Separator();
+
+            ImGui::Text("Remote Pose ID: RGB (%d), D (%d)", poseIdColor, poseIdDepth);
 
             ImGui::Separator();
 
@@ -351,8 +356,8 @@ int main(int argc, char** argv) {
     remoteCamera.setProjectionMatrix(proj);
     remoteCamera.setViewMatrix(view);
 
-    pose_id_t poseIdColor = -1, poseIdDepth = -1;
     Pose currentColorFramePose, currentDepthFramePose;
+
     std::vector<Vertex> newVertices(numVertices);
     std::vector<unsigned int> newIndices(indexBufferSize);
     app.onRender([&](double now, double dt) {
@@ -432,14 +437,13 @@ int main(int argc, char** argv) {
         genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
         genMeshShader.setFloat("near", remoteCamera.near);
         genMeshShader.setFloat("far", remoteCamera.far);
-        videoTextureDepth.bind(0);
+        genMeshShader.setTexture(videoTextureDepth, 0);
         if (poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTimeColor)) {
             genMeshShader.setMat4("viewColor", currentColorFramePose.mono.view);
         }
         if (poseStreamer.getPose(poseIdDepth, &currentDepthFramePose, &elapsedTimeDepth)) {
             genMeshShader.setMat4("viewInverseDepth", glm::inverse(currentDepthFramePose.mono.view));
         }
-
         // dispatch compute shader to generate vertices and indices for mesh
         genMeshShader.dispatch(width / 16, height / 16, 1);
         genMeshShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);

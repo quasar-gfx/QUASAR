@@ -16,27 +16,39 @@
 
 #include <CameraPose.h>
 
-class PoseReceiver {
+class PoseReceiver : public DataReceiverUDP {
 public:
     std::string streamerURL;
 
     PoseReceiver(Camera* camera, std::string streamerURL)
             : camera(camera)
             , streamerURL(streamerURL)
-            , receiver(streamerURL, sizeof(Pose)) { }
+            , DataReceiverUDP(streamerURL, sizeof(Pose)) {
+    }
 
-    pose_id_t receivePose(bool setProj = true) {
-        std::vector<uint8_t> data = receiver.recv();
-        if (data.empty()) {
-            return -1;
-        }
+    void onDataReceived(const std::vector<uint8_t>& data) override {
+        std::lock_guard<std::mutex> lock(m);
 
         if (data.size() < sizeof(Pose)) {
             std::cerr << "Error: Received data size is smaller than expected Pose size" << std::endl;
+            return;
+        }
+
+        Pose pose;
+        std::memcpy(&pose, data.data(), sizeof(Pose));
+
+        poses.push_back(pose);
+    }
+
+    pose_id_t receivePose(bool setProj = true) {
+        std::lock_guard<std::mutex> lock(m);
+
+        if (poses.size() == 0) {
             return -1;
         }
 
-        std::memcpy(&currPose, data.data(), sizeof(Pose));
+        Pose currPose = poses.back();
+        poses.clear();
 
         if (camera->isVR()) {
             auto* vrCamera = static_cast<VRCamera*>(camera);
@@ -56,10 +68,10 @@ public:
     }
 
 private:
-    DataReceiverUDP receiver;
-
     Camera* camera;
-    Pose currPose;
+
+    std::mutex m;
+    std::deque<Pose> poses;
 };
 
 #endif // POSE_RECEIVER_H

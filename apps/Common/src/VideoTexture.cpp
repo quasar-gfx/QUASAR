@@ -294,10 +294,8 @@ pose_id_t VideoTexture::getLatestPoseID() {
         return -1;
     }
 
-    pose_id_t poseID;
-
     FrameData frameData = frames.back();
-    poseID = frameData.poseID;
+    pose_id_t poseID = frameData.poseID;
     return poseID;
 }
 

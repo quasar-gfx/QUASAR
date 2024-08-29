@@ -8,27 +8,6 @@ void DataReceiverUDP::close() {
     }
 }
 
-std::vector<uint8_t> DataReceiverUDP::recv(bool first) {
-    std::lock_guard<std::mutex> lock(m);
-
-    if (results.empty()) {
-        return {};
-    }
-
-    std::vector<uint8_t> data;
-
-    if (first) {
-        data = std::move(results.front());
-        results.pop_front();
-    }
-    else {
-        data = std::move(results.back());
-        results.clear();
-    }
-
-    return data;
-}
-
 int DataReceiverUDP::recvPacket(DataPacketUDP* packet) {
     return socket.recv(packet, sizeof(DataPacketUDP), 0);
 }
@@ -54,10 +33,7 @@ void DataReceiverUDP::recvData() {
                 offset += p.second.size;
             }
 
-            {
-                std::unique_lock<std::mutex> lock(m);
-                results.push_back(std::move(data));
-            }
+            onDataReceived(std::move(data)); // notify about the received data
 
             datas.erase(packet.dataID);
             dataSizes.erase(packet.dataID);

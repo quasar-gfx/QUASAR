@@ -34,20 +34,18 @@ public:
 
     void close();
 
-    std::vector<uint8_t> recv(bool first = false);
-
-private:
-    SocketUDP socket;
-
+protected:
     std::thread dataRecvingThread;
-    std::mutex m;
 
     std::atomic_bool running = false;
 
-    std::deque<std::vector<uint8_t>> results;
-
     std::map<packet_id_t, std::map<int, DataPacketUDP>> datas;
     std::map<packet_id_t, int> dataSizes;
+
+    virtual void onDataReceived(const std::vector<uint8_t>& data) = 0;
+
+private:
+    SocketUDP socket;
 
     int recvPacket(DataPacketUDP* packet);
     void recvData();

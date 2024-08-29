@@ -2,35 +2,53 @@
 
 #include <DepthVideoTexture.h>
 
-pose_id_t DepthVideoTexture::draw(pose_id_t poseID) {
-    static float prevTime = timeutils::getTimeMicros();\
-
-    std::vector<uint8_t> data = receiver.recv();
-    if (data.empty()) {
-        prevTime = timeutils::getTimeMicros();
-        return prevPoseID;
+pose_id_t DepthVideoTexture::getLatestPoseID() {
+    if (depthFrames.empty()) {
+        return -1;
     }
 
-    pose_id_t pID = *reinterpret_cast<pose_id_t*>(data.data());
-    data.erase(data.begin(), data.begin() + sizeof(pose_id_t));
-    FrameData newFrameData = {pID, std::move(data)};
-    datas.push_back(newFrameData);
+    FrameData frameData = depthFrames.back();
+    pose_id_t poseID = frameData.poseID;
+    return poseID;
+}
 
-    if (datas.size() > maxQueueSize) {
-        datas.pop_front();
+void DepthVideoTexture::onDataReceived(const std::vector<uint8_t>& data) {
+    std::lock_guard<std::mutex> lock(m);
+
+    std::vector<uint8_t> depthFrame = std::move(data);
+
+    pose_id_t poseID;
+    std::memcpy(&poseID, depthFrame.data(), sizeof(pose_id_t));
+
+    depthFrame.erase(depthFrame.begin(), depthFrame.begin() + sizeof(pose_id_t));
+    FrameData newFrameData = {poseID, std::move(depthFrame)};
+    depthFrames.push_back(newFrameData);
+
+    if (depthFrames.size() > maxQueueSize) {
+        depthFrames.pop_front();
+    }
+}
+
+pose_id_t DepthVideoTexture::draw(pose_id_t poseID) {
+    std::lock_guard<std::mutex> lock(m);
+
+    static float prevTime = timeutils::getTimeMicros();
+
+    if (depthFrames.empty()) {
+        return -1;
     }
 
     pose_id_t resPoseID = -1;
     std::vector<uint8_t> res;
     bool found = false;
     if (poseID == -1) {
-        FrameData frameData = datas.back();
+        FrameData frameData = depthFrames.back();
         res = std::move(frameData.buffer);
         resPoseID = frameData.poseID;
         found = true;
     }
     else {
-        for (auto it = datas.begin(); it != datas.end(); ++it) {
+        for (auto it = depthFrames.begin(); it != depthFrames.end(); ++it) {
             FrameData frameData = *it;
             if (frameData.poseID == poseID) {
                 res = std::move(frameData.buffer);

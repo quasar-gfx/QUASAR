@@ -1,45 +1,39 @@
 #ifndef DATA_RECEIVER_TCP_H
 #define DATA_RECEIVER_TCP_H
 
-#include <map>
-#include <deque>
 #include <queue>
-#include <atomic>
+#include <vector>
 #include <thread>
+#include <atomic>
+#include <mutex>
+#include <functional>
+#include <string>
 
 #include <Networking/Socket.h>
 
 class DataReceiverTCP {
 public:
-    std::string url;
-
     struct Stats {
         float timeToReceiveMs = -1.0f;
         float bitrateMbps = -1.0f;
-    } stats;
+    };
 
-    DataReceiverTCP(std::string url, bool nonBlocking = false)
-            : url(url)
-            , socket(nonBlocking) {
-        dataRecvingThread = std::thread(&DataReceiverTCP::recvData, this);
-    }
+    DataReceiverTCP(const std::string& url, bool nonBlocking = false);
+    virtual ~DataReceiverTCP();
 
-    ~DataReceiverTCP() {
-        close();
-    }
-
+    void start();
     void close();
 
-    std::vector<uint8_t> recv();
+protected:
+    std::string url;
+    Stats stats;
+    std::atomic_bool ready = false;
+
+    virtual void onDataReceived(const std::vector<uint8_t>& data) = 0;
 
 private:
     SocketTCP socket;
-
     std::thread dataRecvingThread;
-
-    std::atomic_bool ready = false;
-
-    std::queue<std::vector<uint8_t>> frames;
 
     void recvData();
 };
