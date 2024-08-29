@@ -3,8 +3,8 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/matrix_decompose.hpp>
-
 #include <Primatives/Entity.h>
+#include <vector>
 
 class Node {
 public:
@@ -15,105 +15,32 @@ public:
     bool frustumCulled = true;
     bool visible = true;
 
-    int getID() const { return ID; }
+    Node();
+    Node(Entity* entity);
 
-    Node() {
-        ID = nextID++;
-    }
-    Node(Entity* entity) {
-        ID = nextID++;
-        setEntity(entity);
-    }
+    int getID() const;
+    void setEntity(Entity* entity);
+    void addChildNode(Node* node);
 
-    void setEntity(Entity* entity) {
-        this->entity = entity;
-        entity->parentNode = this;
-    }
+    void setPosition(glm::vec3 position);
+    void setRotationQuat(glm::quat quat);
+    void setRotationEuler(glm::vec3 euler, bool radians = false);
+    void setScale(glm::vec3 scale);
 
-    void addChildNode(Node* node) {
-        children.push_back(node);
-        node->parent = this;
-    }
+    virtual glm::vec3 getPosition() const;
+    glm::quat getRotationQuat() const;
+    glm::vec3 getRotationEuler(bool radians = false) const;
+    glm::vec3 getScale() const;
 
-    void setPosition(glm::vec3 position) {
-        this->position = position;
-    }
+    void setTransformParentFromLocal(const glm::mat4 &pose);
+    void setTransformLocalFromParent(const glm::mat4 &view);
 
-    void setRotationQuat(glm::quat quat) {
-        this->rotationQuat = quat;
-    }
-
-    void setRotationEuler(glm::vec3 euler, bool radians = false) {
-        if (!radians) {
-            euler = glm::radians(euler);
-        }
-        this->rotationQuat = glm::quat(euler);
-    }
-
-    void setScale(glm::vec3 scale) {
-        this->scale = scale;
-    }
-
-    virtual glm::vec3 getPosition() const {
-        return position;
-    }
-
-    glm::quat getRotationQuat() const {
-        return rotationQuat;
-    }
-
-    glm::vec3 getRotationEuler(bool radians = false) const {
-        glm::vec3 euler = glm::eulerAngles(rotationQuat);
-        if (!radians) {
-            euler = glm::degrees(euler);
-        }
-        return euler;
-    }
-
-    glm::vec3 getScale() const {
-        return scale;
-    }
-
-    void setTransformParentFromLocal(glm::mat4 transform) {
-        glm::vec3 skew;
-        glm::vec4 perspective;
-        glm::decompose(transform, scale, rotationQuat, position, skew, perspective);
-    }
-
-    void setTransformLocalFromParent(glm::mat4 transform) {
-        glm::vec3 skew;
-        glm::vec4 perspective;
-        glm::decompose(transform, scale, rotationQuat, position, skew, perspective);
-
-        position = -position;
-        rotationQuat = glm::conjugate(rotationQuat);
-        scale = 1.0f/scale;
-    }
-
-    glm::mat4 getTransformParentFromLocal() const {
-        return glm::translate(glm::mat4(1.0f), position) * glm::mat4_cast(rotationQuat) * glm::scale(glm::mat4(1.0f), scale);
-    }
-
-    glm::mat4 getTransformLocalFromParent() const {
-        return glm::scale(glm::mat4(1.0f), 1.0f/scale) * glm::mat4_cast(glm::conjugate(rotationQuat)) * glm::translate(glm::mat4(1.0f), -position);
-    }
-
-    glm::mat4 getTransformLocalFromWorld() const {
-        glm::mat4 transformLocalFromWorld = getTransformLocalFromParent();
-
-        Node* parent = this->parent;
-        while (parent != nullptr) {
-            // have to multiply in reverse order, since parents goes from child to root
-            transformLocalFromWorld = transformLocalFromWorld * parent->getTransformLocalFromParent();
-            parent = parent->parent;
-        }
-
-        return transformLocalFromWorld;
-    }
+    glm::mat4 getTransformParentFromLocal() const;
+    glm::mat4 getTransformLocalFromParent() const;
+    glm::mat4 getTransformLocalFromWorld() const;
 
 protected:
     unsigned int ID;
-
     glm::vec3 position = glm::vec3(0.0f);
     glm::quat rotationQuat = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
     glm::vec3 scale = glm::vec3(1.0f);
