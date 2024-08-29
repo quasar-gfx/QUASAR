@@ -642,6 +642,11 @@ void main() {
     pixelDepths.top         = sampleDepth(depthMap, uvs.top);
     pixelDepths.topRight    = sampleDepth(depthMap, uvs.topRight);
 
+    // if depth is too far, return
+    if (pixelDepths.center == MAX_DEPTH) {
+        return;
+    }
+
     // project points to view space
     MultiQuad2D pixelNDCs;
     pixelNDCs.bottomLeft  = 2.0 * (pixelsCoords.bottomLeft / screenSize) - 1.0;

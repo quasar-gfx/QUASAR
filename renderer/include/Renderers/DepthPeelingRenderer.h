@@ -6,7 +6,7 @@
 
 class DepthPeelingRenderer : public OpenGLRenderer {
 public:
-    unsigned int maxLayers = 4;
+    unsigned int maxLayers = 6;
 
     GeometryBuffer gBuffer;
     std::vector<GeometryBuffer*> peelingLayers;

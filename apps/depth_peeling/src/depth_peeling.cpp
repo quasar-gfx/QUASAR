@@ -8,8 +8,6 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
-#define TEXTURE_PREVIEW_SIZE 300
-
 int main(int argc, char** argv) {
     Config config{};
     config.title = "Depth Peeling";
@@ -180,45 +178,21 @@ int main(int argc, char** argv) {
 
         flags = ImGuiWindowFlags_AlwaysAutoResize;
 
-        ImGui::SetNextWindowPos(ImVec2(screenWidth - 4 * TEXTURE_PREVIEW_SIZE - 120, 40), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Layer 0 Color", 0, flags);
-        ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[0]->colorBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::End();
+        const int texturePreviewSize = (screenWidth * 2/3) / renderer.maxLayers;
 
-        ImGui::SetNextWindowPos(ImVec2(screenWidth - 3 * TEXTURE_PREVIEW_SIZE - 90, 40), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Layer 1 Color", 0, flags);
-        ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[1]->colorBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::End();
+        for (int i = 0; i < renderer.maxLayers; i++) {
+            int layerIdx = renderer.maxLayers - i - 1;
 
-        ImGui::SetNextWindowPos(ImVec2(screenWidth - 2 * TEXTURE_PREVIEW_SIZE - 60, 40), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Layer 2 Color", 0, flags);
-        ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[2]->colorBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::End();
+            ImGui::SetNextWindowPos(ImVec2(screenWidth - (i + 1) * texturePreviewSize - 30, 40), ImGuiCond_FirstUseEver);
+            ImGui::Begin(("Layer " + std::to_string(layerIdx) + " Color").c_str(), 0, flags);
+            ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[layerIdx]->colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::End();
 
-        ImGui::SetNextWindowPos(ImVec2(screenWidth - TEXTURE_PREVIEW_SIZE - 30, 40), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Layer 3 Color", 0, flags);
-        ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[3]->colorBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::End();
-
-        ImGui::SetNextWindowPos(ImVec2(screenWidth - 4 * TEXTURE_PREVIEW_SIZE - 120, 40 + 60 + TEXTURE_PREVIEW_SIZE), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Layer 0 Depth", 0, flags);
-        ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[0]->depthBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::End();
-
-        ImGui::SetNextWindowPos(ImVec2(screenWidth - 3 * TEXTURE_PREVIEW_SIZE - 90, 40 + 60 + TEXTURE_PREVIEW_SIZE), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Layer 1 Depth", 0, flags);
-        ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[1]->depthBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::End();
-
-        ImGui::SetNextWindowPos(ImVec2(screenWidth - 2 * TEXTURE_PREVIEW_SIZE - 60, 40 + 60 + TEXTURE_PREVIEW_SIZE), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Layer 2 Depth", 0, flags);
-        ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[2]->depthBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::End();
-
-        ImGui::SetNextWindowPos(ImVec2(screenWidth - TEXTURE_PREVIEW_SIZE - 30, 40 + 60 + TEXTURE_PREVIEW_SIZE), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Layer 3 Depth", 0, flags);
-        ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[3]->depthBuffer.ID), ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::End();
+            ImGui::SetNextWindowPos(ImVec2(screenWidth - (i + 1) * texturePreviewSize - 30, 40 + 60 + texturePreviewSize), ImGuiCond_FirstUseEver);
+            ImGui::Begin(("Layer " + std::to_string(layerIdx) + " Depth").c_str(), 0, flags);
+            ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[layerIdx]->depthBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::End();
+        }
     });
 
     app.onResize([&](unsigned int width, unsigned int height) {

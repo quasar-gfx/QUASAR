@@ -135,9 +135,14 @@ int main(int argc, char** argv) {
     bool dontCopyCameraPose = false;
     float distanceThreshold = 0.8f;
     float angleThreshold = 45.0f;
-    RenderStats renderStats;
     const int intervalValues[] = {0, 100, 200, 500, 1000};
     const char* intervalLabels[] = {"0ms", "100ms", "200ms", "500ms", "1000ms"};
+    bool* showLayers = new bool[renderer.maxLayers];
+    for (int i = 0; i < renderer.maxLayers; ++i) {
+        showLayers[i] = true;
+    }
+
+    RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = true;
@@ -253,6 +258,16 @@ int main(int argc, char** argv) {
 
             if (ImGui::Combo("Rerender Interval", &intervalIndex, intervalLabels, IM_ARRAYSIZE(intervalLabels))) {
                 rerenderInterval = intervalValues[intervalIndex];
+            }
+
+            ImGui::Separator();
+
+            const int columns = 3;
+            for (int i = 0; i < renderer.maxLayers; i++) {
+                ImGui::Checkbox(("Show Layer " + std::to_string(i)).c_str(), &showLayers[i]);
+                if ((i + 1) % columns != 0) {
+                    ImGui::SameLine();
+                }
             }
 
             ImGui::End();
@@ -500,8 +515,11 @@ int main(int argc, char** argv) {
         }
 
         for (int i = 0; i < renderer.maxLayers; i++) {
-            nodesWireframe[i]->visible = renderWireframe;
-            nodesDepth[i]->visible = showDepth;
+            bool showLayer = showLayers[i];
+
+            nodes[i]->visible = showLayer;
+            nodesWireframe[i]->visible = showLayer && renderWireframe;
+            nodesDepth[i]->visible = showLayer && showDepth;
 
             nodesWireframe[i]->setPosition(nodes[i]->getPosition() - camera.getForwardVector() * 0.001f);
             nodesDepth[i]->setPosition(nodes[i]->getPosition() - camera.getForwardVector() * 0.0015f);
