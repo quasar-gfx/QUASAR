@@ -317,17 +317,17 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader screenShader = Shader({
+    Shader screenShader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
 
-    Shader screenShaderColor = Shader({
+    Shader screenShaderColor({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
 
-    Shader screenShaderNormals = Shader({
+    Shader screenShaderNormals({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayNormals.frag"
     });

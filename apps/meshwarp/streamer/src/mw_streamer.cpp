@@ -237,12 +237,12 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader colorShader = Shader({
+    Shader colorShader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
 
-    Shader depthShader = Shader({
+    Shader depthShader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "./shaders/displayDepth.frag"
     });

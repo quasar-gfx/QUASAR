@@ -19,7 +19,7 @@ int surfelSize = 4;
 
 int main(int argc, char** argv) {
     Config config{};
-    config.title = "MeshWarp2 Streamer";
+    config.title = "Depth Peeling Streamer";
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
@@ -86,6 +86,17 @@ int main(int argc, char** argv) {
     unsigned int remoteHeight = size2Height / surfelSize;
 
     std::vector<RenderTarget*> renderTargets(renderer.maxLayers);
+
+    std::vector<GLuint> vertexBuffers(renderer.maxLayers);
+    int numVertices = remoteWidth * remoteHeight * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
+
+    std::vector<GLuint> vertexBufferDepths(renderer.maxLayers);
+    int numVerticesDepth = remoteWidth * remoteHeight;
+
+    std::vector<GLuint> indexBuffers(renderer.maxLayers);
+    int numTriangles = remoteWidth * remoteHeight * NUM_SUB_QUADS * 2;
+    int indexBufferSize = numTriangles * 3;
+
     for (int i = 0; i < renderer.maxLayers; i++) {
         renderTargets[i] = new RenderTarget({
             .width = remoteWidth,
@@ -98,28 +109,15 @@ int main(int argc, char** argv) {
             .minFilter = GL_NEAREST,
             .magFilter = GL_NEAREST
         });
-    }
 
-    std::vector<GLuint> vertexBuffers(renderer.maxLayers);
-    int numVertices = remoteWidth * remoteHeight * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
-    for (int i = 0; i < renderer.maxLayers; i++) {
         glGenBuffers(1, &vertexBuffers[i]);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffers[i]);
         glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
-    }
 
-    std::vector<GLuint> vertexBufferDepths(renderer.maxLayers);
-    int numVerticesDepth = remoteWidth * remoteHeight;
-    for (int i = 0; i < renderer.maxLayers; i++) {
         glGenBuffers(1, &vertexBufferDepths[i]);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBufferDepths[i]);
         glBufferData(GL_SHADER_STORAGE_BUFFER, numVerticesDepth * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
-    }
 
-    std::vector<GLuint> indexBuffers(renderer.maxLayers);
-    int numTriangles = remoteWidth * remoteHeight * NUM_SUB_QUADS * 2;
-    int indexBufferSize = numTriangles * 3;
-    for (int i = 0; i < renderer.maxLayers; i++) {
         glGenBuffers(1, &indexBuffers[i]);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffers[i]);
         glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
@@ -303,27 +301,29 @@ int main(int argc, char** argv) {
             ImGui::SetNextWindowPos(ImVec2(winSize.x * 0.4, 300), ImGuiCond_FirstUseEver);
             ImGui::Begin("Mesh Capture", &showMeshCaptureWindow);
 
-            std::string verticesFileName = DATA_PATH + "vertices.bin";
-            std::string indicesFileName = DATA_PATH + "indices.bin";
-            std::string colorFileName = DATA_PATH + "color.png";
-
             if (ImGui::Button("Save Mesh")) {
-                // save vertexBuffer
-                glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffers[0]);
-                Vertex* vertices = (Vertex*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-                std::ofstream verticesFile(DATA_PATH + verticesFileName, std::ios::binary);
-                verticesFile.write((char*)vertices, numVertices * sizeof(Vertex));
-                verticesFile.close();
+                for (int i = 0; i < renderer.maxLayers; i++) {
+                    std::string verticesFileName = DATA_PATH + "vertices" + std::to_string(i) + ".bin";
+                    std::string indicesFileName = DATA_PATH + "indices" + std::to_string(i) + ".bin";
+                    std::string colorFileName = DATA_PATH + "color" + std::to_string(i) + ".png";
 
-                // save indexBuffer
-                glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffers[0]);
-                GLuint* indices = (GLuint*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-                std::ofstream indicesFile(DATA_PATH + indicesFileName, std::ios::binary);
-                indicesFile.write((char*)indices, indexBufferSize * sizeof(GLuint));
-                indicesFile.close();
+                    // save vertexBuffer
+                    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffers[i]);
+                    Vertex* vertices = (Vertex*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+                    std::ofstream verticesFile(DATA_PATH + verticesFileName, std::ios::binary);
+                    verticesFile.write((char*)vertices, numVertices * sizeof(Vertex));
+                    verticesFile.close();
 
-                // save color buffer
-                renderTargets[0]->saveColorAsPNG(colorFileName);
+                    // save indexBuffer
+                    glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffers[i]);
+                    GLuint* indices = (GLuint*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+                    std::ofstream indicesFile(DATA_PATH + indicesFileName, std::ios::binary);
+                    indicesFile.write((char*)indices, indexBufferSize * sizeof(GLuint));
+                    indicesFile.close();
+
+                    // save color buffer
+                    renderTargets[i]->saveColorAsPNG(colorFileName);
+                }
             }
 
             ImGui::End();
@@ -341,17 +341,17 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader screenShader = Shader({
+    Shader screenShader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
 
-    Shader screenShaderColor = Shader({
+    Shader screenShaderColor({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
 
-    Shader screenShaderNormals = Shader({
+    Shader screenShaderNormals({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayNormals.frag"
     });
@@ -367,6 +367,13 @@ int main(int argc, char** argv) {
 
     std::vector<Mesh*> meshes(renderer.maxLayers);
     std::vector<Node*> nodes(renderer.maxLayers);
+
+    std::vector<Mesh*> meshesWireframe(renderer.maxLayers);
+    std::vector<Node*> nodesWireframe(renderer.maxLayers);
+
+    std::vector<Mesh*> meshesDepth(renderer.maxLayers);
+    std::vector<Node*> nodesDepth(renderer.maxLayers);
+
     for (int i = 0; i < renderer.maxLayers; i++) {
         meshes[i] = new Mesh({
             .vertices = std::vector<Vertex>(numVertices),
@@ -378,11 +385,6 @@ int main(int argc, char** argv) {
         nodes[i] = new Node(meshes[i]);
         nodes[i]->frustumCulled = false;
         scene.addChildNode(nodes[i]);
-    }
-
-    std::vector<Mesh*> meshesWireframe(renderer.maxLayers);
-    std::vector<Node*> nodesWireframe(renderer.maxLayers);
-    for (int i = 0; i < renderer.maxLayers; i++) {
         meshesWireframe[i] = new Mesh({
             .vertices = std::vector<Vertex>(numVertices),
             .indices = std::vector<unsigned int>(indexBufferSize),
@@ -393,11 +395,7 @@ int main(int argc, char** argv) {
         nodesWireframe[i] = new Node(meshesWireframe[i]);
         nodesWireframe[i]->frustumCulled = false;
         scene.addChildNode(nodesWireframe[i]);
-    }
 
-    std::vector<Mesh*> meshesDepth(renderer.maxLayers);
-    std::vector<Node*> nodesDepth(renderer.maxLayers);
-    for (int i = 0; i < renderer.maxLayers; i++) {
         meshesDepth[i] = new Mesh({
             .vertices = std::vector<Vertex>(numVerticesDepth),
             .indices = std::vector<unsigned int>(numVerticesDepth),

@@ -239,7 +239,7 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader atwShader = Shader({
+    Shader atwShader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "./shaders/displayVideo.frag"
     });
