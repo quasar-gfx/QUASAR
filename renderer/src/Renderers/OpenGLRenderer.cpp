@@ -269,8 +269,8 @@ RenderStats OpenGLRenderer::drawObjects(const Scene &scene, const Camera &camera
     // draw lights for debugging
     stats += drawLights(scene, camera);
 
-    // draw skybox
-    stats += drawSkyBox(scene, camera);
+    // // draw skybox
+    // stats += drawSkyBox(scene, camera);
 
     return stats;
 }

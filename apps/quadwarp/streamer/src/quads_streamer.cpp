@@ -458,7 +458,7 @@ int main(int argc, char** argv) {
             genQuadsShader.setTexture(renderer.gBuffer.positionBuffer, 0);
             genQuadsShader.setTexture(renderer.gBuffer.normalsBuffer, 1);
             genQuadsShader.setTexture(renderer.gBuffer.idBuffer, 2);
-            genQuadsShader.setTexture(renderer.gBuffer.depthBuffer, 3);
+            genQuadsShader.setTexture(renderer.gBuffer.depthStencilBuffer, 3);
             genQuadsShader.dispatch(remoteWidth, remoteHeight, 1);
             genQuadsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
             genQuadsShader.unbind();

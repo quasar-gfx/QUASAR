@@ -26,7 +26,7 @@ void DepthPeelingRenderer::resize(unsigned int width, unsigned int height) {
 void DepthPeelingRenderer::setScreenShaderUniforms(const Shader &screenShader) {
     // set gbuffer texture uniforms
     screenShader.setTexture("screenColor", gBuffer.colorBuffer, 0);
-    screenShader.setTexture("screenDepth", gBuffer.depthBuffer, 1);
+    screenShader.setTexture("screenDepth", gBuffer.depthStencilBuffer, 1);
     screenShader.setTexture("screenPositions", gBuffer.positionBuffer, 2);
     screenShader.setTexture("screenNormals", gBuffer.normalsBuffer, 3);
     screenShader.setTexture("idBuffer", gBuffer.idBuffer, 4);
@@ -54,7 +54,7 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &ca
 
         Texture* prevDepthMap = nullptr;
         if (i >= 1) {
-            prevDepthMap = &peelingLayers[i-1]->depthBuffer;
+            prevDepthMap = &peelingLayers[i-1]->depthStencilBuffer;
         }
 
         for (auto& child : scene.children) {

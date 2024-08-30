@@ -9,7 +9,7 @@ public:
     Texture normalsBuffer;
     Texture idBuffer;
     Texture colorBuffer;
-    Texture depthBuffer;
+    Texture depthStencilBuffer;
 
     GeometryBuffer(const RenderTargetCreateParams &params)
             : RenderTargetBase(params)
@@ -25,7 +25,7 @@ public:
                 .magFilter = GL_LINEAR,
                 .multiSampled = params.multiSampled
             })
-            , depthBuffer({
+            , depthStencilBuffer({
                 .width = width,
                 .height = height,
                 .internalFormat = GL_DEPTH24_STENCIL8,
@@ -77,7 +77,7 @@ public:
         framebuffer.attachTexture(positionBuffer, GL_COLOR_ATTACHMENT1);
         framebuffer.attachTexture(normalsBuffer, GL_COLOR_ATTACHMENT2);
         framebuffer.attachTexture(idBuffer, GL_COLOR_ATTACHMENT3);
-        framebuffer.attachTexture(depthBuffer, GL_DEPTH_STENCIL_ATTACHMENT);
+        framebuffer.attachTexture(depthStencilBuffer, GL_DEPTH_STENCIL_ATTACHMENT);
 
         unsigned int attachments[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
         glDrawBuffers(4, attachments);
@@ -132,7 +132,7 @@ public:
         normalsBuffer.resize(width, height);
         idBuffer.resize(width, height);
         colorBuffer.resize(width, height);
-        depthBuffer.resize(width, height);
+        depthStencilBuffer.resize(width, height);
     }
 
     void saveColorAsPNG(const std::string &path) {
