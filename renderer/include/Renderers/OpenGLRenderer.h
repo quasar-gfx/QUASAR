@@ -49,6 +49,10 @@ protected:
 
     FullScreenQuad outputFsQuad;
 
+    RenderStats drawSceneImpl(const Scene &scene, const Camera &camera, uint32_t clearMask);
+    RenderStats drawLightsImpl(const Scene &scene, const Camera &camera);
+    RenderStats drawSkyBoxImpl(const Scene &scene, const Camera &camera);
+
     RenderStats drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,
                          bool frustumCull = true, const Material* overrideMaterial = nullptr, const Texture* prevDepthMap = nullptr);
     RenderStats drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,

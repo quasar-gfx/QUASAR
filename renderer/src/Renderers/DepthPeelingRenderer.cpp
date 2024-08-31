@@ -26,7 +26,7 @@ void DepthPeelingRenderer::resize(unsigned int width, unsigned int height) {
 void DepthPeelingRenderer::setScreenShaderUniforms(const Shader &screenShader) {
     // set gbuffer texture uniforms
     screenShader.setTexture("screenColor", gBuffer.colorBuffer, 0);
-    screenShader.setTexture("screenDepth", gBuffer.depthBuffer, 1);
+    screenShader.setTexture("screenDepth", gBuffer.depthStencilBuffer, 1);
     screenShader.setTexture("screenPositions", gBuffer.positionBuffer, 2);
     screenShader.setTexture("screenNormals", gBuffer.normalsBuffer, 3);
     screenShader.setTexture("idBuffer", gBuffer.idBuffer, 4);
@@ -54,7 +54,7 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &ca
 
         Texture* prevDepthMap = nullptr;
         if (i >= 1) {
-            prevDepthMap = &peelingLayers[i-1]->depthBuffer;
+            prevDepthMap = &peelingLayers[i-1]->depthStencilBuffer;
         }
 
         for (auto& child : scene.children) {
@@ -72,7 +72,7 @@ RenderStats DepthPeelingRenderer::drawSkyBox(const Scene &scene, const Camera &c
 
     for (auto layer : peelingLayers) {
         layer->bind();
-        stats += OpenGLRenderer::drawSkyBox(scene, camera);
+        stats += OpenGLRenderer::drawSkyBoxImpl(scene, camera);
         layer->unbind();
     }
 
@@ -89,7 +89,7 @@ RenderStats DepthPeelingRenderer::drawObjects(const Scene &scene, const Camera &
 RenderStats DepthPeelingRenderer::compositeLayers() {
     RenderStats stats;
 
-    gBuffer.bind();
+    beginRendering();
 
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -105,7 +105,7 @@ RenderStats DepthPeelingRenderer::compositeLayers() {
 
     compositeLayersShader.unbind();
 
-    gBuffer.unbind();
+    endRendering();
 
     return stats;
 }

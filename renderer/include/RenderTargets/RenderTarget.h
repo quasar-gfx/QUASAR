@@ -6,7 +6,7 @@
 class RenderTarget : public RenderTargetBase {
 public:
     Texture colorBuffer;
-    Texture depthBuffer;
+    Texture depthStencilBuffer;
 
     RenderTarget(const RenderTargetCreateParams &params)
             : RenderTargetBase(params)
@@ -22,7 +22,7 @@ public:
                 .magFilter = params.magFilter,
                 .multiSampled = params.multiSampled
             })
-            , depthBuffer({
+            , depthStencilBuffer({
                 .width = width,
                 .height = height,
                 .internalFormat = GL_DEPTH24_STENCIL8,
@@ -34,7 +34,7 @@ public:
             }) {
         framebuffer.bind();
         framebuffer.attachTexture(colorBuffer, GL_COLOR_ATTACHMENT0);
-        framebuffer.attachTexture(depthBuffer, GL_DEPTH_STENCIL_ATTACHMENT);
+        framebuffer.attachTexture(depthStencilBuffer, GL_DEPTH_STENCIL_ATTACHMENT);
 
         if (!framebuffer.checkStatus()) {
             throw std::runtime_error("Framebuffer is not complete!");
@@ -54,7 +54,7 @@ public:
         this->height = height;
 
         colorBuffer.resize(width, height);
-        depthBuffer.resize(width, height);
+        depthStencilBuffer.resize(width, height);
     }
 
     void saveColorAsPNG(const std::string &path) {

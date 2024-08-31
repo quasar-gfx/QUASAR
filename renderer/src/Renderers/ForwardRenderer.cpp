@@ -8,7 +8,7 @@ ForwardRenderer::ForwardRenderer(const Config &config)
 void ForwardRenderer::setScreenShaderUniforms(const Shader &screenShader) {
     // set gbuffer texture uniforms
     screenShader.setTexture("screenColor", gBuffer.colorBuffer, 0);
-    screenShader.setTexture("screenDepth", gBuffer.depthBuffer, 1);
+    screenShader.setTexture("screenDepth", gBuffer.depthStencilBuffer, 1);
     screenShader.setTexture("screenPositions", gBuffer.positionBuffer, 2);
     screenShader.setTexture("screenNormals", gBuffer.normalsBuffer, 3);
     screenShader.setTexture("idBuffer", gBuffer.idBuffer, 4);
@@ -24,12 +24,12 @@ RenderStats ForwardRenderer::drawObjects(const Scene &scene, const Camera &camer
         // left eye
         gBuffer.setScissor(0, 0, width / 2, height);
         gBuffer.setViewport(0, 0, width / 2, height);
-        stats = drawObjects(scene, vrCamera->left);
+        stats = drawObjects(scene, vrCamera->left, clearMask);
 
         // right eye
         gBuffer.setScissor(width / 2, 0, width / 2, height);
         gBuffer.setViewport(width / 2, 0, width / 2, height);
-        stats = drawObjects(scene, vrCamera->right);
+        stats = drawObjects(scene, vrCamera->right, clearMask);
     }
     else {
         stats = OpenGLRenderer::drawObjects(scene, camera, clearMask);
