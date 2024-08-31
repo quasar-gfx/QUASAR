@@ -387,7 +387,7 @@ int main(int argc, char** argv) {
     });
 
     ComputeShader genQuadsShader({
-        .computeCodePath = "./shaders/genQuads.comp"
+        .computeCodePath = "./shaders/genQuadsDP.comp"
     });
 
     genQuadsShader.bind();

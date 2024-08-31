@@ -31,6 +31,8 @@ public:
                 .internalFormat = GL_DEPTH24_STENCIL8,
                 .format = GL_DEPTH_STENCIL,
                 .type = GL_UNSIGNED_INT_24_8,
+                .wrapS = GL_CLAMP_TO_EDGE,
+                .wrapT = GL_CLAMP_TO_EDGE,
                 .minFilter = GL_NEAREST,
                 .magFilter = GL_NEAREST,
                 .multiSampled = params.multiSampled

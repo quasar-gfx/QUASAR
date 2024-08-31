@@ -401,7 +401,7 @@ int main(int argc, char** argv) {
     });
 
     ComputeShader genQuadsShader({
-        .computeCodePath = "./shaders/genQuads.comp"
+        .computeCodePath = "./shaders/genQuadsMulti.comp"
     });
 
     genQuadsShader.bind();
@@ -452,9 +452,12 @@ int main(int argc, char** argv) {
     }
 
     Scene centerMeshScene = Scene();
-    Node* centerMeshNode = new Node(meshes[0]);
-    centerMeshNode->frustumCulled = false;
-    centerMeshScene.addChildNode(centerMeshNode);
+    for (int i = 0; i < maxViews; i++) {
+        Node* node = new Node(meshes[i]);
+        node->frustumCulled = false;
+        node->visible = (i == 0);
+        centerMeshScene.addChildNode(node);
+    }
 
     auto enableRenderingIntoStencilBuffer = [&]() {
         renderer.pipeline.stencilState.stencilTestEnabled = true;
@@ -569,6 +572,10 @@ int main(int argc, char** argv) {
                     // render mesh in centerMeshScene into stencil buffer
                     enableRenderingIntoStencilBuffer();
 
+                    // make all previous meshes visible and everything else invisible
+                    for (int j = 1; j < maxViews; j++) {
+                        centerMeshScene.children[j]->visible = (j <= i);
+                    }
                     renderer.drawObjects(centerMeshScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
                     // render mesh in remoteScene using stencil buffer as a mask
@@ -586,9 +593,14 @@ int main(int argc, char** argv) {
                 else {
                     renderer.drawToRenderTarget(screenShaderNormals, *renderTargets[i]);
                 }
-                renderer.gBuffer.blitToRenderTarget(*renderTargets[i]);
 
                 genQuadsShader.bind();
+                {
+                    genQuadsShader.setMat4("viewCenter", centerCamera->getViewMatrix());
+                    genQuadsShader.setMat4("projectionCenter", centerCamera->getProjectionMatrix());
+                    genQuadsShader.setMat4("viewInverseCenter", glm::inverse(centerCamera->getViewMatrix()));
+                    genQuadsShader.setMat4("projectionInverseCenter", glm::inverse(centerCamera->getProjectionMatrix()));
+                }
                 {
                     genQuadsShader.setMat4("view", remoteCamera->getViewMatrix());
                     genQuadsShader.setMat4("projection", remoteCamera->getProjectionMatrix());
