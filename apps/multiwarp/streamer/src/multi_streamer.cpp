@@ -137,7 +137,7 @@ int main(int argc, char** argv) {
     bool preventCopyingLocalPose = false;
     float distanceThreshold = 0.8f;
     float angleThreshold = 45.0f;
-    float viewCellSize = 3.0f;
+    float viewCellSize = 1.5f;
     const int intervalValues[] = {0, 100, 200, 500, 1000};
     const char* intervalLabels[] = {"0ms", "100ms", "200ms", "500ms", "1000ms"};
     bool* showViews = new bool[maxViews];

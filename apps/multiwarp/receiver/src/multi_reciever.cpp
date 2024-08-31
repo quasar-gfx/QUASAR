@@ -34,6 +34,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
     args::ValueFlag<int> renderStateIn(parser, "render", "Render state", {'r', "render-state"}, 0);
+    args::ValueFlag<int> maxViewsIn(parser, "maxViews", "Max views", {'l', "num-views"}, 9);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -50,6 +51,8 @@ int main(int argc, char** argv) {
     size_t pos = sizeStr.find('x');
     config.width = std::stoi(sizeStr.substr(0, pos));
     config.height = std::stoi(sizeStr.substr(pos + 1));
+
+    int maxViews = args::get(maxViewsIn);
 
     config.enableVSync = args::get(vsyncIn);
 
@@ -74,6 +77,11 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera = PerspectiveCamera(screenWidth, screenHeight);
 
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
+
+    bool* showViews = new bool[maxViews];
+    for (int i = 0; i < maxViews; ++i) {
+        showViews[i] = true;
+    }
 
     RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
@@ -137,11 +145,11 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             glm::vec3 position = camera.getPosition();
-            if (ImGui::InputFloat3("Camera Position", (float*)&position)) {
+            if (ImGui::InputFloat3("PerspectiveCamera Position", (float*)&position)) {
                 camera.setPosition(position);
             }
             glm::vec3 rotation = camera.getRotationEuler();
-            if (ImGui::InputFloat3("Camera Rotation", (float*)&rotation)) {
+            if (ImGui::InputFloat3("PerspectiveCamera Rotation", (float*)&rotation)) {
                 camera.setRotationEuler(rotation);
             }
             ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
@@ -151,6 +159,17 @@ int main(int argc, char** argv) {
             ImGui::RadioButton("Render Mesh", (int*)&renderState, 0);
             ImGui::RadioButton("Render Point Cloud", (int*)&renderState, 1);
             ImGui::RadioButton("Render Wireframe", (int*)&renderState, 2);
+
+            ImGui::Separator();
+
+            const int columns = 3;
+            for (int i = 0; i < maxViews; i++) {
+                ImGui::Checkbox(("Show Layer " + std::to_string(i)).c_str(), &showViews[i]);
+                if ((i + 1) % columns != 0) {
+                    ImGui::SameLine();
+                }
+            }
+
             ImGui::End();
         }
 
@@ -196,55 +215,65 @@ int main(int argc, char** argv) {
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
 
-    std::string verticesFileName = DATA_PATH + "vertices.bin";
-    std::string indicesFileName = DATA_PATH + "indices.bin";
-    std::string colorFileName = DATA_PATH + "color.png";
+    std::vector<Texture*> colorTexture(maxViews);
 
-    auto vertexData = FileIO::loadBinaryFile(verticesFileName);
-    auto indexData = FileIO::loadBinaryFile(indicesFileName);
+    std::vector<Mesh*> meshes(maxViews);
+    std::vector<Node*> nodes(maxViews);
 
-    Texture colorTexture = Texture({
-        .wrapS = GL_REPEAT,
-        .wrapT = GL_REPEAT,
-        .minFilter = GL_NEAREST,
-        .magFilter = GL_NEAREST,
-        .flipVertically = true,
-        .path = colorFileName
-    });
+    std::vector<Mesh*> meshesWireframe(maxViews);
+    std::vector<Node*> nodesWireframe(maxViews);
 
-    unsigned int remoteWidth = colorTexture.width / surfelSize;
-    unsigned int remoteHeight = colorTexture.height / surfelSize;
+    for (int i = 0; i < maxViews; i++) {
+        std::string verticesFileName = DATA_PATH + "vertices" + std::to_string(i) + ".bin";
+        std::string indicesFileName = DATA_PATH + "indices" + std::to_string(i) + ".bin";
+        std::string colorFileName = DATA_PATH + "color" + std::to_string(i) + ".png";
 
-    int numVertices = remoteWidth * remoteHeight * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
-    std::vector<Vertex> vertices(numVertices);
-    std::memcpy(vertices.data(), vertexData.data(), vertexData.size());
+        auto vertexData = FileIO::loadBinaryFile(verticesFileName);
+        auto indexData = FileIO::loadBinaryFile(indicesFileName);
 
-    int numTriangles = remoteWidth * remoteHeight * NUM_SUB_QUADS * 2;
-    int indexBufferSize = numTriangles * 3;
-    std::vector<unsigned int> indices(indexBufferSize);
-    std::memcpy(indices.data(), indexData.data(), indexData.size());
+        colorTexture[i] = new Texture({
+            .wrapS = GL_REPEAT,
+            .wrapT = GL_REPEAT,
+            .minFilter = GL_NEAREST,
+            .magFilter = GL_NEAREST,
+            .flipVertically = true,
+            .path = colorFileName
+        });
 
-    Mesh mesh = Mesh({
-        .vertices = vertices,
-        .indices = indices,
-        .material = new UnlitMaterial({ .diffuseTexture = &colorTexture }),
-        .wireframe = false,
-        .pointcloud = renderState == RenderState::POINTCLOUD,
-    });
-    Node node(&mesh);
-    node.frustumCulled = false;
-    scene.addChildNode(&node);
+        unsigned int remoteWidth = colorTexture[i]->width / surfelSize;
+        unsigned int remoteHeight = colorTexture[i]->height / surfelSize;
 
-    Mesh meshWireframe = Mesh({
-        .vertices = vertices,
-        .indices = indices,
-        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-        .wireframe = true,
-        .pointcloud = false,
-    });
-    Node nodeWireframe(&meshWireframe);
-    nodeWireframe.frustumCulled = false;
-    scene.addChildNode(&nodeWireframe);
+        int numVertices = remoteWidth * remoteHeight * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
+        std::vector<Vertex> vertices(numVertices);
+        std::memcpy(vertices.data(), vertexData.data(), vertexData.size());
+
+        int numTriangles = remoteWidth * remoteHeight * NUM_SUB_QUADS * 2;
+        int indexBufferSize = numTriangles * 3;
+        std::vector<unsigned int> indices(indexBufferSize);
+        std::memcpy(indices.data(), indexData.data(), indexData.size());
+
+        meshes[i] = new Mesh({
+            .vertices = vertices,
+            .indices = indices,
+            .material = new UnlitMaterial({ .diffuseTexture = colorTexture[i] }),
+            .wireframe = false,
+            .pointcloud = renderState == RenderState::POINTCLOUD,
+        });
+        nodes[i] = new Node(meshes[i]);
+        nodes[i]->frustumCulled = false;
+        scene.addChildNode(nodes[i]);
+
+        meshesWireframe[i] = new Mesh({
+            .vertices = vertices,
+            .indices = indices,
+            .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
+            .wireframe = true,
+            .pointcloud = false,
+        });
+        nodesWireframe[i] = new Node(meshesWireframe[i]);
+        nodesWireframe[i]->frustumCulled = false;
+        scene.addChildNode(nodesWireframe[i]);
+    }
 
     app.onRender([&](double now, double dt) {
         // handle mouse input
@@ -289,10 +318,15 @@ int main(int argc, char** argv) {
             window->close();
         }
 
-        mesh.pointcloud = renderState == RenderState::POINTCLOUD;
-        nodeWireframe.visible = renderState == RenderState::WIREFRAME;
+        for (int i = 0; i < maxViews; i++) {
+            bool showLayer = showViews[i];
 
-        nodeWireframe.setPosition(node.getPosition() - camera.getForwardVector() * 0.001f);
+            nodes[i]->visible = showLayer;
+            meshes[i]->pointcloud = showLayer && (renderState == RenderState::POINTCLOUD);
+            nodesWireframe[i]->visible = showLayer && (renderState == RenderState::WIREFRAME);
+
+            nodesWireframe[i]->setPosition(nodes[i]->getPosition() - camera.getForwardVector() * 0.001f);
+        }
 
         // render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);
