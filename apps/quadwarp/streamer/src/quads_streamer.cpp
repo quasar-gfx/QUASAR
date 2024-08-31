@@ -123,7 +123,7 @@ int main(int argc, char** argv) {
     bool renderWireframe = false;
     bool doAverageNormal = true;
     bool doOrientationCorrection = true;
-    bool dontCopyCameraPose = false;
+    bool preventCopyingLocalPose = false;
     float distanceThreshold = 0.8f;
     float angleThreshold = 45.0f;
     RenderStats renderStats;
@@ -205,7 +205,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Checkbox("Show Normals Instead of Color", &showNormals)) {
-                dontCopyCameraPose = true;
+                preventCopyingLocalPose = true;
                 rerender = true;
             }
 
@@ -217,22 +217,22 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Checkbox("Average Normals", &doAverageNormal)) {
-                dontCopyCameraPose = true;
+                preventCopyingLocalPose = true;
                 rerender = true;
             }
 
             if (ImGui::Checkbox("Correct Normal Orientation", &doOrientationCorrection)) {
-                dontCopyCameraPose = true;
+                preventCopyingLocalPose = true;
                 rerender = true;
             }
 
             if (ImGui::SliderFloat("Distance Threshold", &distanceThreshold, 0.0f, 1.0f)) {
-                dontCopyCameraPose = true;
+                preventCopyingLocalPose = true;
                 rerender = true;
             }
 
             if (ImGui::SliderFloat("Angle Threshold", &angleThreshold, 0.0f, 180.0f)) {
-                dontCopyCameraPose = true;
+                preventCopyingLocalPose = true;
                 rerender = true;
             }
 
@@ -424,12 +424,12 @@ int main(int argc, char** argv) {
             startRenderTime = now;
         }
         if (rerender) {
-            if (!dontCopyCameraPose) {
+            if (!preventCopyingLocalPose) {
                 remoteCamera.setPosition(camera.getPosition());
                 remoteCamera.setRotationQuat(camera.getRotationQuat());
                 remoteCamera.updateViewMatrix();
             }
-            dontCopyCameraPose = false;
+            preventCopyingLocalPose = false;
 
             double startTime = glfwGetTime();
 

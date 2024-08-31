@@ -72,7 +72,7 @@ RenderStats DepthPeelingRenderer::drawSkyBox(const Scene &scene, const Camera &c
 
     for (auto layer : peelingLayers) {
         layer->bind();
-        stats += OpenGLRenderer::drawSkyBox(scene, camera);
+        stats += OpenGLRenderer::drawSkyBoxImpl(scene, camera);
         layer->unbind();
     }
 
@@ -89,7 +89,7 @@ RenderStats DepthPeelingRenderer::drawObjects(const Scene &scene, const Camera &
 RenderStats DepthPeelingRenderer::compositeLayers() {
     RenderStats stats;
 
-    gBuffer.bind();
+    beginRendering();
 
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -105,7 +105,7 @@ RenderStats DepthPeelingRenderer::compositeLayers() {
 
     compositeLayersShader.unbind();
 
-    gBuffer.unbind();
+    endRendering();
 
     return stats;
 }

@@ -15,8 +15,6 @@
 
 const std::string DATA_PATH = "./";
 
-int surfelSize = 4;
-
 int main(int argc, char** argv) {
     Config config{};
     config.title = "Multi-Camera Streamer";
@@ -28,6 +26,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
+    args::ValueFlag<int> maxViewsIn(parser, "views", "Max views", {'n', "max-views"}, 9);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -56,6 +55,7 @@ int main(int argc, char** argv) {
     std::string scenePath = args::get(scenePathIn);
 
     int surfelSize = args::get(surfelSizeIn);
+    int maxViews = args::get(maxViewsIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -69,15 +69,19 @@ int main(int argc, char** argv) {
     unsigned int screenWidth, screenHeight;
     window->getSize(screenWidth, screenHeight);
 
-    Scene scene = Scene();
     Scene remoteScene = Scene();
-    PerspectiveCamera camera = PerspectiveCamera(screenWidth, screenHeight);
-    PerspectiveCamera remoteCamera = PerspectiveCamera(screenWidth, screenHeight);
+    std::vector<PerspectiveCamera*> remoteCameras(maxViews);
+    for (int i = 0; i < maxViews; i++) {
+        remoteCameras[i] = new PerspectiveCamera(screenWidth, screenHeight);
+    }
+    PerspectiveCamera* centerCamera = remoteCameras[0];
     SceneLoader loader = SceneLoader();
-    loader.loadScene(scenePath, remoteScene, remoteCamera);
+    loader.loadScene(scenePath, remoteScene, *centerCamera);
 
-    camera.setPosition(remoteCamera.getPosition());
-    camera.setRotationQuat(remoteCamera.getRotationQuat());
+    Scene scene = Scene();
+    PerspectiveCamera camera = PerspectiveCamera(screenWidth, screenHeight);
+    camera.setPosition(centerCamera->getPosition());
+    camera.setRotationQuat(centerCamera->getRotationQuat());
     camera.updateViewMatrix();
 
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
@@ -85,36 +89,43 @@ int main(int argc, char** argv) {
     unsigned int remoteWidth = size2Width / surfelSize;
     unsigned int remoteHeight = size2Height / surfelSize;
 
-    RenderTarget renderTarget({
-        .width = remoteWidth,
-        .height = remoteHeight,
-        .internalFormat = GL_RGBA16,
-        .format = GL_RGBA,
-        .type = GL_FLOAT,
-        .wrapS = GL_REPEAT,
-        .wrapT = GL_REPEAT,
-        .minFilter = GL_NEAREST,
-        .magFilter = GL_NEAREST
-    });
+    std::vector<RenderTarget*> renderTargets(maxViews);
 
-    GLuint vertexBuffer;
+    std::vector<GLuint> vertexBuffers(maxViews);
     int numVertices = remoteWidth * remoteHeight * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
-    glGenBuffers(1, &vertexBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
 
-    GLuint vertexBufferDepth;
+    std::vector<GLuint> vertexBufferDepths(maxViews);
     int numVerticesDepth = remoteWidth * remoteHeight;
-    glGenBuffers(1, &vertexBufferDepth);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBufferDepth);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, numVerticesDepth * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
 
-    GLuint indexBuffer;
+    std::vector<GLuint> indexBuffers(maxViews);
     int numTriangles = remoteWidth * remoteHeight * NUM_SUB_QUADS * 2;
     int indexBufferSize = numTriangles * 3;
-    glGenBuffers(1, &indexBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
+
+    for (int i = 0; i < maxViews; i++) {
+        renderTargets[i] = new RenderTarget({
+            .width = remoteWidth,
+            .height = remoteHeight,
+            .internalFormat = GL_RGBA16,
+            .format = GL_RGBA,
+            .type = GL_FLOAT,
+            .wrapS = GL_REPEAT,
+            .wrapT = GL_REPEAT,
+            .minFilter = GL_NEAREST,
+            .magFilter = GL_NEAREST
+        });
+
+        glGenBuffers(1, &vertexBuffers[i]);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffers[i]);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
+
+        glGenBuffers(1, &vertexBufferDepths[i]);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBufferDepths[i]);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, numVerticesDepth * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
+
+        glGenBuffers(1, &indexBuffers[i]);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffers[i]);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
+    }
 
     bool rerender = true;
     int rerenderInterval = 0;
@@ -123,15 +134,22 @@ int main(int argc, char** argv) {
     bool renderWireframe = false;
     bool doAverageNormal = true;
     bool doOrientationCorrection = true;
-    bool dontCopyCameraPose = false;
+    bool preventCopyingLocalPose = false;
     float distanceThreshold = 0.8f;
     float angleThreshold = 45.0f;
-    RenderStats renderStats;
+    float viewCellSize = 3.0f;
     const int intervalValues[] = {0, 100, 200, 500, 1000};
     const char* intervalLabels[] = {"0ms", "100ms", "200ms", "500ms", "1000ms"};
+    bool* showViews = new bool[maxViews];
+    for (int i = 0; i < maxViews; ++i) {
+        showViews[i] = true;
+    }
+
+    RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = true;
+        static bool showViewPreviews = true;
         static bool showCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
@@ -153,6 +171,7 @@ int main(int argc, char** argv) {
         if (ImGui::BeginMenu("View")) {
             ImGui::MenuItem("FPS", 0, &showFPS);
             ImGui::MenuItem("UI", 0, &showUI);
+            ImGui::MenuItem("View Previews", 0, &showViewPreviews);
             ImGui::MenuItem("Frame Capture", 0, &showCaptureWindow);
             ImGui::MenuItem("Mesh Capture", 0, &showMeshCaptureWindow);
             ImGui::EndMenu();
@@ -205,7 +224,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Checkbox("Show Normals Instead of Color", &showNormals)) {
-                dontCopyCameraPose = true;
+                preventCopyingLocalPose = true;
                 rerender = true;
             }
 
@@ -217,22 +236,29 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Checkbox("Average Normals", &doAverageNormal)) {
-                dontCopyCameraPose = true;
+                preventCopyingLocalPose = true;
                 rerender = true;
             }
 
             if (ImGui::Checkbox("Correct Normal Orientation", &doOrientationCorrection)) {
-                dontCopyCameraPose = true;
+                preventCopyingLocalPose = true;
                 rerender = true;
             }
 
             if (ImGui::SliderFloat("Distance Threshold", &distanceThreshold, 0.0f, 1.0f)) {
-                dontCopyCameraPose = true;
+                preventCopyingLocalPose = true;
                 rerender = true;
             }
 
             if (ImGui::SliderFloat("Angle Threshold", &angleThreshold, 0.0f, 180.0f)) {
-                dontCopyCameraPose = true;
+                preventCopyingLocalPose = true;
+                rerender = true;
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::SliderFloat("View Cell Size", &viewCellSize, 0.1f, 5.0f)) {
+                preventCopyingLocalPose = true;
                 rerender = true;
             }
 
@@ -244,6 +270,16 @@ int main(int argc, char** argv) {
 
             if (ImGui::Combo("Rerender Interval", &intervalIndex, intervalLabels, IM_ARRAYSIZE(intervalLabels))) {
                 rerenderInterval = intervalValues[intervalIndex];
+            }
+
+            ImGui::Separator();
+
+            const int columns = 3;
+            for (int i = 0; i < maxViews; i++) {
+                ImGui::Checkbox(("Show View " + std::to_string(i)).c_str(), &showViews[i]);
+                if ((i + 1) % columns != 0) {
+                    ImGui::SameLine();
+                }
             }
 
             ImGui::End();
@@ -279,30 +315,48 @@ int main(int argc, char** argv) {
             ImGui::SetNextWindowPos(ImVec2(winSize.x * 0.4, 300), ImGuiCond_FirstUseEver);
             ImGui::Begin("Mesh Capture", &showMeshCaptureWindow);
 
-            std::string verticesFileName = DATA_PATH + "vertices.bin";
-            std::string indicesFileName = DATA_PATH + "indices.bin";
-            std::string colorFileName = DATA_PATH + "color.png";
-
             if (ImGui::Button("Save Mesh")) {
-                // save vertexBuffer
-                glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
-                Vertex* vertices = (Vertex*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-                std::ofstream verticesFile(DATA_PATH + verticesFileName, std::ios::binary);
-                verticesFile.write((char*)vertices, numVertices * sizeof(Vertex));
-                verticesFile.close();
+                for (int i = 0; i < maxViews; i++) {
+                    std::string verticesFileName = DATA_PATH + "vertices" + std::to_string(i) + ".bin";
+                    std::string indicesFileName = DATA_PATH + "indices" + std::to_string(i) + ".bin";
+                    std::string colorFileName = DATA_PATH + "color" + std::to_string(i) + ".png";
 
-                // save indexBuffer
-                glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
-                GLuint* indices = (GLuint*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-                std::ofstream indicesFile(DATA_PATH + indicesFileName, std::ios::binary);
-                indicesFile.write((char*)indices, indexBufferSize * sizeof(GLuint));
-                indicesFile.close();
+                    // save vertexBuffer
+                    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffers[i]);
+                    Vertex* vertices = (Vertex*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+                    std::ofstream verticesFile(DATA_PATH + verticesFileName, std::ios::binary);
+                    verticesFile.write((char*)vertices, numVertices * sizeof(Vertex));
+                    verticesFile.close();
 
-                // save color buffer
-                renderTarget.saveColorAsPNG(colorFileName);
+                    // save indexBuffer
+                    glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffers[i]);
+                    GLuint* indices = (GLuint*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+                    std::ofstream indicesFile(DATA_PATH + indicesFileName, std::ios::binary);
+                    indicesFile.write((char*)indices, indexBufferSize * sizeof(GLuint));
+                    indicesFile.close();
+
+                    // save color buffer
+                    renderTargets[i]->saveColorAsPNG(colorFileName);
+                }
             }
 
             ImGui::End();
+        }
+
+        if (showViewPreviews) {
+            flags = ImGuiWindowFlags_AlwaysAutoResize;
+
+            const int texturePreviewSize = (screenWidth * 2/3) / maxViews;
+
+            for (int i = 0; i < maxViews; i++) {
+                int viewIdx = maxViews - i - 1;
+                if (showViews[viewIdx]) {
+                    ImGui::SetNextWindowPos(ImVec2(screenWidth - (i + 1) * texturePreviewSize - 30, 40), ImGuiCond_FirstUseEver);
+                    ImGui::Begin(("View " + std::to_string(viewIdx)).c_str(), 0, flags);
+                    ImGui::Image((void*)(intptr_t)(renderTargets[viewIdx]->colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
+                    ImGui::End();
+                }
+            }
         }
     });
 
@@ -337,43 +391,56 @@ int main(int argc, char** argv) {
     });
 
     genMeshShader.bind();
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, vertexBufferDepth);
     genMeshShader.setVec2("screenSize", glm::vec2(remoteWidth, remoteHeight));
     genMeshShader.setInt("surfelSize", surfelSize);
     genMeshShader.unbind();
 
-    Mesh mesh = Mesh({
-        .vertices = std::vector<Vertex>(numVertices),
-        .indices = std::vector<unsigned int>(indexBufferSize),
-        .material = new UnlitMaterial({ .diffuseTexture = &renderTarget.colorBuffer }),
-        .wireframe = false
-    });
-    Node node = Node(&mesh);
-    node.frustumCulled = false;
-    scene.addChildNode(&node);
+    std::vector<Mesh*> meshes(maxViews);
+    std::vector<Node*> nodes(maxViews);
 
-    Mesh meshWireframe = Mesh({
-        .vertices = std::vector<Vertex>(numVertices),
-        .indices = std::vector<unsigned int>(indexBufferSize),
-        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-        .wireframe = true
-    });
-    Node nodeWireframe = Node(&meshWireframe);
-    nodeWireframe.frustumCulled = false;
-    scene.addChildNode(&nodeWireframe);
+    std::vector<Mesh*> meshesWireframe(maxViews);
+    std::vector<Node*> nodesWireframe(maxViews);
 
-    Mesh meshDepth = Mesh({
-        .vertices = std::vector<Vertex>(numVerticesDepth),
-        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-        .wireframe = false,
-        .pointcloud = true,
-        .pointSize = 7.5f
-    });
-    Node nodeDepth = Node(&meshDepth);
-    nodeDepth.frustumCulled = false;
-    scene.addChildNode(&nodeDepth);
+    std::vector<Mesh*> meshesDepth(maxViews);
+    std::vector<Node*> nodesDepth(maxViews);
+
+    for (int i = 0; i < maxViews; i++) {
+        meshes[i] = new Mesh({
+            .vertices = std::vector<Vertex>(numVertices),
+            .indices = std::vector<unsigned int>(indexBufferSize),
+            .material = new UnlitMaterial({ .diffuseTexture = &renderTargets[i]->colorBuffer }),
+            .wireframe = false
+        });
+        nodes[i] = new Node(meshes[i]);
+        nodes[i]->frustumCulled = false;
+        scene.addChildNode(nodes[i]);
+
+        meshesWireframe[i] = new Mesh({
+            .vertices = std::vector<Vertex>(numVertices),
+            .indices = std::vector<unsigned int>(indexBufferSize),
+            .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
+            .wireframe = true
+        });
+        nodesWireframe[i] = new Node(meshesWireframe[i]);
+        nodesWireframe[i]->frustumCulled = false;
+        scene.addChildNode(nodesWireframe[i]);
+
+        meshesDepth[i] = new Mesh({
+            .vertices = std::vector<Vertex>(numVerticesDepth),
+            .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
+            .wireframe = false,
+            .pointcloud = true,
+            .pointSize = 7.5f
+        });
+        nodesDepth[i] = new Node(meshesDepth[i]);
+        nodesDepth[i]->frustumCulled = false;
+        scene.addChildNode(nodesDepth[i]);
+    }
+
+    Scene centerMeshScene = Scene();
+    Node* centerMeshNode = new Node(meshes[0]);
+    centerMeshNode->frustumCulled = false;
+    centerMeshScene.addChildNode(centerMeshNode);
 
     auto enableRenderingIntoStencilBuffer = [&]() {
         renderer.pipeline.stencilState.stencilTestEnabled = true;
@@ -456,72 +523,108 @@ int main(int argc, char** argv) {
             startRenderTime = now;
         }
         if (rerender) {
-            if (!dontCopyCameraPose) {
-                remoteCamera.setPosition(camera.getPosition());
-                remoteCamera.setRotationQuat(camera.getRotationQuat());
-                remoteCamera.updateViewMatrix();
+            if (!preventCopyingLocalPose) {
+                centerCamera->setPosition(camera.getPosition());
+                centerCamera->setRotationQuat(camera.getRotationQuat());
+                centerCamera->updateViewMatrix();
             }
-            dontCopyCameraPose = false;
+            preventCopyingLocalPose = false;
+
+            // update other views
+            for (int i = 1; i < maxViews; i++) {
+                int x = (i & 1) ? -1 : 1;
+                int y = (i & 2) ? -1 : 1;
+                int z = (i & 4) ? -1 : 1;
+                remoteCameras[i]->setPosition(centerCamera->getPosition() + viewCellSize * glm::vec3(x, y, z));
+                remoteCameras[i]->updateViewMatrix();
+            }
 
             double startTime = glfwGetTime();
 
-            // render all objects in remoteScene into stencil buffer
-            enableRenderingIntoStencilBuffer();
+            for (int i = 0; i < maxViews; i++) {
+                auto* remoteCamera = remoteCameras[i];
 
-            renderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-            remoteCamera.setPosition(remoteCamera.getPosition() + glm::vec3(2.5f, 0.0f, 0.0f));
-            remoteCamera.updateViewMatrix();
+                // center view
+                if (i == 0) {
+                    // render all objects in remoteScene into stencil buffer
+                    disableRenderingIntoStencilBuffer();
+                    renderer.drawObjects(remoteScene, *remoteCamera);
+                }
+                // other views
+                else {
+                    // render mesh in centerMeshScene into stencil buffer
+                    enableRenderingIntoStencilBuffer();
 
-            // render all objects in remoteScene using stencil buffer as a mask
-            enableRenderingUsingStencilBufferAsMask();
+                    renderer.drawObjects(centerMeshScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-            renderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            camera.setPosition(camera.getPosition() - glm::vec3(2.5f, 0.0f, 0.0f));
-            camera.updateViewMatrix();
+                    // render mesh in remoteScene using stencil buffer as a mask
+                    enableRenderingUsingStencilBufferAsMask();
 
-            disableRenderingIntoStencilBuffer();
+                    renderer.drawObjects(remoteScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            // render to render target
-            if (!showNormals) {
-                renderer.drawToRenderTarget(screenShaderColor, renderTarget);
+                    disableRenderingIntoStencilBuffer();
+                }
+
+                // render to render target
+                if (!showNormals) {
+                    renderer.drawToRenderTarget(screenShaderColor, *renderTargets[i]);
+                }
+                else {
+                    renderer.drawToRenderTarget(screenShaderNormals, *renderTargets[i]);
+                }
+                renderer.gBuffer.blitToRenderTarget(*renderTargets[i]);
+
+                genMeshShader.bind();
+                {
+                    genMeshShader.setMat4("view", remoteCamera->getViewMatrix());
+                    genMeshShader.setMat4("projection", remoteCamera->getProjectionMatrix());
+                    genMeshShader.setMat4("viewInverse", glm::inverse(remoteCamera->getViewMatrix()));
+                    genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera->getProjectionMatrix()));
+
+                    genMeshShader.setFloat("near", remoteCamera->near);
+                    genMeshShader.setFloat("far", remoteCamera->far);
+                }
+                {
+                    genMeshShader.setBool("doAverageNormal", doAverageNormal);
+                    genMeshShader.setBool("doOrientationCorrection", doOrientationCorrection);
+                    genMeshShader.setFloat("distanceThreshold", distanceThreshold);
+                    genMeshShader.setFloat("angleThreshold", glm::radians(angleThreshold));
+                }
+                {
+                    genMeshShader.setTexture(renderer.gBuffer.positionBuffer, 0);
+                    genMeshShader.setTexture(renderer.gBuffer.normalsBuffer, 1);
+                    genMeshShader.setTexture(renderer.gBuffer.idBuffer, 2);
+                    genMeshShader.setTexture(renderer.gBuffer.depthStencilBuffer, 3);
+                }
+                {
+                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffers[i]);
+                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffers[i]);
+                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, vertexBufferDepths[i]);
+                }
+                genMeshShader.dispatch(remoteWidth, remoteHeight, 1);
+                genMeshShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+                genMeshShader.unbind();
+
+                meshes[i]->setBuffers(vertexBuffers[i], indexBuffers[i]);
+                meshesWireframe[i]->setBuffers(vertexBuffers[i], indexBuffers[i]);
+                meshesDepth[i]->setBuffers(vertexBufferDepths[i]);
             }
-            else {
-                renderer.drawToRenderTarget(screenShaderNormals, renderTarget);
-            }
-
-            genMeshShader.bind();
-            genMeshShader.setMat4("view", remoteCamera.getViewMatrix());
-            genMeshShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-            genMeshShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
-            genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
-            genMeshShader.setFloat("near", remoteCamera.near);
-            genMeshShader.setFloat("far", remoteCamera.far);
-            genMeshShader.setBool("doAverageNormal", doAverageNormal);
-            genMeshShader.setBool("doOrientationCorrection", doOrientationCorrection);
-            genMeshShader.setFloat("distanceThreshold", distanceThreshold);
-            genMeshShader.setFloat("angleThreshold", glm::radians(angleThreshold));
-            genMeshShader.setTexture(renderer.gBuffer.positionBuffer, 0);
-            genMeshShader.setTexture(renderer.gBuffer.normalsBuffer, 1);
-            genMeshShader.setTexture(renderer.gBuffer.idBuffer, 2);
-            genMeshShader.setTexture(renderer.gBuffer.depthStencilBuffer, 3);
-            genMeshShader.dispatch(remoteWidth, remoteHeight, 1);
-            genMeshShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-            genMeshShader.unbind();
 
             std::cout << "Rendering Time: " << glfwGetTime() - startTime << "s" << std::endl;
-
-            mesh.setBuffers(vertexBuffer, indexBuffer);
-            meshWireframe.setBuffers(vertexBuffer, indexBuffer);
-            meshDepth.setBuffers(vertexBufferDepth);
 
             rerender = false;
         }
 
-        nodeWireframe.visible = renderWireframe;
-        nodeDepth.visible = showDepth;
+        for (int i = 0; i < maxViews; i++) {
+            bool showView = showViews[i];
 
-        nodeWireframe.setPosition(node.getPosition() - camera.getForwardVector() * 0.001f);
-        nodeDepth.setPosition(node.getPosition() - camera.getForwardVector() * 0.0015f);
+            nodes[i]->visible = showView;
+            nodesWireframe[i]->visible = showView && renderWireframe;
+            nodesDepth[i]->visible = showView && showDepth;
+
+            nodesWireframe[i]->setPosition(nodes[i]->getPosition() - camera.getForwardVector() * 0.001f);
+            nodesDepth[i]->setPosition(nodes[i]->getPosition() - camera.getForwardVector() * 0.0015f);
+        }
 
         // render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);

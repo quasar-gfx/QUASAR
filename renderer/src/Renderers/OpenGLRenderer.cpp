@@ -167,9 +167,7 @@ RenderStats OpenGLRenderer::updatePointLightShadows(const Scene &scene, const Ca
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawScene(const Scene &scene, const Camera &camera, uint32_t clearMask) {
-    beginRendering();
-
+RenderStats OpenGLRenderer::drawSceneImpl(const Scene &scene, const Camera &camera, uint32_t clearMask) {
     if (clearMask != 0) {
         glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
         glClear(clearMask);
@@ -180,14 +178,17 @@ RenderStats OpenGLRenderer::drawScene(const Scene &scene, const Camera &camera, 
         stats += drawNode(scene, camera, child, glm::mat4(1.0f), true);
     }
 
-    endRendering();
-
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawLights(const Scene &scene, const Camera &camera) {
+RenderStats OpenGLRenderer::drawScene(const Scene &scene, const Camera &camera, uint32_t clearMask) {
     beginRendering();
+    RenderStats stats = drawSceneImpl(scene, camera, clearMask);
+    endRendering();
+    return stats;
+}
 
+RenderStats OpenGLRenderer::drawLightsImpl(const Scene &scene, const Camera &camera) {
     // dont clear color or depth bit here, since we want this to draw over
 
     RenderStats stats;
@@ -215,14 +216,17 @@ RenderStats OpenGLRenderer::drawLights(const Scene &scene, const Camera &camera)
         }
     }
 
-    endRendering();
-
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawSkyBox(const Scene &scene, const Camera &camera) {
+RenderStats OpenGLRenderer::drawLights(const Scene &scene, const Camera &camera) {
     beginRendering();
+    RenderStats stats = drawLightsImpl(scene, camera);
+    endRendering();
+    return stats;
+}
 
+RenderStats OpenGLRenderer::drawSkyBoxImpl(const Scene &scene, const Camera &camera) {
     // dont clear color or depth bit here, since we want this to draw over
 
     RenderStats stats;
@@ -249,8 +253,13 @@ RenderStats OpenGLRenderer::drawSkyBox(const Scene &scene, const Camera &camera)
     glDepthFunc(GL_LESS);
     glDepthMask(GL_TRUE);
 
-    endRendering();
+    return stats;
+}
 
+RenderStats OpenGLRenderer::drawSkyBox(const Scene &scene, const Camera &camera) {
+    beginRendering();
+    RenderStats stats = drawSkyBoxImpl(scene, camera);
+    endRendering();
     return stats;
 }
 
@@ -269,8 +278,8 @@ RenderStats OpenGLRenderer::drawObjects(const Scene &scene, const Camera &camera
     // draw lights for debugging
     stats += drawLights(scene, camera);
 
-    // // draw skybox
-    // stats += drawSkyBox(scene, camera);
+    // draw skybox
+    stats += drawSkyBox(scene, camera);
 
     return stats;
 }

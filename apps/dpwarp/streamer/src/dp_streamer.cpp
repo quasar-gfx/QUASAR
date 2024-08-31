@@ -11,8 +11,6 @@
 #define VERTICES_IN_A_QUAD 4
 #define NUM_SUB_QUADS 4
 
-#define TEXTURE_PREVIEW_SIZE 500
-
 const std::string DATA_PATH = "./";
 
 int surfelSize = 4;
@@ -69,13 +67,13 @@ int main(int argc, char** argv) {
     unsigned int screenWidth, screenHeight;
     window->getSize(screenWidth, screenHeight);
 
-    Scene scene = Scene();
     Scene remoteScene = Scene();
-    PerspectiveCamera camera = PerspectiveCamera(screenWidth, screenHeight);
     PerspectiveCamera remoteCamera = PerspectiveCamera(screenWidth, screenHeight);
     SceneLoader loader = SceneLoader();
     loader.loadScene(scenePath, remoteScene, remoteCamera);
 
+    Scene scene = Scene();
+    PerspectiveCamera camera = PerspectiveCamera(screenWidth, screenHeight);
     camera.setPosition(remoteCamera.getPosition());
     camera.setRotationQuat(remoteCamera.getRotationQuat());
     camera.updateViewMatrix();
@@ -130,7 +128,7 @@ int main(int argc, char** argv) {
     bool renderWireframe = false;
     bool doAverageNormal = true;
     bool doOrientationCorrection = true;
-    bool dontCopyCameraPose = false;
+    bool preventCopyingLocalPose = false;
     float distanceThreshold = 0.8f;
     float angleThreshold = 45.0f;
     const int intervalValues[] = {0, 100, 200, 500, 1000};
@@ -144,6 +142,7 @@ int main(int argc, char** argv) {
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = true;
+        static bool showLayerPreviews = true;
         static bool showCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
@@ -165,6 +164,7 @@ int main(int argc, char** argv) {
         if (ImGui::BeginMenu("View")) {
             ImGui::MenuItem("FPS", 0, &showFPS);
             ImGui::MenuItem("UI", 0, &showUI);
+            ImGui::MenuItem("Layer Previews", 0, &showLayerPreviews);
             ImGui::MenuItem("Frame Capture", 0, &showCaptureWindow);
             ImGui::MenuItem("Mesh Capture", 0, &showMeshCaptureWindow);
             ImGui::EndMenu();
@@ -217,7 +217,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Checkbox("Show Normals Instead of Color", &showNormals)) {
-                dontCopyCameraPose = true;
+                preventCopyingLocalPose = true;
                 rerender = true;
             }
 
@@ -229,22 +229,22 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Checkbox("Average Normals", &doAverageNormal)) {
-                dontCopyCameraPose = true;
+                preventCopyingLocalPose = true;
                 rerender = true;
             }
 
             if (ImGui::Checkbox("Correct Normal Orientation", &doOrientationCorrection)) {
-                dontCopyCameraPose = true;
+                preventCopyingLocalPose = true;
                 rerender = true;
             }
 
             if (ImGui::SliderFloat("Distance Threshold", &distanceThreshold, 0.0f, 1.0f)) {
-                dontCopyCameraPose = true;
+                preventCopyingLocalPose = true;
                 rerender = true;
             }
 
             if (ImGui::SliderFloat("Angle Threshold", &angleThreshold, 0.0f, 180.0f)) {
-                dontCopyCameraPose = true;
+                preventCopyingLocalPose = true;
                 rerender = true;
             }
 
@@ -327,6 +327,22 @@ int main(int argc, char** argv) {
             }
 
             ImGui::End();
+        }
+
+        if (showLayerPreviews) {
+            flags = ImGuiWindowFlags_AlwaysAutoResize;
+
+            const int texturePreviewSize = (screenWidth * 2/3) / renderer.maxLayers;
+
+            for (int i = 0; i < renderer.maxLayers; i++) {
+                int layerIdx = renderer.maxLayers - i - 1;
+                if (showLayers[layerIdx]) {
+                    ImGui::SetNextWindowPos(ImVec2(screenWidth - (i + 1) * texturePreviewSize - 30, 40), ImGuiCond_FirstUseEver);
+                    ImGui::Begin(("View " + std::to_string(layerIdx)).c_str(), 0, flags);
+                    ImGui::Image((void*)(intptr_t)(renderTargets[layerIdx]->colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
+                    ImGui::End();
+                }
+            }
         }
     });
 
@@ -457,50 +473,58 @@ int main(int argc, char** argv) {
             startRenderTime = now;
         }
         if (rerender) {
-            if (!dontCopyCameraPose) {
+            if (!preventCopyingLocalPose) {
                 remoteCamera.setPosition(camera.getPosition());
                 remoteCamera.setRotationQuat(camera.getRotationQuat());
                 remoteCamera.updateViewMatrix();
             }
-            dontCopyCameraPose = false;
+            preventCopyingLocalPose = false;
 
             double startTime = glfwGetTime();
 
             // render all objects in remoteScene
             renderer.drawObjects(remoteScene, remoteCamera);
 
-            // render to render target
-            if (!showNormals) {
-                renderer.drawToRenderTarget(screenShaderColor, *renderTargets[0]);
-            }
-            else {
-                renderer.drawToRenderTarget(screenShaderNormals, *renderTargets[0]);
-            }
-
             for (int i = 0; i < renderer.maxLayers; i++) {
+                // render to render target
+                if (!showNormals) {
+                    renderer.drawToRenderTarget(screenShaderColor, *renderTargets[i]);
+                }
+                else {
+                    renderer.drawToRenderTarget(screenShaderNormals, *renderTargets[i]);
+                }
+                renderer.peelingLayers[i]->blitToRenderTarget(*renderTargets[i]);
+
                 genMeshShader.bind();
-                genMeshShader.setMat4("view", remoteCamera.getViewMatrix());
-                genMeshShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-                genMeshShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
-                genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
-                genMeshShader.setFloat("near", remoteCamera.near);
-                genMeshShader.setFloat("far", remoteCamera.far);
-                genMeshShader.setBool("doAverageNormal", doAverageNormal);
-                genMeshShader.setBool("doOrientationCorrection", doOrientationCorrection);
-                genMeshShader.setFloat("distanceThreshold", distanceThreshold);
-                genMeshShader.setFloat("angleThreshold", glm::radians(angleThreshold));
-                genMeshShader.setTexture(renderer.peelingLayers[i]->positionBuffer, 0);
-                genMeshShader.setTexture(renderer.peelingLayers[i]->normalsBuffer, 1);
-                genMeshShader.setTexture(renderer.peelingLayers[i]->idBuffer, 2);
-                genMeshShader.setTexture(renderer.peelingLayers[i]->depthStencilBuffer, 3);
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffers[i]);
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffers[i]);
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, vertexBufferDepths[i]);
+                {
+                    genMeshShader.setMat4("view", remoteCamera.getViewMatrix());
+                    genMeshShader.setMat4("projection", remoteCamera.getProjectionMatrix());
+                    genMeshShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
+                    genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+
+                    genMeshShader.setFloat("near", remoteCamera.near);
+                    genMeshShader.setFloat("far", remoteCamera.far);
+                }
+                {
+                    genMeshShader.setBool("doAverageNormal", doAverageNormal);
+                    genMeshShader.setBool("doOrientationCorrection", doOrientationCorrection);
+                    genMeshShader.setFloat("distanceThreshold", distanceThreshold);
+                    genMeshShader.setFloat("angleThreshold", glm::radians(angleThreshold));
+                }
+                {
+                    genMeshShader.setTexture(renderer.peelingLayers[i]->positionBuffer, 0);
+                    genMeshShader.setTexture(renderer.peelingLayers[i]->normalsBuffer, 1);
+                    genMeshShader.setTexture(renderer.peelingLayers[i]->idBuffer, 2);
+                    genMeshShader.setTexture(renderer.peelingLayers[i]->depthStencilBuffer, 3);
+                }
+                {
+                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffers[i]);
+                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffers[i]);
+                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, vertexBufferDepths[i]);
+                }
                 genMeshShader.dispatch(remoteWidth, remoteHeight, 1);
                 genMeshShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
                 genMeshShader.unbind();
-
-                renderer.peelingLayers[i]->blitToRenderTarget(*renderTargets[i]);
 
                 meshes[i]->setBuffers(vertexBuffers[i], indexBuffers[i]);
                 meshesWireframe[i]->setBuffers(vertexBuffers[i], indexBuffers[i]);
