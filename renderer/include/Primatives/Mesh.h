@@ -56,7 +56,7 @@ public:
                              const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) override;
     virtual RenderStats draw();
     void setBuffers(const std::vector<Vertex> &vertices, const std::vector<unsigned int> &indices);
-    void setBuffers(GLuint vertexBufferSSBO, GLuint indexBufferSSBO = -1);
+    void setBuffers(GLuint vertexBufferSSBO, unsigned int vertexBufferSize, GLuint indexBufferSSBO = -1, unsigned int indexBufferSize = 0);
     void updateBuffers();
     void updateAABB();
 

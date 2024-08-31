@@ -30,6 +30,14 @@ layout(std430, binding = 2) buffer VertexBufferDepth {
     Vertex verticesDepth[];
 };
 
+layout(std430, binding = 3) buffer VertexCounterBuffer {
+    uint numVertices;
+};
+
+layout(std430, binding = 4) buffer IndexCounterBuffer {
+    uint numIndices;
+};
+
 struct Plane {
     vec3 normal;
     float constant;
@@ -545,33 +553,35 @@ void storeQuad(
 
     ************************/
 
-    uint vertexIndexTopLeft = shaderIndex * NUM_SUB_QUADS * VERTICES_IN_A_QUAD + vertexOffset + 0;
+    uint vertexIndexTopLeft = atomicAdd(numVertices, 1);
     vertices[vertexIndexTopLeft].position = viewToWorld(viewInverse, quad.topLeft);
     vertices[vertexIndexTopLeft].color = vec3(1.0, 1.0, 1.0);
     vertices[vertexIndexTopLeft].texCoords = worldToScreen(view, projection, vertices[vertexIndexTopLeft].position);
 
-    uint vertexIndexTopRight = shaderIndex * NUM_SUB_QUADS * VERTICES_IN_A_QUAD + vertexOffset + 1;
+    uint vertexIndexTopRight = atomicAdd(numVertices, 1);
     vertices[vertexIndexTopRight].position = viewToWorld(viewInverse, quad.topRight);
     vertices[vertexIndexTopRight].color = vec3(1.0, 1.0, 1.0);
     vertices[vertexIndexTopRight].texCoords = worldToScreen(view, projection, vertices[vertexIndexTopRight].position);
 
-    uint vertexIndexBottomLeft = shaderIndex * NUM_SUB_QUADS * VERTICES_IN_A_QUAD + vertexOffset + 2;
+    uint vertexIndexBottomLeft = atomicAdd(numVertices, 1);
     vertices[vertexIndexBottomLeft].position = viewToWorld(viewInverse, quad.bottomLeft);
     vertices[vertexIndexBottomLeft].color = vec3(1.0, 1.0, 1.0);
     vertices[vertexIndexBottomLeft].texCoords = worldToScreen(view, projection, vertices[vertexIndexBottomLeft].position);
 
-    uint vertexIndexBottomRight = shaderIndex * NUM_SUB_QUADS * VERTICES_IN_A_QUAD + vertexOffset + 3;
+    uint vertexIndexBottomRight = atomicAdd(numVertices, 1);
     vertices[vertexIndexBottomRight].position = viewToWorld(viewInverse, quad.bottomRight);
     vertices[vertexIndexBottomRight].color = vec3(1.0, 1.0, 1.0);
     vertices[vertexIndexBottomRight].texCoords = worldToScreen(view, projection, vertices[vertexIndexBottomRight].position);
 
-    indices[shaderIndex * NUM_SUB_QUADS * 6 + indexOffset + 0] = vertexIndexTopLeft;
-    indices[shaderIndex * NUM_SUB_QUADS * 6 + indexOffset + 1] = vertexIndexBottomLeft;
-    indices[shaderIndex * NUM_SUB_QUADS * 6 + indexOffset + 2] = vertexIndexTopRight;
+    uint indexBaseIdx = atomicAdd(numIndices, INDICES_IN_A_QUAD);
 
-    indices[shaderIndex * NUM_SUB_QUADS * 6 + indexOffset + 3] = vertexIndexTopRight;
-    indices[shaderIndex * NUM_SUB_QUADS * 6 + indexOffset + 4] = vertexIndexBottomLeft;
-    indices[shaderIndex * NUM_SUB_QUADS * 6 + indexOffset + 5] = vertexIndexBottomRight;
+    indices[indexBaseIdx + 0] = vertexIndexTopLeft;
+    indices[indexBaseIdx + 1] = vertexIndexBottomLeft;
+    indices[indexBaseIdx + 2] = vertexIndexTopRight;
+
+    indices[indexBaseIdx + 3] = vertexIndexTopRight;
+    indices[indexBaseIdx + 4] = vertexIndexBottomLeft;
+    indices[indexBaseIdx + 5] = vertexIndexBottomRight;
 }
 
 void main() {

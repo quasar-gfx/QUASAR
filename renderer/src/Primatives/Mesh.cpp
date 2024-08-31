@@ -60,12 +60,16 @@ void Mesh::setBuffers(const std::vector<Vertex> &vertices, const std::vector<uns
     updateAABB();
 }
 
-void Mesh::setBuffers(GLuint vertexBufferSSBO, GLuint indexBufferSSBO) {
+void Mesh::setBuffers(GLuint vertexBufferSSBO, unsigned int vertexBufferSize, GLuint indexBufferSSBO, unsigned int indexBufferSize) {
+    indices = std::vector<unsigned int>(indexBufferSize);
+    vertices = std::vector<Vertex>(vertexBufferSize);
+    updateBuffers();
+
     // copy vertex buffer
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBufferSSBO);
     glBindBuffer(GL_COPY_READ_BUFFER, vertexBufferSSBO);
     glBindBuffer(GL_COPY_WRITE_BUFFER, vertexBuffer);
-    glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, vertices.size() * sizeof(Vertex));
+    glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, vertexBufferSize * sizeof(Vertex));
 
     if (indexBufferSSBO == -1) {
         return;
@@ -75,7 +79,7 @@ void Mesh::setBuffers(GLuint vertexBufferSSBO, GLuint indexBufferSSBO) {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBufferSSBO);
     glBindBuffer(GL_COPY_READ_BUFFER, indexBufferSSBO);
     glBindBuffer(GL_COPY_WRITE_BUFFER, indexBuffer);
-    glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, indices.size() * sizeof(unsigned int));
+    glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, indexBufferSize * sizeof(unsigned int));
 }
 
 void Mesh::updateAABB() {

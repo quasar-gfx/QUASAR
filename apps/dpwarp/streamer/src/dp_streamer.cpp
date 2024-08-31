@@ -95,6 +95,10 @@ int main(int argc, char** argv) {
     int numTriangles = remoteWidth * remoteHeight * NUM_SUB_QUADS * 2;
     int indexBufferSize = numTriangles * 3;
 
+    GLuint zero = 0;
+    std::vector<GLuint> numVerticesSSBOs(renderer.maxLayers);
+    std::vector<GLuint> numIndicesSSBOs(renderer.maxLayers);
+
     for (int i = 0; i < renderer.maxLayers; i++) {
         renderTargets[i] = new RenderTarget({
             .width = remoteWidth,
@@ -119,6 +123,16 @@ int main(int argc, char** argv) {
         glGenBuffers(1, &indexBuffers[i]);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffers[i]);
         glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
+
+        glGenBuffers(1, &numVerticesSSBOs[i]);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, numVerticesSSBOs[i]);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(GLuint), &zero, GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+        glGenBuffers(1, &numIndicesSSBOs[i]);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, numIndicesSSBOs[i]);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(GLuint), &zero, GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     }
 
     bool rerender = true;
@@ -372,14 +386,14 @@ int main(int argc, char** argv) {
         .fragmentCodePath = "../shaders/postprocessing/displayNormals.frag"
     });
 
-    ComputeShader genMeshShader({
-        .computeCodePath = "./shaders/genMesh2.comp"
+    ComputeShader genQuadsShader({
+        .computeCodePath = "./shaders/genQuads.comp"
     });
 
-    genMeshShader.bind();
-    genMeshShader.setVec2("screenSize", glm::vec2(remoteWidth, remoteHeight));
-    genMeshShader.setInt("surfelSize", surfelSize);
-    genMeshShader.unbind();
+    genQuadsShader.bind();
+    genQuadsShader.setVec2("screenSize", glm::vec2(remoteWidth, remoteHeight));
+    genQuadsShader.setInt("surfelSize", surfelSize);
+    genQuadsShader.unbind();
 
     std::vector<Mesh*> meshes(renderer.maxLayers);
     std::vector<Node*> nodes(renderer.maxLayers);
@@ -495,40 +509,57 @@ int main(int argc, char** argv) {
                 }
                 renderer.peelingLayers[i]->blitToRenderTarget(*renderTargets[i]);
 
-                genMeshShader.bind();
+                genQuadsShader.bind();
                 {
-                    genMeshShader.setMat4("view", remoteCamera.getViewMatrix());
-                    genMeshShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-                    genMeshShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
-                    genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+                    genQuadsShader.setMat4("view", remoteCamera.getViewMatrix());
+                    genQuadsShader.setMat4("projection", remoteCamera.getProjectionMatrix());
+                    genQuadsShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
+                    genQuadsShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
 
-                    genMeshShader.setFloat("near", remoteCamera.near);
-                    genMeshShader.setFloat("far", remoteCamera.far);
+                    genQuadsShader.setFloat("near", remoteCamera.near);
+                    genQuadsShader.setFloat("far", remoteCamera.far);
                 }
                 {
-                    genMeshShader.setBool("doAverageNormal", doAverageNormal);
-                    genMeshShader.setBool("doOrientationCorrection", doOrientationCorrection);
-                    genMeshShader.setFloat("distanceThreshold", distanceThreshold);
-                    genMeshShader.setFloat("angleThreshold", glm::radians(angleThreshold));
+                    genQuadsShader.setBool("doAverageNormal", doAverageNormal);
+                    genQuadsShader.setBool("doOrientationCorrection", doOrientationCorrection);
+                    genQuadsShader.setFloat("distanceThreshold", distanceThreshold);
+                    genQuadsShader.setFloat("angleThreshold", glm::radians(angleThreshold));
                 }
                 {
-                    genMeshShader.setTexture(renderer.peelingLayers[i]->positionBuffer, 0);
-                    genMeshShader.setTexture(renderer.peelingLayers[i]->normalsBuffer, 1);
-                    genMeshShader.setTexture(renderer.peelingLayers[i]->idBuffer, 2);
-                    genMeshShader.setTexture(renderer.peelingLayers[i]->depthStencilBuffer, 3);
+                    genQuadsShader.setTexture(renderer.peelingLayers[i]->positionBuffer, 0);
+                    genQuadsShader.setTexture(renderer.peelingLayers[i]->normalsBuffer, 1);
+                    genQuadsShader.setTexture(renderer.peelingLayers[i]->idBuffer, 2);
+                    genQuadsShader.setTexture(renderer.peelingLayers[i]->depthStencilBuffer, 3);
                 }
                 {
                     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffers[i]);
                     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffers[i]);
                     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, vertexBufferDepths[i]);
+                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, numVerticesSSBOs[i]);
+                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, numIndicesSSBOs[i]);
                 }
-                genMeshShader.dispatch(remoteWidth, remoteHeight, 1);
-                genMeshShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-                genMeshShader.unbind();
 
-                meshes[i]->setBuffers(vertexBuffers[i], indexBuffers[i]);
-                meshesWireframe[i]->setBuffers(vertexBuffers[i], indexBuffers[i]);
-                meshesDepth[i]->setBuffers(vertexBufferDepths[i]);
+                // set numVertices and numIndices to 0 before running compute shader
+                glBindBuffer(GL_SHADER_STORAGE_BUFFER, numVerticesSSBOs[i]);
+                glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(GLuint), &zero);
+
+                glBindBuffer(GL_SHADER_STORAGE_BUFFER, numIndicesSSBOs[i]);
+                glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(GLuint), &zero);
+
+                // run compute shader
+                genQuadsShader.dispatch(remoteWidth, remoteHeight, 1);
+                genQuadsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+                // get number of vertices and indices in mesh
+                unsigned int verticesSize, indicesSize;
+                glGetNamedBufferSubData(numVerticesSSBOs[i], 0, sizeof(GLuint), &verticesSize);
+                glGetNamedBufferSubData(numIndicesSSBOs[i], 0, sizeof(GLuint), &indicesSize);
+
+                genQuadsShader.unbind();
+
+                meshes[i]->setBuffers(vertexBuffers[i], verticesSize, indexBuffers[i], indicesSize);
+                meshesWireframe[i]->setBuffers(vertexBuffers[i], verticesSize, indexBuffers[i], indicesSize);
+                meshesDepth[i]->setBuffers(vertexBufferDepths[i], numVerticesDepth, vertexBufferDepths[i], numVerticesDepth);
             }
 
             std::cout << "Rendering Time: " << glfwGetTime() - startTime << "s" << std::endl;
