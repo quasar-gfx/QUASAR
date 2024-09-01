@@ -119,11 +119,11 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             glm::vec3 position = camera.getPosition();
-            if (ImGui::InputFloat3("PerspectiveCamera Position", (float*)&position)) {
+            if (ImGui::InputFloat3("Camera Position", (float*)&position)) {
                 camera.setPosition(position);
             }
             glm::vec3 rotation = camera.getRotationEuler();
-            if (ImGui::InputFloat3("PerspectiveCamera Rotation", (float*)&rotation)) {
+            if (ImGui::InputFloat3("Camera Rotation", (float*)&rotation)) {
                 camera.setRotationEuler(rotation);
             }
             ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);

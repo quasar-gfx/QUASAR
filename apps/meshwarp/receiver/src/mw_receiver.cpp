@@ -92,8 +92,8 @@ int main(int argc, char** argv) {
         .magFilter = GL_LINEAR
     }, videoURL);
     DepthVideoTexture videoTextureDepth({
-        .width = screenWidth,
-        .height = screenHeight,
+        .width = screenWidth/2,
+        .height = screenHeight/2,
         .internalFormat = GL_R16,
         .format = GL_RED,
         .type = GL_UNSIGNED_SHORT,

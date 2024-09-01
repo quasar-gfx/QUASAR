@@ -92,8 +92,8 @@ int main(int argc, char** argv) {
         .magFilter = GL_LINEAR
     }, videoURL, targetBitrate);
     DepthStreamer videoStreamerDepthRT = DepthStreamer({
-        .width = screenWidth,
-        .height = screenHeight,
+        .width = screenWidth/2,
+        .height = screenHeight/2,
         .internalFormat = GL_R16,
         .format = GL_RED,
         .type = GL_UNSIGNED_SHORT,
@@ -308,7 +308,7 @@ int main(int argc, char** argv) {
             if (pauseState != PauseState::PAUSE_DEPTH) videoStreamerDepthRT.sendFrame(poseID);
         }
 
-        // std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     });
 
     // run app loop (blocking)
