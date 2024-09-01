@@ -452,8 +452,8 @@ int main(int argc, char** argv) {
         poseStreamer.removePosesLessThan(std::min(poseIdColor, poseIdDepth));
 
         // create mesh from compute shader output
-        mesh.setBuffers(vertexBuffer, indexBuffer);
-        meshWireframe.setBuffers(vertexBuffer, indexBuffer);
+        mesh.setBuffers(vertexBuffer, numVertices, indexBuffer, indexBufferSize);
+        meshWireframe.setBuffers(vertexBuffer, numVertices, indexBuffer, indexBufferSize);
 
         // set render state
         mesh.pointcloud = renderState == RenderState::POINTCLOUD;
