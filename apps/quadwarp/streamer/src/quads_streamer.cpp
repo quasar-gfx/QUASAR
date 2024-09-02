@@ -446,6 +446,9 @@ int main(int argc, char** argv) {
             // render all objects in remoteScene
             renderer.drawObjects(remoteScene, remoteCamera);
 
+            std::cout << "Rendering Time: " << glfwGetTime() - startTime << "s" << std::endl;
+            startTime = glfwGetTime();
+
             // render to render target
             if (!showNormals) {
                 renderer.drawToRenderTarget(screenShaderColor, renderTarget);
@@ -491,7 +494,7 @@ int main(int argc, char** argv) {
             glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(GLuint), &zero);
 
             // run compute shader
-            genQuadsShader.dispatch(remoteWidth, remoteHeight, 1);
+            genQuadsShader.dispatch(remoteWidth / 16, remoteHeight / 16, 1);
             genQuadsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
             // get number of vertices and indices in mesh
@@ -505,7 +508,7 @@ int main(int argc, char** argv) {
             meshWireframe.setBuffers(vertexBuffer, verticesSize, indexBuffer, indicesSize);
             meshDepth.setBuffers(vertexBufferDepth, numVerticesDepth, indexBuffer, indicesSize);
 
-            std::cout << "Rendering Time: " << glfwGetTime() - startTime << "s" << std::endl;
+            std::cout << "Compute Shader Time: " << glfwGetTime() - startTime << "s" << std::endl;
 
             rerender = false;
         }

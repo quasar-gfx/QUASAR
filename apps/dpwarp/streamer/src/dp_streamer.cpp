@@ -547,7 +547,7 @@ int main(int argc, char** argv) {
                 glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(GLuint), &zero);
 
                 // run compute shader
-                genQuadsShader.dispatch(remoteWidth, remoteHeight, 1);
+                genQuadsShader.dispatch(remoteWidth / 16, remoteHeight / 16, 1);
                 genQuadsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
                 // get number of vertices and indices in mesh
@@ -562,7 +562,7 @@ int main(int argc, char** argv) {
                 meshesDepth[i]->setBuffers(vertexBufferDepths[i], numVerticesDepth, vertexBufferDepths[i], numVerticesDepth);
             }
 
-            std::cout << "Rendering Time: " << glfwGetTime() - startTime << "s" << std::endl;
+            std::cout << "Total Mesh Creation Time: " << glfwGetTime() - startTime << "s" << std::endl;
 
             rerender = false;
         }
