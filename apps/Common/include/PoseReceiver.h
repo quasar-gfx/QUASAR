@@ -53,7 +53,7 @@ public:
         if (camera->isVR()) {
             auto* vrCamera = static_cast<VRCamera*>(camera);
             if (setProj) {
-                vrCamera->setProjectionMatrix(currPose.stereo.projL);
+                vrCamera->setProjectionMatrices({currPose.stereo.projL, currPose.stereo.projR});
             }
             vrCamera->setViewMatrices({currPose.stereo.viewL, currPose.stereo.viewR});
         }
