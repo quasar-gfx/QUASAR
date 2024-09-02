@@ -13,25 +13,27 @@ public:
     FullScreenQuad() {
         // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
         std::vector<FSQuadVertex> quadVertices = {
-            { {-1.0f, 1.0f, 0.0f}, {0.0f, 1.0f} },
-            { {-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f} },
-            { {1.0f, -1.0f, 0.0f}, {1.0f, 0.0f} },
+            // bottom triangle
+            { {-1.0f,  1.0f}, {0.0f, 1.0f} },
+            { { 1.0f, -1.0f}, {1.0f, 0.0f} },
+            { { 1.0f,  1.0f}, {1.0f, 1.0f} },
 
-            { {-1.0f, 1.0f, 0.0f}, {0.0f, 1.0f} },
-            { {1.0f, -1.0f, 0.0f}, {1.0f, 0.0f} },
-            { {1.0f, 1.0f, 0.0f}, {1.0f, 1.0f} }
+            // top triangle
+            { {-1.0f,  1.0f}, {0.0f, 1.0f} },
+            { {-1.0f, -1.0f}, {0.0f, 0.0f} },
+            { { 1.0f, -1.0f}, {1.0f, 0.0f} }
         };
 
         glGenVertexArrays(1, &vertexArrayBuffer);
         glGenBuffers(1, &vertexBuffer);
 
         glBindVertexArray(vertexArrayBuffer);
-        glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
 
+        glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
         glBufferData(GL_ARRAY_BUFFER, quadVertices.size() * sizeof(FSQuadVertex), quadVertices.data(), GL_STATIC_DRAW);
 
         glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(FSQuadVertex), (void*)0);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(FSQuadVertex), (void*)offsetof(FSQuadVertex, position));
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(FSQuadVertex), (void*)offsetof(FSQuadVertex, texCoords));
 
@@ -64,7 +66,7 @@ public:
 
 private:
     struct FSQuadVertex {
-        glm::vec3 position;
+        glm::vec2 position;
         glm::vec2 texCoords;
     };
 
