@@ -39,6 +39,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "0.0.0.0:12345");
     args::ValueFlag<std::string> depthURLIn(parser, "depth", "Depth URL", {'e', "depth-url"}, "0.0.0.0:65432");
     args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "127.0.0.1:54321");
+    args::ValueFlag<int> depthFactorIn(parser, "factor", "Depth Resolution Factor", {'a', "depth-factor"}, 1);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -49,6 +50,8 @@ int main(int argc, char** argv) {
         std::cerr << parser;
         return 1;
     }
+
+    int depthFactor = args::get(depthFactorIn);
 
     // parse size
     std::string sizeStr = args::get(sizeIn);
@@ -92,8 +95,8 @@ int main(int argc, char** argv) {
         .magFilter = GL_LINEAR
     }, videoURL);
     DepthVideoTexture videoTextureDepth({
-        .width = screenWidth/2,
-        .height = screenHeight/2,
+        .width = screenWidth/depthFactor,
+        .height = screenHeight/depthFactor,
         .internalFormat = GL_R16,
         .format = GL_RED,
         .type = GL_UNSIGNED_SHORT,

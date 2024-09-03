@@ -36,6 +36,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "0.0.0.0:54321");
     args::ValueFlag<float> fovIn(parser, "fov", "Field of view", {'f', "fov"}, 60.0f);
     args::ValueFlag<int> targetBitrateIn(parser, "targetBitrate", "Target bitrate (Mbps)", {'b', "target-bitrate"}, 50);
+    args::ValueFlag<int> depthFactorIn(parser, "factor", "Depth Resolution Factor", {'a', "depth-factor"}, 1);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -46,6 +47,8 @@ int main(int argc, char** argv) {
         std::cerr << parser;
         return 1;
     }
+
+    int depthFactor = args::get(depthFactorIn);
 
     // parse size
     std::string sizeStr = args::get(sizeIn);
@@ -92,8 +95,8 @@ int main(int argc, char** argv) {
         .magFilter = GL_LINEAR
     }, videoURL, targetBitrate);
     DepthStreamer videoStreamerDepthRT = DepthStreamer({
-        .width = screenWidth/2,
-        .height = screenHeight/2,
+        .width = screenWidth/depthFactor,
+        .height = screenHeight/depthFactor,
         .internalFormat = GL_R16,
         .format = GL_RED,
         .type = GL_UNSIGNED_SHORT,
