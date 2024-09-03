@@ -107,45 +107,36 @@ void Texture::resize(unsigned int width, unsigned int height) {
 }
 
 void Texture::saveAsPNG(const std::string &filename) {
-
-    unsigned char* data = new unsigned char[width * height * 4];
+    std::vector<unsigned char> data(width * height * 4);
 
     bind(0);
-    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
     unbind();
 
     FileIO::flipVerticallyOnWrite(true);
-    FileIO::saveAsPNG(filename, width, height, 4, data);
-
-    delete[] data;
+    FileIO::saveAsPNG(filename, width, height, 4, data.data());
 }
 
 void Texture::saveAsJPG(const std::string &filename, int quality) {
-
-    unsigned char* data = new unsigned char[width * height * 4];
+    std::vector<unsigned char> data(width * height * 4);
 
     bind(0);
-    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
     unbind();
 
     FileIO::flipVerticallyOnWrite(true);
-    FileIO::saveAsJPG(filename, width, height, 4, data, quality);
-
-    delete[] data;
+    FileIO::saveAsJPG(filename, width, height, 4, data.data(), quality);
 }
 
 void Texture::saveAsHDR(const std::string &filename) {
-
-    float* data = new float[width * height * 4];
+    std::vector<float> data(width * height * 4);
 
     bind(0);
-    glReadPixels(0, 0, width, height, GL_RGBA, GL_FLOAT, data);
+    glReadPixels(0, 0, width, height, GL_RGBA, GL_FLOAT, data.data());
     unbind();
 
     FileIO::flipVerticallyOnWrite(true);
-    FileIO::saveAsHDR(filename, width, height, 4, data);
-
-    delete[] data;
+    FileIO::saveAsHDR(filename, width, height, 4, data.data());
 }
 
 #ifdef GL_CORE
@@ -153,22 +144,15 @@ void Texture::saveDepthToFile(const std::string &filename) {
     std::ofstream depthFile;
     depthFile.open(filename, std::ios::out | std::ios::binary);
 
-    GLuint pbo;
-    glGenBuffers(1, &pbo);
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
-    glBufferData(GL_PIXEL_PACK_BUFFER, width * height * sizeof(float), NULL, GL_STREAM_READ);
+    std::vector<float> data(width * height);
 
     bind(0);
-    glReadBuffer(GL_COLOR_ATTACHMENT0);
-    glReadPixels(0, 0, width, height, GL_RED, GL_FLOAT, 0);
-
-    float* data = (float*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+    glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, data.data());
+    unbind();
 
     if (depthFile.is_open()) {
-        depthFile.write(reinterpret_cast<const char*>(data), width * height * sizeof(float));
+        depthFile.write(reinterpret_cast<const char*>(data.data()), width * height * sizeof(float));
     }
-
-    glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
 
     depthFile.close();
 }
