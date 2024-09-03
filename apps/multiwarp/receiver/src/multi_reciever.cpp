@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
     args::ValueFlag<int> renderStateIn(parser, "render", "Render state", {'r', "render-state"}, 0);
-    args::ValueFlag<int> maxViewsIn(parser, "maxViews", "Max views", {'l', "num-views"}, 9);
+    args::ValueFlag<int> maxAdditionalViewsIn(parser, "maxViews", "Max views", {'l', "num-views"}, 8);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
     config.width = std::stoi(sizeStr.substr(0, pos));
     config.height = std::stoi(sizeStr.substr(pos + 1));
 
-    int maxViews = args::get(maxViewsIn);
+    int maxViews = args::get(maxAdditionalViewsIn) + 2;
 
     config.enableVSync = args::get(vsyncIn);
 

@@ -74,9 +74,7 @@ int main(int argc, char** argv) {
 
     Scene scene = Scene();
     PerspectiveCamera camera = PerspectiveCamera(screenWidth, screenHeight);
-    camera.setPosition(remoteCamera.getPosition());
-    camera.setRotationQuat(remoteCamera.getRotationQuat());
-    camera.updateViewMatrix();
+    camera.setViewMatrix(remoteCamera.getViewMatrix());
 
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
 
@@ -488,9 +486,7 @@ int main(int argc, char** argv) {
         }
         if (rerender) {
             if (!preventCopyingLocalPose) {
-                remoteCamera.setPosition(camera.getPosition());
-                remoteCamera.setRotationQuat(camera.getRotationQuat());
-                remoteCamera.updateViewMatrix();
+                remoteCamera.setViewMatrix(camera.getViewMatrix());
             }
             preventCopyingLocalPose = false;
 

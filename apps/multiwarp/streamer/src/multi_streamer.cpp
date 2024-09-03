@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
-    args::ValueFlag<int> maxViewsIn(parser, "views", "Max views", {'n', "max-views"}, 9);
+    args::ValueFlag<int> maxAdditionalViewsIn(parser, "views", "Max views", {'n', "max-views"}, 8);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
     std::string scenePath = args::get(scenePathIn);
 
     int surfelSize = args::get(surfelSizeIn);
-    int maxViews = args::get(maxViewsIn);
+    int maxViews = args::get(maxAdditionalViewsIn) + 2; // 0th is standard view, 1st is large fov view
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -74,14 +74,16 @@ int main(int argc, char** argv) {
     for (int i = 0; i < maxViews; i++) {
         remoteCameras[i] = new PerspectiveCamera(screenWidth, screenHeight);
     }
-    PerspectiveCamera* centerCamera = remoteCameras[0];
+    PerspectiveCamera* centerRemoteCamera = remoteCameras[0];
     SceneLoader loader = SceneLoader();
-    loader.loadScene(scenePath, remoteScene, *centerCamera);
+    loader.loadScene(scenePath, remoteScene, *centerRemoteCamera);
+
+    remoteCameras[1]->setFovy(90.0f);
+    remoteCameras[1]->setViewMatrix(centerRemoteCamera->getViewMatrix());
 
     Scene scene = Scene();
     PerspectiveCamera camera = PerspectiveCamera(screenWidth, screenHeight);
-    camera.setPosition(centerCamera->getPosition());
-    camera.setRotationQuat(centerCamera->getRotationQuat());
+    camera.setViewMatrix(centerRemoteCamera->getViewMatrix());
     camera.updateViewMatrix();
 
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
@@ -149,9 +151,10 @@ int main(int argc, char** argv) {
     bool doAverageNormal = true;
     bool doOrientationCorrection = true;
     bool preventCopyingLocalPose = false;
+    bool restrictMovementToViewCell = false;
     float distanceThreshold = 0.8f;
     float angleThreshold = 45.0f;
-    float viewCellSize = 1.5f;
+    float viewCellSize = 3.0f;
     const int intervalValues[] = {0, 100, 200, 500, 1000};
     const char* intervalLabels[] = {"0ms", "100ms", "200ms", "500ms", "1000ms"};
     bool* showViews = new bool[maxViews];
@@ -271,10 +274,12 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::SliderFloat("View Cell Size", &viewCellSize, 0.1f, 5.0f)) {
+            if (ImGui::SliderFloat("View Cell Size", &viewCellSize, 0.1f, 10.0f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
             }
+
+            ImGui::Checkbox("Restrict Movement to View Cell", &restrictMovementToViewCell);
 
             ImGui::Separator();
 
@@ -451,45 +456,13 @@ int main(int argc, char** argv) {
         scene.addChildNode(nodesDepth[i]);
     }
 
-    Scene centerMeshScene = Scene();
+    Scene meshScene = Scene();
     for (int i = 0; i < maxViews; i++) {
         Node* node = new Node(meshes[i]);
         node->frustumCulled = false;
         node->visible = (i == 0);
-        centerMeshScene.addChildNode(node);
+        meshScene.addChildNode(node);
     }
-
-    auto enableRenderingIntoStencilBuffer = [&]() {
-        renderer.pipeline.stencilState.stencilTestEnabled = true;
-
-        renderer.pipeline.stencilState.stencilFunc = GL_ALWAYS;
-        renderer.pipeline.stencilState.stencilRef = 1;
-        renderer.pipeline.stencilState.stencilMask = 0xFF;
-
-        renderer.pipeline.stencilState.writeStencilMask = 0xFF;
-
-        renderer.pipeline.stencilState.stencilFail = GL_KEEP;
-        renderer.pipeline.stencilState.stencilPassDepthFail = GL_KEEP;
-        renderer.pipeline.stencilState.stencilPassDepthPass = GL_REPLACE;
-    };
-
-    auto enableRenderingUsingStencilBufferAsMask = [&]() {
-        renderer.pipeline.stencilState.stencilFunc = GL_NOTEQUAL;
-        renderer.pipeline.stencilState.stencilRef = 1;
-        renderer.pipeline.stencilState.stencilMask = 0xFF;
-
-        renderer.pipeline.stencilState.writeStencilMask = 0x00;
-    };
-
-    auto disableRenderingIntoStencilBuffer = [&]() {
-        renderer.pipeline.stencilState.stencilTestEnabled = false;
-
-        renderer.pipeline.stencilState.stencilFunc = GL_ALWAYS;
-        renderer.pipeline.stencilState.stencilRef = 0;
-        renderer.pipeline.stencilState.stencilMask = 0xFF;
-
-        renderer.pipeline.stencilState.writeStencilMask = 0xFF;
-    };
 
     double startRenderTime = window->getTime();
     app.onRender([&](double now, double dt) {
@@ -535,26 +508,36 @@ int main(int argc, char** argv) {
             window->close();
         }
 
+        if (restrictMovementToViewCell) {
+            glm::vec3 remotePosition = centerRemoteCamera->getPosition();
+            glm::vec3 position = camera.getPosition();
+            // restrict camera position to be inside position +/- viewCellSize
+            position.x = glm::clamp(position.x, remotePosition.x - viewCellSize/2, remotePosition.x + viewCellSize/2);
+            position.y = glm::clamp(position.y, remotePosition.y - viewCellSize/2, remotePosition.y + viewCellSize/2);
+            position.z = glm::clamp(position.z, remotePosition.z - viewCellSize/2, remotePosition.z + viewCellSize/2);
+            camera.setPosition(position);
+        }
+
         if (rerenderInterval > 0 && now - startRenderTime > rerenderInterval / 1000.0) {
             rerender = true;
             startRenderTime = now;
         }
         if (rerender) {
             if (!preventCopyingLocalPose) {
-                centerCamera->setPosition(camera.getPosition());
-                centerCamera->setRotationQuat(camera.getRotationQuat());
-                centerCamera->updateViewMatrix();
+                centerRemoteCamera->setViewMatrix(camera.getViewMatrix());
             }
             preventCopyingLocalPose = false;
 
             // update other views
-            for (int i = 1; i < maxViews; i++) {
+            for (int i = 2; i < maxViews; i++) {
                 int x = (i & 1) ? -1 : 1;
                 int y = (i & 2) ? -1 : 1;
                 int z = (i & 4) ? -1 : 1;
-                remoteCameras[i]->setPosition(centerCamera->getPosition() + viewCellSize * glm::vec3(x, y, z));
+                remoteCameras[i]->setPosition(centerRemoteCamera->getPosition() + viewCellSize/2 * glm::vec3(x, y, z));
                 remoteCameras[i]->updateViewMatrix();
             }
+            remoteCameras[1]->setViewMatrix(centerRemoteCamera->getViewMatrix());
+            remoteCameras[1]->setPosition(centerRemoteCamera->getPosition() - viewCellSize/2 * centerRemoteCamera->getForwardVector());
 
             double startTime = glfwGetTime();
 
@@ -563,27 +546,26 @@ int main(int argc, char** argv) {
 
                 // center view
                 if (i == 0) {
-                    // render all objects in remoteScene into stencil buffer
-                    disableRenderingIntoStencilBuffer();
+                    // render all objects in remoteScene normally
                     renderer.drawObjects(remoteScene, *remoteCamera);
                 }
                 // other views
                 else {
-                    // render mesh in centerMeshScene into stencil buffer
-                    enableRenderingIntoStencilBuffer();
+                    // render mesh in meshScene into stencil buffer
+                    renderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
 
                     // make all previous meshes visible and everything else invisible
                     for (int j = 1; j < maxViews; j++) {
-                        centerMeshScene.children[j]->visible = (j <= i);
+                        meshScene.children[j]->visible = (j <= i);
                     }
-                    renderer.drawObjects(centerMeshScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+                    renderer.drawObjects(meshScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
                     // render mesh in remoteScene using stencil buffer as a mask
-                    enableRenderingUsingStencilBufferAsMask();
+                    renderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask();
 
                     renderer.drawObjects(remoteScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-                    disableRenderingIntoStencilBuffer();
+                    renderer.pipeline.stencilState.restoreStencilState();
                 }
 
                 // render to render target
@@ -596,10 +578,10 @@ int main(int argc, char** argv) {
 
                 genQuadsShader.bind();
                 {
-                    genQuadsShader.setMat4("viewCenter", centerCamera->getViewMatrix());
-                    genQuadsShader.setMat4("projectionCenter", centerCamera->getProjectionMatrix());
-                    genQuadsShader.setMat4("viewInverseCenter", glm::inverse(centerCamera->getViewMatrix()));
-                    genQuadsShader.setMat4("projectionInverseCenter", glm::inverse(centerCamera->getProjectionMatrix()));
+                    genQuadsShader.setMat4("viewCenter", centerRemoteCamera->getViewMatrix());
+                    genQuadsShader.setMat4("projectionCenter", centerRemoteCamera->getProjectionMatrix());
+                    genQuadsShader.setMat4("viewInverseCenter", glm::inverse(centerRemoteCamera->getViewMatrix()));
+                    genQuadsShader.setMat4("projectionInverseCenter", glm::inverse(centerRemoteCamera->getProjectionMatrix()));
                 }
                 {
                     genQuadsShader.setMat4("view", remoteCamera->getViewMatrix());
@@ -615,6 +597,7 @@ int main(int argc, char** argv) {
                     genQuadsShader.setBool("doOrientationCorrection", doOrientationCorrection);
                     genQuadsShader.setFloat("distanceThreshold", distanceThreshold);
                     genQuadsShader.setFloat("angleThreshold", glm::radians(angleThreshold));
+                    genQuadsShader.setBool("doDiscardIfOutsideCenterView", i != 0 && i != 1);
                 }
                 {
                     genQuadsShader.setTexture(renderer.gBuffer.positionBuffer, 0);
