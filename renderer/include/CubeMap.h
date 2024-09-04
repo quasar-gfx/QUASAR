@@ -39,8 +39,13 @@ struct CubeMapCreateParams {
 };
 
 class CubeMap : public Texture {
+private:
+    struct CubeMapVertex {
+        glm::vec3 position;
+    };
+
 public:
-    Buffer vertexBuffer;
+    Buffer<CubeMapVertex> vertexBuffer;
 
     CubeMapType type;
 
@@ -48,7 +53,9 @@ public:
 
     GLint wrapR = GL_CLAMP_TO_EDGE;
 
-    CubeMap() : vertexBuffer(GL_ARRAY_BUFFER) {}
+    CubeMap() : vertexBuffer(GL_ARRAY_BUFFER) {
+        target = GL_TEXTURE_CUBE_MAP;
+    }
     CubeMap(const CubeMapCreateParams &params)
             : type(params.type)
             , wrapR(params.wrapR)
@@ -111,10 +118,6 @@ public:
     static const glm::mat4 captureViews[3*NUM_CUBEMAP_FACES];
 
 private:
-    struct CubeMapVertex {
-        glm::vec3 position;
-    };
-
     GLuint vertexArrayBuffer;
 
     void initBuffers();

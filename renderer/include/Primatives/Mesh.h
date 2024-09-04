@@ -26,8 +26,8 @@ struct MeshCreateParams {
 
 class Mesh : public Entity {
 public:
-    Buffer vertexBuffer;
-    Buffer indexBuffer;
+    Buffer<Vertex> vertexBuffer;
+    Buffer<unsigned int> indexBuffer;
 
     Material* material;
 
@@ -38,7 +38,9 @@ public:
 
     GLenum usage;
 
-    Mesh() = default;
+    Mesh() : vertexBuffer(GL_ARRAY_BUFFER), indexBuffer(GL_ELEMENT_ARRAY_BUFFER) {
+        createArrayBuffer();
+    }
     Mesh(const MeshCreateParams &params)
             : material(params.material)
             , wireframe(params.wireframe)

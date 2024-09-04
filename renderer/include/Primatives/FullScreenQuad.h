@@ -9,8 +9,14 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 class FullScreenQuad {
+private:
+    struct FSQuadVertex {
+        glm::vec2 position;
+        glm::vec2 texCoords;
+    };
+
 public:
-    Buffer vertexBuffer;
+    Buffer<FSQuadVertex> vertexBuffer;
 
     FullScreenQuad() : vertexBuffer(GL_ARRAY_BUFFER) {
         // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
@@ -31,7 +37,7 @@ public:
         glBindVertexArray(vertexArrayBuffer);
 
         vertexBuffer.bind();
-        vertexBuffer.setData(quadVertices.size() * sizeof(FSQuadVertex), quadVertices.data());
+        vertexBuffer.setData(quadVertices);
 
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(FSQuadVertex), (void*)offsetof(FSQuadVertex, position));
@@ -65,11 +71,6 @@ public:
     }
 
 private:
-    struct FSQuadVertex {
-        glm::vec2 position;
-        glm::vec2 texCoords;
-    };
-
     GLuint vertexArrayBuffer;
 };
 

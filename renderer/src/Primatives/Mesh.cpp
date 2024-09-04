@@ -45,7 +45,7 @@ void Mesh::setBuffers(const std::vector<Vertex> &vertices) {
     glBindVertexArray(vertexArrayBuffer);
 
     vertexBuffer.bind();
-    vertexBuffer.setData(vertices.size() * sizeof(Vertex), vertices.data());
+    vertexBuffer.setData(vertices);
 
     glBindVertexArray(0);
 
@@ -61,10 +61,10 @@ void Mesh::setBuffers(const std::vector<Vertex> &vertices, const std::vector<uns
     glBindVertexArray(vertexArrayBuffer);
 
     vertexBuffer.bind();
-    vertexBuffer.setData(vertices.size() * sizeof(Vertex), vertices.data());
+    vertexBuffer.setData(vertices);
 
     indexBuffer.bind();
-    indexBuffer.setData(indices.size() * sizeof(unsigned int), indices.data());
+    indexBuffer.setData(indices);
 
     glBindVertexArray(0);
 
