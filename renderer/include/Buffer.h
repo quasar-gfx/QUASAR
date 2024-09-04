@@ -26,6 +26,49 @@ public:
         glDeleteBuffers(1, &ID);
     }
 
+    // copy constructor
+    Buffer<T>& operator=(const Buffer<T>& other) {
+        if (this == &other) {
+            return *this;
+        }
+
+        ID = other.ID;
+        target = other.target;
+        usage = other.usage;
+        numElems = other.numElems;
+
+        // copy data from other buffer
+        if (numElems > 0) {
+            bind();
+            std::vector<T> data(numElems);
+            other.getSubData(0, numElems, data.data());
+            setData(data);
+            unbind();
+        }
+
+        return *this;
+    }
+
+    // move assignment
+    Buffer<T>& operator=(Buffer<T>&& other) noexcept {
+        if (this == &other) {
+            return *this;
+        }
+
+        // delete current buffer so we can inherit the other buffer's ID
+        glDeleteBuffers(1, &ID);
+
+        ID = other.ID;
+        target = other.target;
+        usage = other.usage;
+        numElems = other.numElems;
+
+        other.ID = 0;
+        other.numElems = 0;
+
+        return *this;
+    }
+
     unsigned int getSize() const {
         return numElems;
     }

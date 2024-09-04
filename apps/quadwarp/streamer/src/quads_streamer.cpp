@@ -481,9 +481,11 @@ int main(int argc, char** argv) {
             genQuadsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
             // get number of vertices and indices in mesh
-            unsigned int verticesSize, indicesSize;
+            unsigned int verticesSize;
             numVerticesBuffer.bind();
             numVerticesBuffer.getSubData(0, 1, &verticesSize);
+
+            unsigned int indicesSize;
             numIndicesBuffer.bind();
             numIndicesBuffer.getSubData(0, 1, &indicesSize);
 
