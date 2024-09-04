@@ -132,7 +132,8 @@ int main(int argc, char** argv) {
             .vertices = std::vector<Vertex>(numVertices),
             .indices = std::vector<unsigned int>(indexBufferSize),
             .material = new UnlitMaterial({ .diffuseTexture = &renderTargets[i]->colorBuffer }),
-            .wireframe = false
+            .wireframe = false,
+            .usage = GL_DYNAMIC_DRAW
         });
 
         nodes[i] = new Node(meshes[i]);
@@ -142,7 +143,10 @@ int main(int argc, char** argv) {
             .vertices = std::vector<Vertex>(numVertices),
             .indices = std::vector<unsigned int>(indexBufferSize),
             .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-            .wireframe = true
+            .wireframe = true,
+            .pointcloud = true,
+            .pointSize = 7.5f,
+            .usage = GL_DYNAMIC_DRAW
         });
 
         nodesWireframe[i] = new Node(meshesWireframe[i]);
@@ -153,7 +157,8 @@ int main(int argc, char** argv) {
             .vertices = std::vector<Vertex>(numVerticesDepth),
             .indices = std::vector<unsigned int>(numVerticesDepth),
             .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-            .wireframe = false
+            .wireframe = false,
+            .usage = GL_DYNAMIC_DRAW
         });
 
         nodesDepth[i] = new Node(meshesDepth[i]);

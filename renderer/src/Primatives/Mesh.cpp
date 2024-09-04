@@ -45,7 +45,7 @@ void Mesh::setBuffers(const std::vector<Vertex> &vertices) {
     glBindVertexArray(vertexArrayBuffer);
 
     vertexBuffer.bind();
-    vertexBuffer.setData(vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+    vertexBuffer.setData(vertices.size() * sizeof(Vertex), vertices.data());
 
     glBindVertexArray(0);
 
@@ -61,10 +61,10 @@ void Mesh::setBuffers(const std::vector<Vertex> &vertices, const std::vector<uns
     glBindVertexArray(vertexArrayBuffer);
 
     vertexBuffer.bind();
-    vertexBuffer.setData(vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+    vertexBuffer.setData(vertices.size() * sizeof(Vertex), vertices.data());
 
     indexBuffer.bind();
-    indexBuffer.setData(indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+    indexBuffer.setData(indices.size() * sizeof(unsigned int), indices.data());
 
     glBindVertexArray(0);
 
@@ -202,12 +202,12 @@ RenderStats Mesh::draw() {
     GLenum primativeType = pointcloud ? GL_POINTS : GL_TRIANGLES;
 
     glBindVertexArray(vertexArrayBuffer);
-    if (indexBuffer.size > 0) {
+    if (indexBuffer.getSize() > 0) {
         indexBuffer.bind();
-        glDrawElements(primativeType, indexBuffer.size, GL_UNSIGNED_INT, 0);
+        glDrawElements(primativeType, indexBuffer.getSize(), GL_UNSIGNED_INT, 0);
     }
     else {
-        glDrawArrays(primativeType, 0, vertexBuffer.size);
+        glDrawArrays(primativeType, 0, vertexBuffer.getSize());
     }
     glBindVertexArray(0);
 
@@ -218,11 +218,11 @@ RenderStats Mesh::draw() {
 #endif
 
     RenderStats stats;
-    if (indexBuffer.size > 0) {
-        stats.trianglesDrawn = static_cast<unsigned int>(indexBuffer.size / 3);
+    if (indexBuffer.getSize() > 0) {
+        stats.trianglesDrawn = static_cast<unsigned int>(indexBuffer.getSize() / 3);
     }
     else {
-        stats.trianglesDrawn = static_cast<unsigned int>(vertexBuffer.size / 3);
+        stats.trianglesDrawn = static_cast<unsigned int>(vertexBuffer.getSize() / 3);
     }
     stats.drawCalls = 1;
 

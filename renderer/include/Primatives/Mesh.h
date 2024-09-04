@@ -21,6 +21,7 @@ struct MeshCreateParams {
     bool pointcloud = false;
     float pointSize = 5.0;
     float IBL = 1.0;
+    GLenum usage = GL_STATIC_DRAW;
 };
 
 class Mesh : public Entity {
@@ -35,6 +36,8 @@ public:
     float pointSize = 5.0;
     float IBL = 1.0;
 
+    GLenum usage;
+
     Mesh() = default;
     Mesh(const MeshCreateParams &params)
             : material(params.material)
@@ -42,8 +45,9 @@ public:
             , pointcloud(params.pointcloud)
             , pointSize(params.pointSize)
             , IBL(params.IBL)
-            , vertexBuffer(GL_ARRAY_BUFFER)
-            , indexBuffer(GL_ELEMENT_ARRAY_BUFFER) {
+            , usage(params.usage)
+            , vertexBuffer(GL_ARRAY_BUFFER, params.usage)
+            , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, params.usage) {
         createArrayBuffer();
         setBuffers(params.vertices, params.indices);
     }

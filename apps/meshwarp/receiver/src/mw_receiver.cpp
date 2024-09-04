@@ -124,6 +124,7 @@ int main(int argc, char** argv) {
         .material = new UnlitMaterial({ .diffuseTexture = &videoTextureColor }),
         .wireframe = false,
         .pointcloud = renderState == RenderState::POINTCLOUD,
+        .usage = GL_DYNAMIC_DRAW
     });
     Node node = Node(&mesh);
     node.frustumCulled = false;
@@ -135,6 +136,7 @@ int main(int argc, char** argv) {
         .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
         .wireframe = true,
         .pointcloud = false,
+        .usage = GL_DYNAMIC_DRAW
     });
     Node nodeWireframe = Node(&meshWireframe);
     nodeWireframe.frustumCulled = false;

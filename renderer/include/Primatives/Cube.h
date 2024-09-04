@@ -5,10 +5,8 @@
 
 class Cube : public Mesh {
 public:
-    std::vector<Vertex> vertices;
-
     Cube(const MeshCreateParams &params) : Mesh(params) {
-        vertices = {
+        std::vector<Vertex> vertices = {
             // Front face
             { {-1.0f, -1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f} }, // Bottom Left
             { { 1.0f, -1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f} }, // Bottom Right

@@ -31,7 +31,7 @@ public:
         glBindVertexArray(vertexArrayBuffer);
 
         vertexBuffer.bind();
-        vertexBuffer.setData(quadVertices.size() * sizeof(FSQuadVertex), quadVertices.data(), GL_STATIC_DRAW);
+        vertexBuffer.setData(quadVertices.size() * sizeof(FSQuadVertex), quadVertices.data());
 
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(FSQuadVertex), (void*)offsetof(FSQuadVertex, position));

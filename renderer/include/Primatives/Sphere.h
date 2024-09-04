@@ -5,11 +5,11 @@
 
 class Sphere : public Mesh {
 public:
-    std::vector<Vertex> vertices;
-    std::vector<unsigned int> indices;
+    float radius = 1.0f;
 
-    Sphere(const MeshCreateParams &params, unsigned int xSegments = 64, unsigned int ySegments = 64) : Mesh(params) {
-        float radius = 1.0f;
+    Sphere(const MeshCreateParams &params, unsigned int xSegments = 64, unsigned int ySegments = 64, float radius = 1.0f) : Mesh(params), radius(radius) {
+        std::vector<Vertex> vertices;
+        std::vector<unsigned int> indices;
 
         for (int i = 0; i <= xSegments; i++) {
             float phi = M_PI * static_cast<float>(i) / xSegments;

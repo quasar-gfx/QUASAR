@@ -4,21 +4,29 @@
 #include <OpenGLObject.h>
 
 struct Buffer : OpenGLObject {
+public:
     GLenum type;
-    unsigned int size;
+    GLenum usage;
 
-    Buffer(GLenum type = GL_ARRAY_BUFFER) : type(type), size(0) {
+    Buffer(GLenum type = GL_ARRAY_BUFFER, GLenum usage = GL_STATIC_DRAW)
+            : type(type)
+            , usage(usage)
+            , size(0) {
         glGenBuffers(1, &ID);
     }
     ~Buffer() override {
         glDeleteBuffers(1, &ID);
     }
 
+    unsigned int getSize() const {
+        return size;
+    }
+
     void setSize(unsigned int size) {
         this->size = size;
     }
 
-    void setData(unsigned int size, const void *data, GLenum usage = GL_STATIC_DRAW) {
+    void setData(unsigned int size, const void *data) {
         setSize(size);
         glBufferData(type, size, data, usage);
     }
@@ -30,6 +38,9 @@ struct Buffer : OpenGLObject {
     void unbind() const override {
         glBindBuffer(type, 0);
     }
+
+private:
+    unsigned int size;
 };
 
 #endif // BUFFER_H

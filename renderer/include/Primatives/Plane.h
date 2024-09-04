@@ -5,12 +5,9 @@
 
 class Plane : public Mesh {
 public:
-    std::vector<Vertex> vertices;
-    std::vector<unsigned int> indices;
-
     Plane(const MeshCreateParams &params, bool twoSided = true) : Mesh(params) {
         if (twoSided) {
-            vertices = {
+            std::vector<Vertex> vertices = {
                 // Top face (facing up)
                 { {-1.0f, 0.0f,  1.0f}, { 0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },
                 { {-1.0f, 0.0f, -1.0f}, { 0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },
@@ -24,7 +21,7 @@ public:
                 { {-1.0f, 0.0f, -1.0f}, { 0.0f, -1.0f, 0.0}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f} }
             };
 
-            indices = {
+            std::vector<unsigned int> indices = {
                 // Front face
                 0, 1, 2,
                 2, 3, 0,
@@ -36,7 +33,7 @@ public:
             setBuffers(vertices, indices);
         }
         else {
-            vertices = {
+            std::vector<Vertex> vertices = {
                 { {-1.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f} }, // Bottom Left
                 { { 1.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f} }, // Bottom Right
                 { { 1.0f, 0.0f,  1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f} }, // Top Right
