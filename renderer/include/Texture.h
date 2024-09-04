@@ -90,24 +90,24 @@ public:
         loadFromFile(params);
     }
 
-    ~Texture() {
+    ~Texture() override {
         cleanup();
     }
 
-    void bind() const {
+    virtual void bind() const override {
         bind(0);
     }
 
-    void bind(unsigned int slot) const {
+    virtual void bind(unsigned int slot) const {
         glActiveTexture(GL_TEXTURE0 + slot);
         glBindTexture(target, ID);
     }
 
-    void unbind() const {
+    virtual void unbind() const override {
         unbind(0);
     }
 
-    void unbind(unsigned int slot) const {
+    virtual void unbind(unsigned int slot) const {
         glActiveTexture(GL_TEXTURE0 + slot);
         glBindTexture(target, 0);
         glActiveTexture(GL_TEXTURE0);

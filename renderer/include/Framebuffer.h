@@ -10,7 +10,7 @@ public:
     Framebuffer() {
         glGenFramebuffers(1, &ID);
     }
-    ~Framebuffer() {
+    ~Framebuffer() override {
         glDeleteFramebuffers(1, &ID);
     }
 
@@ -73,11 +73,11 @@ public:
         glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
     }
 
-    void bind() const {
+    void bind() const override {
         glBindFramebuffer(GL_FRAMEBUFFER, ID);
     }
 
-    void unbind() const {
+    void unbind() const override {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 };

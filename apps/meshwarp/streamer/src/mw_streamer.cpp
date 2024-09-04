@@ -310,7 +310,7 @@ int main(int argc, char** argv) {
             if (pauseState != PauseState::PAUSE_DEPTH) videoStreamerDepthRT.sendFrame(poseID);
         }
 
-        // std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     });
 
     // run app loop (blocking)

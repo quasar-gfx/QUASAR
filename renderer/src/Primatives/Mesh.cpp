@@ -2,12 +2,7 @@
 
 #include <glm/gtx/string_cast.hpp>
 
-uint32_t Vertex::nextID = 0;
-
-void Mesh::createBuffers() {
-    glGenBuffers(1, &vertexBuffer);
-    glGenBuffers(1, &indexBuffer);
-
+void Mesh::createArrayBuffer() {
     glGenVertexArrays(1, &vertexArrayBuffer);
     createAttributes();
 }
@@ -42,17 +37,15 @@ void Mesh::createAttributes() {
 }
 
 void Mesh::setBuffers(const std::vector<Vertex> &vertices) {
-    vertexBufferSize = static_cast<unsigned int>(vertices.size());
-
-    // if no vertices, dont bind buffer
-    if (vertexBufferSize == 0) {
+    // if no vertices, return
+    if (vertices.size() == 0) {
         return;
     }
 
     glBindVertexArray(vertexArrayBuffer);
 
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-    glBufferData(GL_ARRAY_BUFFER, vertexBufferSize * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+    vertexBuffer.bind();
+    vertexBuffer.setData(vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
     glBindVertexArray(0);
 
@@ -60,21 +53,18 @@ void Mesh::setBuffers(const std::vector<Vertex> &vertices) {
 }
 
 void Mesh::setBuffers(const std::vector<Vertex> &vertices, const std::vector<unsigned int> &indices) {
-    vertexBufferSize = static_cast<unsigned int>(vertices.size());
-    indexBufferSize = static_cast<unsigned int>(indices.size());
-
     // if no vertices or indices, dont bind buffers
-    if (vertexBufferSize == 0 || indexBufferSize == 0) {
+    if (vertices.size() == 0 || indices.size() == 0) {
         return;
     }
 
     glBindVertexArray(vertexArrayBuffer);
 
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-    glBufferData(GL_ARRAY_BUFFER, vertexBufferSize * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+    vertexBuffer.bind();
+    vertexBuffer.setData(vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBufferSize * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+    indexBuffer.bind();
+    indexBuffer.setData(indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 
     glBindVertexArray(0);
 
@@ -82,8 +72,8 @@ void Mesh::setBuffers(const std::vector<Vertex> &vertices, const std::vector<uns
 }
 
 void Mesh::resizeBuffers(unsigned int vertexBufferSize, unsigned int indexBufferSize) {
-    this->vertexBufferSize = vertexBufferSize;
-    this->indexBufferSize = indexBufferSize;
+    vertexBuffer.setSize(vertexBufferSize);
+    indexBuffer.setSize(indexBufferSize);
 }
 
 void Mesh::updateAABB(const std::vector<Vertex> &vertices) {
@@ -212,12 +202,12 @@ RenderStats Mesh::draw() {
     GLenum primativeType = pointcloud ? GL_POINTS : GL_TRIANGLES;
 
     glBindVertexArray(vertexArrayBuffer);
-    if (indexBufferSize > 0) {
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
-        glDrawElements(primativeType, indexBufferSize, GL_UNSIGNED_INT, 0);
+    if (indexBuffer.size > 0) {
+        indexBuffer.bind();
+        glDrawElements(primativeType, indexBuffer.size, GL_UNSIGNED_INT, 0);
     }
     else {
-        glDrawArrays(primativeType, 0, vertexBufferSize);
+        glDrawArrays(primativeType, 0, vertexBuffer.size);
     }
     glBindVertexArray(0);
 
@@ -228,11 +218,11 @@ RenderStats Mesh::draw() {
 #endif
 
     RenderStats stats;
-    if (indexBufferSize > 0) {
-        stats.trianglesDrawn = static_cast<unsigned int>(indexBufferSize / 3);
+    if (indexBuffer.size > 0) {
+        stats.trianglesDrawn = static_cast<unsigned int>(indexBuffer.size / 3);
     }
     else {
-        stats.trianglesDrawn = static_cast<unsigned int>(vertexBufferSize / 3);
+        stats.trianglesDrawn = static_cast<unsigned int>(vertexBuffer.size / 3);
     }
     stats.drawCalls = 1;
 

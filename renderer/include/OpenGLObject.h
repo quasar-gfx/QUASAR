@@ -10,7 +10,7 @@ public:
     operator GLuint() const { return ID; }
 
     OpenGLObject() : ID(0) {}
-    ~OpenGLObject() = default;
+    virtual ~OpenGLObject() = default;
 
     virtual void bind() const = 0;
     virtual void unbind() const = 0;

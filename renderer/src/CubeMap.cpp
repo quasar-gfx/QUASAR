@@ -122,12 +122,11 @@ void CubeMap::initBuffers() {
     };
 
     glGenVertexArrays(1, &vertexArrayBuffer);
-    glGenBuffers(1, &vertexBuffer);
 
     glBindVertexArray(vertexArrayBuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
 
-    glBufferData(GL_ARRAY_BUFFER, skyboxVertices.size() * sizeof(CubeMapVertex), skyboxVertices.data(), GL_STATIC_DRAW);
+    vertexBuffer.bind();
+    vertexBuffer.setData(skyboxVertices.size() * sizeof(CubeMapVertex), skyboxVertices.data(), GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(CubeMapVertex), (void*)0);

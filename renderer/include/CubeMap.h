@@ -7,6 +7,7 @@
 #include <vector>
 #include <string>
 
+#include <Buffer.h>
 #include <Shaders/Shader.h>
 #include <Renderbuffer.h>
 #include <Cameras/Camera.h>
@@ -39,13 +40,15 @@ struct CubeMapCreateParams {
 
 class CubeMap : public Texture {
 public:
+    Buffer vertexBuffer;
+
     CubeMapType type;
 
     unsigned int maxMipLevels = 1;
 
     GLint wrapR = GL_CLAMP_TO_EDGE;
 
-    CubeMap() = default;
+    CubeMap() : vertexBuffer(GL_ARRAY_BUFFER) {}
     CubeMap(const CubeMapCreateParams &params)
             : type(params.type)
             , wrapR(params.wrapR)
@@ -57,7 +60,8 @@ public:
                 .wrapT = params.wrapT,
                 .minFilter = params.minFilter,
                 .magFilter = params.magFilter
-            }) {
+            })
+            , vertexBuffer(GL_ARRAY_BUFFER) {
         target = GL_TEXTURE_CUBE_MAP;
         if (params.rightFaceTexturePath != "" && params.leftFaceTexturePath != "" &&
             params.topFaceTexturePath != "" && params.bottomFaceTexturePath != "" &&
@@ -77,10 +81,8 @@ public:
             init(params.width, params.height, params.type);
         }
     }
-
-    ~CubeMap() {
+    ~CubeMap() override {
         glDeleteBuffers(1, &vertexArrayBuffer);
-        glDeleteBuffers(1, &vertexBuffer);
         glDeleteTextures(1, &ID);
     }
 
@@ -92,16 +94,16 @@ public:
 
     RenderStats draw(const Shader &shader, const Camera &camera) const;
 
-    void bind() const {
+    void bind() const override {
         bind(0);
     }
 
-    void bind(unsigned int slot) const {
+    void bind(unsigned int slot) const override {
         glActiveTexture(GL_TEXTURE0 + slot);
         glBindTexture(target, ID);
     }
 
-    void unbind() const {
+    void unbind() const override {
         glBindTexture(target, 0);
     }
 
@@ -114,7 +116,6 @@ private:
     };
 
     GLuint vertexArrayBuffer;
-    GLuint vertexBuffer;
 
     void initBuffers();
     void loadFromFiles(std::vector<std::string> faceFilePaths,

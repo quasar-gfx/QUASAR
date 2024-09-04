@@ -20,15 +20,15 @@ enum class ShaderType {
 class ShaderBase : public OpenGLObject {
 public:
     ShaderBase() = default;
-    ~ShaderBase() {
+    ~ShaderBase() override {
         glDeleteProgram(ID);
     }
 
-    void bind() const {
+    void bind() const override {
         glUseProgram(ID);
     }
 
-    void unbind() const {
+    void unbind() const override {
         glUseProgram(0);
     }
 

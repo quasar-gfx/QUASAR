@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <Vertex.h>
+#include <Buffer.h>
 #include <Shaders/Shader.h>
 #include <Texture.h>
 #include <Primatives/Entity.h>
@@ -24,11 +25,8 @@ struct MeshCreateParams {
 
 class Mesh : public Entity {
 public:
-    GLuint vertexBuffer;
-    unsigned int vertexBufferSize;
-
-    GLuint indexBuffer;
-    unsigned int indexBufferSize;
+    Buffer vertexBuffer;
+    Buffer indexBuffer;
 
     Material* material;
 
@@ -43,8 +41,10 @@ public:
             , wireframe(params.wireframe)
             , pointcloud(params.pointcloud)
             , pointSize(params.pointSize)
-            , IBL(params.IBL) {
-        createBuffers();
+            , IBL(params.IBL)
+            , vertexBuffer(GL_ARRAY_BUFFER)
+            , indexBuffer(GL_ELEMENT_ARRAY_BUFFER) {
+        createArrayBuffer();
         setBuffers(params.vertices, params.indices);
     }
 
@@ -68,7 +68,7 @@ public:
 protected:
     GLuint vertexArrayBuffer;
 
-    void createBuffers();
+    void createArrayBuffer();
     void createAttributes();
 
     void setMaterialCameraParams(const Camera &camera, const Material* material);

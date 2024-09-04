@@ -1,16 +1,18 @@
 #ifndef FULL_SCREEN_QUAD_H
 #define FULL_SCREEN_QUAD_H
 
-#include <OpenGLObject.h>
+#include <vector>
+
+#include <Buffer.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <vector>
-
 class FullScreenQuad {
 public:
-    FullScreenQuad() {
+    Buffer vertexBuffer;
+
+    FullScreenQuad() : vertexBuffer(GL_ARRAY_BUFFER) {
         // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
         std::vector<FSQuadVertex> quadVertices = {
             // bottom triangle
@@ -25,12 +27,11 @@ public:
         };
 
         glGenVertexArrays(1, &vertexArrayBuffer);
-        glGenBuffers(1, &vertexBuffer);
 
         glBindVertexArray(vertexArrayBuffer);
 
-        glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-        glBufferData(GL_ARRAY_BUFFER, quadVertices.size() * sizeof(FSQuadVertex), quadVertices.data(), GL_STATIC_DRAW);
+        vertexBuffer.bind();
+        vertexBuffer.setData(quadVertices.size() * sizeof(FSQuadVertex), quadVertices.data(), GL_STATIC_DRAW);
 
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(FSQuadVertex), (void*)offsetof(FSQuadVertex, position));
@@ -42,7 +43,6 @@ public:
 
     ~FullScreenQuad() {
         glDeleteVertexArrays(1, &vertexArrayBuffer);
-        glDeleteBuffers(1, &vertexBuffer);
     };
 
     RenderStats draw() {
@@ -71,7 +71,6 @@ private:
     };
 
     GLuint vertexArrayBuffer;
-    GLuint vertexBuffer;
 };
 
 #endif // FULL_SCREEN_QUAD_H

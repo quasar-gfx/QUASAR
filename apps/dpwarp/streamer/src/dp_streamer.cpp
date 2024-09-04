@@ -83,13 +83,10 @@ int main(int argc, char** argv) {
 
     std::vector<RenderTarget*> renderTargets(renderer.maxLayers);
 
-    // std::vector<GLuint> vertexBuffers(renderer.maxLayers);
     int numVertices = remoteWidth * remoteHeight * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
 
-    // std::vector<GLuint> vertexBufferDepths(renderer.maxLayers);
     int numVerticesDepth = remoteWidth * remoteHeight;
 
-    // std::vector<GLuint> indexBuffers(renderer.maxLayers);
     int numTriangles = remoteWidth * remoteHeight * NUM_SUB_QUADS * 2;
     int indexBufferSize = numTriangles * 3;
 

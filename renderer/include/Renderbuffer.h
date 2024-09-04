@@ -24,7 +24,7 @@ public:
         glBindRenderbuffer(GL_RENDERBUFFER, ID);
         glRenderbufferStorage(GL_RENDERBUFFER, internalFormat, width, height);
     }
-    ~Renderbuffer() {
+    ~Renderbuffer() override {
         glDeleteRenderbuffers(1, &ID);
     }
 
@@ -35,11 +35,11 @@ public:
         glRenderbufferStorage(GL_RENDERBUFFER, internalFormat, width, height);
     }
 
-    void bind() const {
+    void bind() const override {
         glBindRenderbuffer(GL_RENDERBUFFER, ID);
     }
 
-    void unbind() const {
+    void unbind() const override {
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
     }
 };
