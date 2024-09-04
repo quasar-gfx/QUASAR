@@ -26,11 +26,11 @@ layout(std430, binding = 1) buffer IndexBuffer {
     uint indices[];
 };
 
-layout(std430, binding = 2) Vertex vertexBufferDepth {
+layout(std430, binding = 2) buffer VertexBufferDepth {
     Vertex verticesDepth[];
 };
 
-layout(std430, binding = 3) Buffer<Vertex> vertexCounterBuffer {
+layout(std430, binding = 3) buffer VertexCounterBuffer {
     uint numVertices;
 };
 

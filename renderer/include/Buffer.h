@@ -8,14 +8,19 @@
 template<typename T>
 struct Buffer : OpenGLObject {
 public:
-    GLenum type;
+    GLenum target;
     GLenum usage;
 
-    Buffer(GLenum type = GL_ARRAY_BUFFER, GLenum usage = GL_STATIC_DRAW)
-            : type(type)
+    Buffer(GLenum target = GL_ARRAY_BUFFER, GLenum usage = GL_STATIC_DRAW)
+            : target(target)
             , usage(usage)
             , numElems(0) {
         glGenBuffers(1, &ID);
+    }
+    Buffer(GLenum target, GLenum usage, unsigned int numElems, const T *data)
+            : Buffer(target, usage) {
+        bind();
+        setData(numElems, data);
     }
     ~Buffer() override {
         glDeleteBuffers(1, &ID);
@@ -31,24 +36,38 @@ public:
 
     void resize(unsigned int numElems) {
         setSize(numElems);
-        glBufferData(type, numElems * sizeof(T), nullptr, usage);
+        glBufferData(target, numElems * sizeof(T), nullptr, usage);
     }
 
     void setData(unsigned int numElems, const void *data) {
         setSize(numElems);
-        glBufferData(type, numElems * sizeof(T), data, usage);
+        glBufferData(target, numElems * sizeof(T), data, usage);
     }
 
     void setData(const std::vector<T> &data) {
         setData(data.size(), data.data());
     }
 
+    void setSubData(unsigned int offset, unsigned int numElems, const void *data) {
+        glBufferSubData(target, offset * sizeof(T), numElems * sizeof(T), data);
+    }
+
+    void setSubData(unsigned int offset, const std::vector<T> &data) {
+        setSubData(offset, data.size(), data.data());
+    }
+
+#ifdef GL_CORE
+    void getSubData(unsigned int offset, unsigned int numElems, void *data) {
+        glGetBufferSubData(target, offset * sizeof(T), numElems * sizeof(T), data);
+    }
+#endif
+
     void bind() const override {
-        glBindBuffer(type, ID);
+        glBindBuffer(target, ID);
     }
 
     void unbind() const override {
-        glBindBuffer(type, 0);
+        glBindBuffer(target, 0);
     }
 
 private:

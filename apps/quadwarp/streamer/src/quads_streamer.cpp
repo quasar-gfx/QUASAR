@@ -104,18 +104,9 @@ int main(int argc, char** argv) {
     int numTriangles = remoteWidth * remoteHeight * NUM_SUB_QUADS * 2;
     int indexBufferSize = numTriangles * 3;
 
-    GLuint numVerticesSSBO;
-    glGenBuffers(1, &numVerticesSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, numVerticesSSBO);
-    GLuint zero = 0;
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(GLuint), &zero, GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-    GLuint numIndicesSSBO;
-    glGenBuffers(1, &numIndicesSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, numIndicesSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(GLuint), &zero, GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    unsigned int zero = 0;
+    Buffer<unsigned int> numVerticesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(GLuint), &zero);
+    Buffer<unsigned int> numIndicesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(GLuint), &zero);
 
     Mesh mesh = Mesh({
         .vertices = std::vector<Vertex>(numVertices),
@@ -474,16 +465,16 @@ int main(int argc, char** argv) {
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, meshDepth.vertexBuffer);
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, numVerticesSSBO);
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, numIndicesSSBO);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, numVerticesBuffer);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, numIndicesBuffer);
             }
 
             // set numVertices and numIndices to 0 before running compute shader
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, numVerticesSSBO);
-            glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(GLuint), &zero);
+            numVerticesBuffer.bind();
+            numVerticesBuffer.setSubData(0, 1, &zero);
 
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, numIndicesSSBO);
-            glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(GLuint), &zero);
+            numIndicesBuffer.bind();
+            numIndicesBuffer.setSubData(0, 1, &zero);
 
             // run compute shader
             genQuadsShader.dispatch(remoteWidth / 16, remoteHeight / 16, 1);
@@ -491,8 +482,10 @@ int main(int argc, char** argv) {
 
             // get number of vertices and indices in mesh
             unsigned int verticesSize, indicesSize;
-            glGetNamedBufferSubData(numVerticesSSBO, 0, sizeof(GLuint), &verticesSize);
-            glGetNamedBufferSubData(numIndicesSSBO, 0, sizeof(GLuint), &indicesSize);
+            numVerticesBuffer.bind();
+            numVerticesBuffer.getSubData(0, 1, &verticesSize);
+            numIndicesBuffer.bind();
+            numIndicesBuffer.getSubData(0, 1, &indicesSize);
 
             mesh.resizeBuffers(verticesSize, indicesSize);
             meshDepth.resizeBuffers(verticesSize, verticesSize);
