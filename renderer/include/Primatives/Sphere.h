@@ -5,6 +5,9 @@
 
 class Sphere : public Mesh {
 public:
+    std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
+
     Sphere(const MeshCreateParams &params, unsigned int xSegments = 64, unsigned int ySegments = 64) : Mesh(params) {
         float radius = 1.0f;
 
@@ -40,7 +43,7 @@ public:
                 vertex.bitangent[1] = -radius * sinPhi;
                 vertex.bitangent[2] = radius * cosPhi * sinTheta;
 
-                this->vertices.push_back(vertex);
+                vertices.push_back(vertex);
             }
         }
 
@@ -60,8 +63,7 @@ public:
             }
         }
 
-        createBuffers();
-        updateAABB();
+        setBuffers(vertices, indices);
     }
 };
 

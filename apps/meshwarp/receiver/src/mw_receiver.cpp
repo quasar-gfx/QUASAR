@@ -110,6 +110,36 @@ int main(int argc, char** argv) {
     std::cout << "Depth URL: " << depthURL << std::endl;
     std::cout << "Pose URL: " << poseURL << std::endl;
 
+    int width = screenWidth / surfelSize;
+    int height = screenHeight / surfelSize;
+
+    int numVertices = width * height;
+
+    int numTriangles = (width-1) * (height-1) * 2;
+    int indexBufferSize = numTriangles * 3;
+
+    Mesh mesh = Mesh({
+        .vertices = std::vector<Vertex>(numVertices),
+        .indices = std::vector<unsigned int>(indexBufferSize),
+        .material = new UnlitMaterial({ .diffuseTexture = &videoTextureColor }),
+        .wireframe = false,
+        .pointcloud = renderState == RenderState::POINTCLOUD,
+    });
+    Node node = Node(&mesh);
+    node.frustumCulled = false;
+    scene.addChildNode(&node);
+
+    Mesh meshWireframe = Mesh({
+        .vertices = std::vector<Vertex>(numVertices),
+        .indices = std::vector<unsigned int>(indexBufferSize),
+        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
+        .wireframe = true,
+        .pointcloud = false,
+    });
+    Node nodeWireframe = Node(&meshWireframe);
+    nodeWireframe.frustumCulled = false;
+    scene.addChildNode(&nodeWireframe);
+
     double elapsedTimeColor, elapsedTimeDepth;
     pose_id_t poseIdColor = -1, poseIdDepth = -1;
     bool mwEnabled = true;
@@ -293,50 +323,12 @@ int main(int argc, char** argv) {
         .computeCodePath = "./shaders/genMesh.comp"
     });
 
-    int width = screenWidth / surfelSize;
-    int height = screenHeight / surfelSize;
-
-    GLuint vertexBuffer;
-    int numVertices = width * height;
-    glGenBuffers(1, &vertexBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
-
-    GLuint indexBuffer;
-    int numTriangles = (width-1) * (height-1) * 2;
-    int indexBufferSize = numTriangles * 3;
-    glGenBuffers(1, &indexBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
-
     genMeshShader.bind();
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
     genMeshShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
     genMeshShader.setInt("surfelSize", surfelSize);
     genMeshShader.unbind();
-
-    Mesh mesh = Mesh({
-        .vertices = std::vector<Vertex>(numVertices),
-        .indices = std::vector<unsigned int>(indexBufferSize),
-        .material = new UnlitMaterial({ .diffuseTexture = &videoTextureColor }),
-        .wireframe = false,
-        .pointcloud = renderState == RenderState::POINTCLOUD,
-    });
-    Node node = Node(&mesh);
-    node.frustumCulled = false;
-    scene.addChildNode(&node);
-
-    Mesh meshWireframe = Mesh({
-        .vertices = std::vector<Vertex>(numVertices),
-        .indices = std::vector<unsigned int>(indexBufferSize),
-        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-        .wireframe = true,
-        .pointcloud = false,
-    });
-    Node nodeWireframe = Node(&meshWireframe);
-    nodeWireframe.frustumCulled = false;
-    scene.addChildNode(&nodeWireframe);
 
     scene.backgroundColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -448,14 +440,10 @@ int main(int argc, char** argv) {
         }
         // dispatch compute shader to generate vertices and indices for mesh
         genMeshShader.dispatch(width / 16, height / 16, 1);
-        genMeshShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+        genMeshShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
         genMeshShader.unbind();
 
         poseStreamer.removePosesLessThan(std::min(poseIdColor, poseIdDepth));
-
-        // create mesh from compute shader output
-        mesh.setBuffers(vertexBuffer, numVertices, indexBuffer, indexBufferSize);
-        meshWireframe.setBuffers(vertexBuffer, numVertices, indexBuffer, indexBufferSize);
 
         // set render state
         mesh.pointcloud = renderState == RenderState::POINTCLOUD;

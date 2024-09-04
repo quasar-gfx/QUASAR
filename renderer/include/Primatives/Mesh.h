@@ -24,8 +24,11 @@ struct MeshCreateParams {
 
 class Mesh : public Entity {
 public:
-    std::vector<Vertex> vertices;
-    std::vector<unsigned int> indices;
+    GLuint vertexBuffer;
+    unsigned int vertexBufferSize;
+
+    GLuint indexBuffer;
+    unsigned int indexBufferSize;
 
     Material* material;
 
@@ -36,15 +39,13 @@ public:
 
     Mesh() = default;
     Mesh(const MeshCreateParams &params)
-            : vertices(params.vertices)
-            , indices(params.indices)
-            , material(params.material)
+            : material(params.material)
             , wireframe(params.wireframe)
             , pointcloud(params.pointcloud)
             , pointSize(params.pointSize)
             , IBL(params.IBL) {
         createBuffers();
-        updateAABB();
+        setBuffers(params.vertices, params.indices);
     }
 
     virtual void bindMaterial(const Scene &scene, const glm::mat4 &model,
@@ -55,17 +56,17 @@ public:
     virtual RenderStats draw(const Camera &camera, const glm::mat4 &model,
                              const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) override;
     virtual RenderStats draw();
+
+    void setBuffers(const std::vector<Vertex> &vertices);
     void setBuffers(const std::vector<Vertex> &vertices, const std::vector<unsigned int> &indices);
-    void setBuffers(GLuint vertexBufferSSBO, unsigned int vertexBufferSize, GLuint indexBufferSSBO = -1, unsigned int indexBufferSize = 0);
-    void updateBuffers();
-    void updateAABB();
+
+    void resizeBuffers(unsigned int vertexBufferSize, unsigned int indexBufferSize);
+    void updateAABB(const std::vector<Vertex> &vertices);
 
     EntityType getType() const override { return EntityType::MESH; }
 
 protected:
     GLuint vertexArrayBuffer;
-    GLuint vertexBuffer;
-    GLuint indexBuffer;
 
     void createBuffers();
     void createAttributes();

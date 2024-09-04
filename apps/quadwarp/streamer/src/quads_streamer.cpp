@@ -97,24 +97,12 @@ int main(int argc, char** argv) {
         .magFilter = GL_NEAREST
     });
 
-    GLuint vertexBuffer;
     int numVertices = remoteWidth * remoteHeight * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
-    glGenBuffers(1, &vertexBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
 
-    GLuint vertexBufferDepth;
     int numVerticesDepth = remoteWidth * remoteHeight;
-    glGenBuffers(1, &vertexBufferDepth);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBufferDepth);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, numVerticesDepth * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
 
-    GLuint indexBuffer;
     int numTriangles = remoteWidth * remoteHeight * NUM_SUB_QUADS * 2;
     int indexBufferSize = numTriangles * 3;
-    glGenBuffers(1, &indexBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, indexBufferSize * sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
 
     GLuint numVerticesSSBO;
     glGenBuffers(1, &numVerticesSSBO);
@@ -128,6 +116,37 @@ int main(int argc, char** argv) {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, numIndicesSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(GLuint), &zero, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+    Mesh mesh = Mesh({
+        .vertices = std::vector<Vertex>(numVertices),
+        .indices = std::vector<unsigned int>(indexBufferSize),
+        .material = new UnlitMaterial({ .diffuseTexture = &renderTarget.colorBuffer }),
+        .wireframe = false
+    });
+    Node node = Node(&mesh);
+    node.frustumCulled = false;
+    scene.addChildNode(&node);
+
+    Mesh meshWireframe = Mesh({
+        .vertices = std::vector<Vertex>(numVertices),
+        .indices = std::vector<unsigned int>(indexBufferSize),
+        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
+        .wireframe = true
+    });
+    Node nodeWireframe = Node(&meshWireframe);
+    nodeWireframe.frustumCulled = false;
+    scene.addChildNode(&nodeWireframe);
+
+    Mesh meshDepth = Mesh({
+        .vertices = std::vector<Vertex>(numVerticesDepth),
+        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
+        .wireframe = false,
+        .pointcloud = true,
+        .pointSize = 7.5f
+    });
+    Node nodeDepth = Node(&meshDepth);
+    nodeDepth.frustumCulled = false;
+    scene.addChildNode(&nodeDepth);
 
     bool rerender = true;
     int rerenderInterval = 0;
@@ -298,14 +317,14 @@ int main(int argc, char** argv) {
 
             if (ImGui::Button("Save Mesh")) {
                 // save vertexBuffer
-                glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
+                glBindBuffer(GL_SHADER_STORAGE_BUFFER, mesh.vertexBuffer);
                 Vertex* vertices = (Vertex*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
                 std::ofstream verticesFile(DATA_PATH + verticesFileName, std::ios::binary);
                 verticesFile.write((char*)vertices, numVertices * sizeof(Vertex));
                 verticesFile.close();
 
                 // save indexBuffer
-                glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
+                glBindBuffer(GL_SHADER_STORAGE_BUFFER, mesh.indexBuffer);
                 GLuint* indices = (GLuint*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
                 std::ofstream indicesFile(DATA_PATH + indicesFileName, std::ios::binary);
                 indicesFile.write((char*)indices, indexBufferSize * sizeof(GLuint));
@@ -353,37 +372,6 @@ int main(int argc, char** argv) {
     genQuadsShader.setVec2("screenSize", glm::vec2(remoteWidth, remoteHeight));
     genQuadsShader.setInt("surfelSize", surfelSize);
     genQuadsShader.unbind();
-
-    Mesh mesh = Mesh({
-        .vertices = std::vector<Vertex>(numVertices),
-        .indices = std::vector<unsigned int>(indexBufferSize),
-        .material = new UnlitMaterial({ .diffuseTexture = &renderTarget.colorBuffer }),
-        .wireframe = false
-    });
-    Node node = Node(&mesh);
-    node.frustumCulled = false;
-    scene.addChildNode(&node);
-
-    Mesh meshWireframe = Mesh({
-        .vertices = std::vector<Vertex>(numVertices),
-        .indices = std::vector<unsigned int>(indexBufferSize),
-        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-        .wireframe = true
-    });
-    Node nodeWireframe = Node(&meshWireframe);
-    nodeWireframe.frustumCulled = false;
-    scene.addChildNode(&nodeWireframe);
-
-    Mesh meshDepth = Mesh({
-        .vertices = std::vector<Vertex>(numVerticesDepth),
-        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-        .wireframe = false,
-        .pointcloud = true,
-        .pointSize = 7.5f
-    });
-    Node nodeDepth = Node(&meshDepth);
-    nodeDepth.frustumCulled = false;
-    scene.addChildNode(&nodeDepth);
 
     double startRenderTime = window->getTime();
     app.onRender([&](double now, double dt) {
@@ -479,9 +467,9 @@ int main(int argc, char** argv) {
                 genQuadsShader.setTexture(renderer.gBuffer.depthStencilBuffer, 3);
             }
             {
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffer);
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, vertexBufferDepth);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, meshDepth.vertexBuffer);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, numVerticesSSBO);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, numIndicesSSBO);
             }
@@ -495,18 +483,16 @@ int main(int argc, char** argv) {
 
             // run compute shader
             genQuadsShader.dispatch(remoteWidth / 16, remoteHeight / 16, 1);
-            genQuadsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+            genQuadsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
             // get number of vertices and indices in mesh
             unsigned int verticesSize, indicesSize;
             glGetNamedBufferSubData(numVerticesSSBO, 0, sizeof(GLuint), &verticesSize);
             glGetNamedBufferSubData(numIndicesSSBO, 0, sizeof(GLuint), &indicesSize);
 
-            genQuadsShader.unbind();
-
-            mesh.setBuffers(vertexBuffer, verticesSize, indexBuffer, indicesSize);
-            meshWireframe.setBuffers(vertexBuffer, verticesSize, indexBuffer, indicesSize);
-            meshDepth.setBuffers(vertexBufferDepth, numVerticesDepth, indexBuffer, indicesSize);
+            mesh.resizeBuffers(verticesSize, indicesSize);
+            meshDepth.resizeBuffers(verticesSize, verticesSize);
+            meshWireframe.resizeBuffers(verticesSize, indicesSize);
 
             std::cout << "Compute Shader Time: " << glfwGetTime() - startTime << "s" << std::endl;
 
