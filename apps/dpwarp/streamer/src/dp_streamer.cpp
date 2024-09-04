@@ -4,6 +4,7 @@
 
 #include <OpenGLApp.h>
 #include <Renderers/DepthPeelingRenderer.h>
+#include <Renderers/ForwardRenderer.h>
 #include <SceneLoader.h>
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
@@ -26,6 +27,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
+    args::ValueFlag<int> maxLayersIn(parser, "layers", "Max layers", {'n', "max-layers"}, 8);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -54,6 +56,7 @@ int main(int argc, char** argv) {
     std::string scenePath = args::get(scenePathIn);
 
     int surfelSize = args::get(surfelSizeIn);
+    int maxLayers = args::get(maxLayersIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -62,26 +65,36 @@ int main(int argc, char** argv) {
     config.guiManager = guiManager;
 
     OpenGLApp app(config);
-    DepthPeelingRenderer renderer(config);
+    DepthPeelingRenderer dpRenderer(config, maxLayers);
+    ForwardRenderer forwardRenderer(config);
 
     unsigned int screenWidth, screenHeight;
     window->getSize(screenWidth, screenHeight);
 
-    Scene remoteScene = Scene();
-    PerspectiveCamera remoteCamera = PerspectiveCamera(screenWidth, screenHeight);
-    SceneLoader loader = SceneLoader();
-    loader.loadScene(scenePath, remoteScene, remoteCamera);
+    unsigned int maxViews = maxLayers + 1;
 
-    Scene scene = Scene();
-    PerspectiveCamera camera = PerspectiveCamera(screenWidth, screenHeight);
-    camera.setViewMatrix(remoteCamera.getViewMatrix());
+    Scene remoteScene;
+    std::vector<PerspectiveCamera*> remoteCameras(maxViews);
+    for (int i = 0; i < maxViews; i++) {
+        remoteCameras[i] = new PerspectiveCamera(screenWidth, screenHeight);
+    }
+    PerspectiveCamera* centerRemoteCamera = remoteCameras[0];
+    SceneLoader loader = SceneLoader();
+    loader.loadScene(scenePath, remoteScene, *centerRemoteCamera);
+
+    remoteCameras[maxViews-1]->setFovy(90.0f);
+    remoteCameras[maxViews-1]->setViewMatrix(centerRemoteCamera->getViewMatrix());
+
+    Scene scene;
+    PerspectiveCamera camera(screenWidth, screenHeight);
+    camera.setViewMatrix(centerRemoteCamera->getViewMatrix());
 
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
 
     unsigned int remoteWidth = size2Width / surfelSize;
     unsigned int remoteHeight = size2Height / surfelSize;
 
-    std::vector<RenderTarget*> renderTargets(renderer.maxLayers);
+    std::vector<RenderTarget*> renderTargets(maxViews);
 
     int numVertices = remoteWidth * remoteHeight * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
 
@@ -91,10 +104,10 @@ int main(int argc, char** argv) {
     int indexBufferSize = numTriangles * 3;
 
     GLuint zero = 0;
-    std::vector<Buffer<unsigned int>> numVerticesBuffers(renderer.maxLayers);
-    std::vector<Buffer<unsigned int>> numIndicesBuffers(renderer.maxLayers);
+    std::vector<Buffer<unsigned int>> numVerticesBuffers(maxViews);
+    std::vector<Buffer<unsigned int>> numIndicesBuffers(maxViews);
 
-    for (int i = 0; i < renderer.maxLayers; i++) {
+    for (int i = 0; i < maxViews; i++) {
         renderTargets[i] = new RenderTarget({
             .width = remoteWidth,
             .height = remoteHeight,
@@ -111,16 +124,16 @@ int main(int argc, char** argv) {
         numIndicesBuffers[i] = Buffer<unsigned int>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(GLuint), &zero);
     }
 
-    std::vector<Mesh*> meshes(renderer.maxLayers);
-    std::vector<Node*> nodes(renderer.maxLayers);
+    std::vector<Mesh*> meshes(maxViews);
+    std::vector<Node*> nodes(maxViews);
 
-    std::vector<Mesh*> meshesWireframe(renderer.maxLayers);
-    std::vector<Node*> nodesWireframe(renderer.maxLayers);
+    std::vector<Mesh*> meshesWireframe(maxViews);
+    std::vector<Node*> nodesWireframe(maxViews);
 
-    std::vector<Mesh*> meshesDepth(renderer.maxLayers);
-    std::vector<Node*> nodesDepth(renderer.maxLayers);
+    std::vector<Mesh*> meshesDepth(maxViews);
+    std::vector<Node*> nodesDepth(maxViews);
 
-    for (int i = 0; i < renderer.maxLayers; i++) {
+    for (int i = 0; i < maxViews; i++) {
         meshes[i] = new Mesh({
             .vertices = std::vector<Vertex>(numVertices),
             .indices = std::vector<unsigned int>(indexBufferSize),
@@ -159,6 +172,11 @@ int main(int argc, char** argv) {
         scene.addChildNode(nodesDepth[i]);
     }
 
+    Scene meshScene;
+    Node* node = new Node(meshes[0]);
+    node->frustumCulled = false;
+    meshScene.addChildNode(node);
+
     bool rerender = true;
     int rerenderInterval = 0;
     bool showDepth = false;
@@ -171,8 +189,8 @@ int main(int argc, char** argv) {
     float angleThreshold = 45.0f;
     const int intervalValues[] = {0, 100, 200, 500, 1000};
     const char* intervalLabels[] = {"0ms", "100ms", "200ms", "500ms", "1000ms"};
-    bool* showLayers = new bool[renderer.maxLayers];
-    for (int i = 0; i < renderer.maxLayers; ++i) {
+    bool* showLayers = new bool[maxViews];
+    for (int i = 0; i < maxViews; ++i) {
         showLayers[i] = true;
     }
 
@@ -299,7 +317,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             const int columns = 3;
-            for (int i = 0; i < renderer.maxLayers; i++) {
+            for (int i = 0; i < maxViews; i++) {
                 ImGui::Checkbox(("Show Layer " + std::to_string(i)).c_str(), &showLayers[i]);
                 if ((i + 1) % columns != 0) {
                     ImGui::SameLine();
@@ -324,10 +342,10 @@ int main(int argc, char** argv) {
 
             if (ImGui::Button("Capture Current Frame")) {
                 if (saveAsHDR) {
-                    renderer.gBuffer.saveColorAsHDR(fileName + ".hdr");
+                    dpRenderer.gBuffer.saveColorAsHDR(fileName + ".hdr");
                 }
                 else {
-                    renderer.gBuffer.saveColorAsPNG(fileName + ".png");
+                    dpRenderer.gBuffer.saveColorAsPNG(fileName + ".png");
                 }
             }
 
@@ -340,7 +358,7 @@ int main(int argc, char** argv) {
             ImGui::Begin("Mesh Capture", &showMeshCaptureWindow);
 
             if (ImGui::Button("Save Mesh")) {
-                for (int i = 0; i < renderer.maxLayers; i++) {
+                for (int i = 0; i < maxViews; i++) {
                     std::string verticesFileName = DATA_PATH + "vertices" + std::to_string(i) + ".bin";
                     std::string indicesFileName = DATA_PATH + "indices" + std::to_string(i) + ".bin";
                     std::string colorFileName = DATA_PATH + "color" + std::to_string(i) + ".png";
@@ -370,10 +388,10 @@ int main(int argc, char** argv) {
         if (showLayerPreviews) {
             flags = ImGuiWindowFlags_AlwaysAutoResize;
 
-            const int texturePreviewSize = (screenWidth * 2/3) / renderer.maxLayers;
+            const int texturePreviewSize = (screenWidth * 2/3) / maxViews;
 
-            for (int i = 0; i < renderer.maxLayers; i++) {
-                int layerIdx = renderer.maxLayers - i - 1;
+            for (int i = 0; i < maxViews; i++) {
+                int layerIdx = maxViews - i - 1;
                 if (showLayers[layerIdx]) {
                     ImGui::SetNextWindowPos(ImVec2(screenWidth - (i + 1) * texturePreviewSize - 30, 40), ImGuiCond_FirstUseEver);
                     ImGui::Begin(("View " + std::to_string(layerIdx)).c_str(), 0, flags);
@@ -388,7 +406,8 @@ int main(int argc, char** argv) {
         screenWidth = width;
         screenHeight = height;
 
-        renderer.resize(width, height);
+        dpRenderer.resize(width, height);
+        forwardRenderer.resize(width, height);
 
         camera.aspect = (float)screenWidth / (float)screenHeight;
         camera.updateProjectionMatrix();
@@ -469,34 +488,63 @@ int main(int argc, char** argv) {
         }
         if (rerender) {
             if (!preventCopyingLocalPose) {
-                remoteCamera.setViewMatrix(camera.getViewMatrix());
+                centerRemoteCamera->setViewMatrix(camera.getViewMatrix());
+                for (int i = 1; i < maxViews; i++) {
+                    remoteCameras[i]->setViewMatrix(centerRemoteCamera->getViewMatrix());
+                }
             }
             preventCopyingLocalPose = false;
 
             double startTime = glfwGetTime();
 
             // render all objects in remoteScene
-            renderer.drawObjects(remoteScene, remoteCamera);
+            dpRenderer.drawObjects(remoteScene, *centerRemoteCamera);
 
-            for (int i = 0; i < renderer.maxLayers; i++) {
-                // render to render target
-                if (!showNormals) {
-                    renderer.drawToRenderTarget(screenShaderColor, *renderTargets[i]);
+            for (int i = 0; i < maxViews; i++) {
+                auto* remoteCamera = remoteCameras[i];
+
+                // wide fov camera
+                if (i == maxViews - 1) {
+                    // render mesh in meshScene into stencil buffer
+                    forwardRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
+
+                    forwardRenderer.drawObjects(meshScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+                    // render mesh in remoteScene using stencil buffer as a mask
+                    forwardRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask();
+
+                    forwardRenderer.drawObjects(remoteScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+                    forwardRenderer.pipeline.stencilState.restoreStencilState();
+
+                    // render to render target
+                    if (!showNormals) {
+                        forwardRenderer.drawToRenderTarget(screenShaderColor, *renderTargets[i]);
+                    }
+                    else {
+                        forwardRenderer.drawToRenderTarget(screenShaderNormals, *renderTargets[i]);
+                    }
                 }
                 else {
-                    renderer.drawToRenderTarget(screenShaderNormals, *renderTargets[i]);
+                    // render to render target
+                    if (!showNormals) {
+                        dpRenderer.drawToRenderTarget(screenShaderColor, *renderTargets[i]);
+                    }
+                    else {
+                        dpRenderer.drawToRenderTarget(screenShaderNormals, *renderTargets[i]);
+                    }
+                    dpRenderer.peelingLayers[i]->blitToRenderTarget(*renderTargets[i]);
                 }
-                renderer.peelingLayers[i]->blitToRenderTarget(*renderTargets[i]);
 
                 genQuadsShader.bind();
                 {
-                    genQuadsShader.setMat4("view", remoteCamera.getViewMatrix());
-                    genQuadsShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-                    genQuadsShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
-                    genQuadsShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+                    genQuadsShader.setMat4("view", remoteCamera->getViewMatrix());
+                    genQuadsShader.setMat4("projection", remoteCamera->getProjectionMatrix());
+                    genQuadsShader.setMat4("viewInverse", glm::inverse(remoteCamera->getViewMatrix()));
+                    genQuadsShader.setMat4("projectionInverse", glm::inverse(remoteCamera->getProjectionMatrix()));
 
-                    genQuadsShader.setFloat("near", remoteCamera.near);
-                    genQuadsShader.setFloat("far", remoteCamera.far);
+                    genQuadsShader.setFloat("near", remoteCamera->near);
+                    genQuadsShader.setFloat("far", remoteCamera->far);
                 }
                 {
                     genQuadsShader.setBool("doAverageNormal", doAverageNormal);
@@ -505,10 +553,18 @@ int main(int argc, char** argv) {
                     genQuadsShader.setFloat("angleThreshold", glm::radians(angleThreshold));
                 }
                 {
-                    genQuadsShader.setTexture(renderer.peelingLayers[i]->positionBuffer, 0);
-                    genQuadsShader.setTexture(renderer.peelingLayers[i]->normalsBuffer, 1);
-                    genQuadsShader.setTexture(renderer.peelingLayers[i]->idBuffer, 2);
-                    genQuadsShader.setTexture(renderer.peelingLayers[i]->depthStencilBuffer, 3);
+                    if (i != maxViews - 1) {
+                        genQuadsShader.setTexture(dpRenderer.peelingLayers[i]->positionBuffer, 0);
+                        genQuadsShader.setTexture(dpRenderer.peelingLayers[i]->normalsBuffer, 1);
+                        genQuadsShader.setTexture(dpRenderer.peelingLayers[i]->idBuffer, 2);
+                        genQuadsShader.setTexture(dpRenderer.peelingLayers[i]->depthStencilBuffer, 3);
+                    }
+                    else {
+                        genQuadsShader.setTexture(forwardRenderer.gBuffer.positionBuffer, 0);
+                        genQuadsShader.setTexture(forwardRenderer.gBuffer.normalsBuffer, 1);
+                        genQuadsShader.setTexture(forwardRenderer.gBuffer.idBuffer, 2);
+                        genQuadsShader.setTexture(forwardRenderer.gBuffer.depthStencilBuffer, 3);
+                    }
                 }
                 {
                     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, meshes[i]->vertexBuffer);
@@ -548,7 +604,7 @@ int main(int argc, char** argv) {
             rerender = false;
         }
 
-        for (int i = 0; i < renderer.maxLayers; i++) {
+        for (int i = 0; i < maxViews; i++) {
             bool showLayer = showLayers[i];
 
             nodes[i]->visible = showLayer;
@@ -560,10 +616,10 @@ int main(int argc, char** argv) {
         }
 
         // render all objects in scene
-        renderStats = renderer.drawObjects(scene, camera);
+        renderStats = forwardRenderer.drawObjects(scene, camera);
 
         // render to screen
-        renderer.drawToScreen(screenShader);
+        forwardRenderer.drawToScreen(screenShader);
     });
 
     // run app loop (blocking)

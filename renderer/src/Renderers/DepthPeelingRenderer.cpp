@@ -1,12 +1,16 @@
 #include <Renderers/DepthPeelingRenderer.h>
 
-DepthPeelingRenderer::DepthPeelingRenderer(const Config &config)
+DepthPeelingRenderer::DepthPeelingRenderer(const Config &config, unsigned int maxLayers)
         : gBuffer({ .width = config.width, .height = config.height })
+        , maxLayers(maxLayers)
         , compositeLayersShader({
             .vertexCodeData = SHADER_POSTPROCESS_VERT,
             .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
             .fragmentCodeData = SHADER_COMPOSITELAYERS_FRAG,
-            .fragmentCodeSize = SHADER_COMPOSITELAYERS_FRAG_len
+            .fragmentCodeSize = SHADER_COMPOSITELAYERS_FRAG_len,
+            .defines = {
+                "#define MAX_LAYERS " + std::to_string(maxLayers)
+            }
         })
         , OpenGLRenderer(config) {
 
@@ -96,7 +100,6 @@ RenderStats DepthPeelingRenderer::compositeLayers() {
 
     compositeLayersShader.bind();
 
-    compositeLayersShader.setInt("maxLayers", maxLayers);
     for (int i = 0; i < maxLayers; i++) {
         compositeLayersShader.setTexture("peelingLayers[" + std::to_string(i) + "]", peelingLayers[i]->colorBuffer, i);
     }

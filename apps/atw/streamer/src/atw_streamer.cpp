@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
     unsigned int screenWidth, screenHeight;
     window->getSize(screenWidth, screenHeight);
 
-    Scene scene = Scene();
+    Scene scene;
     std::unique_ptr<Camera> camera;
     SceneLoader loader = SceneLoader();
     if (vrMode) {

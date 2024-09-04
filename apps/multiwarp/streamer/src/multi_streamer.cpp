@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
     std::string scenePath = args::get(scenePathIn);
 
     int surfelSize = args::get(surfelSizeIn);
-    int maxViews = args::get(maxAdditionalViewsIn) + 2; // 0th is standard view, 1st is large fov view
+    int maxViews = args::get(maxAdditionalViewsIn) + 2; // 0th is standard view, maxViews-1 is large fov view
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
     unsigned int screenWidth, screenHeight;
     window->getSize(screenWidth, screenHeight);
 
-    Scene remoteScene = Scene();
+    Scene remoteScene;
     std::vector<PerspectiveCamera*> remoteCameras(maxViews);
     for (int i = 0; i < maxViews; i++) {
         remoteCameras[i] = new PerspectiveCamera(screenWidth, screenHeight);
@@ -78,11 +78,11 @@ int main(int argc, char** argv) {
     SceneLoader loader = SceneLoader();
     loader.loadScene(scenePath, remoteScene, *centerRemoteCamera);
 
-    remoteCameras[1]->setFovy(90.0f);
-    remoteCameras[1]->setViewMatrix(centerRemoteCamera->getViewMatrix());
+    remoteCameras[maxViews-1]->setFovy(90.0f);
+    remoteCameras[maxViews-1]->setViewMatrix(centerRemoteCamera->getViewMatrix());
 
-    Scene scene = Scene();
-    PerspectiveCamera camera = PerspectiveCamera(screenWidth, screenHeight);
+    Scene scene;
+    PerspectiveCamera camera(screenWidth, screenHeight);
     camera.setViewMatrix(centerRemoteCamera->getViewMatrix());
     camera.updateViewMatrix();
 
@@ -169,7 +169,7 @@ int main(int argc, char** argv) {
         scene.addChildNode(nodesDepth[i]);
     }
 
-    Scene meshScene = Scene();
+    Scene meshScene;
     for (int i = 0; i < maxViews; i++) {
         Node* node = new Node(meshes[i]);
         node->frustumCulled = false;
@@ -309,7 +309,6 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::SliderFloat("View Cell Size", &viewCellSize, 0.1f, 10.0f)) {
-                preventCopyingLocalPose = true;
                 rerender = true;
             }
 
@@ -509,19 +508,18 @@ int main(int argc, char** argv) {
         if (rerender) {
             if (!preventCopyingLocalPose) {
                 centerRemoteCamera->setViewMatrix(camera.getViewMatrix());
+
+                // update other views
+                for (int i = 1; i < maxViews - 1; i++) {
+                    int x = (i & 1) ? -1 : 1;
+                    int y = (i & 2) ? -1 : 1;
+                    int z = (i & 4) ? -1 : 1;
+                    remoteCameras[i]->setPosition(centerRemoteCamera->getPosition() + viewCellSize/2 * glm::vec3(x, y, z));
+                    remoteCameras[i]->updateViewMatrix();
+                }
+                remoteCameras[maxViews-1]->setViewMatrix(centerRemoteCamera->getViewMatrix());
             }
             preventCopyingLocalPose = false;
-
-            // update other views
-            for (int i = 2; i < maxViews; i++) {
-                int x = (i & 1) ? -1 : 1;
-                int y = (i & 2) ? -1 : 1;
-                int z = (i & 4) ? -1 : 1;
-                remoteCameras[i]->setPosition(centerRemoteCamera->getPosition() + viewCellSize/2 * glm::vec3(x, y, z));
-                remoteCameras[i]->updateViewMatrix();
-            }
-            remoteCameras[1]->setViewMatrix(centerRemoteCamera->getViewMatrix());
-            remoteCameras[1]->setPosition(centerRemoteCamera->getPosition() - viewCellSize/2 * centerRemoteCamera->getForwardVector());
 
             double startTime = glfwGetTime();
 
@@ -540,7 +538,7 @@ int main(int argc, char** argv) {
 
                     // make all previous meshes visible and everything else invisible
                     for (int j = 1; j < maxViews; j++) {
-                        meshScene.children[j]->visible = (j <= i);
+                        meshScene.children[j]->visible = (j < i);
                     }
                     renderer.drawObjects(meshScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
@@ -581,7 +579,7 @@ int main(int argc, char** argv) {
                     genQuadsShader.setBool("doOrientationCorrection", doOrientationCorrection);
                     genQuadsShader.setFloat("distanceThreshold", distanceThreshold);
                     genQuadsShader.setFloat("angleThreshold", glm::radians(angleThreshold));
-                    genQuadsShader.setBool("doDiscardIfOutsideCenterView", i != 0 && i != 1);
+                    genQuadsShader.setBool("doDiscardIfOutsideCenterView", i != 0 && i != maxViews-1);
                 }
                 {
                     genQuadsShader.setTexture(renderer.gBuffer.positionBuffer, 0);

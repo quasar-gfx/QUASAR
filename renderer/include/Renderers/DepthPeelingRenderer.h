@@ -6,12 +6,12 @@
 
 class DepthPeelingRenderer : public OpenGLRenderer {
 public:
-    unsigned int maxLayers = 6;
+    unsigned int maxLayers;
 
     GeometryBuffer gBuffer;
     std::vector<GeometryBuffer*> peelingLayers;
 
-    DepthPeelingRenderer(const Config &config);
+    DepthPeelingRenderer(const Config &config, unsigned int maxLayers = 8);
     ~DepthPeelingRenderer() = default;
 
     void setScreenShaderUniforms(const Shader &screenShader) override;

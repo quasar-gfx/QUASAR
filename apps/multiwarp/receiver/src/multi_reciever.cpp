@@ -73,8 +73,8 @@ int main(int argc, char** argv) {
     unsigned int screenWidth, screenHeight;
     window->getSize(screenWidth, screenHeight);
 
-    Scene scene = Scene();
-    PerspectiveCamera camera = PerspectiveCamera(screenWidth, screenHeight);
+    Scene scene;
+    PerspectiveCamera camera(screenWidth, screenHeight);
 
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
 

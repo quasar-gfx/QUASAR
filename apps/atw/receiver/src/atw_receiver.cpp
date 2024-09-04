@@ -59,8 +59,8 @@ int main(int argc, char** argv) {
     unsigned int screenWidth, screenHeight;
     window->getSize(screenWidth, screenHeight);
 
-    Scene scene = Scene();
-    PerspectiveCamera camera = PerspectiveCamera(screenWidth, screenHeight);
+    Scene scene;
+    PerspectiveCamera camera(screenWidth, screenHeight);
 
     VideoTexture videoTexture({
         .width = screenWidth,

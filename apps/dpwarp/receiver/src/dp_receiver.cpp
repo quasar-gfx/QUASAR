@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
     args::ValueFlag<int> renderStateIn(parser, "render", "Render state", {'r', "render-state"}, 0);
-    args::ValueFlag<int> maxLayersIn(parser, "maxLayers", "Number of layers", {'l', "num-layers"}, 6);
+    args::ValueFlag<int> maxLayersIn(parser, "maxLayers", "Number of layers", {'l', "num-layers"}, 8);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -73,8 +73,8 @@ int main(int argc, char** argv) {
     unsigned int screenWidth, screenHeight;
     window->getSize(screenWidth, screenHeight);
 
-    Scene scene = Scene();
-    PerspectiveCamera camera = PerspectiveCamera(screenWidth, screenHeight);
+    Scene scene;
+    PerspectiveCamera camera(screenWidth, screenHeight);
 
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
 

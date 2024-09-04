@@ -688,16 +688,6 @@ void main() {
     pixelCoordsView.top         = ndcToView(projectionInverse, pixelNDCs.top, pixelDepths.top);
     pixelCoordsView.topRight    = ndcToView(projectionInverse, pixelNDCs.topRight, pixelDepths.topRight);
 
-    // if pixelCoordsView.center is outside the center camera view, return
-    if (doDiscardIfOutsideCenterView) {
-        vec3 pixelCoordsWorld = viewToWorld(viewInverse, pixelCoordsView.center);
-        vec2 pixelCoordsCenterNDC = viewToNDC(projectionCenter, worldToView(viewCenter, pixelCoordsWorld));
-        if (pixelCoordsCenterNDC.x <= -1.0 || pixelCoordsCenterNDC.x >= 1.0 ||
-            pixelCoordsCenterNDC.y <= -1.0 || pixelCoordsCenterNDC.y >= 1.0) {
-            return;
-        }
-    }
-
     /**********************************
 
       (ptl)  ----   (pt) ----  (ptr)
