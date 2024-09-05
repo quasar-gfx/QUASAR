@@ -13,6 +13,7 @@ public:
     std::vector<Node*> children;
 
     bool frustumCulled = true;
+    bool wireframe = false;
     bool visible = true;
 
     Node();

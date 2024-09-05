@@ -158,7 +158,7 @@ int main(int argc, char** argv) {
 
             ImGui::RadioButton("Render Mesh", (int*)&renderState, 0);
             ImGui::RadioButton("Render Point Cloud", (int*)&renderState, 1);
-            ImGui::RadioButton("Render Wireframe", (int*)&renderState, 2);
+            ImGui::RadioButton("Show Wireframe", (int*)&renderState, 2);
 
             ImGui::Separator();
 
@@ -220,8 +220,8 @@ int main(int argc, char** argv) {
     std::vector<Mesh*> meshes(maxViews);
     std::vector<Node*> nodes(maxViews);
 
-    std::vector<Mesh*> meshesWireframe(maxViews);
-    std::vector<Node*> nodesWireframe(maxViews);
+    std::vector<Mesh*> meshWireframes(maxViews);
+    std::vector<Node*> nodeWireframes(maxViews);
 
     for (int i = 0; i < maxViews; i++) {
         std::string verticesFileName = DATA_PATH + "vertices" + std::to_string(i) + ".bin";
@@ -256,23 +256,22 @@ int main(int argc, char** argv) {
             .vertices = vertices,
             .indices = indices,
             .material = new UnlitMaterial({ .diffuseTexture = colorTexture[i] }),
-            .wireframe = false,
             .pointcloud = renderState == RenderState::POINTCLOUD,
         });
         nodes[i] = new Node(meshes[i]);
         nodes[i]->frustumCulled = false;
         scene.addChildNode(nodes[i]);
 
-        meshesWireframe[i] = new Mesh({
+        meshWireframes[i] = new Mesh({
             .vertices = vertices,
             .indices = indices,
             .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-            .wireframe = true,
             .pointcloud = false,
         });
-        nodesWireframe[i] = new Node(meshesWireframe[i]);
-        nodesWireframe[i]->frustumCulled = false;
-        scene.addChildNode(nodesWireframe[i]);
+        nodeWireframes[i] = new Node(meshWireframes[i]);
+        nodeWireframes[i]->frustumCulled = false;
+        nodeWireframes[i]->wireframe = true;
+        scene.addChildNode(nodeWireframes[i]);
     }
 
     app.onRender([&](double now, double dt) {
@@ -323,9 +322,9 @@ int main(int argc, char** argv) {
 
             nodes[i]->visible = showLayer;
             meshes[i]->pointcloud = showLayer && (renderState == RenderState::POINTCLOUD);
-            nodesWireframe[i]->visible = showLayer && (renderState == RenderState::WIREFRAME);
+            nodeWireframes[i]->visible = showLayer && (renderState == RenderState::WIREFRAME);
 
-            nodesWireframe[i]->setPosition(nodes[i]->getPosition() - camera.getForwardVector() * 0.001f);
+            nodeWireframes[i]->setPosition(nodes[i]->getPosition() - camera.getForwardVector() * 0.001f);
         }
 
         // render all objects in scene

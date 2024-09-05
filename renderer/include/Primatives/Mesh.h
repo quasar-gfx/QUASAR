@@ -17,7 +17,6 @@ struct MeshCreateParams {
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
     Material* material;
-    bool wireframe = false;
     bool pointcloud = false;
     float pointSize = 5.0;
     float IBL = 1.0;
@@ -31,7 +30,6 @@ public:
 
     Material* material;
 
-    bool wireframe = false;
     bool pointcloud = false;
     float pointSize = 5.0;
     float IBL = 1.0;
@@ -43,7 +41,6 @@ public:
     }
     Mesh(const MeshCreateParams &params)
             : material(params.material)
-            , wireframe(params.wireframe)
             , pointcloud(params.pointcloud)
             , pointSize(params.pointSize)
             , IBL(params.IBL)

@@ -18,7 +18,6 @@
 
 struct ModelCreateParams {
     bool flipTextures = false;
-    bool wireframe = false;
     bool pointcloud = false;
     bool gammaCorrected = false;
     float IBL = 1.0;
@@ -33,7 +32,6 @@ public:
     std::string rootDirectory;
 
     bool flipTextures = false;
-    bool wireframe = false;
     bool pointcloud = false;
     bool gammaCorrected = false;
     float IBL = 1.0;
@@ -44,7 +42,6 @@ public:
 
     Model(const ModelCreateParams &params)
             : flipTextures(params.flipTextures)
-            , wireframe(params.wireframe)
             , pointcloud(params.pointcloud)
             , gammaCorrected(params.gammaCorrected)
             , IBL(params.IBL) {

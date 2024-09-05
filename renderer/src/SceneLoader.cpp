@@ -283,9 +283,6 @@ int SceneLoader::parseModel(jsmntok_t* tokens, int i, const char* json, Scene &s
         else if (compare(tok, json, "gammaCorrected") == 0) {
             i = parseBool(tokens, i + 1, json, &params.gammaCorrected);
         }
-        else if (compare(tok, json, "wireframe") == 0) {
-            i = parseBool(tokens, i + 1, json, &params.wireframe);
-        }
         else if (compare(tok, json, "pointcloud") == 0) {
             i = parseBool(tokens, i + 1, json, &params.pointcloud);
         }
@@ -351,9 +348,6 @@ int SceneLoader::parseMesh(jsmntok_t* tokens, int i, const char* json, Scene &sc
         }
         else if (compare(tok, json, "IBL") == 0) {
             i = parseFloat(tokens, i + 1, json, &params.IBL);
-        }
-        else if (compare(tok, json, "wireframe") == 0) {
-            i = parseBool(tokens, i + 1, json, &params.wireframe);
         }
         else if (compare(tok, json, "pointcloud") == 0) {
             i = parseBool(tokens, i + 1, json, &params.pointcloud);
@@ -434,6 +428,11 @@ int SceneLoader::parseNode(jsmntok_t* tokens, int i, const char* json, Scene &sc
             glm::vec3 scale;
             i = parseVec3(tokens, i + 1, json, &scale);
             node->setScale(scale);
+        }
+        else if (compare(tok, json, "wireframe") == 0) {
+            bool wireframe;
+            i = parseBool(tokens, i + 1, json, &wireframe);
+            node->wireframe = wireframe;
         }
         else {
             i = parse(tokens, i + 1);

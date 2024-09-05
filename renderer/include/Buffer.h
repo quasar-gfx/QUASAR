@@ -1,8 +1,10 @@
 #ifndef BUFFER_H
 #define BUFFER_H
 
+#include <iostream>
 #include <type_traits>
 
+#include <vector>
 #include <OpenGLObject.h>
 
 template<typename T>
@@ -12,32 +14,46 @@ public:
     GLenum usage;
 
     Buffer(GLenum target = GL_ARRAY_BUFFER, GLenum usage = GL_STATIC_DRAW)
-            : target(target)
-            , usage(usage)
-            , numElems(0) {
+        : target(target), usage(usage), numElems(0) {
         glGenBuffers(1, &ID);
     }
-    Buffer(GLenum target, GLenum usage, unsigned int numElems, const T *data)
-            : Buffer(target, usage) {
+
+    Buffer(GLenum target, GLenum usage, unsigned int numElems, const T* data)
+        : Buffer(target, usage) {
         bind();
         setData(numElems, data);
     }
+
     ~Buffer() override {
         glDeleteBuffers(1, &ID);
     }
 
-    // copy constructor
+    // Copy constructor
+    Buffer(const Buffer<T>& other)
+        : target(other.target), usage(other.usage), numElems(other.numElems) {
+        glGenBuffers(1, &ID);
+        bind();
+        std::vector<T> data(other.numElems);
+        other.getSubData(0, other.numElems, data.data());
+        setData(data);
+        unbind();
+    }
+
+    // Copy assignment operator
     Buffer<T>& operator=(const Buffer<T>& other) {
         if (this == &other) {
             return *this;
         }
 
-        ID = other.ID;
+        // Delete existing buffer
+        glDeleteBuffers(1, &ID);
+
+        // Recreate the buffer and copy data
         target = other.target;
         usage = other.usage;
         numElems = other.numElems;
+        glGenBuffers(1, &ID);
 
-        // copy data from other buffer
         if (numElems > 0) {
             bind();
             std::vector<T> data(numElems);
@@ -49,15 +65,24 @@ public:
         return *this;
     }
 
-    // move assignment
+    // Move constructor
+    Buffer(Buffer<T>&& other) noexcept
+        : target(other.target), usage(other.usage), numElems(other.numElems) {
+        ID = other.ID;
+        other.ID = 0;
+        other.numElems = 0;
+    }
+
+    // Move assignment operator
     Buffer<T>& operator=(Buffer<T>&& other) noexcept {
         if (this == &other) {
             return *this;
         }
 
-        // delete current buffer so we can inherit the other buffer's ID
+        // Delete current buffer
         glDeleteBuffers(1, &ID);
 
+        // Move the data
         ID = other.ID;
         target = other.target;
         usage = other.usage;
@@ -82,25 +107,25 @@ public:
         glBufferData(target, numElems * sizeof(T), nullptr, usage);
     }
 
-    void setData(unsigned int numElems, const void *data) {
+    void setData(unsigned int numElems, const void* data) {
         setSize(numElems);
         glBufferData(target, numElems * sizeof(T), data, usage);
     }
 
-    void setData(const std::vector<T> &data) {
+    void setData(const std::vector<T>& data) {
         setData(data.size(), data.data());
     }
 
-    void setSubData(unsigned int offset, unsigned int numElems, const void *data) {
+    void setSubData(unsigned int offset, unsigned int numElems, const void* data) {
         glBufferSubData(target, offset * sizeof(T), numElems * sizeof(T), data);
     }
 
-    void setSubData(unsigned int offset, const std::vector<T> &data) {
+    void setSubData(unsigned int offset, const std::vector<T>& data) {
         setSubData(offset, data.size(), data.data());
     }
 
 #ifdef GL_CORE
-    void getSubData(unsigned int offset, unsigned int numElems, void *data) {
+    void getSubData(unsigned int offset, unsigned int numElems, void* data) const {
         glGetBufferSubData(target, offset * sizeof(T), numElems * sizeof(T), data);
     }
 #endif

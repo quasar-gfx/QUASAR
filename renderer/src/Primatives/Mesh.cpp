@@ -46,6 +46,7 @@ void Mesh::setBuffers(const std::vector<Vertex> &vertices) {
 
     vertexBuffer.bind();
     vertexBuffer.setData(vertices);
+    vertexBuffer.unbind();
 
     glBindVertexArray(0);
 
@@ -54,7 +55,7 @@ void Mesh::setBuffers(const std::vector<Vertex> &vertices) {
 
 void Mesh::setBuffers(const std::vector<Vertex> &vertices, const std::vector<unsigned int> &indices) {
     // if no vertices or indices, dont bind buffers
-    if (vertices.size() == 0 || indices.size() == 0) {
+    if (vertices.size() == 0) {
         return;
     }
 
@@ -62,13 +63,20 @@ void Mesh::setBuffers(const std::vector<Vertex> &vertices, const std::vector<uns
 
     vertexBuffer.bind();
     vertexBuffer.setData(vertices);
+    vertexBuffer.unbind();
+
+    updateAABB(vertices);
+
+    if (indices.size() == 0) {
+        glBindVertexArray(0);
+        return;
+    }
 
     indexBuffer.bind();
     indexBuffer.setData(indices);
+    indexBuffer.unbind();
 
     glBindVertexArray(0);
-
-    updateAABB(vertices);
 }
 
 void Mesh::resizeBuffers(unsigned int vertexBufferSize, unsigned int indexBufferSize) {
@@ -193,29 +201,20 @@ RenderStats Mesh::draw(const Camera &camera, const glm::mat4 &model, const Bound
 }
 
 RenderStats Mesh::draw() {
-#ifdef GL_CORE
-    if (wireframe) {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    }
-#endif
-
     GLenum primativeType = pointcloud ? GL_POINTS : GL_TRIANGLES;
 
     glBindVertexArray(vertexArrayBuffer);
     if (indexBuffer.getSize() > 0) {
         indexBuffer.bind();
         glDrawElements(primativeType, indexBuffer.getSize(), GL_UNSIGNED_INT, 0);
+        indexBuffer.unbind();
     }
     else {
+        vertexBuffer.bind();
         glDrawArrays(primativeType, 0, vertexBuffer.getSize());
+        vertexBuffer.unbind();
     }
     glBindVertexArray(0);
-
-#ifdef GL_CORE
-    if (wireframe) {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    }
-#endif
 
     RenderStats stats;
     if (indexBuffer.getSize() > 0) {

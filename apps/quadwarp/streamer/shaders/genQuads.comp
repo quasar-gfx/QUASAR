@@ -18,24 +18,28 @@ struct Vertex {
     vec3 bitangent;
 };
 
-layout(std430, binding = 0) buffer VertexBuffer {
-    Vertex vertices[];
-};
-
-layout(std430, binding = 1) buffer IndexBuffer {
-    uint indices[];
-};
-
-layout(std430, binding = 2) buffer VertexBufferDepth {
-    Vertex verticesDepth[];
-};
-
-layout(std430, binding = 3) buffer VertexCounterBuffer {
+layout(std430, binding = 0) buffer VertexCounterBuffer {
     uint numVertices;
 };
 
-layout(std430, binding = 4) buffer IndexCounterBuffer {
+layout(std430, binding = 1) buffer IndexCounterBuffer {
     uint numIndices;
+};
+
+layout(std430, binding = 2) buffer VertexBuffer {
+    Vertex vertices[];
+};
+
+layout(std430, binding = 3) buffer IndexBuffer {
+    uint indices[];
+};
+
+layout(std430, binding = 4) buffer VertexBufferWireframe {
+    Vertex verticesWireframe[];
+};
+
+layout(std430, binding = 5) buffer IndexBufferWireframe {
+    uint indicesWireframe[];
 };
 
 struct Plane {
@@ -564,6 +568,11 @@ void storeQuad(
     vertices[vertexIndexBottomRight].color = vec3(1.0, 1.0, 1.0);
     vertices[vertexIndexBottomRight].texCoords = worldToScreen(view, projection, vertices[vertexIndexBottomRight].position);
 
+    verticesWireframe[vertexIndexTopLeft] = vertices[vertexIndexTopLeft];
+    verticesWireframe[vertexIndexTopRight] = vertices[vertexIndexTopRight];
+    verticesWireframe[vertexIndexBottomLeft] = vertices[vertexIndexBottomLeft];
+    verticesWireframe[vertexIndexBottomRight] = vertices[vertexIndexBottomRight];
+
     uint indexBaseIdx = atomicAdd(numIndices, INDICES_IN_A_QUAD);
 
     indices[indexBaseIdx + 0] = vertexIndexTopLeft;
@@ -573,6 +582,13 @@ void storeQuad(
     indices[indexBaseIdx + 3] = vertexIndexTopRight;
     indices[indexBaseIdx + 4] = vertexIndexBottomLeft;
     indices[indexBaseIdx + 5] = vertexIndexBottomRight;
+
+    indicesWireframe[indexBaseIdx + 0] = indices[indexBaseIdx + 0];
+    indicesWireframe[indexBaseIdx + 1] = indices[indexBaseIdx + 1];
+    indicesWireframe[indexBaseIdx + 2] = indices[indexBaseIdx + 2];
+    indicesWireframe[indexBaseIdx + 3] = indices[indexBaseIdx + 3];
+    indicesWireframe[indexBaseIdx + 4] = indices[indexBaseIdx + 4];
+    indicesWireframe[indexBaseIdx + 5] = indices[indexBaseIdx + 5];
 }
 
 void main() {
@@ -797,9 +813,4 @@ void main() {
         subQuadBottomRight,
         shaderIndex, 3 * VERTICES_IN_A_QUAD, 3 * INDICES_IN_A_QUAD
     );
-
-    // store depth
-    verticesDepth[shaderIndex].position = viewToWorld(viewInverse, pixelCoordsView.center);
-    verticesDepth[shaderIndex].color = vec3(1.0, 1.0, 1.0);
-    verticesDepth[shaderIndex].texCoords = worldToScreen(view, projection, viewToWorld(viewInverse, pixelCoordsView.center));
 }

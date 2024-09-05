@@ -197,8 +197,7 @@ RenderStats OpenGLRenderer::drawLightsImpl(const Scene &scene, const Camera &cam
         if (pointLight->debug) {
             auto material = new UnlitMaterial({ .baseColor = glm::vec4(pointLight->color, 1.0) });
             Sphere light = Sphere({
-                .material = material,
-                .wireframe = false
+                .material = material
             }, 32, 32);
             Node nodeLight = Node(&light);
             nodeLight.setPosition(pointLight->position);
@@ -207,9 +206,9 @@ RenderStats OpenGLRenderer::drawLightsImpl(const Scene &scene, const Camera &cam
 
             Sphere radius = Sphere({
                 .material = material,
-                .wireframe = true
             }, 32, 32);
             Node nodeRadius = Node(&radius);
+            nodeRadius.wireframe = true;
             nodeRadius.setPosition(pointLight->position);
             nodeRadius.setScale(glm::vec3(pointLight->getLightRadius()));
             stats += drawNode(scene, camera, &nodeRadius, glm::mat4(1.0f), false);
@@ -293,7 +292,22 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, N
         if (node->visible) {
             node->entity->bindMaterial(scene, model, overrideMaterial, prevDepthMap);
             bool doFrustumCull = frustumCull && node->frustumCulled;
+
+#ifdef GL_CORE
+            // set polygon mode to wireframe if needed
+            if (node->wireframe) {
+                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            }
+#endif
+
             stats += node->entity->draw(camera, model, doFrustumCull, overrideMaterial);
+
+#ifdef GL_CORE
+            // restore polygon mode
+            if (node->wireframe) {
+                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            }
+#endif
         }
     }
 

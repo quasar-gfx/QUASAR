@@ -98,7 +98,6 @@ int main(int argc, char** argv) {
     });
 
     int numVertices = remoteWidth * remoteHeight * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
-
     int numVerticesDepth = remoteWidth * remoteHeight;
 
     int numTriangles = remoteWidth * remoteHeight * NUM_SUB_QUADS * 2;
@@ -112,7 +111,6 @@ int main(int argc, char** argv) {
         .vertices = std::vector<Vertex>(numVertices),
         .indices = std::vector<unsigned int>(indexBufferSize),
         .material = new UnlitMaterial({ .diffuseTexture = &renderTarget.colorBuffer }),
-        .wireframe = false,
         .usage = GL_DYNAMIC_DRAW
     });
     Node node = Node(&mesh);
@@ -123,30 +121,31 @@ int main(int argc, char** argv) {
         .vertices = std::vector<Vertex>(numVertices),
         .indices = std::vector<unsigned int>(indexBufferSize),
         .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-        .wireframe = true,
         .usage = GL_DYNAMIC_DRAW
     });
     Node nodeWireframe = Node(&meshWireframe);
     nodeWireframe.frustumCulled = false;
+    nodeWireframe.wireframe = true;
+    nodeWireframe.visible = false;
     scene.addChildNode(&nodeWireframe);
 
     Mesh meshDepth = Mesh({
         .vertices = std::vector<Vertex>(numVerticesDepth),
         .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-        .wireframe = false,
         .pointcloud = true,
         .pointSize = 7.5f,
         .usage = GL_DYNAMIC_DRAW
     });
     Node nodeDepth = Node(&meshDepth);
     nodeDepth.frustumCulled = false;
+    nodeDepth.visible = false;
     scene.addChildNode(&nodeDepth);
 
     bool rerender = true;
     int rerenderInterval = 0;
     bool showDepth = false;
     bool showNormals = false;
-    bool renderWireframe = false;
+    bool showWireframe = false;
     bool doAverageNormal = true;
     bool doOrientationCorrection = true;
     bool preventCopyingLocalPose = false;
@@ -238,7 +237,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::Checkbox("Render Wireframe", &renderWireframe);
+            ImGui::Checkbox("Show Wireframe", &showWireframe);
             ImGui::Checkbox("Show Depth Map as Point Cloud", &showDepth);
 
             ImGui::Separator();
@@ -362,11 +361,18 @@ int main(int argc, char** argv) {
     ComputeShader genQuadsShader({
         .computeCodePath = "./shaders/genQuads.comp"
     });
-
     genQuadsShader.bind();
     genQuadsShader.setVec2("screenSize", glm::vec2(remoteWidth, remoteHeight));
     genQuadsShader.setInt("surfelSize", surfelSize);
     genQuadsShader.unbind();
+
+    ComputeShader genDepthShader({
+        .computeCodePath = "./shaders/genDepth.comp"
+    });
+    genDepthShader.bind();
+    genDepthShader.setVec2("screenSize", glm::vec2(remoteWidth, remoteHeight));
+    genDepthShader.setInt("surfelSize", surfelSize);
+    genDepthShader.unbind();
 
     double startRenderTime = window->getTime();
     app.onRender([&](double now, double dt) {
@@ -462,11 +468,12 @@ int main(int argc, char** argv) {
                 genQuadsShader.setTexture(renderer.gBuffer.depthStencilBuffer, 3);
             }
             {
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, meshDepth.vertexBuffer);
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, numVerticesBuffer);
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, numIndicesBuffer);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, numVerticesBuffer);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, numIndicesBuffer);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, mesh.vertexBuffer);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, mesh.indexBuffer);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, meshWireframe.vertexBuffer);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, meshWireframe.indexBuffer);
             }
 
             // set numVertices and numIndices to 0 before running compute shader
@@ -490,15 +497,37 @@ int main(int argc, char** argv) {
             numIndicesBuffer.getSubData(0, 1, &indicesSize);
 
             mesh.resizeBuffers(verticesSize, indicesSize);
-            meshDepth.resizeBuffers(verticesSize, verticesSize);
             meshWireframe.resizeBuffers(verticesSize, indicesSize);
+
+            // create point cloud for depth map
+            genDepthShader.bind();
+            {
+                genDepthShader.setMat4("view", remoteCamera.getViewMatrix());
+                genDepthShader.setMat4("projection", remoteCamera.getProjectionMatrix());
+                genDepthShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
+                genDepthShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+
+                genDepthShader.setFloat("near", remoteCamera.near);
+                genDepthShader.setFloat("far", remoteCamera.far);
+            }
+            {
+                genDepthShader.setTexture(renderer.gBuffer.positionBuffer, 0);
+                genDepthShader.setTexture(renderer.gBuffer.normalsBuffer, 1);
+                genDepthShader.setTexture(renderer.gBuffer.idBuffer, 2);
+                genDepthShader.setTexture(renderer.gBuffer.depthStencilBuffer, 3);
+            }
+            {
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, meshDepth.vertexBuffer);
+            }
+            genDepthShader.dispatch(remoteWidth / 16, remoteHeight / 16, 1);
+            genDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
             std::cout << "Compute Shader Time: " << glfwGetTime() - startTime << "s" << std::endl;
 
             rerender = false;
         }
 
-        nodeWireframe.visible = renderWireframe;
+        nodeWireframe.visible = showWireframe;
         nodeDepth.visible = showDepth;
 
         nodeWireframe.setPosition(node.getPosition() - camera.getForwardVector() * 0.001f);

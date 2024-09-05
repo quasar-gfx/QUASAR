@@ -122,7 +122,6 @@ int main(int argc, char** argv) {
         .vertices = std::vector<Vertex>(numVertices),
         .indices = std::vector<unsigned int>(indexBufferSize),
         .material = new UnlitMaterial({ .diffuseTexture = &videoTextureColor }),
-        .wireframe = false,
         .pointcloud = renderState == RenderState::POINTCLOUD,
         .usage = GL_DYNAMIC_DRAW
     });
@@ -134,12 +133,12 @@ int main(int argc, char** argv) {
         .vertices = std::vector<Vertex>(numVertices),
         .indices = std::vector<unsigned int>(indexBufferSize),
         .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-        .wireframe = true,
         .pointcloud = false,
         .usage = GL_DYNAMIC_DRAW
     });
     Node nodeWireframe = Node(&meshWireframe);
     nodeWireframe.frustumCulled = false;
+    nodeWireframe.wireframe = true;
     scene.addChildNode(&nodeWireframe);
 
     double elapsedTimeColor, elapsedTimeDepth;
@@ -253,7 +252,7 @@ int main(int argc, char** argv) {
 
             ImGui::RadioButton("Render Mesh", (int*)&renderState, 0);
             ImGui::RadioButton("Render Point Cloud", (int*)&renderState, 1);
-            ImGui::RadioButton("Render Wireframe", (int*)&renderState, 2);
+            ImGui::RadioButton("Show Wireframe", (int*)&renderState, 2);
 
             ImGui::End();
         }

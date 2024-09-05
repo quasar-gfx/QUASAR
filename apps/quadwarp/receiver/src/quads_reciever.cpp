@@ -150,7 +150,7 @@ int main(int argc, char** argv) {
 
             ImGui::RadioButton("Render Mesh", (int*)&renderState, 0);
             ImGui::RadioButton("Render Point Cloud", (int*)&renderState, 1);
-            ImGui::RadioButton("Render Wireframe", (int*)&renderState, 2);
+            ImGui::RadioButton("Show Wireframe", (int*)&renderState, 2);
             ImGui::End();
         }
 
@@ -228,7 +228,6 @@ int main(int argc, char** argv) {
         .vertices = vertices,
         .indices = indices,
         .material = new UnlitMaterial({ .diffuseTexture = &colorTexture }),
-        .wireframe = false,
         .pointcloud = renderState == RenderState::POINTCLOUD,
     });
     Node node(&mesh);
@@ -239,11 +238,11 @@ int main(int argc, char** argv) {
         .vertices = vertices,
         .indices = indices,
         .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-        .wireframe = true,
         .pointcloud = false,
     });
     Node nodeWireframe(&meshWireframe);
     nodeWireframe.frustumCulled = false;
+    nodeWireframe.wireframe = true;
     scene.addChildNode(&nodeWireframe);
 
     app.onRender([&](double now, double dt) {

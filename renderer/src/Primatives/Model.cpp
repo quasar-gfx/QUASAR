@@ -195,7 +195,6 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
 
     meshParams.vertices = vertices;
     meshParams.indices = indices;
-    meshParams.wireframe = wireframe;
     meshParams.pointcloud = pointcloud;
     meshParams.IBL = IBL;
     meshParams.material = this->material;
