@@ -133,12 +133,12 @@ int main(int argc, char** argv) {
         .vertices = std::vector<Vertex>(numVertices),
         .indices = std::vector<unsigned int>(indexBufferSize),
         .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-        .pointcloud = false,
         .usage = GL_DYNAMIC_DRAW
     });
     Node nodeWireframe = Node(&meshWireframe);
     nodeWireframe.frustumCulled = false;
     nodeWireframe.wireframe = true;
+    nodeWireframe.visible = false;
     scene.addChildNode(&nodeWireframe);
 
     double elapsedTimeColor, elapsedTimeDepth;
@@ -325,8 +325,6 @@ int main(int argc, char** argv) {
     });
 
     genMeshShader.bind();
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
     genMeshShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
     genMeshShader.setInt("surfelSize", surfelSize);
     genMeshShader.unbind();
@@ -428,16 +426,28 @@ int main(int argc, char** argv) {
 
         // set shader uniforms
         genMeshShader.bind();
-        genMeshShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-        genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
-        genMeshShader.setFloat("near", remoteCamera.near);
-        genMeshShader.setFloat("far", remoteCamera.far);
-        genMeshShader.setTexture(videoTextureDepth, 0);
-        if (poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTimeColor)) {
-            genMeshShader.setMat4("viewColor", currentColorFramePose.mono.view);
+        {
+            genMeshShader.setMat4("projection", remoteCamera.getProjectionMatrix());
+            genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+            genMeshShader.setFloat("near", remoteCamera.near);
+            genMeshShader.setFloat("far", remoteCamera.far);
         }
-        if (poseStreamer.getPose(poseIdDepth, &currentDepthFramePose, &elapsedTimeDepth)) {
-            genMeshShader.setMat4("viewInverseDepth", glm::inverse(currentDepthFramePose.mono.view));
+        {
+            genMeshShader.setTexture(videoTextureDepth, 0);
+        }
+        {
+            if (poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTimeColor)) {
+                genMeshShader.setMat4("viewColor", currentColorFramePose.mono.view);
+            }
+            if (poseStreamer.getPose(poseIdDepth, &currentDepthFramePose, &elapsedTimeDepth)) {
+                genMeshShader.setMat4("viewInverseDepth", glm::inverse(currentDepthFramePose.mono.view));
+            }
+        }
+        {
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, meshWireframe.vertexBuffer);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, meshWireframe.indexBuffer);
         }
         // dispatch compute shader to generate vertices and indices for mesh
         genMeshShader.dispatch(width / 16, height / 16, 1);
