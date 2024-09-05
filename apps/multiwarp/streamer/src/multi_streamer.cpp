@@ -521,6 +521,7 @@ int main(int argc, char** argv) {
                     int x = (i & 1) ? -1 : 1;
                     int y = (i & 2) ? -1 : 1;
                     int z = (i & 4) ? -1 : 1;
+                    remoteCameras[i]->setViewMatrix(centerRemoteCamera->getViewMatrix());
                     remoteCameras[i]->setPosition(centerRemoteCamera->getPosition() + viewCellSize/2 * glm::vec3(x, y, z));
                     remoteCameras[i]->updateViewMatrix();
                 }
