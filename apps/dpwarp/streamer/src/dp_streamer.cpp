@@ -57,6 +57,7 @@ int main(int argc, char** argv) {
 
     int surfelSize = args::get(surfelSizeIn);
     int maxLayers = args::get(maxLayersIn);
+    int maxViews = maxLayers + 1;
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -70,8 +71,6 @@ int main(int argc, char** argv) {
 
     unsigned int screenWidth, screenHeight;
     window->getSize(screenWidth, screenHeight);
-
-    unsigned int maxViews = maxLayers + 1;
 
     Scene remoteScene;
     std::vector<PerspectiveCamera*> remoteCameras(maxViews);
@@ -366,17 +365,15 @@ int main(int argc, char** argv) {
                     std::string colorFileName = DATA_PATH + "color" + std::to_string(i) + ".png";
 
                     // save vertexBuffer
-                    glBindBuffer(GL_SHADER_STORAGE_BUFFER, meshes[i]->vertexBuffer);
-                    Vertex* vertices = (Vertex*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+                    std::vector<Vertex> vertices = meshes[i]->vertexBuffer.getData();
                     std::ofstream verticesFile(DATA_PATH + verticesFileName, std::ios::binary);
-                    verticesFile.write((char*)vertices, numVertices * sizeof(Vertex));
+                    verticesFile.write((char*)vertices.data(), meshes[i]->vertexBuffer.getSize() * sizeof(Vertex));
                     verticesFile.close();
 
                     // save indexBuffer
-                    glBindBuffer(GL_SHADER_STORAGE_BUFFER, meshes[i]->indexBuffer);
-                    GLuint* indices = (GLuint*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+                    std::vector<unsigned int> indices = meshes[i]->indexBuffer.getData();
                     std::ofstream indicesFile(DATA_PATH + indicesFileName, std::ios::binary);
-                    indicesFile.write((char*)indices, indexBufferSize * sizeof(GLuint));
+                    indicesFile.write((char*)indices.data(), meshes[i]->indexBuffer.getSize() * sizeof(unsigned int));
                     indicesFile.close();
 
                     // save color buffer

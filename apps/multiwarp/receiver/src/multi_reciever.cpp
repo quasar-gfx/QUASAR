@@ -156,8 +156,8 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::RadioButton("Render Mesh", (int*)&renderState, 0);
-            ImGui::RadioButton("Render Point Cloud", (int*)&renderState, 1);
+            ImGui::RadioButton("Show Mesh", (int*)&renderState, 0);
+            ImGui::RadioButton("Show Point Cloud", (int*)&renderState, 1);
             ImGui::RadioButton("Show Wireframe", (int*)&renderState, 2);
 
             ImGui::Separator();
@@ -262,10 +262,17 @@ int main(int argc, char** argv) {
         nodes[i]->frustumCulled = false;
         scene.addChildNode(nodes[i]);
 
+        // primary view color is yellow
+        glm::vec4 color = (i == 0) ? glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) :
+                  glm::vec4(fmod(i * 0.6180339887f, 1.0f),
+                            fmod(i * 0.9f, 1.0f),
+                            fmod(i * 0.5f, 1.0f),
+                            1.0f);
+
         meshWireframes[i] = new Mesh({
             .vertices = vertices,
             .indices = indices,
-            .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
+            .material = new UnlitMaterial({ .baseColor = color }),
             .pointcloud = false,
         });
         nodeWireframes[i] = new Node(meshWireframes[i]);

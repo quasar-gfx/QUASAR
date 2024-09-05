@@ -148,8 +148,8 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::RadioButton("Render Mesh", (int*)&renderState, 0);
-            ImGui::RadioButton("Render Point Cloud", (int*)&renderState, 1);
+            ImGui::RadioButton("Show Mesh", (int*)&renderState, 0);
+            ImGui::RadioButton("Show Point Cloud", (int*)&renderState, 1);
             ImGui::RadioButton("Show Wireframe", (int*)&renderState, 2);
             ImGui::End();
         }

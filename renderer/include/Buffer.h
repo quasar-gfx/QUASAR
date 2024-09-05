@@ -128,6 +128,23 @@ public:
     void getSubData(unsigned int offset, unsigned int numElems, void* data) const {
         glGetBufferSubData(target, offset * sizeof(T), numElems * sizeof(T), data);
     }
+
+    std::vector<T> getData() const {
+        std::vector<T> data(numElems);
+        bind();
+
+        T* mappedBuffer = static_cast<T*>(glMapBuffer(target, GL_READ_ONLY));
+        if (mappedBuffer) {
+            std::copy(mappedBuffer, mappedBuffer + numElems, data.begin());
+
+            glUnmapBuffer(target);
+        } else {
+            std::cerr << "Error: Could not map buffer data." << std::endl;
+        }
+
+        unbind();
+        return data;
+    }
 #endif
 
     void bind() const override {

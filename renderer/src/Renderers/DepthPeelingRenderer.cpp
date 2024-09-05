@@ -15,7 +15,7 @@ DepthPeelingRenderer::DepthPeelingRenderer(const Config &config, unsigned int ma
         , OpenGLRenderer(config) {
 
     for (int i = 0; i < maxLayers; i++) {
-        peelingLayers.push_back(new GeometryBuffer({ .width = width, .height = height }));
+        peelingLayers.push_back(new GeometryBuffer({ .width = config.width, .height = config.height }));
     }
 }
 

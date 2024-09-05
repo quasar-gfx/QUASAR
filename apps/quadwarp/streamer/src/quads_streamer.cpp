@@ -311,17 +311,15 @@ int main(int argc, char** argv) {
 
             if (ImGui::Button("Save Mesh")) {
                 // save vertexBuffer
-                glBindBuffer(GL_SHADER_STORAGE_BUFFER, mesh.vertexBuffer);
-                Vertex* vertices = (Vertex*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+                std::vector<Vertex> vertices = mesh.vertexBuffer.getData();
                 std::ofstream verticesFile(DATA_PATH + verticesFileName, std::ios::binary);
-                verticesFile.write((char*)vertices, numVertices * sizeof(Vertex));
+                verticesFile.write((char*)vertices.data(), mesh.vertexBuffer.getSize() * sizeof(Vertex));
                 verticesFile.close();
 
                 // save indexBuffer
-                glBindBuffer(GL_SHADER_STORAGE_BUFFER, mesh.indexBuffer);
-                GLuint* indices = (GLuint*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+                std::vector<unsigned int> indices = mesh.indexBuffer.getData();
                 std::ofstream indicesFile(DATA_PATH + indicesFileName, std::ios::binary);
-                indicesFile.write((char*)indices, indexBufferSize * sizeof(GLuint));
+                indicesFile.write((char*)indices.data(), mesh.indexBuffer.getSize() * sizeof(unsigned int));
                 indicesFile.close();
 
                 // save color buffer

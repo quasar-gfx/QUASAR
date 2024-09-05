@@ -20,9 +20,6 @@ enum class RenderState {
     WIREFRAME
 };
 
-int surfelSize = 4;
-RenderState renderState = RenderState::MESH;
-
 int main(int argc, char** argv) {
     Config config{};
     config.title = "Depth Peeling Receiver";
@@ -34,7 +31,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
     args::ValueFlag<int> renderStateIn(parser, "render", "Render state", {'r', "render-state"}, 0);
-    args::ValueFlag<int> maxLayersIn(parser, "maxLayers", "Number of layers", {'l', "num-layers"}, 8);
+    args::ValueFlag<int> maxLayersIn(parser, "layers", "Max layers", {'n', "max-layers"}, 8);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -52,14 +49,14 @@ int main(int argc, char** argv) {
     config.width = std::stoi(sizeStr.substr(0, pos));
     config.height = std::stoi(sizeStr.substr(pos + 1));
 
-    int maxLayers = args::get(maxLayersIn);
-
     config.enableVSync = args::get(vsyncIn);
 
     std::string scenePath = args::get(scenePathIn);
 
-    renderState = static_cast<RenderState>(args::get(renderStateIn));
-    surfelSize = args::get(surfelSizeIn);
+    RenderState renderState = static_cast<RenderState>(args::get(renderStateIn));
+    int surfelSize = args::get(surfelSizeIn);
+    int maxLayers = args::get(maxLayersIn);
+    int maxViews = maxLayers + 1;
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -78,8 +75,8 @@ int main(int argc, char** argv) {
 
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
 
-    bool* showLayers = new bool[maxLayers];
-    for (int i = 0; i < maxLayers; ++i) {
+    bool* showLayers = new bool[maxViews];
+    for (int i = 0; i < maxViews; ++i) {
         showLayers[i] = true;
     }
 
@@ -156,14 +153,14 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::RadioButton("Render Mesh", (int*)&renderState, 0);
-            ImGui::RadioButton("Render Point Cloud", (int*)&renderState, 1);
+            ImGui::RadioButton("Show Mesh", (int*)&renderState, 0);
+            ImGui::RadioButton("Show Point Cloud", (int*)&renderState, 1);
             ImGui::RadioButton("Show Wireframe", (int*)&renderState, 2);
 
             ImGui::Separator();
 
             const int columns = 3;
-            for (int i = 0; i < maxLayers; i++) {
+            for (int i = 0; i < maxViews; i++) {
                 ImGui::Checkbox(("Show Layer " + std::to_string(i)).c_str(), &showLayers[i]);
                 if ((i + 1) % columns != 0) {
                     ImGui::SameLine();
@@ -215,15 +212,15 @@ int main(int argc, char** argv) {
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
 
-    std::vector<Texture*> colorTexture(maxLayers);
+    std::vector<Texture*> colorTexture(maxViews);
 
-    std::vector<Mesh*> meshes(maxLayers);
-    std::vector<Node*> nodes(maxLayers);
+    std::vector<Mesh*> meshes(maxViews);
+    std::vector<Node*> nodes(maxViews);
 
-    std::vector<Mesh*> meshWireframes(maxLayers);
-    std::vector<Node*> nodeWireframes(maxLayers);
+    std::vector<Mesh*> meshWireframes(maxViews);
+    std::vector<Node*> nodeWireframes(maxViews);
 
-    for (int i = 0; i < maxLayers; i++) {
+    for (int i = 0; i < maxViews; i++) {
         std::string verticesFileName = DATA_PATH + "vertices" + std::to_string(i) + ".bin";
         std::string indicesFileName = DATA_PATH + "indices" + std::to_string(i) + ".bin";
         std::string colorFileName = DATA_PATH + "color" + std::to_string(i) + ".png";
@@ -262,10 +259,17 @@ int main(int argc, char** argv) {
         nodes[i]->frustumCulled = false;
         scene.addChildNode(nodes[i]);
 
+        // primary view color is yellow
+        glm::vec4 color = (i == 0) ? glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) :
+                  glm::vec4(fmod(i * 0.6180339887f, 1.0f),
+                            fmod(i * 0.9f, 1.0f),
+                            fmod(i * 0.5f, 1.0f),
+                            1.0f);
+
         meshWireframes[i] = new Mesh({
             .vertices = vertices,
             .indices = indices,
-            .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
+            .material = new UnlitMaterial({ .baseColor = color }),
             .pointcloud = false,
         });
         nodeWireframes[i] = new Node(meshWireframes[i]);
@@ -317,7 +321,7 @@ int main(int argc, char** argv) {
             window->close();
         }
 
-        for (int i = 0; i < maxLayers; i++) {
+        for (int i = 0; i < maxViews; i++) {
             bool showLayer = showLayers[i];
 
             nodes[i]->visible = showLayer;
