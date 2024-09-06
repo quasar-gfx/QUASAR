@@ -183,9 +183,10 @@ vec2 worldToScreen(mat4 view, mat4 projection, vec3 worldCoord) {
     return ndcToScreen(ndc);
 }
 
-QuadMapData sampleQuadMap(vec2 texCoord) {
-    uint index = uint(texCoord.y * quadMapSize.x + texCoord.x);
-    return quadMap[index];
+QuadMapData sampleQuadMap(ivec2 pixelCoord) {
+    uint index = pixelCoord.y * uint(quadMapSize.x) + pixelCoord.x;
+    QuadMapData quadMapData = quadMap[index];
+    return quadMapData;
 }
 
 vec3 planeRayIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 planePoint, vec3 planeNormal) {
@@ -273,7 +274,7 @@ void main() {
 
     **********************/
 
-    vec2 pixelCoord = vec2(gl_GlobalInvocationID.xy);
+    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
 
     const int surfelSize = 1;
 
@@ -325,5 +326,5 @@ void main() {
     rayDirection = normalize(surfelViews.topRight - origin);
     surfel.topRight = planeRayIntersection(origin, rayDirection, surfelCenterView, quadMapData.normal);
 
-    storeQuad(surfel);
+    // storeQuad(surfel);
 }

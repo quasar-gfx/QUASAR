@@ -485,6 +485,12 @@ int main(int argc, char** argv) {
             }
             {
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadMapBuffer);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, numVerticesBuffer);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, numIndicesBuffer);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, mesh.vertexBuffer);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, mesh.indexBuffer);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, meshWireframe.vertexBuffer);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, meshWireframe.indexBuffer);
             }
 
             // set numVertices and numIndices to 0 before running compute shader

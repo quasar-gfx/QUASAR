@@ -80,17 +80,17 @@ vec2 worldToScreen(mat4 view, mat4 projection, vec3 worldCoord) {
     return ndcToScreen(ndc);
 }
 
-QuadMapData sampleQuadMap(vec2 texCoord) {
-    uint index = uint(texCoord.y * quadMapSize.x + texCoord.x);
+QuadMapData sampleQuadMap(ivec2 pixelCoord) {
+    uint index = pixelCoord.y * uint(quadMapSize.x) + pixelCoord.x;
     QuadMapData quadMapData = inputQuadMap[index];
     return quadMapData;
 }
 
 void main() {
-    vec2 pixelCoord = vec2(gl_GlobalInvocationID.xy);
+    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
 
     QuadMapData data = sampleQuadMap(pixelCoord);
 
     uint outputIndex = atomicAdd(quadMap2Size, 1);
-    outputQuadMap[outputIndex + 0] = QuadMapData(data.normal, data.uv, data.depth);
+    outputQuadMap[outputIndex + 0] = data;
 }
