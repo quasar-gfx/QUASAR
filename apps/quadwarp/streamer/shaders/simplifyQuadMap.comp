@@ -1,0 +1,165 @@
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+precision highp sampler2D;
+precision highp image2D;
+
+struct QuadMapPlane {
+    vec3 normal;
+    float depth;
+};
+
+struct QuadMapData {
+    vec3 normal;
+    vec2 xy;
+    float depth;
+};
+
+layout(std430, binding = 0) buffer InputQuadMapBuffer {
+    QuadMapPlane inputQuadMap[];
+};
+
+layout(std430, binding = 1) buffer OutputQuadMapBuffer {
+    QuadMapData outputQuadMap[];
+};
+
+layout(std430, binding = 2) buffer QuadMap2SizeBuffer {
+    uint quadMap2Size;
+};
+
+struct Plane {
+    vec3 normal;
+    float constant;
+};
+
+uniform vec2 quadMapSize;
+
+uniform mat4 view;
+uniform mat4 projection;
+uniform mat4 viewInverse;
+uniform mat4 projectionInverse;
+
+uniform float near;
+uniform float far;
+
+uniform float similarityThreshold;
+
+#define MAX_DEPTH 0.9999
+
+vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
+    depth = clamp(depth, 0.0, MAX_DEPTH);
+
+    vec4 ndcPos;
+    ndcPos.xy = ndc;
+    ndcPos.z = 2.0 * depth - 1.0;
+    ndcPos.w = 1.0;
+
+    vec4 viewCoord = projectionInverse * ndcPos;
+    viewCoord = viewCoord / viewCoord.w;
+    return viewCoord.xyz;
+}
+
+vec3 viewToWorld(mat4 viewInverse, vec3 viewCoord) {
+    vec4 worldCoord = viewInverse * vec4(viewCoord, 1.0);
+    worldCoord = worldCoord / worldCoord.w;
+    return worldCoord.xyz;
+}
+
+vec3 worldToView(mat4 view, vec3 worldCoord) {
+    vec4 viewCoord = view * vec4(worldCoord, 1.0);
+    viewCoord = viewCoord / viewCoord.w;
+    return viewCoord.xyz;
+}
+
+vec2 viewToNDC(mat4 projection, vec3 viewCoord) {
+    vec4 ndcCoord = projection * vec4(viewCoord, 1.0);
+    ndcCoord = ndcCoord / ndcCoord.w;
+    return ndcCoord.xy;
+}
+
+vec2 ndcToScreen(vec2 ndc) {
+    return (ndc + 1.0) / 2.0;
+}
+
+vec2 worldToScreen(mat4 view, mat4 projection, vec3 worldCoord) {
+    vec2 ndc = viewToNDC(projection, worldToView(view, worldCoord));
+    return ndcToScreen(ndc);
+}
+
+QuadMapPlane sampleQuadMap(vec2 texCoord) {
+    uint index = uint(texCoord.y * quadMapSize.x + texCoord.x);
+    QuadMapPlane quadMapPlane = inputQuadMap[index];
+    return quadMapPlane;
+}
+
+float planeDistance(Plane plane1, Plane plane2) {
+    return abs(plane1.normal.x - plane2.normal.x) +
+           abs(plane1.normal.y - plane2.normal.y) +
+           abs(plane1.normal.z - plane2.normal.z) +
+           abs(plane1.constant - plane2.constant);
+}
+
+void main() {
+    vec2 inputQuadMapSize = quadMapSize;
+    vec2 outputQuadMapSize = quadMapSize / 2.0; // outputQuadMap has half the size of inputQuadMap
+
+
+    /**********************************
+
+
+       ( )   ----   ( )   ----  ( )
+        |            |           |
+        |      tl    |     tr    |
+        |            |           |
+       ( )  - - -   ( )  - - - ( )
+        |            |           |
+        |      bl    |     br    |
+        |            |           |
+       ( )    ----  ( )   ----  ( )
+
+    **********************************/
+    // dispatched with (width / 2, height / 2)
+    vec2 pixelCoordBottomLeft = vec2(gl_GlobalInvocationID.x * 2.0, gl_GlobalInvocationID.y * 2.0);
+    vec2 pixelCoordBottomRight = vec2(gl_GlobalInvocationID.x * 2.0 + 1.0, gl_GlobalInvocationID.y * 2.0);
+    vec2 pixelCoordTopLeft = vec2(gl_GlobalInvocationID.x * 2.0, gl_GlobalInvocationID.y * 2.0 + 1.0);
+    vec2 pixelCoordTopRight = vec2(gl_GlobalInvocationID.x * 2.0 + 1.0, gl_GlobalInvocationID.y * 2.0 + 1.0);
+
+    QuadMapPlane quadMapBottomLeft = sampleQuadMap(pixelCoordBottomLeft);
+    QuadMapPlane quadMapBottomRight = sampleQuadMap(pixelCoordBottomRight);
+    QuadMapPlane quadMapTopLeft = sampleQuadMap(pixelCoordTopLeft);
+    QuadMapPlane quadMapTopRight = sampleQuadMap(pixelCoordTopRight);
+
+    vec2 pixelCoordBottomLeftNDC = pixelCoordBottomLeft   / inputQuadMapSize;
+    vec2 pixelCoordBottomRightNDC = pixelCoordBottomRight / inputQuadMapSize;
+    vec2 pixelCoordTopLeftNDC = pixelCoordTopLeft         / inputQuadMapSize;
+    vec2 pixelCoordTopRightNDC = pixelCoordTopRight       / inputQuadMapSize;
+
+    vec3 viewCoordBottomLeft = ndcToView(projectionInverse, pixelCoordBottomLeftNDC, quadMapBottomLeft.depth);
+    vec3 viewCoordBottomRight = ndcToView(projectionInverse, pixelCoordBottomRightNDC, quadMapBottomRight.depth);
+    vec3 viewCoordTopLeft = ndcToView(projectionInverse, pixelCoordTopLeftNDC, quadMapTopLeft.depth);
+    vec3 viewCoordTopRight = ndcToView(projectionInverse, pixelCoordTopRightNDC, quadMapTopRight.depth);
+
+    Plane planeBottomLeft = Plane(quadMapBottomLeft.normal, -dot(quadMapBottomLeft.normal, viewCoordBottomLeft));
+    Plane planeBottomRight = Plane(quadMapBottomRight.normal, -dot(quadMapBottomRight.normal, viewCoordBottomRight));
+    Plane planeTopLeft = Plane(quadMapTopLeft.normal, -dot(quadMapTopLeft.normal, viewCoordTopLeft));
+    Plane planeTopRight = Plane(quadMapTopRight.normal, -dot(quadMapTopRight.normal, viewCoordTopRight));
+
+    // if planes are within similarityThreshold of each other, merge them
+    if (planeDistance(planeBottomLeft, planeBottomRight) < similarityThreshold &&
+        planeDistance(planeBottomLeft, planeTopLeft) < similarityThreshold &&
+        planeDistance(planeBottomLeft, planeTopRight) < similarityThreshold) {
+
+        Plane avgPlane = Plane((planeBottomLeft.normal + planeBottomRight.normal + planeTopLeft.normal + planeTopRight.normal) / 4.0,
+                               (planeBottomLeft.constant + planeBottomRight.constant + planeTopLeft.constant + planeTopRight.constant) / 4.0);
+        vec2 avgPixelCoord = (pixelCoordBottomLeft + pixelCoordBottomRight + pixelCoordTopLeft + pixelCoordTopRight) / 4.0;
+
+        uint outputIndex = atomicAdd(quadMap2Size, 1);
+        outputQuadMap[outputIndex] = QuadMapData(avgPlane.normal, avgPixelCoord, avgPlane.constant);
+    }
+    else {
+        uint outputIndex = atomicAdd(quadMap2Size, 4);
+        outputQuadMap[outputIndex + 0] = QuadMapData(planeBottomLeft.normal, pixelCoordBottomLeft, planeBottomLeft.constant);
+        outputQuadMap[outputIndex + 1] = QuadMapData(planeBottomRight.normal, pixelCoordBottomRight, planeBottomRight.constant);
+        outputQuadMap[outputIndex + 2] = QuadMapData(planeTopLeft.normal, pixelCoordTopLeft, planeTopLeft.constant);
+        outputQuadMap[outputIndex + 3] = QuadMapData(planeTopRight.normal, pixelCoordTopRight, planeTopRight.constant);
+    }
+}

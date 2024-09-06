@@ -3,8 +3,6 @@ layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 precision highp sampler2D;
 precision highp image2D;
 
-layout(binding = 0) uniform sampler2D quadMap;
-
 struct Vertex {
     uint id;
     vec3 position;
@@ -15,27 +13,36 @@ struct Vertex {
     vec3 bitangent;
 };
 
-layout(std430, binding = 0) buffer VertexCounterBuffer {
+struct QuadMapPlane {
+    vec3 normal;
+    float depth;
+};
+
+layout(std430, binding = 0) buffer QuadMapBuffer {
+    QuadMapPlane quadMap[];
+};
+
+layout(std430, binding = 1) buffer VertexCounterBuffer {
     uint numVertices;
 };
 
-layout(std430, binding = 1) buffer IndexCounterBuffer {
+layout(std430, binding = 2) buffer IndexCounterBuffer {
     uint numIndices;
 };
 
-layout(std430, binding = 2) buffer VertexBuffer {
+layout(std430, binding = 3) buffer VertexBuffer {
     Vertex vertices[];
 };
 
-layout(std430, binding = 3) buffer IndexBuffer {
+layout(std430, binding = 4) buffer IndexBuffer {
     uint indices[];
 };
 
-layout(std430, binding = 4) buffer VertexBufferWireframe {
+layout(std430, binding = 5) buffer VertexBufferWireframe {
     Vertex verticesWireframe[];
 };
 
-layout(std430, binding = 5) buffer IndexBufferWireframe {
+layout(std430, binding = 6) buffer IndexBufferWireframe {
     uint indicesWireframe[];
 };
 
@@ -112,10 +119,10 @@ uniform mat4 projectionInverse;
 uniform float near;
 uniform float far;
 
-uniform int surfelSize;
-
 uniform float distanceThreshold;
 uniform float angleThreshold;
+
+uniform vec2 quadMapSize;
 
 const float epilson = 1e-5;
 
@@ -181,10 +188,11 @@ vec2 worldToScreen(mat4 view, mat4 projection, vec3 worldCoord) {
     return ndcToScreen(ndc);
 }
 
-void sampleQuadMap(vec2 uv, out vec3 normal, out float depth) {
-    vec4 value = texture(quadMap, uv);
-    normal = value.rgb;
-    depth = value.a;
+void sampleQuadMap(vec2 pixelCoord, out vec3 normal, out float depth) {
+    uint index = uint(pixelCoord.y * quadMapSize.x + pixelCoord.x);
+    QuadMapPlane value = quadMap[index];
+    normal = value.normal;
+    depth = value.depth;
 }
 
 float NormalizeDepth(float depth) {
@@ -510,9 +518,7 @@ void storeQuad(Quad quad)
 }
 
 void main() {
-    vec2 size = vec2(screenSize) / float(surfelSize);
-
-    uint shaderIndex = uint(gl_GlobalInvocationID.y * size.x + gl_GlobalInvocationID.x);
+    uint shaderIndex = uint(gl_GlobalInvocationID.y * screenSize.x + gl_GlobalInvocationID.x);
 
     /**********************************
 
@@ -531,53 +537,53 @@ void main() {
     // get coords
     vec2 surfelCoordBottomLeft  = vec2(gl_GlobalInvocationID.xy);
 
-    MultiQuad2D pixelsCoords;
-    pixelsCoords.bottomLeft  = surfelSize * (surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(-1.0, -1.0));
-    pixelsCoords.bottom      = surfelSize * (surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+0.0, -1.0));
-    pixelsCoords.bottomRight = surfelSize * (surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+1.0, -1.0));
-    pixelsCoords.left        = surfelSize * (surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(-1.0, +0.0));
-    pixelsCoords.center      = surfelSize * (surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+0.0, +0.0));
-    pixelsCoords.right       = surfelSize * (surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+1.0, +0.0));
-    pixelsCoords.topLeft     = surfelSize * (surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(-1.0, +1.0));
-    pixelsCoords.top         = surfelSize * (surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+0.0, +1.0));
-    pixelsCoords.topRight    = surfelSize * (surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+1.0, +1.0));
+    MultiQuad2D pixelCoords;
+    pixelCoords.bottomLeft  = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(-1.0, -1.0);
+    pixelCoords.bottom      = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+0.0, -1.0);
+    pixelCoords.bottomRight = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+1.0, -1.0);
+    pixelCoords.left        = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(-1.0, +0.0);
+    pixelCoords.center      = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+0.0, +0.0);
+    pixelCoords.right       = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+1.0, +0.0);
+    pixelCoords.topLeft     = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(-1.0, +1.0);
+    pixelCoords.top         = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+0.0, +1.0);
+    pixelCoords.topRight    = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+1.0, +1.0);
 
     MultiQuad2D surfelCoords;
-    surfelCoords.bottomLeft  = surfelSize * (surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.0, 0.0));
-    surfelCoords.bottom      = surfelSize * (surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.5, 0.0));
-    surfelCoords.bottomRight = surfelSize * (surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(1.0, 0.0));
-    surfelCoords.left        = surfelSize * (surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.0, 0.5));
-    surfelCoords.center      = pixelsCoords.center;
-    surfelCoords.right       = surfelSize * (surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(1.0, 0.5));
-    surfelCoords.topLeft     = surfelSize * (surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.0, 1.0));
-    surfelCoords.top         = surfelSize * (surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.5, 1.0));
-    surfelCoords.topRight    = surfelSize * (surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(1.0, 1.0));
-
-    // sample texture maps
-    MultiQuad2D uvs;
-    uvs.bottomLeft  = pixelsCoords.bottomLeft  / screenSize;
-    uvs.bottom      = pixelsCoords.bottom      / screenSize;
-    uvs.bottomRight = pixelsCoords.bottomRight / screenSize;
-    uvs.left        = pixelsCoords.left        / screenSize;
-    uvs.center      = pixelsCoords.center      / screenSize;
-    uvs.right       = pixelsCoords.right       / screenSize;
-    uvs.topLeft     = pixelsCoords.topLeft     / screenSize;
-    uvs.top         = pixelsCoords.top         / screenSize;
-    uvs.topRight    = pixelsCoords.topRight    / screenSize;
+    surfelCoords.bottomLeft  = surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.0, 0.0);
+    surfelCoords.bottom      = surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.5, 0.0);
+    surfelCoords.bottomRight = surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(1.0, 0.0);
+    surfelCoords.left        = surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.0, 0.5);
+    surfelCoords.center      = pixelCoords.center;
+    surfelCoords.right       = surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(1.0, 0.5);
+    surfelCoords.topLeft     = surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.0, 1.0);
+    surfelCoords.top         = surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.5, 1.0);
+    surfelCoords.topRight    = surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(1.0, 1.0);
 
     // sample quad map
     MultiQuad1D pixelDepths;
     MultiQuad pixelNormalsView;
 
-    sampleQuadMap(uvs.bottomLeft, pixelNormalsView.bottomLeft, pixelDepths.bottomLeft);
-    sampleQuadMap(uvs.bottom, pixelNormalsView.bottom, pixelDepths.bottom);
-    sampleQuadMap(uvs.bottomRight, pixelNormalsView.bottomRight, pixelDepths.bottomRight);
-    sampleQuadMap(uvs.left, pixelNormalsView.left, pixelDepths.left);
-    sampleQuadMap(uvs.center, pixelNormalsView.center, pixelDepths.center);
-    sampleQuadMap(uvs.right, pixelNormalsView.right, pixelDepths.right);
-    sampleQuadMap(uvs.topLeft, pixelNormalsView.topLeft, pixelDepths.topLeft);
-    sampleQuadMap(uvs.top, pixelNormalsView.top, pixelDepths.top);
-    sampleQuadMap(uvs.topRight, pixelNormalsView.topRight, pixelDepths.topRight);
+    sampleQuadMap(pixelCoords.bottomLeft, pixelNormalsView.bottomLeft, pixelDepths.bottomLeft);
+    sampleQuadMap(pixelCoords.bottom, pixelNormalsView.bottom, pixelDepths.bottom);
+    sampleQuadMap(pixelCoords.bottomRight, pixelNormalsView.bottomRight, pixelDepths.bottomRight);
+    sampleQuadMap(pixelCoords.left, pixelNormalsView.left, pixelDepths.left);
+    sampleQuadMap(pixelCoords.center, pixelNormalsView.center, pixelDepths.center);
+    sampleQuadMap(pixelCoords.right, pixelNormalsView.right, pixelDepths.right);
+    sampleQuadMap(pixelCoords.topLeft, pixelNormalsView.topLeft, pixelDepths.topLeft);
+    sampleQuadMap(pixelCoords.top, pixelNormalsView.top, pixelDepths.top);
+    sampleQuadMap(pixelCoords.topRight, pixelNormalsView.topRight, pixelDepths.topRight);
+
+    // sample texture maps
+    MultiQuad2D uvs;
+    uvs.bottomLeft  = pixelCoords.bottomLeft  / screenSize;
+    uvs.bottom      = pixelCoords.bottom      / screenSize;
+    uvs.bottomRight = pixelCoords.bottomRight / screenSize;
+    uvs.left        = pixelCoords.left        / screenSize;
+    uvs.center      = pixelCoords.center      / screenSize;
+    uvs.right       = pixelCoords.right       / screenSize;
+    uvs.topLeft     = pixelCoords.topLeft     / screenSize;
+    uvs.top         = pixelCoords.top         / screenSize;
+    uvs.topRight    = pixelCoords.topRight    / screenSize;
 
     // if depth is too far, return
     if (pixelDepths.center == MAX_DEPTH) {
@@ -586,15 +592,15 @@ void main() {
 
     // project points to view space
     MultiQuad2D pixelNDCs;
-    pixelNDCs.bottomLeft  = 2.0 * (pixelsCoords.bottomLeft  / screenSize) - 1.0;
-    pixelNDCs.bottom      = 2.0 * (pixelsCoords.bottom      / screenSize) - 1.0;
-    pixelNDCs.bottomRight = 2.0 * (pixelsCoords.bottomRight / screenSize) - 1.0;
-    pixelNDCs.left        = 2.0 * (pixelsCoords.left        / screenSize) - 1.0;
-    pixelNDCs.center      = 2.0 * (pixelsCoords.center      / screenSize) - 1.0;
-    pixelNDCs.right       = 2.0 * (pixelsCoords.right       / screenSize) - 1.0;
-    pixelNDCs.topLeft     = 2.0 * (pixelsCoords.topLeft     / screenSize) - 1.0;
-    pixelNDCs.top         = 2.0 * (pixelsCoords.top         / screenSize) - 1.0;
-    pixelNDCs.topRight    = 2.0 * (pixelsCoords.topRight    / screenSize) - 1.0;
+    pixelNDCs.bottomLeft  = 2.0 * (pixelCoords.bottomLeft  / screenSize) - 1.0;
+    pixelNDCs.bottom      = 2.0 * (pixelCoords.bottom      / screenSize) - 1.0;
+    pixelNDCs.bottomRight = 2.0 * (pixelCoords.bottomRight / screenSize) - 1.0;
+    pixelNDCs.left        = 2.0 * (pixelCoords.left        / screenSize) - 1.0;
+    pixelNDCs.center      = 2.0 * (pixelCoords.center      / screenSize) - 1.0;
+    pixelNDCs.right       = 2.0 * (pixelCoords.right       / screenSize) - 1.0;
+    pixelNDCs.topLeft     = 2.0 * (pixelCoords.topLeft     / screenSize) - 1.0;
+    pixelNDCs.top         = 2.0 * (pixelCoords.top         / screenSize) - 1.0;
+    pixelNDCs.topRight    = 2.0 * (pixelCoords.topRight    / screenSize) - 1.0;
 
     MultiQuad2D surfelNDCs;
     surfelNDCs.bottomLeft  = 2.0 * (surfelCoords.bottomLeft  / screenSize) - 1.0;
