@@ -610,7 +610,6 @@ void main() {
 
     **********************************/
 
-
     // get coords
     vec2 surfelCoordBottomLeft  = vec2(gl_GlobalInvocationID.xy);
 

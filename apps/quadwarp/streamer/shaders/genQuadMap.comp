@@ -3,10 +3,8 @@ layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 precision highp sampler2D;
 precision highp image2D;
 
-layout(binding = 0) uniform sampler2D positionMap;
-layout(binding = 1) uniform sampler2D normalMap;
-layout(binding = 2) uniform sampler2D idBuffer;
-layout(binding = 3) uniform sampler2D depthMap;
+layout(binding = 0) uniform sampler2D normalMap;
+layout(binding = 1) uniform sampler2D depthMap;
 
 struct Vertex {
     uint id;
@@ -18,29 +16,7 @@ struct Vertex {
     vec3 bitangent;
 };
 
-layout(std430, binding = 0) buffer VertexCounterBuffer {
-    uint numVertices;
-};
-
-layout(std430, binding = 1) buffer IndexCounterBuffer {
-    uint numIndices;
-};
-
-layout(std430, binding = 2) buffer VertexBuffer {
-    Vertex vertices[];
-};
-
-layout(std430, binding = 3) buffer IndexBuffer {
-    uint indices[];
-};
-
-layout(std430, binding = 4) buffer VertexBufferWireframe {
-    Vertex verticesWireframe[];
-};
-
-layout(std430, binding = 5) buffer IndexBufferWireframe {
-    uint indicesWireframe[];
-};
+layout(rgba32f, binding = 0) uniform writeonly image2D quadMap;
 
 struct Plane {
     vec3 normal;
@@ -190,11 +166,6 @@ float sampleDepth(sampler2D depthMap, vec2 sampleCoord) {
     float depth = texture(depthMap, sampleCoord).x;
     depth = clamp(depth, 0.0, MAX_DEPTH);
     return depth;
-}
-
-float LinearizeDepth(float depth) {
-    float z = depth * 2.0 - 1.0; // back to NDC
-    return (2.0 * near * far) / (far + near - z * (far - near));
 }
 
 float NormalizeDepth(float depth) {
@@ -373,9 +344,7 @@ float distanceAlongAxis(vec3 a, vec3 b, vec3 axis) {
     return distance(aProj, bProj);
 }
 
-bool quadHasExtremeOrientation(MultiQuad quad) {
-    vec3 frustumNormalView = normalize(origin - quad.center);
-
+bool quadHasExtremeOrientation(MultiQuad quad, vec3 frustumNormalView) {
     float avgDist = 0.0;
     avgDist += distanceAlongAxis(quad.center, quad.bottomLeft, frustumNormalView);
     avgDist += distanceAlongAxis(quad.center, quad.bottom, frustumNormalView);
@@ -535,62 +504,6 @@ MultiQuad createSurfels(MultiQuad2D surfelNDCs, MultiQuad pixelCoordsView, Multi
     return surfelView;
 }
 
-void storeQuad(
-        Quad quad,
-        uint shaderIndex, uint vertexOffset, uint indexOffset)
-{
-    /************************
-
-            tl -- tr
-            |   / |
-            | /   |
-            bl -- br
-
-    ************************/
-
-    uint vertexIndexTopLeft = atomicAdd(numVertices, 1);
-    vertices[vertexIndexTopLeft].position = viewToWorld(viewInverse, quad.topLeft);
-    vertices[vertexIndexTopLeft].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexTopLeft].texCoords = worldToScreen(view, projection, vertices[vertexIndexTopLeft].position);
-
-    uint vertexIndexTopRight = atomicAdd(numVertices, 1);
-    vertices[vertexIndexTopRight].position = viewToWorld(viewInverse, quad.topRight);
-    vertices[vertexIndexTopRight].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexTopRight].texCoords = worldToScreen(view, projection, vertices[vertexIndexTopRight].position);
-
-    uint vertexIndexBottomLeft = atomicAdd(numVertices, 1);
-    vertices[vertexIndexBottomLeft].position = viewToWorld(viewInverse, quad.bottomLeft);
-    vertices[vertexIndexBottomLeft].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexBottomLeft].texCoords = worldToScreen(view, projection, vertices[vertexIndexBottomLeft].position);
-
-    uint vertexIndexBottomRight = atomicAdd(numVertices, 1);
-    vertices[vertexIndexBottomRight].position = viewToWorld(viewInverse, quad.bottomRight);
-    vertices[vertexIndexBottomRight].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexBottomRight].texCoords = worldToScreen(view, projection, vertices[vertexIndexBottomRight].position);
-
-    verticesWireframe[vertexIndexTopLeft] = vertices[vertexIndexTopLeft];
-    verticesWireframe[vertexIndexTopRight] = vertices[vertexIndexTopRight];
-    verticesWireframe[vertexIndexBottomLeft] = vertices[vertexIndexBottomLeft];
-    verticesWireframe[vertexIndexBottomRight] = vertices[vertexIndexBottomRight];
-
-    uint indexBaseIdx = atomicAdd(numIndices, INDICES_IN_A_QUAD);
-
-    indices[indexBaseIdx + 0] = vertexIndexTopLeft;
-    indices[indexBaseIdx + 1] = vertexIndexBottomLeft;
-    indices[indexBaseIdx + 2] = vertexIndexTopRight;
-
-    indices[indexBaseIdx + 3] = vertexIndexTopRight;
-    indices[indexBaseIdx + 4] = vertexIndexBottomLeft;
-    indices[indexBaseIdx + 5] = vertexIndexBottomRight;
-
-    indicesWireframe[indexBaseIdx + 0] = indices[indexBaseIdx + 0];
-    indicesWireframe[indexBaseIdx + 1] = indices[indexBaseIdx + 1];
-    indicesWireframe[indexBaseIdx + 2] = indices[indexBaseIdx + 2];
-    indicesWireframe[indexBaseIdx + 3] = indices[indexBaseIdx + 3];
-    indicesWireframe[indexBaseIdx + 4] = indices[indexBaseIdx + 4];
-    indicesWireframe[indexBaseIdx + 5] = indices[indexBaseIdx + 5];
-}
-
 void main() {
     vec2 size = vec2(screenSize) / float(surfelSize);
 
@@ -609,7 +522,6 @@ void main() {
       (pbl)  ----   (pb) ----  (pbr)
 
     **********************************/
-
 
     // get coords
     vec2 surfelCoordBottomLeft  = vec2(gl_GlobalInvocationID.xy);
@@ -658,11 +570,6 @@ void main() {
     pixelDepths.topLeft     = sampleDepth(depthMap, uvs.topLeft);
     pixelDepths.top         = sampleDepth(depthMap, uvs.top);
     pixelDepths.topRight    = sampleDepth(depthMap, uvs.topRight);
-
-    // if depth is too far, return
-    if (pixelDepths.center == MAX_DEPTH) {
-        return;
-    }
 
     // project points to view space
     MultiQuad2D pixelNDCs;
@@ -731,86 +638,14 @@ void main() {
     // create surfels
     MultiQuad surfelView = createSurfels(surfelNDCs, pixelCoordsView, pixelNormalsView, pixelDepths);
 
-    if (doOrientationCorrection && quadHasExtremeOrientation(surfelView)) {
-        vec3 frustumNormalView = normalize(origin - surfelView.center);
-
+    vec3 frustumNormalView = normalize(origin - surfelView.center);
+    if (doOrientationCorrection && quadHasExtremeOrientation(surfelView, frustumNormalView)) {
         // recreate surfels with rotated normal
         pixelNormalsView.center = constrainToMaxAngle(pixelNormalsView.center, frustumNormalView, angleThreshold);
         surfelView = createSurfels(surfelNDCs, pixelCoordsView, pixelNormalsView, pixelDepths);
     }
 
-    /**********************
-
-     (stl) - (st) - str
-        |     |     |
-      (sl) - (sc) - sr
-        |     |     |
-       sbl - sb - sbr
-
-    **********************/
-    Quad subQuadTopLeft;
-    subQuadTopLeft.topLeft = surfelView.topLeft;
-    subQuadTopLeft.topRight = surfelView.top;
-    subQuadTopLeft.bottomLeft = surfelView.left;
-    subQuadTopLeft.bottomRight = surfelView.center;
-    storeQuad(
-        subQuadTopLeft,
-        shaderIndex, 0 * VERTICES_IN_A_QUAD, 0 * INDICES_IN_A_QUAD
-    );
-
-    /**********************
-
-       stl - (st) - (str)
-        |     |       |
-        sl - (sc) - (sr)
-        |     |       |
-       sbl -  sb  -  sbr
-
-    **********************/
-    Quad subQuadTopRight;
-    subQuadTopRight.topLeft = surfelView.top;
-    subQuadTopRight.topRight = surfelView.topRight;
-    subQuadTopRight.bottomLeft = surfelView.center;
-    subQuadTopRight.bottomRight = surfelView.right;
-    storeQuad(
-        subQuadTopRight,
-        shaderIndex, 1 * VERTICES_IN_A_QUAD, 1 * INDICES_IN_A_QUAD
-    );
-    /**********************
-
-        stl -  st - str
-        |      |     |
-       (sl) - (sc) - sr
-        |      |     |
-      (sbl) - (sb) - sbr
-
-    **********************/
-    Quad subQuadBottomLeft;
-    subQuadBottomLeft.topLeft = surfelView.left;
-    subQuadBottomLeft.topRight = surfelView.center;
-    subQuadBottomLeft.bottomLeft = surfelView.bottomLeft;
-    subQuadBottomLeft.bottomRight = surfelView.bottom;
-    storeQuad(
-        subQuadBottomLeft,
-        shaderIndex, 2 * VERTICES_IN_A_QUAD, 2 * INDICES_IN_A_QUAD
-    );
-
-    /**********************
-
-        stl -  st - str
-        |      |     |
-        sl - (sc) - (sr)
-        |      |     |
-       sbl - (sb) - (sbr)
-
-    **********************/
-    Quad subQuadBottomRight;
-    subQuadBottomRight.topLeft = surfelView.center;
-    subQuadBottomRight.topRight = surfelView.right;
-    subQuadBottomRight.bottomLeft = surfelView.bottom;
-    subQuadBottomRight.bottomRight = surfelView.bottomRight;
-    storeQuad(
-        subQuadBottomRight,
-        shaderIndex, 3 * VERTICES_IN_A_QUAD, 3 * INDICES_IN_A_QUAD
-    );
+    vec4 plane = vec4(pixelNormalsView.center, pixelDepths.center);
+    ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
+    imageStore(quadMap, pixelCoords, plane);
 }
