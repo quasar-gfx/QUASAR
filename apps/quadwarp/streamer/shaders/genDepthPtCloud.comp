@@ -19,7 +19,7 @@ layout(std430, binding = 0) buffer VertexBufferDepth {
     Vertex verticesDepth[];
 };
 
-uniform vec2 screenSize;
+uniform vec2 remoteWinSize;
 
 uniform mat4 view;
 uniform mat4 projection;
@@ -28,8 +28,6 @@ uniform mat4 projectionInverse;
 
 uniform float near;
 uniform float far;
-
-uniform int surfelSize;
 
 #define MAX_DEPTH 0.9999
 
@@ -95,13 +93,11 @@ vec3 sampleNormal(sampler2D normalMap, vec2 sampleCoord) {
 }
 
 void main() {
-    vec2 size = vec2(screenSize) / float(surfelSize);
-
-    uint shaderIndex = uint(gl_GlobalInvocationID.y * size.x + gl_GlobalInvocationID.x);
+    uint shaderIndex = uint(gl_GlobalInvocationID.y * remoteWinSize.x + gl_GlobalInvocationID.x);
 
     vec2 surfelCoordBottomLeft = vec2(gl_GlobalInvocationID.xy);
-    vec2 pixelCoordsCenter     = surfelSize * (surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+0.0, +0.0));
-    vec2 uvCenter              = pixelCoordsCenter / screenSize;
+    vec2 pixelCoordsCenter     = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+0.0, +0.0);
+    vec2 uvCenter              = pixelCoordsCenter / remoteWinSize;
     vec2 pixelCoordsNDC        = 2.0 * uvCenter - 1.0;
     float pixelDepth           = sampleDepth(depthMap, uvCenter);
     vec3 pixelCoordsViewCenter = ndcToView(projectionInverse, pixelCoordsNDC, pixelDepth);
