@@ -279,15 +279,22 @@ void main() {
 
     QuadMapData quadMapData = sampleQuadMap(pixelCoord);
     vec2 uv = quadMapData.uv;
+    vec2 coord = uv * quadMapSize - vec2(0.5, 0.5);
     vec2 ndc = uv * 2.0 - 1.0;
 
     vec3 surfelCenterView = ndcToView(projectionInverse, ndc, quadMapData.depth);
 
+    Quad2D surfelCoord;
+    surfelCoord.bottomLeft  = coord + vec2(0, 0);
+    surfelCoord.bottomRight = coord + vec2(+surfelSize, 0);
+    surfelCoord.topLeft     = coord + vec2(0, +surfelSize);
+    surfelCoord.topRight    = coord + vec2(+surfelSize, +surfelSize);
+
     Quad2D surfelUV;
-    surfelUV.bottomLeft  = uv - (vec2(+0.5, +0.5) * (surfelSize / 2.0)) / quadMapSize;
-    surfelUV.bottomRight = uv + (vec2(+0.5, -0.5) * (surfelSize / 2.0)) / quadMapSize;
-    surfelUV.topLeft     = uv - (vec2(-0.5, +0.5) * (surfelSize / 2.0)) / quadMapSize;
-    surfelUV.topRight    = uv + (vec2(-0.5, -0.5) * (surfelSize / 2.0)) / quadMapSize;
+    surfelUV.bottomLeft  = surfelCoord.bottomLeft / quadMapSize;
+    surfelUV.bottomRight = surfelCoord.bottomRight / quadMapSize;
+    surfelUV.topLeft     = surfelCoord.topLeft / quadMapSize;
+    surfelUV.topRight    = surfelCoord.topRight / quadMapSize;
 
     Quad2D surfelNDC;
     surfelNDC.bottomLeft  = surfelUV.bottomLeft * 2.0 - 1.0;
@@ -317,74 +324,6 @@ void main() {
 
     rayDirection = normalize(surfelViews.topRight - origin);
     surfel.topRight = planeRayIntersection(origin, rayDirection, surfelCenterView, quadMapData.normal);
-
-
-    /**********************************
-
-      (ptl)  ----   (pt) ----  (ptr)
-        |            |           |
-        |  - stl -  st  -  str - |
-        |            |           |
-     (pl)  - sl - (pc/sc) - sr - (pr)
-        |            |           |
-        |  - sbl -  sb  -  sbr - |
-        |            |           |
-      (pbl)  ----   (pb) ----  (pbr)
-
-    **********************************/
-    vec2 surfelCoordBottomLeft  = vec2(gl_GlobalInvocationID.xy);
-
-    MultiQuad2D pixelCoords;
-    pixelCoords.bottomLeft  = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(-1.0, -1.0);
-    pixelCoords.bottom      = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+0.0, -1.0);
-    pixelCoords.bottomRight = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+1.0, -1.0);
-    pixelCoords.left        = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(-1.0, +0.0);
-    pixelCoords.center      = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+0.0, +0.0);
-    pixelCoords.right       = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+1.0, +0.0);
-    pixelCoords.topLeft     = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(-1.0, +1.0);
-    pixelCoords.top         = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+0.0, +1.0);
-    pixelCoords.topRight    = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+1.0, +1.0);
-
-    MultiQuad2D surfelCoords;
-    surfelCoords.bottomLeft  = surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.0, 0.0);
-    surfelCoords.bottom      = surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.5, 0.0);
-    surfelCoords.bottomRight = surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(1.0, 0.0);
-    surfelCoords.left        = surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.0, 0.5);
-    surfelCoords.center      = pixelCoords.center;
-    surfelCoords.right       = surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(1.0, 0.5);
-    surfelCoords.topLeft     = surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.0, 1.0);
-    surfelCoords.top         = surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.5, 1.0);
-    surfelCoords.topRight    = surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(1.0, 1.0);
-
-    // project points to view space
-    MultiQuad2D pixelNDCs;
-    pixelNDCs.bottomLeft  = 2.0 * (pixelCoords.bottomLeft / quadMapSize) - 1.0;
-    pixelNDCs.bottom      = 2.0 * (pixelCoords.bottom / quadMapSize) - 1.0;
-    pixelNDCs.bottomRight = 2.0 * (pixelCoords.bottomRight / quadMapSize) - 1.0;
-    pixelNDCs.left        = 2.0 * (pixelCoords.left / quadMapSize) - 1.0;
-    pixelNDCs.center      = 2.0 * (pixelCoords.center / quadMapSize) - 1.0;
-    pixelNDCs.right       = 2.0 * (pixelCoords.right / quadMapSize) - 1.0;
-    pixelNDCs.topLeft     = 2.0 * (pixelCoords.topLeft / quadMapSize) - 1.0;
-    pixelNDCs.top         = 2.0 * (pixelCoords.top / quadMapSize) - 1.0;
-    pixelNDCs.topRight    = 2.0 * (pixelCoords.topRight / quadMapSize) - 1.0;
-
-    MultiQuad2D surfelNDCs;
-    surfelNDCs.bottomLeft  = 2.0 * (surfelCoords.bottomLeft / quadMapSize) - 1.0;
-    surfelNDCs.bottom      = 2.0 * (surfelCoords.bottom / quadMapSize) - 1.0;
-    surfelNDCs.bottomRight = 2.0 * (surfelCoords.bottomRight / quadMapSize) - 1.0;
-    surfelNDCs.left        = 2.0 * (surfelCoords.left / quadMapSize) - 1.0;
-    surfelNDCs.center      = 2.0 * (surfelCoords.center / quadMapSize) - 1.0;
-    surfelNDCs.right       = 2.0 * (surfelCoords.right / quadMapSize) - 1.0;
-    surfelNDCs.topLeft     = 2.0 * (surfelCoords.topLeft / quadMapSize) - 1.0;
-    surfelNDCs.top         = 2.0 * (surfelCoords.top / quadMapSize) - 1.0;
-    surfelNDCs.topRight    = 2.0 * (surfelCoords.topRight / quadMapSize) - 1.0;
-
-    if (quadMapData.depth <= 0) return;
-
-    surfel.bottomLeft = ndcToView(projectionInverse, surfelNDCs.bottomLeft, 1.0);
-    surfel.bottomRight = ndcToView(projectionInverse, surfelNDCs.bottomRight, 1.0);
-    surfel.topLeft = ndcToView(projectionInverse, surfelNDCs.topLeft, 1.0);
-    surfel.topRight = ndcToView(projectionInverse, surfelNDCs.topRight, 1.0);
 
     storeQuad(surfel);
 }

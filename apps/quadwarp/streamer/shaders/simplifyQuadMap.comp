@@ -3,11 +3,6 @@ layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 precision highp sampler2D;
 precision highp image2D;
 
-struct QuadMapPlane {
-    vec3 normal;
-    float depth;
-};
-
 struct QuadMapData {
     vec3 normal;
     vec2 uv;
@@ -15,7 +10,7 @@ struct QuadMapData {
 };
 
 layout(std430, binding = 0) buffer InputQuadMapBuffer {
-    QuadMapPlane inputQuadMap[];
+    QuadMapData inputQuadMap[];
 };
 
 layout(std430, binding = 1) buffer OutputQuadMapBuffer {
@@ -85,27 +80,17 @@ vec2 worldToScreen(mat4 view, mat4 projection, vec3 worldCoord) {
     return ndcToScreen(ndc);
 }
 
-QuadMapPlane sampleQuadMap(vec2 texCoord) {
+QuadMapData sampleQuadMap(vec2 texCoord) {
     uint index = uint(texCoord.y * quadMapSize.x + texCoord.x);
-    QuadMapPlane quadMapPlane = inputQuadMap[index];
-    return quadMapPlane;
-}
-
-float planeDistance(Plane plane1, Plane plane2) {
-    return abs(plane1.normal.x - plane2.normal.x) +
-           abs(plane1.normal.y - plane2.normal.y) +
-           abs(plane1.normal.z - plane2.normal.z) +
-           abs(plane1.constant - plane2.constant);
+    QuadMapData quadMapData = inputQuadMap[index];
+    return quadMapData;
 }
 
 void main() {
-    vec2 inputQuadMapSize = quadMapSize;
-
     vec2 pixelCoord = vec2(gl_GlobalInvocationID.xy);
 
-    QuadMapPlane plane = sampleQuadMap(pixelCoord);
-    vec2 uv = pixelCoord / inputQuadMapSize;
+    QuadMapData data = sampleQuadMap(pixelCoord);
 
     uint outputIndex = atomicAdd(quadMap2Size, 1);
-    outputQuadMap[outputIndex + 0] = QuadMapData(plane.normal, uv, plane.depth);
+    outputQuadMap[outputIndex + 0] = QuadMapData(data.normal, data.uv, data.depth);
 }

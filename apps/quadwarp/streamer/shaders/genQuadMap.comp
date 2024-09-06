@@ -6,13 +6,15 @@ precision highp image2D;
 layout(binding = 0) uniform sampler2D normalMap;
 layout(binding = 1) uniform sampler2D depthMap;
 
-struct QuadMapPlane {
+struct QuadMapData {
     vec3 normal;
+    vec2 uv;
     float depth;
 };
 
+
 layout(std430, binding = 0) buffer QuadMapBuffer {
-    QuadMapPlane quadMap[];
+    QuadMapData quadMap[];
 };
 
 struct Plane {
@@ -156,6 +158,11 @@ vec2 ndcToScreen(vec2 ndc) {
 vec2 worldToScreen(mat4 view, mat4 projection, vec3 worldCoord) {
     vec2 ndc = viewToNDC(projection, worldToView(view, worldCoord));
     return ndcToScreen(ndc);
+}
+
+float viewSpaceDepthToDepthBufferValue(float depthView) {
+    float depthBufferValue = (far + near) / (far - near) + (2.0 * far * near) / ((far - near) * depthView);
+    return depthBufferValue;
 }
 
 float sampleDepth(sampler2D depthMap, vec2 sampleCoord) {
@@ -500,9 +507,9 @@ MultiQuad createSurfels(MultiQuad2D surfelNDCs, MultiQuad pixelCoordsView, Multi
     return surfelView;
 }
 
-void storeInQuadMap(vec2 pixelCoord, QuadMapPlane quadMapPlane) {
+void storeInQuadMap(vec2 pixelCoord, QuadMapData quadMapData) {
     uint index = uint(pixelCoord.y * quadMapSize.x + pixelCoord.x);
-    quadMap[index] = quadMapPlane;
+    quadMap[index] = quadMapData;
 }
 
 void main() {
@@ -645,21 +652,26 @@ void main() {
     }
 
     Quad surfelNormals;
-    surfelNormals.bottomLeft  = cross(surfelView.bottom - surfelView.bottomLeft, surfelView.left - surfelView.bottomLeft);
-    surfelNormals.bottomRight = cross(surfelView.right - surfelView.bottomRight, surfelView.bottomRight - surfelView.bottom);
-    surfelNormals.topLeft     = cross(surfelView.topLeft - surfelView.left, surfelView.top - surfelView.topLeft);
-    surfelNormals.topRight    = cross(surfelView.right - surfelView.topRight, surfelView.topRight - surfelView.top);
+    surfelNormals.bottomLeft  = cross(surfelView.left - surfelView.center, surfelView.bottom - surfelView.center);
+    surfelNormals.bottomRight = cross(surfelView.bottom - surfelView.center, surfelView.right - surfelView.center);
+    surfelNormals.topLeft     = cross(surfelView.top - surfelView.center, surfelView.left - surfelView.center);
+    surfelNormals.topRight    = cross(surfelView.right - surfelView.center, surfelView.top - surfelView.center);
 
-    // TODO: needs to be depth that is stored in depth map not 3d point
     Quad1D surfelDepths;
-    surfelDepths.bottomLeft  = (surfelView.bottomLeft.z + surfelView.bottom.z + surfelView.left.z + surfelView.center.z) / 4.0;
-    surfelDepths.bottomRight = (surfelView.bottom.z + surfelView.bottomRight.z + surfelView.center.z + surfelView.right.z) / 4.0;
-    surfelDepths.topLeft     = (surfelView.left.z + surfelView.center.z + surfelView.topLeft.z + surfelView.top.z) / 4.0;
-    surfelDepths.topRight    = (surfelView.center.z + surfelView.right.z + surfelView.top.z + surfelView.topRight.z) / 4.0;
+    surfelDepths.bottomLeft  = viewSpaceDepthToDepthBufferValue( (surfelView.bottomLeft.z + surfelView.bottom.z + surfelView.left.z + surfelView.center.z) / 4.0 );
+    surfelDepths.bottomRight = viewSpaceDepthToDepthBufferValue( (surfelView.bottom.z + surfelView.bottomRight.z + surfelView.center.z + surfelView.right.z) / 4.0 );
+    surfelDepths.topLeft     = viewSpaceDepthToDepthBufferValue( (surfelView.left.z + surfelView.center.z + surfelView.topLeft.z + surfelView.top.z) / 4.0 );
+    surfelDepths.topRight    = viewSpaceDepthToDepthBufferValue( (surfelView.center.z + surfelView.right.z + surfelView.top.z + surfelView.topRight.z) / 4.0 );
+
+    Quad2D surfelUVs;
+    surfelUVs.bottomLeft  = ((surfelCoords.bottomLeft + surfelCoords.bottom + surfelCoords.left + surfelCoords.center) / 4.0) / remoteWinSize;
+    surfelUVs.bottomRight = ((surfelCoords.bottom + surfelCoords.bottomRight + surfelCoords.center + surfelCoords.right) / 4.0) / remoteWinSize;
+    surfelUVs.topLeft     = ((surfelCoords.left + surfelCoords.center + surfelCoords.topLeft + surfelCoords.top) / 4.0) / remoteWinSize;
+    surfelUVs.topRight    = ((surfelCoords.center + surfelCoords.right + surfelCoords.top + surfelCoords.topRight) / 4.0) / remoteWinSize;
 
     vec2 texCoords = 2.0 * vec2(gl_GlobalInvocationID.xy);
-    storeInQuadMap(texCoords + vec2(0.0, 0.0), QuadMapPlane(surfelNormals.bottomLeft, surfelDepths.bottomLeft));
-    storeInQuadMap(texCoords + vec2(1.0, 0.0), QuadMapPlane(surfelNormals.bottomRight, surfelDepths.bottomRight));
-    storeInQuadMap(texCoords + vec2(0.0, 1.0), QuadMapPlane(surfelNormals.topLeft, surfelDepths.topLeft));
-    storeInQuadMap(texCoords + vec2(1.0, 1.0), QuadMapPlane(surfelNormals.topRight, surfelDepths.topRight));
+    storeInQuadMap(texCoords + vec2(0.0, 0.0), QuadMapData(surfelNormals.bottomLeft, surfelUVs.bottomLeft, surfelDepths.bottomLeft));
+    storeInQuadMap(texCoords + vec2(1.0, 0.0), QuadMapData(surfelNormals.bottomRight, surfelUVs.bottomRight, surfelDepths.bottomRight));
+    storeInQuadMap(texCoords + vec2(0.0, 1.0), QuadMapData(surfelNormals.topLeft, surfelUVs.topLeft, surfelDepths.topLeft));
+    storeInQuadMap(texCoords + vec2(1.0, 1.0), QuadMapData(surfelNormals.topRight, surfelUVs.topRight, surfelDepths.topRight));
 }

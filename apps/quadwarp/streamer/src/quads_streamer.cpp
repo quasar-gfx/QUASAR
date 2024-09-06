@@ -102,20 +102,16 @@ int main(int argc, char** argv) {
     Buffer<unsigned int> numVerticesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(GLuint), &zero);
     Buffer<unsigned int> numIndicesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(GLuint), &zero);
 
-    struct QuadMapPlane {
-        glm::vec3 normal;
-        float depth;
-    };
-    glm::vec2 quadMapSize = 2.0f * glm::vec2(remoteWidth, remoteHeight);
-    Buffer<QuadMapPlane> quadMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapPlane) * quadMapSize.x * quadMapSize.y, nullptr);
-
     struct QuadMapData {
         glm::vec3 normal;
         glm::vec2 uv;
         float depth;
     };
+    glm::vec2 quadMapSize = 2.0f * glm::vec2(remoteWidth, remoteHeight);
+    Buffer<QuadMapData> quadMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * quadMapSize.x * quadMapSize.y, nullptr);
+
     glm::vec2 quadMap2Size = glm::vec2(quadMapSize.x, quadMapSize.y);
-    Buffer<QuadMapData> quadMapBuffer2(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapPlane) * quadMap2Size.x * quadMap2Size.y, nullptr);
+    Buffer<QuadMapData> quadMapBuffer2(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * quadMap2Size.x * quadMap2Size.y, nullptr);
     Buffer<unsigned int> quadMapBuffer2SizeBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(GLuint), &zero);
 
     Mesh mesh = Mesh({
@@ -542,8 +538,6 @@ int main(int argc, char** argv) {
             std::cout << "  Simplify QuadMap Compute Shader Time: " << glfwGetTime() - startTime << "s" << std::endl;
             startTime = glfwGetTime();
 
-            std::cout << quadMapSize.x * quadMapSize.y << " -> " << quadMap2Length << std::endl;
-
             /*
             ============================
             FOURTH PASS: Generate quads from quad map
@@ -551,7 +545,7 @@ int main(int argc, char** argv) {
             */
             genQuadsFromQuadMapShader.bind();
             {
-                genQuadsFromQuadMapShader.setVec2("quadMapSize", quadMapSize);
+                genQuadsFromQuadMapShader.setVec2("quadMapSize", quadMap2Size);
             }
             {
                 genQuadsFromQuadMapShader.setMat4("view", remoteCamera.getViewMatrix());
@@ -566,9 +560,6 @@ int main(int argc, char** argv) {
                 genQuadsFromQuadMapShader.setFloat("angleThreshold", glm::radians(angleThreshold));
             }
             {
-                genQuadsFromQuadMapShader.setVec2("quadMapSize", quadMapSize);
-            }
-            {
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadMapBuffer2);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, numVerticesBuffer);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, numIndicesBuffer);
@@ -578,7 +569,7 @@ int main(int argc, char** argv) {
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, meshWireframe.indexBuffer);
             }
 
-            genQuadsFromQuadMapShader.dispatch(quadMapSize.x / 16, quadMapSize.y / 16, 1);
+            genQuadsFromQuadMapShader.dispatch(quadMap2Size.x / 16, quadMap2Size.y / 16, 1);
             genQuadsFromQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
                                                     GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
@@ -598,8 +589,6 @@ int main(int argc, char** argv) {
 
             std::cout << "  Quads Compute Shader Time: " << glfwGetTime() - startTime << "s" << std::endl;
             startTime = glfwGetTime();
-
-            std::cout << 4.0 * quadMapSize.x * quadMapSize.y << " -> " << verticesSize << " " << indicesSize / 3 << std::endl;
 
             /*
             ============================
