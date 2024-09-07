@@ -204,8 +204,7 @@ vec3 planeRayIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 planePoint, ve
     return intersection;
 }
 
-void storeQuad(Quad quad)
-{
+void storeQuad(Quad quad) {
     /************************
 
             tl -- tr
