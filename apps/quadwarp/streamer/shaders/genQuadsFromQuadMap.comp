@@ -133,16 +133,6 @@ const vec3 origin = vec3(0.0, 0.0, 0.0);
 #define INDICES_IN_A_QUAD   6
 #define NUM_SUB_QUADS       4
 
-#define BOTTOM_LEFT  0
-#define BOTTOM       1
-#define BOTTOM_RIGHT 2
-#define LEFT         3
-#define CENTER       4
-#define RIGHT        5
-#define TOP_LEFT     6
-#define TOP          7
-#define TOP_RIGHT    8
-
 vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
     depth = clamp(depth, 0.0, MAX_DEPTH);
 
@@ -313,16 +303,16 @@ void main() {
     // shoot 4 rays from corners of the surfel to the plane
     vec3 rayDirection;
 
-    rayDirection = normalize(surfelViews.bottomLeft - origin);
+    rayDirection = normalize(surfelViews.bottomLeft );
     surfel.bottomLeft = planeRayIntersection(origin, rayDirection, surfelCenterView, quadMapData.normal);
 
-    rayDirection = normalize(surfelViews.bottomRight - origin);
+    rayDirection = normalize(surfelViews.bottomRight );
     surfel.bottomRight = planeRayIntersection(origin, rayDirection, surfelCenterView, quadMapData.normal);
 
-    rayDirection = normalize(surfelViews.topLeft - origin);
+    rayDirection = normalize(surfelViews.topLeft );
     surfel.topLeft = planeRayIntersection(origin, rayDirection, surfelCenterView, quadMapData.normal);
 
-    rayDirection = normalize(surfelViews.topRight - origin);
+    rayDirection = normalize(surfelViews.topRight );
     surfel.topRight = planeRayIntersection(origin, rayDirection, surfelCenterView, quadMapData.normal);
 
     // storeQuad(surfel);

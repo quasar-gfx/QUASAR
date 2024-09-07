@@ -60,6 +60,7 @@ int main(int argc, char** argv) {
 
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
+    renderer.pipeline.rasterState.cullFaceEnabled = false;
 
     unsigned int screenWidth, screenHeight;
     window->getSize(screenWidth, screenHeight);
