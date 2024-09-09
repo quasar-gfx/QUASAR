@@ -108,14 +108,15 @@ int main(int argc, char** argv) {
         glm::vec2 uv;
         float depth;
     };
-    glm::vec2 quadMapSize = 2.0f * glm::vec2(remoteWidth, remoteHeight);
+    glm::vec2 quadMapSize = glm::vec2(remoteWidth, remoteHeight);
     Buffer<QuadMapData> quadMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * quadMapSize.x * quadMapSize.y, nullptr);
 
     glm::vec2 quadMap2Size = glm::vec2(quadMapSize.x, quadMapSize.y);
     Buffer<QuadMapData> quadMapBuffer2(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * quadMap2Size.x * quadMap2Size.y, nullptr);
     Buffer<unsigned int> quadMapBuffer2SizeBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(GLuint), &zero);
 
-    Buffer<float> depthOffsetBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * 2 * quadMap2Size.x * 2 * quadMap2Size.y, nullptr);
+    glm::vec2 depthBufferSize = 4.0f * glm::vec2(quadMapSize.x, quadMapSize.y);
+    Buffer<float> depthOffsetBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * depthBufferSize.x * depthBufferSize.y, nullptr);
 
     Mesh mesh = Mesh({
         .vertices = std::vector<Vertex>(numVertices),
@@ -471,6 +472,7 @@ int main(int argc, char** argv) {
             {
                 genQuadsShader.setVec2("remoteWinSize", glm::vec2(remoteWidth, remoteHeight));
                 genQuadsShader.setVec2("quadMapSize", quadMapSize);
+                genQuadsShader.setVec2("depthBufferSize", depthBufferSize);
             }
             {
                 genQuadsShader.setMat4("view", remoteCamera.getViewMatrix());
@@ -560,6 +562,7 @@ int main(int argc, char** argv) {
             {
                 genQuadsFromQuadMapShader.setVec2("remoteWinSize", glm::vec2(remoteWidth, remoteHeight));
                 genQuadsFromQuadMapShader.setVec2("quadMapSize", quadMap2Size);
+                genQuadsFromQuadMapShader.setVec2("depthBufferSize", depthBufferSize);
             }
             {
                 genQuadsFromQuadMapShader.setMat4("view", remoteCamera.getViewMatrix());
