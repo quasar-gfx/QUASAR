@@ -18,6 +18,7 @@ struct Vertex {
 };
 
 struct QuadMapData {
+    bool flattened;
     vec3 normal;
     vec2 uv;
     float depth;
@@ -111,6 +112,8 @@ const vec3 forward = vec3(0.0, 0.0, -1.0);
 const vec3 up = vec3(0.0, 1.0, 0.0);
 const vec3 left = vec3(-1.0, 0.0, 0.0);
 const vec3 right = vec3(1.0, 0.0, 0.0);
+
+const float flattenedThreshold = 0.01;
 
 #define MAX_DEPTH 0.9999
 
@@ -541,8 +544,7 @@ void storeSurfelsInQuadMap(
     in ivec2 pixelCoord,
     in vec2 quadCenterPixelCoord,
     in vec3 proxyPlaneNormal,
-    in Quad surfelBottomLeft, in Quad surfelBottomRight, in Quad surfelTopLeft, in Quad surfelTopRight,
-    out Quad1D depthOffsetsBottomLeft, out Quad1D depthOffsetsBottomRight, out Quad1D depthOffsetsTopLeft, out Quad1D depthOffsetsTopRight
+    in Quad surfelBottomLeft, in Quad surfelBottomRight, in Quad surfelTopLeft, in Quad surfelTopRight
 ) {
     vec3 proxyPlanePt = (surfelBottomLeft.bottomLeft + surfelBottomLeft.bottomRight + surfelBottomLeft.topLeft + surfelBottomRight.topRight +
                          surfelBottomRight.bottomLeft + surfelBottomRight.bottomRight + surfelBottomRight.topLeft + surfelBottomRight.topRight +
@@ -550,6 +552,7 @@ void storeSurfelsInQuadMap(
                          surfelTopRight.bottomLeft + surfelTopRight.bottomRight + surfelTopRight.topLeft + surfelTopRight.topRight) / 16.0;
 
     // find depth offsets for each corner of the quad
+    Quad1D depthOffsetsBottomLeft, depthOffsetsBottomRight, depthOffsetsTopLeft, depthOffsetsTopRight;
     findDepthOffsets(depthOffsetsBottomLeft, surfelBottomLeft, proxyPlanePt, proxyPlaneNormal);
     findDepthOffsets(depthOffsetsBottomRight, surfelBottomRight, proxyPlanePt, proxyPlaneNormal);
     findDepthOffsets(depthOffsetsTopLeft, surfelTopLeft, proxyPlanePt, proxyPlaneNormal);
@@ -572,7 +575,33 @@ void storeSurfelsInQuadMap(
     quadMapData.depth = proxyPlaneNDC.z;
     quadMapData.normal = proxyPlaneNormal;
     quadMapData.offset = pixelCoord;
+    quadMapData.flattened = ( // if all depth offsets are below flattenedThreshold, then the quad is considered to be flattened
+        depthOffsetsBottomLeft.bottomLeft < flattenedThreshold &&
+        depthOffsetsBottomLeft.bottomRight < flattenedThreshold &&
+        depthOffsetsBottomLeft.topLeft < flattenedThreshold &&
+        depthOffsetsBottomLeft.topRight < flattenedThreshold &&
+
+        depthOffsetsBottomRight.bottomLeft < flattenedThreshold &&
+        depthOffsetsBottomRight.bottomRight < flattenedThreshold &&
+        depthOffsetsBottomRight.topLeft < flattenedThreshold &&
+        depthOffsetsBottomRight.topRight < flattenedThreshold &&
+
+        depthOffsetsTopLeft.bottomLeft < flattenedThreshold &&
+        depthOffsetsTopLeft.bottomRight < flattenedThreshold &&
+        depthOffsetsTopLeft.topLeft < flattenedThreshold &&
+        depthOffsetsTopLeft.topRight < flattenedThreshold &&
+
+        depthOffsetsTopRight.bottomLeft < flattenedThreshold &&
+        depthOffsetsTopRight.bottomRight < flattenedThreshold &&
+        depthOffsetsTopRight.topLeft < flattenedThreshold &&
+        depthOffsetsTopRight.topRight < flattenedThreshold
+    );
     storeInQuadMap(pixelCoord, quadMapData);
+
+    storeDepthOffsets(4 * pixelCoord + 2 * ivec2(0, 0), depthOffsetsBottomLeft);
+    storeDepthOffsets(4 * pixelCoord + 2 * ivec2(1, 0), depthOffsetsBottomRight);
+    storeDepthOffsets(4 * pixelCoord + 2 * ivec2(0, 1), depthOffsetsTopLeft);
+    storeDepthOffsets(4 * pixelCoord + 2 * ivec2(1, 1), depthOffsetsTopRight);
 }
 
 void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthOffets, in vec3 proxyPlanePt, in vec3 proxyPlaneNormal) {
@@ -916,21 +945,12 @@ void main() {
     ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
 
     // save quads in quad map
-    Quad1D depthOffsetsBottomLeft, depthOffsetsBottomRight, depthOffsetsTopLeft, depthOffsetsTopRight;
     storeSurfelsInQuadMap(
         pixelCoord,
         pixelCenterCoords.center,
         pixelNormalsView.center,
-        subQuadBottomLeft, subQuadBottomRight, subQuadTopLeft, subQuadTopRight,
-        depthOffsetsBottomLeft, depthOffsetsBottomRight, depthOffsetsTopLeft, depthOffsetsTopRight
+        subQuadBottomLeft, subQuadBottomRight, subQuadTopLeft, subQuadTopRight
     );
-
-    storeDepthOffsets(4 * pixelCoord + 2 * ivec2(0, 0), depthOffsetsBottomLeft);
-    storeDepthOffsets(4 * pixelCoord + 2 * ivec2(1, 0), depthOffsetsBottomRight);
-    storeDepthOffsets(4 * pixelCoord + 2 * ivec2(0, 1), depthOffsetsTopLeft);
-    storeDepthOffsets(4 * pixelCoord + 2 * ivec2(1, 1), depthOffsetsTopRight);
-
-
 
     // // load quads from quad map (for debugging)
     // QuadMapData quadMapData = loadQuadMap(pixelCoord);

@@ -4,6 +4,7 @@ precision highp sampler2D;
 precision highp image2D;
 
 struct QuadMapData {
+    bool flattened;
     vec3 normal;
     vec2 uv;
     float depth;
@@ -86,6 +87,10 @@ void main() {
     ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
 
     QuadMapData data = loadQuadMap(pixelCoord);
+
+    // if (!data.flattened) {
+    //     return;
+    // }
 
     uint outputIndex = atomicAdd(quadMap2Size, 1u);
     outputQuadMap[outputIndex] = data;

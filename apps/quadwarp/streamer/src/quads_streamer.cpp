@@ -104,6 +104,7 @@ int main(int argc, char** argv) {
     Buffer<unsigned int> numIndicesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(GLuint), &zero);
 
     struct QuadMapData {
+        bool flattened;
         glm::vec3 normal;
         glm::vec2 uv;
         float depth;
