@@ -31,9 +31,127 @@ std::vector<uint16_t> convert32To16Bit(const std::vector<float> &image) {
     return convertedImage;
 }
 
+std::vector<uint8_t> bc4Compress(const std::vector<uint16_t> &image, size_t width, size_t height) {
+    const size_t BLOCK_SIZE = 8;
+    std::vector<uint8_t> compressedData;
+    
+    for (size_t y = 0; y < height; y += BLOCK_SIZE) {
+        for (size_t x = 0; x < width; x += BLOCK_SIZE) {
+            std::vector<uint16_t> block(BLOCK_SIZE * BLOCK_SIZE);
+            for (size_t by = 0; by < BLOCK_SIZE; ++by) {
+                for (size_t bx = 0; bx < BLOCK_SIZE; ++bx) {
+                    size_t ix = std::min(x + bx, width - 1);
+                    size_t iy = std::min(y + by, height - 1);
+                    block[by * BLOCK_SIZE + bx] = image[iy * width + ix];
+                }
+            }
+            
+            uint16_t minVal = *std::min_element(block.begin(), block.end());
+            uint16_t maxVal = *std::max_element(block.begin(), block.end());
+            
+            compressedData.push_back(maxVal & 0xFF);
+            compressedData.push_back((maxVal >> 8) & 0xFF);
+            compressedData.push_back(minVal & 0xFF);
+            compressedData.push_back((minVal >> 8) & 0xFF);
+            
+            std::vector<uint16_t> lookup(8);
+            lookup[0] = maxVal;
+            lookup[1] = minVal;
+            for (int i = 1; i < 7; ++i) {
+                lookup[i + 1] = ((7 - i) * maxVal + i * minVal) / 7;
+            }
+            
+            std::vector<uint8_t> indices(BLOCK_SIZE * BLOCK_SIZE);
+            for (size_t i = 0; i < BLOCK_SIZE * BLOCK_SIZE; ++i) {
+                uint16_t pixel = block[i];
+                size_t bestIndex = 0;
+                uint16_t minDiff = std::numeric_limits<uint16_t>::max();
+                for (size_t j = 0; j < 8; ++j) {
+                    uint16_t diff = std::abs(static_cast<int>(pixel) - static_cast<int>(lookup[j]));
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        bestIndex = j;
+                    }
+                }
+                indices[i] = bestIndex;
+            }
+
+            for (size_t i = 0; i < BLOCK_SIZE * BLOCK_SIZE; i += 8) {
+                uint32_t packed = 0;
+                for (size_t j = 0; j < 8; ++j) {
+                    packed |= (indices[i + j] << (j * 3));
+                }
+                compressedData.push_back(packed & 0xFF);
+                compressedData.push_back((packed >> 8) & 0xFF);
+                compressedData.push_back((packed >> 16) & 0xFF);
+            }
+        }
+    }
+    
+    return compressedData;
+}
+
+std::vector<uint16_t> bc4Decompress(const std::vector<uint8_t> &compressed, size_t width, size_t height) {
+    const size_t BLOCK_SIZE = 8;
+    std::vector<uint16_t> decompressed(width * height);
+    size_t compressedIndex = 0;
+
+    for (size_t y = 0; y < height; y += BLOCK_SIZE) {
+        for (size_t x = 0; x < width; x += BLOCK_SIZE) {
+            uint16_t maxVal = (compressed[compressedIndex + 1] << 8) | compressed[compressedIndex];
+            uint16_t minVal = (compressed[compressedIndex + 3] << 8) | compressed[compressedIndex + 2];
+            compressedIndex += 4;
+
+            std::vector<uint16_t> lookup(8);
+            lookup[0] = maxVal;
+            lookup[1] = minVal;
+            for (int i = 1; i < 7; ++i) {
+                lookup[i + 1] = ((7 - i) * maxVal + i * minVal) / 7;
+            }
+
+            for (size_t i = 0; i < BLOCK_SIZE * BLOCK_SIZE; i += 8) {
+                uint32_t packed = compressed[compressedIndex] | (compressed[compressedIndex + 1] << 8) | (compressed[compressedIndex + 2] << 16);
+                compressedIndex += 3;
+
+                for (size_t j = 0; j < 8; ++j) {
+                    uint8_t index = (packed >> (j * 3)) & 0x7;
+                    size_t px = x + (i % BLOCK_SIZE) + j;
+                    size_t py = y + (i / BLOCK_SIZE);
+                    if (px < width && py < height) {
+                        decompressed[py * width + px] = lookup[index];
+                    }
+                }
+            }
+        }
+    }
+
+    return decompressed;
+}
+
+double calculateMSE(const std::vector<uint16_t> &original, const std::vector<uint16_t> &decompressed, size_t width, size_t height, std::vector<uint16_t> &mseImage) {
+    double totalMSE = 0.0;
+    mseImage.resize(width * height);
+    
+    for (size_t i = 0; i < width * height; ++i) {
+        double originalNorm = original[i] / 65535.0;
+        double decompressedNorm = decompressed[i] / 65535.0;
+        
+        double diff = originalNorm - decompressedNorm;
+        double squaredError = diff * diff;
+        
+        totalMSE += squaredError;
+        
+        double enhancedError = std::min(1.0, -std::log10(squaredError + 1e-10) / 10.0);
+        mseImage[i] = static_cast<uint16_t>(enhancedError * 65535.0);
+    }
+    
+    return totalMSE / (width * height);
+}
+
+
 int main(int argc, char** argv) {
     Config config{};
-    config.title = "MeshWarp Reciever";
+    config.title = "BC4 Compression";
 
     RenderState renderState = RenderState::POINTCLOUD;
 
@@ -93,6 +211,26 @@ int main(int argc, char** argv) {
     auto depthData = FileIO::loadBinaryFile(DATA_PATH + "depth.bin");
     // std::cout<< "size: "<< depthFile.size()<<std::endl;
     // std::memcpy(depthData.data(), depthFile.data(), depthFile.size());
+
+    // Convert depth data to 16-bit
+    std::vector<float> floatDepthData(depthData.size() / sizeof(float));
+    std::memcpy(floatDepthData.data(), depthData.data(), depthData.size());
+    std::vector<uint16_t> originalImage16 = convert32To16Bit(floatDepthData);
+
+    // Compress the image using BC4
+    std::vector<uint8_t> compressedImage = bc4Compress(originalImage16, depthWidth, depthHeight);
+
+    // Decompress the image
+    std::vector<uint16_t> decompressedImage = bc4Decompress(compressedImage, depthWidth, depthHeight);
+
+    // Calculate MSE and PSNR
+    std::vector<uint16_t> mseImage;
+    double totalMSE = calculateMSE(originalImage16, decompressedImage, depthWidth, depthHeight, mseImage);
+    double psnr = 10.0 * log10(1.0 / totalMSE);
+
+    std::cout << "Compression ratio: " << static_cast<double>(originalImage16.size() * sizeof(uint16_t)) / compressedImage.size() << ":1\n";
+    std::cout << "Mean Squared Error (MSE) per pixel (normalized 0-1): " << totalMSE << "\n";
+    std::cout << "Peak Signal-to-Noise Ratio (PSNR): " << psnr << " dB\n";
 
     Texture depthTextureOriginal({
         .width = depthWidth,
