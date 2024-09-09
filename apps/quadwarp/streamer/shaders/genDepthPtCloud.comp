@@ -15,10 +15,6 @@ struct Vertex {
     vec3 bitangent;
 };
 
-layout(std430, binding = 0) buffer VertexBufferDepth {
-    Vertex verticesDepth[];
-};
-
 uniform vec2 remoteWinSize;
 
 uniform mat4 view;
@@ -30,6 +26,10 @@ uniform float near;
 uniform float far;
 
 #define MAX_DEPTH 0.9999
+
+layout(std430, binding = 0) buffer VertexBufferDepth {
+    Vertex verticesDepth[];
+};
 
 vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
     depth = clamp(depth, 0.0, MAX_DEPTH);

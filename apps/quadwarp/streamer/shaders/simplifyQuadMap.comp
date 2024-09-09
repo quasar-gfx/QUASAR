@@ -9,18 +9,6 @@ struct QuadMapData {
     float depth;
 };
 
-layout(std430, binding = 0) buffer InputQuadMapBuffer {
-    QuadMapData inputQuadMap[];
-};
-
-layout(std430, binding = 1) buffer OutputQuadMapBuffer {
-    QuadMapData outputQuadMap[];
-};
-
-layout(std430, binding = 2) buffer QuadMap2SizeBuffer {
-    uint quadMap2Size;
-};
-
 struct Plane {
     vec3 normal;
     float constant;
@@ -39,6 +27,18 @@ uniform float far;
 uniform float similarityThreshold;
 
 #define MAX_DEPTH 0.9999
+
+layout(std430, binding = 0) buffer InputQuadMapBuffer {
+    QuadMapData inputQuadMap[];
+};
+
+layout(std430, binding = 1) buffer OutputQuadMapBuffer {
+    QuadMapData outputQuadMap[];
+};
+
+layout(std430, binding = 2) buffer QuadMap2SizeBuffer {
+    uint quadMap2Size;
+};
 
 vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
     depth = clamp(depth, 0.0, MAX_DEPTH);
@@ -81,7 +81,7 @@ vec2 worldToScreen(mat4 view, mat4 projection, vec3 worldCoord) {
 }
 
 QuadMapData sampleQuadMap(ivec2 pixelCoord) {
-    uint index = pixelCoord.y * uint(quadMapSize.x) + pixelCoord.x;
+    uint index = uint(pixelCoord.y) * uint(quadMapSize.x) + uint(pixelCoord.x);
     QuadMapData quadMapData = inputQuadMap[index];
     return quadMapData;
 }
@@ -91,6 +91,6 @@ void main() {
 
     QuadMapData data = sampleQuadMap(pixelCoord);
 
-    uint outputIndex = atomicAdd(quadMap2Size, 1);
-    outputQuadMap[outputIndex + 0] = data;
+    uint outputIndex = atomicAdd(quadMap2Size, 1u);
+    outputQuadMap[outputIndex] = data;
 }
