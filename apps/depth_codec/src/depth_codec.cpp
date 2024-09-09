@@ -242,14 +242,14 @@ int main(int argc, char** argv) {
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST,
-        .data = reinterpret_cast<unsigned char*>(depthData.data())
+        .data = reinterpret_cast<unsigned char*>(depthData.data()) // depthData
     });
 
-    std::vector<float> depthDataDecompressed(depthWidth * depthHeight);
-    // fill with random values for now
-    for (size_t i = 0; i < depthDataDecompressed.size(); ++i) {
-        depthDataDecompressed[i] = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
-    }
+    // std::vector<float> depthDataDecompressed(depthWidth * depthHeight);
+    // // fill with random values for now
+    // for (size_t i = 0; i < depthDataDecompressed.size(); ++i) {
+    //     depthDataDecompressed[i] = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+    // }
 
     Texture depthTextureDecompressed({
         .width = depthWidth,
@@ -261,7 +261,7 @@ int main(int argc, char** argv) {
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST,
-        .data = reinterpret_cast<unsigned char*>(depthDataDecompressed.data())
+        .data = reinterpret_cast<unsigned char*>(decompressedImage.data())
     });
 
     // shaders
