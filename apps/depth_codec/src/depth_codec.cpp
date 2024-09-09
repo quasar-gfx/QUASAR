@@ -88,13 +88,15 @@ int main(int argc, char** argv) {
     origCamera.setPosition(glm::vec3(0.0f, 3.0f, 10.0f));
     origCamera.updateViewMatrix();
 
-    std::vector<float> depthData(screenWidth * screenHeight);
-    auto depthFile = FileIO::loadBinaryFile(DATA_PATH + "depth.bin");
-    std::memcpy(depthData.data(), depthFile.data(), depthFile.size());
+    unsigned int depthWidth = 2048, depthHeight = 2048;
+    // std::vector<float> depthData(screenWidth * screenHeight);
+    auto depthData = FileIO::loadBinaryFile(DATA_PATH + "depth.bin");
+    // std::cout<< "size: "<< depthFile.size()<<std::endl;
+    // std::memcpy(depthData.data(), depthFile.data(), depthFile.size());
 
     Texture depthTextureOriginal({
-        .width = screenWidth,
-        .height = screenHeight,
+        .width = depthWidth,
+        .height = depthHeight,
         .internalFormat = GL_R16F,
         .format = GL_RED,
         .type = GL_FLOAT,
@@ -105,15 +107,15 @@ int main(int argc, char** argv) {
         .data = reinterpret_cast<unsigned char*>(depthData.data())
     });
 
-    std::vector<float> depthDataDecompressed(screenWidth * screenHeight);
+    std::vector<float> depthDataDecompressed(depthWidth * depthHeight);
     // fill with random values for now
     for (size_t i = 0; i < depthDataDecompressed.size(); ++i) {
         depthDataDecompressed[i] = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
     }
 
     Texture depthTextureDecompressed({
-        .width = screenWidth,
-        .height = screenHeight,
+        .width = depthWidth,
+        .height = depthHeight,
         .internalFormat = GL_R16F,
         .format = GL_RED,
         .type = GL_FLOAT,
@@ -157,6 +159,7 @@ int main(int argc, char** argv) {
         .indices = std::vector<unsigned int>(indexBufferSize),
         .material = new UnlitMaterial({ .baseColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f) }),
         .pointcloud = renderState == RenderState::POINTCLOUD,
+        .pointSize = 7.5f,
         .usage = GL_DYNAMIC_DRAW
     });
     Node node = Node(&mesh);
@@ -168,6 +171,7 @@ int main(int argc, char** argv) {
         .indices = std::vector<unsigned int>(indexBufferSize),
         .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
         .pointcloud = renderState == RenderState::POINTCLOUD,
+        .pointSize = 5.0f,
         .usage = GL_DYNAMIC_DRAW
     });
     Node nodeDecompressed = Node(&meshDecompressed);
