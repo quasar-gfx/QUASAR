@@ -107,6 +107,7 @@ int main(int argc, char** argv) {
         glm::vec3 normal;
         glm::vec2 uv;
         float depth;
+        glm::ivec2 offset;
     };
     glm::vec2 quadMapSize = glm::vec2(remoteWidth, remoteHeight);
     Buffer<QuadMapData> quadMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * quadMapSize.x * quadMapSize.y, nullptr);
@@ -573,7 +574,7 @@ int main(int argc, char** argv) {
                 genQuadsFromQuadMapShader.setFloat("far", remoteCamera.far);
             }
             {
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadMapBuffer);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadMapBuffer2);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, numVerticesBuffer);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, numIndicesBuffer);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, mesh.vertexBuffer);

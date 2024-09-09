@@ -7,11 +7,7 @@ struct QuadMapData {
     vec3 normal;
     vec2 uv;
     float depth;
-};
-
-struct Plane {
-    vec3 normal;
-    float constant;
+    ivec2 offset;
 };
 
 uniform vec2 quadMapSize;
@@ -28,8 +24,8 @@ uniform float similarityThreshold;
 
 #define MAX_DEPTH 0.9999
 
-layout(std430, binding = 0) buffer InputQuadMapBuffer {
-    QuadMapData inputQuadMap[];
+layout(std430, binding = 0) buffer QuadMapBuffer {
+    QuadMapData quadMap[];
 };
 
 layout(std430, binding = 1) buffer OutputQuadMapBuffer {
@@ -82,7 +78,7 @@ vec2 worldToScreen(mat4 view, mat4 projection, vec3 worldCoord) {
 
 QuadMapData loadQuadMap(ivec2 pixelCoord) {
     uint index = uint(pixelCoord.y) * uint(quadMapSize.x) + uint(pixelCoord.x);
-    QuadMapData quadMapData = inputQuadMap[index];
+    QuadMapData quadMapData = quadMap[index];
     return quadMapData;
 }
 
