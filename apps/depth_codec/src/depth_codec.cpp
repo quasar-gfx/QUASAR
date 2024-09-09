@@ -23,15 +23,28 @@ enum class RenderState {
     POINTCLOUD
 };
 
+// std::vector<uint16_t> convert32To16Bit(const std::vector<float> &image) {
+//     std::vector<uint16_t> convertedImage(image.size());
+//     for (size_t i = 0; i < image.size(); ++i) {
+//         convertedImage[i] = static_cast<uint16_t>(image[i] * 65535.0f);
+//     }
+//     return convertedImage;
+// }
+
 std::vector<uint16_t> convert32To16Bit(const std::vector<float> &image) {
     std::vector<uint16_t> convertedImage(image.size());
     for (size_t i = 0; i < image.size(); ++i) {
-        convertedImage[i] = static_cast<uint16_t>(image[i] * 65535.0f);
+        float value = std::max(0.0f, std::min(1.0f, image[i]));  // Clamp value between 0 and 1
+        convertedImage[i] = static_cast<uint16_t>(value * 65535.0f);
     }
     return convertedImage;
 }
 
 std::vector<uint8_t> bc4Compress(const std::vector<uint16_t> &image, size_t width, size_t height) {
+    if (image.size() != width * height) {
+        std::cerr << "Invalid image size for BC4 compression." << std::endl;
+        return {};
+    }
     const size_t BLOCK_SIZE = 8;
     std::vector<uint8_t> compressedData;
     
@@ -92,6 +105,11 @@ std::vector<uint8_t> bc4Compress(const std::vector<uint16_t> &image, size_t widt
 }
 
 std::vector<uint16_t> bc4Decompress(const std::vector<uint8_t> &compressed, size_t width, size_t height) {
+    if (compressed.size() != width * height / 2) {
+        std::cerr << "Invalid compressed data size for BC4 decompression." << std::endl;
+        return {};
+    }
+
     const size_t BLOCK_SIZE = 8;
     std::vector<uint16_t> decompressed(width * height);
     size_t compressedIndex = 0;
@@ -212,6 +230,17 @@ int main(int argc, char** argv) {
     // std::cout<< "size: "<< depthFile.size()<<std::endl;
     // std::memcpy(depthData.data(), depthFile.data(), depthFile.size());
 
+    if (depthData.empty()) {
+        std::cerr << "Failed to load depth data from file." << std::endl;
+        return 1;
+    }
+
+    if (depthData.size() != depthWidth * depthHeight * sizeof(float)) {
+        std::cerr << "Unexpected depth data size. Expected " << (depthWidth * depthHeight * sizeof(float))
+                << " bytes, but got " << depthData.size() << " bytes." << std::endl;
+        return 1;
+    }
+
     // Convert depth data to 16-bit
     std::vector<float> floatDepthData(depthData.size() / sizeof(float));
     std::memcpy(floatDepthData.data(), depthData.data(), depthData.size());
@@ -232,37 +261,46 @@ int main(int argc, char** argv) {
     std::cout << "Mean Squared Error (MSE) per pixel (normalized 0-1): " << totalMSE << "\n";
     std::cout << "Peak Signal-to-Noise Ratio (PSNR): " << psnr << " dB\n";
 
-    Texture depthTextureOriginal({
-        .width = depthWidth,
-        .height = depthHeight,
-        .internalFormat = GL_R16F,
-        .format = GL_RED,
-        .type = GL_FLOAT,
-        .wrapS = GL_CLAMP_TO_EDGE,
-        .wrapT = GL_CLAMP_TO_EDGE,
-        .minFilter = GL_NEAREST,
-        .magFilter = GL_NEAREST,
-        .data = reinterpret_cast<unsigned char*>(depthData.data()) // depthData
-    });
+    if (!originalImage16.empty()) {
+        Texture depthTextureOriginal({
+            .width = depthWidth,
+            .height = depthHeight,
+            .internalFormat = GL_R16F,
+            .format = GL_RED,
+            .type = GL_FLOAT,
+            .wrapS = GL_CLAMP_TO_EDGE,
+            .wrapT = GL_CLAMP_TO_EDGE,
+            .minFilter = GL_NEAREST,
+            .magFilter = GL_NEAREST,
+            .data = reinterpret_cast<unsigned char*>(depthData.data()) // depthData
+        });
+    } else {
+        std::cerr << "Original image data is empty. Cannot create texture." << std::endl;
+        // Handle this error condition appropriately
+    }
 
     // std::vector<float> depthDataDecompressed(depthWidth * depthHeight);
     // // fill with random values for now
     // for (size_t i = 0; i < depthDataDecompressed.size(); ++i) {
     //     depthDataDecompressed[i] = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
     // }
-
-    Texture depthTextureDecompressed({
-        .width = depthWidth,
-        .height = depthHeight,
-        .internalFormat = GL_R16F,
-        .format = GL_RED,
-        .type = GL_FLOAT,
-        .wrapS = GL_CLAMP_TO_EDGE,
-        .wrapT = GL_CLAMP_TO_EDGE,
-        .minFilter = GL_NEAREST,
-        .magFilter = GL_NEAREST,
-        .data = reinterpret_cast<unsigned char*>(decompressedImage.data())
-    });
+    if (!decompressedImage.empty()) {
+        Texture depthTextureDecompressed({
+            .width = depthWidth,
+            .height = depthHeight,
+            .internalFormat = GL_R16F,
+            .format = GL_RED,
+            .type = GL_FLOAT,
+            .wrapS = GL_CLAMP_TO_EDGE,
+            .wrapT = GL_CLAMP_TO_EDGE,
+            .minFilter = GL_NEAREST,
+            .magFilter = GL_NEAREST,
+            .data = reinterpret_cast<unsigned char*>(decompressedImage.data())
+        });
+    } else {
+        std::cerr << "Decompressed image data is empty. Cannot create texture." << std::endl;
+        // Handle this error condition appropriately
+    }
 
     // shaders
     Shader screenShader({
