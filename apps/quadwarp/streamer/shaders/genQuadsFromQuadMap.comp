@@ -174,7 +174,7 @@ void loadDepthOffsets(out Quad1D depthOffsets, in ivec2 pixelCoord) {
     depthOffsets.topRight    = loadDepthOffset(pixelCoord + ivec2(1, 1));
 }
 
-void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthOffets, in vec3 proxyPlanePt, in vec3 proxyPlaneNormal) {
+void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthOffets, in vec3 proxyPlanePt, in vec3 proxyPlaneNormal, in bool flattened) {
     Quad2D surfelUVs;
     surfelUVs.bottomLeft  = surfelPixelCoords.bottomLeft / remoteWinSize;
     surfelUVs.bottomRight = surfelPixelCoords.bottomRight / remoteWinSize;
@@ -212,6 +212,7 @@ void loadSurfelsFromQuadMap(
     in QuadMapData quadMapData
 ) {
     // extract the plane normal and point from the quad map
+    bool flattened = quadMapData.flattened;
     vec2 proxyPlaneUV = quadMapData.uv;
     float proxyPlaneDepth = quadMapData.depth;
     vec3 proxyPlaneNormal = quadMapData.normal;
@@ -248,16 +249,22 @@ void loadSurfelsFromQuadMap(
     surfelPixelCoordsTopRight.topRight    = proxyPlanePixelCoords + vec2(+0.5, +0.5);
 
     // load the depth offsets for the surfel corners
-    Quad1D depthOffsetsBottomLeft, depthOffsetsBottomRight, depthOffsetsTopLeft, depthOffsetsTopRight;
-    loadDepthOffsets(depthOffsetsBottomLeft,  4 * depthOffsetPixelCoord + 2 * ivec2(0, 0));
-    loadDepthOffsets(depthOffsetsBottomRight, 4 * depthOffsetPixelCoord + 2 * ivec2(1, 0));
-    loadDepthOffsets(depthOffsetsTopLeft,     4 * depthOffsetPixelCoord + 2 * ivec2(0, 1));
-    loadDepthOffsets(depthOffsetsTopRight,    4 * depthOffsetPixelCoord + 2 * ivec2(1, 1));
+    Quad1D depthOffsetsBottomLeft = Quad1D(0.0, 0.0, 0.0, 0.0);
+    Quad1D depthOffsetsBottomRight = Quad1D(0.0, 0.0, 0.0, 0.0);
+    Quad1D depthOffsetsTopLeft = Quad1D(0.0, 0.0, 0.0, 0.0);
+    Quad1D depthOffsetsTopRight = Quad1D(0.0, 0.0, 0.0, 0.0);
+    // dont load depth offsets if the quad is flattened
+    if (!flattened) {
+        loadDepthOffsets(depthOffsetsBottomLeft,  4 * depthOffsetPixelCoord + 2 * ivec2(0, 0));
+        loadDepthOffsets(depthOffsetsBottomRight, 4 * depthOffsetPixelCoord + 2 * ivec2(1, 0));
+        loadDepthOffsets(depthOffsetsTopLeft,     4 * depthOffsetPixelCoord + 2 * ivec2(0, 1));
+        loadDepthOffsets(depthOffsetsTopRight,    4 * depthOffsetPixelCoord + 2 * ivec2(1, 1));
+    }
 
-    createSurfel(surfelBottomLeft, surfelPixelCoordsBottomLeft, depthOffsetsBottomLeft, proxyPlanePt, proxyPlaneNormal);
-    createSurfel(surfelBottomRight, surfelPixelCoordsBottomRight, depthOffsetsBottomRight, proxyPlanePt, proxyPlaneNormal);
-    createSurfel(surfelTopLeft, surfelPixelCoordsTopLeft, depthOffsetsTopLeft, proxyPlanePt, proxyPlaneNormal);
-    createSurfel(surfelTopRight, surfelPixelCoordsTopRight, depthOffsetsTopRight, proxyPlanePt, proxyPlaneNormal);
+    createSurfel(surfelBottomLeft, surfelPixelCoordsBottomLeft, depthOffsetsBottomLeft, proxyPlanePt, proxyPlaneNormal, quadMapData.flattened);
+    createSurfel(surfelBottomRight, surfelPixelCoordsBottomRight, depthOffsetsBottomRight, proxyPlanePt, proxyPlaneNormal, quadMapData.flattened);
+    createSurfel(surfelTopLeft, surfelPixelCoordsTopLeft, depthOffsetsTopLeft, proxyPlanePt, proxyPlaneNormal, quadMapData.flattened);
+    createSurfel(surfelTopRight, surfelPixelCoordsTopRight, depthOffsetsTopRight, proxyPlanePt, proxyPlaneNormal, quadMapData.flattened);
 }
 
 void storeQuad(Quad quad) {

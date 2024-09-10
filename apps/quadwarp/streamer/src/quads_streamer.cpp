@@ -164,6 +164,7 @@ int main(int argc, char** argv) {
     bool preventCopyingLocalPose = false;
     float distanceThreshold = 0.8f;
     float angleThreshold = 45.0f;
+    float flattenedThreshold = 0.001f;
     const int intervalValues[] = {0, 25, 50, 100, 200, 500, 1000};
     const char* intervalLabels[] = {"0ms", "25ms", "50ms", "100ms", "200ms", "500ms", "1000ms"};
 
@@ -271,6 +272,11 @@ int main(int argc, char** argv) {
             }
 
             if (ImGui::SliderFloat("Angle Threshold", &angleThreshold, 0.0f, 180.0f)) {
+                preventCopyingLocalPose = true;
+                rerender = true;
+            }
+
+            if (ImGui::SliderFloat("Flatten Threshold", &flattenedThreshold, 0.0f, 0.1f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
             }
@@ -489,6 +495,7 @@ int main(int argc, char** argv) {
                 genQuadsShader.setBool("doOrientationCorrection", doOrientationCorrection);
                 genQuadsShader.setFloat("distanceThreshold", distanceThreshold);
                 genQuadsShader.setFloat("angleThreshold", glm::radians(angleThreshold));
+                genQuadsShader.setFloat("flattenedThreshold", flattenedThreshold);
             }
             {
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadMapBuffer);
@@ -543,7 +550,7 @@ int main(int argc, char** argv) {
             }
 
             // run compute shader
-            simplifyQuadMapShader.dispatch(quadMapSize.x / 16, quadMapSize.y / 16, 1);
+            simplifyQuadMapShader.dispatch((quadMapSize.x / 2) / 16, (quadMapSize.y / 2) / 16, 1);
             simplifyQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
             // get size of simplified quad map

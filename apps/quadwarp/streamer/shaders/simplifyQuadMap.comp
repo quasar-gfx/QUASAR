@@ -84,14 +84,21 @@ QuadMapData loadQuadMap(ivec2 pixelCoord) {
 }
 
 void main() {
-    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 pixelCoord = 2 * ivec2(gl_GlobalInvocationID.xy);
 
-    QuadMapData data = loadQuadMap(pixelCoord);
+    uint outputIndex = atomicAdd(quadMap2Size, 4u);
 
-    // if (!data.flattened) {
+    QuadMapData quadMapDataBottomLeft = loadQuadMap(pixelCoord + ivec2(0, 0));
+    QuadMapData quadMapDataBottomRight = loadQuadMap(pixelCoord + ivec2(1, 0));
+    QuadMapData quadMapDataTopLeft = loadQuadMap(pixelCoord + ivec2(0, 1));
+    QuadMapData quadMapDataTopRight = loadQuadMap(pixelCoord + ivec2(1, 1));
+
+    // if (!quadMapData.flattened) {
     //     return;
     // }
 
-    uint outputIndex = atomicAdd(quadMap2Size, 1u);
-    outputQuadMap[outputIndex] = data;
+    outputQuadMap[outputIndex + 0u] = quadMapDataBottomLeft;
+    outputQuadMap[outputIndex + 1u] = quadMapDataBottomRight;
+    outputQuadMap[outputIndex + 2u] = quadMapDataTopLeft;
+    outputQuadMap[outputIndex + 3u] = quadMapDataTopRight;
 }
