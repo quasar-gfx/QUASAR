@@ -118,8 +118,11 @@ int main(int argc, char** argv) {
     glm::vec2 quadMapBuffer4x4Size = glm::vec2(quadMapBuffer2x2Size.x, quadMapBuffer2x2Size.y) / 2.0f;
     Buffer<QuadMapData> quadMapBuffer4x4(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * quadMapBuffer4x4Size.x * quadMapBuffer4x4Size.y, nullptr);
 
-    std::vector<Buffer<QuadMapData>*> quadMaps = {&quadMapBuffer2x2, &quadMapBuffer4x4};
-    std::vector<glm::vec2> quadMapSizes = {quadMapBuffer2x2Size, quadMapBuffer4x4Size};
+    glm::vec2 quadMapBuffer8x8Size = glm::vec2(quadMapBuffer4x4Size.x, quadMapBuffer4x4Size.y) / 2.0f;
+    Buffer<QuadMapData> quadMapBuffer8x8(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * quadMapBuffer8x8Size.x * quadMapBuffer8x8Size.y, nullptr);
+
+    std::vector<Buffer<QuadMapData>*> quadMaps = {&quadMapBuffer2x2, &quadMapBuffer4x4, &quadMapBuffer8x8};
+    std::vector<glm::vec2> quadMapSizes = {quadMapBuffer2x2Size, quadMapBuffer4x4Size, quadMapBuffer8x8Size};
 
     glm::vec2 depthBufferSize = 4.0f * glm::vec2(quadMapBuffer2x2Size.x, quadMapBuffer2x2Size.y);
     Buffer<float> depthOffsetBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * depthBufferSize.x * depthBufferSize.y, nullptr);
@@ -169,6 +172,7 @@ int main(int argc, char** argv) {
     float distanceThreshold = 0.8f;
     float angleThreshold = 45.0f;
     float flattenedThreshold = 0.001f;
+    float proxySimilarityThreshold = 0.1f;
     const int intervalValues[] = {0, 25, 50, 100, 200, 500, 1000};
     const char* intervalLabels[] = {"0ms", "25ms", "50ms", "100ms", "200ms", "500ms", "1000ms"};
 
@@ -281,6 +285,11 @@ int main(int argc, char** argv) {
             }
 
             if (ImGui::SliderFloat("Flatten Threshold", &flattenedThreshold, 0.0f, 0.1f)) {
+                preventCopyingLocalPose = true;
+                rerender = true;
+            }
+
+            if (ImGui::SliderFloat("Similarity Threshold", &proxySimilarityThreshold, 0.0f, 1.0f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
             }
@@ -521,10 +530,10 @@ int main(int argc, char** argv) {
             ============================
             */
             for (int i = 1; i < quadMaps.size(); i++) {
-                auto* prevBufferPtr = quadMaps[i];
+                auto* prevBufferPtr = quadMaps[i-1];
                 auto* currBufferPtr = quadMaps[i];
+                auto prevQuadMapSize = quadMapSizes[i-1];
                 auto currQuadMapSize = quadMapSizes[i];
-                auto prevQuadMapSize = quadMapSizes[i];
 
                 simplifyQuadMapShader.bind();
                 {
@@ -542,7 +551,7 @@ int main(int argc, char** argv) {
                     simplifyQuadMapShader.setFloat("far", remoteCamera.far);
                 }
                 {
-                    simplifyQuadMapShader.setFloat("similarityThreshold", 0.1);
+                    simplifyQuadMapShader.setFloat("proxySimilarityThreshold", proxySimilarityThreshold);
                 }
                 {
                     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, *prevBufferPtr);

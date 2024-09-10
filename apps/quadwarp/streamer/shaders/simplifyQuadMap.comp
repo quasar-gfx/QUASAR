@@ -36,7 +36,7 @@ uniform mat4 projectionInverse;
 uniform float near;
 uniform float far;
 
-uniform float similarityThreshold;
+uniform float proxySimilarityThreshold;
 
 const float epilson = 1e-5;
 
@@ -143,7 +143,7 @@ Plane quadMapDataToPlane(in QuadMapData quadMapData) {
 
 bool planeEquationsSimilar(in PlaneEq planeEq1, in PlaneEq planeEq2) {
     float similarity = distance(planeEq1.normal, planeEq2.normal) + abs(planeEq1.constant - planeEq2.constant);
-    return similarity < similarityThreshold;
+    return similarity < proxySimilarityThreshold;
 }
 
 PlaneEq planeToPlaneEq(in Plane plane) {
