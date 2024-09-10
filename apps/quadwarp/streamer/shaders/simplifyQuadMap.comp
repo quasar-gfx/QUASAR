@@ -9,6 +9,7 @@ struct QuadMapData {
     vec2 uv;
     float depth;
     ivec2 offset;
+    uint size;
 };
 
 uniform vec2 quadMapSize;
@@ -35,6 +36,10 @@ layout(std430, binding = 1) buffer OutputQuadMapBuffer {
 
 layout(std430, binding = 2) buffer QuadMap2SizeBuffer {
     uint quadMap2Size;
+};
+
+layout(std430, binding = 7) buffer DepthOffsetBuffer {
+    float depthOffsetBuffer[];
 };
 
 vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
@@ -81,6 +86,18 @@ QuadMapData loadQuadMap(ivec2 pixelCoord) {
     uint index = uint(pixelCoord.y) * uint(quadMapSize.x) + uint(pixelCoord.x);
     QuadMapData quadMapData = quadMap[index];
     return quadMapData;
+}
+
+QuadMapData mergeQuadMapData(QuadMapData quadMapDataBottomLeft, QuadMapData quadMapDataBottomRight, QuadMapData quadMapDataTopLeft, QuadMapData quadMapDataTopRight) {
+    QuadMapData mergedQuadMapData;
+
+    mergedQuadMapData.normal = (quadMapDataBottomLeft.normal + quadMapDataBottomRight.normal + quadMapDataTopLeft.normal + quadMapDataTopRight.normal) / 4.0;
+    mergedQuadMapData.uv = (quadMapDataBottomLeft.uv + quadMapDataBottomRight.uv + quadMapDataTopLeft.uv + quadMapDataTopRight.uv) / 4.0;
+    mergedQuadMapData.depth = (quadMapDataBottomLeft.depth + quadMapDataBottomRight.depth + quadMapDataTopLeft.depth + quadMapDataTopRight.depth) / 4.0;
+    mergedQuadMapData.offset = quadMapDataBottomLeft.offset;
+    mergedQuadMapData.size = (quadMapDataBottomLeft.size + quadMapDataBottomRight.size + quadMapDataTopLeft.size + quadMapDataTopRight.size);
+
+    return mergedQuadMapData;
 }
 
 void main() {

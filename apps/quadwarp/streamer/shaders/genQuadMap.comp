@@ -23,6 +23,7 @@ struct QuadMapData {
     vec2 uv;
     float depth;
     ivec2 offset;
+    uint size;
 };
 
 struct Plane {
@@ -574,6 +575,7 @@ void storeSurfelsInQuadMap(
     quadMapData.depth = proxyPlaneNDC.z;
     quadMapData.normal = proxyPlaneNormal;
     quadMapData.offset = pixelCoord;
+    quadMapData.size = 2u;
     quadMapData.flattened = ( // if all depth offsets are below flattenedThreshold, then the quad is considered to be flattened
         abs(depthOffsetsBottomLeft.bottomLeft)  < flattenedThreshold &&
         abs(depthOffsetsBottomLeft.bottomRight) < flattenedThreshold &&
