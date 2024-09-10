@@ -213,6 +213,7 @@ void main() {
 
     if (shouldMerge(proxyPlaneBottomLeft, proxyPlaneBottomRight, proxyPlaneTopLeft, proxyPlaneTopRight) &&
             quadMapDataBottomLeft.flattened && quadMapDataBottomRight.flattened && quadMapDataTopLeft.flattened && quadMapDataTopRight.flattened) {
+        // merge the proxy planes
         QuadMapData mergedQuadMapData;
         mergeQuadMapData(
             mergedQuadMapData, quadMapDataBottomLeft, quadMapDataBottomRight, quadMapDataTopLeft, quadMapDataTopRight,
@@ -220,7 +221,7 @@ void main() {
         );
         storeInOutputQuadMap(pixelCoord, mergedQuadMapData);
 
-        // ignore all the other quads
+        // ignore all the other proxy planes
         quadMapDataBottomLeft.ignore = true;
         quadMapDataBottomRight.ignore = true;
         quadMapDataTopLeft.ignore = true;

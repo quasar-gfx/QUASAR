@@ -25,6 +25,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> size2In(parser, "size2", "Size of pre-rendered content", {'S', "size2"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
+    args::ValueFlag<int> maxProxySizeIn(parser, "proxy-size", "Max proxy quad size", {'m', "max-proxy-size"}, 1024);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -47,6 +48,10 @@ int main(int argc, char** argv) {
     pos = size2Str.find('x');
     int size2Width = std::stoi(size2Str.substr(0, pos));
     int size2Height = std::stoi(size2Str.substr(pos + 1));
+
+    // make sure maxProxySize is a power of 2
+    int maxProxySize = args::get(maxProxySizeIn);
+    maxProxySize = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize))));
 
     config.enableVSync = args::get(vsyncIn);
 
@@ -112,19 +117,18 @@ int main(int argc, char** argv) {
         glm::ivec2 offset;
         unsigned int size;
     };
-    glm::vec2 quadMapBuffer2x2Size = glm::vec2(remoteWidth, remoteHeight);
-    Buffer<QuadMapData> quadMapBuffer2x2(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * quadMapBuffer2x2Size.x * quadMapBuffer2x2Size.y, nullptr);
 
-    glm::vec2 quadMapBuffer4x4Size = glm::vec2(quadMapBuffer2x2Size.x, quadMapBuffer2x2Size.y) / 2.0f;
-    Buffer<QuadMapData> quadMapBuffer4x4(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * quadMapBuffer4x4Size.x * quadMapBuffer4x4Size.y, nullptr);
+    std::vector<Buffer<QuadMapData>*> quadMaps;
+    std::vector<glm::vec2> quadMapSizes;
+    int numQuadMaps = glm::log2(static_cast<float>(maxProxySize));
+    glm::vec2 quadMapSize = glm::vec2(remoteWidth, remoteHeight);
+    for (int i = 1; i <= numQuadMaps; i++) {
+        quadMaps.push_back(new Buffer<QuadMapData>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * remoteWidth * remoteHeight, nullptr));
+        quadMapSizes.push_back(quadMapSize);
+        quadMapSize /= 2.0f;
+    }
 
-    glm::vec2 quadMapBuffer8x8Size = glm::vec2(quadMapBuffer4x4Size.x, quadMapBuffer4x4Size.y) / 2.0f;
-    Buffer<QuadMapData> quadMapBuffer8x8(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * quadMapBuffer8x8Size.x * quadMapBuffer8x8Size.y, nullptr);
-
-    std::vector<Buffer<QuadMapData>*> quadMaps = {&quadMapBuffer2x2, &quadMapBuffer4x4, &quadMapBuffer8x8};
-    std::vector<glm::vec2> quadMapSizes = {quadMapBuffer2x2Size, quadMapBuffer4x4Size, quadMapBuffer8x8Size};
-
-    glm::vec2 depthBufferSize = 4.0f * glm::vec2(quadMapBuffer2x2Size.x, quadMapBuffer2x2Size.y);
+    glm::vec2 depthBufferSize = 4.0f * glm::vec2(remoteWidth, remoteHeight);
     Buffer<float> depthOffsetBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * depthBufferSize.x * depthBufferSize.y, nullptr);
 
     Mesh mesh = Mesh({
@@ -391,8 +395,8 @@ int main(int argc, char** argv) {
         .computeCodePath = "./shaders/simplifyQuadMap.comp"
     });
 
-    ComputeShader genQuadsFromQuadMapShader({
-        .computeCodePath = "./shaders/genQuadsFromQuadMap.comp"
+    ComputeShader genQuadsFromQuadMapsShader({
+        .computeCodePath = "./shaders/genQuadsFromQuadMaps.comp"
     });
 
     ComputeShader genDepthShader({
@@ -487,7 +491,7 @@ int main(int argc, char** argv) {
             }
             {
                 genQuadMapShader.setVec2("remoteWinSize", glm::vec2(remoteWidth, remoteHeight));
-                genQuadMapShader.setVec2("quadMapSize", quadMapBuffer2x2Size);
+                genQuadMapShader.setVec2("quadMapSize", quadMapSizes[0]);
                 genQuadMapShader.setVec2("depthBufferSize", depthBufferSize);
             }
             {
@@ -506,7 +510,7 @@ int main(int argc, char** argv) {
                 genQuadMapShader.setFloat("flattenedThreshold", flattenedThreshold);
             }
             {
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadMapBuffer2x2);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, *quadMaps[0]);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, depthOffsetBuffer);
             }
 
@@ -576,19 +580,19 @@ int main(int argc, char** argv) {
                 auto* bufferPtr = quadMaps[i];
                 auto quadMapSize = quadMapSizes[i];
 
-                genQuadsFromQuadMapShader.bind();
+                genQuadsFromQuadMapsShader.bind();
                 {
-                    genQuadsFromQuadMapShader.setVec2("remoteWinSize", glm::vec2(remoteWidth, remoteHeight));
-                    genQuadsFromQuadMapShader.setVec2("quadMapSize", quadMapSize);
-                    genQuadsFromQuadMapShader.setVec2("depthBufferSize", depthBufferSize);
+                    genQuadsFromQuadMapsShader.setVec2("remoteWinSize", glm::vec2(remoteWidth, remoteHeight));
+                    genQuadsFromQuadMapsShader.setVec2("quadMapSize", quadMapSize);
+                    genQuadsFromQuadMapsShader.setVec2("depthBufferSize", depthBufferSize);
                 }
                 {
-                    genQuadsFromQuadMapShader.setMat4("view", remoteCamera.getViewMatrix());
-                    genQuadsFromQuadMapShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-                    genQuadsFromQuadMapShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
-                    genQuadsFromQuadMapShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
-                    genQuadsFromQuadMapShader.setFloat("near", remoteCamera.near);
-                    genQuadsFromQuadMapShader.setFloat("far", remoteCamera.far);
+                    genQuadsFromQuadMapsShader.setMat4("view", remoteCamera.getViewMatrix());
+                    genQuadsFromQuadMapsShader.setMat4("projection", remoteCamera.getProjectionMatrix());
+                    genQuadsFromQuadMapsShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
+                    genQuadsFromQuadMapsShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+                    genQuadsFromQuadMapsShader.setFloat("near", remoteCamera.near);
+                    genQuadsFromQuadMapsShader.setFloat("far", remoteCamera.far);
                 }
                 {
                     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, *bufferPtr);
@@ -601,8 +605,8 @@ int main(int argc, char** argv) {
                     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, depthOffsetBuffer);
                 }
 
-                genQuadsFromQuadMapShader.dispatch(quadMapSize.x / 16, quadMapSize.y / 16, 1);
-                genQuadsFromQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
+                genQuadsFromQuadMapsShader.dispatch(quadMapSize.x / 16, quadMapSize.y / 16, 1);
+                genQuadsFromQuadMapsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
                                                         GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
            }
 
