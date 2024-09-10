@@ -18,6 +18,7 @@ struct Vertex {
 };
 
 struct QuadMapData {
+    bool ignore;
     bool flattened;
     vec3 normal;
     vec2 uv;
@@ -125,31 +126,7 @@ layout(std430, binding = 0) buffer QuadMapBuffer {
     QuadMapData quadMap[];
 };
 
-layout(std430, binding = 1) buffer VertexCounterBuffer {
-    uint numVertices;
-};
-
-layout(std430, binding = 2) buffer IndexCounterBuffer {
-    uint numIndices;
-};
-
-layout(std430, binding = 3) buffer VertexBuffer {
-    Vertex vertices[];
-};
-
-layout(std430, binding = 4) buffer IndexBuffer {
-    uint indices[];
-};
-
-layout(std430, binding = 5) buffer VertexBufferWireframe {
-    Vertex verticesWireframe[];
-};
-
-layout(std430, binding = 6) buffer IndexBufferWireframe {
-    uint indicesWireframe[];
-};
-
-layout(std430, binding = 7) buffer DepthOffsetBuffer {
+layout(std430, binding = 1) buffer DepthOffsetBuffer {
     float depthOffsetBuffer[];
 };
 
@@ -497,20 +474,14 @@ void storeInQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
     quadMap[index] = quadMapData;
 }
 
-QuadMapData loadQuadMap(ivec2 pixelCoord) {
-    uint index = uint(pixelCoord.y) * uint(quadMapSize.x) + uint(pixelCoord.x);
-    QuadMapData quadMapData = quadMap[index];
-    return quadMapData;
-}
-
 float loadDepthOffset(in ivec2 pixelCoord) {
     uint index = uint(pixelCoord.y) * uint(depthBufferSize.x) + uint(pixelCoord.x);
     return depthOffsetBuffer[index];
 }
 
-void storeInDepthOffsetBuffer(in ivec2 pixelCoord, in float data) {
+void storeInDepthOffsetBuffer(in ivec2 pixelCoord, in float depthOffset) {
     uint index = uint(pixelCoord.y) * uint(depthBufferSize.x) + uint(pixelCoord.x);
-    depthOffsetBuffer[index] = data;
+    depthOffsetBuffer[index] = depthOffset;
 }
 
 void storeDepthOffsets(in ivec2 pixelCoord, in Quad1D depthOffsets) {
@@ -522,10 +493,10 @@ void storeDepthOffsets(in ivec2 pixelCoord, in Quad1D depthOffsets) {
 
 void findDepthOffsets(out Quad1D depthOffsets, in Quad quadView, in Plane proxyPlane) {
     Quad quadPtsOnPlane;
-    quadPtsOnPlane.bottomLeft  = pointPlaneIntersection(quadView.bottomLeft, proxyPlane);
+    quadPtsOnPlane.bottomLeft  = pointPlaneIntersection(quadView.bottomLeft,  proxyPlane);
     quadPtsOnPlane.bottomRight = pointPlaneIntersection(quadView.bottomRight, proxyPlane);
-    quadPtsOnPlane.topLeft     = pointPlaneIntersection(quadView.topLeft, proxyPlane);
-    quadPtsOnPlane.topRight    = pointPlaneIntersection(quadView.topRight, proxyPlane);
+    quadPtsOnPlane.topLeft     = pointPlaneIntersection(quadView.topLeft,     proxyPlane);
+    quadPtsOnPlane.topRight    = pointPlaneIntersection(quadView.topRight,    proxyPlane);
 
     depthOffsets.bottomLeft  = signedDistance(quadPtsOnPlane.bottomLeft,  quadView.bottomLeft);
     depthOffsets.bottomRight = signedDistance(quadPtsOnPlane.bottomRight, quadView.bottomRight);
@@ -549,10 +520,16 @@ void storeSurfelsInQuadMap(
     proxyPlane.point = proxyPlanePt;
 
     // find depth offsets for each corner of the quad
-    Quad1D depthOffsetsBottomLeft, depthOffsetsBottomRight, depthOffsetsTopLeft, depthOffsetsTopRight;
+    Quad1D depthOffsetsBottomLeft;
     findDepthOffsets(depthOffsetsBottomLeft, surfelBottomLeft, proxyPlane);
+
+    Quad1D depthOffsetsBottomRight;
     findDepthOffsets(depthOffsetsBottomRight, surfelBottomRight, proxyPlane);
+
+    Quad1D depthOffsetsTopLeft;
     findDepthOffsets(depthOffsetsTopLeft, surfelTopLeft, proxyPlane);
+
+    Quad1D depthOffsetsTopRight;
     findDepthOffsets(depthOffsetsTopRight, surfelTopRight, proxyPlane);
 
     // find 3d point of center of proxy
@@ -568,11 +545,12 @@ void storeSurfelsInQuadMap(
     float proxyPlaneDepth = proxyPlaneNDC.z;
 
     QuadMapData quadMapData;
+    quadMapData.ignore = false;
     quadMapData.uv = proxyPlaneUV;
-    quadMapData.depth = proxyPlaneNDC.z;
+    quadMapData.depth = proxyPlaneDepth;
     quadMapData.normal = proxyPlaneNormal;
     quadMapData.offset = pixelCoord;
-    quadMapData.size = 2;
+    quadMapData.size = 2; // 2x2
     quadMapData.flattened = ( // if all depth offsets are below flattenedThreshold, then the quad is considered to be flattened
         abs(depthOffsetsBottomLeft.bottomLeft)  < flattenedThreshold &&
         abs(depthOffsetsBottomLeft.bottomRight) < flattenedThreshold &&

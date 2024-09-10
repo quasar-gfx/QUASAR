@@ -1,4 +1,4 @@
-layout(local_size_x = 16, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 precision highp sampler2D;
 precision highp image2D;
@@ -14,6 +14,7 @@ struct Vertex {
 };
 
 struct QuadMapData {
+    bool ignore;
     bool flattened;
     vec3 normal;
     vec2 uv;
@@ -81,7 +82,7 @@ layout(std430, binding = 7) buffer DepthOffsetBuffer {
 };
 
 uniform vec2 remoteWinSize;
-uniform int quadMapLength;
+uniform vec2 quadMapSize;
 uniform vec2 depthBufferSize;
 
 uniform mat4 view;
@@ -158,7 +159,8 @@ vec3 pointPlaneIntersection(vec3 pt, Plane plane) {
     return rayPlaneIntersection(origin, rayDirection, plane);
 }
 
-QuadMapData loadQuadMap(uint index) {
+QuadMapData loadQuadMap(ivec2 pixelCoord) {
+    uint index = uint(pixelCoord.y) * uint(quadMapSize.x) + uint(pixelCoord.x);
     QuadMapData quadMapData = quadMap[index];
     return quadMapData;
 }
@@ -237,7 +239,7 @@ void storeSurfel(Quad quad) {
 
     uint vertexIdxBase = atomicAdd(numVertices, VERTICES_IN_A_QUAD);
 
-    uint vertexIndexTopLeft = vertexIdxBase + 0u;
+    uint vertexIndexTopLeft = vertexIdxBase + 0;
     vertices[vertexIndexTopLeft].position = viewToWorld(viewInverse, quad.topLeft);
     vertices[vertexIndexTopLeft].color = vec3(1.0, 1.0, 1.0);
     vertices[vertexIndexTopLeft].texCoords = worldToScreen(view, projection, vertices[vertexIndexTopLeft].position);
@@ -264,7 +266,7 @@ void storeSurfel(Quad quad) {
 
     uint indexIdxBase = atomicAdd(numIndices, INDICES_IN_A_QUAD);
 
-    indices[indexIdxBase + 0u] = vertexIndexTopLeft;
+    indices[indexIdxBase + 0] = vertexIndexTopLeft;
     indices[indexIdxBase + 1] = vertexIndexBottomLeft;
     indices[indexIdxBase + 2] = vertexIndexTopRight;
 
@@ -272,7 +274,7 @@ void storeSurfel(Quad quad) {
     indices[indexIdxBase + 4] = vertexIndexBottomLeft;
     indices[indexIdxBase + 5] = vertexIndexBottomRight;
 
-    indicesWireframe[indexIdxBase + 0u] = indices[indexIdxBase + 0u];
+    indicesWireframe[indexIdxBase + 0] = indices[indexIdxBase + 0];
     indicesWireframe[indexIdxBase + 1] = indices[indexIdxBase + 1];
     indicesWireframe[indexIdxBase + 2] = indices[indexIdxBase + 2];
     indicesWireframe[indexIdxBase + 3] = indices[indexIdxBase + 3];
@@ -285,14 +287,17 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
     Plane proxyPlane = quadMapDataToPlane(quadMapData);
 
     vec2 proxyPlaneUV = quadMapData.uv;
-    ivec2 proxyPlanePixelCoords = ivec2(proxyPlaneUV * remoteWinSize);
+    vec2 proxyPlanePixelCoords = vec2(proxyPlaneUV * remoteWinSize);
 
     uint size = quadMapData.size;
-    uint halfGridSize = uint(float(size) * 0.5 * 0.5);
-    ivec2 start = proxyPlanePixelCoords - ivec2(halfGridSize, halfGridSize);
+
+    const float surfelSize = 0.5;
+    float halfGridSize = float(size) * surfelSize / 2;
 
     bool flattened = quadMapData.flattened;
     if (!flattened) {
+        vec2 start = vec2(proxyPlanePixelCoords - vec2(halfGridSize, halfGridSize));
+
         // create surfels for each subpixel in the quad map
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
@@ -302,7 +307,7 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
                 surfelPixelCoords.topLeft     = surfelPixelCoords.bottomLeft + vec2(0.0, 0.5);
                 surfelPixelCoords.topRight    = surfelPixelCoords.bottomLeft + vec2(0.5, 0.5);
 
-                Quad1D depthOffsets = Quad1D(0.0, 0.0, 0.0, 0.0);
+                Quad1D depthOffsets;
                 loadDepthOffsets(depthOffsets, 4 * quadMapData.offset + 2 * ivec2(i, j));
 
                 Quad surfel;
@@ -314,10 +319,10 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
     else {
         // create a single surfel for the quad map
         Quad2D surfelPixelCoords;
-        surfelPixelCoords.bottomLeft  = start;
-        surfelPixelCoords.bottomRight = start + vec2(size/2, 0.0);
-        surfelPixelCoords.topLeft     = start + vec2(0.0, size/2);
-        surfelPixelCoords.topRight    = start + vec2(size/2, size/2);
+        surfelPixelCoords.bottomLeft  = proxyPlanePixelCoords + vec2(-halfGridSize, -halfGridSize);
+        surfelPixelCoords.bottomRight = proxyPlanePixelCoords + vec2(+halfGridSize, -halfGridSize);
+        surfelPixelCoords.topLeft     = proxyPlanePixelCoords + vec2(-halfGridSize, +halfGridSize);
+        surfelPixelCoords.topRight    = proxyPlanePixelCoords + vec2(+halfGridSize, +halfGridSize);
 
         Quad1D depthOffsets = Quad1D(0.0, 0.0, 0.0, 0.0);
 
@@ -328,11 +333,12 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
 }
 
 void main() {
-    uint quadMapIndex = gl_GlobalInvocationID.x;
-    if (quadMapIndex >= quadMapLength) {
+    ivec2 quadMapPixelCoords = ivec2(gl_GlobalInvocationID.xy);
+
+    QuadMapData quadMapData = loadQuadMap(quadMapPixelCoords);
+    if (quadMapData.ignore) {
         return;
     }
 
-    QuadMapData quadMapData = loadQuadMap(quadMapIndex);
     storeSurfelsFromQuadMap(quadMapData);
 }
