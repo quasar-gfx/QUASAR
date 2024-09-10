@@ -26,11 +26,6 @@ struct QuadMapData {
     uint size;
 };
 
-struct Plane {
-    vec3 normal;
-    float constant;
-};
-
 struct Quad {
     vec3 bottomLeft;
     vec3 bottomRight;
@@ -89,6 +84,11 @@ struct MultiQuad2D {
     vec2 topRight;
 };
 
+struct Plane {
+    vec3 normal;
+    vec3 point;
+};
+
 uniform vec2 remoteWinSize;
 uniform vec2 quadMapSize;
 uniform vec2 depthBufferSize;
@@ -117,9 +117,9 @@ const vec3 right = vec3(1.0, 0.0, 0.0);
 
 #define MAX_DEPTH 0.9999
 
-#define VERTICES_IN_A_QUAD  4u
-#define INDICES_IN_A_QUAD   6u
-#define NUM_SUB_QUADS       4u
+#define VERTICES_IN_A_QUAD  4
+#define INDICES_IN_A_QUAD   6
+#define NUM_SUB_QUADS       4
 
 layout(std430, binding = 0) buffer QuadMapBuffer {
     QuadMapData quadMap[];
@@ -183,13 +183,10 @@ vec3 worldToView(mat4 view, vec3 worldCoord) {
     return viewCoord.xyz;
 }
 
-vec2 ndcToScreen(vec2 ndc) {
-    return (ndc + 1.0) / 2.0;
-}
-
 vec2 worldToScreen(mat4 view, mat4 projection, vec3 worldCoord) {
     vec2 ndc = viewToNDC(projection, worldToView(view, worldCoord)).xy;
-    return ndcToScreen(ndc);
+    vec2 uv = (ndc + 1.0) / 2.0;
+    return uv;
 }
 
 float signedDistance(vec3 p1, vec3 p2) {
@@ -272,13 +269,13 @@ vec3 constrainToMaxAngle(vec3 vectorNormalized, vec3 axisNormalized, float maxAn
     return normalize(vectorNormalized);
 }
 
-vec3 rayPlaneIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 planePoint, vec3 planeNormal) {
-    float denominator = dot(rayDirection, planeNormal);
+vec3 rayPlaneIntersection(vec3 rayOrigin, vec3 rayDirection, Plane plane) {
+    float denominator = dot(rayDirection, plane.normal);
     if (abs(denominator) < epilson) {
         return vec3(1.0/0.0, 1.0/0.0, 1.0/0.0);
     }
 
-    float t = dot(planePoint - rayOrigin, planeNormal) / denominator;
+    float t = dot(plane.point - rayOrigin, plane.normal) / denominator;
     if (t < 0.0) {
         return vec3(1.0/0.0, 1.0/0.0, 1.0/0.0);
     }
@@ -287,9 +284,9 @@ vec3 rayPlaneIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 planePoint, ve
     return intersection;
 }
 
-vec3 pointPlaneIntersection(vec3 pt, vec3 planePoint, vec3 planeNormal) {
+vec3 pointPlaneIntersection(vec3 pt, Plane plane) {
     vec3 rayDirection = normalize(pt);
-    return rayPlaneIntersection(origin, rayDirection, planePoint, planeNormal);
+    return rayPlaneIntersection(origin, rayDirection, plane);
 }
 
 vec3 findQuadPointCorner(
@@ -374,39 +371,42 @@ bool quadHasExtremeOrientation(in MultiQuad quad, vec3 frustumNormalView) {
     return false;
 }
 
-void createSurfels(out MultiQuad surfelView, in MultiQuad2D surfelNDCs, in MultiQuad surfelViewFarPlane, in MultiQuad pixelCoordsView, in MultiQuad pixelNormalsView, in MultiQuad1D pixelDepths) {
+void createSurfels(
+    out MultiQuad surfelView,
+    in MultiQuad2D surfelNDCs, in MultiQuad surfelViewFarPlane, in MultiQuad pixelCoordsView, in MultiQuad pixelNormalsView, in MultiQuad1D pixelDepths
+) {
     // find all points on a ray going through each coordinate intersecting a plane defined by neighboring pixels
-    vec3 surfelViewBottomLeftPlane                = pointPlaneIntersection(surfelViewFarPlane.bottomLeft, pixelCoordsView.center,     pixelNormalsView.center    );
-    vec3 surfelViewBottomLeftPlanePixelBottomLeft = pointPlaneIntersection(surfelViewFarPlane.bottomLeft, pixelCoordsView.bottomLeft, pixelNormalsView.bottomLeft);
-    vec3 surfelViewBottomLeftPlanePixelBottom     = pointPlaneIntersection(surfelViewFarPlane.bottomLeft, pixelCoordsView.bottom,     pixelNormalsView.bottom    );
-    vec3 surfelViewBottomLeftPlanePixelLeft       = pointPlaneIntersection(surfelViewFarPlane.bottomLeft, pixelCoordsView.left,       pixelNormalsView.left      );
+    vec3 surfelViewBottomLeftPlane                = pointPlaneIntersection(surfelViewFarPlane.bottomLeft, Plane(pixelNormalsView.center,     pixelCoordsView.center    ));
+    vec3 surfelViewBottomLeftPlanePixelBottomLeft = pointPlaneIntersection(surfelViewFarPlane.bottomLeft, Plane(pixelNormalsView.bottomLeft, pixelCoordsView.bottomLeft));
+    vec3 surfelViewBottomLeftPlanePixelBottom     = pointPlaneIntersection(surfelViewFarPlane.bottomLeft, Plane(pixelNormalsView.bottom,     pixelCoordsView.bottom    ));
+    vec3 surfelViewBottomLeftPlanePixelLeft       = pointPlaneIntersection(surfelViewFarPlane.bottomLeft, Plane(pixelNormalsView.left,       pixelCoordsView.left      ));
 
-    vec3 surfelViewBottomPlane            = pointPlaneIntersection(surfelViewFarPlane.bottom, pixelCoordsView.center, pixelNormalsView.center);
-    vec3 surfelViewBottomPlanePixelBottom = pointPlaneIntersection(surfelViewFarPlane.bottom, pixelCoordsView.bottom, pixelNormalsView.bottom);
+    vec3 surfelViewBottomPlane            = pointPlaneIntersection(surfelViewFarPlane.bottom, Plane(pixelNormalsView.center, pixelCoordsView.center));
+    vec3 surfelViewBottomPlanePixelBottom = pointPlaneIntersection(surfelViewFarPlane.bottom, Plane(pixelNormalsView.bottom, pixelCoordsView.bottom));
 
-    vec3 surfelViewBottomRightPlane                 = pointPlaneIntersection(surfelViewFarPlane.bottomRight, pixelCoordsView.center,      pixelNormalsView.center     );
-    vec3 surfelViewBottomRightPlanePixelBottomRight = pointPlaneIntersection(surfelViewFarPlane.bottomRight, pixelCoordsView.bottomRight, pixelNormalsView.bottomRight);
-    vec3 surfelViewBottomRightPlanePixelBottom      = pointPlaneIntersection(surfelViewFarPlane.bottomRight, pixelCoordsView.bottom,      pixelNormalsView.bottom     );
-    vec3 surfelViewBottomRightPlanePixelRight       = pointPlaneIntersection(surfelViewFarPlane.bottomRight, pixelCoordsView.right,       pixelNormalsView.right      );
+    vec3 surfelViewBottomRightPlane                 = pointPlaneIntersection(surfelViewFarPlane.bottomRight, Plane(pixelNormalsView.center,      pixelCoordsView.center     ));
+    vec3 surfelViewBottomRightPlanePixelBottomRight = pointPlaneIntersection(surfelViewFarPlane.bottomRight, Plane(pixelNormalsView.bottomRight, pixelCoordsView.bottomRight));
+    vec3 surfelViewBottomRightPlanePixelBottom      = pointPlaneIntersection(surfelViewFarPlane.bottomRight, Plane(pixelNormalsView.bottom,      pixelCoordsView.bottom     ));
+    vec3 surfelViewBottomRightPlanePixelRight       = pointPlaneIntersection(surfelViewFarPlane.bottomRight, Plane(pixelNormalsView.right,       pixelCoordsView.right      ));
 
-    vec3 surfelViewLeftPlane          = pointPlaneIntersection(surfelViewFarPlane.left, pixelCoordsView.center, pixelNormalsView.center);
-    vec3 surfelViewLeftPlanePixelLeft = pointPlaneIntersection(surfelViewFarPlane.left, pixelCoordsView.left,   pixelNormalsView.left  );
+    vec3 surfelViewLeftPlane          = pointPlaneIntersection(surfelViewFarPlane.left, Plane(pixelNormalsView.center, pixelCoordsView.center));
+    vec3 surfelViewLeftPlanePixelLeft = pointPlaneIntersection(surfelViewFarPlane.left, Plane(pixelNormalsView.left,   pixelCoordsView.left  ));
 
-    vec3 surfelViewRightPlane           = pointPlaneIntersection(surfelViewFarPlane.right, pixelCoordsView.center, pixelNormalsView.center);
-    vec3 surfelViewRightPlanePixelRight = pointPlaneIntersection(surfelViewFarPlane.right, pixelCoordsView.right,  pixelNormalsView.right );
+    vec3 surfelViewRightPlane           = pointPlaneIntersection(surfelViewFarPlane.right, Plane(pixelNormalsView.center, pixelCoordsView.center));
+    vec3 surfelViewRightPlanePixelRight = pointPlaneIntersection(surfelViewFarPlane.right, Plane(pixelNormalsView.right,  pixelCoordsView.right ));
 
-    vec3 surfelViewTopLeftPlane             = pointPlaneIntersection(surfelViewFarPlane.topLeft, pixelCoordsView.center,  pixelNormalsView.center );
-    vec3 surfelViewTopLeftPlanePixelTopLeft = pointPlaneIntersection(surfelViewFarPlane.topLeft, pixelCoordsView.topLeft, pixelNormalsView.topLeft);
-    vec3 surfelViewTopLeftPlanePixelLeft    = pointPlaneIntersection(surfelViewFarPlane.topLeft, pixelCoordsView.left,    pixelNormalsView.left   );
-    vec3 surfelViewTopLeftPlanePixelTop     = pointPlaneIntersection(surfelViewFarPlane.topLeft, pixelCoordsView.top,     pixelNormalsView.top    );
+    vec3 surfelViewTopLeftPlane             = pointPlaneIntersection(surfelViewFarPlane.topLeft, Plane(pixelNormalsView.center,  pixelCoordsView.center ));
+    vec3 surfelViewTopLeftPlanePixelTopLeft = pointPlaneIntersection(surfelViewFarPlane.topLeft, Plane(pixelNormalsView.topLeft, pixelCoordsView.topLeft));
+    vec3 surfelViewTopLeftPlanePixelLeft    = pointPlaneIntersection(surfelViewFarPlane.topLeft, Plane(pixelNormalsView.left,    pixelCoordsView.left   ));
+    vec3 surfelViewTopLeftPlanePixelTop     = pointPlaneIntersection(surfelViewFarPlane.topLeft, Plane(pixelNormalsView.top,     pixelCoordsView.top    ));
 
-    vec3 surfelViewTopPlane         = pointPlaneIntersection(surfelViewFarPlane.top, pixelCoordsView.center, pixelNormalsView.center);
-    vec3 surfelViewTopPlanePixelTop = pointPlaneIntersection(surfelViewFarPlane.top, pixelCoordsView.top,    pixelNormalsView.top   );
+    vec3 surfelViewTopPlane         = pointPlaneIntersection(surfelViewFarPlane.top, Plane(pixelNormalsView.center, pixelCoordsView.center));
+    vec3 surfelViewTopPlanePixelTop = pointPlaneIntersection(surfelViewFarPlane.top, Plane(pixelNormalsView.top,    pixelCoordsView.top   ));
 
-    vec3 surfelViewTopRightPlane              = pointPlaneIntersection(surfelViewFarPlane.topRight, pixelCoordsView.center,   pixelNormalsView.center  );
-    vec3 surfelViewTopRightPlanePixelTopRight = pointPlaneIntersection(surfelViewFarPlane.topRight, pixelCoordsView.topRight, pixelNormalsView.topRight);
-    vec3 surfelViewTopRightPlanePixelTop      = pointPlaneIntersection(surfelViewFarPlane.topRight, pixelCoordsView.top,      pixelNormalsView.top     );
-    vec3 surfelViewTopRightPlanePixelRight    = pointPlaneIntersection(surfelViewFarPlane.topRight, pixelCoordsView.right,    pixelNormalsView.right   );
+    vec3 surfelViewTopRightPlane              = pointPlaneIntersection(surfelViewFarPlane.topRight, Plane(pixelNormalsView.center,   pixelCoordsView.center  ));
+    vec3 surfelViewTopRightPlanePixelTopRight = pointPlaneIntersection(surfelViewFarPlane.topRight, Plane(pixelNormalsView.topRight, pixelCoordsView.topRight));
+    vec3 surfelViewTopRightPlanePixelTop      = pointPlaneIntersection(surfelViewFarPlane.topRight, Plane(pixelNormalsView.top,      pixelCoordsView.top     ));
+    vec3 surfelViewTopRightPlanePixelRight    = pointPlaneIntersection(surfelViewFarPlane.topRight, Plane(pixelNormalsView.right,    pixelCoordsView.right   ));
 
     /**********************************
 
@@ -520,19 +520,12 @@ void storeDepthOffsets(in ivec2 pixelCoord, in Quad1D depthOffsets) {
     storeInDepthOffsetBuffer(pixelCoord + ivec2(1, 1), depthOffsets.topRight);
 }
 
-void loadDepthOffsets(out Quad1D depthOffsets, in ivec2 pixelCoord) {
-    depthOffsets.bottomLeft  = loadDepthOffset(pixelCoord + ivec2(0, 0));
-    depthOffsets.bottomRight = loadDepthOffset(pixelCoord + ivec2(1, 0));
-    depthOffsets.topLeft     = loadDepthOffset(pixelCoord + ivec2(0, 1));
-    depthOffsets.topRight    = loadDepthOffset(pixelCoord + ivec2(1, 1));
-}
-
-void findDepthOffsets(out Quad1D depthOffsets, in Quad quadView, in vec3 proxyPlanePt, in vec3 proxyPlaneNormal) {
+void findDepthOffsets(out Quad1D depthOffsets, in Quad quadView, in Plane proxyPlane) {
     Quad quadPtsOnPlane;
-    quadPtsOnPlane.bottomLeft  = pointPlaneIntersection(quadView.bottomLeft, proxyPlanePt, proxyPlaneNormal);
-    quadPtsOnPlane.bottomRight = pointPlaneIntersection(quadView.bottomRight, proxyPlanePt, proxyPlaneNormal);
-    quadPtsOnPlane.topLeft     = pointPlaneIntersection(quadView.topLeft, proxyPlanePt, proxyPlaneNormal);
-    quadPtsOnPlane.topRight    = pointPlaneIntersection(quadView.topRight, proxyPlanePt, proxyPlaneNormal);
+    quadPtsOnPlane.bottomLeft  = pointPlaneIntersection(quadView.bottomLeft, proxyPlane);
+    quadPtsOnPlane.bottomRight = pointPlaneIntersection(quadView.bottomRight, proxyPlane);
+    quadPtsOnPlane.topLeft     = pointPlaneIntersection(quadView.topLeft, proxyPlane);
+    quadPtsOnPlane.topRight    = pointPlaneIntersection(quadView.topRight, proxyPlane);
 
     depthOffsets.bottomLeft  = signedDistance(quadPtsOnPlane.bottomLeft,  quadView.bottomLeft);
     depthOffsets.bottomRight = signedDistance(quadPtsOnPlane.bottomRight, quadView.bottomRight);
@@ -551,12 +544,16 @@ void storeSurfelsInQuadMap(
                          surfelTopLeft.bottomLeft + surfelTopLeft.bottomRight + surfelTopLeft.topLeft + surfelTopLeft.topRight +
                          surfelTopRight.bottomLeft + surfelTopRight.bottomRight + surfelTopRight.topLeft + surfelTopRight.topRight) / 16.0;
 
+    Plane proxyPlane;
+    proxyPlane.normal = proxyPlaneNormal;
+    proxyPlane.point = proxyPlanePt;
+
     // find depth offsets for each corner of the quad
     Quad1D depthOffsetsBottomLeft, depthOffsetsBottomRight, depthOffsetsTopLeft, depthOffsetsTopRight;
-    findDepthOffsets(depthOffsetsBottomLeft, surfelBottomLeft, proxyPlanePt, proxyPlaneNormal);
-    findDepthOffsets(depthOffsetsBottomRight, surfelBottomRight, proxyPlanePt, proxyPlaneNormal);
-    findDepthOffsets(depthOffsetsTopLeft, surfelTopLeft, proxyPlanePt, proxyPlaneNormal);
-    findDepthOffsets(depthOffsetsTopRight, surfelTopRight, proxyPlanePt, proxyPlaneNormal);
+    findDepthOffsets(depthOffsetsBottomLeft, surfelBottomLeft, proxyPlane);
+    findDepthOffsets(depthOffsetsBottomRight, surfelBottomRight, proxyPlane);
+    findDepthOffsets(depthOffsetsTopLeft, surfelTopLeft, proxyPlane);
+    findDepthOffsets(depthOffsetsTopRight, surfelTopRight, proxyPlane);
 
     // find 3d point of center of proxy
     vec2 quadCenterUV = quadCenterPixelCoord / remoteWinSize;
@@ -564,7 +561,7 @@ void storeSurfelsInQuadMap(
     vec3 quadCenterFarPlane = ndcToView(projectionInverse, quadCenterNDC, 1.0);
 
     // project the center of the quad onto the proxy plane to find uv for proxy plane
-    vec3 planeCenterPt = pointPlaneIntersection(quadCenterFarPlane, proxyPlanePt, proxyPlaneNormal);
+    vec3 planeCenterPt = pointPlaneIntersection(quadCenterFarPlane, proxyPlane);
     vec3 proxyPlaneNDC = viewToNDC(projection, planeCenterPt);
     vec2 proxyPlaneUV = (proxyPlaneNDC.xy + 1.0) / 2.0;
 
@@ -575,7 +572,7 @@ void storeSurfelsInQuadMap(
     quadMapData.depth = proxyPlaneNDC.z;
     quadMapData.normal = proxyPlaneNormal;
     quadMapData.offset = pixelCoord;
-    quadMapData.size = 2u;
+    quadMapData.size = 2;
     quadMapData.flattened = ( // if all depth offsets are below flattenedThreshold, then the quad is considered to be flattened
         abs(depthOffsetsBottomLeft.bottomLeft)  < flattenedThreshold &&
         abs(depthOffsetsBottomLeft.bottomRight) < flattenedThreshold &&
@@ -600,157 +597,16 @@ void storeSurfelsInQuadMap(
     storeInQuadMap(pixelCoord, quadMapData);
 
     if (quadMapData.flattened) {
-        depthOffsetsBottomLeft = Quad1D(0.0, 0.0, 0.0, 0.0);
+        depthOffsetsBottomLeft  = Quad1D(0.0, 0.0, 0.0, 0.0);
         depthOffsetsBottomRight = Quad1D(0.0, 0.0, 0.0, 0.0);
-        depthOffsetsTopLeft = Quad1D(0.0, 0.0, 0.0, 0.0);
-        depthOffsetsTopRight = Quad1D(0.0, 0.0, 0.0, 0.0);
+        depthOffsetsTopLeft     = Quad1D(0.0, 0.0, 0.0, 0.0);
+        depthOffsetsTopRight    = Quad1D(0.0, 0.0, 0.0, 0.0);
     }
 
     storeDepthOffsets(4 * pixelCoord + 2 * ivec2(0, 0), depthOffsetsBottomLeft);
     storeDepthOffsets(4 * pixelCoord + 2 * ivec2(1, 0), depthOffsetsBottomRight);
     storeDepthOffsets(4 * pixelCoord + 2 * ivec2(0, 1), depthOffsetsTopLeft);
     storeDepthOffsets(4 * pixelCoord + 2 * ivec2(1, 1), depthOffsetsTopRight);
-}
-
-void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthOffets, in vec3 proxyPlanePt, in vec3 proxyPlaneNormal) {
-    Quad2D surfelUVs;
-    surfelUVs.bottomLeft  = surfelPixelCoords.bottomLeft / remoteWinSize;
-    surfelUVs.bottomRight = surfelPixelCoords.bottomRight / remoteWinSize;
-    surfelUVs.topLeft     = surfelPixelCoords.topLeft / remoteWinSize;
-    surfelUVs.topRight    = surfelPixelCoords.topRight / remoteWinSize;
-
-    Quad2D surfelNDCs;
-    surfelNDCs.bottomLeft  = surfelUVs.bottomLeft * 2.0 - 1.0;
-    surfelNDCs.bottomRight = surfelUVs.bottomRight * 2.0 - 1.0;
-    surfelNDCs.topLeft     = surfelUVs.topLeft * 2.0 - 1.0;
-    surfelNDCs.topRight    = surfelUVs.topRight * 2.0 - 1.0;
-
-    Quad surfelFarPlane;
-    surfelFarPlane.bottomLeft  = ndcToView(projectionInverse, surfelNDCs.bottomLeft, 1.0);
-    surfelFarPlane.bottomRight = ndcToView(projectionInverse, surfelNDCs.bottomRight, 1.0);
-    surfelFarPlane.topLeft     = ndcToView(projectionInverse, surfelNDCs.topLeft, 1.0);
-    surfelFarPlane.topRight    = ndcToView(projectionInverse, surfelNDCs.topRight, 1.0);
-
-    // shoot rays from corners of the surfel to the plane to find the 3D intersection points
-    Quad quadPtsOnPlane;
-    quadPtsOnPlane.bottomLeft  = pointPlaneIntersection(surfelFarPlane.bottomLeft,  proxyPlanePt, proxyPlaneNormal);
-    quadPtsOnPlane.bottomRight = pointPlaneIntersection(surfelFarPlane.bottomRight, proxyPlanePt, proxyPlaneNormal);
-    quadPtsOnPlane.topLeft     = pointPlaneIntersection(surfelFarPlane.topLeft,     proxyPlanePt, proxyPlaneNormal);
-    quadPtsOnPlane.topRight    = pointPlaneIntersection(surfelFarPlane.topRight,    proxyPlanePt, proxyPlaneNormal);
-
-    // apply depth offsets to the quad points
-    surfel.bottomLeft  = quadPtsOnPlane.bottomLeft  - depthOffets.bottomLeft  * normalize(quadPtsOnPlane.bottomLeft);
-    surfel.bottomRight = quadPtsOnPlane.bottomRight - depthOffets.bottomRight * normalize(quadPtsOnPlane.bottomRight);
-    surfel.topLeft     = quadPtsOnPlane.topLeft     - depthOffets.topLeft     * normalize(quadPtsOnPlane.topLeft);
-    surfel.topRight    = quadPtsOnPlane.topRight    - depthOffets.topRight    * normalize(quadPtsOnPlane.topRight);
-}
-
-void loadSurfelsFromQuadMap(
-    out Quad surfelBottomLeft, out Quad surfelBottomRight, out Quad surfelTopLeft, out Quad surfelTopRight,
-    in QuadMapData quadMapData
-) {
-    // extract the plane normal and point from the quad map
-    vec2 proxyPlaneUV = quadMapData.uv;
-    float proxyPlaneDepth = quadMapData.depth;
-    vec3 proxyPlaneNormal = quadMapData.normal;
-    ivec2 depthOffsetPixelCoord = quadMapData.offset;
-
-    vec2 proxyPlaneNDC = proxyPlaneUV * 2.0 - 1.0;
-    vec3 proxyPlanePt = ndcToView(projectionInverse, proxyPlaneNDC, proxyPlaneDepth);
-
-    vec2 proxyPlanePixelCoords = proxyPlaneUV * remoteWinSize;
-
-    // find the pixel coordinates of the surfel corners
-    Quad2D surfelPixelCoordsBottomLeft;
-    surfelPixelCoordsBottomLeft.bottomLeft  = proxyPlanePixelCoords + vec2(-0.5, -0.5);
-    surfelPixelCoordsBottomLeft.bottomRight = proxyPlanePixelCoords + vec2(+0.0, -0.5);
-    surfelPixelCoordsBottomLeft.topLeft     = proxyPlanePixelCoords + vec2(-0.5, +0.0);
-    surfelPixelCoordsBottomLeft.topRight    = proxyPlanePixelCoords + vec2(+0.0, +0.0);
-
-    Quad2D surfelPixelCoordsBottomRight;
-    surfelPixelCoordsBottomRight.bottomLeft  = proxyPlanePixelCoords + vec2(+0.0, -0.5);
-    surfelPixelCoordsBottomRight.bottomRight = proxyPlanePixelCoords + vec2(+0.5, -0.5);
-    surfelPixelCoordsBottomRight.topLeft     = proxyPlanePixelCoords + vec2(+0.0, +0.0);
-    surfelPixelCoordsBottomRight.topRight    = proxyPlanePixelCoords + vec2(+0.5, +0.0);
-
-    Quad2D surfelPixelCoordsTopLeft;
-    surfelPixelCoordsTopLeft.bottomLeft  = proxyPlanePixelCoords + vec2(-0.5, +0.0);
-    surfelPixelCoordsTopLeft.bottomRight = proxyPlanePixelCoords + vec2(+0.0, +0.0);
-    surfelPixelCoordsTopLeft.topLeft     = proxyPlanePixelCoords + vec2(-0.5, +0.5);
-    surfelPixelCoordsTopLeft.topRight    = proxyPlanePixelCoords + vec2(+0.0, +0.5);
-
-    Quad2D surfelPixelCoordsTopRight;
-    surfelPixelCoordsTopRight.bottomLeft  = proxyPlanePixelCoords + vec2(+0.0, +0.0);
-    surfelPixelCoordsTopRight.bottomRight = proxyPlanePixelCoords + vec2(+0.5, +0.0);
-    surfelPixelCoordsTopRight.topLeft     = proxyPlanePixelCoords + vec2(+0.0, +0.5);
-    surfelPixelCoordsTopRight.topRight    = proxyPlanePixelCoords + vec2(+0.5, +0.5);
-
-    // load the depth offsets for the surfel corners
-    Quad1D depthOffsetsBottomLeft, depthOffsetsBottomRight, depthOffsetsTopLeft, depthOffsetsTopRight;
-    loadDepthOffsets(depthOffsetsBottomLeft,  4 * depthOffsetPixelCoord + 2 * ivec2(0, 0));
-    loadDepthOffsets(depthOffsetsBottomRight, 4 * depthOffsetPixelCoord + 2 * ivec2(1, 0));
-    loadDepthOffsets(depthOffsetsTopLeft,     4 * depthOffsetPixelCoord + 2 * ivec2(0, 1));
-    loadDepthOffsets(depthOffsetsTopRight,    4 * depthOffsetPixelCoord + 2 * ivec2(1, 1));
-
-    createSurfel(surfelBottomLeft, surfelPixelCoordsBottomLeft, depthOffsetsBottomLeft, proxyPlanePt, proxyPlaneNormal);
-    createSurfel(surfelBottomRight, surfelPixelCoordsBottomRight, depthOffsetsBottomRight, proxyPlanePt, proxyPlaneNormal);
-    createSurfel(surfelTopLeft, surfelPixelCoordsTopLeft, depthOffsetsTopLeft, proxyPlanePt, proxyPlaneNormal);
-    createSurfel(surfelTopRight, surfelPixelCoordsTopRight, depthOffsetsTopRight, proxyPlanePt, proxyPlaneNormal);
-}
-
-void storeQuad(Quad quad) {
-    /************************
-
-            tl -- tr
-            |   / |
-            | /   |
-            bl -- br
-
-    ************************/
-
-    uint vertexIdxBase = atomicAdd(numVertices, VERTICES_IN_A_QUAD);
-
-    uint vertexIndexTopLeft = vertexIdxBase + 0u;
-    vertices[vertexIndexTopLeft].position = viewToWorld(viewInverse, quad.topLeft);
-    vertices[vertexIndexTopLeft].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexTopLeft].texCoords = worldToScreen(view, projection, vertices[vertexIndexTopLeft].position);
-
-    uint vertexIndexTopRight = vertexIdxBase + 1u;
-    vertices[vertexIndexTopRight].position = viewToWorld(viewInverse, quad.topRight);
-    vertices[vertexIndexTopRight].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexTopRight].texCoords = worldToScreen(view, projection, vertices[vertexIndexTopRight].position);
-
-    uint vertexIndexBottomLeft = vertexIdxBase + 2u;
-    vertices[vertexIndexBottomLeft].position = viewToWorld(viewInverse, quad.bottomLeft);
-    vertices[vertexIndexBottomLeft].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexBottomLeft].texCoords = worldToScreen(view, projection, vertices[vertexIndexBottomLeft].position);
-
-    uint vertexIndexBottomRight = vertexIdxBase + 3u;
-    vertices[vertexIndexBottomRight].position = viewToWorld(viewInverse, quad.bottomRight);
-    vertices[vertexIndexBottomRight].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexBottomRight].texCoords = worldToScreen(view, projection, vertices[vertexIndexBottomRight].position);
-
-    verticesWireframe[vertexIndexTopLeft] = vertices[vertexIndexTopLeft];
-    verticesWireframe[vertexIndexTopRight] = vertices[vertexIndexTopRight];
-    verticesWireframe[vertexIndexBottomLeft] = vertices[vertexIndexBottomLeft];
-    verticesWireframe[vertexIndexBottomRight] = vertices[vertexIndexBottomRight];
-
-    uint indexIdxBase = atomicAdd(numIndices, INDICES_IN_A_QUAD);
-
-    indices[indexIdxBase + 0u] = vertexIndexTopLeft;
-    indices[indexIdxBase + 1u] = vertexIndexBottomLeft;
-    indices[indexIdxBase + 2u] = vertexIndexTopRight;
-
-    indices[indexIdxBase + 3u] = vertexIndexTopRight;
-    indices[indexIdxBase + 4u] = vertexIndexBottomLeft;
-    indices[indexIdxBase + 5u] = vertexIndexBottomRight;
-
-    indicesWireframe[indexIdxBase + 0u] = indices[indexIdxBase + 0u];
-    indicesWireframe[indexIdxBase + 1u] = indices[indexIdxBase + 1u];
-    indicesWireframe[indexIdxBase + 2u] = indices[indexIdxBase + 2u];
-    indicesWireframe[indexIdxBase + 3u] = indices[indexIdxBase + 3u];
-    indicesWireframe[indexIdxBase + 4u] = indices[indexIdxBase + 4u];
-    indicesWireframe[indexIdxBase + 5u] = indices[indexIdxBase + 5u];
 }
 
 void main() {
@@ -768,7 +624,7 @@ void main() {
 
     **********************************/
 
-    // get coords (see above)
+    // calculate coords (see above)
     vec2 surfelCornerCoordBottomLeft  = vec2(gl_GlobalInvocationID.xy);
 
     MultiQuad2D pixelCenterCoords;
@@ -959,18 +815,4 @@ void main() {
         pixelNormalsView.center,
         subQuadBottomLeft, subQuadBottomRight, subQuadTopLeft, subQuadTopRight
     );
-
-    // // load quads from quad map (for debugging)
-    // QuadMapData quadMapData = loadQuadMap(pixelCoord);
-
-    // Quad q1, q2, q3, q4;
-    // loadSurfelsFromQuadMap(
-    //     q1, q2, q3, q4,
-    //     quadMapData
-    // );
-
-    // storeQuad(q1);
-    // storeQuad(q2);
-    // storeQuad(q3);
-    // storeQuad(q4);
 }

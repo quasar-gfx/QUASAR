@@ -1,4 +1,4 @@
-layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+layout(local_size_x = 16, local_size_y = 1, local_size_z = 1) in;
 
 precision highp sampler2D;
 precision highp image2D;
@@ -43,6 +43,11 @@ struct Quad2D {
     vec2 topRight;
 };
 
+struct Plane {
+    vec3 normal;
+    vec3 point;
+};
+
 layout(std430, binding = 0) buffer QuadMapBuffer {
     QuadMapData quadMap[];
 };
@@ -76,7 +81,7 @@ layout(std430, binding = 7) buffer DepthOffsetBuffer {
 };
 
 uniform vec2 remoteWinSize;
-uniform vec2 quadMapSize;
+uniform int quadMapLength;
 uniform vec2 depthBufferSize;
 
 uniform mat4 view;
@@ -93,21 +98,26 @@ const vec3 origin = vec3(0.0, 0.0, 0.0);
 
 #define MAX_DEPTH 0.9999
 
-#define VERTICES_IN_A_QUAD  4u
-#define INDICES_IN_A_QUAD   6u
-#define NUM_SUB_QUADS       4u
+#define VERTICES_IN_A_QUAD  4
+#define INDICES_IN_A_QUAD   6
+#define NUM_SUB_QUADS       4
 
 vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
-    depth = clamp(depth, 0.0, MAX_DEPTH);
-
     vec4 ndcPos;
     ndcPos.xy = ndc;
-    ndcPos.z = 2.0 * depth - 1.0;
+    ndcPos.z = depth * 2.0 - 1.0;
     ndcPos.w = 1.0;
 
     vec4 viewCoord = projectionInverse * ndcPos;
     viewCoord = viewCoord / viewCoord.w;
     return viewCoord.xyz;
+}
+
+vec3 viewToNDC(mat4 projection, vec3 viewCoord) {
+    vec4 ndcCoord = projection * vec4(viewCoord, 1.0);
+    ndcCoord = ndcCoord / ndcCoord.w;
+    ndcCoord.z = (ndcCoord.z + 1.0) / 2.0;
+    return ndcCoord.xyz;
 }
 
 vec3 viewToWorld(mat4 viewInverse, vec3 viewCoord) {
@@ -122,28 +132,19 @@ vec3 worldToView(mat4 view, vec3 worldCoord) {
     return viewCoord.xyz;
 }
 
-vec2 viewToNDC(mat4 projection, vec3 viewCoord) {
-    vec4 ndcCoord = projection * vec4(viewCoord, 1.0);
-    ndcCoord = ndcCoord / ndcCoord.w;
-    return ndcCoord.xy;
-}
-
-vec2 ndcToScreen(vec2 ndc) {
-    return (ndc + 1.0) / 2.0;
-}
-
 vec2 worldToScreen(mat4 view, mat4 projection, vec3 worldCoord) {
-    vec2 ndc = viewToNDC(projection, worldToView(view, worldCoord));
-    return ndcToScreen(ndc);
+    vec2 ndc = viewToNDC(projection, worldToView(view, worldCoord)).xy;
+    vec2 uv = (ndc + 1.0) / 2.0;
+    return uv;
 }
 
-vec3 rayPlaneIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 planePoint, vec3 planeNormal) {
-    float denominator = dot(rayDirection, planeNormal);
+vec3 rayPlaneIntersection(vec3 rayOrigin, vec3 rayDirection, Plane plane) {
+    float denominator = dot(rayDirection, plane.normal);
     if (abs(denominator) < epilson) {
         return vec3(1.0/0.0, 1.0/0.0, 1.0/0.0);
     }
 
-    float t = dot(planePoint - rayOrigin, planeNormal) / denominator;
+    float t = dot(plane.point - rayOrigin, plane.normal) / denominator;
     if (t < 0.0) {
         return vec3(1.0/0.0, 1.0/0.0, 1.0/0.0);
     }
@@ -152,13 +153,12 @@ vec3 rayPlaneIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 planePoint, ve
     return intersection;
 }
 
-vec3 pointPlaneIntersection(vec3 pt, vec3 planePoint, vec3 planeNormal) {
+vec3 pointPlaneIntersection(vec3 pt, Plane plane) {
     vec3 rayDirection = normalize(pt);
-    return rayPlaneIntersection(origin, rayDirection, planePoint, planeNormal);
+    return rayPlaneIntersection(origin, rayDirection, plane);
 }
 
-QuadMapData loadQuadMap(ivec2 pixelCoord) {
-    uint index = uint(pixelCoord.y) * uint(quadMapSize.x) + uint(pixelCoord.x);
+QuadMapData loadQuadMap(uint index) {
     QuadMapData quadMapData = quadMap[index];
     return quadMapData;
 }
@@ -173,6 +173,19 @@ void loadDepthOffsets(out Quad1D depthOffsets, in ivec2 pixelCoord) {
     depthOffsets.bottomRight = loadDepthOffset(pixelCoord + ivec2(1, 0));
     depthOffsets.topLeft     = loadDepthOffset(pixelCoord + ivec2(0, 1));
     depthOffsets.topRight    = loadDepthOffset(pixelCoord + ivec2(1, 1));
+}
+
+Plane quadMapDataToPlane(in QuadMapData quadMapData) {
+    Plane proxyPlane;
+
+    vec2 proxyPlaneUV = quadMapData.uv;
+    float proxyPlaneDepth = quadMapData.depth;
+    proxyPlane.normal = quadMapData.normal;
+
+    vec2 proxyPlaneNDC = proxyPlaneUV * 2.0 - 1.0;
+    proxyPlane.point = ndcToView(projectionInverse, proxyPlaneNDC, proxyPlaneDepth);
+
+    return proxyPlane;
 }
 
 void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthOffets, in vec3 proxyPlanePt, in vec3 proxyPlaneNormal) {
@@ -195,11 +208,15 @@ void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthO
     surfelFarPlane.topRight    = ndcToView(projectionInverse, surfelNDCs.topRight, 1.0);
 
     // shoot rays from corners of the surfel to the plane to find the 3D intersection points
+    Plane proxyPlane;
+    proxyPlane.normal = proxyPlaneNormal;
+    proxyPlane.point = proxyPlanePt;
+
     Quad quadPtsOnPlane;
-    quadPtsOnPlane.bottomLeft  = pointPlaneIntersection(surfelFarPlane.bottomLeft,  proxyPlanePt, proxyPlaneNormal);
-    quadPtsOnPlane.bottomRight = pointPlaneIntersection(surfelFarPlane.bottomRight, proxyPlanePt, proxyPlaneNormal);
-    quadPtsOnPlane.topLeft     = pointPlaneIntersection(surfelFarPlane.topLeft,     proxyPlanePt, proxyPlaneNormal);
-    quadPtsOnPlane.topRight    = pointPlaneIntersection(surfelFarPlane.topRight,    proxyPlanePt, proxyPlaneNormal);
+    quadPtsOnPlane.bottomLeft  = pointPlaneIntersection(surfelFarPlane.bottomLeft,  proxyPlane);
+    quadPtsOnPlane.bottomRight = pointPlaneIntersection(surfelFarPlane.bottomRight, proxyPlane);
+    quadPtsOnPlane.topLeft     = pointPlaneIntersection(surfelFarPlane.topLeft,     proxyPlane);
+    quadPtsOnPlane.topRight    = pointPlaneIntersection(surfelFarPlane.topRight,    proxyPlane);
 
     // apply depth offsets to the quad points
     surfel.bottomLeft  = quadPtsOnPlane.bottomLeft  - depthOffets.bottomLeft  * normalize(quadPtsOnPlane.bottomLeft);
@@ -225,17 +242,17 @@ void storeSurfel(Quad quad) {
     vertices[vertexIndexTopLeft].color = vec3(1.0, 1.0, 1.0);
     vertices[vertexIndexTopLeft].texCoords = worldToScreen(view, projection, vertices[vertexIndexTopLeft].position);
 
-    uint vertexIndexTopRight = vertexIdxBase + 1u;
+    uint vertexIndexTopRight = vertexIdxBase + 1;
     vertices[vertexIndexTopRight].position = viewToWorld(viewInverse, quad.topRight);
     vertices[vertexIndexTopRight].color = vec3(1.0, 1.0, 1.0);
     vertices[vertexIndexTopRight].texCoords = worldToScreen(view, projection, vertices[vertexIndexTopRight].position);
 
-    uint vertexIndexBottomLeft = vertexIdxBase + 2u;
+    uint vertexIndexBottomLeft = vertexIdxBase + 2;
     vertices[vertexIndexBottomLeft].position = viewToWorld(viewInverse, quad.bottomLeft);
     vertices[vertexIndexBottomLeft].color = vec3(1.0, 1.0, 1.0);
     vertices[vertexIndexBottomLeft].texCoords = worldToScreen(view, projection, vertices[vertexIndexBottomLeft].position);
 
-    uint vertexIndexBottomRight = vertexIdxBase + 3u;
+    uint vertexIndexBottomRight = vertexIdxBase + 3;
     vertices[vertexIndexBottomRight].position = viewToWorld(viewInverse, quad.bottomRight);
     vertices[vertexIndexBottomRight].color = vec3(1.0, 1.0, 1.0);
     vertices[vertexIndexBottomRight].texCoords = worldToScreen(view, projection, vertices[vertexIndexBottomRight].position);
@@ -248,39 +265,33 @@ void storeSurfel(Quad quad) {
     uint indexIdxBase = atomicAdd(numIndices, INDICES_IN_A_QUAD);
 
     indices[indexIdxBase + 0u] = vertexIndexTopLeft;
-    indices[indexIdxBase + 1u] = vertexIndexBottomLeft;
-    indices[indexIdxBase + 2u] = vertexIndexTopRight;
+    indices[indexIdxBase + 1] = vertexIndexBottomLeft;
+    indices[indexIdxBase + 2] = vertexIndexTopRight;
 
-    indices[indexIdxBase + 3u] = vertexIndexTopRight;
-    indices[indexIdxBase + 4u] = vertexIndexBottomLeft;
-    indices[indexIdxBase + 5u] = vertexIndexBottomRight;
+    indices[indexIdxBase + 3] = vertexIndexTopRight;
+    indices[indexIdxBase + 4] = vertexIndexBottomLeft;
+    indices[indexIdxBase + 5] = vertexIndexBottomRight;
 
     indicesWireframe[indexIdxBase + 0u] = indices[indexIdxBase + 0u];
-    indicesWireframe[indexIdxBase + 1u] = indices[indexIdxBase + 1u];
-    indicesWireframe[indexIdxBase + 2u] = indices[indexIdxBase + 2u];
-    indicesWireframe[indexIdxBase + 3u] = indices[indexIdxBase + 3u];
-    indicesWireframe[indexIdxBase + 4u] = indices[indexIdxBase + 4u];
-    indicesWireframe[indexIdxBase + 5u] = indices[indexIdxBase + 5u];
+    indicesWireframe[indexIdxBase + 1] = indices[indexIdxBase + 1];
+    indicesWireframe[indexIdxBase + 2] = indices[indexIdxBase + 2];
+    indicesWireframe[indexIdxBase + 3] = indices[indexIdxBase + 3];
+    indicesWireframe[indexIdxBase + 4] = indices[indexIdxBase + 4];
+    indicesWireframe[indexIdxBase + 5] = indices[indexIdxBase + 5];
 }
 
 void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
     // extract the plane normal and point from the quad map
-    bool flattened = quadMapData.flattened;
+    Plane proxyPlane = quadMapDataToPlane(quadMapData);
 
     vec2 proxyPlaneUV = quadMapData.uv;
-    float proxyPlaneDepth = quadMapData.depth;
-    vec3 proxyPlaneNormal = quadMapData.normal;
-    ivec2 depthOffsetPixelCoord = quadMapData.offset;
-    uint size = quadMapData.size;
-
-    vec2 proxyPlaneNDC = proxyPlaneUV * 2.0 - 1.0;
-    vec3 proxyPlanePt = ndcToView(projectionInverse, proxyPlaneNDC, proxyPlaneDepth);
-
     ivec2 proxyPlanePixelCoords = ivec2(proxyPlaneUV * remoteWinSize);
 
+    uint size = quadMapData.size;
     uint halfGridSize = uint(float(size) * 0.5 * 0.5);
     ivec2 start = proxyPlanePixelCoords - ivec2(halfGridSize, halfGridSize);
 
+    bool flattened = quadMapData.flattened;
     if (!flattened) {
         // create surfels for each subpixel in the quad map
         for (int i = 0; i < size; i++) {
@@ -292,10 +303,10 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
                 surfelPixelCoords.topRight    = surfelPixelCoords.bottomLeft + vec2(0.5, 0.5);
 
                 Quad1D depthOffsets = Quad1D(0.0, 0.0, 0.0, 0.0);
-                loadDepthOffsets(depthOffsets, 4 * depthOffsetPixelCoord + 2 * ivec2(i, j));
+                loadDepthOffsets(depthOffsets, 4 * quadMapData.offset + 2 * ivec2(i, j));
 
                 Quad surfel;
-                createSurfel(surfel, surfelPixelCoords, depthOffsets, proxyPlanePt, proxyPlaneNormal);
+                createSurfel(surfel, surfelPixelCoords, depthOffsets, proxyPlane.point, proxyPlane.normal);
                 storeSurfel(surfel);
             }
         }
@@ -311,25 +322,17 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
         Quad1D depthOffsets = Quad1D(0.0, 0.0, 0.0, 0.0);
 
         Quad surfel;
-        createSurfel(surfel, surfelPixelCoords, depthOffsets, proxyPlanePt, proxyPlaneNormal);
+        createSurfel(surfel, surfelPixelCoords, depthOffsets, proxyPlane.point, proxyPlane.normal);
         storeSurfel(surfel);
     }
 }
 
 void main() {
-    /**********************
+    uint quadMapIndex = gl_GlobalInvocationID.x;
+    if (quadMapIndex >= quadMapLength) {
+        return;
+    }
 
-      (stl)  ------- (str)
-        |             |
-        |     sc      |
-        |             |
-      (sbl) ------- (sbl)
-
-    **********************/
-
-    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
-
-    QuadMapData quadMapData = loadQuadMap(pixelCoord);
-
+    QuadMapData quadMapData = loadQuadMap(quadMapIndex);
     storeSurfelsFromQuadMap(quadMapData);
 }
