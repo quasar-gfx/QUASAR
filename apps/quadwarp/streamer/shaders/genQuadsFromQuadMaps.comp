@@ -95,6 +95,7 @@ uniform float far;
 
 const float epilson = 1e-5;
 
+const float surfelSize = 0.5;
 const vec3 origin = vec3(0.0, 0.0, 0.0);
 
 #define MAX_DEPTH 0.9999
@@ -286,8 +287,6 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
     vec2 proxyPlanePixelCoords = vec2(proxyPlaneUV * remoteWinSize);
 
     uint size = quadMapData.size;
-
-    const float surfelSize = 0.5;
     float halfGridSize = float(size) * surfelSize / 2;
 
     bool flattened = quadMapData.flattened;

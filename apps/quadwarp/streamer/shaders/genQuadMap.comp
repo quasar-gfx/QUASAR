@@ -470,13 +470,6 @@ void storeInDepthOffsetBuffer(in ivec2 pixelCoord, in float depthOffset) {
     depthOffsetBuffer[index] = depthOffset;
 }
 
-void storeDepthOffsets(in ivec2 pixelCoord, in Quad1D depthOffsets) {
-    storeInDepthOffsetBuffer(pixelCoord + ivec2(0, 0), depthOffsets.bottomLeft);
-    storeInDepthOffsetBuffer(pixelCoord + ivec2(1, 0), depthOffsets.bottomRight);
-    storeInDepthOffsetBuffer(pixelCoord + ivec2(0, 1), depthOffsets.topLeft);
-    storeInDepthOffsetBuffer(pixelCoord + ivec2(1, 1), depthOffsets.topRight);
-}
-
 void findDepthOffsets(out Quad1D depthOffsets, in Quad quadView, in Plane proxyPlane) {
     Quad quadPtsOnPlane;
     quadPtsOnPlane.bottomLeft  = pointPlaneIntersection(quadView.bottomLeft,  proxyPlane);
@@ -488,6 +481,13 @@ void findDepthOffsets(out Quad1D depthOffsets, in Quad quadView, in Plane proxyP
     depthOffsets.bottomRight = signedDistance(quadPtsOnPlane.bottomRight, quadView.bottomRight);
     depthOffsets.topLeft     = signedDistance(quadPtsOnPlane.topLeft,     quadView.topLeft);
     depthOffsets.topRight    = signedDistance(quadPtsOnPlane.topRight,    quadView.topRight);
+}
+
+void storeDepthOffsets(in ivec2 pixelCoord, in Quad1D depthOffsets) {
+    storeInDepthOffsetBuffer(pixelCoord + ivec2(0, 0), depthOffsets.bottomLeft);
+    storeInDepthOffsetBuffer(pixelCoord + ivec2(1, 0), depthOffsets.bottomRight);
+    storeInDepthOffsetBuffer(pixelCoord + ivec2(0, 1), depthOffsets.topLeft);
+    storeInDepthOffsetBuffer(pixelCoord + ivec2(1, 1), depthOffsets.topRight);
 }
 
 void storeSurfelsInQuadMap(
@@ -530,34 +530,40 @@ void storeSurfelsInQuadMap(
 
     float proxyPlaneDepth = proxyPlaneNDC.z;
 
+    // if 2/3 of the surfels are below the threshold, then the plane is considered flattened
+    int numBelowThreshold = 0;
+    int total = 16;
+    if (abs(depthOffsetsBottomLeft.bottomLeft)  < flattenedThreshold) numBelowThreshold++;
+    if (abs(depthOffsetsBottomLeft.bottomRight) < flattenedThreshold) numBelowThreshold++;
+    if (abs(depthOffsetsBottomLeft.topLeft)     < flattenedThreshold) numBelowThreshold++;
+    if (abs(depthOffsetsBottomLeft.topRight)    < flattenedThreshold) numBelowThreshold++;
+
+    if (abs(depthOffsetsBottomRight.bottomLeft)  < flattenedThreshold) numBelowThreshold++;
+    if (abs(depthOffsetsBottomRight.bottomRight) < flattenedThreshold) numBelowThreshold++;
+    if (abs(depthOffsetsBottomRight.topLeft)     < flattenedThreshold) numBelowThreshold++;
+    if (abs(depthOffsetsBottomRight.topRight)    < flattenedThreshold) numBelowThreshold++;
+
+    if (abs(depthOffsetsTopLeft.bottomLeft)  < flattenedThreshold) numBelowThreshold++;
+    if (abs(depthOffsetsTopLeft.bottomRight) < flattenedThreshold) numBelowThreshold++;
+    if (abs(depthOffsetsTopLeft.topLeft)     < flattenedThreshold) numBelowThreshold++;
+    if (abs(depthOffsetsTopLeft.topRight)    < flattenedThreshold) numBelowThreshold++;
+
+    if (abs(depthOffsetsTopRight.bottomLeft)  < flattenedThreshold) numBelowThreshold++;
+    if (abs(depthOffsetsTopRight.bottomRight) < flattenedThreshold) numBelowThreshold++;
+    if (abs(depthOffsetsTopRight.topLeft)     < flattenedThreshold) numBelowThreshold++;
+    if (abs(depthOffsetsTopRight.topRight)    < flattenedThreshold) numBelowThreshold++;
+
+    // if more than half the surfels are below the threshold, then the plane is considered flattened
+    bool flattened = numBelowThreshold > total / 2;
+
     QuadMapData quadMapData;
     quadMapData.ignore = false;
+    quadMapData.flattened = flattened;
     quadMapData.uv = proxyPlaneUV;
     quadMapData.depth = proxyPlaneDepth;
     quadMapData.normal = proxyPlaneNormal;
     quadMapData.offset = pixelCoord;
     quadMapData.size = 2; // 2x2
-    quadMapData.flattened = ( // if all depth offsets are below flattenedThreshold, then the quad is considered to be flattened
-        abs(depthOffsetsBottomLeft.bottomLeft)  < flattenedThreshold &&
-        abs(depthOffsetsBottomLeft.bottomRight) < flattenedThreshold &&
-        abs(depthOffsetsBottomLeft.topLeft)     < flattenedThreshold &&
-        abs(depthOffsetsBottomLeft.topRight)    < flattenedThreshold &&
-
-        abs(depthOffsetsBottomRight.bottomLeft)  < flattenedThreshold &&
-        abs(depthOffsetsBottomRight.bottomRight) < flattenedThreshold &&
-        abs(depthOffsetsBottomRight.topLeft)     < flattenedThreshold &&
-        abs(depthOffsetsBottomRight.topRight)    < flattenedThreshold &&
-
-        abs(depthOffsetsTopLeft.bottomLeft)  < flattenedThreshold &&
-        abs(depthOffsetsTopLeft.bottomRight) < flattenedThreshold &&
-        abs(depthOffsetsTopLeft.topLeft)     < flattenedThreshold &&
-        abs(depthOffsetsTopLeft.topRight)    < flattenedThreshold &&
-
-        abs(depthOffsetsTopRight.bottomLeft)  < flattenedThreshold &&
-        abs(depthOffsetsTopRight.bottomRight) < flattenedThreshold &&
-        abs(depthOffsetsTopRight.topLeft)     < flattenedThreshold &&
-        abs(depthOffsetsTopRight.topRight)    < flattenedThreshold
-    );
     storeInQuadMap(pixelCoord, quadMapData);
 
     if (quadMapData.flattened) {

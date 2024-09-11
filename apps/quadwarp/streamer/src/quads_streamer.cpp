@@ -555,6 +555,7 @@ int main(int argc, char** argv) {
                     simplifyQuadMapShader.setFloat("far", remoteCamera.far);
                 }
                 {
+                    simplifyQuadMapShader.setFloat("flattenedThreshold", flattenedThreshold);
                     simplifyQuadMapShader.setFloat("proxySimilarityThreshold", proxySimilarityThreshold);
                 }
                 {
