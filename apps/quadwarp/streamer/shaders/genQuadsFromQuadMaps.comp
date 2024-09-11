@@ -190,7 +190,7 @@ Plane quadMapDataToPlane(in QuadMapData quadMapData) {
     return proxyPlane;
 }
 
-void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthOffets, in vec3 proxyPlanePt, in vec3 proxyPlaneNormal) {
+void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthOffets, in Plane proxyPlane) {
     Quad2D surfelUVs;
     surfelUVs.bottomLeft  = surfelPixelCoords.bottomLeft / remoteWinSize;
     surfelUVs.bottomRight = surfelPixelCoords.bottomRight / remoteWinSize;
@@ -210,10 +210,6 @@ void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthO
     surfelFarPlane.topRight    = ndcToView(projectionInverse, surfelNDCs.topRight, 1.0);
 
     // shoot rays from corners of the surfel to the plane to find the 3D intersection points
-    Plane proxyPlane;
-    proxyPlane.normal = proxyPlaneNormal;
-    proxyPlane.point = proxyPlanePt;
-
     Quad quadPtsOnPlane;
     quadPtsOnPlane.bottomLeft  = pointPlaneIntersection(surfelFarPlane.bottomLeft,  proxyPlane);
     quadPtsOnPlane.bottomRight = pointPlaneIntersection(surfelFarPlane.bottomRight, proxyPlane);
@@ -311,7 +307,7 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
                 loadDepthOffsets(depthOffsets, 4 * quadMapData.offset + 2 * ivec2(i, j));
 
                 Quad surfel;
-                createSurfel(surfel, surfelPixelCoords, depthOffsets, proxyPlane.point, proxyPlane.normal);
+                createSurfel(surfel, surfelPixelCoords, depthOffsets, proxyPlane);
                 storeSurfel(surfel);
             }
         }
@@ -327,7 +323,7 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
         Quad1D depthOffsets = Quad1D(0.0, 0.0, 0.0, 0.0);
 
         Quad surfel;
-        createSurfel(surfel, surfelPixelCoords, depthOffsets, proxyPlane.point, proxyPlane.normal);
+        createSurfel(surfel, surfelPixelCoords, depthOffsets, proxyPlane);
         storeSurfel(surfel);
     }
 }
