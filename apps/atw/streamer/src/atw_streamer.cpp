@@ -262,7 +262,7 @@ int main(int argc, char** argv) {
         scene.pointLights[2]->setPosition(pointLightPositions[2] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
         scene.pointLights[3]->setPosition(pointLightPositions[3] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
 
-        // offset vr camera
+        // offset camera
         if (camera->isVR()) {
             auto* vrCamera = static_cast<VRCamera*>(camera.get());
             vrCamera->left.setPosition(vrCamera->left.getPosition() + initialPosition);
@@ -270,16 +270,26 @@ int main(int argc, char** argv) {
             vrCamera->left.updateViewMatrix();
             vrCamera->right.updateViewMatrix();
         }
+        else {
+            auto* perspectiveCamera = static_cast<PerspectiveCamera*>(camera.get());
+            perspectiveCamera->setPosition(perspectiveCamera->getPosition() + initialPosition);
+            perspectiveCamera->updateViewMatrix();
+        }
 
         renderer.drawObjects(scene, *camera);
 
-        // restore vr camera position
+        // restore camera position
         if (camera->isVR()) {
             auto* vrCamera = static_cast<VRCamera*>(camera.get());
             vrCamera->left.setPosition(vrCamera->left.getPosition() - initialPosition);
             vrCamera->right.setPosition(vrCamera->right.getPosition() - initialPosition);
             vrCamera->left.updateViewMatrix();
             vrCamera->right.updateViewMatrix();
+        }
+        else {
+            auto* perspectiveCamera = static_cast<PerspectiveCamera*>(camera.get());
+            perspectiveCamera->setPosition(perspectiveCamera->getPosition() - initialPosition);
+            perspectiveCamera->updateViewMatrix();
         }
 
         // copy rendered result to video render target

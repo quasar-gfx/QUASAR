@@ -244,8 +244,6 @@ int main(int argc, char** argv) {
         .fragmentCodePath = "./shaders/displayVideo.frag"
     });
 
-    camera.setPosition(glm::vec3(0.0f, 1.6f, 0.0f));
-
     app.onRender([&](double now, double dt) {
         // handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
