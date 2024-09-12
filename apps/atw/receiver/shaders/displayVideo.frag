@@ -47,13 +47,10 @@ vec2 viewToNDC(mat4 projection, vec3 viewCoord) {
     return ndcCoord.xy;
 }
 
-vec2 ndcToScreen(vec2 ndc) {
-    return (ndc + 1.0) / 2.0;
-}
-
 vec2 worldToScreen(mat4 view, mat4 projection, vec3 worldCoord) {
     vec2 ndc = viewToNDC(projection, worldToView(view, worldCoord));
-    return ndcToScreen(ndc);
+    vec2 uv = (ndc + 1.0) / 2.0;
+    return uv;
 }
 
 void main() {

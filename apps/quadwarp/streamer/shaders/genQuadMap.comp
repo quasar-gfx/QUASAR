@@ -1,0 +1,784 @@
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+precision highp sampler2D;
+precision highp image2D;
+precision highp float;
+
+layout(binding = 0) uniform sampler2D normalMap;
+layout(binding = 1) uniform sampler2D depthMap;
+
+struct QuadMapData {
+    bool flattened;
+    vec3 normal;
+    vec2 uv;
+    float depth;
+    ivec2 offset;
+    uint size;
+};
+
+struct Quad {
+    vec3 bottomLeft;
+    vec3 bottomRight;
+    vec3 topLeft;
+    vec3 topRight;
+};
+
+struct Quad1D {
+    float bottomLeft;
+    float bottomRight;
+    float topLeft;
+    float topRight;
+};
+
+struct Quad2D {
+    vec2 bottomLeft;
+    vec2 bottomRight;
+    vec2 topLeft;
+    vec2 topRight;
+};
+
+// a Quad subdivided into 4 smaller Quads
+struct MultiQuad {
+    vec3 bottomLeft;
+    vec3 bottom;
+    vec3 bottomRight;
+    vec3 left;
+    vec3 center;
+    vec3 right;
+    vec3 topLeft;
+    vec3 top;
+    vec3 topRight;
+};
+
+struct MultiQuad1D {
+    float bottomLeft;
+    float bottom;
+    float bottomRight;
+    float left;
+    float center;
+    float right;
+    float topLeft;
+    float top;
+    float topRight;
+};
+
+struct MultiQuad2D {
+    vec2 bottomLeft;
+    vec2 bottom;
+    vec2 bottomRight;
+    vec2 left;
+    vec2 center;
+    vec2 right;
+    vec2 topLeft;
+    vec2 top;
+    vec2 topRight;
+};
+
+struct Plane {
+    vec3 normal;
+    vec3 point;
+};
+
+uniform vec2 remoteWinSize;
+uniform vec2 quadMapSize;
+uniform vec2 depthBufferSize;
+
+uniform mat4 view;
+uniform mat4 projection;
+uniform mat4 viewInverse;
+uniform mat4 projectionInverse;
+
+uniform float near;
+uniform float far;
+
+uniform bool doAverageNormal;
+uniform bool doOrientationCorrection;
+uniform float distanceThreshold;
+uniform float angleThreshold;
+uniform float flatThreshold;
+
+const float epilson = 1e-5;
+
+const float surfelSize = 0.5;
+const vec3 origin = vec3(0.0, 0.0, 0.0);
+const vec3 forward = vec3(0.0, 0.0, -1.0);
+const vec3 up = vec3(0.0, 1.0, 0.0);
+const vec3 left = vec3(-1.0, 0.0, 0.0);
+const vec3 right = vec3(1.0, 0.0, 0.0);
+
+#define MAX_DEPTH 0.9999
+
+layout(std430, binding = 0) buffer QuadMapBuffer {
+    QuadMapData quadMap[];
+};
+
+layout(std430, binding = 1) buffer DepthOffsetBuffer {
+    float depthOffsetBuffer[];
+};
+
+vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
+    vec4 ndcPos;
+    ndcPos.xy = ndc;
+    ndcPos.z = depth * 2.0 - 1.0;
+    ndcPos.w = 1.0;
+
+    vec4 viewCoord = projectionInverse * ndcPos;
+    viewCoord = viewCoord / viewCoord.w;
+    return viewCoord.xyz;
+}
+
+vec3 viewToNDC(mat4 projection, vec3 viewCoord) {
+    vec4 ndcCoord = projection * vec4(viewCoord, 1.0);
+    ndcCoord = ndcCoord / ndcCoord.w;
+    ndcCoord.z = (ndcCoord.z + 1.0) / 2.0;
+    return ndcCoord.xyz;
+}
+
+vec3 viewToWorld(mat4 viewInverse, vec3 viewCoord) {
+    vec4 worldCoord = viewInverse * vec4(viewCoord, 1.0);
+    worldCoord = worldCoord / worldCoord.w;
+    return worldCoord.xyz;
+}
+
+vec3 worldToView(mat4 view, vec3 worldCoord) {
+    vec4 viewCoord = view * vec4(worldCoord, 1.0);
+    viewCoord = viewCoord / viewCoord.w;
+    return viewCoord.xyz;
+}
+
+vec2 worldToScreen(mat4 view, mat4 projection, vec3 worldCoord) {
+    vec2 ndc = viewToNDC(projection, worldToView(view, worldCoord)).xy;
+    vec2 uv = (ndc + 1.0) / 2.0;
+    return uv;
+}
+
+float signedDistance(vec3 p1, vec3 p2) {
+    float dist = distance(p1, p2);
+    return (length(p1) > length(p2)) ? dist : -dist;
+}
+
+float sampleDepth(sampler2D depthMap, vec2 sampleCoord) {
+    float depth = texture(depthMap, sampleCoord).x;
+    depth = clamp(depth, 0.0, MAX_DEPTH);
+    return depth;
+}
+
+float normalizeDepth(float depth) {
+    depth = clamp(depth, near, far);
+    float z = (depth - near) / (far - near);
+    return (1.0 - (1.0 / (1.0 + z * (far - near) / near)));
+}
+
+vec3 sampleNormal(sampler2D normalMap, vec2 sampleCoord) {
+    return normalize(texture(normalMap, sampleCoord).xyz);
+}
+
+vec3 normalToView(mat4 view, vec3 normalWorld) {
+    // skybox normals might be NaN, just set normal to face the camera
+    if (any(isnan(normalWorld))) {
+        return -forward;
+    }
+
+    // extract the rotation part of the view matrix
+    mat3 rotationMatrix = mat3(view);
+    return normalize(rotationMatrix * normalWorld);
+}
+
+vec3 averageNormals(MultiQuad pixelNormalsView, MultiQuad pixelCoordsView) {
+    vec3 normal = pixelNormalsView.center;
+    int n = 1;
+    if (normalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.bottomLeft)) < distanceThreshold) {
+        normal += pixelNormalsView.bottomLeft; n++;
+    }
+    if (normalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.bottom)) < distanceThreshold) {
+        normal += pixelNormalsView.bottom; n++;
+    }
+    if (normalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.bottomRight)) < distanceThreshold) {
+        normal += pixelNormalsView.bottomRight; n++;
+    }
+    if (normalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.left)) < distanceThreshold) {
+        normal += pixelNormalsView.left; n++;
+    }
+    if (normalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.right)) < distanceThreshold) {
+        normal += pixelNormalsView.right; n++;
+    }
+    if (normalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.topLeft)) < distanceThreshold) {
+        normal += pixelNormalsView.topLeft; n++;
+    }
+    if (normalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.top)) < distanceThreshold) {
+        normal += pixelNormalsView.top; n++;
+    }
+    if (normalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.topRight)) < distanceThreshold) {
+        normal += pixelNormalsView.topRight; n++;
+    }
+    normal /= float(n);
+    normal = normalize(normal);
+    return normal;
+}
+
+vec3 constrainToMaxAngle(vec3 vectorNormalized, vec3 axisNormalized, float maxAngle) {
+    float dotProduct = dot(vectorNormalized, axisNormalized);
+    float angle = acos(dotProduct);
+    if (angle > maxAngle) {
+        vec3 rotationAxis = normalize(cross(vectorNormalized, axisNormalized));
+        float cosMaxAngle = cos(maxAngle);
+        float sinMaxAngle = sin(maxAngle);
+        vec3 crossProduct = cross(rotationAxis, vectorNormalized);
+        vectorNormalized = vectorNormalized * cosMaxAngle + \
+                           cross(rotationAxis, vectorNormalized) * sinMaxAngle + \
+                           rotationAxis * dot(rotationAxis, vectorNormalized) * (1.0 - cosMaxAngle);
+    }
+
+    return normalize(vectorNormalized);
+}
+
+vec3 rayPlaneIntersection(vec3 rayOrigin, vec3 rayDirection, Plane plane) {
+    float denominator = dot(rayDirection, plane.normal);
+    if (abs(denominator) < epilson) {
+        return vec3(1.0/0.0, 1.0/0.0, 1.0/0.0);
+    }
+
+    float t = dot(plane.point - rayOrigin, plane.normal) / denominator;
+    if (t < 0.0) {
+        return vec3(1.0/0.0, 1.0/0.0, 1.0/0.0);
+    }
+
+    vec3 intersection = rayOrigin + t * rayDirection;
+    return intersection;
+}
+
+vec3 pointPlaneIntersection(vec3 pt, Plane plane) {
+    vec3 rayDirection = normalize(pt);
+    return rayPlaneIntersection(origin, rayDirection, plane);
+}
+
+vec3 findQuadPointCorner(
+    vec2 surfelNDC,
+    vec3 surfelViewPlane,
+    vec3 surfelViewPlanePixelNeighbor1,
+    vec3 surfelViewPlanePixelNeighbor2,
+    vec3 surfelViewPlanePixelNeighbor3,
+    float pixelDepthCenter, float pixelDepthNeighbor1, float pixelDepthNeighbor2, float pixelDepthNeighbor3)
+{
+    if (surfelNDC.x <= -1.0 || surfelNDC.x >= 1.0 ||
+        surfelNDC.y <= -1.0 || surfelNDC.y >= 1.0) {
+        return surfelViewPlane;
+    }
+
+    // find distance of depth of point on this pixel's plane to the same point on neighboring pixels' planes
+    float dist1 = normalizeDepth(distance(surfelViewPlane, surfelViewPlanePixelNeighbor1));
+    float dist2 = normalizeDepth(distance(surfelViewPlane, surfelViewPlanePixelNeighbor2));
+    float dist3 = normalizeDepth(distance(surfelViewPlane, surfelViewPlanePixelNeighbor3));
+
+    // add the contribution of each neighboring pixel to interpolated depth, if it is within distanceThreshold
+    float depth = pixelDepthCenter;
+    int n = 1;
+    if (dist1 < distanceThreshold) {
+        depth += pixelDepthNeighbor1; n++;
+    }
+    if (dist2 < distanceThreshold) {
+        depth += pixelDepthNeighbor2; n++;
+    }
+    if (dist3 < distanceThreshold) {
+        depth += pixelDepthNeighbor3; n++;
+    }
+    depth /= float(n);
+
+    // only return the interpolated point if all neighboring pixels are within distanceThreshold
+    vec3 surfelViewBottomLeftInterp = ndcToView(projectionInverse, surfelNDC, depth);
+    if (n >= 3) {
+        return surfelViewBottomLeftInterp;
+    }
+    return surfelViewPlane;
+}
+
+vec3 findQuadPointEdge(
+    vec2 surfelNDC,
+    vec3 surfelViewPlane,
+    vec3 surfelViewPlanePixelNeighbor,
+    float pixelDepthCenter, float pixelDepthNeighbor)
+{
+    if (surfelNDC.x <= -1.0 || surfelNDC.x >= 1.0 ||
+        surfelNDC.y <= -1.0 || surfelNDC.y >= 1.0) {
+        return surfelViewPlane;
+    }
+
+    // return interpolated point if neighboring pixel's depth is within distanceThreshold
+    if (normalizeDepth(distance(surfelViewPlane, surfelViewPlanePixelNeighbor)) < distanceThreshold) {
+        float depth = (pixelDepthCenter + pixelDepthNeighbor) / 2.0;
+        return ndcToView(projectionInverse, surfelNDC, depth);
+    }
+    return surfelViewPlane;
+}
+
+float distanceAlongAxis(vec3 a, vec3 b, vec3 axis) {
+    vec3 aProj = dot(a, axis) * axis;
+    vec3 bProj = dot(b, axis) * axis;
+    return distance(aProj, bProj);
+}
+
+bool quadHasExtremeOrientation(in MultiQuad quad, vec3 frustumNormalView) {
+    float avgDist = 0.0;
+    avgDist += distanceAlongAxis(quad.center, quad.bottomLeft, frustumNormalView);
+    avgDist += distanceAlongAxis(quad.center, quad.bottom, frustumNormalView);
+    avgDist += distanceAlongAxis(quad.center, quad.bottomRight, frustumNormalView);
+    avgDist += distanceAlongAxis(quad.center, quad.left, frustumNormalView);
+    avgDist += distanceAlongAxis(quad.center, quad.right, frustumNormalView);
+    avgDist += distanceAlongAxis(quad.center, quad.topLeft, frustumNormalView);
+    avgDist += distanceAlongAxis(quad.center, quad.top, frustumNormalView);
+    avgDist += distanceAlongAxis(quad.center, quad.topRight, frustumNormalView);
+    avgDist /= 8.0;
+    if (normalizeDepth(avgDist) > distanceThreshold) {
+        return true;
+    }
+    return false;
+}
+
+void createSurfels(
+    out MultiQuad surfelView,
+    in MultiQuad2D surfelNDCs, in MultiQuad surfelViewFarPlane, in MultiQuad pixelCoordsView, in MultiQuad pixelNormalsView, in MultiQuad1D pixelDepths
+) {
+    // find all points on a ray going through each coordinate intersecting a plane defined by neighboring pixels
+    vec3 surfelViewBottomLeftPlane                = pointPlaneIntersection(surfelViewFarPlane.bottomLeft, Plane(pixelNormalsView.center,     pixelCoordsView.center    ));
+    vec3 surfelViewBottomLeftPlanePixelBottomLeft = pointPlaneIntersection(surfelViewFarPlane.bottomLeft, Plane(pixelNormalsView.bottomLeft, pixelCoordsView.bottomLeft));
+    vec3 surfelViewBottomLeftPlanePixelBottom     = pointPlaneIntersection(surfelViewFarPlane.bottomLeft, Plane(pixelNormalsView.bottom,     pixelCoordsView.bottom    ));
+    vec3 surfelViewBottomLeftPlanePixelLeft       = pointPlaneIntersection(surfelViewFarPlane.bottomLeft, Plane(pixelNormalsView.left,       pixelCoordsView.left      ));
+
+    vec3 surfelViewBottomPlane            = pointPlaneIntersection(surfelViewFarPlane.bottom, Plane(pixelNormalsView.center, pixelCoordsView.center));
+    vec3 surfelViewBottomPlanePixelBottom = pointPlaneIntersection(surfelViewFarPlane.bottom, Plane(pixelNormalsView.bottom, pixelCoordsView.bottom));
+
+    vec3 surfelViewBottomRightPlane                 = pointPlaneIntersection(surfelViewFarPlane.bottomRight, Plane(pixelNormalsView.center,      pixelCoordsView.center     ));
+    vec3 surfelViewBottomRightPlanePixelBottomRight = pointPlaneIntersection(surfelViewFarPlane.bottomRight, Plane(pixelNormalsView.bottomRight, pixelCoordsView.bottomRight));
+    vec3 surfelViewBottomRightPlanePixelBottom      = pointPlaneIntersection(surfelViewFarPlane.bottomRight, Plane(pixelNormalsView.bottom,      pixelCoordsView.bottom     ));
+    vec3 surfelViewBottomRightPlanePixelRight       = pointPlaneIntersection(surfelViewFarPlane.bottomRight, Plane(pixelNormalsView.right,       pixelCoordsView.right      ));
+
+    vec3 surfelViewLeftPlane          = pointPlaneIntersection(surfelViewFarPlane.left, Plane(pixelNormalsView.center, pixelCoordsView.center));
+    vec3 surfelViewLeftPlanePixelLeft = pointPlaneIntersection(surfelViewFarPlane.left, Plane(pixelNormalsView.left,   pixelCoordsView.left  ));
+
+    vec3 surfelViewRightPlane           = pointPlaneIntersection(surfelViewFarPlane.right, Plane(pixelNormalsView.center, pixelCoordsView.center));
+    vec3 surfelViewRightPlanePixelRight = pointPlaneIntersection(surfelViewFarPlane.right, Plane(pixelNormalsView.right,  pixelCoordsView.right ));
+
+    vec3 surfelViewTopLeftPlane             = pointPlaneIntersection(surfelViewFarPlane.topLeft, Plane(pixelNormalsView.center,  pixelCoordsView.center ));
+    vec3 surfelViewTopLeftPlanePixelTopLeft = pointPlaneIntersection(surfelViewFarPlane.topLeft, Plane(pixelNormalsView.topLeft, pixelCoordsView.topLeft));
+    vec3 surfelViewTopLeftPlanePixelLeft    = pointPlaneIntersection(surfelViewFarPlane.topLeft, Plane(pixelNormalsView.left,    pixelCoordsView.left   ));
+    vec3 surfelViewTopLeftPlanePixelTop     = pointPlaneIntersection(surfelViewFarPlane.topLeft, Plane(pixelNormalsView.top,     pixelCoordsView.top    ));
+
+    vec3 surfelViewTopPlane         = pointPlaneIntersection(surfelViewFarPlane.top, Plane(pixelNormalsView.center, pixelCoordsView.center));
+    vec3 surfelViewTopPlanePixelTop = pointPlaneIntersection(surfelViewFarPlane.top, Plane(pixelNormalsView.top,    pixelCoordsView.top   ));
+
+    vec3 surfelViewTopRightPlane              = pointPlaneIntersection(surfelViewFarPlane.topRight, Plane(pixelNormalsView.center,   pixelCoordsView.center  ));
+    vec3 surfelViewTopRightPlanePixelTopRight = pointPlaneIntersection(surfelViewFarPlane.topRight, Plane(pixelNormalsView.topRight, pixelCoordsView.topRight));
+    vec3 surfelViewTopRightPlanePixelTop      = pointPlaneIntersection(surfelViewFarPlane.topRight, Plane(pixelNormalsView.top,      pixelCoordsView.top     ));
+    vec3 surfelViewTopRightPlanePixelRight    = pointPlaneIntersection(surfelViewFarPlane.topRight, Plane(pixelNormalsView.right,    pixelCoordsView.right   ));
+
+    /**********************************
+
+      (ptl)  ----   (pt) ----  (ptr)
+        |            |           |
+        |  - stl -  st  -  str - |
+        |            |           |
+     (pl)  - sl - (pc/sc) - sr - (pr)
+        |            |           |
+        |  - sbl -  sb  -  sbr - |
+        |            |           |
+      (pbl)  ----   (pb) ----  (pbr)
+
+    **********************************/
+
+    // adjust points
+    vec3 surfelViewBottomLeft = findQuadPointCorner(
+        surfelNDCs.bottomLeft,
+        surfelViewBottomLeftPlane,
+        surfelViewBottomLeftPlanePixelBottomLeft, surfelViewBottomLeftPlanePixelBottom, surfelViewBottomLeftPlanePixelLeft,
+        pixelDepths.center, pixelDepths.bottomLeft, pixelDepths.bottom, pixelDepths.left
+    );
+
+    vec3 surfelViewBottom = findQuadPointEdge(
+        surfelNDCs.bottom,
+        surfelViewBottomPlane,
+        surfelViewBottomPlanePixelBottom,
+        pixelDepths.center, pixelDepths.bottom
+    );
+
+    vec3 surfelViewBottomRight = findQuadPointCorner(
+        surfelNDCs.bottomRight,
+        surfelViewBottomRightPlane,
+        surfelViewBottomRightPlanePixelBottomRight, surfelViewBottomRightPlanePixelBottom, surfelViewBottomRightPlanePixelRight,
+        pixelDepths.center, pixelDepths.bottomRight, pixelDepths.bottom, pixelDepths.right
+    );
+
+    vec3 surfelViewLeft = findQuadPointEdge(
+        surfelNDCs.left,
+        surfelViewLeftPlane,
+        surfelViewLeftPlanePixelLeft,
+        pixelDepths.center, pixelDepths.left
+    );
+
+    vec3 surfelViewCenter = pixelCoordsView.center;
+
+    vec3 surfelViewRight = findQuadPointEdge(
+        surfelNDCs.right,
+        surfelViewRightPlane,
+        surfelViewRightPlanePixelRight,
+        pixelDepths.center, pixelDepths.right
+    );
+
+    vec3 surfelViewTopLeft = findQuadPointCorner(
+        surfelNDCs.topLeft,
+        surfelViewTopLeftPlane,
+        surfelViewTopLeftPlanePixelTopLeft, surfelViewTopLeftPlanePixelTop, surfelViewTopLeftPlanePixelLeft,
+        pixelDepths.center, pixelDepths.topLeft, pixelDepths.top, pixelDepths.left
+    );
+
+    vec3 surfelViewTop = findQuadPointEdge(
+        surfelNDCs.top,
+        surfelViewTopPlane,
+        surfelViewTopPlanePixelTop,
+        pixelDepths.center, pixelDepths.top
+    );
+
+    vec3 surfelViewTopRight = findQuadPointCorner(
+        surfelNDCs.topRight,
+        surfelViewTopRightPlane,
+        surfelViewTopRightPlanePixelTopRight, surfelViewTopRightPlanePixelTop, surfelViewTopRightPlanePixelRight,
+        pixelDepths.center, pixelDepths.topRight, pixelDepths.top, pixelDepths.right
+    );
+
+    surfelView.bottomLeft  = surfelViewBottomLeft;
+    surfelView.bottom      = surfelViewBottom;
+    surfelView.bottomRight = surfelViewBottomRight;
+    surfelView.left        = surfelViewLeft;
+    surfelView.center      = surfelViewCenter;
+    surfelView.right       = surfelViewRight;
+    surfelView.topLeft     = surfelViewTopLeft;
+    surfelView.top         = surfelViewTop;
+    surfelView.topRight    = surfelViewTopRight;
+}
+
+void storeInQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
+    uint index = uint(pixelCoord.y) * uint(quadMapSize.x) + uint(pixelCoord.x);
+    quadMap[index] = quadMapData;
+}
+
+float loadDepthOffset(in ivec2 pixelCoord) {
+    uint index = uint(pixelCoord.y) * uint(depthBufferSize.x) + uint(pixelCoord.x);
+    return depthOffsetBuffer[index];
+}
+
+void storeInDepthOffsetBuffer(in ivec2 pixelCoord, in float depthOffset) {
+    uint index = uint(pixelCoord.y) * uint(depthBufferSize.x) + uint(pixelCoord.x);
+    depthOffsetBuffer[index] = depthOffset;
+}
+
+void storeDepthOffsets(in ivec2 pixelCoord, in Quad1D depthOffsets) {
+    storeInDepthOffsetBuffer(pixelCoord + ivec2(0, 0), depthOffsets.bottomLeft);
+    storeInDepthOffsetBuffer(pixelCoord + ivec2(1, 0), depthOffsets.bottomRight);
+    storeInDepthOffsetBuffer(pixelCoord + ivec2(0, 1), depthOffsets.topLeft);
+    storeInDepthOffsetBuffer(pixelCoord + ivec2(1, 1), depthOffsets.topRight);
+}
+
+Quad1D findDepthOffsets(in Quad quadView, in Plane proxyPlane) {
+    Quad quadPtsOnPlane;
+    quadPtsOnPlane.bottomLeft  = pointPlaneIntersection(quadView.bottomLeft,  proxyPlane);
+    quadPtsOnPlane.bottomRight = pointPlaneIntersection(quadView.bottomRight, proxyPlane);
+    quadPtsOnPlane.topLeft     = pointPlaneIntersection(quadView.topLeft,     proxyPlane);
+    quadPtsOnPlane.topRight    = pointPlaneIntersection(quadView.topRight,    proxyPlane);
+
+    Quad1D depthOffsets;
+    depthOffsets.bottomLeft  = signedDistance(quadPtsOnPlane.bottomLeft,  quadView.bottomLeft);
+    depthOffsets.bottomRight = signedDistance(quadPtsOnPlane.bottomRight, quadView.bottomRight);
+    depthOffsets.topLeft     = signedDistance(quadPtsOnPlane.topLeft,     quadView.topLeft);
+    depthOffsets.topRight    = signedDistance(quadPtsOnPlane.topRight,    quadView.topRight);
+
+    return depthOffsets;
+}
+
+void storeSurfelsInQuadMap(
+    in ivec2 pixelCoord,
+    in vec2 quadCenterPixelCoord,
+    in vec3 proxyPlaneNormal,
+    in Quad surfelBottomLeft, in Quad surfelBottomRight, in Quad surfelTopLeft, in Quad surfelTopRight
+) {
+    vec3 proxyPlanePt = (surfelBottomLeft.bottomLeft + surfelBottomLeft.bottomRight + surfelBottomLeft.topLeft + surfelBottomRight.topRight +
+                         surfelBottomRight.bottomLeft + surfelBottomRight.bottomRight + surfelBottomRight.topLeft + surfelBottomRight.topRight +
+                         surfelTopLeft.bottomLeft + surfelTopLeft.bottomRight + surfelTopLeft.topLeft + surfelTopLeft.topRight +
+                         surfelTopRight.bottomLeft + surfelTopRight.bottomRight + surfelTopRight.topLeft + surfelTopRight.topRight) / 16.0;
+
+    Plane proxyPlane;
+    proxyPlane.normal = proxyPlaneNormal;
+    proxyPlane.point = proxyPlanePt;
+
+    // find depth offsets for each corner of the quad
+    Quad1D depthOffsetsBottomLeft  = findDepthOffsets(surfelBottomLeft, proxyPlane);
+    Quad1D depthOffsetsBottomRight = findDepthOffsets(surfelBottomRight, proxyPlane);
+    Quad1D depthOffsetsTopLeft     = findDepthOffsets(surfelTopLeft, proxyPlane);
+    Quad1D depthOffsetsTopRight    = findDepthOffsets(surfelTopRight, proxyPlane);
+
+    // find 3d point of center of proxy
+    vec2 quadCenterUV = quadCenterPixelCoord / remoteWinSize;
+    vec2 quadCenterNDC = quadCenterUV * 2.0 - 1.0;
+    vec3 quadCenterFarPlane = ndcToView(projectionInverse, quadCenterNDC, 1.0);
+
+    // project the center of the quad onto the proxy plane to find uv for proxy plane
+    vec3 planeCenterPt = pointPlaneIntersection(quadCenterFarPlane, proxyPlane);
+    vec3 proxyPlaneNDC = viewToNDC(projection, planeCenterPt);
+    vec2 proxyPlaneUV = (proxyPlaneNDC.xy + 1.0) / 2.0;
+
+    float proxyPlaneDepth = proxyPlaneNDC.z;
+
+    // if more than half the surfels are below the threshold, then the plane is considered flattened
+    int numBelowThreshold = 0;
+    int total = 16;
+    if (abs(depthOffsetsBottomLeft.bottomLeft)   < flatThreshold) numBelowThreshold++;
+    if (abs(depthOffsetsBottomLeft.bottomRight)  < flatThreshold) numBelowThreshold++;
+    if (abs(depthOffsetsBottomLeft.topLeft)      < flatThreshold) numBelowThreshold++;
+    if (abs(depthOffsetsBottomLeft.topRight)     < flatThreshold) numBelowThreshold++;
+
+    if (abs(depthOffsetsBottomRight.bottomLeft)  < flatThreshold) numBelowThreshold++;
+    if (abs(depthOffsetsBottomRight.bottomRight) < flatThreshold) numBelowThreshold++;
+    if (abs(depthOffsetsBottomRight.topLeft)     < flatThreshold) numBelowThreshold++;
+    if (abs(depthOffsetsBottomRight.topRight)    < flatThreshold) numBelowThreshold++;
+
+    if (abs(depthOffsetsTopLeft.bottomLeft)      < flatThreshold) numBelowThreshold++;
+    if (abs(depthOffsetsTopLeft.bottomRight)     < flatThreshold) numBelowThreshold++;
+    if (abs(depthOffsetsTopLeft.topLeft)         < flatThreshold) numBelowThreshold++;
+    if (abs(depthOffsetsTopLeft.topRight)        < flatThreshold) numBelowThreshold++;
+
+    if (abs(depthOffsetsTopRight.bottomLeft)     < flatThreshold) numBelowThreshold++;
+    if (abs(depthOffsetsTopRight.bottomRight)    < flatThreshold) numBelowThreshold++;
+    if (abs(depthOffsetsTopRight.topLeft)        < flatThreshold) numBelowThreshold++;
+    if (abs(depthOffsetsTopRight.topRight)       < flatThreshold) numBelowThreshold++;
+
+    bool flattened = numBelowThreshold > total / 2;
+
+    QuadMapData quadMapData;
+    quadMapData.flattened = flattened;
+    quadMapData.uv = proxyPlaneUV;
+    quadMapData.depth = proxyPlaneDepth;
+    quadMapData.normal = proxyPlaneNormal;
+    quadMapData.offset = pixelCoord;
+    quadMapData.size = 2; // 2x2 surfels
+    storeInQuadMap(pixelCoord, quadMapData);
+
+    // store empty depth offsets if the proxy plane is flat
+    if (quadMapData.flattened) {
+        depthOffsetsBottomLeft  = Quad1D(0.0, 0.0, 0.0, 0.0);
+        depthOffsetsBottomRight = Quad1D(0.0, 0.0, 0.0, 0.0);
+        depthOffsetsTopLeft     = Quad1D(0.0, 0.0, 0.0, 0.0);
+        depthOffsetsTopRight    = Quad1D(0.0, 0.0, 0.0, 0.0);
+    }
+
+    storeDepthOffsets(4 * pixelCoord + 2 * ivec2(0, 0), depthOffsetsBottomLeft);
+    storeDepthOffsets(4 * pixelCoord + 2 * ivec2(1, 0), depthOffsetsBottomRight);
+    storeDepthOffsets(4 * pixelCoord + 2 * ivec2(0, 1), depthOffsetsTopLeft);
+    storeDepthOffsets(4 * pixelCoord + 2 * ivec2(1, 1), depthOffsetsTopRight);
+}
+
+void main() {
+    /**********************************
+
+      (ptl)  ----   (pt) ----  (ptr)
+        |            |           |
+        |  - stl -  st  -  str - |
+        |            |           |
+     (pl)  - sl - (pc/sc) - sr - (pr)
+        |            |           |
+        |  - sbl -  sb  -  sbr - |
+        |            |           |
+      (pbl)  ----   (pb) ----  (pbr)
+
+    **********************************/
+
+    // calculate coords (see above)
+    vec2 surfelCornerCoordBottomLeft  = vec2(gl_GlobalInvocationID.xy);
+    vec2 pixelCenterCoord = surfelCornerCoordBottomLeft + vec2(0.5, 0.5);
+    vec2 surfelCenterCoord = pixelCenterCoord;
+
+    MultiQuad2D pixelCenterCoords;
+    pixelCenterCoords.bottomLeft  = pixelCenterCoord + vec2(-1.0, -1.0);
+    pixelCenterCoords.bottom      = pixelCenterCoord + vec2(+0.0, -1.0);
+    pixelCenterCoords.bottomRight = pixelCenterCoord + vec2(+1.0, -1.0);
+    pixelCenterCoords.left        = pixelCenterCoord + vec2(-1.0, +0.0);
+    pixelCenterCoords.center      = pixelCenterCoord + vec2(+0.0, +0.0);
+    pixelCenterCoords.right       = pixelCenterCoord + vec2(+1.0, +0.0);
+    pixelCenterCoords.topLeft     = pixelCenterCoord + vec2(-1.0, +1.0);
+    pixelCenterCoords.top         = pixelCenterCoord + vec2(+0.0, +1.0);
+    pixelCenterCoords.topRight    = pixelCenterCoord + vec2(+1.0, +1.0);
+
+    MultiQuad2D surfelCornerCoords;
+    surfelCornerCoords.bottomLeft  = surfelCenterCoord + vec2(-0.5, -0.5);
+    surfelCornerCoords.bottom      = surfelCenterCoord + vec2(+0.0, -0.5);
+    surfelCornerCoords.bottomRight = surfelCenterCoord + vec2(+0.5, -0.5);
+    surfelCornerCoords.left        = surfelCenterCoord + vec2(-0.5, +0.0);
+    surfelCornerCoords.center      = surfelCenterCoord + vec2(+0.0, +0.0);
+    surfelCornerCoords.right       = surfelCenterCoord + vec2(+0.5, +0.0);
+    surfelCornerCoords.topLeft     = surfelCenterCoord + vec2(-0.5, +0.5);
+    surfelCornerCoords.top         = surfelCenterCoord + vec2(+0.0, +0.5);
+    surfelCornerCoords.topRight    = surfelCenterCoord + vec2(+0.5, +0.5);
+
+    // sample texture maps
+    MultiQuad2D uvs;
+    uvs.bottomLeft  = pixelCenterCoords.bottomLeft  / remoteWinSize;
+    uvs.bottom      = pixelCenterCoords.bottom      / remoteWinSize;
+    uvs.bottomRight = pixelCenterCoords.bottomRight / remoteWinSize;
+    uvs.left        = pixelCenterCoords.left        / remoteWinSize;
+    uvs.center      = pixelCenterCoords.center      / remoteWinSize;
+    uvs.right       = pixelCenterCoords.right       / remoteWinSize;
+    uvs.topLeft     = pixelCenterCoords.topLeft     / remoteWinSize;
+    uvs.top         = pixelCenterCoords.top         / remoteWinSize;
+    uvs.topRight    = pixelCenterCoords.topRight    / remoteWinSize;
+
+    MultiQuad1D pixelDepths;
+    pixelDepths.bottomLeft  = sampleDepth(depthMap, uvs.bottomLeft);
+    pixelDepths.bottom      = sampleDepth(depthMap, uvs.bottom);
+    pixelDepths.bottomRight = sampleDepth(depthMap, uvs.bottomRight);
+    pixelDepths.left        = sampleDepth(depthMap, uvs.left);
+    pixelDepths.center      = sampleDepth(depthMap, uvs.center);
+    pixelDepths.right       = sampleDepth(depthMap, uvs.right);
+    pixelDepths.topLeft     = sampleDepth(depthMap, uvs.topLeft);
+    pixelDepths.top         = sampleDepth(depthMap, uvs.top);
+    pixelDepths.topRight    = sampleDepth(depthMap, uvs.topRight);
+
+    // project 2D points to 3D view space
+    MultiQuad2D pixelCenterNDCs;
+    pixelCenterNDCs.bottomLeft  = (pixelCenterCoords.bottomLeft  / remoteWinSize) * 2.0 - 1.0;
+    pixelCenterNDCs.bottom      = (pixelCenterCoords.bottom      / remoteWinSize) * 2.0 - 1.0;
+    pixelCenterNDCs.bottomRight = (pixelCenterCoords.bottomRight / remoteWinSize) * 2.0 - 1.0;
+    pixelCenterNDCs.left        = (pixelCenterCoords.left        / remoteWinSize) * 2.0 - 1.0;
+    pixelCenterNDCs.center      = (pixelCenterCoords.center      / remoteWinSize) * 2.0 - 1.0;
+    pixelCenterNDCs.right       = (pixelCenterCoords.right       / remoteWinSize) * 2.0 - 1.0;
+    pixelCenterNDCs.topLeft     = (pixelCenterCoords.topLeft     / remoteWinSize) * 2.0 - 1.0;
+    pixelCenterNDCs.top         = (pixelCenterCoords.top         / remoteWinSize) * 2.0 - 1.0;
+    pixelCenterNDCs.topRight    = (pixelCenterCoords.topRight    / remoteWinSize) * 2.0 - 1.0;
+
+    MultiQuad2D surfelNDCs;
+    surfelNDCs.bottomLeft  = (surfelCornerCoords.bottomLeft  / remoteWinSize) * 2.0 - 1.0;
+    surfelNDCs.bottom      = (surfelCornerCoords.bottom      / remoteWinSize) * 2.0 - 1.0;
+    surfelNDCs.bottomRight = (surfelCornerCoords.bottomRight / remoteWinSize) * 2.0 - 1.0;
+    surfelNDCs.left        = (surfelCornerCoords.left        / remoteWinSize) * 2.0 - 1.0;
+    surfelNDCs.center      = (surfelCornerCoords.center      / remoteWinSize) * 2.0 - 1.0;
+    surfelNDCs.right       = (surfelCornerCoords.right       / remoteWinSize) * 2.0 - 1.0;
+    surfelNDCs.topLeft     = (surfelCornerCoords.topLeft     / remoteWinSize) * 2.0 - 1.0;
+    surfelNDCs.top         = (surfelCornerCoords.top         / remoteWinSize) * 2.0 - 1.0;
+    surfelNDCs.topRight    = (surfelCornerCoords.topRight    / remoteWinSize) * 2.0 - 1.0;
+
+    MultiQuad pixelCoordsView;
+    pixelCoordsView.bottomLeft  = ndcToView(projectionInverse, pixelCenterNDCs.bottomLeft, pixelDepths.bottomLeft);
+    pixelCoordsView.bottom      = ndcToView(projectionInverse, pixelCenterNDCs.bottom, pixelDepths.bottom);
+    pixelCoordsView.bottomRight = ndcToView(projectionInverse, pixelCenterNDCs.bottomRight, pixelDepths.bottomRight);
+    pixelCoordsView.left        = ndcToView(projectionInverse, pixelCenterNDCs.left, pixelDepths.left);
+    pixelCoordsView.center      = ndcToView(projectionInverse, pixelCenterNDCs.center, pixelDepths.center);
+    pixelCoordsView.right       = ndcToView(projectionInverse, pixelCenterNDCs.right, pixelDepths.right);
+    pixelCoordsView.topLeft     = ndcToView(projectionInverse, pixelCenterNDCs.topLeft, pixelDepths.topLeft);
+    pixelCoordsView.top         = ndcToView(projectionInverse, pixelCenterNDCs.top, pixelDepths.top);
+    pixelCoordsView.topRight    = ndcToView(projectionInverse, pixelCenterNDCs.topRight, pixelDepths.topRight);
+
+    // transform normals to view space
+    MultiQuad pixelNormalsView;
+    pixelNormalsView.bottomLeft  = normalToView(view, sampleNormal(normalMap, uvs.bottomLeft));
+    pixelNormalsView.bottom      = normalToView(view, sampleNormal(normalMap, uvs.bottom));
+    pixelNormalsView.bottomRight = normalToView(view, sampleNormal(normalMap, uvs.bottomRight));
+    pixelNormalsView.left        = normalToView(view, sampleNormal(normalMap, uvs.left));
+    pixelNormalsView.center      = normalToView(view, sampleNormal(normalMap, uvs.center));
+    pixelNormalsView.right       = normalToView(view, sampleNormal(normalMap, uvs.right));
+    pixelNormalsView.topLeft     = normalToView(view, sampleNormal(normalMap, uvs.topLeft));
+    pixelNormalsView.top         = normalToView(view, sampleNormal(normalMap, uvs.top));
+    pixelNormalsView.topRight    = normalToView(view, sampleNormal(normalMap, uvs.topRight));
+
+    if (doAverageNormal) {
+        pixelNormalsView.center = averageNormals(pixelNormalsView, pixelCoordsView);
+    }
+
+    // project all points to far plane
+    MultiQuad surfelViewFarPlane;
+    surfelViewFarPlane.bottomLeft  = ndcToView(projectionInverse, surfelNDCs.bottomLeft, 1.0);
+    surfelViewFarPlane.bottom      = ndcToView(projectionInverse, surfelNDCs.bottom, 1.0);
+    surfelViewFarPlane.bottomRight = ndcToView(projectionInverse, surfelNDCs.bottomRight, 1.0);
+    surfelViewFarPlane.left        = ndcToView(projectionInverse, surfelNDCs.left, 1.0);
+    surfelViewFarPlane.center      = ndcToView(projectionInverse, surfelNDCs.center, 1.0);
+    surfelViewFarPlane.right       = ndcToView(projectionInverse, surfelNDCs.right, 1.0);
+    surfelViewFarPlane.topLeft     = ndcToView(projectionInverse, surfelNDCs.topLeft, 1.0);
+    surfelViewFarPlane.top         = ndcToView(projectionInverse, surfelNDCs.top, 1.0);
+    surfelViewFarPlane.topRight    = ndcToView(projectionInverse, surfelNDCs.topRight, 1.0);
+
+    // create surfels
+    MultiQuad surfelView;
+    createSurfels(surfelView, surfelNDCs, surfelViewFarPlane, pixelCoordsView, pixelNormalsView, pixelDepths);
+
+    vec3 frustumNormalView = normalize(origin - surfelView.center);
+    if (doOrientationCorrection && quadHasExtremeOrientation(surfelView, frustumNormalView)) {
+        // recreate surfels with rotated normal
+        pixelNormalsView.center = constrainToMaxAngle(pixelNormalsView.center, frustumNormalView, angleThreshold);
+        createSurfels(surfelView, surfelNDCs, surfelViewFarPlane, pixelCoordsView, pixelNormalsView, pixelDepths);
+    }
+
+    /**********************
+
+        stl -  st - str
+        |      |     |
+       (sl) - (sc) - sr
+        |      |     |
+      (sbl) - (sb) - sbr
+
+    **********************/
+    Quad subQuadBottomLeft;
+    subQuadBottomLeft.topLeft = surfelView.left;
+    subQuadBottomLeft.topRight = surfelView.center;
+    subQuadBottomLeft.bottomLeft = surfelView.bottomLeft;
+    subQuadBottomLeft.bottomRight = surfelView.bottom;
+
+    /**********************
+
+        stl -  st - str
+        |      |     |
+        sl - (sc) - (sr)
+        |      |     |
+       sbl - (sb) - (sbr)
+
+    **********************/
+    Quad subQuadBottomRight;
+    subQuadBottomRight.topLeft = surfelView.center;
+    subQuadBottomRight.topRight = surfelView.right;
+    subQuadBottomRight.bottomLeft = surfelView.bottom;
+    subQuadBottomRight.bottomRight = surfelView.bottomRight;
+
+    /**********************
+
+     (stl) - (st) - str
+        |     |     |
+      (sl) - (sc) - sr
+        |     |     |
+       sbl - sb - sbr
+
+    **********************/
+    Quad subQuadTopLeft;
+    subQuadTopLeft.topLeft = surfelView.topLeft;
+    subQuadTopLeft.topRight = surfelView.top;
+    subQuadTopLeft.bottomLeft = surfelView.left;
+    subQuadTopLeft.bottomRight = surfelView.center;
+
+    /**********************
+
+       stl - (st) - (str)
+        |     |       |
+        sl - (sc) - (sr)
+        |     |       |
+       sbl -  sb  -  sbr
+
+    **********************/
+    Quad subQuadTopRight;
+    subQuadTopRight.topLeft = surfelView.top;
+    subQuadTopRight.topRight = surfelView.topRight;
+    subQuadTopRight.bottomLeft = surfelView.center;
+    subQuadTopRight.bottomRight = surfelView.right;
+
+    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
+
+    // save quads in quad map
+    storeSurfelsInQuadMap(
+        pixelCoord,
+        pixelCenterCoords.center,
+        pixelNormalsView.center,
+        subQuadBottomLeft, subQuadBottomRight, subQuadTopLeft, subQuadTopRight
+    );
+}
