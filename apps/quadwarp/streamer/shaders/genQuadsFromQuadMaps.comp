@@ -133,8 +133,8 @@ vec3 worldToView(mat4 view, vec3 worldCoord) {
     return viewCoord.xyz;
 }
 
-vec2 worldToScreen(mat4 view, mat4 projection, vec3 worldCoord) {
-    vec2 ndc = viewToNDC(projection, worldToView(view, worldCoord)).xy;
+vec2 viewToScreen(mat4 projection, vec3 viewCoord) {
+    vec2 ndc = viewToNDC(projection, viewCoord).xy;
     vec2 uv = (ndc + 1.0) / 2.0;
     return uv;
 }
@@ -238,22 +238,22 @@ void storeSurfel(Quad quad) {
     uint vertexIndexTopLeft = vertexIdxBase + 0;
     vertices[vertexIndexTopLeft].position = viewToWorld(viewInverse, quad.topLeft);
     vertices[vertexIndexTopLeft].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexTopLeft].texCoords = worldToScreen(view, projection, vertices[vertexIndexTopLeft].position);
+    vertices[vertexIndexTopLeft].texCoords = viewToScreen(projection, quad.topLeft);
 
     uint vertexIndexTopRight = vertexIdxBase + 1;
     vertices[vertexIndexTopRight].position = viewToWorld(viewInverse, quad.topRight);
     vertices[vertexIndexTopRight].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexTopRight].texCoords = worldToScreen(view, projection, vertices[vertexIndexTopRight].position);
+    vertices[vertexIndexTopRight].texCoords = viewToScreen(projection, quad.topRight);
 
     uint vertexIndexBottomLeft = vertexIdxBase + 2;
     vertices[vertexIndexBottomLeft].position = viewToWorld(viewInverse, quad.bottomLeft);
     vertices[vertexIndexBottomLeft].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexBottomLeft].texCoords = worldToScreen(view, projection, vertices[vertexIndexBottomLeft].position);
+    vertices[vertexIndexBottomLeft].texCoords = viewToScreen(projection, quad.bottomLeft);
 
     uint vertexIndexBottomRight = vertexIdxBase + 3;
     vertices[vertexIndexBottomRight].position = viewToWorld(viewInverse, quad.bottomRight);
     vertices[vertexIndexBottomRight].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexBottomRight].texCoords = worldToScreen(view, projection, vertices[vertexIndexBottomRight].position);
+    vertices[vertexIndexBottomRight].texCoords = viewToScreen(projection, quad.bottomRight);
 
     verticesWireframe[vertexIndexTopLeft] = vertices[vertexIndexTopLeft];
     verticesWireframe[vertexIndexTopRight] = vertices[vertexIndexTopRight];

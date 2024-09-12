@@ -72,8 +72,8 @@ vec2 viewToNDC(mat4 projection, vec3 viewCoord) {
     return ndcCoord.xy;
 }
 
-vec2 worldToScreen(mat4 view, mat4 projection, vec3 worldCoord) {
-    vec2 ndc = viewToNDC(projection, worldToView(view, worldCoord));
+vec2 viewToScreen(mat4 projection, vec3 viewCoord) {
+    vec2 ndc = viewToNDC(projection, viewCoord).xy;
     vec2 uv = (ndc + 1.0) / 2.0;
     return uv;
 }
@@ -115,7 +115,7 @@ void main() {
 
     vertices[shaderIndex].position = worldCoord;
     vertices[shaderIndex].color = vec3(1.0, 1.0, 1.0);
-    vertices[shaderIndex].texCoords = worldToScreen(viewColor, projection, worldCoord);
+    vertices[shaderIndex].texCoords = viewToScreen(projection, viewCoord);
 
     verticesWireframe[shaderIndex] = vertices[shaderIndex];
 

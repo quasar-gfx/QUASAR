@@ -61,8 +61,8 @@ vec3 worldToView(mat4 view, vec3 worldCoord) {
     return viewCoord.xyz;
 }
 
-vec2 worldToScreen(mat4 view, mat4 projection, vec3 worldCoord) {
-    vec2 ndc = viewToNDC(projection, worldToView(view, worldCoord)).xy;
+vec2 viewToScreen(mat4 projection, vec3 viewCoord) {
+    vec2 ndc = viewToNDC(projection, viewCoord).xy;
     vec2 uv = (ndc + 1.0) / 2.0;
     return uv;
 }
@@ -101,5 +101,5 @@ void main() {
     // store depth
     verticesDepth[shaderIndex].position = viewToWorld(viewInverse, pixelCoordsViewCenter);
     verticesDepth[shaderIndex].color = vec3(1.0, 1.0, 1.0);
-    verticesDepth[shaderIndex].texCoords = worldToScreen(view, projection, verticesDepth[shaderIndex].position);
+    verticesDepth[shaderIndex].texCoords = viewToScreen(projection, pixelCoordsViewCenter);
 }
