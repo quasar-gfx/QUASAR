@@ -81,6 +81,8 @@ int main(int argc, char** argv) {
         camera = std::move(perspectiveCamera);
     }
 
+    glm::vec3 initialPosition = camera->getPosition();
+
     VideoStreamer videoStreamerRT = VideoStreamer({
         .width = screenWidth,
         .height = screenHeight,
@@ -260,7 +262,25 @@ int main(int argc, char** argv) {
         scene.pointLights[2]->setPosition(pointLightPositions[2] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
         scene.pointLights[3]->setPosition(pointLightPositions[3] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
 
+        // offset vr camera
+        if (camera->isVR()) {
+            auto* vrCamera = static_cast<VRCamera*>(camera.get());
+            vrCamera->left.setPosition(vrCamera->left.getPosition() + initialPosition);
+            vrCamera->right.setPosition(vrCamera->right.getPosition() + initialPosition);
+            vrCamera->left.updateViewMatrix();
+            vrCamera->right.updateViewMatrix();
+        }
+
         renderer.drawObjects(scene, *camera);
+
+        // restore vr camera position
+        if (camera->isVR()) {
+            auto* vrCamera = static_cast<VRCamera*>(camera.get());
+            vrCamera->left.setPosition(vrCamera->left.getPosition() - initialPosition);
+            vrCamera->right.setPosition(vrCamera->right.getPosition() - initialPosition);
+            vrCamera->left.updateViewMatrix();
+            vrCamera->right.updateViewMatrix();
+        }
 
         // copy rendered result to video render target
         renderer.drawToRenderTarget(colorShader, videoStreamerRT);
