@@ -19,9 +19,6 @@ enum class RenderState {
     WIREFRAME
 };
 
-int surfelSize = 4;
-RenderState renderState = RenderState::MESH;
-
 int main(int argc, char** argv) {
     Config config{};
     config.title = "Quads Receiver";
@@ -31,8 +28,6 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
-    args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
-    args::ValueFlag<int> renderStateIn(parser, "render", "Render state", {'r', "render-state"}, 0);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -54,8 +49,7 @@ int main(int argc, char** argv) {
 
     std::string scenePath = args::get(scenePathIn);
 
-    renderState = static_cast<RenderState>(args::get(renderStateIn));
-    surfelSize = args::get(surfelSizeIn);
+    RenderState renderState = RenderState::MESH;
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -211,16 +205,10 @@ int main(int argc, char** argv) {
         .path = colorFileName
     });
 
-    unsigned int remoteWidth = colorTexture.width / surfelSize;
-    unsigned int remoteHeight = colorTexture.height / surfelSize;
-
-    int numVertices = remoteWidth * remoteHeight * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
-    std::vector<Vertex> vertices(numVertices);
+    std::vector<Vertex> vertices(vertexData.size() / sizeof(Vertex));
     std::memcpy(vertices.data(), vertexData.data(), vertexData.size());
 
-    int numTriangles = remoteWidth * remoteHeight * NUM_SUB_QUADS * 2;
-    int indexBufferSize = numTriangles * 3;
-    std::vector<unsigned int> indices(indexBufferSize);
+    std::vector<unsigned int> indices(indexData.size() / sizeof(unsigned int));
     std::memcpy(indices.data(), indexData.data(), indexData.size());
 
     Mesh mesh = Mesh({

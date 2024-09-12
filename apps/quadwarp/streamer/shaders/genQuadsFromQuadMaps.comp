@@ -14,7 +14,6 @@ struct Vertex {
 };
 
 struct QuadMapData {
-    bool ignore;
     bool flattened;
     vec3 normal;
     vec2 uv;
@@ -291,9 +290,8 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
 
     bool flattened = quadMapData.flattened;
     if (!flattened) {
-        vec2 start = vec2(proxyPlanePixelCoords - vec2(halfGridSize, halfGridSize));
-
         // create surfels for each subpixel in the quad map
+        vec2 start = vec2(proxyPlanePixelCoords - vec2(halfGridSize, halfGridSize));
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
                 Quad2D surfelPixelCoords;
@@ -331,7 +329,7 @@ void main() {
     ivec2 quadMapPixelCoords = ivec2(gl_GlobalInvocationID.xy);
 
     QuadMapData quadMapData = loadQuadMap(quadMapPixelCoords);
-    if (quadMapData.ignore) {
+    if (quadMapData.size == 0) {
         return;
     }
 

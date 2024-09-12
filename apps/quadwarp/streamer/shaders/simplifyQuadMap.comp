@@ -4,7 +4,6 @@ precision highp sampler2D;
 precision highp image2D;
 
 struct QuadMapData {
-    bool ignore;
     bool flattened;
     vec3 normal;
     vec2 uv;
@@ -94,7 +93,7 @@ uniform mat4 projectionInverse;
 uniform float near;
 uniform float far;
 
-uniform float flattenedThreshold;
+uniform float flatThreshold;
 uniform float proxySimilarityThreshold;
 
 const float epilson = 1e-5;
@@ -157,6 +156,12 @@ float signedDistance(vec3 p1, vec3 p2) {
     return (length(p1) > length(p2)) ? dist : -dist;
 }
 
+float normalizeDepth(float depth) {
+    depth = clamp(depth, near, far);
+    float z = (depth - near) / (far - near);
+    return (1.0 - (1.0 / (1.0 + z * (far - near) / near)));
+}
+
 vec3 rayPlaneIntersection(vec3 rayOrigin, vec3 rayDirection, Plane plane) {
     float denominator = dot(rayDirection, plane.normal);
     if (abs(denominator) < epilson) {
@@ -183,19 +188,14 @@ QuadMapData loadInputQuadMap(ivec2 pixelCoord) {
     return quadMapData;
 }
 
+float loadDepthOffset(in ivec2 pixelCoord) {
+    uint index = uint(pixelCoord.y) * uint(depthBufferSize.x) + uint(pixelCoord.x);
+    return depthOffsetBuffer[index];
+}
+
 void storeInInputQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
     uint index = uint(pixelCoord.y) * uint(inputQuadMapSize.x) + uint(pixelCoord.x);
     inputQuadMap[index] = quadMapData;
-}
-
-void ignoreInputQuadMapData(in ivec2 pixelCoord) {
-    uint index = uint(pixelCoord.y) * uint(inputQuadMapSize.x) + uint(pixelCoord.x);
-    inputQuadMap[index].ignore = true;
-}
-
-void ignoreOutputQuadMapData(in ivec2 pixelCoord) {
-    uint index = uint(pixelCoord.y) * uint(outputQuadMapSize.x) + uint(pixelCoord.x);
-    outputQuadMap[index].ignore = true;
 }
 
 void storeInOutputQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
@@ -208,9 +208,9 @@ void storeInDepthOffsetBuffer(in ivec2 pixelCoord, in float depthOffset) {
     depthOffsetBuffer[index] = depthOffset;
 }
 
-float loadDepthOffset(in ivec2 pixelCoord) {
-    uint index = uint(pixelCoord.y) * uint(depthBufferSize.x) + uint(pixelCoord.x);
-    return depthOffsetBuffer[index];
+void ignoreInputQuadMapData(in ivec2 pixelCoord) {
+    uint index = uint(pixelCoord.y) * uint(inputQuadMapSize.x) + uint(pixelCoord.x);
+    inputQuadMap[index].size = 0;
 }
 
 void loadDepthOffsets(out Quad1D depthOffsets, in ivec2 pixelCoord) {
@@ -233,17 +233,20 @@ Plane quadMapDataToPlane(in QuadMapData quadMapData) {
     return proxyPlane;
 }
 
-void findDepthOffsets(out Quad1D depthOffsets, in Quad quadView, in Plane proxyPlane) {
+Quad1D findDepthOffsets(in Quad quadView, in Plane proxyPlane) {
     Quad quadPtsOnPlane;
     quadPtsOnPlane.bottomLeft  = pointPlaneIntersection(quadView.bottomLeft,  proxyPlane);
     quadPtsOnPlane.bottomRight = pointPlaneIntersection(quadView.bottomRight, proxyPlane);
     quadPtsOnPlane.topLeft     = pointPlaneIntersection(quadView.topLeft,     proxyPlane);
     quadPtsOnPlane.topRight    = pointPlaneIntersection(quadView.topRight,    proxyPlane);
 
+    Quad1D depthOffsets;
     depthOffsets.bottomLeft  = signedDistance(quadPtsOnPlane.bottomLeft,  quadView.bottomLeft);
     depthOffsets.bottomRight = signedDistance(quadPtsOnPlane.bottomRight, quadView.bottomRight);
     depthOffsets.topLeft     = signedDistance(quadPtsOnPlane.topLeft,     quadView.topLeft);
     depthOffsets.topRight    = signedDistance(quadPtsOnPlane.topRight,    quadView.topRight);
+
+    return depthOffsets;
 }
 
 void storeDepthOffsets(in ivec2 pixelCoord, in Quad1D depthOffsets) {
@@ -287,7 +290,9 @@ void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthO
 }
 
 bool planeEquationsSimilar(in PlaneEq planeEq1, in PlaneEq planeEq2) {
-    float similarity = distance(planeEq1.normal, planeEq2.normal) + abs(planeEq1.constant - planeEq2.constant);
+    vec4 planeEq1Vec = vec4(planeEq1.normal, planeEq1.constant);
+    vec4 planeEq2Vec = vec4(planeEq2.normal, planeEq2.constant);
+    float similarity = distance(planeEq1Vec, planeEq2Vec);
     return similarity < proxySimilarityThreshold;
 }
 
@@ -382,8 +387,8 @@ void mergeQuadMapData(
         uint size = quadMapData.size;
         float halfGridSize = float(size) * surfelSize / 2;
 
+        // calculate new depth offsets relative to new proxy plane
         vec2 start = vec2(proxyPlanePixelCoords - vec2(halfGridSize, halfGridSize));
-
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
                 Quad2D surfelPixelCoords;
@@ -398,15 +403,14 @@ void mergeQuadMapData(
                 Quad surfel;
                 createSurfel(surfel, surfelPixelCoords, oldDepthOffsets, proxyPlane);
 
-                Quad1D newDepthOffsets;
-                findDepthOffsets(newDepthOffsets, surfel, newProxyPlane);
+                Quad1D newDepthOffsets = findDepthOffsets(surfel, newProxyPlane);
                 storeDepthOffsets(4 * quadMapData.offset + 2 * ivec2(i, j), newDepthOffsets);
 
-                if (abs(newDepthOffsets.bottomLeft) < flattenedThreshold) numBelowThreshold++;
-                if (abs(newDepthOffsets.bottomRight) < flattenedThreshold) numBelowThreshold++;
-                if (abs(newDepthOffsets.topLeft) < flattenedThreshold) numBelowThreshold++;
-                if (abs(newDepthOffsets.topRight) < flattenedThreshold) numBelowThreshold++;
-                total++;
+                if (abs(newDepthOffsets.bottomLeft)  < flatThreshold) numBelowThreshold++;
+                if (abs(newDepthOffsets.bottomRight) < flatThreshold) numBelowThreshold++;
+                if (abs(newDepthOffsets.topLeft)     < flatThreshold) numBelowThreshold++;
+                if (abs(newDepthOffsets.topRight)    < flatThreshold) numBelowThreshold++;
+                total += 4;
             }
         }
     }
@@ -414,7 +418,6 @@ void mergeQuadMapData(
     // if more than half the surfels are below the threshold, then the plane is considered flattened
     bool flattened = numBelowThreshold > total / 2;
 
-    mergedQuadMapData.ignore = false;
     mergedQuadMapData.flattened = flattened;
     mergedQuadMapData.normal = newProxyPlane.normal;
     mergedQuadMapData.uv = newProxyPlaneUV;
@@ -424,12 +427,16 @@ void mergeQuadMapData(
 }
 
 void main() {
-    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 pixelCoord             = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 pixelCoordsBottomLeft  = 2 * pixelCoord + ivec2(0, 0);
+    ivec2 pixelCoordsBottomRight = 2 * pixelCoord + ivec2(1, 0);
+    ivec2 pixelCoordsTopLeft     = 2 * pixelCoord + ivec2(0, 1);
+    ivec2 pixelCoordsTopRight    = 2 * pixelCoord + ivec2(1, 1);
 
-    QuadMapData quadMapDataBottomLeft  = loadInputQuadMap(2 * pixelCoord + ivec2(0, 0));
-    QuadMapData quadMapDataBottomRight = loadInputQuadMap(2 * pixelCoord + ivec2(1, 0));
-    QuadMapData quadMapDataTopLeft     = loadInputQuadMap(2 * pixelCoord + ivec2(0, 1));
-    QuadMapData quadMapDataTopRight    = loadInputQuadMap(2 * pixelCoord + ivec2(1, 1));
+    QuadMapData quadMapDataBottomLeft  = loadInputQuadMap(pixelCoordsBottomLeft);
+    QuadMapData quadMapDataBottomRight = loadInputQuadMap(pixelCoordsBottomRight);
+    QuadMapData quadMapDataTopLeft     = loadInputQuadMap(pixelCoordsTopLeft);
+    QuadMapData quadMapDataTopRight    = loadInputQuadMap(pixelCoordsTopRight);
 
     // create proxy planes
     Plane proxyPlaneBottomLeft  = quadMapDataToPlane(quadMapDataBottomLeft);
@@ -448,13 +455,15 @@ void main() {
         storeInOutputQuadMap(pixelCoord, mergedQuadMapData);
 
         // ignore the previous proxy planes that have been merged
-        ignoreInputQuadMapData(2 * pixelCoord + ivec2(0, 0));
-        ignoreInputQuadMapData(2 * pixelCoord + ivec2(1, 0));
-        ignoreInputQuadMapData(2 * pixelCoord + ivec2(0, 1));
-        ignoreInputQuadMapData(2 * pixelCoord + ivec2(1, 1));
+        ignoreInputQuadMapData(pixelCoordsBottomLeft);
+        ignoreInputQuadMapData(pixelCoordsBottomRight);
+        ignoreInputQuadMapData(pixelCoordsTopLeft);
+        ignoreInputQuadMapData(pixelCoordsTopRight);
     }
     else {
-        // store an ignored plane just in case
-        ignoreOutputQuadMapData(pixelCoord);
+        // store an empty plane to clear the output quad map
+        QuadMapData ignoredQuadMapData;
+        ignoredQuadMapData.size = 0;
+        storeInOutputQuadMap(pixelCoord, ignoredQuadMapData);
     }
 }

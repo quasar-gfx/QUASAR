@@ -65,7 +65,6 @@ int main(int argc, char** argv) {
 
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
-    renderer.pipeline.rasterState.cullFaceEnabled = false;
 
     unsigned int screenWidth, screenHeight;
     window->getSize(screenWidth, screenHeight);
@@ -109,7 +108,6 @@ int main(int argc, char** argv) {
     Buffer<unsigned int> numIndicesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(GLuint), &zero);
 
     struct QuadMapData {
-        bool ignore;
         bool flattened;
         glm::vec3 normal;
         glm::vec2 uv;
@@ -118,12 +116,12 @@ int main(int argc, char** argv) {
         unsigned int size;
     };
 
-    std::vector<Buffer<QuadMapData>*> quadMaps;
+    std::vector<Buffer<QuadMapData>> quadMaps;
     std::vector<glm::vec2> quadMapSizes;
     int numQuadMaps = glm::log2(static_cast<float>(maxProxySize));
     glm::vec2 quadMapSize = glm::vec2(remoteWidth, remoteHeight);
     for (int i = 1; i <= numQuadMaps; i++) {
-        quadMaps.push_back(new Buffer<QuadMapData>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * remoteWidth * remoteHeight, nullptr));
+        quadMaps.push_back(Buffer<QuadMapData>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * remoteWidth * remoteHeight, nullptr));
         quadMapSizes.push_back(quadMapSize);
         quadMapSize /= 2.0f;
     }
@@ -175,7 +173,7 @@ int main(int argc, char** argv) {
     bool preventCopyingLocalPose = false;
     float distanceThreshold = 0.8f;
     float angleThreshold = 45.0f;
-    float flattenedThreshold = 0.001f;
+    float flatThreshold = 0.1f;
     float proxySimilarityThreshold = 0.1f;
     const int intervalValues[] = {0, 25, 50, 100, 200, 500, 1000};
     const char* intervalLabels[] = {"0ms", "25ms", "50ms", "100ms", "200ms", "500ms", "1000ms"};
@@ -288,7 +286,7 @@ int main(int argc, char** argv) {
                 rerender = true;
             }
 
-            if (ImGui::SliderFloat("Flatten Threshold", &flattenedThreshold, 0.0f, 0.1f)) {
+            if (ImGui::SliderFloat("Flat Threshold (x1e-3)", &flatThreshold, 0.0f, 1.0f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
             }
@@ -507,10 +505,10 @@ int main(int argc, char** argv) {
                 genQuadMapShader.setBool("doOrientationCorrection", doOrientationCorrection);
                 genQuadMapShader.setFloat("distanceThreshold", distanceThreshold);
                 genQuadMapShader.setFloat("angleThreshold", glm::radians(angleThreshold));
-                genQuadMapShader.setFloat("flattenedThreshold", flattenedThreshold);
+                genQuadMapShader.setFloat("flatThreshold", flatThreshold * 1e-3f);
             }
             {
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, *quadMaps[0]);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadMaps[0]);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, depthOffsetBuffer);
             }
 
@@ -534,8 +532,8 @@ int main(int argc, char** argv) {
             ============================
             */
             for (int i = 1; i < quadMaps.size(); i++) {
-                auto* prevBufferPtr = quadMaps[i-1];
-                auto* currBufferPtr = quadMaps[i];
+                auto& prevBuffer = quadMaps[i-1];
+                auto& currBuffer = quadMaps[i];
                 auto prevQuadMapSize = quadMapSizes[i-1];
                 auto currQuadMapSize = quadMapSizes[i];
 
@@ -555,12 +553,12 @@ int main(int argc, char** argv) {
                     simplifyQuadMapShader.setFloat("far", remoteCamera.far);
                 }
                 {
-                    simplifyQuadMapShader.setFloat("flattenedThreshold", flattenedThreshold);
+                    simplifyQuadMapShader.setFloat("flatThreshold", flatThreshold);
                     simplifyQuadMapShader.setFloat("proxySimilarityThreshold", proxySimilarityThreshold);
                 }
                 {
-                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, *prevBufferPtr);
-                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, *currBufferPtr);
+                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, prevBuffer);
+                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, currBuffer);
                     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, depthOffsetBuffer);
                 }
 
@@ -578,7 +576,7 @@ int main(int argc, char** argv) {
             ============================
             */
            for (int i = 0; i < quadMaps.size(); i++) {
-                auto* bufferPtr = quadMaps[i];
+                auto& buffer = quadMaps[i];
                 auto quadMapSize = quadMapSizes[i];
 
                 genQuadsFromQuadMapsShader.bind();
@@ -596,7 +594,7 @@ int main(int argc, char** argv) {
                     genQuadsFromQuadMapsShader.setFloat("far", remoteCamera.far);
                 }
                 {
-                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, *bufferPtr);
+                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, buffer);
                     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, numVerticesBuffer);
                     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, numIndicesBuffer);
                     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, mesh.vertexBuffer);
@@ -667,8 +665,10 @@ int main(int argc, char** argv) {
         nodeWireframe.setPosition(node.getPosition() - camera.getForwardVector() * 0.001f);
         nodeDepth.setPosition(node.getPosition() - camera.getForwardVector() * 0.0015f);
 
-        // render all objects in scene
+        // render generated meshes
+        renderer.pipeline.rasterState.cullFaceEnabled = false;
         renderStats = renderer.drawObjects(scene, camera);
+        renderer.pipeline.rasterState.cullFaceEnabled = true;
 
         // render to screen
         renderer.drawToScreen(screenShaderColor);
