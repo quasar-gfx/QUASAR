@@ -23,22 +23,23 @@ enum class RenderState {
     POINTCLOUD
 };
 
-// std::vector<uint16_t> convert32To16Bit(const std::vector<float> &image) {
-//     std::vector<uint16_t> convertedImage(image.size());
-//     for (size_t i = 0; i < image.size(); ++i) {
-//         convertedImage[i] = static_cast<uint16_t>(image[i] * 65535.0f);
-//     }
-//     return convertedImage;
-// }
-
-std::vector<uint16_t> convert32To16Bit(const std::vector<float> &image) {
-    std::vector<uint16_t> convertedImage(image.size());
-    for (size_t i = 0; i < image.size(); ++i) {
-        float value = std::max(0.0f, std::min(1.0f, image[i]));  // Clamp value between 0 and 1
-        convertedImage[i] = static_cast<uint16_t>(value * 65535.0f);
+// Modify the convert32To16Bit function to accept a const float* and a size
+std::vector<uint16_t> convert32To16Bit(const float* image, size_t size) {
+    std::vector<uint16_t> convertedImage(size);
+    for (size_t i = 0; i < size; ++i) {
+        convertedImage[i] = static_cast<uint16_t>(image[i] * 65535.0f);
     }
     return convertedImage;
 }
+
+// std::vector<uint16_t> convert32To16Bit(const std::vector<float> &image) {
+//     std::vector<uint16_t> convertedImage(image.size());
+//     for (size_t i = 0; i < image.size(); ++i) {
+//         float value = std::max(0.0f, std::min(1.0f, image[i]));  // Clamp value between 0 and 1
+//         convertedImage[i] = static_cast<uint16_t>(value * 65535.0f);
+//     }
+//     return convertedImage;
+// }
 
 std::vector<uint8_t> bc4Compress(const std::vector<uint16_t> &image, size_t width, size_t height) {
     if (image.size() != width * height) {
@@ -105,11 +106,6 @@ std::vector<uint8_t> bc4Compress(const std::vector<uint16_t> &image, size_t widt
 }
 
 std::vector<uint16_t> bc4Decompress(const std::vector<uint8_t> &compressed, size_t width, size_t height) {
-    if (compressed.size() != width * height / 2) {
-        std::cerr << "Invalid compressed data size for BC4 decompression." << std::endl;
-        return {};
-    }
-
     const size_t BLOCK_SIZE = 8;
     std::vector<uint16_t> decompressed(width * height);
     size_t compressedIndex = 0;
@@ -151,6 +147,7 @@ double calculateMSE(const std::vector<uint16_t> &original, const std::vector<uin
     mseImage.resize(width * height);
     
     for (size_t i = 0; i < width * height; ++i) {
+        // Normalize the values for MSE calculation
         double originalNorm = original[i] / 65535.0;
         double decompressedNorm = decompressed[i] / 65535.0;
         
@@ -159,6 +156,7 @@ double calculateMSE(const std::vector<uint16_t> &original, const std::vector<uin
         
         totalMSE += squaredError;
         
+        // Calculate enhanced error for visualization
         double enhancedError = std::min(1.0, -std::log10(squaredError + 1e-10) / 10.0);
         mseImage[i] = static_cast<uint16_t>(enhancedError * 65535.0);
     }
@@ -226,8 +224,8 @@ int main(int argc, char** argv) {
 
     unsigned int depthWidth = 2048, depthHeight = 2048;
     // std::vector<float> depthData(screenWidth * screenHeight);
-    auto depthData = FileIO::loadBinaryFile(DATA_PATH + "depth.bin");
-    // std::cout<< "size: "<< depthFile.size()<<std::endl;
+    auto depthData = FileIO::loadBinaryFile(DATA_PATH + "depth.bin"); // 
+    std::cout<< "depthData size: "<< depthData.size()<<std::endl;
     // std::memcpy(depthData.data(), depthFile.data(), depthFile.size());
 
     if (depthData.empty()) {
@@ -242,12 +240,21 @@ int main(int argc, char** argv) {
     }
 
     // Convert depth data to 16-bit
-    std::vector<float> floatDepthData(depthData.size() / sizeof(float));
-    std::memcpy(floatDepthData.data(), depthData.data(), depthData.size());
-    std::vector<uint16_t> originalImage16 = convert32To16Bit(floatDepthData);
+    // std::vector<float> floatDepthData(depthData.size() / sizeof(float));
+    // std::memcpy(floatDepthData.data(), depthData.data(), depthData.size());
+    // std::cout << "floartData size: " << floatDepthData.size() << std::endl;
+
+    const float* floatDepthData = reinterpret_cast<const float*>(depthData.data());
+    size_t floatDepthDataSize = depthData.size() / sizeof(float);
+
+
+    std::vector<uint16_t> originalImage16 = convert32To16Bit(floatDepthData, floatDepthDataSize);
+    std::cout << "[after 32 to 16]Original image size: " << originalImage16.size() << std::endl;
 
     // Compress the image using BC4
     std::vector<uint8_t> compressedImage = bc4Compress(originalImage16, depthWidth, depthHeight);
+    std::cout << "Compressed image size: " << compressedImage.size() << std::endl;
+    std::cout << "Expected compressed size: " << (depthWidth * depthHeight / 2) << std::endl;
 
     // Decompress the image
     std::vector<uint16_t> decompressedImage = bc4Decompress(compressedImage, depthWidth, depthHeight);
@@ -260,47 +267,70 @@ int main(int argc, char** argv) {
     std::cout << "Compression ratio: " << static_cast<double>(originalImage16.size() * sizeof(uint16_t)) / compressedImage.size() << ":1\n";
     std::cout << "Mean Squared Error (MSE) per pixel (normalized 0-1): " << totalMSE << "\n";
     std::cout << "Peak Signal-to-Noise Ratio (PSNR): " << psnr << " dB\n";
-
-    if (!originalImage16.empty()) {
-        Texture depthTextureOriginal({
-            .width = depthWidth,
-            .height = depthHeight,
-            .internalFormat = GL_R16F,
-            .format = GL_RED,
-            .type = GL_FLOAT,
-            .wrapS = GL_CLAMP_TO_EDGE,
-            .wrapT = GL_CLAMP_TO_EDGE,
-            .minFilter = GL_NEAREST,
-            .magFilter = GL_NEAREST,
-            .data = reinterpret_cast<unsigned char*>(depthData.data()) // depthData
-        });
-    } else {
+   
+    if (originalImage16.empty()) {
         std::cerr << "Original image data is empty. Cannot create texture." << std::endl;
-        // Handle this error condition appropriately
     }
+
+    Texture depthTextureOriginal({
+        .width = depthWidth,
+        .height = depthHeight,
+        .internalFormat = GL_R16F,
+        .format = GL_RED,
+        .type = GL_FLOAT,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST,
+        .data = reinterpret_cast<unsigned char*>(depthData.data()) // depthData
+    });
+
+    glGetError();
+    std::cout << "Depth original Textures created successfully." << std::endl;
+    
 
     // std::vector<float> depthDataDecompressed(depthWidth * depthHeight);
     // // fill with random values for now
     // for (size_t i = 0; i < depthDataDecompressed.size(); ++i) {
     //     depthDataDecompressed[i] = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
     // }
-    if (!decompressedImage.empty()) {
-        Texture depthTextureDecompressed({
-            .width = depthWidth,
-            .height = depthHeight,
-            .internalFormat = GL_R16F,
-            .format = GL_RED,
-            .type = GL_FLOAT,
-            .wrapS = GL_CLAMP_TO_EDGE,
-            .wrapT = GL_CLAMP_TO_EDGE,
-            .minFilter = GL_NEAREST,
-            .magFilter = GL_NEAREST,
-            .data = reinterpret_cast<unsigned char*>(decompressedImage.data())
-        });
-    } else {
-        std::cerr << "Decompressed image data is empty. Cannot create texture." << std::endl;
-        // Handle this error condition appropriately
+
+    // Convert uint16_t back to float for texture creation, preserving the raw depth values
+    std::vector<float> decompressedImageFloat(decompressedImage.size());
+    for (size_t i = 0; i < decompressedImage.size(); ++i) {
+        decompressedImageFloat[i] = static_cast<float>(decompressedImage[i]) / 65535.0f;
     }
+
+    std::cout << "Decompressed image size: " << decompressedImage.size() << std::endl;
+    std::cout << "Expected decompressed size: " << depthWidth * depthHeight << std::endl;
+    std::cout << "decompressedImageFloat.data() address: " << static_cast<void*>(decompressedImageFloat.data()) << std::endl;
+
+
+    if (decompressedImage.size() != depthWidth * depthHeight) {
+        std::cerr << "Error: Decompressed image size mismatch." << std::endl;
+        return 1;
+    }
+
+    Texture depthTextureDecompressed({
+        .width = depthWidth,
+        .height = depthHeight,
+        .internalFormat = GL_R16F,
+        .format = GL_RED,
+        .type = GL_FLOAT,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST,
+        .data = reinterpret_cast<unsigned char*>(decompressedImageFloat.data())
+    });
+
+    GLenum error = glGetError();
+    if (error != GL_NO_ERROR) {
+        std::cerr << "OpenGL error after creating decompressed texture: " << error << std::endl;
+        return 1;
+    }
+
+    std::cout << "Depth Decompressed Texture created successfully." << std::endl;
 
     // shaders
     Shader screenShader({
