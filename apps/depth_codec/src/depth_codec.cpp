@@ -242,8 +242,8 @@ int main(int argc, char** argv) {
         .computeCodePath = "./shaders/bc4.comp"
     });
 
-    ComputeShader copyShader({ // my buffer
-        .computeCodePath = "./shaders/copy.comp"
+    ComputeShader bc4BufferShader({ // my buffer
+        .computeCodePath = "./shaders/bc4Buffer.comp"
     });
 
  
@@ -593,14 +593,14 @@ int main(int argc, char** argv) {
         genPtCloudFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
         // do it again with decompressed depth data:
-        copyShader.bind();
-        copyShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
-        copyShader.setInt("surfelSize", surfelSize);
+        bc4BufferShader.bind();
+        bc4BufferShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
+        bc4BufferShader.setInt("surfelSize", surfelSize);
         {
-            copyShader.setMat4("view", origCamera.getViewMatrix());
-            copyShader.setMat4("projection", origCamera.getProjectionMatrix());
-            copyShader.setMat4("viewInverse", glm::inverse(origCamera.getViewMatrix()));
-            copyShader.setMat4("projectionInverse", glm::inverse(origCamera.getProjectionMatrix()));
+            bc4BufferShader.setMat4("view", origCamera.getViewMatrix());
+            bc4BufferShader.setMat4("projection", origCamera.getProjectionMatrix());
+            bc4BufferShader.setMat4("viewInverse", glm::inverse(origCamera.getViewMatrix()));
+            bc4BufferShader.setMat4("projectionInverse", glm::inverse(origCamera.getProjectionMatrix()));
         }
         {
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, meshDecompressed.vertexBuffer);
@@ -608,8 +608,8 @@ int main(int argc, char** argv) {
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, bc4Buffer);
         }
         // dispatch compute shader to generate vertices and indices for mesh
-        copyShader.dispatch(width / 16, height / 16, 1);
-        copyShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+        bc4BufferShader.dispatch(width / 16, height / 16, 1);
+        bc4BufferShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
         // set render state
         mesh.pointcloud = renderState == RenderState::POINTCLOUD;
