@@ -2,24 +2,20 @@
 #define BUFFER_H
 
 #include <iostream>
-#include <type_traits>
-
 #include <vector>
+
 #include <OpenGLObject.h>
 
 template<typename T>
 struct Buffer : OpenGLObject {
 public:
-    GLenum target;
-    GLenum usage;
-
     Buffer(GLenum target = GL_ARRAY_BUFFER, GLenum usage = GL_STATIC_DRAW)
-        : target(target), usage(usage), numElems(0) {
+            : target(target), usage(usage), numElems(0) {
         glGenBuffers(1, &ID);
     }
 
     Buffer(GLenum target, GLenum usage, unsigned int numElems, const T* data)
-        : Buffer(target, usage) {
+            : Buffer(target, usage) {
         bind();
         setData(numElems, data);
     }
@@ -28,9 +24,9 @@ public:
         glDeleteBuffers(1, &ID);
     }
 
-    // Copy constructor
+    // copy constructor
     Buffer(const Buffer<T>& other)
-        : target(other.target), usage(other.usage), numElems(other.numElems) {
+            : target(other.target), usage(other.usage), numElems(other.numElems) {
         glGenBuffers(1, &ID);
         bind();
         std::vector<T> data(other.numElems);
@@ -39,16 +35,14 @@ public:
         unbind();
     }
 
-    // Copy assignment operator
+    // copy assignment operator
     Buffer<T>& operator=(const Buffer<T>& other) {
         if (this == &other) {
             return *this;
         }
-
-        // Delete existing buffer
         glDeleteBuffers(1, &ID);
 
-        // Recreate the buffer and copy data
+        // recreate the buffer and copy data
         target = other.target;
         usage = other.usage;
         numElems = other.numElems;
@@ -65,24 +59,23 @@ public:
         return *this;
     }
 
-    // Move constructor
+    // move constructor
     Buffer(Buffer<T>&& other) noexcept
-        : target(other.target), usage(other.usage), numElems(other.numElems) {
+            : target(other.target), usage(other.usage), numElems(other.numElems) {
         ID = other.ID;
         other.ID = 0;
         other.numElems = 0;
     }
 
-    // Move assignment operator
+    // move assignment operator
     Buffer<T>& operator=(Buffer<T>&& other) noexcept {
         if (this == &other) {
             return *this;
         }
 
-        // Delete current buffer
         glDeleteBuffers(1, &ID);
 
-        // Move the data
+        // move the data
         ID = other.ID;
         target = other.target;
         usage = other.usage;
@@ -156,6 +149,9 @@ public:
     }
 
 private:
+    GLenum target;
+    GLenum usage;
+
     unsigned int numElems;
 };
 

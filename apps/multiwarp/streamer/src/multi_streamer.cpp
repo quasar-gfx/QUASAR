@@ -423,11 +423,6 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader screenShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
-    });
-
     Shader screenShaderColor({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
@@ -444,7 +439,6 @@ int main(int argc, char** argv) {
     genQuadsShader.bind();
     genQuadsShader.setVec2("screenSize", glm::vec2(remoteWidth, remoteHeight));
     genQuadsShader.setInt("surfelSize", surfelSize);
-    genQuadsShader.unbind();
 
     ComputeShader genDepthShader({
         .computeCodePath = "./shaders/genDepth.comp"
@@ -452,7 +446,6 @@ int main(int argc, char** argv) {
     genDepthShader.bind();
     genDepthShader.setVec2("screenSize", glm::vec2(remoteWidth, remoteHeight));
     genDepthShader.setInt("surfelSize", surfelSize);
-    genDepthShader.unbind();
 
     double startRenderTime = window->getTime();
     app.onRender([&](double now, double dt) {
@@ -667,10 +660,12 @@ int main(int argc, char** argv) {
         }
 
         // render all objects in scene
+        renderer.pipeline.rasterState.cullFaceEnabled = false;
         renderStats = renderer.drawObjects(scene, camera);
+        renderer.pipeline.rasterState.cullFaceEnabled = true;
 
         // render to screen
-        renderer.drawToScreen(screenShader);
+        renderer.drawToScreen(screenShaderColor);
     });
 
     // run app loop (blocking)

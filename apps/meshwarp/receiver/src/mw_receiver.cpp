@@ -323,11 +323,9 @@ int main(int argc, char** argv) {
     ComputeShader genMeshShader({
         .computeCodePath = "./shaders/genMesh.comp"
     });
-
     genMeshShader.bind();
     genMeshShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
     genMeshShader.setInt("surfelSize", surfelSize);
-    genMeshShader.unbind();
 
     scene.backgroundColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -452,7 +450,6 @@ int main(int argc, char** argv) {
         // dispatch compute shader to generate vertices and indices for mesh
         genMeshShader.dispatch(width / 16, height / 16, 1);
         genMeshShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
-        genMeshShader.unbind();
 
         poseStreamer.removePosesLessThan(std::min(poseIdColor, poseIdDepth));
 
