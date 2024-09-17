@@ -589,7 +589,7 @@ int main(int argc, char** argv) {
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
         }
         // dispatch compute shader to generate vertices and indices for mesh
-        genPtCloudFromDepthShader.dispatch(width / 16, height / 16, 1);
+        genPtCloudFromDepthShader.dispatch(width / 16, height / 16, 1); // call the comp shader file
         genPtCloudFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
         // do it again with decompressed depth data:
@@ -608,7 +608,7 @@ int main(int argc, char** argv) {
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, bc4Buffer);
         }
         // dispatch compute shader to generate vertices and indices for mesh
-        bc4BufferShader.dispatch(width / 16, height / 16, 1);
+        bc4BufferShader.dispatch(width / 16, height / 16, 1); //  call the comp shader file
         bc4BufferShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
         // set render state

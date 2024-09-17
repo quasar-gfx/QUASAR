@@ -92,9 +92,9 @@ float UnLinearizeDepth(float depth) {
     return (z + 1.0) / 2.0;
 }
 
-float sampleDepth(sampler2D depthMap, vec2 sampleCoord) {
-    float depth = texture(depthMap, sampleCoord).r;
-    depth = clamp(depth, 0.0, 0.99999);
+void sampleBC4Buffer(vec2 pixelCoordNormalized){
+    blockPixelCoord = pixelCoordNormalized; // convert scene from normalized to depth then to bc4
+
     return depth;
 }
 

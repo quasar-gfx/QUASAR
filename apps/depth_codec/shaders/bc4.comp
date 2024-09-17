@@ -23,7 +23,7 @@ float sampleDepth(sampler2D depthMap, ivec2 sampleCoord) {
     return depth;
 }
 
-void storeBC4Bufffer(Block block, ivec2 blockPixelCoord){
+void storeBC4Bufffer(Block block, ivec2 blockPixelCoord){    
     uint index = uint(blockPixelCoord.y)*uint(bc4DepthSize.x) + uint(blockPixelCoord.x);
     bc4buffer[index] = block;
 
