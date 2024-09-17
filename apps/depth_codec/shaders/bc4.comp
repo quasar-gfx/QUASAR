@@ -1,0 +1,49 @@
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+uniform vec2 depthMapSize;
+
+uniform vec2 bc4DepthSize;
+
+layout(binding = 0) uniform sampler2D depthMap;
+
+
+struct Block{
+    float max;
+    float min;
+    uint arr[6]; // 32
+};
+
+layout(std430, binding = 0) buffer BC4Buffer {
+    Block bc4buffer[];
+};
+
+float sampleDepth(sampler2D depthMap, ivec2 sampleCoord) {
+    float depth = texelFetch(depthMap, sampleCoord, 0).r;
+    //depth = clamp(depth, 0.0, 0.99999);
+    return depth;
+}
+
+void storeBC4Bufffer(Block block, ivec2 blockPixelCoord){
+    uint index = uint(blockPixelCoord.y)*uint(bc4DepthSize.x) + uint(blockPixelCoord.x);
+    bc4buffer[index] = block;
+
+}
+
+void main() { 
+    ivec2 blockPixelCoord = ivec2(gl_GlobalInvocationID.xy); // 2d bc4-coord
+    ivec2 startPixelCoord = 8 * blockPixelCoord; // depth-coord
+    float arr[8][8];
+
+    for(int i=0; i<8; i++){
+        for(int j=0; j<8; j++){
+            arr[i][j] = sampleDepth(depthMap, startPixelCoord+ivec2(i,j));
+        }
+    }
+
+    Block block; // after compression
+    block.max = 0;
+    block.min = 0;
+    //block.arr = 0;
+
+    storeBC4Bufffer(block, blockPixelCoord);
+}

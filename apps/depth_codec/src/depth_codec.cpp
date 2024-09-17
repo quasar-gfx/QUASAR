@@ -222,11 +222,48 @@ int main(int argc, char** argv) {
     origCamera.setPosition(glm::vec3(0.0f, 3.0f, 10.0f));
     origCamera.updateViewMatrix();
 
+
+    // shaders
+    Shader screenShader({
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
+    });
+
+    Shader videoShader({
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../shaders/postprocessing/displayTexture.frag",
+    });
+
+    ComputeShader genPtCloudFromDepthShader({
+        .computeCodePath = "./shaders/genPtCloudFromDepth.comp"
+    });
+
+    ComputeShader bc4DepthShader({
+        .computeCodePath = "./shaders/bc4.comp"
+    });
+
+    ComputeShader copyShader({ // my buffer
+        .computeCodePath = "./shaders/copy.comp"
+    });
+
+ 
     unsigned int depthWidth = 2048, depthHeight = 2048;
     // std::vector<float> depthData(screenWidth * screenHeight);
     auto depthData = FileIO::loadBinaryFile(DATA_PATH + "depth.bin"); // 
     std::cout<< "depthData size: "<< depthData.size()<<std::endl;
     // std::memcpy(depthData.data(), depthFile.data(), depthFile.size());
+
+    struct block{
+        float max; // 32 - unit32
+        float min;
+        uint32_t arr[6]; // 32
+    };
+
+    bc4DepthShader.bind();
+    bc4DepthShader.setVec2("depthMapSize", glm::vec2(depthWidth, depthHeight));
+    bc4DepthShader.setVec2("bc4DepthSize", glm::vec2(depthWidth/8, depthHeight/8)); // 32+32+64*3 bits->bytes 2048/8 * 2048/)
+
+    Buffer<block> bc4Buffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, (depthWidth/8 * depthHeight/8), nullptr); // 32+32+64*3 bits->bytes 2048/8 * 2048/8 = 
 
     if (depthData.empty()) {
         std::cerr << "Failed to load depth data from file." << std::endl;
@@ -272,10 +309,11 @@ int main(int argc, char** argv) {
         std::cerr << "Original image data is empty. Cannot create texture." << std::endl;
     }
 
+
     Texture depthTextureOriginal({
         .width = depthWidth,
         .height = depthHeight,
-        .internalFormat = GL_R16F,
+        .internalFormat = GL_R32F,
         .format = GL_RED,
         .type = GL_FLOAT,
         .wrapS = GL_CLAMP_TO_EDGE,
@@ -311,18 +349,26 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    Texture depthTextureDecompressed({
-        .width = depthWidth,
-        .height = depthHeight,
-        .internalFormat = GL_R16F,
-        .format = GL_RED,
-        .type = GL_FLOAT,
-        .wrapS = GL_CLAMP_TO_EDGE,
-        .wrapT = GL_CLAMP_TO_EDGE,
-        .minFilter = GL_NEAREST,
-        .magFilter = GL_NEAREST,
-        .data = reinterpret_cast<unsigned char*>(decompressedImageFloat.data())
-    });
+    bc4DepthShader.setTexture(depthTextureOriginal, 0);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bc4Buffer);
+    // run compute shader
+    bc4DepthShader.dispatch(depthWidth /8 /16, depthHeight /8/ 16, 1); // each bloack, (now each pixel /16*16) - > bc4 comp
+    bc4DepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+
+
+    // Texture depthTextureDecompressed({
+    //     .width = depthWidth,
+    //     .height = depthHeight,
+    //     .internalFormat = GL_R32F,
+    //     .format = GL_RED,
+    //     .type = GL_FLOAT,
+    //     .wrapS = GL_CLAMP_TO_EDGE,
+    //     .wrapT = GL_CLAMP_TO_EDGE,
+    //     .minFilter = GL_NEAREST,
+    //     .magFilter = GL_NEAREST,
+    //     .data = reinterpret_cast<unsigned char*>(decompressedImageFloat.data())
+    // });
 
     GLenum error = glGetError();
     if (error != GL_NO_ERROR) {
@@ -332,20 +378,7 @@ int main(int argc, char** argv) {
 
     std::cout << "Depth Decompressed Texture created successfully." << std::endl;
 
-    // shaders
-    Shader screenShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
-    });
 
-    Shader videoShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayTexture.frag",
-    });
-
-    ComputeShader genPtCloudFromDepthShader({
-        .computeCodePath = "./shaders/genPtCloudFromDepth.comp"
-    });
 
     int width = screenWidth / surfelSize;
     int height = screenHeight / surfelSize;
@@ -355,11 +388,7 @@ int main(int argc, char** argv) {
     int numTriangles = (width-1) * (height-1) * 2;
     int indexBufferSize = numTriangles * 3;
 
-    genPtCloudFromDepthShader.bind();
-    genPtCloudFromDepthShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
-    genPtCloudFromDepthShader.setInt("surfelSize", surfelSize);
-    genPtCloudFromDepthShader.unbind();
-
+    
     Mesh mesh = Mesh({
         .vertices = std::vector<Vertex>(numVertices),
         .indices = std::vector<unsigned int>(indexBufferSize),
@@ -394,6 +423,7 @@ int main(int argc, char** argv) {
         glm::vec2 winSize = glm::vec2(screenWidth, screenHeight);
 
         ImGui::NewFrame();
+
 
         unsigned int flags = 0;
         ImGui::BeginMainMenuBar();
@@ -480,10 +510,10 @@ int main(int argc, char** argv) {
             ImGui::Image((void*)(intptr_t)depthTextureOriginal.ID, ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
 
-            ImGui::SetNextWindowPos(ImVec2(screenWidth - TEXTURE_PREVIEW_SIZE - 30, 70 + TEXTURE_PREVIEW_SIZE + 30), ImGuiCond_FirstUseEver);
-            ImGui::Begin("Decompressed Depth", &showDepthPreview, flags);
-            ImGui::Image((void*)(intptr_t)depthTextureDecompressed.ID, ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
-            ImGui::End();
+            // ImGui::SetNextWindowPos(ImVec2(screenWidth - TEXTURE_PREVIEW_SIZE - 30, 70 + TEXTURE_PREVIEW_SIZE + 30), ImGuiCond_FirstUseEver);
+            // ImGui::Begin("Decompressed Depth", &showDepthPreview, flags);
+            // ImGui::Image((void*)(intptr_t)depthTextureDecompressed.ID, ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+            // ImGui::End();
         }
     });
 
@@ -542,6 +572,9 @@ int main(int argc, char** argv) {
 
         // generate mesh for original and decompressed depth data
         genPtCloudFromDepthShader.bind();
+        genPtCloudFromDepthShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
+        genPtCloudFromDepthShader.setInt("surfelSize", surfelSize);
+        
         {
             genPtCloudFromDepthShader.setMat4("view", origCamera.getViewMatrix());
             genPtCloudFromDepthShader.setMat4("projection", origCamera.getProjectionMatrix());
@@ -560,18 +593,23 @@ int main(int argc, char** argv) {
         genPtCloudFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
         // do it again with decompressed depth data:
+        copyShader.bind();
+        copyShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
+        copyShader.setInt("surfelSize", surfelSize);
         {
-            genPtCloudFromDepthShader.setTexture(depthTextureDecompressed, 0);
+            copyShader.setMat4("view", origCamera.getViewMatrix());
+            copyShader.setMat4("projection", origCamera.getProjectionMatrix());
+            copyShader.setMat4("viewInverse", glm::inverse(origCamera.getViewMatrix()));
+            copyShader.setMat4("projectionInverse", glm::inverse(origCamera.getProjectionMatrix()));
         }
         {
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, meshDecompressed.vertexBuffer);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, meshDecompressed.indexBuffer);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, bc4Buffer);
         }
         // dispatch compute shader to generate vertices and indices for mesh
-        genPtCloudFromDepthShader.dispatch(width / 16, height / 16, 1);
-        genPtCloudFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
-
-        genPtCloudFromDepthShader.unbind();
+        copyShader.dispatch(width / 16, height / 16, 1);
+        copyShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
         // set render state
         mesh.pointcloud = renderState == RenderState::POINTCLOUD;
