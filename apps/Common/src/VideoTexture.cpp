@@ -44,8 +44,6 @@ VideoTexture::~VideoTexture() {
     }
 }
 
-
-
 int VideoTexture::initFFMpeg() {
     AVStream* inputVideoStream = nullptr;
 

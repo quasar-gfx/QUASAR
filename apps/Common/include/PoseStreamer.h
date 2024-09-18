@@ -88,8 +88,8 @@ public:
         }
         else {
             auto* perspectiveCamera = static_cast<PerspectiveCamera*>(camera);
-            currPose.setViewMatrix(perspectiveCamera->getViewMatrix());
-            currPose.setProjectionMatrix(perspectiveCamera->getProjectionMatrix());
+            currPose.setProjectionMatrices({perspectiveCamera->getProjectionMatrix(), perspectiveCamera->getProjectionMatrix()});
+            currPose.setViewMatrices({perspectiveCamera->getViewMatrix(), perspectiveCamera->getViewMatrix()});
             // if (epsilonEqual(currPose.mono.view, prevPose.mono.view)) {
             //     return false;
             // }
