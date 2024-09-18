@@ -52,6 +52,7 @@ int main(int argc, char** argv) {
     // make sure maxProxySize is a power of 2
     int maxProxySize = args::get(maxProxySizeIn);
     maxProxySize = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize))));
+    int numQuadMaps = glm::log2(static_cast<float>(maxProxySize));
 
     config.enableVSync = args::get(vsyncIn);
 
@@ -69,33 +70,20 @@ int main(int argc, char** argv) {
     unsigned int screenWidth, screenHeight;
     window->getSize(screenWidth, screenHeight);
 
-    Scene scene;
+    // "remote" scene
     Scene remoteScene;
-    PerspectiveCamera camera(screenWidth, screenHeight);
     PerspectiveCamera remoteCamera(screenWidth, screenHeight);
     SceneLoader loader = SceneLoader();
     loader.loadScene(scenePath, remoteScene, remoteCamera);
 
-    camera.setPosition(remoteCamera.getPosition());
-    camera.setRotationQuat(remoteCamera.getRotationQuat());
-    camera.updateViewMatrix();
-
+    // scene with all the meshes
+    Scene scene;
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
+    PerspectiveCamera camera(screenWidth, screenHeight);
+    camera.setViewMatrix(remoteCamera.getViewMatrix());
 
     unsigned int remoteWidth = size2Width;
     unsigned int remoteHeight = size2Height;
-
-    RenderTarget renderTarget({
-        .width = remoteWidth,
-        .height = remoteHeight,
-        .internalFormat = GL_RGBA16,
-        .format = GL_RGBA,
-        .type = GL_FLOAT,
-        .wrapS = GL_REPEAT,
-        .wrapT = GL_REPEAT,
-        .minFilter = GL_NEAREST,
-        .magFilter = GL_NEAREST
-    });
 
     int numVertices = remoteWidth * remoteHeight * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
     int numVerticesDepth = remoteWidth * remoteHeight;
@@ -116,18 +104,29 @@ int main(int argc, char** argv) {
         unsigned int size;
     };
 
-    std::vector<Buffer<QuadMapData>> quadMaps;
-    std::vector<glm::vec2> quadMapSizes;
-    int numQuadMaps = glm::log2(static_cast<float>(maxProxySize));
+    std::vector<Buffer<QuadMapData>> quadMaps(numQuadMaps);
+    std::vector<glm::vec2> quadMapSizes(numQuadMaps);
     glm::vec2 quadMapSize = glm::vec2(remoteWidth, remoteHeight);
-    for (int i = 1; i <= numQuadMaps; i++) {
-        quadMaps.push_back(Buffer<QuadMapData>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * remoteWidth * remoteHeight, nullptr));
-        quadMapSizes.push_back(quadMapSize);
+    for (int i = 0; i < numQuadMaps; i++) {
+        quadMaps[i] = Buffer<QuadMapData>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * quadMapSize.x * quadMapSize.y, nullptr);
+        quadMapSizes[i] = quadMapSize;
         quadMapSize /= 2.0f;
     }
 
-    glm::vec2 depthBufferSize = 4.0f * glm::vec2(remoteWidth, remoteHeight);
+    glm::vec2 depthBufferSize = 4.0f * quadMapSizes[0];
     Buffer<float> depthOffsetBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * depthBufferSize.x * depthBufferSize.y, nullptr);
+
+    RenderTarget renderTarget({
+        .width = remoteWidth,
+        .height = remoteHeight,
+        .internalFormat = GL_RGBA16,
+        .format = GL_RGBA,
+        .type = GL_FLOAT,
+        .wrapS = GL_REPEAT,
+        .wrapT = GL_REPEAT,
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST
+    });
 
     Mesh mesh = Mesh({
         .vertices = std::vector<Vertex>(numVertices),
@@ -162,6 +161,33 @@ int main(int argc, char** argv) {
     nodeDepth.frustumCulled = false;
     nodeDepth.visible = false;
     scene.addChildNode(&nodeDepth);
+
+    // shaders
+    Shader screenShaderColor({
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
+    });
+
+    Shader screenShaderNormals({
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../shaders/postprocessing/displayNormals.frag"
+    });
+
+    ComputeShader genQuadMapShader({
+        .computeCodePath = "./shaders/genQuadMap.comp"
+    });
+
+    ComputeShader simplifyQuadMapShader({
+        .computeCodePath = "./shaders/simplifyQuadMap.comp"
+    });
+
+    ComputeShader genQuadsFromQuadMapsShader({
+        .computeCodePath = "./shaders/genQuadsFromQuadMaps.comp"
+    });
+
+    ComputeShader genDepthShader({
+        .computeCodePath = "./shaders/genDepthPtCloud.comp"
+    });
 
     bool rerender = true;
     int rerenderInterval = 0;
@@ -372,33 +398,6 @@ int main(int argc, char** argv) {
 
         camera.aspect = (float)screenWidth / (float)screenHeight;
         camera.updateProjectionMatrix();
-    });
-
-    // shaders
-    Shader screenShaderColor({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
-    });
-
-    Shader screenShaderNormals({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayNormals.frag"
-    });
-
-    ComputeShader genQuadMapShader({
-        .computeCodePath = "./shaders/genQuadMap.comp"
-    });
-
-    ComputeShader simplifyQuadMapShader({
-        .computeCodePath = "./shaders/simplifyQuadMap.comp"
-    });
-
-    ComputeShader genQuadsFromQuadMapsShader({
-        .computeCodePath = "./shaders/genQuadsFromQuadMaps.comp"
-    });
-
-    ComputeShader genDepthShader({
-        .computeCodePath = "./shaders/genDepthPtCloud.comp"
     });
 
     double startRenderTime = window->getTime();

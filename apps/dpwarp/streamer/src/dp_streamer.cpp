@@ -14,8 +14,6 @@
 
 const std::string DATA_PATH = "./";
 
-int surfelSize = 4;
-
 int main(int argc, char** argv) {
     Config config{};
     config.title = "Depth Peeling Streamer";
@@ -26,7 +24,6 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> size2In(parser, "size2", "Size of pre-rendered content", {'S', "size2"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
-    args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
     args::ValueFlag<int> maxLayersIn(parser, "layers", "Max layers", {'n', "max-layers"}, 8);
     try {
         parser.ParseCLI(argc, argv);
@@ -55,7 +52,6 @@ int main(int argc, char** argv) {
 
     std::string scenePath = args::get(scenePathIn);
 
-    int surfelSize = args::get(surfelSizeIn);
     int maxLayers = args::get(maxLayersIn);
     int maxViews = maxLayers + 1;
 
@@ -90,8 +86,8 @@ int main(int argc, char** argv) {
 
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
 
-    unsigned int remoteWidth = size2Width / surfelSize;
-    unsigned int remoteHeight = size2Height / surfelSize;
+    unsigned int remoteWidth = size2Width;
+    unsigned int remoteHeight = size2Height;
 
     std::vector<RenderTarget*> renderTargets(maxViews);
 
@@ -177,6 +173,25 @@ int main(int argc, char** argv) {
     Node* node = new Node(meshes[0]);
     node->frustumCulled = false;
     meshScene.addChildNode(node);
+
+    // shaders
+    Shader screenShaderColor({
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
+    });
+
+    Shader screenShaderNormals({
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../shaders/postprocessing/displayNormals.frag"
+    });
+
+    ComputeShader genQuadsShader({
+        .computeCodePath = "./shaders/genQuadsDP.comp"
+    });
+
+    ComputeShader genDepthShader({
+        .computeCodePath = "./shaders/genDepth.comp"
+    });
 
     bool rerender = true;
     int rerenderInterval = 0;
@@ -412,31 +427,6 @@ int main(int argc, char** argv) {
         camera.updateProjectionMatrix();
     });
 
-    // shaders
-    Shader screenShaderColor({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
-    });
-
-    Shader screenShaderNormals({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayNormals.frag"
-    });
-
-    ComputeShader genQuadsShader({
-        .computeCodePath = "./shaders/genQuadsDP.comp"
-    });
-    genQuadsShader.bind();
-    genQuadsShader.setVec2("screenSize", glm::vec2(remoteWidth, remoteHeight));
-    genQuadsShader.setInt("surfelSize", surfelSize);
-
-    ComputeShader genDepthShader({
-        .computeCodePath = "./shaders/genDepth.comp"
-    });
-    genDepthShader.bind();
-    genDepthShader.setVec2("screenSize", glm::vec2(remoteWidth, remoteHeight));
-    genDepthShader.setInt("surfelSize", surfelSize);
-
     double startRenderTime = window->getTime();
     app.onRender([&](double now, double dt) {
         // handle mouse input
@@ -537,6 +527,9 @@ int main(int argc, char** argv) {
 
                 genQuadsShader.bind();
                 {
+                    genQuadsShader.setVec2("screenSize", glm::vec2(remoteWidth, remoteHeight));
+                }
+                {
                     genQuadsShader.setMat4("view", remoteCamera->getViewMatrix());
                     genQuadsShader.setMat4("projection", remoteCamera->getProjectionMatrix());
                     genQuadsShader.setMat4("viewInverse", glm::inverse(remoteCamera->getViewMatrix()));
@@ -599,6 +592,9 @@ int main(int argc, char** argv) {
 
                 // create point cloud for depth map
                 genDepthShader.bind();
+                {
+                    genDepthShader.setVec2("screenSize", glm::vec2(remoteWidth, remoteHeight));
+                }
                 {
                     genDepthShader.setMat4("view", remoteCamera->getViewMatrix());
                     genDepthShader.setMat4("projection", remoteCamera->getProjectionMatrix());

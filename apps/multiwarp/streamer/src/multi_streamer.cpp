@@ -25,7 +25,6 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> size2In(parser, "size2", "Size of pre-rendered content", {'S', "size2"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
-    args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
     args::ValueFlag<int> maxAdditionalViewsIn(parser, "views", "Max views", {'n', "max-views"}, 8);
     try {
         parser.ParseCLI(argc, argv);
@@ -54,7 +53,6 @@ int main(int argc, char** argv) {
 
     std::string scenePath = args::get(scenePathIn);
 
-    int surfelSize = args::get(surfelSizeIn);
     int maxViews = args::get(maxAdditionalViewsIn) + 2; // 0th is standard view, maxViews-1 is large fov view
 
     auto window = std::make_shared<GLFWWindow>(config);
@@ -69,6 +67,7 @@ int main(int argc, char** argv) {
     unsigned int screenWidth, screenHeight;
     window->getSize(screenWidth, screenHeight);
 
+    // "remote" scene
     Scene remoteScene;
     std::vector<PerspectiveCamera*> remoteCameras(maxViews);
     for (int i = 0; i < maxViews; i++) {
@@ -78,25 +77,22 @@ int main(int argc, char** argv) {
     SceneLoader loader = SceneLoader();
     loader.loadScene(scenePath, remoteScene, *centerRemoteCamera);
 
+    // make last camera have a larger fov
     remoteCameras[maxViews-1]->setFovy(90.0f);
     remoteCameras[maxViews-1]->setViewMatrix(centerRemoteCamera->getViewMatrix());
 
+    // scene with all the meshes
     Scene scene;
+    scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
     PerspectiveCamera camera(screenWidth, screenHeight);
     camera.setViewMatrix(centerRemoteCamera->getViewMatrix());
-    camera.updateViewMatrix();
 
-    scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
-
-    unsigned int remoteWidth = size2Width / surfelSize;
-    unsigned int remoteHeight = size2Height / surfelSize;
-
-    std::vector<RenderTarget*> renderTargets(maxViews);
+    unsigned int remoteWidth = size2Width;
+    unsigned int remoteHeight = size2Height;
 
     int numVertices = remoteWidth * remoteHeight * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
     int numVerticesDepth = remoteWidth * remoteHeight;
 
-    std::vector<GLuint> indexBuffers(maxViews);
     int numTriangles = remoteWidth * remoteHeight * NUM_SUB_QUADS * 2;
     int indexBufferSize = numTriangles * 3;
 
@@ -104,6 +100,7 @@ int main(int argc, char** argv) {
     std::vector<Buffer<unsigned int>> numVerticesBuffers(maxViews);
     std::vector<Buffer<unsigned int>> numIndicesBuffers(maxViews);
 
+    std::vector<RenderTarget*> renderTargets(maxViews);
     for (int i = 0; i < maxViews; i++) {
         renderTargets[i] = new RenderTarget({
             .width = remoteWidth,
@@ -178,6 +175,25 @@ int main(int argc, char** argv) {
         node->visible = (i == 0);
         meshScene.addChildNode(node);
     }
+
+    // shaders
+    Shader screenShaderColor({
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
+    });
+
+    Shader screenShaderNormals({
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../shaders/postprocessing/displayNormals.frag"
+    });
+
+    ComputeShader genQuadsShader({
+        .computeCodePath = "./shaders/genQuadsMulti.comp"
+    });
+
+    ComputeShader genDepthShader({
+        .computeCodePath = "./shaders/genDepth.comp"
+    });
 
     bool rerender = true;
     int rerenderInterval = 0;
@@ -346,7 +362,8 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string time = std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string fileName = std::string(fileNameBase) + "." + time;
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
@@ -358,6 +375,16 @@ int main(int argc, char** argv) {
                 }
                 else {
                     renderer.gBuffer.saveColorAsPNG(fileName + ".png");
+                }
+
+                for (int i = 1; i < maxViews; i++) {
+                    fileName = std::string(fileNameBase) + ".view" + std::to_string(i) + "." + time;
+                    if (saveAsHDR) {
+                        renderTargets[i]->saveColorAsHDR(fileName + ".hdr");
+                    }
+                    else {
+                        renderTargets[i]->saveColorAsPNG(fileName + ".png");
+                    }
                 }
             }
 
@@ -421,31 +448,6 @@ int main(int argc, char** argv) {
         camera.aspect = (float)screenWidth / (float)screenHeight;
         camera.updateProjectionMatrix();
     });
-
-    // shaders
-    Shader screenShaderColor({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
-    });
-
-    Shader screenShaderNormals({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayNormals.frag"
-    });
-
-    ComputeShader genQuadsShader({
-        .computeCodePath = "./shaders/genQuadsMulti.comp"
-    });
-    genQuadsShader.bind();
-    genQuadsShader.setVec2("screenSize", glm::vec2(remoteWidth, remoteHeight));
-    genQuadsShader.setInt("surfelSize", surfelSize);
-
-    ComputeShader genDepthShader({
-        .computeCodePath = "./shaders/genDepth.comp"
-    });
-    genDepthShader.bind();
-    genDepthShader.setVec2("screenSize", glm::vec2(remoteWidth, remoteHeight));
-    genDepthShader.setInt("surfelSize", surfelSize);
 
     double startRenderTime = window->getTime();
     app.onRender([&](double now, double dt) {
@@ -561,6 +563,9 @@ int main(int argc, char** argv) {
 
                 genQuadsShader.bind();
                 {
+                    genQuadsShader.setVec2("screenSize", glm::vec2(remoteWidth, remoteHeight));
+                }
+                {
                     genQuadsShader.setMat4("viewCenter", centerRemoteCamera->getViewMatrix());
                     genQuadsShader.setMat4("projectionCenter", centerRemoteCamera->getProjectionMatrix());
                     genQuadsShader.setMat4("viewInverseCenter", glm::inverse(centerRemoteCamera->getViewMatrix()));
@@ -621,6 +626,9 @@ int main(int argc, char** argv) {
 
                 // create point cloud for depth map
                 genDepthShader.bind();
+                {
+                    genDepthShader.setVec2("screenSize", glm::vec2(remoteWidth, remoteHeight));
+                }
                 {
                     genDepthShader.setMat4("view", remoteCamera->getViewMatrix());
                     genDepthShader.setMat4("projection", remoteCamera->getProjectionMatrix());

@@ -115,8 +115,6 @@ uniform mat4 projectionInverse;
 uniform float near;
 uniform float far;
 
-uniform int surfelSize;
-
 uniform bool doAverageNormal;
 uniform bool doOrientationCorrection;
 uniform float distanceThreshold;
@@ -566,7 +564,7 @@ void storeQuad(
 }
 
 void main() {
-    vec2 size = vec2(screenSize) / float(surfelSize);
+    vec2 size = vec2(screenSize);
 
     uint shaderIndex = uint(gl_GlobalInvocationID.y * size.x + gl_GlobalInvocationID.x);
 
@@ -588,26 +586,26 @@ void main() {
     vec2 surfelCoordBottomLeft  = vec2(gl_GlobalInvocationID.xy);
 
     MultiQuad2D pixelsCoords;
-    pixelsCoords.bottomLeft  = surfelSize * (surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(-1.0, -1.0));
-    pixelsCoords.bottom      = surfelSize * (surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+0.0, -1.0));
-    pixelsCoords.bottomRight = surfelSize * (surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+1.0, -1.0));
-    pixelsCoords.left        = surfelSize * (surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(-1.0, +0.0));
-    pixelsCoords.center      = surfelSize * (surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+0.0, +0.0));
-    pixelsCoords.right       = surfelSize * (surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+1.0, +0.0));
-    pixelsCoords.topLeft     = surfelSize * (surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(-1.0, +1.0));
-    pixelsCoords.top         = surfelSize * (surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+0.0, +1.0));
-    pixelsCoords.topRight    = surfelSize * (surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+1.0, +1.0));
+    pixelsCoords.bottomLeft  = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(-1.0, -1.0);
+    pixelsCoords.bottom      = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+0.0, -1.0);
+    pixelsCoords.bottomRight = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+1.0, -1.0);
+    pixelsCoords.left        = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(-1.0, +0.0);
+    pixelsCoords.center      = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+0.0, +0.0);
+    pixelsCoords.right       = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+1.0, +0.0);
+    pixelsCoords.topLeft     = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(-1.0, +1.0);
+    pixelsCoords.top         = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+0.0, +1.0);
+    pixelsCoords.topRight    = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+1.0, +1.0);
 
     MultiQuad2D surfelCoords;
-    surfelCoords.bottomLeft  = surfelSize * (surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.0, 0.0));
-    surfelCoords.bottom      = surfelSize * (surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.5, 0.0));
-    surfelCoords.bottomRight = surfelSize * (surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(1.0, 0.0));
-    surfelCoords.left        = surfelSize * (surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.0, 0.5));
+    surfelCoords.bottomLeft  = surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.0, 0.0);
+    surfelCoords.bottom      = surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.5, 0.0);
+    surfelCoords.bottomRight = surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(1.0, 0.0);
+    surfelCoords.left        = surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.0, 0.5);
     surfelCoords.center      = pixelsCoords.center;
-    surfelCoords.right       = surfelSize * (surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(1.0, 0.5));
-    surfelCoords.topLeft     = surfelSize * (surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.0, 1.0));
-    surfelCoords.top         = surfelSize * (surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.5, 1.0));
-    surfelCoords.topRight    = surfelSize * (surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(1.0, 1.0));
+    surfelCoords.right       = surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(1.0, 0.5);
+    surfelCoords.topLeft     = surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.0, 1.0);
+    surfelCoords.top         = surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(0.5, 1.0);
+    surfelCoords.topRight    = surfelCoordBottomLeft + vec2(0.0, 0.0) + vec2(1.0, 1.0);
 
     // sample texture maps
     MultiQuad2D uvs;
