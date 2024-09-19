@@ -588,7 +588,7 @@ int main(int argc, char** argv) {
                 numIndicesBuffers[i].getSubData(0, 1, &indicesSize);
 
                 meshes[i]->resizeBuffers(verticesSize, indicesSize);
-                meshWireframes[i]->resizeBuffers(verticesSize, verticesSize);
+                meshWireframes[i]->resizeBuffers(verticesSize, indicesSize);
 
                 // create point cloud for depth map
                 genDepthShader.bind();

@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
         quadMapSize /= 2.0f;
     }
 
-    glm::vec2 depthBufferSize = 4.0f * quadMapSizes[0];
+    glm::vec2 depthBufferSize = 4.0f * glm::vec2(remoteWidth, remoteHeight);
     Buffer<float> depthOffsetBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * depthBufferSize.x * depthBufferSize.y, nullptr);
 
     RenderTarget renderTarget({
@@ -342,7 +342,7 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string fileName = DATA_PATH + std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
@@ -505,6 +505,7 @@ int main(int argc, char** argv) {
                 genQuadMapShader.setFloat("distanceThreshold", distanceThreshold);
                 genQuadMapShader.setFloat("angleThreshold", glm::radians(angleThreshold));
                 genQuadMapShader.setFloat("flatThreshold", flatThreshold * 1e-3f);
+                genQuadMapShader.setBool("discardOutOfRangeDepths", false);
             }
             {
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadMaps[0]);
@@ -574,8 +575,8 @@ int main(int argc, char** argv) {
             FOURTH PASS: Generate quads from quad map
             ============================
             */
-           for (int i = 0; i < quadMaps.size(); i++) {
-                auto& buffer = quadMaps[i];
+            for (int i = 0; i < quadMaps.size(); i++) {
+                auto& quadMap = quadMaps[i];
                 auto quadMapSize = quadMapSizes[i];
 
                 genQuadsFromQuadMapsShader.bind();
@@ -593,7 +594,7 @@ int main(int argc, char** argv) {
                     genQuadsFromQuadMapsShader.setFloat("far", remoteCamera.far);
                 }
                 {
-                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, buffer);
+                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadMap);
                     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, numVerticesBuffer);
                     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, numIndicesBuffer);
                     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, mesh.vertexBuffer);
@@ -605,8 +606,8 @@ int main(int argc, char** argv) {
 
                 genQuadsFromQuadMapsShader.dispatch(quadMapSize.x / 16, quadMapSize.y / 16, 1);
                 genQuadsFromQuadMapsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
-                                                        GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
-           }
+                                                         GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+            }
 
             // get number of vertices and indices in mesh
             unsigned int verticesSize;

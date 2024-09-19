@@ -97,6 +97,8 @@ uniform float distanceThreshold;
 uniform float angleThreshold;
 uniform float flatThreshold;
 
+uniform bool discardOutOfRangeDepths;
+
 const float epilson = 1e-5;
 
 const float surfelSize = 0.5;
@@ -589,6 +591,8 @@ void main() {
 
     **********************************/
 
+    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
+
     // calculate coords (see above)
     vec2 surfelCornerCoordBottomLeft  = vec2(gl_GlobalInvocationID.xy);
     vec2 pixelCenterCoord = surfelCornerCoordBottomLeft + vec2(0.5, 0.5);
@@ -638,6 +642,14 @@ void main() {
     pixelDepths.topLeft     = sampleDepth(depthMap, uvs.topLeft);
     pixelDepths.top         = sampleDepth(depthMap, uvs.top);
     pixelDepths.topRight    = sampleDepth(depthMap, uvs.topRight);
+
+    if (discardOutOfRangeDepths && pixelDepths.center >= MAX_DEPTH) {
+        // store an empty plane to clear the output quad map
+        QuadMapData ignoredQuadMapData;
+        ignoredQuadMapData.size = 0;
+        storeInQuadMap(pixelCoord, ignoredQuadMapData);
+        return;
+    }
 
     // project 2D points to 3D view space
     MultiQuad2D pixelCenterNDCs;
@@ -771,8 +783,6 @@ void main() {
     subQuadTopRight.topRight = surfelView.topRight;
     subQuadTopRight.bottomLeft = surfelView.center;
     subQuadTopRight.bottomRight = surfelView.right;
-
-    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
 
     // save quads in quad map
     storeSurfelsInQuadMap(
