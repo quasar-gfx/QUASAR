@@ -180,8 +180,6 @@ void CubeMap::loadFromEquirectTexture(const Shader &equirectToCubeMapShader, con
     }
 
     equirectTexture.unbind();
-
-    equirectToCubeMapShader.unbind();
 }
 
 void CubeMap::convolve(const Shader &convolutionShader, const CubeMap &envCubeMap) const {
@@ -198,8 +196,6 @@ void CubeMap::convolve(const Shader &convolutionShader, const CubeMap &envCubeMa
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         drawCube();
     }
-
-    convolutionShader.unbind();
 }
 
 void CubeMap::prefilter(const Shader &prefilterShader, const CubeMap &envCubeMap, Renderbuffer &captureRBO) const {
@@ -226,8 +222,6 @@ void CubeMap::prefilter(const Shader &prefilterShader, const CubeMap &envCubeMap
             drawCube();
         }
     }
-
-    prefilterShader.unbind();
 }
 
 RenderStats CubeMap::draw(const Shader &shader, const Camera &camera) const {
@@ -256,8 +250,6 @@ RenderStats CubeMap::draw(const Shader &shader, const Camera &camera) const {
     bind();
     stats += drawCube();
     unbind();
-
-    shader.unbind();
 
     stats.drawCalls = 1;
 

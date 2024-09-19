@@ -106,8 +106,6 @@ RenderStats DepthPeelingRenderer::compositeLayers() {
 
     stats += outputFsQuad.draw();
 
-    compositeLayersShader.unbind();
-
     endRendering();
 
     return stats;

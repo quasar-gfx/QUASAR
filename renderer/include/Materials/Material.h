@@ -32,7 +32,6 @@ public:
             glActiveTexture(GL_TEXTURE0 + i);
             glBindTexture(GL_TEXTURE_2D, 0);
         }
-        shader->unbind();
     }
 };
 

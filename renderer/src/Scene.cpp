@@ -110,7 +110,6 @@ void Scene::setupIBL(const CubeMap &envCubeMap) {
     glViewport(0, 0, brdfLUT.width, brdfLUT.height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     brdfFsQuad.draw();
-    brdfShader.unbind();
 
     captureRenderTarget.unbind();
     captureRenderBuffer.unbind();

@@ -238,7 +238,6 @@ RenderStats OpenGLRenderer::drawSkyBoxImpl(const Scene &scene, const Camera &cam
 
     skyboxShader.bind();
     skyboxShader.setTexture("environmentMap", skybox, 0);
-    skyboxShader.unbind();
 
     // disable writing to the depth buffer
     glDepthFunc(GL_LEQUAL);
@@ -355,7 +354,6 @@ RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const Rende
     screenShader.bind();
     setScreenShaderUniforms(screenShader);
     RenderStats stats = outputFsQuad.draw();
-    screenShader.unbind();
 
     if (overrideRenderTarget != nullptr) {
         overrideRenderTarget->unbind();
