@@ -62,21 +62,20 @@ int main(int argc, char** argv) {
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
 
-    unsigned int screenWidth, screenHeight;
-    window->getSize(screenWidth, screenHeight);
+    glm::uvec2 windowSize = window->getSize();
 
     Scene scene;
     std::unique_ptr<Camera> camera;
     SceneLoader loader = SceneLoader();
     if (vrMode) {
-        auto vrCamera = std::make_unique<VRCamera>(screenWidth / 2, screenHeight);
+        auto vrCamera = std::make_unique<VRCamera>(windowSize.x / 2, windowSize.y);
         loader.loadScene(scenePath, scene, vrCamera->left);
         vrCamera->right.setViewMatrix(vrCamera->left.getViewMatrix());
         vrCamera->right.setProjectionMatrix(vrCamera->left.getProjectionMatrix());
         camera = std::move(vrCamera);
     }
     else {
-        auto perspectiveCamera = std::make_unique<PerspectiveCamera>(screenWidth, screenHeight);
+        auto perspectiveCamera = std::make_unique<PerspectiveCamera>(windowSize.x, windowSize.y);
         loader.loadScene(scenePath, scene, *perspectiveCamera);
         camera = std::move(perspectiveCamera);
     }
@@ -84,8 +83,8 @@ int main(int argc, char** argv) {
     glm::vec3 initialPosition = camera->getPosition();
 
     VideoStreamer videoStreamerRT = VideoStreamer({
-        .width = screenWidth,
-        .height = screenHeight,
+        .width = windowSize.x,
+        .height = windowSize.y,
         .internalFormat = GL_SRGB8,
         .format = GL_RGB,
         .type = GL_FLOAT,
@@ -110,7 +109,7 @@ int main(int argc, char** argv) {
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
 
-        glm::vec2 winSize = glm::vec2(screenWidth, screenHeight);
+        glm::vec2 winSize = glm::vec2(windowSize.x, windowSize.y);
 
         ImGui::NewFrame();
 
@@ -213,19 +212,17 @@ int main(int argc, char** argv) {
     });
 
     app.onResize([&](unsigned int width, unsigned int height) {
-        screenWidth = width;
-        screenHeight = height;
-
-        renderer.resize(width, height);
+        windowSize = glm::uvec2(width, height);
+        renderer.resize(windowSize.x, windowSize.y);
         if (vrMode) {
             auto vrCamera = static_cast<VRCamera*>(camera.get());
-            vrCamera->left.aspect = (float)(screenWidth / 2) / (float)screenHeight;
-            vrCamera->right.aspect = (float)(screenWidth / 2) / (float)screenHeight;
+            vrCamera->left.aspect = (float)(windowSize.x / 2) / (float)windowSize.y;
+            vrCamera->right.aspect = (float)(windowSize.x / 2) / (float)windowSize.y;
             vrCamera->updateProjectionMatrix();
         }
         else {
             auto perspectiveCamera = static_cast<PerspectiveCamera*>(camera.get());
-            perspectiveCamera->aspect = (float)screenWidth / (float)screenHeight;
+            perspectiveCamera->aspect = (float)windowSize.x / (float)windowSize.y;
             perspectiveCamera->updateProjectionMatrix();
         }
     });

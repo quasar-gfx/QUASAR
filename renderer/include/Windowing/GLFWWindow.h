@@ -15,7 +15,7 @@ public:
         glfwTerminate();
     }
 
-    void getSize(unsigned int &width, unsigned int &height) override;
+    glm::uvec2 getSize() override;
 
     bool resized() override;
 

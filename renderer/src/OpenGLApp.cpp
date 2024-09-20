@@ -26,13 +26,12 @@ void OpenGLApp::run() {
         double deltaTime = currTime - prevTime;
 
         if (window->resized()) {
-            unsigned int width, height;
-            window->getSize(width, height);
+            glm::uvec2 windowSize = window->getSize();
 
-            std::cout << "Resized to " << width << "x" << height << std::endl;
+            std::cout << "Resized to " << windowSize.x << "x" << windowSize.y << std::endl;
 
             if (resizeCallback) {
-                resizeCallback(width, height);
+                resizeCallback(windowSize.x, windowSize.y);
             }
         }
 

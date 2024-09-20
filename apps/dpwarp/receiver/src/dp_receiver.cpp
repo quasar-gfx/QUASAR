@@ -29,7 +29,6 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
-    args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
     args::ValueFlag<int> renderStateIn(parser, "render", "Render state", {'r', "render-state"}, 0);
     args::ValueFlag<int> maxLayersIn(parser, "layers", "Max layers", {'n', "max-layers"}, 8);
     try {
@@ -54,7 +53,6 @@ int main(int argc, char** argv) {
     std::string scenePath = args::get(scenePathIn);
 
     RenderState renderState = static_cast<RenderState>(args::get(renderStateIn));
-    int surfelSize = args::get(surfelSizeIn);
     int maxLayers = args::get(maxLayersIn);
     int maxViews = maxLayers + 1;
 
@@ -67,11 +65,10 @@ int main(int argc, char** argv) {
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
 
-    unsigned int screenWidth, screenHeight;
-    window->getSize(screenWidth, screenHeight);
+    glm::uvec2 windowSize = window->getSize();
 
     Scene scene;
-    PerspectiveCamera camera(screenWidth, screenHeight);
+    PerspectiveCamera camera(windowSize.x, windowSize.y);
 
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
 
@@ -88,7 +85,7 @@ int main(int argc, char** argv) {
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
 
-        glm::vec2 winSize = glm::vec2(screenWidth, screenHeight);
+        glm::vec2 winSize = glm::vec2(windowSize.x, windowSize.y);
 
         ImGui::NewFrame();
 
@@ -197,12 +194,10 @@ int main(int argc, char** argv) {
     });
 
     app.onResize([&](unsigned int width, unsigned int height) {
-        screenWidth = width;
-        screenHeight = height;
+        windowSize = glm::uvec2(width, height);
+        renderer.resize(windowSize.x, windowSize.y);
 
-        renderer.resize(width, height);
-
-        camera.aspect = (float)screenWidth / (float)screenHeight;
+        camera.aspect = (float)windowSize.x / (float)windowSize.y;
         camera.updateProjectionMatrix();
     });
 
@@ -212,7 +207,7 @@ int main(int argc, char** argv) {
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
 
-    std::vector<Texture*> colorTexture(maxViews);
+    std::vector<Texture*> colorTextures(maxViews);
 
     std::vector<Mesh*> meshes(maxViews);
     std::vector<Node*> nodes(maxViews);
@@ -228,7 +223,7 @@ int main(int argc, char** argv) {
         auto vertexData = FileIO::loadBinaryFile(verticesFileName);
         auto indexData = FileIO::loadBinaryFile(indicesFileName);
 
-        colorTexture[i] = new Texture({
+        colorTextures[i] = new Texture({
             .wrapS = GL_REPEAT,
             .wrapT = GL_REPEAT,
             .minFilter = GL_NEAREST,
@@ -237,22 +232,16 @@ int main(int argc, char** argv) {
             .path = colorFileName
         });
 
-        unsigned int remoteWidth = colorTexture[i]->width / surfelSize;
-        unsigned int remoteHeight = colorTexture[i]->height / surfelSize;
-
-        int numVertices = remoteWidth * remoteHeight * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
-        std::vector<Vertex> vertices(numVertices);
+        std::vector<Vertex> vertices(vertexData.size() / sizeof(Vertex));
         std::memcpy(vertices.data(), vertexData.data(), vertexData.size());
 
-        int numTriangles = remoteWidth * remoteHeight * NUM_SUB_QUADS * 2;
-        int indexBufferSize = numTriangles * 3;
-        std::vector<unsigned int> indices(indexBufferSize);
+        std::vector<unsigned int> indices(indexData.size() / sizeof(unsigned int));
         std::memcpy(indices.data(), indexData.data(), indexData.size());
 
         meshes[i] = new Mesh({
             .vertices = vertices,
             .indices = indices,
-            .material = new UnlitMaterial({ .diffuseTexture = colorTexture[i] }),
+            .material = new UnlitMaterial({ .diffuseTexture = colorTextures[i] }),
             .pointcloud = renderState == RenderState::POINTCLOUD,
         });
         nodes[i] = new Node(meshes[i]);
@@ -285,8 +274,8 @@ int main(int argc, char** argv) {
             window->setMouseCursor(!mouseButtons.LEFT_PRESSED);
             static bool dragging = false;
             static bool prevMouseLeftPressed = false;
-            static float lastX = screenWidth / 2.0;
-            static float lastY = screenHeight / 2.0;
+            static float lastX = windowSize.x / 2.0;
+            static float lastY = windowSize.y / 2.0;
             if (!prevMouseLeftPressed && mouseButtons.LEFT_PRESSED) {
                 dragging = true;
                 prevMouseLeftPressed = true;

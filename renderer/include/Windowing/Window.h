@@ -1,6 +1,8 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
+#include <glm/glm.hpp>
+
 struct Mouse {
     bool LEFT_PRESSED = false;
     bool MIDDLE_PRESSED = false;
@@ -26,7 +28,7 @@ class Window {
 public:
     virtual ~Window() = default;
 
-    virtual void getSize(unsigned int &width, unsigned int &height) = 0;
+    virtual glm::uvec2 getSize() = 0;
     virtual bool resized() = 0;
 
     virtual Mouse getMouseButtons() = 0;

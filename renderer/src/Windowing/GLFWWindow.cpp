@@ -33,15 +33,15 @@ GLFWWindow::GLFWWindow(const Config &config) {
     }
 }
 
-void GLFWWindow::getSize(unsigned int &width, unsigned int &height) {
+glm::uvec2 GLFWWindow::getSize() {
     int frameBufferWidth, frameBufferHeight;
     glfwGetFramebufferSize(window, &frameBufferWidth, &frameBufferHeight);
     while (frameBufferWidth == 0 || frameBufferHeight == 0) {
         glfwWaitEvents();
         glfwGetFramebufferSize(window, &frameBufferWidth, &frameBufferHeight);
     }
-    width = frameBufferWidth;
-    height = frameBufferHeight;
+
+    return glm::vec2(frameBufferWidth, frameBufferHeight);
 }
 
 bool GLFWWindow::resized() {

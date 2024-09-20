@@ -49,11 +49,10 @@ int main(int argc, char** argv) {
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
 
-    unsigned int screenWidth, screenHeight;
-    window->getSize(screenWidth, screenHeight);
+    glm::uvec2 windowSize = window->getSize();
 
     Scene scene;
-    PerspectiveCamera camera(screenWidth, screenHeight);
+    PerspectiveCamera camera(windowSize.x, windowSize.y);
     SceneLoader loader = SceneLoader();
     loader.loadScene(scenePath, scene, camera);
 
@@ -67,7 +66,7 @@ int main(int argc, char** argv) {
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
 
-        glm::vec2 winSize = glm::vec2(screenWidth, screenHeight);
+        glm::vec2 winSize = glm::vec2(windowSize.x, windowSize.y);
 
         ImGui::NewFrame();
 
@@ -180,12 +179,10 @@ int main(int argc, char** argv) {
     });
 
     app.onResize([&](unsigned int width, unsigned int height) {
-        screenWidth = width;
-        screenHeight = height;
+        windowSize = glm::uvec2(width, height);
+        renderer.resize(windowSize.x, windowSize.y);
 
-        renderer.resize(width, height);
-
-        camera.aspect = (float)screenWidth / (float)screenHeight;
+        camera.aspect = (float)windowSize.x / (float)windowSize.y;
         camera.updateProjectionMatrix();
     });
 
@@ -222,8 +219,8 @@ int main(int argc, char** argv) {
             window->setMouseCursor(!mouseButtons.LEFT_PRESSED);
             static bool dragging = false;
             static bool prevMouseLeftPressed = false;
-            static float lastX = screenWidth / 2.0;
-            static float lastY = screenHeight / 2.0;
+            static float lastX = windowSize.x / 2.0;
+            static float lastY = windowSize.y / 2.0;
             if (!prevMouseLeftPressed && mouseButtons.LEFT_PRESSED) {
                 dragging = true;
                 prevMouseLeftPressed = true;

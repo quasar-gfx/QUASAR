@@ -76,15 +76,14 @@ int main(int argc, char** argv) {
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
 
-    unsigned int screenWidth, screenHeight;
-    window->getSize(screenWidth, screenHeight);
+    glm::uvec2 windowSize = window->getSize();
 
     Scene scene;
-    PerspectiveCamera camera(screenWidth, screenHeight);
+    PerspectiveCamera camera(windowSize.x, windowSize.y);
 
     VideoTexture videoTextureColor({
-        .width = screenWidth,
-        .height = screenHeight,
+        .width = windowSize.x,
+        .height = windowSize.y,
         .internalFormat = GL_SRGB8,
         .format = GL_RGB,
         .type = GL_UNSIGNED_BYTE,
@@ -94,8 +93,8 @@ int main(int argc, char** argv) {
         .magFilter = GL_LINEAR
     }, videoURL);
     DepthVideoTexture videoTextureDepth({
-        .width = screenWidth / depthFactor,
-        .height = screenHeight / depthFactor,
+        .width = windowSize.x / depthFactor,
+        .height = windowSize.y / depthFactor,
         .internalFormat = GL_R16,
         .format = GL_RED,
         .type = GL_UNSIGNED_SHORT,
@@ -110,8 +109,8 @@ int main(int argc, char** argv) {
     std::cout << "Depth URL: " << depthURL << std::endl;
     std::cout << "Pose URL: " << poseURL << std::endl;
 
-    int width = screenWidth / surfelSize;
-    int height = screenHeight / surfelSize;
+    int width = windowSize.x / surfelSize;
+    int height = windowSize.y / surfelSize;
 
     int numVertices = width * height;
 
@@ -155,7 +154,7 @@ int main(int argc, char** argv) {
         static bool showVideoPreview = true;
         static bool showDepthPreview = true;
 
-        glm::vec2 winSize = glm::vec2(screenWidth, screenHeight);
+        glm::vec2 winSize = glm::vec2(windowSize.x, windowSize.y);
 
         ImGui::NewFrame();
 
@@ -259,14 +258,14 @@ int main(int argc, char** argv) {
 
         flags = ImGuiWindowFlags_AlwaysAutoResize;
         if (showVideoPreview) {
-            ImGui::SetNextWindowPos(ImVec2(screenWidth - 2 * TEXTURE_PREVIEW_SIZE - 60, 40), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(windowSize.x - 2 * TEXTURE_PREVIEW_SIZE - 60, 40), ImGuiCond_FirstUseEver);
             ImGui::Begin("Raw Color Texture", &showVideoPreview, flags);
             ImGui::Image((void*)(intptr_t)videoTextureColor.ID, ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
         }
 
         if (showDepthPreview) {
-            ImGui::SetNextWindowPos(ImVec2(screenWidth - TEXTURE_PREVIEW_SIZE - 30, 40), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(windowSize.x - TEXTURE_PREVIEW_SIZE - 30, 40), ImGuiCond_FirstUseEver);
             ImGui::Begin("Raw Depth Texture", &showDepthPreview, flags);
             ImGui::Image((void*)(intptr_t)videoTextureDepth.ID, ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
         }
@@ -300,12 +299,10 @@ int main(int argc, char** argv) {
     });
 
     app.onResize([&](unsigned int width, unsigned int height) {
-        screenWidth = width;
-        screenHeight = height;
+        windowSize = glm::uvec2(width, height);
+        renderer.resize(windowSize.x, windowSize.y);
 
-        renderer.resize(width, height);
-
-        camera.aspect = (float)screenWidth / (float)screenHeight;
+        camera.aspect = (float)windowSize.x / (float)windowSize.y;
         camera.updateProjectionMatrix();
     });
 
@@ -324,7 +321,7 @@ int main(int argc, char** argv) {
         .computeCodePath = "./shaders/genMesh.comp"
     });
     genMeshShader.bind();
-    genMeshShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
+    genMeshShader.setVec2("screenSize", glm::vec2(windowSize.x, windowSize.y));
     genMeshShader.setInt("surfelSize", surfelSize);
 
     scene.backgroundColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -340,7 +337,7 @@ int main(int argc, char** argv) {
     camera.setViewMatrix(view);
 
     // load remote camera
-    PerspectiveCamera remoteCamera(screenWidth, screenHeight);
+    PerspectiveCamera remoteCamera(windowSize.x, windowSize.y);
     auto remoteCameraData = FileIO::loadBinaryFile(DATA_PATH + "data/remoteCamera.bin");
     std::memcpy(&proj, remoteCameraData.data(), sizeof(glm::mat4));
     std::memcpy(&view, remoteCameraData.data() + sizeof(glm::mat4), sizeof(glm::mat4));
@@ -358,8 +355,8 @@ int main(int argc, char** argv) {
             window->setMouseCursor(!mouseButtons.LEFT_PRESSED);
             static bool dragging = false;
             static bool prevMouseLeftPressed = false;
-            static float lastX = screenWidth / 2.0;
-            static float lastY = screenHeight / 2.0;
+            static float lastX = windowSize.x / 2.0;
+            static float lastY = windowSize.y / 2.0;
             if (!prevMouseLeftPressed && mouseButtons.LEFT_PRESSED) {
                 dragging = true;
                 prevMouseLeftPressed = true;

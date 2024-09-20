@@ -65,13 +65,12 @@ int main(int argc, char** argv) {
     DepthPeelingRenderer dpRenderer(config, maxLayers);
     ForwardRenderer forwardRenderer(config);
 
-    unsigned int screenWidth, screenHeight;
-    window->getSize(screenWidth, screenHeight);
+    glm::uvec2 windowSize = window->getSize();
 
     Scene remoteScene;
     std::vector<PerspectiveCamera*> remoteCameras(maxViews);
     for (int i = 0; i < maxViews; i++) {
-        remoteCameras[i] = new PerspectiveCamera(screenWidth, screenHeight);
+        remoteCameras[i] = new PerspectiveCamera(windowSize.x, windowSize.y);
     }
     PerspectiveCamera* centerRemoteCamera = remoteCameras[0];
     SceneLoader loader = SceneLoader();
@@ -81,31 +80,28 @@ int main(int argc, char** argv) {
     remoteCameras[maxViews-1]->setViewMatrix(centerRemoteCamera->getViewMatrix());
 
     Scene scene;
-    PerspectiveCamera camera(screenWidth, screenHeight);
+    PerspectiveCamera camera(windowSize.x, windowSize.y);
     camera.setViewMatrix(centerRemoteCamera->getViewMatrix());
 
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
 
-    unsigned int remoteWidth = size2Width;
-    unsigned int remoteHeight = size2Height;
+    glm::uvec2 remoteSize = glm::uvec2(size2Width, size2Height);
 
-    std::vector<RenderTarget*> renderTargets(maxViews);
+    int numVertices = remoteSize.x * remoteSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
+    int numVerticesDepth = remoteSize.x * remoteSize.y;
 
-    int numVertices = remoteWidth * remoteHeight * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
-
-    int numVerticesDepth = remoteWidth * remoteHeight;
-
-    int numTriangles = remoteWidth * remoteHeight * NUM_SUB_QUADS * 2;
+    int numTriangles = remoteSize.x * remoteSize.y * NUM_SUB_QUADS * 2;
     int indexBufferSize = numTriangles * 3;
 
     GLuint zero = 0;
     std::vector<Buffer<unsigned int>> numVerticesBuffers(maxViews);
     std::vector<Buffer<unsigned int>> numIndicesBuffers(maxViews);
 
+    std::vector<RenderTarget*> renderTargets(maxViews);
     for (int i = 0; i < maxViews; i++) {
         renderTargets[i] = new RenderTarget({
-            .width = remoteWidth,
-            .height = remoteHeight,
+            .width = windowSize.x,
+            .height = windowSize.y,
             .internalFormat = GL_RGBA16,
             .format = GL_RGBA,
             .type = GL_FLOAT,
@@ -221,7 +217,7 @@ int main(int argc, char** argv) {
         static bool showMeshCaptureWindow = false;
         static int intervalIndex = 0;
 
-        glm::vec2 winSize = glm::vec2(screenWidth, screenHeight);
+        glm::vec2 winSize = glm::vec2(windowSize.x, windowSize.y);
 
         ImGui::NewFrame();
 
@@ -402,12 +398,12 @@ int main(int argc, char** argv) {
         if (showLayerPreviews) {
             flags = ImGuiWindowFlags_AlwaysAutoResize;
 
-            const int texturePreviewSize = (screenWidth * 2/3) / maxViews;
+            const int texturePreviewSize = (windowSize.x * 2/3) / maxViews;
 
             for (int i = 0; i < maxViews; i++) {
                 int layerIdx = maxViews - i - 1;
                 if (showLayers[layerIdx]) {
-                    ImGui::SetNextWindowPos(ImVec2(screenWidth - (i + 1) * texturePreviewSize - 30, 40), ImGuiCond_FirstUseEver);
+                    ImGui::SetNextWindowPos(ImVec2(windowSize.x - (i + 1) * texturePreviewSize - 30, 40), ImGuiCond_FirstUseEver);
                     ImGui::Begin(("View " + std::to_string(layerIdx)).c_str(), 0, flags);
                     ImGui::Image((void*)(intptr_t)(renderTargets[layerIdx]->colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
                     ImGui::End();
@@ -417,13 +413,12 @@ int main(int argc, char** argv) {
     });
 
     app.onResize([&](unsigned int width, unsigned int height) {
-        screenWidth = width;
-        screenHeight = height;
+        windowSize = glm::uvec2(width, height);
 
         dpRenderer.resize(width, height);
         forwardRenderer.resize(width, height);
 
-        camera.aspect = (float)screenWidth / (float)screenHeight;
+        camera.aspect = (float)windowSize.x / (float)windowSize.y;
         camera.updateProjectionMatrix();
     });
 
@@ -435,8 +430,8 @@ int main(int argc, char** argv) {
             window->setMouseCursor(!mouseButtons.LEFT_PRESSED);
             static bool dragging = false;
             static bool prevMouseLeftPressed = false;
-            static float lastX = screenWidth / 2.0;
-            static float lastY = screenHeight / 2.0;
+            static float lastX = windowSize.x / 2.0;
+            static float lastY = windowSize.y / 2.0;
             if (!prevMouseLeftPressed && mouseButtons.LEFT_PRESSED) {
                 dragging = true;
                 prevMouseLeftPressed = true;
@@ -527,7 +522,7 @@ int main(int argc, char** argv) {
 
                 genQuadsShader.bind();
                 {
-                    genQuadsShader.setVec2("screenSize", glm::vec2(remoteWidth, remoteHeight));
+                    genQuadsShader.setVec2("screenSize", remoteSize);
                 }
                 {
                     genQuadsShader.setMat4("view", remoteCamera->getViewMatrix());
@@ -575,7 +570,7 @@ int main(int argc, char** argv) {
                 numIndicesBuffers[i].setSubData(0, 1, &zero);
 
                 // run compute shader
-                genQuadsShader.dispatch(remoteWidth / 16, remoteHeight / 16, 1);
+                genQuadsShader.dispatch(remoteSize.x / 16, remoteSize.y / 16, 1);
                 genQuadsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
                 // get number of vertices and indices in mesh
@@ -593,7 +588,7 @@ int main(int argc, char** argv) {
                 // create point cloud for depth map
                 genDepthShader.bind();
                 {
-                    genDepthShader.setVec2("screenSize", glm::vec2(remoteWidth, remoteHeight));
+                    genDepthShader.setVec2("screenSize", remoteSize);
                 }
                 {
                     genDepthShader.setMat4("view", remoteCamera->getViewMatrix());
@@ -621,7 +616,7 @@ int main(int argc, char** argv) {
                 {
                     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, meshDepths[i]->vertexBuffer);
                 }
-                genDepthShader.dispatch(remoteWidth / 16, remoteHeight / 16, 1);
+                genDepthShader.dispatch(remoteSize.x / 16, remoteSize.y / 16, 1);
                 genDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
             }
 

@@ -1,4 +1,4 @@
-layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = THREADS_PER_LOCALGROUP, local_size_z = 1) in;
 
 precision highp sampler2D;
 precision highp image2D;

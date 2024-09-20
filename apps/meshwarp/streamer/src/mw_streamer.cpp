@@ -74,17 +74,16 @@ int main(int argc, char** argv) {
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
 
-    unsigned int screenWidth, screenHeight;
-    window->getSize(screenWidth, screenHeight);
+    glm::uvec2 windowSize = window->getSize();
 
     Scene scene;
-    PerspectiveCamera camera(screenWidth, screenHeight);
+    PerspectiveCamera camera(windowSize.x, windowSize.y);
     SceneLoader loader = SceneLoader();
     loader.loadScene(scenePath, scene, camera);
 
     VideoStreamer videoStreamerColorRT = VideoStreamer({
-        .width = screenWidth,
-        .height = screenHeight,
+        .width = windowSize.x,
+        .height = windowSize.y,
         .internalFormat = GL_SRGB8,
         .format = GL_RGB,
         .type = GL_FLOAT,
@@ -94,8 +93,8 @@ int main(int argc, char** argv) {
         .magFilter = GL_LINEAR
     }, videoURL, targetBitrate);
     DepthStreamer videoStreamerDepthRT = DepthStreamer({
-        .width = screenWidth / depthFactor,
-        .height = screenHeight / depthFactor,
+        .width = windowSize.x / depthFactor,
+        .height = windowSize.y / depthFactor,
         .internalFormat = GL_R16,
         .format = GL_RED,
         .type = GL_UNSIGNED_SHORT,
@@ -116,7 +115,7 @@ int main(int argc, char** argv) {
         static char fileNameBase[256] = "screenshot";
         static bool showDepth = true;
 
-        glm::vec2 winSize = glm::vec2(screenWidth, screenHeight);
+        glm::vec2 winSize = glm::vec2(windowSize.x, windowSize.y);
 
         ImGui::NewFrame();
 
@@ -195,7 +194,7 @@ int main(int argc, char** argv) {
         }
 
         if (showDepth) {
-            ImGui::SetNextWindowPos(ImVec2(screenWidth - TEXTURE_PREVIEW_SIZE - 30, 40), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(windowSize.x - TEXTURE_PREVIEW_SIZE - 30, 40), ImGuiCond_FirstUseEver);
             flags = ImGuiWindowFlags_AlwaysAutoResize;
             ImGui::Begin("Raw Depth Texture", 0, flags);
             ImGui::Image((void*)(intptr_t)videoStreamerDepthRT.colorBuffer.ID, ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
@@ -229,12 +228,10 @@ int main(int argc, char** argv) {
     });
 
     app.onResize([&](unsigned int width, unsigned int height) {
-        screenWidth = width;
-        screenHeight = height;
+        windowSize = glm::uvec2(width, height);
+        renderer.resize(windowSize.x, windowSize.y);
 
-        renderer.resize(width, height);
-
-        camera.aspect = (float)screenWidth / (float)screenHeight;
+        camera.aspect = (float)windowSize.x / (float)windowSize.y;
         camera.updateProjectionMatrix();
     });
 
