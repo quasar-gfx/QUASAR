@@ -100,7 +100,7 @@ void main() {
 
     vec2 surfelCoordBottomLeft = vec2(gl_GlobalInvocationID.xy);
     vec2 pixelCoordsCenter     = surfelSize * (surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+0.0, +0.0));
-    vec2 uvCenter              = pixelCoordsCenter / screenSize;
+    vec2 uvCenter              = pixelCoordsCenter / (screenSize-1);
     vec2 pixelCoordsNDC        = 2.0 * uvCenter - 1.0;
     float pixelDepth           = sampleDepth(depthMap, uvCenter);
     vec3 pixelCoordsViewCenter = ndcToView(projectionInverse, pixelCoordsNDC, pixelDepth);

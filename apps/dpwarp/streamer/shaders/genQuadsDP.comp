@@ -609,15 +609,15 @@ void main() {
 
     // sample texture maps
     MultiQuad2D uvs;
-    uvs.bottomLeft  = pixelsCoords.bottomLeft  / screenSize;
-    uvs.bottom      = pixelsCoords.bottom      / screenSize;
-    uvs.bottomRight = pixelsCoords.bottomRight / screenSize;
-    uvs.left        = pixelsCoords.left        / screenSize;
-    uvs.center      = pixelsCoords.center      / screenSize;
-    uvs.right       = pixelsCoords.right       / screenSize;
-    uvs.topLeft     = pixelsCoords.topLeft     / screenSize;
-    uvs.top         = pixelsCoords.top         / screenSize;
-    uvs.topRight    = pixelsCoords.topRight    / screenSize;
+    uvs.bottomLeft  = pixelsCoords.bottomLeft  / (screenSize-1);
+    uvs.bottom      = pixelsCoords.bottom      / (screenSize-1);
+    uvs.bottomRight = pixelsCoords.bottomRight / (screenSize-1);
+    uvs.left        = pixelsCoords.left        / (screenSize-1);
+    uvs.center      = pixelsCoords.center      / (screenSize-1);
+    uvs.right       = pixelsCoords.right       / (screenSize-1);
+    uvs.topLeft     = pixelsCoords.topLeft     / (screenSize-1);
+    uvs.top         = pixelsCoords.top         / (screenSize-1);
+    uvs.topRight    = pixelsCoords.topRight    / (screenSize-1);
 
     MultiQuad1D pixelDepths;
     pixelDepths.bottomLeft  = sampleDepth(depthMap, uvs.bottomLeft);
@@ -637,26 +637,26 @@ void main() {
 
     // project points to view space
     MultiQuad2D pixelNDCs;
-    pixelNDCs.bottomLeft  = 2.0 * (pixelsCoords.bottomLeft / screenSize) - 1.0;
-    pixelNDCs.bottom      = 2.0 * (pixelsCoords.bottom / screenSize) - 1.0;
-    pixelNDCs.bottomRight = 2.0 * (pixelsCoords.bottomRight / screenSize) - 1.0;
-    pixelNDCs.left        = 2.0 * (pixelsCoords.left / screenSize) - 1.0;
-    pixelNDCs.center      = 2.0 * (pixelsCoords.center / screenSize) - 1.0;
-    pixelNDCs.right       = 2.0 * (pixelsCoords.right / screenSize) - 1.0;
-    pixelNDCs.topLeft     = 2.0 * (pixelsCoords.topLeft / screenSize) - 1.0;
-    pixelNDCs.top         = 2.0 * (pixelsCoords.top / screenSize) - 1.0;
-    pixelNDCs.topRight    = 2.0 * (pixelsCoords.topRight / screenSize) - 1.0;
+    pixelNDCs.bottomLeft  = 2.0 * (pixelsCoords.bottomLeft / (screenSize-1)) - 1.0;
+    pixelNDCs.bottom      = 2.0 * (pixelsCoords.bottom / (screenSize-1)) - 1.0;
+    pixelNDCs.bottomRight = 2.0 * (pixelsCoords.bottomRight / (screenSize-1)) - 1.0;
+    pixelNDCs.left        = 2.0 * (pixelsCoords.left / (screenSize-1)) - 1.0;
+    pixelNDCs.center      = 2.0 * (pixelsCoords.center / (screenSize-1)) - 1.0;
+    pixelNDCs.right       = 2.0 * (pixelsCoords.right / (screenSize-1)) - 1.0;
+    pixelNDCs.topLeft     = 2.0 * (pixelsCoords.topLeft / (screenSize-1)) - 1.0;
+    pixelNDCs.top         = 2.0 * (pixelsCoords.top / (screenSize-1)) - 1.0;
+    pixelNDCs.topRight    = 2.0 * (pixelsCoords.topRight / (screenSize-1)) - 1.0;
 
     MultiQuad2D surfelNDCs;
-    surfelNDCs.bottomLeft  = 2.0 * (surfelCoords.bottomLeft / screenSize) - 1.0;
-    surfelNDCs.bottom      = 2.0 * (surfelCoords.bottom / screenSize) - 1.0;
-    surfelNDCs.bottomRight = 2.0 * (surfelCoords.bottomRight / screenSize) - 1.0;
-    surfelNDCs.left        = 2.0 * (surfelCoords.left / screenSize) - 1.0;
-    surfelNDCs.center      = 2.0 * (surfelCoords.center / screenSize) - 1.0;
-    surfelNDCs.right       = 2.0 * (surfelCoords.right / screenSize) - 1.0;
-    surfelNDCs.topLeft     = 2.0 * (surfelCoords.topLeft / screenSize) - 1.0;
-    surfelNDCs.top         = 2.0 * (surfelCoords.top / screenSize) - 1.0;
-    surfelNDCs.topRight    = 2.0 * (surfelCoords.topRight / screenSize) - 1.0;
+    surfelNDCs.bottomLeft  = 2.0 * (surfelCoords.bottomLeft / (screenSize-1)) - 1.0;
+    surfelNDCs.bottom      = 2.0 * (surfelCoords.bottom / (screenSize-1)) - 1.0;
+    surfelNDCs.bottomRight = 2.0 * (surfelCoords.bottomRight / (screenSize-1)) - 1.0;
+    surfelNDCs.left        = 2.0 * (surfelCoords.left / (screenSize-1)) - 1.0;
+    surfelNDCs.center      = 2.0 * (surfelCoords.center / (screenSize-1)) - 1.0;
+    surfelNDCs.right       = 2.0 * (surfelCoords.right / (screenSize-1)) - 1.0;
+    surfelNDCs.topLeft     = 2.0 * (surfelCoords.topLeft / (screenSize-1)) - 1.0;
+    surfelNDCs.top         = 2.0 * (surfelCoords.top / (screenSize-1)) - 1.0;
+    surfelNDCs.topRight    = 2.0 * (surfelCoords.topRight / (screenSize-1)) - 1.0;
 
     MultiQuad pixelCoordsView;
     pixelCoordsView.bottomLeft  = ndcToView(projectionInverse, pixelNDCs.bottomLeft, pixelDepths.bottomLeft);

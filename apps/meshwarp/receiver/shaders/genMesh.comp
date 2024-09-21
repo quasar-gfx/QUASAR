@@ -105,7 +105,7 @@ void main() {
     vec2 surfelCoord = vec2(gl_GlobalInvocationID.xy);
 
     vec2 pixelCoord = surfelSize * (surfelCoord + vec2(0.5, 0.5));
-    vec2 pixelCoordNormalized = vec2(pixelCoord) / screenSize;
+    vec2 pixelCoordNormalized = vec2(pixelCoord) / (screenSize-1);
 
     float depth = sampleDepth(depthMap, pixelCoordNormalized);
 

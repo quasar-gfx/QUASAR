@@ -258,10 +258,10 @@ void storeDepthOffsets(in ivec2 pixelCoord, in Quad1D depthOffsets) {
 
 void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthOffets, in Plane proxyPlane) {
     Quad2D surfelUVs;
-    surfelUVs.bottomLeft  = surfelPixelCoords.bottomLeft / remoteWinSize;
-    surfelUVs.bottomRight = surfelPixelCoords.bottomRight / remoteWinSize;
-    surfelUVs.topLeft     = surfelPixelCoords.topLeft / remoteWinSize;
-    surfelUVs.topRight    = surfelPixelCoords.topRight / remoteWinSize;
+    surfelUVs.bottomLeft  = surfelPixelCoords.bottomLeft / (remoteWinSize-1);
+    surfelUVs.bottomRight = surfelPixelCoords.bottomRight / (remoteWinSize-1);
+    surfelUVs.topLeft     = surfelPixelCoords.topLeft / (remoteWinSize-1);
+    surfelUVs.topRight    = surfelPixelCoords.topRight / (remoteWinSize-1);
 
     Quad2D surfelNDCs;
     surfelNDCs.bottomLeft  = surfelUVs.bottomLeft * 2.0 - 1.0;
