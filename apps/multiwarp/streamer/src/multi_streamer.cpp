@@ -112,11 +112,11 @@ int main(int argc, char** argv) {
     Buffer<unsigned int> numVerticesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(GLuint), &zero);
     Buffer<unsigned int> numIndicesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(GLuint), &zero);
 
-    int numVertices = remoteSize.x * remoteSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
-    int numVerticesDepth = remoteSize.x * remoteSize.y;
+    int maxVertices = remoteSize.x * remoteSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
+    int maxVerticesDepth = remoteSize.x * remoteSize.y;
 
     int numTriangles = remoteSize.x * remoteSize.y * NUM_SUB_QUADS * 2;
-    int indexBufferSize = numTriangles * 3;
+    int maxIndices = numTriangles * 3;
 
     struct QuadMapData {
         bool flattened;
@@ -165,8 +165,8 @@ int main(int argc, char** argv) {
 
     for (int view = 0; view < maxViews; view++) {
         meshes[view] = new Mesh({
-            .vertices = std::vector<Vertex>(numVertices),
-            .indices = std::vector<unsigned int>(indexBufferSize),
+            .vertices = std::vector<Vertex>(maxVertices),
+            .indices = std::vector<unsigned int>(maxIndices),
             .material = new UnlitMaterial({ .diffuseTexture = &renderTargets[view]->colorBuffer }),
             .usage = GL_DYNAMIC_DRAW
         });
@@ -182,8 +182,8 @@ int main(int argc, char** argv) {
                             1.0f);
 
         meshWireframes[view] = new Mesh({
-            .vertices = std::vector<Vertex>(numVertices),
-            .indices = std::vector<unsigned int>(indexBufferSize),
+            .vertices = std::vector<Vertex>(maxVertices),
+            .indices = std::vector<unsigned int>(maxIndices),
             .material = new UnlitMaterial({ .baseColor = color }),
             .usage = GL_DYNAMIC_DRAW
         });
@@ -193,7 +193,7 @@ int main(int argc, char** argv) {
         scene.addChildNode(nodeWireframes[view]);
 
         meshDepths[view] = new Mesh({
-            .vertices = std::vector<Vertex>(numVerticesDepth),
+            .vertices = std::vector<Vertex>(maxVerticesDepth),
             .material = new UnlitMaterial({ .baseColor = color }),
             .pointcloud = true,
             .pointSize = 7.5f,
@@ -583,7 +583,15 @@ int main(int argc, char** argv) {
             }
             preventCopyingLocalPose = false;
 
+            std::cout << "======================================================" << std::endl;
+
             double startTime = glfwGetTime();
+            double avgRenderTime = 0.0;
+            double avgGenQuadMapTime = 0.0;
+            double avgSimplifyTime = 0.0;
+            double avgGenQuadsTime = 0.0;
+            double avgSetMeshBuffersTime = 0.0;
+            double avgGenDepthTime = 0.0;
 
             for (int view = 0; view < maxViews; view++) {
                 auto* remoteCamera = remoteCameras[view];
@@ -591,6 +599,7 @@ int main(int argc, char** argv) {
                 auto* currMesh = meshes[view];
                 auto* currMeshDepth = meshDepths[view];
                 auto* currMeshWireframe = meshWireframes[view];
+                startTime = glfwGetTime();
 
                 /*
                 ============================
@@ -628,6 +637,8 @@ int main(int argc, char** argv) {
                 else {
                     renderer.drawToRenderTarget(screenShaderNormals, *renderTargets[view]);
                 }
+                avgRenderTime += glfwGetTime() - startTime;
+                startTime = glfwGetTime();
 
                 /*
                 ============================
@@ -665,16 +676,12 @@ int main(int argc, char** argv) {
                     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, depthOffsetBuffer);
                 }
 
-                // set numVertices and numIndices to 0 before running compute shader
-                numVerticesBuffer.bind();
-                numVerticesBuffer.setSubData(0, 1, &zero);
-
-                numIndicesBuffer.bind();
-                numIndicesBuffer.setSubData(0, 1, &zero);
-
                 // run compute shader
                 genQuadMapShader.dispatch(remoteSize.x / THREADS_PER_LOCALGROUP, remoteSize.y / THREADS_PER_LOCALGROUP, 1);
                 genQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+                avgGenQuadMapTime += glfwGetTime() - startTime;
+                startTime = glfwGetTime();
 
                 /*
                 ============================
@@ -717,6 +724,9 @@ int main(int argc, char** argv) {
                     simplifyQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
                 }
 
+                avgSimplifyTime += glfwGetTime() - startTime;
+                startTime = glfwGetTime();
+
                 /*
                 ============================
                 FOURTH PASS: Generate quads from quad map
@@ -756,19 +766,25 @@ int main(int argc, char** argv) {
                                                              GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
                 }
 
+                avgGenQuadsTime += glfwGetTime() - startTime;
+                startTime = glfwGetTime();
+
                 // get number of vertices and indices in mesh
-                unsigned int verticesSize;
+                unsigned int verticesSize = maxVertices;
                 numVerticesBuffer.bind();
                 numVerticesBuffer.getSubData(0, 1, &verticesSize);
                 numVerticesBuffer.setSubData(0, 1, &zero); // reset for next frame
 
-                unsigned int indicesSize;
+                unsigned int indicesSize = maxIndices;
                 numIndicesBuffer.bind();
                 numIndicesBuffer.getSubData(0, 1, &indicesSize);
                 numIndicesBuffer.setSubData(0, 1, &zero); // reset for next frame
 
                 currMesh->resizeBuffers(verticesSize, indicesSize);
                 currMeshWireframe->resizeBuffers(verticesSize, indicesSize);
+
+                avgSetMeshBuffersTime += glfwGetTime() - startTime;
+                startTime = glfwGetTime();
 
                 /*
                 ============================
@@ -797,9 +813,16 @@ int main(int argc, char** argv) {
                 genDepthShader.dispatch(remoteSize.x / THREADS_PER_LOCALGROUP, remoteSize.y / THREADS_PER_LOCALGROUP, 1);
                 genDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
                                              GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+
+                avgGenDepthTime += glfwGetTime() - startTime;
             }
 
-            std::cout << "Total Mesh Creation Time: " << glfwGetTime() - startTime << "s" << std::endl;
+            std::cout << "  Avg Rendering Time: " << avgRenderTime / maxViews << "s" << std::endl;
+            std::cout << "  Avg Gen Quad Map Time: " << avgGenQuadMapTime / maxViews << "s" << std::endl;
+            std::cout << "  Avg Simplify Time: " << avgSimplifyTime / maxViews << "s" << std::endl;
+            std::cout << "  Avg Gen Quads Time: " << avgGenQuadsTime / maxViews << "s" << std::endl;
+            std::cout << "  Avg Set Mesh Buffers Time: " << avgSetMeshBuffersTime / maxViews << "s" << std::endl;
+            std::cout << "  Avg Gen Depth Time: " << avgGenDepthTime / maxViews << "s" << std::endl;
 
             rerender = false;
         }

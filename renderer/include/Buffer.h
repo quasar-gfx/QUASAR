@@ -100,6 +100,38 @@ public:
         glBufferData(target, numElems * sizeof(T), nullptr, usage);
     }
 
+#ifdef GL_CORE
+    void getData(void* data) const {
+        T* mappedBuffer = static_cast<T*>(glMapBuffer(target, GL_READ_ONLY));
+        if (mappedBuffer) {
+            memcpy(data, mappedBuffer, numElems);
+
+            glUnmapBuffer(target);
+        } else {
+            std::cerr << "Error: Could not map buffer data." << std::endl;
+        }
+    }
+
+    std::vector<T> getData() const {
+        std::vector<T> data(numElems);
+
+        T* mappedBuffer = static_cast<T*>(glMapBuffer(target, GL_READ_ONLY));
+        if (mappedBuffer) {
+            std::copy(mappedBuffer, mappedBuffer + numElems, data.begin());
+
+            glUnmapBuffer(target);
+        } else {
+            std::cerr << "Error: Could not map buffer data." << std::endl;
+        }
+
+        return data;
+    }
+
+    void getSubData(unsigned int offset, unsigned int numElems, void* data) const {
+        glGetBufferSubData(target, offset * sizeof(T), numElems * sizeof(T), data);
+    }
+#endif
+
     void setData(unsigned int numElems, const void* data) {
         setSize(numElems);
         glBufferData(target, numElems * sizeof(T), data, usage);
@@ -116,29 +148,6 @@ public:
     void setSubData(unsigned int offset, const std::vector<T>& data) {
         setSubData(offset, data.size(), data.data());
     }
-
-#ifdef GL_CORE
-    void getSubData(unsigned int offset, unsigned int numElems, void* data) const {
-        glGetBufferSubData(target, offset * sizeof(T), numElems * sizeof(T), data);
-    }
-
-    std::vector<T> getData() const {
-        std::vector<T> data(numElems);
-        bind();
-
-        T* mappedBuffer = static_cast<T*>(glMapBuffer(target, GL_READ_ONLY));
-        if (mappedBuffer) {
-            std::copy(mappedBuffer, mappedBuffer + numElems, data.begin());
-
-            glUnmapBuffer(target);
-        } else {
-            std::cerr << "Error: Could not map buffer data." << std::endl;
-        }
-
-        unbind();
-        return data;
-    }
-#endif
 
     void bind() const override {
         glBindBuffer(target, ID);

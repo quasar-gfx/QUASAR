@@ -522,13 +522,6 @@ int main(int argc, char** argv) {
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, depthOffsetBuffer);
             }
 
-            // set numVertices and numIndices to 0 before running compute shader
-            numVerticesBuffer.bind();
-            numVerticesBuffer.setSubData(0, 1, &zero);
-
-            numIndicesBuffer.bind();
-            numIndicesBuffer.setSubData(0, 1, &zero);
-
             // run compute shader
             genQuadMapShader.dispatch(remoteSize.x / THREADS_PER_LOCALGROUP, remoteSize.y / THREADS_PER_LOCALGROUP, 1);
             genQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
