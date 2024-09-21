@@ -126,28 +126,18 @@ int main(int argc, char** argv) {
         glm::ivec2 offset;
         unsigned int size;
     };
-    std::vector<std::vector<Buffer<QuadMapData>>> quadMaps(maxViews);
-    std::vector<std::vector<glm::vec2>> quadMapSizes(maxViews);
+
+    std::vector<Buffer<QuadMapData>> quadMaps(numQuadMaps);
+    std::vector<glm::vec2> quadMapSizes(numQuadMaps);
+    glm::vec2 quadMapSize = remoteSize;
+    for (int i = 0; i < numQuadMaps; i++) {
+        quadMaps[i] = Buffer<QuadMapData>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * quadMapSize.x * quadMapSize.y, nullptr);
+        quadMapSizes[i] = quadMapSize;
+        quadMapSize /= 2.0f;
+    }
 
     glm::uvec2 depthBufferSize = 4u * remoteSize;
-    std::vector<Buffer<float>> depthOffsetBuffers(maxViews);
-
-    for (int views = 0; views < maxViews; views++) {
-        std::vector<Buffer<QuadMapData>>& currentQuadMaps = quadMaps[views];
-        std::vector<glm::vec2>& currentQuadMapSizes = quadMapSizes[views];
-
-        glm::vec2 quadMapSize = remoteSize;
-        currentQuadMaps.resize(numQuadMaps);
-        currentQuadMapSizes.resize(numQuadMaps);
-
-        for (int i = 0; i < numQuadMaps; i++) {
-            currentQuadMaps[i] = Buffer<QuadMapData>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * static_cast<size_t>(quadMapSize.x) * static_cast<size_t>(quadMapSize.y), nullptr);
-            currentQuadMapSizes[i] = quadMapSize;
-            quadMapSize /= 2.0f;
-        }
-
-        depthOffsetBuffers[views] = Buffer<float>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * depthBufferSize.x * depthBufferSize.y, nullptr);
-    }
+    Buffer<float> depthOffsetBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * depthBufferSize.x * depthBufferSize.y, nullptr);
 
     std::vector<RenderTarget*> renderTargets(maxViews);
     for (int views = 0; views < maxViews; views++) {
@@ -598,10 +588,6 @@ int main(int argc, char** argv) {
             for (int view = 0; view < maxViews; view++) {
                 auto* remoteCamera = remoteCameras[view];
 
-                auto& currQuadMapSizes = quadMapSizes[view];
-                auto& currQuadMaps = quadMaps[view];
-                auto& currDepthOffsetBuffer = depthOffsetBuffers[view];
-
                 auto* currMesh = meshes[view];
                 auto* currMeshDepth = meshDepths[view];
                 auto* currMeshWireframe = meshWireframes[view];
@@ -655,7 +641,7 @@ int main(int argc, char** argv) {
                 }
                 {
                     genQuadMapShader.setVec2("remoteWinSize", remoteSize);
-                    genQuadMapShader.setVec2("quadMapSize", currQuadMapSizes[0]);
+                    genQuadMapShader.setVec2("quadMapSize", quadMapSizes[0]);
                     genQuadMapShader.setVec2("depthBufferSize", depthBufferSize);
                 }
                 {
@@ -675,8 +661,8 @@ int main(int argc, char** argv) {
                     genQuadMapShader.setBool("discardOutOfRangeDepths", true);
                 }
                 {
-                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, currQuadMaps[0]);
-                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, currDepthOffsetBuffer);
+                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadMaps[0]);
+                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, depthOffsetBuffer);
                 }
 
                 // set numVertices and numIndices to 0 before running compute shader
@@ -695,17 +681,17 @@ int main(int argc, char** argv) {
                 THIRD PASS: Simplify quad map
                 ============================
                 */
-                for (int i = 1; i < currQuadMaps.size(); i++) {
-                    auto& prevBuffer = currQuadMaps[i-1];
-                    auto& currBuffer = currQuadMaps[i];
-                    auto prevQuadMapSize = currQuadMapSizes[i-1];
-                    auto currQuadMapSize = currQuadMapSizes[i];
+                for (int i = 1; i < quadMaps.size(); i++) {
+                    auto& prevBuffer = quadMaps[i-1];
+                    auto& currBuffer = quadMaps[i];
+                    auto prevQuadMapSize = quadMapSizes[i-1];
+                    auto quadMapsize = quadMapSizes[i];
 
                     simplifyQuadMapShader.bind();
                     {
                         simplifyQuadMapShader.setVec2("remoteWinSize", remoteSize);
                         simplifyQuadMapShader.setVec2("inputQuadMapSize", prevQuadMapSize);
-                        simplifyQuadMapShader.setVec2("outputQuadMapSize", currQuadMapSize);
+                        simplifyQuadMapShader.setVec2("outputQuadMapSize", quadMapsize);
                         simplifyQuadMapShader.setVec2("depthBufferSize", depthBufferSize);
                     }
                     {
@@ -723,11 +709,11 @@ int main(int argc, char** argv) {
                     {
                         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, prevBuffer);
                         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, currBuffer);
-                        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, currDepthOffsetBuffer);
+                        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, depthOffsetBuffer);
                     }
 
                     // run compute shader
-                    simplifyQuadMapShader.dispatch(currQuadMapSize.x / THREADS_PER_LOCALGROUP, currQuadMapSize.y / THREADS_PER_LOCALGROUP, 1);
+                    simplifyQuadMapShader.dispatch(quadMapsize.x / THREADS_PER_LOCALGROUP, quadMapsize.y / THREADS_PER_LOCALGROUP, 1);
                     simplifyQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
                 }
 
@@ -736,9 +722,9 @@ int main(int argc, char** argv) {
                 FOURTH PASS: Generate quads from quad map
                 ============================
                 */
-                for (int i = 0; i < currQuadMaps.size(); i++) {
-                    auto& quadMap = currQuadMaps[i];
-                    auto quadMapSize = currQuadMapSizes[i];
+                for (int i = 0; i < quadMaps.size(); i++) {
+                    auto& quadMap = quadMaps[i];
+                    auto quadMapSize = quadMapSizes[i];
 
                     genQuadsFromQuadMapsShader.bind();
                     {
@@ -762,7 +748,7 @@ int main(int argc, char** argv) {
                         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, currMesh->indexBuffer);
                         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, currMeshWireframe->vertexBuffer);
                         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, currMeshWireframe->indexBuffer);
-                        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, currDepthOffsetBuffer);
+                        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, depthOffsetBuffer);
                     }
 
                     genQuadsFromQuadMapsShader.dispatch(quadMapSize.x / THREADS_PER_LOCALGROUP, quadMapSize.y / THREADS_PER_LOCALGROUP, 1);
