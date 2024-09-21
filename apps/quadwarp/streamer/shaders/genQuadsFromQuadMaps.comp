@@ -52,31 +52,28 @@ layout(std430, binding = 0) readonly buffer QuadMapBuffer {
     QuadMapData quadMap[];
 };
 
-layout(std430, binding = 1) writeonly buffer VertexCounterBuffer {
+layout(std430, binding = 1) writeonly buffer VerticesIndicesSizeBuffer {
     uint numVertices;
-};
-
-layout(std430, binding = 2) writeonly buffer IndexCounterBuffer {
     uint numIndices;
 };
 
-layout(std430, binding = 3) buffer VertexBuffer {
+layout(std430, binding = 2) buffer VertexBuffer {
     Vertex vertices[];
 };
 
-layout(std430, binding = 4) buffer IndexBuffer {
+layout(std430, binding = 3) buffer IndexBuffer {
     uint indices[];
 };
 
-layout(std430, binding = 5) buffer VertexBufferWireframe {
+layout(std430, binding = 4) buffer VertexBufferWireframe {
     Vertex verticesWireframe[];
 };
 
-layout(std430, binding = 6) buffer IndexBufferWireframe {
+layout(std430, binding = 5) buffer IndexBufferWireframe {
     uint indicesWireframe[];
 };
 
-layout(std430, binding = 7) readonly buffer DepthOffsetBuffer {
+layout(std430, binding = 6) readonly buffer DepthOffsetBuffer {
     float depthOffsetBuffer[];
 };
 

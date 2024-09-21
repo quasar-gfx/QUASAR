@@ -444,15 +444,15 @@ void main() {
     Plane proxyPlaneTopLeft     = quadMapDataToPlane(quadMapDataTopLeft);
     Plane proxyPlaneTopRight    = quadMapDataToPlane(quadMapDataTopRight);
 
+    QuadMapData mergedQuadMapData;
+    mergedQuadMapData.size = 0; // by default, ignore the quad
     if (shouldMerge(proxyPlaneBottomLeft, proxyPlaneBottomRight, proxyPlaneTopLeft, proxyPlaneTopRight)) {
         // merge the proxy planes
-        QuadMapData mergedQuadMapData;
         mergeQuadMapData(
             mergedQuadMapData,
             proxyPlaneBottomLeft, proxyPlaneBottomRight, proxyPlaneTopLeft, proxyPlaneTopRight,
             quadMapDataBottomLeft, quadMapDataBottomRight, quadMapDataTopLeft, quadMapDataTopRight
         );
-        storeInOutputQuadMap(pixelCoord, mergedQuadMapData);
 
         // ignore the previous proxy planes that have been merged
         ignoreInputQuadMapData(pixelCoordsBottomLeft);
@@ -460,10 +460,6 @@ void main() {
         ignoreInputQuadMapData(pixelCoordsTopLeft);
         ignoreInputQuadMapData(pixelCoordsTopRight);
     }
-    else {
-        // store an empty plane to clear the output quad map
-        QuadMapData ignoredQuadMapData;
-        ignoredQuadMapData.size = 0;
-        storeInOutputQuadMap(pixelCoord, ignoredQuadMapData);
-    }
+
+    storeInOutputQuadMap(pixelCoord, mergedQuadMapData);
 }
