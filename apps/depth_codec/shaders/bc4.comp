@@ -10,40 +10,82 @@ layout(binding = 0) uniform sampler2D depthMap;
 struct Block{
     float max;
     float min;
-    uint arr[6]; // 32
+    uint arr[6]; // 32 bits each
 };
 
 layout(std430, binding = 0) buffer BC4Buffer {
     Block bc4buffer[];
 };
 
+// Sample depth value from the depth map
 float sampleDepth(sampler2D depthMap, ivec2 sampleCoord) {
     float depth = texelFetch(depthMap, sampleCoord, 0).r;
     //depth = clamp(depth, 0.0, 0.99999);
     return depth;
 }
 
-void storeBC4Bufffer(Block block, ivec2 blockPixelCoord){    
-    uint index = uint(blockPixelCoord.y)*uint(bc4DepthSize.x) + uint(blockPixelCoord.x);
-    bc4buffer[index] = block;
+// void storeBC4Bufffer(Block block, ivec2 blockPixelCoord){    
+//     uint index = uint(blockPixelCoord.y)*uint(bc4DepthSize.x) + uint(blockPixelCoord.x);
+//     bc4buffer[index] = block;
 
-}
+// }
 
-void main() { 
-    ivec2 blockPixelCoord = ivec2(gl_GlobalInvocationID.xy); // 2d bc4-coord
-    ivec2 startPixelCoord = 8 * blockPixelCoord; // depth-coord
+// void main() { 
+//     ivec2 blockPixelCoord = ivec2(gl_GlobalInvocationID.xy); // 2d bc4-coord
+//     ivec2 startPixelCoord = 8 * blockPixelCoord; // depth-coord
+//     float arr[8][8];
+
+//     for(int i=0; i<8; i++){
+//         for(int j=0; j<8; j++){
+//             arr[i][j] = sampleDepth(depthMap, startPixelCoord+ivec2(i,j));
+//         }
+//     }
+
+//     Block block; // after compression
+//     block.max = 0;
+//     block.min = 0;
+//     //block.arr = 0;
+
+//     storeBC4Bufffer(block, blockPixelCoord);
+// }
+void main() {
+    ivec2 blockPixelCoord = ivec2(gl_GlobalInvocationID.xy); // 2D BC4 coordinate
+    ivec2 startPixelCoord = 8 * blockPixelCoord; // Start coordinate of the 8x8 block in depth map
+
+    // Sample 8x8 block of depth values
     float arr[8][8];
-
-    for(int i=0; i<8; i++){
-        for(int j=0; j<8; j++){
-            arr[i][j] = sampleDepth(depthMap, startPixelCoord+ivec2(i,j));
+    float minDepth = 1.0;
+    float maxDepth = 0.0;
+    for(int i = 0; i < 8; i++) {
+        for(int j = 0; j < 8; j++) {
+            arr[i][j] = sampleDepth(depthMap, startPixelCoord + ivec2(j, i));
+            minDepth = min(minDepth, arr[i][j]);
+            maxDepth = max(maxDepth, arr[i][j]);
         }
     }
 
-    Block block; // after compression
-    block.max = 0;
-    block.min = 0;
-    //block.arr = 0;
+    // Prepare block for compression
+    Block block;
+    block.min = minDepth;
+    block.max = maxDepth;
 
-    storeBC4Bufffer(block, blockPixelCoord);
+    // Calculate the middle value for 1-bit quantization
+    float midDepth = (minDepth + maxDepth) * 0.5;
+
+    // Compress 8x8 block into 6 32-bit integers (3 bits per pixel)
+    for(int i = 0; i < 6; i++) {
+        uint bits = 0u;
+        for(int j = 0; j < 10 && (i * 10 + j) < 64; j++) {
+            int x = (i * 10 + j) % 8;
+            int y = (i * 10 + j) / 8;
+            bits |= (arr[y][x] >= midDepth ? 1u : 0u) << (j * 3);
+        }
+        block.arr[i] = bits;
+    }
+
+    // Store the compressed block
+    //storeBC4Buffer(block, blockPixelCoord);
+    // Store the compressed block directly in the buffer
+    uint index = uint(blockPixelCoord.y) * uint(bc4DepthSize.x) + uint(blockPixelCoord.x);
+    bc4buffer[index] = block;
 }

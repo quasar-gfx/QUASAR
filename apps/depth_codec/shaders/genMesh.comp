@@ -92,13 +92,33 @@ float UnLinearizeDepth(float depth) {
     return (z + 1.0) / 2.0;
 }
 
-void sampleBC4Buffer(vec2 pixelCoordNormalized){
-    blockPixelCoord = pixelCoordNormalized; // convert scene from normalized to depth then to bc4
-
-    return depth;
+float sampleBC4Buffer(vec2 pixelCoordNormalized) {
+    ivec2 textureSize = ivec2(2048, 2048); // Adjust based on depth texture size
+    ivec2 blockSize = ivec2(8, 8);
+    ivec2 pixelCoord = ivec2(pixelCoordNormalized * vec2(textureSize));
+    ivec2 blockCoord = pixelCoord / blockSize;
+    ivec2 pixelInBlock = pixelCoord % blockSize;
+    
+    uint blockIndex = blockCoord.y * (textureSize.x / blockSize.x) + blockCoord.x;
+    Block compressedBlock = bc4buffer[blockIndex];
+    
+    float maxVal = compressedBlock.max;
+    float minVal = compressedBlock.min;
+    
+    uint pixelIndex = pixelInBlock.y * blockSize.x + pixelInBlock.x;
+    uint arrayIndex = pixelIndex / 10;
+    uint bitIndex = (pixelIndex % 10) * 3;
+    
+    uint bits = compressedBlock.arr[arrayIndex];
+    uint index = (bits >> bitIndex) & 0x7u; // Extract 3 bits
+    
+    // Interpolate between min and max based on the 3-bit index
+    float t = float(index) / 7.0;
+    float depth = mix(minVal, maxVal, t);
+    
+    return depth; // Already in 0-1 range
 }
 
- 
 
 void main() {
     vec2 size = vec2(screenSize) / float(surfelSize);

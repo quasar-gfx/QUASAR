@@ -1,5 +1,5 @@
 #include <iostream>
-
+#include <iomanip>
 #include <args.hxx>
 
 #include <OpenGLApp.h>
@@ -23,147 +23,52 @@ enum class RenderState {
     POINTCLOUD
 };
 
-// Modify the convert32To16Bit function to accept a const float* and a size
-std::vector<uint16_t> convert32To16Bit(const float* image, size_t size) {
-    std::vector<uint16_t> convertedImage(size);
-    for (size_t i = 0; i < size; ++i) {
-        convertedImage[i] = static_cast<uint16_t>(image[i] * 65535.0f);
+struct Block{
+    float max; // 32 - unit32
+    float min;
+    uint32_t arr[6]; // 32
+};
+
+// GPU Timer class
+class GPUTimer {
+public:
+    GPUTimer() {
+        glGenQueries(2, queries);
     }
-    return convertedImage;
+
+    void start() {
+        glQueryCounter(queries[0], GL_TIMESTAMP);
+    }
+
+    void stop() {
+        glQueryCounter(queries[1], GL_TIMESTAMP);
+    }
+
+    double getElapsedMs() {
+        GLuint64 startTime, stopTime;
+        glGetQueryObjectui64v(queries[0], GL_QUERY_RESULT, &startTime);
+        glGetQueryObjectui64v(queries[1], GL_QUERY_RESULT, &stopTime);
+        return (stopTime - startTime) / 1000000.0;
+    }
+
+private:
+    GLuint queries[2];
+};
+
+// Function to calculate compression ratio
+double calculateCompressionRatio(size_t originalSize, size_t compressedSize) {
+    return static_cast<double>(originalSize) / compressedSize;
 }
 
-// std::vector<uint16_t> convert32To16Bit(const std::vector<float> &image) {
-//     std::vector<uint16_t> convertedImage(image.size());
-//     for (size_t i = 0; i < image.size(); ++i) {
-//         float value = std::max(0.0f, std::min(1.0f, image[i]));  // Clamp value between 0 and 1
-//         convertedImage[i] = static_cast<uint16_t>(value * 65535.0f);
-//     }
-//     return convertedImage;
-// }
-
-std::vector<uint8_t> bc4Compress(const std::vector<uint16_t> &image, size_t width, size_t height) {
-    if (image.size() != width * height) {
-        std::cerr << "Invalid image size for BC4 compression." << std::endl;
-        return {};
+// Function to calculate MSE
+double calculateMSE(const std::vector<float>& original, const std::vector<float>& decompressed) {
+    double mse = 0.0;
+    for (size_t i = 0; i < original.size(); ++i) {
+        double diff = original[i] - decompressed[i];
+        mse += diff * diff;
     }
-    const size_t BLOCK_SIZE = 8;
-    std::vector<uint8_t> compressedData;
-    
-    for (size_t y = 0; y < height; y += BLOCK_SIZE) {
-        for (size_t x = 0; x < width; x += BLOCK_SIZE) {
-            std::vector<uint16_t> block(BLOCK_SIZE * BLOCK_SIZE);
-            for (size_t by = 0; by < BLOCK_SIZE; ++by) {
-                for (size_t bx = 0; bx < BLOCK_SIZE; ++bx) {
-                    size_t ix = std::min(x + bx, width - 1);
-                    size_t iy = std::min(y + by, height - 1);
-                    block[by * BLOCK_SIZE + bx] = image[iy * width + ix];
-                }
-            }
-            
-            uint16_t minVal = *std::min_element(block.begin(), block.end());
-            uint16_t maxVal = *std::max_element(block.begin(), block.end());
-            
-            compressedData.push_back(maxVal & 0xFF);
-            compressedData.push_back((maxVal >> 8) & 0xFF);
-            compressedData.push_back(minVal & 0xFF);
-            compressedData.push_back((minVal >> 8) & 0xFF);
-            
-            std::vector<uint16_t> lookup(8);
-            lookup[0] = maxVal;
-            lookup[1] = minVal;
-            for (int i = 1; i < 7; ++i) {
-                lookup[i + 1] = ((7 - i) * maxVal + i * minVal) / 7;
-            }
-            
-            std::vector<uint8_t> indices(BLOCK_SIZE * BLOCK_SIZE);
-            for (size_t i = 0; i < BLOCK_SIZE * BLOCK_SIZE; ++i) {
-                uint16_t pixel = block[i];
-                size_t bestIndex = 0;
-                uint16_t minDiff = std::numeric_limits<uint16_t>::max();
-                for (size_t j = 0; j < 8; ++j) {
-                    uint16_t diff = std::abs(static_cast<int>(pixel) - static_cast<int>(lookup[j]));
-                    if (diff < minDiff) {
-                        minDiff = diff;
-                        bestIndex = j;
-                    }
-                }
-                indices[i] = bestIndex;
-            }
-
-            for (size_t i = 0; i < BLOCK_SIZE * BLOCK_SIZE; i += 8) {
-                uint32_t packed = 0;
-                for (size_t j = 0; j < 8; ++j) {
-                    packed |= (indices[i + j] << (j * 3));
-                }
-                compressedData.push_back(packed & 0xFF);
-                compressedData.push_back((packed >> 8) & 0xFF);
-                compressedData.push_back((packed >> 16) & 0xFF);
-            }
-        }
-    }
-    
-    return compressedData;
+    return mse / original.size();
 }
-
-std::vector<uint16_t> bc4Decompress(const std::vector<uint8_t> &compressed, size_t width, size_t height) {
-    const size_t BLOCK_SIZE = 8;
-    std::vector<uint16_t> decompressed(width * height);
-    size_t compressedIndex = 0;
-
-    for (size_t y = 0; y < height; y += BLOCK_SIZE) {
-        for (size_t x = 0; x < width; x += BLOCK_SIZE) {
-            uint16_t maxVal = (compressed[compressedIndex + 1] << 8) | compressed[compressedIndex];
-            uint16_t minVal = (compressed[compressedIndex + 3] << 8) | compressed[compressedIndex + 2];
-            compressedIndex += 4;
-
-            std::vector<uint16_t> lookup(8);
-            lookup[0] = maxVal;
-            lookup[1] = minVal;
-            for (int i = 1; i < 7; ++i) {
-                lookup[i + 1] = ((7 - i) * maxVal + i * minVal) / 7;
-            }
-
-            for (size_t i = 0; i < BLOCK_SIZE * BLOCK_SIZE; i += 8) {
-                uint32_t packed = compressed[compressedIndex] | (compressed[compressedIndex + 1] << 8) | (compressed[compressedIndex + 2] << 16);
-                compressedIndex += 3;
-
-                for (size_t j = 0; j < 8; ++j) {
-                    uint8_t index = (packed >> (j * 3)) & 0x7;
-                    size_t px = x + (i % BLOCK_SIZE) + j;
-                    size_t py = y + (i / BLOCK_SIZE);
-                    if (px < width && py < height) {
-                        decompressed[py * width + px] = lookup[index];
-                    }
-                }
-            }
-        }
-    }
-
-    return decompressed;
-}
-
-double calculateMSE(const std::vector<uint16_t> &original, const std::vector<uint16_t> &decompressed, size_t width, size_t height, std::vector<uint16_t> &mseImage) {
-    double totalMSE = 0.0;
-    mseImage.resize(width * height);
-    
-    for (size_t i = 0; i < width * height; ++i) {
-        // Normalize the values for MSE calculation
-        double originalNorm = original[i] / 65535.0;
-        double decompressedNorm = decompressed[i] / 65535.0;
-        
-        double diff = originalNorm - decompressedNorm;
-        double squaredError = diff * diff;
-        
-        totalMSE += squaredError;
-        
-        // Calculate enhanced error for visualization
-        double enhancedError = std::min(1.0, -std::log10(squaredError + 1e-10) / 10.0);
-        mseImage[i] = static_cast<uint16_t>(enhancedError * 65535.0);
-    }
-    
-    return totalMSE / (width * height);
-}
-
 
 int main(int argc, char** argv) {
     Config config{};
@@ -200,18 +105,21 @@ int main(int argc, char** argv) {
 
     int surfelSize = args::get(surfelSizeIn);
 
+    // Create window and GUI manager
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
 
     config.window = window;
     config.guiManager = guiManager;
 
+    // Initialize OpenGL app and renderer
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
 
     unsigned int screenWidth, screenHeight;
     window->getSize(screenWidth, screenHeight);
 
+    // Set up scene and camera
     Scene scene = Scene();
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
     PerspectiveCamera camera = PerspectiveCamera(screenWidth, screenHeight);
@@ -238,32 +146,18 @@ int main(int argc, char** argv) {
         .computeCodePath = "./shaders/genPtCloudFromDepth.comp"
     });
 
-    ComputeShader bc4DepthShader({
+    ComputeShader bc4CompressShader({
         .computeCodePath = "./shaders/bc4.comp"
     });
 
-    ComputeShader bc4BufferShader({ // my buffer
-        .computeCodePath = "./shaders/bc4Buffer.comp"
+    ComputeShader genMeshShader({ // my buffer
+        .computeCodePath = "./shaders/genMesh.comp"
     });
 
- 
+    // Load depth data
     unsigned int depthWidth = 2048, depthHeight = 2048;
-    // std::vector<float> depthData(screenWidth * screenHeight);
-    auto depthData = FileIO::loadBinaryFile(DATA_PATH + "depth.bin"); // 
+    auto depthData = FileIO::loadBinaryFile(DATA_PATH + "depth.bin"); 
     std::cout<< "depthData size: "<< depthData.size()<<std::endl;
-    // std::memcpy(depthData.data(), depthFile.data(), depthFile.size());
-
-    struct block{
-        float max; // 32 - unit32
-        float min;
-        uint32_t arr[6]; // 32
-    };
-
-    bc4DepthShader.bind();
-    bc4DepthShader.setVec2("depthMapSize", glm::vec2(depthWidth, depthHeight));
-    bc4DepthShader.setVec2("bc4DepthSize", glm::vec2(depthWidth/8, depthHeight/8)); // 32+32+64*3 bits->bytes 2048/8 * 2048/)
-
-    Buffer<block> bc4Buffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, (depthWidth/8 * depthHeight/8), nullptr); // 32+32+64*3 bits->bytes 2048/8 * 2048/8 = 
 
     if (depthData.empty()) {
         std::cerr << "Failed to load depth data from file." << std::endl;
@@ -276,40 +170,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // Convert depth data to 16-bit
-    // std::vector<float> floatDepthData(depthData.size() / sizeof(float));
-    // std::memcpy(floatDepthData.data(), depthData.data(), depthData.size());
-    // std::cout << "floartData size: " << floatDepthData.size() << std::endl;
-
-    const float* floatDepthData = reinterpret_cast<const float*>(depthData.data());
-    size_t floatDepthDataSize = depthData.size() / sizeof(float);
-
-
-    std::vector<uint16_t> originalImage16 = convert32To16Bit(floatDepthData, floatDepthDataSize);
-    std::cout << "[after 32 to 16]Original image size: " << originalImage16.size() << std::endl;
-
-    // Compress the image using BC4
-    std::vector<uint8_t> compressedImage = bc4Compress(originalImage16, depthWidth, depthHeight);
-    std::cout << "Compressed image size: " << compressedImage.size() << std::endl;
-    std::cout << "Expected compressed size: " << (depthWidth * depthHeight / 2) << std::endl;
-
-    // Decompress the image
-    std::vector<uint16_t> decompressedImage = bc4Decompress(compressedImage, depthWidth, depthHeight);
-
-    // Calculate MSE and PSNR
-    std::vector<uint16_t> mseImage;
-    double totalMSE = calculateMSE(originalImage16, decompressedImage, depthWidth, depthHeight, mseImage);
-    double psnr = 10.0 * log10(1.0 / totalMSE);
-
-    std::cout << "Compression ratio: " << static_cast<double>(originalImage16.size() * sizeof(uint16_t)) / compressedImage.size() << ":1\n";
-    std::cout << "Mean Squared Error (MSE) per pixel (normalized 0-1): " << totalMSE << "\n";
-    std::cout << "Peak Signal-to-Noise Ratio (PSNR): " << psnr << " dB\n";
-   
-    if (originalImage16.empty()) {
-        std::cerr << "Original image data is empty. Cannot create texture." << std::endl;
-    }
-
-
+    // Create texture for original depth data
     Texture depthTextureOriginal({
         .width = depthWidth,
         .height = depthHeight,
@@ -325,61 +186,12 @@ int main(int argc, char** argv) {
 
     glGetError();
     std::cout << "Depth original Textures created successfully." << std::endl;
-    
 
-    // std::vector<float> depthDataDecompressed(depthWidth * depthHeight);
-    // // fill with random values for now
-    // for (size_t i = 0; i < depthDataDecompressed.size(); ++i) {
-    //     depthDataDecompressed[i] = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
-    // }
+    // Create buffer for compressed data
+    size_t compressedSize = (depthWidth / 8) * (depthHeight / 8) * sizeof(Block);
+    Buffer<Block> bc4Buffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, compressedSize / sizeof(Block), nullptr);
 
-    // Convert uint16_t back to float for texture creation, preserving the raw depth values
-    std::vector<float> decompressedImageFloat(decompressedImage.size());
-    for (size_t i = 0; i < decompressedImage.size(); ++i) {
-        decompressedImageFloat[i] = static_cast<float>(decompressedImage[i]) / 65535.0f;
-    }
-
-    std::cout << "Decompressed image size: " << decompressedImage.size() << std::endl;
-    std::cout << "Expected decompressed size: " << depthWidth * depthHeight << std::endl;
-    std::cout << "decompressedImageFloat.data() address: " << static_cast<void*>(decompressedImageFloat.data()) << std::endl;
-
-
-    if (decompressedImage.size() != depthWidth * depthHeight) {
-        std::cerr << "Error: Decompressed image size mismatch." << std::endl;
-        return 1;
-    }
-
-    bc4DepthShader.setTexture(depthTextureOriginal, 0);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bc4Buffer);
-    // run compute shader
-    bc4DepthShader.dispatch(depthWidth /8 /16, depthHeight /8/ 16, 1); // each bloack, (now each pixel /16*16) - > bc4 comp
-    bc4DepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-
-
-    // Texture depthTextureDecompressed({
-    //     .width = depthWidth,
-    //     .height = depthHeight,
-    //     .internalFormat = GL_R32F,
-    //     .format = GL_RED,
-    //     .type = GL_FLOAT,
-    //     .wrapS = GL_CLAMP_TO_EDGE,
-    //     .wrapT = GL_CLAMP_TO_EDGE,
-    //     .minFilter = GL_NEAREST,
-    //     .magFilter = GL_NEAREST,
-    //     .data = reinterpret_cast<unsigned char*>(decompressedImageFloat.data())
-    // });
-
-    GLenum error = glGetError();
-    if (error != GL_NO_ERROR) {
-        std::cerr << "OpenGL error after creating decompressed texture: " << error << std::endl;
-        return 1;
-    }
-
-    std::cout << "Depth Decompressed Texture created successfully." << std::endl;
-
-
-
+    // Set up meshes for rendering
     int width = screenWidth / surfelSize;
     int height = screenHeight / surfelSize;
 
@@ -509,14 +321,10 @@ int main(int argc, char** argv) {
             ImGui::Begin("Original Depth", &showDepthPreview, flags);
             ImGui::Image((void*)(intptr_t)depthTextureOriginal.ID, ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
-
-            // ImGui::SetNextWindowPos(ImVec2(screenWidth - TEXTURE_PREVIEW_SIZE - 30, 70 + TEXTURE_PREVIEW_SIZE + 30), ImGuiCond_FirstUseEver);
-            // ImGui::Begin("Decompressed Depth", &showDepthPreview, flags);
-            // ImGui::Image((void*)(intptr_t)depthTextureDecompressed.ID, ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
-            // ImGui::End();
         }
     });
 
+    // Window resize callback
     app.onResize([&](unsigned int width, unsigned int height) {
         screenWidth = width;
         screenHeight = height;
@@ -526,6 +334,15 @@ int main(int argc, char** argv) {
         camera.aspect = (float)screenWidth / (float)screenHeight;
         camera.updateProjectionMatrix();
     });
+
+    size_t compressedDataSize = (depthWidth / 8) * (depthHeight / 8);
+    std::vector<Block> compressedData(compressedDataSize);
+
+    // For compression timing
+    GPUTimer compressionTimer;
+
+    // For decompression and mesh generation timing
+    GPUTimer decompressionTimer;
 
     app.onRender([&](double now, double dt) {
         // handle mouse input
@@ -570,6 +387,24 @@ int main(int argc, char** argv) {
             window->close();
         }
 
+        // Compress depth data using BC4
+        compressionTimer.start();
+        bc4CompressShader.bind();
+        bc4CompressShader.setTexture(depthTextureOriginal, 0);
+        bc4CompressShader.setVec2("depthMapSize", glm::vec2(depthWidth, depthHeight));
+        bc4CompressShader.setVec2("bc4DepthSize", glm::vec2(depthWidth / 8, depthHeight / 8));
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bc4Buffer);
+        bc4CompressShader.dispatch(depthWidth / 8 / 16, depthHeight / 8 / 16, 1);
+        bc4CompressShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+        compressionTimer.stop();
+
+        // Read back compressed data for compression ratio calculation
+        //size_t compressedDataSize = (depthWidth / 8) * (depthHeight / 8);
+        //std::vector<Block> compressedData(compressedDataSize);
+        glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, compressedDataSize * sizeof(Block), compressedData.data());
+
+
+
         // generate mesh for original and decompressed depth data
         genPtCloudFromDepthShader.bind();
         genPtCloudFromDepthShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
@@ -593,14 +428,15 @@ int main(int argc, char** argv) {
         genPtCloudFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
         // do it again with decompressed depth data:
-        bc4BufferShader.bind();
-        bc4BufferShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
-        bc4BufferShader.setInt("surfelSize", surfelSize);
+        decompressionTimer.start();
+        genMeshShader.bind();
+        genMeshShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
+        genMeshShader.setInt("surfelSize", surfelSize);
         {
-            bc4BufferShader.setMat4("view", origCamera.getViewMatrix());
-            bc4BufferShader.setMat4("projection", origCamera.getProjectionMatrix());
-            bc4BufferShader.setMat4("viewInverse", glm::inverse(origCamera.getViewMatrix()));
-            bc4BufferShader.setMat4("projectionInverse", glm::inverse(origCamera.getProjectionMatrix()));
+            genMeshShader.setMat4("view", origCamera.getViewMatrix());
+            genMeshShader.setMat4("projection", origCamera.getProjectionMatrix());
+            genMeshShader.setMat4("viewInverse", glm::inverse(origCamera.getViewMatrix()));
+            genMeshShader.setMat4("projectionInverse", glm::inverse(origCamera.getProjectionMatrix()));
         }
         {
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, meshDecompressed.vertexBuffer);
@@ -608,8 +444,10 @@ int main(int argc, char** argv) {
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, bc4Buffer);
         }
         // dispatch compute shader to generate vertices and indices for mesh
-        bc4BufferShader.dispatch(width / 16, height / 16, 1); //  call the comp shader file
-        bc4BufferShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+        genMeshShader.dispatch(width / 16, height / 16, 1); //  call the comp shader file
+        genMeshShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+        decompressionTimer.stop();
+
 
         // set render state
         mesh.pointcloud = renderState == RenderState::POINTCLOUD;
@@ -623,6 +461,15 @@ int main(int argc, char** argv) {
         screenShader.setBool("doToneMapping", false);
         renderer.drawToScreen(screenShader);
     });
+
+    double compressionRatio = calculateCompressionRatio(depthData.size(), compressedData.size() * sizeof(Block));
+
+    // Print results
+    std::cout << "Compression Ratio: " << compressionRatio << ":1" << std::endl;
+    //std::cout << "Compression Time: " << compressionTimer.getElapsedMs() << " ms" << std::endl;
+
+    // After the render loop
+    std::cout << "Render loop finished." << std::endl;  // Debug output
 
     // run app loop (blocking)
     app.run();
