@@ -98,14 +98,14 @@ float sampleDepth(sampler2D depthMap, vec2 sampleCoord) {
 }
 
 void main() {
-    vec2 size = vec2(screenSize) / float(surfelSize);
+    vec2 size = vec2screenSize / float(surfelSize);
 
     uint shaderIndex = uint(gl_GlobalInvocationID.y * size.x + gl_GlobalInvocationID.x);
 
     vec2 surfelCoord = vec2(gl_GlobalInvocationID.xy);
 
     vec2 pixelCoord = surfelSize * (surfelCoord + vec2(0.5, 0.5));
-    vec2 pixelCoordNormalized = vec2(pixelCoord) / (screenSize-1);
+    vec2 pixelCoordNormalized = vec2(pixelCoord) / screenSize;
 
     float depth = sampleDepth(depthMap, pixelCoordNormalized);
 

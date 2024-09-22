@@ -237,12 +237,12 @@ vec3 constrainToMaxAngle(vec3 vectorNormalized, vec3 axisNormalized, float maxAn
 vec3 rayPlaneIntersection(vec3 rayOrigin, vec3 rayDirection, Plane plane) {
     float denominator = dot(rayDirection, plane.normal);
     if (abs(denominator) < epilson) {
-        return vec3(1.0/0.0, 1.0/0.0, 1.0/0.0);
+        return vec3(1.0/0.0);
     }
 
     float t = dot(plane.point - rayOrigin, plane.normal) / denominator;
     if (t < 0.0) {
-        return vec3(1.0/0.0, 1.0/0.0, 1.0/0.0);
+        return vec3(1.0/0.0);
     }
 
     vec3 intersection = rayOrigin + t * rayDirection;
@@ -512,7 +512,7 @@ void storeSurfelsInQuadMap(
     Quad1D depthOffsetsTopRight    = findDepthOffsets(surfelTopRight, proxyPlane);
 
     // find 3d point of center of proxy
-    vec2 quadCenterUV = quadCenterPixelCoord / (remoteWinSize-1);
+    vec2 quadCenterUV = quadCenterPixelCoord / remoteWinSize;
     vec2 quadCenterNDC = quadCenterUV * 2.0 - 1.0;
     vec3 quadCenterFarPlane = ndcToView(projectionInverse, quadCenterNDC, 1.0);
 
@@ -617,15 +617,15 @@ void main() {
 
     // sample texture maps
     MultiQuad2D uvs;
-    uvs.bottomLeft  = pixelCenterCoords.bottomLeft  / (remoteWinSize-1);
-    uvs.bottom      = pixelCenterCoords.bottom      / (remoteWinSize-1);
-    uvs.bottomRight = pixelCenterCoords.bottomRight / (remoteWinSize-1);
-    uvs.left        = pixelCenterCoords.left        / (remoteWinSize-1);
-    uvs.center      = pixelCenterCoords.center      / (remoteWinSize-1);
-    uvs.right       = pixelCenterCoords.right       / (remoteWinSize-1);
-    uvs.topLeft     = pixelCenterCoords.topLeft     / (remoteWinSize-1);
-    uvs.top         = pixelCenterCoords.top         / (remoteWinSize-1);
-    uvs.topRight    = pixelCenterCoords.topRight    / (remoteWinSize-1);
+    uvs.bottomLeft  = pixelCenterCoords.bottomLeft  / remoteWinSize;
+    uvs.bottom      = pixelCenterCoords.bottom      / remoteWinSize;
+    uvs.bottomRight = pixelCenterCoords.bottomRight / remoteWinSize;
+    uvs.left        = pixelCenterCoords.left        / remoteWinSize;
+    uvs.center      = pixelCenterCoords.center      / remoteWinSize;
+    uvs.right       = pixelCenterCoords.right       / remoteWinSize;
+    uvs.topLeft     = pixelCenterCoords.topLeft     / remoteWinSize;
+    uvs.top         = pixelCenterCoords.top         / remoteWinSize;
+    uvs.topRight    = pixelCenterCoords.topRight    / remoteWinSize;
 
     MultiQuad1D pixelDepths;
     pixelDepths.bottomLeft  = sampleDepth(depthMap, uvs.bottomLeft);
@@ -648,26 +648,26 @@ void main() {
 
     // project 2D points to 3D view space
     MultiQuad2D pixelCenterNDCs;
-    pixelCenterNDCs.bottomLeft  = (pixelCenterCoords.bottomLeft  / (remoteWinSize-1)) * 2.0 - 1.0;
-    pixelCenterNDCs.bottom      = (pixelCenterCoords.bottom      / (remoteWinSize-1)) * 2.0 - 1.0;
-    pixelCenterNDCs.bottomRight = (pixelCenterCoords.bottomRight / (remoteWinSize-1)) * 2.0 - 1.0;
-    pixelCenterNDCs.left        = (pixelCenterCoords.left        / (remoteWinSize-1)) * 2.0 - 1.0;
-    pixelCenterNDCs.center      = (pixelCenterCoords.center      / (remoteWinSize-1)) * 2.0 - 1.0;
-    pixelCenterNDCs.right       = (pixelCenterCoords.right       / (remoteWinSize-1)) * 2.0 - 1.0;
-    pixelCenterNDCs.topLeft     = (pixelCenterCoords.topLeft     / (remoteWinSize-1)) * 2.0 - 1.0;
-    pixelCenterNDCs.top         = (pixelCenterCoords.top         / (remoteWinSize-1)) * 2.0 - 1.0;
-    pixelCenterNDCs.topRight    = (pixelCenterCoords.topRight    / (remoteWinSize-1)) * 2.0 - 1.0;
+    pixelCenterNDCs.bottomLeft  = (pixelCenterCoords.bottomLeft  / remoteWinSize) * 2.0 - 1.0;
+    pixelCenterNDCs.bottom      = (pixelCenterCoords.bottom      / remoteWinSize) * 2.0 - 1.0;
+    pixelCenterNDCs.bottomRight = (pixelCenterCoords.bottomRight / remoteWinSize) * 2.0 - 1.0;
+    pixelCenterNDCs.left        = (pixelCenterCoords.left        / remoteWinSize) * 2.0 - 1.0;
+    pixelCenterNDCs.center      = (pixelCenterCoords.center      / remoteWinSize) * 2.0 - 1.0;
+    pixelCenterNDCs.right       = (pixelCenterCoords.right       / remoteWinSize) * 2.0 - 1.0;
+    pixelCenterNDCs.topLeft     = (pixelCenterCoords.topLeft     / remoteWinSize) * 2.0 - 1.0;
+    pixelCenterNDCs.top         = (pixelCenterCoords.top         / remoteWinSize) * 2.0 - 1.0;
+    pixelCenterNDCs.topRight    = (pixelCenterCoords.topRight    / remoteWinSize) * 2.0 - 1.0;
 
     MultiQuad2D surfelNDCs;
-    surfelNDCs.bottomLeft  = (surfelCornerCoords.bottomLeft  / (remoteWinSize-1)) * 2.0 - 1.0;
-    surfelNDCs.bottom      = (surfelCornerCoords.bottom      / (remoteWinSize-1)) * 2.0 - 1.0;
-    surfelNDCs.bottomRight = (surfelCornerCoords.bottomRight / (remoteWinSize-1)) * 2.0 - 1.0;
-    surfelNDCs.left        = (surfelCornerCoords.left        / (remoteWinSize-1)) * 2.0 - 1.0;
-    surfelNDCs.center      = (surfelCornerCoords.center      / (remoteWinSize-1)) * 2.0 - 1.0;
-    surfelNDCs.right       = (surfelCornerCoords.right       / (remoteWinSize-1)) * 2.0 - 1.0;
-    surfelNDCs.topLeft     = (surfelCornerCoords.topLeft     / (remoteWinSize-1)) * 2.0 - 1.0;
-    surfelNDCs.top         = (surfelCornerCoords.top         / (remoteWinSize-1)) * 2.0 - 1.0;
-    surfelNDCs.topRight    = (surfelCornerCoords.topRight    / (remoteWinSize-1)) * 2.0 - 1.0;
+    surfelNDCs.bottomLeft  = (surfelCornerCoords.bottomLeft  / remoteWinSize) * 2.0 - 1.0;
+    surfelNDCs.bottom      = (surfelCornerCoords.bottom      / remoteWinSize) * 2.0 - 1.0;
+    surfelNDCs.bottomRight = (surfelCornerCoords.bottomRight / remoteWinSize) * 2.0 - 1.0;
+    surfelNDCs.left        = (surfelCornerCoords.left        / remoteWinSize) * 2.0 - 1.0;
+    surfelNDCs.center      = (surfelCornerCoords.center      / remoteWinSize) * 2.0 - 1.0;
+    surfelNDCs.right       = (surfelCornerCoords.right       / remoteWinSize) * 2.0 - 1.0;
+    surfelNDCs.topLeft     = (surfelCornerCoords.topLeft     / remoteWinSize) * 2.0 - 1.0;
+    surfelNDCs.top         = (surfelCornerCoords.top         / remoteWinSize) * 2.0 - 1.0;
+    surfelNDCs.topRight    = (surfelCornerCoords.topRight    / remoteWinSize) * 2.0 - 1.0;
 
     MultiQuad pixelCoordsView;
     pixelCoordsView.bottomLeft  = ndcToView(projectionInverse, pixelCenterNDCs.bottomLeft, pixelDepths.bottomLeft);

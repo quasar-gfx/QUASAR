@@ -708,7 +708,7 @@ int main(int argc, char** argv) {
 
                 /*
                 ============================
-                FOURTH PASS: Generate quads from quad map
+                FOURTH PASS: Generate meshes from quad map
                 ============================
                 */
                 genQuadsFromQuadMapsShader.bind();
