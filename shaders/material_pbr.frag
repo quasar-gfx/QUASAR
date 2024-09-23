@@ -347,13 +347,6 @@ vec3 calcPointLight(PointLight light, PBRInfo pbrInputs) {
     return radianceOut;
 }
 
-const float near = 0.1;
-const float far = 1000.0;
-float LinearizeDepth(float depth) {
-    float z = depth * 2.0 - 1.0; // back to NDC
-    return (2.0 * near * far) / (far + near - z * (far - near));
-}
-
 void main() {
     if (peelDepth) {
         float depth = gl_FragCoord.z;

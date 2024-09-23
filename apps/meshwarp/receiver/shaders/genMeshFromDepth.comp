@@ -98,7 +98,7 @@ float sampleDepth(sampler2D depthMap, vec2 sampleCoord) {
 }
 
 void main() {
-    vec2 size = vec2screenSize / float(surfelSize);
+    vec2 size = screenSize / float(surfelSize);
 
     uint shaderIndex = uint(gl_GlobalInvocationID.y * size.x + gl_GlobalInvocationID.x);
 

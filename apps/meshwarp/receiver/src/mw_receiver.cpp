@@ -317,12 +317,12 @@ int main(int argc, char** argv) {
         .fragmentCodePath = "../shaders/postprocessing/displayTexture.frag",
     });
 
-    ComputeShader genMeshShader({
-        .computeCodePath = "./shaders/genMesh.comp"
+    ComputeShader genMeshFromDepthShader({
+        .computeCodePath = "./shaders/genMeshFromDepth.comp"
     });
-    genMeshShader.bind();
-    genMeshShader.setVec2("screenSize", glm::vec2(windowSize.x, windowSize.y));
-    genMeshShader.setInt("surfelSize", surfelSize);
+    genMeshFromDepthShader.bind();
+    genMeshFromDepthShader.setVec2("screenSize", glm::vec2(windowSize.x, windowSize.y));
+    genMeshFromDepthShader.setInt("surfelSize", surfelSize);
 
     scene.backgroundColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -420,22 +420,22 @@ int main(int argc, char** argv) {
         }
 
         // set shader uniforms
-        genMeshShader.bind();
+        genMeshFromDepthShader.bind();
         {
-            genMeshShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-            genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
-            genMeshShader.setFloat("near", remoteCamera.near);
-            genMeshShader.setFloat("far", remoteCamera.far);
+            genMeshFromDepthShader.setMat4("projection", remoteCamera.getProjectionMatrix());
+            genMeshFromDepthShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+            genMeshFromDepthShader.setFloat("near", remoteCamera.near);
+            genMeshFromDepthShader.setFloat("far", remoteCamera.far);
         }
         {
-            genMeshShader.setTexture(videoTextureDepth, 0);
+            genMeshFromDepthShader.setTexture(videoTextureDepth, 0);
         }
         {
             if (poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTimeColor)) {
-                genMeshShader.setMat4("viewColor", currentColorFramePose.mono.view);
+                genMeshFromDepthShader.setMat4("viewColor", currentColorFramePose.mono.view);
             }
             if (poseStreamer.getPose(poseIdDepth, &currentDepthFramePose, &elapsedTimeDepth)) {
-                genMeshShader.setMat4("viewInverseDepth", glm::inverse(currentDepthFramePose.mono.view));
+                genMeshFromDepthShader.setMat4("viewInverseDepth", glm::inverse(currentDepthFramePose.mono.view));
             }
         }
         {
@@ -445,8 +445,8 @@ int main(int argc, char** argv) {
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, meshWireframe.indexBuffer);
         }
         // dispatch compute shader to generate vertices and indices for mesh
-        genMeshShader.dispatch(width / 16, height / 16, 1);
-        genMeshShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+        genMeshFromDepthShader.dispatch(width / 16, height / 16, 1);
+        genMeshFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
         poseStreamer.removePosesLessThan(std::min(poseIdColor, poseIdDepth));
 
