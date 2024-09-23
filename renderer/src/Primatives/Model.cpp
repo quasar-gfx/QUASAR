@@ -183,7 +183,7 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
     uint32_t materialId = mesh->mMaterialIndex;
     aiMaterial const* aiMat = scene->mMaterials[materialId];
 
-    MeshCreateParams meshParams{};
+    MeshDataCreateParams meshParams{};
     if (material != nullptr) {
         this->material = material;
     }

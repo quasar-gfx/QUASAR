@@ -74,11 +74,9 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &ca
 RenderStats DepthPeelingRenderer::drawSkyBox(const Scene &scene, const Camera &camera) {
     RenderStats stats;
 
-    for (auto layer : peelingLayers) {
-        layer->bind();
-        stats += OpenGLRenderer::drawSkyBoxImpl(scene, camera);
-        layer->unbind();
-    }
+    peelingLayers[0]->bind();
+    stats += OpenGLRenderer::drawSkyBoxImpl(scene, camera);
+    peelingLayers[0]->unbind();
 
     return stats;
 }

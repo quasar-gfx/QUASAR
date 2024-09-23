@@ -79,6 +79,30 @@ void Mesh::setBuffers(const std::vector<Vertex> &vertices, const std::vector<uns
     glBindVertexArray(0);
 }
 
+void Mesh::setBuffers(unsigned int numVertices, unsigned int numIndices) {
+    // if no vertices or indices, dont bind buffers
+    if (numVertices == 0) {
+        return;
+    }
+
+    glBindVertexArray(vertexArrayBuffer);
+
+    vertexBuffer.bind();
+    vertexBuffer.resize(numVertices);
+    vertexBuffer.unbind();
+
+    if (numIndices == 0) {
+        glBindVertexArray(0);
+        return;
+    }
+
+    indexBuffer.bind();
+    indexBuffer.resize(numIndices);
+    indexBuffer.unbind();
+
+    glBindVertexArray(0);
+}
+
 void Mesh::resizeBuffers(unsigned int vertexBufferSize, unsigned int indexBufferSize) {
     vertexBuffer.setSize(vertexBufferSize);
     indexBuffer.setSize(indexBufferSize);

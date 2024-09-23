@@ -108,15 +108,6 @@ int main(int argc, char** argv) {
 
     glm::uvec2 remoteWinSize = glm::uvec2(size2Width, size2Height);
 
-    unsigned int zeros[2] = {0, 0};
-    Buffer<unsigned int> numVerticesIndicesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 2 * sizeof(unsigned int), zeros);
-
-    unsigned int maxVertices = remoteWinSize.x * remoteWinSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
-    unsigned int maxVerticesDepth = remoteWinSize.x * remoteWinSize.y;
-
-    unsigned int numTriangles = remoteWinSize.x * remoteWinSize.y * NUM_SUB_QUADS * 2;
-    unsigned int maxIndices = numTriangles * 3;
-
     struct QuadMapData {
         bool flattened;
         glm::vec3 normal;
@@ -153,6 +144,15 @@ int main(int argc, char** argv) {
         });
     }
 
+    unsigned int zeros[2] = {0, 0};
+    Buffer<unsigned int> numVerticesIndicesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 2 * sizeof(unsigned int), zeros);
+
+    unsigned int maxVertices = remoteWinSize.x * remoteWinSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
+    unsigned int maxVerticesDepth = remoteWinSize.x * remoteWinSize.y;
+
+    unsigned int numTriangles = remoteWinSize.x * remoteWinSize.y * NUM_SUB_QUADS * 2;
+    unsigned int maxIndices = numTriangles * 3;
+
     std::vector<Mesh*> meshes(maxViews);
     std::vector<Node*> nodes(maxViews);
 
@@ -164,8 +164,8 @@ int main(int argc, char** argv) {
 
     for (int view = 0; view < maxViews; view++) {
         meshes[view] = new Mesh({
-            .vertices = std::vector<Vertex>(maxVertices),
-            .indices = std::vector<unsigned int>(maxIndices),
+            .numVertices = maxVertices,
+            .numIndices = maxIndices,
             .material = new UnlitMaterial({ .diffuseTexture = &renderTargets[view]->colorBuffer }),
             .usage = GL_DYNAMIC_DRAW
         });
@@ -181,8 +181,8 @@ int main(int argc, char** argv) {
                             1.0f);
 
         meshWireframes[view] = new Mesh({
-            .vertices = std::vector<Vertex>(maxVertices),
-            .indices = std::vector<unsigned int>(maxIndices),
+            .numVertices = maxVertices,
+            .numIndices = maxIndices,
             .material = new UnlitMaterial({ .baseColor = color }),
             .usage = GL_DYNAMIC_DRAW
         });
@@ -192,7 +192,7 @@ int main(int argc, char** argv) {
         scene.addChildNode(nodeWireframes[view]);
 
         meshDepths[view] = new Mesh({
-            .vertices = std::vector<Vertex>(maxVerticesDepth),
+            .numVertices = maxVerticesDepth,
             .material = new UnlitMaterial({ .baseColor = color }),
             .pointcloud = true,
             .pointSize = 7.5f,

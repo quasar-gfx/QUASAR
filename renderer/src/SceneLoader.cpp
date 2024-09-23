@@ -328,7 +328,7 @@ int SceneLoader::parseMesh(jsmntok_t* tokens, int i, const char* json, Scene &sc
     CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
     std::string meshType = "cube";
-    MeshCreateParams params{};
+    MeshDataCreateParams params{};
 
     int size = tokens[i++].size;
     for (int j = 0; j < size; j++) {

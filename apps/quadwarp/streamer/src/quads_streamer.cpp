@@ -85,15 +85,6 @@ int main(int argc, char** argv) {
 
     glm::uvec2 remoteWinSize = glm::uvec2(size2Width, size2Height);
 
-    unsigned int zeros[2] = {0, 0};
-    Buffer<unsigned int> numVerticesIndicesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 2 * sizeof(unsigned int), zeros);
-
-    unsigned int maxVertices = remoteWinSize.x * remoteWinSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
-    unsigned int maxVerticesDepth = remoteWinSize.x * remoteWinSize.y;
-
-    unsigned int numTriangles = remoteWinSize.x * remoteWinSize.y * NUM_SUB_QUADS * 2;
-    unsigned int maxIndices = numTriangles * 3;
-
     struct QuadMapData {
         bool flattened;
         glm::vec3 normal;
@@ -126,6 +117,15 @@ int main(int argc, char** argv) {
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST
     });
+
+    unsigned int zeros[2] = {0, 0};
+    Buffer<unsigned int> numVerticesIndicesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 2 * sizeof(unsigned int), zeros);
+
+    unsigned int maxVertices = remoteWinSize.x * remoteWinSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
+    unsigned int maxVerticesDepth = remoteWinSize.x * remoteWinSize.y;
+
+    unsigned int numTriangles = remoteWinSize.x * remoteWinSize.y * NUM_SUB_QUADS * 2;
+    unsigned int maxIndices = numTriangles * 3;
 
     Mesh mesh = Mesh({
         .vertices = std::vector<Vertex>(maxVertices),
