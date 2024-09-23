@@ -24,68 +24,58 @@ float sampleDepth(sampler2D depthMap, ivec2 sampleCoord) {
     return depth;
 }
 
-// void storeBC4Bufffer(Block block, ivec2 blockPixelCoord){    
-//     uint index = uint(blockPixelCoord.y)*uint(bc4DepthSize.x) + uint(blockPixelCoord.x);
-//     bc4buffer[index] = block;
-
-// }
-
-// void main() { 
-//     ivec2 blockPixelCoord = ivec2(gl_GlobalInvocationID.xy); // 2d bc4-coord
-//     ivec2 startPixelCoord = 8 * blockPixelCoord; // depth-coord
-//     float arr[8][8];
-
-//     for(int i=0; i<8; i++){
-//         for(int j=0; j<8; j++){
-//             arr[i][j] = sampleDepth(depthMap, startPixelCoord+ivec2(i,j));
-//         }
-//     }
-
-//     Block block; // after compression
-//     block.max = 0;
-//     block.min = 0;
-//     //block.arr = 0;
-
-//     storeBC4Bufffer(block, blockPixelCoord);
-// }
 void main() {
-    ivec2 blockPixelCoord = ivec2(gl_GlobalInvocationID.xy); // 2D BC4 coordinate
-    ivec2 startPixelCoord = 8 * blockPixelCoord; // Start coordinate of the 8x8 block in depth map
+    ivec2 blockPixelCoord = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 startPixelCoord = 8 * blockPixelCoord;
 
-    // Sample 8x8 block of depth values
-    float arr[8][8];
+    float arr[64];
     float minDepth = 1.0;
     float maxDepth = 0.0;
-    for(int i = 0; i < 8; i++) {
-        for(int j = 0; j < 8; j++) {
-            arr[i][j] = sampleDepth(depthMap, startPixelCoord + ivec2(j, i));
-            minDepth = min(minDepth, arr[i][j]);
-            maxDepth = max(maxDepth, arr[i][j]);
-        }
+
+    // Sample 8x8 block and find min/max
+    for(int i = 0; i < 64; i++) {
+        ivec2 offset = ivec2(i % 8, i / 8);
+        arr[i] = sampleDepth(depthMap, startPixelCoord + offset);
+        minDepth = min(minDepth, arr[i]);
+        maxDepth = max(maxDepth, arr[i]);
     }
 
-    // Prepare block for compression
     Block block;
     block.min = minDepth;
     block.max = maxDepth;
 
-    // Calculate the middle value for 1-bit quantization
-    float midDepth = (minDepth + maxDepth) * 0.5;
+    // Calculate interpolated values
+    float interpVals[8];
+    interpVals[0] = minDepth;
+    interpVals[1] = maxDepth;
+    for(int i = 1; i < 7; i++) {
+        interpVals[i+1] = mix(minDepth, maxDepth, i / 7.0);
+    }
 
-    // Compress 8x8 block into 6 32-bit integers (3 bits per pixel)
+    // Assign indices and pack bits
     for(int i = 0; i < 6; i++) {
         uint bits = 0u;
         for(int j = 0; j < 10 && (i * 10 + j) < 64; j++) {
-            int x = (i * 10 + j) % 8;
-            int y = (i * 10 + j) / 8;
-            bits |= (arr[y][x] >= midDepth ? 1u : 0u) << (j * 3);
+            int pixelIndex = i * 10 + j;
+            float pixelValue = arr[pixelIndex];
+            
+            // Find closest interpolated value
+            int bestIndex = 0;
+            float minDiff = abs(pixelValue - interpVals[0]);
+            for(int k = 1; k < 8; k++) {
+                float diff = abs(pixelValue - interpVals[k]);
+                if(diff < minDiff) {
+                    minDiff = diff;
+                    bestIndex = k;
+                }
+            }
+            
+            // Pack 3-bit index into the 32-bit integer
+            bits |= uint(bestIndex) << (j * 3);
         }
         block.arr[i] = bits;
     }
-
-    // Store the compressed block
-    //storeBC4Buffer(block, blockPixelCoord);
-    // Store the compressed block directly in the buffer
+     // Store the compressed block directly in the buffer
     uint index = uint(blockPixelCoord.y) * uint(bc4DepthSize.x) + uint(blockPixelCoord.x);
     bc4buffer[index] = block;
 }
