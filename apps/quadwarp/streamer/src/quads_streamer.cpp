@@ -95,15 +95,15 @@ int main(int argc, char** argv) {
     };
     std::vector<Buffer<QuadMapData>> quadMaps(numQuadMaps);
     std::vector<glm::vec2> quadMapSizes(numQuadMaps);
-    glm::vec2 quadMapSize = remoteWinSize;
+    glm::vec2 quadMapSize = 2u * remoteWinSize;
     for (int i = 0; i < numQuadMaps; i++) {
-        quadMaps[i] = Buffer<QuadMapData>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * quadMapSize.x * quadMapSize.y, nullptr);
+        quadMaps[i] = Buffer<QuadMapData>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, quadMapSize.x * quadMapSize.y, nullptr);
         quadMapSizes[i] = quadMapSize;
         quadMapSize /= 2.0f;
     }
 
     glm::uvec2 depthBufferSize = 4u * remoteWinSize;
-    Buffer<uint8_t> depthOffsetBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * depthBufferSize.x * depthBufferSize.y, nullptr);
+    Buffer<float> depthOffsetBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, depthBufferSize.x * depthBufferSize.y, nullptr);
 
     RenderTarget renderTarget({
         .width = windowSize.x,
@@ -389,12 +389,14 @@ int main(int argc, char** argv) {
 
             if (ImGui::Button("Save Mesh")) {
                 // save vertexBuffer
+                mesh.vertexBuffer.bind();
                 std::vector<Vertex> vertices = mesh.vertexBuffer.getData();
                 std::ofstream verticesFile(DATA_PATH + verticesFileName, std::ios::binary);
                 verticesFile.write((char*)vertices.data(), mesh.vertexBuffer.getSize() * sizeof(Vertex));
                 verticesFile.close();
 
                 // save indexBuffer
+                mesh.indexBuffer.bind();
                 std::vector<unsigned int> indices = mesh.indexBuffer.getData();
                 std::ofstream indicesFile(DATA_PATH + indicesFileName, std::ios::binary);
                 indicesFile.write((char*)indices.data(), mesh.indexBuffer.getSize() * sizeof(unsigned int));
