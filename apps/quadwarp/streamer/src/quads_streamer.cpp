@@ -282,7 +282,7 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
-            ImGui::TextColored(ImVec4(0,1,1,1), "Proxies: %d", bufferSizes.numProxies);
+            ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d", bufferSizes.numProxies);
 
             ImGui::Separator();
 

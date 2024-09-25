@@ -154,6 +154,7 @@ int main(int argc, char** argv) {
         unsigned int numIndices;
         unsigned int numProxies;
     };
+    unsigned int totalProxies = 0;
     BufferSizes bufferSizes = { 0 };
     unsigned int zeros[3] = { 0 };
     Buffer<unsigned int> bufferSizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 3 * sizeof(unsigned int), zeros);
@@ -337,7 +338,7 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
-            ImGui::TextColored(ImVec4(0,1,1,1), "Proxies: %d", bufferSizes.numProxies);
+            ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d", totalProxies);
 
             ImGui::Separator();
 
@@ -600,6 +601,7 @@ int main(int argc, char** argv) {
             double avgGenQuadsTime = 0.0;
             double avgSetMeshBuffersTime = 0.0;
             double avgGenDepthTime = 0.0;
+            totalProxies = 0;
 
             for (int view = 0; view < maxViews; view++) {
                 auto* remoteCamera = remoteCameras[view];
@@ -783,6 +785,8 @@ int main(int argc, char** argv) {
 
                 currMesh->resizeBuffers(bufferSizes.numVertices, bufferSizes.numIndices);
                 currMeshWireframe->resizeBuffers(bufferSizes.numVertices, bufferSizes.numIndices);
+
+                totalProxies += bufferSizes.numProxies;
 
                 avgSetMeshBuffersTime += glfwGetTime() - startTime;
                 startTime = glfwGetTime();
