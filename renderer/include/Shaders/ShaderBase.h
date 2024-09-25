@@ -25,11 +25,21 @@ public:
     }
 
     void bind() const override {
+        if (currentShaderID == ID) {
+            return;
+        }
+
         glUseProgram(ID);
+        currentShaderID = ID;
     }
 
     void unbind() const override {
+        if (currentShaderID == 0) {
+            return;
+        }
+
         glUseProgram(0);
+        currentShaderID = 0;
     }
 
     void setBool(const std::string &name, bool value) const {
@@ -193,6 +203,8 @@ protected:
             }
         }
     }
+
+    static GLuint currentShaderID;
 };
 
 #endif // SHADER_BASE_H

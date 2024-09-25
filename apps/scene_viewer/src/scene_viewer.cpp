@@ -8,8 +8,6 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
-#define TEXTURE_PREVIEW_SIZE 300
-
 int main(int argc, char** argv) {
     Config config{};
     config.title = "Scene Viewer";

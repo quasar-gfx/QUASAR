@@ -45,9 +45,9 @@ public:
     }
 
     void bindMaterial(const Material* material) override {
-        material->shader->setVec3("directionalLight.direction", direction);
-        material->shader->setVec3("directionalLight.color", color);
-        material->shader->setFloat("directionalLight.intensity", intensity);
+        material->getShader()->setVec3("directionalLight.direction", direction);
+        material->getShader()->setVec3("directionalLight.color", color);
+        material->getShader()->setFloat("directionalLight.intensity", intensity);
         updateLightSpaceMatrix();
     }
 

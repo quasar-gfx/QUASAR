@@ -124,17 +124,17 @@ void Mesh::updateAABB(const std::vector<Vertex> &vertices) {
 void Mesh::setMaterialCameraParams(const Camera &camera, const Material* material) {
     if (camera.isVR()) {
         auto& vrCamera = static_cast<const VRCamera&>(camera);
-        material->shader->setMat4("view[0]", vrCamera.left.getViewMatrix());
-        material->shader->setMat4("projection[0]", vrCamera.left.getProjectionMatrix());
-        material->shader->setMat4("view[1]", vrCamera.right.getViewMatrix());
-        material->shader->setMat4("projection[1]", vrCamera.right.getProjectionMatrix());
-        material->shader->setVec3("camPos", vrCamera.getPosition());
+        material->getShader()->setMat4("view[0]", vrCamera.left.getViewMatrix());
+        material->getShader()->setMat4("projection[0]", vrCamera.left.getProjectionMatrix());
+        material->getShader()->setMat4("view[1]", vrCamera.right.getViewMatrix());
+        material->getShader()->setMat4("projection[1]", vrCamera.right.getProjectionMatrix());
+        material->getShader()->setVec3("camPos", vrCamera.getPosition());
     }
     else {
         auto& monoCamera = static_cast<const PerspectiveCamera&>(camera);
-        material->shader->setMat4("view", monoCamera.getViewMatrix());
-        material->shader->setMat4("projection", monoCamera.getProjectionMatrix());
-        material->shader->setVec3("camPos", monoCamera.getPosition());
+        material->getShader()->setMat4("view", monoCamera.getViewMatrix());
+        material->getShader()->setMat4("projection", monoCamera.getProjectionMatrix());
+        material->getShader()->setVec3("camPos", monoCamera.getPosition());
     }
 }
 
@@ -152,11 +152,11 @@ void Mesh::bindMaterial(const Scene &scene, const glm::mat4 &model, const Materi
     if (scene.directionalLight != nullptr) {
         scene.directionalLight->bindMaterial(materialToUse);
         if (overrideMaterial != nullptr) {
-            materialToUse->shader->setMat4("lightSpaceMatrix", scene.directionalLight->lightSpaceMatrix * model);
+            materialToUse->getShader()->setMat4("lightSpaceMatrix", scene.directionalLight->lightSpaceMatrix * model);
         }
         else {
-            materialToUse->shader->setTexture("dirLightShadowMap", scene.directionalLight->shadowMapRenderTarget.depthBuffer, texIdx);
-            materialToUse->shader->setMat4("lightSpaceMatrix", scene.directionalLight->lightSpaceMatrix);
+            materialToUse->getShader()->setTexture("dirLightShadowMap", scene.directionalLight->shadowMapRenderTarget.depthBuffer, texIdx);
+            materialToUse->getShader()->setMat4("lightSpaceMatrix", scene.directionalLight->lightSpaceMatrix);
         }
     }
     texIdx++;
@@ -164,19 +164,19 @@ void Mesh::bindMaterial(const Scene &scene, const glm::mat4 &model, const Materi
     for (int i = 0; i < scene.pointLights.size(); i++) {
         auto pointLight = scene.pointLights[i];
         pointLight->setChannel(i);
-        materialToUse->shader->setTexture("pointLightShadowMaps[" + std::to_string(i) + "]", pointLight->shadowMapRenderTarget.depthCubeMap, texIdx);
+        materialToUse->getShader()->setTexture("pointLightShadowMaps[" + std::to_string(i) + "]", pointLight->shadowMapRenderTarget.depthCubeMap, texIdx);
         pointLight->bindMaterial(materialToUse);
         texIdx++;
     }
 
-    materialToUse->shader->setInt("numPointLights", static_cast<int>(scene.pointLights.size()));
-    materialToUse->shader->setFloat("material.IBL", IBL);
+    materialToUse->getShader()->setInt("numPointLights", static_cast<int>(scene.pointLights.size()));
+    materialToUse->getShader()->setFloat("material.IBL", IBL);
 
-    materialToUse->shader->setFloat("pointSize", pointSize);
+    materialToUse->getShader()->setFloat("pointSize", pointSize);
 
-    materialToUse->shader->setBool("peelDepth", prevDepthMap != nullptr);
+    materialToUse->getShader()->setBool("peelDepth", prevDepthMap != nullptr);
     if (prevDepthMap != nullptr) {
-        materialToUse->shader->setTexture("prevDepthMap", *prevDepthMap, texIdx);
+        materialToUse->getShader()->setTexture("prevDepthMap", *prevDepthMap, texIdx);
         texIdx++;
     }
 
@@ -206,8 +206,8 @@ RenderStats Mesh::draw(const Camera &camera, const glm::mat4 &model, bool frustu
     materialToUse->bind();
 
     setMaterialCameraParams(camera, materialToUse);
-    materialToUse->shader->setMat4("model", model);
-    materialToUse->shader->setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
+    materialToUse->getShader()->setMat4("model", model);
+    materialToUse->getShader()->setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
 
     stats = draw();
 

@@ -17,8 +17,8 @@ public:
         }) {}
 
     void bindMaterial(const Material* material) override {
-        material->shader->setVec3("ambientLight.color", color);
-        material->shader->setFloat("ambientLight.intensity", intensity);
+        material->getShader()->setVec3("ambientLight.color", color);
+        material->getShader()->setFloat("ambientLight.intensity", intensity);
     }
 };
 

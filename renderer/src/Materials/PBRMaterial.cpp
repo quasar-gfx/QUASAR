@@ -1,5 +1,7 @@
 #include <Materials/PBRMaterial.h>
 
+Shader* PBRMaterial::shader = nullptr;
+
 PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params)
         : baseColor(params.baseColor)
         , baseColorFactor(params.baseColorFactor)
@@ -75,24 +77,26 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params)
         textures.push_back(params.emissiveTexture);
     }
 
-    ShaderDataCreateParams pbrShaderParams{
-        .vertexCodeData = SHADER_COMMON_VERT,
-        .vertexCodeSize = SHADER_COMMON_VERT_len,
-        .fragmentCodeData = SHADER_MATERIAL_PBR_FRAG,
-        .fragmentCodeSize = SHADER_MATERIAL_PBR_FRAG_len,
+    if (shader == nullptr) {
+        ShaderDataCreateParams pbrShaderParams{
+            .vertexCodeData = SHADER_COMMON_VERT,
+            .vertexCodeSize = SHADER_COMMON_VERT_len,
+            .fragmentCodeData = SHADER_MATERIAL_PBR_FRAG,
+            .fragmentCodeSize = SHADER_MATERIAL_PBR_FRAG_len,
 #ifdef GL_ES
-        .extensions = {
-            "#extension GL_EXT_texture_cube_map_array : enable"
-        },
+            .extensions = {
+                "#extension GL_EXT_texture_cube_map_array : enable"
+            },
 #endif
-        .defines = {
-            "#define MAX_POINT_LIGHTS " + std::to_string(params.numPointLights),
-            "#define ALPHA_OPAQUE " + std::to_string(static_cast<uint8_t>(AlphaMode::OPAQUE)),
-            "#define ALPHA_MASK " + std::to_string(static_cast<uint8_t>(AlphaMode::MASKED)),
-            "#define ALPHA_BLEND " + std::to_string(static_cast<uint8_t>(AlphaMode::TRANSPARENT))
-        }
-    };
-    shader = std::make_unique<Shader>(pbrShaderParams);
+            .defines = {
+                "#define MAX_POINT_LIGHTS " + std::to_string(params.numPointLights),
+                "#define ALPHA_OPAQUE " + std::to_string(static_cast<uint8_t>(AlphaMode::OPAQUE)),
+                "#define ALPHA_MASK " + std::to_string(static_cast<uint8_t>(AlphaMode::MASKED)),
+                "#define ALPHA_BLEND " + std::to_string(static_cast<uint8_t>(AlphaMode::TRANSPARENT))
+            }
+        };
+        shader = new Shader(pbrShaderParams);
+    }
 }
 
 void PBRMaterial::bind() const {
@@ -147,5 +151,12 @@ void PBRMaterial::bind() const {
             shader->setInt(name, i);
             glBindTexture(GL_TEXTURE_2D, 0);
         }
+    }
+}
+
+PBRMaterial::~PBRMaterial() {
+    if (shader != nullptr) {
+        delete shader;
+        shader = nullptr;
     }
 }
