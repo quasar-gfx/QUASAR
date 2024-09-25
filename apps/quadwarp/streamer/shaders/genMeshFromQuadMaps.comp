@@ -52,9 +52,10 @@ layout(std430, binding = 0) readonly buffer QuadMapBuffer {
     QuadMapData quadMap[];
 };
 
-layout(std430, binding = 1) writeonly buffer VerticesIndicesSizeBuffer {
+layout(std430, binding = 1) writeonly buffer BufferSizesBuffer {
     uint numVertices;
     uint numIndices;
+    uint numProxies;
 };
 
 layout(std430, binding = 2) buffer VertexBuffer {
@@ -320,6 +321,8 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
         createSurfel(surfel, surfelPixelCoords, depthOffsets, proxyPlane);
         storeSurfel(surfel);
     }
+
+    atomicAdd(numProxies, 1);
 }
 
 void main() {

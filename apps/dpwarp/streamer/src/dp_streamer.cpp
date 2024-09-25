@@ -103,7 +103,6 @@ int main(int argc, char** argv) {
         glm::ivec2 offset;
         unsigned int size;
     };
-
     std::vector<Buffer<QuadMapData>> quadMaps(numQuadMaps);
     std::vector<glm::vec2> quadMapSizes(numQuadMaps);
     glm::vec2 quadMapSize = remoteWinSize;
@@ -114,7 +113,7 @@ int main(int argc, char** argv) {
     }
 
     glm::uvec2 depthBufferSize = 4u * remoteWinSize;
-    Buffer<float> depthOffsetBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * depthBufferSize.x * depthBufferSize.y, nullptr);
+    Buffer<uint8_t> depthOffsetBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(QuadMapData) * depthBufferSize.x * depthBufferSize.y, nullptr);
 
     std::vector<RenderTarget*> renderTargets(maxViews);
     for (int views = 0; views < maxViews; views++) {
@@ -131,14 +130,20 @@ int main(int argc, char** argv) {
         });
     }
 
-    unsigned int zeros[2] = {0, 0};
-    Buffer<unsigned int> numVerticesIndicesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 2 * sizeof(unsigned int), zeros);
-
     unsigned int maxVertices = remoteWinSize.x * remoteWinSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
     unsigned int maxVerticesDepth = remoteWinSize.x * remoteWinSize.y;
 
     unsigned int numTriangles = remoteWinSize.x * remoteWinSize.y * NUM_SUB_QUADS * 2;
     unsigned int maxIndices = numTriangles * 3;
+
+    struct BufferSizes {
+        unsigned int numVertices;
+        unsigned int numIndices;
+        unsigned int numProxies;
+    };
+    BufferSizes bufferSizes = { 0 };
+    unsigned int zeros[3] = { 0 };
+    Buffer<unsigned int> bufferSizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 3 * sizeof(unsigned int), zeros);
 
     std::vector<Mesh*> meshes(maxViews);
     std::vector<Node*> nodes(maxViews);
@@ -315,6 +320,8 @@ int main(int argc, char** argv) {
                 ImGui::TextColored(ImVec4(1,1,0,1), "Draw Calls: %d", renderStats.drawCalls);
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
+
+            ImGui::TextColored(ImVec4(0,1,1,1), "Proxies: %d", bufferSizes.numProxies);
 
             ImGui::Separator();
 
@@ -729,7 +736,7 @@ int main(int argc, char** argv) {
                     }
                     {
                         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadMap);
-                        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, numVerticesIndicesBuffer);
+                        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bufferSizesBuffer);
                         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, currMesh->vertexBuffer);
                         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, currMesh->indexBuffer);
                         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, currMeshWireframe->vertexBuffer);
@@ -746,13 +753,12 @@ int main(int argc, char** argv) {
                 startTime = glfwGetTime();
 
                 // get number of vertices and indices in mesh
-                unsigned int verticesIndicesSize[2] = {maxVertices, maxIndices};
-                numVerticesIndicesBuffer.bind();
-                numVerticesIndicesBuffer.getSubData(0, 2, verticesIndicesSize);
-                numVerticesIndicesBuffer.setSubData(0, 2, &zeros); // reset for next frame
+                bufferSizesBuffer.bind();
+                bufferSizesBuffer.getSubData(0, 3, &bufferSizes);
+                bufferSizesBuffer.setSubData(0, 3, &zeros); // reset for next frame
 
-                currMesh->resizeBuffers(verticesIndicesSize[0], verticesIndicesSize[1]);
-                currMeshWireframe->resizeBuffers(verticesIndicesSize[0], verticesIndicesSize[1]);
+                currMesh->resizeBuffers(bufferSizes.numVertices, bufferSizes.numIndices);
+                currMeshWireframe->resizeBuffers(bufferSizes.numVertices, bufferSizes.numIndices);
 
                 avgSetMeshBuffersTime += glfwGetTime() - startTime;
                 startTime = glfwGetTime();

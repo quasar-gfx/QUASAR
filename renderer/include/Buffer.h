@@ -104,7 +104,7 @@ public:
     void getData(void* data) const {
         T* mappedBuffer = static_cast<T*>(glMapBuffer(target, GL_READ_ONLY));
         if (mappedBuffer) {
-            memcpy(data, mappedBuffer, numElems);
+            memcpy(data, mappedBuffer, numElems * sizeof(T));
 
             glUnmapBuffer(target);
         } else {
