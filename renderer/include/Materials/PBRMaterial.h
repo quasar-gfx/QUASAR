@@ -45,10 +45,17 @@ public:
 
     PBRMaterial() = default;
     PBRMaterial(const PBRMaterialCreateParams &params);
+    ~PBRMaterial();
 
     void bind() const override;
 
+    Shader* getShader() const override {
+        return shader;
+    }
+
     unsigned int getTextureCount() const override { return 6; }
+
+    static Shader* shader;
 };
 
 #endif // PBR_MATERIAL_H

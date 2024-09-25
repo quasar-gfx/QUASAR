@@ -5,22 +5,18 @@
 
 class PointShadowMapMaterial : public ShadowMapMaterial {
 public:
-    PointShadowMapMaterial() {
-        ShaderDataCreateParams pointShadowMapParams{
-            .vertexCodeData = SHADER_POINTSHADOW_VERT,
-            .vertexCodeSize = SHADER_POINTSHADOW_VERT_len,
-            .fragmentCodeData = SHADER_POINTSHADOW_FRAG,
-            .fragmentCodeSize = SHADER_POINTSHADOW_FRAG_len,
-            .geometryData = SHADER_POINTSHADOW_GEOM,
-            .geometryDataSize = SHADER_POINTSHADOW_GEOM_len,
-#ifdef GL_ES
-            .extensions = {
-                "#extension GL_EXT_geometry_shader : enable"
-            }
-#endif
-        };
-        shader = std::make_shared<Shader>(pointShadowMapParams);
+    PointShadowMapMaterial();
+    ~PointShadowMapMaterial();
+
+    void bind() const override {
+        shader->bind();
     }
+
+    Shader* getShader() const override {
+        return shader;
+    }
+
+    static Shader* shader;
 };
 
 #endif // POINT_SHADOW_MAP_MATERIAL_H

@@ -21,10 +21,17 @@ public:
 
     UnlitMaterial() = default;
     UnlitMaterial(const UnlitMaterialCreateParams &params);
+    ~UnlitMaterial();
 
     void bind() const override;
 
+    Shader* getShader() const override {
+        return shader;
+    }
+
     unsigned int getTextureCount() const override { return 1; }
+
+    static Shader* shader;
 };
 
 #endif // TEXTURED_MATERIAL_H

@@ -87,6 +87,14 @@ public:
         return *this;
     }
 
+    void bind() const override {
+        glBindBuffer(target, ID);
+    }
+
+    void unbind() const override {
+        glBindBuffer(target, 0);
+    }
+
     unsigned int getSize() const {
         return numElems;
     }
@@ -147,14 +155,6 @@ public:
 
     void setSubData(unsigned int offset, const std::vector<T>& data) {
         setSubData(offset, data.size(), data.data());
-    }
-
-    void bind() const override {
-        glBindBuffer(target, ID);
-    }
-
-    void unbind() const override {
-        glBindBuffer(target, 0);
     }
 
 private:

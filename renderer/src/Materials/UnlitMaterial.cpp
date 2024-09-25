@@ -1,5 +1,7 @@
 #include <Materials/UnlitMaterial.h>
 
+Shader* UnlitMaterial::shader = nullptr;
+
 UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams &params)
         : baseColor(params.baseColor)
         , baseColorFactor(params.baseColorFactor)
@@ -21,18 +23,20 @@ UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams &params)
         textures.push_back(params.diffuseTexture);
     }
 
-    ShaderDataCreateParams unlitShaderParams{
-        .vertexCodeData = SHADER_COMMON_VERT,
-        .vertexCodeSize = SHADER_COMMON_VERT_len,
-        .fragmentCodeData = SHADER_MATERIAL_UNLIT_FRAG,
-        .fragmentCodeSize = SHADER_MATERIAL_UNLIT_FRAG_len,
-        .defines = {
-            "#define ALPHA_OPAQUE " + std::to_string(static_cast<uint8_t>(AlphaMode::OPAQUE)),
-            "#define ALPHA_MASK " + std::to_string(static_cast<uint8_t>(AlphaMode::MASKED)),
-            "#define ALPHA_BLEND " + std::to_string(static_cast<uint8_t>(AlphaMode::TRANSPARENT))
-        }
-    };
-    shader = std::make_shared<Shader>(unlitShaderParams);
+    if (shader == nullptr) {
+        ShaderDataCreateParams unlitShaderParams{
+            .vertexCodeData = SHADER_COMMON_VERT,
+            .vertexCodeSize = SHADER_COMMON_VERT_len,
+            .fragmentCodeData = SHADER_MATERIAL_UNLIT_FRAG,
+            .fragmentCodeSize = SHADER_MATERIAL_UNLIT_FRAG_len,
+            .defines = {
+                "#define ALPHA_OPAQUE " + std::to_string(static_cast<uint8_t>(AlphaMode::OPAQUE)),
+                "#define ALPHA_MASK " + std::to_string(static_cast<uint8_t>(AlphaMode::MASKED)),
+                "#define ALPHA_BLEND " + std::to_string(static_cast<uint8_t>(AlphaMode::TRANSPARENT))
+            }
+        };
+        shader = new Shader(unlitShaderParams);
+    }
 }
 
 void UnlitMaterial::bind() const {
@@ -52,5 +56,12 @@ void UnlitMaterial::bind() const {
     else {
         shader->setInt(name, 0);
         glBindTexture(GL_TEXTURE_2D, 0);
+    }
+}
+
+UnlitMaterial::~UnlitMaterial() {
+    if (shader != nullptr) {
+        delete shader;
+        shader = nullptr;
     }
 }

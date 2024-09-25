@@ -72,13 +72,13 @@ public:
         }
 
         std::string idxStr = std::to_string(channel);
-        material->shader->setVec3("pointLights["+idxStr+"].position", position);
-        material->shader->setVec3("pointLights["+idxStr+"].color", color);
-        material->shader->setFloat("pointLights["+idxStr+"].intensity", intensity);
-        material->shader->setFloat("pointLights["+idxStr+"].constant", constant);
-        material->shader->setFloat("pointLights["+idxStr+"].linear", linear);
-        material->shader->setFloat("pointLights["+idxStr+"].quadratic", quadratic);
-        material->shader->setFloat("pointLights["+idxStr+"].farPlane", shadowFar);
+        material->getShader()->setVec3("pointLights["+idxStr+"].position", position);
+        material->getShader()->setVec3("pointLights["+idxStr+"].color", color);
+        material->getShader()->setFloat("pointLights["+idxStr+"].intensity", intensity);
+        material->getShader()->setFloat("pointLights["+idxStr+"].constant", constant);
+        material->getShader()->setFloat("pointLights["+idxStr+"].linear", linear);
+        material->getShader()->setFloat("pointLights["+idxStr+"].quadratic", quadratic);
+        material->getShader()->setFloat("pointLights["+idxStr+"].farPlane", shadowFar);
     }
 
     void setPosition(const glm::vec3 &position) {

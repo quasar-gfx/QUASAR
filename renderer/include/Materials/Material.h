@@ -16,16 +16,11 @@ enum class AlphaMode : uint8_t {
 class Material {
 public:
     std::vector<Texture*> textures;
-    std::shared_ptr<Shader> shader;
 
     Material() = default;
     ~Material() = default;
 
-    virtual void bind() const {
-        shader->bind();
-    }
-
-    virtual unsigned int getTextureCount() const = 0;
+    virtual void bind() const = 0;
 
     void unbind() const {
         for (int i = 0; i < textures.size(); i++) {
@@ -33,6 +28,10 @@ public:
             glBindTexture(GL_TEXTURE_2D, 0);
         }
     }
+
+    virtual Shader* getShader() const = 0;
+
+    virtual unsigned int getTextureCount() const = 0;
 };
 
 #endif // MATERIAL_H
