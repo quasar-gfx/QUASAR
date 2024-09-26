@@ -9,7 +9,7 @@ layout(binding = 0) uniform sampler2D depthMap;
 
 struct Block{
     float max;
-    float min;
+    float min; // 32 bits
     uint arr[6]; // 32 bits each
 };
 
@@ -28,21 +28,22 @@ void main() {
     ivec2 blockPixelCoord = ivec2(gl_GlobalInvocationID.xy);
     ivec2 startPixelCoord = 8 * blockPixelCoord;
 
-    float arr[64];
+    float blockData[64];
     float minDepth = 1.0;
     float maxDepth = 0.0;
 
     // Sample 8x8 block and find min/max
-    for(int i = 0; i < 64; i++) {
-        ivec2 offset = ivec2(i % 8, i / 8);
-        arr[i] = sampleDepth(depthMap, startPixelCoord + offset);
-        minDepth = min(minDepth, arr[i]);
-        maxDepth = max(maxDepth, arr[i]);
+    for(int y = 0; y < 8; y++) {
+        for(int x = 0; x < 8; x++) {
+            ivec2 sampleCoord = startPixelCoord + ivec2(x, y);
+            if(all(lessThan(sampleCoord, ivec2(depthMapSize)))) {
+                float depth = sampleDepth(depthMap, sampleCoord);
+                blockData[y * 8 + x] = depth;
+                minDepth = min(minDepth, depth);
+                maxDepth = max(maxDepth, depth);
+            }
+        }
     }
-
-    Block block;
-    block.min = minDepth;
-    block.max = maxDepth;
 
     // Calculate interpolated values
     float interpVals[8];
@@ -52,30 +53,48 @@ void main() {
         interpVals[i+1] = mix(minDepth, maxDepth, i / 7.0);
     }
 
-    // Assign indices and pack bits
-    for(int i = 0; i < 6; i++) {
-        uint bits = 0u;
-        for(int j = 0; j < 10 && (i * 10 + j) < 64; j++) {
-            int pixelIndex = i * 10 + j;
-            float pixelValue = arr[pixelIndex];
-            
-            // Find closest interpolated value
-            int bestIndex = 0;
-            float minDiff = abs(pixelValue - interpVals[0]);
-            for(int k = 1; k < 8; k++) {
-                float diff = abs(pixelValue - interpVals[k]);
-                if(diff < minDiff) {
-                    minDiff = diff;
-                    bestIndex = k;
-                }
+    // Compress block data
+    Block block;
+    block.max = maxDepth;
+    block.min = minDepth;
+
+    uint bits[6] = uint[](0u, 0u, 0u, 0u, 0u, 0u);
+    int bitIndex = 0;
+
+    for(int i = 0; i < 64; i++) {
+        float pixelValue = blockData[i];
+        
+        // Find closest interpolated value
+        int bestIndex = 0;
+        float minDiff = abs(pixelValue - interpVals[0]);
+        for(int k = 1; k < 8; k++) {
+            float diff = abs(pixelValue - interpVals[k]);
+            if(diff < minDiff) {
+                minDiff = diff;
+                bestIndex = k;
             }
-            
-            // Pack 3-bit index into the 32-bit integer
-            bits |= uint(bestIndex) << (j * 3);
         }
-        block.arr[i] = bits;
+        
+        // Pack 3-bit index
+        int uintIndex = bitIndex / 32;
+        int bitOffset = bitIndex % 32;
+        bits[uintIndex] |= uint(bestIndex) << bitOffset;
+        
+        // Handle overflow (when bit[] left bits <3)
+        if(bitOffset > 29) {
+            int overflow = bitOffset - 29;
+            bits[uintIndex + 1] |= uint(bestIndex) >> (3 - overflow);
+        }
+        
+        bitIndex += 3;
     }
-     // Store the compressed block directly in the buffer
-    uint index = uint(blockPixelCoord.y) * uint(bc4DepthSize.x) + uint(blockPixelCoord.x);
-    bc4buffer[index] = block;
+
+    // Store packed data
+    for(int i = 0; i < 6; i++) {
+        block.arr[i] = bits[i];
+    }
+
+    // Write compressed block to output buffer
+    uint blockIndex = uint(blockPixelCoord.y) * uint(bc4DepthSize.x) + uint(blockPixelCoord.x);
+    bc4buffer[blockIndex] = block;
 }

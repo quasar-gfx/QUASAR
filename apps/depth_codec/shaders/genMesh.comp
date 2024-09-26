@@ -95,28 +95,34 @@ float UnLinearizeDepth(float depth) {
 float sampleBC4Buffer(vec2 pixelCoordNormalized) {
     ivec2 textureSize = ivec2(2048, 2048); // Adjust based on depth texture size
     ivec2 blockSize = ivec2(8, 8);
-    ivec2 pixelCoord = ivec2(pixelCoordNormalized * vec2(textureSize));
+    ivec2 pixelCoord = ivec2(pixelCoordNormalized * vec2(textureSize)); // normalized coord to integer pixel coord 
     ivec2 blockCoord = pixelCoord / blockSize;
     ivec2 pixelInBlock = pixelCoord % blockSize;
     
-    uint blockIndex = blockCoord.y * (textureSize.x / blockSize.x) + blockCoord.x;
+    uint blockIndex = blockCoord.y * (textureSize.x / blockSize.x) + blockCoord.x; //index of this block in the BC4 buffer
     Block compressedBlock = bc4buffer[blockIndex];
     
     float maxVal = compressedBlock.max;
     float minVal = compressedBlock.min;
     
     uint pixelIndex = pixelInBlock.y * blockSize.x + pixelInBlock.x;
-    uint arrayIndex = pixelIndex / 10;
-    uint bitIndex = (pixelIndex % 10) * 3;
+    uint bitIndex = pixelIndex * 3;
+    uint arrayIndex = bitIndex / 32; // arr[6]
+    bitIndex %= 32;
     
-    uint bits = compressedBlock.arr[arrayIndex];
-    uint index = (bits >> bitIndex) & 0x7u; // Extract 3 bits
+    uint index;
+    if (bitIndex <= 29) {
+        index = (compressedBlock.arr[arrayIndex] >> bitIndex) & 0x7u;
+    } else {
+        uint bits = compressedBlock.arr[arrayIndex] >> bitIndex;
+        bits |= compressedBlock.arr[arrayIndex + 1] << (32 - bitIndex);
+        index = bits & 0x7u;
+    }
     
-    // Interpolate between min and max based on the 3-bit index
     float t = float(index) / 7.0;
     float depth = mix(minVal, maxVal, t);
     
-    return depth; // Already in 0-1 range
+    return depth;
 }
 
 
