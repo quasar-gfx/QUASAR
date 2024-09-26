@@ -200,6 +200,20 @@ int main(int argc, char** argv) {
     int numTriangles = (width-1) * (height-1) * 2;
     int indexBufferSize = numTriangles * 3;
 
+    // Create texture for original depth data
+    Texture depthTextureDecompressed({
+        .width = depthWidth,
+        .height = depthHeight,
+        .internalFormat = GL_R32F,
+        .format = GL_RED,
+        .type = GL_FLOAT,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST,
+        .data = reinterpret_cast<unsigned char*>(depthData.data()) // depthData
+    });
+
     
     Mesh mesh = Mesh({
         .vertices = std::vector<Vertex>(numVertices),
@@ -207,9 +221,7 @@ int main(int argc, char** argv) {
         .material = new UnlitMaterial({ .baseColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f) }),
         .pointcloud = renderState == RenderState::POINTCLOUD,
         .pointSize = 7.5f,
-        .usage = GL_DYNAMIC_DRAW
-    });
-    Node node = Node(&mesh);
+        .usage = GL_DYNAMIC_DRAWDD
     node.frustumCulled = false;
     scene.addChildNode(&node);
 
@@ -224,6 +236,18 @@ int main(int argc, char** argv) {
     Node nodeDecompressed = Node(&meshDecompressed);
     nodeDecompressed.frustumCulled = false;
     scene.addChildNode(&nodeDecompressed);
+
+    Mesh meshDecompressedCPU = Mesh({
+        .vertices = std::vector<Vertex>(numVertices),
+        .indices = std::vector<unsigned int>(indexBufferSize),
+        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) }),
+        .pointcloud = renderState == RenderState::POINTCLOUD,
+        .pointSize = 5.0f,
+        .usage = GL_DYNAMIC_DRAW
+    });
+    Node nodeDecompressedCPU = Node(&meshDecompressedCPU);
+    nodeDecompressedCPU.frustumCulled = false;
+    scene.addChildNode(&nodeDecompressedCPU);
 
     RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
@@ -305,11 +329,13 @@ int main(int argc, char** argv) {
 
             ImGui::TextColored(ImVec4(0,0,0,1), "Original Depth Buffer");
             ImGui::TextColored(ImVec4(1,1,0,1), "Decompressed Depth Buffer");
+            ImGui::TextColored(ImVec4(1,1,1,1), "Decompressed CPU Depth Buffer");
 
             ImGui::Separator();
 
             ImGui::Checkbox("Show Original Depth", &node.visible);
             ImGui::Checkbox("Show Decompressed Depth", &nodeDecompressed.visible);
+            ImGui::Checkbox("Show Decompressed CPU Depth", &nodeDecompressedCPU.visible);
 
             ImGui::End();
         }
@@ -426,6 +452,18 @@ int main(int argc, char** argv) {
         // dispatch compute shader to generate vertices and indices for mesh
         genPtCloudFromDepthShader.dispatch(width / 16, height / 16, 1); // call the comp shader file
         genPtCloudFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+        
+        //CPU
+        {
+            genPtCloudFromDepthShader.setTexture(depthTextureDecompressed, 0);
+        }
+        {
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, meshDecompressedCPU.vertexBuffer);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, meshDecompressedCPU.indexBuffer);
+        }
+        // dispatch compute shader to generate vertices and indices for mesh
+        genPtCloudFromDepthShader.dispatch(width / 16, height / 16, 1); // call the comp shader file
+        genPtCloudFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
         // do it again with decompressed depth data:
         decompressionTimer.start();
@@ -442,6 +480,7 @@ int main(int argc, char** argv) {
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, meshDecompressed.vertexBuffer);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, meshDecompressed.indexBuffer);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, bc4Buffer);
+
         }
         // dispatch compute shader to generate vertices and indices for mesh
         genMeshShader.dispatch(width / 16, height / 16, 1); //  call the comp shader file
@@ -452,6 +491,7 @@ int main(int argc, char** argv) {
         // set render state
         mesh.pointcloud = renderState == RenderState::POINTCLOUD;
         meshDecompressed.pointcloud = renderState == RenderState::POINTCLOUD;
+        meshDecompressedCPU.pointcloud = renderState == RenderState::POINTCLOUD;
 
         // render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);
