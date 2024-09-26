@@ -126,7 +126,17 @@ int main(int argc, char** argv) {
     }
 
     glm::uvec2 depthBufferSize = 4u * remoteWinSize;
-    Buffer<float> depthOffsetBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, depthBufferSize.x * depthBufferSize.y, nullptr);
+    Texture depthOffsetBuffer({
+        .width = depthBufferSize.x,
+        .height = depthBufferSize.y,
+        .internalFormat = GL_R16F,
+        .format = GL_RED,
+        .type = GL_FLOAT,
+        .wrapS = GL_REPEAT,
+        .wrapT = GL_REPEAT,
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST
+    });
 
     std::vector<RenderTarget*> renderTargets(maxViews);
     for (int views = 0; views < maxViews; views++) {
@@ -683,12 +693,12 @@ int main(int argc, char** argv) {
                 }
                 {
                     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadMaps[0]);
-                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, depthOffsetBuffer);
+                    glBindImageTexture(1, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsetBuffer.internalFormat);
                 }
 
                 // run compute shader
                 genQuadMapShader.dispatch(remoteWinSize.x / THREADS_PER_LOCALGROUP, remoteWinSize.y / THREADS_PER_LOCALGROUP, 1);
-                genQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+                genQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
                 avgGenQuadMapTime += glfwGetTime() - startTime;
                 startTime = glfwGetTime();
@@ -726,12 +736,12 @@ int main(int argc, char** argv) {
                     {
                         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, prevBuffer);
                         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, currBuffer);
-                        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, depthOffsetBuffer);
+                        glBindImageTexture(2, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsetBuffer.internalFormat);
                     }
 
                     // run compute shader
                     simplifyQuadMapShader.dispatch(currQuadMapSize.x / THREADS_PER_LOCALGROUP, currQuadMapSize.y / THREADS_PER_LOCALGROUP, 1);
-                    simplifyQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+                    simplifyQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
                 }
 
                 avgSimplifyTime += glfwGetTime() - startTime;
@@ -767,11 +777,11 @@ int main(int argc, char** argv) {
                         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, currMesh->indexBuffer);
                         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, currMeshWireframe->vertexBuffer);
                         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, currMeshWireframe->indexBuffer);
-                        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, depthOffsetBuffer);
+                        glBindImageTexture(6, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetBuffer.internalFormat);
                     }
 
                     genMeshFromQuadMapsShader.dispatch(quadMapSize.x / THREADS_PER_LOCALGROUP, quadMapSize.y / THREADS_PER_LOCALGROUP, 1);
-                    genMeshFromQuadMapsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
+                    genMeshFromQuadMapsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
                                                              GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
                 }
 

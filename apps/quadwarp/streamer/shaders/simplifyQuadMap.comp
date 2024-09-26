@@ -111,9 +111,7 @@ layout(std430, binding = 1) writeonly buffer OutputQuadMapBuffer {
     QuadMapData outputQuadMap[];
 };
 
-layout(std430, binding = 2) buffer DepthOffsetBuffer {
-    float depthOffsetBuffer[];
-};
+layout(binding = 2, r16f) uniform image2D depthOffsetBuffer;
 
 vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
     vec4 ndcPos;
@@ -189,8 +187,7 @@ QuadMapData loadInputQuadMap(ivec2 pixelCoord) {
 }
 
 float loadDepthOffset(in ivec2 pixelCoord) {
-    uint index = uint(pixelCoord.y) * uint(depthBufferSize.x) + uint(pixelCoord.x);
-    return depthOffsetBuffer[index];
+    return imageLoad(depthOffsetBuffer, pixelCoord).x;
 }
 
 void storeInInputQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
@@ -204,8 +201,7 @@ void storeInOutputQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
 }
 
 void storeInDepthOffsetBuffer(in ivec2 pixelCoord, in float depthOffset) {
-    uint index = uint(pixelCoord.y) * uint(depthBufferSize.x) + uint(pixelCoord.x);
-    depthOffsetBuffer[index] = depthOffset;
+    imageStore(depthOffsetBuffer, pixelCoord, vec4(depthOffset));
 }
 
 void ignoreInputQuadMapData(in ivec2 pixelCoord) {
