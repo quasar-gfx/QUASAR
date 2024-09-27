@@ -27,7 +27,7 @@ struct Block{
     float max; // 32 - unit32
     float min;
     uint32_t arr[6];
-    float real[64];
+    //float real[64];
 };
 
 // GPU Timer class
@@ -505,7 +505,7 @@ int main(int argc, char** argv) {
         renderer.drawToScreen(screenShader);
     });
 
-    double compressionRatio = calculateCompressionRatio(depthData.size(), compressedData.size() * sizeof(Block));
+    double compressionRatio = calculateCompressionRatio(depthData.size(), compressedData.size()*sizeof(Block));
 
     // Print results
     std::cout << "Compression Ratio: " << compressionRatio << ":1" << std::endl;
