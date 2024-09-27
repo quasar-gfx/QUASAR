@@ -26,7 +26,8 @@ enum class RenderState {
 struct Block{
     float max; // 32 - unit32
     float min;
-    uint32_t arr[6]; // 32
+    uint32_t arr[6];
+    float real[64];
 };
 
 // GPU Timer class
@@ -221,7 +222,9 @@ int main(int argc, char** argv) {
         .material = new UnlitMaterial({ .baseColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f) }),
         .pointcloud = renderState == RenderState::POINTCLOUD,
         .pointSize = 7.5f,
-        .usage = GL_DYNAMIC_DRAWDD
+        .usage = GL_DYNAMIC_DRAW
+    });
+    Node node = Node(&mesh);
     node.frustumCulled = false;
     scene.addChildNode(&node);
 

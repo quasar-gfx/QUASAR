@@ -11,6 +11,7 @@ struct Block{
     float max;
     float min; // 32 bits
     uint arr[6]; // 32 bits each
+    //float real[64]; // real value for depth
 };
 
 layout(std430, binding = 0) buffer BC4Buffer {
@@ -48,9 +49,9 @@ void main() {
     // Calculate interpolated values
     float interpVals[8];
     interpVals[0] = minDepth;
-    interpVals[1] = maxDepth;
+    interpVals[7] = maxDepth;
     for(int i = 1; i < 7; i++) {
-        interpVals[i+1] = mix(minDepth, maxDepth, i / 7.0);
+        interpVals[i] = mix(minDepth, maxDepth, i / 7.0);
     }
 
     // Compress block data
@@ -60,10 +61,13 @@ void main() {
 
     uint bits[6] = uint[](0u, 0u, 0u, 0u, 0u, 0u);
     int bitIndex = 0;
+    uint mask = 0;
+
+    float blockData_2[64];
 
     for(int i = 0; i < 64; i++) {
         float pixelValue = blockData[i];
-        
+
         // Find closest interpolated value
         int bestIndex = 0;
         float minDiff = abs(pixelValue - interpVals[0]);
@@ -76,14 +80,24 @@ void main() {
         }
         
         // Pack 3-bit index
-        int uintIndex = bitIndex / 32;
-        int bitOffset = bitIndex % 32;
-        bits[uintIndex] |= uint(bestIndex) << bitOffset;
+        uint uintIndex = bitIndex / 32;
+        uint bitOffset = bitIndex % 32;
         
-        // Handle overflow (when bit[] left bits <3)
-        if(bitOffset > 29) {
-            int overflow = bitOffset - 29;
-            bits[uintIndex + 1] |= uint(bestIndex) >> (3 - overflow);
+        if (bitOffset <= 29) {
+            // Normal case: all 3 bits fit in the current uint
+            bits[uintIndex] |= uint(bestIndex) << (29 - bitOffset);
+        } else {
+            // Split case: the 3 bits are split across two uints
+            uint bitsInCurrent = 32 - bitOffset;
+            uint bitsInNext = 3 - bitsInCurrent;
+            
+            // Pack the bits that fit in the current uint
+            bits[uintIndex] |= uint(bestIndex >> bitsInNext);
+            
+            // Pack the remaining bits in the next uint
+            if(bitsInNext == 1) mask = 1; // 0b01
+            if(bitsInNext == 2) mask = 3; //0b11
+            bits[uintIndex + 1] |= uint(bestIndex & mask) << (32 - bitsInNext);
         }
         
         bitIndex += 3;
@@ -93,6 +107,9 @@ void main() {
     for(int i = 0; i < 6; i++) {
         block.arr[i] = bits[i];
     }
+
+    // real depth val
+    //block.real = blockData;
 
     // Write compressed block to output buffer
     uint blockIndex = uint(blockPixelCoord.y) * uint(bc4DepthSize.x) + uint(blockPixelCoord.x);

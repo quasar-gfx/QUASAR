@@ -16,6 +16,7 @@ struct Block{
     float max;
     float min;
     uint arr[6]; // 32
+    //float real[64]; // real value for depth
 };
 
 layout(std430, binding = 0) buffer VertexBuffer {
@@ -106,24 +107,58 @@ float sampleBC4Buffer(vec2 pixelCoordNormalized) {
     float minVal = compressedBlock.min;
     
     uint pixelIndex = pixelInBlock.y * blockSize.x + pixelInBlock.x;
-    uint bitIndex = pixelIndex * 3;
-    uint arrayIndex = bitIndex / 32; // arr[6]
-    bitIndex %= 32;
-    
+    uint globalBitIndex = pixelIndex * 3;
+    uint uintIndex = globalBitIndex / 32; // 0-5
+    uint bitOffset = globalBitIndex % 32; // 0-31
+
     uint index;
-    if (bitIndex <= 29) {
-        index = (compressedBlock.arr[arrayIndex] >> bitIndex) & 0x7u;
+    if (bitOffset <= 29) {
+        // Normal case: all 3 bits are in the current uint
+        index = (compressedBlock.arr[uintIndex] >> (29 - bitOffset)) & 0x7u;
     } else {
-        uint bits = compressedBlock.arr[arrayIndex] >> bitIndex;
-        bits |= compressedBlock.arr[arrayIndex + 1] << (32 - bitIndex);
-        index = bits & 0x7u;
+        // Split case: the 3 bits are split across two uints
+        uint bitsInCurrent = 32 - bitOffset;
+        uint bitsInNext = 3 - bitsInCurrent;
+        
+        // Get the bits from the current uint
+        uint mask = 0;
+        if(bitsInCurrent == 1) mask = 1; // 0b01
+        if(bitsInCurrent == 2) mask = 3; //0b11
+        uint upperBits = compressedBlock.arr[uintIndex] & (mask);
+        
+        // Get the bits from the next uint (with wraparound)
+        uint lowerBits = compressedBlock.arr[(uintIndex + 1) % 6] >> (32 - bitsInNext);
+        
+        // Combine the bits
+        index = (upperBits << bitsInNext) | lowerBits;
     }
-    
+
+    index = index & 0x7u; // Ensure index is a valid 3-bit number (0-7)
+
     float t = float(index) / 7.0;
+
     float depth = mix(minVal, maxVal, t);
     
     return depth;
 }
+
+// float sampleBC4Buffer(vec2 pixelCoordNormalized) {
+//     ivec2 textureSize = ivec2(2048, 2048); // Adjust based on depth texture size
+//     ivec2 blockSize = ivec2(8, 8);
+//     ivec2 pixelCoord = ivec2(pixelCoordNormalized * vec2(textureSize));
+//     ivec2 blockCoord = pixelCoord / blockSize;
+//     ivec2 pixelInBlock = pixelCoord % blockSize;
+    
+//     uint blockIndex = blockCoord.y * (textureSize.x / blockSize.x) + blockCoord.x;
+//     Block block = bc4buffer[blockIndex];
+    
+//     uint pixelIndex = pixelInBlock.y * blockSize.x + pixelInBlock.x;
+    
+//     // Use the real[] array for true 32-bit depth values
+//     float depth = block.real[pixelIndex];
+    
+//     return depth;
+// }
 
 
 void main() {
