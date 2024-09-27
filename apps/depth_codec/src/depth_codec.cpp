@@ -23,43 +23,12 @@ enum class RenderState {
     POINTCLOUD
 };
 
-struct Block{
+struct Block {
     float max; // 32 - unit32
     float min;
     uint32_t arr[6];
     //float real[64];
 };
-
-// GPU Timer class
-class GPUTimer {
-public:
-    GPUTimer() {
-        glGenQueries(2, queries);
-    }
-
-    void start() {
-        glQueryCounter(queries[0], GL_TIMESTAMP);
-    }
-
-    void stop() {
-        glQueryCounter(queries[1], GL_TIMESTAMP);
-    }
-
-    double getElapsedMs() {
-        GLuint64 startTime, stopTime;
-        glGetQueryObjectui64v(queries[0], GL_QUERY_RESULT, &startTime);
-        glGetQueryObjectui64v(queries[1], GL_QUERY_RESULT, &stopTime);
-        return (stopTime - startTime) / 1000000.0;
-    }
-
-private:
-    GLuint queries[2];
-};
-
-// Function to calculate compression ratio
-double calculateCompressionRatio(size_t originalSize, size_t compressedSize) {
-    return static_cast<double>(originalSize) / compressedSize;
-}
 
 // Function to calculate MSE
 double calculateMSE(const std::vector<float>& original, const std::vector<float>& decompressed) {
@@ -117,14 +86,13 @@ int main(int argc, char** argv) {
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
 
-    unsigned int screenWidth, screenHeight;
-    window->getSize(screenWidth, screenHeight);
+    glm::uvec2 windowSize = window->getSize();
 
     // Set up scene and camera
     Scene scene = Scene();
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
-    PerspectiveCamera camera = PerspectiveCamera(screenWidth, screenHeight);
-    PerspectiveCamera origCamera = PerspectiveCamera(screenWidth, screenHeight);
+    PerspectiveCamera camera = PerspectiveCamera(windowSize.x, windowSize.y);
+    PerspectiveCamera origCamera = PerspectiveCamera(windowSize.x, windowSize.y);
 
     camera.setPosition(glm::vec3(0.0f, 3.0f, 10.0f));
     camera.updateViewMatrix();
@@ -157,7 +125,7 @@ int main(int argc, char** argv) {
 
     // Load depth data
     unsigned int depthWidth = 2048, depthHeight = 2048;
-    auto depthData = FileIO::loadBinaryFile(DATA_PATH + "depth.bin"); 
+    auto depthData = FileIO::loadBinaryFile(DATA_PATH + "depth.bin");
     std::cout<< "depthData size: "<< depthData.size()<<std::endl;
 
     if (depthData.empty()) {
@@ -193,29 +161,14 @@ int main(int argc, char** argv) {
     Buffer<Block> bc4Buffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, compressedSize / sizeof(Block), nullptr);
 
     // Set up meshes for rendering
-    int width = screenWidth / surfelSize;
-    int height = screenHeight / surfelSize;
+    int width = windowSize.x / surfelSize;
+    int height = windowSize.y / surfelSize;
 
     int numVertices = width * height;
 
     int numTriangles = (width-1) * (height-1) * 2;
     int indexBufferSize = numTriangles * 3;
 
-    // Create texture for original depth data
-    Texture depthTextureDecompressed({
-        .width = depthWidth,
-        .height = depthHeight,
-        .internalFormat = GL_R32F,
-        .format = GL_RED,
-        .type = GL_FLOAT,
-        .wrapS = GL_CLAMP_TO_EDGE,
-        .wrapT = GL_CLAMP_TO_EDGE,
-        .minFilter = GL_NEAREST,
-        .magFilter = GL_NEAREST,
-        .data = reinterpret_cast<unsigned char*>(depthData.data()) // depthData
-    });
-
-    
     Mesh mesh = Mesh({
         .vertices = std::vector<Vertex>(numVertices),
         .indices = std::vector<unsigned int>(indexBufferSize),
@@ -240,18 +193,6 @@ int main(int argc, char** argv) {
     nodeDecompressed.frustumCulled = false;
     scene.addChildNode(&nodeDecompressed);
 
-    Mesh meshDecompressedCPU = Mesh({
-        .vertices = std::vector<Vertex>(numVertices),
-        .indices = std::vector<unsigned int>(indexBufferSize),
-        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) }),
-        .pointcloud = renderState == RenderState::POINTCLOUD,
-        .pointSize = 5.0f,
-        .usage = GL_DYNAMIC_DRAW
-    });
-    Node nodeDecompressedCPU = Node(&meshDecompressedCPU);
-    nodeDecompressedCPU.frustumCulled = false;
-    scene.addChildNode(&nodeDecompressedCPU);
-
     RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
@@ -259,10 +200,7 @@ int main(int argc, char** argv) {
         static bool showCaptureWindow = false;
         static bool showDepthPreview = true;
 
-        glm::vec2 winSize = glm::vec2(screenWidth, screenHeight);
-
         ImGui::NewFrame();
-
 
         unsigned int flags = 0;
         ImGui::BeginMainMenuBar();
@@ -332,13 +270,11 @@ int main(int argc, char** argv) {
 
             ImGui::TextColored(ImVec4(0,0,0,1), "Original Depth Buffer");
             ImGui::TextColored(ImVec4(1,1,0,1), "Decompressed Depth Buffer");
-            ImGui::TextColored(ImVec4(1,1,1,1), "Decompressed CPU Depth Buffer");
 
             ImGui::Separator();
 
             ImGui::Checkbox("Show Original Depth", &node.visible);
             ImGui::Checkbox("Show Decompressed Depth", &nodeDecompressed.visible);
-            ImGui::Checkbox("Show Decompressed CPU Depth", &nodeDecompressedCPU.visible);
 
             ImGui::End();
         }
@@ -346,7 +282,7 @@ int main(int argc, char** argv) {
         flags = ImGuiWindowFlags_AlwaysAutoResize;
 
         if (showDepthPreview) {
-            ImGui::SetNextWindowPos(ImVec2(screenWidth - TEXTURE_PREVIEW_SIZE - 30, 40), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(windowSize.x - TEXTURE_PREVIEW_SIZE - 30, 40), ImGuiCond_FirstUseEver);
             ImGui::Begin("Original Depth", &showDepthPreview, flags);
             ImGui::Image((void*)(intptr_t)depthTextureOriginal.ID, ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
@@ -355,23 +291,14 @@ int main(int argc, char** argv) {
 
     // Window resize callback
     app.onResize([&](unsigned int width, unsigned int height) {
-        screenWidth = width;
-        screenHeight = height;
+        windowSize.x = width;
+        windowSize.y = height;
 
         renderer.resize(width, height);
 
-        camera.aspect = (float)screenWidth / (float)screenHeight;
+        camera.aspect = (float)windowSize.x / (float)windowSize.y;
         camera.updateProjectionMatrix();
     });
-
-    size_t compressedDataSize = (depthWidth / 8) * (depthHeight / 8);
-    std::vector<Block> compressedData(compressedDataSize);
-
-    // For compression timing
-    GPUTimer compressionTimer;
-
-    // For decompression and mesh generation timing
-    GPUTimer decompressionTimer;
 
     app.onRender([&](double now, double dt) {
         // handle mouse input
@@ -380,8 +307,8 @@ int main(int argc, char** argv) {
             window->setMouseCursor(!mouseButtons.LEFT_PRESSED);
             static bool dragging = false;
             static bool prevMouseLeftPressed = false;
-            static float lastX = screenWidth / 2.0;
-            static float lastY = screenHeight / 2.0;
+            static float lastX = windowSize.x / 2.0;
+            static float lastY = windowSize.y / 2.0;
             if (!prevMouseLeftPressed && mouseButtons.LEFT_PRESSED) {
                 dragging = true;
                 prevMouseLeftPressed = true;
@@ -417,7 +344,6 @@ int main(int argc, char** argv) {
         }
 
         // Compress depth data using BC4
-        compressionTimer.start();
         bc4CompressShader.bind();
         bc4CompressShader.setTexture(depthTextureOriginal, 0);
         bc4CompressShader.setVec2("depthMapSize", glm::vec2(depthWidth, depthHeight));
@@ -425,20 +351,13 @@ int main(int argc, char** argv) {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bc4Buffer);
         bc4CompressShader.dispatch(depthWidth / 8 / 16, depthHeight / 8 / 16, 1);
         bc4CompressShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-        compressionTimer.stop();
-
-        // Read back compressed data for compression ratio calculation
-        //size_t compressedDataSize = (depthWidth / 8) * (depthHeight / 8);
-        //std::vector<Block> compressedData(compressedDataSize);
-        glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, compressedDataSize * sizeof(Block), compressedData.data());
-
-
 
         // generate mesh for original and decompressed depth data
         genPtCloudFromDepthShader.bind();
-        genPtCloudFromDepthShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
-        genPtCloudFromDepthShader.setInt("surfelSize", surfelSize);
-        
+        {
+            genPtCloudFromDepthShader.setVec2("screenSize", windowSize);
+            genPtCloudFromDepthShader.setInt("surfelSize", surfelSize);
+        }
         {
             genPtCloudFromDepthShader.setMat4("view", origCamera.getViewMatrix());
             genPtCloudFromDepthShader.setMat4("projection", origCamera.getProjectionMatrix());
@@ -455,24 +374,14 @@ int main(int argc, char** argv) {
         // dispatch compute shader to generate vertices and indices for mesh
         genPtCloudFromDepthShader.dispatch(width / 16, height / 16, 1); // call the comp shader file
         genPtCloudFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
-        
-        //CPU
-        {
-            genPtCloudFromDepthShader.setTexture(depthTextureDecompressed, 0);
-        }
-        {
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, meshDecompressedCPU.vertexBuffer);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, meshDecompressedCPU.indexBuffer);
-        }
-        // dispatch compute shader to generate vertices and indices for mesh
-        genPtCloudFromDepthShader.dispatch(width / 16, height / 16, 1); // call the comp shader file
-        genPtCloudFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
-        // do it again with decompressed depth data:
-        decompressionTimer.start();
+        // decompress depth data
         genMeshShader.bind();
-        genMeshShader.setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
-        genMeshShader.setInt("surfelSize", surfelSize);
+        {
+            genMeshShader.setVec2("screenSize", windowSize);
+            genMeshShader.setVec2("depthMapSize", glm::vec2(depthWidth, depthHeight));
+            genMeshShader.setInt("surfelSize", surfelSize);
+        }
         {
             genMeshShader.setMat4("view", origCamera.getViewMatrix());
             genMeshShader.setMat4("projection", origCamera.getProjectionMatrix());
@@ -488,13 +397,10 @@ int main(int argc, char** argv) {
         // dispatch compute shader to generate vertices and indices for mesh
         genMeshShader.dispatch(width / 16, height / 16, 1); //  call the comp shader file
         genMeshShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
-        decompressionTimer.stop();
-
 
         // set render state
         mesh.pointcloud = renderState == RenderState::POINTCLOUD;
         meshDecompressed.pointcloud = renderState == RenderState::POINTCLOUD;
-        meshDecompressedCPU.pointcloud = renderState == RenderState::POINTCLOUD;
 
         // render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);
@@ -505,14 +411,8 @@ int main(int argc, char** argv) {
         renderer.drawToScreen(screenShader);
     });
 
-    double compressionRatio = calculateCompressionRatio(depthData.size(), compressedData.size()*sizeof(Block));
-
-    // Print results
+    double compressionRatio = depthData.size() / compressedSize;
     std::cout << "Compression Ratio: " << compressionRatio << ":1" << std::endl;
-    //std::cout << "Compression Time: " << compressionTimer.getElapsedMs() << " ms" << std::endl;
-
-    // After the render loop
-    std::cout << "Render loop finished." << std::endl;  // Debug output
 
     // run app loop (blocking)
     app.run();
