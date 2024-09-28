@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
 
     Scene scene;
     std::unique_ptr<Camera> camera;
-    SceneLoader loader = SceneLoader();
+    SceneLoader loader;
     if (vrMode) {
         auto vrCamera = std::make_unique<VRCamera>(windowSize.x / 2, windowSize.y);
         loader.loadScene(scenePath, scene, vrCamera->left);

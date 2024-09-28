@@ -1,5 +1,6 @@
 layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = THREADS_PER_LOCALGROUP, local_size_z = 1) in;
 
+precision highp float;
 precision highp sampler2D;
 precision highp image2D;
 
@@ -14,12 +15,12 @@ struct Vertex {
 };
 
 struct QuadMapData {
-    bool flattened;
     vec3 normal;
-    vec2 uv;
     float depth;
+    vec2 uv;
     ivec2 offset;
     uint size;
+    bool flattened;
 };
 
 struct Quad {
@@ -76,7 +77,7 @@ layout(std430, binding = 5) buffer IndexBufferWireframe {
 
 layout(binding = 6, r16f) uniform readonly image2D depthOffsetBuffer;
 
-uniform vec2 remoteWinSize;
+uniform vec2 remoteWindowSize;
 uniform vec2 quadMapSize;
 uniform vec2 depthBufferSize;
 
@@ -88,7 +89,7 @@ uniform mat4 projectionInverse;
 uniform float near;
 uniform float far;
 
-const float epilson = 1e-5;
+const float epsilon = 1e-5;
 
 const float surfelSize = 0.5;
 const vec3 origin = vec3(0.0, 0.0, 0.0);
@@ -137,7 +138,7 @@ vec2 viewToScreen(mat4 projection, vec3 viewCoord) {
 
 vec3 rayPlaneIntersection(vec3 rayOrigin, vec3 rayDirection, Plane plane) {
     float denominator = dot(rayDirection, plane.normal);
-    if (abs(denominator) < epilson) {
+    if (abs(denominator) < epsilon) {
         return vec3(1.0/0.0);
     }
 
@@ -189,10 +190,10 @@ Plane quadMapDataToPlane(in QuadMapData quadMapData) {
 
 void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthOffets, in Plane proxyPlane) {
     Quad2D surfelUVs;
-    surfelUVs.bottomLeft  = surfelPixelCoords.bottomLeft / remoteWinSize;
-    surfelUVs.bottomRight = surfelPixelCoords.bottomRight / remoteWinSize;
-    surfelUVs.topLeft     = surfelPixelCoords.topLeft / remoteWinSize;
-    surfelUVs.topRight    = surfelPixelCoords.topRight / remoteWinSize;
+    surfelUVs.bottomLeft  = surfelPixelCoords.bottomLeft / remoteWindowSize;
+    surfelUVs.bottomRight = surfelPixelCoords.bottomRight / remoteWindowSize;
+    surfelUVs.topLeft     = surfelPixelCoords.topLeft / remoteWindowSize;
+    surfelUVs.topRight    = surfelPixelCoords.topRight / remoteWindowSize;
 
     Quad2D surfelNDCs;
     surfelNDCs.bottomLeft  = surfelUVs.bottomLeft * 2.0 - 1.0;
@@ -280,7 +281,7 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
     Plane proxyPlane = quadMapDataToPlane(quadMapData);
 
     vec2 proxyPlaneUV = quadMapData.uv;
-    vec2 proxyPlanePixelCoords = vec2(proxyPlaneUV * remoteWinSize);
+    vec2 proxyPlanePixelCoords = vec2(proxyPlaneUV * remoteWindowSize);
 
     float size = float(quadMapData.size);
     float halfGridSize = size * surfelSize / 2;

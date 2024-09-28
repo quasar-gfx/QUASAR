@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
 
     Scene scene;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
-    SceneLoader loader = SceneLoader();
+    SceneLoader loader;
     loader.loadScene(scenePath, scene, camera);
 
     float exposure = 1.0f;

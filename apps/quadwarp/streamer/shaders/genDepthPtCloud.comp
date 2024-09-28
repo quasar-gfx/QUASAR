@@ -15,7 +15,7 @@ struct Vertex {
     vec3 bitangent;
 };
 
-uniform vec2 remoteWinSize;
+uniform vec2 remoteWindowSize;
 
 uniform mat4 view;
 uniform mat4 projection;
@@ -89,11 +89,11 @@ vec3 sampleNormal(sampler2D normalMap, vec2 sampleCoord) {
 }
 
 void main() {
-    uint shaderIndex = uint(gl_GlobalInvocationID.y * remoteWinSize.x + gl_GlobalInvocationID.x);
+    uint shaderIndex = uint(gl_GlobalInvocationID.y * remoteWindowSize.x + gl_GlobalInvocationID.x);
 
     vec2 surfelCoordBottomLeft = vec2(gl_GlobalInvocationID.xy);
     vec2 pixelCoordsCenter     = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+0.0, +0.0);
-    vec2 uvCenter              = pixelCoordsCenter / remoteWinSize;
+    vec2 uvCenter              = pixelCoordsCenter / remoteWindowSize;
     vec2 pixelCoordsNDC        = 2.0 * uvCenter - 1.0;
     float pixelDepth           = sampleDepth(depthMap, uvCenter);
     vec3 pixelCoordsViewCenter = ndcToView(projectionInverse, pixelCoordsNDC, pixelDepth);
