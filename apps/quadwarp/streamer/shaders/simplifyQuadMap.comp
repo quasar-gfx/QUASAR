@@ -112,7 +112,7 @@ layout(std430, binding = 1) writeonly buffer OutputQuadMapBuffer {
     QuadMapData outputQuadMap[];
 };
 
-layout(binding = 2, r16f) uniform image2D depthOffsetBuffer;
+layout(r16f, binding = 2) uniform image2D depthOffsetBuffer;
 
 vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
     vec4 ndcPos;
@@ -253,7 +253,7 @@ void storeDepthOffsets(in ivec2 pixelCoord, in Quad1D depthOffsets) {
     storeInDepthOffsetBuffer(pixelCoord + ivec2(1, 1), depthOffsets.topRight);
 }
 
-void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthOffets, in Plane proxyPlane) {
+void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthOffsets, in Plane proxyPlane) {
     Quad2D surfelUVs;
     surfelUVs.bottomLeft  = surfelPixelCoords.bottomLeft / remoteWindowSize;
     surfelUVs.bottomRight = surfelPixelCoords.bottomRight / remoteWindowSize;
@@ -280,10 +280,10 @@ void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthO
     quadPtsOnPlane.topRight    = pointPlaneIntersection(surfelFarPlane.topRight,    proxyPlane);
 
     // apply depth offsets to the quad points
-    surfel.bottomLeft  = quadPtsOnPlane.bottomLeft  - depthOffets.bottomLeft  * normalize(quadPtsOnPlane.bottomLeft);
-    surfel.bottomRight = quadPtsOnPlane.bottomRight - depthOffets.bottomRight * normalize(quadPtsOnPlane.bottomRight);
-    surfel.topLeft     = quadPtsOnPlane.topLeft     - depthOffets.topLeft     * normalize(quadPtsOnPlane.topLeft);
-    surfel.topRight    = quadPtsOnPlane.topRight    - depthOffets.topRight    * normalize(quadPtsOnPlane.topRight);
+    surfel.bottomLeft  = quadPtsOnPlane.bottomLeft  - depthOffsets.bottomLeft  * normalize(quadPtsOnPlane.bottomLeft);
+    surfel.bottomRight = quadPtsOnPlane.bottomRight - depthOffsets.bottomRight * normalize(quadPtsOnPlane.bottomRight);
+    surfel.topLeft     = quadPtsOnPlane.topLeft     - depthOffsets.topLeft     * normalize(quadPtsOnPlane.topLeft);
+    surfel.topRight    = quadPtsOnPlane.topRight    - depthOffsets.topRight    * normalize(quadPtsOnPlane.topRight);
 }
 
 bool planeEquationsSimilar(in PlaneEq planeEq1, in PlaneEq planeEq2) {

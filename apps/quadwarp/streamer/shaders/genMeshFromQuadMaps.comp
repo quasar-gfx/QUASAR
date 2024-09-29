@@ -75,7 +75,7 @@ layout(std430, binding = 5) buffer IndexBufferWireframe {
     uint indicesWireframe[];
 };
 
-layout(binding = 6, r16f) uniform readonly image2D depthOffsetBuffer;
+layout(r16f, binding = 6) uniform readonly image2D depthOffsetBuffer;
 
 uniform vec2 remoteWindowSize;
 uniform vec2 quadMapSize;
@@ -163,9 +163,7 @@ QuadMapData loadQuadMap(ivec2 pixelCoord) {
 }
 
 float loadDepthOffset(in ivec2 pixelCoord) {
-    // uint index = uint(pixelCoord.y) * uint(depthBufferSize.x) + uint(pixelCoord.x);
-    // return depthOffsetBuffer[index];
-    return imageLoad(depthOffsetBuffer, pixelCoord).r;
+    return imageLoad(depthOffsetBuffer, pixelCoord).x;
 }
 
 void loadDepthOffsets(out Quad1D depthOffsets, in ivec2 pixelCoord) {
@@ -188,18 +186,24 @@ Plane quadMapDataToPlane(in QuadMapData quadMapData) {
     return proxyPlane;
 }
 
-void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthOffets, in Plane proxyPlane) {
+void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthOffsets, in Plane proxyPlane) {
     Quad2D surfelUVs;
-    surfelUVs.bottomLeft  = surfelPixelCoords.bottomLeft / remoteWindowSize;
+    surfelUVs.bottomLeft  = surfelPixelCoords.bottomLeft  / remoteWindowSize;
     surfelUVs.bottomRight = surfelPixelCoords.bottomRight / remoteWindowSize;
-    surfelUVs.topLeft     = surfelPixelCoords.topLeft / remoteWindowSize;
-    surfelUVs.topRight    = surfelPixelCoords.topRight / remoteWindowSize;
+    surfelUVs.topLeft     = surfelPixelCoords.topLeft     / remoteWindowSize;
+    surfelUVs.topRight    = surfelPixelCoords.topRight    / remoteWindowSize;
+
+    // add small offsets to UVs to avoid numerical issues
+    surfelUVs.bottomLeft  += vec2(-epsilon, -epsilon);
+    surfelUVs.bottomRight += vec2(+epsilon, -epsilon);
+    surfelUVs.topLeft     += vec2(-epsilon, +epsilon);
+    surfelUVs.topRight    += vec2(+epsilon, +epsilon);
 
     Quad2D surfelNDCs;
-    surfelNDCs.bottomLeft  = surfelUVs.bottomLeft * 2.0 - 1.0;
+    surfelNDCs.bottomLeft  = surfelUVs.bottomLeft  * 2.0 - 1.0;
     surfelNDCs.bottomRight = surfelUVs.bottomRight * 2.0 - 1.0;
-    surfelNDCs.topLeft     = surfelUVs.topLeft * 2.0 - 1.0;
-    surfelNDCs.topRight    = surfelUVs.topRight * 2.0 - 1.0;
+    surfelNDCs.topLeft     = surfelUVs.topLeft     * 2.0 - 1.0;
+    surfelNDCs.topRight    = surfelUVs.topRight    * 2.0 - 1.0;
 
     Quad surfelFarPlane;
     surfelFarPlane.bottomLeft  = ndcToView(projectionInverse, surfelNDCs.bottomLeft, 1.0);
@@ -215,10 +219,10 @@ void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthO
     quadPtsOnPlane.topRight    = pointPlaneIntersection(surfelFarPlane.topRight,    proxyPlane);
 
     // apply depth offsets to the quad points
-    surfel.bottomLeft  = quadPtsOnPlane.bottomLeft  - depthOffets.bottomLeft  * normalize(quadPtsOnPlane.bottomLeft);
-    surfel.bottomRight = quadPtsOnPlane.bottomRight - depthOffets.bottomRight * normalize(quadPtsOnPlane.bottomRight);
-    surfel.topLeft     = quadPtsOnPlane.topLeft     - depthOffets.topLeft     * normalize(quadPtsOnPlane.topLeft);
-    surfel.topRight    = quadPtsOnPlane.topRight    - depthOffets.topRight    * normalize(quadPtsOnPlane.topRight);
+    surfel.bottomLeft  = quadPtsOnPlane.bottomLeft  - depthOffsets.bottomLeft  * normalize(quadPtsOnPlane.bottomLeft);
+    surfel.bottomRight = quadPtsOnPlane.bottomRight - depthOffsets.bottomRight * normalize(quadPtsOnPlane.bottomRight);
+    surfel.topLeft     = quadPtsOnPlane.topLeft     - depthOffsets.topLeft     * normalize(quadPtsOnPlane.topLeft);
+    surfel.topRight    = quadPtsOnPlane.topRight    - depthOffsets.topRight    * normalize(quadPtsOnPlane.topRight);
 }
 
 void storeSurfel(in Quad quad) {

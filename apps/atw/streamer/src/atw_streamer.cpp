@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include <args.hxx>
+#include <args/args.hxx>
 
 #include <OpenGLApp.h>
 #include <Renderers/ForwardRenderer.h>

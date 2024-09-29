@@ -188,8 +188,8 @@ RenderStats Mesh::draw(const Camera &camera, const glm::mat4 &model, bool frustu
 
     if (camera.isVR()) {
         auto vrcamera = static_cast<const VRCamera*>(&camera);
-        auto &frustumLeft = vrcamera->left.frustum;
-        auto &frustumRight = vrcamera->right.frustum;
+        auto& frustumLeft = vrcamera->left.frustum;
+        auto& frustumRight = vrcamera->right.frustum;
         if (frustumCull && !frustumLeft.aabbIsVisible(aabb, model) && !frustumRight.aabbIsVisible(aabb, model)) {
             return stats;
         }
