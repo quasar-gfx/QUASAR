@@ -771,8 +771,8 @@ int main(int argc, char** argv) {
 
                 // get number of vertices and indices in mesh
                 bufferSizesBuffer.bind();
-                bufferSizesBuffer.getSubData(0, 3, &bufferSizes);
-                bufferSizesBuffer.setSubData(0, 3, &zeros); // reset for next frame
+                bufferSizesBuffer.getSubData(0, 4, &bufferSizes);
+                bufferSizesBuffer.setSubData(0, 4, &zeros); // reset for next frame
 
                 currMesh->resizeBuffers(bufferSizes.numVertices, bufferSizes.numIndices);
                 currMeshWireframe->resizeBuffers(bufferSizes.numVertices, bufferSizes.numIndices);

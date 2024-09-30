@@ -195,10 +195,10 @@ void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthO
     surfelUVs.topRight    = surfelPixelCoords.topRight    / remoteWindowSize;
 
     // add small offsets to UVs to avoid numerical issues
-    surfelUVs.bottomLeft  += vec2(-epsilon, -epsilon);
-    surfelUVs.bottomRight += vec2(+epsilon, -epsilon);
-    surfelUVs.topLeft     += vec2(-epsilon, +epsilon);
-    surfelUVs.topRight    += vec2(+epsilon, +epsilon);
+    surfelUVs.bottomLeft  += vec2(-1e-6, -1e-6);
+    surfelUVs.bottomRight += vec2(+1e-6, -1e-6);
+    surfelUVs.topLeft     += vec2(-1e-6, +1e-6);
+    surfelUVs.topRight    += vec2(+1e-6, +1e-6);
 
     Quad2D surfelNDCs;
     surfelNDCs.bottomLeft  = surfelUVs.bottomLeft  * 2.0 - 1.0;

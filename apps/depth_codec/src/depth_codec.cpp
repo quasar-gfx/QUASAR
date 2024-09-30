@@ -14,8 +14,6 @@
 
 #define TEXTURE_PREVIEW_SIZE 250
 
-#define VERTICES_IN_A_QUAD 4
-
 const std::string DATA_PATH = "./";
 
 enum class RenderState {
@@ -75,30 +73,29 @@ int main(int argc, char** argv) {
 
     int surfelSize = args::get(surfelSizeIn);
 
-    // Create window and GUI manager
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
 
     config.window = window;
     config.guiManager = guiManager;
 
-    // Initialize OpenGL app and renderer
     OpenGLApp app(config);
+    ForwardRenderer remoteRenderer(config);
     ForwardRenderer renderer(config);
 
     glm::uvec2 windowSize = window->getSize();
 
-    // Set up scene and camera
+    // "remote" scene
+    Scene remoteScene;
+    PerspectiveCamera remoteCamera(windowSize.x, windowSize.y);
+    SceneLoader loader;
+    loader.loadScene(scenePath, remoteScene, remoteCamera);
+
+    // scene with all the meshes
     Scene scene = Scene();
     scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
     PerspectiveCamera camera = PerspectiveCamera(windowSize.x, windowSize.y);
-    PerspectiveCamera origCamera = PerspectiveCamera(windowSize.x, windowSize.y);
-
-    camera.setPosition(glm::vec3(0.0f, 3.0f, 10.0f));
-    camera.updateViewMatrix();
-    origCamera.setPosition(glm::vec3(0.0f, 3.0f, 10.0f));
-    origCamera.updateViewMatrix();
-
+    camera.setViewMatrix(remoteCamera.getViewMatrix());
 
     // shaders
     Shader screenShader({
@@ -116,51 +113,23 @@ int main(int argc, char** argv) {
     });
 
     ComputeShader bc4CompressShader({
-        .computeCodePath = "./shaders/bc4.comp"
+        .computeCodePath = "./shaders/bc4_compress.comp"
     });
 
-    ComputeShader genMeshShader({ // my buffer
+    ComputeShader genMeshShader({
         .computeCodePath = "./shaders/genMesh.comp"
     });
 
-    // Load depth data
-    unsigned int depthWidth = 2048, depthHeight = 2048;
-    auto depthData = FileIO::loadBinaryFile(DATA_PATH + "depth.bin");
-    std::cout<< "depthData size: "<< depthData.size()<<std::endl;
+    // original size of depth buffer
+    unsigned int originalSize = windowSize.x * windowSize.y * sizeof(float);
 
-    if (depthData.empty()) {
-        std::cerr << "Failed to load depth data from file." << std::endl;
-        return 1;
-    }
-
-    if (depthData.size() != depthWidth * depthHeight * sizeof(float)) {
-        std::cerr << "Unexpected depth data size. Expected " << (depthWidth * depthHeight * sizeof(float))
-                << " bytes, but got " << depthData.size() << " bytes." << std::endl;
-        return 1;
-    }
-
-    // Create texture for original depth data
-    Texture depthTextureOriginal({
-        .width = depthWidth,
-        .height = depthHeight,
-        .internalFormat = GL_R32F,
-        .format = GL_RED,
-        .type = GL_FLOAT,
-        .wrapS = GL_CLAMP_TO_EDGE,
-        .wrapT = GL_CLAMP_TO_EDGE,
-        .minFilter = GL_NEAREST,
-        .magFilter = GL_NEAREST,
-        .data = reinterpret_cast<unsigned char*>(depthData.data()) // depthData
-    });
-
-    glGetError();
-    std::cout << "Depth original Textures created successfully." << std::endl;
-
-    // Create buffer for compressed data
-    size_t compressedSize = (depthWidth / 8) * (depthHeight / 8) * sizeof(Block);
+    // create buffer for compressed data
+    unsigned int compressedSize = (windowSize.x / 8) * (windowSize.y / 8) * sizeof(Block);
     Buffer<Block> bc4Buffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, compressedSize / sizeof(Block), nullptr);
 
-    // Set up meshes for rendering
+    float compressionRatio = originalSize / compressedSize;
+
+    // set up meshes for rendering
     int width = windowSize.x / surfelSize;
     int height = windowSize.y / surfelSize;
 
@@ -193,6 +162,7 @@ int main(int argc, char** argv) {
     nodeDecompressed.frustumCulled = false;
     scene.addChildNode(&nodeDecompressed);
 
+    bool rerender = true;
     RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
@@ -250,6 +220,8 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Total Draw Calls: %d", renderStats.drawCalls);
 
+            ImGui::TextColored(ImVec4(1,0.5,0,1), "Compression Ratio: %d:1", static_cast<int>(compressionRatio));
+
             ImGui::Separator();
 
             glm::vec3 position = camera.getPosition();
@@ -276,15 +248,20 @@ int main(int argc, char** argv) {
             ImGui::Checkbox("Show Original Depth", &node.visible);
             ImGui::Checkbox("Show Decompressed Depth", &nodeDecompressed.visible);
 
+            ImGui::Separator();
+
+            if (ImGui::Button("Rerender", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+                rerender = true;
+            }
+
             ImGui::End();
         }
 
-        flags = ImGuiWindowFlags_AlwaysAutoResize;
-
         if (showDepthPreview) {
+            flags = ImGuiWindowFlags_AlwaysAutoResize;
             ImGui::SetNextWindowPos(ImVec2(windowSize.x - TEXTURE_PREVIEW_SIZE - 30, 40), ImGuiCond_FirstUseEver);
             ImGui::Begin("Original Depth", &showDepthPreview, flags);
-            ImGui::Image((void*)(intptr_t)depthTextureOriginal.ID, ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::Image((void*)(intptr_t)remoteRenderer.gBuffer.depthStencilBuffer, ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
         }
     });
@@ -294,6 +271,7 @@ int main(int argc, char** argv) {
         windowSize.x = width;
         windowSize.y = height;
 
+        remoteRenderer.resize(width, height);
         renderer.resize(width, height);
 
         camera.aspect = (float)windowSize.x / (float)windowSize.y;
@@ -343,50 +321,67 @@ int main(int argc, char** argv) {
             window->close();
         }
 
+        if (rerender) {
+            remoteCamera.setPosition(camera.getPosition());
+            remoteCamera.setRotationQuat(camera.getRotationQuat());
+            remoteCamera.updateViewMatrix();
+
+            remoteRenderer.drawObjects(remoteScene, remoteCamera);
+
+            rerender = false;
+        }
+
         // Compress depth data using BC4
         bc4CompressShader.bind();
-        bc4CompressShader.setTexture(depthTextureOriginal, 0);
-        bc4CompressShader.setVec2("depthMapSize", glm::vec2(depthWidth, depthHeight));
-        bc4CompressShader.setVec2("bc4DepthSize", glm::vec2(depthWidth / 8, depthHeight / 8));
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bc4Buffer);
-        bc4CompressShader.dispatch(depthWidth / 8 / 16, depthHeight / 8 / 16, 1);
+        {
+            bc4CompressShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
+        }
+        {
+            bc4CompressShader.setVec2("depthMapSize", windowSize);
+            bc4CompressShader.setVec2("bc4DepthSize", glm::vec2(windowSize.x / 8, windowSize.y / 8));
+        }
+        {
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bc4Buffer);
+        }
+        bc4CompressShader.dispatch((windowSize.x / 8) / 16, (windowSize.y / 8) / 16, 1);
         bc4CompressShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-        // generate mesh for original and decompressed depth data
+        // generate mesh for original depth data
         genPtCloudFromDepthShader.bind();
         {
             genPtCloudFromDepthShader.setVec2("screenSize", windowSize);
             genPtCloudFromDepthShader.setInt("surfelSize", surfelSize);
         }
         {
-            genPtCloudFromDepthShader.setMat4("view", origCamera.getViewMatrix());
-            genPtCloudFromDepthShader.setMat4("projection", origCamera.getProjectionMatrix());
-            genPtCloudFromDepthShader.setMat4("viewInverse", glm::inverse(origCamera.getViewMatrix()));
-            genPtCloudFromDepthShader.setMat4("projectionInverse", glm::inverse(origCamera.getProjectionMatrix()));
+            genPtCloudFromDepthShader.setMat4("view", remoteCamera.getViewMatrix());
+            genPtCloudFromDepthShader.setMat4("projection", remoteCamera.getProjectionMatrix());
+            genPtCloudFromDepthShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
+            genPtCloudFromDepthShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
         }
         {
-            genPtCloudFromDepthShader.setTexture(depthTextureOriginal, 0);
+            genPtCloudFromDepthShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
         }
         {
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
         }
         // dispatch compute shader to generate vertices and indices for mesh
-        genPtCloudFromDepthShader.dispatch(width / 16, height / 16, 1); // call the comp shader file
-        genPtCloudFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+        genPtCloudFromDepthShader.dispatch(width / 16, height / 16, 1);
+        genPtCloudFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
+                                                GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
-        // decompress depth data
+        // generate mesh using compressed depth data
         genMeshShader.bind();
         {
             genMeshShader.setVec2("screenSize", windowSize);
-            genMeshShader.setVec2("depthMapSize", glm::vec2(depthWidth, depthHeight));
+            genMeshShader.setVec2("depthMapSize", windowSize);
             genMeshShader.setInt("surfelSize", surfelSize);
         }
         {
-            genMeshShader.setMat4("view", origCamera.getViewMatrix());
-            genMeshShader.setMat4("projection", origCamera.getProjectionMatrix());
-            genMeshShader.setMat4("viewInverse", glm::inverse(origCamera.getViewMatrix()));
-            genMeshShader.setMat4("projectionInverse", glm::inverse(origCamera.getProjectionMatrix()));
+            genMeshShader.setMat4("view", remoteCamera.getViewMatrix());
+            genMeshShader.setMat4("projection", remoteCamera.getProjectionMatrix());
+            genMeshShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
+            genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
         }
         {
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, meshDecompressed.vertexBuffer);
@@ -395,8 +390,9 @@ int main(int argc, char** argv) {
 
         }
         // dispatch compute shader to generate vertices and indices for mesh
-        genMeshShader.dispatch(width / 16, height / 16, 1); //  call the comp shader file
-        genMeshShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+        genMeshShader.dispatch(width / 16, height / 16, 1);
+        genMeshShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
+                                    GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
         // set render state
         mesh.pointcloud = renderState == RenderState::POINTCLOUD;
@@ -410,9 +406,6 @@ int main(int argc, char** argv) {
         screenShader.setBool("doToneMapping", false);
         renderer.drawToScreen(screenShader);
     });
-
-    double compressionRatio = depthData.size() / compressedSize;
-    std::cout << "Compression Ratio: " << compressionRatio << ":1" << std::endl;
 
     // run app loop (blocking)
     app.run();

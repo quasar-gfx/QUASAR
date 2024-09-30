@@ -13,7 +13,7 @@ struct Vertex {
 struct Block{
     float max;
     float min;
-    uint arr[6]; // 32
+    uint arr[6];
     //float real[64]; // real value for depth
 };
 
@@ -28,6 +28,8 @@ layout(std430, binding = 1) buffer IndexBuffer {
 layout(std430, binding = 2) buffer BC4Buffer {
     Block bc4buffer[];
 };
+
+const ivec2 blockSize = ivec2(8, 8);
 
 uniform vec2 screenSize;
 uniform vec2 depthMapSize;
@@ -93,7 +95,6 @@ float UnLinearizeDepth(float depth) {
 }
 
 float sampleBC4Buffer(vec2 pixelCoordNormalized) {
-    ivec2 blockSize = ivec2(8, 8);
     ivec2 pixelCoord = ivec2(pixelCoordNormalized * depthMapSize); // normalized coord to integer pixel coord
     ivec2 blockCoord = pixelCoord / blockSize;
     ivec2 pixelInBlock = pixelCoord % blockSize;
