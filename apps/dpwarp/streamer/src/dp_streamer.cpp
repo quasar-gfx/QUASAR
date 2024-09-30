@@ -149,11 +149,13 @@ int main(int argc, char** argv) {
         unsigned int numVertices;
         unsigned int numIndices;
         unsigned int numProxies;
+        unsigned int numDepthOffsets;
     };
     unsigned int totalProxies = 0;
+    unsigned int totalDepthOffsets = 0;
     BufferSizes bufferSizes = { 0 };
-    unsigned int zeros[3] = { 0 };
-    Buffer<unsigned int> bufferSizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 3 * sizeof(unsigned int), zeros);
+    unsigned int zeros[4] = { 0 };
+    Buffer<unsigned int> bufferSizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(BufferSizes), zeros);
 
     std::vector<Mesh*> meshes(maxViews);
     std::vector<Node*> nodes(maxViews);
@@ -332,6 +334,7 @@ int main(int argc, char** argv) {
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
             ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d", totalProxies);
+            ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d", totalDepthOffsets);
 
             ImGui::Separator();
 
@@ -581,6 +584,7 @@ int main(int argc, char** argv) {
             double avgSetMeshBuffersTime = 0.0;
             double avgGenDepthTime = 0.0;
             totalProxies = 0;
+            totalDepthOffsets = 0;
 
             /*
             ============================
@@ -774,6 +778,7 @@ int main(int argc, char** argv) {
                 currMeshWireframe->resizeBuffers(bufferSizes.numVertices, bufferSizes.numIndices);
 
                 totalProxies += bufferSizes.numProxies;
+                totalDepthOffsets += bufferSizes.numDepthOffsets;
 
                 avgSetMeshBuffersTime += glfwGetTime() - startTime;
                 startTime = glfwGetTime();

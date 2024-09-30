@@ -136,10 +136,11 @@ int main(int argc, char** argv) {
         unsigned int numVertices;
         unsigned int numIndices;
         unsigned int numProxies;
+        unsigned int numDepthOffsets;
     };
     BufferSizes bufferSizes = { 0 };
-    unsigned int zeros[3] = { 0 };
-    Buffer<unsigned int> bufferSizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 3 * sizeof(unsigned int), zeros);
+    unsigned int zeros[4] = { 0 };
+    Buffer<unsigned int> bufferSizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(BufferSizes), zeros);
 
     Mesh mesh = Mesh({
         .vertices = std::vector<Vertex>(maxVertices),
@@ -292,6 +293,7 @@ int main(int argc, char** argv) {
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
             ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d", bufferSizes.numProxies);
+            ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d", bufferSizes.numDepthOffsets);
 
             ImGui::Separator();
 
@@ -633,8 +635,8 @@ int main(int argc, char** argv) {
 
             // get number of vertices and indices in mesh
             bufferSizesBuffer.bind();
-            bufferSizesBuffer.getSubData(0, 3, &bufferSizes);
-            bufferSizesBuffer.setSubData(0, 3, &zeros); // reset for next frame
+            bufferSizesBuffer.getSubData(0, 4, &bufferSizes);
+            bufferSizesBuffer.setSubData(0, 4, &zeros); // reset for next frame
 
             mesh.resizeBuffers(bufferSizes.numVertices, bufferSizes.numIndices);
             meshWireframe.resizeBuffers(bufferSizes.numVertices, bufferSizes.numIndices);
