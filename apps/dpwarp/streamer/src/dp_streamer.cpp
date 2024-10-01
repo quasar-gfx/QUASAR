@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
     glm::uvec2 remoteWindowSize = glm::uvec2(size2Width, size2Height);
 
     // make sure maxProxySize is a power of 2
-    int maxProxySize = glm::max(remoteWindowSize.x, remoteWindowSize.y);
+    int maxProxySize = glm::min(remoteWindowSize.x, remoteWindowSize.y);
     maxProxySize = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize))));
     int numQuadMaps = glm::log2(static_cast<float>(maxProxySize));
 
@@ -258,9 +258,9 @@ int main(int argc, char** argv) {
     bool doAverageNormal = true;
     bool doOrientationCorrection = true;
     bool preventCopyingLocalPose = false;
-    float distanceThreshold = 0.8f;
+    float distanceThreshold = 0.75f;
     float angleThreshold = 45.0f;
-    float flatThreshold = 0.1f;
+    float flatThreshold = 0.25f;
     float proxySimilarityThreshold = 0.1f;
     const int intervalValues[] = {0, 25, 50, 100, 200, 500, 1000};
     const char* intervalLabels[] = {"0ms", "25ms", "50ms", "100ms", "200ms", "500ms", "1000ms"};
@@ -382,7 +382,7 @@ int main(int argc, char** argv) {
                 rerender = true;
             }
 
-            if (ImGui::SliderFloat("Flat Threshold (x1e-3)", &flatThreshold, 0.0f, 1.0f)) {
+            if (ImGui::SliderFloat("Flat Threshold (x1e-2)", &flatThreshold, 0.0f, 1.0f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
             }
@@ -669,7 +669,7 @@ int main(int argc, char** argv) {
                     genQuadMapShader.setBool("doOrientationCorrection", doOrientationCorrection);
                     genQuadMapShader.setFloat("distanceThreshold", distanceThreshold);
                     genQuadMapShader.setFloat("angleThreshold", glm::radians(angleThreshold));
-                    genQuadMapShader.setFloat("flatThreshold", flatThreshold * 1e-3f);
+                    genQuadMapShader.setFloat("flatThreshold", flatThreshold * 1e-2f);
                     genQuadMapShader.setBool("discardOutOfRangeDepths", true);
                 }
                 {
@@ -711,7 +711,7 @@ int main(int argc, char** argv) {
                         simplifyQuadMapShader.setVec2("depthBufferSize", depthBufferSize);
                     }
                     {
-                        simplifyQuadMapShader.setFloat("flatThreshold", flatThreshold);
+                        simplifyQuadMapShader.setFloat("flatThreshold", flatThreshold * 1e-2f);
                         simplifyQuadMapShader.setFloat("proxySimilarityThreshold", proxySimilarityThreshold);
                     }
                     {

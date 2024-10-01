@@ -288,8 +288,8 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
     vec2 proxyPlaneUV = quadMapData.uv;
     vec2 proxyPlanePixelCoords = vec2(proxyPlaneUV * remoteWindowSize);
 
-    float size = float(quadMapData.size);
-    float halfGridSize = size * surfelSize / 2;
+    uint size = quadMapData.size;
+    float halfGridSize = float(size) * surfelSize / 2;
 
     bool flattened = quadMapData.flattened;
     if (!flattened) {
