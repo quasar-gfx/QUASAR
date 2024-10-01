@@ -584,6 +584,9 @@ void main() {
     **********************************/
 
     ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
+    if (pixelCoord.x >= int(remoteWindowSize.x) || pixelCoord.y >= int(remoteWindowSize.y)) {
+        return;
+    }
 
     // calculate coords (see above)
     vec2 surfelCornerCoordBottomLeft  = vec2(gl_GlobalInvocationID.xy);

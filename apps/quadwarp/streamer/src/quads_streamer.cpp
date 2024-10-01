@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
         alignas(16) glm::vec3 normal;
         alignas(16) float depth;
         alignas(16) glm::vec2 uv;
-        alignas(16) glm::ivec2 offset;
+        alignas(16) glm::uvec2 offset;
         alignas(16) uint size;
         alignas(16) bool flattened;
     };
@@ -117,11 +117,11 @@ int main(int argc, char** argv) {
     RenderTarget renderTarget({
         .width = windowSize.x,
         .height = windowSize.y,
-        .internalFormat = GL_RGBA16,
+        .internalFormat = GL_RGBA16F,
         .format = GL_RGBA,
         .type = GL_FLOAT,
-        .wrapS = GL_REPEAT,
-        .wrapT = GL_REPEAT,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST
     });
@@ -496,6 +496,8 @@ int main(int argc, char** argv) {
             */
             renderer.drawObjects(remoteScene, remoteCamera);
             if (!showNormals) {
+                screenShaderColor.bind();
+                screenShaderColor.setBool("doToneMapping", false); // dont apply tone mapping
                 renderer.drawToRenderTarget(screenShaderColor, renderTarget);
             }
             else {
@@ -542,7 +544,7 @@ int main(int argc, char** argv) {
             }
 
             // run compute shader
-            genQuadMapShader.dispatch(remoteWindowSize.x / THREADS_PER_LOCALGROUP, remoteWindowSize.y / THREADS_PER_LOCALGROUP, 1);
+            genQuadMapShader.dispatch(remoteWindowSize.x / THREADS_PER_LOCALGROUP + 1, remoteWindowSize.y / THREADS_PER_LOCALGROUP + 1, 1);
             genQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
             std::cout << "  QuadMap Compute Shader Time: " << glfwGetTime() - startTime << "s" << std::endl;
@@ -689,6 +691,8 @@ int main(int argc, char** argv) {
         renderer.pipeline.rasterState.cullFaceEnabled = true;
 
         // render to screen
+        screenShaderColor.bind();
+        screenShaderColor.setBool("doToneMapping", true);
         renderer.drawToScreen(screenShaderColor);
     });
 

@@ -37,6 +37,13 @@ struct Quad1D {
     float topRight;
 };
 
+struct Quad1DInt {
+    int bottomLeft;
+    int bottomRight;
+    int topLeft;
+    int topRight;
+};
+
 struct Quad2D {
     vec2 bottomLeft;
     vec2 bottomRight;
@@ -91,6 +98,10 @@ uniform float near;
 uniform float far;
 
 const float epsilon = 1e-5;
+
+const float minVal = -1;
+const float maxVal = 1;
+const int numBits = 12;
 
 const float surfelSize = 0.5;
 const vec3 origin = vec3(0.0, 0.0, 0.0);
@@ -195,10 +206,10 @@ void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthO
     surfelUVs.topRight    = surfelPixelCoords.topRight    / remoteWindowSize;
 
     // add small offsets to UVs to avoid numerical issues
-    surfelUVs.bottomLeft  += vec2(-1e-6, -1e-6);
-    surfelUVs.bottomRight += vec2(+1e-6, -1e-6);
-    surfelUVs.topLeft     += vec2(-1e-6, +1e-6);
-    surfelUVs.topRight    += vec2(+1e-6, +1e-6);
+    surfelUVs.bottomLeft  += vec2(-epsilon, -epsilon);
+    surfelUVs.bottomRight += vec2(+epsilon, -epsilon);
+    surfelUVs.topLeft     += vec2(-epsilon, +epsilon);
+    surfelUVs.topRight    += vec2(+epsilon, +epsilon);
 
     Quad2D surfelNDCs;
     surfelNDCs.bottomLeft  = surfelUVs.bottomLeft  * 2.0 - 1.0;
@@ -281,6 +292,36 @@ void storeSurfel(in Quad quad) {
     indicesWireframe[indexIdxBase + 5] = indices[indexIdxBase + 5];
 }
 
+void quantizeDepthOffsets(in Quad1D depthOffsets, out Quad1DInt depthOffsetsQuantized) {
+    const float maxValueBits = float(2 << numBits - 1);
+
+    Quad1D depthOffsetsNormalized;
+    depthOffsetsNormalized.bottomLeft  = (depthOffsets.bottomLeft  - minVal) / (maxVal - minVal);
+    depthOffsetsNormalized.bottomRight = (depthOffsets.bottomRight - minVal) / (maxVal - minVal);
+    depthOffsetsNormalized.topLeft     = (depthOffsets.topLeft     - minVal) / (maxVal - minVal);
+    depthOffsetsNormalized.topRight    = (depthOffsets.topRight    - minVal) / (maxVal - minVal);
+
+    depthOffsetsQuantized.bottomLeft  = int(round(depthOffsetsNormalized.bottomLeft  * maxValueBits));
+    depthOffsetsQuantized.bottomRight = int(round(depthOffsetsNormalized.bottomRight * maxValueBits));
+    depthOffsetsQuantized.topLeft     = int(round(depthOffsetsNormalized.topLeft     * maxValueBits));
+    depthOffsetsQuantized.topRight    = int(round(depthOffsetsNormalized.topRight    * maxValueBits));
+}
+
+void unQuantizeDepthOffsets(in Quad1DInt depthOffsetsQuantized, out Quad1D depthOffsets) {
+    const float maxValueBits = float(2 << numBits - 1);
+
+    Quad1D depthOffsetsNormalized;
+    depthOffsetsNormalized.bottomLeft  = float(depthOffsetsQuantized.bottomLeft)  / maxValueBits;
+    depthOffsetsNormalized.bottomRight = float(depthOffsetsQuantized.bottomRight) / maxValueBits;
+    depthOffsetsNormalized.topLeft     = float(depthOffsetsQuantized.topLeft)     / maxValueBits;
+    depthOffsetsNormalized.topRight    = float(depthOffsetsQuantized.topRight)    / maxValueBits;
+
+    depthOffsets.bottomLeft  = mix(minVal, maxVal, depthOffsetsNormalized.bottomLeft);
+    depthOffsets.bottomRight = mix(minVal, maxVal, depthOffsetsNormalized.bottomRight);
+    depthOffsets.topLeft     = mix(minVal, maxVal, depthOffsetsNormalized.topLeft);
+    depthOffsets.topRight    = mix(minVal, maxVal, depthOffsetsNormalized.topRight);
+}
+
 void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
     // extract the plane normal and point from the quad map
     Plane proxyPlane = quadMapDataToPlane(quadMapData);
@@ -305,6 +346,11 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
 
                 Quad1D depthOffsets;
                 loadDepthOffsets(depthOffsets, 4 * quadMapData.offset + 2 * ivec2(i, j));
+
+                Quad1DInt depthOffsetsQuantized;
+                quantizeDepthOffsets(depthOffsets, depthOffsetsQuantized); // quantize depth offsets
+                unQuantizeDepthOffsets(depthOffsetsQuantized, depthOffsets); // recover depth offsets
+
                 atomicAdd(numDepthOffsets, 4);
 
                 Quad surfel;
