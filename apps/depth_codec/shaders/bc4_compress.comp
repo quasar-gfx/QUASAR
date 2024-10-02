@@ -6,7 +6,7 @@ struct Block {
     float max;
     float min;
     uint arr[6];
-    //float real[64]; // real value for depth
+    // float real[64]; // real value for depth
 };
 
 layout(std430, binding = 0) buffer BC4Buffer {
@@ -16,37 +16,40 @@ layout(std430, binding = 0) buffer BC4Buffer {
 uniform vec2 depthMapSize;
 uniform vec2 bc4DepthSize;
 
+const int blockSize = 8;
+
 // Sample depth value from the depth map
 float sampleDepth(sampler2D depthMap, ivec2 sampleCoord) {
     float depth = texelFetch(depthMap, sampleCoord, 0).r;
     return depth;
 }
 
+uint findClosestIndex(float minValue, float maxValue, float value) {
+    const int numSegments = blockSize - 1;
+    float segmentSize = (maxValue - minValue) / float(numSegments);
+    uint idx = uint(round((value - minValue) / segmentSize));
+    return idx;
+}
+
 void main() {
     ivec2 blockPixelCoord = ivec2(gl_GlobalInvocationID.xy);
-    ivec2 startPixelCoord = 8 * blockPixelCoord;
+    ivec2 startPixelCoord = blockSize * blockPixelCoord;
 
     float blockData[64];
     float minDepth = 1.0;
     float maxDepth = 0.0;
 
     // Sample 8x8 block and find min/max
-    for(int y = 0; y < 8; y++) {
-        for(int x = 0; x < 8; x++) {
+    for (int y = 0; y < blockSize; y++) {
+        for (int x = 0; x < blockSize; x++) {
             ivec2 sampleCoord = startPixelCoord + ivec2(x, y);
-            if(all(lessThan(sampleCoord, ivec2(depthMapSize)))) {
+            if (all(lessThan(sampleCoord, ivec2(depthMapSize)))) {
                 float depth = sampleDepth(depthMap, sampleCoord);
-                blockData[y * 8 + x] = depth;
+                blockData[y * blockSize + x] = depth;
                 minDepth = min(minDepth, depth);
                 maxDepth = max(maxDepth, depth);
             }
         }
-    }
-
-    // Calculate interpolated values
-    float interpVals[8];
-    for(int i = 0; i < 8; i++) {
-        interpVals[i] = mix(minDepth, maxDepth, float(i) / 7.0);
     }
 
     // Compress block data
@@ -54,23 +57,13 @@ void main() {
     block.max = maxDepth;
     block.min = minDepth;
 
-    uint bits[6] = uint[](0u, 0u, 0u, 0u, 0u, 0u);
-    int bitIndex = 0;
-    uint mask = 0;
-
-    for(int i = 0; i < 64; i++) {
+    uint bitIndex = 0u;
+    uint mask = 0u;
+    for (int i = 0; i < blockSize*blockSize; i++) {
         float pixelValue = blockData[i];
 
         // Find closest interpolated value
-        int bestIndex = 0;
-        float minDiff = abs(pixelValue - interpVals[0]);
-        for(int k = 1; k < 8; k++) {
-            float diff = abs(pixelValue - interpVals[k]);
-            if(diff < minDiff) {
-                minDiff = diff;
-                bestIndex = k;
-            }
-        }
+        uint bestIndex = findClosestIndex(minDepth, maxDepth, pixelValue);
 
         // Pack 3-bit index
         uint uintIndex = bitIndex / 32;
@@ -78,30 +71,26 @@ void main() {
 
         if (bitOffset <= 29) {
             // Normal case: all 3 bits fit in the current uint
-            bits[uintIndex] |= uint(bestIndex) << (29 - bitOffset);
-        } else {
+            block.arr[uintIndex] |= uint(bestIndex) << (29 - bitOffset);
+        }
+        else {
             // Split case: the 3 bits are split across two uints
             uint bitsInCurrent = 32 - bitOffset;
             uint bitsInNext = 3 - bitsInCurrent;
 
             // Pack the bits that fit in the current uint
-            bits[uintIndex] |= uint(bestIndex >> bitsInNext);
+            block.arr[uintIndex] |= uint(bestIndex >> bitsInNext);
 
             // Pack the remaining bits in the next uint
-            if(bitsInNext == 1) mask = 1; // 0b01
-            if(bitsInNext == 2) mask = 3; //0b11
-            bits[uintIndex + 1] |= uint(bestIndex & mask) << (32 - bitsInNext);
+            if (bitsInNext == 1) mask = 1; // 0b01
+            if (bitsInNext == 2) mask = 3; //0b11
+            block.arr[uintIndex + 1] |= uint(bestIndex & mask) << (32 - bitsInNext);
         }
 
         bitIndex += 3;
     }
 
-    // Store packed data
-    for(int i = 0; i < 6; i++) {
-        block.arr[i] = bits[i];
-    }
-
-    // real depth val
+    // Debug: store real depth val
     // block.real = blockData;
 
     // Write compressed block to output buffer
