@@ -68,6 +68,7 @@ int main(int argc, char** argv) {
     config.guiManager = guiManager;
 
     OpenGLApp app(config);
+    ForwardRenderer remoteRenderer(config);
     ForwardRenderer renderer(config);
 
     glm::uvec2 windowSize = window->getSize();
@@ -341,7 +342,7 @@ int main(int argc, char** argv) {
                 rerender = true;
             }
 
-            if (ImGui::SliderFloat("Flat Threshold (x1e-2)", &flatThreshold, 0.0f, 1.0f)) {
+            if (ImGui::SliderFloat("Flat Threshold (x1e-2)", &flatThreshold, 0.0f, 10.0f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
             }
@@ -494,14 +495,14 @@ int main(int argc, char** argv) {
             FIRST PASS: Render the scene to a G-Buffer render target
             ============================
             */
-            renderer.drawObjects(remoteScene, remoteCamera);
+            remoteRenderer.drawObjects(remoteScene, remoteCamera);
             if (!showNormals) {
                 screenShaderColor.bind();
                 screenShaderColor.setBool("doToneMapping", false); // dont apply tone mapping
-                renderer.drawToRenderTarget(screenShaderColor, renderTarget);
+                remoteRenderer.drawToRenderTarget(screenShaderColor, renderTarget);
             }
             else {
-                renderer.drawToRenderTarget(screenShaderNormals, renderTarget);
+                remoteRenderer.drawToRenderTarget(screenShaderNormals, renderTarget);
             }
 
             std::cout << "  Rendering Time: " << glfwGetTime() - startTime << "s" << std::endl;
@@ -514,8 +515,8 @@ int main(int argc, char** argv) {
             */
             genQuadMapShader.bind();
             {
-                genQuadMapShader.setTexture(renderer.gBuffer.normalsBuffer, 0);
-                genQuadMapShader.setTexture(renderer.gBuffer.depthStencilBuffer, 1);
+                genQuadMapShader.setTexture(remoteRenderer.gBuffer.normalsBuffer, 0);
+                genQuadMapShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 1);
             }
             {
                 genQuadMapShader.setVec2("remoteWindowSize", remoteWindowSize);
@@ -653,7 +654,7 @@ int main(int argc, char** argv) {
             */
             genDepthShader.bind();
             {
-                genDepthShader.setTexture(renderer.gBuffer.depthStencilBuffer, 0);
+                genDepthShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
             }
             {
                 genDepthShader.setVec2("remoteWindowSize", remoteWindowSize);

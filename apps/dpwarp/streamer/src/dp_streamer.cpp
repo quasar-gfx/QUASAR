@@ -382,7 +382,7 @@ int main(int argc, char** argv) {
                 rerender = true;
             }
 
-            if (ImGui::SliderFloat("Flat Threshold (x1e-2)", &flatThreshold, 0.0f, 1.0f)) {
+            if (ImGui::SliderFloat("Flat Threshold (x1e-2)", &flatThreshold, 0.0f, 10.0f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
             }
@@ -511,7 +511,6 @@ int main(int argc, char** argv) {
 
     app.onResize([&](unsigned int width, unsigned int height) {
         windowSize = glm::uvec2(width, height);
-        dpRenderer.resize(width, height);
         forwardRenderer.resize(width, height);
 
         camera.aspect = (float)windowSize.x / (float)windowSize.y;

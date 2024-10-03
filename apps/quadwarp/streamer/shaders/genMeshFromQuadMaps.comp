@@ -209,18 +209,18 @@ void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthO
     surfelNDCs.topLeft     = surfelUVs.topLeft     * 2.0 - 1.0;
     surfelNDCs.topRight    = surfelUVs.topRight    * 2.0 - 1.0;
 
-    Quad surfelFarPlane;
-    surfelFarPlane.bottomLeft  = ndcToView(projectionInverse, surfelNDCs.bottomLeft, 1.0);
-    surfelFarPlane.bottomRight = ndcToView(projectionInverse, surfelNDCs.bottomRight, 1.0);
-    surfelFarPlane.topLeft     = ndcToView(projectionInverse, surfelNDCs.topLeft, 1.0);
-    surfelFarPlane.topRight    = ndcToView(projectionInverse, surfelNDCs.topRight, 1.0);
+    Quad surfelNearPlane;
+    surfelNearPlane.bottomLeft  = ndcToView(projectionInverse, surfelNDCs.bottomLeft, -1.0);
+    surfelNearPlane.bottomRight = ndcToView(projectionInverse, surfelNDCs.bottomRight, -1.0);
+    surfelNearPlane.topLeft     = ndcToView(projectionInverse, surfelNDCs.topLeft, -1.0);
+    surfelNearPlane.topRight    = ndcToView(projectionInverse, surfelNDCs.topRight, -1.0);
 
     // shoot rays from corners of the surfel to the plane to find the 3D intersection points
     Quad quadPtsOnPlane;
-    quadPtsOnPlane.bottomLeft  = pointPlaneIntersection(surfelFarPlane.bottomLeft,  proxyPlane);
-    quadPtsOnPlane.bottomRight = pointPlaneIntersection(surfelFarPlane.bottomRight, proxyPlane);
-    quadPtsOnPlane.topLeft     = pointPlaneIntersection(surfelFarPlane.topLeft,     proxyPlane);
-    quadPtsOnPlane.topRight    = pointPlaneIntersection(surfelFarPlane.topRight,    proxyPlane);
+    quadPtsOnPlane.bottomLeft  = pointPlaneIntersection(surfelNearPlane.bottomLeft,  proxyPlane);
+    quadPtsOnPlane.bottomRight = pointPlaneIntersection(surfelNearPlane.bottomRight, proxyPlane);
+    quadPtsOnPlane.topLeft     = pointPlaneIntersection(surfelNearPlane.topLeft,     proxyPlane);
+    quadPtsOnPlane.topRight    = pointPlaneIntersection(surfelNearPlane.topRight,    proxyPlane);
 
     // apply depth offsets to the quad points
     surfel.bottomLeft  = quadPtsOnPlane.bottomLeft  - depthOffsets.bottomLeft  * normalize(quadPtsOnPlane.bottomLeft);
