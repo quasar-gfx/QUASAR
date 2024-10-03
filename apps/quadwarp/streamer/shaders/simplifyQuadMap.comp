@@ -102,8 +102,6 @@ const float epsilon = 1e-5;
 const float surfelSize = 0.5;
 const vec3 origin = vec3(0.0, 0.0, 0.0);
 
-#define MAX_DEPTH 0.9999
-
 layout(std430, binding = 0) buffer InputQuadMapBuffer {
     QuadMapData inputQuadMap[];
 };
