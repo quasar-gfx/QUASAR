@@ -99,6 +99,8 @@ uniform float flatThreshold;
 
 uniform bool discardOutOfRangeDepths;
 
+#define MAX_DEPTH 0.9999
+
 const float epsilon = 1e-5;
 
 const float surfelSize = 0.5;
@@ -107,8 +109,6 @@ const vec3 forward = vec3(0.0, 0.0, -1.0);
 const vec3 up = vec3(0.0, 1.0, 0.0);
 const vec3 left = vec3(-1.0, 0.0, 0.0);
 const vec3 right = vec3(1.0, 0.0, 0.0);
-
-#define MAX_DEPTH 0.9999
 
 layout(std430, binding = 0) writeonly buffer QuadMapBuffer {
     QuadMapData quadMap[];
@@ -265,6 +265,10 @@ vec3 findQuadPointCorner(
     //     return surfelViewPlane;
     // }
 
+    if (pixelDepthCenter >= MAX_DEPTH || pixelDepthNeighbor1 >= MAX_DEPTH || pixelDepthNeighbor2 >= MAX_DEPTH || pixelDepthNeighbor3 >= MAX_DEPTH) {
+        return surfelViewPlane;
+    }
+
     // find distance of depth of point on this pixel's plane to the same point on neighboring pixels' planes
     float dist1 = normalizeDepth(distance(surfelViewPlane, surfelViewPlanePixelNeighbor1));
     float dist2 = normalizeDepth(distance(surfelViewPlane, surfelViewPlanePixelNeighbor2));
@@ -305,6 +309,10 @@ vec3 findQuadPointEdge(
     //     surfelNDC.y <= -1.0 || surfelNDC.y >= 1.0) {
     //     return surfelViewPlane;
     // }
+
+    if (pixelDepthCenter >= MAX_DEPTH || pixelDepthNeighbor >= MAX_DEPTH) {
+        return surfelViewPlane;
+    }
 
     // return interpolated point if neighboring pixel's depth is within distanceThreshold
     if (normalizeDepth(distance(surfelViewPlane, surfelViewPlanePixelNeighbor)) < distanceThreshold) {
@@ -507,10 +515,10 @@ void storeSurfelsInQuadMap(
     in vec3 proxyPlaneNormal,
     in Quad surfelBottomLeft, in Quad surfelBottomRight, in Quad surfelTopLeft, in Quad surfelTopRight
 ) {
-    vec3 proxyPlanePt = (surfelBottomLeft.bottomLeft + surfelBottomLeft.bottomRight + surfelBottomLeft.topLeft + surfelBottomRight.topRight +
+    vec3 proxyPlanePt = (surfelBottomLeft.bottomLeft  + surfelBottomLeft.bottomRight  + surfelBottomLeft.topLeft  + surfelBottomLeft.topRight  +
                          surfelBottomRight.bottomLeft + surfelBottomRight.bottomRight + surfelBottomRight.topLeft + surfelBottomRight.topRight +
-                         surfelTopLeft.bottomLeft + surfelTopLeft.bottomRight + surfelTopLeft.topLeft + surfelTopLeft.topRight +
-                         surfelTopRight.bottomLeft + surfelTopRight.bottomRight + surfelTopRight.topLeft + surfelTopRight.topRight) / 16.0;
+                         surfelTopLeft.bottomLeft     + surfelTopLeft.bottomRight     + surfelTopLeft.topLeft     + surfelTopLeft.topRight     +
+                         surfelTopRight.bottomLeft    + surfelTopRight.bottomRight    + surfelTopRight.topLeft    + surfelTopRight.topRight    ) / 16.0;
 
     Plane proxyPlane;
     proxyPlane.normal = proxyPlaneNormal;
@@ -525,14 +533,14 @@ void storeSurfelsInQuadMap(
     // find 3d point of center of proxy
     vec2 quadCenterUV = quadCenterPixelCoord / remoteWindowSize;
     vec2 quadCenterNDC = quadCenterUV * 2.0 - 1.0;
-    vec3 quadCenterNearPlane = ndcToView(projectionInverse, quadCenterNDC, -1.0);
+    vec3 quadCenterNearPlane = ndcToView(projectionInverse, quadCenterNDC, 0.0);
 
     // project the center of the quad onto the proxy plane to find uv for proxy plane
     vec3 planeCenterPt = pointPlaneIntersection(quadCenterNearPlane, proxyPlane);
     vec3 proxyPlaneNDC = viewToNDC(projection, planeCenterPt);
     vec2 proxyPlaneUV = (proxyPlaneNDC.xy + 1.0) / 2.0;
 
-    float proxyPlaneDepth = proxyPlaneNDC.z;
+    float proxyPlaneDepth = min(proxyPlaneNDC.z, MAX_DEPTH);
 
     // if more than half the surfels are below the threshold, then the plane is considered flattened
     int numBelowThreshold = 0;
@@ -603,20 +611,20 @@ void main() {
     }
 
     // calculate coords (see above)
-    vec2 surfelCornerCoordBottomLeft  = vec2(gl_GlobalInvocationID.xy);
+    vec2 surfelCornerCoordBottomLeft = vec2(gl_GlobalInvocationID.xy);
     vec2 pixelCenterCoord = surfelCornerCoordBottomLeft + vec2(0.5, 0.5);
     vec2 surfelCenterCoord = pixelCenterCoord;
 
     MultiQuad2D pixelCenterCoords;
-    pixelCenterCoords.bottomLeft  = pixelCenterCoord + vec2(-1.0, -1.0);
-    pixelCenterCoords.bottom      = pixelCenterCoord + vec2(+0.0, -1.0);
-    pixelCenterCoords.bottomRight = pixelCenterCoord + vec2(+1.0, -1.0);
-    pixelCenterCoords.left        = pixelCenterCoord + vec2(-1.0, +0.0);
-    pixelCenterCoords.center      = pixelCenterCoord + vec2(+0.0, +0.0);
-    pixelCenterCoords.right       = pixelCenterCoord + vec2(+1.0, +0.0);
-    pixelCenterCoords.topLeft     = pixelCenterCoord + vec2(-1.0, +1.0);
-    pixelCenterCoords.top         = pixelCenterCoord + vec2(+0.0, +1.0);
-    pixelCenterCoords.topRight    = pixelCenterCoord + vec2(+1.0, +1.0);
+    pixelCenterCoords.bottomLeft  = pixelCenterCoord + vec2(-1, -1);
+    pixelCenterCoords.bottom      = pixelCenterCoord + vec2(+0, -1);
+    pixelCenterCoords.bottomRight = pixelCenterCoord + vec2(+1, -1);
+    pixelCenterCoords.left        = pixelCenterCoord + vec2(-1, +0);
+    pixelCenterCoords.center      = pixelCenterCoord + vec2(+0, +0);
+    pixelCenterCoords.right       = pixelCenterCoord + vec2(+1, +0);
+    pixelCenterCoords.topLeft     = pixelCenterCoord + vec2(-1, +1);
+    pixelCenterCoords.top         = pixelCenterCoord + vec2(+0, +1);
+    pixelCenterCoords.topRight    = pixelCenterCoord + vec2(+1, +1);
 
     MultiQuad2D surfelCornerCoords;
     surfelCornerCoords.bottomLeft  = surfelCenterCoord + vec2(-0.5, -0.5);
@@ -721,17 +729,17 @@ void main() {
         pixelNormalsView.center = averageNormals(pixelNormalsView, pixelCoordsView);
     }
 
-    // project all points to far plane
+    // project all points to near plane
     MultiQuad surfelViewNearPlane;
-    surfelViewNearPlane.bottomLeft  = ndcToView(projectionInverse, surfelNDCs.bottomLeft, -1.0);
-    surfelViewNearPlane.bottom      = ndcToView(projectionInverse, surfelNDCs.bottom, -1.0);
-    surfelViewNearPlane.bottomRight = ndcToView(projectionInverse, surfelNDCs.bottomRight, -1.0);
-    surfelViewNearPlane.left        = ndcToView(projectionInverse, surfelNDCs.left, -1.0);
-    surfelViewNearPlane.center      = ndcToView(projectionInverse, surfelNDCs.center, -1.0);
-    surfelViewNearPlane.right       = ndcToView(projectionInverse, surfelNDCs.right, -1.0);
-    surfelViewNearPlane.topLeft     = ndcToView(projectionInverse, surfelNDCs.topLeft, -1.0);
-    surfelViewNearPlane.top         = ndcToView(projectionInverse, surfelNDCs.top, -1.0);
-    surfelViewNearPlane.topRight    = ndcToView(projectionInverse, surfelNDCs.topRight, -1.0);
+    surfelViewNearPlane.bottomLeft  = ndcToView(projectionInverse, surfelNDCs.bottomLeft, 0.0);
+    surfelViewNearPlane.bottom      = ndcToView(projectionInverse, surfelNDCs.bottom, 0.0);
+    surfelViewNearPlane.bottomRight = ndcToView(projectionInverse, surfelNDCs.bottomRight, 0.0);
+    surfelViewNearPlane.left        = ndcToView(projectionInverse, surfelNDCs.left, 0.0);
+    surfelViewNearPlane.center      = ndcToView(projectionInverse, surfelNDCs.center, 0.0);
+    surfelViewNearPlane.right       = ndcToView(projectionInverse, surfelNDCs.right, 0.0);
+    surfelViewNearPlane.topLeft     = ndcToView(projectionInverse, surfelNDCs.topLeft, 0.0);
+    surfelViewNearPlane.top         = ndcToView(projectionInverse, surfelNDCs.top, 0.0);
+    surfelViewNearPlane.topRight    = ndcToView(projectionInverse, surfelNDCs.topRight, 0.0);
 
     // create surfels
     MultiQuad surfelView;

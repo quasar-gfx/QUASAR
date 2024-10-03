@@ -97,6 +97,12 @@ uniform mat4 projectionInverse;
 uniform float near;
 uniform float far;
 
+#define MAX_DEPTH 0.9999
+
+#define VERTICES_IN_A_QUAD  4
+#define INDICES_IN_A_QUAD   6
+#define NUM_SUB_QUADS       4
+
 const float epsilon = 1e-5;
 
 const float minVal = -1;
@@ -105,10 +111,6 @@ const int numBits = 12;
 
 const float surfelSize = 0.5;
 const vec3 origin = vec3(0.0, 0.0, 0.0);
-
-#define VERTICES_IN_A_QUAD  4
-#define INDICES_IN_A_QUAD   6
-#define NUM_SUB_QUADS       4
 
 vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
     vec4 ndcPos;
@@ -210,10 +212,10 @@ void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthO
     surfelNDCs.topRight    = surfelUVs.topRight    * 2.0 - 1.0;
 
     Quad surfelNearPlane;
-    surfelNearPlane.bottomLeft  = ndcToView(projectionInverse, surfelNDCs.bottomLeft, -1.0);
-    surfelNearPlane.bottomRight = ndcToView(projectionInverse, surfelNDCs.bottomRight, -1.0);
-    surfelNearPlane.topLeft     = ndcToView(projectionInverse, surfelNDCs.topLeft, -1.0);
-    surfelNearPlane.topRight    = ndcToView(projectionInverse, surfelNDCs.topRight, -1.0);
+    surfelNearPlane.bottomLeft  = ndcToView(projectionInverse, surfelNDCs.bottomLeft, 0.0);
+    surfelNearPlane.bottomRight = ndcToView(projectionInverse, surfelNDCs.bottomRight, 0.0);
+    surfelNearPlane.topLeft     = ndcToView(projectionInverse, surfelNDCs.topLeft, 0.0);
+    surfelNearPlane.topRight    = ndcToView(projectionInverse, surfelNDCs.topRight, 0.0);
 
     // shoot rays from corners of the surfel to the plane to find the 3D intersection points
     Quad quadPtsOnPlane;

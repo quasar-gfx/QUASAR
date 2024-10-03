@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
     glm::uvec2 remoteWindowSize = glm::uvec2(size2Width, size2Height);
 
     // make sure maxProxySize is a power of 2
-    int maxProxySize = glm::min(remoteWindowSize.x, remoteWindowSize.y);
+    int maxProxySize = glm::max(remoteWindowSize.x, remoteWindowSize.y);
     maxProxySize = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize))));
     int numQuadMaps = glm::log2(static_cast<float>(maxProxySize));
 
@@ -90,7 +90,7 @@ int main(int argc, char** argv) {
     Scene remoteScene;
     std::vector<PerspectiveCamera*> remoteCameras(maxViews);
     for (int view = 0; view < maxViews; view++) {
-        remoteCameras[view] = new PerspectiveCamera(windowSize.x, windowSize.y);
+        remoteCameras[view] = new PerspectiveCamera(remoteWindowSize.x, remoteWindowSize.y);
     }
     PerspectiveCamera* centerRemoteCamera = remoteCameras[0];
     SceneLoader loader;
