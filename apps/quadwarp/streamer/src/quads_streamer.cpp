@@ -308,6 +308,14 @@ int main(int argc, char** argv) {
             }
             ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
 
+            if (ImGui::Button("Change Background Color", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+                ImGui::OpenPopup("Background Color Popup");
+            }
+            if (ImGui::BeginPopup("Background Color Popup")) {
+                ImGui::ColorPicker3("Background Color", (float*)&scene.backgroundColor);
+                ImGui::EndPopup();
+            }
+
             ImGui::Separator();
 
             if (ImGui::Checkbox("Show Normals Instead of Color", &showNormals)) {
