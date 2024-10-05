@@ -141,23 +141,6 @@ float sampleBC4Buffer(vec2 pixelCoordNormalized) {
     return depth;
 }
 
-// float sampleBC4Buffer(vec2 pixelCoordNormalized) {
-//     ivec2 depthMapSize = ivec2(2048, 2048); // Adjust based on depth texture size
-//     ivec2 blockSize = ivec2(8, 8);
-//     ivec2 pixelCoord = ivec2(pixelCoordNormalized * vec2(depthMapSize));
-//     ivec2 blockCoord = pixelCoord / blockSize;
-//     ivec2 pixelInBlock = pixelCoord % blockSize;
-
-//     uint blockIndex = blockCoord.y * (depthMapSize.x / blockSize.x) + blockCoord.x;
-//     Block block = bc4buffer[blockIndex];
-
-//     uint pixelIndex = pixelInBlock.y * blockSize.x + pixelInBlock.x;
-
-//     // Use the real[] array for true 32-bit depth values
-//     float depth = block.real[pixelIndex];
-
-//     return depth;
-// }
 
 void main() {
     vec2 size = vec2(screenSize) / float(surfelSize);

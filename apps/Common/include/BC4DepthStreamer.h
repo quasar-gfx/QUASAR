@@ -7,6 +7,9 @@
 #include <RenderTargets/RenderTarget.h>
 #include <Networking/DataStreamerTCP.h>
 #include <CameraPose.h>
+#include <glm/glm.hpp>
+
+#include <Shaders/ComputeShader.h>
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
 #include <cuda_gl_interop.h>
@@ -39,12 +42,17 @@ public:
     void setTargetFrameRate(int targetFrameRate) {
         this->targetFrameRate = targetFrameRate;
     }
-    void sendFrame(pose_id_t poseID);
+    //void sendFrame(pose_id_t poseID);
+    void sendFrame(pose_id_t poseID, const Texture& depthStencilBuffer, ComputeShader& bc4CompressShader, const glm::uvec2& windowSize);
+
     GLuint getBC4Buffer() const { return bc4Buffer; }
 
 private:
     int targetFrameRate = 60;
     DataStreamerTCP streamer;
+
+    void compressBC4(const Texture& depthStencilBuffer, ComputeShader& bc4CompressShader, const glm::uvec2& windowSize);
+
     //bc4
     std::vector<uint8_t> compressedData;
     GLuint bc4Buffer;

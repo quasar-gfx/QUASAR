@@ -1,9 +1,11 @@
 #include "BC4DepthStreamer.h"
-#include <GL/glew.h>
+//#include <GL/glew.h>
+
 
 BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams &params, std::string receiverURL)
     : RenderTarget(params)
     , receiverURL(receiverURL)
+    //,computerShader...(can have the compute shader init during the constructor stage)
     , streamer(receiverURL) {
     
     compressedSize = (params.width / 8) * (params.height / 8) * sizeof(Block);
@@ -44,8 +46,23 @@ void BC4DepthStreamer::close() {
     glDeleteBuffers(1, &bc4Buffer);
 }
 
-void BC4DepthStreamer::sendFrame(pose_id_t poseID) {
-#if !defined(__APPLE__) && !defined(__ANDROID__)
+void BC4DepthStreamer::compressBC4(const Texture& depthStencilBuffer, ComputeShader& bc4CompressShader, const glm::uvec2& windowSize) {
+    bc4CompressShader.bind();
+    bc4CompressShader.setTexture(depthStencilBuffer, 0);
+    bc4CompressShader.setVec2("depthMapSize", windowSize);
+    bc4CompressShader.setVec2("bc4DepthSize", glm::vec2(windowSize.x / 8, windowSize.y / 8));
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bc4Buffer);
+    bc4CompressShader.dispatch((windowSize.x / 8) / 16, (windowSize.y / 8) / 16, 1);
+    bc4CompressShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+}
+
+ // can have the compute shader passed as parameter or have one init in the constructor
+void BC4DepthStreamer::sendFrame(pose_id_t poseID, const Texture& depthStencilBuffer, ComputeShader& bc4CompressShader, const glm::uvec2& windowSize) {
+    compressBC4(depthStencilBuffer, bc4CompressShader, windowSize);
+#if !defined(__APPLE__) && !defined(__ANDROID__) 
+    // ------------------move the shader proces inside here from the mw_streamer, to make poseID match the buffer later--------
+    
+
     cudaArray* cudaBuffer;
     CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
     CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
@@ -53,7 +70,7 @@ void BC4DepthStreamer::sendFrame(pose_id_t poseID) {
 
     {
         std::lock_guard<std::mutex> lock(m);
-        cudaBufferQueue.push({poseID, cudaBuffer});
+        cudaBufferQueue.push({poseID, cudaBuffer}); // buffer match the poseID
         dataReady = true;
     }
     cv.notify_one();
