@@ -425,6 +425,10 @@ void mergeQuadMapData(
 
 void main() {
     ivec2 pixelCoord             = ivec2(gl_GlobalInvocationID.xy);
+    if (pixelCoord.x >= int(outputQuadMapSize.x) || pixelCoord.y >= int(outputQuadMapSize.y)) {
+        return;
+    }
+
     ivec2 pixelCoordsBottomLeft  = 2 * pixelCoord + ivec2(0, 0);
     ivec2 pixelCoordsBottomRight = 2 * pixelCoord + ivec2(1, 0);
     ivec2 pixelCoordsTopLeft     = 2 * pixelCoord + ivec2(0, 1);

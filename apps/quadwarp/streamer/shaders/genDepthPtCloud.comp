@@ -89,7 +89,10 @@ vec3 sampleNormal(sampler2D normalMap, vec2 sampleCoord) {
 }
 
 void main() {
-    uint shaderIndex = uint(gl_GlobalInvocationID.y * remoteWindowSize.x + gl_GlobalInvocationID.x);
+    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
+    if (pixelCoord.x >= int(remoteWindowSize.x) || pixelCoord.y >= int(remoteWindowSize.y)) {
+        return;
+    }
 
     vec2 surfelCoordBottomLeft = vec2(gl_GlobalInvocationID.xy);
     vec2 pixelCoordsCenter     = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+0.0, +0.0);
@@ -99,6 +102,7 @@ void main() {
     vec3 pixelCoordsViewCenter = ndcToView(projectionInverse, pixelCoordsNDC, pixelDepth);
 
     // store depth
+    uint shaderIndex = uint(gl_GlobalInvocationID.y * remoteWindowSize.x + gl_GlobalInvocationID.x);
     verticesDepth[shaderIndex].position = viewToWorld(viewInverse, pixelCoordsViewCenter);
     verticesDepth[shaderIndex].color = vec3(1.0, 1.0, 1.0);
     verticesDepth[shaderIndex].texCoords = viewToScreen(projection, pixelCoordsViewCenter);

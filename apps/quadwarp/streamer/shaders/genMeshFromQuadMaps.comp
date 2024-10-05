@@ -373,6 +373,9 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
 
 void main() {
     ivec2 quadMapPixelCoords = ivec2(gl_GlobalInvocationID.xy);
+    if (quadMapPixelCoords.x >= int(quadMapSize.x) || quadMapPixelCoords.y >= int(quadMapSize.y)) {
+        return;
+    }
 
     QuadMapData quadMapData = loadQuadMap(quadMapPixelCoords);
     if (quadMapData.size == 0) {

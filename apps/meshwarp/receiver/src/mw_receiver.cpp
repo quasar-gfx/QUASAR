@@ -12,6 +12,8 @@
 #include <DepthVideoTexture.h>
 #include <PoseStreamer.h>
 
+#define THREADS_PER_LOCALGROUP 16
+
 #define TEXTURE_PREVIEW_SIZE 500
 
 #define VERTICES_IN_A_QUAD 4
@@ -35,11 +37,11 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
-    args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
+    args::ValueFlag<unsigned int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
     args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "0.0.0.0:12345");
     args::ValueFlag<std::string> depthURLIn(parser, "depth", "Depth URL", {'e', "depth-url"}, "0.0.0.0:65432");
     args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "127.0.0.1:54321");
-    args::ValueFlag<int> depthFactorIn(parser, "factor", "Depth Resolution Factor", {'a', "depth-factor"}, 1);
+    args::ValueFlag<unsigned int> depthFactorIn(parser, "factor", "Depth Resolution Factor", {'a', "depth-factor"}, 1);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -64,8 +66,8 @@ int main(int argc, char** argv) {
     std::string depthURL = args::get(depthURLIn);
     std::string poseURL = args::get(poseURLIn);
 
-    int surfelSize = args::get(surfelSizeIn);
-    int depthFactor = args::get(depthFactorIn);
+    unsigned int surfelSize = args::get(surfelSizeIn);
+    unsigned int depthFactor = args::get(depthFactorIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -79,6 +81,7 @@ int main(int argc, char** argv) {
     glm::uvec2 windowSize = window->getSize();
 
     Scene scene;
+    scene.backgroundColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
     PerspectiveCamera camera(windowSize.x, windowSize.y);
 
     VideoTexture videoTextureColor({
@@ -95,7 +98,7 @@ int main(int argc, char** argv) {
     DepthVideoTexture videoTextureDepth({
         .width = windowSize.x / depthFactor,
         .height = windowSize.y / depthFactor,
-        .internalFormat = GL_R16,
+        .internalFormat = GL_R16F,
         .format = GL_RED,
         .type = GL_UNSIGNED_SHORT,
         .wrapS = GL_CLAMP_TO_EDGE,
@@ -109,17 +112,16 @@ int main(int argc, char** argv) {
     std::cout << "Depth URL: " << depthURL << std::endl;
     std::cout << "Pose URL: " << poseURL << std::endl;
 
-    int width = windowSize.x / surfelSize;
-    int height = windowSize.y / surfelSize;
+    glm::uvec2 adjustedWindowSize = glm::uvec2(windowSize.x, windowSize.y) / surfelSize;
 
-    int numVertices = width * height;
+    unsigned int maxVertices = adjustedWindowSize.x * adjustedWindowSize.y;
 
-    int numTriangles = (width-1) * (height-1) * 2;
-    int indexBufferSize = numTriangles * 3;
+    unsigned int numTriangles = (adjustedWindowSize.x-1) * (adjustedWindowSize.y-1) * 2;
+    unsigned int maxIndices = numTriangles * 3;
 
     Mesh mesh = Mesh({
-        .vertices = std::vector<Vertex>(numVertices),
-        .indices = std::vector<unsigned int>(indexBufferSize),
+        .vertices = std::vector<Vertex>(maxVertices),
+        .indices = std::vector<unsigned int>(maxIndices),
         .material = new UnlitMaterial({ .diffuseTexture = &videoTextureColor }),
         .pointcloud = renderState == RenderState::POINTCLOUD,
         .usage = GL_DYNAMIC_DRAW
@@ -129,8 +131,8 @@ int main(int argc, char** argv) {
     scene.addChildNode(&node);
 
     Mesh meshWireframe = Mesh({
-        .vertices = std::vector<Vertex>(numVertices),
-        .indices = std::vector<unsigned int>(indexBufferSize),
+        .vertices = std::vector<Vertex>(maxVertices),
+        .indices = std::vector<unsigned int>(maxIndices),
         .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
         .usage = GL_DYNAMIC_DRAW
     });
@@ -318,13 +320,14 @@ int main(int argc, char** argv) {
     });
 
     ComputeShader genMeshFromDepthShader({
-        .computeCodePath = "./shaders/genMeshFromDepth.comp"
+        .computeCodePath = "./shaders/genMeshFromDepth.comp",
+        .defines = {
+            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
+        }
     });
     genMeshFromDepthShader.bind();
     genMeshFromDepthShader.setVec2("screenSize", glm::vec2(windowSize.x, windowSize.y));
     genMeshFromDepthShader.setInt("surfelSize", surfelSize);
-
-    scene.backgroundColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
     // load camera view and projection matrices
     auto cameraData = FileIO::loadBinaryFile(DATA_PATH + "data/camera.bin");
@@ -346,8 +349,8 @@ int main(int argc, char** argv) {
 
     Pose currentColorFramePose, currentDepthFramePose;
 
-    std::vector<Vertex> newVertices(numVertices);
-    std::vector<unsigned int> newIndices(indexBufferSize);
+    std::vector<Vertex> newVertices(maxVertices);
+    std::vector<unsigned int> newIndices(maxIndices);
     app.onRender([&](double now, double dt) {
         // handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
@@ -445,8 +448,10 @@ int main(int argc, char** argv) {
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, meshWireframe.indexBuffer);
         }
         // dispatch compute shader to generate vertices and indices for mesh
-        genMeshFromDepthShader.dispatch(width / 16, height / 16, 1);
-        genMeshFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+        genMeshFromDepthShader.dispatch((adjustedWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                        (adjustedWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+        genMeshFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
+                                             GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
         poseStreamer.removePosesLessThan(std::min(poseIdColor, poseIdDepth));
 
