@@ -442,10 +442,10 @@ int main(int argc, char** argv) {
             }
         }
         {
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, meshWireframe.vertexBuffer);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, meshWireframe.indexBuffer);
+            genMeshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
+            genMeshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
+            genMeshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, meshWireframe.vertexBuffer);
+            genMeshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, meshWireframe.indexBuffer);
         }
         // dispatch compute shader to generate vertices and indices for mesh
         genMeshFromDepthShader.dispatch((adjustedWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,

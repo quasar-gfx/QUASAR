@@ -341,7 +341,7 @@ int main(int argc, char** argv) {
             bc4CompressShader.setVec2("bc4DepthSize", glm::vec2(windowSize.x / 8, windowSize.y / 8));
         }
         {
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bc4Buffer);
+            bc4CompressShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, bc4Buffer);
         }
         bc4CompressShader.dispatch((windowSize.x / 8) / 16, (windowSize.y / 8) / 16, 1);
         bc4CompressShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
@@ -362,8 +362,8 @@ int main(int argc, char** argv) {
             genPtCloudFromDepthShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
         }
         {
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
+            genPtCloudFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
+            genPtCloudFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
         }
         // dispatch compute shader to generate vertices and indices for mesh
         genPtCloudFromDepthShader.dispatch(width / 16, height / 16, 1);
@@ -384,9 +384,9 @@ int main(int argc, char** argv) {
             genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
         }
         {
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, meshDecompressed.vertexBuffer);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, meshDecompressed.indexBuffer);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, bc4Buffer);
+            genMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, meshDecompressed.vertexBuffer);
+            genMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, meshDecompressed.indexBuffer);
+            genMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, bc4Buffer);
 
         }
         // dispatch compute shader to generate vertices and indices for mesh
