@@ -12,12 +12,10 @@ uniform bool doToneMapping = true;
 uniform float exposure = 1.0;
 
 void main() {
+    vec3 color = texture(screenColor, TexCoords).rgb;
     if (doToneMapping) {
-        vec3 hdrCol = texture(screenColor, TexCoords).rgb;
-        vec3 toneMappedResult = vec3(1.0) - exp(-hdrCol * exposure);
-        FragColor = vec4(toneMappedResult, 1.0);
+        vec3 toneMappedResult = vec3(1.0) - exp(-color.rgb * exposure);
+        color = toneMappedResult;
     }
-    else {
-        FragColor = texture(screenColor, TexCoords);
-    }
+    FragColor = vec4(color, 1.0);
 }

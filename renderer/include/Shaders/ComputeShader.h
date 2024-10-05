@@ -3,6 +3,8 @@
 
 #include <string>
 
+#include <Buffer.h>
+#include <Texture.h>
 #include <Shaders/ShaderBase.h>
 
 struct ComputeShaderDataCreateParams {
@@ -45,6 +47,15 @@ public:
             , extensions(params.extensions)
             , defines(params.defines) {
         loadFromFile(params.computeCodePath);
+    }
+
+    template <template<typename> class Buffer, typename T>
+    void setBuffer(GLenum target, int slot, const Buffer<T>& buffer) {
+        glBindBufferBase(target, slot, buffer);
+    }
+
+    void setImageTexture(int slot, const Texture& texture, GLuint level, GLboolean layered, GLuint layer, GLenum access, GLenum format) {
+        glBindImageTexture(slot, texture, level, layered, layer, access, format);
     }
 
     void loadFromFile(const std::string &computePath);

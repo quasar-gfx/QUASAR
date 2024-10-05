@@ -14,7 +14,7 @@ struct Block{
     float max;
     float min;
     uint arr[6];
-    //float real[64]; // real value for depth
+    // float real[64]; // real value for depth
 };
 
 layout(std430, binding = 0) buffer VertexBuffer {
@@ -82,18 +82,6 @@ vec2 worldToScreen(mat4 view, mat4 projection, vec3 worldCoord) {
     return ndcToScreen(ndc);
 }
 
-float LinearizeDepth(float depth) {
-    float z = depth * 2.0 - 1.0; // back to NDC
-    return (2.0 * near * far) / (far + near - z * (far - near));
-}
-
-float UnLinearizeDepth(float depth) {
-    depth *= far;
-    depth = max(depth, near);
-    float z = (depth * (far + near) - 2.0 * near * far) / (depth * (far - near));
-    return (z + 1.0) / 2.0;
-}
-
 float sampleBC4Buffer(vec2 pixelCoordNormalized) {
     ivec2 pixelCoord = ivec2(pixelCoordNormalized * depthMapSize); // normalized coord to integer pixel coord
     ivec2 blockCoord = pixelCoord / blockSize;
@@ -114,7 +102,8 @@ float sampleBC4Buffer(vec2 pixelCoordNormalized) {
     if (bitOffset <= 29) {
         // Normal case: all 3 bits are in the current uint
         index = (compressedBlock.arr[uintIndex] >> (29 - bitOffset)) & 0x7u;
-    } else {
+    }
+    else {
         // Split case: the 3 bits are split across two uints
         uint bitsInCurrent = 32 - bitOffset;
         uint bitsInNext = 3 - bitsInCurrent;
@@ -134,30 +123,11 @@ float sampleBC4Buffer(vec2 pixelCoordNormalized) {
 
     index = index & 0x7u; // Ensure index is a valid 3-bit number (0-7)
 
-    float t = float(index) / 7.0;
-
+    const int numSegments = blockSize.x - 1;
+    float t = float(index) / float(numSegments);
     float depth = mix(minVal, maxVal, t);
-
     return depth;
 }
-
-// float sampleBC4Buffer(vec2 pixelCoordNormalized) {
-//     ivec2 depthMapSize = ivec2(2048, 2048); // Adjust based on depth texture size
-//     ivec2 blockSize = ivec2(8, 8);
-//     ivec2 pixelCoord = ivec2(pixelCoordNormalized * vec2(depthMapSize));
-//     ivec2 blockCoord = pixelCoord / blockSize;
-//     ivec2 pixelInBlock = pixelCoord % blockSize;
-
-//     uint blockIndex = blockCoord.y * (depthMapSize.x / blockSize.x) + blockCoord.x;
-//     Block block = bc4buffer[blockIndex];
-
-//     uint pixelIndex = pixelInBlock.y * blockSize.x + pixelInBlock.x;
-
-//     // Use the real[] array for true 32-bit depth values
-//     float depth = block.real[pixelIndex];
-
-//     return depth;
-// }
 
 void main() {
     vec2 size = vec2(screenSize) / float(surfelSize);

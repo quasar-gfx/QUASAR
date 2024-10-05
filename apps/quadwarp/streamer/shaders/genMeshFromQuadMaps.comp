@@ -37,6 +37,13 @@ struct Quad1D {
     float topRight;
 };
 
+struct Quad1DInt {
+    int bottomLeft;
+    int bottomRight;
+    int topLeft;
+    int topRight;
+};
+
 struct Quad2D {
     vec2 bottomLeft;
     vec2 bottomRight;
@@ -90,16 +97,20 @@ uniform mat4 projectionInverse;
 uniform float near;
 uniform float far;
 
-const float epsilon = 1e-5;
-
-const float surfelSize = 0.5;
-const vec3 origin = vec3(0.0, 0.0, 0.0);
-
 #define MAX_DEPTH 0.9999
 
 #define VERTICES_IN_A_QUAD  4
 #define INDICES_IN_A_QUAD   6
 #define NUM_SUB_QUADS       4
+
+const float epsilon = 1e-5;
+
+const float minVal = -1;
+const float maxVal = 1;
+const int numBits = 12;
+
+const float surfelSize = 0.5;
+const vec3 origin = vec3(0.0, 0.0, 0.0);
 
 vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
     vec4 ndcPos;
@@ -194,30 +205,24 @@ void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthO
     surfelUVs.topLeft     = surfelPixelCoords.topLeft     / remoteWindowSize;
     surfelUVs.topRight    = surfelPixelCoords.topRight    / remoteWindowSize;
 
-    // add small offsets to UVs to avoid numerical issues
-    surfelUVs.bottomLeft  += vec2(-1e-6, -1e-6);
-    surfelUVs.bottomRight += vec2(+1e-6, -1e-6);
-    surfelUVs.topLeft     += vec2(-1e-6, +1e-6);
-    surfelUVs.topRight    += vec2(+1e-6, +1e-6);
-
     Quad2D surfelNDCs;
     surfelNDCs.bottomLeft  = surfelUVs.bottomLeft  * 2.0 - 1.0;
     surfelNDCs.bottomRight = surfelUVs.bottomRight * 2.0 - 1.0;
     surfelNDCs.topLeft     = surfelUVs.topLeft     * 2.0 - 1.0;
     surfelNDCs.topRight    = surfelUVs.topRight    * 2.0 - 1.0;
 
-    Quad surfelFarPlane;
-    surfelFarPlane.bottomLeft  = ndcToView(projectionInverse, surfelNDCs.bottomLeft, 1.0);
-    surfelFarPlane.bottomRight = ndcToView(projectionInverse, surfelNDCs.bottomRight, 1.0);
-    surfelFarPlane.topLeft     = ndcToView(projectionInverse, surfelNDCs.topLeft, 1.0);
-    surfelFarPlane.topRight    = ndcToView(projectionInverse, surfelNDCs.topRight, 1.0);
+    Quad surfelNearPlane;
+    surfelNearPlane.bottomLeft  = ndcToView(projectionInverse, surfelNDCs.bottomLeft, 0.0);
+    surfelNearPlane.bottomRight = ndcToView(projectionInverse, surfelNDCs.bottomRight, 0.0);
+    surfelNearPlane.topLeft     = ndcToView(projectionInverse, surfelNDCs.topLeft, 0.0);
+    surfelNearPlane.topRight    = ndcToView(projectionInverse, surfelNDCs.topRight, 0.0);
 
     // shoot rays from corners of the surfel to the plane to find the 3D intersection points
     Quad quadPtsOnPlane;
-    quadPtsOnPlane.bottomLeft  = pointPlaneIntersection(surfelFarPlane.bottomLeft,  proxyPlane);
-    quadPtsOnPlane.bottomRight = pointPlaneIntersection(surfelFarPlane.bottomRight, proxyPlane);
-    quadPtsOnPlane.topLeft     = pointPlaneIntersection(surfelFarPlane.topLeft,     proxyPlane);
-    quadPtsOnPlane.topRight    = pointPlaneIntersection(surfelFarPlane.topRight,    proxyPlane);
+    quadPtsOnPlane.bottomLeft  = pointPlaneIntersection(surfelNearPlane.bottomLeft,  proxyPlane);
+    quadPtsOnPlane.bottomRight = pointPlaneIntersection(surfelNearPlane.bottomRight, proxyPlane);
+    quadPtsOnPlane.topLeft     = pointPlaneIntersection(surfelNearPlane.topLeft,     proxyPlane);
+    quadPtsOnPlane.topRight    = pointPlaneIntersection(surfelNearPlane.topRight,    proxyPlane);
 
     // apply depth offsets to the quad points
     surfel.bottomLeft  = quadPtsOnPlane.bottomLeft  - depthOffsets.bottomLeft  * normalize(quadPtsOnPlane.bottomLeft);
@@ -226,7 +231,7 @@ void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthO
     surfel.topRight    = quadPtsOnPlane.topRight    - depthOffsets.topRight    * normalize(quadPtsOnPlane.topRight);
 }
 
-void storeSurfel(in Quad quad) {
+void storeSurfel(in Quad quad, in Quad2D pixelCoords) {
     /************************
 
             tl -- tr
@@ -241,22 +246,22 @@ void storeSurfel(in Quad quad) {
     uint vertexIndexTopLeft = vertexIdxBase + 0;
     vertices[vertexIndexTopLeft].position = viewToWorld(viewInverse, quad.topLeft);
     vertices[vertexIndexTopLeft].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexTopLeft].texCoords = viewToScreen(projection, quad.topLeft);
+    vertices[vertexIndexTopLeft].texCoords = pixelCoords.topLeft / remoteWindowSize; // viewToScreen(projection, quad.topLeft);
 
     uint vertexIndexTopRight = vertexIdxBase + 1;
     vertices[vertexIndexTopRight].position = viewToWorld(viewInverse, quad.topRight);
     vertices[vertexIndexTopRight].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexTopRight].texCoords = viewToScreen(projection, quad.topRight);
+    vertices[vertexIndexTopRight].texCoords = pixelCoords.topRight / remoteWindowSize; // viewToScreen(projection, quad.topRight);
 
     uint vertexIndexBottomLeft = vertexIdxBase + 2;
     vertices[vertexIndexBottomLeft].position = viewToWorld(viewInverse, quad.bottomLeft);
     vertices[vertexIndexBottomLeft].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexBottomLeft].texCoords = viewToScreen(projection, quad.bottomLeft);
+    vertices[vertexIndexBottomLeft].texCoords = pixelCoords.bottomLeft / remoteWindowSize; // viewToScreen(projection, quad.bottomLeft);
 
     uint vertexIndexBottomRight = vertexIdxBase + 3;
     vertices[vertexIndexBottomRight].position = viewToWorld(viewInverse, quad.bottomRight);
     vertices[vertexIndexBottomRight].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexBottomRight].texCoords = viewToScreen(projection, quad.bottomRight);
+    vertices[vertexIndexBottomRight].texCoords = pixelCoords.bottomRight / remoteWindowSize; // viewToScreen(projection, quad.bottomRight);
 
     verticesWireframe[vertexIndexTopLeft] = vertices[vertexIndexTopLeft];
     verticesWireframe[vertexIndexTopRight] = vertices[vertexIndexTopRight];
@@ -279,6 +284,36 @@ void storeSurfel(in Quad quad) {
     indicesWireframe[indexIdxBase + 3] = indices[indexIdxBase + 3];
     indicesWireframe[indexIdxBase + 4] = indices[indexIdxBase + 4];
     indicesWireframe[indexIdxBase + 5] = indices[indexIdxBase + 5];
+}
+
+void quantizeDepthOffsets(in Quad1D depthOffsets, out Quad1DInt depthOffsetsQuantized) {
+    const float maxValueBits = float(2 << numBits - 1);
+
+    Quad1D depthOffsetsNormalized;
+    depthOffsetsNormalized.bottomLeft  = (depthOffsets.bottomLeft  - minVal) / (maxVal - minVal);
+    depthOffsetsNormalized.bottomRight = (depthOffsets.bottomRight - minVal) / (maxVal - minVal);
+    depthOffsetsNormalized.topLeft     = (depthOffsets.topLeft     - minVal) / (maxVal - minVal);
+    depthOffsetsNormalized.topRight    = (depthOffsets.topRight    - minVal) / (maxVal - minVal);
+
+    depthOffsetsQuantized.bottomLeft  = int(round(depthOffsetsNormalized.bottomLeft  * maxValueBits));
+    depthOffsetsQuantized.bottomRight = int(round(depthOffsetsNormalized.bottomRight * maxValueBits));
+    depthOffsetsQuantized.topLeft     = int(round(depthOffsetsNormalized.topLeft     * maxValueBits));
+    depthOffsetsQuantized.topRight    = int(round(depthOffsetsNormalized.topRight    * maxValueBits));
+}
+
+void unQuantizeDepthOffsets(in Quad1DInt depthOffsetsQuantized, out Quad1D depthOffsets) {
+    const float maxValueBits = float(2 << numBits - 1);
+
+    Quad1D depthOffsetsNormalized;
+    depthOffsetsNormalized.bottomLeft  = float(depthOffsetsQuantized.bottomLeft)  / maxValueBits;
+    depthOffsetsNormalized.bottomRight = float(depthOffsetsQuantized.bottomRight) / maxValueBits;
+    depthOffsetsNormalized.topLeft     = float(depthOffsetsQuantized.topLeft)     / maxValueBits;
+    depthOffsetsNormalized.topRight    = float(depthOffsetsQuantized.topRight)    / maxValueBits;
+
+    depthOffsets.bottomLeft  = mix(minVal, maxVal, depthOffsetsNormalized.bottomLeft);
+    depthOffsets.bottomRight = mix(minVal, maxVal, depthOffsetsNormalized.bottomRight);
+    depthOffsets.topLeft     = mix(minVal, maxVal, depthOffsetsNormalized.topLeft);
+    depthOffsets.topRight    = mix(minVal, maxVal, depthOffsetsNormalized.topRight);
 }
 
 void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
@@ -305,11 +340,16 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
 
                 Quad1D depthOffsets;
                 loadDepthOffsets(depthOffsets, 4 * quadMapData.offset + 2 * ivec2(i, j));
+
+                // Quad1DInt depthOffsetsQuantized;
+                // quantizeDepthOffsets(depthOffsets, depthOffsetsQuantized); // quantize depth offsets
+                // unQuantizeDepthOffsets(depthOffsetsQuantized, depthOffsets); // recover depth offsets
+
                 atomicAdd(numDepthOffsets, 4);
 
                 Quad surfel;
                 createSurfel(surfel, surfelPixelCoords, depthOffsets, proxyPlane);
-                storeSurfel(surfel);
+                storeSurfel(surfel, surfelPixelCoords);
             }
         }
     }
@@ -325,7 +365,7 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
 
         Quad surfel;
         createSurfel(surfel, surfelPixelCoords, depthOffsets, proxyPlane);
-        storeSurfel(surfel);
+        storeSurfel(surfel, surfelPixelCoords);
     }
 
     atomicAdd(numProxies, 1);
@@ -333,6 +373,9 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
 
 void main() {
     ivec2 quadMapPixelCoords = ivec2(gl_GlobalInvocationID.xy);
+    if (quadMapPixelCoords.x >= int(quadMapSize.x) || quadMapPixelCoords.y >= int(quadMapSize.y)) {
+        return;
+    }
 
     QuadMapData quadMapData = loadQuadMap(quadMapPixelCoords);
     if (quadMapData.size == 0) {

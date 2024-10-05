@@ -97,12 +97,12 @@ uniform float far;
 uniform float flatThreshold;
 uniform float proxySimilarityThreshold;
 
+#define MAX_DEPTH 0.9999
+
 const float epsilon = 1e-5;
 
 const float surfelSize = 0.5;
 const vec3 origin = vec3(0.0, 0.0, 0.0);
-
-#define MAX_DEPTH 0.9999
 
 layout(std430, binding = 0) buffer InputQuadMapBuffer {
     QuadMapData inputQuadMap[];
@@ -266,18 +266,18 @@ void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthO
     surfelNDCs.topLeft     = surfelUVs.topLeft * 2.0 - 1.0;
     surfelNDCs.topRight    = surfelUVs.topRight * 2.0 - 1.0;
 
-    Quad surfelFarPlane;
-    surfelFarPlane.bottomLeft  = ndcToView(projectionInverse, surfelNDCs.bottomLeft, 1.0);
-    surfelFarPlane.bottomRight = ndcToView(projectionInverse, surfelNDCs.bottomRight, 1.0);
-    surfelFarPlane.topLeft     = ndcToView(projectionInverse, surfelNDCs.topLeft, 1.0);
-    surfelFarPlane.topRight    = ndcToView(projectionInverse, surfelNDCs.topRight, 1.0);
+    Quad surfelNearPlane;
+    surfelNearPlane.bottomLeft  = ndcToView(projectionInverse, surfelNDCs.bottomLeft, 0.0);
+    surfelNearPlane.bottomRight = ndcToView(projectionInverse, surfelNDCs.bottomRight, 0.0);
+    surfelNearPlane.topLeft     = ndcToView(projectionInverse, surfelNDCs.topLeft, 0.0);
+    surfelNearPlane.topRight    = ndcToView(projectionInverse, surfelNDCs.topRight, 0.0);
 
     // shoot rays from corners of the surfel to the plane to find the 3D intersection points
     Quad quadPtsOnPlane;
-    quadPtsOnPlane.bottomLeft  = pointPlaneIntersection(surfelFarPlane.bottomLeft,  proxyPlane);
-    quadPtsOnPlane.bottomRight = pointPlaneIntersection(surfelFarPlane.bottomRight, proxyPlane);
-    quadPtsOnPlane.topLeft     = pointPlaneIntersection(surfelFarPlane.topLeft,     proxyPlane);
-    quadPtsOnPlane.topRight    = pointPlaneIntersection(surfelFarPlane.topRight,    proxyPlane);
+    quadPtsOnPlane.bottomLeft  = pointPlaneIntersection(surfelNearPlane.bottomLeft,  proxyPlane);
+    quadPtsOnPlane.bottomRight = pointPlaneIntersection(surfelNearPlane.bottomRight, proxyPlane);
+    quadPtsOnPlane.topLeft     = pointPlaneIntersection(surfelNearPlane.topLeft,     proxyPlane);
+    quadPtsOnPlane.topRight    = pointPlaneIntersection(surfelNearPlane.topRight,    proxyPlane);
 
     // apply depth offsets to the quad points
     surfel.bottomLeft  = quadPtsOnPlane.bottomLeft  - depthOffsets.bottomLeft  * normalize(quadPtsOnPlane.bottomLeft);
@@ -361,13 +361,13 @@ void mergeQuadMapData(
     // find what depth the average uv maps to on the new plane
     vec2 averageUV = (quadMapDataBottomLeft.uv + quadMapDataBottomRight.uv + quadMapDataTopLeft.uv + quadMapDataTopRight.uv) / 4.0;
     vec2 averageNDC = averageUV * 2.0 - 1.0;
-    vec3 averageFarPlane = ndcToView(projectionInverse, averageNDC, 1.0);
+    vec3 averageNearPlane = ndcToView(projectionInverse, averageNDC, 0.0);
 
-    vec3 planeCenterPt = pointPlaneIntersection(averageFarPlane, newProxyPlane);
+    vec3 planeCenterPt = pointPlaneIntersection(averageNearPlane, newProxyPlane);
     vec3 newProxyPlaneNDC = viewToNDC(projection, planeCenterPt);
     vec2 newProxyPlaneUV = (newProxyPlaneNDC.xy + 1.0) / 2.0;
 
-    float newProxyPlaneDepth = newProxyPlaneNDC.z;
+    float newProxyPlaneDepth = min(newProxyPlaneNDC.z, MAX_DEPTH);
 
     // recalculate the new merged proxy plane's surfel's depth offsets
     int numBelowThreshold = 0;
@@ -425,6 +425,10 @@ void mergeQuadMapData(
 
 void main() {
     ivec2 pixelCoord             = ivec2(gl_GlobalInvocationID.xy);
+    if (pixelCoord.x >= int(outputQuadMapSize.x) || pixelCoord.y >= int(outputQuadMapSize.y)) {
+        return;
+    }
+
     ivec2 pixelCoordsBottomLeft  = 2 * pixelCoord + ivec2(0, 0);
     ivec2 pixelCoordsBottomRight = 2 * pixelCoord + ivec2(1, 0);
     ivec2 pixelCoordsTopLeft     = 2 * pixelCoord + ivec2(0, 1);

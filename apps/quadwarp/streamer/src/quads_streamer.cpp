@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
     glm::uvec2 remoteWindowSize = glm::uvec2(size2Width, size2Height);
 
     // make sure maxProxySize is a power of 2
-    int maxProxySize = glm::min(remoteWindowSize.x, remoteWindowSize.y);
+    int maxProxySize = glm::max(remoteWindowSize.x, remoteWindowSize.y);
     maxProxySize = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize))));
     int numQuadMaps = glm::log2(static_cast<float>(maxProxySize)) + 1;
 
@@ -68,13 +68,14 @@ int main(int argc, char** argv) {
     config.guiManager = guiManager;
 
     OpenGLApp app(config);
+    ForwardRenderer remoteRenderer(config);
     ForwardRenderer renderer(config);
 
     glm::uvec2 windowSize = window->getSize();
 
     // "remote" scene
     Scene remoteScene;
-    PerspectiveCamera remoteCamera(windowSize.x, windowSize.y);
+    PerspectiveCamera remoteCamera(remoteWindowSize.x, remoteWindowSize.y);
     SceneLoader loader;
     loader.loadScene(scenePath, remoteScene, remoteCamera);
 
@@ -88,17 +89,17 @@ int main(int argc, char** argv) {
         alignas(16) glm::vec3 normal;
         alignas(16) float depth;
         alignas(16) glm::vec2 uv;
-        alignas(16) glm::ivec2 offset;
+        alignas(16) glm::uvec2 offset;
         alignas(16) uint size;
         alignas(16) bool flattened;
     };
     std::vector<Buffer<QuadMapData>> quadMaps(numQuadMaps);
-    std::vector<glm::vec2> quadMapSizes(numQuadMaps);
-    glm::vec2 quadMapSize = glm::vec2(maxProxySize);
+    std::vector<glm::uvec2> quadMapSizes(numQuadMaps);
+    glm::uvec2 quadMapSize = glm::uvec2(maxProxySize);
     for (int i = 0; i < numQuadMaps; i++) {
         quadMaps[i] = Buffer<QuadMapData>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, quadMapSize.x * quadMapSize.y, nullptr);
         quadMapSizes[i] = quadMapSize;
-        quadMapSize /= 2.0f;
+        quadMapSize /= 2;
     }
 
     glm::uvec2 depthBufferSize = 4u * remoteWindowSize;
@@ -117,11 +118,11 @@ int main(int argc, char** argv) {
     RenderTarget renderTarget({
         .width = windowSize.x,
         .height = windowSize.y,
-        .internalFormat = GL_RGBA16,
+        .internalFormat = GL_RGBA16F,
         .format = GL_RGBA,
         .type = GL_FLOAT,
-        .wrapS = GL_REPEAT,
-        .wrapT = GL_REPEAT,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST
     });
@@ -225,7 +226,7 @@ int main(int argc, char** argv) {
     bool preventCopyingLocalPose = false;
     float distanceThreshold = 0.75f;
     float angleThreshold = 45.0f;
-    float flatThreshold = 0.25f;
+    float flatThreshold = 0.5f;
     float proxySimilarityThreshold = 0.1f;
     const int intervalValues[] = {0, 25, 50, 100, 200, 500, 1000};
     const char* intervalLabels[] = {"0ms", "25ms", "50ms", "100ms", "200ms", "500ms", "1000ms"};
@@ -307,6 +308,14 @@ int main(int argc, char** argv) {
             }
             ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
 
+            if (ImGui::Button("Change Background Color", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+                ImGui::OpenPopup("Background Color Popup");
+            }
+            if (ImGui::BeginPopup("Background Color Popup")) {
+                ImGui::ColorPicker3("Background Color", (float*)&scene.backgroundColor);
+                ImGui::EndPopup();
+            }
+
             ImGui::Separator();
 
             if (ImGui::Checkbox("Show Normals Instead of Color", &showNormals)) {
@@ -341,7 +350,7 @@ int main(int argc, char** argv) {
                 rerender = true;
             }
 
-            if (ImGui::SliderFloat("Flat Threshold (x1e-2)", &flatThreshold, 0.0f, 1.0f)) {
+            if (ImGui::SliderFloat("Flat Threshold (x1e-2)", &flatThreshold, 0.0f, 10.0f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
             }
@@ -494,12 +503,14 @@ int main(int argc, char** argv) {
             FIRST PASS: Render the scene to a G-Buffer render target
             ============================
             */
-            renderer.drawObjects(remoteScene, remoteCamera);
+            remoteRenderer.drawObjects(remoteScene, remoteCamera);
             if (!showNormals) {
-                renderer.drawToRenderTarget(screenShaderColor, renderTarget);
+                screenShaderColor.bind();
+                screenShaderColor.setBool("doToneMapping", false); // dont apply tone mapping
+                remoteRenderer.drawToRenderTarget(screenShaderColor, renderTarget);
             }
             else {
-                renderer.drawToRenderTarget(screenShaderNormals, renderTarget);
+                remoteRenderer.drawToRenderTarget(screenShaderNormals, renderTarget);
             }
 
             std::cout << "  Rendering Time: " << glfwGetTime() - startTime << "s" << std::endl;
@@ -512,8 +523,8 @@ int main(int argc, char** argv) {
             */
             genQuadMapShader.bind();
             {
-                genQuadMapShader.setTexture(renderer.gBuffer.normalsBuffer, 0);
-                genQuadMapShader.setTexture(renderer.gBuffer.depthStencilBuffer, 1);
+                genQuadMapShader.setTexture(remoteRenderer.gBuffer.normalsBuffer, 0);
+                genQuadMapShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 1);
             }
             {
                 genQuadMapShader.setVec2("remoteWindowSize", remoteWindowSize);
@@ -537,12 +548,13 @@ int main(int argc, char** argv) {
                 genQuadMapShader.setBool("discardOutOfRangeDepths", false);
             }
             {
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadMaps[0]);
-                glBindImageTexture(1, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsetBuffer.internalFormat);
+                genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, quadMaps[0]);
+                genQuadMapShader.setImageTexture(1, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsetBuffer.internalFormat);
             }
 
             // run compute shader
-            genQuadMapShader.dispatch(remoteWindowSize.x / THREADS_PER_LOCALGROUP, remoteWindowSize.y / THREADS_PER_LOCALGROUP, 1);
+            genQuadMapShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                      (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
             genQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
             std::cout << "  QuadMap Compute Shader Time: " << glfwGetTime() - startTime << "s" << std::endl;
@@ -579,13 +591,13 @@ int main(int argc, char** argv) {
                     simplifyQuadMapShader.setFloat("proxySimilarityThreshold", proxySimilarityThreshold);
                 }
                 {
-                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, prevBuffer);
-                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, currBuffer);
-                    glBindImageTexture(2, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsetBuffer.internalFormat);
+                    simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, prevBuffer);
+                    simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, currBuffer);
+                    simplifyQuadMapShader.setImageTexture(2, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsetBuffer.internalFormat);
                 }
 
-                // run compute shader
-                simplifyQuadMapShader.dispatch(currQuadMapSize.x / THREADS_PER_LOCALGROUP, currQuadMapSize.y / THREADS_PER_LOCALGROUP, 1);
+                simplifyQuadMapShader.dispatch((currQuadMapSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                               (currQuadMapSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
                 simplifyQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
             }
 
@@ -616,16 +628,17 @@ int main(int argc, char** argv) {
                     genMeshFromQuadMapsShader.setVec2("depthBufferSize", depthBufferSize);
                 }
                 {
-                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadMap);
-                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bufferSizesBuffer);
-                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, mesh.vertexBuffer);
-                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, mesh.indexBuffer);
-                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, meshWireframe.vertexBuffer);
-                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, meshWireframe.indexBuffer);
-                    glBindImageTexture(6, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetBuffer.internalFormat);
+                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, quadMap);
+                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, bufferSizesBuffer);
+                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, mesh.vertexBuffer);
+                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, mesh.indexBuffer);
+                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, meshWireframe.vertexBuffer);
+                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, meshWireframe.indexBuffer);
+                    genMeshFromQuadMapsShader.setImageTexture(6, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetBuffer.internalFormat);
                 }
 
-                genMeshFromQuadMapsShader.dispatch(quadMapSize.x / THREADS_PER_LOCALGROUP, quadMapSize.y / THREADS_PER_LOCALGROUP, 1);
+                genMeshFromQuadMapsShader.dispatch((quadMapSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                                   (quadMapSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
                 genMeshFromQuadMapsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
                                                         GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
             }
@@ -651,7 +664,7 @@ int main(int argc, char** argv) {
             */
             genDepthShader.bind();
             {
-                genDepthShader.setTexture(renderer.gBuffer.depthStencilBuffer, 0);
+                genDepthShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
             }
             {
                 genDepthShader.setVec2("remoteWindowSize", remoteWindowSize);
@@ -666,9 +679,10 @@ int main(int argc, char** argv) {
                 genDepthShader.setFloat("far", remoteCamera.far);
             }
             {
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, meshDepth.vertexBuffer);
+                genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, meshDepth.vertexBuffer);
             }
-            genDepthShader.dispatch(remoteWindowSize.x / THREADS_PER_LOCALGROUP, remoteWindowSize.y / THREADS_PER_LOCALGROUP, 1);
+            genDepthShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                    (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
             genDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
                                          GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
@@ -689,6 +703,8 @@ int main(int argc, char** argv) {
         renderer.pipeline.rasterState.cullFaceEnabled = true;
 
         // render to screen
+        screenShaderColor.bind();
+        screenShaderColor.setBool("doToneMapping", true);
         renderer.drawToScreen(screenShaderColor);
     });
 
