@@ -322,7 +322,7 @@ int main(int argc, char** argv) {
     ComputeShader BC4genMeshShader({
         .computeCodePath = "./shaders/genMesh.comp",
     });
-    
+
 
     // Load camera matrices
     auto cameraData = FileIO::loadBinaryFile(DATA_PATH + "data/camera.bin");
@@ -439,13 +439,14 @@ int main(int argc, char** argv) {
         {
             BC4genMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
             BC4genMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
-            BC4genMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, videoTextureDepth.getCompressedBuffer()); // from bc4tVideoTexture
-            BC4genMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, meshWireframe.vertexBuffer);
-            BC4genMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, meshWireframe.indexBuffer);
+            BC4genMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, meshWireframe.vertexBuffer);
+            BC4genMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, meshWireframe.indexBuffer);
+            BC4genMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, videoTextureDepth.getCompressedBuffer()); // from bc4tVideoTexture
         }
 
         // Dispatch compute shader to generate vertices and indices for both main and wireframe meshes
-        BC4genMeshShader.dispatch(adjustedWindowSize.x / 16, adjustedWindowSize.y / 16, 1);
+        BC4genMeshShader.dispatch((adjustedWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                        (adjustedWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
         BC4genMeshShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
                                     GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 

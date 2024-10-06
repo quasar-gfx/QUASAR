@@ -7,7 +7,7 @@ BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams &params, std::
     , receiverURL(receiverURL)
     //,computerShader...(can have the compute shader init during the constructor stage)
     , streamer(receiverURL) {
-    
+
     compressedSize = (params.width / 8) * (params.height / 8) * sizeof(Block);
     compressedData = std::vector<uint8_t>(sizeof(pose_id_t) + compressedSize);
 
@@ -59,7 +59,7 @@ void BC4DepthStreamer::compressBC4(const Texture& depthStencilBuffer, ComputeSha
  // can have the compute shader passed as parameter or have one init in the constructor
 void BC4DepthStreamer::sendFrame(pose_id_t poseID, const Texture& depthStencilBuffer, ComputeShader& bc4CompressShader, const glm::uvec2& windowSize) {
     compressBC4(depthStencilBuffer, bc4CompressShader, windowSize);
-#if !defined(__APPLE__) && !defined(__ANDROID__) 
+#if !defined(__APPLE__) && !defined(__ANDROID__)
     // ------------------move the shader proces inside here from the mw_streamer, to make poseID match the buffer later--------
     void* cudaPtr;
     size_t size;
@@ -82,7 +82,7 @@ void BC4DepthStreamer::sendFrame(pose_id_t poseID, const Texture& depthStencilBu
     std::memcpy(compressedData.data(), &poseID, sizeof(pose_id_t));
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, bc4Buffer); // copies the BC4 compressed data from the GPU buffer to CPU memory.
-    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, compressedSize, compressedData.data() + sizeof(pose_id_t)); // 
+    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, compressedSize, compressedData.data() + sizeof(pose_id_t)); //
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
     float startTime = timeutils::getTimeMicros();
@@ -122,13 +122,13 @@ void BC4DepthStreamer::sendData() {
                                     cudaPtr,
                                     compressedSize,
                                     cudaMemcpyDeviceToHost));
-        
-        debugPrintData(compressedData); // Add this line to print the data
+
+        // debugPrintData(compressedData); // Add this line to print the data
 
         stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
         startTime = timeutils::getTimeMicros();
-        
+
         streamer.send(compressedData);
 
         stats.timeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);

@@ -5,7 +5,7 @@ BC4DepthVideoTexture::BC4DepthVideoTexture(const TextureDataCreateParams &params
     : streamerURL(streamerURL)
     , DataReceiverTCP(streamerURL, false)
     , Texture(params) {
-    
+
     compressedSize = (params.width / 8) * (params.height / 8) * sizeof(Block);
     bc4CompressedBuffer = Buffer<Block>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, compressedSize / sizeof(Block), nullptr);
 }
@@ -21,13 +21,13 @@ pose_id_t BC4DepthVideoTexture::getLatestPoseID() {
 
 void BC4DepthVideoTexture::onDataReceived(const std::vector<uint8_t>& data) {
     std::lock_guard<std::mutex> lock(m);
-    
+
     if (data.size() != sizeof(pose_id_t) + compressedSize) {
         std::cerr << "Received data size mismatch. Expected: " << (sizeof(pose_id_t) + compressedSize) << ", Got: " << data.size() << std::endl;
         return;
     }
 
-    debugPrintData(data); // Add this line to print the received data
+    // debugPrintData(data); // Add this line to print the received data
 
     std::vector<uint8_t> depthFrame = data;
     pose_id_t poseID;
