@@ -1,72 +1,89 @@
-#include "BC4DepthVideoTexture.h"
-#include <GL/glew.h>
 #include <Utils/TimeUtils.h>
+#include <BC4DepthVideoTexture.h>
 
 BC4DepthVideoTexture::BC4DepthVideoTexture(const TextureDataCreateParams &params, std::string streamerURL)
     : streamerURL(streamerURL)
     , DataReceiverTCP(streamerURL, false)
     , Texture(params) {
-
+    
     compressedSize = (params.width / 8) * (params.height / 8) * sizeof(Block);
-
-    // Load and compile BC4 decompression compute shader
-    bc4DecompressComputeShader = loadComputeShader("shaders/bc4Decompression.comp");
-
-    // Create BC4 compressed buffer
-    glGenBuffers(1, &bc4CompressedBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, bc4CompressedBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, compressedSize, nullptr, GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-}
-
-BC4DepthVideoTexture::~BC4DepthVideoTexture() {
-    glDeleteBuffers(1, &bc4CompressedBuffer);
-    glDeleteProgram(bc4DecompressComputeShader);
+    bc4CompressedBuffer = Buffer<Block>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, compressedSize / sizeof(Block), nullptr);
 }
 
 pose_id_t BC4DepthVideoTexture::getLatestPoseID() {
     std::lock_guard<std::mutex> lock(m);
-    return latestPoseID;
+    if (depthFrames.empty()) {
+        return -1;
+    }
+    FrameData frameData = depthFrames.back();
+    return frameData.poseID;
 }
 
 void BC4DepthVideoTexture::onDataReceived(const std::vector<uint8_t>& data) {
     std::lock_guard<std::mutex> lock(m);
     
-    float startTime = timeutils::getTimeMicros();
+    if (data.size() != sizeof(pose_id_t) + compressedSize) {
+        std::cerr << "Received data size mismatch. Expected: " << (sizeof(pose_id_t) + compressedSize) << ", Got: " << data.size() << std::endl;
+        return;
+    }
 
+    debugPrintData(data); // Add this line to print the received data
+
+    std::vector<uint8_t> depthFrame = data;
     pose_id_t poseID;
-    std::memcpy(&poseID, data.data(), sizeof(pose_id_t));
+    std::memcpy(&poseID, depthFrame.data(), sizeof(pose_id_t));
+    depthFrame.erase(depthFrame.begin(), depthFrame.begin() + sizeof(pose_id_t));
 
-    std::vector<uint8_t> compressedData(data.begin() + sizeof(pose_id_t), data.end());
+    FrameData newFrameData = {poseID, std::move(depthFrame)};
+    depthFrames.push_back(newFrameData);
 
-    decompressBC4(compressedData);
-
-    latestPoseID = poseID;
-
-    stats.timeToReceiveMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
-    stats.bitrateMbps = ((sizeof(pose_id_t) + compressedData.size() * 8) / timeutils::millisToSeconds(stats.timeToReceiveMs)) / MBPS_TO_BPS;
+    if (depthFrames.size() > maxQueueSize) {
+        depthFrames.pop_front();
+    }
 }
 
 pose_id_t BC4DepthVideoTexture::draw(pose_id_t poseID) {
-    // Since we decompress immediately on receive, draw just needs to ensure the texture is bound
-    glBindTexture(GL_TEXTURE_2D, ID);
-    return latestPoseID;
-}
+    std::lock_guard<std::mutex> lock(m);
+    static float prevTime = timeutils::getTimeMicros();
 
-void BC4DepthVideoTexture::decompressBC4(const std::vector<uint8_t>& compressedData) {
-    float startTime = timeutils::getTimeMicros();
+    if (depthFrames.empty()) {
+        return -1;
+    }
 
-    glUseProgram(bc4DecompressComputeShader);
+    pose_id_t resPoseID = -1;
+    std::vector<uint8_t> res;
+    bool found = false;
 
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bc4CompressedBuffer);
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, compressedSize, compressedData.data());
+    if (poseID == -1) {
+        FrameData frameData = depthFrames.back();
+        res = std::move(frameData.buffer);
+        resPoseID = frameData.poseID;
+        found = true;
+    } else {
+        for (auto it = depthFrames.begin(); it != depthFrames.end(); ++it) {
+            FrameData frameData = *it;
+            if (frameData.poseID == poseID) {
+                res = std::move(frameData.buffer);
+                resPoseID = frameData.poseID;
+                found = true;
+                break;
+            }
+        }
+    }
 
-    glBindImageTexture(0, ID, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R16F);
+    if (!found) {
+        prevTime = timeutils::getTimeMicros();
+        return prevPoseID;
+    }
 
-    glUniform2f(glGetUniformLocation(bc4DecompressComputeShader, "depthMapSize"), width, height);
+    // Update the BC4 compressed buffer
+    bc4CompressedBuffer.setData(compressedSize / sizeof(Block), res.data());
 
-    glDispatchCompute((width + 15) / 16, (height + 15) / 16, 1);
-    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    stats.timeToReceiveMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
+    stats.bitrateMbps = ((sizeof(pose_id_t) + res.size() * 8) / timeutils::millisToSeconds(stats.timeToReceiveMs)) / MBPS_TO_BPS;
 
-    stats.timeToDecompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+    prevPoseID = resPoseID;
+    prevTime = timeutils::getTimeMicros();
+
+    return resPoseID;
 }

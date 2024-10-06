@@ -1,6 +1,8 @@
 #ifndef BC4_DEPTH_STREAMER_H
 #define BC4_DEPTH_STREAMER_H
 
+#include <iostream>
+#include <iomanip>
 #include <thread>
 #include <queue>
 #include <atomic>
@@ -57,12 +59,21 @@ private:
     std::vector<uint8_t> compressedData;
     GLuint bc4Buffer;
 
+    void debugPrintData(const std::vector<uint8_t>& data, size_t bytesToPrint = 64) {
+        std::cout << "Sending data (first " << bytesToPrint << " bytes):" << std::endl;
+        for (size_t i = 0; i < std::min(data.size(), bytesToPrint); ++i) {
+            std::cout << std::setw(2) << std::setfill('0') << std::hex << static_cast<int>(data[i]) << " ";
+            if ((i + 1) % 16 == 0) std::cout << std::endl;
+        }
+        std::cout << std::dec << std::endl;
+    }
+
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     cudaGraphicsResource* cudaResource;
 
     struct CudaBuffer {
         pose_id_t poseID;
-        cudaArray* buffer;
+        void* buffer;
     };
     std::queue<CudaBuffer> cudaBufferQueue;
 

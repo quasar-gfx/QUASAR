@@ -29,6 +29,14 @@ layout(std430, binding = 2) buffer BC4Buffer {
     Block bc4buffer[];
 };
 
+layout(std430, binding = 3) buffer WireframeVertexBuffer {
+    Vertex wireframeVertices[];
+};
+
+layout(std430, binding = 4) buffer WireframeIndexBuffer {
+    uint wireframeIndices[];
+};
+
 const ivec2 blockSize = ivec2(8, 8);
 
 uniform vec2 screenSize;
@@ -38,6 +46,9 @@ uniform mat4 view;
 uniform mat4 projection;
 uniform mat4 viewInverse;
 uniform mat4 projectionInverse;
+
+uniform mat4 viewColor;
+uniform mat4 viewInverseDepth;
 
 uniform float near;
 uniform float far;
@@ -156,11 +167,15 @@ void main() {
 
     vec2 ndc = 2.0 * pixelCoordNormalized - 1.0;
     vec3 viewCoord = ndcToView(projectionInverse, ndc, depth);
-    vec3 worldCoord = viewToWorld(viewInverse, viewCoord);
+    vec3 worldCoord = viewToWorld(viewInverseDepth, viewCoord); // viewInverse
 
     vertices[shaderIndex].position = worldCoord;
     vertices[shaderIndex].color = vec3(1.0, 1.0, 1.0);
     vertices[shaderIndex].texCoords = worldToScreen(view, projection, worldCoord);
+
+    // Copy vertex data to wireframe buffer
+    wireframeVertices[shaderIndex] = vertices[shaderIndex];
+
 
     if (pixelCoord.x < screenSize.x - surfelSize && pixelCoord.y < screenSize.y - surfelSize) {
         /************************
@@ -184,5 +199,17 @@ void main() {
         indices[shaderIndex * 6 + 3] = topRightIdx;
         indices[shaderIndex * 6 + 4] = bottomLeftIdx;
         indices[shaderIndex * 6 + 5] = bottomRightIdx;
+
+        // Wireframe mesh indices
+        uint wireframeBaseIndex = shaderIndex * 8;
+        wireframeIndices[wireframeBaseIndex + 0] = bottomLeftIdx;
+        wireframeIndices[wireframeBaseIndex + 1] = bottomRightIdx;
+        wireframeIndices[wireframeBaseIndex + 2] = bottomRightIdx;
+        wireframeIndices[wireframeBaseIndex + 3] = topRightIdx;
+        wireframeIndices[wireframeBaseIndex + 4] = topRightIdx;
+        wireframeIndices[wireframeBaseIndex + 5] = topLeftIdx;
+        wireframeIndices[wireframeBaseIndex + 6] = topLeftIdx;
+        wireframeIndices[wireframeBaseIndex + 7] = bottomLeftIdx;
+    
     }
 }

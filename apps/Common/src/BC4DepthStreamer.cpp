@@ -61,19 +61,21 @@ void BC4DepthStreamer::sendFrame(pose_id_t poseID, const Texture& depthStencilBu
     compressBC4(depthStencilBuffer, bc4CompressShader, windowSize);
 #if !defined(__APPLE__) && !defined(__ANDROID__) 
     // ------------------move the shader proces inside here from the mw_streamer, to make poseID match the buffer later--------
-    
-
-    cudaArray* cudaBuffer;
+    void* cudaPtr;
+    size_t size;
     CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
-    CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
-    CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
+    CHECK_CUDA_ERROR(cudaGraphicsResourceGetMappedPointer(&cudaPtr, &size, cudaResource));
 
     {
         std::lock_guard<std::mutex> lock(m);
-        cudaBufferQueue.push({poseID, cudaBuffer}); // buffer match the poseID
+        CudaBuffer newBuffer;
+        newBuffer.poseID = poseID;
+        newBuffer.buffer = cudaPtr;
+        cudaBufferQueue.push(newBuffer);
         dataReady = true;
     }
     cv.notify_one();
+    CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
 #else
     this->poseID = poseID;
 
@@ -86,6 +88,7 @@ void BC4DepthStreamer::sendFrame(pose_id_t poseID, const Texture& depthStencilBu
     float startTime = timeutils::getTimeMicros();
 
     streamer.send(compressedData);
+    debugPrintData(compressedData); // Add this line to print the data
 
     stats.timeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
     stats.bitrateMbps = ((compressedSize * 8) / timeutils::millisToSeconds(stats.timeToSendMs)) / MBPS_TO_BPS;
@@ -104,24 +107,32 @@ void BC4DepthStreamer::sendData() {
 
         dataReady = false;
         CudaBuffer cudaBufferStruct = cudaBufferQueue.front();
-        cudaArray* cudaBuffer = cudaBufferStruct.buffer;
+        void* cudaPtr = cudaBufferStruct.buffer;
         cudaBufferQueue.pop();
 
         lock.unlock();
 
         float startTime = timeutils::getTimeMicros();
 
-
-        // Uses CUDA to efficiently copy the compressed depth data from GPU to CPU memory.
+        // Copy pose ID to the beginning of compressedData
         std::memcpy(compressedData.data(), &cudaBufferStruct.poseID, sizeof(pose_id_t));
 
-        CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(compressedData.data() + sizeof(pose_id_t),
-                                               width * sizeof(Block) / 8,
-                                               cudaBuffer,
-                                               0, 0, width * sizeof(Block) / 8, height / 8,
-                                               cudaMemcpyDeviceToHost));
+        // Copy compressed BC4 data from GPU to CPU
+        CHECK_CUDA_ERROR(cudaMemcpy(compressedData.data() + sizeof(pose_id_t),
+                                    cudaPtr,
+                                    compressedSize,
+                                    cudaMemcpyDeviceToHost));
+        
+        debugPrintData(compressedData); // Add this line to print the data
 
         stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+
+        startTime = timeutils::getTimeMicros();
+        
+        streamer.send(compressedData);
+
+        stats.timeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+        stats.bitrateMbps = ((compressedData.size() * 8) / timeutils::millisToSeconds(stats.timeToSendMs)) / MBPS_TO_BPS;
 
         float elapsedTimeSec = timeutils::microsToSeconds(timeutils::getTimeMicros() - prevTime);
         if (elapsedTimeSec < (1.0f / targetFrameRate)) {
@@ -131,14 +142,6 @@ void BC4DepthStreamer::sendData() {
                 )
             );
         }
-
-        startTime = timeutils::getTimeMicros();
-        
-        stats.timeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
-
-        stats.bitrateMbps = ((compressedSize * 8) / timeutils::millisToSeconds(stats.timeToSendMs)) / MBPS_TO_BPS;
-
-        streamer.send(compressedData);
 
         prevTime = timeutils::getTimeMicros();
     }
