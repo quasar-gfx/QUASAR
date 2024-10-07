@@ -1,9 +1,9 @@
-#ifndef UNLIT_MATERIAL_H
-#define UNLIT_MATERIAL_H
+#ifndef QUAD_MATERIAL_H
+#define QUAD_MATERIAL_H
 
 #include <Materials/Material.h>
 
-struct UnlitMaterialCreateParams {
+struct QuadMaterialCreateParams {
     glm::vec4 baseColor = glm::vec4(1.0f);
     glm::vec4 baseColorFactor = glm::vec4(1.0f);
     AlphaMode alphaMode = AlphaMode::OPAQUE;
@@ -12,16 +12,16 @@ struct UnlitMaterialCreateParams {
     Texture* diffuseTexture;
 };
 
-class UnlitMaterial : public Material {
+class QuadMaterial : public Material {
 public:
     glm::vec4 baseColor = glm::vec4(1.0f);
     glm::vec4 baseColorFactor = glm::vec4(1.0f);
     AlphaMode alphaMode = AlphaMode::OPAQUE;
     float maskThreshold = 0.5f;
 
-    UnlitMaterial() = default;
-    UnlitMaterial(const UnlitMaterialCreateParams &params);
-    ~UnlitMaterial();
+    QuadMaterial() = default;
+    QuadMaterial(const QuadMaterialCreateParams &params);
+    ~QuadMaterial();
 
     void bind() const override;
 
@@ -34,4 +34,4 @@ public:
     static Shader* shader;
 };
 
-#endif // UNLIT_MATERIAL_H
+#endif // QUAD_MATERIAL_H

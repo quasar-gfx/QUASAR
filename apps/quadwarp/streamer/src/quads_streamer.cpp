@@ -8,6 +8,8 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <QuadMaterial.h>
+
 #define THREADS_PER_LOCALGROUP 16
 
 #define VERTICES_IN_A_QUAD 4
@@ -146,7 +148,7 @@ int main(int argc, char** argv) {
     Mesh mesh = Mesh({
         .vertices = std::vector<Vertex>(maxVertices),
         .indices = std::vector<unsigned int>(maxIndices),
-        .material = new UnlitMaterial({ .diffuseTexture = &renderTarget.colorBuffer }),
+        .material = new QuadMaterial({ .diffuseTexture = &renderTarget.colorBuffer }),
         .usage = GL_DYNAMIC_DRAW
     });
     Node node = Node(&mesh);
@@ -156,7 +158,7 @@ int main(int argc, char** argv) {
     Mesh meshWireframe = Mesh({
         .vertices = std::vector<Vertex>(maxVertices),
         .indices = std::vector<unsigned int>(maxIndices),
-        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
+        .material = new QuadMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
         .usage = GL_DYNAMIC_DRAW
     });
     Node nodeWireframe = Node(&meshWireframe);
@@ -167,7 +169,7 @@ int main(int argc, char** argv) {
 
     Mesh meshDepth = Mesh({
         .vertices = std::vector<Vertex>(maxVerticesDepth),
-        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
+        .material = new QuadMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
         .pointcloud = true,
         .pointSize = 7.5f,
         .usage = GL_DYNAMIC_DRAW
