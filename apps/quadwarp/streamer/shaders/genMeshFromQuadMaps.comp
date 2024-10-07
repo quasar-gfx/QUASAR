@@ -246,22 +246,22 @@ void storeSurfel(in Quad quad, in Quad2D pixelCoords) {
     uint vertexIndexTopLeft = vertexIdxBase + 0;
     vertices[vertexIndexTopLeft].position = viewToWorld(viewInverse, quad.topLeft);
     vertices[vertexIndexTopLeft].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexTopLeft].texCoords = pixelCoords.topLeft / remoteWindowSize; // viewToScreen(projection, quad.topLeft);
+    vertices[vertexIndexTopLeft].texCoords = vec2(0,1); // pixelCoords.topLeft / remoteWindowSize; // viewToScreen(projection, quad.topLeft);
 
     uint vertexIndexTopRight = vertexIdxBase + 1;
     vertices[vertexIndexTopRight].position = viewToWorld(viewInverse, quad.topRight);
     vertices[vertexIndexTopRight].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexTopRight].texCoords = pixelCoords.topRight / remoteWindowSize; // viewToScreen(projection, quad.topRight);
+    vertices[vertexIndexTopRight].texCoords = vec2(1,1); // pixelCoords.topRight / remoteWindowSize; // viewToScreen(projection, quad.topRight);
 
     uint vertexIndexBottomLeft = vertexIdxBase + 2;
     vertices[vertexIndexBottomLeft].position = viewToWorld(viewInverse, quad.bottomLeft);
     vertices[vertexIndexBottomLeft].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexBottomLeft].texCoords = pixelCoords.bottomLeft / remoteWindowSize; // viewToScreen(projection, quad.bottomLeft);
+    vertices[vertexIndexBottomLeft].texCoords = vec2(0,0); // pixelCoords.bottomLeft / remoteWindowSize; // viewToScreen(projection, quad.bottomLeft);
 
     uint vertexIndexBottomRight = vertexIdxBase + 3;
     vertices[vertexIndexBottomRight].position = viewToWorld(viewInverse, quad.bottomRight);
     vertices[vertexIndexBottomRight].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexBottomRight].texCoords = pixelCoords.bottomRight / remoteWindowSize; // viewToScreen(projection, quad.bottomRight);
+    vertices[vertexIndexBottomRight].texCoords = vec2(1,0); // pixelCoords.bottomRight / remoteWindowSize; // viewToScreen(projection, quad.bottomRight);
 
     verticesWireframe[vertexIndexTopLeft] = vertices[vertexIndexTopLeft];
     verticesWireframe[vertexIndexTopRight] = vertices[vertexIndexTopRight];

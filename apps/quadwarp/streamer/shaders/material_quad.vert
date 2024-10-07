@@ -8,7 +8,7 @@ layout(location = 6) in vec3 aBitangent;
 
 out VertexData {
     flat uint VertexID;
-    vec3 TexCoords;
+    vec4 TexCoords;
     vec3 FragPos;
     vec3 Color;
     vec3 Normal;
@@ -52,5 +52,5 @@ void main() {
 #endif
 
     float reciprocalW = 1.0 / gl_Position.w;
-    vsOut.TexCoords = vec3(aTexCoords * reciprocalW, reciprocalW);
+    vsOut.TexCoords = vec4(aTexCoords * reciprocalW, 0, reciprocalW);
 }

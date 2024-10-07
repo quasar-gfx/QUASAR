@@ -5,7 +5,7 @@ layout(location = 3) out vec4 FragIDs;
 
 in VertexData {
     flat uint VertexID;
-    noperspective vec3 TexCoords;
+    noperspective vec4 TexCoords;
     vec3 FragPos;
     vec3 Color;
     vec3 Normal;
@@ -47,7 +47,7 @@ void main() {
 
     vec4 baseColor;
     if (material.hasBaseColorMap) {
-        baseColor = texture(material.baseColorMap, fsIn.TexCoords.xy / fsIn.TexCoords.z) * material.baseColorFactor;
+        baseColor = texture(material.baseColorMap, fsIn.TexCoords.xy / fsIn.TexCoords.w) * material.baseColorFactor;
     }
     else {
         baseColor = material.baseColor * material.baseColorFactor;

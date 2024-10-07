@@ -145,10 +145,20 @@ int main(int argc, char** argv) {
     unsigned int zeros[4] = { 0 };
     Buffer<unsigned int> bufferSizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(BufferSizes), zeros);
 
+    Texture checkerboard({
+        .wrapS = GL_REPEAT,
+        .wrapT = GL_REPEAT,
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST,
+        .flipVertically = true,
+        .path = "../assets/textures/checkerboard.jpg"
+    });
+
     Mesh mesh = Mesh({
         .vertices = std::vector<Vertex>(maxVertices),
         .indices = std::vector<unsigned int>(maxIndices),
-        .material = new QuadMaterial({ .diffuseTexture = &renderTarget.colorBuffer }),
+        .material = new QuadMaterial({ .diffuseTexture = &checkerboard }),
+        // .material = new QuadMaterial({ .diffuseTexture = &renderTarget.colorBuffer }),
         .usage = GL_DYNAMIC_DRAW
     });
     Node node = Node(&mesh);
@@ -158,7 +168,7 @@ int main(int argc, char** argv) {
     Mesh meshWireframe = Mesh({
         .vertices = std::vector<Vertex>(maxVertices),
         .indices = std::vector<unsigned int>(maxIndices),
-        .material = new QuadMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
+        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
         .usage = GL_DYNAMIC_DRAW
     });
     Node nodeWireframe = Node(&meshWireframe);
@@ -169,7 +179,7 @@ int main(int argc, char** argv) {
 
     Mesh meshDepth = Mesh({
         .vertices = std::vector<Vertex>(maxVerticesDepth),
-        .material = new QuadMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
+        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
         .pointcloud = true,
         .pointSize = 7.5f,
         .usage = GL_DYNAMIC_DRAW
