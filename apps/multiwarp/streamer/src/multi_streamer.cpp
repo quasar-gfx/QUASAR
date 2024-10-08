@@ -65,9 +65,10 @@ int main(int argc, char** argv) {
     glm::uvec2 remoteWindowSize = glm::uvec2(size2Width, size2Height);
 
     // make sure maxProxySize is a power of 2
-    int maxProxySize = glm::max(remoteWindowSize.x, remoteWindowSize.y);
-    maxProxySize = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize))));
-    int numQuadMaps = glm::log2(static_cast<float>(maxProxySize));
+    glm::uvec2 maxProxySize = remoteWindowSize;
+    maxProxySize.x = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize.x))));
+    maxProxySize.y = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize.y))));
+    int numQuadMaps = glm::log2(static_cast<float>(glm::min(maxProxySize.x, maxProxySize.y))) + 1;
 
     config.enableVSync = args::get(vsyncIn);
 
@@ -117,7 +118,7 @@ int main(int argc, char** argv) {
     };
     std::vector<Buffer<QuadMapData>> quadMaps(numQuadMaps);
     std::vector<glm::vec2> quadMapSizes(numQuadMaps);
-    glm::vec2 quadMapSize = glm::vec2(maxProxySize);
+    glm::vec2 quadMapSize = maxProxySize;
     for (int i = 0; i < numQuadMaps; i++) {
         quadMaps[i] = Buffer<QuadMapData>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, quadMapSize.x * quadMapSize.y, nullptr);
         quadMapSizes[i] = quadMapSize;
@@ -184,7 +185,8 @@ int main(int argc, char** argv) {
             .numVertices = maxVertices / 4,
             .numIndices = maxIndices / 4,
             .material = new UnlitMaterial({ .diffuseTexture = &renderTargets[view]->colorBuffer }),
-            .usage = GL_DYNAMIC_DRAW
+            .usage = GL_DYNAMIC_DRAW,
+            .indirectDraw = true
         });
         nodes[view] = new Node(meshes[view]);
         nodes[view]->frustumCulled = false;
@@ -201,7 +203,8 @@ int main(int argc, char** argv) {
             .numVertices = maxVertices / 4,
             .numIndices = maxIndices / 4,
             .material = new UnlitMaterial({ .baseColor = color }),
-            .usage = GL_DYNAMIC_DRAW
+            .usage = GL_DYNAMIC_DRAW,
+            .indirectDraw = true
         });
         nodeWireframes[view] = new Node(meshWireframes[view]);
         nodeWireframes[view]->frustumCulled = false;
@@ -619,7 +622,7 @@ int main(int argc, char** argv) {
             double avgGenQuadMapTime = 0.0;
             double avgSimplifyTime = 0.0;
             double avgGenQuadsTime = 0.0;
-            double avgSetMeshBuffersTime = 0.0;
+            // double avgSetMeshBuffersTime = 0.0;
             double avgGenDepthTime = 0.0;
             totalProxies = 0;
             totalDepthOffsets = 0;
@@ -791,6 +794,8 @@ int main(int argc, char** argv) {
                         genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, currMesh->indexBuffer);
                         genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, currMeshWireframe->vertexBuffer);
                         genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, currMeshWireframe->indexBuffer);
+                        genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, currMesh->indirectBuffer);
+                        genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, currMeshWireframe->indirectBuffer);
                         genMeshFromQuadMapsShader.setImageTexture(0, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetBuffer.internalFormat);
                     }
 
@@ -804,18 +809,18 @@ int main(int argc, char** argv) {
                 startTime = glfwGetTime();
 
                 // get number of vertices and indices in mesh
-                bufferSizesBuffer.bind();
-                bufferSizesBuffer.getSubData(0, 4, &bufferSizes);
-                bufferSizesBuffer.setSubData(0, 4, &zeros); // reset for next frame
+                // bufferSizesBuffer.bind();
+                // bufferSizesBuffer.getSubData(0, 4, &bufferSizes);
+                // bufferSizesBuffer.setSubData(0, 4, &zeros); // reset for next frame
 
-                currMesh->resizeBuffers(bufferSizes.numVertices, bufferSizes.numIndices);
-                currMeshWireframe->resizeBuffers(bufferSizes.numVertices, bufferSizes.numIndices);
+                // currMesh->resizeBuffers(bufferSizes.numVertices, bufferSizes.numIndices);
+                // currMeshWireframe->resizeBuffers(bufferSizes.numVertices, bufferSizes.numIndices);
 
                 totalProxies += bufferSizes.numProxies;
                 totalDepthOffsets += bufferSizes.numDepthOffsets;
 
-                avgSetMeshBuffersTime += glfwGetTime() - startTime;
-                startTime = glfwGetTime();
+                // avgSetMeshBuffersTime += glfwGetTime() - startTime;
+                // startTime = glfwGetTime();
 
                 /*
                 ============================
@@ -853,7 +858,7 @@ int main(int argc, char** argv) {
             std::cout << "  Avg Gen Quad Map Time: " << avgGenQuadMapTime / maxViews << "s" << std::endl;
             std::cout << "  Avg Simplify Time: " << avgSimplifyTime / maxViews << "s" << std::endl;
             std::cout << "  Avg Gen Quads Time: " << avgGenQuadsTime / maxViews << "s" << std::endl;
-            std::cout << "  Avg Set Mesh Buffers Time: " << avgSetMeshBuffersTime / maxViews << "s" << std::endl;
+            // std::cout << "  Avg Set Mesh Buffers Time: " << avgSetMeshBuffersTime / maxViews << "s" << std::endl;
             std::cout << "  Avg Gen Depth Time: " << avgGenDepthTime / maxViews << "s" << std::endl;
 
             rerender = false;

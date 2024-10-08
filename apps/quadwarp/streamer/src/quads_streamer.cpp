@@ -55,9 +55,10 @@ int main(int argc, char** argv) {
     glm::uvec2 remoteWindowSize = glm::uvec2(size2Width, size2Height);
 
     // make sure maxProxySize is a power of 2
-    int maxProxySize = glm::max(remoteWindowSize.x, remoteWindowSize.y);
-    maxProxySize = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize))));
-    int numQuadMaps = glm::log2(static_cast<float>(maxProxySize)) + 1;
+    glm::uvec2 maxProxySize = remoteWindowSize;
+    maxProxySize.x = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize.x))));
+    maxProxySize.y = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize.y))));
+    int numQuadMaps = glm::log2(static_cast<float>(glm::min(maxProxySize.x, maxProxySize.y))) + 1;
 
     config.enableVSync = args::get(vsyncIn);
 
@@ -97,7 +98,7 @@ int main(int argc, char** argv) {
     };
     std::vector<Buffer<QuadMapData>> quadMaps(numQuadMaps);
     std::vector<glm::uvec2> quadMapSizes(numQuadMaps);
-    glm::uvec2 quadMapSize = glm::uvec2(maxProxySize);
+    glm::vec2 quadMapSize = maxProxySize;
     for (int i = 0; i < numQuadMaps; i++) {
         quadMaps[i] = Buffer<QuadMapData>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, quadMapSize.x * quadMapSize.y, nullptr);
         quadMapSizes[i] = quadMapSize;
@@ -157,8 +158,8 @@ int main(int argc, char** argv) {
     Mesh mesh = Mesh({
         .numVertices = maxVertices,
         .numIndices = maxIndices,
-        .material = new QuadMaterial({ .diffuseTexture = &checkerboard }),
-        // .material = new QuadMaterial({ .diffuseTexture = &renderTarget.colorBuffer }),
+        // .material = new QuadMaterial({ .diffuseTexture = &checkerboard }),
+        .material = new QuadMaterial({ .diffuseTexture = &renderTarget.colorBuffer }),
         .usage = GL_DYNAMIC_DRAW,
         .indirectDraw = true
     });
@@ -563,6 +564,7 @@ int main(int argc, char** argv) {
             }
             {
                 genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, quadMaps[0]);
+                genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, bufferSizesBuffer);
                 genQuadMapShader.setImageTexture(0, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsetBuffer.internalFormat);
             }
 
@@ -663,12 +665,12 @@ int main(int argc, char** argv) {
             startTime = glfwGetTime();
 
             // get number of vertices and indices in mesh
-            bufferSizesBuffer.bind();
+            // bufferSizesBuffer.bind();
             // bufferSizesBuffer.getSubData(0, 4, &bufferSizes);
-            bufferSizesBuffer.setSubData(0, 4, &zeros); // reset for next frame
+            // bufferSizesBuffer.setSubData(0, 4, &zeros); // reset for next frame
 
-            std::cout << "  Set Mesh Buffers Time: " << glfwGetTime() - startTime << "s" << std::endl;
-            startTime = glfwGetTime();
+            // std::cout << "  Set Mesh Buffers Time: " << glfwGetTime() - startTime << "s" << std::endl;
+            // startTime = glfwGetTime();
 
             /*
             ============================
