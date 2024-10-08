@@ -44,29 +44,17 @@ public:
     void setTargetFrameRate(int targetFrameRate) {
         this->targetFrameRate = targetFrameRate;
     }
-    //void sendFrame(pose_id_t poseID);
-    void sendFrame(pose_id_t poseID, const Texture& depthStencilBuffer, ComputeShader& bc4CompressShader, const glm::uvec2& windowSize);
-
+    void sendFrame(pose_id_t poseID, ComputeShader& bc4CompressShader);
     GLuint getBC4Buffer() const { return bc4Buffer; }
 
 private:
     int targetFrameRate = 60;
     DataStreamerTCP streamer;
 
-    void compressBC4(const Texture& depthStencilBuffer, ComputeShader& bc4CompressShader, const glm::uvec2& windowSize);
-
-    //bc4
-    std::vector<uint8_t> compressedData;
+    std::vector<uint8_t> compressedData; // bc4
     GLuint bc4Buffer;
 
-    void debugPrintData(const std::vector<uint8_t>& data, size_t bytesToPrint = 64) {
-        std::cout << "Sending data (first " << bytesToPrint << " bytes):" << std::endl;
-        for (size_t i = 0; i < std::min(data.size(), bytesToPrint); ++i) {
-            std::cout << std::setw(2) << std::setfill('0') << std::hex << static_cast<int>(data[i]) << " ";
-            if ((i + 1) % 16 == 0) std::cout << std::endl;
-        }
-        std::cout << std::dec << std::endl;
-    }
+    void compressBC4(ComputeShader& bc4CompressShader);
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     cudaGraphicsResource* cudaResource;

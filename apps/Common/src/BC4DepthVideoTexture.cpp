@@ -7,6 +7,7 @@ BC4DepthVideoTexture::BC4DepthVideoTexture(const TextureDataCreateParams &params
     , Texture(params) {
 
     compressedSize = (params.width / 8) * (params.height / 8) * sizeof(Block);
+    //std::cout << "Compressed size: " << compressedSize << std::endl;
     bc4CompressedBuffer = Buffer<Block>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, compressedSize / sizeof(Block), nullptr);
 }
 

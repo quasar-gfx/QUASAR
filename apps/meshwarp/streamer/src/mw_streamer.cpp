@@ -94,19 +94,7 @@ int main(int argc, char** argv) {
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR
     }, videoURL, targetBitrate);
-    // DepthStreamer videoStreamerDepthRT = DepthStreamer({
-    //     .width = windowSize.x / depthFactor,
-    //     .height = windowSize.y / depthFactor,
-    //     .internalFormat = GL_R16,
-    //     .format = GL_RED,
-    //     .type = GL_UNSIGNED_SHORT,
-    //     .wrapS = GL_CLAMP_TO_EDGE,
-    //     .wrapT = GL_CLAMP_TO_EDGE,
-    //     .minFilter = GL_NEAREST,
-    //     .magFilter = GL_NEAREST
-    // }, depthURL);
 
-    // BC4
     BC4DepthStreamer BC4videoStreamerDepthRT = BC4DepthStreamer({
         .width = windowSize.x / depthFactor,
         .height = windowSize.y / depthFactor,
@@ -190,24 +178,14 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            // ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: RGB (%.1f fps), D (%.1f fps)", videoStreamerColorRT.getFrameRate(), videoStreamerDepthRT.getFrameRate());
-
-            // ImGui::Separator();
-
-            // ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: RGB (%.1f ms), D (%.1f ms)", videoStreamerColorRT.stats.timeToCopyFrameMs, videoStreamerDepthRT.stats.timeToCopyFrameMs);
-            // ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.1f ms", videoStreamerColorRT.stats.timeToEncodeMs);
-            // ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: %.1f ms", videoStreamerColorRT.stats.timeToSendMs);
-            // ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: RGB (%.1f Mbps), D (%.1f Mbps)", videoStreamerColorRT.stats.bitrateMbps, videoStreamerDepthRT.stats.bitrateMbps);
-
             ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: RGB (%.1f fps), BC4 D (%.1f fps)", videoStreamerColorRT.getFrameRate(), BC4videoStreamerDepthRT.getFrameRate());
 
             ImGui::Separator();
 
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: RGB (%.1f ms), BC4 D (%.1f ms)", videoStreamerColorRT.stats.timeToCopyFrameMs, BC4videoStreamerDepthRT.stats.timeToCopyFrameMs);
-            //ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to compress BC4: %.1f ms", BC4videoStreamerDepthRT.stats.timeToCompressMs);
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: RGB (%.1f ms), BC4 D (%.1f ms)", videoStreamerColorRT.stats.timeToSendMs, BC4videoStreamerDepthRT.stats.timeToSendMs);
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: RGB (%.1f Mbps), BC4 D (%.1f Mbps)", videoStreamerColorRT.stats.bitrateMbps, BC4videoStreamerDepthRT.stats.bitrateMbps);
-
+            
             ImGui::Separator();
 
             ImGui::RadioButton("Play All", (int*)&pauseState, 0);
@@ -276,15 +254,6 @@ int main(int argc, char** argv) {
         .computeCodePath = "./shaders/bc4Compression.comp"
     });
 
-    // original size of depth buffer
-    //unsigned int originalSize = windowSize.x * windowSize.y * sizeof(float);
-
-    // create buffer for compressed data
-    unsigned int compressedSize = (windowSize.x / 8) * (windowSize.y / 8) * sizeof(Block);
-    // --------------------maybe not using this local buffer but the one inside the depthstreamer to avoid copy-----------
-
-    Buffer<Block> bc4Buffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, compressedSize / sizeof(Block), nullptr);
-
     // save camera view and projection matrices
     std::ofstream cameraFile;
     cameraFile.open("data/camera.bin", std::ios::out | std::ios::binary);
@@ -334,52 +303,20 @@ int main(int argc, char** argv) {
         if (config.showWindow) {
             renderer.drawToScreen(colorShader);
         }
+
         renderer.drawToRenderTarget(colorShader, videoStreamerColorRT);
-        // depthShader.bind();
-        // depthShader.setFloat("near", camera.near);
-        // depthShader.setFloat("far", camera.far);
-        // renderer.drawToRenderTarget(depthShader, videoStreamerDepthRT);
-
-        // // send video frame
-        // if (poseID != -1) {
-        //     if (pauseState != PauseState::PAUSE_COLOR) videoStreamerColorRT.sendFrame(poseID);
-        //     if (pauseState != PauseState::PAUSE_DEPTH) videoStreamerDepthRT.sendFrame(poseID);
-        // }
-
+        depthShader.bind();
+        depthShader.setFloat("near", camera.near);
+        depthShader.setFloat("far", camera.far);
+        renderer.drawToRenderTarget(depthShader, BC4videoStreamerDepthRT);
 
         // Compress depth data using BC4
         bc4CompressShader.bind();
-        //-----------put the following shader inside the sendframe------------------------
-        // bc4CompressShader.setTexture(renderer.gBuffer.depthStencilBuffer, 0); // depthmap
-        // bc4CompressShader.setVec2("depthMapSize", windowSize);
-        // bc4CompressShader.setVec2("bc4DepthSize", glm::vec2(windowSize.x / 8, windowSize.y / 8));
-        // glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bc4Buffer); // what we have in comp for buffer
-        // bc4CompressShader.dispatch((windowSize.x / 8) / 16, (windowSize.y / 8) / 16, 1);
-        // bc4CompressShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-        //--------------------------------------------------------------------------------------
-
-        // Send compressed depth frame
-        // if (poseID != -1) {
-        //     if (pauseState != PauseState::PAUSE_COLOR) videoStreamerColorRT.sendFrame(poseID);
-        //     if (pauseState != PauseState::PAUSE_DEPTH) BC4videoStreamerDepthRT.sendFrame(poseID); // depth streamer
-        // }
 
         // Send compressed depth frame
         if (poseID != -1) {
             if (pauseState != PauseState::PAUSE_COLOR) videoStreamerColorRT.sendFrame(poseID);
-            if (pauseState != PauseState::PAUSE_DEPTH) {
-                // Copy local compressed data to BC4DepthStreamer's buffer
-                // ------------------ can be optimized by not copying but use getbc4busffer as the object to contain data----
-                glBindBuffer(GL_COPY_READ_BUFFER, bc4Buffer); // from local buffer
-                glBindBuffer(GL_COPY_WRITE_BUFFER, BC4videoStreamerDepthRT.getBC4Buffer()); // from depth streamer
-                glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, compressedSize); // copy buffer from mw streamer to bc4 depth streamer
-                glBindBuffer(GL_COPY_READ_BUFFER, 0); // unbind
-                glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
-                // ------------------------------------------------------------------------------------
-
-                //BC4videoStreamerDepthRT.sendFrame(poseID); // todo: should passs the computershader as paramter to match buffer & poseID
-                BC4videoStreamerDepthRT.sendFrame(poseID, renderer.gBuffer.depthStencilBuffer, bc4CompressShader, windowSize);
-            }
+            if (pauseState != PauseState::PAUSE_DEPTH) BC4videoStreamerDepthRT.sendFrame(poseID, bc4CompressShader);
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(10));

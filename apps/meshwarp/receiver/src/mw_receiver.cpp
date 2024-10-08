@@ -445,8 +445,8 @@ int main(int argc, char** argv) {
         }
 
         // Dispatch compute shader to generate vertices and indices for both main and wireframe meshes
-        BC4genMeshShader.dispatch((adjustedWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                        (adjustedWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+        BC4genMeshShader.dispatch((videoTextureDepth.width + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                        (videoTextureDepth.height + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
         BC4genMeshShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
                                     GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 

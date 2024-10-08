@@ -5,7 +5,6 @@
 BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams &params, std::string receiverURL)
     : RenderTarget(params)
     , receiverURL(receiverURL)
-    //,computerShader...(can have the compute shader init during the constructor stage)
     , streamer(receiverURL) {
 
     compressedSize = (params.width / 8) * (params.height / 8) * sizeof(Block);
@@ -46,21 +45,28 @@ void BC4DepthStreamer::close() {
     glDeleteBuffers(1, &bc4Buffer);
 }
 
-void BC4DepthStreamer::compressBC4(const Texture& depthStencilBuffer, ComputeShader& bc4CompressShader, const glm::uvec2& windowSize) {
+void BC4DepthStreamer::compressBC4(ComputeShader& bc4CompressShader) {
     bc4CompressShader.bind();
-    bc4CompressShader.setTexture(depthStencilBuffer, 0);
-    bc4CompressShader.setVec2("depthMapSize", windowSize);
-    bc4CompressShader.setVec2("bc4DepthSize", glm::vec2(windowSize.x / 8, windowSize.y / 8));
+    bc4CompressShader.setTexture(colorBuffer, 0);
+    glm::vec2 depthMapSize((width / 8) * 8, (height / 8) * 8);
+    
+    if (depthMapSize.x == 0 || depthMapSize.y == 0) {
+        std::cerr << "Error: Invalid depth map size: " << depthMapSize.x << "x" << depthMapSize.y << std::endl;
+        return;
+    }
+
+    bc4CompressShader.setVec2("depthMapSize", depthMapSize);
+    bc4CompressShader.setVec2("bc4DepthSize", glm::vec2(depthMapSize.x / 8, depthMapSize.y / 8));
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bc4Buffer);
-    bc4CompressShader.dispatch((windowSize.x / 8) / 16, (windowSize.y / 8) / 16, 1);
+    bc4CompressShader.dispatch((depthMapSize.x / 8) / 16, (depthMapSize.y / 8) / 16, 1);
     bc4CompressShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
- // can have the compute shader passed as parameter or have one init in the constructor
-void BC4DepthStreamer::sendFrame(pose_id_t poseID, const Texture& depthStencilBuffer, ComputeShader& bc4CompressShader, const glm::uvec2& windowSize) {
-    compressBC4(depthStencilBuffer, bc4CompressShader, windowSize);
+void BC4DepthStreamer::sendFrame(pose_id_t poseID, ComputeShader& bc4CompressShader) {
+
+    compressBC4(bc4CompressShader);
+
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-    // ------------------move the shader proces inside here from the mw_streamer, to make poseID match the buffer later--------
     void* cudaPtr;
     size_t size;
     CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
@@ -85,13 +91,7 @@ void BC4DepthStreamer::sendFrame(pose_id_t poseID, const Texture& depthStencilBu
     glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, compressedSize, compressedData.data() + sizeof(pose_id_t)); //
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-    float startTime = timeutils::getTimeMicros();
-
     streamer.send(compressedData);
-    debugPrintData(compressedData); // Add this line to print the data
-
-    stats.timeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
-    stats.bitrateMbps = ((compressedSize * 8) / timeutils::millisToSeconds(stats.timeToSendMs)) / MBPS_TO_BPS;
 #endif
 }
 
@@ -123,16 +123,7 @@ void BC4DepthStreamer::sendData() {
                                     compressedSize,
                                     cudaMemcpyDeviceToHost));
 
-        // debugPrintData(compressedData); // Add this line to print the data
-
         stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
-
-        startTime = timeutils::getTimeMicros();
-
-        streamer.send(compressedData);
-
-        stats.timeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
-        stats.bitrateMbps = ((compressedData.size() * 8) / timeutils::millisToSeconds(stats.timeToSendMs)) / MBPS_TO_BPS;
 
         float elapsedTimeSec = timeutils::microsToSeconds(timeutils::getTimeMicros() - prevTime);
         if (elapsedTimeSec < (1.0f / targetFrameRate)) {
@@ -142,6 +133,11 @@ void BC4DepthStreamer::sendData() {
                 )
             );
         }
+        stats.timeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
+
+        stats.bitrateMbps = ((compressedSize * 8) / timeutils::millisToSeconds(stats.timeToSendMs)) / MBPS_TO_BPS;
+
+        streamer.send(compressedData);
 
         prevTime = timeutils::getTimeMicros();
     }

@@ -153,15 +153,15 @@ float sampleBC4Buffer(vec2 pixelCoordNormalized) {
 }
 
 void main() {
-    vec2 size = vec2(screenSize) / float(surfelSize);
+    vec2 size = vec2(depthMapSize) / float(surfelSize);
 
     vec2 surfelCoord = vec2(gl_GlobalInvocationID.xy);
-    if (surfelCoord.x >= screenSize.x || surfelCoord.y >= screenSize.y) {
+    if (surfelCoord.x >= depthMapSize.x || surfelCoord.y >= depthMapSize.y) {
         return;
     }
 
     vec2 pixelCoord = surfelSize * (surfelCoord + vec2(0.5, 0.5));
-    vec2 uv = vec2(pixelCoord) / screenSize;
+    vec2 uv = vec2(pixelCoord) / depthMapSize;
 
     float depth = sampleBC4Buffer(uv);
 
@@ -177,7 +177,7 @@ void main() {
     // Copy vertex data to wireframe buffer
     verticesWireframe[shaderIndex] = vertices[shaderIndex];
 
-    if (pixelCoord.x < screenSize.x - surfelSize && pixelCoord.y < screenSize.y - surfelSize) {
+    if (pixelCoord.x < depthMapSize.x - surfelSize && pixelCoord.y < depthMapSize.y - surfelSize) {
         /************************
 
                 tl -- tr
