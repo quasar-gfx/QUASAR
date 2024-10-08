@@ -709,9 +709,6 @@ int main(int argc, char** argv) {
         nodeWireframe.visible = showWireframe;
         nodeDepth.visible = showDepth;
 
-        nodeWireframe.setPosition(node.getPosition() - camera.getForwardVector() * 0.001f);
-        nodeDepth.setPosition(node.getPosition() - camera.getForwardVector() * 0.0015f);
-
         // render generated meshes
         renderer.pipeline.rasterState.cullFaceEnabled = false;
         renderStats = renderer.drawObjects(scene, camera);

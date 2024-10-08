@@ -9,6 +9,8 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <QuadMaterial.h>
+
 #define THREADS_PER_LOCALGROUP 16
 
 #define VERTICES_IN_A_QUAD 4
@@ -171,7 +173,7 @@ int main(int argc, char** argv) {
         meshes[view] = new Mesh({
             .numVertices = maxVertices / 4,
             .numIndices = maxIndices / 4,
-            .material = new UnlitMaterial({ .diffuseTexture = &renderTargets[view]->colorBuffer }),
+            .material = new QuadMaterial({ .diffuseTexture = &renderTargets[view]->colorBuffer }),
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true
         });
@@ -189,7 +191,7 @@ int main(int argc, char** argv) {
         meshWireframes[view] = new Mesh({
             .numVertices = maxVertices / 4,
             .numIndices = maxIndices / 4,
-            .material = new UnlitMaterial({ .baseColor = color }),
+            .material = new QuadMaterial({ .baseColor = color }),
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true
         });
@@ -200,6 +202,7 @@ int main(int argc, char** argv) {
 
         meshDepths[view] = new Mesh({
             .numVertices = maxVerticesDepth,
+            .material = new UnlitMaterial({ .baseColor = color }),
             .pointcloud = true,
             .pointSize = 7.5f,
             .usage = GL_DYNAMIC_DRAW
@@ -852,9 +855,6 @@ int main(int argc, char** argv) {
             nodes[view]->visible = showLayer;
             nodeWireframes[view]->visible = showLayer && showWireframe;
             nodeDepths[view]->visible = showLayer && showDepth;
-
-            nodeWireframes[view]->setPosition(nodes[view]->getPosition() - camera.getForwardVector() * 0.001f);
-            nodeDepths[view]->setPosition(nodes[view]->getPosition() - camera.getForwardVector() * 0.0015f);
         }
 
         // render all objects in scene

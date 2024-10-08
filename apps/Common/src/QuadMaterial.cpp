@@ -25,8 +25,8 @@ QuadMaterial::QuadMaterial(const QuadMaterialCreateParams &params)
 
     if (shader == nullptr) {
         ShaderFileCreateParams unlitShaderParams{
-            .vertexCodePath = "shaders/material_quad.vert",
-            .fragmentCodePath = "shaders/material_quad.frag",
+            .vertexCodePath = "../../quadwarp/streamer/shaders/material_quad.vert",
+            .fragmentCodePath = "../../quadwarp/streamer/shaders/material_quad.frag",
             .defines = {
                 "#define ALPHA_OPAQUE " + std::to_string(static_cast<uint8_t>(AlphaMode::OPAQUE)),
                 "#define ALPHA_MASK " + std::to_string(static_cast<uint8_t>(AlphaMode::MASKED)),

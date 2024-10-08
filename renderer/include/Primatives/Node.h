@@ -14,6 +14,7 @@ public:
 
     bool frustumCulled = true;
     bool wireframe = false;
+    float wireframeLineWidth = 1.5f;
     bool visible = true;
 
     Node();

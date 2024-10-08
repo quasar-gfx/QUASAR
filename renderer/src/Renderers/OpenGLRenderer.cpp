@@ -295,7 +295,10 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, N
 #ifdef GL_CORE
             // set polygon mode to wireframe if needed
             if (node->wireframe) {
+                glEnable(GL_POLYGON_OFFSET_LINE); // to avoid z-fighting
+                glPolygonOffset(-1.0, -1.0); // adjust depth
                 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                glLineWidth(node->wireframeLineWidth);
             }
 #endif
 
@@ -304,6 +307,7 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, N
 #ifdef GL_CORE
             // restore polygon mode
             if (node->wireframe) {
+                glDisable(GL_POLYGON_OFFSET_LINE);
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             }
 #endif

@@ -32,19 +32,7 @@ uniform Material material;
 
 uniform vec3 camPos;
 
-uniform bool peelDepth;
-uniform sampler2D prevDepthMap;
-
 void main() {
-    if (peelDepth) {
-        float depth = gl_FragCoord.z;
-        vec2 screenCoords = gl_FragCoord.xy / vec2(textureSize(prevDepthMap, 0));
-        float prevDepth = texture(prevDepthMap, screenCoords).r;
-        // if the current fragment is closer than the previous fragment, discard it
-        if (depth <= prevDepth)
-            discard;
-    }
-
     vec4 baseColor;
     if (material.hasBaseColorMap) {
         baseColor = texture(material.baseColorMap, fsIn.TexCoords.xy / fsIn.TexCoords.w) * material.baseColorFactor;
