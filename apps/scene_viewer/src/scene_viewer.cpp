@@ -7,6 +7,7 @@
 #include <SceneLoader.h>
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
+#include <Recorder.h>
 
 int main(int argc, char** argv) {
     Config config{};
@@ -48,6 +49,15 @@ int main(int argc, char** argv) {
     ForwardRenderer renderer(config);
 
     glm::uvec2 windowSize = window->getSize();
+
+    // Define the output path for the recorded frames
+    std::string outputPath = "../recordings";
+
+    // Create the Recorder instance
+    Recorder recorder(1.0f, outputPath, renderer); // Capturing every 1 second
+
+    // Start the recorder
+    recorder.start();
 
     Scene scene;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
@@ -256,6 +266,9 @@ int main(int argc, char** argv) {
         // render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);
 
+        // Capture the frame using the Recorder
+        recorder.captureFrame(renderer.gBuffer);
+
         // render to screen
         if (shaderIndex == 1) {
             showDepthShader.bind();
@@ -284,6 +297,9 @@ int main(int argc, char** argv) {
 
     // run app loop (blocking)
     app.run();
+
+    // Stop the recorder
+    recorder.stop();
 
     return 0;
 }
