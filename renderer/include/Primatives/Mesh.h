@@ -21,6 +21,7 @@ struct MeshDataCreateParams {
     float pointSize = 5.0;
     float IBL = 1.0;
     GLenum usage = GL_STATIC_DRAW;
+    bool indirectDraw = false;
 };
 
 struct MeshSizeCreateParams {
@@ -31,12 +32,22 @@ struct MeshSizeCreateParams {
     float pointSize = 5.0;
     float IBL = 1.0;
     GLenum usage = GL_STATIC_DRAW;
+    bool indirectDraw = false;
+};
+
+struct DrawElementsIndirectCommand {
+    GLuint count;
+    GLuint instanceCount = 1;
+    GLuint firstIndex = 0;
+    GLuint baseVertex = 0;
+    GLuint baseInstance = 0;
 };
 
 class Mesh : public Entity {
 public:
     Buffer<Vertex> vertexBuffer;
     Buffer<unsigned int> indexBuffer;
+    Buffer<DrawElementsIndirectCommand> indirectBuffer;
 
     Material* material;
 
@@ -45,6 +56,8 @@ public:
     float IBL = 1.0;
 
     GLenum usage;
+
+    bool indirectDraw = false;
 
     Mesh() : vertexBuffer(GL_ARRAY_BUFFER), indexBuffer(GL_ELEMENT_ARRAY_BUFFER) {
         createArrayBuffer();
@@ -56,9 +69,18 @@ public:
             , IBL(params.IBL)
             , usage(params.usage)
             , vertexBuffer(GL_ARRAY_BUFFER, params.usage)
-            , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, params.usage) {
+            , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, params.usage)
+            , indirectDraw(params.indirectDraw)
+            , indirectBuffer(GL_DRAW_INDIRECT_BUFFER, params.usage) {
         createArrayBuffer();
         setBuffers(params.vertices, params.indices);
+
+        if (indirectDraw) {
+            indirectBuffer.bind();
+            DrawElementsIndirectCommand indirectCommand;
+            indirectBuffer.setData(sizeof(DrawElementsIndirectCommand), &indirectCommand);
+            indirectBuffer.unbind();
+        }
     }
     Mesh(const MeshSizeCreateParams &params)
             : material(params.material)
@@ -67,9 +89,18 @@ public:
             , IBL(params.IBL)
             , usage(params.usage)
             , vertexBuffer(GL_ARRAY_BUFFER, params.usage)
-            , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, params.usage) {
+            , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, params.usage)
+            , indirectDraw(params.indirectDraw)
+            , indirectBuffer(GL_DRAW_INDIRECT_BUFFER, params.usage) {
         createArrayBuffer();
         setBuffers(params.numVertices, params.numIndices);
+
+        if (indirectDraw) {
+            indirectBuffer.bind();
+            DrawElementsIndirectCommand indirectCommand;
+            indirectBuffer.setData(sizeof(DrawElementsIndirectCommand), &indirectCommand);
+            indirectBuffer.unbind();
+        }
     }
 
     virtual void bindMaterial(const Scene &scene, const glm::mat4 &model,
@@ -85,7 +116,7 @@ public:
     void setBuffers(const std::vector<Vertex> &vertices, const std::vector<unsigned int> &indices);
     void setBuffers(unsigned int numVertices, unsigned int numIndices);
 
-    void resizeBuffers(unsigned int vertexBufferSize, unsigned int indexBufferSize);
+    void resizeBuffers(unsigned int numVertices, unsigned int numIndices);
     void updateAABB(const std::vector<Vertex> &vertices);
 
     EntityType getType() const override { return EntityType::MESH; }

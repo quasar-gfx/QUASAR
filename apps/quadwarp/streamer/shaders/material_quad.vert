@@ -8,7 +8,7 @@ layout(location = 6) in vec3 aBitangent;
 
 out VertexData {
     flat uint VertexID;
-    vec4 TexCoords;
+    noperspective vec4 TexCoords;
     vec3 FragPos;
     vec3 Color;
     vec3 Normal;

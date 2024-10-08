@@ -103,9 +103,9 @@ void Mesh::setBuffers(unsigned int numVertices, unsigned int numIndices) {
     glBindVertexArray(0);
 }
 
-void Mesh::resizeBuffers(unsigned int vertexBufferSize, unsigned int indexBufferSize) {
-    vertexBuffer.setSize(vertexBufferSize);
-    indexBuffer.setSize(indexBufferSize);
+void Mesh::resizeBuffers(unsigned int numVertices, unsigned int numIndices) {
+    vertexBuffer.setSize(numVertices);
+    indexBuffer.setSize(numIndices);
 }
 
 void Mesh::updateAABB(const std::vector<Vertex> &vertices) {
@@ -228,15 +228,28 @@ RenderStats Mesh::draw() {
     GLenum primativeType = pointcloud ? GL_POINTS : GL_TRIANGLES;
 
     glBindVertexArray(vertexArrayBuffer);
-    if (indexBuffer.getSize() > 0) {
-        indexBuffer.bind();
-        glDrawElements(primativeType, indexBuffer.getSize(), GL_UNSIGNED_INT, 0);
-        indexBuffer.unbind();
+
+    if (indirectDraw) {
+        indirectBuffer.bind();
+        if (indexBuffer.getSize() > 0) {
+            indexBuffer.bind();
+            glDrawElementsIndirect(primativeType, GL_UNSIGNED_INT, 0);
+        }
+        else {
+            vertexBuffer.bind();
+            glDrawArraysIndirect(primativeType, 0);
+        }
+        indirectBuffer.unbind();
     }
     else {
-        vertexBuffer.bind();
-        glDrawArrays(primativeType, 0, vertexBuffer.getSize());
-        vertexBuffer.unbind();
+        if (indexBuffer.getSize() > 0) {
+            indexBuffer.bind();
+            glDrawElements(primativeType, indexBuffer.getSize(), GL_UNSIGNED_INT, 0);
+        }
+        else {
+            vertexBuffer.bind();
+            glDrawArrays(primativeType, 0, vertexBuffer.getSize());
+        }
     }
     glBindVertexArray(0);
 
