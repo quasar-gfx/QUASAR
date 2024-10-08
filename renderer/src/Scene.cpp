@@ -66,10 +66,16 @@ void Scene::addPointLight(PointLight* pointLight) {
 }
 
 void Scene::bindMaterial(const Material* material) const {
+    auto* shader = material->getShader();
     if (hasPBREnvMap) {
-        material->getShader()->setTexture("material.irradianceMap", irradianceCubeMap, material->getTextureCount());
-        material->getShader()->setTexture("material.prefilterMap", prefilterCubeMap, material->getTextureCount() + 1);
-        material->getShader()->setTexture("material.brdfLUT", brdfLUT, material->getTextureCount() + 2);
+        shader->setTexture("material.irradianceMap", irradianceCubeMap, material->getTextureCount());
+        shader->setTexture("material.prefilterMap", prefilterCubeMap, material->getTextureCount() + 1);
+        shader->setTexture("material.brdfLUT", brdfLUT, material->getTextureCount() + 2);
+    }
+    else {
+        shader->setTextureToEmpty("material.irradianceMap", material->getTextureCount());
+        shader->setTextureToEmpty("material.prefilterMap", material->getTextureCount() + 1);
+        shader->setTextureToEmpty("material.brdfLUT", material->getTextureCount() + 2);
     }
 }
 

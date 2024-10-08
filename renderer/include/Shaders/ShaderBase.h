@@ -96,6 +96,11 @@ public:
         setInt(name, slot);
     }
 
+    void setTextureToEmpty(const std::string &name, int slot) const {
+        glBindTexture(GL_TEXTURE_2D, 0);
+        setInt(name, slot);
+    }
+
 protected:
     GLuint createShader(std::string version, std::vector<std::string> extensions, std::vector<std::string> defines,
                         const char* shaderData, const GLint shaderSize, ShaderType type) {

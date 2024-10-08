@@ -155,8 +155,8 @@ int main(int argc, char** argv) {
     });
 
     Mesh mesh = Mesh({
-        .vertices = std::vector<Vertex>(maxVertices),
-        .indices = std::vector<unsigned int>(maxIndices),
+        .numVertices = maxVertices / 4,
+        .numIndices = maxIndices / 4,
         .material = new QuadMaterial({ .diffuseTexture = &checkerboard }),
         // .material = new QuadMaterial({ .diffuseTexture = &renderTarget.colorBuffer }),
         .usage = GL_DYNAMIC_DRAW
@@ -166,8 +166,8 @@ int main(int argc, char** argv) {
     scene.addChildNode(&node);
 
     Mesh meshWireframe = Mesh({
-        .vertices = std::vector<Vertex>(maxVertices),
-        .indices = std::vector<unsigned int>(maxIndices),
+        .numVertices = maxVertices / 4,
+        .numIndices = maxIndices / 4,
         .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
         .usage = GL_DYNAMIC_DRAW
     });
@@ -178,7 +178,7 @@ int main(int argc, char** argv) {
     scene.addChildNode(&nodeWireframe);
 
     Mesh meshDepth = Mesh({
-        .vertices = std::vector<Vertex>(maxVerticesDepth),
+        .numVertices = maxVerticesDepth,
         .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
         .pointcloud = true,
         .pointSize = 7.5f,

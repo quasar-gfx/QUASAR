@@ -168,7 +168,7 @@ int main(int argc, char** argv) {
 
     for (int view = 0; view < maxViews; view++) {
         meshes[view] = new Mesh({
-            .numVertices = maxVertices,
+            .numVertices = maxVertices / 4,
             .numIndices = maxIndices,
             .material = new UnlitMaterial({ .diffuseTexture = &renderTargets[view]->colorBuffer }),
             .usage = GL_DYNAMIC_DRAW
@@ -185,7 +185,7 @@ int main(int argc, char** argv) {
                             1.0f);
 
         meshWireframes[view] = new Mesh({
-            .numVertices = maxVertices,
+            .numVertices = maxVertices / 4,
             .numIndices = maxIndices,
             .material = new UnlitMaterial({ .baseColor = color }),
             .usage = GL_DYNAMIC_DRAW

@@ -181,8 +181,8 @@ int main(int argc, char** argv) {
 
     for (int view = 0; view < maxViews; view++) {
         meshes[view] = new Mesh({
-            .numVertices = maxVertices,
-            .numIndices = maxIndices,
+            .numVertices = maxVertices / 4,
+            .numIndices = maxIndices / 4,
             .material = new UnlitMaterial({ .diffuseTexture = &renderTargets[view]->colorBuffer }),
             .usage = GL_DYNAMIC_DRAW
         });
@@ -198,8 +198,8 @@ int main(int argc, char** argv) {
                             1.0f);
 
         meshWireframes[view] = new Mesh({
-            .numVertices = maxVertices,
-            .numIndices = maxIndices,
+            .numVertices = maxVertices / 4,
+            .numIndices = maxIndices / 4,
             .material = new UnlitMaterial({ .baseColor = color }),
             .usage = GL_DYNAMIC_DRAW
         });
@@ -797,7 +797,7 @@ int main(int argc, char** argv) {
                     genMeshFromQuadMapsShader.dispatch((quadMapSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
                                                        (quadMapSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
                     genMeshFromQuadMapsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
-                                                             GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+                                                            GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
                 }
 
                 avgGenQuadsTime += glfwGetTime() - startTime;
