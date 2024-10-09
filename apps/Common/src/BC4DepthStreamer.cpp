@@ -7,13 +7,18 @@ BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams &params, std::
         : RenderTarget(params)
         , receiverURL(receiverURL)
         , streamer(receiverURL)
-        , compressedSize((params.width / BLOCK_SIZE) * (params.height / BLOCK_SIZE))
         , bc4CompressionShader({
             .computeCodePath = bc4CompressionShaderPath,
             .defines = {
                 "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
             }
         }) {
+    // round up to nearest multiple of BLOCK_SIZE
+    width = (params.width + BLOCK_SIZE - 1) / BLOCK_SIZE * BLOCK_SIZE;
+    height = (params.height + BLOCK_SIZE - 1) / BLOCK_SIZE * BLOCK_SIZE;
+    resize(width, height);
+
+    compressedSize = (width / BLOCK_SIZE) * (height / BLOCK_SIZE);
     data = std::vector<uint8_t>(sizeof(pose_id_t) + compressedSize * sizeof(Block));
     bc4CompressedBuffer = Buffer<Block>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, compressedSize, nullptr);
 
@@ -49,8 +54,7 @@ void BC4DepthStreamer::compressBC4() {
     bc4CompressionShader.bind();
     bc4CompressionShader.setTexture(colorBuffer, 0);
 
-    // round to nearest multiple of BLOCK_SIZE
-    glm::uvec2 depthMapSize = glm::uvec2((width / BLOCK_SIZE) * BLOCK_SIZE, (height / BLOCK_SIZE) * BLOCK_SIZE);
+    glm::uvec2 depthMapSize = glm::uvec2(width, height);
 
     bc4CompressionShader.setVec2("depthMapSize", depthMapSize);
     bc4CompressionShader.setVec2("bc4DepthSize", glm::uvec2(depthMapSize.x / BLOCK_SIZE, depthMapSize.y / BLOCK_SIZE));

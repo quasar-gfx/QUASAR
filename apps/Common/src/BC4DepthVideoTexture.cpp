@@ -6,8 +6,13 @@
 BC4DepthVideoTexture::BC4DepthVideoTexture(const TextureDataCreateParams &params, std::string streamerURL)
         : streamerURL(streamerURL)
         , DataReceiverTCP(streamerURL, false)
-        , Texture(params)
-        , compressedSize((params.width / BLOCK_SIZE) * (params.height / BLOCK_SIZE)) {
+        , Texture(params) {
+    // round up to nearest multiple of BLOCK_SIZE
+    width = (params.width + BLOCK_SIZE - 1) / BLOCK_SIZE * BLOCK_SIZE;
+    height = (params.height + BLOCK_SIZE - 1) / BLOCK_SIZE * BLOCK_SIZE;
+    resize(width, height);
+
+    compressedSize = (width / BLOCK_SIZE) * (height / BLOCK_SIZE);
     bc4CompressedBuffer = Buffer<Block>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, compressedSize, nullptr);
 }
 
