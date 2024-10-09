@@ -43,7 +43,7 @@ private:
     std::condition_variable cv;
     bool dataReady = false;
 
-    std::atomic_bool running = false;
+    std::atomic_bool running{false};
 
     packet_id_t dataID = 0;
 

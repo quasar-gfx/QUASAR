@@ -37,7 +37,7 @@ public:
 protected:
     std::thread dataRecvingThread;
 
-    std::atomic_bool running = false;
+    std::atomic_bool running{false};
 
     std::map<packet_id_t, std::map<int, DataPacketUDP>> datas;
     std::map<packet_id_t, int> dataSizes;

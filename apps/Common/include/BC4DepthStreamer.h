@@ -1,24 +1,34 @@
-#ifndef DEPTH_STREAMER_H
-#define DEPTH_STREAMER_H
+#ifndef BC4_DEPTH_STREAMER_H
+#define BC4_DEPTH_STREAMER_H
 
+#include <iostream>
+#include <iomanip>
 #include <thread>
-
+#include <queue>
+#include <atomic>
 #include <RenderTargets/RenderTarget.h>
-
 #include <Networking/DataStreamerTCP.h>
-
 #include <CameraPose.h>
+#include <glm/glm.hpp>
+
+#include <Shaders/ComputeShader.h>
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
 #include <cuda_gl_interop.h>
 #include <Utils/CudaUtils.h>
 #endif
 
-class DepthStreamer : public RenderTarget {
+class BC4DepthStreamer : public RenderTarget {
 public:
-    std::string receiverURL;
+    struct Block {
+        float max;
+        float min;
+        uint32_t data[6];
+    };
+    Buffer<Block> bc4CompressedBuffer;
 
-    int imageSize;
+    std::string receiverURL;
+    unsigned int compressedSize;
 
     struct Stats {
         float timeToCopyFrameMs = -1.0f;
@@ -26,14 +36,12 @@ public:
         float bitrateMbps = -1.0f;
     } stats;
 
-    DepthStreamer(const RenderTargetCreateParams &params, std::string receiverURL);
-    ~DepthStreamer() {
-        close();
-    }
+    BC4DepthStreamer(const RenderTargetCreateParams &params, std::string receiverURL, std::string bc4CompressionShaderPath = "./shaders/bc4Compression.comp");
+    ~BC4DepthStreamer();
 
     void close();
 
-    float getFrameRate() {
+    float getFrameRate() const {
         return 1.0f / timeutils::millisToSeconds(stats.timeToSendMs);
     }
 
@@ -45,18 +53,21 @@ public:
 
 private:
     int targetFrameRate = 60;
-
     DataStreamerTCP streamer;
 
     std::vector<uint8_t> data;
-    RenderTarget* renderTargetCopy;
+
+    // BC4 compute shader
+    ComputeShader bc4CompressionShader;
+
+    void compressBC4();
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     cudaGraphicsResource* cudaResource;
 
     struct CudaBuffer {
         pose_id_t poseID;
-        cudaArray* buffer;
+        void* buffer;
     };
     std::queue<CudaBuffer> cudaBufferQueue;
 
@@ -73,4 +84,4 @@ private:
 #endif
 };
 
-#endif // DEPTH_STREAMER_H
+#endif // BC4_DEPTH_STREAMER_H

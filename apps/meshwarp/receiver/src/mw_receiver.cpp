@@ -1,16 +1,14 @@
 #include <iostream>
-
 #include <args/args.hxx>
-
 #include <OpenGLApp.h>
 #include <Renderers/ForwardRenderer.h>
 #include <SceneLoader.h>
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
-
 #include <VideoTexture.h>
-#include <DepthVideoTexture.h>
+#include <BC4DepthVideoTexture.h>
 #include <PoseStreamer.h>
+#include <Shaders/ComputeShader.h>
 
 #define THREADS_PER_LOCALGROUP 16
 
@@ -28,7 +26,7 @@ enum class RenderState {
 
 int main(int argc, char** argv) {
     Config config{};
-    config.title = "MeshWarp Reciever";
+    config.title = "MeshWarp Receiver";
 
     RenderState renderState = RenderState::MESH;
 
@@ -42,6 +40,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> depthURLIn(parser, "depth", "Depth URL", {'e', "depth-url"}, "0.0.0.0:65432");
     args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "127.0.0.1:54321");
     args::ValueFlag<unsigned int> depthFactorIn(parser, "factor", "Depth Resolution Factor", {'a', "depth-factor"}, 1);
+
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -53,7 +52,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // parse size
+    // Parse size
     std::string sizeStr = args::get(sizeIn);
     size_t pos = sizeStr.find('x');
     config.width = std::stoi(sizeStr.substr(0, pos));
@@ -95,17 +94,19 @@ int main(int argc, char** argv) {
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR
     }, videoURL);
-    DepthVideoTexture videoTextureDepth({
+
+    BC4DepthVideoTexture videoTextureDepth({
         .width = windowSize.x / depthFactor,
         .height = windowSize.y / depthFactor,
         .internalFormat = GL_R16F,
         .format = GL_RED,
-        .type = GL_UNSIGNED_SHORT,
+        .type = GL_FLOAT,
         .wrapS = GL_CLAMP_TO_EDGE,
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST
     }, depthURL);
+
     PoseStreamer poseStreamer(&camera, poseURL);
 
     std::cout << "Video URL: " << videoURL << std::endl;
@@ -115,7 +116,6 @@ int main(int argc, char** argv) {
     glm::uvec2 adjustedWindowSize = glm::uvec2(windowSize.x, windowSize.y) / surfelSize;
 
     unsigned int maxVertices = adjustedWindowSize.x * adjustedWindowSize.y;
-
     unsigned int numTriangles = (adjustedWindowSize.x-1) * (adjustedWindowSize.y-1) * 2;
     unsigned int maxIndices = numTriangles * 3;
 
@@ -147,6 +147,7 @@ int main(int argc, char** argv) {
     bool mwEnabled = true;
     bool sync = true;
     RenderStats renderStats;
+
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = true;
@@ -154,7 +155,6 @@ int main(int argc, char** argv) {
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
         static bool showVideoPreview = true;
-        static bool showDepthPreview = true;
 
         glm::vec2 winSize = glm::vec2(windowSize.x, windowSize.y);
 
@@ -173,7 +173,6 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("UI", 0, &showUI);
             ImGui::MenuItem("Frame Capture", 0, &showCaptureWindow);
             ImGui::MenuItem("Video Preview", 0, &showVideoPreview);
-            ImGui::MenuItem("Depth Preview", 0, &showDepthPreview);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -219,6 +218,7 @@ int main(int argc, char** argv) {
             if (ImGui::InputFloat3("Camera Rotation", (float*)&rotation)) {
                 camera.setRotationEuler(rotation);
             }
+            ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
 
             ImGui::Separator();
 
@@ -266,14 +266,6 @@ int main(int argc, char** argv) {
             ImGui::End();
         }
 
-        if (showDepthPreview) {
-            ImGui::SetNextWindowPos(ImVec2(windowSize.x - TEXTURE_PREVIEW_SIZE - 30, 40), ImGuiCond_FirstUseEver);
-            ImGui::Begin("Raw Depth Texture", &showDepthPreview, flags);
-            ImGui::Image((void*)(intptr_t)videoTextureDepth.ID, ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
-        }
-
-        ImGui::End();
-
         if (showCaptureWindow) {
             ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowPos(ImVec2(winSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
@@ -300,6 +292,7 @@ int main(int argc, char** argv) {
         }
     });
 
+
     app.onResize([&](unsigned int width, unsigned int height) {
         windowSize = glm::uvec2(width, height);
         renderer.resize(windowSize.x, windowSize.y);
@@ -308,7 +301,7 @@ int main(int argc, char** argv) {
         camera.updateProjectionMatrix();
     });
 
-    // shaders
+    // Shaders
     Shader screenShader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
@@ -319,17 +312,14 @@ int main(int argc, char** argv) {
         .fragmentCodePath = "../shaders/postprocessing/displayTexture.frag",
     });
 
-    ComputeShader genMeshFromDepthShader({
-        .computeCodePath = "./shaders/genMeshFromDepth.comp",
+    ComputeShader genMeshFromBC4Shader({
+        .computeCodePath = "./shaders/genMeshFromBC4.comp",
         .defines = {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
     });
-    genMeshFromDepthShader.bind();
-    genMeshFromDepthShader.setVec2("screenSize", glm::vec2(windowSize.x, windowSize.y));
-    genMeshFromDepthShader.setInt("surfelSize", surfelSize);
 
-    // load camera view and projection matrices
+    // Load camera matrices
     auto cameraData = FileIO::loadBinaryFile(DATA_PATH + "data/camera.bin");
     glm::mat4 proj = glm::mat4(1.0f);
     glm::mat4 view = glm::mat4(1.0f);
@@ -339,7 +329,7 @@ int main(int argc, char** argv) {
     camera.setProjectionMatrix(proj);
     camera.setViewMatrix(view);
 
-    // load remote camera
+    // Load remote camera
     PerspectiveCamera remoteCamera(windowSize.x, windowSize.y);
     auto remoteCameraData = FileIO::loadBinaryFile(DATA_PATH + "data/remoteCamera.bin");
     std::memcpy(&proj, remoteCameraData.data(), sizeof(glm::mat4));
@@ -348,11 +338,8 @@ int main(int argc, char** argv) {
     remoteCamera.setViewMatrix(view);
 
     Pose currentColorFramePose, currentDepthFramePose;
-
-    std::vector<Vertex> newVertices(maxVertices);
-    std::vector<unsigned int> newIndices(maxIndices);
     app.onRender([&](double now, double dt) {
-        // handle mouse input
+        /// handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
             auto mouseButtons = window->getMouseButtons();
             window->setMouseCursor(!mouseButtons.LEFT_PRESSED);
@@ -387,30 +374,29 @@ int main(int argc, char** argv) {
             }
         }
 
-        // handle keyboard input
+
+        // Handle keyboard input
         auto keys = window->getKeys();
         camera.processKeyboard(keys, dt);
         if (keys.ESC_PRESSED) {
             window->close();
         }
 
-        // send pose to streamer
+        // Send pose to streamer
         poseStreamer.sendPose();
 
-        // render color video frame
+        // Render color video frame
         videoTextureColor.bind();
         poseIdColor = videoTextureColor.draw();
         videoTextureColor.unbind();
 
-        // render depth video frame
-        videoTextureDepth.bind();
+        // Render depth video frame
         if (sync) {
             poseIdDepth = videoTextureDepth.draw(poseIdColor);
         }
         else {
             poseIdDepth = videoTextureDepth.draw();
         }
-        videoTextureDepth.unbind();
 
         if (!mwEnabled) {
             if (poseIdColor != -1) poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTimeColor);
@@ -422,55 +408,61 @@ int main(int argc, char** argv) {
             return;
         }
 
-        // set shader uniforms
-        genMeshFromDepthShader.bind();
+        // Set shader uniforms
+        genMeshFromBC4Shader.bind();
         {
-            genMeshFromDepthShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-            genMeshFromDepthShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
-            genMeshFromDepthShader.setFloat("near", remoteCamera.near);
-            genMeshFromDepthShader.setFloat("far", remoteCamera.far);
+            genMeshFromBC4Shader.setVec2("screenSize", windowSize);
+            genMeshFromBC4Shader.setVec2("depthMapSize", glm::vec2(videoTextureDepth.width, videoTextureDepth.height));
+            genMeshFromBC4Shader.setInt("surfelSize", surfelSize);
+            genMeshFromBC4Shader.setFloat("near", remoteCamera.near);
+            genMeshFromBC4Shader.setFloat("far", remoteCamera.far);
         }
         {
-            genMeshFromDepthShader.setTexture(videoTextureDepth, 0);
+            genMeshFromBC4Shader.setMat4("view", remoteCamera.getViewMatrix());
+            genMeshFromBC4Shader.setMat4("projection", remoteCamera.getProjectionMatrix());
+            genMeshFromBC4Shader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
+            genMeshFromBC4Shader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
         }
         {
             if (poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTimeColor)) {
-                genMeshFromDepthShader.setMat4("viewColor", currentColorFramePose.mono.view);
+                genMeshFromBC4Shader.setMat4("viewColor", currentColorFramePose.mono.view);
             }
             if (poseStreamer.getPose(poseIdDepth, &currentDepthFramePose, &elapsedTimeDepth)) {
-                genMeshFromDepthShader.setMat4("viewInverseDepth", glm::inverse(currentDepthFramePose.mono.view));
+                genMeshFromBC4Shader.setMat4("viewInverseDepth", glm::inverse(currentDepthFramePose.mono.view));
             }
         }
         {
-            genMeshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
-            genMeshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
-            genMeshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, meshWireframe.vertexBuffer);
-            genMeshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, meshWireframe.indexBuffer);
+            genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
+            genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
+            genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, meshWireframe.vertexBuffer);
+            genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, meshWireframe.indexBuffer);
+            genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, videoTextureDepth.bc4CompressedBuffer);
         }
-        // dispatch compute shader to generate vertices and indices for mesh
-        genMeshFromDepthShader.dispatch((adjustedWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                        (adjustedWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
-        genMeshFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
-                                             GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+
+        // dispatch compute shader to generate vertices and indices for both main and wireframe meshes
+        genMeshFromBC4Shader.dispatch((videoTextureDepth.width + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                      (videoTextureDepth.height + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+        genMeshFromBC4Shader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
+                                           GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
         poseStreamer.removePosesLessThan(std::min(poseIdColor, poseIdDepth));
 
-        // set render state
+        // Set render state
         mesh.pointcloud = renderState == RenderState::POINTCLOUD;
         nodeWireframe.visible = renderState == RenderState::WIREFRAME;
 
         nodeWireframe.setPosition(node.getPosition() - camera.getForwardVector() * 0.001f);
 
-        // render all objects in scene
+        // Render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);
 
-        // render to screen
+        // Render to screen
         screenShader.bind();
         screenShader.setBool("doToneMapping", false); // video is already tone mapped
         renderer.drawToScreen(screenShader);
     });
 
-    // run app loop (blocking)
+    // Run app loop (blocking)
     app.run();
 
     return 0;
