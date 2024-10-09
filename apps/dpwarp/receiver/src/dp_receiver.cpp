@@ -316,8 +316,6 @@ int main(int argc, char** argv) {
             nodes[i]->visible = showLayer;
             meshes[i]->pointcloud = showLayer && (renderState == RenderState::POINTCLOUD);
             nodeWireframes[i]->visible = showLayer && (renderState == RenderState::WIREFRAME);
-
-            nodeWireframes[i]->setPosition(nodes[i]->getPosition() - camera.getForwardVector() * 0.001f);
         }
 
         // render all objects in scene

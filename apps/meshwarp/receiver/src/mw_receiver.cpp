@@ -451,8 +451,6 @@ int main(int argc, char** argv) {
         mesh.pointcloud = renderState == RenderState::POINTCLOUD;
         nodeWireframe.visible = renderState == RenderState::WIREFRAME;
 
-        nodeWireframe.setPosition(node.getPosition() - camera.getForwardVector() * 0.001f);
-
         // Render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);
 
