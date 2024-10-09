@@ -18,7 +18,6 @@
 
 struct ModelCreateParams {
     bool flipTextures = false;
-    bool pointcloud = false;
     bool gammaCorrected = false;
     float IBL = 1.0;
     PBRMaterial* material;
@@ -32,7 +31,6 @@ public:
     std::string rootDirectory;
 
     bool flipTextures = false;
-    bool pointcloud = false;
     bool gammaCorrected = false;
     float IBL = 1.0;
 
@@ -42,7 +40,6 @@ public:
 
     Model(const ModelCreateParams &params)
             : flipTextures(params.flipTextures)
-            , pointcloud(params.pointcloud)
             , gammaCorrected(params.gammaCorrected)
             , IBL(params.IBL) {
         loadFromFile(params);
@@ -52,9 +49,9 @@ public:
     virtual void bindMaterial(const Scene &scene, const glm::mat4 &model,
                               const Material* overrideMaterial = nullptr, const Texture* prevDepthMap = nullptr) override;
 
-    virtual RenderStats draw(const Camera &camera, const glm::mat4 &model,
+    virtual RenderStats draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model,
                              bool frustumCull = true, const Material* overrideMaterial = nullptr) override;
-    virtual RenderStats draw(const Camera &camera, const glm::mat4 &model,
+    virtual RenderStats draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model,
                              const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) override;
 
     EntityType getType() const override { return EntityType::MODEL; }

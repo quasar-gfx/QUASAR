@@ -60,7 +60,7 @@ layout(std430, binding = 0) readonly buffer QuadMapBuffer {
     QuadMapData quadMap[];
 };
 
-layout(std430, binding = 1) writeonly buffer BufferSizesBuffer {
+layout(std430, binding = 1) buffer BufferSizesBuffer {
     uint numVertices;
     uint numIndices;
     uint numProxies;
@@ -83,7 +83,23 @@ layout(std430, binding = 5) buffer IndexBufferWireframe {
     uint indicesWireframe[];
 };
 
-layout(r16f, binding = 6) uniform readonly image2D depthOffsetBuffer;
+layout(std430, binding = 6) buffer MeshIndirectCommandBuffer {
+    uint count;
+    uint instanceCount;
+    uint firstIndex;
+    uint baseVertex;
+    uint baseInstance;
+} meshIndirectCommandBuffer;
+
+layout(std430, binding = 7) buffer MeshWireframeIndirectCommandBuffer {
+    uint count;
+    uint instanceCount;
+    uint firstIndex;
+    uint baseVertex;
+    uint baseInstance;
+} meshWireframeIndirectCommandBuffer;
+
+layout(r16f, binding = 0) uniform readonly image2D depthOffsetBuffer;
 
 uniform vec2 remoteWindowSize;
 uniform vec2 quadMapSize;
@@ -284,6 +300,11 @@ void storeSurfel(in Quad quad, in Quad2D pixelCoords) {
     indicesWireframe[indexIdxBase + 3] = indices[indexIdxBase + 3];
     indicesWireframe[indexIdxBase + 4] = indices[indexIdxBase + 4];
     indicesWireframe[indexIdxBase + 5] = indices[indexIdxBase + 5];
+
+    meshIndirectCommandBuffer.count = numIndices;
+    meshWireframeIndirectCommandBuffer.count = numIndices;
+
+    memoryBarrier();
 }
 
 void quantizeDepthOffsets(in Quad1D depthOffsets, out Quad1DInt depthOffsetsQuantized) {

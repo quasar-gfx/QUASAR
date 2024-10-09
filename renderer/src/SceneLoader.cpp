@@ -283,9 +283,6 @@ int SceneLoader::parseModel(jsmntok_t* tokens, int i, const char* json, Scene &s
         else if (compare(tok, json, "gammaCorrected") == 0) {
             i = parseBool(tokens, i + 1, json, &params.gammaCorrected);
         }
-        else if (compare(tok, json, "pointcloud") == 0) {
-            i = parseBool(tokens, i + 1, json, &params.pointcloud);
-        }
         else if (compare(tok, json, "flipTextures") == 0) {
             i = parseBool(tokens, i + 1, json, &params.flipTextures);
         }
@@ -348,9 +345,6 @@ int SceneLoader::parseMesh(jsmntok_t* tokens, int i, const char* json, Scene &sc
         }
         else if (compare(tok, json, "IBL") == 0) {
             i = parseFloat(tokens, i + 1, json, &params.IBL);
-        }
-        else if (compare(tok, json, "pointcloud") == 0) {
-            i = parseBool(tokens, i + 1, json, &params.pointcloud);
         }
         else {
             i = parse(tokens, i + 1);
@@ -430,9 +424,12 @@ int SceneLoader::parseNode(jsmntok_t* tokens, int i, const char* json, Scene &sc
             node->setScale(scale);
         }
         else if (compare(tok, json, "wireframe") == 0) {
-            bool wireframe;
-            i = parseBool(tokens, i + 1, json, &wireframe);
-            node->wireframe = wireframe;
+            i = parseBool(tokens, i + 1, json, &node->wireframe);
+        }
+        else if (compare(tok, json, "pointcloud") == 0) {
+            bool pointcloud;
+            i = parseBool(tokens, i + 1, json, &pointcloud);
+            node->primativeType = pointcloud ? GL_POINTS : GL_TRIANGLES;
         }
         else {
             i = parse(tokens, i + 1);

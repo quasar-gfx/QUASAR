@@ -295,15 +295,22 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, N
 #ifdef GL_CORE
             // set polygon mode to wireframe if needed
             if (node->wireframe) {
+                glEnable(GL_POLYGON_OFFSET_LINE); // to avoid z-fighting
+                glPolygonOffset(-1.0, -1.0); // adjust depth
                 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                glLineWidth(node->wireframeLineWidth);
+            }
+            if (node->primativeType == GL_POINTS) {
+                glPointSize(node->pointSize);
             }
 #endif
 
-            stats += node->entity->draw(camera, model, doFrustumCull, overrideMaterial);
+            stats += node->entity->draw(node->primativeType, camera, model, doFrustumCull, overrideMaterial);
 
 #ifdef GL_CORE
             // restore polygon mode
             if (node->wireframe) {
+                glDisable(GL_POLYGON_OFFSET_LINE);
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             }
 #endif
@@ -325,7 +332,7 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, N
     if (node->entity != nullptr) {
         if (node->visible) {
             // don't have to bind to scene and camera here, since we are only drawing shadows
-            stats += node->entity->draw(camera, model, pointLight->boundingSphere, overrideMaterial);
+            stats += node->entity->draw(node->primativeType, camera, model, pointLight->boundingSphere, overrideMaterial);
         }
     }
 

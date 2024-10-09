@@ -20,21 +20,21 @@ void Model::bindMaterial(const Scene &scene, const glm::mat4 &model, const Mater
     }
 }
 
-RenderStats Model::draw(const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
+RenderStats Model::draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
     RenderStats stats;
 
     for (auto& mesh : meshes) {
-        stats += mesh->draw(camera, model, frustumCull, overrideMaterial);
+        stats += mesh->draw(primativeType, camera, model, frustumCull, overrideMaterial);
     }
 
     return stats;
 }
 
-RenderStats Model::draw(const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
+RenderStats Model::draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
     RenderStats stats;
 
     for (auto& mesh : meshes) {
-        stats += mesh->draw(camera, model, boundingSphere, overrideMaterial);
+        stats += mesh->draw(primativeType, camera, model, boundingSphere, overrideMaterial);
     }
 
     return stats;
@@ -195,7 +195,6 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
 
     meshParams.vertices = vertices;
     meshParams.indices = indices;
-    meshParams.pointcloud = pointcloud;
     meshParams.IBL = IBL;
     meshParams.material = this->material;
 
