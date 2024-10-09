@@ -213,8 +213,6 @@ int main(int argc, char** argv) {
 
     std::vector<Mesh*> meshes(maxViews);
     std::vector<Node*> nodes(maxViews);
-
-    std::vector<Mesh*> meshWireframes(maxViews);
     std::vector<Node*> nodeWireframes(maxViews);
 
     for (int i = 0; i < maxViews; i++) {
@@ -257,15 +255,10 @@ int main(int argc, char** argv) {
                             fmod(i * 0.5f, 1.0f),
                             1.0f);
 
-        meshWireframes[i] = new Mesh({
-            .vertices = vertices,
-            .indices = indices,
-            .material = new UnlitMaterial({ .baseColor = color }),
-        });
-        nodeWireframes[i] = new Node(meshWireframes[i]);
+        nodeWireframes[i] = new Node(meshes[i]);
         nodeWireframes[i]->frustumCulled = false;
         nodeWireframes[i]->wireframe = true;
-        nodeWireframes[i]->primativeType = GL_POINTS;
+        nodeWireframes[i]->overrideMaterial = new UnlitMaterial({ .baseColor = color });
         scene.addChildNode(nodeWireframes[i]);
     }
 

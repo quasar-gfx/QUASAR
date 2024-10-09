@@ -167,17 +167,11 @@ int main(int argc, char** argv) {
     node.frustumCulled = false;
     scene.addChildNode(&node);
 
-    Mesh meshWireframe = Mesh({
-        .numVertices = maxVertices,
-        .numIndices = maxIndices,
-        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-        .usage = GL_DYNAMIC_DRAW,
-        .indirectDraw = true
-    });
-    Node nodeWireframe = Node(&meshWireframe);
+    Node nodeWireframe = Node(&mesh);
     nodeWireframe.frustumCulled = false;
     nodeWireframe.wireframe = true;
     nodeWireframe.visible = false;
+    nodeWireframe.overrideMaterial = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
     scene.addChildNode(&nodeWireframe);
 
     Mesh meshDepth = Mesh({
@@ -647,10 +641,7 @@ int main(int argc, char** argv) {
                     genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, bufferSizesBuffer);
                     genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, mesh.vertexBuffer);
                     genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, mesh.indexBuffer);
-                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, meshWireframe.vertexBuffer);
-                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, meshWireframe.indexBuffer);
-                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, mesh.indirectBuffer);
-                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, meshWireframe.indirectBuffer);
+                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, mesh.indirectBuffer);
                     genMeshFromQuadMapsShader.setImageTexture(0, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetBuffer.internalFormat);
                 }
 

@@ -21,6 +21,8 @@ public:
     bool wireframe = false;
     float wireframeLineWidth = 1.0f;
 
+    Material* overrideMaterial = nullptr;
+
     Node();
     Node(Entity* entity);
 

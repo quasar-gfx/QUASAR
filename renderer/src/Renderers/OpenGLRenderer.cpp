@@ -286,10 +286,12 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, N
                                      bool frustumCull, const Material* overrideMaterial, const Texture* prevDepthMap) {
     const glm::mat4 &model = parentTransform * node->getTransformParentFromLocal();
 
+    auto materialToUse = overrideMaterial != nullptr ? overrideMaterial : node->overrideMaterial;
+
     RenderStats stats;
     if (node->entity != nullptr) {
         if (node->visible) {
-            node->entity->bindMaterial(scene, model, overrideMaterial, prevDepthMap);
+            node->entity->bindMaterial(scene, model, materialToUse, prevDepthMap);
             bool doFrustumCull = frustumCull && node->frustumCulled;
 
 #ifdef GL_CORE
@@ -305,7 +307,7 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, N
             }
 #endif
 
-            stats += node->entity->draw(node->primativeType, camera, model, doFrustumCull, overrideMaterial);
+            stats += node->entity->draw(node->primativeType, camera, model, doFrustumCull, materialToUse);
 
 #ifdef GL_CORE
             // restore polygon mode
@@ -318,7 +320,7 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, N
     }
 
     for (auto& child : node->children) {
-        stats += drawNode(scene, camera, child, model, overrideMaterial);
+        stats += drawNode(scene, camera, child, model, materialToUse);
     }
 
     return stats;

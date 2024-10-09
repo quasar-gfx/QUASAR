@@ -130,16 +130,11 @@ int main(int argc, char** argv) {
     node.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
     scene.addChildNode(&node);
 
-    Mesh meshWireframe = Mesh({
-        .vertices = std::vector<Vertex>(maxVertices),
-        .indices = std::vector<unsigned int>(maxIndices),
-        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-        .usage = GL_DYNAMIC_DRAW
-    });
-    Node nodeWireframe = Node(&meshWireframe);
+    Node nodeWireframe = Node(&mesh);
     nodeWireframe.frustumCulled = false;
     nodeWireframe.wireframe = true;
     nodeWireframe.visible = false;
+    nodeWireframe.overrideMaterial = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
     scene.addChildNode(&nodeWireframe);
 
     double elapsedTimeColor, elapsedTimeDepth;
@@ -434,9 +429,7 @@ int main(int argc, char** argv) {
         {
             genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
             genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
-            genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, meshWireframe.vertexBuffer);
-            genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, meshWireframe.indexBuffer);
-            genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, videoTextureDepth.bc4CompressedBuffer);
+            genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, videoTextureDepth.bc4CompressedBuffer);
         }
 
         // dispatch compute shader to generate vertices and indices for both main and wireframe meshes

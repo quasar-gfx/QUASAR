@@ -218,15 +218,11 @@ int main(int argc, char** argv) {
     node.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
     scene.addChildNode(&node);
 
-    Mesh meshWireframe = Mesh({
-        .vertices = vertices,
-        .indices = indices,
-        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-    });
-    Node nodeWireframe(&meshWireframe);
+    Node nodeWireframe(&mesh);
     nodeWireframe.frustumCulled = false;
     nodeWireframe.wireframe = true;
     nodeWireframe.primativeType = GL_POINTS;
+    nodeWireframe.overrideMaterial = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
     scene.addChildNode(&nodeWireframe);
 
     app.onRender([&](double now, double dt) {

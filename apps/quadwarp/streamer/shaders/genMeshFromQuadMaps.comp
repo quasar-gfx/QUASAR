@@ -75,29 +75,13 @@ layout(std430, binding = 3) buffer IndexBuffer {
     uint indices[];
 };
 
-layout(std430, binding = 4) buffer VertexBufferWireframe {
-    Vertex verticesWireframe[];
-};
-
-layout(std430, binding = 5) buffer IndexBufferWireframe {
-    uint indicesWireframe[];
-};
-
-layout(std430, binding = 6) buffer MeshIndirectCommandBuffer {
+layout(std430, binding = 4) buffer MeshIndirectCommandBuffer {
     uint count;
     uint instanceCount;
     uint firstIndex;
     uint baseVertex;
     uint baseInstance;
 } meshIndirectCommandBuffer;
-
-layout(std430, binding = 7) buffer MeshWireframeIndirectCommandBuffer {
-    uint count;
-    uint instanceCount;
-    uint firstIndex;
-    uint baseVertex;
-    uint baseInstance;
-} meshWireframeIndirectCommandBuffer;
 
 layout(r16f, binding = 0) uniform readonly image2D depthOffsetBuffer;
 
@@ -279,11 +263,6 @@ void storeSurfel(in Quad quad, in Quad2D pixelCoords) {
     vertices[vertexIndexBottomRight].color = vec3(1.0, 1.0, 1.0);
     vertices[vertexIndexBottomRight].texCoords = pixelCoords.bottomRight / remoteWindowSize; // viewToScreen(projection, quad.bottomRight);
 
-    verticesWireframe[vertexIndexTopLeft] = vertices[vertexIndexTopLeft];
-    verticesWireframe[vertexIndexTopRight] = vertices[vertexIndexTopRight];
-    verticesWireframe[vertexIndexBottomLeft] = vertices[vertexIndexBottomLeft];
-    verticesWireframe[vertexIndexBottomRight] = vertices[vertexIndexBottomRight];
-
     uint indexIdxBase = atomicAdd(numIndices, INDICES_IN_A_QUAD);
 
     indices[indexIdxBase + 0] = vertexIndexTopLeft;
@@ -294,15 +273,7 @@ void storeSurfel(in Quad quad, in Quad2D pixelCoords) {
     indices[indexIdxBase + 4] = vertexIndexBottomLeft;
     indices[indexIdxBase + 5] = vertexIndexBottomRight;
 
-    indicesWireframe[indexIdxBase + 0] = indices[indexIdxBase + 0];
-    indicesWireframe[indexIdxBase + 1] = indices[indexIdxBase + 1];
-    indicesWireframe[indexIdxBase + 2] = indices[indexIdxBase + 2];
-    indicesWireframe[indexIdxBase + 3] = indices[indexIdxBase + 3];
-    indicesWireframe[indexIdxBase + 4] = indices[indexIdxBase + 4];
-    indicesWireframe[indexIdxBase + 5] = indices[indexIdxBase + 5];
-
     meshIndirectCommandBuffer.count = numIndices;
-    meshWireframeIndirectCommandBuffer.count = numIndices;
 
     memoryBarrier();
 }

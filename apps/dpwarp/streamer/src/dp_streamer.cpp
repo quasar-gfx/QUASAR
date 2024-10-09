@@ -162,8 +162,6 @@ int main(int argc, char** argv) {
 
     std::vector<Mesh*> meshes(maxViews);
     std::vector<Node*> nodes(maxViews);
-
-    std::vector<Mesh*> meshWireframes(maxViews);
     std::vector<Node*> nodeWireframes(maxViews);
 
     std::vector<Mesh*> meshDepths(maxViews);
@@ -188,16 +186,10 @@ int main(int argc, char** argv) {
                             fmod(view * 0.5f, 1.0f),
                             1.0f);
 
-        meshWireframes[view] = new Mesh({
-            .numVertices = maxVertices / 4,
-            .numIndices = maxIndices / 4,
-            .material = new QuadMaterial({ .baseColor = color }),
-            .usage = GL_DYNAMIC_DRAW,
-            .indirectDraw = true
-        });
-        nodeWireframes[view] = new Node(meshWireframes[view]);
+        nodeWireframes[view] = new Node(meshes[view]);
         nodeWireframes[view]->frustumCulled = false;
         nodeWireframes[view]->wireframe = true;
+        nodeWireframes[view]->overrideMaterial = new UnlitMaterial({ .baseColor = color });
         scene.addChildNode(nodeWireframes[view]);
 
         meshDepths[view] = new Mesh({
@@ -612,7 +604,6 @@ int main(int argc, char** argv) {
 
                 auto* currMesh = meshes[view];
                 auto* currMeshDepth = meshDepths[view];
-                auto* currMeshWireframe = meshWireframes[view];
 
                 // wide fov camera
                 if (view == maxViews - 1) {
@@ -771,10 +762,7 @@ int main(int argc, char** argv) {
                         genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, bufferSizesBuffer);
                         genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, currMesh->vertexBuffer);
                         genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, currMesh->indexBuffer);
-                        genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, currMeshWireframe->vertexBuffer);
-                        genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, currMeshWireframe->indexBuffer);
-                        genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, currMesh->indirectBuffer);
-                        genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, currMeshWireframe->indirectBuffer);
+                        genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, currMesh->indirectBuffer);
                         genMeshFromQuadMapsShader.setImageTexture(0, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetBuffer.internalFormat);
                     }
 
@@ -793,7 +781,6 @@ int main(int argc, char** argv) {
                 // bufferSizesBuffer.setSubData(0, 4, &zeros); // reset for next frame
 
                 // currMesh->resizeBuffers(bufferSizes.numVertices, bufferSizes.numIndices);
-                // currMeshWireframe->resizeBuffers(bufferSizes.numVertices, bufferSizes.numIndices);
 
                 totalProxies += bufferSizes.numProxies;
                 totalDepthOffsets += bufferSizes.numDepthOffsets;
