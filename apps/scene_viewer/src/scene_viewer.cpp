@@ -8,6 +8,7 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 #include <Recorder.h>
+#include <Animator.h>
 
 int main(int argc, char** argv) {
     Config config{};
@@ -18,6 +19,8 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
+    args::ValueFlag<std::string> pathFileIn(parser, "path", "Path to camera animation file", {'p', "path"});
+
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -63,6 +66,13 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera(windowSize.x, windowSize.y);
     SceneLoader loader;
     loader.loadScene(scenePath, scene, camera);
+
+    std::shared_ptr<Animator> animator;
+
+    if (pathFileIn) {
+        std::string pathFile = args::get(pathFileIn);
+        animator = std::make_shared<Animator>(pathFile);
+    }
 
     float exposure = 1.0f;
     int shaderIndex = 0;
@@ -221,7 +231,6 @@ int main(int argc, char** argv) {
     });
 
     app.onRender([&](double now, double dt) {
-        // handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
             auto mouseButtons = window->getMouseButtons();
             window->setMouseCursor(!mouseButtons.LEFT_PRESSED);
@@ -255,12 +264,21 @@ int main(int argc, char** argv) {
                 camera.processMouseMovement(xoffset, yoffset, true);
             }
         }
-
-        // handle keyboard input
         auto keys = window->getKeys();
-        camera.processKeyboard(keys, dt);
         if (keys.ESC_PRESSED) {
             window->close();
+        }
+        if (animator && !animator->isFinished()) {
+            animator->update(dt);
+            glm::vec3 position = animator->getCurrentPosition();
+
+            glm::quat rotation = animator->getCurrentRotation();
+            camera.setPosition(position);
+            camera.setRotationQuat(rotation);
+            camera.updateViewMatrix();
+        } else {
+            // handle keyboard input
+            camera.processKeyboard(keys, dt);
         }
 
         // render all objects in scene
