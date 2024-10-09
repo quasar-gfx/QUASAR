@@ -59,8 +59,6 @@ int main(int argc, char** argv) {
     // Create the Recorder instance
     Recorder recorder(1.0f, outputPath, renderer); // Capturing every 1 second
 
-    // Start the recorder
-    recorder.start();
 
     Scene scene;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
@@ -77,10 +75,12 @@ int main(int argc, char** argv) {
     float exposure = 1.0f;
     int shaderIndex = 0;
     RenderStats renderStats;
+    bool recording = false;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = true;
         static bool showCaptureWindow = false;
+        static bool showRecordWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
 
@@ -100,6 +100,7 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("FPS", 0, &showFPS);
             ImGui::MenuItem("UI", 0, &showUI);
             ImGui::MenuItem("Frame Capture", 0, &showCaptureWindow);
+            ImGui::MenuItem("Record", 0, &showRecordWindow);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -194,6 +195,26 @@ int main(int argc, char** argv) {
 
             ImGui::End();
         }
+
+        if (showRecordWindow) {
+            ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(winSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
+            ImGui::Begin("Record", &showRecordWindow);
+            ImGui::Text("Record Frames");
+            ImGui::Separator();
+            if (ImGui::Button("Record")) {
+                recording = true;
+                recorder.start();
+            }
+            if (ImGui::Button("Stop")) {
+                recording = false;
+                recorder.stop();
+            }
+            ImGui::End();
+        }
+        if (recording) {
+            recorder.captureFrame(renderer.gBuffer);
+        }
     });
 
     app.onResize([&](unsigned int width, unsigned int height) {
@@ -284,8 +305,6 @@ int main(int argc, char** argv) {
         // render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);
 
-        // Capture the frame using the Recorder
-        recorder.captureFrame(renderer.gBuffer);
 
         // render to screen
         if (shaderIndex == 1) {
@@ -315,9 +334,6 @@ int main(int argc, char** argv) {
 
     // run app loop (blocking)
     app.run();
-
-    // Stop the recorder
-    recorder.stop();
 
     return 0;
 }

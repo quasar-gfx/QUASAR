@@ -13,13 +13,13 @@
 class Recorder {
 public:
     Recorder(float fps, const std::string& outputPath, ForwardRenderer &renderer)
-        : m_captureTarget()
-        , m_running(false)
-        , m_frameInterval(1.0 / fps)
-        , m_outputPath(outputPath)
-        , m_frameCount(0)
+        : captureTarget(&renderer)
+        , running(false)
+        , frameInterval(1.0 / fps)
+        , outputPath(outputPath)
+        , frameCount(0)
     {
-        m_captureTarget = &renderer;
+        captureTarget = &renderer;
     }
     ~Recorder();
 
@@ -30,16 +30,16 @@ public:
 private:
     void saveFrames();
 
-    ForwardRenderer* m_captureTarget;
-    std::thread m_saveThread;
-    std::queue<std::vector<unsigned char>> m_frameQueue;
-    std::mutex m_queueMutex;
-    std::condition_variable m_queueCV;
-    std::atomic<bool> m_running;
-    std::chrono::duration<double> m_frameInterval;
-    std::chrono::steady_clock::time_point m_lastCaptureTime;
-    std::string m_outputPath;
-    unsigned int m_frameCount;
+    ForwardRenderer* captureTarget;
+    std::thread saveThread;
+    std::queue<std::vector<unsigned char>> frameQueue;
+    std::mutex queueMutex;
+    std::condition_variable queueCV;
+    std::atomic<bool> running;
+    std::chrono::duration<double> frameInterval;
+    std::chrono::steady_clock::time_point lastCaptureTime;
+    std::string outputPath;
+    unsigned int frameCount;
 };
 
 #endif // RECORDER_H
