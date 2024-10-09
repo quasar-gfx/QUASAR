@@ -1,5 +1,5 @@
-#ifndef TEXTURED_MATERIAL_H
-#define TEXTURED_MATERIAL_H
+#ifndef UNLIT_MATERIAL_H
+#define UNLIT_MATERIAL_H
 
 #include <Materials/Material.h>
 
@@ -34,4 +34,4 @@ public:
     static Shader* shader;
 };
 
-#endif // TEXTURED_MATERIAL_H
+#endif // UNLIT_MATERIAL_H

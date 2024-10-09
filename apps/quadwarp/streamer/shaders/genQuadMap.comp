@@ -114,7 +114,14 @@ layout(std430, binding = 0) writeonly buffer QuadMapBuffer {
     QuadMapData quadMap[];
 };
 
-layout(r16f, binding = 1) uniform image2D depthOffsetBuffer;
+layout(std430, binding = 1) buffer BufferSizesBuffer {
+    uint numVertices;
+    uint numIndices;
+    uint numProxies;
+    uint numDepthOffsets;
+};
+
+layout(r16f, binding = 0) uniform image2D depthOffsetBuffer;
 
 vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
     vec4 ndcPos;
@@ -609,6 +616,12 @@ void main() {
     if (pixelCoord.x >= int(remoteWindowSize.x) || pixelCoord.y >= int(remoteWindowSize.y)) {
         return;
     }
+
+    // reset counters
+    numVertices = 0;
+    numIndices = 0;
+    numProxies = 0;
+    numDepthOffsets = 0;
 
     // calculate coords (see above)
     vec2 surfelCornerCoordBottomLeft = vec2(gl_GlobalInvocationID.xy);

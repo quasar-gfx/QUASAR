@@ -13,8 +13,13 @@ public:
     std::vector<Node*> children;
 
     bool frustumCulled = true;
-    bool wireframe = false;
     bool visible = true;
+
+    GLenum primativeType = GL_TRIANGLES;
+    float pointSize = 5.0f;
+
+    bool wireframe = false;
+    float wireframeLineWidth = 1.0f;
 
     Node();
     Node(Entity* entity);

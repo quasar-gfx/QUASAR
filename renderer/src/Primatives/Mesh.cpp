@@ -103,9 +103,9 @@ void Mesh::setBuffers(unsigned int numVertices, unsigned int numIndices) {
     glBindVertexArray(0);
 }
 
-void Mesh::resizeBuffers(unsigned int vertexBufferSize, unsigned int indexBufferSize) {
-    vertexBuffer.setSize(vertexBufferSize);
-    indexBuffer.setSize(indexBufferSize);
+void Mesh::resizeBuffers(unsigned int numVertices, unsigned int numIndices) {
+    vertexBuffer.setSize(numVertices);
+    indexBuffer.setSize(numIndices);
 }
 
 void Mesh::updateAABB(const std::vector<Vertex> &vertices) {
@@ -172,8 +172,6 @@ void Mesh::bindMaterial(const Scene &scene, const glm::mat4 &model, const Materi
     materialToUse->getShader()->setInt("numPointLights", static_cast<int>(scene.pointLights.size()));
     materialToUse->getShader()->setFloat("material.IBL", IBL);
 
-    materialToUse->getShader()->setFloat("pointSize", pointSize);
-
     materialToUse->getShader()->setBool("peelDepth", prevDepthMap != nullptr);
     if (prevDepthMap != nullptr) {
         materialToUse->getShader()->setTexture("prevDepthMap", *prevDepthMap, texIdx);
@@ -183,7 +181,7 @@ void Mesh::bindMaterial(const Scene &scene, const glm::mat4 &model, const Materi
     materialToUse->unbind();
 }
 
-RenderStats Mesh::draw(const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
+RenderStats Mesh::draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
     RenderStats stats;
 
     if (camera.isVR()) {
@@ -209,34 +207,45 @@ RenderStats Mesh::draw(const Camera &camera, const glm::mat4 &model, bool frustu
     materialToUse->getShader()->setMat4("model", model);
     materialToUse->getShader()->setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
 
-    stats = draw();
+    stats = draw(primativeType);
 
     materialToUse->unbind();
 
     return stats;
 }
 
-RenderStats Mesh::draw(const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
+RenderStats Mesh::draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
     RenderStats stats;
     if (!boundingSphere.intersects(aabb)) {
         return stats;
     }
-    return draw(camera, model, false, overrideMaterial);
+    return draw(primativeType, camera, model, false, overrideMaterial);
 }
 
-RenderStats Mesh::draw() {
-    GLenum primativeType = pointcloud ? GL_POINTS : GL_TRIANGLES;
-
+RenderStats Mesh::draw(GLenum primativeType) {
     glBindVertexArray(vertexArrayBuffer);
-    if (indexBuffer.getSize() > 0) {
-        indexBuffer.bind();
-        glDrawElements(primativeType, indexBuffer.getSize(), GL_UNSIGNED_INT, 0);
-        indexBuffer.unbind();
+
+    if (indirectDraw) {
+        indirectBuffer.bind();
+        if (indexBuffer.getSize() > 0) {
+            indexBuffer.bind();
+            glDrawElementsIndirect(primativeType, GL_UNSIGNED_INT, 0);
+        }
+        else {
+            vertexBuffer.bind();
+            glDrawArraysIndirect(primativeType, 0);
+        }
+        indirectBuffer.unbind();
     }
     else {
-        vertexBuffer.bind();
-        glDrawArrays(primativeType, 0, vertexBuffer.getSize());
-        vertexBuffer.unbind();
+        if (indexBuffer.getSize() > 0) {
+            indexBuffer.bind();
+            glDrawElements(primativeType, indexBuffer.getSize(), GL_UNSIGNED_INT, 0);
+        }
+        else {
+            vertexBuffer.bind();
+            glDrawArrays(primativeType, 0, vertexBuffer.getSize());
+        }
     }
     glBindVertexArray(0);
 

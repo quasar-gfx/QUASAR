@@ -1,6 +1,8 @@
 #ifndef SHADER_BASE_H
 #define SHADER_BASE_H
 
+#include <any>
+#include <unordered_map>
 #include <iostream>
 #include <vector>
 
@@ -25,66 +27,83 @@ public:
     }
 
     void bind() const override {
-        if (currentShaderID == ID) {
+        if (bindedShaderID == ID) {
             return;
         }
 
         glUseProgram(ID);
-        currentShaderID = ID;
+        bindedShaderID = ID;
     }
 
     void unbind() const override {
-        if (currentShaderID == 0) {
+        if (bindedShaderID == 0) {
             return;
         }
 
         glUseProgram(0);
-        currentShaderID = 0;
+        bindedShaderID = 0;
     }
 
     void setBool(const std::string &name, bool value) const {
-        glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value);
+        if (!isUniformCached(name, value)) {
+            glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value);
+        }
     }
 
     void setInt(const std::string &name, int value) const {
-        glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
+        if (!isUniformCached(name, value)) {
+            glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
+            uniformCache[name] = value;
+        }
     }
 
     void setFloat(const std::string &name, float value) const {
-        glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
+        if (!isUniformCached(name, value)) {
+            glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
+            uniformCache[name] = value;
+        }
     }
 
     void setVec2(const std::string &name, const glm::vec2 &value) const {
-        glUniform2fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
-    }
-    void setVec2(const std::string &name, float x, float y) const {
-        glUniform2f(glGetUniformLocation(ID, name.c_str()), x, y);
+        if (!isUniformCached(name, value)) {
+            glUniform2fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
+            uniformCache[name] = value;
+        }
     }
 
     void setVec3(const std::string &name, const glm::vec3 &value) const {
-        glUniform3fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
-    }
-    void setVec3(const std::string &name, float x, float y, float z) const {
-        glUniform3f(glGetUniformLocation(ID, name.c_str()), x, y, z);
+        if (!isUniformCached(name, value)) {
+            glUniform3fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
+            uniformCache[name] = value;
+        }
     }
 
     void setVec4(const std::string &name, const glm::vec4 &value) const {
-        glUniform4fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
-    }
-    void setVec4(const std::string &name, float x, float y, float z, float w) {
-        glUniform4f(glGetUniformLocation(ID, name.c_str()), x, y, z, w);
+        if (!isUniformCached(name, value)) {
+            glUniform4fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
+            uniformCache[name] = value;
+        }
     }
 
     void setMat2(const std::string &name, const glm::mat2 &mat) const {
-        glUniformMatrix2fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
+        if (!isUniformCached(name, mat)) {
+            glUniformMatrix2fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
+            uniformCache[name] = mat;
+        }
     }
 
     void setMat3(const std::string &name, const glm::mat3 &mat) const {
-        glUniformMatrix3fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
+        if (!isUniformCached(name, mat)) {
+            glUniformMatrix3fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
+            uniformCache[name] = mat;
+        }
     }
 
     void setMat4(const std::string &name, const glm::mat4 &mat) const {
-        glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
+        if (!isUniformCached(name, mat)) {
+            glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
+            uniformCache[name] = mat;
+        }
     }
 
     void setTexture(const Texture &texture, int slot) const {
@@ -93,7 +112,18 @@ public:
 
     void setTexture(const std::string &name, const Texture &texture, int slot) const {
         texture.bind(slot);
-        setInt(name, slot);
+        if (!isUniformCached(name, slot)) {
+            setInt(name, slot);
+            uniformCache[name] = slot;
+        }
+    }
+
+    void setTextureToEmpty(const std::string &name, int slot) const {
+        glBindTexture(GL_TEXTURE_2D, 0);
+        if (!isUniformCached(name, slot)) {
+            setInt(name, slot);
+            uniformCache[name] = 0;
+        }
     }
 
 protected:
@@ -204,7 +234,25 @@ protected:
         }
     }
 
-    static GLuint currentShaderID;
+protected:
+    mutable std::unordered_map<std::string, std::any> uniformCache;
+
+    template <typename T>
+    bool isUniformCached(const std::string &name, const T &value) const {
+        auto it = uniformCache.find(name);
+        if (it != uniformCache.end()) {
+            try {
+                const T& cachedValue = std::any_cast<const T&>(it->second);
+                return cachedValue == value;
+            } catch (const std::bad_any_cast&) {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    static GLuint bindedShaderID;
 };
 
 #endif // SHADER_BASE_H

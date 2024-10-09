@@ -8,6 +8,8 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <QuadMaterial.h>
+
 #define THREADS_PER_LOCALGROUP 16
 
 #define VERTICES_IN_A_QUAD 4
@@ -53,9 +55,10 @@ int main(int argc, char** argv) {
     glm::uvec2 remoteWindowSize = glm::uvec2(size2Width, size2Height);
 
     // make sure maxProxySize is a power of 2
-    int maxProxySize = glm::max(remoteWindowSize.x, remoteWindowSize.y);
-    maxProxySize = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize))));
-    int numQuadMaps = glm::log2(static_cast<float>(maxProxySize)) + 1;
+    glm::uvec2 maxProxySize = remoteWindowSize;
+    maxProxySize.x = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize.x))));
+    maxProxySize.y = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize.y))));
+    int numQuadMaps = glm::log2(static_cast<float>(glm::min(maxProxySize.x, maxProxySize.y))) + 1;
 
     config.enableVSync = args::get(vsyncIn);
 
@@ -95,7 +98,7 @@ int main(int argc, char** argv) {
     };
     std::vector<Buffer<QuadMapData>> quadMaps(numQuadMaps);
     std::vector<glm::uvec2> quadMapSizes(numQuadMaps);
-    glm::uvec2 quadMapSize = glm::uvec2(maxProxySize);
+    glm::vec2 quadMapSize = maxProxySize;
     for (int i = 0; i < numQuadMaps; i++) {
         quadMaps[i] = Buffer<QuadMapData>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, quadMapSize.x * quadMapSize.y, nullptr);
         quadMapSizes[i] = quadMapSize;
@@ -143,21 +146,33 @@ int main(int argc, char** argv) {
     unsigned int zeros[4] = { 0 };
     Buffer<unsigned int> bufferSizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(BufferSizes), zeros);
 
+    Texture checkerboard({
+        .wrapS = GL_REPEAT,
+        .wrapT = GL_REPEAT,
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST,
+        .flipVertically = true,
+        .path = "../assets/textures/checkerboard.jpg"
+    });
+
     Mesh mesh = Mesh({
-        .vertices = std::vector<Vertex>(maxVertices),
-        .indices = std::vector<unsigned int>(maxIndices),
-        .material = new UnlitMaterial({ .diffuseTexture = &renderTarget.colorBuffer }),
-        .usage = GL_DYNAMIC_DRAW
+        .numVertices = maxVertices,
+        .numIndices = maxIndices,
+        // .material = new QuadMaterial({ .diffuseTexture = &checkerboard }),
+        .material = new QuadMaterial({ .diffuseTexture = &renderTarget.colorBuffer }),
+        .usage = GL_DYNAMIC_DRAW,
+        .indirectDraw = true
     });
     Node node = Node(&mesh);
     node.frustumCulled = false;
     scene.addChildNode(&node);
 
     Mesh meshWireframe = Mesh({
-        .vertices = std::vector<Vertex>(maxVertices),
-        .indices = std::vector<unsigned int>(maxIndices),
+        .numVertices = maxVertices,
+        .numIndices = maxIndices,
         .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-        .usage = GL_DYNAMIC_DRAW
+        .usage = GL_DYNAMIC_DRAW,
+        .indirectDraw = true
     });
     Node nodeWireframe = Node(&meshWireframe);
     nodeWireframe.frustumCulled = false;
@@ -166,15 +181,14 @@ int main(int argc, char** argv) {
     scene.addChildNode(&nodeWireframe);
 
     Mesh meshDepth = Mesh({
-        .vertices = std::vector<Vertex>(maxVerticesDepth),
+        .numVertices = maxVerticesDepth,
         .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-        .pointcloud = true,
-        .pointSize = 7.5f,
         .usage = GL_DYNAMIC_DRAW
     });
     Node nodeDepth = Node(&meshDepth);
     nodeDepth.frustumCulled = false;
     nodeDepth.visible = false;
+    nodeDepth.primativeType = GL_POINTS;
     scene.addChildNode(&nodeDepth);
 
     // shaders
@@ -549,7 +563,8 @@ int main(int argc, char** argv) {
             }
             {
                 genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, quadMaps[0]);
-                genQuadMapShader.setImageTexture(1, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsetBuffer.internalFormat);
+                genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, bufferSizesBuffer);
+                genQuadMapShader.setImageTexture(0, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsetBuffer.internalFormat);
             }
 
             // run compute shader
@@ -593,7 +608,7 @@ int main(int argc, char** argv) {
                 {
                     simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, prevBuffer);
                     simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, currBuffer);
-                    simplifyQuadMapShader.setImageTexture(2, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsetBuffer.internalFormat);
+                    simplifyQuadMapShader.setImageTexture(0, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsetBuffer.internalFormat);
                 }
 
                 simplifyQuadMapShader.dispatch((currQuadMapSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
@@ -634,7 +649,9 @@ int main(int argc, char** argv) {
                     genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, mesh.indexBuffer);
                     genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, meshWireframe.vertexBuffer);
                     genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, meshWireframe.indexBuffer);
-                    genMeshFromQuadMapsShader.setImageTexture(6, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetBuffer.internalFormat);
+                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, mesh.indirectBuffer);
+                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, meshWireframe.indirectBuffer);
+                    genMeshFromQuadMapsShader.setImageTexture(0, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetBuffer.internalFormat);
                 }
 
                 genMeshFromQuadMapsShader.dispatch((quadMapSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
@@ -647,15 +664,12 @@ int main(int argc, char** argv) {
             startTime = glfwGetTime();
 
             // get number of vertices and indices in mesh
-            bufferSizesBuffer.bind();
-            bufferSizesBuffer.getSubData(0, 4, &bufferSizes);
-            bufferSizesBuffer.setSubData(0, 4, &zeros); // reset for next frame
+            // bufferSizesBuffer.bind();
+            // bufferSizesBuffer.getSubData(0, 4, &bufferSizes);
+            // bufferSizesBuffer.setSubData(0, 4, &zeros); // reset for next frame
 
-            mesh.resizeBuffers(bufferSizes.numVertices, bufferSizes.numIndices);
-            meshWireframe.resizeBuffers(bufferSizes.numVertices, bufferSizes.numIndices);
-
-            std::cout << "  Set Mesh Buffers Time: " << glfwGetTime() - startTime << "s" << std::endl;
-            startTime = glfwGetTime();
+            // std::cout << "  Set Mesh Buffers Time: " << glfwGetTime() - startTime << "s" << std::endl;
+            // startTime = glfwGetTime();
 
             /*
             ============================
@@ -693,9 +707,6 @@ int main(int argc, char** argv) {
 
         nodeWireframe.visible = showWireframe;
         nodeDepth.visible = showDepth;
-
-        nodeWireframe.setPosition(node.getPosition() - camera.getForwardVector() * 0.001f);
-        nodeDepth.setPosition(node.getPosition() - camera.getForwardVector() * 0.0015f);
 
         // render generated meshes
         renderer.pipeline.rasterState.cullFaceEnabled = false;

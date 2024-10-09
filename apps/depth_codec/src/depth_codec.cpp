@@ -142,24 +142,22 @@ int main(int argc, char** argv) {
         .vertices = std::vector<Vertex>(numVertices),
         .indices = std::vector<unsigned int>(indexBufferSize),
         .material = new UnlitMaterial({ .baseColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f) }),
-        .pointcloud = renderState == RenderState::POINTCLOUD,
-        .pointSize = 7.5f,
         .usage = GL_DYNAMIC_DRAW
     });
     Node node = Node(&mesh);
     node.frustumCulled = false;
+    node.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
     scene.addChildNode(&node);
 
     Mesh meshDecompressed = Mesh({
         .vertices = std::vector<Vertex>(numVertices),
         .indices = std::vector<unsigned int>(indexBufferSize),
         .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-        .pointcloud = renderState == RenderState::POINTCLOUD,
-        .pointSize = 5.0f,
         .usage = GL_DYNAMIC_DRAW
     });
     Node nodeDecompressed = Node(&meshDecompressed);
     nodeDecompressed.frustumCulled = false;
+    nodeDecompressed.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
     scene.addChildNode(&nodeDecompressed);
 
     bool rerender = true;
@@ -395,8 +393,8 @@ int main(int argc, char** argv) {
                                     GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
         // set render state
-        mesh.pointcloud = renderState == RenderState::POINTCLOUD;
-        meshDecompressed.pointcloud = renderState == RenderState::POINTCLOUD;
+        node.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
+        nodeDecompressed.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
 
         // render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);

@@ -54,10 +54,10 @@ public:
                               const Material* overrideMaterial = nullptr,
                               const Texture* prevDepthMap = nullptr) = 0;
 
-    virtual RenderStats draw(const Camera &camera, const glm::mat4 &model,
+    virtual RenderStats draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model,
                              bool frustumCull = true,
                              const Material* overrideMaterial = nullptr) = 0;
-    virtual RenderStats draw(const Camera &camera, const glm::mat4 &model,
+    virtual RenderStats draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model,
                              const BoundingSphere &boundingSphere,
                              const Material* overrideMaterial = nullptr) = 0;
 
