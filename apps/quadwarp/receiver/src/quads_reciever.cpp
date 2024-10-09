@@ -212,21 +212,21 @@ int main(int argc, char** argv) {
         .vertices = vertices,
         .indices = indices,
         .material = new UnlitMaterial({ .diffuseTexture = &colorTexture }),
-        .pointcloud = renderState == RenderState::POINTCLOUD,
     });
     Node node(&mesh);
     node.frustumCulled = false;
+    node.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
     scene.addChildNode(&node);
 
     Mesh meshWireframe = Mesh({
         .vertices = vertices,
         .indices = indices,
         .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-        .pointcloud = false,
     });
     Node nodeWireframe(&meshWireframe);
     nodeWireframe.frustumCulled = false;
     nodeWireframe.wireframe = true;
+    nodeWireframe.primativeType = GL_POINTS;
     scene.addChildNode(&nodeWireframe);
 
     app.onRender([&](double now, double dt) {
@@ -272,7 +272,7 @@ int main(int argc, char** argv) {
             window->close();
         }
 
-        mesh.pointcloud = renderState == RenderState::POINTCLOUD;
+        node.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
         nodeWireframe.visible = renderState == RenderState::WIREFRAME;
 
         // render all objects in scene

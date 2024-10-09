@@ -172,8 +172,6 @@ void Mesh::bindMaterial(const Scene &scene, const glm::mat4 &model, const Materi
     materialToUse->getShader()->setInt("numPointLights", static_cast<int>(scene.pointLights.size()));
     materialToUse->getShader()->setFloat("material.IBL", IBL);
 
-    materialToUse->getShader()->setFloat("pointSize", pointSize);
-
     materialToUse->getShader()->setBool("peelDepth", prevDepthMap != nullptr);
     if (prevDepthMap != nullptr) {
         materialToUse->getShader()->setTexture("prevDepthMap", *prevDepthMap, texIdx);
@@ -183,7 +181,7 @@ void Mesh::bindMaterial(const Scene &scene, const glm::mat4 &model, const Materi
     materialToUse->unbind();
 }
 
-RenderStats Mesh::draw(const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
+RenderStats Mesh::draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
     RenderStats stats;
 
     if (camera.isVR()) {
@@ -209,24 +207,22 @@ RenderStats Mesh::draw(const Camera &camera, const glm::mat4 &model, bool frustu
     materialToUse->getShader()->setMat4("model", model);
     materialToUse->getShader()->setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
 
-    stats = draw();
+    stats = draw(primativeType);
 
     materialToUse->unbind();
 
     return stats;
 }
 
-RenderStats Mesh::draw(const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
+RenderStats Mesh::draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
     RenderStats stats;
     if (!boundingSphere.intersects(aabb)) {
         return stats;
     }
-    return draw(camera, model, false, overrideMaterial);
+    return draw(primativeType, camera, model, false, overrideMaterial);
 }
 
-RenderStats Mesh::draw() {
-    GLenum primativeType = pointcloud ? GL_POINTS : GL_TRIANGLES;
-
+RenderStats Mesh::draw(GLenum primativeType) {
     glBindVertexArray(vertexArrayBuffer);
 
     if (indirectDraw) {

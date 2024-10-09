@@ -17,8 +17,6 @@ struct MeshDataCreateParams {
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
     Material* material;
-    bool pointcloud = false;
-    float pointSize = 5.0;
     float IBL = 1.0;
     GLenum usage = GL_STATIC_DRAW;
     bool indirectDraw = false;
@@ -28,8 +26,6 @@ struct MeshSizeCreateParams {
     unsigned int numVertices = 0;
     unsigned int numIndices = 0;
     Material* material;
-    bool pointcloud = false;
-    float pointSize = 5.0;
     float IBL = 1.0;
     GLenum usage = GL_STATIC_DRAW;
     bool indirectDraw = false;
@@ -51,8 +47,6 @@ public:
 
     Material* material;
 
-    bool pointcloud = false;
-    float pointSize = 5.0;
     float IBL = 1.0;
 
     GLenum usage;
@@ -64,8 +58,6 @@ public:
     }
     Mesh(const MeshDataCreateParams &params)
             : material(params.material)
-            , pointcloud(params.pointcloud)
-            , pointSize(params.pointSize)
             , IBL(params.IBL)
             , usage(params.usage)
             , vertexBuffer(GL_ARRAY_BUFFER, params.usage)
@@ -84,8 +76,6 @@ public:
     }
     Mesh(const MeshSizeCreateParams &params)
             : material(params.material)
-            , pointcloud(params.pointcloud)
-            , pointSize(params.pointSize)
             , IBL(params.IBL)
             , usage(params.usage)
             , vertexBuffer(GL_ARRAY_BUFFER, params.usage)
@@ -106,11 +96,11 @@ public:
     virtual void bindMaterial(const Scene &scene, const glm::mat4 &model,
                               const Material* overrideMaterial = nullptr, const Texture* prevDepthMap = nullptr) override;
 
-    virtual RenderStats draw(const Camera &camera, const glm::mat4 &model,
+    virtual RenderStats draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model,
                              bool frustumCull = true, const Material* overrideMaterial = nullptr) override;
-    virtual RenderStats draw(const Camera &camera, const glm::mat4 &model,
+    virtual RenderStats draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model,
                              const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) override;
-    virtual RenderStats draw();
+    virtual RenderStats draw(GLenum primativeType);
 
     void setBuffers(const std::vector<Vertex> &vertices);
     void setBuffers(const std::vector<Vertex> &vertices, const std::vector<unsigned int> &indices);

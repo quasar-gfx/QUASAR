@@ -183,13 +183,12 @@ int main(int argc, char** argv) {
     Mesh meshDepth = Mesh({
         .numVertices = maxVerticesDepth,
         .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-        .pointcloud = true,
-        .pointSize = 7.5f,
         .usage = GL_DYNAMIC_DRAW
     });
     Node nodeDepth = Node(&meshDepth);
     nodeDepth.frustumCulled = false;
     nodeDepth.visible = false;
+    nodeDepth.primativeType = GL_POINTS;
     scene.addChildNode(&nodeDepth);
 
     // shaders

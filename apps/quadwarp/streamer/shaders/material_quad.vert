@@ -31,8 +31,6 @@ uniform mat4 model;
 uniform mat3 normalMatrix;
 uniform mat4 lightSpaceMatrix;
 
-uniform float pointSize;
-
 void main() {
     vsOut.VertexID = aID;
     vsOut.FragPos = vec3(model * vec4(aPos, 1.0));
@@ -42,8 +40,6 @@ void main() {
     vsOut.BiTangent = normalize(normalMatrix * aBitangent);
 
     vsOut.FragPosLightSpace = lightSpaceMatrix * vec4(vsOut.FragPos, 1.0);
-
-    gl_PointSize = pointSize;
 
 #ifndef ANDROID
     gl_Position = projection * view * vec4(vsOut.FragPos, 1.0);

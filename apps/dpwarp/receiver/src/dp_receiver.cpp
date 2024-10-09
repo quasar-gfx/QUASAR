@@ -242,10 +242,10 @@ int main(int argc, char** argv) {
             .vertices = vertices,
             .indices = indices,
             .material = new UnlitMaterial({ .diffuseTexture = colorTextures[i] }),
-            .pointcloud = renderState == RenderState::POINTCLOUD,
         });
         nodes[i] = new Node(meshes[i]);
         nodes[i]->frustumCulled = false;
+        nodes[i]->primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
         scene.addChildNode(nodes[i]);
 
         // primary view color is yellow
@@ -259,7 +259,6 @@ int main(int argc, char** argv) {
             .vertices = vertices,
             .indices = indices,
             .material = new UnlitMaterial({ .baseColor = color }),
-            .pointcloud = false,
         });
         nodeWireframes[i] = new Node(meshWireframes[i]);
         nodeWireframes[i]->frustumCulled = false;
@@ -314,7 +313,7 @@ int main(int argc, char** argv) {
             bool showLayer = showLayers[i];
 
             nodes[i]->visible = showLayer;
-            meshes[i]->pointcloud = showLayer && (renderState == RenderState::POINTCLOUD);
+            nodes[i]->primativeType = showLayer && (renderState == RenderState::POINTCLOUD) ? GL_POINTS : GL_TRIANGLES;
             nodeWireframes[i]->visible = showLayer && (renderState == RenderState::WIREFRAME);
         }
 

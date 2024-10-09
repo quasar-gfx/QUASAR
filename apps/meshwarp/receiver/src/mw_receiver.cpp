@@ -123,11 +123,11 @@ int main(int argc, char** argv) {
         .vertices = std::vector<Vertex>(maxVertices),
         .indices = std::vector<unsigned int>(maxIndices),
         .material = new UnlitMaterial({ .diffuseTexture = &videoTextureColor }),
-        .pointcloud = renderState == RenderState::POINTCLOUD,
         .usage = GL_DYNAMIC_DRAW
     });
     Node node = Node(&mesh);
     node.frustumCulled = false;
+    node.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
     scene.addChildNode(&node);
 
     Mesh meshWireframe = Mesh({
@@ -448,7 +448,7 @@ int main(int argc, char** argv) {
         poseStreamer.removePosesLessThan(std::min(poseIdColor, poseIdDepth));
 
         // Set render state
-        mesh.pointcloud = renderState == RenderState::POINTCLOUD;
+        node.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
         nodeWireframe.visible = renderState == RenderState::WIREFRAME;
 
         // Render all objects in scene

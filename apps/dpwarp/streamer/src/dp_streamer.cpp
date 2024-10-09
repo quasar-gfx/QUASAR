@@ -203,12 +203,11 @@ int main(int argc, char** argv) {
         meshDepths[view] = new Mesh({
             .numVertices = maxVerticesDepth,
             .material = new UnlitMaterial({ .baseColor = color }),
-            .pointcloud = true,
-            .pointSize = 7.5f,
             .usage = GL_DYNAMIC_DRAW
         });
         nodeDepths[view] = new Node(meshDepths[view]);
         nodeDepths[view]->frustumCulled = false;
+        nodeDepths[view]->primativeType = GL_POINTS;
         scene.addChildNode(nodeDepths[view]);
     }
 
