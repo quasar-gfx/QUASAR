@@ -11,7 +11,9 @@
 #include <Shaders/ComputeShader.h>
 
 #define THREADS_PER_LOCALGROUP 16
+
 #define TEXTURE_PREVIEW_SIZE 500
+
 #define VERTICES_IN_A_QUAD 4
 
 const std::string DATA_PATH = "../streamer/";
@@ -153,7 +155,6 @@ int main(int argc, char** argv) {
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
         static bool showVideoPreview = true;
-        static bool showDepthPreview = true;
 
         glm::vec2 winSize = glm::vec2(windowSize.x, windowSize.y);
 
@@ -172,7 +173,6 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("UI", 0, &showUI);
             ImGui::MenuItem("Frame Capture", 0, &showCaptureWindow);
             ImGui::MenuItem("Video Preview", 0, &showVideoPreview);
-            ImGui::MenuItem("Depth Preview", 0, &showDepthPreview);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -218,6 +218,7 @@ int main(int argc, char** argv) {
             if (ImGui::InputFloat3("Camera Rotation", (float*)&rotation)) {
                 camera.setRotationEuler(rotation);
             }
+            ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
 
             ImGui::Separator();
 
@@ -265,14 +266,6 @@ int main(int argc, char** argv) {
             ImGui::End();
         }
 
-        if (showDepthPreview) {
-            ImGui::SetNextWindowPos(ImVec2(windowSize.x - TEXTURE_PREVIEW_SIZE - 30, 40), ImGuiCond_FirstUseEver);
-            ImGui::Begin("Raw Depth Texture", &showDepthPreview, flags);
-            ImGui::Image((void*)(intptr_t)videoTextureDepth.ID, ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
-        }
-
-        ImGui::End();
-
         if (showCaptureWindow) {
             ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowPos(ImVec2(winSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
@@ -319,10 +312,12 @@ int main(int argc, char** argv) {
         .fragmentCodePath = "../shaders/postprocessing/displayTexture.frag",
     });
 
-    ComputeShader BC4genMeshShader({
-        .computeCodePath = "./shaders/genMesh.comp",
+    ComputeShader genMeshFromBC4Shader({
+        .computeCodePath = "./shaders/genMeshFromBC4.comp",
+        .defines = {
+            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
+        }
     });
-
 
     // Load camera matrices
     auto cameraData = FileIO::loadBinaryFile(DATA_PATH + "data/camera.bin");
@@ -343,7 +338,6 @@ int main(int argc, char** argv) {
     remoteCamera.setViewMatrix(view);
 
     Pose currentColorFramePose, currentDepthFramePose;
-
     app.onRender([&](double now, double dt) {
         /// handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
@@ -399,7 +393,8 @@ int main(int argc, char** argv) {
         // Render depth video frame
         if (sync) {
             poseIdDepth = videoTextureDepth.draw(poseIdColor);
-        } else {
+        }
+        else {
             poseIdDepth = videoTextureDepth.draw();
         }
 
@@ -414,41 +409,41 @@ int main(int argc, char** argv) {
         }
 
         // Set shader uniforms
-        BC4genMeshShader.bind();
+        genMeshFromBC4Shader.bind();
         {
-            BC4genMeshShader.setVec2("screenSize", windowSize);
-            BC4genMeshShader.setVec2("depthMapSize", videoTextureDepth.getDepthMapSize());
-            BC4genMeshShader.setInt("surfelSize", surfelSize);
-            BC4genMeshShader.setFloat("near", remoteCamera.near);
-            BC4genMeshShader.setFloat("far", remoteCamera.far);
+            genMeshFromBC4Shader.setVec2("screenSize", windowSize);
+            genMeshFromBC4Shader.setVec2("depthMapSize", glm::vec2(videoTextureDepth.width, videoTextureDepth.height));
+            genMeshFromBC4Shader.setInt("surfelSize", surfelSize);
+            genMeshFromBC4Shader.setFloat("near", remoteCamera.near);
+            genMeshFromBC4Shader.setFloat("far", remoteCamera.far);
         }
         {
-            BC4genMeshShader.setMat4("view", remoteCamera.getViewMatrix());
-            BC4genMeshShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-            BC4genMeshShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
-            BC4genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+            genMeshFromBC4Shader.setMat4("view", remoteCamera.getViewMatrix());
+            genMeshFromBC4Shader.setMat4("projection", remoteCamera.getProjectionMatrix());
+            genMeshFromBC4Shader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
+            genMeshFromBC4Shader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
         }
         {
             if (poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTimeColor)) {
-                BC4genMeshShader.setMat4("viewColor", currentColorFramePose.mono.view);
+                genMeshFromBC4Shader.setMat4("viewColor", currentColorFramePose.mono.view);
             }
             if (poseStreamer.getPose(poseIdDepth, &currentDepthFramePose, &elapsedTimeDepth)) {
-                BC4genMeshShader.setMat4("viewInverseDepth", glm::inverse(currentDepthFramePose.mono.view));
+                genMeshFromBC4Shader.setMat4("viewInverseDepth", glm::inverse(currentDepthFramePose.mono.view));
             }
         }
         {
-            BC4genMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
-            BC4genMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
-            BC4genMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, meshWireframe.vertexBuffer);
-            BC4genMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, meshWireframe.indexBuffer);
-            BC4genMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, videoTextureDepth.getCompressedBuffer()); // from bc4tVideoTexture
+            genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
+            genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
+            genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, meshWireframe.vertexBuffer);
+            genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, meshWireframe.indexBuffer);
+            genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, videoTextureDepth.bc4CompressedBuffer);
         }
 
-        // Dispatch compute shader to generate vertices and indices for both main and wireframe meshes
-        BC4genMeshShader.dispatch((videoTextureDepth.width + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                        (videoTextureDepth.height + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
-        BC4genMeshShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
-                                    GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+        // dispatch compute shader to generate vertices and indices for both main and wireframe meshes
+        genMeshFromBC4Shader.dispatch((videoTextureDepth.width + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                      (videoTextureDepth.height + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+        genMeshFromBC4Shader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
+                                           GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
         poseStreamer.removePosesLessThan(std::min(poseIdColor, poseIdDepth));
 

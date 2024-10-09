@@ -1,14 +1,14 @@
 #include <Utils/TimeUtils.h>
 #include <BC4DepthVideoTexture.h>
 
-BC4DepthVideoTexture::BC4DepthVideoTexture(const TextureDataCreateParams &params, std::string streamerURL)
-    : streamerURL(streamerURL)
-    , DataReceiverTCP(streamerURL, false)
-    , Texture(params) {
+#define BLOCK_SIZE 8
 
-    compressedSize = (params.width / 8) * (params.height / 8) * sizeof(Block);
-    //std::cout << "Compressed size: " << compressedSize << std::endl;
-    bc4CompressedBuffer = Buffer<Block>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, compressedSize / sizeof(Block), nullptr);
+BC4DepthVideoTexture::BC4DepthVideoTexture(const TextureDataCreateParams &params, std::string streamerURL)
+        : streamerURL(streamerURL)
+        , DataReceiverTCP(streamerURL, false)
+        , Texture(params)
+        , compressedSize((params.width / BLOCK_SIZE) * (params.height / BLOCK_SIZE)) {
+    bc4CompressedBuffer = Buffer<Block>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, compressedSize, nullptr);
 }
 
 pose_id_t BC4DepthVideoTexture::getLatestPoseID() {
@@ -16,6 +16,7 @@ pose_id_t BC4DepthVideoTexture::getLatestPoseID() {
     if (depthFrames.empty()) {
         return -1;
     }
+
     FrameData frameData = depthFrames.back();
     return frameData.poseID;
 }
@@ -23,12 +24,10 @@ pose_id_t BC4DepthVideoTexture::getLatestPoseID() {
 void BC4DepthVideoTexture::onDataReceived(const std::vector<uint8_t>& data) {
     std::lock_guard<std::mutex> lock(m);
 
-    if (data.size() != sizeof(pose_id_t) + compressedSize) {
-        std::cerr << "Received data size mismatch. Expected: " << (sizeof(pose_id_t) + compressedSize) << ", Got: " << data.size() << std::endl;
+    if (data.size() != sizeof(pose_id_t) + compressedSize * sizeof(Block)) {
+        std::cerr << "Received data size mismatch. Expected: " << (sizeof(pose_id_t) + compressedSize * sizeof(Block)) << ", Got: " << data.size() << std::endl;
         return;
     }
-
-    // debugPrintData(data); // Add this line to print the received data
 
     std::vector<uint8_t> depthFrame = data;
     pose_id_t poseID;
@@ -78,7 +77,7 @@ pose_id_t BC4DepthVideoTexture::draw(pose_id_t poseID) {
     }
 
     // Update the BC4 compressed buffer
-    bc4CompressedBuffer.setData(compressedSize / sizeof(Block), res.data());
+    bc4CompressedBuffer.setData(compressedSize, res.data());
 
     stats.timeToReceiveMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
     stats.bitrateMbps = ((sizeof(pose_id_t) + res.size() * 8) / timeutils::millisToSeconds(stats.timeToReceiveMs)) / MBPS_TO_BPS;

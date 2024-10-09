@@ -1,4 +1,4 @@
-layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = THREADS_PER_LOCALGROUP, local_size_z = 1) in;
 
 struct Vertex {
     uint id;
@@ -13,8 +13,7 @@ struct Vertex {
 struct Block{
     float max;
     float min;
-    uint arr[6];
-    //float real[64]; // real value for depth
+    uint data[6];
 };
 
 layout(std430, binding = 0) buffer VertexBuffer {
@@ -54,6 +53,8 @@ uniform float near;
 uniform float far;
 
 uniform int surfelSize;
+
+#define MAX_DEPTH 0.9999
 
 #define VERTICES_IN_A_QUAD  4
 #define INDICES_IN_A_QUAD   6
@@ -124,7 +125,7 @@ float sampleBC4Buffer(vec2 pixelCoordNormalized) {
     uint index;
     if (bitOffset <= 29) {
         // Normal case: all 3 bits are in the current uint
-        index = (compressedBlock.arr[uintIndex] >> (29 - bitOffset)) & 0x7u;
+        index = (compressedBlock.data[uintIndex] >> (29 - bitOffset)) & 0x7u;
     } else {
         // Split case: the 3 bits are split across two uints
         uint bitsInCurrent = 32 - bitOffset;
@@ -134,10 +135,10 @@ float sampleBC4Buffer(vec2 pixelCoordNormalized) {
         uint mask = 0;
         if (bitsInCurrent == 1) mask = 1; // 0b01
         if (bitsInCurrent == 2) mask = 3; // 0b11
-        uint upperBits = compressedBlock.arr[uintIndex] & (mask);
+        uint upperBits = compressedBlock.data[uintIndex] & (mask);
 
         // Get the bits from the next uint (with wraparound)
-        uint lowerBits = compressedBlock.arr[(uintIndex + 1) % 6] >> (32 - bitsInNext);
+        uint lowerBits = compressedBlock.data[(uintIndex + 1) % 6] >> (32 - bitsInNext);
 
         // Combine the bits
         index = (upperBits << bitsInNext) | lowerBits;
@@ -149,7 +150,7 @@ float sampleBC4Buffer(vec2 pixelCoordNormalized) {
 
     float depth = mix(minVal, maxVal, t);
 
-    return depth;
+    return min(depth, MAX_DEPTH);
 }
 
 void main() {

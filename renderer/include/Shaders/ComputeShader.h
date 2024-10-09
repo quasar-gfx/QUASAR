@@ -50,7 +50,7 @@ public:
     }
 
     template <template<typename> class Buffer, typename T>
-    void setBuffer(GLenum target, int slot, const Buffer<T>& buffer) {
+    void setBuffer(GLenum target, int slot, const Buffer<T>& buffer) const {
         glBindBufferBase(target, slot, buffer);
     }
 
@@ -61,8 +61,8 @@ public:
     void loadFromFile(const std::string &computePath);
     void loadFromData(const char* computeCodeData, const GLint computeCodeSize);
 
-    void dispatch(GLuint numGroupsX, GLuint numGroupsY, GLuint numGroupsZ);
-    void memoryBarrier(GLbitfield barriers);
+    void dispatch(GLuint numGroupsX, GLuint numGroupsY, GLuint numGroupsZ) const;
+    void memoryBarrier(GLbitfield barriers) const;
 
 private:
     void createAndCompileProgram(const char* computeCodeData, const GLint computeCodeSize);

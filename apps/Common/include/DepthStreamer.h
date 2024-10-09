@@ -65,7 +65,7 @@ private:
     std::condition_variable cv;
     bool dataReady = false;
 
-    std::atomic_bool running = false;
+    std::atomic_bool running{false};
 
     void sendData();
 #else

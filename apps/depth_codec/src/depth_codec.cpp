@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
         .computeCodePath = "./shaders/genPtCloudFromDepth.comp"
     });
 
-    ComputeShader bc4CompressShader({
+    ComputeShader bc4CompressionShader({
         .computeCodePath = "./shaders/bc4_compress.comp"
     });
 
@@ -332,19 +332,19 @@ int main(int argc, char** argv) {
         }
 
         // Compress depth data using BC4
-        bc4CompressShader.bind();
+        bc4CompressionShader.bind();
         {
-            bc4CompressShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
+            bc4CompressionShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
         }
         {
-            bc4CompressShader.setVec2("depthMapSize", windowSize);
-            bc4CompressShader.setVec2("bc4DepthSize", glm::vec2(windowSize.x / 8, windowSize.y / 8));
+            bc4CompressionShader.setVec2("depthMapSize", windowSize);
+            bc4CompressionShader.setVec2("bc4DepthSize", glm::vec2(windowSize.x / 8, windowSize.y / 8));
         }
         {
-            bc4CompressShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, bc4Buffer);
+            bc4CompressionShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, bc4Buffer);
         }
-        bc4CompressShader.dispatch((windowSize.x / 8) / 16, (windowSize.y / 8) / 16, 1);
-        bc4CompressShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+        bc4CompressionShader.dispatch((windowSize.x / 8) / 16, (windowSize.y / 8) / 16, 1);
+        bc4CompressionShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
         // generate mesh for original depth data
         genPtCloudFromDepthShader.bind();

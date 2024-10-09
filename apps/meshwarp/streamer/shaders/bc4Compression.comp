@@ -1,11 +1,11 @@
-layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = THREADS_PER_LOCALGROUP, local_size_z = 1) in;
 
 layout(binding = 0) uniform sampler2D depthMap;
 
 struct Block {
     float max;
     float min;
-    uint arr[6];
+    uint data[6];
 };
 
 layout(std430, binding = 0) buffer BC4Buffer {
@@ -23,15 +23,18 @@ float sampleDepth(sampler2D depthMap, ivec2 sampleCoord) {
 
 void main() {
     ivec2 blockPixelCoord = ivec2(gl_GlobalInvocationID.xy);
-    ivec2 startPixelCoord = 8 * blockPixelCoord;
+    if (blockPixelCoord.x >= bc4DepthSize.x || blockPixelCoord.y >= bc4DepthSize.y) {
+        return;
+    }
 
     float blockData[64];
     float minDepth = 1.0;
     float maxDepth = 0.0;
 
     // Sample 8x8 block and find min/max
-    for(int y = 0; y < 8; y++) {
-        for(int x = 0; x < 8; x++) {
+    ivec2 startPixelCoord = 8 * blockPixelCoord;
+    for (int y = 0; y < 8; y++) {
+        for (int x = 0; x < 8; x++) {
             ivec2 sampleCoord = startPixelCoord + ivec2(x, y);
             if(all(lessThan(sampleCoord, ivec2(depthMapSize)))) {
                 float depth = sampleDepth(depthMap, sampleCoord);
@@ -44,7 +47,7 @@ void main() {
 
     // Calculate interpolated values
     float interpVals[8];
-    for(int i = 0; i < 8; i++) {
+    for (int i = 0; i < 8; i++) {
         interpVals[i] = mix(minDepth, maxDepth, float(i) / 7.0);
     }
 
@@ -57,7 +60,7 @@ void main() {
     int bitIndex = 0;
     uint mask = 0;
 
-    for(int i = 0; i < 64; i++) {
+    for (int i = 0; i < 64; i++) {
         float pixelValue = blockData[i];
 
         // Find closest interpolated value
@@ -78,7 +81,8 @@ void main() {
         if (bitOffset <= 29) {
             // Normal case: all 3 bits fit in the current uint
             bits[uintIndex] |= uint(bestIndex) << (29 - bitOffset);
-        } else {
+        }
+        else {
             // Split case: the 3 bits are split across two uints
             uint bitsInCurrent = 32 - bitOffset;
             uint bitsInNext = 3 - bitsInCurrent;
@@ -96,8 +100,8 @@ void main() {
     }
 
     // Store packed data
-    for(int i = 0; i < 6; i++) {
-        block.arr[i] = bits[i];
+    for (int i = 0; i < 6; i++) {
+        block.data[i] = bits[i];
     }
 
     // Write compressed block to output buffer
