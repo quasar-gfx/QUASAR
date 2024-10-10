@@ -146,19 +146,9 @@ int main(int argc, char** argv) {
     unsigned int zeros[4] = { 0 };
     Buffer<unsigned int> bufferSizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(BufferSizes), zeros);
 
-    Texture checkerboard({
-        .wrapS = GL_REPEAT,
-        .wrapT = GL_REPEAT,
-        .minFilter = GL_NEAREST,
-        .magFilter = GL_NEAREST,
-        .flipVertically = true,
-        .path = "../assets/textures/checkerboard.jpg"
-    });
-
     Mesh mesh = Mesh({
         .numVertices = maxVertices / 4,
         .numIndices = maxIndices / 4,
-        // .material = new QuadMaterial({ .baseColorTexture = &checkerboard }),
         .material = new QuadMaterial({ .baseColorTexture = &renderTarget.colorBuffer }),
         .usage = GL_DYNAMIC_DRAW,
         .indirectDraw = true

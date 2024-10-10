@@ -8,7 +8,7 @@ layout(location = 6) in vec3 aBitangent;
 
 out VertexData {
     flat uint VertexID;
-    noperspective vec3 TexCoords;
+    vec2 TexCoords;
     vec3 TexCoords3D;
     vec3 FragPos;
     vec3 Color;
@@ -40,7 +40,6 @@ void main() {
     gl_Position = projection[gl_ViewID_OVR] * view[gl_ViewID_OVR] * vec4(vsOut.FragPos, 1.0);
 #endif
 
-    float reciprocalW = 1.0 / gl_Position.w;
-    vsOut.TexCoords = vec3(aTexCoords * reciprocalW, reciprocalW);
+    vsOut.TexCoords = aTexCoords; // unused
     vsOut.TexCoords3D = aTexCoords3D;
 }

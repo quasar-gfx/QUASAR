@@ -5,7 +5,7 @@ layout(location = 3) out vec4 FragIDs;
 
 in VertexData {
     flat uint VertexID;
-    noperspective vec3 TexCoords;
+    vec2 TexCoords;
     vec3 TexCoords3D;
     vec3 FragPos;
     vec3 Color;
@@ -31,7 +31,8 @@ uniform Material material;
 void main() {
     vec4 baseColor;
     if (material.hasBaseColorMap) {
-        baseColor = texture(material.baseColorMap, fsIn.TexCoords3D.xy / fsIn.TexCoords3D.z) * material.baseColorFactor;
+        vec2 uv = fsIn.TexCoords3D.xy / fsIn.TexCoords3D.z;
+        baseColor = texture(material.baseColorMap, uv) * material.baseColorFactor;
     }
     else {
         baseColor = material.baseColor * material.baseColorFactor;

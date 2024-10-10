@@ -8,6 +8,8 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <QuadMaterial.h>
+
 #define VERTICES_IN_A_QUAD 4
 #define NUM_SUB_QUADS 4
 
@@ -211,7 +213,7 @@ int main(int argc, char** argv) {
     Mesh mesh = Mesh({
         .vertices = vertices,
         .indices = indices,
-        .material = new UnlitMaterial({ .baseColorTexture = &colorTexture }),
+        .material = new QuadMaterial({ .baseColorTexture = &colorTexture }),
     });
     Node node(&mesh);
     node.frustumCulled = false;
@@ -222,7 +224,7 @@ int main(int argc, char** argv) {
     nodeWireframe.frustumCulled = false;
     nodeWireframe.wireframe = true;
     nodeWireframe.primativeType = GL_POINTS;
-    nodeWireframe.overrideMaterial = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
+    nodeWireframe.overrideMaterial = new QuadMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
     scene.addChildNode(&nodeWireframe);
 
     app.onRender([&](double now, double dt) {
