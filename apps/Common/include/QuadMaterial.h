@@ -8,8 +8,8 @@ struct QuadMaterialCreateParams {
     glm::vec4 baseColorFactor = glm::vec4(1.0f);
     AlphaMode alphaMode = AlphaMode::OPAQUE;
     float maskThreshold = 0.5f;
-    std::string diffuseTexturePath = "";
-    Texture* diffuseTexture;
+    std::string baseColorTexturePath = "";
+    Texture* baseColorTexture;
 };
 
 class QuadMaterial : public Material {

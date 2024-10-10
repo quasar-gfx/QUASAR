@@ -19,7 +19,7 @@ public:
     float pointSize = 5.0f;
 
     bool wireframe = false;
-    float wireframeLineWidth = 1.0f;
+    float wireframeLineWidth = 1.5f;
 
     Material* overrideMaterial = nullptr;
 

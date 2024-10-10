@@ -223,8 +223,9 @@ RenderStats Mesh::draw(GLenum primativeType, const Camera &camera, const glm::ma
 }
 
 RenderStats Mesh::draw(GLenum primativeType) {
-    glBindVertexArray(vertexArrayBuffer);
+    RenderStats stats;
 
+    glBindVertexArray(vertexArrayBuffer);
     if (indirectDraw) {
         indirectBuffer.bind();
         if (indexBuffer.getSize() > 0) {
@@ -235,7 +236,6 @@ RenderStats Mesh::draw(GLenum primativeType) {
             vertexBuffer.bind();
             glDrawArraysIndirect(primativeType, 0);
         }
-        indirectBuffer.unbind();
     }
     else {
         if (indexBuffer.getSize() > 0) {
@@ -249,7 +249,6 @@ RenderStats Mesh::draw(GLenum primativeType) {
     }
     glBindVertexArray(0);
 
-    RenderStats stats;
     if (indexBuffer.getSize() > 0) {
         stats.trianglesDrawn = static_cast<unsigned int>(indexBuffer.getSize() / 3);
     }
