@@ -156,10 +156,10 @@ int main(int argc, char** argv) {
     });
 
     Mesh mesh = Mesh({
-        .numVertices = maxVertices,
-        .numIndices = maxIndices,
-        // .material = new QuadMaterial({ .diffuseTexture = &checkerboard }),
-        .material = new QuadMaterial({ .diffuseTexture = &renderTarget.colorBuffer }),
+        .numVertices = maxVertices / 4,
+        .numIndices = maxIndices / 4,
+        // .material = new QuadMaterial({ .baseColorTexture = &checkerboard }),
+        .material = new QuadMaterial({ .baseColorTexture = &renderTarget.colorBuffer }),
         .usage = GL_DYNAMIC_DRAW,
         .indirectDraw = true
     });

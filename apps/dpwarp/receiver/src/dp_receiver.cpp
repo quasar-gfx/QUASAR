@@ -239,7 +239,7 @@ int main(int argc, char** argv) {
         meshes[i] = new Mesh({
             .vertices = vertices,
             .indices = indices,
-            .material = new UnlitMaterial({ .diffuseTexture = colorTextures[i] }),
+            .material = new UnlitMaterial({ .baseColorTexture = colorTextures[i] }),
         });
         nodes[i] = new Node(meshes[i]);
         nodes[i]->frustumCulled = false;

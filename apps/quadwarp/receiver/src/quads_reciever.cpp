@@ -211,7 +211,7 @@ int main(int argc, char** argv) {
     Mesh mesh = Mesh({
         .vertices = vertices,
         .indices = indices,
-        .material = new UnlitMaterial({ .diffuseTexture = &colorTexture }),
+        .material = new UnlitMaterial({ .baseColorTexture = &colorTexture }),
     });
     Node node(&mesh);
     node.frustumCulled = false;

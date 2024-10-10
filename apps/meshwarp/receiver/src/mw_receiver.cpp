@@ -122,7 +122,7 @@ int main(int argc, char** argv) {
     Mesh mesh = Mesh({
         .vertices = std::vector<Vertex>(maxVertices),
         .indices = std::vector<unsigned int>(maxIndices),
-        .material = new UnlitMaterial({ .diffuseTexture = &videoTextureColor }),
+        .material = new UnlitMaterial({ .baseColorTexture = &videoTextureColor }),
         .usage = GL_DYNAMIC_DRAW
     });
     Node node = Node(&mesh);

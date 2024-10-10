@@ -184,7 +184,7 @@ int main(int argc, char** argv) {
         meshes[view] = new Mesh({
             .numVertices = maxVertices / 4,
             .numIndices = maxIndices / 4,
-            .material = new QuadMaterial({ .diffuseTexture = &renderTargets[view]->colorBuffer }),
+            .material = new QuadMaterial({ .baseColorTexture = &renderTargets[view]->colorBuffer }),
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true
         });

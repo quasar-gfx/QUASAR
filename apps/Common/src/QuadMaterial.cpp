@@ -14,13 +14,13 @@ QuadMaterial::QuadMaterial(const QuadMaterialCreateParams &params)
         .magFilter = GL_LINEAR
     };
 
-    if (params.diffuseTexturePath != "") {
-        textureParams.path = params.diffuseTexturePath;
+    if (params.baseColorTexturePath != "") {
+        textureParams.path = params.baseColorTexturePath;
         Texture* texture = new Texture(textureParams);
         textures.push_back(texture);
     }
     else {
-        textures.push_back(params.diffuseTexture);
+        textures.push_back(params.baseColorTexture);
     }
 
     if (shader == nullptr) {
