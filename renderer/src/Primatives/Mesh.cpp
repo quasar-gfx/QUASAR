@@ -12,9 +12,6 @@ void Mesh::createAttributes() {
 
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
 
-    glEnableVertexAttribArray(ATTRIBUTE_ID);
-    glVertexAttribPointer(ATTRIBUTE_ID,         1, GL_UNSIGNED_INT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, ID));
-
     glEnableVertexAttribArray(ATTRIBUTE_POSITION);
     glVertexAttribPointer(ATTRIBUTE_POSITION,   3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
 
@@ -46,7 +43,6 @@ void Mesh::setBuffers(const std::vector<Vertex> &vertices) {
 
     vertexBuffer.bind();
     vertexBuffer.setData(vertices);
-    vertexBuffer.unbind();
 
     glBindVertexArray(0);
 
@@ -63,7 +59,6 @@ void Mesh::setBuffers(const std::vector<Vertex> &vertices, const std::vector<uns
 
     vertexBuffer.bind();
     vertexBuffer.setData(vertices);
-    vertexBuffer.unbind();
 
     updateAABB(vertices);
 
@@ -74,7 +69,6 @@ void Mesh::setBuffers(const std::vector<Vertex> &vertices, const std::vector<uns
 
     indexBuffer.bind();
     indexBuffer.setData(indices);
-    indexBuffer.unbind();
 
     glBindVertexArray(0);
 }
@@ -89,7 +83,6 @@ void Mesh::setBuffers(unsigned int numVertices, unsigned int numIndices) {
 
     vertexBuffer.bind();
     vertexBuffer.resize(numVertices);
-    vertexBuffer.unbind();
 
     if (numIndices == 0) {
         glBindVertexArray(0);
@@ -98,7 +91,6 @@ void Mesh::setBuffers(unsigned int numVertices, unsigned int numIndices) {
 
     indexBuffer.bind();
     indexBuffer.resize(numIndices);
-    indexBuffer.unbind();
 
     glBindVertexArray(0);
 }

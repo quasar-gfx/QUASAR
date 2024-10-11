@@ -6,7 +6,6 @@ precision highp image2D;
 layout(binding = 0) uniform sampler2D depthMap;
 
 struct Vertex {
-    uint id;
     vec3 position;
     vec3 color;
     vec3 normal;

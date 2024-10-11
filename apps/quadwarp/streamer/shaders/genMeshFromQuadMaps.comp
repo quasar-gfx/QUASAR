@@ -5,7 +5,6 @@ precision highp sampler2D;
 precision highp image2D;
 
 struct Vertex {
-    uint id;
     vec3 position;
     vec3 color;
     vec3 normal;

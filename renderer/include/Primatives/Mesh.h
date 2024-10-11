@@ -119,4 +119,5 @@ protected:
 
     void setMaterialCameraParams(const Camera &camera, const Material* material);
 };
-#endif
+
+#endif // MESH_H
