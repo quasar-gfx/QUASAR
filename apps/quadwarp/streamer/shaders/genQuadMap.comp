@@ -114,7 +114,7 @@ layout(std430, binding = 0) writeonly buffer QuadMapBuffer {
     QuadMapData quadMap[];
 };
 
-layout(std430, binding = 1) buffer BufferSizesBuffer {
+layout(std430, binding = 1) buffer sizesBuffer {
     uint numVertices;
     uint numIndices;
     uint numProxies;

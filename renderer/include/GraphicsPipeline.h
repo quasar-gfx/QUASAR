@@ -49,6 +49,10 @@ struct StencilState {
         stencilMask = 0xFF;
 
         writeStencilMask = 0xFF;
+
+        stencilFail = GL_KEEP;
+        stencilPassDepthFail = GL_KEEP;
+        stencilPassDepthPass = GL_KEEP;
     };
 };
 

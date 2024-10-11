@@ -143,12 +143,11 @@ int main(int argc, char** argv) {
         unsigned int numDepthOffsets;
     };
     BufferSizes bufferSizes = { 0 };
-    unsigned int zeros[4] = { 0 };
-    Buffer<unsigned int> bufferSizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(BufferSizes), zeros);
+    Buffer<BufferSizes> sizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, &bufferSizes);
 
     Mesh mesh = Mesh({
-        .numVertices = maxVertices / 4,
-        .numIndices = maxIndices / 4,
+        .numVertices = maxVertices,
+        .numIndices = maxIndices,
         .material = new QuadMaterial({ .baseColorTexture = &renderTarget.colorBuffer }),
         .usage = GL_DYNAMIC_DRAW,
         .indirectDraw = true
@@ -291,6 +290,8 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
+            sizesBuffer.bind();
+            sizesBuffer.getSubData(0, 1, &bufferSizes);
             ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d", bufferSizes.numProxies);
             ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d", bufferSizes.numDepthOffsets);
 
@@ -547,7 +548,7 @@ int main(int argc, char** argv) {
             }
             {
                 genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, quadMaps[0]);
-                genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, bufferSizesBuffer);
+                genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizesBuffer);
                 genQuadMapShader.setImageTexture(0, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsetBuffer.internalFormat);
             }
 
@@ -628,7 +629,7 @@ int main(int argc, char** argv) {
                 }
                 {
                     genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, quadMap);
-                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, bufferSizesBuffer);
+                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizesBuffer);
                     genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, mesh.vertexBuffer);
                     genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, mesh.indexBuffer);
                     genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, mesh.indirectBuffer);
@@ -643,14 +644,6 @@ int main(int argc, char** argv) {
 
             std::cout << "  Quads Compute Shader Time: " << glfwGetTime() - startTime << "s" << std::endl;
             startTime = glfwGetTime();
-
-            // get number of vertices and indices in mesh
-            // bufferSizesBuffer.bind();
-            // bufferSizesBuffer.getSubData(0, 4, &bufferSizes);
-            // bufferSizesBuffer.setSubData(0, 4, &zeros); // reset for next frame
-
-            // std::cout << "  Set Mesh Buffers Time: " << glfwGetTime() - startTime << "s" << std::endl;
-            // startTime = glfwGetTime();
 
             /*
             ============================

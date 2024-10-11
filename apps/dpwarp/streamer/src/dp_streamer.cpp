@@ -157,8 +157,7 @@ int main(int argc, char** argv) {
     unsigned int totalProxies = 0;
     unsigned int totalDepthOffsets = 0;
     BufferSizes bufferSizes = { 0 };
-    unsigned int zeros[4] = { 0 };
-    Buffer<unsigned int> bufferSizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(BufferSizes), zeros);
+    Buffer<BufferSizes> sizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, &bufferSizes);
 
     std::vector<Mesh*> meshes(maxViews);
     std::vector<Node*> nodes(maxViews);
@@ -169,8 +168,8 @@ int main(int argc, char** argv) {
 
     for (int view = 0; view < maxViews; view++) {
         meshes[view] = new Mesh({
-            .numVertices = maxVertices / 4,
-            .numIndices = maxIndices / 4,
+            .numVertices = maxVertices / 2,
+            .numIndices = maxIndices / 2,
             .material = new QuadMaterial({ .baseColorTexture = &renderTargets[view]->colorBuffer }),
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true
@@ -759,7 +758,7 @@ int main(int argc, char** argv) {
                     }
                     {
                         genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, quadMap);
-                        genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, bufferSizesBuffer);
+                        genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizesBuffer);
                         genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, currMesh->vertexBuffer);
                         genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, currMesh->indexBuffer);
                         genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, currMesh->indirectBuffer);
@@ -776,17 +775,11 @@ int main(int argc, char** argv) {
                 startTime = glfwGetTime();
 
                 // get number of vertices and indices in mesh
-                // bufferSizesBuffer.bind();
-                // bufferSizesBuffer.getSubData(0, 4, &bufferSizes);
-                // bufferSizesBuffer.setSubData(0, 4, &zeros); // reset for next frame
-
-                // currMesh->resizeBuffers(bufferSizes.numVertices, bufferSizes.numIndices);
+                // sizesBuffer.bind();
+                // sizesBuffer.getSubData(0, 1, &bufferSizes);
 
                 totalProxies += bufferSizes.numProxies;
                 totalDepthOffsets += bufferSizes.numDepthOffsets;
-
-                // avgSetMeshBuffersTime += glfwGetTime() - startTime;
-                // startTime = glfwGetTime();
 
                 /*
                 ============================

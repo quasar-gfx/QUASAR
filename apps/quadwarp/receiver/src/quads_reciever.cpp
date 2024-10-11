@@ -223,7 +223,6 @@ int main(int argc, char** argv) {
     Node nodeWireframe(&mesh);
     nodeWireframe.frustumCulled = false;
     nodeWireframe.wireframe = true;
-    nodeWireframe.primativeType = GL_POINTS;
     nodeWireframe.overrideMaterial = new QuadMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
     scene.addChildNode(&nodeWireframe);
 
