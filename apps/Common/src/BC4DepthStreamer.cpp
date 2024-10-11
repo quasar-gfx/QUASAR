@@ -89,9 +89,9 @@ void BC4DepthStreamer::sendFrame(pose_id_t poseID) {
 
     std::memcpy(data.data(), &poseID, sizeof(pose_id_t));
 
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, bc4CompressedBuffer); // copies the BC4 compressed data from the GPU buffer to CPU memory.
-    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, compressedSize * sizeof(Block), data.data() + sizeof(pose_id_t)); //
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    bc4CompressedBuffer.bind();
+    bc4CompressedBuffer.getData(data.data() + sizeof(pose_id_t));
+    bc4CompressedBuffer.unbind();
 
     streamer.send(data);
 #endif
