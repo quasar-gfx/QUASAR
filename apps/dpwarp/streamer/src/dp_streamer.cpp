@@ -9,6 +9,7 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <Utils/Utils.h>
 #include <QuadMaterial.h>
 
 #define THREADS_PER_LOCALGROUP 16
@@ -25,10 +26,12 @@ int main(int argc, char** argv) {
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
-    args::ValueFlag<std::string> size2In(parser, "size2", "Size of pre-rendered content", {'S', "size2"}, "800x600");
+    args::ValueFlag<std::string> size2In(parser, "size2", "Size of pre-rendered content", {'z', "size2"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<int> maxLayersIn(parser, "layers", "Max layers", {'n', "max-layers"}, 8);
+    args::Flag saveImage(parser, "save", "Save image and exit", {'b', "save-image"});
+    args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -79,6 +82,7 @@ int main(int argc, char** argv) {
 
     glm::uvec2 windowSize = window->getSize();
 
+    // "remote" scene
     Scene remoteScene;
     std::vector<PerspectiveCamera*> remoteCameras(maxViews);
     for (int i = 0; i < maxViews; i++) {
@@ -91,11 +95,10 @@ int main(int argc, char** argv) {
     remoteCameras[maxViews-1]->setFovy(90.0f);
     remoteCameras[maxViews-1]->setViewMatrix(centerRemoteCamera->getViewMatrix());
 
+    // scene with all the meshes
     Scene scene;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
     camera.setViewMatrix(centerRemoteCamera->getViewMatrix());
-
-    scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
 
     struct QuadMapData {
         alignas(16) glm::vec3 normal;
@@ -451,7 +454,7 @@ int main(int argc, char** argv) {
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
             std::string time = std::to_string(static_cast<int>(window->getTime() * 1000.0f));
-            std::string fileName = DATA_PATH + std::string(fileNameBase) + "." + time;
+            std::string fileName = DATA_PATH + std::string(fileNameBase) + "." + sizeStr + "." + time;
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
@@ -836,6 +839,17 @@ int main(int argc, char** argv) {
             nodeDepths[view]->visible = showLayer && showDepth;
         }
 
+        if (saveImage && args::get(poseOffset).size() == 6) {
+            glm::vec3 positionOffset, rotationOffset;
+            for (int i = 0; i < 3; i++) {
+                positionOffset[i] = args::get(poseOffset)[i];
+                rotationOffset[i] = args::get(poseOffset)[i + 3];
+            }
+            camera.setPosition(camera.getPosition() + positionOffset);
+            camera.setRotationEuler(camera.getRotationEuler() + rotationOffset);
+            camera.updateViewMatrix();
+        }
+
         // render all objects in scene
         forwardRenderer.pipeline.rasterState.cullFaceEnabled = false;
         renderStats = forwardRenderer.drawObjects(scene, camera);
@@ -845,6 +859,20 @@ int main(int argc, char** argv) {
         screenShaderColor.bind();
         screenShaderColor.setBool("doToneMapping", true);
         forwardRenderer.drawToScreen(screenShaderColor);
+
+        if (saveImage) {
+            glm::vec3 position = camera.getPosition();
+            glm::vec3 rotation = camera.getRotationEuler();
+            std::string positionStr = to_string_with_precision(position.x) + "_" + to_string_with_precision(position.y) + "_" + to_string_with_precision(position.z);
+            std::string rotationStr = to_string_with_precision(rotation.x) + "_" + to_string_with_precision(rotation.y) + "_" + to_string_with_precision(rotation.z);
+
+            std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
+
+            std::string fileName = DATA_PATH + "screenshot." + positionStr + "_" + rotationStr;
+            forwardRenderer.drawToRenderTarget(screenShaderColor, forwardRenderer.gBuffer);
+            forwardRenderer.gBuffer.saveColorAsPNG(fileName + ".png");
+            window->close();
+        }
     });
 
     // run app loop (blocking)

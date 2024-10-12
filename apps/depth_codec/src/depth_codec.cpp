@@ -93,7 +93,7 @@ int main(int argc, char** argv) {
 
     // scene with all the meshes
     Scene scene = Scene();
-    scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
+
     PerspectiveCamera camera = PerspectiveCamera(windowSize.x, windowSize.y);
     camera.setViewMatrix(remoteCamera.getViewMatrix());
 

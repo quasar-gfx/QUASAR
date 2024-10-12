@@ -345,7 +345,7 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, N
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const RenderTarget* overrideRenderTarget) {
+RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const RenderTargetBase* overrideRenderTarget) {
     pipeline.apply();
 
     if (overrideRenderTarget != nullptr) {
@@ -371,6 +371,6 @@ RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const Rende
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawToRenderTarget(const Shader &screenShader, const RenderTarget &renderTarget) {
+RenderStats OpenGLRenderer::drawToRenderTarget(const Shader &screenShader, const RenderTargetBase &renderTarget) {
     return drawToScreen(screenShader, &renderTarget);
 }

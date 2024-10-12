@@ -72,8 +72,6 @@ int main(int argc, char** argv) {
     Scene scene;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
 
-    scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
-
     bool* showLayers = new bool[maxViews];
     for (int i = 0; i < maxViews; ++i) {
         showLayers[i] = true;
@@ -176,7 +174,7 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string fileName = std::string(fileNameBase) + "." + sizeStr + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
