@@ -78,11 +78,10 @@ int main(int argc, char** argv) {
     std::cout << "Video URL: " << videoURL << std::endl;
     std::cout << "Pose URL: " << poseURL << std::endl;
 
-    Pose currentFramePose, prevPose;
-    pose_id_t prevPoseID = -1;
-
     bool atwEnabled = true;
     double elapedTime = 0.0f;
+    Pose currentFramePose;
+    pose_id_t prevPoseID = -1;
     RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
@@ -300,7 +299,6 @@ int main(int argc, char** argv) {
             atwShader.setMat4("remoteView", currentFramePose.mono.view);
 
             poseStreamer.removePosesLessThan(poseID);
-            prevPose = currentFramePose;
         }
         atwShader.setTexture("videoTexture", videoTexture, 5);
 
