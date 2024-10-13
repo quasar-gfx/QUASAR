@@ -61,7 +61,7 @@ void main() {
 
     vec2 ndc = TexCoords * 2.0 - 1.0;
     vec3 viewCoord = ndcToView(projectionInverse, ndc, 1.0);
-    vec3 worldPose = viewToWorld(viewInverse, viewCoord);
+    vec3 worldPose = viewToWorld(mat4(mat3(viewInverse)), viewCoord);
     vec2 TexCoordsRemote = worldToScreen(remoteView, remoteProjection, worldPose);
 
     FragColor = vec4(texture(videoTexture, TexCoordsRemote).rgb, 1.0);

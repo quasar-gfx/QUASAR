@@ -12,6 +12,8 @@
 #include <DepthVideoTexture.h>
 #include <PoseStreamer.h>
 
+#define THREADS_PER_LOCALGROUP 16
+
 #define TEXTURE_PREVIEW_SIZE 250
 
 const std::string DATA_PATH = "./";
@@ -93,7 +95,7 @@ int main(int argc, char** argv) {
 
     // scene with all the meshes
     Scene scene = Scene();
-
+    scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
     PerspectiveCamera camera = PerspectiveCamera(windowSize.x, windowSize.y);
     camera.setViewMatrix(remoteCamera.getViewMatrix());
 
@@ -113,7 +115,10 @@ int main(int argc, char** argv) {
     });
 
     ComputeShader bc4CompressionShader({
-        .computeCodePath = "./shaders/bc4_compress.comp"
+        .computeCodePath = "../meshwarp/streamer/shaders/bc4Compression.comp",
+        .defines = {
+            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
+        }
     });
 
     ComputeShader genMeshShader({
@@ -147,6 +152,7 @@ int main(int argc, char** argv) {
     Node node = Node(&mesh);
     node.frustumCulled = false;
     node.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
+    node.pointSize = 7.5f;
     scene.addChildNode(&node);
 
     Mesh meshDecompressed = Mesh({
@@ -158,6 +164,7 @@ int main(int argc, char** argv) {
     Node nodeDecompressed = Node(&meshDecompressed);
     nodeDecompressed.frustumCulled = false;
     nodeDecompressed.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
+    nodeDecompressed.pointSize = 7.5f;
     scene.addChildNode(&nodeDecompressed);
 
     bool rerender = true;

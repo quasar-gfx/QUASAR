@@ -303,6 +303,9 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, N
                 glLineWidth(node->wireframeLineWidth);
             }
             if (node->primativeType == GL_POINTS) {
+                glEnable(GL_POLYGON_OFFSET_POINT); // to avoid z-fighting
+                glPolygonOffset(-1.0, -1.0); // adjust depth
+                glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
                 glPointSize(node->pointSize);
             }
 #endif
@@ -313,6 +316,10 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, N
             // restore polygon mode
             if (node->wireframe) {
                 glDisable(GL_POLYGON_OFFSET_LINE);
+                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            }
+            if (node->primativeType == GL_POINTS) {
+                glDisable(GL_POLYGON_OFFSET_POINT);
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             }
 #endif

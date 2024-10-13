@@ -32,9 +32,7 @@ const ivec2 blockSize = ivec2(8, 8);
 uniform vec2 screenSize;
 uniform vec2 depthMapSize;
 
-uniform mat4 view;
 uniform mat4 projection;
-uniform mat4 viewInverse;
 uniform mat4 projectionInverse;
 
 uniform mat4 viewColor;

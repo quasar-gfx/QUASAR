@@ -3,6 +3,7 @@ project(ATW)
 
 add_subdirectory(streamer)
 add_subdirectory(receiver)
+add_subdirectory(simulator)
 
 file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}/../../assets ${CMAKE_CURRENT_BINARY_DIR}/assets SYMBOLIC)
 file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}/../../shaders ${CMAKE_CURRENT_BINARY_DIR}/shaders SYMBOLIC)

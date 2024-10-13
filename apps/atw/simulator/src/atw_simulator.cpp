@@ -8,21 +8,21 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
-#include <VideoTexture.h>
-#include <PoseStreamer.h>
+#include <Utils/Utils.h>
 
-#define TEXTURE_PREVIEW_SIZE 500
+const std::string DATA_PATH = "./";
 
 int main(int argc, char** argv) {
     Config config{};
-    config.title = "ATW Receiver";
+    config.title = "ATW Simulator";
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
+    args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
-    args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "0.0.0.0:12345");
-    args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "127.0.0.1:54321");
+    args::Flag saveImage(parser, "save", "Save image and exit", {'b', "save-image"});
+    args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -42,8 +42,7 @@ int main(int argc, char** argv) {
 
     config.enableVSync = args::get(vsyncIn);
 
-    std::string videoURL = args::get(videoURLIn);
-    std::string poseURL = args::get(poseURLIn);
+    std::string scenePath = args::get(scenePathIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -56,30 +55,36 @@ int main(int argc, char** argv) {
 
     glm::uvec2 windowSize = window->getSize();
 
+    // "remote" scene
+    Scene remoteScene;
+    PerspectiveCamera remoteCamera(windowSize.x, windowSize.y);
+    SceneLoader loader;
+    loader.loadScene(scenePath, remoteScene, remoteCamera);
+
+    // scene with all the meshes
     Scene scene;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
-    VideoTexture videoTexture({
+    camera.setViewMatrix(remoteCamera.getViewMatrix());
+
+    RenderTarget renderTarget({
         .width = windowSize.x,
         .height = windowSize.y,
-        .internalFormat = GL_SRGB8,
-        .format = GL_RGB,
-        .type = GL_UNSIGNED_BYTE,
-        .wrapS = GL_CLAMP_TO_BORDER,
-        .wrapT = GL_CLAMP_TO_BORDER,
-        .minFilter = GL_LINEAR,
-        .magFilter = GL_LINEAR,
-        .hasBorder = true,
-        .borderColor = glm::vec4(0.0f),
-    }, videoURL);
-    PoseStreamer poseStreamer(&camera, poseURL);
-
-    std::cout << "Video URL: " << videoURL << std::endl;
-    std::cout << "Pose URL: " << poseURL << std::endl;
+        .internalFormat = GL_RGBA16F,
+        .format = GL_RGBA,
+        .type = GL_FLOAT,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST
+    });
 
     bool atwEnabled = true;
-    double elapedTime = 0.0f;
-    Pose currentFramePose;
-    pose_id_t prevPoseID = -1;
+    bool rerender = true;
+    int rerenderInterval = 0;
+    bool preventCopyingLocalPose = false;
+    const int intervalValues[] = {0, 25, 50, 100, 200, 500, 1000};
+    const char* intervalLabels[] = {"0ms", "25ms", "50ms", "100ms", "200ms", "500ms", "1000ms"};
+
     RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
@@ -87,7 +92,7 @@ int main(int argc, char** argv) {
         static bool showCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
-        static bool showVideoPreview = true;
+        static int intervalIndex = 0;
 
         glm::vec2 winSize = glm::vec2(windowSize.x, windowSize.y);
 
@@ -105,7 +110,6 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("FPS", 0, &showFPS);
             ImGui::MenuItem("UI", 0, &showUI);
             ImGui::MenuItem("Frame Capture", 0, &showCaptureWindow);
-            ImGui::MenuItem("Video Preview", 0, &showVideoPreview);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -143,24 +147,6 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::Text("Video URL: %s", videoURL.c_str());
-            ImGui::Text("Pose URL: %s", poseURL.c_str());
-
-            ImGui::Separator();
-
-            ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoTexture.getFrameRate(), 1000.0f / videoTexture.getFrameRate());
-            ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: %.1f ms", elapedTime);
-
-            ImGui::Separator();
-
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to receive frame: %.1f ms", videoTexture.stats.timeToReceiveMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decode frame: %.1f ms", videoTexture.stats.timeToDecodeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to resize frame: %.1f ms", videoTexture.stats.timeToResizeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: %.1f Mbps", videoTexture.stats.bitrateMbps);
-
-            // show currentFramePose
-            ImGui::Separator();
-
             glm::vec3 position = camera.getPosition();
             if (ImGui::InputFloat3("Camera Position", (float*)&position)) {
                 camera.setPosition(position);
@@ -169,31 +155,22 @@ int main(int argc, char** argv) {
             if (ImGui::InputFloat3("Camera Rotation", (float*)&rotation)) {
                 camera.setRotationEuler(rotation);
             }
-
-            ImGui::Text("Remote Pose ID: %d", currentFramePose.id);
-
-            glm::mat4 pose = glm::inverse(currentFramePose.mono.view);
-            glm::vec3 skew, scale;
-            glm::quat rotationQuat;
-            glm::vec3 remotePosition;
-            glm::vec4 perspective;
-            glm::decompose(pose, scale, rotationQuat, remotePosition, skew, perspective);
-            glm::vec3 remoteRotation = glm::degrees(glm::eulerAngles(rotationQuat));
-            ImGui::InputFloat3("Remote Position", (float*)&remotePosition);
-            ImGui::InputFloat3("Remote Rotation", (float*)&remoteRotation);
+            ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
 
             ImGui::Separator();
 
             ImGui::Checkbox("ATW Enabled", &atwEnabled);
 
-            ImGui::End();
-        }
+            ImGui::Separator();
 
-        if (showVideoPreview) {
-            ImGui::SetNextWindowPos(ImVec2(windowSize.x - TEXTURE_PREVIEW_SIZE - 30, 40), ImGuiCond_FirstUseEver);
-            flags = ImGuiWindowFlags_AlwaysAutoResize;
-            ImGui::Begin("Raw Video Texture", &showVideoPreview, flags);
-            ImGui::Image((void*)(intptr_t)videoTexture.ID, ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+            if (ImGui::Button("Rerender", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+                rerender = true;
+            }
+
+            if (ImGui::Combo("Rerender Interval", &intervalIndex, intervalLabels, IM_ARRAYSIZE(intervalLabels))) {
+                rerenderInterval = intervalValues[intervalIndex];
+            }
+
             ImGui::End();
         }
 
@@ -204,7 +181,7 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = std::string(fileNameBase) + "." + sizeStr + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string fileName = DATA_PATH + std::string(fileNameBase) + "." + sizeStr + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
@@ -232,11 +209,17 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader atwShader({
+    Shader screenShaderColor({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "./shaders/atw.frag"
+        .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
 
+    Shader atwShader({
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../receiver/shaders/atw.frag"
+    });
+
+    double startRenderTime = window->getTime();
     app.onRender([&](double now, double dt) {
         // handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
@@ -280,36 +263,80 @@ int main(int argc, char** argv) {
             window->close();
         }
 
-        // send pose to streamer
-        poseStreamer.sendPose();
+        if (rerenderInterval > 0 && now - startRenderTime > rerenderInterval / 1000.0) {
+            rerender = true;
+            startRenderTime = now;
+        }
+        if (rerender) {
+            if (!preventCopyingLocalPose) {
+                remoteCamera.setPosition(camera.getPosition());
+                remoteCamera.setRotationQuat(camera.getRotationQuat());
+                remoteCamera.updateViewMatrix();
+            }
+            preventCopyingLocalPose = false;
 
-        // render video frame
-        videoTexture.bind();
-        pose_id_t poseID = videoTexture.draw();
-        videoTexture.unbind();
+            double startTime = glfwGetTime();
+
+            std::cout << "======================================================" << std::endl;
+
+            renderer.drawObjects(remoteScene, remoteCamera);
+
+            // copy rendered result to video render target
+            renderer.drawToRenderTarget(screenShaderColor, renderTarget);
+
+            std::cout << "  Rendering Time: " << glfwGetTime() - startTime << "s" << std::endl;
+            startTime = glfwGetTime();
+
+            rerender = false;
+        }
+
+        if (saveImage && args::get(poseOffset).size() == 6) {
+            glm::vec3 positionOffset, rotationOffset;
+            for (int i = 0; i < 3; i++) {
+                positionOffset[i] = args::get(poseOffset)[i];
+                rotationOffset[i] = args::get(poseOffset)[i + 3];
+            }
+            camera.setPosition(camera.getPosition() + positionOffset);
+            camera.setRotationEuler(camera.getRotationEuler() + rotationOffset);
+            camera.updateViewMatrix();
+        }
+
+        renderStats = renderer.drawObjects(scene, camera);
 
         atwShader.bind();
-        atwShader.setBool("atwEnabled", atwEnabled);
-        atwShader.setMat4("projectionInverse", glm::inverse(camera.getProjectionMatrix()));
-        atwShader.setMat4("viewInverse", glm::inverse(camera.getViewMatrix()));
-        if (poseID != prevPoseID && poseStreamer.getPose(poseID, &currentFramePose, &elapedTime)) {
-            atwShader.setMat4("remoteProjection", currentFramePose.mono.proj);
-            atwShader.setMat4("remoteView", currentFramePose.mono.view);
-
-            poseStreamer.removePosesLessThan(poseID);
+        {
+            atwShader.setBool("atwEnabled", atwEnabled);
         }
-        atwShader.setTexture("videoTexture", videoTexture, 5);
+        {
+            atwShader.setMat4("projectionInverse", glm::inverse(camera.getProjectionMatrix()));
+            atwShader.setMat4("viewInverse", glm::inverse(camera.getViewMatrix()));
+        }
+        {
+            atwShader.setMat4("remoteProjection", remoteCamera.getProjectionMatrix());
+            atwShader.setMat4("remoteView", remoteCamera.getViewMatrix());
+        }
+        {
+            atwShader.setTexture("videoTexture", renderTarget.colorBuffer, 5);
+        }
+        renderStats += renderer.drawToScreen(atwShader);
 
-        // render to screen
-        renderStats = renderer.drawToScreen(atwShader);
+        if (saveImage) {
+            glm::vec3 position = camera.getPosition();
+            glm::vec3 rotation = camera.getRotationEuler();
+            std::string positionStr = to_string_with_precision(position.x) + "_" + to_string_with_precision(position.y) + "_" + to_string_with_precision(position.z);
+            std::string rotationStr = to_string_with_precision(rotation.x) + "_" + to_string_with_precision(rotation.y) + "_" + to_string_with_precision(rotation.z);
 
-        prevPoseID = poseID;
+            std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
+
+            std::string fileName = DATA_PATH + "screenshot." + positionStr + "_" + rotationStr;
+            renderer.drawToRenderTarget(screenShaderColor, renderer.gBuffer);
+            renderer.gBuffer.saveColorAsPNG(fileName + ".png");
+            window->close();
+        }
     });
 
     // run app loop (blocking)
     app.run();
-
-    std::cout << "Exiting..." << std::endl;
 
     return 0;
 }
