@@ -11,6 +11,7 @@
 #include <Shaders/ToneMapShader.h>
 
 #include <Utils/Utils.h>
+#include <shaders_common.h>
 
 #define THREADS_PER_LOCALGROUP 16
 
@@ -126,7 +127,8 @@ int main(int argc, char** argv) {
     ToneMapShader toneMapShader;
 
     ComputeShader genMeshFromDepthShader({
-        .computeCodePath = "./shaders/genMeshFromDepth.comp",
+        .computeCodeData = SHADER_COMMON_GENDEPTHPTCLOUD_COMP,
+        .computeCodeSize = SHADER_COMMON_GENDEPTHPTCLOUD_COMP_len,
         .defines = {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
@@ -355,15 +357,15 @@ int main(int argc, char** argv) {
             {
                 genMeshFromDepthShader.setVec2("depthMapSize", depthMapSize);
                 genMeshFromDepthShader.setInt("surfelSize", surfelSize);
-                genMeshFromDepthShader.setFloat("near", remoteCamera.near);
-                genMeshFromDepthShader.setFloat("far", remoteCamera.far);
             }
             {
                 genMeshFromDepthShader.setMat4("projection", remoteCamera.getProjectionMatrix());
                 genMeshFromDepthShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+                genMeshFromDepthShader.setMat4("view", remoteCamera.getViewMatrix());
+                genMeshFromDepthShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
 
-                genMeshFromDepthShader.setMat4("viewColor", remoteCamera.getViewMatrix());
-                genMeshFromDepthShader.setMat4("viewInverseDepth", glm::inverse(remoteCamera.getViewMatrix()));
+                genMeshFromDepthShader.setFloat("near", remoteCamera.near);
+                genMeshFromDepthShader.setFloat("far", remoteCamera.far);
             }
             {
                 genMeshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);

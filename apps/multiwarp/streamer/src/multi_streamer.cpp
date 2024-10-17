@@ -12,6 +12,7 @@
 
 #include <Utils/Utils.h>
 #include <QuadMaterial.h>
+#include <shaders_common.h>
 
 #define THREADS_PER_LOCALGROUP 16
 
@@ -255,7 +256,8 @@ int main(int argc, char** argv) {
     });
 
     ComputeShader genDepthShader({
-        .computeCodePath = "../../quadwarp/streamer/shaders/genDepthPtCloud.comp",
+        .computeCodeData = SHADER_COMMON_GENDEPTHPTCLOUD_COMP,
+        .computeCodeSize = SHADER_COMMON_GENDEPTHPTCLOUD_COMP_len,
         .defines = {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
@@ -815,7 +817,7 @@ int main(int argc, char** argv) {
                     genDepthShader.setTexture(renderer.gBuffer.depthStencilBuffer, 0);
                 }
                 {
-                    genDepthShader.setVec2("remoteWindowSize", remoteWindowSize);
+                    genDepthShader.setVec2("depthMapSize", remoteWindowSize);
                 }
                 {
                     genDepthShader.setMat4("view", remoteCamera->getViewMatrix());

@@ -15,6 +15,7 @@
 #include <VideoTexture.h>
 #include <DepthVideoTexture.h>
 #include <PoseStreamer.h>
+#include <shaders_common.h>
 
 #define THREADS_PER_LOCALGROUP 16
 
@@ -55,7 +56,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
-    args::ValueFlag<int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
+    args::ValueFlag<unsigned int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -77,7 +78,7 @@ int main(int argc, char** argv) {
 
     std::string scenePath = args::get(scenePathIn);
 
-    int surfelSize = args::get(surfelSizeIn);
+    unsigned int surfelSize = args::get(surfelSizeIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -104,12 +105,7 @@ int main(int argc, char** argv) {
     camera.setViewMatrix(remoteCamera.getViewMatrix());
 
     // shaders
-    Shader screenShader({
-        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_BUILTIN_TONEMAP_FRAG,
-        .fragmentCodeSize = SHADER_BUILTIN_TONEMAP_FRAG_len
-    });
+    ToneMapShader toneMapShader;
 
     Shader videoShader({
         .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
@@ -118,19 +114,28 @@ int main(int argc, char** argv) {
         .fragmentCodeSize = SHADER_BUILTIN_DISPLAYTEXTURE_FRAG_len
     });
 
-    ComputeShader genPtCloudFromDepthShader({
-        .computeCodePath = "./shaders/genPtCloudFromDepth.comp"
-    });
-
-    ComputeShader bc4CompressionShader({
-        .computeCodePath = "../meshwarp/streamer/shaders/bc4Compression.comp",
+    ComputeShader genDepthShader({
+        .computeCodeData = SHADER_COMMON_GENDEPTHPTCLOUD_COMP,
+        .computeCodeSize = SHADER_COMMON_GENDEPTHPTCLOUD_COMP_len,
         .defines = {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
     });
 
-    ComputeShader genMeshShader({
-        .computeCodePath = "./shaders/genMesh.comp"
+    ComputeShader bc4CompressionShader({
+        .computeCodeData = SHADER_COMMON_BC4COMPRESSION_COMP,
+        .computeCodeSize = SHADER_COMMON_BC4COMPRESSION_COMP_len,
+        .defines = {
+            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
+        }
+    });
+
+    ComputeShader genMeshFromBC4Shader({
+        .computeCodeData = SHADER_COMMON_GENMESHFROMBC4_COMP,
+        .computeCodeSize = SHADER_COMMON_GENMESHFROMBC4_COMP_len,
+        .defines = {
+            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
+        }
     });
 
     // original size of depth buffer
@@ -143,12 +148,11 @@ int main(int argc, char** argv) {
     float compressionRatio = originalSize / compressedSize;
 
     // set up meshes for rendering
-    int width = windowSize.x / surfelSize;
-    int height = windowSize.y / surfelSize;
+    glm::uvec2 adjustedWindowSize = windowSize / surfelSize;
 
-    int numVertices = width * height;
+    int numVertices = adjustedWindowSize.x * adjustedWindowSize.y;
 
-    int numTriangles = (width-1) * (height-1) * 2;
+    int numTriangles = (adjustedWindowSize.x-1) * (adjustedWindowSize.y-1) * 2;
     int indexBufferSize = numTriangles * 3;
 
     Mesh mesh = Mesh({
@@ -344,7 +348,35 @@ int main(int argc, char** argv) {
             rerender = false;
         }
 
-        // Compress depth data using BC4
+        // generate mesh for original depth data
+        genDepthShader.bind();
+        {
+            genDepthShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
+        }
+        {
+            genDepthShader.setVec2("depthMapSize", windowSize);
+            genDepthShader.setInt("surfelSize", surfelSize);
+        }
+        {
+            genDepthShader.setMat4("projection", remoteCamera.getProjectionMatrix());
+            genDepthShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+            genDepthShader.setMat4("view", remoteCamera.getViewMatrix());
+            genDepthShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
+
+            genDepthShader.setFloat("near", remoteCamera.near);
+            genDepthShader.setFloat("far", remoteCamera.far);
+        }
+        {
+            genDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
+            genDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
+        }
+        // dispatch compute shader to generate vertices for mesh
+        genMeshFromBC4Shader.dispatch((adjustedWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                      (adjustedWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+        genDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
+                                     GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+
+        // compress depth data using BC4
         bc4CompressionShader.bind();
         {
             bc4CompressionShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
@@ -356,56 +388,38 @@ int main(int argc, char** argv) {
         {
             bc4CompressionShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, bc4Buffer);
         }
-        bc4CompressionShader.dispatch((windowSize.x / 8) / 16, (windowSize.y / 8) / 16, 1);
+        bc4CompressionShader.dispatch((windowSize.x / 8) / THREADS_PER_LOCALGROUP, (windowSize.y / 8) / THREADS_PER_LOCALGROUP, 1);
         bc4CompressionShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-        // generate mesh for original depth data
-        genPtCloudFromDepthShader.bind();
-        {
-            genPtCloudFromDepthShader.setVec2("screenSize", windowSize);
-            genPtCloudFromDepthShader.setInt("surfelSize", surfelSize);
-        }
-        {
-            genPtCloudFromDepthShader.setMat4("view", remoteCamera.getViewMatrix());
-            genPtCloudFromDepthShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-            genPtCloudFromDepthShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
-            genPtCloudFromDepthShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
-        }
-        {
-            genPtCloudFromDepthShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
-        }
-        {
-            genPtCloudFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
-            genPtCloudFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
-        }
-        // dispatch compute shader to generate vertices and indices for mesh
-        genPtCloudFromDepthShader.dispatch(width / 16, height / 16, 1);
-        genPtCloudFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
-                                                GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
-
         // generate mesh using compressed depth data
-        genMeshShader.bind();
+        genMeshFromBC4Shader.bind();
         {
-            genMeshShader.setVec2("screenSize", windowSize);
-            genMeshShader.setVec2("depthMapSize", windowSize);
-            genMeshShader.setInt("surfelSize", surfelSize);
+            genMeshFromBC4Shader.setVec2("screenSize", windowSize);
+            genMeshFromBC4Shader.setVec2("depthMapSize", windowSize);
+            genMeshFromBC4Shader.setInt("surfelSize", surfelSize);
+
+            genMeshFromBC4Shader.setBool("unlinearizeDepth", false);
         }
         {
-            genMeshShader.setMat4("view", remoteCamera.getViewMatrix());
-            genMeshShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-            genMeshShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
-            genMeshShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+            genMeshFromBC4Shader.setMat4("projection", remoteCamera.getProjectionMatrix());
+            genMeshFromBC4Shader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+            genMeshFromBC4Shader.setMat4("viewColor", remoteCamera.getViewMatrix());
+            genMeshFromBC4Shader.setMat4("viewInverseDepth", glm::inverse(remoteCamera.getViewMatrix()));
+
+            genMeshFromBC4Shader.setFloat("near", remoteCamera.near);
+            genMeshFromBC4Shader.setFloat("far", remoteCamera.far);
         }
         {
-            genMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, meshDecompressed.vertexBuffer);
-            genMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, meshDecompressed.indexBuffer);
-            genMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, bc4Buffer);
+            genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, meshDecompressed.vertexBuffer);
+            genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, meshDecompressed.indexBuffer);
+            genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, bc4Buffer);
 
         }
         // dispatch compute shader to generate vertices and indices for mesh
-        genMeshShader.dispatch(width / 16, height / 16, 1);
-        genMeshShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
-                                    GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+        genMeshFromBC4Shader.dispatch((adjustedWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                      (adjustedWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+        genMeshFromBC4Shader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
+                                           GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
         // set render state
         node.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
@@ -415,9 +429,9 @@ int main(int argc, char** argv) {
         renderStats = renderer.drawObjects(scene, camera);
 
         // render to screen
-        screenShader.bind();
-        screenShader.setBool("toneMap", false);
-        renderer.drawToScreen(screenShader);
+        toneMapShader.bind();
+        toneMapShader.setBool("toneMap", false);
+        renderer.drawToScreen(toneMapShader);
     });
 
     // run app loop (blocking)

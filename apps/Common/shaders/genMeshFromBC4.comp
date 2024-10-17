@@ -43,6 +43,8 @@ uniform float far;
 
 uniform int surfelSize;
 
+uniform bool unlinearizeDepth = true;
+
 #define MAX_DEPTH 0.9999
 
 #define VERTICES_IN_A_QUAD  4
@@ -140,7 +142,7 @@ float sampleBC4Buffer(vec2 pixelCoordNormalized) {
     float depth = mix(minVal, maxVal, t);
     depth = min(depth, MAX_DEPTH);
 
-    return UnLinearizeDepth(depth);
+    return unlinearizeDepth ? UnLinearizeDepth(depth) : depth;
 }
 
 void main() {
