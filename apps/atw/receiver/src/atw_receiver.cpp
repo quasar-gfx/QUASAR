@@ -8,12 +8,17 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <Shaders/ToneMapShader.h>
+
 #include <Utils/Utils.h>
+#include <shaders_common.h>
 
 #include <VideoTexture.h>
 #include <PoseStreamer.h>
 
 #define TEXTURE_PREVIEW_SIZE 500
+
+const std::string DATA_PATH = "./";
 
 int main(int argc, char** argv) {
     Config config{};
@@ -79,16 +84,13 @@ int main(int argc, char** argv) {
     std::cout << "Pose URL: " << poseURL << std::endl;
 
     // shaders
-    Shader toneMapShader({
-        .vertexCodeData = SHADER_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_TONEMAP_FRAG,
-        .fragmentCodeSize = SHADER_TONEMAP_FRAG_len
-    });
+    ToneMapShader toneMapShader;
 
     Shader atwShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "./shaders/atw.frag"
+        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_COMMON_ATW_FRAG,
+        .fragmentCodeSize = SHADER_COMMON_ATW_FRAG_len
     });
 
     bool atwEnabled = true;
@@ -220,7 +222,7 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string fileName = DATA_PATH + std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 

@@ -8,6 +8,8 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <Shaders/ToneMapShader.h>
+
 #include <Utils/Utils.h>
 
 #include <Shaders/ComputeShader.h>
@@ -110,16 +112,13 @@ int main(int argc, char** argv) {
     PoseReceiver poseReceiver = PoseReceiver(&camera, poseURL);
 
     // shaders
-    Shader toneMapShader({
-        .vertexCodeData = SHADER_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_TONEMAP_FRAG,
-        .fragmentCodeSize = SHADER_TONEMAP_FRAG_len
-    });
+    ToneMapShader toneMapShader;
 
     Shader depthShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "./shaders/displayDepth.frag"
+        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_BUILTIN_DISPLAYDEPTH_FRAG,
+        .fragmentCodeSize = SHADER_BUILTIN_DISPLAYDEPTH_FRAG_len
     });
 
     PauseState pauseState = PauseState::PLAY;
@@ -238,7 +237,7 @@ int main(int argc, char** argv) {
 
     // save camera view and projection matrices
     std::ofstream cameraFile;
-    cameraFile.open("data/camera.bin", std::ios::out | std::ios::binary);
+    cameraFile.open("camera.bin", std::ios::out | std::ios::binary);
     glm::mat4 proj = camera.getProjectionMatrix();
     glm::mat4 view = camera.getViewMatrix();
     cameraFile.write(reinterpret_cast<const char*>(&proj), sizeof(glm::mat4));

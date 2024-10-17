@@ -84,10 +84,10 @@ void glDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLs
 OpenGLRenderer::OpenGLRenderer(const Config &config)
         : width(config.width), height(config.height)
         , skyboxShader({
-            .vertexCodeData = SHADER_SKYBOX_VERT,
-            .vertexCodeSize = SHADER_SKYBOX_VERT_len,
-            .fragmentCodeData = SHADER_SKYBOX_FRAG,
-            .fragmentCodeSize = SHADER_SKYBOX_FRAG_len
+            .vertexCodeData = SHADER_BUILTIN_SKYBOX_VERT,
+            .vertexCodeSize = SHADER_BUILTIN_SKYBOX_VERT_len,
+            .fragmentCodeData = SHADER_BUILTIN_SKYBOX_FRAG,
+            .fragmentCodeSize = SHADER_BUILTIN_SKYBOX_FRAG_len
         })
         , outputFsQuad() {
 #ifdef GL_CORE

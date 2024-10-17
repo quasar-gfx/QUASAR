@@ -6,6 +6,8 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <Shaders/ToneMapShader.h>
+
 #include <Utils/Utils.h>
 #include <VideoTexture.h>
 #include <BC4DepthVideoTexture.h>
@@ -136,16 +138,13 @@ int main(int argc, char** argv) {
     scene.addChildNode(&nodeWireframe);
 
     // Shaders
-    Shader toneMapShader({
-        .vertexCodeData = SHADER_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_TONEMAP_FRAG,
-        .fragmentCodeSize = SHADER_TONEMAP_FRAG_len
-    });
+    ToneMapShader toneMapShader;
 
     Shader videoShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayTexture.frag",
+        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_BUILTIN_DISPLAYTEXTURE_FRAG,
+        .fragmentCodeSize = SHADER_BUILTIN_DISPLAYTEXTURE_FRAG_len
     });
 
     ComputeShader genMeshFromBC4Shader({
@@ -156,7 +155,7 @@ int main(int argc, char** argv) {
     });
 
     // Load camera matrices
-    auto cameraData = FileIO::loadBinaryFile(DATA_PATH + "data/camera.bin");
+    auto cameraData = FileIO::loadBinaryFile(DATA_PATH + "camera.bin");
     glm::mat4 proj = glm::mat4(1.0f);
     glm::mat4 view = glm::mat4(1.0f);
     std::memcpy(&proj, cameraData.data(), sizeof(glm::mat4));

@@ -25,10 +25,10 @@ UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams &params)
 
     if (shader == nullptr) {
         ShaderDataCreateParams unlitShaderParams{
-            .vertexCodeData = SHADER_COMMON_VERT,
-            .vertexCodeSize = SHADER_COMMON_VERT_len,
-            .fragmentCodeData = SHADER_MATERIAL_UNLIT_FRAG,
-            .fragmentCodeSize = SHADER_MATERIAL_UNLIT_FRAG_len,
+            .vertexCodeData = SHADER_BUILTIN_COMMON_VERT,
+            .vertexCodeSize = SHADER_BUILTIN_COMMON_VERT_len,
+            .fragmentCodeData = SHADER_BUILTIN_MATERIAL_UNLIT_FRAG,
+            .fragmentCodeSize = SHADER_BUILTIN_MATERIAL_UNLIT_FRAG_len,
             .defines = {
                 "#define ALPHA_OPAQUE " + std::to_string(static_cast<uint8_t>(AlphaMode::OPAQUE)),
                 "#define ALPHA_MASK " + std::to_string(static_cast<uint8_t>(AlphaMode::MASKED)),

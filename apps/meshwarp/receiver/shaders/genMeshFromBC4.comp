@@ -138,8 +138,9 @@ float sampleBC4Buffer(vec2 pixelCoordNormalized) {
     float t = float(index) / 7.0;
 
     float depth = mix(minVal, maxVal, t);
+    depth = min(depth, MAX_DEPTH);
 
-    return min(depth, MAX_DEPTH);
+    return UnLinearizeDepth(depth);
 }
 
 void main() {

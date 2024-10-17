@@ -4,10 +4,10 @@ DepthPeelingRenderer::DepthPeelingRenderer(const Config &config, unsigned int ma
         : gBuffer({ .width = config.width, .height = config.height })
         , maxLayers(maxLayers)
         , compositeLayersShader({
-            .vertexCodeData = SHADER_POSTPROCESS_VERT,
-            .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
-            .fragmentCodeData = SHADER_COMPOSITELAYERS_FRAG,
-            .fragmentCodeSize = SHADER_COMPOSITELAYERS_FRAG_len,
+            .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
+            .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
+            .fragmentCodeData = SHADER_BUILTIN_COMPOSITELAYERS_FRAG,
+            .fragmentCodeSize = SHADER_BUILTIN_COMPOSITELAYERS_FRAG_len,
             .defines = {
                 "#define MAX_LAYERS " + std::to_string(maxLayers)
             }

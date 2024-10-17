@@ -1,14 +1,16 @@
 #include <BC4DepthStreamer.h>
+#include <shaders_common.h>
 
 #define THREADS_PER_LOCALGROUP 16
 #define BLOCK_SIZE 8
 
-BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams &params, std::string receiverURL, std::string bc4CompressionShaderPath)
+BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams &params, std::string receiverURL)
         : RenderTarget(params)
         , receiverURL(receiverURL)
         , streamer(receiverURL)
         , bc4CompressionShader({
-            .computeCodePath = bc4CompressionShaderPath,
+            .computeCodeData = SHADER_COMMON_BC4COMPRESSION_COMP,
+            .computeCodeSize = SHADER_COMMON_BC4COMPRESSION_COMP_len,
             .defines = {
                 "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
             }

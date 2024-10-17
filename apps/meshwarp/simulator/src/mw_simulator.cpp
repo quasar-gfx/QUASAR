@@ -8,6 +8,8 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <Shaders/ToneMapShader.h>
+
 #include <Utils/Utils.h>
 
 #define THREADS_PER_LOCALGROUP 16
@@ -121,12 +123,7 @@ int main(int argc, char** argv) {
     scene.addChildNode(&nodePointCloud);
 
     // shaders
-    Shader toneMapShader({
-        .vertexCodeData = SHADER_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_TONEMAP_FRAG,
-        .fragmentCodeSize = SHADER_TONEMAP_FRAG_len
-    });
+    ToneMapShader toneMapShader;
 
     ComputeShader genMeshFromDepthShader({
         .computeCodePath = "./shaders/genMeshFromDepth.comp",

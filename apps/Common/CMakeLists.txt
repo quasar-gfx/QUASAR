@@ -4,6 +4,7 @@ project(Common)
 set(TARGET common)
 
 set(PUBLIC_HDR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set(SHADERS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
 
 set(LIBS )
 
@@ -12,6 +13,7 @@ set(LIBS ${LIBS} renderer)
 find_package(Threads REQUIRED)
 set(LIBS ${LIBS} Threads::Threads)
 
+# CUDA
 if (NOT APPLE)
     find_package(CUDAToolkit REQUIRED)
     set(LIBS ${LIBS} ${CUDA_LIBRARIES})
@@ -19,6 +21,7 @@ if (NOT APPLE)
     set(LIBS ${LIBS} CUDA::cuda_driver)
 endif()
 
+# FFmpeg
 find_path(AVCODEC_INCLUDE_DIR libavcodec/avcodec.h)
 find_library(AVCODEC_LIBRARY avcodec)
 set(LIBS ${LIBS} ${AVCODEC_LIBRARY})
@@ -46,6 +49,10 @@ file(GLOB_RECURSE SRCS
 
 add_library(${TARGET} STATIC ${PUBLIC_HDRS} ${SRCS})
 
-target_include_directories(${TARGET} PUBLIC ${PUBLIC_HDR_DIR})
+target_include_directories(${TARGET} PUBLIC ${PUBLIC_HDR_DIR} ${CMAKE_CURRENT_BINARY_DIR}/shaders)
+
+add_subdirectory(${SHADERS_DIR})
 
 target_link_libraries(${TARGET} ${LIBS})
+
+add_dependencies(${TARGET} shaders_common)
