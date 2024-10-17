@@ -8,8 +8,11 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <Shaders/ToneMapShader.h>
+
 #include <Utils/Utils.h>
 #include <QuadMaterial.h>
+#include <shaders_common.h>
 
 #define THREADS_PER_LOCALGROUP 16
 
@@ -176,18 +179,13 @@ int main(int argc, char** argv) {
     scene.addChildNode(&nodeDepth);
 
     // shaders
-    Shader toneMapShader({
-        .vertexCodeData = SHADER_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_TONEMAP_FRAG,
-        .fragmentCodeSize = SHADER_TONEMAP_FRAG_len
-    });
+    ToneMapShader toneMapShader;
 
     Shader screenShaderNormals({
-        .vertexCodeData = SHADER_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_DISPLAYNORMALS_FRAG,
-        .fragmentCodeSize = SHADER_DISPLAYNORMALS_FRAG_len
+        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_BUILTIN_DISPLAYNORMALS_FRAG,
+        .fragmentCodeSize = SHADER_BUILTIN_DISPLAYNORMALS_FRAG_len
     });
 
     ComputeShader genQuadMapShader({
@@ -212,7 +210,8 @@ int main(int argc, char** argv) {
     });
 
     ComputeShader genDepthShader({
-        .computeCodePath = "./shaders/genDepthPtCloud.comp",
+        .computeCodeData = SHADER_COMMON_GENDEPTHPTCLOUD_COMP,
+        .computeCodeSize = SHADER_COMMON_GENDEPTHPTCLOUD_COMP_len,
         .defines = {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
@@ -655,7 +654,7 @@ int main(int argc, char** argv) {
                 genDepthShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
             }
             {
-                genDepthShader.setVec2("remoteWindowSize", remoteWindowSize);
+                genDepthShader.setVec2("depthMapSize", remoteWindowSize);
             }
             {
                 genDepthShader.setMat4("view", remoteCamera.getViewMatrix());

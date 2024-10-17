@@ -9,6 +9,8 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <Shaders/ToneMapShader.h>
+
 #include <Utils/Utils.h>
 
 #include <QuadMaterial.h>
@@ -75,12 +77,7 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera(windowSize.x, windowSize.y);
 
     // shaders
-    Shader toneMapShader({
-        .vertexCodeData = SHADER_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_TONEMAP_FRAG,
-        .fragmentCodeSize = SHADER_TONEMAP_FRAG_len
-    });
+    ToneMapShader toneMapShader;
 
     bool* showLayers = new bool[maxViews];
     for (int i = 0; i < maxViews; ++i) {

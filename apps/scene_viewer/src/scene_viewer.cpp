@@ -8,6 +8,8 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <Shaders/ToneMapShader.h>
+
 #include <Utils/Utils.h>
 
 const std::string DATA_PATH = "./";
@@ -62,39 +64,34 @@ int main(int argc, char** argv) {
     loader.loadScene(scenePath, scene, camera);
 
     // shaders
-    Shader toneMapShader({
-        .vertexCodeData = SHADER_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_TONEMAP_FRAG,
-        .fragmentCodeSize = SHADER_TONEMAP_FRAG_len
-    });
+    ToneMapShader toneMapShader;
 
     Shader showDepthShader({
-        .vertexCodeData = SHADER_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_DISPLAYDEPTH_FRAG,
-        .fragmentCodeSize = SHADER_DISPLAYDEPTH_FRAG_len
+        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_BUILTIN_DISPLAYDEPTH_FRAG,
+        .fragmentCodeSize = SHADER_BUILTIN_DISPLAYDEPTH_FRAG_len
     });
 
     Shader showPositionShader({
-        .vertexCodeData = SHADER_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_DISPLAYPOSITIONS_FRAG,
-        .fragmentCodeSize = SHADER_DISPLAYPOSITIONS_FRAG_len
+        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_BUILTIN_DISPLAYPOSITIONS_FRAG,
+        .fragmentCodeSize = SHADER_BUILTIN_DISPLAYPOSITIONS_FRAG_len
     });
 
     Shader showNormalShader({
-        .vertexCodeData = SHADER_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_DISPLAYNORMALS_FRAG,
-        .fragmentCodeSize = SHADER_DISPLAYNORMALS_FRAG_len
+        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_BUILTIN_DISPLAYNORMALS_FRAG,
+        .fragmentCodeSize = SHADER_BUILTIN_DISPLAYNORMALS_FRAG_len
     });
 
     Shader showIDShader({
-        .vertexCodeData = SHADER_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_DISPLAYIDS_FRAG,
-        .fragmentCodeSize = SHADER_DISPLAYIDS_FRAG_len
+        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_BUILTIN_DISPLAYIDS_FRAG,
+        .fragmentCodeSize = SHADER_BUILTIN_DISPLAYIDS_FRAG_len
     });
 
     float exposure = 1.0f;

@@ -79,10 +79,10 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params)
 
     if (shader == nullptr) {
         ShaderDataCreateParams pbrShaderParams{
-            .vertexCodeData = SHADER_COMMON_VERT,
-            .vertexCodeSize = SHADER_COMMON_VERT_len,
-            .fragmentCodeData = SHADER_MATERIAL_PBR_FRAG,
-            .fragmentCodeSize = SHADER_MATERIAL_PBR_FRAG_len,
+            .vertexCodeData = SHADER_BUILTIN_COMMON_VERT,
+            .vertexCodeSize = SHADER_BUILTIN_COMMON_VERT_len,
+            .fragmentCodeData = SHADER_BUILTIN_MATERIAL_PBR_FRAG,
+            .fragmentCodeSize = SHADER_BUILTIN_MATERIAL_PBR_FRAG_len,
 #ifdef GL_ES
             .extensions = {
                 "#extension GL_EXT_texture_cube_map_array : enable"

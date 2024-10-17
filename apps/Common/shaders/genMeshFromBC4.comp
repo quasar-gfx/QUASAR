@@ -1,7 +1,5 @@
 layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = THREADS_PER_LOCALGROUP, local_size_z = 1) in;
 
-layout(binding = 0) uniform sampler2D depthMap;
-
 struct Vertex {
     vec3 position;
     vec3 color;
@@ -9,6 +7,12 @@ struct Vertex {
     vec2 texCoords;
     vec3 tangent;
     vec3 bitangent;
+};
+
+struct Block{
+    float max;
+    float min;
+    uint data[6];
 };
 
 layout(std430, binding = 0) buffer VertexBuffer {
@@ -19,17 +23,29 @@ layout(std430, binding = 1) buffer IndexBuffer {
     uint indices[];
 };
 
+layout(std430, binding = 2) buffer BC4Buffer {
+    Block bc4buffer[];
+};
+
+const ivec2 blockSize = ivec2(8, 8);
+
+uniform vec2 screenSize;
 uniform vec2 depthMapSize;
+
+uniform mat4 projection;
+uniform mat4 projectionInverse;
 
 uniform mat4 viewColor;
 uniform mat4 viewInverseDepth;
-uniform mat4 projection;
-uniform mat4 projectionInverse;
 
 uniform float near;
 uniform float far;
 
 uniform int surfelSize;
+
+uniform bool unlinearizeDepth = true;
+
+#define MAX_DEPTH 0.9999
 
 #define VERTICES_IN_A_QUAD  4
 #define INDICES_IN_A_QUAD   6
@@ -69,14 +85,68 @@ vec2 viewToScreen(mat4 projection, vec3 viewCoord) {
     return uv;
 }
 
-float sampleDepth(sampler2D depthMap, vec2 sampleCoord) {
-    float depth = texture(depthMap, sampleCoord).r;
-    depth = clamp(depth, 0.0, 0.99999);
-    return depth;
+float LinearizeDepth(float depth) {
+    float z = depth * 2.0 - 1.0; // back to NDC
+    return (2.0 * near * far) / (far + near - z * (far - near));
+}
+
+float UnLinearizeDepth(float depth) {
+    depth *= far;
+    depth = max(depth, near);
+    float z = (depth * (far + near) - 2.0 * near * far) / (depth * (far - near));
+    return (z + 1.0) / 2.0;
+}
+
+float sampleBC4Buffer(vec2 pixelCoordNormalized) {
+    ivec2 pixelCoord = ivec2(pixelCoordNormalized * depthMapSize); // normalized coord to integer pixel coord
+    ivec2 blockCoord = pixelCoord / blockSize;
+    ivec2 pixelInBlock = pixelCoord % blockSize;
+
+    uint blockIndex = blockCoord.y * (uint(depthMapSize.x) / blockSize.x) + blockCoord.x; //index of this block in the BC4 buffer
+    Block compressedBlock = bc4buffer[blockIndex];
+
+    float maxVal = compressedBlock.max;
+    float minVal = compressedBlock.min;
+
+    uint pixelIndex = pixelInBlock.y * blockSize.x + pixelInBlock.x;
+    uint globalBitIndex = pixelIndex * 3;
+    uint uintIndex = globalBitIndex / 32; // 0-5
+    uint bitOffset = globalBitIndex % 32; // 0-31
+
+    uint index;
+    if (bitOffset <= 29) {
+        // Normal case: all 3 bits are in the current uint
+        index = (compressedBlock.data[uintIndex] >> (29 - bitOffset)) & 0x7u;
+    } else {
+        // Split case: the 3 bits are split across two uints
+        uint bitsInCurrent = 32 - bitOffset;
+        uint bitsInNext = 3 - bitsInCurrent;
+
+        // Get the bits from the current uint
+        uint mask = 0;
+        if (bitsInCurrent == 1) mask = 1; // 0b01
+        if (bitsInCurrent == 2) mask = 3; // 0b11
+        uint upperBits = compressedBlock.data[uintIndex] & (mask);
+
+        // Get the bits from the next uint (with wraparound)
+        uint lowerBits = compressedBlock.data[(uintIndex + 1) % 6] >> (32 - bitsInNext);
+
+        // Combine the bits
+        index = (upperBits << bitsInNext) | lowerBits;
+    }
+
+    index = index & 0x7u; // Ensure index is a valid 3-bit number (0-7)
+
+    float t = float(index) / 7.0;
+
+    float depth = mix(minVal, maxVal, t);
+    depth = min(depth, MAX_DEPTH);
+
+    return unlinearizeDepth ? UnLinearizeDepth(depth) : depth;
 }
 
 void main() {
-    vec2 size = depthMapSize / float(surfelSize);
+    vec2 size = vec2(depthMapSize) / float(surfelSize);
 
     vec2 surfelCoord = vec2(gl_GlobalInvocationID.xy);
     if (surfelCoord.x >= depthMapSize.x || surfelCoord.y >= depthMapSize.y) {
@@ -86,7 +156,7 @@ void main() {
     vec2 pixelCoord = surfelSize * (surfelCoord + vec2(0.5, 0.5));
     vec2 uv = vec2(pixelCoord) / depthMapSize;
 
-    float depth = sampleDepth(depthMap, uv);
+    float depth = sampleBC4Buffer(uv);
 
     vec2 ndc = 2.0 * uv - 1.0;
     vec3 viewCoord = ndcToView(projectionInverse, ndc, depth);

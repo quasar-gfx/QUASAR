@@ -8,7 +8,10 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <Shaders/ToneMapShader.h>
+
 #include <Utils/Utils.h>
+#include <shaders_common.h>
 
 const std::string DATA_PATH = "./";
 
@@ -80,16 +83,13 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader toneMapShader({
-        .vertexCodeData = SHADER_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_TONEMAP_FRAG,
-        .fragmentCodeSize = SHADER_TONEMAP_FRAG_len
-    });
+    ToneMapShader toneMapShader;
 
     Shader atwShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../receiver/shaders/atw.frag"
+        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_COMMON_ATW_FRAG,
+        .fragmentCodeSize = SHADER_COMMON_ATW_FRAG_len
     });
 
     bool atwEnabled = true;

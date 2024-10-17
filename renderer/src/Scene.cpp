@@ -25,25 +25,25 @@ Scene::Scene()
         })
         , brdfFsQuad()
         , equirectToCubeMapShader({
-            .vertexCodeData = SHADER_CUBEMAP_VERT,
-            .vertexCodeSize = SHADER_CUBEMAP_VERT_len,
-            .fragmentCodeData = SHADER_EQUIRECTANGULAR2CUBEMAP_FRAG,
-            .fragmentCodeSize = SHADER_EQUIRECTANGULAR2CUBEMAP_FRAG_len })
+            .vertexCodeData = SHADER_BUILTIN_CUBEMAP_VERT,
+            .vertexCodeSize = SHADER_BUILTIN_CUBEMAP_VERT_len,
+            .fragmentCodeData = SHADER_BUILTIN_EQUIRECTANGULAR2CUBEMAP_FRAG,
+            .fragmentCodeSize = SHADER_BUILTIN_EQUIRECTANGULAR2CUBEMAP_FRAG_len })
         , convolutionShader({
-            .vertexCodeData = SHADER_CUBEMAP_VERT,
-            .vertexCodeSize = SHADER_CUBEMAP_VERT_len,
-            .fragmentCodeData = SHADER_IRRADIANCECONVOLUTION_FRAG,
-            .fragmentCodeSize = SHADER_IRRADIANCECONVOLUTION_FRAG_len })
+            .vertexCodeData = SHADER_BUILTIN_CUBEMAP_VERT,
+            .vertexCodeSize = SHADER_BUILTIN_CUBEMAP_VERT_len,
+            .fragmentCodeData = SHADER_BUILTIN_IRRADIANCECONVOLUTION_FRAG,
+            .fragmentCodeSize = SHADER_BUILTIN_IRRADIANCECONVOLUTION_FRAG_len })
         , prefilterShader({
-            .vertexCodeData = SHADER_CUBEMAP_VERT,
-            .vertexCodeSize = SHADER_CUBEMAP_VERT_len,
-            .fragmentCodeData = SHADER_PREFILTER_FRAG,
-            .fragmentCodeSize = SHADER_PREFILTER_FRAG_len })
+            .vertexCodeData = SHADER_BUILTIN_CUBEMAP_VERT,
+            .vertexCodeSize = SHADER_BUILTIN_CUBEMAP_VERT_len,
+            .fragmentCodeData = SHADER_BUILTIN_PREFILTER_FRAG,
+            .fragmentCodeSize = SHADER_BUILTIN_PREFILTER_FRAG_len })
         , brdfShader({
-            .vertexCodeData = SHADER_BRDF_VERT,
-            .vertexCodeSize = SHADER_BRDF_VERT_len,
-            .fragmentCodeData = SHADER_BRDF_FRAG,
-            .fragmentCodeSize = SHADER_BRDF_FRAG_len }) { }
+            .vertexCodeData = SHADER_BUILTIN_BRDF_VERT,
+            .vertexCodeSize = SHADER_BUILTIN_BRDF_VERT_len,
+            .fragmentCodeData = SHADER_BUILTIN_BRDF_FRAG,
+            .fragmentCodeSize = SHADER_BUILTIN_BRDF_FRAG_len }) { }
 
 void Scene::addChildNode(Node* node) {
     children.push_back(node);

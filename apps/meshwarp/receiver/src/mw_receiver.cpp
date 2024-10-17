@@ -6,11 +6,13 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <Shaders/ToneMapShader.h>
+
 #include <Utils/Utils.h>
 #include <VideoTexture.h>
 #include <BC4DepthVideoTexture.h>
 #include <PoseStreamer.h>
-#include <Shaders/ComputeShader.h>
+#include <shaders_common.h>
 
 #define THREADS_PER_LOCALGROUP 16
 
@@ -111,7 +113,7 @@ int main(int argc, char** argv) {
     std::cout << "Depth URL: " << depthURL << std::endl;
     std::cout << "Pose URL: " << poseURL << std::endl;
 
-    glm::uvec2 adjustedWindowSize = glm::uvec2(windowSize.x, windowSize.y) / surfelSize;
+    glm::uvec2 adjustedWindowSize = windowSize / surfelSize;
 
     unsigned int maxVertices = adjustedWindowSize.x * adjustedWindowSize.y;
     unsigned int numTriangles = (adjustedWindowSize.x-1) * (adjustedWindowSize.y-1) * 2;
@@ -136,27 +138,25 @@ int main(int argc, char** argv) {
     scene.addChildNode(&nodeWireframe);
 
     // Shaders
-    Shader toneMapShader({
-        .vertexCodeData = SHADER_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_TONEMAP_FRAG,
-        .fragmentCodeSize = SHADER_TONEMAP_FRAG_len
-    });
+    ToneMapShader toneMapShader;
 
     Shader videoShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayTexture.frag",
+        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_BUILTIN_DISPLAYTEXTURE_FRAG,
+        .fragmentCodeSize = SHADER_BUILTIN_DISPLAYTEXTURE_FRAG_len
     });
 
     ComputeShader genMeshFromBC4Shader({
-        .computeCodePath = "./shaders/genMeshFromBC4.comp",
+        .computeCodeData = SHADER_COMMON_GENMESHFROMBC4_COMP,
+        .computeCodeSize = SHADER_COMMON_GENMESHFROMBC4_COMP_len,
         .defines = {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
     });
 
     // Load camera matrices
-    auto cameraData = FileIO::loadBinaryFile(DATA_PATH + "data/camera.bin");
+    auto cameraData = FileIO::loadBinaryFile(DATA_PATH + "camera.bin");
     glm::mat4 proj = glm::mat4(1.0f);
     glm::mat4 view = glm::mat4(1.0f);
     std::memcpy(&proj, cameraData.data(), sizeof(glm::mat4));
@@ -404,19 +404,19 @@ int main(int argc, char** argv) {
             genMeshFromBC4Shader.setVec2("screenSize", windowSize);
             genMeshFromBC4Shader.setVec2("depthMapSize", glm::vec2(videoTextureDepth.width, videoTextureDepth.height));
             genMeshFromBC4Shader.setInt("surfelSize", surfelSize);
-            genMeshFromBC4Shader.setFloat("near", remoteCamera.near);
-            genMeshFromBC4Shader.setFloat("far", remoteCamera.far);
         }
         {
             genMeshFromBC4Shader.setMat4("projection", remoteCamera.getProjectionMatrix());
             genMeshFromBC4Shader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
-
             if (poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTimeColor)) {
                 genMeshFromBC4Shader.setMat4("viewColor", currentColorFramePose.mono.view);
             }
             if (poseStreamer.getPose(poseIdDepth, &currentDepthFramePose, &elapsedTimeDepth)) {
                 genMeshFromBC4Shader.setMat4("viewInverseDepth", glm::inverse(currentDepthFramePose.mono.view));
             }
+
+            genMeshFromBC4Shader.setFloat("near", remoteCamera.near);
+            genMeshFromBC4Shader.setFloat("far", remoteCamera.far);
         }
         {
             genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);

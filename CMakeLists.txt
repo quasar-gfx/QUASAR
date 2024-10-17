@@ -15,9 +15,10 @@ add_compile_options(-Wunused-variable)
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 
-set(RENDERER ${CMAKE_CURRENT_SOURCE_DIR}/renderer)
-set(SHADERS ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
-set(EXTERNAL ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
+set(RENDERER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/renderer)
+set(RENDERER_SHADERS_DIR ${RENDERER_DIR}/shaders)
+set(EXTERNAL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
+set(ASSETS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/assets)
 
 # set required libs
 set(RENDERER_LIBS )
@@ -30,43 +31,39 @@ set(RENDERER_LIBS ${RENDERER_LIBS} ${OPENGL_LIBRARIES})
 find_package(glfw3 REQUIRED)
 set(RENDERER_LIBS ${RENDERER_LIBS} glfw)
 
-add_library(glad "${EXTERNAL}/glad/glad.c")
+add_library(glad "${EXTERNAL_DIR}/glad/glad.c")
 set(RENDERER_LIBS ${RENDERER_LIBS} glad)
 
 # add third party libraries
-add_subdirectory(${EXTERNAL}/libassimp/tnt)
+add_subdirectory(${EXTERNAL_DIR}/libassimp/tnt)
 set(RENDERER_LIBS ${RENDERER_LIBS} assimp)
 
-add_subdirectory(${EXTERNAL}/imgui/tnt)
+add_subdirectory(${EXTERNAL_DIR}/imgui/tnt)
 set(RENDERER_LIBS ${RENDERER_LIBS} imgui)
 
-add_subdirectory(${EXTERNAL}/stb/tnt)
+add_subdirectory(${EXTERNAL_DIR}/stb/tnt)
 set(RENDERER_LIBS ${RENDERER_LIBS} stb)
 
-add_subdirectory(${EXTERNAL}/jsmn/tnt)
+add_subdirectory(${EXTERNAL_DIR}/jsmn/tnt)
 set(RENDERER_LIBS ${RENDERER_LIBS} jsmn)
-
-add_subdirectory(${SHADERS})
 
 # include directories
 include_directories(
     ${OPENGL_INCLUDE_DIRS}
     ${GLFW_INCLUDE_DIRS}
-    ${RENDERER}/include
-    ${EXTERNAL}
-    ${CMAKE_BINARY_DIR}/shaders
+    ${RENDERER_DIR}/include
+    ${EXTERNAL_DIR}
 )
 
 # add and link renderer library
-add_subdirectory(${RENDERER})
-add_dependencies(renderer shaders)
+add_subdirectory(${RENDERER_DIR})
 target_link_libraries(renderer ${RENDERER_LIBS})
 
 # add apps
 add_subdirectory(apps)
 
 # make symbolic link of assets to output/apps directory
-file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}/assets ${CMAKE_CURRENT_BINARY_DIR}/apps/assets SYMBOLIC)
+file(CREATE_LINK ${ASSETS_DIR} ${CMAKE_CURRENT_BINARY_DIR}/apps/assets SYMBOLIC)
 
 # make symbolic link of shaders to output/apps directory
-file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}/shaders ${CMAKE_CURRENT_BINARY_DIR}/apps/shaders SYMBOLIC)
+file(CREATE_LINK ${RENDERER_SHADERS_DIR} ${CMAKE_CURRENT_BINARY_DIR}/apps/shaders SYMBOLIC)
