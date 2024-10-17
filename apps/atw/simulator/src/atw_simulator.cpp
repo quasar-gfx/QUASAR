@@ -74,8 +74,8 @@ int main(int argc, char** argv) {
         .type = GL_FLOAT,
         .wrapS = GL_CLAMP_TO_EDGE,
         .wrapT = GL_CLAMP_TO_EDGE,
-        .minFilter = GL_NEAREST,
-        .magFilter = GL_NEAREST
+        .minFilter = GL_LINEAR,
+        .magFilter = GL_LINEAR
     });
 
     bool atwEnabled = true;
@@ -209,7 +209,7 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader screenShaderColor({
+    Shader toneMapShader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
@@ -282,7 +282,7 @@ int main(int argc, char** argv) {
             renderer.drawObjects(remoteScene, remoteCamera);
 
             // copy rendered result to video render target
-            renderer.drawToRenderTarget(screenShaderColor, renderTarget);
+            renderer.drawToRenderTarget(toneMapShader, renderTarget);
 
             std::cout << "  Rendering Time: " << glfwGetTime() - startTime << "s" << std::endl;
             startTime = glfwGetTime();
@@ -301,8 +301,6 @@ int main(int argc, char** argv) {
             camera.updateViewMatrix();
         }
 
-        renderStats = renderer.drawObjects(scene, camera);
-
         atwShader.bind();
         {
             atwShader.setBool("atwEnabled", atwEnabled);
@@ -318,7 +316,7 @@ int main(int argc, char** argv) {
         {
             atwShader.setTexture("videoTexture", renderTarget.colorBuffer, 5);
         }
-        renderStats += renderer.drawToScreen(atwShader);
+        renderStats = renderer.drawToScreen(atwShader);
 
         if (saveImage) {
             glm::vec3 position = camera.getPosition();
@@ -329,7 +327,7 @@ int main(int argc, char** argv) {
             std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
 
             std::string fileName = DATA_PATH + "screenshot." + positionStr + "_" + rotationStr;
-            renderer.drawToRenderTarget(screenShaderColor, renderer.gBuffer);
+            renderer.drawToRenderTarget(toneMapShader, renderer.gBuffer);
             renderer.gBuffer.saveColorAsPNG(fileName + ".png");
             window->close();
         }

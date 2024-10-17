@@ -203,7 +203,7 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader showColorShader({
+    Shader toneMapShader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
@@ -294,9 +294,9 @@ int main(int argc, char** argv) {
             renderer.drawToScreen(showIDShader);
         }
         else {
-            showColorShader.bind();
-            showColorShader.setFloat("exposure", exposure);
-            renderer.drawToScreen(showColorShader);
+            toneMapShader.bind();
+            toneMapShader.setFloat("exposure", exposure);
+            renderer.drawToScreen(toneMapShader);
         }
     });
 

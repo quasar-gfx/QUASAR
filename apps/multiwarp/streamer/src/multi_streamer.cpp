@@ -221,7 +221,7 @@ int main(int argc, char** argv) {
     }
 
     // shaders
-    Shader screenShaderColor({
+    Shader toneMapShader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
@@ -657,9 +657,9 @@ int main(int argc, char** argv) {
 
                 // render to render target
                 if (!showNormals) {
-                    screenShaderColor.bind();
-                    screenShaderColor.setBool("doToneMapping", false); // dont apply tone mapping
-                    renderer.drawToRenderTarget(screenShaderColor, *renderTargets[view]);
+                    toneMapShader.bind();
+                    toneMapShader.setBool("doToneMapping", false); // dont apply tone mapping
+                    renderer.drawToRenderTarget(toneMapShader, *renderTargets[view]);
                 }
                 else {
                     renderer.drawToRenderTarget(screenShaderNormals, *renderTargets[view]);
@@ -881,9 +881,9 @@ int main(int argc, char** argv) {
         renderer.pipeline.rasterState.cullFaceEnabled = true;
 
         // render to screen
-        screenShaderColor.bind();
-        screenShaderColor.setBool("doToneMapping", true);
-        renderer.drawToScreen(screenShaderColor);
+        toneMapShader.bind();
+        toneMapShader.setBool("doToneMapping", true);
+        renderer.drawToScreen(toneMapShader);
 
         if (saveImage) {
             glm::vec3 position = camera.getPosition();
@@ -894,7 +894,7 @@ int main(int argc, char** argv) {
             std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
 
             std::string fileName = DATA_PATH + "screenshot." + positionStr + "_" + rotationStr;
-            renderer.drawToRenderTarget(screenShaderColor, renderer.gBuffer);
+            renderer.drawToRenderTarget(toneMapShader, renderer.gBuffer);
             renderer.gBuffer.saveColorAsPNG(fileName + ".png");
             window->close();
         }

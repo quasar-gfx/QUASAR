@@ -8,6 +8,10 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <Utils/Utils.h>
+
+const std::string DATA_PATH = "./";
+
 int main(int argc, char** argv) {
     Config config{};
     config.title = "Scene Viewer";
@@ -17,6 +21,8 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
+    args::Flag saveImage(parser, "save", "Save image and exit", {'b', "save-image"});
+    args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -157,7 +163,7 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = std::string(fileNameBase) + "." + sizeStr + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string fileName = DATA_PATH + std::string(fileNameBase) + "." + sizeStr + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
@@ -185,7 +191,7 @@ int main(int argc, char** argv) {
     });
 
     // shaders
-    Shader showColorShader({
+    Shader toneMapShader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
@@ -253,6 +259,17 @@ int main(int argc, char** argv) {
             window->close();
         }
 
+        if (saveImage && args::get(poseOffset).size() == 6) {
+            glm::vec3 positionOffset, rotationOffset;
+            for (int i = 0; i < 3; i++) {
+                positionOffset[i] = args::get(poseOffset)[i];
+                rotationOffset[i] = args::get(poseOffset)[i + 3];
+            }
+            camera.setPosition(camera.getPosition() + positionOffset);
+            camera.setRotationEuler(camera.getRotationEuler() + rotationOffset);
+            camera.updateViewMatrix();
+        }
+
         // render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);
 
@@ -276,9 +293,23 @@ int main(int argc, char** argv) {
             renderer.drawToScreen(showIDShader);
         }
         else {
-            showColorShader.bind();
-            showColorShader.setFloat("exposure", exposure);
-            renderer.drawToScreen(showColorShader);
+            toneMapShader.bind();
+            toneMapShader.setFloat("exposure", exposure);
+            renderer.drawToScreen(toneMapShader);
+
+            if (saveImage) {
+                glm::vec3 position = camera.getPosition();
+                glm::vec3 rotation = camera.getRotationEuler();
+                std::string positionStr = to_string_with_precision(position.x) + "_" + to_string_with_precision(position.y) + "_" + to_string_with_precision(position.z);
+                std::string rotationStr = to_string_with_precision(rotation.x) + "_" + to_string_with_precision(rotation.y) + "_" + to_string_with_precision(rotation.z);
+
+                std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
+
+                std::string fileName = DATA_PATH + "screenshot." + positionStr + "_" + rotationStr;
+                renderer.drawToRenderTarget(toneMapShader, renderer.gBuffer);
+                renderer.gBuffer.saveColorAsPNG(fileName + ".png");
+                window->close();
+            }
         }
     });
 

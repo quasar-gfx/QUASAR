@@ -211,7 +211,7 @@ int main(int argc, char** argv) {
     meshScene.addChildNode(node);
 
     // shaders
-    Shader screenShaderColor({
+    Shader toneMapShader({
         .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
         .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
@@ -623,9 +623,9 @@ int main(int argc, char** argv) {
 
                     // render to render target
                     if (!showNormals) {
-                        screenShaderColor.bind();
-                        screenShaderColor.setBool("doToneMapping", false); // dont apply tone mapping
-                        forwardRenderer.drawToRenderTarget(screenShaderColor, *renderTargets[view]);
+                        toneMapShader.bind();
+                        toneMapShader.setBool("doToneMapping", false); // dont apply tone mapping
+                        forwardRenderer.drawToRenderTarget(toneMapShader, *renderTargets[view]);
                     }
                     else {
                         forwardRenderer.drawToRenderTarget(screenShaderNormals, *renderTargets[view]);
@@ -856,9 +856,9 @@ int main(int argc, char** argv) {
         forwardRenderer.pipeline.rasterState.cullFaceEnabled = true;
 
         // render to screen
-        screenShaderColor.bind();
-        screenShaderColor.setBool("doToneMapping", true);
-        forwardRenderer.drawToScreen(screenShaderColor);
+        toneMapShader.bind();
+        toneMapShader.setBool("doToneMapping", true);
+        forwardRenderer.drawToScreen(toneMapShader);
 
         if (saveImage) {
             glm::vec3 position = camera.getPosition();
@@ -869,7 +869,7 @@ int main(int argc, char** argv) {
             std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
 
             std::string fileName = DATA_PATH + "screenshot." + positionStr + "_" + rotationStr;
-            forwardRenderer.drawToRenderTarget(screenShaderColor, forwardRenderer.gBuffer);
+            forwardRenderer.drawToRenderTarget(toneMapShader, forwardRenderer.gBuffer);
             forwardRenderer.gBuffer.saveColorAsPNG(fileName + ".png");
             window->close();
         }
