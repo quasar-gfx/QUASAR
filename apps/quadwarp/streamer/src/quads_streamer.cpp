@@ -189,21 +189,21 @@ int main(int argc, char** argv) {
     });
 
     ComputeShader genQuadMapShader({
-        .computeCodePath = "./shaders/genQuadMap.comp",
+        .computeCodePath = "shaders/genQuadMap.comp",
         .defines = {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
     });
 
     ComputeShader simplifyQuadMapShader({
-        .computeCodePath = "./shaders/simplifyQuadMap.comp",
+        .computeCodePath = "shaders/simplifyQuadMap.comp",
         .defines = {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
     });
 
     ComputeShader genMeshFromQuadMapsShader({
-        .computeCodePath = "./shaders/genMeshFromQuadMaps.comp",
+        .computeCodePath = "shaders/genMeshFromQuadMaps.comp",
         .defines = {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }

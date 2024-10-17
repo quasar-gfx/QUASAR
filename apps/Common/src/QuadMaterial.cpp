@@ -1,4 +1,5 @@
 #include <QuadMaterial.h>
+#include <shaders_common.h>
 
 Shader* QuadMaterial::shader = nullptr;
 
@@ -24,9 +25,11 @@ QuadMaterial::QuadMaterial(const QuadMaterialCreateParams &params)
     }
 
     if (shader == nullptr) {
-        ShaderFileCreateParams unlitShaderParams{
-            .vertexCodePath = "../../quadwarp/streamer/shaders/material_quad.vert",
-            .fragmentCodePath = "../../quadwarp/streamer/shaders/material_quad.frag",
+        ShaderDataCreateParams unlitShaderParams{
+            .vertexCodeData = SHADER_COMMON_MATERIAL_QUAD_VERT,
+            .vertexCodeSize = SHADER_COMMON_MATERIAL_QUAD_VERT_len,
+            .fragmentCodeData = SHADER_COMMON_MATERIAL_QUAD_FRAG,
+            .fragmentCodeSize = SHADER_COMMON_MATERIAL_QUAD_FRAG_len,
             .defines = {
                 "#define ALPHA_OPAQUE " + std::to_string(static_cast<uint8_t>(AlphaMode::OPAQUE)),
                 "#define ALPHA_MASK " + std::to_string(static_cast<uint8_t>(AlphaMode::MASKED)),

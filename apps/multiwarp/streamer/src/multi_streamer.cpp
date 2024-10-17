@@ -235,21 +235,21 @@ int main(int argc, char** argv) {
     });
 
     ComputeShader genQuadMapShader({
-        .computeCodePath = "../../quadwarp/streamer/shaders/genQuadMap.comp",
+        .computeCodePath = "shaders/genQuadMap.comp",
         .defines = {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
     });
 
     ComputeShader simplifyQuadMapShader({
-        .computeCodePath = "../../quadwarp/streamer/shaders/simplifyQuadMap.comp",
+        .computeCodePath = "shaders/simplifyQuadMap.comp",
         .defines = {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
     });
 
     ComputeShader genMeshFromQuadMapsShader({
-        .computeCodePath = "../../quadwarp/streamer/shaders/genMeshFromQuadMaps.comp",
+        .computeCodePath = "shaders/genMeshFromQuadMaps.comp",
         .defines = {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
@@ -435,7 +435,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            const int columns = 3;
+            const int columns = 4;
             for (int view = 0; view < maxViews; view++) {
                 ImGui::Checkbox(("Show View " + std::to_string(view)).c_str(), &showViews[view]);
                 if ((view + 1) % columns != 0) {
