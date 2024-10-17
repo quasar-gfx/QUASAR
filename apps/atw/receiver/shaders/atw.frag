@@ -2,21 +2,31 @@ out vec4 FragColor;
 
 in vec2 TexCoords;
 
-uniform sampler2D screenColor;
-uniform sampler2D screenDepth;
-uniform sampler2D screenPositions;
-uniform sampler2D screenNormals;
-uniform sampler2D idBuffer;
+#ifdef ANDROID
+flat in float IsLeftEye;
 
-uniform sampler2D videoTexture;
+uniform mat4 projectionInverseLeft;
+uniform mat4 projectionInverseRight;
+uniform mat4 viewInverseRight;
+uniform mat4 viewInverseLeft;
 
-uniform bool atwEnabled;
-
+uniform mat4 remoteProjectionLeft;
+uniform mat4 remoteProjectionRight;
+uniform mat4 remoteViewLeft;
+uniform mat4 remoteViewRight;
+#else
 uniform mat4 projectionInverse;
 uniform mat4 viewInverse;
 
 uniform mat4 remoteProjection;
 uniform mat4 remoteView;
+#endif
+
+uniform bool atwEnabled;
+
+uniform sampler2D videoTexture;
+
+const float epsilon = 0.0001;
 
 vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
     vec4 ndcPos;
@@ -54,15 +64,44 @@ vec2 worldToScreen(mat4 view, mat4 projection, vec3 worldCoord) {
 }
 
 void main() {
+    vec2 adjustedTexCoords = TexCoords;
+#ifdef ANDROID
+    if (IsLeftEye > 0.5) {
+        adjustedTexCoords.x = TexCoords.x / 2.0;
+    }
+    else {
+        adjustedTexCoords.x = TexCoords.x / 2.0 + 0.5;
+    }
+#endif
+
     if (!atwEnabled) {
-        FragColor = vec4(texture(videoTexture, TexCoords).rgb, 1.0);
+        FragColor = vec4(texture(videoTexture, adjustedTexCoords).rgb, 1.0);
         return;
     }
 
     vec2 ndc = TexCoords * 2.0 - 1.0;
+
+#ifdef ANDROID
+    vec3 viewCoord;
+    vec3 worldCoord;
+    vec2 TexCoordsRemote;
+    if (IsLeftEye > 0.5) {
+        viewCoord = ndcToView(projectionInverseLeft, ndc, 1.0);
+        worldCoord = viewToWorld(mat4(mat3(viewInverseLeft)), viewCoord);
+        TexCoordsRemote = worldToScreen(remoteViewLeft, remoteProjectionLeft, worldCoord);
+        TexCoordsRemote.x = clamp(TexCoordsRemote.x / 2.0, 0.0, 0.5 - epsilon);
+    }
+    else {
+        viewCoord = ndcToView(projectionInverseRight, ndc, 1.0);
+        worldCoord = viewToWorld(mat4(mat3(viewInverseRight)), viewCoord);
+        TexCoordsRemote = worldToScreen(remoteViewRight, remoteProjectionRight, worldCoord);
+        TexCoordsRemote.x = clamp(TexCoordsRemote.x / 2.0 + 0.5, 0.5, 1.0 - epsilon);
+    }
+#else
     vec3 viewCoord = ndcToView(projectionInverse, ndc, 1.0);
     vec3 worldPose = viewToWorld(mat4(mat3(viewInverse)), viewCoord);
     vec2 TexCoordsRemote = worldToScreen(remoteView, remoteProjection, worldPose);
+#endif
 
     FragColor = vec4(texture(videoTexture, TexCoordsRemote).rgb, 1.0);
 }
