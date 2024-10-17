@@ -5,6 +5,8 @@
 #include <SceneLoader.h>
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
+
+#include <Utils/Utils.h>
 #include <VideoTexture.h>
 #include <BC4DepthVideoTexture.h>
 #include <PoseStreamer.h>
@@ -132,6 +134,44 @@ int main(int argc, char** argv) {
     nodeWireframe.visible = false;
     nodeWireframe.overrideMaterial = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
     scene.addChildNode(&nodeWireframe);
+
+    // Shaders
+    Shader toneMapShader({
+        .vertexCodeData = SHADER_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_TONEMAP_FRAG,
+        .fragmentCodeSize = SHADER_TONEMAP_FRAG_len
+    });
+
+    Shader videoShader({
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "../shaders/postprocessing/displayTexture.frag",
+    });
+
+    ComputeShader genMeshFromBC4Shader({
+        .computeCodePath = "./shaders/genMeshFromBC4.comp",
+        .defines = {
+            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
+        }
+    });
+
+    // Load camera matrices
+    auto cameraData = FileIO::loadBinaryFile(DATA_PATH + "data/camera.bin");
+    glm::mat4 proj = glm::mat4(1.0f);
+    glm::mat4 view = glm::mat4(1.0f);
+    std::memcpy(&proj, cameraData.data(), sizeof(glm::mat4));
+    std::memcpy(&view, cameraData.data() + sizeof(glm::mat4), sizeof(glm::mat4));
+
+    camera.setProjectionMatrix(proj);
+    camera.setViewMatrix(view);
+
+    // Load remote camera
+    PerspectiveCamera remoteCamera(windowSize.x, windowSize.y);
+    auto remoteCameraData = FileIO::loadBinaryFile(DATA_PATH + "data/remoteCamera.bin");
+    std::memcpy(&proj, remoteCameraData.data(), sizeof(glm::mat4));
+    std::memcpy(&view, remoteCameraData.data() + sizeof(glm::mat4), sizeof(glm::mat4));
+    remoteCamera.setProjectionMatrix(proj);
+    remoteCamera.setViewMatrix(view);
 
     double elapsedTimeColor, elapsedTimeDepth;
     pose_id_t poseIdColor = -1, poseIdDepth = -1;
@@ -264,19 +304,14 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = std::string(fileNameBase) + "." + sizeStr + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string fileName = std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                if (saveAsHDR) {
-                    renderer.gBuffer.saveColorAsHDR(fileName + ".hdr");
-                }
-                else {
-                    renderer.gBuffer.saveColorAsPNG(fileName + ".png");
-                }
+                saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize, saveAsHDR);
             }
 
             ImGui::End();
@@ -291,42 +326,6 @@ int main(int argc, char** argv) {
         camera.aspect = (float)windowSize.x / (float)windowSize.y;
         camera.updateProjectionMatrix();
     });
-
-    // Shaders
-    Shader screenShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
-    });
-
-    Shader videoShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayTexture.frag",
-    });
-
-    ComputeShader genMeshFromBC4Shader({
-        .computeCodePath = "./shaders/genMeshFromBC4.comp",
-        .defines = {
-            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
-        }
-    });
-
-    // Load camera matrices
-    auto cameraData = FileIO::loadBinaryFile(DATA_PATH + "data/camera.bin");
-    glm::mat4 proj = glm::mat4(1.0f);
-    glm::mat4 view = glm::mat4(1.0f);
-    std::memcpy(&proj, cameraData.data(), sizeof(glm::mat4));
-    std::memcpy(&view, cameraData.data() + sizeof(glm::mat4), sizeof(glm::mat4));
-
-    camera.setProjectionMatrix(proj);
-    camera.setViewMatrix(view);
-
-    // Load remote camera
-    PerspectiveCamera remoteCamera(windowSize.x, windowSize.y);
-    auto remoteCameraData = FileIO::loadBinaryFile(DATA_PATH + "data/remoteCamera.bin");
-    std::memcpy(&proj, remoteCameraData.data(), sizeof(glm::mat4));
-    std::memcpy(&view, remoteCameraData.data() + sizeof(glm::mat4), sizeof(glm::mat4));
-    remoteCamera.setProjectionMatrix(proj);
-    remoteCamera.setViewMatrix(view);
 
     Pose currentColorFramePose, currentDepthFramePose;
     app.onRender([&](double now, double dt) {
@@ -441,9 +440,9 @@ int main(int argc, char** argv) {
         renderStats = renderer.drawObjects(scene, camera);
 
         // Render to screen
-        screenShader.bind();
-        screenShader.setBool("doToneMapping", false); // video is already tone mapped
-        renderer.drawToScreen(screenShader);
+        toneMapShader.bind();
+        toneMapShader.setBool("toneMap", false); // video is already tone mapped
+        renderer.drawToScreen(toneMapShader);
     });
 
     // Run app loop (blocking)

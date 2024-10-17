@@ -9,6 +9,8 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <Utils/Utils.h>
+
 #include <QuadMaterial.h>
 
 #define VERTICES_IN_A_QUAD 4
@@ -71,6 +73,14 @@ int main(int argc, char** argv) {
 
     Scene scene;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
+
+    // shaders
+    Shader toneMapShader({
+        .vertexCodeData = SHADER_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_TONEMAP_FRAG,
+        .fragmentCodeSize = SHADER_TONEMAP_FRAG_len
+    });
 
     bool* showLayers = new bool[maxViews];
     for (int i = 0; i < maxViews; ++i) {
@@ -174,19 +184,14 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = std::string(fileNameBase) + "." + sizeStr + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string fileName = std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                if (saveAsHDR) {
-                    renderer.gBuffer.saveColorAsHDR(fileName + ".hdr");
-                }
-                else {
-                    renderer.gBuffer.saveColorAsPNG(fileName + ".png");
-                }
+                saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize, saveAsHDR);
             }
 
             ImGui::End();
@@ -199,12 +204,6 @@ int main(int argc, char** argv) {
 
         camera.aspect = (float)windowSize.x / (float)windowSize.y;
         camera.updateProjectionMatrix();
-    });
-
-    // shaders
-    Shader screenShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
 
     std::vector<Texture*> colorTextures(maxViews);
@@ -315,7 +314,7 @@ int main(int argc, char** argv) {
         renderStats = renderer.drawObjects(scene, camera);
 
         // render to screen
-        renderer.drawToScreen(screenShader);
+        renderer.drawToScreen(toneMapShader);
     });
 
     // run app loop (blocking)

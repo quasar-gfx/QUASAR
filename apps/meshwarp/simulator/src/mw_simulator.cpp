@@ -45,6 +45,7 @@ int main(int argc, char** argv) {
     config.height = std::stoi(sizeStr.substr(pos + 1));
 
     config.enableVSync = args::get(vsyncIn);
+    config.showWindow = !args::get(saveImage);
 
     std::string scenePath = args::get(scenePathIn);
 
@@ -118,6 +119,21 @@ int main(int argc, char** argv) {
     nodePointCloud.visible = false;
     nodePointCloud.overrideMaterial = new UnlitMaterial({ .baseColor = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) });
     scene.addChildNode(&nodePointCloud);
+
+    // shaders
+    Shader toneMapShader({
+        .vertexCodeData = SHADER_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_TONEMAP_FRAG,
+        .fragmentCodeSize = SHADER_TONEMAP_FRAG_len
+    });
+
+    ComputeShader genMeshFromDepthShader({
+        .computeCodePath = "./shaders/genMeshFromDepth.comp",
+        .defines = {
+            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
+        }
+    });
 
     bool showWireframe = false;
     bool showDepth = false;
@@ -242,19 +258,14 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = DATA_PATH + std::string(fileNameBase) + "." + sizeStr + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string fileName = DATA_PATH + std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                if (saveAsHDR) {
-                    renderer.gBuffer.saveColorAsHDR(fileName + ".hdr");
-                }
-                else {
-                    renderer.gBuffer.saveColorAsPNG(fileName + ".png");
-                }
+                saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize, saveAsHDR);
             }
 
             ImGui::End();
@@ -267,19 +278,6 @@ int main(int argc, char** argv) {
 
         camera.aspect = (float)windowSize.x / (float)windowSize.y;
         camera.updateProjectionMatrix();
-    });
-
-    // shaders
-    Shader toneMapShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
-    });
-
-    ComputeShader genMeshFromDepthShader({
-        .computeCodePath = "./shaders/genMeshFromDepth.comp",
-        .defines = {
-            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
-        }
     });
 
     double startRenderTime = window->getTime();
@@ -346,7 +344,7 @@ int main(int argc, char** argv) {
 
             // copy rendered result to video render target
             toneMapShader.bind();
-            toneMapShader.setBool("doToneMapping", false); // dont apply tone mapping
+            toneMapShader.setBool("toneMap", false); // dont apply tone mapping
             renderer.drawToRenderTarget(toneMapShader, renderTarget);
 
             std::cout << "  Rendering Time: " << glfwGetTime() - startTime << "s" << std::endl;
@@ -407,7 +405,7 @@ int main(int argc, char** argv) {
         renderer.pipeline.rasterState.cullFaceEnabled = true;
 
         toneMapShader.bind();
-        toneMapShader.setBool("doToneMapping", true);
+        toneMapShader.setBool("toneMap", true);
         renderer.drawToScreen(toneMapShader);
 
         if (saveImage) {
@@ -419,8 +417,7 @@ int main(int argc, char** argv) {
             std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
 
             std::string fileName = DATA_PATH + "screenshot." + positionStr + "_" + rotationStr;
-            renderer.drawToRenderTarget(toneMapShader, renderer.gBuffer);
-            renderer.gBuffer.saveColorAsPNG(fileName + ".png");
+            saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize);
             window->close();
         }
     });

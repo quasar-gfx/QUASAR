@@ -138,11 +138,15 @@ public:
     }
 
     void saveColorAsPNG(const std::string &path) {
+        bind();
         colorBuffer.saveAsPNG(path);
+        unbind();
     }
 
     void saveColorAsHDR(const std::string &path) {
+        bind();
         colorBuffer.saveAsHDR(path);
+        unbind();
     }
 };
 

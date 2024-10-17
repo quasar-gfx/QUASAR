@@ -8,6 +8,8 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <Utils/Utils.h>
+
 #include <VideoTexture.h>
 #include <DepthVideoTexture.h>
 #include <PoseStreamer.h>
@@ -101,8 +103,10 @@ int main(int argc, char** argv) {
 
     // shaders
     Shader screenShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
+        .vertexCodeData = SHADER_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_TONEMAP_FRAG,
+        .fragmentCodeSize = SHADER_TONEMAP_FRAG_len
     });
 
     Shader videoShader({
@@ -408,7 +412,7 @@ int main(int argc, char** argv) {
 
         // render to screen
         screenShader.bind();
-        screenShader.setBool("doToneMapping", false);
+        screenShader.setBool("toneMap", false);
         renderer.drawToScreen(screenShader);
     });
 

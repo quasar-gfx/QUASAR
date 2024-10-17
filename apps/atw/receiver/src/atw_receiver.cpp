@@ -8,6 +8,8 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <Utils/Utils.h>
+
 #include <VideoTexture.h>
 #include <PoseStreamer.h>
 
@@ -76,10 +78,24 @@ int main(int argc, char** argv) {
     std::cout << "Video URL: " << videoURL << std::endl;
     std::cout << "Pose URL: " << poseURL << std::endl;
 
+    // shaders
+    Shader toneMapShader({
+        .vertexCodeData = SHADER_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_TONEMAP_FRAG,
+        .fragmentCodeSize = SHADER_TONEMAP_FRAG_len
+    });
+
+    Shader atwShader({
+        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
+        .fragmentCodePath = "./shaders/atw.frag"
+    });
+
     bool atwEnabled = true;
     double elapedTime = 0.0f;
     Pose currentFramePose;
     pose_id_t prevPoseID = -1;
+
     RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
@@ -204,19 +220,14 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = std::string(fileNameBase) + "." + sizeStr + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string fileName = std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                if (saveAsHDR) {
-                    renderer.gBuffer.saveColorAsHDR(fileName + ".hdr");
-                }
-                else {
-                    renderer.gBuffer.saveColorAsPNG(fileName + ".png");
-                }
+                saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize, saveAsHDR);
             }
 
             ImGui::End();
@@ -229,12 +240,6 @@ int main(int argc, char** argv) {
 
         camera.aspect = (float)windowSize.x / (float)windowSize.y;
         camera.updateProjectionMatrix();
-    });
-
-    // shaders
-    Shader atwShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "./shaders/atw.frag"
     });
 
     app.onRender([&](double now, double dt) {

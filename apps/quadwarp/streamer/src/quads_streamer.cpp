@@ -62,6 +62,7 @@ int main(int argc, char** argv) {
     int numQuadMaps = glm::log2(static_cast<float>(glm::min(maxProxySize.x, maxProxySize.y))) + 1;
 
     config.enableVSync = args::get(vsyncIn);
+    config.showWindow = !args::get(saveImage);
 
     std::string scenePath = args::get(scenePathIn);
 
@@ -176,13 +177,17 @@ int main(int argc, char** argv) {
 
     // shaders
     Shader toneMapShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
+        .vertexCodeData = SHADER_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_TONEMAP_FRAG,
+        .fragmentCodeSize = SHADER_TONEMAP_FRAG_len
     });
 
     Shader screenShaderNormals({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayNormals.frag"
+        .vertexCodeData = SHADER_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_DISPLAYNORMALS_FRAG,
+        .fragmentCodeSize = SHADER_DISPLAYNORMALS_FRAG_len
     });
 
     ComputeShader genQuadMapShader({
@@ -379,19 +384,14 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = DATA_PATH + std::string(fileNameBase) + "." + sizeStr + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string fileName = DATA_PATH + std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                if (saveAsHDR) {
-                    renderer.gBuffer.saveColorAsHDR(fileName + ".hdr");
-                }
-                else {
-                    renderer.gBuffer.saveColorAsPNG(fileName + ".png");
-                }
+                saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize, saveAsHDR);
             }
 
             ImGui::End();
@@ -505,7 +505,7 @@ int main(int argc, char** argv) {
             remoteRenderer.drawObjects(remoteScene, remoteCamera);
             if (!showNormals) {
                 toneMapShader.bind();
-                toneMapShader.setBool("doToneMapping", false); // dont apply tone mapping
+                toneMapShader.setBool("toneMap", false); // dont apply tone mapping
                 remoteRenderer.drawToRenderTarget(toneMapShader, renderTarget);
             }
             else {
@@ -700,7 +700,7 @@ int main(int argc, char** argv) {
 
         // render to screen
         toneMapShader.bind();
-        toneMapShader.setBool("doToneMapping", true);
+        toneMapShader.setBool("toneMap", true);
         renderer.drawToScreen(toneMapShader);
 
         if (saveImage) {
@@ -712,8 +712,7 @@ int main(int argc, char** argv) {
             std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
 
             std::string fileName = DATA_PATH + "screenshot." + positionStr + "_" + rotationStr;
-            renderer.drawToRenderTarget(toneMapShader, renderer.gBuffer);
-            renderer.gBuffer.saveColorAsPNG(fileName + ".png");
+            saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize);
             window->close();
         }
     });

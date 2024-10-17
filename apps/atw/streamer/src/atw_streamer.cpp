@@ -8,6 +8,8 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <Utils/Utils.h>
+
 #include <VideoStreamer.h>
 #include <PoseReceiver.h>
 
@@ -97,6 +99,14 @@ int main(int argc, char** argv) {
 
     std::cout << "Video URL: " << videoURL << std::endl;
     std::cout << "Pose URL: " << poseURL << std::endl;
+
+    // shaders
+    Shader toneMapShader({
+        .vertexCodeData = SHADER_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_TONEMAP_FRAG,
+        .fragmentCodeSize = SHADER_TONEMAP_FRAG_len
+    });
 
     bool paused = false;
     RenderStats renderStats;
@@ -191,19 +201,14 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = std::string(fileNameBase) + "." + sizeStr + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string fileName = std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                if (saveAsHDR) {
-                    renderer.gBuffer.saveColorAsHDR(fileName + ".hdr");
-                }
-                else {
-                    renderer.gBuffer.saveColorAsPNG(fileName + ".png");
-                }
+                saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize, saveAsHDR);
             }
 
             ImGui::End();
@@ -224,12 +229,6 @@ int main(int argc, char** argv) {
             perspectiveCamera->aspect = (float)windowSize.x / (float)windowSize.y;
             perspectiveCamera->updateProjectionMatrix();
         }
-    });
-
-    // shaders
-    Shader colorShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
 
     std::vector<glm::vec3> pointLightPositions(4);
@@ -289,9 +288,9 @@ int main(int argc, char** argv) {
         }
 
         // copy rendered result to video render target
-        renderer.drawToRenderTarget(colorShader, videoStreamerRT);
+        renderer.drawToRenderTarget(toneMapShader, videoStreamerRT);
         if (config.showWindow) {
-            renderer.drawToScreen(colorShader);
+            renderer.drawToScreen(toneMapShader);
         }
 
         // send video frame

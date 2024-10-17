@@ -41,6 +41,7 @@ int main(int argc, char** argv) {
     config.height = std::stoi(sizeStr.substr(pos + 1));
 
     config.enableVSync = args::get(vsyncIn);
+    config.showWindow = !args::get(saveImage);
 
     std::string scenePath = args::get(scenePathIn);
 
@@ -59,6 +60,42 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera(windowSize.x, windowSize.y);
     SceneLoader loader;
     loader.loadScene(scenePath, scene, camera);
+
+    // shaders
+    Shader toneMapShader({
+        .vertexCodeData = SHADER_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_TONEMAP_FRAG,
+        .fragmentCodeSize = SHADER_TONEMAP_FRAG_len
+    });
+
+    Shader showDepthShader({
+        .vertexCodeData = SHADER_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_DISPLAYDEPTH_FRAG,
+        .fragmentCodeSize = SHADER_DISPLAYDEPTH_FRAG_len
+    });
+
+    Shader showPositionShader({
+        .vertexCodeData = SHADER_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_DISPLAYPOSITIONS_FRAG,
+        .fragmentCodeSize = SHADER_DISPLAYPOSITIONS_FRAG_len
+    });
+
+    Shader showNormalShader({
+        .vertexCodeData = SHADER_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_DISPLAYNORMALS_FRAG,
+        .fragmentCodeSize = SHADER_DISPLAYNORMALS_FRAG_len
+    });
+
+    Shader showIDShader({
+        .vertexCodeData = SHADER_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_DISPLAYIDS_FRAG,
+        .fragmentCodeSize = SHADER_DISPLAYIDS_FRAG_len
+    });
 
     float exposure = 1.0f;
     int shaderIndex = 0;
@@ -163,19 +200,14 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = DATA_PATH + std::string(fileNameBase) + "." + sizeStr + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string fileName = DATA_PATH + std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                if (saveAsHDR) {
-                    renderer.gBuffer.saveColorAsHDR(fileName + ".hdr");
-                }
-                else {
-                    renderer.gBuffer.saveColorAsPNG(fileName + ".png");
-                }
+                saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize, saveAsHDR);
             }
 
             ImGui::End();
@@ -188,32 +220,6 @@ int main(int argc, char** argv) {
 
         camera.aspect = (float)windowSize.x / (float)windowSize.y;
         camera.updateProjectionMatrix();
-    });
-
-    // shaders
-    Shader toneMapShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
-    });
-
-    Shader showDepthShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayDepth.frag"
-    });
-
-    Shader showPositionShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayPositions.frag"
-    });
-
-    Shader showNormalShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayNormals.frag"
-    });
-
-    Shader showIDShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayIDs.frag"
     });
 
     app.onRender([&](double now, double dt) {
@@ -306,8 +312,7 @@ int main(int argc, char** argv) {
                 std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
 
                 std::string fileName = DATA_PATH + "screenshot." + positionStr + "_" + rotationStr;
-                renderer.drawToRenderTarget(toneMapShader, renderer.gBuffer);
-                renderer.gBuffer.saveColorAsPNG(fileName + ".png");
+                saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize);
                 window->close();
             }
         }
