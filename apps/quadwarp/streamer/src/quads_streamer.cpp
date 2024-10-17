@@ -209,9 +209,9 @@ int main(int argc, char** argv) {
         }
     });
 
-    ComputeShader genDepthShader({
-        .computeCodeData = SHADER_COMMON_GENDEPTHPTCLOUD_COMP,
-        .computeCodeSize = SHADER_COMMON_GENDEPTHPTCLOUD_COMP_len,
+    ComputeShader meshFromDepthShader({
+        .computeCodeData = SHADER_COMMON_MESHFROMDEPTH_COMP,
+        .computeCodeSize = SHADER_COMMON_MESHFROMDEPTH_COMP_len,
         .defines = {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
@@ -649,28 +649,28 @@ int main(int argc, char** argv) {
             For debugging: Generate point cloud from depth map
             ============================
             */
-            genDepthShader.bind();
+            meshFromDepthShader.bind();
             {
-                genDepthShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
+                meshFromDepthShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
             }
             {
-                genDepthShader.setVec2("depthMapSize", remoteWindowSize);
+                meshFromDepthShader.setVec2("depthMapSize", remoteWindowSize);
             }
             {
-                genDepthShader.setMat4("view", remoteCamera.getViewMatrix());
-                genDepthShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-                genDepthShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
-                genDepthShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+                meshFromDepthShader.setMat4("view", remoteCamera.getViewMatrix());
+                meshFromDepthShader.setMat4("projection", remoteCamera.getProjectionMatrix());
+                meshFromDepthShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
+                meshFromDepthShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
 
-                genDepthShader.setFloat("near", remoteCamera.near);
-                genDepthShader.setFloat("far", remoteCamera.far);
+                meshFromDepthShader.setFloat("near", remoteCamera.near);
+                meshFromDepthShader.setFloat("far", remoteCamera.far);
             }
             {
                 genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, meshDepth.vertexBuffer);
             }
-            genDepthShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+            meshFromDepthShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
                                     (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
-            genDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
+            meshFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
                                          GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
             std::cout << "  Depth Compute Shader Time: " << glfwGetTime() - startTime << "s" << std::endl;

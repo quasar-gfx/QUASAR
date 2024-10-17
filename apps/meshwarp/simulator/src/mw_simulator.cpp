@@ -127,8 +127,8 @@ int main(int argc, char** argv) {
     ToneMapShader toneMapShader;
 
     ComputeShader genMeshFromDepthShader({
-        .computeCodeData = SHADER_COMMON_GENDEPTHPTCLOUD_COMP,
-        .computeCodeSize = SHADER_COMMON_GENDEPTHPTCLOUD_COMP_len,
+        .computeCodeData = SHADER_COMMON_MESHFROMDEPTH_COMP,
+        .computeCodeSize = SHADER_COMMON_MESHFROMDEPTH_COMP_len,
         .defines = {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }

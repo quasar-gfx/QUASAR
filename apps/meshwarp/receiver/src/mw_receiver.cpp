@@ -167,7 +167,7 @@ int main(int argc, char** argv) {
 
     // Load remote camera
     PerspectiveCamera remoteCamera(windowSize.x, windowSize.y);
-    auto remoteCameraData = FileIO::loadBinaryFile(DATA_PATH + "data/remoteCamera.bin");
+    auto remoteCameraData = FileIO::loadBinaryFile(DATA_PATH + "remoteCamera.bin");
     std::memcpy(&proj, remoteCameraData.data(), sizeof(glm::mat4));
     std::memcpy(&view, remoteCameraData.data() + sizeof(glm::mat4), sizeof(glm::mat4));
     remoteCamera.setProjectionMatrix(proj);

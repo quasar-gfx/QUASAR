@@ -249,7 +249,7 @@ int main(int argc, char** argv) {
 
     // save remote camera view and projection matrices
     std::ofstream remoteCameraFile;
-    remoteCameraFile.open("data/remoteCamera.bin", std::ios::out | std::ios::binary);
+    remoteCameraFile.open("remoteCamera.bin", std::ios::out | std::ios::binary);
     proj = camera.getProjectionMatrix();
     view = camera.getViewMatrix();
     remoteCameraFile.write(reinterpret_cast<const char*>(&proj), sizeof(glm::mat4));
