@@ -24,6 +24,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<unsigned int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
+    args::ValueFlag<float> fovIn(parser, "fov", "Field of view", {'f', "fov"}, 60.0f);
     args::Flag saveImage(parser, "save", "Save image and exit", {'b', "save-image"});
     args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     try {
@@ -65,6 +66,9 @@ int main(int argc, char** argv) {
     PerspectiveCamera remoteCamera(windowSize.x, windowSize.y);
     SceneLoader loader;
     loader.loadScene(scenePath, remoteScene, remoteCamera);
+
+    float fov = args::get(fovIn);
+    remoteCamera.setFovy(glm::radians(fov));
 
     // scene with all the meshes
     Scene scene;
@@ -117,7 +121,6 @@ int main(int argc, char** argv) {
 
     bool showWireframe = false;
     bool showDepth = false;
-    float fov = 60.0f;
     bool rerender = true;
     int rerenderInterval = 0;
     bool preventCopyingLocalPose = false;
