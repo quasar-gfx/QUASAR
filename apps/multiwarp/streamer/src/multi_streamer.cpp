@@ -276,7 +276,7 @@ int main(int argc, char** argv) {
     float flatThreshold = 0.5f;
     float proxySimilarityThreshold = 0.1f;
     bool restrictMovementToViewBox = false;
-    float viewBoxSize = 3.0f;
+    float viewBoxSize = 2.0f;
     const int intervalValues[] = {0, 25, 50, 100, 200, 500, 1000};
     const char* intervalLabels[] = {"0ms", "25ms", "50ms", "100ms", "200ms", "500ms", "1000ms"};
     bool* showViews = new bool[maxViews];
@@ -485,12 +485,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                if (saveAsHDR) {
-                    renderer.gBuffer.saveColorAsHDR(fileName + ".hdr");
-                }
-                else {
-                    renderer.gBuffer.saveColorAsPNG(fileName + ".png");
-                }
+                saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize, saveAsHDR);
 
                 for (int view = 1; view < maxViews; view++) {
                     fileName = DATA_PATH + std::string(fileNameBase) + ".view" + std::to_string(view) + "." + time;

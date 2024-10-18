@@ -465,12 +465,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                if (saveAsHDR) {
-                    dpRenderer.gBuffer.saveColorAsHDR(fileName + ".hdr");
-                }
-                else {
-                    dpRenderer.gBuffer.saveColorAsPNG(fileName + ".png");
-                }
+                saveRenderTargetToFile(forwardRenderer, toneMapShader, fileName, windowSize, saveAsHDR);
 
                 for (int view = 1; view < maxViews; view++) {
                     fileName = DATA_PATH + std::string(fileNameBase) + ".view" + std::to_string(view) + "." + time;

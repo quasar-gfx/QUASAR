@@ -169,7 +169,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::CollapsingHeader("Directional Light Settings")) {
+            if (scene.directionalLight != nullptr && ImGui::CollapsingHeader("Directional Light Settings")) {
                 ImGui::TextColored(ImVec4(1,1,1,1), "Directional Light Settings");
                 ImGui::ColorEdit3("Color", (float*)&scene.directionalLight->color);
                 ImGui::SliderFloat("Strength", &scene.directionalLight->intensity, 0.1f, 100.0f);
