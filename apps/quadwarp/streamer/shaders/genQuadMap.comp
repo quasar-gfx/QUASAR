@@ -97,8 +97,6 @@ uniform float distanceThreshold;
 uniform float angleThreshold;
 uniform float flatThreshold;
 
-uniform bool discardOutOfRangeDepths;
-
 #define MAX_DEPTH 0.9999
 
 const float epsilon = 1e-5;
@@ -673,7 +671,7 @@ void main() {
     pixelDepths.top         = sampleDepth(depthMap, sampleCoords.top);
     pixelDepths.topRight    = sampleDepth(depthMap, sampleCoords.topRight);
 
-    if (discardOutOfRangeDepths && pixelDepths.center >= MAX_DEPTH) {
+    if (pixelDepths.center >= MAX_DEPTH) {
         // store an empty plane to clear the output quad map
         QuadMapData ignoredQuadMapData;
         ignoredQuadMapData.size = 0;

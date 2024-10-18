@@ -108,8 +108,6 @@ int main(int argc, char** argv) {
         static char fileNameBase[256] = "screenshot";
         static int intervalIndex = 0;
 
-        glm::vec2 winSize = glm::vec2(windowSize.x, windowSize.y);
-
         ImGui::NewFrame();
 
         unsigned int flags = 0;
@@ -190,7 +188,7 @@ int main(int argc, char** argv) {
 
         if (showCaptureWindow) {
             ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowPos(ImVec2(winSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
             ImGui::Begin("Frame Capture", &showCaptureWindow);
 
             ImGui::Text("Base File Name:");

@@ -110,6 +110,7 @@ int main(int argc, char** argv) {
 
     // scene with all the meshes
     Scene scene;
+    scene.envCubeMap = remoteScene.envCubeMap;
     Scene meshScene;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
     camera.setViewMatrix(centerRemoteCamera->getViewMatrix());
@@ -276,7 +277,7 @@ int main(int argc, char** argv) {
     float flatThreshold = 0.5f;
     float proxySimilarityThreshold = 0.1f;
     bool restrictMovementToViewBox = false;
-    float viewBoxSize = 2.0f;
+    float viewBoxSize = 1.0f;
     const int intervalValues[] = {0, 25, 50, 100, 200, 500, 1000};
     const char* intervalLabels[] = {"0ms", "25ms", "50ms", "100ms", "200ms", "500ms", "1000ms"};
     bool* showViews = new bool[maxViews];
@@ -295,7 +296,7 @@ int main(int argc, char** argv) {
         static bool showMeshCaptureWindow = false;
         static int intervalIndex = 0;
 
-        glm::vec2 winSize = glm::vec2(windowSize.x, windowSize.y);
+        static bool showEnvMap = true;
 
         ImGui::NewFrame();
 
@@ -362,6 +363,10 @@ int main(int argc, char** argv) {
                 camera.setRotationEuler(rotation);
             }
             ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
+
+            if (ImGui::Checkbox("Show Environment Map", &showEnvMap)) {
+                scene.envCubeMap = showEnvMap ? remoteScene.envCubeMap : nullptr;
+            }
 
             if (ImGui::Button("Change Background Color", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
                 ImGui::OpenPopup("Background Color Popup");
@@ -472,7 +477,7 @@ int main(int argc, char** argv) {
 
         if (showCaptureWindow) {
             ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowPos(ImVec2(winSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
             ImGui::Begin("Frame Capture", &showCaptureWindow);
 
             ImGui::Text("Base File Name:");
@@ -503,7 +508,7 @@ int main(int argc, char** argv) {
 
         if (showMeshCaptureWindow) {
             ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowPos(ImVec2(winSize.x * 0.4, 300), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 300), ImGuiCond_FirstUseEver);
             ImGui::Begin("Mesh Capture", &showMeshCaptureWindow);
 
             if (ImGui::Button("Save Mesh")) {
@@ -695,7 +700,6 @@ int main(int argc, char** argv) {
                     genQuadMapShader.setFloat("distanceThreshold", distanceThreshold);
                     genQuadMapShader.setFloat("angleThreshold", glm::radians(angleThreshold));
                     genQuadMapShader.setFloat("flatThreshold", flatThreshold * 1e-2f);
-                    genQuadMapShader.setBool("discardOutOfRangeDepths", true);
                 }
                 {
                     genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, quadMaps[0]);
