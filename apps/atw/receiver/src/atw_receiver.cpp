@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
     });
 
     bool atwEnabled = true;
-    double elapedTime = 0.0f;
+    double elapsedTime = 0.0f;
     Pose currentFramePose;
     pose_id_t prevPoseID = -1;
 
@@ -165,7 +165,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoTexture.getFrameRate(), 1000.0f / videoTexture.getFrameRate());
-            ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: %.1f ms", elapedTime);
+            ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: %.1f ms", elapsedTime);
 
             ImGui::Separator();
 
@@ -297,7 +297,7 @@ int main(int argc, char** argv) {
         atwShader.setBool("atwEnabled", atwEnabled);
         atwShader.setMat4("projectionInverse", glm::inverse(camera.getProjectionMatrix()));
         atwShader.setMat4("viewInverse", glm::inverse(camera.getViewMatrix()));
-        if (poseID != prevPoseID && poseStreamer.getPose(poseID, &currentFramePose, &elapedTime)) {
+        if (poseID != prevPoseID && poseStreamer.getPose(poseID, &currentFramePose, &elapsedTime)) {
             atwShader.setMat4("remoteProjection", currentFramePose.mono.proj);
             atwShader.setMat4("remoteView", currentFramePose.mono.view);
 

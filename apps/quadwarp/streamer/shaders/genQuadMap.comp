@@ -175,7 +175,12 @@ float normalizeDepth(float depth) {
 }
 
 vec3 sampleNormal(sampler2D normalMap, vec2 sampleCoord) {
-    return normalize(texture(normalMap, sampleCoord).xyz);
+    vec3 normal = normalize(texture(normalMap, sampleCoord).xyz);
+    // clamp normals to a reasonable range to fix floating point errors
+    normal.x = abs(normal.x) < 0.005 ? 0.0 : normal.x;
+    normal.y = abs(normal.y) < 0.005 ? 0.0 : normal.y;
+    normal.z = abs(normal.z) < 0.005 ? 0.0 : normal.z;
+    return normal;
 }
 
 vec3 normalToView(mat4 view, vec3 normalWorld) {

@@ -100,9 +100,10 @@ uniform float proxySimilarityThreshold;
 #define MAX_DEPTH 0.9999
 
 const float epsilon = 1e-5;
-
 const float surfelSize = 0.5;
+
 const vec3 origin = vec3(0.0, 0.0, 0.0);
+const vec3 forward = vec3(0.0, 0.0, -1.0);
 
 layout(std430, binding = 0) buffer InputQuadMapBuffer {
     QuadMapData inputQuadMap[];
@@ -148,6 +149,17 @@ vec2 viewToScreen(mat4 projection, vec3 viewCoord) {
     vec2 ndc = viewToNDC(projection, viewCoord).xy;
     vec2 uv = (ndc + 1.0) / 2.0;
     return uv;
+}
+
+vec3 normalToView(mat4 view, vec3 normalWorld) {
+    // skybox normals might be NaN, just set normal to face the camera
+    if (any(isnan(normalWorld))) {
+        return -forward;
+    }
+
+    // extract the rotation part of the view matrix
+    mat3 rotationMatrix = mat3(view);
+    return normalize(rotationMatrix * normalWorld);
 }
 
 float signedDistance(vec3 p1, vec3 p2) {
@@ -255,16 +267,16 @@ void storeDepthOffsets(in ivec2 pixelCoord, in Quad1D depthOffsets) {
 
 void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthOffsets, in Plane proxyPlane) {
     Quad2D surfelUVs;
-    surfelUVs.bottomLeft  = surfelPixelCoords.bottomLeft / remoteWindowSize;
+    surfelUVs.bottomLeft  = surfelPixelCoords.bottomLeft  / remoteWindowSize;
     surfelUVs.bottomRight = surfelPixelCoords.bottomRight / remoteWindowSize;
-    surfelUVs.topLeft     = surfelPixelCoords.topLeft / remoteWindowSize;
-    surfelUVs.topRight    = surfelPixelCoords.topRight / remoteWindowSize;
+    surfelUVs.topLeft     = surfelPixelCoords.topLeft     / remoteWindowSize;
+    surfelUVs.topRight    = surfelPixelCoords.topRight    / remoteWindowSize;
 
     Quad2D surfelNDCs;
-    surfelNDCs.bottomLeft  = surfelUVs.bottomLeft * 2.0 - 1.0;
+    surfelNDCs.bottomLeft  = surfelUVs.bottomLeft  * 2.0 - 1.0;
     surfelNDCs.bottomRight = surfelUVs.bottomRight * 2.0 - 1.0;
-    surfelNDCs.topLeft     = surfelUVs.topLeft * 2.0 - 1.0;
-    surfelNDCs.topRight    = surfelUVs.topRight * 2.0 - 1.0;
+    surfelNDCs.topLeft     = surfelUVs.topLeft     * 2.0 - 1.0;
+    surfelNDCs.topRight    = surfelUVs.topRight    * 2.0 - 1.0;
 
     Quad surfelNearPlane;
     surfelNearPlane.bottomLeft  = ndcToView(projectionInverse, surfelNDCs.bottomLeft, 0.0);
@@ -424,7 +436,7 @@ void mergeQuadMapData(
 }
 
 void main() {
-    ivec2 pixelCoord             = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
     if (pixelCoord.x >= int(outputQuadMapSize.x) || pixelCoord.y >= int(outputQuadMapSize.y)) {
         return;
     }

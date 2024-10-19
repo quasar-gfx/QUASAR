@@ -831,7 +831,7 @@ int main(int argc, char** argv) {
                     genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currMeshDepth->vertexBuffer);
                 }
                 meshFromDepthShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                        (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+                                             (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
                 meshFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
                                              GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
@@ -885,7 +885,7 @@ int main(int argc, char** argv) {
 
         // render to screen
         toneMapShader.bind();
-        toneMapShader.setBool("toneMap", true);
+        toneMapShader.setBool("toneMap", !showNormals);
         renderer.drawToScreen(toneMapShader);
 
         if (saveImage) {
