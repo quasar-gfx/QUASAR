@@ -8,13 +8,16 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <Shaders/ToneMapShader.h>
+
+#include <Utils/Utils.h>
+
 #include <VideoStreamer.h>
 #include <PoseReceiver.h>
 
 int main(int argc, char** argv) {
     Config config{};
     config.title = "ATW Streamer";
-    config.showWindow = false;
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
@@ -99,6 +102,9 @@ int main(int argc, char** argv) {
     std::cout << "Video URL: " << videoURL << std::endl;
     std::cout << "Pose URL: " << poseURL << std::endl;
 
+    // shaders
+    ToneMapShader toneMapShader;
+
     bool paused = false;
     RenderStats renderStats;
     pose_id_t currentFramePoseID;
@@ -108,8 +114,6 @@ int main(int argc, char** argv) {
         static bool showCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
-
-        glm::vec2 winSize = glm::vec2(windowSize.x, windowSize.y);
 
         ImGui::NewFrame();
 
@@ -187,7 +191,7 @@ int main(int argc, char** argv) {
 
         if (showCaptureWindow) {
             ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowPos(ImVec2(winSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
             ImGui::Begin("Frame Capture", &showCaptureWindow);
 
             ImGui::Text("Base File Name:");
@@ -199,12 +203,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                if (saveAsHDR) {
-                    renderer.gBuffer.saveColorAsHDR(fileName + ".hdr");
-                }
-                else {
-                    renderer.gBuffer.saveColorAsPNG(fileName + ".png");
-                }
+                saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize, saveAsHDR);
             }
 
             ImGui::End();
@@ -225,12 +224,6 @@ int main(int argc, char** argv) {
             perspectiveCamera->aspect = (float)windowSize.x / (float)windowSize.y;
             perspectiveCamera->updateProjectionMatrix();
         }
-    });
-
-    // shaders
-    Shader colorShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
     });
 
     std::vector<glm::vec3> pointLightPositions(4);
@@ -290,9 +283,9 @@ int main(int argc, char** argv) {
         }
 
         // copy rendered result to video render target
-        renderer.drawToRenderTarget(colorShader, videoStreamerRT);
+        renderer.drawToRenderTarget(toneMapShader, videoStreamerRT);
         if (config.showWindow) {
-            renderer.drawToScreen(colorShader);
+            renderer.drawToScreen(toneMapShader);
         }
 
         // send video frame

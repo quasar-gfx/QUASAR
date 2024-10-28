@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
-project(SceneViewer)
+project(ATWSimulator)
 
-set(TARGET scene_viewer)
+set(TARGET atw_simulator)
 
 set(PUBLIC_HDR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 

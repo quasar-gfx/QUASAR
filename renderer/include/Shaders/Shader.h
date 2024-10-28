@@ -6,7 +6,7 @@
 #include <Shaders/ShaderBase.h>
 
 // pre-stored shaders
-#include <shaders.h>
+#include <shaders_builtin.h>
 
 struct ShaderDataCreateParams {
 #ifdef GL_CORE

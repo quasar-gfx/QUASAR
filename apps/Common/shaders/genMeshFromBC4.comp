@@ -32,9 +32,7 @@ const ivec2 blockSize = ivec2(8, 8);
 uniform vec2 screenSize;
 uniform vec2 depthMapSize;
 
-uniform mat4 view;
 uniform mat4 projection;
-uniform mat4 viewInverse;
 uniform mat4 projectionInverse;
 
 uniform mat4 viewColor;
@@ -44,6 +42,8 @@ uniform float near;
 uniform float far;
 
 uniform int surfelSize;
+
+uniform bool unlinearizeDepth = true;
 
 #define MAX_DEPTH 0.9999
 
@@ -140,8 +140,9 @@ float sampleBC4Buffer(vec2 pixelCoordNormalized) {
     float t = float(index) / 7.0;
 
     float depth = mix(minVal, maxVal, t);
+    depth = min(depth, MAX_DEPTH);
 
-    return min(depth, MAX_DEPTH);
+    return unlinearizeDepth ? UnLinearizeDepth(depth) : depth;
 }
 
 void main() {

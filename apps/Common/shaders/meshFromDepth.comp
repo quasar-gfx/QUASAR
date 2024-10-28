@@ -14,7 +14,7 @@ struct Vertex {
     vec3 bitangent;
 };
 
-uniform vec2 remoteWindowSize;
+uniform vec2 depthMapSize;
 
 uniform mat4 view;
 uniform mat4 projection;
@@ -24,10 +24,16 @@ uniform mat4 projectionInverse;
 uniform float near;
 uniform float far;
 
+uniform int surfelSize = 1;
+
 #define MAX_DEPTH 0.9999
 
 layout(std430, binding = 0) buffer VertexBufferDepth {
     Vertex verticesDepth[];
+};
+
+layout(std430, binding = 1) buffer IndexBuffer {
+    uint indices[];
 };
 
 vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
@@ -88,21 +94,47 @@ vec3 sampleNormal(sampler2D normalMap, vec2 sampleCoord) {
 }
 
 void main() {
+    vec2 size = vec2(depthMapSize) / float(surfelSize);
+
     ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
-    if (pixelCoord.x >= int(remoteWindowSize.x) || pixelCoord.y >= int(remoteWindowSize.y)) {
+    if (pixelCoord.x >= int(size.x) || pixelCoord.y >= int(size.y)) {
         return;
     }
 
     vec2 surfelCoordBottomLeft = vec2(gl_GlobalInvocationID.xy);
     vec2 pixelCoordsCenter     = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+0.0, +0.0);
-    vec2 uvCenter              = pixelCoordsCenter / remoteWindowSize;
+    vec2 uvCenter              = pixelCoordsCenter / size;
     vec2 pixelCoordsNDC        = 2.0 * uvCenter - 1.0;
     float pixelDepth           = sampleDepth(depthMap, uvCenter);
     vec3 pixelCoordsViewCenter = ndcToView(projectionInverse, pixelCoordsNDC, pixelDepth);
 
     // store depth
-    uint shaderIndex = uint(gl_GlobalInvocationID.y * remoteWindowSize.x + gl_GlobalInvocationID.x);
+    uint shaderIndex = uint(gl_GlobalInvocationID.y * size.x + gl_GlobalInvocationID.x);
     verticesDepth[shaderIndex].position = viewToWorld(viewInverse, pixelCoordsViewCenter);
     verticesDepth[shaderIndex].color = vec3(1.0, 1.0, 1.0);
     verticesDepth[shaderIndex].texCoords = viewToScreen(projection, pixelCoordsViewCenter);
+
+    if (pixelCoord.x < depthMapSize.x - surfelSize && pixelCoord.y < depthMapSize.y - surfelSize) {
+        /************************
+
+                tl -- tr
+                |    / |
+                |   c  |
+                |  /   |
+                bl -- br
+
+        ************************/
+        uint bottomLeftIdx = shaderIndex;
+        uint bottomRightIdx = shaderIndex + 1;
+        uint topLeftIdx = shaderIndex + uint(size.x);
+        uint topRightIdx = shaderIndex + uint(size.x) + 1;
+
+        indices[shaderIndex * 6 + 0] = topLeftIdx;
+        indices[shaderIndex * 6 + 1] = bottomLeftIdx;
+        indices[shaderIndex * 6 + 2] = topRightIdx;
+
+        indices[shaderIndex * 6 + 3] = topRightIdx;
+        indices[shaderIndex * 6 + 4] = bottomLeftIdx;
+        indices[shaderIndex * 6 + 5] = bottomRightIdx;
+    }
 }

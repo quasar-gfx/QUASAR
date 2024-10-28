@@ -36,7 +36,7 @@ public:
         float bitrateMbps = -1.0f;
     } stats;
 
-    BC4DepthStreamer(const RenderTargetCreateParams &params, std::string receiverURL, std::string bc4CompressionShaderPath = "./shaders/bc4Compression.comp");
+    BC4DepthStreamer(const RenderTargetCreateParams &params, std::string receiverURL);
     ~BC4DepthStreamer();
 
     void close();

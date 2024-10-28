@@ -84,10 +84,10 @@ void glDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLs
 OpenGLRenderer::OpenGLRenderer(const Config &config)
         : width(config.width), height(config.height)
         , skyboxShader({
-            .vertexCodeData = SHADER_SKYBOX_VERT,
-            .vertexCodeSize = SHADER_SKYBOX_VERT_len,
-            .fragmentCodeData = SHADER_SKYBOX_FRAG,
-            .fragmentCodeSize = SHADER_SKYBOX_FRAG_len
+            .vertexCodeData = SHADER_BUILTIN_SKYBOX_VERT,
+            .vertexCodeSize = SHADER_BUILTIN_SKYBOX_VERT_len,
+            .fragmentCodeData = SHADER_BUILTIN_SKYBOX_FRAG,
+            .fragmentCodeSize = SHADER_BUILTIN_SKYBOX_FRAG_len
         })
         , outputFsQuad() {
 #ifdef GL_CORE
@@ -303,6 +303,9 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, N
                 glLineWidth(node->wireframeLineWidth);
             }
             if (node->primativeType == GL_POINTS) {
+                glEnable(GL_POLYGON_OFFSET_POINT); // to avoid z-fighting
+                glPolygonOffset(-1.0, -1.0); // adjust depth
+                glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
                 glPointSize(node->pointSize);
             }
 #endif
@@ -313,6 +316,10 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, N
             // restore polygon mode
             if (node->wireframe) {
                 glDisable(GL_POLYGON_OFFSET_LINE);
+                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            }
+            if (node->primativeType == GL_POINTS) {
+                glDisable(GL_POLYGON_OFFSET_POINT);
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             }
 #endif
@@ -345,7 +352,7 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, N
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const RenderTarget* overrideRenderTarget) {
+RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const RenderTargetBase* overrideRenderTarget) {
     pipeline.apply();
 
     if (overrideRenderTarget != nullptr) {
@@ -371,6 +378,6 @@ RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const Rende
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawToRenderTarget(const Shader &screenShader, const RenderTarget &renderTarget) {
+RenderStats OpenGLRenderer::drawToRenderTarget(const Shader &screenShader, const RenderTargetBase &renderTarget) {
     return drawToScreen(screenShader, &renderTarget);
 }

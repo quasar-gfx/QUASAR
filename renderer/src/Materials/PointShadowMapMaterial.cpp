@@ -5,12 +5,12 @@ Shader* PointShadowMapMaterial::shader = nullptr;
 PointShadowMapMaterial::PointShadowMapMaterial() {
     if (shader == nullptr) {
         ShaderDataCreateParams pointShadowMapParams{
-            .vertexCodeData = SHADER_POINTSHADOW_VERT,
-            .vertexCodeSize = SHADER_POINTSHADOW_VERT_len,
-            .fragmentCodeData = SHADER_POINTSHADOW_FRAG,
-            .fragmentCodeSize = SHADER_POINTSHADOW_FRAG_len,
-            .geometryData = SHADER_POINTSHADOW_GEOM,
-            .geometryDataSize = SHADER_POINTSHADOW_GEOM_len,
+            .vertexCodeData = SHADER_BUILTIN_POINTSHADOW_VERT,
+            .vertexCodeSize = SHADER_BUILTIN_POINTSHADOW_VERT_len,
+            .fragmentCodeData = SHADER_BUILTIN_POINTSHADOW_FRAG,
+            .fragmentCodeSize = SHADER_BUILTIN_POINTSHADOW_FRAG_len,
+            .geometryData = SHADER_BUILTIN_POINTSHADOW_GEOM,
+            .geometryDataSize = SHADER_BUILTIN_POINTSHADOW_GEOM_len,
 #ifdef GL_ES
             .extensions = {
                 "#extension GL_EXT_geometry_shader : enable"

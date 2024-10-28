@@ -8,6 +8,10 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <Shaders/ToneMapShader.h>
+
+#include <Utils/Utils.h>
+
 int main(int argc, char** argv) {
     Config config{};
     config.title = "Depth Peeling";
@@ -54,6 +58,37 @@ int main(int argc, char** argv) {
     SceneLoader loader;
     loader.loadScene(scenePath, scene, camera);
 
+    // shaders
+    ToneMapShader toneMapShader;
+
+    Shader showDepthShader({
+        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_BUILTIN_DISPLAYDEPTH_FRAG,
+        .fragmentCodeSize = SHADER_BUILTIN_DISPLAYDEPTH_FRAG_len
+    });
+
+    Shader showPositionShader({
+        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_BUILTIN_DISPLAYPOSITIONS_FRAG,
+        .fragmentCodeSize = SHADER_BUILTIN_DISPLAYPOSITIONS_FRAG_len
+    });
+
+    Shader showNormalShader({
+        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_BUILTIN_DISPLAYNORMALS_FRAG,
+        .fragmentCodeSize = SHADER_BUILTIN_DISPLAYNORMALS_FRAG_len
+    });
+
+    Shader showIDShader({
+        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_BUILTIN_DISPLAYIDS_FRAG,
+        .fragmentCodeSize = SHADER_BUILTIN_DISPLAYIDS_FRAG_len
+    });
+
     float exposure = 1.0f;
     int shaderIndex = 0;
     RenderStats renderStats;
@@ -63,8 +98,6 @@ int main(int argc, char** argv) {
         static bool showCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
-
-        glm::vec2 winSize = glm::vec2(windowSize.x, windowSize.y);
 
         ImGui::NewFrame();
 
@@ -129,7 +162,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::CollapsingHeader("Directional Light Settings")) {
+            if (scene.directionalLight != nullptr && ImGui::CollapsingHeader("Directional Light Settings")) {
                 ImGui::TextColored(ImVec4(1,1,1,1), "Directional Light Settings");
                 ImGui::ColorEdit3("Color", (float*)&scene.directionalLight->color);
                 ImGui::SliderFloat("Strength", &scene.directionalLight->intensity, 0.1f, 100.0f);
@@ -152,7 +185,7 @@ int main(int argc, char** argv) {
 
         if (showCaptureWindow) {
             ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowPos(ImVec2(winSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
             ImGui::Begin("Frame Capture", &showCaptureWindow);
 
             ImGui::Text("Base File Name:");
@@ -164,12 +197,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                if (saveAsHDR) {
-                    renderer.gBuffer.saveColorAsHDR(fileName + ".hdr");
-                }
-                else {
-                    renderer.gBuffer.saveColorAsPNG(fileName + ".png");
-                }
+                saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize, saveAsHDR);
             }
 
             ImGui::End();
@@ -200,32 +228,6 @@ int main(int argc, char** argv) {
 
         camera.aspect = (float)windowSize.x / (float)windowSize.y;
         camera.updateProjectionMatrix();
-    });
-
-    // shaders
-    Shader showColorShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
-    });
-
-    Shader showDepthShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayDepth.frag"
-    });
-
-    Shader showPositionShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayPositions.frag"
-    });
-
-    Shader showNormalShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayNormals.frag"
-    });
-
-    Shader showIDShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayIDs.frag"
     });
 
     app.onRender([&](double now, double dt) {
@@ -294,9 +296,9 @@ int main(int argc, char** argv) {
             renderer.drawToScreen(showIDShader);
         }
         else {
-            showColorShader.bind();
-            showColorShader.setFloat("exposure", exposure);
-            renderer.drawToScreen(showColorShader);
+            toneMapShader.bind();
+            toneMapShader.setFloat("exposure", exposure);
+            renderer.drawToScreen(toneMapShader);
         }
     });
 

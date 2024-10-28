@@ -41,8 +41,8 @@ public:
     virtual RenderStats drawSkyBox(const Scene &scene, const Camera &camera);
     virtual RenderStats drawObjects(const Scene &scene, const Camera &camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-    virtual RenderStats drawToScreen(const Shader &screenShader, const RenderTarget* overrideRenderTarget = nullptr);
-    virtual RenderStats drawToRenderTarget(const Shader &screenShader, const RenderTarget &renderTarget);
+    virtual RenderStats drawToScreen(const Shader &screenShader, const RenderTargetBase* overrideRenderTarget = nullptr);
+    virtual RenderStats drawToRenderTarget(const Shader &screenShader, const RenderTargetBase &renderTarget);
 
 protected:
     Shader skyboxShader;

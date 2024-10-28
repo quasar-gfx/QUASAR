@@ -97,8 +97,6 @@ uniform float distanceThreshold;
 uniform float angleThreshold;
 uniform float flatThreshold;
 
-uniform bool discardOutOfRangeDepths;
-
 #define MAX_DEPTH 0.9999
 
 const float epsilon = 1e-5;
@@ -177,7 +175,12 @@ float normalizeDepth(float depth) {
 }
 
 vec3 sampleNormal(sampler2D normalMap, vec2 sampleCoord) {
-    return normalize(texture(normalMap, sampleCoord).xyz);
+    vec3 normal = normalize(texture(normalMap, sampleCoord).xyz);
+    // clamp normals to a reasonable range to fix floating point errors
+    normal.x = abs(normal.x) < 0.005 ? 0.0 : normal.x;
+    normal.y = abs(normal.y) < 0.005 ? 0.0 : normal.y;
+    normal.z = abs(normal.z) < 0.005 ? 0.0 : normal.z;
+    return normal;
 }
 
 vec3 normalToView(mat4 view, vec3 normalWorld) {
@@ -673,7 +676,7 @@ void main() {
     pixelDepths.top         = sampleDepth(depthMap, sampleCoords.top);
     pixelDepths.topRight    = sampleDepth(depthMap, sampleCoords.topRight);
 
-    if (discardOutOfRangeDepths && pixelDepths.center >= MAX_DEPTH) {
+    if (pixelDepths.center >= MAX_DEPTH) {
         // store an empty plane to clear the output quad map
         QuadMapData ignoredQuadMapData;
         ignoredQuadMapData.size = 0;

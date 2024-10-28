@@ -1,5 +1,7 @@
 #include <iostream>
+
 #include <args/args.hxx>
+
 #include <OpenGLApp.h>
 #include <Renderers/ForwardRenderer.h>
 #include <SceneLoader.h>
@@ -9,26 +11,15 @@
 #include <Shaders/ToneMapShader.h>
 
 #include <Utils/Utils.h>
-#include <VideoTexture.h>
-#include <BC4DepthVideoTexture.h>
-#include <PoseStreamer.h>
 #include <shaders_common.h>
 
 #define THREADS_PER_LOCALGROUP 16
 
-#define TEXTURE_PREVIEW_SIZE 500
-
-enum class RenderState {
-    MESH,
-    POINTCLOUD,
-    WIREFRAME
-};
+const std::string DATA_PATH = "./";
 
 int main(int argc, char** argv) {
     Config config{};
-    config.title = "MeshWarp Receiver";
-
-    RenderState renderState = RenderState::MESH;
+    config.title = "MeshWarp Simulator";
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
@@ -36,11 +27,9 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<unsigned int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
-    args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "0.0.0.0:12345");
-    args::ValueFlag<std::string> depthURLIn(parser, "depth", "Depth URL", {'e', "depth-url"}, "0.0.0.0:65432");
-    args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "127.0.0.1:54321");
-    args::ValueFlag<unsigned int> depthFactorIn(parser, "factor", "Depth Resolution Factor", {'a', "depth-factor"}, 1);
     args::ValueFlag<float> fovIn(parser, "fov", "Field of view", {'f', "fov"}, 60.0f);
+    args::Flag saveImage(parser, "save", "Save image and exit", {'b', "save-image"});
+    args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -52,21 +41,18 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // Parse size
+    // parse size
     std::string sizeStr = args::get(sizeIn);
     size_t pos = sizeStr.find('x');
     config.width = std::stoi(sizeStr.substr(0, pos));
     config.height = std::stoi(sizeStr.substr(pos + 1));
 
     config.enableVSync = args::get(vsyncIn);
+    config.showWindow = !args::get(saveImage);
 
     std::string scenePath = args::get(scenePathIn);
-    std::string videoURL = args::get(videoURLIn);
-    std::string depthURL = args::get(depthURLIn);
-    std::string poseURL = args::get(poseURLIn);
 
     unsigned int surfelSize = args::get(surfelSizeIn);
-    unsigned int depthFactor = args::get(depthFactorIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -78,45 +64,36 @@ int main(int argc, char** argv) {
     ForwardRenderer renderer(config);
 
     glm::uvec2 windowSize = window->getSize();
-    VideoTexture videoTextureColor({
+
+    // "remote" scene
+    Scene remoteScene;
+    PerspectiveCamera remoteCamera(windowSize.x, windowSize.y);
+    SceneLoader loader;
+    loader.loadScene(scenePath, remoteScene, remoteCamera);
+
+    float fov = args::get(fovIn);
+    remoteCamera.setFovy(glm::radians(fov));
+
+    // scene with all the meshes
+    Scene scene;
+    scene.envCubeMap = remoteScene.envCubeMap;
+    PerspectiveCamera camera(windowSize.x, windowSize.y);
+    camera.setViewMatrix(remoteCamera.getViewMatrix());
+
+    RenderTarget renderTarget({
         .width = windowSize.x,
         .height = windowSize.y,
-        .internalFormat = GL_SRGB8,
-        .format = GL_RGB,
-        .type = GL_UNSIGNED_BYTE,
-        .wrapS = GL_CLAMP_TO_EDGE,
-        .wrapT = GL_CLAMP_TO_EDGE,
-        .minFilter = GL_LINEAR,
-        .magFilter = GL_LINEAR
-    }, videoURL);
-
-    BC4DepthVideoTexture videoTextureDepth({
-        .width = windowSize.x / depthFactor,
-        .height = windowSize.y / depthFactor,
-        .internalFormat = GL_R16F,
-        .format = GL_RED,
+        .internalFormat = GL_RGBA16F,
+        .format = GL_RGBA,
         .type = GL_FLOAT,
         .wrapS = GL_CLAMP_TO_EDGE,
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST
-    }, depthURL);
+    });
 
-    // "remote" camera
-    PerspectiveCamera remoteCamera(videoTextureColor.width, videoTextureColor.height);
-    remoteCamera.setFovy(glm::radians(args::get(fovIn)));
-
-    // "local" scene
-    Scene scene;
-    PerspectiveCamera camera(windowSize.x, windowSize.y);
-
-    PoseStreamer poseStreamer(&camera, poseURL);
-
-    std::cout << "Video URL: " << videoURL << std::endl;
-    std::cout << "Depth URL: " << depthURL << std::endl;
-    std::cout << "Pose URL: " << poseURL << std::endl;
-
-    glm::uvec2 adjustedWindowSize = windowSize / surfelSize;
+    glm::uvec2 depthMapSize = windowSize;
+    glm::uvec2 adjustedWindowSize = depthMapSize / surfelSize;
 
     unsigned int maxVertices = adjustedWindowSize.x * adjustedWindowSize.y;
     unsigned int numTriangles = (adjustedWindowSize.x-1) * (adjustedWindowSize.y-1) * 2;
@@ -125,12 +102,11 @@ int main(int argc, char** argv) {
     Mesh mesh = Mesh({
         .vertices = std::vector<Vertex>(maxVertices),
         .indices = std::vector<unsigned int>(maxIndices),
-        .material = new UnlitMaterial({ .baseColorTexture = &videoTextureColor }),
+        .material = new UnlitMaterial({ .baseColorTexture = &renderTarget.colorBuffer }),
         .usage = GL_DYNAMIC_DRAW
     });
     Node node = Node(&mesh);
     node.frustumCulled = false;
-    node.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
     scene.addChildNode(&node);
 
     Node nodeWireframe = Node(&mesh);
@@ -140,37 +116,43 @@ int main(int argc, char** argv) {
     nodeWireframe.overrideMaterial = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
     scene.addChildNode(&nodeWireframe);
 
+    Node nodePointCloud = Node(&mesh);
+    nodePointCloud.frustumCulled = false;
+    nodePointCloud.primativeType = GL_POINTS;
+    nodePointCloud.pointSize = 7.5f;
+    nodePointCloud.visible = false;
+    nodePointCloud.overrideMaterial = new UnlitMaterial({ .baseColor = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) });
+    scene.addChildNode(&nodePointCloud);
+
     // shaders
     ToneMapShader toneMapShader;
 
-    Shader videoShader({
-        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_BUILTIN_DISPLAYTEXTURE_FRAG,
-        .fragmentCodeSize = SHADER_BUILTIN_DISPLAYTEXTURE_FRAG_len
-    });
-
-    ComputeShader genMeshFromBC4Shader({
-        .computeCodeData = SHADER_COMMON_GENMESHFROMBC4_COMP,
-        .computeCodeSize = SHADER_COMMON_GENMESHFROMBC4_COMP_len,
+    ComputeShader genMeshFromDepthShader({
+        .computeCodeData = SHADER_COMMON_MESHFROMDEPTH_COMP,
+        .computeCodeSize = SHADER_COMMON_MESHFROMDEPTH_COMP_len,
         .defines = {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
     });
 
-    double elapsedTimeColor, elapsedTimeDepth;
-    pose_id_t poseIdColor = -1, poseIdDepth = -1;
-    bool mwEnabled = true;
-    bool sync = true;
-    RenderStats renderStats;
+    bool showWireframe = false;
+    bool showDepth = false;
+    bool rerender = true;
+    int rerenderInterval = 0;
+    bool preventCopyingLocalPose = false;
+    const int intervalValues[] = {0, 25, 50, 100, 200, 500, 1000};
+    const char* intervalLabels[] = {"0ms", "25ms", "50ms", "100ms", "200ms", "500ms", "1000ms"};
 
+    RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = true;
         static bool showCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
-        static bool showVideoPreview = true;
+        static int intervalIndex = 0;
+
+        static bool showEnvMap = true;
 
         ImGui::NewFrame();
 
@@ -186,7 +168,6 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("FPS", 0, &showFPS);
             ImGui::MenuItem("UI", 0, &showUI);
             ImGui::MenuItem("Frame Capture", 0, &showCaptureWindow);
-            ImGui::MenuItem("Video Preview", 0, &showVideoPreview);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -234,49 +215,43 @@ int main(int argc, char** argv) {
             }
             ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
 
-            ImGui::Separator();
+            if (ImGui::Checkbox("Show Environment Map", &showEnvMap)) {
+                scene.envCubeMap = showEnvMap ? remoteScene.envCubeMap : nullptr;
+            }
 
-            ImGui::Text("Video URL: %s", videoURL.c_str());
-            ImGui::Text("Pose URL: %s", poseURL.c_str());
-
-            ImGui::Separator();
-
-            ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: RGB (%.1f FPS), D (%.1f FPS)", videoTextureColor.getFrameRate(), videoTextureDepth.getFrameRate());
-            ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: RGB (%.1f ms), D (%.1f ms)", elapsedTimeColor, elapsedTimeDepth);
-
-            ImGui::Separator();
-
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to receive frame: %.1f ms", videoTextureColor.stats.timeToReceiveMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decode frame: %.1f ms", videoTextureColor.stats.timeToDecodeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to resize frame: %.1f ms", videoTextureColor.stats.timeToResizeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: RGB (%.1f Mbps), D (%.1f Mbps)", videoTextureColor.stats.bitrateMbps, videoTextureDepth.stats.bitrateMbps);
+            if (ImGui::Button("Change Background Color", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+                ImGui::OpenPopup("Background Color Popup");
+            }
+            if (ImGui::BeginPopup("Background Color Popup")) {
+                ImGui::ColorPicker3("Background Color", (float*)&scene.backgroundColor);
+                ImGui::EndPopup();
+            }
 
             ImGui::Separator();
 
-            ImGui::Text("Remote Pose ID: RGB (%d), D (%d)", poseIdColor, poseIdDepth);
+            ImGui::Checkbox("Show Wireframe", &showWireframe);
+            ImGui::Checkbox("Show Depth Map as Point Cloud", &showDepth);
 
             ImGui::Separator();
 
-            ImGui::Checkbox("Mesh Warp Enabled", &mwEnabled);
+            if (ImGui::SliderFloat("FOV", &fov, 60.0f, 120.0f)) {
+                remoteCamera.fovy = glm::radians(fov);
+                remoteCamera.updateProjectionMatrix();
+
+                preventCopyingLocalPose = true;
+                rerender = true;
+            }
 
             ImGui::Separator();
 
-            ImGui::Checkbox("Sync Color and Depth", &sync);
+            if (ImGui::Button("Rerender", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+                rerender = true;
+            }
 
-            ImGui::Separator();
+            if (ImGui::Combo("Rerender Interval", &intervalIndex, intervalLabels, IM_ARRAYSIZE(intervalLabels))) {
+                rerenderInterval = intervalValues[intervalIndex];
+            }
 
-            ImGui::RadioButton("Show Mesh", (int*)&renderState, 0);
-            ImGui::RadioButton("Show Point Cloud", (int*)&renderState, 1);
-            ImGui::RadioButton("Show Wireframe", (int*)&renderState, 2);
-
-            ImGui::End();
-        }
-
-        flags = ImGuiWindowFlags_AlwaysAutoResize;
-        if (showVideoPreview) {
-            ImGui::SetNextWindowPos(ImVec2(windowSize.x - 2 * TEXTURE_PREVIEW_SIZE - 60, 40), ImGuiCond_FirstUseEver);
-            ImGui::Begin("Raw Color Texture", &showVideoPreview, flags);
-            ImGui::Image((void*)(intptr_t)videoTextureColor.ID, ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
         }
 
@@ -287,7 +262,7 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string fileName = DATA_PATH + std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
@@ -309,9 +284,9 @@ int main(int argc, char** argv) {
         camera.updateProjectionMatrix();
     });
 
-    Pose currentColorFramePose, currentDepthFramePose;
+    double startRenderTime = window->getTime();
     app.onRender([&](double now, double dt) {
-        /// handle mouse input
+        // handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
             auto mouseButtons = window->getMouseButtons();
             window->setMouseCursor(!mouseButtons.LEFT_PRESSED);
@@ -353,80 +328,105 @@ int main(int argc, char** argv) {
             window->close();
         }
 
-        // send pose to streamer
-        poseStreamer.sendPose();
-
-        // render color video frame
-        videoTextureColor.bind();
-        poseIdColor = videoTextureColor.draw();
-        videoTextureColor.unbind();
-
-        // render depth video frame
-        if (sync) {
-            poseIdDepth = videoTextureDepth.draw(poseIdColor);
+        if (rerenderInterval > 0 && now - startRenderTime > rerenderInterval / 1000.0) {
+            rerender = true;
+            startRenderTime = now;
         }
-        else {
-            poseIdDepth = videoTextureDepth.draw();
-        }
-
-        if (!mwEnabled) {
-            if (poseIdColor != -1) poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTimeColor);
-
-            videoShader.bind();
-            videoShader.setTexture("tex", videoTextureColor, 5);
-            renderStats = renderer.drawToScreen(videoShader);
-
-            return;
-        }
-
-        // set shader uniforms
-        genMeshFromBC4Shader.bind();
-        {
-            genMeshFromBC4Shader.setVec2("screenSize", windowSize);
-            genMeshFromBC4Shader.setVec2("depthMapSize", glm::vec2(videoTextureDepth.width, videoTextureDepth.height));
-            genMeshFromBC4Shader.setInt("surfelSize", surfelSize);
-        }
-        {
-            genMeshFromBC4Shader.setMat4("projection", remoteCamera.getProjectionMatrix());
-            genMeshFromBC4Shader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
-            if (poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTimeColor)) {
-                genMeshFromBC4Shader.setMat4("viewColor", currentColorFramePose.mono.view);
+        if (rerender) {
+            if (!preventCopyingLocalPose) {
+                remoteCamera.setPosition(camera.getPosition());
+                remoteCamera.setRotationQuat(camera.getRotationQuat());
+                remoteCamera.updateViewMatrix();
             }
-            if (poseStreamer.getPose(poseIdDepth, &currentDepthFramePose, &elapsedTimeDepth)) {
-                genMeshFromBC4Shader.setMat4("viewInverseDepth", glm::inverse(currentDepthFramePose.mono.view));
+            preventCopyingLocalPose = false;
+
+            std::cout << "======================================================" << std::endl;
+
+            double startTime = glfwGetTime();
+
+            renderer.drawObjects(remoteScene, remoteCamera);
+
+            // copy rendered result to video render target
+            toneMapShader.bind();
+            toneMapShader.setBool("toneMap", false); // dont apply tone mapping
+            renderer.drawToRenderTarget(toneMapShader, renderTarget);
+
+            std::cout << "  Rendering Time: " << glfwGetTime() - startTime << "s" << std::endl;
+            startTime = glfwGetTime();
+
+            // Set shader uniforms
+            genMeshFromDepthShader.bind();
+            {
+                genMeshFromDepthShader.setTexture(renderer.gBuffer.depthStencilBuffer, 0);
+            }
+            {
+                genMeshFromDepthShader.setVec2("depthMapSize", depthMapSize);
+                genMeshFromDepthShader.setInt("surfelSize", surfelSize);
+            }
+            {
+                genMeshFromDepthShader.setMat4("projection", remoteCamera.getProjectionMatrix());
+                genMeshFromDepthShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+                genMeshFromDepthShader.setMat4("view", remoteCamera.getViewMatrix());
+                genMeshFromDepthShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
+
+                genMeshFromDepthShader.setFloat("near", remoteCamera.near);
+                genMeshFromDepthShader.setFloat("far", remoteCamera.far);
+            }
+            {
+                genMeshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
+                genMeshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
             }
 
-            genMeshFromBC4Shader.setFloat("near", remoteCamera.near);
-            genMeshFromBC4Shader.setFloat("far", remoteCamera.far);
+            // dispatch compute shader to generate vertices and indices for both main and wireframe meshes
+            genMeshFromDepthShader.dispatch((adjustedWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                            (adjustedWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+            genMeshFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
+                                            GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+
+            std::cout << "  genMesh Compute Shader Time: " << glfwGetTime() - startTime << "s" << std::endl;
+            startTime = glfwGetTime();
+
+            rerender = false;
         }
-        {
-            genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
-            genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
-            genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, videoTextureDepth.bc4CompressedBuffer);
+
+        nodeWireframe.visible = showWireframe;
+        nodePointCloud.visible = showDepth;
+
+        if (saveImage && args::get(poseOffset).size() == 6) {
+            glm::vec3 positionOffset, rotationOffset;
+            for (int i = 0; i < 3; i++) {
+                positionOffset[i] = args::get(poseOffset)[i];
+                rotationOffset[i] = args::get(poseOffset)[i + 3];
+            }
+            camera.setPosition(camera.getPosition() + positionOffset);
+            camera.setRotationEuler(camera.getRotationEuler() + rotationOffset);
+            camera.updateViewMatrix();
         }
 
-        // dispatch compute shader to generate vertices and indices for both main and wireframe meshes
-        genMeshFromBC4Shader.dispatch((videoTextureDepth.width + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                      (videoTextureDepth.height + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
-        genMeshFromBC4Shader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
-                                           GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
-
-        poseStreamer.removePosesLessThan(std::min(poseIdColor, poseIdDepth));
-
-        // set render state
-        node.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
-        nodeWireframe.visible = renderState == RenderState::WIREFRAME;
-
-        // render all objects in scene
+        // render generated meshes
+        renderer.pipeline.rasterState.cullFaceEnabled = false;
         renderStats = renderer.drawObjects(scene, camera);
+        renderer.pipeline.rasterState.cullFaceEnabled = true;
 
-        // render to screen
         toneMapShader.bind();
-        toneMapShader.setBool("toneMap", false); // video is already tone mapped
+        toneMapShader.setBool("toneMap", true);
         renderer.drawToScreen(toneMapShader);
+
+        if (saveImage) {
+            glm::vec3 position = camera.getPosition();
+            glm::vec3 rotation = camera.getRotationEuler();
+            std::string positionStr = to_string_with_precision(position.x) + "_" + to_string_with_precision(position.y) + "_" + to_string_with_precision(position.z);
+            std::string rotationStr = to_string_with_precision(rotation.x) + "_" + to_string_with_precision(rotation.y) + "_" + to_string_with_precision(rotation.z);
+
+            std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
+
+            std::string fileName = DATA_PATH + "screenshot." + positionStr + "_" + rotationStr;
+            saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize);
+            window->close();
+        }
     });
 
-    // Run app loop (blocking)
+    // run app loop (blocking)
     app.run();
 
     return 0;

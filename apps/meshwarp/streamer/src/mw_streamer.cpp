@@ -8,6 +8,10 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <Shaders/ToneMapShader.h>
+
+#include <Utils/Utils.h>
+
 #include <Shaders/ComputeShader.h>
 #include <VideoStreamer.h>
 #include <DepthStreamer.h>
@@ -81,6 +85,11 @@ int main(int argc, char** argv) {
     SceneLoader loader;
     loader.loadScene(scenePath, scene, camera);
 
+    // set fov
+    camera.setFovy(glm::radians(args::get(fovIn)));
+
+    glm::vec3 initialPosition = camera.getPosition();
+
     VideoStreamer videoStreamerColorRT = VideoStreamer({
         .width = windowSize.x,
         .height = windowSize.y,
@@ -107,6 +116,16 @@ int main(int argc, char** argv) {
 
     PoseReceiver poseReceiver = PoseReceiver(&camera, poseURL);
 
+    // shaders
+    ToneMapShader toneMapShader;
+
+    Shader depthShader({
+        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_BUILTIN_DISPLAYDEPTH_FRAG,
+        .fragmentCodeSize = SHADER_BUILTIN_DISPLAYDEPTH_FRAG_len
+    });
+
     PauseState pauseState = PauseState::PLAY;
     RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
@@ -115,8 +134,6 @@ int main(int argc, char** argv) {
         static bool showCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
-
-        glm::vec2 winSize = glm::vec2(windowSize.x, windowSize.y);
 
         ImGui::NewFrame();
 
@@ -194,7 +211,7 @@ int main(int argc, char** argv) {
 
         if (showCaptureWindow) {
             ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowPos(ImVec2(winSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
             ImGui::Begin("Frame Capture", &showCaptureWindow);
 
             ImGui::Text("Base File Name:");
@@ -206,12 +223,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                if (saveAsHDR) {
-                    renderer.gBuffer.saveColorAsHDR(fileName + ".hdr");
-                }
-                else {
-                    renderer.gBuffer.saveColorAsPNG(fileName + ".png");
-                }
+                saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize, saveAsHDR);
             }
 
             ImGui::End();
@@ -225,38 +237,6 @@ int main(int argc, char** argv) {
         camera.aspect = (float)windowSize.x / (float)windowSize.y;
         camera.updateProjectionMatrix();
     });
-
-    // shaders
-    Shader colorShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
-    });
-
-    Shader depthShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "./shaders/displayDepth.frag"
-    });
-
-    // save camera view and projection matrices
-    std::ofstream cameraFile;
-    cameraFile.open("data/camera.bin", std::ios::out | std::ios::binary);
-    glm::mat4 proj = camera.getProjectionMatrix();
-    glm::mat4 view = camera.getViewMatrix();
-    cameraFile.write(reinterpret_cast<const char*>(&proj), sizeof(glm::mat4));
-    cameraFile.write(reinterpret_cast<const char*>(&view), sizeof(glm::mat4));
-    cameraFile.close();
-
-    // set fov
-    camera.setFovy(glm::radians(args::get(fovIn)));
-
-    // save remote camera view and projection matrices
-    std::ofstream remoteCameraFile;
-    remoteCameraFile.open("data/remoteCamera.bin", std::ios::out | std::ios::binary);
-    proj = camera.getProjectionMatrix();
-    view = camera.getViewMatrix();
-    remoteCameraFile.write(reinterpret_cast<const char*>(&proj), sizeof(glm::mat4));
-    remoteCameraFile.write(reinterpret_cast<const char*>(&view), sizeof(glm::mat4));
-    remoteCameraFile.close();
 
     std::vector<glm::vec3> pointLightPositions(4);
     pointLightPositions[0] = scene.pointLights[0]->position;
@@ -279,19 +259,27 @@ int main(int argc, char** argv) {
         // scene.pointLights[2]->setPosition(pointLightPositions[2] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
         // scene.pointLights[3]->setPosition(pointLightPositions[3] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
 
+        // offset camera
+        camera.setPosition(camera.getPosition() + initialPosition);
+        camera.updateViewMatrix();
+
         // render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);
 
-        // render to screen
-        if (config.showWindow) {
-            renderer.drawToScreen(colorShader);
-        }
+        // restore camera position
+        camera.setPosition(camera.getPosition() - initialPosition);
+        camera.updateViewMatrix();
 
-        renderer.drawToRenderTarget(colorShader, videoStreamerColorRT);
+        renderer.drawToRenderTarget(toneMapShader, videoStreamerColorRT);
         depthShader.bind();
         depthShader.setFloat("near", camera.near);
         depthShader.setFloat("far", camera.far);
         renderer.drawToRenderTarget(depthShader, BC4videoStreamerDepthRT);
+
+        // render to screen
+        if (config.showWindow) {
+            renderer.drawToScreen(toneMapShader);
+        }
 
         // Send compressed depth frame
         if (poseID != -1) {

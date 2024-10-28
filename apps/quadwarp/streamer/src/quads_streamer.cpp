@@ -8,14 +8,16 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <Shaders/ToneMapShader.h>
+
+#include <Utils/Utils.h>
 #include <QuadMaterial.h>
+#include <shaders_common.h>
 
 #define THREADS_PER_LOCALGROUP 16
 
 #define VERTICES_IN_A_QUAD 4
 #define NUM_SUB_QUADS 4
-
-#define TEXTURE_PREVIEW_SIZE 500
 
 const std::string DATA_PATH = "./";
 
@@ -26,9 +28,11 @@ int main(int argc, char** argv) {
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
-    args::ValueFlag<std::string> size2In(parser, "size2", "Size of pre-rendered content", {'S', "size2"}, "800x600");
+    args::ValueFlag<std::string> size2In(parser, "size2", "Size of pre-rendered content", {'z', "size2"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
+    args::Flag saveImage(parser, "save", "Save image and exit", {'b', "save-image"});
+    args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -61,6 +65,7 @@ int main(int argc, char** argv) {
     int numQuadMaps = glm::log2(static_cast<float>(glm::min(maxProxySize.x, maxProxySize.y))) + 1;
 
     config.enableVSync = args::get(vsyncIn);
+    config.showWindow = !args::get(saveImage);
 
     std::string scenePath = args::get(scenePathIn);
 
@@ -84,7 +89,7 @@ int main(int argc, char** argv) {
 
     // scene with all the meshes
     Scene scene;
-    scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
+    scene.envCubeMap = remoteScene.envCubeMap;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
     camera.setViewMatrix(remoteCamera.getViewMatrix());
 
@@ -175,39 +180,39 @@ int main(int argc, char** argv) {
     scene.addChildNode(&nodeDepth);
 
     // shaders
-    Shader screenShaderColor({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayColor.frag"
-    });
+    ToneMapShader toneMapShader;
 
     Shader screenShaderNormals({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "../shaders/postprocessing/displayNormals.frag"
+        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_BUILTIN_DISPLAYNORMALS_FRAG,
+        .fragmentCodeSize = SHADER_BUILTIN_DISPLAYNORMALS_FRAG_len
     });
 
     ComputeShader genQuadMapShader({
-        .computeCodePath = "./shaders/genQuadMap.comp",
+        .computeCodePath = "shaders/genQuadMap.comp",
         .defines = {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
     });
 
     ComputeShader simplifyQuadMapShader({
-        .computeCodePath = "./shaders/simplifyQuadMap.comp",
+        .computeCodePath = "shaders/simplifyQuadMap.comp",
         .defines = {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
     });
 
     ComputeShader genMeshFromQuadMapsShader({
-        .computeCodePath = "./shaders/genMeshFromQuadMaps.comp",
+        .computeCodePath = "shaders/genMeshFromQuadMaps.comp",
         .defines = {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
     });
 
-    ComputeShader genDepthShader({
-        .computeCodePath = "./shaders/genDepthPtCloud.comp",
+    ComputeShader meshFromDepthShader({
+        .computeCodeData = SHADER_COMMON_MESHFROMDEPTH_COMP,
+        .computeCodeSize = SHADER_COMMON_MESHFROMDEPTH_COMP_len,
         .defines = {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
@@ -238,7 +243,7 @@ int main(int argc, char** argv) {
         static bool showMeshCaptureWindow = false;
         static int intervalIndex = 0;
 
-        glm::vec2 winSize = glm::vec2(windowSize.x, windowSize.y);
+        static bool showEnvMap = true;
 
         ImGui::NewFrame();
 
@@ -307,6 +312,10 @@ int main(int argc, char** argv) {
             }
             ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
 
+            if (ImGui::Checkbox("Show Environment Map", &showEnvMap)) {
+                scene.envCubeMap = showEnvMap ? remoteScene.envCubeMap : nullptr;
+            }
+
             if (ImGui::Button("Change Background Color", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
                 ImGui::OpenPopup("Background Color Popup");
             }
@@ -374,7 +383,7 @@ int main(int argc, char** argv) {
 
         if (showCaptureWindow) {
             ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowPos(ImVec2(winSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
             ImGui::Begin("Frame Capture", &showCaptureWindow);
 
             ImGui::Text("Base File Name:");
@@ -386,12 +395,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                if (saveAsHDR) {
-                    renderer.gBuffer.saveColorAsHDR(fileName + ".hdr");
-                }
-                else {
-                    renderer.gBuffer.saveColorAsPNG(fileName + ".png");
-                }
+                saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize, saveAsHDR);
             }
 
             ImGui::End();
@@ -399,7 +403,7 @@ int main(int argc, char** argv) {
 
         if (showMeshCaptureWindow) {
             ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowPos(ImVec2(winSize.x * 0.4, 300), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 300), ImGuiCond_FirstUseEver);
             ImGui::Begin("Mesh Capture", &showMeshCaptureWindow);
 
             std::string verticesFileName = DATA_PATH + "vertices.bin";
@@ -504,9 +508,9 @@ int main(int argc, char** argv) {
             */
             remoteRenderer.drawObjects(remoteScene, remoteCamera);
             if (!showNormals) {
-                screenShaderColor.bind();
-                screenShaderColor.setBool("doToneMapping", false); // dont apply tone mapping
-                remoteRenderer.drawToRenderTarget(screenShaderColor, renderTarget);
+                toneMapShader.bind();
+                toneMapShader.setBool("toneMap", false); // dont apply tone mapping
+                remoteRenderer.drawToRenderTarget(toneMapShader, renderTarget);
             }
             else {
                 remoteRenderer.drawToRenderTarget(screenShaderNormals, renderTarget);
@@ -544,7 +548,6 @@ int main(int argc, char** argv) {
                 genQuadMapShader.setFloat("distanceThreshold", distanceThreshold);
                 genQuadMapShader.setFloat("angleThreshold", glm::radians(angleThreshold));
                 genQuadMapShader.setFloat("flatThreshold", flatThreshold * 1e-2f);
-                genQuadMapShader.setBool("discardOutOfRangeDepths", false);
             }
             {
                 genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, quadMaps[0]);
@@ -650,28 +653,28 @@ int main(int argc, char** argv) {
             For debugging: Generate point cloud from depth map
             ============================
             */
-            genDepthShader.bind();
+            meshFromDepthShader.bind();
             {
-                genDepthShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
+                meshFromDepthShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
             }
             {
-                genDepthShader.setVec2("remoteWindowSize", remoteWindowSize);
+                meshFromDepthShader.setVec2("depthMapSize", remoteWindowSize);
             }
             {
-                genDepthShader.setMat4("view", remoteCamera.getViewMatrix());
-                genDepthShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-                genDepthShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
-                genDepthShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+                meshFromDepthShader.setMat4("view", remoteCamera.getViewMatrix());
+                meshFromDepthShader.setMat4("projection", remoteCamera.getProjectionMatrix());
+                meshFromDepthShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
+                meshFromDepthShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
 
-                genDepthShader.setFloat("near", remoteCamera.near);
-                genDepthShader.setFloat("far", remoteCamera.far);
+                meshFromDepthShader.setFloat("near", remoteCamera.near);
+                meshFromDepthShader.setFloat("far", remoteCamera.far);
             }
             {
                 genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, meshDepth.vertexBuffer);
             }
-            genDepthShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                    (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
-            genDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
+            meshFromDepthShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                         (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+            meshFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
                                          GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
             std::cout << "  Depth Compute Shader Time: " << glfwGetTime() - startTime << "s" << std::endl;
@@ -682,15 +685,39 @@ int main(int argc, char** argv) {
         nodeWireframe.visible = showWireframe;
         nodeDepth.visible = showDepth;
 
+        if (saveImage && args::get(poseOffset).size() == 6) {
+            glm::vec3 positionOffset, rotationOffset;
+            for (int i = 0; i < 3; i++) {
+                positionOffset[i] = args::get(poseOffset)[i];
+                rotationOffset[i] = args::get(poseOffset)[i + 3];
+            }
+            camera.setPosition(camera.getPosition() + positionOffset);
+            camera.setRotationEuler(camera.getRotationEuler() + rotationOffset);
+            camera.updateViewMatrix();
+        }
+
         // render generated meshes
         renderer.pipeline.rasterState.cullFaceEnabled = false;
         renderStats = renderer.drawObjects(scene, camera);
         renderer.pipeline.rasterState.cullFaceEnabled = true;
 
         // render to screen
-        screenShaderColor.bind();
-        screenShaderColor.setBool("doToneMapping", true);
-        renderer.drawToScreen(screenShaderColor);
+        toneMapShader.bind();
+        toneMapShader.setBool("toneMap", !showNormals);
+        renderer.drawToScreen(toneMapShader);
+
+        if (saveImage) {
+            glm::vec3 position = camera.getPosition();
+            glm::vec3 rotation = camera.getRotationEuler();
+            std::string positionStr = to_string_with_precision(position.x) + "_" + to_string_with_precision(position.y) + "_" + to_string_with_precision(position.z);
+            std::string rotationStr = to_string_with_precision(rotation.x) + "_" + to_string_with_precision(rotation.y) + "_" + to_string_with_precision(rotation.z);
+
+            std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
+
+            std::string fileName = DATA_PATH + "screenshot." + positionStr + "_" + rotationStr;
+            saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize);
+            window->close();
+        }
     });
 
     // run app loop (blocking)

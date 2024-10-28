@@ -7,7 +7,14 @@ layout(num_views = 2) in;
 
 out vec2 TexCoords;
 
+#ifdef ANDROID
+flat out float IsLeftEye;
+#endif
+
 void main() {
     TexCoords = aTexCoords;
+#ifdef ANDROID
+    IsLeftEye = (float(gl_ViewID_OVR) < 0.5) ? 1.0 : 0.0;
+#endif
     gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0);
 }

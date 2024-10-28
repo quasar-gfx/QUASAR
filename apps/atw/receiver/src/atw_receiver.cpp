@@ -8,6 +8,11 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <Shaders/ToneMapShader.h>
+
+#include <Utils/Utils.h>
+#include <shaders_common.h>
+
 #include <VideoTexture.h>
 #include <PoseStreamer.h>
 
@@ -20,7 +25,6 @@ int main(int argc, char** argv) {
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
-    args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "0.0.0.0:12345");
     args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "127.0.0.1:54321");
@@ -43,7 +47,6 @@ int main(int argc, char** argv) {
 
     config.enableVSync = args::get(vsyncIn);
 
-    std::string scenePath = args::get(scenePathIn);
     std::string videoURL = args::get(videoURLIn);
     std::string poseURL = args::get(poseURLIn);
 
@@ -60,7 +63,6 @@ int main(int argc, char** argv) {
 
     Scene scene;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
-
     VideoTexture videoTexture({
         .width = windowSize.x,
         .height = windowSize.y,
@@ -71,6 +73,7 @@ int main(int argc, char** argv) {
         .wrapT = GL_CLAMP_TO_BORDER,
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR,
+        // make out of frame regions black
         .hasBorder = true,
         .borderColor = glm::vec4(0.0f),
     }, videoURL);
@@ -79,11 +82,21 @@ int main(int argc, char** argv) {
     std::cout << "Video URL: " << videoURL << std::endl;
     std::cout << "Pose URL: " << poseURL << std::endl;
 
-    Pose currentFramePose, prevPose;
-    pose_id_t prevPoseID = -1;
+    // shaders
+    ToneMapShader toneMapShader;
+
+    Shader atwShader({
+        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_COMMON_ATW_FRAG,
+        .fragmentCodeSize = SHADER_COMMON_ATW_FRAG_len
+    });
 
     bool atwEnabled = true;
-    double elapedTime = 0.0f;
+    double elapsedTime = 0.0f;
+    Pose currentFramePose;
+    pose_id_t prevPoseID = -1;
+
     RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
@@ -92,8 +105,6 @@ int main(int argc, char** argv) {
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
         static bool showVideoPreview = true;
-
-        glm::vec2 winSize = glm::vec2(windowSize.x, windowSize.y);
 
         ImGui::NewFrame();
 
@@ -153,7 +164,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoTexture.getFrameRate(), 1000.0f / videoTexture.getFrameRate());
-            ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: %.1f ms", elapedTime);
+            ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: %.1f ms", elapsedTime);
 
             ImGui::Separator();
 
@@ -203,7 +214,7 @@ int main(int argc, char** argv) {
 
         if (showCaptureWindow) {
             ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowPos(ImVec2(winSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
             ImGui::Begin("Frame Capture", &showCaptureWindow);
 
             ImGui::Text("Base File Name:");
@@ -215,12 +226,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                if (saveAsHDR) {
-                    renderer.gBuffer.saveColorAsHDR(fileName + ".hdr");
-                }
-                else {
-                    renderer.gBuffer.saveColorAsPNG(fileName + ".png");
-                }
+                saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize, saveAsHDR);
             }
 
             ImGui::End();
@@ -233,12 +239,6 @@ int main(int argc, char** argv) {
 
         camera.aspect = (float)windowSize.x / (float)windowSize.y;
         camera.updateProjectionMatrix();
-    });
-
-    // shaders
-    Shader atwShader({
-        .vertexCodePath = "../shaders/postprocessing/postprocess.vert",
-        .fragmentCodePath = "./shaders/displayVideo.frag"
     });
 
     app.onRender([&](double now, double dt) {
@@ -296,12 +296,11 @@ int main(int argc, char** argv) {
         atwShader.setBool("atwEnabled", atwEnabled);
         atwShader.setMat4("projectionInverse", glm::inverse(camera.getProjectionMatrix()));
         atwShader.setMat4("viewInverse", glm::inverse(camera.getViewMatrix()));
-        if (poseID != prevPoseID && poseStreamer.getPose(poseID, &currentFramePose, &elapedTime)) {
+        if (poseID != prevPoseID && poseStreamer.getPose(poseID, &currentFramePose, &elapsedTime)) {
             atwShader.setMat4("remoteProjection", currentFramePose.mono.proj);
             atwShader.setMat4("remoteView", currentFramePose.mono.view);
 
             poseStreamer.removePosesLessThan(poseID);
-            prevPose = currentFramePose;
         }
         atwShader.setTexture("videoTexture", videoTexture, 5);
 

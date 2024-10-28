@@ -52,5 +52,4 @@ private:
     int parse(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
 };
 
-
 #endif // SCENE_LOADER_H

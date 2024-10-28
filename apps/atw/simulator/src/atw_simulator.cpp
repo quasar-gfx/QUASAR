@@ -1,5 +1,4 @@
 #include <iostream>
-#include <fstream>
 
 #include <args/args.hxx>
 
@@ -12,31 +11,21 @@
 #include <Shaders/ToneMapShader.h>
 
 #include <Utils/Utils.h>
+#include <shaders_common.h>
 
-#include <QuadMaterial.h>
-
-#define VERTICES_IN_A_QUAD 4
-#define NUM_SUB_QUADS 4
-
-const std::string DATA_PATH = "../streamer/";
-
-enum class RenderState {
-    MESH,
-    POINTCLOUD,
-    WIREFRAME
-};
+const std::string DATA_PATH = "./";
 
 int main(int argc, char** argv) {
     Config config{};
-    config.title = "Depth Peeling Receiver";
+    config.title = "ATW Simulator";
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
-    args::ValueFlag<int> renderStateIn(parser, "render", "Render state", {'r', "render-state"}, 0);
-    args::ValueFlag<int> maxLayersIn(parser, "layers", "Max layers", {'n', "max-layers"}, 8);
+    args::Flag saveImage(parser, "save", "Save image and exit", {'b', "save-image"});
+    args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -55,12 +44,9 @@ int main(int argc, char** argv) {
     config.height = std::stoi(sizeStr.substr(pos + 1));
 
     config.enableVSync = args::get(vsyncIn);
+    config.showWindow = !args::get(saveImage);
 
     std::string scenePath = args::get(scenePathIn);
-
-    RenderState renderState = static_cast<RenderState>(args::get(renderStateIn));
-    int maxLayers = args::get(maxLayersIn);
-    int maxViews = maxLayers + 1;
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -73,16 +59,45 @@ int main(int argc, char** argv) {
 
     glm::uvec2 windowSize = window->getSize();
 
+    // "remote" scene
+    Scene remoteScene;
+    PerspectiveCamera remoteCamera(windowSize.x, windowSize.y);
+    SceneLoader loader;
+    loader.loadScene(scenePath, remoteScene, remoteCamera);
+
+    // scene with all the meshes
     Scene scene;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
+    camera.setViewMatrix(remoteCamera.getViewMatrix());
+
+    RenderTarget renderTarget({
+        .width = windowSize.x,
+        .height = windowSize.y,
+        .internalFormat = GL_RGBA16F,
+        .format = GL_RGBA,
+        .type = GL_FLOAT,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_LINEAR,
+        .magFilter = GL_LINEAR
+    });
 
     // shaders
     ToneMapShader toneMapShader;
 
-    bool* showLayers = new bool[maxViews];
-    for (int i = 0; i < maxViews; ++i) {
-        showLayers[i] = true;
-    }
+    Shader atwShader({
+        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_COMMON_ATW_FRAG,
+        .fragmentCodeSize = SHADER_COMMON_ATW_FRAG_len
+    });
+
+    bool atwEnabled = true;
+    bool rerender = true;
+    int rerenderInterval = 0;
+    bool preventCopyingLocalPose = false;
+    const int intervalValues[] = {0, 25, 50, 100, 200, 500, 1000};
+    const char* intervalLabels[] = {"0ms", "25ms", "50ms", "100ms", "200ms", "500ms", "1000ms"};
 
     RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
@@ -91,6 +106,7 @@ int main(int argc, char** argv) {
         static bool showCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
+        static int intervalIndex = 0;
 
         ImGui::NewFrame();
 
@@ -119,7 +135,7 @@ int main(int argc, char** argv) {
         }
 
         if (showUI) {
-            ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowPos(ImVec2(10, 90), ImGuiCond_FirstUseEver);
             ImGui::Begin(config.title.c_str(), &showUI);
             ImGui::Text("OpenGL Version: %s", glGetString(GL_VERSION));
@@ -155,18 +171,16 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::RadioButton("Show Mesh", (int*)&renderState, 0);
-            ImGui::RadioButton("Show Point Cloud", (int*)&renderState, 1);
-            ImGui::RadioButton("Show Wireframe", (int*)&renderState, 2);
+            ImGui::Checkbox("ATW Enabled", &atwEnabled);
 
             ImGui::Separator();
 
-            const int columns = 3;
-            for (int i = 0; i < maxViews; i++) {
-                ImGui::Checkbox(("Show Layer " + std::to_string(i)).c_str(), &showLayers[i]);
-                if ((i + 1) % columns != 0) {
-                    ImGui::SameLine();
-                }
+            if (ImGui::Button("Rerender", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+                rerender = true;
+            }
+
+            if (ImGui::Combo("Rerender Interval", &intervalIndex, intervalLabels, IM_ARRAYSIZE(intervalLabels))) {
+                rerenderInterval = intervalValues[intervalIndex];
             }
 
             ImGui::End();
@@ -179,7 +193,7 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string fileName = DATA_PATH + std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
@@ -201,59 +215,7 @@ int main(int argc, char** argv) {
         camera.updateProjectionMatrix();
     });
 
-    std::vector<Texture*> colorTextures(maxViews);
-
-    std::vector<Mesh*> meshes(maxViews);
-    std::vector<Node*> nodes(maxViews);
-    std::vector<Node*> nodeWireframes(maxViews);
-
-    for (int i = 0; i < maxViews; i++) {
-        std::string verticesFileName = DATA_PATH + "vertices" + std::to_string(i) + ".bin";
-        std::string indicesFileName = DATA_PATH + "indices" + std::to_string(i) + ".bin";
-        std::string colorFileName = DATA_PATH + "color" + std::to_string(i) + ".png";
-
-        auto vertexData = FileIO::loadBinaryFile(verticesFileName);
-        auto indexData = FileIO::loadBinaryFile(indicesFileName);
-
-        colorTextures[i] = new Texture({
-            .wrapS = GL_REPEAT,
-            .wrapT = GL_REPEAT,
-            .minFilter = GL_NEAREST,
-            .magFilter = GL_NEAREST,
-            .flipVertically = true,
-            .path = colorFileName
-        });
-
-        std::vector<Vertex> vertices(vertexData.size() / sizeof(Vertex));
-        std::memcpy(vertices.data(), vertexData.data(), vertexData.size());
-
-        std::vector<unsigned int> indices(indexData.size() / sizeof(unsigned int));
-        std::memcpy(indices.data(), indexData.data(), indexData.size());
-
-        meshes[i] = new Mesh({
-            .vertices = vertices,
-            .indices = indices,
-            .material = new QuadMaterial({ .baseColorTexture = colorTextures[i] }),
-        });
-        nodes[i] = new Node(meshes[i]);
-        nodes[i]->frustumCulled = false;
-        nodes[i]->primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
-        scene.addChildNode(nodes[i]);
-
-        // primary view color is yellow
-        glm::vec4 color = (i == 0) ? glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) :
-                  glm::vec4(fmod(i * 0.6180339887f, 1.0f),
-                            fmod(i * 0.9f, 1.0f),
-                            fmod(i * 0.5f, 1.0f),
-                            1.0f);
-
-        nodeWireframes[i] = new Node(meshes[i]);
-        nodeWireframes[i]->frustumCulled = false;
-        nodeWireframes[i]->wireframe = true;
-        nodeWireframes[i]->overrideMaterial = new QuadMaterial({ .baseColor = color });
-        scene.addChildNode(nodeWireframes[i]);
-    }
-
+    double startRenderTime = window->getTime();
     app.onRender([&](double now, double dt) {
         // handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
@@ -297,19 +259,73 @@ int main(int argc, char** argv) {
             window->close();
         }
 
-        for (int i = 0; i < maxViews; i++) {
-            bool showLayer = showLayers[i];
+        if (rerenderInterval > 0 && now - startRenderTime > rerenderInterval / 1000.0) {
+            rerender = true;
+            startRenderTime = now;
+        }
+        if (rerender) {
+            if (!preventCopyingLocalPose) {
+                remoteCamera.setPosition(camera.getPosition());
+                remoteCamera.setRotationQuat(camera.getRotationQuat());
+                remoteCamera.updateViewMatrix();
+            }
+            preventCopyingLocalPose = false;
 
-            nodes[i]->visible = showLayer;
-            nodes[i]->primativeType = showLayer && (renderState == RenderState::POINTCLOUD) ? GL_POINTS : GL_TRIANGLES;
-            nodeWireframes[i]->visible = showLayer && (renderState == RenderState::WIREFRAME);
+            double startTime = glfwGetTime();
+
+            std::cout << "======================================================" << std::endl;
+
+            renderer.drawObjects(remoteScene, remoteCamera);
+
+            // copy rendered result to video render target
+            renderer.drawToRenderTarget(toneMapShader, renderTarget);
+
+            std::cout << "  Rendering Time: " << glfwGetTime() - startTime << "s" << std::endl;
+            startTime = glfwGetTime();
+
+            rerender = false;
         }
 
-        // render all objects in scene
-        renderStats = renderer.drawObjects(scene, camera);
+        if (saveImage && args::get(poseOffset).size() == 6) {
+            glm::vec3 positionOffset, rotationOffset;
+            for (int i = 0; i < 3; i++) {
+                positionOffset[i] = args::get(poseOffset)[i];
+                rotationOffset[i] = args::get(poseOffset)[i + 3];
+            }
+            camera.setPosition(camera.getPosition() + positionOffset);
+            camera.setRotationEuler(camera.getRotationEuler() + rotationOffset);
+            camera.updateViewMatrix();
+        }
 
-        // render to screen
-        renderer.drawToScreen(toneMapShader);
+        atwShader.bind();
+        {
+            atwShader.setBool("atwEnabled", atwEnabled);
+        }
+        {
+            atwShader.setMat4("projectionInverse", glm::inverse(camera.getProjectionMatrix()));
+            atwShader.setMat4("viewInverse", glm::inverse(camera.getViewMatrix()));
+        }
+        {
+            atwShader.setMat4("remoteProjection", remoteCamera.getProjectionMatrix());
+            atwShader.setMat4("remoteView", remoteCamera.getViewMatrix());
+        }
+        {
+            atwShader.setTexture("videoTexture", renderTarget.colorBuffer, 5);
+        }
+        renderStats = renderer.drawToScreen(atwShader);
+
+        if (saveImage) {
+            glm::vec3 position = camera.getPosition();
+            glm::vec3 rotation = camera.getRotationEuler();
+            std::string positionStr = to_string_with_precision(position.x) + "_" + to_string_with_precision(position.y) + "_" + to_string_with_precision(position.z);
+            std::string rotationStr = to_string_with_precision(rotation.x) + "_" + to_string_with_precision(rotation.y) + "_" + to_string_with_precision(rotation.z);
+
+            std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
+
+            std::string fileName = DATA_PATH + "screenshot." + positionStr + "_" + rotationStr;
+            saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize);
+            window->close();
+        }
     });
 
     // run app loop (blocking)
