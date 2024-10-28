@@ -85,6 +85,11 @@ int main(int argc, char** argv) {
     SceneLoader loader;
     loader.loadScene(scenePath, scene, camera);
 
+    // set fov
+    camera.setFovy(glm::radians(args::get(fovIn)));
+
+    glm::vec3 initialPosition = camera.getPosition();
+
     VideoStreamer videoStreamerColorRT = VideoStreamer({
         .width = windowSize.x,
         .height = windowSize.y,
@@ -233,27 +238,6 @@ int main(int argc, char** argv) {
         camera.updateProjectionMatrix();
     });
 
-    // save camera view and projection matrices
-    std::ofstream cameraFile;
-    cameraFile.open("camera.bin", std::ios::out | std::ios::binary);
-    glm::mat4 proj = camera.getProjectionMatrix();
-    glm::mat4 view = camera.getViewMatrix();
-    cameraFile.write(reinterpret_cast<const char*>(&proj), sizeof(glm::mat4));
-    cameraFile.write(reinterpret_cast<const char*>(&view), sizeof(glm::mat4));
-    cameraFile.close();
-
-    // set fov
-    camera.setFovy(glm::radians(args::get(fovIn)));
-
-    // save remote camera view and projection matrices
-    std::ofstream remoteCameraFile;
-    remoteCameraFile.open("remoteCamera.bin", std::ios::out | std::ios::binary);
-    proj = camera.getProjectionMatrix();
-    view = camera.getViewMatrix();
-    remoteCameraFile.write(reinterpret_cast<const char*>(&proj), sizeof(glm::mat4));
-    remoteCameraFile.write(reinterpret_cast<const char*>(&view), sizeof(glm::mat4));
-    remoteCameraFile.close();
-
     std::vector<glm::vec3> pointLightPositions(4);
     pointLightPositions[0] = scene.pointLights[0]->position;
     pointLightPositions[1] = scene.pointLights[1]->position;
@@ -275,19 +259,27 @@ int main(int argc, char** argv) {
         // scene.pointLights[2]->setPosition(pointLightPositions[2] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
         // scene.pointLights[3]->setPosition(pointLightPositions[3] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
 
+        // offset camera
+        camera.setPosition(camera.getPosition() + initialPosition);
+        camera.updateViewMatrix();
+
         // render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);
 
-        // render to screen
-        if (config.showWindow) {
-            renderer.drawToScreen(toneMapShader);
-        }
+        // restore camera position
+        camera.setPosition(camera.getPosition() - initialPosition);
+        camera.updateViewMatrix();
 
         renderer.drawToRenderTarget(toneMapShader, videoStreamerColorRT);
         depthShader.bind();
         depthShader.setFloat("near", camera.near);
         depthShader.setFloat("far", camera.far);
         renderer.drawToRenderTarget(depthShader, BC4videoStreamerDepthRT);
+
+        // render to screen
+        if (config.showWindow) {
+            renderer.drawToScreen(toneMapShader);
+        }
 
         // Send compressed depth frame
         if (poseID != -1) {

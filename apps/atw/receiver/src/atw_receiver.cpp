@@ -18,8 +18,6 @@
 
 #define TEXTURE_PREVIEW_SIZE 500
 
-const std::string DATA_PATH = "./";
-
 int main(int argc, char** argv) {
     Config config{};
     config.title = "ATW Receiver";
@@ -75,6 +73,7 @@ int main(int argc, char** argv) {
         .wrapT = GL_CLAMP_TO_BORDER,
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR,
+        // make out of frame regions black
         .hasBorder = true,
         .borderColor = glm::vec4(0.0f),
     }, videoURL);
@@ -220,7 +219,7 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = DATA_PATH + std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string fileName = std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 

@@ -18,8 +18,6 @@
 
 #define TEXTURE_PREVIEW_SIZE 500
 
-const std::string DATA_PATH = "../streamer/";
-
 enum class RenderState {
     MESH,
     POINTCLOUD,
@@ -42,7 +40,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> depthURLIn(parser, "depth", "Depth URL", {'e', "depth-url"}, "0.0.0.0:65432");
     args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "127.0.0.1:54321");
     args::ValueFlag<unsigned int> depthFactorIn(parser, "factor", "Depth Resolution Factor", {'a', "depth-factor"}, 1);
-
+    args::ValueFlag<float> fovIn(parser, "fov", "Field of view", {'f', "fov"}, 60.0f);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -80,9 +78,6 @@ int main(int argc, char** argv) {
     ForwardRenderer renderer(config);
 
     glm::uvec2 windowSize = window->getSize();
-
-    Scene scene;
-    PerspectiveCamera camera(windowSize.x, windowSize.y);
     VideoTexture videoTextureColor({
         .width = windowSize.x,
         .height = windowSize.y,
@@ -106,6 +101,14 @@ int main(int argc, char** argv) {
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST
     }, depthURL);
+
+    // "remote" camera
+    PerspectiveCamera remoteCamera(videoTextureColor.width, videoTextureColor.height);
+    remoteCamera.setFovy(glm::radians(args::get(fovIn)));
+
+    // "local" scene
+    Scene scene;
+    PerspectiveCamera camera(windowSize.x, windowSize.y);
 
     PoseStreamer poseStreamer(&camera, poseURL);
 
@@ -137,7 +140,7 @@ int main(int argc, char** argv) {
     nodeWireframe.overrideMaterial = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
     scene.addChildNode(&nodeWireframe);
 
-    // Shaders
+    // shaders
     ToneMapShader toneMapShader;
 
     Shader videoShader({
@@ -154,24 +157,6 @@ int main(int argc, char** argv) {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
     });
-
-    // Load camera matrices
-    auto cameraData = FileIO::loadBinaryFile(DATA_PATH + "camera.bin");
-    glm::mat4 proj = glm::mat4(1.0f);
-    glm::mat4 view = glm::mat4(1.0f);
-    std::memcpy(&proj, cameraData.data(), sizeof(glm::mat4));
-    std::memcpy(&view, cameraData.data() + sizeof(glm::mat4), sizeof(glm::mat4));
-
-    camera.setProjectionMatrix(proj);
-    camera.setViewMatrix(view);
-
-    // Load remote camera
-    PerspectiveCamera remoteCamera(windowSize.x, windowSize.y);
-    auto remoteCameraData = FileIO::loadBinaryFile(DATA_PATH + "remoteCamera.bin");
-    std::memcpy(&proj, remoteCameraData.data(), sizeof(glm::mat4));
-    std::memcpy(&view, remoteCameraData.data() + sizeof(glm::mat4), sizeof(glm::mat4));
-    remoteCamera.setProjectionMatrix(proj);
-    remoteCamera.setViewMatrix(view);
 
     double elapsedTimeColor, elapsedTimeDepth;
     pose_id_t poseIdColor = -1, poseIdDepth = -1;
@@ -316,7 +301,6 @@ int main(int argc, char** argv) {
         }
     });
 
-
     app.onResize([&](unsigned int width, unsigned int height) {
         windowSize = glm::uvec2(width, height);
         renderer.resize(windowSize.x, windowSize.y);
@@ -362,23 +346,22 @@ int main(int argc, char** argv) {
             }
         }
 
-
-        // Handle keyboard input
+        // handle keyboard input
         auto keys = window->getKeys();
         camera.processKeyboard(keys, dt);
         if (keys.ESC_PRESSED) {
             window->close();
         }
 
-        // Send pose to streamer
+        // send pose to streamer
         poseStreamer.sendPose();
 
-        // Render color video frame
+        // render color video frame
         videoTextureColor.bind();
         poseIdColor = videoTextureColor.draw();
         videoTextureColor.unbind();
 
-        // Render depth video frame
+        // render depth video frame
         if (sync) {
             poseIdDepth = videoTextureDepth.draw(poseIdColor);
         }
@@ -396,7 +379,7 @@ int main(int argc, char** argv) {
             return;
         }
 
-        // Set shader uniforms
+        // set shader uniforms
         genMeshFromBC4Shader.bind();
         {
             genMeshFromBC4Shader.setVec2("screenSize", windowSize);
@@ -430,14 +413,14 @@ int main(int argc, char** argv) {
 
         poseStreamer.removePosesLessThan(std::min(poseIdColor, poseIdDepth));
 
-        // Set render state
+        // set render state
         node.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
         nodeWireframe.visible = renderState == RenderState::WIREFRAME;
 
-        // Render all objects in scene
+        // render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);
 
-        // Render to screen
+        // render to screen
         toneMapShader.bind();
         toneMapShader.setBool("toneMap", false); // video is already tone mapped
         renderer.drawToScreen(toneMapShader);
