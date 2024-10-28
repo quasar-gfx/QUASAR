@@ -7,8 +7,7 @@
 #include <glm/gtx/hash.hpp>
 
 enum VertexAttribute {
-    ATTRIBUTE_ID = 0,
-    ATTRIBUTE_POSITION,
+    ATTRIBUTE_POSITION = 0,
     ATTRIBUTE_COLOR,
     ATTRIBUTE_NORMAL,
     ATTRIBUTE_TEX_COORDS,
@@ -17,7 +16,6 @@ enum VertexAttribute {
 };
 
 struct Vertex {
-    alignas(16) uint32_t ID;
     alignas(16) glm::vec3 position;
     alignas(16) glm::vec3 color = glm::vec3(1.0f);
     alignas(16) glm::vec3 normal;
@@ -31,28 +29,22 @@ struct Vertex {
     }
 
     Vertex() {
-        ID = nextID++;
     }
     Vertex(glm::vec3 position)
         : position(position) {
-        ID = nextID++;
     }
     Vertex(glm::vec3 position, glm::vec3 normal, glm::vec2 texCoords)
         : position(position), normal(normal), texCoords(texCoords) {
-        ID = nextID++;
     }
     Vertex(glm::vec3 position, glm::vec3 color, glm::vec3 normal)
         : position(position), color(color), normal(normal) {
-        ID = nextID++;
     }
     Vertex(glm::vec3 position, glm::vec3 normal, glm::vec2 texCoords, glm::vec3 tangent, glm::vec3 bitangent)
         : position(position), normal(normal), texCoords(texCoords), tangent(tangent), bitangent(bitangent) {
-        ID = nextID++;
     }
     Vertex(glm::vec3 position, glm::vec3 normal, glm::vec2 texCoords, glm::vec3 tangent)
         : position(position), normal(normal), texCoords(texCoords), tangent(tangent) {
         bitangent = glm::cross(normal, tangent);
-        ID = nextID++;
     }
 
     static uint32_t nextID;

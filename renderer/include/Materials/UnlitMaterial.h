@@ -1,5 +1,5 @@
-#ifndef TEXTURED_MATERIAL_H
-#define TEXTURED_MATERIAL_H
+#ifndef UNLIT_MATERIAL_H
+#define UNLIT_MATERIAL_H
 
 #include <Materials/Material.h>
 
@@ -8,8 +8,8 @@ struct UnlitMaterialCreateParams {
     glm::vec4 baseColorFactor = glm::vec4(1.0f);
     AlphaMode alphaMode = AlphaMode::OPAQUE;
     float maskThreshold = 0.5f;
-    std::string diffuseTexturePath = "";
-    Texture* diffuseTexture;
+    std::string baseColorTexturePath = "";
+    Texture* baseColorTexture;
 };
 
 class UnlitMaterial : public Material {
@@ -34,4 +34,4 @@ public:
     static Shader* shader;
 };
 
-#endif // TEXTURED_MATERIAL_H
+#endif // UNLIT_MATERIAL_H

@@ -8,6 +8,8 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <QuadMaterial.h>
+
 #define THREADS_PER_LOCALGROUP 16
 
 #define VERTICES_IN_A_QUAD 4
@@ -65,9 +67,10 @@ int main(int argc, char** argv) {
     glm::uvec2 remoteWindowSize = glm::uvec2(size2Width, size2Height);
 
     // make sure maxProxySize is a power of 2
-    int maxProxySize = glm::max(remoteWindowSize.x, remoteWindowSize.y);
-    maxProxySize = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize))));
-    int numQuadMaps = glm::log2(static_cast<float>(maxProxySize));
+    glm::uvec2 maxProxySize = remoteWindowSize;
+    maxProxySize.x = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize.x))));
+    maxProxySize.y = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize.y))));
+    int numQuadMaps = glm::log2(static_cast<float>(glm::min(maxProxySize.x, maxProxySize.y))) + 1;
 
     config.enableVSync = args::get(vsyncIn);
 
@@ -117,7 +120,7 @@ int main(int argc, char** argv) {
     };
     std::vector<Buffer<QuadMapData>> quadMaps(numQuadMaps);
     std::vector<glm::vec2> quadMapSizes(numQuadMaps);
-    glm::vec2 quadMapSize = glm::vec2(maxProxySize);
+    glm::vec2 quadMapSize = maxProxySize;
     for (int i = 0; i < numQuadMaps; i++) {
         quadMaps[i] = Buffer<QuadMapData>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, quadMapSize.x * quadMapSize.y, nullptr);
         quadMapSizes[i] = quadMapSize;
@@ -167,13 +170,10 @@ int main(int argc, char** argv) {
     unsigned int totalProxies = 0;
     unsigned int totalDepthOffsets = 0;
     BufferSizes bufferSizes = { 0 };
-    unsigned int zeros[4] = { 0 };
-    Buffer<unsigned int> bufferSizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, sizeof(BufferSizes), zeros);
+    Buffer<BufferSizes> sizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, &bufferSizes);
 
     std::vector<Mesh*> meshes(maxViews);
     std::vector<Node*> nodes(maxViews);
-
-    std::vector<Mesh*> meshWireframes(maxViews);
     std::vector<Node*> nodeWireframes(maxViews);
 
     std::vector<Mesh*> meshDepths(maxViews);
@@ -181,10 +181,11 @@ int main(int argc, char** argv) {
 
     for (int view = 0; view < maxViews; view++) {
         meshes[view] = new Mesh({
-            .numVertices = maxVertices,
-            .numIndices = maxIndices,
-            .material = new UnlitMaterial({ .diffuseTexture = &renderTargets[view]->colorBuffer }),
-            .usage = GL_DYNAMIC_DRAW
+            .numVertices = maxVertices / 2,
+            .numIndices = maxIndices / 2,
+            .material = new QuadMaterial({ .baseColorTexture = &renderTargets[view]->colorBuffer }),
+            .usage = GL_DYNAMIC_DRAW,
+            .indirectDraw = true
         });
         nodes[view] = new Node(meshes[view]);
         nodes[view]->frustumCulled = false;
@@ -197,26 +198,20 @@ int main(int argc, char** argv) {
                             fmod(view * 0.5f, 1.0f),
                             1.0f);
 
-        meshWireframes[view] = new Mesh({
-            .numVertices = maxVertices,
-            .numIndices = maxIndices,
-            .material = new UnlitMaterial({ .baseColor = color }),
-            .usage = GL_DYNAMIC_DRAW
-        });
-        nodeWireframes[view] = new Node(meshWireframes[view]);
+        nodeWireframes[view] = new Node(meshes[view]);
         nodeWireframes[view]->frustumCulled = false;
         nodeWireframes[view]->wireframe = true;
+        nodeWireframes[view]->overrideMaterial = new UnlitMaterial({ .baseColor = color });
         scene.addChildNode(nodeWireframes[view]);
 
         meshDepths[view] = new Mesh({
             .numVertices = maxVerticesDepth,
             .material = new UnlitMaterial({ .baseColor = color }),
-            .pointcloud = true,
-            .pointSize = 7.5f,
             .usage = GL_DYNAMIC_DRAW
         });
         nodeDepths[view] = new Node(meshDepths[view]);
         nodeDepths[view]->frustumCulled = false;
+        nodeDepths[view]->primativeType = GL_POINTS;
         scene.addChildNode(nodeDepths[view]);
 
         Node* meshNode = new Node(meshes[view]);
@@ -619,7 +614,7 @@ int main(int argc, char** argv) {
             double avgGenQuadMapTime = 0.0;
             double avgSimplifyTime = 0.0;
             double avgGenQuadsTime = 0.0;
-            double avgSetMeshBuffersTime = 0.0;
+            // double avgSetMeshBuffersTime = 0.0;
             double avgGenDepthTime = 0.0;
             totalProxies = 0;
             totalDepthOffsets = 0;
@@ -629,7 +624,6 @@ int main(int argc, char** argv) {
 
                 auto* currMesh = meshes[view];
                 auto* currMeshDepth = meshDepths[view];
-                auto* currMeshWireframe = meshWireframes[view];
                 startTime = glfwGetTime();
 
                 /*
@@ -706,7 +700,7 @@ int main(int argc, char** argv) {
                 }
                 {
                     genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, quadMaps[0]);
-                    genQuadMapShader.setImageTexture(1, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsetBuffer.internalFormat);
+                    genQuadMapShader.setImageTexture(0, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsetBuffer.internalFormat);
                 }
 
                 // run compute shader
@@ -750,7 +744,7 @@ int main(int argc, char** argv) {
                     {
                         simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, prevBuffer);
                         simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, currBuffer);
-                        simplifyQuadMapShader.setImageTexture(2, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsetBuffer.internalFormat);
+                        simplifyQuadMapShader.setImageTexture(0, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsetBuffer.internalFormat);
                     }
 
                     simplifyQuadMapShader.dispatch((currQuadMapSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
@@ -786,36 +780,28 @@ int main(int argc, char** argv) {
                     }
                     {
                         genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, quadMap);
-                        genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, bufferSizesBuffer);
+                        genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizesBuffer);
                         genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, currMesh->vertexBuffer);
                         genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, currMesh->indexBuffer);
-                        genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, currMeshWireframe->vertexBuffer);
-                        genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, currMeshWireframe->indexBuffer);
-                        genMeshFromQuadMapsShader.setImageTexture(6, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetBuffer.internalFormat);
+                        genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, currMesh->indirectBuffer);
+                        genMeshFromQuadMapsShader.setImageTexture(0, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetBuffer.internalFormat);
                     }
 
                     genMeshFromQuadMapsShader.dispatch((quadMapSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
                                                        (quadMapSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
                     genMeshFromQuadMapsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
-                                                             GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+                                                            GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
                 }
 
                 avgGenQuadsTime += glfwGetTime() - startTime;
                 startTime = glfwGetTime();
 
                 // get number of vertices and indices in mesh
-                bufferSizesBuffer.bind();
-                bufferSizesBuffer.getSubData(0, 4, &bufferSizes);
-                bufferSizesBuffer.setSubData(0, 4, &zeros); // reset for next frame
-
-                currMesh->resizeBuffers(bufferSizes.numVertices, bufferSizes.numIndices);
-                currMeshWireframe->resizeBuffers(bufferSizes.numVertices, bufferSizes.numIndices);
+                // sizesBuffer.bind();
+                // sizesBuffer.getSubData(0, 1, &bufferSizes);
 
                 totalProxies += bufferSizes.numProxies;
                 totalDepthOffsets += bufferSizes.numDepthOffsets;
-
-                avgSetMeshBuffersTime += glfwGetTime() - startTime;
-                startTime = glfwGetTime();
 
                 /*
                 ============================
@@ -853,7 +839,7 @@ int main(int argc, char** argv) {
             std::cout << "  Avg Gen Quad Map Time: " << avgGenQuadMapTime / maxViews << "s" << std::endl;
             std::cout << "  Avg Simplify Time: " << avgSimplifyTime / maxViews << "s" << std::endl;
             std::cout << "  Avg Gen Quads Time: " << avgGenQuadsTime / maxViews << "s" << std::endl;
-            std::cout << "  Avg Set Mesh Buffers Time: " << avgSetMeshBuffersTime / maxViews << "s" << std::endl;
+            // std::cout << "  Avg Set Mesh Buffers Time: " << avgSetMeshBuffersTime / maxViews << "s" << std::endl;
             std::cout << "  Avg Gen Depth Time: " << avgGenDepthTime / maxViews << "s" << std::endl;
 
             rerender = false;
@@ -866,9 +852,6 @@ int main(int argc, char** argv) {
             nodes[view]->visible = showView;
             nodeWireframes[view]->visible = showView && showWireframe;
             nodeDepths[view]->visible = showView && showDepth;
-
-            nodeWireframes[view]->setPosition(nodes[view]->getPosition() - camera.getForwardVector() * 0.001f);
-            nodeDepths[view]->setPosition(nodes[view]->getPosition() - camera.getForwardVector() * 0.0015f);
         }
 
         if (restrictMovementToViewBox) {

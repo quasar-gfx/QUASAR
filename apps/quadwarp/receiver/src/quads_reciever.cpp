@@ -8,6 +8,8 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <QuadMaterial.h>
+
 #define VERTICES_IN_A_QUAD 4
 #define NUM_SUB_QUADS 4
 
@@ -211,22 +213,17 @@ int main(int argc, char** argv) {
     Mesh mesh = Mesh({
         .vertices = vertices,
         .indices = indices,
-        .material = new UnlitMaterial({ .diffuseTexture = &colorTexture }),
-        .pointcloud = renderState == RenderState::POINTCLOUD,
+        .material = new QuadMaterial({ .baseColorTexture = &colorTexture }),
     });
     Node node(&mesh);
     node.frustumCulled = false;
+    node.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
     scene.addChildNode(&node);
 
-    Mesh meshWireframe = Mesh({
-        .vertices = vertices,
-        .indices = indices,
-        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-        .pointcloud = false,
-    });
-    Node nodeWireframe(&meshWireframe);
+    Node nodeWireframe(&mesh);
     nodeWireframe.frustumCulled = false;
     nodeWireframe.wireframe = true;
+    nodeWireframe.overrideMaterial = new QuadMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
     scene.addChildNode(&nodeWireframe);
 
     app.onRender([&](double now, double dt) {
@@ -272,10 +269,8 @@ int main(int argc, char** argv) {
             window->close();
         }
 
-        mesh.pointcloud = renderState == RenderState::POINTCLOUD;
+        node.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
         nodeWireframe.visible = renderState == RenderState::WIREFRAME;
-
-        nodeWireframe.setPosition(node.getPosition() - camera.getForwardVector() * 0.001f);
 
         // render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);

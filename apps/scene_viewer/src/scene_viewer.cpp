@@ -65,6 +65,7 @@ int main(int argc, char** argv) {
     SceneLoader loader;
     loader.loadScene(scenePath, scene, camera);
 
+
     std::shared_ptr<Animator> animator;
 
     if (pathFileIn) {
@@ -288,6 +289,18 @@ int main(int argc, char** argv) {
         auto keys = window->getKeys();
         if (keys.ESC_PRESSED) {
             window->close();
+        }
+        if (animator && !animator->isFinished()) {
+            animator->update(dt);
+            glm::vec3 position = animator->getCurrentPosition();
+
+            glm::quat rotation = animator->getCurrentRotation();
+            camera.setPosition(position);
+            camera.setRotationQuat(rotation);
+            camera.updateViewMatrix();
+        } else {
+            // handle keyboard input
+            camera.processKeyboard(keys, dt);
         }
         if (animator && !animator->isFinished()) {
             animator->update(dt);

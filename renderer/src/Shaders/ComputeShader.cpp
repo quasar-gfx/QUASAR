@@ -26,10 +26,10 @@ void ComputeShader::createAndCompileProgram(const char* computeCodeData, const G
     glDeleteShader(compute);
 }
 
-void ComputeShader::dispatch(GLuint numGroupsX, GLuint numGroupsY, GLuint numGroupsZ) {
+void ComputeShader::dispatch(GLuint numGroupsX, GLuint numGroupsY, GLuint numGroupsZ) const {
     glDispatchCompute(numGroupsX, numGroupsY, numGroupsZ);
 }
 
-void ComputeShader::memoryBarrier(GLbitfield barriers) {
+void ComputeShader::memoryBarrier(GLbitfield barriers) const {
     glMemoryBarrier(barriers);
 }

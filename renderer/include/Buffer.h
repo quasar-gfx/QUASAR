@@ -108,9 +108,8 @@ public:
         glBufferData(target, numElems * sizeof(T), nullptr, usage);
     }
 
-#ifdef GL_CORE
     void getData(void* data) const {
-        T* mappedBuffer = static_cast<T*>(glMapBuffer(target, GL_READ_ONLY));
+        T* mappedBuffer = static_cast<T*>(glMapBufferRange(target, 0, numElems * sizeof(T), GL_MAP_READ_BIT));
         if (mappedBuffer) {
             memcpy(data, mappedBuffer, numElems * sizeof(T));
 
@@ -122,19 +121,11 @@ public:
 
     std::vector<T> getData() const {
         std::vector<T> data(numElems);
-
-        T* mappedBuffer = static_cast<T*>(glMapBuffer(target, GL_READ_ONLY));
-        if (mappedBuffer) {
-            std::copy(mappedBuffer, mappedBuffer + numElems, data.begin());
-
-            glUnmapBuffer(target);
-        } else {
-            std::cerr << "Error: Could not map buffer data." << std::endl;
-        }
-
+        getData(data.data());
         return data;
     }
 
+#ifdef GL_CORE
     void getSubData(unsigned int offset, unsigned int numElems, void* data) const {
         glGetBufferSubData(target, offset * sizeof(T), numElems * sizeof(T), data);
     }

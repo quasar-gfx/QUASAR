@@ -3,7 +3,6 @@ layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = THREADS_PER_LOCALGR
 layout(binding = 0) uniform sampler2D depthMap;
 
 struct Vertex {
-    uint id;
     vec3 position;
     vec3 color;
     vec3 normal;
@@ -18,14 +17,6 @@ layout(std430, binding = 0) buffer VertexBuffer {
 
 layout(std430, binding = 1) buffer IndexBuffer {
     uint indices[];
-};
-
-layout(std430, binding = 2) buffer VertexBufferWireframe {
-    Vertex verticesWireframe[];
-};
-
-layout(std430, binding = 3) buffer IndexBufferWireframe {
-    uint indicesWireframe[];
 };
 
 uniform vec2 screenSize;
@@ -119,8 +110,6 @@ void main() {
     vertices[shaderIndex].color = vec3(1.0, 1.0, 1.0);
     vertices[shaderIndex].texCoords = viewToScreen(projection, viewCoord);
 
-    verticesWireframe[shaderIndex] = vertices[shaderIndex];
-
     if (pixelCoord.x < screenSize.x - surfelSize && pixelCoord.y < screenSize.y - surfelSize) {
         /************************
 
@@ -143,12 +132,5 @@ void main() {
         indices[shaderIndex * INDICES_IN_A_QUAD + 3] = topRightIdx;
         indices[shaderIndex * INDICES_IN_A_QUAD + 4] = bottomLeftIdx;
         indices[shaderIndex * INDICES_IN_A_QUAD + 5] = bottomRightIdx;
-
-        indicesWireframe[shaderIndex * INDICES_IN_A_QUAD + 0] = indices[shaderIndex * INDICES_IN_A_QUAD + 0];
-        indicesWireframe[shaderIndex * INDICES_IN_A_QUAD + 1] = indices[shaderIndex * INDICES_IN_A_QUAD + 1];
-        indicesWireframe[shaderIndex * INDICES_IN_A_QUAD + 2] = indices[shaderIndex * INDICES_IN_A_QUAD + 2];
-        indicesWireframe[shaderIndex * INDICES_IN_A_QUAD + 3] = indices[shaderIndex * INDICES_IN_A_QUAD + 3];
-        indicesWireframe[shaderIndex * INDICES_IN_A_QUAD + 4] = indices[shaderIndex * INDICES_IN_A_QUAD + 4];
-        indicesWireframe[shaderIndex * INDICES_IN_A_QUAD + 5] = indices[shaderIndex * INDICES_IN_A_QUAD + 5];
     }
 }

@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
         .computeCodePath = "./shaders/genPtCloudFromDepth.comp"
     });
 
-    ComputeShader bc4CompressShader({
+    ComputeShader bc4CompressionShader({
         .computeCodePath = "./shaders/bc4_compress.comp"
     });
 
@@ -142,24 +142,22 @@ int main(int argc, char** argv) {
         .vertices = std::vector<Vertex>(numVertices),
         .indices = std::vector<unsigned int>(indexBufferSize),
         .material = new UnlitMaterial({ .baseColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f) }),
-        .pointcloud = renderState == RenderState::POINTCLOUD,
-        .pointSize = 7.5f,
         .usage = GL_DYNAMIC_DRAW
     });
     Node node = Node(&mesh);
     node.frustumCulled = false;
+    node.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
     scene.addChildNode(&node);
 
     Mesh meshDecompressed = Mesh({
         .vertices = std::vector<Vertex>(numVertices),
         .indices = std::vector<unsigned int>(indexBufferSize),
         .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
-        .pointcloud = renderState == RenderState::POINTCLOUD,
-        .pointSize = 5.0f,
         .usage = GL_DYNAMIC_DRAW
     });
     Node nodeDecompressed = Node(&meshDecompressed);
     nodeDecompressed.frustumCulled = false;
+    nodeDecompressed.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
     scene.addChildNode(&nodeDecompressed);
 
     bool rerender = true;
@@ -332,19 +330,19 @@ int main(int argc, char** argv) {
         }
 
         // Compress depth data using BC4
-        bc4CompressShader.bind();
+        bc4CompressionShader.bind();
         {
-            bc4CompressShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
+            bc4CompressionShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
         }
         {
-            bc4CompressShader.setVec2("depthMapSize", windowSize);
-            bc4CompressShader.setVec2("bc4DepthSize", glm::vec2(windowSize.x / 8, windowSize.y / 8));
+            bc4CompressionShader.setVec2("depthMapSize", windowSize);
+            bc4CompressionShader.setVec2("bc4DepthSize", glm::vec2(windowSize.x / 8, windowSize.y / 8));
         }
         {
-            bc4CompressShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, bc4Buffer);
+            bc4CompressionShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, bc4Buffer);
         }
-        bc4CompressShader.dispatch((windowSize.x / 8) / 16, (windowSize.y / 8) / 16, 1);
-        bc4CompressShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+        bc4CompressionShader.dispatch((windowSize.x / 8) / 16, (windowSize.y / 8) / 16, 1);
+        bc4CompressionShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
         // generate mesh for original depth data
         genPtCloudFromDepthShader.bind();
@@ -395,8 +393,8 @@ int main(int argc, char** argv) {
                                     GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
         // set render state
-        mesh.pointcloud = renderState == RenderState::POINTCLOUD;
-        meshDecompressed.pointcloud = renderState == RenderState::POINTCLOUD;
+        node.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
+        nodeDecompressed.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
 
         // render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);

@@ -12,9 +12,6 @@ void Mesh::createAttributes() {
 
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
 
-    glEnableVertexAttribArray(ATTRIBUTE_ID);
-    glVertexAttribPointer(ATTRIBUTE_ID,         1, GL_UNSIGNED_INT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, ID));
-
     glEnableVertexAttribArray(ATTRIBUTE_POSITION);
     glVertexAttribPointer(ATTRIBUTE_POSITION,   3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
 
@@ -46,7 +43,6 @@ void Mesh::setBuffers(const std::vector<Vertex> &vertices) {
 
     vertexBuffer.bind();
     vertexBuffer.setData(vertices);
-    vertexBuffer.unbind();
 
     glBindVertexArray(0);
 
@@ -63,7 +59,6 @@ void Mesh::setBuffers(const std::vector<Vertex> &vertices, const std::vector<uns
 
     vertexBuffer.bind();
     vertexBuffer.setData(vertices);
-    vertexBuffer.unbind();
 
     updateAABB(vertices);
 
@@ -74,7 +69,6 @@ void Mesh::setBuffers(const std::vector<Vertex> &vertices, const std::vector<uns
 
     indexBuffer.bind();
     indexBuffer.setData(indices);
-    indexBuffer.unbind();
 
     glBindVertexArray(0);
 }
@@ -89,7 +83,6 @@ void Mesh::setBuffers(unsigned int numVertices, unsigned int numIndices) {
 
     vertexBuffer.bind();
     vertexBuffer.resize(numVertices);
-    vertexBuffer.unbind();
 
     if (numIndices == 0) {
         glBindVertexArray(0);
@@ -98,14 +91,13 @@ void Mesh::setBuffers(unsigned int numVertices, unsigned int numIndices) {
 
     indexBuffer.bind();
     indexBuffer.resize(numIndices);
-    indexBuffer.unbind();
 
     glBindVertexArray(0);
 }
 
-void Mesh::resizeBuffers(unsigned int vertexBufferSize, unsigned int indexBufferSize) {
-    vertexBuffer.setSize(vertexBufferSize);
-    indexBuffer.setSize(indexBufferSize);
+void Mesh::resizeBuffers(unsigned int numVertices, unsigned int numIndices) {
+    vertexBuffer.setSize(numVertices);
+    indexBuffer.setSize(numIndices);
 }
 
 void Mesh::updateAABB(const std::vector<Vertex> &vertices) {
@@ -172,8 +164,6 @@ void Mesh::bindMaterial(const Scene &scene, const glm::mat4 &model, const Materi
     materialToUse->getShader()->setInt("numPointLights", static_cast<int>(scene.pointLights.size()));
     materialToUse->getShader()->setFloat("material.IBL", IBL);
 
-    materialToUse->getShader()->setFloat("pointSize", pointSize);
-
     materialToUse->getShader()->setBool("peelDepth", prevDepthMap != nullptr);
     if (prevDepthMap != nullptr) {
         materialToUse->getShader()->setTexture("prevDepthMap", *prevDepthMap, texIdx);
@@ -183,7 +173,7 @@ void Mesh::bindMaterial(const Scene &scene, const glm::mat4 &model, const Materi
     materialToUse->unbind();
 }
 
-RenderStats Mesh::draw(const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
+RenderStats Mesh::draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
     RenderStats stats;
 
     if (camera.isVR()) {
@@ -209,38 +199,48 @@ RenderStats Mesh::draw(const Camera &camera, const glm::mat4 &model, bool frustu
     materialToUse->getShader()->setMat4("model", model);
     materialToUse->getShader()->setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
 
-    stats = draw();
+    stats = draw(primativeType);
 
     materialToUse->unbind();
 
     return stats;
 }
 
-RenderStats Mesh::draw(const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
+RenderStats Mesh::draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
     RenderStats stats;
     if (!boundingSphere.intersects(aabb)) {
         return stats;
     }
-    return draw(camera, model, false, overrideMaterial);
+    return draw(primativeType, camera, model, false, overrideMaterial);
 }
 
-RenderStats Mesh::draw() {
-    GLenum primativeType = pointcloud ? GL_POINTS : GL_TRIANGLES;
+RenderStats Mesh::draw(GLenum primativeType) {
+    RenderStats stats;
 
     glBindVertexArray(vertexArrayBuffer);
-    if (indexBuffer.getSize() > 0) {
-        indexBuffer.bind();
-        glDrawElements(primativeType, indexBuffer.getSize(), GL_UNSIGNED_INT, 0);
-        indexBuffer.unbind();
+    if (indirectDraw) {
+        indirectBuffer.bind();
+        if (indexBuffer.getSize() > 0) {
+            indexBuffer.bind();
+            glDrawElementsIndirect(primativeType, GL_UNSIGNED_INT, 0);
+        }
+        else {
+            vertexBuffer.bind();
+            glDrawArraysIndirect(primativeType, 0);
+        }
     }
     else {
-        vertexBuffer.bind();
-        glDrawArrays(primativeType, 0, vertexBuffer.getSize());
-        vertexBuffer.unbind();
+        if (indexBuffer.getSize() > 0) {
+            indexBuffer.bind();
+            glDrawElements(primativeType, indexBuffer.getSize(), GL_UNSIGNED_INT, 0);
+        }
+        else {
+            vertexBuffer.bind();
+            glDrawArrays(primativeType, 0, vertexBuffer.getSize());
+        }
     }
     glBindVertexArray(0);
 
-    RenderStats stats;
     if (indexBuffer.getSize() > 0) {
         stats.trianglesDrawn = static_cast<unsigned int>(indexBuffer.getSize() / 3);
     }

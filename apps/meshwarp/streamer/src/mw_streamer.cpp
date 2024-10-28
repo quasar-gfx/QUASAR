@@ -8,11 +8,11 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <Shaders/ComputeShader.h>
 #include <VideoStreamer.h>
 #include <DepthStreamer.h>
+#include <BC4DepthStreamer.h>
 #include <PoseReceiver.h>
-
-#define TEXTURE_PREVIEW_SIZE 500
 
 enum class PauseState {
     PLAY,
@@ -92,7 +92,8 @@ int main(int argc, char** argv) {
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR
     }, videoURL, targetBitrate);
-    DepthStreamer videoStreamerDepthRT = DepthStreamer({
+
+    BC4DepthStreamer BC4videoStreamerDepthRT = BC4DepthStreamer({
         .width = windowSize.x / depthFactor,
         .height = windowSize.y / depthFactor,
         .internalFormat = GL_R16,
@@ -103,6 +104,7 @@ int main(int argc, char** argv) {
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST
     }, depthURL);
+
     PoseReceiver poseReceiver = PoseReceiver(&camera, poseURL);
 
     PauseState pauseState = PauseState::PLAY;
@@ -113,7 +115,6 @@ int main(int argc, char** argv) {
         static bool showCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
-        static bool showDepth = true;
 
         glm::vec2 winSize = glm::vec2(windowSize.x, windowSize.y);
 
@@ -131,7 +132,6 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("FPS", 0, &showFPS);
             ImGui::MenuItem("UI", 0, &showUI);
             ImGui::MenuItem("Frame Capture", 0, &showCaptureWindow);
-            ImGui::MenuItem("Depth Preview", 0, &showDepth);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -174,14 +174,13 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: RGB (%.1f fps), D (%.1f fps)", videoStreamerColorRT.getFrameRate(), videoStreamerDepthRT.getFrameRate());
+            ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: RGB (%.1f fps), BC4 D (%.1f fps)", videoStreamerColorRT.getFrameRate(), BC4videoStreamerDepthRT.getFrameRate());
 
             ImGui::Separator();
 
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: RGB (%.1f ms), D (%.1f ms)", videoStreamerColorRT.stats.timeToCopyFrameMs, videoStreamerDepthRT.stats.timeToCopyFrameMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.1f ms", videoStreamerColorRT.stats.timeToEncodeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: %.1f ms", videoStreamerColorRT.stats.timeToSendMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: RGB (%.1f Mbps), D (%.1f Mbps)", videoStreamerColorRT.stats.bitrateMbps, videoStreamerDepthRT.stats.bitrateMbps);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: RGB (%.1f ms), BC4 D (%.1f ms)", videoStreamerColorRT.stats.timeToCopyFrameMs, BC4videoStreamerDepthRT.stats.timeToCopyFrameMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: RGB (%.1f ms), BC4 D (%.1f ms)", videoStreamerColorRT.stats.timeToSendMs, BC4videoStreamerDepthRT.stats.timeToSendMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: RGB (%.1f Mbps), BC4 D (%.1f Mbps)", videoStreamerColorRT.stats.bitrateMbps, BC4videoStreamerDepthRT.stats.bitrateMbps);
 
             ImGui::Separator();
 
@@ -190,14 +189,6 @@ int main(int argc, char** argv) {
             ImGui::RadioButton("Pause Depth", (int*)&pauseState, 2);
             ImGui::RadioButton("Pause Both", (int*)&pauseState, 3);
 
-            ImGui::End();
-        }
-
-        if (showDepth) {
-            ImGui::SetNextWindowPos(ImVec2(windowSize.x - TEXTURE_PREVIEW_SIZE - 30, 40), ImGuiCond_FirstUseEver);
-            flags = ImGuiWindowFlags_AlwaysAutoResize;
-            ImGui::Begin("Raw Depth Texture", 0, flags);
-            ImGui::Image((void*)(intptr_t)videoStreamerDepthRT.colorBuffer.ID, ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
         }
 
@@ -283,10 +274,10 @@ int main(int argc, char** argv) {
         poseID = poseReceiver.receivePose(false);
 
         // animate lights
-        scene.pointLights[0]->setPosition(pointLightPositions[0] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
-        scene.pointLights[1]->setPosition(pointLightPositions[1] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
-        scene.pointLights[2]->setPosition(pointLightPositions[2] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
-        scene.pointLights[3]->setPosition(pointLightPositions[3] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
+        // scene.pointLights[0]->setPosition(pointLightPositions[0] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
+        // scene.pointLights[1]->setPosition(pointLightPositions[1] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
+        // scene.pointLights[2]->setPosition(pointLightPositions[2] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
+        // scene.pointLights[3]->setPosition(pointLightPositions[3] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
 
         // render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);
@@ -295,19 +286,20 @@ int main(int argc, char** argv) {
         if (config.showWindow) {
             renderer.drawToScreen(colorShader);
         }
+
         renderer.drawToRenderTarget(colorShader, videoStreamerColorRT);
         depthShader.bind();
         depthShader.setFloat("near", camera.near);
         depthShader.setFloat("far", camera.far);
-        renderer.drawToRenderTarget(depthShader, videoStreamerDepthRT);
+        renderer.drawToRenderTarget(depthShader, BC4videoStreamerDepthRT);
 
-        // send video frame
+        // Send compressed depth frame
         if (poseID != -1) {
             if (pauseState != PauseState::PAUSE_COLOR) videoStreamerColorRT.sendFrame(poseID);
-            if (pauseState != PauseState::PAUSE_DEPTH) videoStreamerDepthRT.sendFrame(poseID);
+            if (pauseState != PauseState::PAUSE_DEPTH) BC4videoStreamerDepthRT.sendFrame(poseID);
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        // std::this_thread::sleep_for(std::chrono::milliseconds(10));
     });
 
     // run app loop (blocking)
