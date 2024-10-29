@@ -12,9 +12,15 @@ static int interrupt_callback(void* ctx) {
     return shouldTerminate;
 }
 
-VideoTexture::VideoTexture(const TextureDataCreateParams &params, const std::string &videoURL)
-        : Texture(params)
-        , videoURL("stream.sdp") {
+VideoTexture::VideoTexture(const TextureDataCreateParams &params,
+                           const std::string &videoURL,
+                           const std::string &formatName)
+        : formatName(formatName)
+        , Texture(params) {
+    this->videoURL = (formatName == "mpegts") ?
+                        "udp://" + videoURL + "?overrun_nonfatal=1&fifo_size=50000000" :
+                            "stream.sdp";
+    std::cout << "Created VideoTexture with format: " << formatName << std::endl;
     videoReceiverThread = std::thread(&VideoTexture::receiveVideo, this);
 }
 

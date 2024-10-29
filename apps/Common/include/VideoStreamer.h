@@ -33,6 +33,8 @@ class VideoStreamer : public RenderTarget {
 public:
     std::string videoURL = "0.0.0.0:12345";
 
+    std::string formatName;
+
     uint64_t framesSent = 0;
 
     struct Stats {
@@ -43,7 +45,10 @@ public:
         float bitrateMbps = -1.0f;
     } stats;
 
-    VideoStreamer(const RenderTargetCreateParams &params, const std::string &videoURL, unsigned int targetBitRateMbps = 50);
+    VideoStreamer(const RenderTargetCreateParams &params,
+                  const std::string &videoURL,
+                  unsigned int targetBitRateMbps = 50,
+                  const std::string &formatName = "mpegts");
     ~VideoStreamer();
 
     float getFrameRate() {
