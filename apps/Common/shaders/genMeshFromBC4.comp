@@ -1,5 +1,9 @@
 layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = THREADS_PER_LOCALGROUP, local_size_z = 1) in;
 
+precision highp float;
+precision highp sampler2D;
+precision highp image2D;
+
 struct Vertex {
     vec3 position;
     vec3 color;
@@ -27,9 +31,8 @@ layout(std430, binding = 2) buffer BC4Buffer {
     Block bc4buffer[];
 };
 
-const ivec2 blockSize = ivec2(8, 8);
+const uvec2 blockSize = uvec2(8, 8);
 
-uniform vec2 screenSize;
 uniform vec2 depthMapSize;
 
 uniform mat4 projection;
@@ -43,12 +46,12 @@ uniform float far;
 
 uniform int surfelSize;
 
-uniform bool unlinearizeDepth = true;
+uniform bool unlinearizeDepth;
 
 #define MAX_DEPTH 0.9999
 
-#define VERTICES_IN_A_QUAD  4
-#define INDICES_IN_A_QUAD   6
+#define VERTICES_IN_A_QUAD  4u
+#define INDICES_IN_A_QUAD   6u
 
 vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
     vec4 ndcPos;
@@ -98,9 +101,9 @@ float UnLinearizeDepth(float depth) {
 }
 
 float sampleBC4Buffer(vec2 pixelCoordNormalized) {
-    ivec2 pixelCoord = ivec2(pixelCoordNormalized * depthMapSize); // normalized coord to integer pixel coord
-    ivec2 blockCoord = pixelCoord / blockSize;
-    ivec2 pixelInBlock = pixelCoord % blockSize;
+    uvec2 pixelCoord = uvec2(pixelCoordNormalized * depthMapSize); // normalized coord to integer pixel coord
+    uvec2 blockCoord = pixelCoord / blockSize;
+    uvec2 pixelInBlock = pixelCoord % blockSize;
 
     uint blockIndex = blockCoord.y * (uint(depthMapSize.x) / blockSize.x) + blockCoord.x; //index of this block in the BC4 buffer
     Block compressedBlock = bc4buffer[blockIndex];
@@ -109,27 +112,27 @@ float sampleBC4Buffer(vec2 pixelCoordNormalized) {
     float minVal = compressedBlock.min;
 
     uint pixelIndex = pixelInBlock.y * blockSize.x + pixelInBlock.x;
-    uint globalBitIndex = pixelIndex * 3;
-    uint uintIndex = globalBitIndex / 32; // 0-5
-    uint bitOffset = globalBitIndex % 32; // 0-31
+    uint globalBitIndex = pixelIndex * 3u;
+    uint uintIndex = globalBitIndex / 32u; // 0-5
+    uint bitOffset = globalBitIndex % 32u; // 0-31
 
     uint index;
-    if (bitOffset <= 29) {
+    if (bitOffset <= 29u) {
         // Normal case: all 3 bits are in the current uint
-        index = (compressedBlock.data[uintIndex] >> (29 - bitOffset)) & 0x7u;
+        index = (compressedBlock.data[uintIndex] >> (29u - bitOffset)) & 0x7u;
     } else {
         // Split case: the 3 bits are split across two uints
-        uint bitsInCurrent = 32 - bitOffset;
-        uint bitsInNext = 3 - bitsInCurrent;
+        uint bitsInCurrent = 32u - bitOffset;
+        uint bitsInNext = 3u - bitsInCurrent;
 
         // Get the bits from the current uint
-        uint mask = 0;
-        if (bitsInCurrent == 1) mask = 1; // 0b01
-        if (bitsInCurrent == 2) mask = 3; // 0b11
+        uint mask = 0u;
+        if (bitsInCurrent == 1u) mask = 1u; // 0b01
+        if (bitsInCurrent == 2u) mask = 3u; // 0b11
         uint upperBits = compressedBlock.data[uintIndex] & (mask);
 
         // Get the bits from the next uint (with wraparound)
-        uint lowerBits = compressedBlock.data[(uintIndex + 1) % 6] >> (32 - bitsInNext);
+        uint lowerBits = compressedBlock.data[(uintIndex + 1u) % 6u] >> (32u - bitsInNext);
 
         // Combine the bits
         index = (upperBits << bitsInNext) | lowerBits;
@@ -146,15 +149,15 @@ float sampleBC4Buffer(vec2 pixelCoordNormalized) {
 }
 
 void main() {
-    vec2 size = vec2(depthMapSize) / float(surfelSize);
+    vec2 size = vec2(depthMapSize) / vec2(surfelSize);
 
     vec2 surfelCoord = vec2(gl_GlobalInvocationID.xy);
     if (surfelCoord.x >= depthMapSize.x || surfelCoord.y >= depthMapSize.y) {
         return;
     }
 
-    vec2 pixelCoord = surfelSize * (surfelCoord + vec2(0.5, 0.5));
-    vec2 uv = vec2(pixelCoord) / depthMapSize;
+    vec2 pixelCoord = float(surfelSize) * (surfelCoord + vec2(0.5, 0.5));
+    vec2 uv = vec2(pixelCoord) / size;
 
     float depth = sampleBC4Buffer(uv);
 
@@ -162,12 +165,12 @@ void main() {
     vec3 viewCoord = ndcToView(projectionInverse, ndc, depth);
     vec3 worldCoord = viewToWorld(viewInverseDepth, viewCoord);
 
-    uint shaderIndex = uint(gl_GlobalInvocationID.y * size.x + gl_GlobalInvocationID.x);
+    uint shaderIndex = uint(gl_GlobalInvocationID.y * uint(size.x) + gl_GlobalInvocationID.x);
     vertices[shaderIndex].position = worldCoord;
     vertices[shaderIndex].color = vec3(1.0, 1.0, 1.0);
     vertices[shaderIndex].texCoords = viewToScreen(projection, viewCoord);
 
-    if (pixelCoord.x < depthMapSize.x - surfelSize && pixelCoord.y < depthMapSize.y - surfelSize) {
+    if (pixelCoord.x < size.x - float(surfelSize) && pixelCoord.y < size.y - float(surfelSize)) {
         /************************
 
                 tl -- tr
@@ -178,16 +181,16 @@ void main() {
 
         ************************/
         uint bottomLeftIdx = shaderIndex;
-        uint bottomRightIdx = shaderIndex + 1;
+        uint bottomRightIdx = shaderIndex + 1u;
         uint topLeftIdx = shaderIndex + uint(size.x);
-        uint topRightIdx = shaderIndex + uint(size.x) + 1;
+        uint topRightIdx = shaderIndex + uint(size.x) + 1u;
 
-        indices[shaderIndex * INDICES_IN_A_QUAD + 0] = topLeftIdx;
-        indices[shaderIndex * INDICES_IN_A_QUAD + 1] = bottomLeftIdx;
-        indices[shaderIndex * INDICES_IN_A_QUAD + 2] = topRightIdx;
+        indices[shaderIndex * INDICES_IN_A_QUAD + 0u] = topLeftIdx;
+        indices[shaderIndex * INDICES_IN_A_QUAD + 1u] = bottomLeftIdx;
+        indices[shaderIndex * INDICES_IN_A_QUAD + 2u] = topRightIdx;
 
-        indices[shaderIndex * INDICES_IN_A_QUAD + 3] = topRightIdx;
-        indices[shaderIndex * INDICES_IN_A_QUAD + 4] = bottomLeftIdx;
-        indices[shaderIndex * INDICES_IN_A_QUAD + 5] = bottomRightIdx;
+        indices[shaderIndex * INDICES_IN_A_QUAD + 3u] = topRightIdx;
+        indices[shaderIndex * INDICES_IN_A_QUAD + 4u] = bottomLeftIdx;
+        indices[shaderIndex * INDICES_IN_A_QUAD + 5u] = bottomRightIdx;
     }
 }

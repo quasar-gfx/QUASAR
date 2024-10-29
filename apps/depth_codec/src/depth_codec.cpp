@@ -394,7 +394,6 @@ int main(int argc, char** argv) {
         // generate mesh using compressed depth data
         genMeshFromBC4Shader.bind();
         {
-            genMeshFromBC4Shader.setVec2("screenSize", windowSize);
             genMeshFromBC4Shader.setVec2("depthMapSize", windowSize);
             genMeshFromBC4Shader.setInt("surfelSize", surfelSize);
 
