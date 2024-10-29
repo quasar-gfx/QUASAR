@@ -27,6 +27,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "0.0.0.0:12345");
+    args::ValueFlag<std::string> videoFormatIn(parser, "video-format", "Video format", {'g', "video-format"}, "mpegts");
     args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "127.0.0.1:54321");
     try {
         parser.ParseCLI(argc, argv);
@@ -48,6 +49,7 @@ int main(int argc, char** argv) {
     config.enableVSync = args::get(vsyncIn);
 
     std::string videoURL = args::get(videoURLIn);
+    std::string videoFormat = args::get(videoFormatIn);
     std::string poseURL = args::get(poseURLIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
@@ -76,11 +78,9 @@ int main(int argc, char** argv) {
         // make out of frame regions black
         .hasBorder = true,
         .borderColor = glm::vec4(0.0f),
-    }, videoURL);
-    PoseStreamer poseStreamer(&camera, poseURL);
+    }, videoURL, videoFormat);
 
-    std::cout << "Video URL: " << videoURL << std::endl;
-    std::cout << "Pose URL: " << poseURL << std::endl;
+    PoseStreamer poseStreamer(&camera, poseURL);
 
     // shaders
     ToneMapShader toneMapShader;
@@ -158,7 +158,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::Text("Video URL: %s", videoURL.c_str());
+            ImGui::Text("Video URL: %s (%s)", videoURL.c_str(), videoFormat.c_str());
             ImGui::Text("Pose URL: %s", poseURL.c_str());
 
             ImGui::Separator();

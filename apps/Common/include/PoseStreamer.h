@@ -27,7 +27,9 @@ public:
             : camera(camera)
             , receiverURL(receiverURL)
             , rate(rate)
-            , streamer(receiverURL, sizeof(Pose)) { }
+            , streamer(receiverURL, sizeof(Pose)) {
+        std::cout << "Created PoseStreamer that sends to URL: " << receiverURL << std::endl;
+    }
 
     bool epsilonEqual(const glm::mat4& mat1, const glm::mat4& mat2, float epsilon = 1e-5) {
         for (int i = 0; i < 4; i++) {

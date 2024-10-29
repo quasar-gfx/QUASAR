@@ -161,7 +161,7 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params,
         return;
     }
 
-    std::cout << "Created VideoStreamer with format: " << formatName << std::endl;
+    std::cout << "Created VideoStreamer that sends to URL: " << videoURL << " (" << formatName << ")" << std::endl;
 
     videoStreamerThread = std::thread(&VideoStreamer::encodeAndSendFrames, this);
 }

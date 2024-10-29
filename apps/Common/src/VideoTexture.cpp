@@ -20,7 +20,7 @@ VideoTexture::VideoTexture(const TextureDataCreateParams &params,
     this->videoURL = (formatName == "mpegts") ?
                         "udp://" + videoURL + "?overrun_nonfatal=1&fifo_size=50000000" :
                             "stream.sdp";
-    std::cout << "Created VideoTexture with format: " << formatName << std::endl;
+    std::cout << "Created VideoTexture that recvs from URL: " << videoURL << " (" << formatName << ")" << std::endl;
     videoReceiverThread = std::thread(&VideoTexture::receiveVideo, this);
 }
 
