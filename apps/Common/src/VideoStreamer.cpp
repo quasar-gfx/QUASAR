@@ -12,12 +12,18 @@ static int interrupt_callback(void* ctx) {
     return shouldTerminate;
 }
 
-VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::string &videoURL, unsigned int targetBitRateMbps)
-        : videoURL("udp://" + videoURL)
-        , targetBitRate(targetBitRateMbps * MBPS_TO_BPS)
+VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params,
+                             const std::string &videoURL,
+                             unsigned int targetBitRateMbps,
+                             const std::string &formatName)
+        : targetBitRate(targetBitRateMbps * MBPS_TO_BPS)
+        , formatName(formatName)
         , RenderTarget(params) {
-    videoWidth = width + poseIDOffset;
-    videoHeight = height;
+    this->videoURL = (formatName == "mpegts") ?
+                        "udp://" + videoURL :
+                            formatName + "://" + videoURL;
+    this->videoWidth = width + poseIDOffset;
+    this->videoHeight = height;
 
     renderTargetCopy = new RenderTarget({
         .width = width,
@@ -39,7 +45,6 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
     if (ret < 0) {
         throw std::runtime_error("Error: Couldn't initialize CUDA");
     }
-
 #endif
 
     /* Setup codec to encode output (video to URL) */
@@ -83,7 +88,7 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
     }
 
     /* Setup output (to write video to URL) */
-    ret = avformat_alloc_output_context2(&outputFormatCtx, nullptr, "mpegts", videoURL.c_str());
+    ret = avformat_alloc_output_context2(&outputFormatCtx, nullptr, formatName.c_str(), videoURL.c_str());
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate output context: %s\n", av_err2str(ret));
         throw std::runtime_error("Video Streamer could not be created.");
@@ -155,6 +160,8 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not make packet writable: %s\n", av_err2str(ret));
         return;
     }
+
+    std::cout << "Created VideoStreamer that sends to URL: " << videoURL << " (" << formatName << ")" << std::endl;
 
     videoStreamerThread = std::thread(&VideoStreamer::encodeAndSendFrames, this);
 }

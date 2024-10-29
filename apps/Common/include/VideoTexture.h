@@ -24,6 +24,8 @@ class VideoTexture : public Texture {
 public:
     std::string videoURL = "127.0.0.1:12345";
 
+    std::string formatName;
+
     struct Stats {
         float timeToReceiveMs = -1.0f;
         float timeToDecodeMs = -1.0f;
@@ -34,7 +36,9 @@ public:
 
     unsigned int videoWidth, videoHeight;
 
-    VideoTexture(const TextureDataCreateParams &params, const std::string &videoURL);
+    VideoTexture(const TextureDataCreateParams &params,
+                 const std::string &videoURL,
+                 const std::string &formatName = "mpegts");
     ~VideoTexture();
 
     pose_id_t draw(pose_id_t poseID = -1);

@@ -12,9 +12,15 @@ static int interrupt_callback(void* ctx) {
     return shouldTerminate;
 }
 
-VideoTexture::VideoTexture(const TextureDataCreateParams &params, const std::string &videoURL)
-        : Texture(params)
-        , videoURL("udp://" + videoURL + "?overrun_nonfatal=1&fifo_size=50000000") {
+VideoTexture::VideoTexture(const TextureDataCreateParams &params,
+                           const std::string &videoURL,
+                           const std::string &formatName)
+        : formatName(formatName)
+        , Texture(params) {
+    this->videoURL = (formatName == "mpegts") ?
+                        "udp://" + videoURL + "?overrun_nonfatal=1&fifo_size=50000000" :
+                            "stream.sdp";
+    std::cout << "Created VideoTexture that recvs from URL: " << videoURL << " (" << formatName << ")" << std::endl;
     videoReceiverThread = std::thread(&VideoTexture::receiveVideo, this);
 }
 
@@ -54,8 +60,9 @@ int VideoTexture::initFFMpeg() {
 
     AVDictionary* options = nullptr;
     av_dict_set(&options, "protocol_whitelist", "file,udp,rtp", 0);
-    // av_dict_set(&options, "buffer_size", "1000k", 0);
-    // av_dict_set(&options, "max_delay", "500k", 0);
+    av_dict_set(&options, "fflags", "nobuffer", 0);
+    // av_dict_set(&options, "buffer_size", "1000000", 0);
+    // av_dict_set(&options, "max_delay", "500000", 0);
 
     /* Setup input (to read video from url) */
     int ret = avformat_open_input(&inputFormatCtx, videoURL.c_str(), nullptr, &options); // blocking

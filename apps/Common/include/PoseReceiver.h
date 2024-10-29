@@ -24,6 +24,7 @@ public:
             : camera(camera)
             , streamerURL(streamerURL)
             , DataReceiverUDP(streamerURL, sizeof(Pose)) {
+        std::cout << "Created PoseReceiver that recvs from URL: " << streamerURL << std::endl;
     }
 
     void onDataReceived(const std::vector<uint8_t>& data) override {
