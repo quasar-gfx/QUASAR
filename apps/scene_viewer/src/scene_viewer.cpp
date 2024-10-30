@@ -1,4 +1,5 @@
 #include <iostream>
+#include <filesystem>
 
 #include <args/args.hxx>
 
@@ -12,8 +13,6 @@
 
 #include <Utils/Utils.h>
 
-const std::string DATA_PATH = "./";
-
 int main(int argc, char** argv) {
     Config config{};
     config.title = "Scene Viewer";
@@ -23,7 +22,8 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
-    args::Flag saveImage(parser, "save", "Save image and exit", {'b', "save-image"});
+    args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'u', "data-path"}, ".");
+    args::Flag saveImage(parser, "save", "Take screenshot and exit", {'b', "save-image"});
     args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     try {
         parser.ParseCLI(argc, argv);
@@ -46,6 +46,11 @@ int main(int argc, char** argv) {
     config.showWindow = !args::get(saveImage);
 
     std::string scenePath = args::get(scenePathIn);
+    std::string dataPath = args::get(dataPathIn) + "/";
+    // create data path if it doesn't exist
+    if (!std::filesystem::exists(dataPath)) {
+        std::filesystem::create_directories(dataPath);
+    }
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -195,7 +200,7 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = DATA_PATH + std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string fileName = dataPath + std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
@@ -306,7 +311,7 @@ int main(int argc, char** argv) {
 
                 std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
 
-                std::string fileName = DATA_PATH + "screenshot." + positionStr + "_" + rotationStr;
+                std::string fileName = dataPath + "screenshot." + positionStr + "_" + rotationStr;
                 saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize);
                 window->close();
             }

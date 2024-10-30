@@ -24,6 +24,8 @@ VideoTexture::VideoTexture(const TextureDataCreateParams &params,
         sdpFileName = FileIO::copyFileToCache(sdpFileName);
         std::cout << "Copied SDP file to: " << sdpFileName << std::endl;
     }
+#else
+    sdpFileName = "../assets/" + sdpFileName;
 #endif
 
     this->videoURL = (formatName == "mpegts") ?

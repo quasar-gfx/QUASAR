@@ -1,4 +1,5 @@
 #include <iostream>
+#include <filesystem>
 
 #include <args/args.hxx>
 
@@ -19,8 +20,6 @@
 #define VERTICES_IN_A_QUAD 4
 #define NUM_SUB_QUADS 4
 
-const std::string DATA_PATH = "./";
-
 int main(int argc, char** argv) {
     Config config{};
     config.title = "Quads Streamer";
@@ -31,7 +30,8 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> size2In(parser, "size2", "Size of pre-rendered content", {'z', "size2"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
-    args::Flag saveImage(parser, "save", "Save image and exit", {'b', "save-image"});
+    args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'u', "data-path"}, ".");
+    args::Flag saveImage(parser, "save", "Take screenshot and exit", {'b', "save-image"});
     args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     try {
         parser.ParseCLI(argc, argv);
@@ -68,6 +68,11 @@ int main(int argc, char** argv) {
     config.showWindow = !args::get(saveImage);
 
     std::string scenePath = args::get(scenePathIn);
+    std::string dataPath = args::get(dataPathIn) + "/";
+    // create data path if it doesn't exist
+    if (!std::filesystem::exists(dataPath)) {
+        std::filesystem::create_directories(dataPath);
+    }
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -388,7 +393,7 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = DATA_PATH + std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string fileName = dataPath + std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
@@ -406,9 +411,9 @@ int main(int argc, char** argv) {
             ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 300), ImGuiCond_FirstUseEver);
             ImGui::Begin("Mesh Capture", &showMeshCaptureWindow);
 
-            std::string verticesFileName = DATA_PATH + "vertices.bin";
-            std::string indicesFileName = DATA_PATH + "indices.bin";
-            std::string colorFileName = DATA_PATH + "color.png";
+            std::string verticesFileName = dataPath + "vertices.bin";
+            std::string indicesFileName = dataPath + "indices.bin";
+            std::string colorFileName = dataPath + "color.png";
 
             if (ImGui::Button("Save Mesh")) {
                 sizesBuffer.bind();
@@ -417,14 +422,14 @@ int main(int argc, char** argv) {
                 // save vertexBuffer
                 mesh.vertexBuffer.bind();
                 std::vector<Vertex> vertices = mesh.vertexBuffer.getData();
-                std::ofstream verticesFile(DATA_PATH + verticesFileName, std::ios::binary);
+                std::ofstream verticesFile(dataPath + verticesFileName, std::ios::binary);
                 verticesFile.write((char*)vertices.data(), bufferSizes.numVertices * sizeof(Vertex));
                 verticesFile.close();
 
                 // save indexBuffer
                 mesh.indexBuffer.bind();
                 std::vector<unsigned int> indices = mesh.indexBuffer.getData();
-                std::ofstream indicesFile(DATA_PATH + indicesFileName, std::ios::binary);
+                std::ofstream indicesFile(dataPath + indicesFileName, std::ios::binary);
                 indicesFile.write((char*)indices.data(), bufferSizes.numIndices * sizeof(unsigned int));
                 indicesFile.close();
 
@@ -717,7 +722,7 @@ int main(int argc, char** argv) {
 
             std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
 
-            std::string fileName = DATA_PATH + "screenshot." + positionStr + "_" + rotationStr;
+            std::string fileName = dataPath + "screenshot." + positionStr + "_" + rotationStr;
             saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize);
             window->close();
         }

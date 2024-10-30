@@ -1,4 +1,5 @@
 #include <iostream>
+#include <filesystem>
 
 #include <args/args.hxx>
 
@@ -15,8 +16,6 @@
 
 #define THREADS_PER_LOCALGROUP 16
 
-const std::string DATA_PATH = "./";
-
 int main(int argc, char** argv) {
     Config config{};
     config.title = "MeshWarp Simulator";
@@ -28,7 +27,8 @@ int main(int argc, char** argv) {
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<unsigned int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
     args::ValueFlag<float> fovIn(parser, "fov", "Field of view", {'f', "fov"}, 60.0f);
-    args::Flag saveImage(parser, "save", "Save image and exit", {'b', "save-image"});
+    args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'u', "data-path"}, ".");
+    args::Flag saveImage(parser, "save", "Take screenshot and exit", {'b', "save-image"});
     args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     try {
         parser.ParseCLI(argc, argv);
@@ -51,6 +51,11 @@ int main(int argc, char** argv) {
     config.showWindow = !args::get(saveImage);
 
     std::string scenePath = args::get(scenePathIn);
+    std::string dataPath = args::get(dataPathIn) + "/";
+    // create data path if it doesn't exist
+    if (!std::filesystem::exists(dataPath)) {
+        std::filesystem::create_directories(dataPath);
+    }
 
     unsigned int surfelSize = args::get(surfelSizeIn);
 
@@ -262,7 +267,7 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = DATA_PATH + std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string fileName = dataPath + std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
@@ -420,7 +425,7 @@ int main(int argc, char** argv) {
 
             std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
 
-            std::string fileName = DATA_PATH + "screenshot." + positionStr + "_" + rotationStr;
+            std::string fileName = dataPath + "screenshot." + positionStr + "_" + rotationStr;
             saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize);
             window->close();
         }

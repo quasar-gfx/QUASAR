@@ -1,4 +1,5 @@
 #include <iostream>
+#include <filesystem>
 
 #include <args/args.hxx>
 
@@ -18,8 +19,6 @@
 
 #define VERTICES_IN_A_QUAD 4
 #define NUM_SUB_QUADS 4
-
-const std::string DATA_PATH = "./";
 
 const std::vector<glm::vec3> offsets = {
     glm::vec3(-1.0f, +1.0f, -1.0f), // Top-left
@@ -43,7 +42,8 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<int> maxAdditionalViewsIn(parser, "views", "Max views", {'n', "max-views"}, 8);
-    args::Flag saveImage(parser, "save", "Save image and exit", {'b', "save-image"});
+    args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'u', "data-path"}, ".");
+    args::Flag saveImage(parser, "save", "Take screenshot and exit", {'b', "save-image"});
     args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     try {
         parser.ParseCLI(argc, argv);
@@ -80,6 +80,11 @@ int main(int argc, char** argv) {
     config.showWindow = !args::get(saveImage);
 
     std::string scenePath = args::get(scenePathIn);
+    std::string dataPath = args::get(dataPathIn) + "/";
+    // create data path if it doesn't exist
+    if (!std::filesystem::exists(dataPath)) {
+        std::filesystem::create_directories(dataPath);
+    }
 
     int maxViews = args::get(maxAdditionalViewsIn) + 2; // 0th is standard view, maxViews-1 is large fov view
 
@@ -492,7 +497,7 @@ int main(int argc, char** argv) {
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
             std::string time = std::to_string(static_cast<int>(window->getTime() * 1000.0f));
-            std::string fileName = DATA_PATH + std::string(fileNameBase) + "." + time;
+            std::string fileName = dataPath + std::string(fileNameBase) + "." + time;
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
@@ -502,7 +507,7 @@ int main(int argc, char** argv) {
                 saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize, saveAsHDR);
 
                 for (int view = 1; view < maxViews; view++) {
-                    fileName = DATA_PATH + std::string(fileNameBase) + ".view" + std::to_string(view) + "." + time;
+                    fileName = dataPath + std::string(fileNameBase) + ".view" + std::to_string(view) + "." + time;
                     if (saveAsHDR) {
                         renderTargets[view]->saveColorAsHDR(fileName + ".hdr");
                     }
@@ -522,9 +527,9 @@ int main(int argc, char** argv) {
 
             if (ImGui::Button("Save Mesh")) {
                 for (int view = 0; view < maxViews; view++) {
-                    std::string verticesFileName = DATA_PATH + "vertices" + std::to_string(view) + ".bin";
-                    std::string indicesFileName = DATA_PATH + "indices" + std::to_string(view) + ".bin";
-                    std::string colorFileName = DATA_PATH + "color" + std::to_string(view) + ".png";
+                    std::string verticesFileName = dataPath + "vertices" + std::to_string(view) + ".bin";
+                    std::string indicesFileName = dataPath + "indices" + std::to_string(view) + ".bin";
+                    std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
 
                     BufferSizes sizes;
                     sizesBuffers[view].bind();
@@ -533,14 +538,14 @@ int main(int argc, char** argv) {
                     // save vertexBuffer
                     meshes[view]->vertexBuffer.bind();
                     std::vector<Vertex> vertices = meshes[view]->vertexBuffer.getData();
-                    std::ofstream verticesFile(DATA_PATH + verticesFileName, std::ios::binary);
+                    std::ofstream verticesFile(dataPath + verticesFileName, std::ios::binary);
                     verticesFile.write((char*)vertices.data(), sizes.numVertices * sizeof(Vertex));
                     verticesFile.close();
 
                     // save indexBuffer
                     meshes[view]->indexBuffer.bind();
                     std::vector<unsigned int> indices = meshes[view]->indexBuffer.getData();
-                    std::ofstream indicesFile(DATA_PATH + indicesFileName, std::ios::binary);
+                    std::ofstream indicesFile(dataPath + indicesFileName, std::ios::binary);
                     indicesFile.write((char*)indices.data(), sizes.numIndices * sizeof(unsigned int));
                     indicesFile.close();
 
@@ -901,7 +906,7 @@ int main(int argc, char** argv) {
 
             std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
 
-            std::string fileName = DATA_PATH + "screenshot." + positionStr + "_" + rotationStr;
+            std::string fileName = dataPath + "screenshot." + positionStr + "_" + rotationStr;
             saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize);
             window->close();
         }
