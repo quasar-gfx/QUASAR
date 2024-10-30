@@ -105,7 +105,7 @@ int main(int argc, char** argv) {
     loader.loadScene(scenePath, remoteScene, *centerRemoteCamera);
 
     // make last camera have a larger fov
-    remoteCameras[maxViews-1]->setFovy(90.0f);
+    remoteCameras[maxViews-1]->setFovyDegrees(120.0f);
     remoteCameras[maxViews-1]->setViewMatrix(centerRemoteCamera->getViewMatrix());
 
     // scene with all the meshes
@@ -172,10 +172,8 @@ int main(int argc, char** argv) {
         unsigned int numProxies;
         unsigned int numDepthOffsets;
     };
-    unsigned int totalProxies = 0;
-    unsigned int totalDepthOffsets = 0;
     BufferSizes bufferSizes = { 0 };
-    Buffer<BufferSizes> sizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, &bufferSizes);
+    std::vector<Buffer<BufferSizes>> sizesBuffers(maxViews);
 
     std::vector<Mesh*> meshes(maxViews);
     std::vector<Node*> nodes(maxViews);
@@ -185,6 +183,8 @@ int main(int argc, char** argv) {
     std::vector<Node*> nodeDepths(maxViews);
 
     for (int view = 0; view < maxViews; view++) {
+        sizesBuffers[view] = Buffer<BufferSizes>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, &bufferSizes);
+
         meshes[view] = new Mesh({
             .numVertices = maxVertices / 2,
             .numIndices = maxIndices / 2,
@@ -349,6 +349,15 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
+            unsigned int totalProxies = 0;
+            unsigned int totalDepthOffsets = 0;
+            for (int view = 0; view < maxViews; view++) {
+                BufferSizes sizes;
+                sizesBuffers[view].bind();
+                sizesBuffers[view].getSubData(0, 1, &sizes);
+                totalProxies += sizes.numProxies;
+                totalDepthOffsets += sizes.numDepthOffsets;
+            }
             ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d", totalProxies);
             ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d", totalDepthOffsets);
 
@@ -517,18 +526,22 @@ int main(int argc, char** argv) {
                     std::string indicesFileName = DATA_PATH + "indices" + std::to_string(view) + ".bin";
                     std::string colorFileName = DATA_PATH + "color" + std::to_string(view) + ".png";
 
+                    BufferSizes sizes;
+                    sizesBuffers[view].bind();
+                    sizesBuffers[view].getSubData(0, 1, &sizes);
+
                     // save vertexBuffer
                     meshes[view]->vertexBuffer.bind();
                     std::vector<Vertex> vertices = meshes[view]->vertexBuffer.getData();
                     std::ofstream verticesFile(DATA_PATH + verticesFileName, std::ios::binary);
-                    verticesFile.write((char*)vertices.data(), meshes[view]->vertexBuffer.getSize() * sizeof(Vertex));
+                    verticesFile.write((char*)vertices.data(), sizes.numVertices * sizeof(Vertex));
                     verticesFile.close();
 
                     // save indexBuffer
                     meshes[view]->indexBuffer.bind();
                     std::vector<unsigned int> indices = meshes[view]->indexBuffer.getData();
                     std::ofstream indicesFile(DATA_PATH + indicesFileName, std::ios::binary);
-                    indicesFile.write((char*)indices.data(), meshes[view]->indexBuffer.getSize() * sizeof(unsigned int));
+                    indicesFile.write((char*)indices.data(), sizes.numIndices * sizeof(unsigned int));
                     indicesFile.close();
 
                     // save color buffer
@@ -620,8 +633,6 @@ int main(int argc, char** argv) {
             double avgGenQuadsTime = 0.0;
             // double avgSetMeshBuffersTime = 0.0;
             double avgGenDepthTime = 0.0;
-            totalProxies = 0;
-            totalDepthOffsets = 0;
 
             for (int view = 0; view < maxViews; view++) {
                 auto* remoteCamera = remoteCameras[view];
@@ -629,6 +640,37 @@ int main(int argc, char** argv) {
                 auto* currMesh = meshes[view];
                 auto* currMeshDepth = meshDepths[view];
                 startTime = glfwGetTime();
+
+                /*
+                ============================
+                For debugging: Generate point cloud from depth map
+                ============================
+                */
+                meshFromDepthShader.bind();
+                {
+                    meshFromDepthShader.setTexture(renderer.gBuffer.depthStencilBuffer, 0);
+                }
+                {
+                    meshFromDepthShader.setVec2("depthMapSize", remoteWindowSize);
+                }
+                {
+                    meshFromDepthShader.setMat4("view", remoteCamera->getViewMatrix());
+                    meshFromDepthShader.setMat4("projection", remoteCamera->getProjectionMatrix());
+                    meshFromDepthShader.setMat4("viewInverse", glm::inverse(remoteCamera->getViewMatrix()));
+                    meshFromDepthShader.setMat4("projectionInverse", glm::inverse(remoteCamera->getProjectionMatrix()));
+
+                    meshFromDepthShader.setFloat("near", remoteCamera->near);
+                    meshFromDepthShader.setFloat("far", remoteCamera->far);
+                }
+                {
+                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currMeshDepth->vertexBuffer);
+                }
+                meshFromDepthShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                             (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+                meshFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
+                                                  GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+
+                avgGenDepthTime += glfwGetTime() - startTime;
 
                 /*
                 ============================
@@ -703,12 +745,13 @@ int main(int argc, char** argv) {
                 }
                 {
                     genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, quadMaps[0]);
+                    genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizesBuffers[view]);
                     genQuadMapShader.setImageTexture(0, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsetBuffer.internalFormat);
                 }
 
                 // run compute shader
                 meshFromDepthShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                        (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+                                             (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
                 genQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
                 avgGenQuadMapTime += glfwGetTime() - startTime;
@@ -783,7 +826,7 @@ int main(int argc, char** argv) {
                     }
                     {
                         genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, quadMap);
-                        genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizesBuffer);
+                        genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizesBuffers[view]);
                         genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, currMesh->vertexBuffer);
                         genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, currMesh->indexBuffer);
                         genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, currMesh->indirectBuffer);
@@ -798,44 +841,6 @@ int main(int argc, char** argv) {
 
                 avgGenQuadsTime += glfwGetTime() - startTime;
                 startTime = glfwGetTime();
-
-                // get number of vertices and indices in mesh
-                // sizesBuffer.bind();
-                // sizesBuffer.getSubData(0, 1, &bufferSizes);
-
-                totalProxies += bufferSizes.numProxies;
-                totalDepthOffsets += bufferSizes.numDepthOffsets;
-
-                /*
-                ============================
-                For debugging: Generate point cloud from depth map
-                ============================
-                */
-                meshFromDepthShader.bind();
-                {
-                    meshFromDepthShader.setTexture(renderer.gBuffer.depthStencilBuffer, 0);
-                }
-                {
-                    meshFromDepthShader.setVec2("depthMapSize", remoteWindowSize);
-                }
-                {
-                    meshFromDepthShader.setMat4("view", remoteCamera->getViewMatrix());
-                    meshFromDepthShader.setMat4("projection", remoteCamera->getProjectionMatrix());
-                    meshFromDepthShader.setMat4("viewInverse", glm::inverse(remoteCamera->getViewMatrix()));
-                    meshFromDepthShader.setMat4("projectionInverse", glm::inverse(remoteCamera->getProjectionMatrix()));
-
-                    meshFromDepthShader.setFloat("near", remoteCamera->near);
-                    meshFromDepthShader.setFloat("far", remoteCamera->far);
-                }
-                {
-                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currMeshDepth->vertexBuffer);
-                }
-                meshFromDepthShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                             (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
-                meshFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
-                                             GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
-
-                avgGenDepthTime += glfwGetTime() - startTime;
             }
 
             std::cout << "  Avg Rendering Time: " << avgRenderTime / maxViews << "s" << std::endl;

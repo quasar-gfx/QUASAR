@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
     loader.loadScene(scenePath, remoteScene, remoteCamera);
 
     float fov = args::get(fovIn);
-    remoteCamera.setFovy(glm::radians(fov));
+    remoteCamera.setFovyDegrees(fov);
 
     // scene with all the meshes
     Scene scene;
@@ -234,8 +234,8 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::SliderFloat("FOV", &fov, 60.0f, 120.0f)) {
-                remoteCamera.fovy = glm::radians(fov);
+            if (ImGui::SliderFloat("FOV (Degrees)", &fov, 60.0f, 120.0f)) {
+                remoteCamera.setFovyDegrees(fov);
                 remoteCamera.updateProjectionMatrix();
 
                 preventCopyingLocalPose = true;

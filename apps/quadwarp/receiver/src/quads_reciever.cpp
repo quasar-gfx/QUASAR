@@ -19,12 +19,6 @@
 
 const std::string DATA_PATH = "../streamer/";
 
-enum class RenderState {
-    MESH,
-    POINTCLOUD,
-    WIREFRAME
-};
-
 int main(int argc, char** argv) {
     Config config{};
     config.title = "Quads Receiver";
@@ -54,9 +48,6 @@ int main(int argc, char** argv) {
     config.enableVSync = args::get(vsyncIn);
 
     std::string scenePath = args::get(scenePathIn);
-
-    RenderState renderState = RenderState::MESH;
-
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
 
@@ -73,6 +64,44 @@ int main(int argc, char** argv) {
 
     // shaders
     ToneMapShader toneMapShader;
+
+    std::string verticesFileName = DATA_PATH + "vertices.bin";
+    std::string indicesFileName = DATA_PATH + "indices.bin";
+    std::string colorFileName = DATA_PATH + "color.png";
+
+    auto vertexData = FileIO::loadBinaryFile(verticesFileName);
+    auto indexData = FileIO::loadBinaryFile(indicesFileName);
+
+    Texture colorTexture = Texture({
+        .wrapS = GL_REPEAT,
+        .wrapT = GL_REPEAT,
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST,
+        .flipVertically = true,
+        .path = colorFileName
+    });
+
+    std::vector<Vertex> vertices(vertexData.size() / sizeof(Vertex));
+    std::memcpy(vertices.data(), vertexData.data(), vertexData.size());
+
+    std::vector<unsigned int> indices(indexData.size() / sizeof(unsigned int));
+    std::memcpy(indices.data(), indexData.data(), indexData.size());
+
+    Mesh mesh = Mesh({
+        .vertices = vertices,
+        .indices = indices,
+        .material = new QuadMaterial({ .baseColorTexture = &colorTexture }),
+    });
+    Node node(&mesh);
+    node.frustumCulled = false;
+    scene.addChildNode(&node);
+
+    Node nodeWireframe(&mesh);
+    nodeWireframe.frustumCulled = false;
+    nodeWireframe.wireframe = true;
+    nodeWireframe.visible = false;
+    nodeWireframe.overrideMaterial = new QuadMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
+    scene.addChildNode(&nodeWireframe);
 
     RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
@@ -145,9 +174,8 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::RadioButton("Show Mesh", (int*)&renderState, 0);
-            ImGui::RadioButton("Show Point Cloud", (int*)&renderState, 1);
-            ImGui::RadioButton("Show Wireframe", (int*)&renderState, 2);
+            ImGui::Checkbox("Show Wireframe", &nodeWireframe.visible);
+
             ImGui::End();
         }
 
@@ -179,44 +207,6 @@ int main(int argc, char** argv) {
         camera.aspect = (float)windowSize.x / (float)windowSize.y;
         camera.updateProjectionMatrix();
     });
-
-    std::string verticesFileName = DATA_PATH + "vertices.bin";
-    std::string indicesFileName = DATA_PATH + "indices.bin";
-    std::string colorFileName = DATA_PATH + "color.png";
-
-    auto vertexData = FileIO::loadBinaryFile(verticesFileName);
-    auto indexData = FileIO::loadBinaryFile(indicesFileName);
-
-    Texture colorTexture = Texture({
-        .wrapS = GL_REPEAT,
-        .wrapT = GL_REPEAT,
-        .minFilter = GL_NEAREST,
-        .magFilter = GL_NEAREST,
-        .flipVertically = true,
-        .path = colorFileName
-    });
-
-    std::vector<Vertex> vertices(vertexData.size() / sizeof(Vertex));
-    std::memcpy(vertices.data(), vertexData.data(), vertexData.size());
-
-    std::vector<unsigned int> indices(indexData.size() / sizeof(unsigned int));
-    std::memcpy(indices.data(), indexData.data(), indexData.size());
-
-    Mesh mesh = Mesh({
-        .vertices = vertices,
-        .indices = indices,
-        .material = new QuadMaterial({ .baseColorTexture = &colorTexture }),
-    });
-    Node node(&mesh);
-    node.frustumCulled = false;
-    node.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
-    scene.addChildNode(&node);
-
-    Node nodeWireframe(&mesh);
-    nodeWireframe.frustumCulled = false;
-    nodeWireframe.wireframe = true;
-    nodeWireframe.overrideMaterial = new QuadMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
-    scene.addChildNode(&nodeWireframe);
 
     app.onRender([&](double now, double dt) {
         // handle mouse input
@@ -260,9 +250,6 @@ int main(int argc, char** argv) {
         if (keys.ESC_PRESSED) {
             window->close();
         }
-
-        node.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
-        nodeWireframe.visible = renderState == RenderState::WIREFRAME;
 
         // render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);

@@ -20,14 +20,6 @@
 
 const std::string DATA_PATH = "../streamer/";
 
-enum class RenderState {
-    MESH,
-    POINTCLOUD,
-    WIREFRAME
-};
-
-RenderState renderState = RenderState::MESH;
-
 int main(int argc, char** argv) {
     Config config{};
     config.title = "Multi-Camera Receiver";
@@ -37,7 +29,6 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
-    args::ValueFlag<int> renderStateIn(parser, "render", "Render state", {'r', "render-state"}, 0);
     args::ValueFlag<int> maxAdditionalViewsIn(parser, "maxViews", "Max views", {'l', "num-views"}, 8);
     try {
         parser.ParseCLI(argc, argv);
@@ -62,8 +53,6 @@ int main(int argc, char** argv) {
 
     std::string scenePath = args::get(scenePathIn);
 
-    renderState = static_cast<RenderState>(args::get(renderStateIn));
-
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
 
@@ -80,6 +69,59 @@ int main(int argc, char** argv) {
 
     // shaders
     ToneMapShader toneMapShader;
+
+    std::vector<Texture*> colorTextures(maxViews);
+
+    std::vector<Mesh*> meshes(maxViews);
+    std::vector<Node*> nodes(maxViews);
+    std::vector<Node*> nodeWireframes(maxViews);
+
+    for (int i = 0; i < maxViews; i++) {
+        std::string verticesFileName = DATA_PATH + "vertices" + std::to_string(i) + ".bin";
+        std::string indicesFileName = DATA_PATH + "indices" + std::to_string(i) + ".bin";
+        std::string colorFileName = DATA_PATH + "color" + std::to_string(i) + ".png";
+
+        auto vertexData = FileIO::loadBinaryFile(verticesFileName);
+        auto indexData = FileIO::loadBinaryFile(indicesFileName);
+
+        colorTextures[i] = new Texture({
+            .wrapS = GL_REPEAT,
+            .wrapT = GL_REPEAT,
+            .minFilter = GL_NEAREST,
+            .magFilter = GL_NEAREST,
+            .flipVertically = true,
+            .path = colorFileName
+        });
+
+        std::vector<Vertex> vertices(vertexData.size() / sizeof(Vertex));
+        std::memcpy(vertices.data(), vertexData.data(), vertexData.size());
+
+        std::vector<unsigned int> indices(indexData.size() / sizeof(unsigned int));
+        std::memcpy(indices.data(), indexData.data(), indexData.size());
+
+        meshes[i] = new Mesh({
+            .vertices = vertices,
+            .indices = indices,
+            .material = new QuadMaterial({ .baseColorTexture = colorTextures[i] }),
+        });
+        nodes[i] = new Node(meshes[i]);
+        nodes[i]->frustumCulled = false;
+        scene.addChildNode(nodes[i]);
+
+        // primary view color is yellow
+        glm::vec4 color = (i == 0) ? glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) :
+                  glm::vec4(fmod(i * 0.6180339887f, 1.0f),
+                            fmod(i * 0.9f, 1.0f),
+                            fmod(i * 0.5f, 1.0f),
+                            1.0f);
+
+        nodeWireframes[i] = new Node(meshes[i]);
+        nodeWireframes[i]->frustumCulled = false;
+        nodeWireframes[i]->wireframe = true;
+        nodeWireframes[i]->visible = false;
+        nodeWireframes[i]->overrideMaterial = new QuadMaterial({ .baseColor = color });
+        scene.addChildNode(nodeWireframes[i]);
+    }
 
     bool* showViews = new bool[maxViews];
     for (int i = 0; i < maxViews; ++i) {
@@ -157,9 +199,11 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::RadioButton("Show Mesh", (int*)&renderState, 0);
-            ImGui::RadioButton("Show Point Cloud", (int*)&renderState, 1);
-            ImGui::RadioButton("Show Wireframe", (int*)&renderState, 2);
+            bool showWireframe = nodeWireframes[0]->visible;
+            ImGui::Checkbox("Show Wireframe", &showWireframe);
+            for (int i = 0; i < maxViews; i++) {
+                nodeWireframes[i]->visible = showWireframe;
+            }
 
             ImGui::Separator();
 
@@ -202,59 +246,6 @@ int main(int argc, char** argv) {
         camera.aspect = (float)windowSize.x / (float)windowSize.y;
         camera.updateProjectionMatrix();
     });
-
-    std::vector<Texture*> colorTextures(maxViews);
-
-    std::vector<Mesh*> meshes(maxViews);
-    std::vector<Node*> nodes(maxViews);
-    std::vector<Node*> nodeWireframes(maxViews);
-
-    for (int i = 0; i < maxViews; i++) {
-        std::string verticesFileName = DATA_PATH + "vertices" + std::to_string(i) + ".bin";
-        std::string indicesFileName = DATA_PATH + "indices" + std::to_string(i) + ".bin";
-        std::string colorFileName = DATA_PATH + "color" + std::to_string(i) + ".png";
-
-        auto vertexData = FileIO::loadBinaryFile(verticesFileName);
-        auto indexData = FileIO::loadBinaryFile(indicesFileName);
-
-        colorTextures[i] = new Texture({
-            .wrapS = GL_REPEAT,
-            .wrapT = GL_REPEAT,
-            .minFilter = GL_NEAREST,
-            .magFilter = GL_NEAREST,
-            .flipVertically = true,
-            .path = colorFileName
-        });
-
-        std::vector<Vertex> vertices(vertexData.size() / sizeof(Vertex));
-        std::memcpy(vertices.data(), vertexData.data(), vertexData.size());
-
-        std::vector<unsigned int> indices(indexData.size() / sizeof(unsigned int));
-        std::memcpy(indices.data(), indexData.data(), indexData.size());
-
-        meshes[i] = new Mesh({
-            .vertices = vertices,
-            .indices = indices,
-            .material = new QuadMaterial({ .baseColorTexture = colorTextures[i] }),
-        });
-        nodes[i] = new Node(meshes[i]);
-        nodes[i]->frustumCulled = false;
-        nodes[i]->primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
-        scene.addChildNode(nodes[i]);
-
-        // primary view color is yellow
-        glm::vec4 color = (i == 0) ? glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) :
-                  glm::vec4(fmod(i * 0.6180339887f, 1.0f),
-                            fmod(i * 0.9f, 1.0f),
-                            fmod(i * 0.5f, 1.0f),
-                            1.0f);
-
-        nodeWireframes[i] = new Node(meshes[i]);
-        nodeWireframes[i]->frustumCulled = false;
-        nodeWireframes[i]->wireframe = true;
-        nodeWireframes[i]->overrideMaterial = new QuadMaterial({ .baseColor = color });
-        scene.addChildNode(nodeWireframes[i]);
-    }
 
     app.onRender([&](double now, double dt) {
         // handle mouse input
@@ -303,8 +294,6 @@ int main(int argc, char** argv) {
             bool showLayer = showViews[i];
 
             nodes[i]->visible = showLayer;
-            nodes[i]->primativeType = showLayer && (renderState == RenderState::POINTCLOUD) ? GL_POINTS : GL_TRIANGLES;
-            nodeWireframes[i]->visible = showLayer && (renderState == RenderState::WIREFRAME);
         }
 
         // render all objects in scene

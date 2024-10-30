@@ -620,11 +620,13 @@ void main() {
         return;
     }
 
-    // reset counters
-    numVertices = 0;
-    numIndices = 0;
-    numProxies = 0;
-    numDepthOffsets = 0;
+    if (pixelCoord == ivec2(0)) {
+        // reset counters
+        numVertices = 0;
+        numIndices = 0;
+        numProxies = 0;
+        numDepthOffsets = 0;
+    }
 
     // calculate coords (see above)
     vec2 surfelCornerCoordBottomLeft = vec2(gl_GlobalInvocationID.xy);

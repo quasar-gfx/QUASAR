@@ -106,7 +106,7 @@ int main(int argc, char** argv) {
 
     // "remote" camera
     PerspectiveCamera remoteCamera(videoTextureColor.width, videoTextureColor.height);
-    remoteCamera.setFovy(glm::radians(args::get(fovIn)));
+    remoteCamera.setFovyDegrees(args::get(fovIn));
 
     // "local" scene
     Scene scene;

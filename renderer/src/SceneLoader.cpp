@@ -464,7 +464,7 @@ int SceneLoader::parseCamera(jsmntok_t* tokens, int i, const char* json, Scene &
         if (compare(tok, json, "fov") == 0) {
             float fov;
             i = parseFloat(tokens, i + 1, json, &fov);
-            camera.fovy = glm::radians(fov);
+            camera.setFovyDegrees(fov);
         }
         else if (compare(tok, json, "near") == 0) {
             float near;

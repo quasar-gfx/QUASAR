@@ -8,7 +8,7 @@
 class PerspectiveCamera : public Camera {
 public:
     float aspect;
-    float fovy;
+    float fovyRad;
     float near;
     float far;
 
@@ -21,14 +21,14 @@ public:
     PerspectiveCamera(unsigned int width, unsigned int height);
     PerspectiveCamera(float fovy, float aspect, float near, float far);
 
-    void setFovy(float fovy) { this->fovy = fovy; updateProjectionMatrix(); }
+    void setFovyDegrees(float fovyDeg) { this->fovyRad = glm::radians(fovyDeg); updateProjectionMatrix(); }
     void setAspect(float aspect) { this->aspect = aspect; updateProjectionMatrix(); }
     void setNear(float near) { this->near = near; updateProjectionMatrix(); }
     void setFar(float far) { this->far = far; updateProjectionMatrix(); }
 
     glm::mat4 getProjectionMatrix() const { return proj; }
     void setProjectionMatrix(const glm::mat4 &proj);
-    void setProjectionMatrix(float fovy, float aspect, float near, float far);
+    void setProjectionMatrix(float fovyDeg, float aspect, float near, float far);
     void updateProjectionMatrix();
 
     glm::mat4 getViewMatrix() const { return view; }

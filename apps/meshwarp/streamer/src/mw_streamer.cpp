@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
     loader.loadScene(scenePath, scene, camera);
 
     // set fov
-    camera.setFovy(glm::radians(args::get(fovIn)));
+    camera.setFovyDegrees(args::get(fovIn));
 
     glm::vec3 initialPosition = camera.getPosition();
 
