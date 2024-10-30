@@ -282,7 +282,7 @@ int main(int argc, char** argv) {
     float flatThreshold = 0.5f;
     float proxySimilarityThreshold = 0.1f;
     bool restrictMovementToViewBox = false;
-    float viewBoxSize = 1.0f;
+    float viewBoxSize = 0.5f;
     const int intervalValues[] = {0, 25, 50, 100, 200, 500, 1000};
     const char* intervalLabels[] = {"0ms", "25ms", "50ms", "100ms", "200ms", "500ms", "1000ms"};
     bool* showViews = new bool[maxViews];
@@ -886,6 +886,7 @@ int main(int argc, char** argv) {
             position.y = glm::clamp(position.y, remotePosition.y - viewBoxSize/2, remotePosition.y + viewBoxSize/2);
             position.z = glm::clamp(position.z, remotePosition.z - viewBoxSize/2, remotePosition.z + viewBoxSize/2);
             camera.setPosition(position);
+            camera.updateViewMatrix();
         }
 
         // render all objects in scene

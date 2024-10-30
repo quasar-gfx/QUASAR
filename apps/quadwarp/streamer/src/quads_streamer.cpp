@@ -235,6 +235,8 @@ int main(int argc, char** argv) {
     float angleThreshold = 45.0f;
     float flatThreshold = 0.5f;
     float proxySimilarityThreshold = 0.1f;
+    bool restrictMovementToViewBox = false;
+    float viewBoxSize = 0.5f;
     const int intervalValues[] = {0, 25, 50, 100, 200, 500, 1000};
     const char* intervalLabels[] = {"0ms", "25ms", "50ms", "100ms", "200ms", "500ms", "1000ms"};
 
@@ -372,6 +374,14 @@ int main(int argc, char** argv) {
                 preventCopyingLocalPose = true;
                 rerender = true;
             }
+
+            ImGui::Separator();
+
+            if (ImGui::SliderFloat("View Box Size", &viewBoxSize, 0.1f, 10.0f)) {
+                rerender = true;
+            }
+
+            ImGui::Checkbox("Restrict Movement to View Box", &restrictMovementToViewBox);
 
             ImGui::Separator();
 
@@ -701,6 +711,17 @@ int main(int argc, char** argv) {
             }
             camera.setPosition(camera.getPosition() + positionOffset);
             camera.setRotationEuler(camera.getRotationEuler() + rotationOffset);
+            camera.updateViewMatrix();
+        }
+
+        if (restrictMovementToViewBox) {
+            glm::vec3 remotePosition = remoteCamera.getPosition();
+            glm::vec3 position = camera.getPosition();
+            // restrict camera position to be inside position +/- viewBoxSize
+            position.x = glm::clamp(position.x, remotePosition.x - viewBoxSize/2, remotePosition.x + viewBoxSize/2);
+            position.y = glm::clamp(position.y, remotePosition.y - viewBoxSize/2, remotePosition.y + viewBoxSize/2);
+            position.z = glm::clamp(position.z, remotePosition.z - viewBoxSize/2, remotePosition.z + viewBoxSize/2);
+            camera.setPosition(position);
             camera.updateViewMatrix();
         }
 
