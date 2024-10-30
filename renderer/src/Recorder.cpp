@@ -2,6 +2,7 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
+#include <filesystem> 
 #include "Utils/FileIO.h"
 
 Recorder::~Recorder() {
@@ -11,18 +12,23 @@ Recorder::~Recorder() {
 void Recorder::start() {
     running = true;
     lastCaptureTime = std::chrono::steady_clock::now();
-    saveThread = std::thread(&Recorder::saveFrames, this);
+    for (int i = 0; i < NUM_SAVE_THREADS; ++i) {
+        saveThreadPool.emplace_back(&Recorder::saveFrames, this);
+    }
 }
 
 void Recorder::stop() {
     running = false;
-    queueCV.notify_one();
-    if (saveThread.joinable()) {
-        saveThread.join();
+    queueCV.notify_all();
+    for (auto& thread : saveThreadPool) {
+        if (thread.joinable()) {
+            thread.join();
+        }
     }
+    saveThreadPool.clear();
 }
 
-void Recorder::captureFrame(GeometryBuffer& gbuffer) {
+void Recorder::captureFrame(GeometryBuffer& gbuffer, Camera& camera) {
     auto currentTime = std::chrono::steady_clock::now();
     if (currentTime - lastCaptureTime >= frameInterval) {
         std::vector<unsigned char> frameData(captureTarget->width * captureTarget->height * 4);
@@ -36,7 +42,7 @@ void Recorder::captureFrame(GeometryBuffer& gbuffer) {
 
         {
             std::lock_guard<std::mutex> lock(queueMutex);
-            frameQueue.push(std::move(frameData));
+            frameQueue.push(FrameData{std::move(frameData), camera.getPosition(), camera.getRotationEuler()});
         }
         queueCV.notify_one();
 
@@ -45,8 +51,12 @@ void Recorder::captureFrame(GeometryBuffer& gbuffer) {
 }
 
 void Recorder::saveFrames() {
+    if (!std::filesystem::exists(outputPath)) {
+        std::filesystem::create_directories(outputPath);
+    }
+    
     while (running || !frameQueue.empty()) {
-        std::vector<unsigned char> frameData;
+        FrameData frameData;
         {
             std::unique_lock<std::mutex> lock(queueMutex);
             queueCV.wait(lock, [this] { return !frameQueue.empty() || !running; });
@@ -57,17 +67,35 @@ void Recorder::saveFrames() {
             frameQueue.pop();
         }
 
+        size_t currentFrame = frameCount++;
         std::stringstream ss;
-        ss << outputPath << "/frame_" << std::setw(6) << std::setfill('0') << frameCount++ << ".png";
+        ss << outputPath << "/frame_" << std::setw(6) << std::setfill('0') << currentFrame << ".png";
         std::string filename = ss.str();
 
         try {
-            // Save frameData as PNG using FileIO
             FileIO::flipVerticallyOnWrite(true);
-            FileIO::saveAsPNG(filename, captureTarget->width, captureTarget->height, 4, frameData.data());
+            FileIO::saveAsPNG(filename, captureTarget->width, captureTarget->height, 4, frameData.frame.data());
+            
+            {
+                std::lock_guard<std::mutex> lock(queueMutex);
+                std::ofstream pathFile(outputPath + "/camera_path.txt", std::ios::app);
+                pathFile << std::fixed << std::setprecision(4)
+                        << frameData.position.x << " "
+                        << frameData.position.y << " "
+                        << frameData.position.z << " "
+                        << frameData.euler.x << " "
+                        << frameData.euler.y << " "
+                        << frameData.euler.z << std::endl;
+                pathFile.close();
+            }
+            
             std::cout << "Saved frame: " << filename << std::endl;
         } catch (const std::exception& e) {
             std::cerr << "Error saving frame: " << filename << " - " << e.what() << std::endl;
         }
     }
+}
+
+void Recorder::setOutputPath(const std::string& path) {
+    outputPath = path;
 }

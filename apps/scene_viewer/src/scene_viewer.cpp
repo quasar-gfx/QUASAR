@@ -25,13 +25,12 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
-<<<<<<< HEAD
     args::ValueFlag<std::string> pathFileIn(parser, "path", "Path to camera animation file", {'p', "path"});
+    args::ValueFlag<int> frameRateIn(parser, "frame-rate", "Frame rate", {'f', "frame-rate"}, 30);
 
-=======
     args::Flag saveImage(parser, "save", "Save image and exit", {'b', "save-image"});
     args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
->>>>>>> origin/main
+    char recordingPath[256] = "./recordings";
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -66,10 +65,10 @@ int main(int argc, char** argv) {
     glm::uvec2 windowSize = window->getSize();
 
     // Define the output path for the recorded frames
-    std::string outputPath = "../recordings";
+    std::string outputPath = "./recordings";
 
     // Create the Recorder instance
-    Recorder recorder(1.0f, outputPath, renderer); // Capturing every 1 second
+    Recorder recorder(args::get(frameRateIn), outputPath, renderer); // Capturing every 1 second
 
 
     Scene scene;
@@ -77,7 +76,6 @@ int main(int argc, char** argv) {
     SceneLoader loader;
     loader.loadScene(scenePath, scene, camera);
 
-<<<<<<< HEAD
 
     std::shared_ptr<Animator> animator;
 
@@ -85,7 +83,6 @@ int main(int argc, char** argv) {
         std::string pathFile = args::get(pathFileIn);
         animator = std::make_shared<Animator>(pathFile);
     }
-=======
     // shaders
     ToneMapShader toneMapShader;
 
@@ -116,7 +113,6 @@ int main(int argc, char** argv) {
         .fragmentCodeData = SHADER_BUILTIN_DISPLAYIDS_FRAG,
         .fragmentCodeSize = SHADER_BUILTIN_DISPLAYIDS_FRAG_len
     });
->>>>>>> origin/main
 
     float exposure = 1.0f;
     int shaderIndex = 0;
@@ -237,12 +233,19 @@ int main(int argc, char** argv) {
 
         if (showRecordWindow) {
             ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowPos(ImVec2(winSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
             ImGui::Begin("Record", &showRecordWindow);
+            
+            ImGui::Text("Output Directory:");
+            ImGui::InputText("##output directory", recordingPath, IM_ARRAYSIZE(recordingPath));
+            
+            ImGui::Separator();
             ImGui::Text("Record Frames");
             ImGui::Separator();
+            
             if (ImGui::Button("Record")) {
                 recording = true;
+                recorder.setOutputPath(recordingPath);
                 recorder.start();
             }
             if (ImGui::Button("Stop")) {
@@ -252,7 +255,7 @@ int main(int argc, char** argv) {
             ImGui::End();
         }
         if (recording) {
-            recorder.captureFrame(renderer.gBuffer);
+            recorder.captureFrame(renderer.gBuffer, camera);
         }
     });
 
