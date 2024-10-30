@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstring>
 
+#include <Utils/FileIO.h>
 #include <VideoTexture.h>
 
 #undef av_err2str
@@ -17,9 +18,18 @@ VideoTexture::VideoTexture(const TextureDataCreateParams &params,
                            const std::string &formatName)
         : formatName(formatName)
         , Texture(params) {
+    std::string sdpFileName = "stream.sdp";
+#if defined(__ANDROID__)
+    if (formatName != "mpegts") {
+        sdpFileName = FileIO::copyFileToCache(sdpFileName);
+        std::cout << "Copied SDP file to: " << sdpFileName << std::endl;
+    }
+#endif
+
     this->videoURL = (formatName == "mpegts") ?
                         "udp://" + videoURL + "?overrun_nonfatal=1&fifo_size=50000000" :
-                            "stream.sdp";
+                            sdpFileName;
+
     std::cout << "Created VideoTexture that recvs from URL: " << videoURL << " (" << formatName << ")" << std::endl;
     videoReceiverThread = std::thread(&VideoTexture::receiveVideo, this);
 }
