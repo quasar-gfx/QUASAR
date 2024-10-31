@@ -32,7 +32,7 @@ int DataStreamerTCP::send(std::vector<uint8_t> data, bool copy) {
 
 void DataStreamerTCP::sendData() {
     while (true) {
-        if (socket.accept() < 0) {
+        if ((clientSocketID = socket.accept()) < 0) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
         else {
@@ -65,7 +65,7 @@ void DataStreamerTCP::sendData() {
         // send header
         int totalSent = 0;
         while (totalSent < header.size()) {
-            int sent = socket.send(header.data() + totalSent, header.size() - totalSent, 0);
+            int sent = socket.sendToClient(clientSocketID, header.data() + totalSent, header.size() - totalSent, 0);
             if (sent < 0) {
                 if (errno == EWOULDBLOCK || errno == EAGAIN) {
                     continue; // retry if the socket is non-blocking and send would block
@@ -79,7 +79,7 @@ void DataStreamerTCP::sendData() {
         // send data
         totalSent = 0;
         while (totalSent < data.size()) {
-            int sent = socket.send(data.data() + totalSent, data.size() - totalSent, 0);
+            int sent = socket.sendToClient(clientSocketID, data.data() + totalSent, data.size() - totalSent, 0);
             if (sent < 0) {
                 if (errno == EWOULDBLOCK || errno == EAGAIN) {
                     continue; // retry if the socket is non-blocking and send would block

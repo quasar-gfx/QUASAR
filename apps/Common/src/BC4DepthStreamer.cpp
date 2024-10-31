@@ -24,6 +24,8 @@ BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams &params, std::
     data = std::vector<uint8_t>(sizeof(pose_id_t) + compressedSize * sizeof(Block));
     bc4CompressedBuffer = Buffer<Block>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, compressedSize, nullptr);
 
+    std::cout << "Created BC4DepthStreamer that sends to URL: " << receiverURL << std::endl;
+
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     cudautils::checkCudaDevice();
     CHECK_CUDA_ERROR(cudaGraphicsGLRegisterBuffer(&cudaResource, bc4CompressedBuffer, cudaGraphicsRegisterFlagsNone));

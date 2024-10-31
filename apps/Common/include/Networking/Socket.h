@@ -15,13 +15,13 @@
 
 class Socket {
 public:
-    int socketId;
+    int socketID;
     struct sockaddr_in addr;
     socklen_t addrLen;
 
     Socket(int domain, int type, int protocol, bool nonBlocking = false) {
-        socketId = socket(domain, type, protocol);
-        if (socketId < 0) {
+        socketID = socket(domain, type, protocol);
+        if (socketID < 0) {
             throw std::runtime_error("Failed to create socket: " + std::string(std::strerror(errno)));
         }
 
@@ -34,24 +34,34 @@ public:
     }
 
     void setNonBlocking() {
-        int flags = fcntl(socketId, F_GETFL, 0);
+        int flags = fcntl(socketID, F_GETFL, 0);
         if (flags == -1) {
             throw std::runtime_error("Error getting socket flags: " + std::string(std::strerror(errno)));
         }
-        if (fcntl(socketId, F_SETFL, flags | O_NONBLOCK) == -1) {
+        if (fcntl(socketID, F_SETFL, flags | O_NONBLOCK) == -1) {
             throw std::runtime_error("Error setting socket to non-blocking: " + std::string(std::strerror(errno)));
         }
     }
 
     void setRecvSize(int size) {
-        if (setsockopt(socketId, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size)) < 0) {
+        if (setsockopt(socketID, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size)) < 0) {
             throw std::runtime_error("Failed to set receive buffer size: " + std::string(std::strerror(errno)));
         }
     }
 
     void setSendSize(int size) {
-        if (setsockopt(socketId, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size)) < 0) {
+        if (setsockopt(socketID, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size)) < 0) {
             throw std::runtime_error("Failed to set send buffer size: " + std::string(std::strerror(errno)));
+        }
+    }
+
+    void setRecvTimeout(int timeout_seconds) {
+        struct timeval tv;
+        tv.tv_sec = timeout_seconds;
+        tv.tv_usec = 0;
+
+        if (setsockopt(socketID, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
+            throw std::runtime_error("Failed to set socket receive timeout: " + std::string(std::strerror(errno)));
         }
     }
 
@@ -78,7 +88,7 @@ public:
     }
 
     void bind(const struct sockaddr* addr, socklen_t addrLen) {
-        if (::bind(socketId, addr, addrLen) < 0) {
+        if (::bind(socketID, addr, addrLen) < 0) {
             throw std::runtime_error("Failed to bind socket: " + std::string(std::strerror(errno)));
         }
     }
@@ -94,57 +104,44 @@ public:
     }
 
     virtual int send(const void* buf, size_t len, int flags) {
-        return ::send(socketId, buf, len, flags);
+        std::cout << "socket id" << socketID << std::endl;
+        return ::send(socketID, buf, len, flags);
     }
 
     virtual int recv(void* buf, size_t len, int flags) {
-        return ::recv(socketId, buf, len, flags);
+        return ::recv(socketID, buf, len, flags);
     }
 
     void close() {
-        if (socketId != -1) {
-            ::close(socketId);
-            socketId = -1;
+        if (socketID != -1) {
+            ::close(socketID);
+            socketID = -1;
         }
     }
 };
 
-class SocketUDP : public Socket {
-public:
-    SocketUDP(bool nonBlocking = false) : Socket(AF_INET, SOCK_DGRAM, 0, nonBlocking) {}
-
-    int send(const void* buf, size_t len, int flags) override {
-        return ::sendto(socketId, buf, len, flags, (struct sockaddr*)&addr, addrLen);
-    }
-
-    int recv(void* buf, size_t len, int flags) override {
-        return ::recvfrom(socketId, buf, len, flags, (struct sockaddr*)&addr, &addrLen);
-    }
-};
-
-class SocketTCP : public Socket {
+class SocketTCP final : public Socket {
 public:
     SocketTCP(bool nonBlocking = false) : Socket(AF_INET, SOCK_STREAM, 0, nonBlocking) {}
+    ~SocketTCP() {
+        close();
+    }
 
     void setReuseAddrPort() {
         int opt = 1;
-        if (setsockopt(socketId, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)) < 0) {
+        if (setsockopt(socketID, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)) < 0) {
             throw std::runtime_error("Failed to set reuse address: " + std::string(std::strerror(errno)));
         }
     }
 
     void listen(int backlog) {
-        if (::listen(socketId, backlog) < 0) {
+        if (::listen(socketID, backlog) < 0) {
             throw std::runtime_error("Failed to listen on socket: " + std::string(std::strerror(errno)));
         }
     }
 
     int accept(struct sockaddr* addr, socklen_t* addrLen) {
-        clientSocketID = ::accept(socketId, addr, addrLen);
-        if (clientSocketID < 0) {
-            return -1;
-        }
-        return 0;
+        return ::accept(socketID, addr, addrLen);
     }
 
     int accept() {
@@ -152,7 +149,7 @@ public:
     }
 
     int connect(const struct sockaddr* addr, socklen_t addrLen) {
-        return ::connect(socketId, addr, addrLen);
+        return ::connect(socketID, addr, addrLen);
     }
 
     int connect(const std::string &ipAddress, int port) {
@@ -165,16 +162,33 @@ public:
         return connect((struct sockaddr*)&addr, addrLen);
     }
 
-    int send(const void* buf, size_t len, int flags) override {
+    int sendToClient(int clientSocketID, const void* buf, size_t len, int flags) {
         return ::send(clientSocketID, buf, len, flags);
     }
 
-    int recv(void* buf, size_t len, int flags) override {
-        return ::recv(socketId, buf, len, flags);
+    int recvFromClient(int clientSocketID, void* buf, size_t len, int flags) {
+        return ::recv(clientSocketID, buf, len, flags);
     }
 
-private:
-    int clientSocketID = -1;
+    int recv(void* buf, size_t len, int flags) override {
+        return ::recv(socketID, buf, len, flags);
+    }
+};
+
+class SocketUDP final : public Socket {
+public:
+    SocketUDP(bool nonBlocking = false) : Socket(AF_INET, SOCK_DGRAM, 0, nonBlocking) {}
+    ~SocketUDP() {
+        close();
+    }
+
+    int send(const void* buf, size_t len, int flags) override {
+        return ::sendto(socketID, buf, len, flags, (struct sockaddr*)&addr, addrLen);
+    }
+
+    int recv(void* buf, size_t len, int flags) override {
+        return ::recvfrom(socketID, buf, len, flags, (struct sockaddr*)&addr, &addrLen);
+    }
 };
 
 #endif // SOCKET_H

@@ -20,6 +20,8 @@ DepthStreamer::DepthStreamer(const RenderTargetCreateParams &params, std::string
         .multiSampled = colorBuffer.multiSampled
     });
 
+    std::cout << "Created DepthStreamer that sends to URL: " << receiverURL << std::endl;
+
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     cudautils::checkCudaDevice();
     // register opengl texture with cuda

@@ -56,6 +56,8 @@ private:
     std::queue<std::vector<uint8_t>> datas;
 
     void sendData();
+
+    int clientSocketID = -1;
 };
 
 #endif // DATA_STREAMER_TCP_H
