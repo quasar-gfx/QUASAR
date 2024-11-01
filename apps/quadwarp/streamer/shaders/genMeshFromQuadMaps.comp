@@ -1,9 +1,5 @@
 layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = THREADS_PER_LOCALGROUP, local_size_z = 1) in;
 
-precision highp float;
-precision highp sampler2D;
-precision highp image2D;
-
 struct Vertex {
     vec3 position;
     vec3 color;

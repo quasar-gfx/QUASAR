@@ -156,12 +156,10 @@ protected:
         }
 
         std::vector<std::string> definesWithNewline;
+        // add platform defines
 #ifdef GL_ES
-        definesWithNewline.push_back("precision mediump float;\n");
         definesWithNewline.push_back("#define PLATFORM_ES\n");
 #endif
-
-        // add platform defines
 #if defined(__ANDROID__)
         definesWithNewline.push_back("#define ANDROID\n");
 #elif defined(_WIN32) || defined(_WIN64)
@@ -174,6 +172,11 @@ protected:
         definesWithNewline.push_back("#define APPLE\n");
         definesWithNewline.push_back("#define PLATFORM_CORE\n");
 #endif
+        // add precision defines
+        definesWithNewline.push_back("precision highp float;\n");
+        definesWithNewline.push_back("precision highp int;\n");
+        definesWithNewline.push_back("precision highp sampler2D;\n");
+
         // user defines
         for (const auto& define : defines) {
             definesWithNewline.push_back(define + "\n");
