@@ -216,7 +216,7 @@ int main(int argc, char** argv) {
         windowSize = glm::uvec2(width, height);
         renderer.resize(windowSize.x, windowSize.y);
 
-        camera.aspect = (float)windowSize.x / (float)windowSize.y;
+        camera.setAspect(windowSize.x, windowSize.y);
         camera.updateProjectionMatrix();
     });
 
@@ -307,8 +307,8 @@ int main(int argc, char** argv) {
             atwShader.setBool("atwEnabled", atwEnabled);
         }
         {
-            atwShader.setMat4("projectionInverse", glm::inverse(camera.getProjectionMatrix()));
-            atwShader.setMat4("viewInverse", glm::inverse(camera.getViewMatrix()));
+            atwShader.setMat4("projectionInverse", camera.getProjectionMatrixInverse());
+            atwShader.setMat4("viewInverse", camera.getViewMatrixInverse());
         }
         {
             atwShader.setMat4("remoteProjection", remoteCamera.getProjectionMatrix());

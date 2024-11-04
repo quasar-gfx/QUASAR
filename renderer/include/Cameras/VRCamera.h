@@ -14,6 +14,11 @@ public:
     VRCamera(unsigned int width, unsigned int height);
     VRCamera(float fovy, float aspect, float near, float far);
 
+    float getFovyDegrees() const override { return left.getFovyDegrees(); }
+    float getAspect() const override { return left.getAspect(); }
+    float getFar() const override { return left.getFar(); }
+    float getNear() const override { return left.getNear(); }
+
     void setProjectionMatrix(const glm::mat4 &proj);
     void setProjectionMatrix(float fovy, float aspect, float near, float far);
     void setProjectionMatrices(const glm::mat4 (&projs)[2]);

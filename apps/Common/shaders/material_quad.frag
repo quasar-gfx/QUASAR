@@ -12,7 +12,7 @@ in VertexData {
 } fsIn;
 
 // material
-struct Material {
+uniform struct Material {
     vec4 baseColor;
     vec4 baseColorFactor;
 
@@ -23,9 +23,7 @@ struct Material {
 
     // material textures
     sampler2D baseColorMap; // 0
-};
-
-uniform Material material;
+} material;
 
 void main() {
     vec4 baseColor;

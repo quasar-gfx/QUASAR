@@ -456,7 +456,7 @@ int main(int argc, char** argv) {
         windowSize = glm::uvec2(width, height);
         renderer.resize(windowSize.x, windowSize.y);
 
-        camera.aspect = (float)windowSize.x / (float)windowSize.y;
+        camera.setAspect(windowSize.x, windowSize.y);
         camera.updateProjectionMatrix();
     });
 
@@ -553,11 +553,11 @@ int main(int argc, char** argv) {
             {
                 meshFromDepthShader.setMat4("view", remoteCamera.getViewMatrix());
                 meshFromDepthShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-                meshFromDepthShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
-                meshFromDepthShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+                meshFromDepthShader.setMat4("viewInverse", remoteCamera.getViewMatrixInverse());
+                meshFromDepthShader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
 
-                meshFromDepthShader.setFloat("near", remoteCamera.near);
-                meshFromDepthShader.setFloat("far", remoteCamera.far);
+                meshFromDepthShader.setFloat("near", remoteCamera.getNear());
+                meshFromDepthShader.setFloat("far", remoteCamera.getFar());
             }
             {
                 genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, meshDepth.vertexBuffer);
@@ -587,10 +587,10 @@ int main(int argc, char** argv) {
             {
                 genQuadMapShader.setMat4("view", remoteCamera.getViewMatrix());
                 genQuadMapShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-                genQuadMapShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
-                genQuadMapShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
-                genQuadMapShader.setFloat("near", remoteCamera.near);
-                genQuadMapShader.setFloat("far", remoteCamera.far);
+                genQuadMapShader.setMat4("viewInverse", remoteCamera.getViewMatrixInverse());
+                genQuadMapShader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
+                genQuadMapShader.setFloat("near", remoteCamera.getNear());
+                genQuadMapShader.setFloat("far", remoteCamera.getFar());
             }
             {
                 genQuadMapShader.setBool("doAverageNormal", doAverageNormal);
@@ -622,10 +622,10 @@ int main(int argc, char** argv) {
             {
                 simplifyQuadMapShader.setMat4("view", remoteCamera.getViewMatrix());
                 simplifyQuadMapShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-                simplifyQuadMapShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
-                simplifyQuadMapShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
-                simplifyQuadMapShader.setFloat("near", remoteCamera.near);
-                simplifyQuadMapShader.setFloat("far", remoteCamera.far);
+                simplifyQuadMapShader.setMat4("viewInverse", remoteCamera.getViewMatrixInverse());
+                simplifyQuadMapShader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
+                simplifyQuadMapShader.setFloat("near", remoteCamera.getNear());
+                simplifyQuadMapShader.setFloat("far", remoteCamera.getFar());
             }
             for (int i = 1; i < quadMaps.size(); i++) {
                 auto& prevBuffer = quadMaps[i-1];
@@ -666,10 +666,10 @@ int main(int argc, char** argv) {
             {
                 genMeshFromQuadMapsShader.setMat4("view", remoteCamera.getViewMatrix());
                 genMeshFromQuadMapsShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-                genMeshFromQuadMapsShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
-                genMeshFromQuadMapsShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
-                genMeshFromQuadMapsShader.setFloat("near", remoteCamera.near);
-                genMeshFromQuadMapsShader.setFloat("far", remoteCamera.far);
+                genMeshFromQuadMapsShader.setMat4("viewInverse", remoteCamera.getViewMatrixInverse());
+                genMeshFromQuadMapsShader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
+                genMeshFromQuadMapsShader.setFloat("near", remoteCamera.getNear());
+                genMeshFromQuadMapsShader.setFloat("far", remoteCamera.getFar());
             }
             for (int i = 0; i < quadMaps.size(); i++) {
                 auto& quadMap = quadMaps[i];

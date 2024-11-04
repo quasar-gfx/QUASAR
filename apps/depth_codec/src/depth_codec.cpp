@@ -291,7 +291,7 @@ int main(int argc, char** argv) {
         remoteRenderer.resize(width, height);
         renderer.resize(width, height);
 
-        camera.aspect = (float)windowSize.x / (float)windowSize.y;
+        camera.setAspect(windowSize.x, windowSize.y);
         camera.updateProjectionMatrix();
     });
 
@@ -359,12 +359,12 @@ int main(int argc, char** argv) {
         }
         {
             meshFromDepthShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-            meshFromDepthShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+            meshFromDepthShader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
             meshFromDepthShader.setMat4("view", remoteCamera.getViewMatrix());
-            meshFromDepthShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
+            meshFromDepthShader.setMat4("viewInverse", remoteCamera.getViewMatrixInverse());
 
-            meshFromDepthShader.setFloat("near", remoteCamera.near);
-            meshFromDepthShader.setFloat("far", remoteCamera.far);
+            meshFromDepthShader.setFloat("near", remoteCamera.getNear());
+            meshFromDepthShader.setFloat("far", remoteCamera.getFar());
         }
         {
             meshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
@@ -401,12 +401,12 @@ int main(int argc, char** argv) {
         }
         {
             genMeshFromBC4Shader.setMat4("projection", remoteCamera.getProjectionMatrix());
-            genMeshFromBC4Shader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+            genMeshFromBC4Shader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
             genMeshFromBC4Shader.setMat4("viewColor", remoteCamera.getViewMatrix());
-            genMeshFromBC4Shader.setMat4("viewInverseDepth", glm::inverse(remoteCamera.getViewMatrix()));
+            genMeshFromBC4Shader.setMat4("viewInverseDepth", remoteCamera.getViewMatrixInverse());
 
-            genMeshFromBC4Shader.setFloat("near", remoteCamera.near);
-            genMeshFromBC4Shader.setFloat("far", remoteCamera.far);
+            genMeshFromBC4Shader.setFloat("near", remoteCamera.getNear());
+            genMeshFromBC4Shader.setFloat("far", remoteCamera.getFar());
         }
         {
             genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, meshDecompressed.vertexBuffer);

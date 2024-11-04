@@ -14,7 +14,7 @@ in VertexData {
 } fsIn;
 
 // material
-struct Material {
+uniform struct Material {
     vec4 baseColor;
     vec4 baseColorFactor;
 
@@ -51,7 +51,7 @@ struct Material {
     samplerCube prefilterMap; // 7
     sampler2D brdfLUT; // 8
 #endif
-};
+} material;
 
 // lights
 struct AmbientLight {
@@ -85,8 +85,6 @@ struct PBRInfo {
     vec3 F0;
 };
 
-uniform Material material;
-
 uniform int numPointLights;
 uniform AmbientLight ambientLight;
 uniform DirectionalLight directionalLight;
@@ -98,7 +96,18 @@ uniform sampler2D dirLightShadowMap; // 9
 uniform samplerCube pointLightShadowMaps[MAX_POINT_LIGHTS]; // 10+
 #endif
 
-uniform vec3 camPos;
+uniform struct Camera {
+#ifndef ANDROID
+    mat4 projection;
+    mat4 view;
+#else
+    mat4 projection[2];
+    mat4 view[2];
+#endif
+    vec3 position;
+    float near;
+    float far;
+} camera;
 
 uniform bool peelDepth;
 uniform sampler2D prevDepthMap;
@@ -226,7 +235,7 @@ float calcPointLightShadows(PointLight light, samplerCube pointLightShadowMap, v
     int samples = 20;
     float shadow = 0.0;
     float bias = 0.15;
-    float viewDistance = length(camPos - fsIn.FragPos);
+    float viewDistance = length(camera.position - fsIn.FragPos);
     float diskRadius = (1.0 + (viewDistance / light.farPlane)) / 25.0;
     for (int i = 0; i < samples; i++) {
         float closestDepth = texture(pointLightShadowMap, fragToLight + gridSamplingDisk[i] * diskRadius).r;
@@ -388,7 +397,7 @@ void main() {
 
     // input lighting data
     vec3 N = getNormal();
-    vec3 V = normalize(camPos - fsIn.FragPos);
+    vec3 V = normalize(camera.position - fsIn.FragPos);
     vec3 R = reflect(-V, N);
 
     // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0

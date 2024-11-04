@@ -304,7 +304,7 @@ int main(int argc, char** argv) {
         windowSize = glm::uvec2(width, height);
         renderer.resize(windowSize.x, windowSize.y);
 
-        camera.aspect = (float)windowSize.x / (float)windowSize.y;
+        camera.setAspect(windowSize.x, windowSize.y);
         camera.updateProjectionMatrix();
     });
 
@@ -387,7 +387,7 @@ int main(int argc, char** argv) {
         }
         {
             genMeshFromBC4Shader.setMat4("projection", remoteCamera.getProjectionMatrix());
-            genMeshFromBC4Shader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+            genMeshFromBC4Shader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
             if (poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTimeColor)) {
                 genMeshFromBC4Shader.setMat4("viewColor", currentColorFramePose.mono.view);
             }
@@ -395,8 +395,8 @@ int main(int argc, char** argv) {
                 genMeshFromBC4Shader.setMat4("viewInverseDepth", glm::inverse(currentDepthFramePose.mono.view));
             }
 
-            genMeshFromBC4Shader.setFloat("near", remoteCamera.near);
-            genMeshFromBC4Shader.setFloat("far", remoteCamera.far);
+            genMeshFromBC4Shader.setFloat("near", remoteCamera.getNear());
+            genMeshFromBC4Shader.setFloat("far", remoteCamera.getFar());
         }
         {
             genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);

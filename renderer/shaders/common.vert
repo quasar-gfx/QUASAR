@@ -5,6 +5,10 @@ layout(location = 3) in vec2 aTexCoords;
 layout(location = 4) in vec3 aTangent;
 layout(location = 5) in vec3 aBitangent;
 
+#ifdef ANDROID
+layout(num_views = 2) in;
+#endif
+
 out VertexData {
     vec2 TexCoords;
     vec3 FragPos;
@@ -15,15 +19,18 @@ out VertexData {
     vec4 FragPosLightSpace;
 } vsOut;
 
+uniform struct Camera {
 #ifndef ANDROID
-uniform mat4 projection;
-uniform mat4 view;
+    mat4 projection;
+    mat4 view;
 #else
-layout(num_views = 2) in;
-
-uniform mat4 projection[2];
-uniform mat4 view[2];
+    mat4 projection[2];
+    mat4 view[2];
 #endif
+    vec3 position;
+    float near;
+    float far;
+} camera;
 
 uniform mat4 model;
 uniform mat3 normalMatrix;
@@ -40,8 +47,8 @@ void main() {
     vsOut.FragPosLightSpace = lightSpaceMatrix * vec4(vsOut.FragPos, 1.0);
 
 #ifndef ANDROID
-    gl_Position = projection * view * vec4(vsOut.FragPos, 1.0);
+    gl_Position = camera.projection * camera.view * vec4(vsOut.FragPos, 1.0);
 #else
-    gl_Position = projection[gl_ViewID_OVR] * view[gl_ViewID_OVR] * vec4(vsOut.FragPos, 1.0);
+    gl_Position = camera.projection[gl_ViewID_OVR] * camera.view[gl_ViewID_OVR] * vec4(vsOut.FragPos, 1.0);
 #endif
 }

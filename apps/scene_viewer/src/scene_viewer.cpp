@@ -218,7 +218,7 @@ int main(int argc, char** argv) {
         windowSize = glm::uvec2(width, height);
         renderer.resize(windowSize.x, windowSize.y);
 
-        camera.aspect = (float)windowSize.x / (float)windowSize.y;
+        camera.setAspect(windowSize.x, windowSize.y);
         camera.updateProjectionMatrix();
     });
 
@@ -282,8 +282,8 @@ int main(int argc, char** argv) {
         // render to screen
         if (shaderIndex == 1) {
             showDepthShader.bind();
-            showDepthShader.setFloat("near", camera.near);
-            showDepthShader.setFloat("far", camera.far);
+            showDepthShader.setFloat("near", camera.getNear());
+            showDepthShader.setFloat("far", camera.getFar());
             renderer.drawToScreen(showDepthShader);
         }
         else if (shaderIndex == 2) {

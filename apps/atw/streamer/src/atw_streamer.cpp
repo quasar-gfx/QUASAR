@@ -212,15 +212,16 @@ int main(int argc, char** argv) {
     app.onResize([&](unsigned int width, unsigned int height) {
         windowSize = glm::uvec2(width, height);
         renderer.resize(windowSize.x, windowSize.y);
+
         if (vrMode) {
             auto vrCamera = static_cast<VRCamera*>(camera.get());
-            vrCamera->left.aspect = (float)(windowSize.x / 2) / (float)windowSize.y;
-            vrCamera->right.aspect = (float)(windowSize.x / 2) / (float)windowSize.y;
+            vrCamera->left.setAspect(windowSize.x / 2, windowSize.y);
+            vrCamera->right.setAspect(windowSize.x / 2, windowSize.y);
             vrCamera->updateProjectionMatrix();
         }
         else {
             auto perspectiveCamera = static_cast<PerspectiveCamera*>(camera.get());
-            perspectiveCamera->aspect = (float)windowSize.x / (float)windowSize.y;
+            perspectiveCamera->setAspect(windowSize.x, windowSize.y);
             perspectiveCamera->updateProjectionMatrix();
         }
     });

@@ -75,13 +75,21 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params,
     codecCtx->framerate = {targetFrameRate, 1};
     codecCtx->bit_rate = targetBitRate;
 
-    // Set zero latency
     codecCtx->gop_size = 60;    // One keyframe every second
     codecCtx->max_b_frames = 0; // No B-frames for low latency
-    av_opt_set_int(codecCtx->priv_data, "zerolatency", 1, 0); // Zero latency
-    av_opt_set_int(codecCtx->priv_data, "delay", 0, 0);       // No delay
 
-    ret = avcodec_open2(codecCtx, outputCodec, nullptr);
+    av_opt_set(codecCtx->priv_data, "preset", "p1", 0);
+    av_opt_set(codecCtx->priv_data, "tune", "ull", 0);
+    av_opt_set(codecCtx->priv_data, "rc", "cbr", 0);
+    // av_opt_set(codecCtx->priv_data, "multipass", "fullres", 0);
+    av_opt_set(codecCtx->priv_data, "zerolatency", "1", 0);
+    av_opt_set_int(codecCtx->priv_data, "delay", 0, 0);
+
+    // Optional: Set AVDictionary options for lower buffering
+    AVDictionary* options = nullptr;
+    av_dict_set(&options, "fflags", "nobuffer", 0);
+
+    ret = avcodec_open2(codecCtx, outputCodec, &options);
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't open codec: %s\n", av_err2str(ret));
         throw std::runtime_error("Video Streamer could not be created.");

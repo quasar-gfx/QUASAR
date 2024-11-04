@@ -237,7 +237,7 @@ int main(int argc, char** argv) {
         windowSize = glm::uvec2(width, height);
         renderer.resize(windowSize.x, windowSize.y);
 
-        camera.aspect = (float)windowSize.x / (float)windowSize.y;
+        camera.setAspect(windowSize.x, windowSize.y);
         camera.updateProjectionMatrix();
     });
 
@@ -275,8 +275,8 @@ int main(int argc, char** argv) {
 
         renderer.drawToRenderTarget(toneMapShader, videoStreamerColorRT);
         depthShader.bind();
-        depthShader.setFloat("near", camera.near);
-        depthShader.setFloat("far", camera.far);
+        depthShader.setFloat("near", camera.getNear());
+        depthShader.setFloat("far", camera.getFar());
         renderer.drawToRenderTarget(depthShader, BC4videoStreamerDepthRT);
 
         // render to screen

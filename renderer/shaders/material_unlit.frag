@@ -14,7 +14,7 @@ in VertexData {
 } fsIn;
 
 // material
-struct Material {
+uniform struct Material {
     vec4 baseColor;
     vec4 baseColorFactor;
 
@@ -25,11 +25,20 @@ struct Material {
 
     // material textures
     sampler2D baseColorMap; // 0
-};
+} material;
 
-uniform Material material;
-
-uniform vec3 camPos;
+uniform struct Camera {
+#ifndef ANDROID
+    mat4 projection;
+    mat4 view;
+#else
+    mat4 projection[2];
+    mat4 view[2];
+#endif
+    vec3 position;
+    float near;
+    float far;
+} camera;
 
 uniform bool peelDepth;
 uniform sampler2D prevDepthMap;
