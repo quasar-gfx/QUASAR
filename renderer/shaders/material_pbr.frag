@@ -348,11 +348,11 @@ vec3 calcPointLight(PointLight light, PBRInfo pbrInputs) {
 
 void main() {
     if (peelDepth) {
-        float depth = gl_FragCoord.z;
-        vec2 screenCoords = gl_FragCoord.xy / vec2(textureSize(prevDepthMap, 0));
-        float prevDepth = texture(prevDepthMap, screenCoords).r;
+        float currDepth = gl_FragCoord.z;
+        vec2 pixelCoords = gl_FragCoord.xy;
+        float prevDepth = texelFetch(prevDepthMap, ivec2(pixelCoords), 0).r;
         // if the current fragment is closer than the previous fragment, discard it
-        if (depth <= prevDepth)
+        if (currDepth <= prevDepth)
             discard;
     }
 

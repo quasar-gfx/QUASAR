@@ -158,8 +158,8 @@ float signedDistance(vec3 p1, vec3 p2) {
     return (length(p1) > length(p2)) ? dist : -dist;
 }
 
-float sampleDepth(sampler2D depthMap, vec2 sampleCoord) {
-    float depth = texture(depthMap, sampleCoord).x;
+float sampleDepth(sampler2D depthMap, ivec2 sampleCoord) {
+    float depth = texelFetch(depthMap, sampleCoord, 0).r;
     depth = clamp(depth, 0.0, MAX_DEPTH);
     return depth;
 }
@@ -170,8 +170,8 @@ float normalizeDepth(float depth) {
     return (1.0 - (1.0 / (1.0 + z * (far - near) / near)));
 }
 
-vec3 sampleNormal(sampler2D normalMap, vec2 sampleCoord) {
-    vec3 normal = normalize(texture(normalMap, sampleCoord).xyz);
+vec3 sampleNormal(sampler2D normalMap, ivec2 sampleCoord) {
+    vec3 normal = normalize(texelFetch(normalMap, sampleCoord, 0).xyz);
     // clamp normals to a reasonable range to fix floating point errors
     normal.x = abs(normal.x) < 0.005 ? 0.0 : normal.x;
     normal.y = abs(normal.y) < 0.005 ? 0.0 : normal.y;
@@ -652,27 +652,16 @@ void main() {
     surfelCornerCoords.topRight    = surfelCenterCoord + vec2(+0.5, +0.5);
 
     // sample texture maps
-    MultiQuad2D sampleCoords;
-    sampleCoords.bottomLeft  = (pixelCenterCoords.bottomLeft  - vec2(epsilon)) / remoteWindowSize;
-    sampleCoords.bottom      = (pixelCenterCoords.bottom      - vec2(epsilon)) / remoteWindowSize;
-    sampleCoords.bottomRight = (pixelCenterCoords.bottomRight - vec2(epsilon)) / remoteWindowSize;
-    sampleCoords.left        = (pixelCenterCoords.left        - vec2(epsilon)) / remoteWindowSize;
-    sampleCoords.center      = (pixelCenterCoords.center      - vec2(epsilon)) / remoteWindowSize;
-    sampleCoords.right       = (pixelCenterCoords.right       - vec2(epsilon)) / remoteWindowSize;
-    sampleCoords.topLeft     = (pixelCenterCoords.topLeft     - vec2(epsilon)) / remoteWindowSize;
-    sampleCoords.top         = (pixelCenterCoords.top         - vec2(epsilon)) / remoteWindowSize;
-    sampleCoords.topRight    = (pixelCenterCoords.topRight    - vec2(epsilon)) / remoteWindowSize;
-
     MultiQuad1D pixelDepths;
-    pixelDepths.bottomLeft  = sampleDepth(depthMap, sampleCoords.bottomLeft);
-    pixelDepths.bottom      = sampleDepth(depthMap, sampleCoords.bottom);
-    pixelDepths.bottomRight = sampleDepth(depthMap, sampleCoords.bottomRight);
-    pixelDepths.left        = sampleDepth(depthMap, sampleCoords.left);
-    pixelDepths.center      = sampleDepth(depthMap, sampleCoords.center);
-    pixelDepths.right       = sampleDepth(depthMap, sampleCoords.right);
-    pixelDepths.topLeft     = sampleDepth(depthMap, sampleCoords.topLeft);
-    pixelDepths.top         = sampleDepth(depthMap, sampleCoords.top);
-    pixelDepths.topRight    = sampleDepth(depthMap, sampleCoords.topRight);
+    pixelDepths.bottomLeft  = sampleDepth(depthMap, ivec2(pixelCenterCoords.bottomLeft));
+    pixelDepths.bottom      = sampleDepth(depthMap, ivec2(pixelCenterCoords.bottom));
+    pixelDepths.bottomRight = sampleDepth(depthMap, ivec2(pixelCenterCoords.bottomRight));
+    pixelDepths.left        = sampleDepth(depthMap, ivec2(pixelCenterCoords.left));
+    pixelDepths.center      = sampleDepth(depthMap, ivec2(pixelCenterCoords.center));
+    pixelDepths.right       = sampleDepth(depthMap, ivec2(pixelCenterCoords.right));
+    pixelDepths.topLeft     = sampleDepth(depthMap, ivec2(pixelCenterCoords.topLeft));
+    pixelDepths.top         = sampleDepth(depthMap, ivec2(pixelCenterCoords.top));
+    pixelDepths.topRight    = sampleDepth(depthMap, ivec2(pixelCenterCoords.topRight));
 
     if (pixelDepths.center >= MAX_DEPTH) {
         // store an empty plane to clear the output quad map
@@ -684,15 +673,15 @@ void main() {
 
     // transform normals to view space
     MultiQuad pixelNormalsView;
-    pixelNormalsView.bottomLeft  = normalToView(view, sampleNormal(normalMap, sampleCoords.bottomLeft));
-    pixelNormalsView.bottom      = normalToView(view, sampleNormal(normalMap, sampleCoords.bottom));
-    pixelNormalsView.bottomRight = normalToView(view, sampleNormal(normalMap, sampleCoords.bottomRight));
-    pixelNormalsView.left        = normalToView(view, sampleNormal(normalMap, sampleCoords.left));
-    pixelNormalsView.center      = normalToView(view, sampleNormal(normalMap, sampleCoords.center));
-    pixelNormalsView.right       = normalToView(view, sampleNormal(normalMap, sampleCoords.right));
-    pixelNormalsView.topLeft     = normalToView(view, sampleNormal(normalMap, sampleCoords.topLeft));
-    pixelNormalsView.top         = normalToView(view, sampleNormal(normalMap, sampleCoords.top));
-    pixelNormalsView.topRight    = normalToView(view, sampleNormal(normalMap, sampleCoords.topRight));
+    pixelNormalsView.bottomLeft  = normalToView(view, sampleNormal(normalMap, ivec2(pixelCenterCoords.bottomLeft)));
+    pixelNormalsView.bottom      = normalToView(view, sampleNormal(normalMap, ivec2(pixelCenterCoords.bottom)));
+    pixelNormalsView.bottomRight = normalToView(view, sampleNormal(normalMap, ivec2(pixelCenterCoords.bottomRight)));
+    pixelNormalsView.left        = normalToView(view, sampleNormal(normalMap, ivec2(pixelCenterCoords.left)));
+    pixelNormalsView.center      = normalToView(view, sampleNormal(normalMap, ivec2(pixelCenterCoords.center)));
+    pixelNormalsView.right       = normalToView(view, sampleNormal(normalMap, ivec2(pixelCenterCoords.right)));
+    pixelNormalsView.topLeft     = normalToView(view, sampleNormal(normalMap, ivec2(pixelCenterCoords.topLeft)));
+    pixelNormalsView.top         = normalToView(view, sampleNormal(normalMap, ivec2(pixelCenterCoords.top)));
+    pixelNormalsView.topRight    = normalToView(view, sampleNormal(normalMap, ivec2(pixelCenterCoords.topRight)));
 
     // project 2D points to 3D view space
     MultiQuad2D uvs;

@@ -377,7 +377,8 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::SliderFloat("View Box Size", &viewBoxSize, 0.1f, 10.0f)) {
+            if (ImGui::SliderFloat("View Box Size", &viewBoxSize, 0.1f, 5.0f)) {
+                preventCopyingLocalPose = true;
                 rerender = true;
             }
 
@@ -521,6 +522,24 @@ int main(int argc, char** argv) {
 
             /*
             ============================
+            FIRST PASS: Render the scene to a G-Buffer render target
+            ============================
+            */
+            remoteRenderer.drawObjects(remoteScene, remoteCamera);
+            if (!showNormals) {
+                toneMapShader.bind();
+                toneMapShader.setBool("toneMap", false); // dont apply tone mapping
+                remoteRenderer.drawToRenderTarget(toneMapShader, renderTarget);
+            }
+            else {
+                remoteRenderer.drawToRenderTarget(screenShaderNormals, renderTarget);
+            }
+
+            std::cout << "  Rendering Time: " << glfwGetTime() - startTime << "s" << std::endl;
+            startTime = glfwGetTime();
+
+            /*
+            ============================
             For debugging: Generate point cloud from depth map
             ============================
             */
@@ -549,24 +568,6 @@ int main(int argc, char** argv) {
                                               GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
             std::cout << "  Depth Compute Shader Time: " << glfwGetTime() - startTime << "s" << std::endl;
-
-            /*
-            ============================
-            FIRST PASS: Render the scene to a G-Buffer render target
-            ============================
-            */
-            remoteRenderer.drawObjects(remoteScene, remoteCamera);
-            if (!showNormals) {
-                toneMapShader.bind();
-                toneMapShader.setBool("toneMap", false); // dont apply tone mapping
-                remoteRenderer.drawToRenderTarget(toneMapShader, renderTarget);
-            }
-            else {
-                remoteRenderer.drawToRenderTarget(screenShaderNormals, renderTarget);
-            }
-
-            std::cout << "  Rendering Time: " << glfwGetTime() - startTime << "s" << std::endl;
-            startTime = glfwGetTime();
 
             /*
             ============================
