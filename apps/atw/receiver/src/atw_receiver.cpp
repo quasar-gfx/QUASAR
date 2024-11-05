@@ -295,7 +295,7 @@ int main(int argc, char** argv) {
         atwShader.bind();
         atwShader.setBool("atwEnabled", atwEnabled);
         atwShader.setMat4("projectionInverse", camera.getProjectionMatrixInverse());
-        atwShader.setMat4("viewInverse", glm::inverse(camera.getProjectionMatrix()));
+        atwShader.setMat4("viewInverse", camera.getViewMatrixInverse());
         if (poseID != prevPoseID && poseStreamer.getPose(poseID, &currentFramePose, &elapsedTime)) {
             atwShader.setMat4("remoteProjection", currentFramePose.mono.proj);
             atwShader.setMat4("remoteView", currentFramePose.mono.view);

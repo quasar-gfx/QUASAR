@@ -118,7 +118,7 @@ public:
         }
     }
 
-    void setTextureToEmpty(const std::string &name, int slot) const {
+    void clearTexture(const std::string &name, int slot) const {
         glBindTexture(GL_TEXTURE_2D, 0);
         if (!isUniformCached(name, slot)) {
             setInt(name, slot);

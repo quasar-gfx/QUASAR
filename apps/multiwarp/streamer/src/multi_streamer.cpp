@@ -357,6 +357,9 @@ int main(int argc, char** argv) {
             unsigned int totalProxies = 0;
             unsigned int totalDepthOffsets = 0;
             for (int view = 0; view < maxViews; view++) {
+                if (!showViews[view]) {
+                    continue;
+                }
                 BufferSizes sizes;
                 sizesBuffers[view].bind();
                 sizesBuffers[view].getSubData(0, 1, &sizes);
@@ -690,37 +693,6 @@ int main(int argc, char** argv) {
 
                 /*
                 ============================
-                For debugging: Generate point cloud from depth map
-                ============================
-                */
-                meshFromDepthShader.bind();
-                {
-                    meshFromDepthShader.setTexture(renderer.gBuffer.depthStencilBuffer, 0);
-                }
-                {
-                    meshFromDepthShader.setVec2("depthMapSize", remoteWindowSize);
-                }
-                {
-                    meshFromDepthShader.setMat4("view", remoteCamera->getViewMatrix());
-                    meshFromDepthShader.setMat4("projection", remoteCamera->getProjectionMatrix());
-                    meshFromDepthShader.setMat4("viewInverse", glm::inverse(remoteCamera->getViewMatrix()));
-                    meshFromDepthShader.setMat4("projectionInverse", glm::inverse(remoteCamera->getProjectionMatrix()));
-
-                    meshFromDepthShader.setFloat("near", remoteCamera->getNear());
-                    meshFromDepthShader.setFloat("far", remoteCamera->getFar());
-                }
-                {
-                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currMeshDepth->vertexBuffer);
-                }
-                meshFromDepthShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                             (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
-                meshFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
-                                                  GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
-
-                avgGenDepthTime += glfwGetTime() - startTime;
-
-                /*
-                ============================
                 SECOND PASS: Generate quads from G-Buffer
                 ============================
                 */
@@ -847,6 +819,38 @@ int main(int argc, char** argv) {
 
                 avgGenQuadsTime += glfwGetTime() - startTime;
                 startTime = glfwGetTime();
+
+                /*
+                ============================
+                For debugging: Generate point cloud from depth map
+                ============================
+                */
+                meshFromDepthShader.bind();
+                {
+                    meshFromDepthShader.setTexture(renderer.gBuffer.depthStencilBuffer, 0);
+                }
+                {
+                    meshFromDepthShader.setVec2("depthMapSize", remoteWindowSize);
+                }
+                {
+                    meshFromDepthShader.setMat4("view", remoteCamera->getViewMatrix());
+                    meshFromDepthShader.setMat4("projection", remoteCamera->getProjectionMatrix());
+                    meshFromDepthShader.setMat4("viewInverse", glm::inverse(remoteCamera->getViewMatrix()));
+                    meshFromDepthShader.setMat4("projectionInverse", glm::inverse(remoteCamera->getProjectionMatrix()));
+
+                    meshFromDepthShader.setFloat("near", remoteCamera->getNear());
+                    meshFromDepthShader.setFloat("far", remoteCamera->getFar());
+                }
+                {
+                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currMeshDepth->vertexBuffer);
+                    genMeshFromQuadMapsShader.clearBuffer(GL_SHADER_STORAGE_BUFFER, 1);
+                }
+                meshFromDepthShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                             (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+                meshFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
+                                                  GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+
+                avgGenDepthTime += glfwGetTime() - startTime;
             }
 
             std::cout << "  Avg Rendering Time: " << avgRenderTime / maxViews << "s" << std::endl;

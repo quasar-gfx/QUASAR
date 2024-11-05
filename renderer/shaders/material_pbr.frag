@@ -109,8 +109,11 @@ uniform struct Camera {
     float far;
 } camera;
 
+#ifdef DO_DEPTH_PEELING
+uniform bool edp;
 uniform bool peelDepth;
 uniform sampler2D prevDepthMap;
+#endif
 
 const float PI = 3.1415926535897932384626433832795;
 
@@ -355,7 +358,28 @@ vec3 calcPointLight(PointLight light, PBRInfo pbrInputs) {
     return radianceOut;
 }
 
+#ifdef DO_DEPTH_PEELING
+#define EDP_DELTA 0.0005
+#define EDP_SEARCH_RADIUS 20
+
+bool inPVHV(ivec2 pixelCoords, float prevDepth) {
+    for (int x = -EDP_SEARCH_RADIUS; x <= EDP_SEARCH_RADIUS; x++) {
+        for (int y = -EDP_SEARCH_RADIUS; y <= EDP_SEARCH_RADIUS; y++) {
+            if (x == 0 && y == 0) continue;
+
+            float sampleDepth = texelFetch(prevDepthMap, ivec2(pixelCoords + vec2(x, y)), 0).r;
+            if (sampleDepth >= prevDepth + EDP_DELTA)
+                return true;
+            if (sampleDepth <= prevDepth - EDP_DELTA)
+                return true;
+        }
+    }
+    return false;
+}
+#endif
+
 void main() {
+#ifdef DO_DEPTH_PEELING
     if (peelDepth) {
         float currDepth = gl_FragCoord.z;
         vec2 pixelCoords = gl_FragCoord.xy;
@@ -363,7 +387,10 @@ void main() {
         // if the current fragment is closer than the previous fragment, discard it
         if (currDepth <= prevDepth)
             discard;
+        if (edp && !inPVHV(ivec2(pixelCoords), prevDepth))
+            discard;
     }
+#endif
 
     vec4 baseColor;
     if (material.hasBaseColorMap) {

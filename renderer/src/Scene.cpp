@@ -73,9 +73,9 @@ void Scene::bindMaterial(const Material* material) const {
         shader->setTexture("material.brdfLUT", brdfLUT, material->getTextureCount() + 2);
     }
     else {
-        shader->setTextureToEmpty("material.irradianceMap", material->getTextureCount());
-        shader->setTextureToEmpty("material.prefilterMap", material->getTextureCount() + 1);
-        shader->setTextureToEmpty("material.brdfLUT", material->getTextureCount() + 2);
+        shader->clearTexture("material.irradianceMap", material->getTextureCount());
+        shader->clearTexture("material.prefilterMap", material->getTextureCount() + 1);
+        shader->clearTexture("material.brdfLUT", material->getTextureCount() + 2);
     }
 }
 

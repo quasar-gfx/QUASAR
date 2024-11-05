@@ -108,7 +108,7 @@ layout(std430, binding = 0) writeonly buffer QuadMapBuffer {
     QuadMapData quadMap[];
 };
 
-layout(std430, binding = 1) buffer sizesBuffer {
+layout(std430, binding = 1) buffer SizesBuffer {
     uint numVertices;
     uint numIndices;
     uint numProxies;
@@ -663,7 +663,7 @@ void main() {
     pixelDepths.top         = sampleDepth(depthMap, ivec2(pixelCenterCoords.top));
     pixelDepths.topRight    = sampleDepth(depthMap, ivec2(pixelCenterCoords.topRight));
 
-    if (pixelDepths.center >= MAX_DEPTH) {
+    if (pixelDepths.center == 0 || pixelDepths.center >= MAX_DEPTH) {
         // store an empty plane to clear the output quad map
         QuadMapData ignoredQuadMapData;
         ignoredQuadMapData.size = 0;

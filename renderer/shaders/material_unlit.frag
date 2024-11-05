@@ -40,10 +40,13 @@ uniform struct Camera {
     float far;
 } camera;
 
+#ifdef DO_DEPTH_PEELING
 uniform bool peelDepth;
 uniform sampler2D prevDepthMap;
+#endif
 
 void main() {
+#ifdef DO_DEPTH_PEELING
     if (peelDepth) {
         float depth = gl_FragCoord.z;
         vec2 screenCoords = gl_FragCoord.xy / vec2(textureSize(prevDepthMap, 0));
@@ -52,6 +55,7 @@ void main() {
         if (depth <= prevDepth)
             discard;
     }
+#endif
 
     vec4 baseColor;
     if (material.hasBaseColorMap) {

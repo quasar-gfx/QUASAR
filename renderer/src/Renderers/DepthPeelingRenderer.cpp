@@ -13,6 +13,7 @@ DepthPeelingRenderer::DepthPeelingRenderer(const Config &config, unsigned int ma
             }
         })
         , OpenGLRenderer(config) {
+    PBRMaterial::extraShaderDefines.push_back("#define DO_DEPTH_PEELING");
 
     for (int i = 0; i < maxLayers; i++) {
         peelingLayers.push_back(new GeometryBuffer({ .width = config.width, .height = config.height }));

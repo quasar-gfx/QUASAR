@@ -56,6 +56,8 @@ public:
     unsigned int getTextureCount() const override { return 6; }
 
     static Shader* shader;
+
+    static std::vector<std::string> extraShaderDefines;
 };
 
 #endif // PBR_MATERIAL_H
