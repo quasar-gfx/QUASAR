@@ -14,6 +14,7 @@ public:
     VRCamera(unsigned int width, unsigned int height);
     VRCamera(float fovy, float aspect, float near, float far);
 
+    float getFovyRadians() const override { return left.getFovyRadians(); }
     float getFovyDegrees() const override { return left.getFovyDegrees(); }
     float getAspect() const override { return left.getAspect(); }
     float getFar() const override { return left.getFar(); }

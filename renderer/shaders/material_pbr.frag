@@ -6,6 +6,7 @@ layout(location = 3) out vec4 FragIDs;
 in VertexData {
     vec2 TexCoords;
     vec3 FragPos;
+    vec3 FragPosView;
     vec3 Color;
     vec3 Normal;
     vec3 Tangent;
@@ -105,14 +106,16 @@ uniform struct Camera {
     mat4 view[2];
 #endif
     vec3 position;
+    float fovy;
     float near;
     float far;
 } camera;
 
 #ifdef DO_DEPTH_PEELING
-uniform bool edp;
 uniform bool peelDepth;
 uniform sampler2D prevDepthMap;
+uniform int height;
+const float E = 0.5;
 #endif
 
 const float PI = 3.1415926535897932384626433832795;
@@ -359,20 +362,42 @@ vec3 calcPointLight(PointLight light, PBRInfo pbrInputs) {
 }
 
 #ifdef DO_DEPTH_PEELING
-#define EDP_DELTA 0.0005
-#define EDP_SEARCH_RADIUS 20
 
-bool inPVHV(ivec2 pixelCoords, float prevDepth) {
-    for (int x = -EDP_SEARCH_RADIUS; x <= EDP_SEARCH_RADIUS; x++) {
-        for (int y = -EDP_SEARCH_RADIUS; y <= EDP_SEARCH_RADIUS; y++) {
-            if (x == 0 && y == 0) continue;
+#define MAX_DEPTH 0.9999
 
-            float sampleDepth = texelFetch(prevDepthMap, ivec2(pixelCoords + vec2(x, y)), 0).r;
-            if (sampleDepth >= prevDepth + EDP_DELTA)
-                return true;
-            if (sampleDepth <= prevDepth - EDP_DELTA)
-                return true;
-        }
+#define EDP_DELTA 0.001
+#define EDP_SAMPLES 16
+
+float linearizeAndNormalizeDepth(float depth) {
+    float z = depth * 2.0 - 1.0; // back to NDC
+    float linearized = (2.0 * camera.near * camera.far) / (camera.far + camera.near - z * (camera.far - camera.near));
+    return linearized / camera.far;
+}
+
+float LCOC(float d, float df) {
+	float K = float(height)*0.5f/df/tan(camera.fovy*0.5f); // screen-space LCOC scale
+	return K*E*abs(df-d)/d; // relative radius of COC against df (blocker depth)
+}
+
+bool inPVHV(ivec2 pixelCoords, vec3 fragViewPos, float blockerDepthNonLinear) {
+    float fragmentDepth = -fragViewPos.z;
+    float blockerDepthNormalized = linearizeAndNormalizeDepth(blockerDepthNonLinear);
+
+	float df = mix(camera.near, camera.far, blockerDepthNormalized);
+    float R = LCOC(fragmentDepth, df);
+    for (int i = 0; i < EDP_SAMPLES; i++) {
+        // sample around a circle with radius R
+        float x = R * cos(float(i) * 2*PI / EDP_SAMPLES);
+        float y = R * sin(float(i) * 2*PI / EDP_SAMPLES);
+        vec2 offset = vec2(x, y);
+
+        float sampleDepthNonLinear = texelFetch(prevDepthMap, ivec2(round(vec2(pixelCoords) + offset)), 0).r;
+        if (sampleDepthNonLinear == 0) return true;
+        if (sampleDepthNonLinear >= MAX_DEPTH) continue;
+
+        float sampleDepthNormalized = linearizeAndNormalizeDepth(sampleDepthNonLinear);
+        if      (sampleDepthNormalized >= blockerDepthNormalized + EDP_DELTA) return true;
+        else if (sampleDepthNormalized <= blockerDepthNormalized - EDP_DELTA) return true;
     }
     return false;
 }
@@ -381,14 +406,16 @@ bool inPVHV(ivec2 pixelCoords, float prevDepth) {
 void main() {
 #ifdef DO_DEPTH_PEELING
     if (peelDepth) {
+        ivec2 pixelCoords = ivec2(gl_FragCoord.xy);
         float currDepth = gl_FragCoord.z;
-        vec2 pixelCoords = gl_FragCoord.xy;
-        float prevDepth = texelFetch(prevDepthMap, ivec2(pixelCoords), 0).r;
-        // if the current fragment is closer than the previous fragment, discard it
+        float prevDepth = texelFetch(prevDepthMap, pixelCoords, 0).r;
         if (currDepth <= prevDepth)
             discard;
-        if (edp && !inPVHV(ivec2(pixelCoords), prevDepth))
+#ifdef EDP
+        vec3 fragViewPos = fsIn.FragPosView;
+        if (!inPVHV(pixelCoords, fragViewPos, prevDepth))
             discard;
+#endif
     }
 #endif
 

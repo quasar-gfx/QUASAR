@@ -16,6 +16,7 @@ public:
     PerspectiveCamera(unsigned int width, unsigned int height);
     PerspectiveCamera(float fovy, float aspect, float near, float far);
 
+    float getFovyRadians() const override { return fovyRad; }
     float getFovyDegrees() const override { return glm::degrees(fovyRad); }
     void setFovyDegrees(float fovyDeg) { this->fovyRad = glm::radians(fovyDeg); updateProjectionMatrix(); }
 

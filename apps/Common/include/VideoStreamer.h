@@ -72,6 +72,9 @@ private:
     int targetFrameRate = 60;
     unsigned int targetBitRate;
 
+    std::string preset = "p4";
+    std::string tune = "ull";
+
     int poseIDOffset = sizeof(pose_id_t) * 8;
 
     unsigned int videoWidth, videoHeight;

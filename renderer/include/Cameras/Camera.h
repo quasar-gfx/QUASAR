@@ -14,6 +14,7 @@ public:
     Camera() = default;
     virtual ~Camera() = default;
 
+    virtual float getFovyRadians() const = 0;
     virtual float getFovyDegrees() const = 0;
     virtual float getAspect() const = 0;
     virtual float getNear() const = 0;

@@ -1,6 +1,6 @@
 #include <Renderers/DepthPeelingRenderer.h>
 
-DepthPeelingRenderer::DepthPeelingRenderer(const Config &config, unsigned int maxLayers)
+DepthPeelingRenderer::DepthPeelingRenderer(const Config &config, unsigned int maxLayers, bool edp)
         : gBuffer({ .width = config.width, .height = config.height })
         , maxLayers(maxLayers)
         , compositeLayersShader({
@@ -14,6 +14,9 @@ DepthPeelingRenderer::DepthPeelingRenderer(const Config &config, unsigned int ma
         })
         , OpenGLRenderer(config) {
     PBRMaterial::extraShaderDefines.push_back("#define DO_DEPTH_PEELING");
+    if (edp) {
+        PBRMaterial::extraShaderDefines.push_back("#define EDP");
+    }
 
     for (int i = 0; i < maxLayers; i++) {
         peelingLayers.push_back(new GeometryBuffer({ .width = config.width, .height = config.height }));
@@ -47,6 +50,9 @@ void DepthPeelingRenderer::endRendering() {
 
 RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &camera, uint32_t clearMask) {
     RenderStats stats;
+
+    PBRMaterial::shader->bind();
+    PBRMaterial::shader->setInt("height", gBuffer.height);
 
     for (int i = 0; i < maxLayers; i++) {
         auto& currentGBuffer = peelingLayers[i];

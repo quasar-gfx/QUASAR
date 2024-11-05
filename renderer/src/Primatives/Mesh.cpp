@@ -127,6 +127,7 @@ void Mesh::setMaterialCameraParams(const Camera &camera, const Material* materia
         material->getShader()->setMat4("camera.projection", monoCamera.getProjectionMatrix());
     }
     material->getShader()->setVec3("camera.position", camera.getPosition());
+    material->getShader()->setFloat("camera.fovy", camera.getFovyRadians());
     material->getShader()->setFloat("camera.near", camera.getNear());
     material->getShader()->setFloat("camera.far", camera.getFar());
 }

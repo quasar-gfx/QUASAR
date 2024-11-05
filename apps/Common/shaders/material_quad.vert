@@ -26,6 +26,7 @@ uniform struct Camera {
     mat4 view[2];
 #endif
     vec3 position;
+    float fovy;
     float near;
     float far;
 } camera;

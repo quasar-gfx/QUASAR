@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> size2In(parser, "size2", "Size of pre-rendered content", {'z', "size2"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
-    args::ValueFlag<int> maxLayersIn(parser, "layers", "Max layers", {'n', "max-layers"}, 8);
+    args::ValueFlag<int> maxLayersIn(parser, "layers", "Max layers", {'n', "max-layers"}, 4);
     args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'u', "data-path"}, ".");
     args::Flag saveImage(parser, "save", "Take screenshot and exit", {'b', "save-image"});
     args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
     config.guiManager = guiManager;
 
     OpenGLApp app(config);
-    DepthPeelingRenderer dpRenderer(config, maxLayers);
+    DepthPeelingRenderer dpRenderer(config, maxLayers, true);
     ForwardRenderer forwardRenderer(config);
 
     glm::uvec2 windowSize = window->getSize();
@@ -109,9 +109,6 @@ int main(int argc, char** argv) {
     scene.envCubeMap = remoteScene.envCubeMap;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
     camera.setViewMatrix(centerRemoteCamera->getViewMatrix());
-
-    PBRMaterial::shader->bind();
-    PBRMaterial::shader->setBool("edp", true);
 
     struct QuadMapData {
         alignas(16) glm::vec3 normal;

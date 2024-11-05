@@ -6,6 +6,7 @@ layout(location = 3) out vec4 FragIDs;
 in VertexData {
     vec2 TexCoords;
     vec3 FragPos;
+    vec3 FragPosView;
     vec3 Color;
     vec3 Normal;
     vec3 Tangent;
@@ -36,6 +37,7 @@ uniform struct Camera {
     mat4 view[2];
 #endif
     vec3 position;
+    float fovy;
     float near;
     float far;
 } camera;
