@@ -47,7 +47,7 @@ public:
 
     VideoStreamer(const RenderTargetCreateParams &params,
                   const std::string &videoURL,
-                  unsigned int targetBitRateMbps = 50,
+                  unsigned int targetBitRateMbps = 10,
                   const std::string &formatName = "mpegts");
     ~VideoStreamer();
 

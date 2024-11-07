@@ -88,19 +88,19 @@ void main() {
     if (IsLeftEye > 0.5) {
         viewCoord = ndcToView(projectionInverseLeft, ndc, 1.0);
         worldCoord = viewToWorld(mat4(mat3(viewInverseLeft)), viewCoord);
-        TexCoordsRemote = worldToScreen(remoteViewLeft, remoteProjectionLeft, worldCoord);
+        TexCoordsRemote = worldToScreen(mat4(mat3(remoteViewLeft)), remoteProjectionLeft, worldCoord);
         TexCoordsRemote.x = clamp(TexCoordsRemote.x / 2.0, 0.0, 0.5 - epsilon);
     }
     else {
         viewCoord = ndcToView(projectionInverseRight, ndc, 1.0);
         worldCoord = viewToWorld(mat4(mat3(viewInverseRight)), viewCoord);
-        TexCoordsRemote = worldToScreen(remoteViewRight, remoteProjectionRight, worldCoord);
+        TexCoordsRemote = worldToScreen(mat4(mat3(remoteViewRight)), remoteProjectionRight, worldCoord);
         TexCoordsRemote.x = clamp(TexCoordsRemote.x / 2.0 + 0.5, 0.5, 1.0 - epsilon);
     }
 #else
     vec3 viewCoord = ndcToView(projectionInverse, ndc, 1.0);
     vec3 worldPose = viewToWorld(mat4(mat3(viewInverse)), viewCoord);
-    vec2 TexCoordsRemote = worldToScreen(remoteView, remoteProjection, worldPose);
+    vec2 TexCoordsRemote = worldToScreen(mat4(mat3(remoteView)), remoteProjection, worldPose);
 #endif
 
     FragColor = vec4(texture(videoTexture, TexCoordsRemote).rgb, 1.0);

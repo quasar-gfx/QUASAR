@@ -186,7 +186,7 @@ std::string FileIO::copyFileToCache(std::string filename) {
         return "";
     }
 
-    std::string tempPath = "/data/user/0/app.wiselab.OculusClient/cache/" + filename;
+    std::string tempPath = "/data/user/0/app.wiselab.QuestClient/cache/" + filename;
 
     std::ofstream outFile(tempPath, std::ios::binary);
     if (!outFile) {
