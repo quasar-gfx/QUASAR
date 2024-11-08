@@ -32,7 +32,7 @@ struct MeshSizeCreateParams {
 };
 
 struct DrawElementsIndirectCommand {
-    GLuint count;
+    GLuint count = 0;
     GLuint instanceCount = 1;
     GLuint firstIndex = 0;
     GLuint baseVertex = 0;

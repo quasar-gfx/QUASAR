@@ -181,8 +181,8 @@ int main(int argc, char** argv) {
         sizesBuffers[view] = Buffer<BufferSizes>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, &bufferSizes);
 
         meshes[view] = new Mesh({
-            .numVertices = maxVertices / 2,
-            .numIndices = maxIndices / 2,
+            .numVertices = maxVertices,
+            .numIndices = maxIndices,
             .material = new QuadMaterial({ .baseColorTexture = &renderTargets[view]->colorBuffer }),
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true
@@ -554,6 +554,7 @@ int main(int argc, char** argv) {
 
     app.onResize([&](unsigned int width, unsigned int height) {
         windowSize = glm::uvec2(width, height);
+        dpRenderer.resize(width, height);
         forwardRenderer.resize(width, height);
 
         camera.setAspect(windowSize.x, windowSize.y);
@@ -646,8 +647,19 @@ int main(int argc, char** argv) {
                 FIRST PASS: Render the scene to a G-Buffer render target
                 ============================
                 */
+                if (view < maxViews - 1) {
+                    // render to render target
+                    if (!showNormals) {
+                        toneMapShader.bind();
+                        toneMapShader.setBool("toneMap", false); // dont apply tone mapping
+                        dpRenderer.peelingLayers[view]->blitToRenderTarget(*renderTargets[view]);
+                    }
+                    else {
+                        dpRenderer.drawToRenderTarget(screenShaderNormals, *renderTargets[view]);
+                    }
+                }
                 // wide fov camera
-                if (view == maxViews - 1) {
+                else {
                     // render mesh in meshScene into stencil buffer
                     forwardRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
 
@@ -670,15 +682,6 @@ int main(int argc, char** argv) {
                         forwardRenderer.drawToRenderTarget(screenShaderNormals, *renderTargets[view]);
                     }
                 }
-                else {
-                    // render to render target
-                    if (!showNormals) {
-                        dpRenderer.peelingLayers[view]->blitToRenderTarget(*renderTargets[view]);
-                    }
-                    else {
-                        dpRenderer.drawToRenderTarget(screenShaderNormals, *renderTargets[view]);
-                    }
-                }
 
                 /*
                 ============================
@@ -688,12 +691,12 @@ int main(int argc, char** argv) {
                 genQuadMapShader.bind();
                 {
                     if (view != maxViews - 1) {
-                        meshFromDepthShader.setTexture(dpRenderer.peelingLayers[view]->normalsBuffer, 0);
-                        meshFromDepthShader.setTexture(dpRenderer.peelingLayers[view]->depthStencilBuffer, 1);
+                        genQuadMapShader.setTexture(dpRenderer.peelingLayers[view]->normalsBuffer, 0);
+                        genQuadMapShader.setTexture(dpRenderer.peelingLayers[view]->depthStencilBuffer, 1);
                     }
                     else {
-                        meshFromDepthShader.setTexture(forwardRenderer.gBuffer.normalsBuffer, 0);
-                        meshFromDepthShader.setTexture(forwardRenderer.gBuffer.depthStencilBuffer, 1);
+                        genQuadMapShader.setTexture(forwardRenderer.gBuffer.normalsBuffer, 0);
+                        genQuadMapShader.setTexture(forwardRenderer.gBuffer.depthStencilBuffer, 1);
                     }
                 }
                 {
@@ -842,8 +845,8 @@ int main(int argc, char** argv) {
                     meshFromDepthShader.setFloat("far", remoteCamera->getFar());
                 }
                 {
-                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currMeshDepth->vertexBuffer);
-                    genMeshFromQuadMapsShader.clearBuffer(GL_SHADER_STORAGE_BUFFER, 1);
+                    meshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currMeshDepth->vertexBuffer);
+                    meshFromDepthShader.clearBuffer(GL_SHADER_STORAGE_BUFFER, 1);
                 }
                 meshFromDepthShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
                                              (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);

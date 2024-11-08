@@ -111,7 +111,6 @@ int main(int argc, char** argv) {
 
     // make last camera have a larger fov
     remoteCameras[maxViews-1]->setFovyDegrees(120.0f);
-    remoteCameras[maxViews-1]->setViewMatrix(centerRemoteCamera->getViewMatrix());
 
     // scene with all the meshes
     Scene scene;
@@ -191,8 +190,8 @@ int main(int argc, char** argv) {
         sizesBuffers[view] = Buffer<BufferSizes>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, &bufferSizes);
 
         meshes[view] = new Mesh({
-            .numVertices = maxVertices / 2,
-            .numIndices = maxIndices / 2,
+            .numVertices = maxVertices,
+            .numIndices = maxIndices,
             .material = new QuadMaterial({ .baseColorTexture = &renderTargets[view]->colorBuffer }),
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true
@@ -728,8 +727,8 @@ int main(int argc, char** argv) {
                 }
 
                 // run compute shader
-                meshFromDepthShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                             (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+                genQuadMapShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                          (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
                 genQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
                 avgGenQuadMapTime += glfwGetTime() - startTime;
@@ -842,8 +841,8 @@ int main(int argc, char** argv) {
                     meshFromDepthShader.setFloat("far", remoteCamera->getFar());
                 }
                 {
-                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currMeshDepth->vertexBuffer);
-                    genMeshFromQuadMapsShader.clearBuffer(GL_SHADER_STORAGE_BUFFER, 1);
+                    meshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currMeshDepth->vertexBuffer);
+                    meshFromDepthShader.clearBuffer(GL_SHADER_STORAGE_BUFFER, 1);
                 }
                 meshFromDepthShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
                                              (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);

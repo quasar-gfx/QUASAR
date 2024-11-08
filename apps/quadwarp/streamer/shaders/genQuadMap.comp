@@ -624,6 +624,11 @@ void main() {
         numDepthOffsets = 0;
     }
 
+    // store an empty plane to clear the output quad map
+    QuadMapData ignoredQuadMapData;
+    ignoredQuadMapData.size = 0;
+    storeInQuadMap(pixelCoord, ignoredQuadMapData);
+
     // calculate coords (see above)
     vec2 surfelCornerCoordBottomLeft = vec2(gl_GlobalInvocationID.xy);
     vec2 pixelCenterCoord = surfelCornerCoordBottomLeft + vec2(0.5, 0.5);
@@ -664,10 +669,6 @@ void main() {
     pixelDepths.topRight    = sampleDepth(depthMap, ivec2(pixelCenterCoords.topRight));
 
     if (pixelDepths.center == 0 || pixelDepths.center >= MAX_DEPTH) {
-        // store an empty plane to clear the output quad map
-        QuadMapData ignoredQuadMapData;
-        ignoredQuadMapData.size = 0;
-        storeInQuadMap(pixelCoord, ignoredQuadMapData);
         return;
     }
 

@@ -689,8 +689,8 @@ int main(int argc, char** argv) {
                 meshFromDepthShader.setFloat("far", remoteCamera.getFar());
             }
             {
-                genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, meshDepth.vertexBuffer);
-                genMeshFromQuadMapsShader.clearBuffer(GL_SHADER_STORAGE_BUFFER, 1);
+                meshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, meshDepth.vertexBuffer);
+                meshFromDepthShader.clearBuffer(GL_SHADER_STORAGE_BUFFER, 1);
             }
             meshFromDepthShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
                                          (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
