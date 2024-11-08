@@ -339,12 +339,27 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (renderStats.trianglesDrawn < 100000)
-                ImGui::TextColored(ImVec4(0,1,0,1), "Triangles Drawn: %d", renderStats.trianglesDrawn);
-            else if (renderStats.trianglesDrawn < 500000)
-                ImGui::TextColored(ImVec4(1,1,0,1), "Triangles Drawn: %d", renderStats.trianglesDrawn);
+            unsigned int totalTriangles = 0;
+            unsigned int totalProxies = 0;
+            unsigned int totalDepthOffsets = 0;
+            for (int view = 0; view < maxViews; view++) {
+                if (!nodes[view]->visible) {
+                    continue;
+                }
+                BufferSizes sizes;
+                sizesBuffers[view].bind();
+                sizesBuffers[view].getSubData(0, 1, &sizes);
+                totalTriangles += sizes.numIndices / 3;
+                totalProxies += sizes.numProxies;
+                totalDepthOffsets += sizes.numDepthOffsets;
+            }
+
+            if (totalTriangles < 100000)
+                ImGui::TextColored(ImVec4(0,1,0,1), "Triangles Drawn: %d", totalTriangles);
+            else if (totalTriangles < 500000)
+                ImGui::TextColored(ImVec4(1,1,0,1), "Triangles Drawn: %d", totalTriangles);
             else
-                ImGui::TextColored(ImVec4(1,0,0,1), "Triangles Drawn: %d", renderStats.trianglesDrawn);
+                ImGui::TextColored(ImVec4(1,0,0,1), "Triangles Drawn: %d", totalTriangles);
 
             if (renderStats.drawCalls < 200)
                 ImGui::TextColored(ImVec4(0,1,0,1), "Draw Calls: %d", renderStats.drawCalls);
@@ -353,18 +368,6 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
-            unsigned int totalProxies = 0;
-            unsigned int totalDepthOffsets = 0;
-            for (int view = 0; view < maxViews; view++) {
-                if (!showViews[view]) {
-                    continue;
-                }
-                BufferSizes sizes;
-                sizesBuffers[view].bind();
-                sizesBuffers[view].getSubData(0, 1, &sizes);
-                totalProxies += sizes.numProxies;
-                totalDepthOffsets += sizes.numDepthOffsets;
-            }
             ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d", totalProxies);
             ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d", totalDepthOffsets);
 

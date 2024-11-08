@@ -288,12 +288,16 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (renderStats.trianglesDrawn < 100000)
-                ImGui::TextColored(ImVec4(0,1,0,1), "Triangles Drawn: %d", renderStats.trianglesDrawn);
-            else if (renderStats.trianglesDrawn < 500000)
-                ImGui::TextColored(ImVec4(1,1,0,1), "Triangles Drawn: %d", renderStats.trianglesDrawn);
+            sizesBuffer.bind();
+            sizesBuffer.getSubData(0, 1, &bufferSizes);
+
+            unsigned int totalTriangles = bufferSizes.numIndices / 3;
+            if (totalTriangles < 100000)
+                ImGui::TextColored(ImVec4(0,1,0,1), "Triangles Drawn: %d", totalTriangles);
+            else if (totalTriangles < 500000)
+                ImGui::TextColored(ImVec4(1,1,0,1), "Triangles Drawn: %d", totalTriangles);
             else
-                ImGui::TextColored(ImVec4(1,0,0,1), "Triangles Drawn: %d", renderStats.trianglesDrawn);
+                ImGui::TextColored(ImVec4(1,0,0,1), "Triangles Drawn: %d", totalTriangles);
 
             if (renderStats.drawCalls < 200)
                 ImGui::TextColored(ImVec4(0,1,0,1), "Draw Calls: %d", renderStats.drawCalls);
@@ -302,8 +306,6 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
-            sizesBuffer.bind();
-            sizesBuffer.getSubData(0, 1, &bufferSizes);
             ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d", bufferSizes.numProxies);
             ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d", bufferSizes.numDepthOffsets);
 
