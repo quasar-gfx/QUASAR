@@ -31,6 +31,9 @@ int DataStreamerTCP::send(std::vector<uint8_t> data, bool copy) {
 }
 
 void DataStreamerTCP::sendData() {
+    socket.bind(url);
+    socket.listen(1);
+
     while (true) {
         if ((clientSocketID = socket.accept()) < 0) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));

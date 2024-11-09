@@ -27,10 +27,8 @@ public:
             : url(url)
             , maxDataSize(maxDataSize)
             , socket(nonBlocking) {
-        socket.bind(url);
-        socket.setReuseAddrPort();
+        socket.setReuseAddr();
         socket.setSendSize(maxDataSize);
-        socket.listen(1);
 
         dataSendingThread = std::thread(&DataStreamerTCP::sendData, this);
     }

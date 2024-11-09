@@ -127,9 +127,9 @@ public:
         close();
     }
 
-    void setReuseAddrPort() {
+    void setReuseAddr() {
         int opt = 1;
-        if (setsockopt(socketID, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)) < 0) {
+        if (setsockopt(socketID, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
             throw std::runtime_error("Failed to set reuse address: " + std::string(std::strerror(errno)));
         }
     }
