@@ -12,6 +12,7 @@ DepthPeelingRenderer::DepthPeelingRenderer(const Config &config, unsigned int ma
                 "#define MAX_LAYERS " + std::to_string(maxLayers)
             }
         })
+        , edp(edp)
         , OpenGLRenderer(config) {
     PBRMaterial::extraShaderDefines.push_back("#define DO_DEPTH_PEELING");
     if (edp) {
@@ -51,8 +52,11 @@ void DepthPeelingRenderer::endRendering() {
 RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &camera, uint32_t clearMask) {
     RenderStats stats;
 
-    PBRMaterial::shader->bind();
-    PBRMaterial::shader->setInt("height", gBuffer.height);
+    if (edp) {
+        PBRMaterial::shader->bind();
+        PBRMaterial::shader->setInt("height", gBuffer.height);
+        PBRMaterial::shader->setFloat("E", (viewBoxSize / 2.0f) * glm::sqrt(3.0f));
+    }
 
     for (int i = 0; i < maxLayers; i++) {
         auto& currentGBuffer = peelingLayers[i];

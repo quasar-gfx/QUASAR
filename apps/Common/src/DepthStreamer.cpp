@@ -133,7 +133,7 @@ void DepthStreamer::sendData() {
         }
         stats.timeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
 
-        stats.bitrateMbps = ((imageSize * 8) / timeutils::millisToSeconds(stats.timeToSendMs)) / MBPS_TO_BPS;
+        stats.bitrateMbps = ((imageSize * 8) / timeutils::millisToSeconds(stats.timeToSendMs)) / MB_TO_BITS;
 
         streamer.send(data);
 

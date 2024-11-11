@@ -70,7 +70,7 @@ pose_id_t DepthVideoTexture::draw(pose_id_t poseID) {
 
     stats.timeToReceiveMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
 
-    stats.bitrateMbps = ((sizeof(pose_id_t) + res.size() * 8) / timeutils::millisToSeconds(stats.timeToReceiveMs)) / MBPS_TO_BPS;
+    stats.bitrateMbps = ((sizeof(pose_id_t) + res.size() * 8) / timeutils::millisToSeconds(stats.timeToReceiveMs)) / MB_TO_BITS;
 
     prevPoseID = resPoseID;
     prevTime = timeutils::getTimeMicros();

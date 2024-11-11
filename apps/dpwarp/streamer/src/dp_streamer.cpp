@@ -115,7 +115,7 @@ int main(int argc, char** argv) {
         alignas(16) float depth;
         alignas(16) glm::vec2 uv;
         alignas(16) glm::uvec2 offset;
-        alignas(16) uint size;
+        alignas(16) unsigned int size;
         alignas(16) bool flattened;
     };
     std::vector<Buffer<QuadMapData>> quadMaps(numQuadMaps);
@@ -272,7 +272,7 @@ int main(int argc, char** argv) {
     float flatThreshold = 0.5f;
     float proxySimilarityThreshold = 0.1f;
     bool restrictMovementToViewBox = false;
-    float viewBoxSize = 0.5f;
+    float viewBoxSize = 1.0f;
     const int intervalValues[] = {0, 25, 50, 100, 200, 500, 1000};
     const char* intervalLabels[] = {"0ms", "25ms", "50ms", "100ms", "200ms", "500ms", "1000ms"};
     bool* showLayers = new bool[maxViews];
@@ -359,8 +359,10 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
-            ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d", totalProxies);
-            ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d", totalDepthOffsets);
+            unsigned int proxySizeMb = totalProxies * 8*sizeof(QuadMapData) / MB_TO_BITS;
+            unsigned int depthOffsetSizeMb = totalDepthOffsets * 8*sizeof(uint16_t) / MB_TO_BITS;
+            ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%d Mb)", totalProxies, proxySizeMb);
+            ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%d Mb)", totalDepthOffsets, depthOffsetSizeMb);
 
             ImGui::Separator();
 
@@ -435,6 +437,7 @@ int main(int argc, char** argv) {
             if (ImGui::SliderFloat("View Box Size", &viewBoxSize, 0.1f, 5.0f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
+                dpRenderer.setViewBoxSize(viewBoxSize);
             }
 
             ImGui::Checkbox("Restrict Movement to View Box", &restrictMovementToViewBox);

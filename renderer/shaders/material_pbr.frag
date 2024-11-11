@@ -115,7 +115,7 @@ uniform struct Camera {
 uniform bool peelDepth;
 uniform sampler2D prevDepthMap;
 uniform int height;
-const float E = 0.5;
+uniform float E;
 #endif
 
 const float PI = 3.1415926535897932384626433832795;
@@ -362,7 +362,6 @@ vec3 calcPointLight(PointLight light, PBRInfo pbrInputs) {
 }
 
 #ifdef DO_DEPTH_PEELING
-
 #define MAX_DEPTH 0.9999
 
 #define EDP_DELTA 0.001
@@ -375,8 +374,8 @@ float linearizeAndNormalizeDepth(float depth) {
 }
 
 float LCOC(float d, float df) {
-	float K = float(height)*0.5f/df/tan(camera.fovy*0.5f); // screen-space LCOC scale
-	return K*E*abs(df-d)/d; // relative radius of COC against df (blocker depth)
+	float K = float(height)*0.5 / df / tan(camera.fovy*0.5); // screen-space LCOC scale
+	return K * E * abs(df-d) / d; // relative radius of COC against df (blocker depth)
 }
 
 bool inPVHV(ivec2 pixelCoords, vec3 fragViewPos, float blockerDepthNonLinear) {

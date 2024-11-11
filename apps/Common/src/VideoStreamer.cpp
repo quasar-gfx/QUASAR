@@ -16,7 +16,7 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params,
                              const std::string &videoURL,
                              unsigned int targetBitRateMbps,
                              const std::string &formatName)
-        : targetBitRate(targetBitRateMbps * MBPS_TO_BPS)
+        : targetBitRate(targetBitRateMbps * MB_TO_BITS)
         , formatName(formatName)
         , RenderTarget(params) {
     this->videoURL = (formatName == "mpegts") ?
@@ -348,7 +348,7 @@ void VideoStreamer::encodeAndSendFrames() {
         }
         stats.totalTimeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
 
-        stats.bitrateMbps = ((bytesSent * 8) / timeutils::millisToSeconds(stats.totalTimeToSendMs)) / MBPS_TO_BPS;
+        stats.bitrateMbps = ((bytesSent * 8) / timeutils::millisToSeconds(stats.totalTimeToSendMs)) / MB_TO_BITS;
 
         prevTime = timeutils::getTimeMicros();
     }

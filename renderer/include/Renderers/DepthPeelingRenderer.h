@@ -27,7 +27,13 @@ public:
 
     RenderStats compositeLayers();
 
+    void setViewBoxSize(float viewBoxSize) {
+        this->viewBoxSize = viewBoxSize;
+    }
+
 private:
+    bool edp = false;
+    float viewBoxSize = 1.0f;
     Shader compositeLayersShader;
 };
 
