@@ -115,8 +115,7 @@ int main(int argc, char** argv) {
         alignas(16) float depth;
         alignas(16) glm::vec2 uv;
         alignas(16) glm::uvec2 offset;
-        alignas(16) unsigned int size;
-        alignas(16) bool flattened;
+        alignas(16) unsigned int flattenedAndSize;
     };
     std::vector<Buffer<QuadMapData>> quadMaps(numQuadMaps);
     std::vector<glm::vec2> quadMapSizes(numQuadMaps);
