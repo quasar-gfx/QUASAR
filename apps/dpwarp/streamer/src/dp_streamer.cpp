@@ -110,18 +110,18 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera(windowSize.x, windowSize.y);
     camera.setViewMatrix(centerRemoteCamera->getViewMatrix());
 
-    struct QuadMapData {
+    struct QuadMapDataPacked {
         glm::uvec2 normal;
         float depth;
         glm::vec2 uv;
         unsigned int offset; // offset.xy packed into a single uint
         unsigned int flattenedAndSize; // flattened << 31 | size
     };
-    std::vector<Buffer<QuadMapData>> quadMaps(numQuadMaps);
+    std::vector<Buffer<QuadMapDataPacked>> quadMaps(numQuadMaps);
     std::vector<glm::vec2> quadMapSizes(numQuadMaps);
     glm::vec2 quadMapSize = maxProxySize;
     for (int i = 0; i < numQuadMaps; i++) {
-        quadMaps[i] = Buffer<QuadMapData>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, quadMapSize.x * quadMapSize.y, nullptr);
+        quadMaps[i] = Buffer<QuadMapDataPacked>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, quadMapSize.x * quadMapSize.y, nullptr);
         quadMapSizes[i] = quadMapSize;
         quadMapSize /= 2.0f;
     }
@@ -180,8 +180,8 @@ int main(int argc, char** argv) {
         sizesBuffers[view] = Buffer<BufferSizes>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, &bufferSizes);
 
         meshes[view] = new Mesh({
-            .numVertices = maxVertices,
-            .numIndices = maxIndices,
+            .numVertices = maxVertices / (view == 0 || view == maxViews - 1 ? 1 : 4),
+            .numIndices = maxIndices / (view == 0 || view == maxViews - 1 ? 1 : 4),
             .material = new QuadMaterial({ .baseColorTexture = &renderTargets[view]->colorBuffer }),
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true
@@ -358,7 +358,7 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
-            unsigned int proxySizeMb = totalProxies * 8*sizeof(QuadMapData) / MB_TO_BITS;
+            unsigned int proxySizeMb = totalProxies * 8*sizeof(QuadMapDataPacked) / MB_TO_BITS;
             unsigned int depthOffsetSizeMb = totalDepthOffsets * 8*sizeof(uint16_t) / MB_TO_BITS;
             ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%d Mb)", totalProxies, proxySizeMb);
             ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%d Mb)", totalDepthOffsets, depthOffsetSizeMb);

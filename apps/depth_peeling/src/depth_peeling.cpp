@@ -95,6 +95,7 @@ int main(int argc, char** argv) {
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = true;
+        static bool showLayerPreviews = true;
         static bool showCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
@@ -112,6 +113,7 @@ int main(int argc, char** argv) {
         if (ImGui::BeginMenu("View")) {
             ImGui::MenuItem("FPS", 0, &showFPS);
             ImGui::MenuItem("UI", 0, &showUI);
+            ImGui::MenuItem("Layer Previews", 0, &showLayerPreviews);
             ImGui::MenuItem("Frame Capture", 0, &showCaptureWindow);
             ImGui::EndMenu();
         }
@@ -203,22 +205,19 @@ int main(int argc, char** argv) {
             ImGui::End();
         }
 
-        flags = ImGuiWindowFlags_AlwaysAutoResize;
+        if (showLayerPreviews) {
+            flags = ImGuiWindowFlags_AlwaysAutoResize;
 
-        const int texturePreviewSize = (windowSize.x * 2/3) / renderer.maxLayers;
+            const int texturePreviewSize = (windowSize.x * 2/3) / renderer.maxLayers;
 
-        for (int i = 0; i < renderer.maxLayers; i++) {
-            int layerIdx = renderer.maxLayers - i - 1;
+            for (int i = 0; i < renderer.maxLayers; i++) {
+                int layerIdx = renderer.maxLayers - i - 1;
 
-            ImGui::SetNextWindowPos(ImVec2(windowSize.x - (i + 1) * texturePreviewSize - 30, 40), ImGuiCond_FirstUseEver);
-            ImGui::Begin(("Layer " + std::to_string(layerIdx) + " Color").c_str(), 0, flags);
-            ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[layerIdx]->colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
-            ImGui::End();
-
-            ImGui::SetNextWindowPos(ImVec2(windowSize.x - (i + 1) * texturePreviewSize - 30, 40 + 60 + texturePreviewSize), ImGuiCond_FirstUseEver);
-            ImGui::Begin(("Layer " + std::to_string(layerIdx) + " Depth").c_str(), 0, flags);
-            ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[layerIdx]->depthStencilBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
-            ImGui::End();
+                ImGui::SetNextWindowPos(ImVec2(windowSize.x - (i + 1) * texturePreviewSize - 30, 40), ImGuiCond_FirstUseEver);
+                ImGui::Begin(("Layer " + std::to_string(layerIdx) + " Color").c_str(), 0, flags);
+                ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[layerIdx]->colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
+                ImGui::End();
+            }
         }
     });
 

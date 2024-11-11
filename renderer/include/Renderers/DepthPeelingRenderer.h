@@ -11,7 +11,7 @@ public:
     GeometryBuffer gBuffer;
     std::vector<GeometryBuffer*> peelingLayers;
 
-    DepthPeelingRenderer(const Config &config, unsigned int maxLayers = 8, bool edp = false);
+    DepthPeelingRenderer(const Config &config, unsigned int maxLayers = 4, bool edp = false);
     ~DepthPeelingRenderer() = default;
 
     void setScreenShaderUniforms(const Shader &screenShader) override;
@@ -32,7 +32,7 @@ public:
     }
 
 private:
-    bool edp = false;
+    bool edp;
     float viewBoxSize = 1.0f;
     Shader compositeLayersShader;
 };

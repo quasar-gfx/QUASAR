@@ -189,8 +189,8 @@ int main(int argc, char** argv) {
         sizesBuffers[view] = Buffer<BufferSizes>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, &bufferSizes);
 
         meshes[view] = new Mesh({
-            .numVertices = maxVertices / 2,
-            .numIndices = maxIndices / 2,
+            .numVertices = maxVertices / (view == 0 || view == maxViews - 1 ? 1 : 4),
+            .numIndices = maxIndices / (view == 0 || view == maxViews - 1 ? 1 : 4),
             .material = new QuadMaterial({ .baseColorTexture = &renderTargets[view]->colorBuffer }),
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true

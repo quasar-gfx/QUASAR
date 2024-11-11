@@ -410,7 +410,7 @@ void mergeQuadMapData(
         vec2 proxyPlaneUV = quadMapData.uv;
         vec2 proxyPlanePixelCoords = vec2(proxyPlaneUV * remoteWindowSize);
 
-        uint size = quadMapData.size;
+        uint size = 1 << quadMapData.size;
         float halfGridSize = float(size) * surfelSize / 2;
 
         // calculate new depth offsets relative to new proxy plane
@@ -449,7 +449,7 @@ void mergeQuadMapData(
     mergedQuadMapData.uv = newProxyPlaneUV;
     mergedQuadMapData.depth = newProxyPlaneDepth;
     mergedQuadMapData.offset = quadMapDataBottomLeft.offset;
-    mergedQuadMapData.size = 2 * quadMapDataBottomLeft.size;
+    mergedQuadMapData.size = quadMapDataBottomLeft.size + 1;
 }
 
 void main() {
@@ -476,7 +476,13 @@ void main() {
 
     QuadMapData mergedQuadMapData;
     mergedQuadMapData.size = 0; // by default, ignore the quad
-    if (shouldMerge(proxyPlaneBottomLeft, proxyPlaneBottomRight, proxyPlaneTopLeft, proxyPlaneTopRight)) {
+
+    // if any of the loaded proxy planes are empty, ignore the quad
+    if (quadMapDataBottomLeft.size == 0 || quadMapDataBottomRight.size == 0 ||
+           quadMapDataTopLeft.size == 0 || quadMapDataTopRight.size == 0) {
+        storeInOutputQuadMap(pixelCoord, mergedQuadMapData);
+    }
+    else if (shouldMerge(proxyPlaneBottomLeft, proxyPlaneBottomRight, proxyPlaneTopLeft, proxyPlaneTopRight)) {
         // merge the proxy planes
         mergeQuadMapData(
             mergedQuadMapData,

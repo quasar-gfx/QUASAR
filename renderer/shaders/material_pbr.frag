@@ -364,13 +364,13 @@ vec3 calcPointLight(PointLight light, PBRInfo pbrInputs) {
 #ifdef DO_DEPTH_PEELING
 #define MAX_DEPTH 0.9999
 
-#define EDP_DELTA 0.001
+#define EDP_DELTA 0.0008
 #define EDP_SAMPLES 16
 
 float linearizeAndNormalizeDepth(float depth) {
     float z = depth * 2.0 - 1.0; // back to NDC
     float linearized = (2.0 * camera.near * camera.far) / (camera.far + camera.near - z * (camera.far - camera.near));
-    return linearized / camera.far;
+    return (linearized - camera.near) / (camera.far - camera.near);
 }
 
 float LCOC(float d, float df) {
