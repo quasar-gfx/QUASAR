@@ -102,8 +102,8 @@ int main(int argc, char** argv) {
         alignas(16) glm::vec3 normal;
         alignas(16) float depth;
         alignas(16) glm::vec2 uv;
-        alignas(16) glm::uvec2 offset;
-        alignas(16) unsigned int flattenedAndSize;
+        alignas(16) unsigned int offset; // offset.xy packed into a single uint
+        alignas(16) unsigned int flattenedAndSize; // flattened << 31 | size
     };
     std::vector<Buffer<QuadMapDataPacked>> quadMaps(numQuadMaps);
     std::vector<glm::uvec2> quadMapSizes(numQuadMaps);

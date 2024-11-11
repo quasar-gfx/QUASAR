@@ -22,7 +22,7 @@ struct QuadMapDataPacked {
     vec3 normal;
     float depth;
     vec2 uv;
-    ivec2 offset;
+    uint offset;
     uint flattenedAndSize;
 };
 
@@ -204,7 +204,8 @@ QuadMapData loadQuadMap(ivec2 pixelCoord) {
     quadMapData.normal = quadMapDataPacked.normal;
     quadMapData.depth = quadMapDataPacked.depth;
     quadMapData.uv = quadMapDataPacked.uv;
-    quadMapData.offset = quadMapDataPacked.offset;
+    quadMapData.offset.x = int(quadMapDataPacked.offset & 0xFFFFu);
+    quadMapData.offset.y = int((quadMapDataPacked.offset >> 16) & 0xFFFFu);
     quadMapData.flattened = (quadMapDataPacked.flattenedAndSize & (1u << 31)) != 0;
     quadMapData.size = quadMapDataPacked.flattenedAndSize & 0x7FFFFFFF;
     return quadMapData;
