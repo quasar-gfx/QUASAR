@@ -99,11 +99,11 @@ int main(int argc, char** argv) {
     camera.setViewMatrix(remoteCamera.getViewMatrix());
 
     struct QuadMapDataPacked {
-        alignas(16) glm::vec3 normal;
-        alignas(16) float depth;
-        alignas(16) glm::vec2 uv;
-        alignas(16) unsigned int offset; // offset.xy packed into a single uint
-        alignas(16) unsigned int flattenedAndSize; // flattened << 31 | size
+        glm::uvec2 normal;
+        float depth;
+        glm::vec2 uv;
+        unsigned int offset; // offset.xy packed into a single uint
+        unsigned int flattenedAndSize; // flattened << 31 | size
     };
     std::vector<Buffer<QuadMapDataPacked>> quadMaps(numQuadMaps);
     std::vector<glm::uvec2> quadMapSizes(numQuadMaps);

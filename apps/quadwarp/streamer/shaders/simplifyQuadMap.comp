@@ -10,7 +10,7 @@ struct QuadMapData {
 };
 
 struct QuadMapDataPacked {
-    vec3 normal;
+    uvec2 normal;
     float depth;
     vec2 uv;
     uint offset;
@@ -202,7 +202,8 @@ QuadMapData loadInputQuadMap(ivec2 pixelCoord) {
     QuadMapDataPacked quadMapDataPacked = inputQuadMap[index];
 
     QuadMapData quadMapData;
-    quadMapData.normal = quadMapDataPacked.normal;
+    quadMapData.normal.xy = unpackHalf2x16(quadMapDataPacked.normal.x);
+    quadMapData.normal.z = unpackHalf2x16(quadMapDataPacked.normal.y).x;
     quadMapData.depth = quadMapDataPacked.depth;
     quadMapData.uv = quadMapDataPacked.uv;
     quadMapData.offset.x = int(quadMapDataPacked.offset & 0xFFFFu);
@@ -218,7 +219,8 @@ float loadDepthOffset(in ivec2 pixelCoord) {
 
 void storeInOutputQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
     QuadMapDataPacked quadMapDataPacked;
-    quadMapDataPacked.normal = quadMapData.normal;
+    quadMapDataPacked.normal.x = packHalf2x16(quadMapData.normal.xy);
+    quadMapDataPacked.normal.y = packHalf2x16(vec2(quadMapData.normal.z, 0.0));
     quadMapDataPacked.depth = quadMapData.depth;
     quadMapDataPacked.uv = quadMapData.uv;
     quadMapDataPacked.offset = (quadMapData.offset.x & 0xFFFFu) | ((quadMapData.offset.y & 0xFFFFu) << 16);
