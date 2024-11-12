@@ -46,7 +46,7 @@ public:
         if (res != prevPoses.end()) { // found
             *pose = res->second;
             if (elapsedTime) {
-                *elapsedTime = timeutils::getTimeMillis() - pose->timestamp;
+                *elapsedTime = (timeutils::getTimeMicros() - pose->timestamp) / MICROSECONDS_IN_MILLISECOND;
             }
 
             return true;
@@ -96,7 +96,7 @@ public:
             //     return false;
             // }
         }
-        currPose.timestamp = timeutils::getTimeMillis();
+        currPose.timestamp = timeutils::getTimeMicros();
         streamer.send((uint8_t*)&currPose);
 
         prevPoses[currPoseID] = currPose;

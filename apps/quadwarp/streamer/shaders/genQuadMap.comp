@@ -646,20 +646,23 @@ void main() {
     storeInQuadMap(pixelCoord, ignoredQuadMapData);
 
     // calculate coords (see above)
-    vec2 surfelCornerCoordBottomLeft = vec2(gl_GlobalInvocationID.xy);
+    vec2 surfelCornerCoordBottomLeft = vec2(pixelCoord);
     vec2 pixelCenterCoord = surfelCornerCoordBottomLeft + vec2(0.5, 0.5);
     vec2 surfelCenterCoord = pixelCenterCoord;
 
+    ivec2 minBounds = ivec2(0);
+    ivec2 maxBounds = ivec2(remoteWindowSize) - ivec2(1);
+
     MultiQuad2D pixelCenterCoords;
-    pixelCenterCoords.bottomLeft  = pixelCenterCoord + vec2(-1, -1);
-    pixelCenterCoords.bottom      = pixelCenterCoord + vec2(+0, -1);
-    pixelCenterCoords.bottomRight = pixelCenterCoord + vec2(+1, -1);
-    pixelCenterCoords.left        = pixelCenterCoord + vec2(-1, +0);
-    pixelCenterCoords.center      = pixelCenterCoord + vec2(+0, +0);
-    pixelCenterCoords.right       = pixelCenterCoord + vec2(+1, +0);
-    pixelCenterCoords.topLeft     = pixelCenterCoord + vec2(-1, +1);
-    pixelCenterCoords.top         = pixelCenterCoord + vec2(+0, +1);
-    pixelCenterCoords.topRight    = pixelCenterCoord + vec2(+1, +1);
+    pixelCenterCoords.bottomLeft  = clamp(pixelCenterCoord + vec2(-1, -1), minBounds, maxBounds);
+    pixelCenterCoords.bottom      = clamp(pixelCenterCoord + vec2(+0, -1), minBounds, maxBounds);
+    pixelCenterCoords.bottomRight = clamp(pixelCenterCoord + vec2(+1, -1), minBounds, maxBounds);
+    pixelCenterCoords.left        = clamp(pixelCenterCoord + vec2(-1, +0), minBounds, maxBounds);
+    pixelCenterCoords.center      = clamp(pixelCenterCoord + vec2(+0, +0), minBounds, maxBounds);
+    pixelCenterCoords.right       = clamp(pixelCenterCoord + vec2(+1, +0), minBounds, maxBounds);
+    pixelCenterCoords.topLeft     = clamp(pixelCenterCoord + vec2(-1, +1), minBounds, maxBounds);
+    pixelCenterCoords.top         = clamp(pixelCenterCoord + vec2(+0, +1), minBounds, maxBounds);
+    pixelCenterCoords.topRight    = clamp(pixelCenterCoord + vec2(+1, +1), minBounds, maxBounds);
 
     MultiQuad2D surfelCornerCoords;
     surfelCornerCoords.bottomLeft  = surfelCenterCoord + vec2(-0.5, -0.5);

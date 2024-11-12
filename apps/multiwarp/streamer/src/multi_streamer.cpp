@@ -277,8 +277,8 @@ int main(int argc, char** argv) {
     bool preventCopyingLocalPose = false;
     float distanceThreshold = 0.75f;
     float angleThreshold = 45.0f;
-    float flatThreshold = 0.5f;
-    float proxySimilarityThreshold = 0.1f;
+    float flatThreshold = 2.5f;
+    float proxySimilarityThreshold = 0.25f;
     bool restrictMovementToViewBox = false;
     float viewBoxSize = 1.0f;
     const int intervalValues[] = {0, 25, 50, 100, 200, 500, 1000};
@@ -367,10 +367,10 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
-            unsigned int proxySizeMb = totalProxies * 8*sizeof(QuadMapDataPacked) / MB_TO_BITS;
-            unsigned int depthOffsetSizeMb = totalDepthOffsets * 8*sizeof(uint16_t) / MB_TO_BITS;
-            ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%d Mb)", totalProxies, proxySizeMb);
-            ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%d Mb)", totalDepthOffsets, depthOffsetSizeMb);
+            float proxySizeMb = static_cast<float>(totalProxies * 8*sizeof(QuadMapDataPacked)) / MB_TO_BITS;
+            float depthOffsetSizeMb = static_cast<float>(totalDepthOffsets * 8*sizeof(uint16_t)) / MB_TO_BITS;
+            ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%.3f Mb)", totalProxies, proxySizeMb);
+            ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%.3f Mb)", totalDepthOffsets, depthOffsetSizeMb);
 
             ImGui::Separator();
 
@@ -430,7 +430,7 @@ int main(int argc, char** argv) {
                 rerender = true;
             }
 
-            if (ImGui::SliderFloat("Flat Threshold (x1e-2)", &flatThreshold, 0.0f, 10.0f)) {
+            if (ImGui::SliderFloat("Flat Threshold (x0.1)", &flatThreshold, 0.0f, 10.0f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
             }
@@ -722,7 +722,7 @@ int main(int argc, char** argv) {
                     genQuadMapShader.setBool("doOrientationCorrection", doOrientationCorrection);
                     genQuadMapShader.setFloat("distanceThreshold", distanceThreshold);
                     genQuadMapShader.setFloat("angleThreshold", glm::radians(angleThreshold));
-                    genQuadMapShader.setFloat("flatThreshold", flatThreshold * 1e-2f);
+                    genQuadMapShader.setFloat("flatThreshold", flatThreshold * 0.1f);
                 }
                 {
                     genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, quadMaps[0]);
@@ -765,7 +765,7 @@ int main(int argc, char** argv) {
                         simplifyQuadMapShader.setVec2("depthBufferSize", depthBufferSize);
                     }
                     {
-                        simplifyQuadMapShader.setFloat("flatThreshold", flatThreshold * 1e-2f);
+                        simplifyQuadMapShader.setFloat("flatThreshold", flatThreshold * 0.1f);
                         simplifyQuadMapShader.setFloat("proxySimilarityThreshold", proxySimilarityThreshold);
                     }
                     {

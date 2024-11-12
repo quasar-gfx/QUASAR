@@ -164,14 +164,14 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoTexture.getFrameRate(), 1000.0f / videoTexture.getFrameRate());
-            ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: %.1f ms", elapsedTime);
+            ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: %.3f ms", elapsedTime);
 
             ImGui::Separator();
 
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to receive frame: %.1f ms", videoTexture.stats.timeToReceiveMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decode frame: %.1f ms", videoTexture.stats.timeToDecodeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to resize frame: %.1f ms", videoTexture.stats.timeToResizeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: %.1f Mbps", videoTexture.stats.bitrateMbps);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to receive frame: %.3f ms", videoTexture.stats.timeToReceiveMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decode frame: %.3f ms", videoTexture.stats.timeToDecodeMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to resize frame: %.3f ms", videoTexture.stats.timeToResizeMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: %.3f Mbps", videoTexture.stats.bitrateMbps);
 
             // show currentFramePose
             ImGui::Separator();

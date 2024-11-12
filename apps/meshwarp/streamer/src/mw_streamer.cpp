@@ -198,9 +198,9 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: RGB (%.1f ms), BC4 D (%.1f ms)", videoStreamerColorRT.stats.timeToCopyFrameMs, BC4videoStreamerDepthRT.stats.timeToCopyFrameMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: RGB (%.1f ms), BC4 D (%.1f ms)", videoStreamerColorRT.stats.timeToSendMs, BC4videoStreamerDepthRT.stats.timeToSendMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: RGB (%.1f Mbps), BC4 D (%.1f Mbps)", videoStreamerColorRT.stats.bitrateMbps, BC4videoStreamerDepthRT.stats.bitrateMbps);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: RGB (%.3f ms), BC4 D (%.3f ms)", videoStreamerColorRT.stats.timeToCopyFrameMs, BC4videoStreamerDepthRT.stats.timeToCopyFrameMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: RGB (%.3f ms), BC4 D (%.3f ms)", videoStreamerColorRT.stats.timeToSendMs, BC4videoStreamerDepthRT.stats.timeToSendMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: RGB (%.3f Mbps), BC4 D (%.3f Mbps)", videoStreamerColorRT.stats.bitrateMbps, BC4videoStreamerDepthRT.stats.bitrateMbps);
 
             ImGui::Separator();
 
