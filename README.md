@@ -5,6 +5,7 @@ Install dependencies:
 # Linux (reccomended)
 sudo apt-get install \
     cmake \
+    pkg-config \
     libglew-dev \
     libglfw3-dev \
     libao-dev \
@@ -23,7 +24,7 @@ NVIDIA GPUs are highly reccomended.
 
 ```
 # Mac (not reccomended for streaming, but works)
-brew install cmake glew glfw3 ffmpeg
+brew install cmake glew glfw3 ffmpeg pkg-config
 ```
 
 # Building
@@ -46,7 +47,7 @@ Run Scene Viewer app:
 ```
 # in build directory
 cd apps/scene_viewer
-./scene_viewer --size 2048x2048 --scene ../assets/scenes/sponza.json
+./scene_viewer --size 1920x1080 --scene ../assets/scenes/sponza.json
 ```
 
 ## Asynchronous Time Warp (ATW)
@@ -57,14 +58,14 @@ To run streamer:
 ```
 # in build directory
 cd apps/atw/streamer
-./atw_streamer --size 2048x2048 --scene ../assets/scenes/sponza.json --display 1
+./atw_streamer --size 1920x1080 --scene ../assets/scenes/sponza.json --display 1
 ```
 
 In a new terminal, to run receiver:
 ```
 # in build directory
 cd apps/atw/receiver
-./atw_receiver --size 2048x2048
+./atw_receiver --size 1920x1080
 ```
 
 ## MeshWarp
@@ -75,14 +76,14 @@ To run streamer:
 ```
 # in build directory
 cd apps/meshwarp/streamer
-./mw_streamer --size 2048x2048 --scene ../assets/scenes/sponza.json --display 1
+./mw_streamer --size 1920x1080 --scene ../assets/scenes/sponza.json --display 1
 ```
 
 In a new terminal, to run receiver:
 ```
 # in build directory
 cd apps/meshwarp/receiver
-./mw_receiver --size 2048x2048
+./mw_receiver --size 1920x1080
 ```
 
 ## QuadWarp
@@ -92,5 +93,5 @@ To run QuadWarp sample:
 ```
 # in build directory
 cd apps/quadwarp/streamer
-./quads_streamer --size 2048x2048 --size2 512x512 --scene ../assets/scenes/sponza.json
+./quads_streamer --size 1920x1080 --size2 512x512 --scene ../assets/scenes/sponza.json
 ```
