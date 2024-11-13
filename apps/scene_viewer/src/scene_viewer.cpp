@@ -13,6 +13,8 @@
 
 #include <Utils/Utils.h>
 
+#include <lz4_stream/lz4_stream.h>
+
 int main(int argc, char** argv) {
     Config config{};
     config.title = "Scene Viewer";
