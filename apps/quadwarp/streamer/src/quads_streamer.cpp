@@ -232,7 +232,7 @@ int main(int argc, char** argv) {
     bool preventCopyingLocalPose = false;
     float distanceThreshold = 0.75f;
     float angleThreshold = 45.0f;
-    float flatThreshold = 2.5f;
+    float flatThreshold = 1.0f;
     float proxySimilarityThreshold = 0.25f;
     bool restrictMovementToViewBox = false;
     float viewBoxSize = 1.0f;
@@ -370,7 +370,7 @@ int main(int argc, char** argv) {
                 rerender = true;
             }
 
-            if (ImGui::SliderFloat("Flat Threshold (x0.1)", &flatThreshold, 0.0f, 10.0f)) {
+            if (ImGui::SliderFloat("Flat Threshold (x0.01)", &flatThreshold, 0.0f, 10.0f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
             }
@@ -571,7 +571,7 @@ int main(int argc, char** argv) {
                 genQuadMapShader.setBool("doOrientationCorrection", doOrientationCorrection);
                 genQuadMapShader.setFloat("distanceThreshold", distanceThreshold);
                 genQuadMapShader.setFloat("angleThreshold", glm::radians(angleThreshold));
-                genQuadMapShader.setFloat("flatThreshold", flatThreshold * 0.1f);
+                genQuadMapShader.setFloat("flatThreshold", flatThreshold * 1e-2f);
             }
             {
                 genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, quadMaps[0]);
@@ -614,7 +614,7 @@ int main(int argc, char** argv) {
                     simplifyQuadMapShader.setVec2("depthBufferSize", depthBufferSize);
                 }
                 {
-                    simplifyQuadMapShader.setFloat("flatThreshold", flatThreshold * 0.1f);
+                    simplifyQuadMapShader.setFloat("flatThreshold", flatThreshold * 1e-2f);
                     simplifyQuadMapShader.setFloat("proxySimilarityThreshold", proxySimilarityThreshold);
                 }
                 {

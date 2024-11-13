@@ -347,16 +347,11 @@ Plane planeEqToPlane(in PlaneEq planeEq) {
     return plane;
 }
 
-PlaneEq averagePlaneEqs(in PlaneEq planeEq1, in PlaneEq planeEq2, in PlaneEq planeEq3, in PlaneEq planeEq4) {
-    PlaneEq averagePlaneEq;
-    averagePlaneEq.normal = (planeEq1.normal + planeEq2.normal + planeEq3.normal + planeEq4.normal) / 4.0;
-    averagePlaneEq.constant = (planeEq1.constant + planeEq2.constant + planeEq3.constant + planeEq4.constant) / 4.0;
-
-    float normalLength = length(averagePlaneEq.normal);
-    averagePlaneEq.normal /= normalLength;
-    averagePlaneEq.constant /= normalLength;
-
-    return averagePlaneEq;
+Plane averagePlanes(in Plane plane1, in Plane plane2, in Plane plane3, in Plane plane4) {
+    Plane averagePlane;
+    averagePlane.normal = normalize((plane1.normal + plane2.normal + plane3.normal + plane4.normal) / 4.0);
+    averagePlane.point = (plane1.point + plane2.point + plane3.point + plane4.point) / 4.0;
+    return averagePlane;
 }
 
 bool shouldMerge(in Plane proxyPlaneBottomLeft, in Plane proxyPlaneBottomRight, in Plane proxyPlaneTopLeft, in Plane proxyPlaneTopRight) {
@@ -365,6 +360,7 @@ bool shouldMerge(in Plane proxyPlaneBottomLeft, in Plane proxyPlaneBottomRight, 
     PlaneEq proxyPlaneEqTopLeft     = planeToPlaneEq(proxyPlaneTopLeft);
     PlaneEq proxyPlaneEqTopRight    = planeToPlaneEq(proxyPlaneTopRight);
 
+    // we merge the quad if all the proxy planes are similar
     return planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight) &&
            planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft) &&
            planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight) &&
@@ -378,14 +374,8 @@ void mergeQuadMapData(
     in Plane proxyPlaneBottomLeft, in Plane proxyPlaneBottomRight, in Plane proxyPlaneTopLeft, in Plane proxyPlaneTopRight,
     in QuadMapData quadMapDataBottomLeft, in QuadMapData quadMapDataBottomRight, in QuadMapData quadMapDataTopLeft, in QuadMapData quadMapDataTopRight
 ) {
-    // get average plane normal and point
-    PlaneEq planeEqBottomLeft = planeToPlaneEq(proxyPlaneBottomLeft);
-    PlaneEq planeEqBottomRight = planeToPlaneEq(proxyPlaneBottomRight);
-    PlaneEq planeEqTopLeft = planeToPlaneEq(proxyPlaneTopLeft);
-    PlaneEq planeEqTopRight = planeToPlaneEq(proxyPlaneTopRight);
-
-    PlaneEq averagePlaneEq = averagePlaneEqs(planeEqBottomLeft, planeEqBottomRight, planeEqTopLeft, planeEqTopRight);
-    Plane newProxyPlane = planeEqToPlane(averagePlaneEq);
+    // get average plane
+    Plane newProxyPlane = averagePlanes(proxyPlaneBottomLeft, proxyPlaneBottomRight, proxyPlaneTopLeft, proxyPlaneTopRight);
 
     // find what depth the average uv maps to on the new plane
     vec2 averageUV = (quadMapDataBottomLeft.uv + quadMapDataBottomRight.uv + quadMapDataTopLeft.uv + quadMapDataTopRight.uv) / 4.0;
