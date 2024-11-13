@@ -114,8 +114,10 @@ uniform struct Camera {
 #ifdef DO_DEPTH_PEELING
 uniform bool peelDepth;
 uniform sampler2D prevDepthMap;
+
 uniform int height;
 uniform float E;
+uniform float edpDelta;
 #endif
 
 const float PI = 3.1415926535897932384626433832795;
@@ -364,7 +366,6 @@ vec3 calcPointLight(PointLight light, PBRInfo pbrInputs) {
 #ifdef DO_DEPTH_PEELING
 #define MAX_DEPTH 0.9999
 
-#define EDP_DELTA 0.0008
 #define EDP_SAMPLES 16
 
 float linearizeAndNormalizeDepth(float depth) {
@@ -391,12 +392,12 @@ bool inPVHV(ivec2 pixelCoords, vec3 fragViewPos, float blockerDepthNonLinear) {
         vec2 offset = vec2(x, y);
 
         float sampleDepthNonLinear = texelFetch(prevDepthMap, ivec2(round(vec2(pixelCoords) + offset)), 0).r;
-        if (sampleDepthNonLinear == 0) return true;
-        if (sampleDepthNonLinear >= MAX_DEPTH) continue;
-
         float sampleDepthNormalized = linearizeAndNormalizeDepth(sampleDepthNonLinear);
-        if      (sampleDepthNormalized >= blockerDepthNormalized + EDP_DELTA) return true;
-        else if (sampleDepthNormalized <= blockerDepthNormalized - EDP_DELTA) return true;
+        if (sampleDepthNormalized == 0) return true;
+        if (sampleDepthNormalized >= MAX_DEPTH) continue;
+
+        if      (sampleDepthNormalized >= blockerDepthNormalized + edpDelta) return true;
+        else if (sampleDepthNormalized <= blockerDepthNormalized - edpDelta) return true;
     }
     return false;
 }

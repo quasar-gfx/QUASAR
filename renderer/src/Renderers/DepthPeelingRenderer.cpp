@@ -56,6 +56,7 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &ca
         PBRMaterial::shader->bind();
         PBRMaterial::shader->setInt("height", gBuffer.height);
         PBRMaterial::shader->setFloat("E", (viewBoxSize / 2.0f) * glm::sqrt(3.0f));
+        PBRMaterial::shader->setFloat("edpDelta", 0.0005);
     }
 
     for (int i = 0; i < maxLayers; i++) {
