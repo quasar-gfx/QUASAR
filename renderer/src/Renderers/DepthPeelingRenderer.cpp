@@ -15,6 +15,7 @@ DepthPeelingRenderer::DepthPeelingRenderer(const Config &config, unsigned int ma
         , edp(edp)
         , OpenGLRenderer(config) {
     PBRMaterial::extraShaderDefines.push_back("#define DO_DEPTH_PEELING");
+    UnlitMaterial::extraShaderDefines.push_back("#define DO_DEPTH_PEELING");
     if (edp) {
         PBRMaterial::extraShaderDefines.push_back("#define EDP");
     }
@@ -56,7 +57,12 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &ca
         PBRMaterial::shader->bind();
         PBRMaterial::shader->setInt("height", gBuffer.height);
         PBRMaterial::shader->setFloat("E", (viewBoxSize / 2.0f) * glm::sqrt(3.0f));
-        PBRMaterial::shader->setFloat("edpDelta", 0.0005);
+        PBRMaterial::shader->setFloat("edpDelta", edpDelta);
+
+        UnlitMaterial::shader->bind();
+        UnlitMaterial::shader->setInt("height", gBuffer.height);
+        UnlitMaterial::shader->setFloat("E", (viewBoxSize / 2.0f) * glm::sqrt(3.0f));
+        UnlitMaterial::shader->setFloat("edpDelta", edpDelta);
     }
 
     for (int i = 0; i < maxLayers; i++) {
