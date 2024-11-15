@@ -24,8 +24,6 @@ BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams &params, std::
     data = std::vector<uint8_t>(sizeof(pose_id_t) + compressedSize * sizeof(Block));
     bc4CompressedBuffer = Buffer<Block>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, compressedSize, nullptr);
 
-    std::cout << "Created BC4DepthStreamer that sends to URL: " << receiverURL << std::endl;
-
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     cudautils::checkCudaDevice();
     CHECK_CUDA_ERROR(cudaGraphicsGLRegisterBuffer(&cudaResource, bc4CompressedBuffer, cudaGraphicsRegisterFlagsNone));
@@ -33,6 +31,8 @@ BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams &params, std::
     running = true;
     dataSendingThread = std::thread(&BC4DepthStreamer::sendData, this);
 #endif
+
+    std::cout << "Created BC4DepthStreamer that sends to URL: " << receiverURL << std::endl;
 }
 
 BC4DepthStreamer::~BC4DepthStreamer() {
@@ -90,47 +90,47 @@ void BC4DepthStreamer::sendFrame(pose_id_t poseID) {
     cv.notify_one();
 #else
     float startTime = timeutils::getTimeMicros();
-    
+
     // Ensure data buffer has correct size
     size_t fullSize = sizeof(pose_id_t) + compressedSize * sizeof(Block);
     data.resize(fullSize);
-    
+
     // Copy data
     std::memcpy(data.data(), &poseID, sizeof(pose_id_t));
     bc4CompressedBuffer.bind();
     bc4CompressedBuffer.getData(data.data() + sizeof(pose_id_t));
     bc4CompressedBuffer.unbind();
-    
+
     stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
-    
+
     // Compress with LZ4 using direct buffer operations instead of streams
     startTime = timeutils::getTimeMicros();
-    
+
     // Calculate max compressed size
     size_t maxCompressedSize = LZ4F_compressFrameBound(fullSize, nullptr);
     lz4Buffer.resize(maxCompressedSize);
-    
+
     // Compress in one shot
     LZ4F_preferences_t prefs = {};
     size_t compressedSize = LZ4F_compressFrame(lz4Buffer.data(), lz4Buffer.size(),
                                               data.data(), data.size(),
                                               &prefs);
-    
+
     if (LZ4F_isError(compressedSize)) {
         std::cerr << "LZ4 compression failed: " << LZ4F_getErrorName(compressedSize) << std::endl;
         return;
     }
-    
+
     // Resize buffer to actual compressed size
     lz4Buffer.resize(compressedSize);
-    
+
     stats.timeToCompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
     stats.lz4CompressionRatio = static_cast<float>(data.size()) / compressedSize;
-    
+
     streamer.send(lz4Buffer);
-    
-    // std::cout << "Frame Stats - Original: " << data.size() 
-    //           << " bytes, Compressed: " << compressedSize 
+
+    // std::cout << "Frame Stats - Original: " << data.size()
+    //           << " bytes, Compressed: " << compressedSize
     //           << " bytes, Ratio: " << stats.lz4CompressionRatio << std::endl;
 #endif
 }
@@ -167,15 +167,15 @@ void BC4DepthStreamer::sendData() {
 
         // Compress with LZ4
         startTime = timeutils::getTimeMicros();
-        
+
         std::stringstream compressed;
         lz4_stream::ostream lz4_compressor(compressed);
         lz4_compressor.write(reinterpret_cast<const char*>(data.data()), data.size());
         lz4_compressor.close();
-        
+
         std::string compressedStr = compressed.str();
         lz4Buffer.assign(compressedStr.begin(), compressedStr.end());
-        
+
         stats.timeToCompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
         stats.lz4CompressionRatio = static_cast<float>(data.size()) / lz4Buffer.size();
 
@@ -190,12 +190,12 @@ void BC4DepthStreamer::sendData() {
 
         // Send LZ4 compressed data
         streamer.send(lz4Buffer);
-        
+
         stats.timeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
         stats.bitrateMbps = (lz4Buffer.size() * 8 / timeutils::millisToSeconds(stats.timeToSendMs)) / MB_TO_BITS;
-        
-        // std::cout << "LZ4 Compression Stats - Original: " << data.size() 
-        //           << " bytes, Compressed: " << lz4Buffer.size() 
+
+        // std::cout << "LZ4 Compression Stats - Original: " << data.size()
+        //           << " bytes, Compressed: " << lz4Buffer.size()
         //           << " bytes, Ratio: " << stats.lz4CompressionRatio << std::endl;
 
         prevTime = timeutils::getTimeMicros();

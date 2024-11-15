@@ -95,7 +95,7 @@ int main(int argc, char** argv) {
     BC4DepthVideoTexture videoTextureDepth({
         .width = windowSize.x / depthFactor,
         .height = windowSize.y / depthFactor,
-        .internalFormat = GL_R16F,
+        .internalFormat = GL_R32F,
         .format = GL_RED,
         .type = GL_FLOAT,
         .wrapS = GL_CLAMP_TO_EDGE,

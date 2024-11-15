@@ -1,8 +1,7 @@
-#include <iostream>
 #include <cstring>
 
-#include <Utils/FileIO.h>
-#include <VideoTexture.h>
+#include <Utils/TimeUtils.h>
+#include <VideoStreamer.h>
 
 #undef av_err2str
 #define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
@@ -13,291 +12,370 @@ static int interrupt_callback(void* ctx) {
     return shouldTerminate;
 }
 
-VideoTexture::VideoTexture(const TextureDataCreateParams &params,
-                          const std::string &url)
-        : Texture(params) {
+VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params,
+                             const std::string &videoURL,
+                             unsigned int targetBitRateMbps,
+                             const std::string &formatName)
+        : targetBitRate(targetBitRateMbps * MB_TO_BITS)
+        , formatName(formatName)
+        , RenderTarget(params) {
+    this->videoURL = (formatName == "mpegts") ?
+                        "udp://" + videoURL :
+                            formatName + "://" + videoURL;
+    this->videoWidth = width + poseIDOffset;
+    this->videoHeight = height;
 
-    dataReceiver = std::make_unique<DataReceiverTCP>(url, true);
-    dataReceiver->onDataReceived = [this](std::vector<uint8_t> data) {
-        std::lock_guard<std::mutex> lock(packetMutex);
-        packetQueue.push(std::move(data));
-    };
+    renderTargetCopy = new RenderTarget({
+        .width = width,
+        .height = height,
+        .internalFormat = colorBuffer.internalFormat,
+        .format = colorBuffer.format,
+        .type = colorBuffer.type,
+        .wrapS = colorBuffer.wrapS,
+        .wrapT = colorBuffer.wrapT,
+        .minFilter = colorBuffer.minFilter,
+        .magFilter = colorBuffer.magFilter,
+        .multiSampled = colorBuffer.multiSampled
+    });
 
-    videoReceiverThread = std::thread(&VideoTexture::receiveVideo, this);
-}
+    int ret;
 
-VideoTexture::~VideoTexture() {
-    shouldTerminate = true;
-    videoReady = false;
-
-    if (videoReceiverThread.joinable()) {
-        videoReceiverThread.join();
-    }
-
-    avcodec_free_context(&codecCtx);
-
-    avformat_close_input(&inputFormatCtx);
-    avformat_free_context(inputFormatCtx);
-
-    av_frame_free(&frame);
-    av_packet_unref(packet);
-    av_packet_free(&packet);
-
-    // av_free(buffer);
-
-    while (!frames.empty()) {
-        FrameData frameData = frames.front();
-        frameData.free();
-        frames.pop_front();
-    }
-}
-
-int VideoTexture::initFFMpeg() {
-    AVStream* inputVideoStream = nullptr;
-
-    std::cout << "Waiting to receive video..." << std::endl;
-
-    inputFormatCtx->interrupt_callback.callback = interrupt_callback;
-    inputFormatCtx->interrupt_callback.opaque = &shouldTerminate;
-
-    AVDictionary* options = nullptr;
-    av_dict_set(&options, "protocol_whitelist", "file,udp,rtp", 0);
-    av_dict_set(&options, "fflags", "nobuffer", 0);
-    // av_dict_set(&options, "buffer_size", "1000000", 0);
-    // av_dict_set(&options, "max_delay", "500000", 0);
-
-    /* Setup input (to read video from url) */
-    int ret = avformat_open_input(&inputFormatCtx, videoURL.c_str(), nullptr, &options); // blocking
+#if !defined(__APPLE__) && !defined(__ANDROID__)
+    ret = initCuda();
     if (ret < 0) {
-        av_log(nullptr, AV_LOG_ERROR, "Cannot open input URL: %s\n", av_err2str(ret));
-        return ret;
+        throw std::runtime_error("Error: Couldn't initialize CUDA");
     }
-
-    ret = avformat_find_stream_info(inputFormatCtx, nullptr);
-    if (ret < 0) {
-        av_log(nullptr, AV_LOG_ERROR, "Cannot find stream info: %s\n", av_err2str(ret));
-        return ret;
-    }
-
-    // find the video stream index
-    for (int i = 0; i < inputFormatCtx->nb_streams; i++) {
-        AVStream *stream = inputFormatCtx->streams[i];
-        AVCodecParameters *codec_params = stream->codecpar;
-        if (codec_params->codec_type == AVMEDIA_TYPE_VIDEO) {
-            videoStreamIndex = i;
-            inputVideoStream = stream;
-            break;
-        }
-    }
-
-    if (videoStreamIndex == -1 || inputVideoStream == nullptr) {
-        av_log(nullptr, AV_LOG_ERROR, "No video stream found in the input URL.\n");
-        return AVERROR_STREAM_NOT_FOUND;
-    }
-
-    /* Setup codec to decode input (video from URL) */
-#if defined(__linux__) && !defined(__ANDROID__)
-    std::string decoderName = "h264_cuvid";
-    auto codec = avcodec_find_decoder_by_name(decoderName.c_str());
-#else
-    auto codec = avcodec_find_decoder(inputVideoStream->codecpar->codec_id);
 #endif
-    if (!codec) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate decoder.\n");
-        return -1;
-    }
-    std::cout << "Decoder: " << codec->name << std::endl;
 
-    codecCtx = avcodec_alloc_context3(codec);
+    /* Setup codec to encode output (video to URL) */
+#ifdef __APPLE__
+    std::string encoderName = "h264_videotoolbox";
+#elif __linux__
+    std::string encoderName = "h264_nvenc";
+#else
+    std::string encoderName = "libx264";
+#endif
+    auto outputCodec = avcodec_find_encoder_by_name(encoderName.c_str());
+    std::cout << "Encoder: " << encoderName << std::endl;
+    if (!outputCodec) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate encoder.\n");
+        throw std::runtime_error("Video Streamer could not be created.");
+    }
+
+    codecCtx = avcodec_alloc_context3(outputCodec);
     if (!codecCtx) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate codec Ctx.\n");
-        return -1;
+        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate codec context.\n");
+        throw std::runtime_error("Video Streamer could not be created.");
     }
 
-    ret = avcodec_parameters_to_context(codecCtx, inputVideoStream->codecpar);
-    if (ret < 0) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't copy codec parameters to Ctx: %s\n", av_err2str(ret));
-        return ret;
-    }
+    codecCtx->pix_fmt = videoPixelFormat;
+    codecCtx->width = videoWidth;
+    codecCtx->height = videoHeight;
+    codecCtx->time_base = {1, targetFrameRate};
+    codecCtx->framerate = {targetFrameRate, 1};
+    codecCtx->bit_rate = targetBitRate;
+    codecCtx->gop_size = 60;    // One keyframe every second
+    codecCtx->max_b_frames = 0; // No B-frames for low latency
 
-    ret = avcodec_open2(codecCtx, codec, nullptr);
+    av_opt_set(codecCtx->priv_data, "preset", preset.c_str(), 0);
+    av_opt_set(codecCtx->priv_data, "tune", tune.c_str(), 0);
+    av_opt_set(codecCtx->priv_data, "zerolatency", "1", 0);
+    av_opt_set_int(codecCtx->priv_data, "delay", 0, 0);
+
+    ret = avcodec_open2(codecCtx, outputCodec, nullptr);
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't open codec: %s\n", av_err2str(ret));
-        return ret;
+        throw std::runtime_error("Video Streamer could not be created.");
     }
 
-    videoWidth = codecCtx->width;
-    videoHeight = codecCtx->height;
-    std::cout << "Video resolution: " << videoWidth << "x" << videoHeight << std::endl;
-
-    internalWidth = videoWidth;
-    internalHeight = videoHeight;
-
-    swsCtx = sws_getContext(videoWidth, videoHeight, codecCtx->pix_fmt,
-                            internalWidth, internalHeight, openglPixelFormat,
-                            SWS_BILINEAR, nullptr, nullptr, nullptr);
-
-    return 0;
-}
-
-pose_id_t VideoTexture::unpackPoseIDFromFrame(AVFrame* frame) {
-    // extract poseID from frame
-    const int numVotes = 32;
-    pose_id_t poseID = 0;
-    for (int i = 0; i < poseIDOffset; i++) {
-        int votes = 0;
-        for (int j = 0; j < numVotes; j++) {
-            int index = j * internalWidth * 3 + (internalWidth - 1 - i) * 3;
-            uint8_t value = frame->data[0][index];
-            if (value > 127) {
-                votes++;
-            }
-        }
-        poseID |= (votes > numVotes / 2) << i;
-    }
-
-    return poseID;
-}
-
-void VideoTexture::receiveVideo() {
-    int ret = initFFMpeg();
+    /* Setup output (to write video to URL) */
+    ret = avformat_alloc_output_context2(&outputFormatCtx, nullptr, formatName.c_str(), videoURL.c_str());
     if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate output context: %s\n", av_err2str(ret));
+        throw std::runtime_error("Video Streamer could not be created.");
+    }
+
+    outputFormatCtx->interrupt_callback.callback = interrupt_callback;
+    outputFormatCtx->interrupt_callback.opaque = &shouldTerminate;
+
+    outputVideoStream = avformat_new_stream(outputFormatCtx, outputCodec);
+    if (!outputVideoStream) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Could not create new video stream.\n");
+        throw std::runtime_error("Video Streamer could not be created.");
+    }
+
+    outputVideoStream->time_base = codecCtx->time_base;
+
+    ret = avcodec_parameters_from_context(outputVideoStream->codecpar, codecCtx);
+    if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Could not initialize stream codec parameters: %s\n", av_err2str(ret));
+        throw std::runtime_error("Video Streamer could not be created.");
+    }
+
+    // Open output URL
+    ret = avio_open(&outputFormatCtx->pb, this->videoURL.c_str(), AVIO_FLAG_WRITE);
+    if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Cannot open output URL\n");
+        throw std::runtime_error("Video Streamer could not be created.");
+    }
+
+    ret = avformat_write_header(outputFormatCtx, nullptr);
+    if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Error writing header\n");
+        throw std::runtime_error("Video Streamer could not be created.");
+    }
+
+    // rgba to yuv conversion
+    swsCtx = sws_getContext(videoWidth, videoHeight, rgbaPixelFormat,
+                            videoWidth, videoHeight, videoPixelFormat,
+                            SWS_BICUBIC, nullptr, nullptr, nullptr);
+    if (!swsCtx) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate conversion context\n");
+        throw std::runtime_error("Video Streamer could not be created.");
+    }
+
+    rgbaVideoFrameData = std::vector<uint8_t>(videoWidth * videoHeight * 4);
+#if defined(__APPLE__) || defined(__ANDROID__)
+    openglFrameData = std::vector<uint8_t>(width * height * 4);
+#endif
+
+    /* setup frame */
+    frame->width = videoWidth;
+    frame->height = videoHeight;
+    frame->format = videoPixelFormat;
+    ret = av_frame_get_buffer(frame, 0);
+    if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate frame data: %s\n", av_err2str(ret));
         return;
     }
 
-    videoReady = true;
-    float prevTime = timeutils::getTimeMicros();
-    size_t bytesReceived = 0;
-    pose_id_t poseID = -1;
+    ret = av_frame_make_writable(frame);
+    if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Could not make frame writable: %s\n", av_err2str(ret));
+        return;
+    }
 
-    while (videoReady) {
-        int receiveFrameStartTime = timeutils::getTimeMicros();
+    /* setup packet */
+    ret = av_packet_make_writable(packet);
+    if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Could not make packet writable: %s\n", av_err2str(ret));
+        return;
+    }
 
-        // Get packet from queue
-        std::vector<uint8_t> packetData;
+    std::cout << "Created VideoStreamer that sends to URL: " << videoURL << " (" << formatName << ")" << std::endl;
+
+    videoStreamerThread = std::thread(&VideoStreamer::encodeAndSendFrames, this);
+}
+
+#if !defined(__APPLE__) && !defined(__ANDROID__)
+int VideoStreamer::initCuda() {
+    cudautils::checkCudaDevice();
+    // register opengl texture with cuda
+    CHECK_CUDA_ERROR(cudaGraphicsGLRegisterImage(&cudaResource,
+                                                 renderTargetCopy->colorBuffer.ID, GL_TEXTURE_2D,
+                                                 cudaGraphicsRegisterFlagsReadOnly));
+    return 0;
+}
+#endif
+
+void VideoStreamer::sendFrame(pose_id_t poseID) {
+#if !defined(__APPLE__) && !defined(__ANDROID__)
+    bind();
+    blitToRenderTarget(*renderTargetCopy);
+    unbind();
+
+    // add cuda buffer
+    cudaArray* cudaBuffer;
+    CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
+    CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
+    CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
+
+    {
+        // lock mutex
+        std::lock_guard<std::mutex> lock(m);
+
+        CudaBuffer cudaBufferStruct = { poseID, cudaBuffer };
+        cudaBufferQueue.push(cudaBufferStruct);
+#else
+    {
+        // lock mutex
+        std::lock_guard<std::mutex> lock(m);
+
+        this->poseID = poseID;
+
+        bind();
+        glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, openglFrameData.data());
+        unbind();
+#endif
+
+        // tell thread to send frame
+        frameReady = true;
+    }
+    cv.notify_one();
+}
+
+void VideoStreamer::packPoseIDIntoVideoFrame(pose_id_t poseID) {
+    for (int i = 0; i < poseIDOffset; i++) {
+        uint8_t value = (poseID & (1 << i)) ? 255 : 0;
+        for (int j = 0; j < videoHeight; j++) {
+            int index = j * videoWidth * 4 + (videoWidth - 1 - i) * 4;
+            rgbaVideoFrameData[index + 0] = value; // R
+            rgbaVideoFrameData[index + 1] = value; // G
+            rgbaVideoFrameData[index + 2] = value; // B
+            rgbaVideoFrameData[index + 3] = value; // A
+        }
+    }
+}
+
+void VideoStreamer::encodeAndSendFrames() {
+    sendFrames = true;
+
+    int prevTime = timeutils::getTimeMicros();
+
+    size_t bytesSent = 0;
+    int ret;
+    while (true) {
+        // wait for frame to be ready
+        std::unique_lock<std::mutex> lock(m);
+        cv.wait(lock, [this] { return frameReady; });
+
+        if (sendFrames) {
+            frameReady = false;
+        }
+        else {
+            break;
+        }
+
+#if !defined(__APPLE__) && !defined(__ANDROID__)
+        /* Copy frame from OpenGL texture to AVFrame */
+        int startCopyTime = timeutils::getTimeMicros();
+
+        // copy opengl texture data to frame
+        CudaBuffer cudaBufferStruct = cudaBufferQueue.front();
+        cudaArray* cudaBuffer = cudaBufferStruct.buffer;
+        pose_id_t poseIDToSend = cudaBufferStruct.poseID;
+
+        cudaBufferQueue.pop();
+
+        lock.unlock();
+
+        CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(rgbaVideoFrameData.data(),
+                                               videoWidth * 4,
+                                               cudaBuffer,
+                                               0, 0,
+                                               width * 4, height,
+                                               cudaMemcpyDeviceToHost));
+
+        stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startCopyTime);
+#else
+        pose_id_t poseIDToSend = this->poseID;
+
+        for (int row = 0; row < height; row++) {
+            int srcIndex = row * width * 4;
+            int dstIndex = row * videoWidth * 4;
+            std::memcpy(rgbaVideoFrameData.data() + dstIndex, openglFrameData.data() + srcIndex, width * 4);
+        }
+
+        lock.unlock();
+#endif
+
+        packPoseIDIntoVideoFrame(poseIDToSend);
+
+        /* convert RGBA to YUV */
         {
-            std::lock_guard<std::mutex> lock(packetMutex);
-            if (!packetQueue.empty()) {
-                packetData = std::move(packetQueue.front());
-                packetQueue.pop();
-            }
+            const uint8_t* srcData[] = { rgbaVideoFrameData.data() };
+            int srcStride[] = { static_cast<int>(videoWidth * 4) }; // RGBA has 4 bytes per pixel
+
+            sws_scale(swsCtx, srcData, srcStride, 0, videoHeight, frame->data, frame->linesize);
         }
 
-        if (packetData.empty()) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            continue;
-        }
-
-        // Fill AVPacket
-        av_packet_unref(packet);
-        av_new_packet(packet, packetData.size());
-        std::memcpy(packet->data, packetData.data(), packetData.size());
-
-        stats.timeToReceiveMs = timeutils::microsToMillis(timeutils::getTimeMicros() - receiveFrameStartTime);
-        bytesReceived = packet->size;
-
-        // Decode frame
-        int decodeStartTime = timeutils::getTimeMicros();
-        ret = avcodec_send_packet(codecCtx, packet);
-        if (ret < 0) {
-            continue;
-        }
-
-        ret = avcodec_receive_frame(codecCtx, frame);
-        if (ret < 0) {
-            continue;
-        }
-
-        stats.timeToDecodeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - decodeStartTime);
-
-        // Convert format and process frame
-        int resizeStartTime = timeutils::getTimeMicros();
-        AVFrame* frameRGB = av_frame_alloc();
-        
-        int numBytes = av_image_get_buffer_size(openglPixelFormat, internalWidth, internalHeight, 1);
-        uint8_t* buffer = (uint8_t*)av_malloc(numBytes * sizeof(uint8_t));
-        av_image_fill_arrays(frameRGB->data, frameRGB->linesize, buffer, openglPixelFormat, 
-                           internalWidth, internalHeight, 1);
-
-        sws_scale(swsCtx, frame->data, frame->linesize, 0, videoHeight,
-                 frameRGB->data, frameRGB->linesize);
-
-        poseID = unpackPoseIDFromFrame(frameRGB);
-
+        /* Encode frame */
         {
-            std::lock_guard<std::mutex> lock(m);
-            frames.push_back({poseID, frameRGB, buffer});
-            if (frames.size() > maxQueueSize) {
-                FrameData frameToFree = frames.front();
-                frameToFree.free();
-                frames.pop_front();
+            int startEncodeTime = timeutils::getTimeMicros();
+
+            // send frame to encoder
+            ret = avcodec_send_frame(codecCtx, frame);
+            if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+                av_log(nullptr, AV_LOG_ERROR, "Error: Could not send frame to output encoder: %s\n", av_err2str(ret));
+                continue;
             }
+
+            // get packet from encoder
+            ret = avcodec_receive_packet(codecCtx, packet);
+            if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+                continue;
+            }
+            else if (ret < 0) {
+                av_log(nullptr, AV_LOG_ERROR, "Error: Could not receive frame from encoder: %s\n", av_err2str(ret));
+                continue;
+            }
+
+            AVRational timeBase = outputFormatCtx->streams[videoStreamIndex]->time_base;
+            packet->pts = av_rescale_q(framesSent, (AVRational){1, targetFrameRate}, timeBase);
+            packet->dts = packet->pts;
+
+            stats.timeToEncodeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startEncodeTime);
         }
 
-        stats.timeToResizeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - resizeStartTime);
-        stats.totalTimeToReceiveMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
-        framesReceived++;
-        stats.bitrateMbps = ((bytesReceived * 8) / 
-                           timeutils::millisToSeconds(stats.totalTimeToReceiveMs)) / MB_TO_BITS;
+        /* Send frame to output URL */
+        {
+            int startWriteTime = timeutils::getTimeMicros();
+
+            bytesSent = packet->size;
+
+            // send packet to output URL
+            ret = av_interleaved_write_frame(outputFormatCtx, packet);
+            if (ret < 0) {
+                av_packet_unref(packet);
+                av_log(nullptr, AV_LOG_ERROR, "Error writing frame\n");
+                continue;
+            }
+
+            av_packet_unref(packet);
+
+            framesSent++;
+
+            stats.timeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startWriteTime);
+        }
+
+        float elapsedTimeSec = timeutils::microsToSeconds(timeutils::getTimeMicros() - prevTime);
+        if (elapsedTimeSec < (1.0f / targetFrameRate)) {
+            std::this_thread::sleep_for(
+                std::chrono::microseconds(
+                    (int)timeutils::secondsToMicros(1.0f / targetFrameRate - elapsedTimeSec)
+                )
+            );
+        }
+        stats.totalTimeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
+
+        stats.bitrateMbps = ((bytesSent * 8) / timeutils::millisToSeconds(stats.totalTimeToSendMs)) / MB_TO_BITS;
 
         prevTime = timeutils::getTimeMicros();
     }
 }
 
-pose_id_t VideoTexture::draw(pose_id_t poseID) {
-    std::lock_guard<std::mutex> lock(m);
-    if (!videoReady) {
-        return -1;
+VideoStreamer::~VideoStreamer() {
+    shouldTerminate = true;
+    sendFrames = false;
+
+    // send dummy frame to unblock thread
+    frameReady = true;
+    cv.notify_one();
+
+    if (videoStreamerThread.joinable()) {
+        videoStreamerThread.join();
     }
 
-    if (frames.empty()) {
-        return prevPoseID;
-    }
+    avio_closep(&outputFormatCtx->pb);
+    avformat_close_input(&outputFormatCtx);
+    avformat_free_context(outputFormatCtx);
 
-    pose_id_t resPoseID = -1;
-    AVFrame* frameRGB = nullptr;
-    if (poseID == -1) {
-        FrameData frameData = frames.back();
-        frameRGB = frameData.frame;
-        resPoseID = frameData.poseID;
-    }
-    else {
-        for (auto it = frames.begin(); it != frames.end(); it++) {
-            FrameData frameData = *it;
-            if (frameData.poseID == poseID) {
-                frameRGB = frameData.frame;
-                resPoseID = frameData.poseID;
-                break;
-            }
-        }
+#if !defined(__APPLE__) && !defined(__ANDROID__)
+    cudaDeviceSynchronize();
+    CHECK_CUDA_ERROR(cudaGraphicsUnregisterResource(cudaResource));
+#endif
 
-        if (frameRGB == nullptr) {
-            return -1;
-        }
-    }
-
-    int stride = internalWidth;
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, stride);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, frameRGB->data[0]);
-
-    prevPoseID = resPoseID;
-
-    return resPoseID;
-}
-
-pose_id_t VideoTexture::getLatestPoseID() {
-    std::lock_guard<std::mutex> lock(m);
-    if (frames.empty()) {
-        return -1;
-    }
-
-    FrameData frameData = frames.back();
-    pose_id_t poseID = frameData.poseID;
-    return poseID;
-}
-
-void VideoTexture::resize(unsigned int width, unsigned int height) {
-    internalWidth = width + poseIDOffset;
-    internalHeight = height;
-    Texture::resize(width, height);
+    av_frame_free(&frame);
+    av_packet_unref(packet);
+    av_packet_free(&packet);
 }

@@ -107,9 +107,9 @@ int main(int argc, char** argv) {
     BC4DepthStreamer BC4videoStreamerDepthRT = BC4DepthStreamer({
         .width = windowSize.x / depthFactor,
         .height = windowSize.y / depthFactor,
-        .internalFormat = GL_R16,
+        .internalFormat = GL_R32F,
         .format = GL_RED,
-        .type = GL_UNSIGNED_SHORT,
+        .type = GL_FLOAT,
         .wrapS = GL_CLAMP_TO_EDGE,
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_NEAREST,
