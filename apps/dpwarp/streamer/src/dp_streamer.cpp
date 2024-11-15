@@ -271,7 +271,7 @@ int main(int argc, char** argv) {
     float flatThreshold = 1.0f;
     float proxySimilarityThreshold = 0.25f;
     bool restrictMovementToViewBox = false;
-    float viewBoxSize = 1.0f;
+    float viewBoxSize = 0.5f;
     const int intervalValues[] = {0, 25, 50, 100, 200, 500, 1000};
     const char* intervalLabels[] = {"0ms", "25ms", "50ms", "100ms", "200ms", "500ms", "1000ms"};
     bool* showLayers = new bool[maxViews];
