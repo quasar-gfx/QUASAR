@@ -14,25 +14,15 @@ static int interrupt_callback(void* ctx) {
 }
 
 VideoTexture::VideoTexture(const TextureDataCreateParams &params,
-                           const std::string &videoURL,
-                           const std::string &formatName)
-        : formatName(formatName)
-        , Texture(params) {
-    std::string sdpFileName = "stream.sdp";
-#if defined(__ANDROID__)
-    if (formatName != "mpegts") {
-        sdpFileName = FileIO::copyFileToCache(sdpFileName);
-        std::cout << "Copied SDP file to: " << sdpFileName << std::endl;
-    }
-#else
-    sdpFileName = "../assets/" + sdpFileName;
-#endif
+                          const std::string &url)
+        : Texture(params) {
 
-    this->videoURL = (formatName == "mpegts") ?
-                        "udp://" + videoURL + "?overrun_nonfatal=1&fifo_size=50000000" :
-                            sdpFileName;
+    dataReceiver = std::make_unique<DataReceiverTCP>(url, true);
+    dataReceiver->onDataReceived = [this](std::vector<uint8_t> data) {
+        std::lock_guard<std::mutex> lock(packetMutex);
+        packetQueue.push(std::move(data));
+    };
 
-    std::cout << "Created VideoTexture that recvs from URL: " << videoURL << " (" << formatName << ")" << std::endl;
     videoReceiverThread = std::thread(&VideoTexture::receiveVideo, this);
 }
 
@@ -176,89 +166,79 @@ void VideoTexture::receiveVideo() {
     }
 
     videoReady = true;
-
     float prevTime = timeutils::getTimeMicros();
-
     size_t bytesReceived = 0;
     pose_id_t poseID = -1;
+
     while (videoReady) {
         int receiveFrameStartTime = timeutils::getTimeMicros();
 
-        // read frame from URL
-        int ret = av_read_frame(inputFormatCtx, packet);
-        if (ret < 0) {
-            av_log(nullptr, AV_LOG_ERROR, "Error reading frame: %s\n", av_err2str(ret));
-            return;
+        // Get packet from queue
+        std::vector<uint8_t> packetData;
+        {
+            std::lock_guard<std::mutex> lock(packetMutex);
+            if (!packetQueue.empty()) {
+                packetData = std::move(packetQueue.front());
+                packetQueue.pop();
+            }
         }
 
-        stats.timeToReceiveMs = timeutils::microsToMillis(timeutils::getTimeMicros() - receiveFrameStartTime);
-
-        if (packet->stream_index != videoStreamIndex) {
+        if (packetData.empty()) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
             continue;
         }
 
+        // Fill AVPacket
+        av_packet_unref(packet);
+        av_new_packet(packet, packetData.size());
+        std::memcpy(packet->data, packetData.data(), packetData.size());
+
+        stats.timeToReceiveMs = timeutils::microsToMillis(timeutils::getTimeMicros() - receiveFrameStartTime);
         bytesReceived = packet->size;
 
-        /* Decode received frame */
-        {
-            int decodeStartTime = timeutils::getTimeMicros();
-
-            // send packet to decoder
-            ret = avcodec_send_packet(codecCtx, packet);
-            if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-                av_packet_unref(packet);
-                av_log(nullptr, AV_LOG_ERROR, "Error: Could not send packet to input decoder: %s\n", av_err2str(ret));
-                return;
-            }
-
-            av_packet_unref(packet);
-
-            // get frame from decoder
-            ret = avcodec_receive_frame(codecCtx, frame);
-            if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-                continue;
-            }
-            else if (ret < 0) {
-                av_log(nullptr, AV_LOG_ERROR, "Error: Could not receive raw frame from input decoder: %s\n", av_err2str(ret));
-                return;
-            }
-
-            stats.timeToDecodeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - decodeStartTime);
+        // Decode frame
+        int decodeStartTime = timeutils::getTimeMicros();
+        ret = avcodec_send_packet(codecCtx, packet);
+        if (ret < 0) {
+            continue;
         }
 
-        /* Resize video frame to fit output texture size */
-        {
-            int resizeStartTime = timeutils::getTimeMicros();
-
-            AVFrame* frameRGB = av_frame_alloc();
-
-            int numBytes = av_image_get_buffer_size(openglPixelFormat, internalWidth, internalHeight, 1);
-            uint8_t* buffer = (uint8_t*)av_malloc(numBytes * sizeof(uint8_t));
-            av_image_fill_arrays(frameRGB->data, frameRGB->linesize, buffer, openglPixelFormat, internalWidth, internalHeight, 1);
-
-            sws_scale(swsCtx, (uint8_t const* const*)frame->data, frame->linesize, 0, videoHeight, frameRGB->data, frameRGB->linesize);
-
-            poseID = unpackPoseIDFromFrame(frameRGB);
-
-            {
-                std::unique_lock<std::mutex> lock(m);
-
-                FrameData frameData = {poseID, frameRGB, buffer};
-                frames.push_back(frameData);
-                if (frames.size() > maxQueueSize) {
-                    FrameData frameToFree = frames.front();
-                    frameToFree.free();
-                    frames.pop_front();
-                }
-            }
-
-            stats.timeToResizeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - resizeStartTime);
+        ret = avcodec_receive_frame(codecCtx, frame);
+        if (ret < 0) {
+            continue;
         }
 
+        stats.timeToDecodeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - decodeStartTime);
+
+        // Convert format and process frame
+        int resizeStartTime = timeutils::getTimeMicros();
+        AVFrame* frameRGB = av_frame_alloc();
+        
+        int numBytes = av_image_get_buffer_size(openglPixelFormat, internalWidth, internalHeight, 1);
+        uint8_t* buffer = (uint8_t*)av_malloc(numBytes * sizeof(uint8_t));
+        av_image_fill_arrays(frameRGB->data, frameRGB->linesize, buffer, openglPixelFormat, 
+                           internalWidth, internalHeight, 1);
+
+        sws_scale(swsCtx, frame->data, frame->linesize, 0, videoHeight,
+                 frameRGB->data, frameRGB->linesize);
+
+        poseID = unpackPoseIDFromFrame(frameRGB);
+
+        {
+            std::lock_guard<std::mutex> lock(m);
+            frames.push_back({poseID, frameRGB, buffer});
+            if (frames.size() > maxQueueSize) {
+                FrameData frameToFree = frames.front();
+                frameToFree.free();
+                frames.pop_front();
+            }
+        }
+
+        stats.timeToResizeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - resizeStartTime);
         stats.totalTimeToReceiveMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
         framesReceived++;
-
-        stats.bitrateMbps = ((bytesReceived * 8) / timeutils::millisToSeconds(stats.totalTimeToReceiveMs)) / MB_TO_BITS;
+        stats.bitrateMbps = ((bytesReceived * 8) / 
+                           timeutils::millisToSeconds(stats.totalTimeToReceiveMs)) / MB_TO_BITS;
 
         prevTime = timeutils::getTimeMicros();
     }
