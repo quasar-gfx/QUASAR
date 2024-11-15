@@ -25,11 +25,6 @@ set(RENDERER_LIBS )
 
 set(RENDERER_LIBS ${RENDERER_LIBS} ${CMAKE_DL_LIBS})
 
-# lz4
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(LZ4 REQUIRED liblz4)
-set(RENDERER_LIBS ${RENDERER_LIBS} ${LZ4_LIBRARIES})
-
 # add third party libraries
 # glad
 add_library(glad ${EXTERNAL_DIR}/glad/glad.c)
@@ -57,6 +52,10 @@ set(RENDERER_LIBS ${RENDERER_LIBS} stb)
 # jsmn
 add_subdirectory(${EXTERNAL_DIR}/jsmn/tnt)
 set(RENDERER_LIBS ${RENDERER_LIBS} jsmn)
+
+# lz4
+add_subdirectory(${EXTERNAL_DIR}/lz4_stream)
+set(RENDERER_LIBS ${RENDERER_LIBS} lz4_stream)
 
 # include directories
 include_directories(
