@@ -120,11 +120,10 @@ int main(int argc, char** argv) {
     camera.setViewMatrix(centerRemoteCamera->getViewMatrix());
 
     struct alignas(16) QuadMapDataPacked {
-        glm::uvec2 normal;
+        glm::uvec2 normalAndFlattenedAndSize; // (normal.xy, normal.z | (flattened | size) << 16)
         float depth;
         glm::vec2 uv;
         unsigned int offset; // offset.xy packed into a single uint
-        unsigned int flattenedAndSize; // flattened << 31 | size
     };
     std::vector<Buffer<QuadMapDataPacked>> quadMaps(numQuadMaps);
     std::vector<glm::uvec2> quadMapSizes(numQuadMaps);
@@ -307,9 +306,9 @@ int main(int argc, char** argv) {
         static bool showUI = true;
         static bool showViewPreviews = true;
         static bool showCaptureWindow = false;
+        static bool showMeshCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
-        static bool showMeshCaptureWindow = false;
         static int intervalIndex = 0;
 
         static bool showEnvMap = true;

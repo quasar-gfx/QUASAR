@@ -110,12 +110,22 @@ int main(int argc, char** argv) {
         }
     });
 
+    struct alignas(16) QuadMapDataPacked {
+        glm::uvec2 normalAndFlattenedAndSize; // (normal.xy, normal.z | (flattened | size) << 16)
+        float depth;
+        glm::vec2 uv;
+        unsigned int offset; // offset.xy packed into a single uint
+    };
+
     std::vector<Texture*> colorTextures(maxViews);
 
     std::vector<Mesh*> meshes(maxViews);
     std::vector<Node*> nodes(maxViews);
     std::vector<Node*> nodeWireframes(maxViews);
 
+    unsigned int totalTriangles = -1;
+    unsigned int totalProxies = -1;
+    unsigned int totalDepthOffsets = -1;
     for (int view = 0; view < maxViews; view++) {
         std::string colorFileName = DATA_PATH + "color" + std::to_string(view) + ".png";
         colorTextures[view] = new Texture({
@@ -168,14 +178,6 @@ int main(int argc, char** argv) {
                 .indirectDraw = true
             });
 
-            struct alignas(16) QuadMapDataPacked {
-                glm::uvec2 normal;
-                float depth;
-                glm::vec2 uv;
-                unsigned int offset; // offset.xy packed into a single uint
-                unsigned int flattenedAndSize; // flattened << 31 | size
-            };
-
             std::string quadProxiesFileName = DATA_PATH + "quads" + std::to_string(view) + ".bin";
             auto quadProxiesData = FileIO::loadBinaryFile(quadProxiesFileName);
             auto quadProxies = reinterpret_cast<QuadMapDataPacked*>(quadProxiesData.data());
@@ -210,6 +212,13 @@ int main(int argc, char** argv) {
             createMeshFromQuadsShader.dispatch((outputQuadsSize + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
             createMeshFromQuadsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
                                                     GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+
+            sizesBuffer.bind();
+            sizesBuffer.getSubData(0, 1, &bufferSizes);
+
+            totalTriangles = bufferSizes.numIndices / 3;
+            totalProxies = outputQuadsSize;
+            totalDepthOffsets = 0;
         }
 
         nodes[view] = new Node(meshes[view]);
@@ -279,12 +288,12 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (renderStats.trianglesDrawn < 100000)
-                ImGui::TextColored(ImVec4(0,1,0,1), "Triangles Drawn: %d", renderStats.trianglesDrawn);
-            else if (renderStats.trianglesDrawn < 500000)
-                ImGui::TextColored(ImVec4(1,1,0,1), "Triangles Drawn: %d", renderStats.trianglesDrawn);
+            if (totalTriangles < 100000)
+                ImGui::TextColored(ImVec4(0,1,0,1), "Triangles Drawn: %d", totalTriangles);
+            else if (totalTriangles < 500000)
+                ImGui::TextColored(ImVec4(1,1,0,1), "Triangles Drawn: %d", totalTriangles);
             else
-                ImGui::TextColored(ImVec4(1,0,0,1), "Triangles Drawn: %d", renderStats.trianglesDrawn);
+                ImGui::TextColored(ImVec4(1,0,0,1), "Triangles Drawn: %d", totalTriangles);
 
             if (renderStats.drawCalls < 200)
                 ImGui::TextColored(ImVec4(0,1,0,1), "Draw Calls: %d", renderStats.drawCalls);
@@ -292,6 +301,11 @@ int main(int argc, char** argv) {
                 ImGui::TextColored(ImVec4(1,1,0,1), "Draw Calls: %d", renderStats.drawCalls);
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
+
+            float proxySizeMb = static_cast<float>(totalProxies * 8*sizeof(QuadMapDataPacked)) / MB_TO_BITS;
+            float depthOffsetSizeMb = static_cast<float>(totalDepthOffsets * 8*sizeof(uint16_t)) / MB_TO_BITS;
+            ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%.3f Mb)", totalProxies, proxySizeMb);
+            ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%.3f Mb)", totalDepthOffsets, depthOffsetSizeMb);
 
             ImGui::Separator();
 

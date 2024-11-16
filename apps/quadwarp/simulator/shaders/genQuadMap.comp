@@ -13,11 +13,10 @@ struct QuadMapData {
 };
 
 struct QuadMapDataPacked {
-    uvec2 normal;
+    uvec2 normalAndFlattenedAndSize;
     float depth;
     vec2 uv;
     uint offset;
-    uint flattenedAndSize;
 };
 
 struct Quad {
@@ -492,13 +491,15 @@ void createSurfels(
 }
 
 void storeInQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
+    uint flattenedAndSize = ((quadMapData.size & 0x7FFFu) | (quadMapData.flattened ? 1u << 15 : 0u)) & 0xFFFFu;
+
     QuadMapDataPacked quadMapDataPacked;
-    quadMapDataPacked.normal.x = packHalf2x16(quadMapData.normal.xy);
-    quadMapDataPacked.normal.y = packHalf2x16(vec2(quadMapData.normal.z, 0.0));
+    quadMapDataPacked.normalAndFlattenedAndSize.x = packHalf2x16(quadMapData.normal.xy);
+    uint packedNormalZ = packHalf2x16(vec2(quadMapData.normal.z, 0)) & 0xFFFFu;
+    quadMapDataPacked.normalAndFlattenedAndSize.y = packedNormalZ | (flattenedAndSize << 16);
     quadMapDataPacked.depth = quadMapData.depth;
     quadMapDataPacked.uv = quadMapData.uv;
     quadMapDataPacked.offset = (quadMapData.offset.x & 0xFFFFu) | ((quadMapData.offset.y & 0xFFFFu) << 16);
-    quadMapDataPacked.flattenedAndSize = quadMapData.size | (quadMapData.flattened ? 1u << 31 : 0u);
 
     uint index = uint(pixelCoord.y) * uint(quadMapSize.x) + uint(pixelCoord.x);
     quadMap[index] = quadMapDataPacked;
@@ -642,7 +643,6 @@ void main() {
 
     // store an empty plane to clear the output quad map
     QuadMapData ignoredQuadMapData;
-    ignoredQuadMapData.flattened = false;
     ignoredQuadMapData.size = 0;
     storeInQuadMap(pixelCoord, ignoredQuadMapData);
 

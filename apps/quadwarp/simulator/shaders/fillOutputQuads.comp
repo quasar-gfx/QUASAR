@@ -1,11 +1,19 @@
 layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = THREADS_PER_LOCALGROUP, local_size_z = 1) in;
 
+struct QuadMapData {
+    vec3 normal;
+    float depth;
+    vec2 uv;
+    ivec2 offset;
+    uint size;
+    bool flattened;
+};
+
 struct QuadMapDataPacked {
-    uvec2 normal;
+    uvec2 normalAndFlattenedAndSize;
     float depth;
     vec2 uv;
     uint offset;
-    uint flattenedAndSize;
 };
 
 layout(std430, binding = 0) readonly buffer QuadMapBuffer {
@@ -25,12 +33,39 @@ layout(std430, binding = 2) buffer OutputQuadMap {
 
 uniform vec2 quadMapSize;
 
-QuadMapDataPacked loadQuadMap(ivec2 pixelCoord) {
+QuadMapData loadQuadMap(ivec2 pixelCoord) {
     uint index = uint(pixelCoord.y) * uint(quadMapSize.x) + uint(pixelCoord.x);
-    return quadMap[index];
+    QuadMapDataPacked quadMapDataPacked = quadMap[index];
+
+    QuadMapData quadMapData;
+    quadMapData.normal.xy = unpackHalf2x16(quadMapDataPacked.normalAndFlattenedAndSize.x);
+    quadMapData.normal.z = unpackHalf2x16(quadMapDataPacked.normalAndFlattenedAndSize.y & 0xFFFFu).x;
+
+    quadMapData.depth = quadMapDataPacked.depth;
+
+    quadMapData.uv = quadMapDataPacked.uv;
+
+    quadMapData.offset.x = int(quadMapDataPacked.offset & 0xFFFFu);
+    quadMapData.offset.y = int((quadMapDataPacked.offset >> 16) & 0xFFFFu);
+
+    uint flattenedAndSize = (quadMapDataPacked.normalAndFlattenedAndSize.y >> 16) & 0xFFFFu;
+    quadMapData.flattened = (flattenedAndSize & (1u << 15)) != 0;
+    quadMapData.size = flattenedAndSize & 0x7FFFu;
+
+    return quadMapData;
 }
 
-void storeInOutputQuadMap(in uint index, in QuadMapDataPacked quadMapDataPacked) {
+void storeInOutputQuadMap(in uint index, in QuadMapData quadMapData) {
+    uint flattenedAndSize = ((quadMapData.size & 0x7FFFu) | (quadMapData.flattened ? 1u << 15 : 0u)) & 0xFFFFu;
+
+    QuadMapDataPacked quadMapDataPacked;
+    quadMapDataPacked.normalAndFlattenedAndSize.x = packHalf2x16(quadMapData.normal.xy);
+    uint packedNormalZ = packHalf2x16(vec2(quadMapData.normal.z, 0)) & 0xFFFFu;
+    quadMapDataPacked.normalAndFlattenedAndSize.y = packedNormalZ | (flattenedAndSize << 16);
+    quadMapDataPacked.depth = quadMapData.depth;
+    quadMapDataPacked.uv = quadMapData.uv;
+    quadMapDataPacked.offset = (quadMapData.offset.x & 0xFFFFu) | ((quadMapData.offset.y & 0xFFFFu) << 16);
+
     outputQuadMap[index] = quadMapDataPacked;
 }
 
@@ -40,16 +75,13 @@ void main() {
         return;
     }
 
-    QuadMapDataPacked quadMapDataPacked = loadQuadMap(quadMapPixelCoords);
-    if (quadMapDataPacked.flattenedAndSize == 0) {
+    QuadMapData quadMapData = loadQuadMap(quadMapPixelCoords);
+    if (quadMapData.size == 0) {
         return;
     }
 
-    bool quadMapDataFlattened = (quadMapDataPacked.flattenedAndSize & (1u << 31)) != 0;
-    uint quadMapDataSize = quadMapDataPacked.flattenedAndSize & 0x7FFFFFFF;
-
-    uint size = 1 << quadMapDataSize;
-    bool flattened = quadMapDataFlattened;
+    uint size = 1 << quadMapData.size;
+    bool flattened = quadMapData.flattened;
     if (!flattened) {
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
@@ -59,5 +91,5 @@ void main() {
     }
 
     uint index = atomicAdd(numProxies, 1);
-    storeInOutputQuadMap(index, quadMapDataPacked);
+    storeInOutputQuadMap(index, quadMapData);
 }

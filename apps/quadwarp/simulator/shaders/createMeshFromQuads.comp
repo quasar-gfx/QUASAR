@@ -19,11 +19,10 @@ struct QuadMapData {
 };
 
 struct QuadMapDataPacked {
-    uvec2 normal;
+    uvec2 normalAndFlattenedAndSize;
     float depth;
     vec2 uv;
     uint offset;
-    uint flattenedAndSize;
 };
 
 struct Quad {
@@ -200,14 +199,19 @@ QuadMapData loadQuadMap(uint index) {
     QuadMapDataPacked quadMapDataPacked = quadMap[index];
 
     QuadMapData quadMapData;
-    quadMapData.normal.xy = unpackHalf2x16(quadMapDataPacked.normal.x);
-    quadMapData.normal.z = unpackHalf2x16(quadMapDataPacked.normal.y).x;
+    quadMapData.normal.xy = unpackHalf2x16(quadMapDataPacked.normalAndFlattenedAndSize.x);
+    quadMapData.normal.z = unpackHalf2x16(quadMapDataPacked.normalAndFlattenedAndSize.y & 0xFFFFu).x;
+
     quadMapData.depth = quadMapDataPacked.depth;
+
     quadMapData.uv = quadMapDataPacked.uv;
+
     quadMapData.offset.x = int(quadMapDataPacked.offset & 0xFFFFu);
     quadMapData.offset.y = int((quadMapDataPacked.offset >> 16) & 0xFFFFu);
-    quadMapData.flattened = (quadMapDataPacked.flattenedAndSize & (1u << 31)) != 0;
-    quadMapData.size = quadMapDataPacked.flattenedAndSize & 0x7FFFFFFF;
+
+    uint flattenedAndSize = (quadMapDataPacked.normalAndFlattenedAndSize.y >> 16) & 0xFFFFu;
+    quadMapData.flattened = (flattenedAndSize & (1u << 15)) != 0;
+    quadMapData.size = flattenedAndSize & 0x7FFFu;
     return quadMapData;
 }
 
