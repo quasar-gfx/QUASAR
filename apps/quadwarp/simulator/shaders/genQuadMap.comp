@@ -111,15 +111,27 @@ const vec3 up = vec3(0.0, 1.0, 0.0);
 const vec3 left = vec3(-1.0, 0.0, 0.0);
 const vec3 right = vec3(1.0, 0.0, 0.0);
 
-layout(std430, binding = 0) writeonly buffer QuadMapBuffer {
-    QuadMapDataPacked quadMap[];
-};
-
-layout(std430, binding = 1) buffer SizesBuffer {
+layout(std430, binding = 0) buffer SizesBuffer {
     uint numVertices;
     uint numIndices;
     uint numProxies;
     uint numDepthOffsets;
+};
+
+layout(std430, binding = 1) writeonly buffer normalAndFlattenedAndSizesBuffer {
+    uvec2 normalAndFlattenedAndSizes[];
+};
+
+layout(std430, binding = 2) writeonly buffer depthBuffer {
+    float depths[];
+};
+
+layout(std430, binding = 3) writeonly buffer uvsBuffer {
+    vec2 uvs[];
+};
+
+layout(std430, binding = 4) writeonly buffer offsetsBuffer {
+    uint offsets[];
 };
 
 layout(r16f, binding = 0) uniform image2D depthOffsetBuffer;
@@ -502,7 +514,10 @@ void storeInQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
     quadMapDataPacked.offset = (quadMapData.offset.x & 0xFFFFu) | ((quadMapData.offset.y & 0xFFFFu) << 16);
 
     uint index = uint(pixelCoord.y) * uint(quadMapSize.x) + uint(pixelCoord.x);
-    quadMap[index] = quadMapDataPacked;
+    normalAndFlattenedAndSizes[index] = quadMapDataPacked.normalAndFlattenedAndSize;
+    depths[index] = quadMapDataPacked.depth;
+    uvs[index] = quadMapDataPacked.uv;
+    offsets[index] = quadMapDataPacked.offset;
 }
 
 void storeInDepthOffsetBuffer(in ivec2 pixelCoord, in float depthOffset) {

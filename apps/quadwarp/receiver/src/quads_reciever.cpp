@@ -78,6 +78,14 @@ int main(int argc, char** argv) {
         }
     });
 
+    struct QuadMapDataPacked {
+        glm::uvec2 normalAndFlattenedAndSize; // (normal.xy, normal.z | (flattened | size) << 16)
+        float depth;
+        glm::vec2 uv;
+        unsigned int offset; // offset.xy packed into a single uint
+    };
+
+
     std::string colorFileName = DATA_PATH + "color.png";
     Texture colorTexture = Texture({
         .wrapS = GL_REPEAT,
@@ -87,14 +95,6 @@ int main(int argc, char** argv) {
         .flipVertically = true,
         .path = colorFileName
     });
-
-    struct alignas(16) QuadMapDataPacked {
-        glm::uvec2 normalAndFlattenedAndSize; // (normal.xy, normal.z | (flattened | size) << 16)
-        float depth;
-        glm::vec2 uv;
-        unsigned int offset; // offset.xy packed into a single uint
-    };
-
     unsigned int totalTriangles = -1;
     unsigned int totalProxies = -1;
     unsigned int totalDepthOffsets = -1;
@@ -117,6 +117,8 @@ int main(int argc, char** argv) {
             .indices = indices,
             .material = new QuadMaterial({ .baseColorTexture = &colorTexture }),
         });
+
+        totalTriangles = indices.size() / 3;
     }
     else {
         unsigned int maxVertices = windowSize.x * windowSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
@@ -142,9 +144,25 @@ int main(int argc, char** argv) {
 
         std::string quadProxiesFileName = DATA_PATH + "quads.bin";
         auto quadProxiesData = FileIO::loadBinaryFile(quadProxiesFileName);
-        auto quadProxies = reinterpret_cast<QuadMapDataPacked*>(quadProxiesData.data());
-        unsigned int outputQuadsSize = quadProxiesData.size() / sizeof(QuadMapDataPacked);
-        Buffer<QuadMapDataPacked> outputQuadsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, outputQuadsSize, quadProxies);
+
+        // first uint in the file is the number of proxies
+        unsigned int outputQuadsSize = *reinterpret_cast<unsigned int*>(quadProxiesData.data());
+
+        // next batch is the normalAndFlattenedAndSizes
+        auto normalAndFlattenedAndSizesPtr = reinterpret_cast<glm::uvec2*>(quadProxiesData.data() + sizeof(unsigned int));
+        Buffer<glm::uvec2> normalAndFlattenedAndSizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, outputQuadsSize, normalAndFlattenedAndSizesPtr);
+
+        // next batch is the depths
+        auto depthsPtr = reinterpret_cast<float*>(quadProxiesData.data() + sizeof(unsigned int) + outputQuadsSize * sizeof(glm::uvec2));
+        Buffer<float> depthsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, outputQuadsSize, depthsPtr);
+
+        // next batch is the uvs
+        auto uvsPtr = reinterpret_cast<glm::vec2*>(quadProxiesData.data() + sizeof(unsigned int) + outputQuadsSize * sizeof(glm::uvec2) + outputQuadsSize * sizeof(float));
+        Buffer<glm::vec2> uvsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, outputQuadsSize, uvsPtr);
+
+        // last batch is the offsets
+        auto offsetsPtr = reinterpret_cast<unsigned int*>(quadProxiesData.data() + sizeof(unsigned int) + outputQuadsSize * sizeof(glm::uvec2) + outputQuadsSize * sizeof(float) + outputQuadsSize * sizeof(glm::vec2));
+        Buffer<unsigned int> offsetsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, outputQuadsSize, offsetsPtr);
 
         glm::uvec2 depthBufferSize = 4u * windowSize;
 
@@ -163,11 +181,17 @@ int main(int argc, char** argv) {
             createMeshFromQuadsShader.setVec2("depthBufferSize", depthBufferSize);
         }
         {
-            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, outputQuadsBuffer);
-            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizesBuffer);
-            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, mesh->vertexBuffer);
-            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, mesh->indexBuffer);
-            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, mesh->indirectBuffer);
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, sizesBuffer);
+
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh->vertexBuffer);
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, mesh->indexBuffer);
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, mesh->indirectBuffer);
+
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, normalAndFlattenedAndSizesBuffer);
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, depthsBuffer);
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, uvsBuffer);
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, offsetsBuffer);
+
             // createMeshFromQuadsShader.setImageTexture(0, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetBuffer.internalFormat);
         }
 

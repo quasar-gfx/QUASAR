@@ -28,8 +28,6 @@ int main(int argc, char** argv) {
     Config config{};
     config.title = "MeshWarp Receiver";
 
-    RenderState renderState = RenderState::MESH;
-
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
@@ -75,6 +73,8 @@ int main(int argc, char** argv) {
 
     config.window = window;
     config.guiManager = guiManager;
+
+    RenderState renderState = RenderState::MESH;
 
     OpenGLApp app(config);
     ForwardRenderer renderer(config);

@@ -108,12 +108,36 @@ const float surfelSize = 0.5;
 const vec3 origin = vec3(0.0, 0.0, 0.0);
 const vec3 forward = vec3(0.0, 0.0, -1.0);
 
-layout(std430, binding = 0) buffer InputQuadMapBuffer {
-    QuadMapDataPacked inputQuadMap[];
+layout(std430, binding = 0) buffer normalAndFlattenedAndSizesBufferInput {
+    uvec2 normalAndFlattenedAndSizesInput[];
 };
 
-layout(std430, binding = 1) writeonly buffer OutputQuadMapBuffer {
-    QuadMapDataPacked outputQuadMap[];
+layout(std430, binding = 1) buffer depthBufferInput {
+    float depthsInput[];
+};
+
+layout(std430, binding = 2) buffer uvsBufferInput {
+    vec2 uvsInput[];
+};
+
+layout(std430, binding = 3) buffer offsetsBufferInput {
+    uint offsetsInput[];
+};
+
+layout(std430, binding = 4) writeonly buffer normalAndFlattenedAndSizesBufferOutput {
+    uvec2 normalAndFlattenedAndSizesOutput[];
+};
+
+layout(std430, binding = 5) writeonly buffer depthBufferOutput {
+    float depthsOutput[];
+};
+
+layout(std430, binding = 6) writeonly buffer uvsBufferOutput {
+    vec2 uvsOutput[];
+};
+
+layout(std430, binding = 7) writeonly buffer offsetsBufferOutput {
+    uint offsetsOutput[];
 };
 
 layout(r16f, binding = 0) uniform image2D depthOffsetBuffer;
@@ -198,7 +222,12 @@ vec3 pointPlaneIntersection(vec3 pt, Plane plane) {
 
 QuadMapData loadInputQuadMap(ivec2 pixelCoord) {
     uint index = uint(pixelCoord.y) * uint(inputQuadMapSize.x) + uint(pixelCoord.x);
-    QuadMapDataPacked quadMapDataPacked = inputQuadMap[index];
+
+    QuadMapDataPacked quadMapDataPacked;
+    quadMapDataPacked.normalAndFlattenedAndSize = normalAndFlattenedAndSizesInput[index];
+    quadMapDataPacked.depth = depthsInput[index];
+    quadMapDataPacked.uv = uvsInput[index];
+    quadMapDataPacked.offset = offsetsInput[index];
 
     QuadMapData quadMapData;
     quadMapData.normal.xy = unpackHalf2x16(quadMapDataPacked.normalAndFlattenedAndSize.x);
@@ -234,7 +263,11 @@ void storeInOutputQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
     quadMapDataPacked.offset = (quadMapData.offset.x & 0xFFFFu) | ((quadMapData.offset.y & 0xFFFFu) << 16);
 
     uint index = uint(pixelCoord.y) * uint(outputQuadMapSize.x) + uint(pixelCoord.x);
-    outputQuadMap[index] = quadMapDataPacked;
+
+    normalAndFlattenedAndSizesOutput[index] = uvec2(quadMapDataPacked.normalAndFlattenedAndSize);
+    depthsOutput[index] = quadMapDataPacked.depth;
+    uvsOutput[index] = quadMapDataPacked.uv;
+    offsetsOutput[index] = quadMapDataPacked.offset;
 }
 
 void storeInDepthOffsetBuffer(in ivec2 pixelCoord, in float depthOffset) {
@@ -243,7 +276,7 @@ void storeInDepthOffsetBuffer(in ivec2 pixelCoord, in float depthOffset) {
 
 void ignoreInputQuadMapData(in ivec2 pixelCoord) {
     uint index = uint(pixelCoord.y) * uint(inputQuadMapSize.x) + uint(pixelCoord.x);
-    inputQuadMap[index].normalAndFlattenedAndSize.y = 0;
+    normalAndFlattenedAndSizesInput[index].y = 0;
 }
 
 void loadDepthOffsets(out Quad1D depthOffsets, in ivec2 pixelCoord) {
@@ -472,16 +505,12 @@ void main() {
     Plane proxyPlaneTopRight    = quadMapDataToPlane(quadMapDataTopRight);
 
     QuadMapData mergedQuadMapData;
-    // by default, ignore the quad
-    mergedQuadMapData.flattened = false;
-    mergedQuadMapData.size = 0;
+    mergedQuadMapData.size = 0; // by default, ignore the quad
 
     // if any of the loaded proxy planes are empty, ignore the quad
-    if (quadMapDataBottomLeft.size == 0 || quadMapDataBottomRight.size == 0 ||
-           quadMapDataTopLeft.size == 0 || quadMapDataTopRight.size == 0) {
-        storeInOutputQuadMap(pixelCoord, mergedQuadMapData);
-    }
-    else if (shouldMerge(proxyPlaneBottomLeft, proxyPlaneBottomRight, proxyPlaneTopLeft, proxyPlaneTopRight)) {
+    if (quadMapDataBottomLeft.size != 0 && quadMapDataBottomRight.size != 0 &&
+           quadMapDataTopLeft.size != 0 && quadMapDataTopRight.size != 0 &&
+            shouldMerge(proxyPlaneBottomLeft, proxyPlaneBottomRight, proxyPlaneTopLeft, proxyPlaneTopRight)) {
         // merge the proxy planes
         mergeQuadMapData(
             mergedQuadMapData,

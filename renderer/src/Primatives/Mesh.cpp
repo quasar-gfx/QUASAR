@@ -96,8 +96,8 @@ void Mesh::setBuffers(unsigned int numVertices, unsigned int numIndices) {
 }
 
 void Mesh::resizeBuffers(unsigned int numVertices, unsigned int numIndices) {
-    vertexBuffer.setSize(numVertices);
-    indexBuffer.setSize(numIndices);
+    vertexBuffer.resize(numVertices);
+    indexBuffer.resize(numIndices);
 }
 
 void Mesh::updateAABB(const std::vector<Vertex> &vertices) {
