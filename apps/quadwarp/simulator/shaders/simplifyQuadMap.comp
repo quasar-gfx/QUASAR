@@ -465,7 +465,9 @@ void main() {
     Plane proxyPlaneTopRight    = quadMapDataToPlane(quadMapDataTopRight);
 
     QuadMapData mergedQuadMapData;
-    mergedQuadMapData.size = 0; // by default, ignore the quad
+    // by default, ignore the quad
+    mergedQuadMapData.flattened = false;
+    mergedQuadMapData.size = 0;
 
     // if any of the loaded proxy planes are empty, ignore the quad
     if (quadMapDataBottomLeft.size == 0 || quadMapDataBottomRight.size == 0 ||

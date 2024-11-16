@@ -22,7 +22,7 @@
 
 int main(int argc, char** argv) {
     Config config{};
-    config.title = "Quads Streamer";
+    config.title = "QuadStream Simulator";
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
@@ -98,7 +98,7 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera(windowSize.x, windowSize.y);
     camera.setViewMatrix(remoteCamera.getViewMatrix());
 
-    struct QuadMapDataPacked {
+    struct alignas(16) QuadMapDataPacked {
         glm::uvec2 normal;
         float depth;
         glm::vec2 uv;
@@ -107,12 +107,15 @@ int main(int argc, char** argv) {
     };
     std::vector<Buffer<QuadMapDataPacked>> quadMaps(numQuadMaps);
     std::vector<glm::uvec2> quadMapSizes(numQuadMaps);
-    glm::vec2 quadMapSize = maxProxySize;
+    unsigned int maxQuads = 0;
+    glm::vec2 currQuadMapSize = maxProxySize;
     for (int i = 0; i < numQuadMaps; i++) {
-        quadMaps[i] = Buffer<QuadMapDataPacked>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, quadMapSize.x * quadMapSize.y, nullptr);
-        quadMapSizes[i] = quadMapSize;
-        quadMapSize /= 2;
+        quadMaps[i] = Buffer<QuadMapDataPacked>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, currQuadMapSize.x * currQuadMapSize.y, nullptr);
+        maxQuads += currQuadMapSize.x * currQuadMapSize.y;
+        quadMapSizes[i] = currQuadMapSize;
+        currQuadMapSize /= 2;
     }
+    Buffer<QuadMapDataPacked> outputQuadsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, maxQuads, nullptr);
 
     glm::uvec2 depthBufferSize = 4u * remoteWindowSize;
     Texture depthOffsetBuffer({
@@ -140,10 +143,9 @@ int main(int argc, char** argv) {
     });
 
     unsigned int maxVertices = remoteWindowSize.x * remoteWindowSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
-    unsigned int maxVerticesDepth = remoteWindowSize.x * remoteWindowSize.y;
-
     unsigned int numTriangles = remoteWindowSize.x * remoteWindowSize.y * NUM_SUB_QUADS * 2;
     unsigned int maxIndices = numTriangles * 3;
+    unsigned int maxVerticesDepth = remoteWindowSize.x * remoteWindowSize.y;
 
     struct BufferSizes {
         unsigned int numVertices;
@@ -207,8 +209,15 @@ int main(int argc, char** argv) {
         }
     });
 
-    ComputeShader genMeshFromQuadMapsShader({
-        .computeCodePath = "shaders/genMeshFromQuadMaps.comp",
+    ComputeShader fillOutputQuadsShader({
+        .computeCodePath = "shaders/fillOutputQuads.comp",
+        .defines = {
+            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
+        }
+    });
+
+    ComputeShader createMeshFromQuadsShader({
+        .computeCodePath = "shaders/createMeshFromQuads.comp",
         .defines = {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
@@ -427,13 +436,14 @@ int main(int argc, char** argv) {
             ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 300), ImGuiCond_FirstUseEver);
             ImGui::Begin("Mesh Capture", &showMeshCaptureWindow);
 
-            std::string verticesFileName = dataPath + "vertices.bin";
-            std::string indicesFileName = dataPath + "indices.bin";
             std::string colorFileName = dataPath + "color.png";
 
             if (ImGui::Button("Save Mesh")) {
                 sizesBuffer.bind();
                 sizesBuffer.getSubData(0, 1, &bufferSizes);
+
+                std::string verticesFileName = dataPath + "vertices.bin";
+                std::string indicesFileName = dataPath + "indices.bin";
 
                 // save vertexBuffer
                 mesh.vertexBuffer.bind();
@@ -441,6 +451,8 @@ int main(int argc, char** argv) {
                 std::ofstream verticesFile(dataPath + verticesFileName, std::ios::binary);
                 verticesFile.write((char*)vertices.data(), bufferSizes.numVertices * sizeof(Vertex));
                 verticesFile.close();
+                std::cout << "Saved " << bufferSizes.numVertices << " vertices (" <<
+                              bufferSizes.numVertices * 8*sizeof(Vertex) / MB_TO_BITS << " Mb)" << std::endl;
 
                 // save indexBuffer
                 mesh.indexBuffer.bind();
@@ -448,6 +460,28 @@ int main(int argc, char** argv) {
                 std::ofstream indicesFile(dataPath + indicesFileName, std::ios::binary);
                 indicesFile.write((char*)indices.data(), bufferSizes.numIndices * sizeof(unsigned int));
                 indicesFile.close();
+                std::cout << "Saved " << bufferSizes.numIndices << " indices (" <<
+                             bufferSizes.numIndices * 8*sizeof(unsigned int) / MB_TO_BITS << " Mb)" << std::endl;
+
+                // save color buffer
+                renderTarget.saveColorAsPNG(colorFileName);
+            }
+
+            if (ImGui::Button("Save Proxies")) {
+                sizesBuffer.bind();
+                sizesBuffer.getSubData(0, 1, &bufferSizes);
+
+                std::string quadsFileName = dataPath + "quads.bin";
+
+                // save proxies
+                outputQuadsBuffer.bind();
+                std::vector<QuadMapDataPacked> quads(bufferSizes.numProxies);
+                outputQuadsBuffer.getSubData(0, bufferSizes.numProxies, quads.data());
+                std::ofstream quadsFile(quadsFileName, std::ios::binary);
+                quadsFile.write((char*)quads.data(), bufferSizes.numProxies * sizeof(QuadMapDataPacked));
+                quadsFile.close();
+                std::cout << "Saved " << bufferSizes.numProxies << " quads (" <<
+                              bufferSizes.numProxies * 8*sizeof(QuadMapDataPacked) / MB_TO_BITS << " Mb)" << std::endl;
 
                 // save color buffer
                 renderTarget.saveColorAsPNG(colorFileName);
@@ -578,8 +612,6 @@ int main(int argc, char** argv) {
                 genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizesBuffer);
                 genQuadMapShader.setImageTexture(0, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsetBuffer.internalFormat);
             }
-
-            // run compute shader
             genQuadMapShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
                                       (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
             genQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -604,8 +636,8 @@ int main(int argc, char** argv) {
             for (int i = 1; i < quadMaps.size(); i++) {
                 auto& prevBuffer = quadMaps[i-1];
                 auto& currBuffer = quadMaps[i];
-                auto prevQuadMapSize = quadMapSizes[i-1];
-                auto currQuadMapSize = quadMapSizes[i];
+                auto& prevQuadMapSize = quadMapSizes[i-1];
+                auto& currQuadMapSize = quadMapSizes[i];
 
                 {
                     simplifyQuadMapShader.setVec2("remoteWindowSize", remoteWindowSize);
@@ -622,7 +654,6 @@ int main(int argc, char** argv) {
                     simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, currBuffer);
                     simplifyQuadMapShader.setImageTexture(0, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsetBuffer.internalFormat);
                 }
-
                 simplifyQuadMapShader.dispatch((currQuadMapSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
                                                (currQuadMapSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
                 simplifyQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -633,43 +664,67 @@ int main(int argc, char** argv) {
 
             /*
             ============================
-            FOURTH PASS: Generate meshes from quad map
+            FOURTH PASS: Fill output quads buffer
             ============================
             */
-            genMeshFromQuadMapsShader.bind();
-            {
-                genMeshFromQuadMapsShader.setMat4("view", remoteCamera.getViewMatrix());
-                genMeshFromQuadMapsShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-                genMeshFromQuadMapsShader.setMat4("viewInverse", remoteCamera.getViewMatrixInverse());
-                genMeshFromQuadMapsShader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
-                genMeshFromQuadMapsShader.setFloat("near", remoteCamera.getNear());
-                genMeshFromQuadMapsShader.setFloat("far", remoteCamera.getFar());
-            }
+            fillOutputQuadsShader.bind();
             for (int i = 0; i < quadMaps.size(); i++) {
                 auto& quadMap = quadMaps[i];
-                auto quadMapSize = quadMapSizes[i];
+                auto& quadMapSize = quadMapSizes[i];
 
                 {
-                    genMeshFromQuadMapsShader.setVec2("remoteWindowSize", remoteWindowSize);
-                    genMeshFromQuadMapsShader.setVec2("quadMapSize", quadMapSize);
-                    genMeshFromQuadMapsShader.setVec2("depthBufferSize", depthBufferSize);
+                    fillOutputQuadsShader.setVec2("quadMapSize", quadMapSize);
                 }
                 {
-                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, quadMap);
-                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizesBuffer);
-                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, mesh.vertexBuffer);
-                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, mesh.indexBuffer);
-                    genMeshFromQuadMapsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, mesh.indirectBuffer);
-                    genMeshFromQuadMapsShader.setImageTexture(0, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetBuffer.internalFormat);
+                    fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, quadMap);
+                    fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizesBuffer);
+                    fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, outputQuadsBuffer);
                 }
-
-                genMeshFromQuadMapsShader.dispatch((quadMapSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                                   (quadMapSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
-                genMeshFromQuadMapsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
-                                                        GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+                fillOutputQuadsShader.dispatch((quadMapSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                               (quadMapSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+                fillOutputQuadsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
             }
 
             std::cout << "  Quads Compute Shader Time: " << glfwGetTime() - startTime << "s" << std::endl;
+            startTime = glfwGetTime();
+
+            /*
+            ============================
+            FIFTH PASS: Generate mesh from quads
+            ============================
+            */
+            // get output quads size (same as number of proxies)
+            sizesBuffer.bind();
+            sizesBuffer.getSubData(0, 1, &bufferSizes);
+            unsigned int outputQuadsSize = bufferSizes.numProxies;
+
+            createMeshFromQuadsShader.bind();
+            {
+                createMeshFromQuadsShader.setMat4("view", remoteCamera.getViewMatrix());
+                createMeshFromQuadsShader.setMat4("projection", remoteCamera.getProjectionMatrix());
+                createMeshFromQuadsShader.setMat4("viewInverse", remoteCamera.getViewMatrixInverse());
+                createMeshFromQuadsShader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
+                createMeshFromQuadsShader.setFloat("near", remoteCamera.getNear());
+                createMeshFromQuadsShader.setFloat("far", remoteCamera.getFar());
+            }
+            {
+                createMeshFromQuadsShader.setVec2("remoteWindowSize", remoteWindowSize);
+                createMeshFromQuadsShader.setInt("quadMapSize", outputQuadsSize);
+                createMeshFromQuadsShader.setVec2("depthBufferSize", depthBufferSize);
+            }
+            {
+                createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, outputQuadsBuffer);
+                createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizesBuffer);
+                createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, mesh.vertexBuffer);
+                createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, mesh.indexBuffer);
+                createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, mesh.indirectBuffer);
+                createMeshFromQuadsShader.setImageTexture(0, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetBuffer.internalFormat);
+            }
+            createMeshFromQuadsShader.dispatch((outputQuadsSize + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
+            createMeshFromQuadsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
+                                                    GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+
+            std::cout << "  Create Mesh Compute Shader Time: " << glfwGetTime() - startTime << "s" << std::endl;
             startTime = glfwGetTime();
 
             /*

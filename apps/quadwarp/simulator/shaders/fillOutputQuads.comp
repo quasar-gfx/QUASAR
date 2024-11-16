@@ -1,0 +1,63 @@
+layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = THREADS_PER_LOCALGROUP, local_size_z = 1) in;
+
+struct QuadMapDataPacked {
+    uvec2 normal;
+    float depth;
+    vec2 uv;
+    uint offset;
+    uint flattenedAndSize;
+};
+
+layout(std430, binding = 0) readonly buffer QuadMapBuffer {
+    QuadMapDataPacked quadMap[];
+};
+
+layout(std430, binding = 1) buffer SizesBuffer {
+    uint numVertices;
+    uint numIndices;
+    uint numProxies;
+    uint numDepthOffsets;
+};
+
+layout(std430, binding = 2) buffer OutputQuadMap {
+    QuadMapDataPacked outputQuadMap[];
+};
+
+uniform vec2 quadMapSize;
+
+QuadMapDataPacked loadQuadMap(ivec2 pixelCoord) {
+    uint index = uint(pixelCoord.y) * uint(quadMapSize.x) + uint(pixelCoord.x);
+    return quadMap[index];
+}
+
+void storeInOutputQuadMap(in uint index, in QuadMapDataPacked quadMapDataPacked) {
+    outputQuadMap[index] = quadMapDataPacked;
+}
+
+void main() {
+    ivec2 quadMapPixelCoords = ivec2(gl_GlobalInvocationID.xy);
+    if (quadMapPixelCoords.x >= int(quadMapSize.x) || quadMapPixelCoords.y >= int(quadMapSize.y)) {
+        return;
+    }
+
+    QuadMapDataPacked quadMapDataPacked = loadQuadMap(quadMapPixelCoords);
+    if (quadMapDataPacked.flattenedAndSize == 0) {
+        return;
+    }
+
+    bool quadMapDataFlattened = (quadMapDataPacked.flattenedAndSize & (1u << 31)) != 0;
+    uint quadMapDataSize = quadMapDataPacked.flattenedAndSize & 0x7FFFFFFF;
+
+    uint size = 1 << quadMapDataSize;
+    bool flattened = quadMapDataFlattened;
+    if (!flattened) {
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                atomicAdd(numDepthOffsets, 4);
+            }
+        }
+    }
+
+    uint index = atomicAdd(numProxies, 1);
+    storeInOutputQuadMap(index, quadMapDataPacked);
+}

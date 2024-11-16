@@ -642,6 +642,7 @@ void main() {
 
     // store an empty plane to clear the output quad map
     QuadMapData ignoredQuadMapData;
+    ignoredQuadMapData.flattened = false;
     ignoredQuadMapData.size = 0;
     storeInQuadMap(pixelCoord, ignoredQuadMapData);
 

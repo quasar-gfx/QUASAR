@@ -92,6 +92,6 @@ To run QuadWarp sample:
 
 ```
 # in build directory
-cd apps/quadwarp/streamer
+cd apps/quadwarp/simulator
 ./quads_streamer --size 1920x1080 --size2 512x512 --scene ../assets/scenes/sponza.json
 ```

@@ -1,5 +1,4 @@
 #include <iostream>
-#include <fstream>
 
 #include <args/args.hxx>
 
@@ -12,13 +11,26 @@
 #include <Shaders/ToneMapShader.h>
 
 #include <Utils/Utils.h>
-
 #include <QuadMaterial.h>
+#include <shaders_common.h>
+
+#define THREADS_PER_LOCALGROUP 16
 
 #define VERTICES_IN_A_QUAD 4
 #define NUM_SUB_QUADS 4
 
-const std::string DATA_PATH = "../streamer/";
+const std::string DATA_PATH = "../simulator/";
+
+const std::vector<glm::vec3> offsets = {
+    glm::vec3(-1.0f, +1.0f, -1.0f), // Top-left
+    glm::vec3(+1.0f, +1.0f, -1.0f), // Top-right
+    glm::vec3(+1.0f, -1.0f, -1.0f), // Bottom-right
+    glm::vec3(-1.0f, -1.0f, -1.0f), // Bottom-left
+    glm::vec3(-1.0f, +1.0f, +1.0f), // Top-left
+    glm::vec3(+1.0f, +1.0f, +1.0f), // Top-right
+    glm::vec3(+1.0f, -1.0f, +1.0f), // Bottom-right
+    glm::vec3(-1.0f, -1.0f, +1.0f), // Bottom-left
+};
 
 int main(int argc, char** argv) {
     Config config{};
@@ -30,6 +42,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<int> maxAdditionalViewsIn(parser, "maxViews", "Max views", {'l', "num-views"}, 8);
+    args::Flag loadProxies(parser, "load-proxies", "Load proxies from quads.bin", {'m', "load-proxies"});
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -63,12 +76,39 @@ int main(int argc, char** argv) {
     ForwardRenderer renderer(config);
 
     glm::uvec2 windowSize = window->getSize();
+    float viewBoxSize = 0.5f;
 
     Scene scene;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
 
+    std::vector<PerspectiveCamera*> remoteCameras(maxViews);
+    for (int view = 0; view < maxViews; view++) {
+        remoteCameras[view] = new PerspectiveCamera(windowSize.x, windowSize.y);
+    }
+    PerspectiveCamera* centerRemoteCamera = remoteCameras[0];
+    centerRemoteCamera->setPosition(glm::vec3(0.0f, 3.0f, 10.0f));
+    centerRemoteCamera->updateViewMatrix();
+
+    remoteCameras[maxViews-1]->setFovyDegrees(120.0f);
+    remoteCameras[maxViews-1]->setViewMatrix(centerRemoteCamera->getViewMatrix());
+
+    for (int view = 1; view < maxViews - 1; view++) {
+        glm::vec3 offset = offsets[view - 1];
+        remoteCameras[view]->setViewMatrix(centerRemoteCamera->getViewMatrix());
+        remoteCameras[view]->setPosition(centerRemoteCamera->getPosition() + viewBoxSize/2 * offset);
+        remoteCameras[view]->updateViewMatrix();
+    }
+    remoteCameras[maxViews-1]->setViewMatrix(centerRemoteCamera->getViewMatrix());
+
     // shaders
     ToneMapShader toneMapShader;
+
+    ComputeShader createMeshFromQuadsShader({
+        .computeCodePath = "shaders/createMeshFromQuads.comp",
+        .defines = {
+            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
+        }
+    });
 
     std::vector<Texture*> colorTextures(maxViews);
 
@@ -76,15 +116,9 @@ int main(int argc, char** argv) {
     std::vector<Node*> nodes(maxViews);
     std::vector<Node*> nodeWireframes(maxViews);
 
-    for (int i = 0; i < maxViews; i++) {
-        std::string verticesFileName = DATA_PATH + "vertices" + std::to_string(i) + ".bin";
-        std::string indicesFileName = DATA_PATH + "indices" + std::to_string(i) + ".bin";
-        std::string colorFileName = DATA_PATH + "color" + std::to_string(i) + ".png";
-
-        auto vertexData = FileIO::loadBinaryFile(verticesFileName);
-        auto indexData = FileIO::loadBinaryFile(indicesFileName);
-
-        colorTextures[i] = new Texture({
+    for (int view = 0; view < maxViews; view++) {
+        std::string colorFileName = DATA_PATH + "color" + std::to_string(view) + ".png";
+        colorTextures[view] = new Texture({
             .wrapS = GL_REPEAT,
             .wrapT = GL_REPEAT,
             .minFilter = GL_NEAREST,
@@ -93,34 +127,108 @@ int main(int argc, char** argv) {
             .path = colorFileName
         });
 
-        std::vector<Vertex> vertices(vertexData.size() / sizeof(Vertex));
-        std::memcpy(vertices.data(), vertexData.data(), vertexData.size());
+        if (!args::get(loadProxies)) {
+            std::string verticesFileName = DATA_PATH + "vertices" + std::to_string(view) + ".bin";
+            std::string indicesFileName = DATA_PATH + "indices" + std::to_string(view) + ".bin";
 
-        std::vector<unsigned int> indices(indexData.size() / sizeof(unsigned int));
-        std::memcpy(indices.data(), indexData.data(), indexData.size());
+            auto vertexData = FileIO::loadBinaryFile(verticesFileName);
+            auto indexData = FileIO::loadBinaryFile(indicesFileName);
 
-        meshes[i] = new Mesh({
-            .vertices = vertices,
-            .indices = indices,
-            .material = new QuadMaterial({ .baseColorTexture = colorTextures[i] }),
-        });
-        nodes[i] = new Node(meshes[i]);
-        nodes[i]->frustumCulled = false;
-        scene.addChildNode(nodes[i]);
+            std::vector<Vertex> vertices(vertexData.size() / sizeof(Vertex));
+            std::memcpy(vertices.data(), vertexData.data(), vertexData.size());
+
+            std::vector<unsigned int> indices(indexData.size() / sizeof(unsigned int));
+            std::memcpy(indices.data(), indexData.data(), indexData.size());
+
+            meshes[view] = new Mesh({
+                .vertices = vertices,
+                .indices = indices,
+                .material = new QuadMaterial({ .baseColorTexture = colorTextures[view] }),
+            });
+        }
+        else {
+            unsigned int maxVertices = windowSize.x * windowSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
+            unsigned int numTriangles = windowSize.x * windowSize.y * NUM_SUB_QUADS * 2;
+            unsigned int maxIndices = numTriangles * 3;
+
+            struct BufferSizes {
+                unsigned int numVertices;
+                unsigned int numIndices;
+                unsigned int numProxies;
+                unsigned int numDepthOffsets;
+            };
+            BufferSizes bufferSizes = { 0 };
+            Buffer<BufferSizes> sizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, &bufferSizes);
+
+            meshes[view] = new Mesh({
+                .numVertices = maxVertices / (view == 0 || view == maxViews - 1 ? 1 : 4),
+                .numIndices = maxIndices / (view == 0 || view == maxViews - 1 ? 1 : 4),
+                .material = new QuadMaterial({ .baseColorTexture = colorTextures[view] }),
+                .usage = GL_DYNAMIC_DRAW,
+                .indirectDraw = true
+            });
+
+            struct alignas(16) QuadMapDataPacked {
+                glm::uvec2 normal;
+                float depth;
+                glm::vec2 uv;
+                unsigned int offset; // offset.xy packed into a single uint
+                unsigned int flattenedAndSize; // flattened << 31 | size
+            };
+
+            std::string quadProxiesFileName = DATA_PATH + "quads" + std::to_string(view) + ".bin";
+            auto quadProxiesData = FileIO::loadBinaryFile(quadProxiesFileName);
+            auto quadProxies = reinterpret_cast<QuadMapDataPacked*>(quadProxiesData.data());
+            unsigned int outputQuadsSize = quadProxiesData.size() / sizeof(QuadMapDataPacked);
+            Buffer<QuadMapDataPacked> outputQuadsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, outputQuadsSize, quadProxies);
+
+            glm::uvec2 depthBufferSize = 4u * windowSize;
+
+            createMeshFromQuadsShader.bind();
+            {
+                createMeshFromQuadsShader.setMat4("view", remoteCameras[view]->getViewMatrix());
+                createMeshFromQuadsShader.setMat4("projection", remoteCameras[view]->getProjectionMatrix());
+                createMeshFromQuadsShader.setMat4("viewInverse", remoteCameras[view]->getViewMatrixInverse());
+                createMeshFromQuadsShader.setMat4("projectionInverse", remoteCameras[view]->getProjectionMatrixInverse());
+                createMeshFromQuadsShader.setFloat("near", remoteCameras[view]->getNear());
+                createMeshFromQuadsShader.setFloat("far", remoteCameras[view]->getFar());
+            }
+            {
+                createMeshFromQuadsShader.setVec2("remoteWindowSize", windowSize);
+                createMeshFromQuadsShader.setInt("quadMapSize", outputQuadsSize);
+                createMeshFromQuadsShader.setVec2("depthBufferSize", depthBufferSize);
+            }
+            {
+                createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, outputQuadsBuffer);
+                createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizesBuffer);
+                createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, meshes[view]->vertexBuffer);
+                createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, meshes[view]->indexBuffer);
+                createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, meshes[view]->indirectBuffer);
+                // createMeshFromQuadsShader.setImageTexture(0, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetBuffer.internalFormat);
+            }
+
+            createMeshFromQuadsShader.dispatch((outputQuadsSize + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
+            createMeshFromQuadsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
+                                                    GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+        }
+
+        nodes[view] = new Node(meshes[view]);
+        nodes[view]->frustumCulled = false;
+        scene.addChildNode(nodes[view]);
 
         // primary view color is yellow
-        glm::vec4 color = (i == 0) ? glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) :
-                  glm::vec4(fmod(i * 0.6180339887f, 1.0f),
-                            fmod(i * 0.9f, 1.0f),
-                            fmod(i * 0.5f, 1.0f),
+        glm::vec4 color = (view == 0) ? glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) :
+                glm::vec4(fmod(view * 0.6180339887f, 1.0f),
+                            fmod(view * 0.9f, 1.0f),
+                            fmod(view * 0.5f, 1.0f),
                             1.0f);
 
-        nodeWireframes[i] = new Node(meshes[i]);
-        nodeWireframes[i]->frustumCulled = false;
-        nodeWireframes[i]->wireframe = true;
-        nodeWireframes[i]->visible = false;
-        nodeWireframes[i]->overrideMaterial = new QuadMaterial({ .baseColor = color });
-        scene.addChildNode(nodeWireframes[i]);
+        nodeWireframes[view] = new Node(meshes[view]);
+        nodeWireframes[view]->frustumCulled = false;
+        nodeWireframes[view]->wireframe = true;
+        nodeWireframes[view]->visible = false;
+        nodeWireframes[view]->overrideMaterial = new QuadMaterial({ .baseColor = color });
+        scene.addChildNode(nodeWireframes[view]);
     }
 
     bool* showViews = new bool[maxViews];

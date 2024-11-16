@@ -11,13 +11,15 @@
 #include <Shaders/ToneMapShader.h>
 
 #include <Utils/Utils.h>
-
 #include <QuadMaterial.h>
+#include <shaders_common.h>
+
+#define THREADS_PER_LOCALGROUP 16
 
 #define VERTICES_IN_A_QUAD 4
 #define NUM_SUB_QUADS 4
 
-const std::string DATA_PATH = "../streamer/";
+const std::string DATA_PATH = "../simulator/";
 
 int main(int argc, char** argv) {
     Config config{};
@@ -28,6 +30,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
+    args::Flag loadProxies(parser, "load-proxies", "Load proxies from quads.bin", {'m', "load-proxies"});
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -61,17 +64,21 @@ int main(int argc, char** argv) {
 
     Scene scene;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
+    PerspectiveCamera remoteCamera(windowSize.x, windowSize.y);
+    remoteCamera.setPosition(glm::vec3(0.0f, 3.0f, 10.0f));
+    remoteCamera.updateViewMatrix();
 
     // shaders
     ToneMapShader toneMapShader;
 
-    std::string verticesFileName = DATA_PATH + "vertices.bin";
-    std::string indicesFileName = DATA_PATH + "indices.bin";
+    ComputeShader createMeshFromQuadsShader({
+        .computeCodePath = "shaders/createMeshFromQuads.comp",
+        .defines = {
+            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
+        }
+    });
+
     std::string colorFileName = DATA_PATH + "color.png";
-
-    auto vertexData = FileIO::loadBinaryFile(verticesFileName);
-    auto indexData = FileIO::loadBinaryFile(indicesFileName);
-
     Texture colorTexture = Texture({
         .wrapS = GL_REPEAT,
         .wrapT = GL_REPEAT,
@@ -81,22 +88,97 @@ int main(int argc, char** argv) {
         .path = colorFileName
     });
 
-    std::vector<Vertex> vertices(vertexData.size() / sizeof(Vertex));
-    std::memcpy(vertices.data(), vertexData.data(), vertexData.size());
+    Mesh* mesh;
+    if (!args::get(loadProxies)) {
+        std::string verticesFileName = DATA_PATH + "vertices.bin";
+        std::string indicesFileName = DATA_PATH + "indices.bin";
 
-    std::vector<unsigned int> indices(indexData.size() / sizeof(unsigned int));
-    std::memcpy(indices.data(), indexData.data(), indexData.size());
+        auto vertexData = FileIO::loadBinaryFile(verticesFileName);
+        auto indexData = FileIO::loadBinaryFile(indicesFileName);
 
-    Mesh mesh = Mesh({
-        .vertices = vertices,
-        .indices = indices,
-        .material = new QuadMaterial({ .baseColorTexture = &colorTexture }),
-    });
-    Node node(&mesh);
+        std::vector<Vertex> vertices(vertexData.size() / sizeof(Vertex));
+        std::memcpy(vertices.data(), vertexData.data(), vertexData.size());
+
+        std::vector<unsigned int> indices(indexData.size() / sizeof(unsigned int));
+        std::memcpy(indices.data(), indexData.data(), indexData.size());
+
+        mesh = new Mesh({
+            .vertices = vertices,
+            .indices = indices,
+            .material = new QuadMaterial({ .baseColorTexture = &colorTexture }),
+        });
+    }
+    else {
+        unsigned int maxVertices = windowSize.x * windowSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
+        unsigned int numTriangles = windowSize.x * windowSize.y * NUM_SUB_QUADS * 2;
+        unsigned int maxIndices = numTriangles * 3;
+
+        struct BufferSizes {
+            unsigned int numVertices;
+            unsigned int numIndices;
+            unsigned int numProxies;
+            unsigned int numDepthOffsets;
+        };
+        BufferSizes bufferSizes = { 0 };
+        Buffer<BufferSizes> sizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, &bufferSizes);
+
+        mesh = new Mesh({
+            .numVertices = maxVertices,
+            .numIndices = maxIndices,
+            .material = new QuadMaterial({ .baseColorTexture = &colorTexture }),
+            .usage = GL_DYNAMIC_DRAW,
+            .indirectDraw = true
+        });
+
+        struct alignas(16) QuadMapDataPacked {
+            glm::uvec2 normal;
+            float depth;
+            glm::vec2 uv;
+            unsigned int offset; // offset.xy packed into a single uint
+            unsigned int flattenedAndSize; // flattened << 31 | size
+        };
+
+        std::string quadProxiesFileName = DATA_PATH + "quads.bin";
+        auto quadProxiesData = FileIO::loadBinaryFile(quadProxiesFileName);
+        auto quadProxies = reinterpret_cast<QuadMapDataPacked*>(quadProxiesData.data());
+        unsigned int outputQuadsSize = quadProxiesData.size() / sizeof(QuadMapDataPacked);
+        Buffer<QuadMapDataPacked> outputQuadsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, outputQuadsSize, quadProxies);
+
+        glm::uvec2 depthBufferSize = 4u * windowSize;
+
+        createMeshFromQuadsShader.bind();
+        {
+            createMeshFromQuadsShader.setMat4("view", remoteCamera.getViewMatrix());
+            createMeshFromQuadsShader.setMat4("projection", remoteCamera.getProjectionMatrix());
+            createMeshFromQuadsShader.setMat4("viewInverse", remoteCamera.getViewMatrixInverse());
+            createMeshFromQuadsShader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
+            createMeshFromQuadsShader.setFloat("near", remoteCamera.getNear());
+            createMeshFromQuadsShader.setFloat("far", remoteCamera.getFar());
+        }
+        {
+            createMeshFromQuadsShader.setVec2("remoteWindowSize", windowSize);
+            createMeshFromQuadsShader.setInt("quadMapSize", outputQuadsSize);
+            createMeshFromQuadsShader.setVec2("depthBufferSize", depthBufferSize);
+        }
+        {
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, outputQuadsBuffer);
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizesBuffer);
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, mesh->vertexBuffer);
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, mesh->indexBuffer);
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, mesh->indirectBuffer);
+            // createMeshFromQuadsShader.setImageTexture(0, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetBuffer.internalFormat);
+        }
+
+        createMeshFromQuadsShader.dispatch((outputQuadsSize + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
+        createMeshFromQuadsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
+                                                GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+    }
+
+    Node node(mesh);
     node.frustumCulled = false;
     scene.addChildNode(&node);
 
-    Node nodeWireframe(&mesh);
+    Node nodeWireframe(mesh);
     nodeWireframe.frustumCulled = false;
     nodeWireframe.wireframe = true;
     nodeWireframe.visible = false;
