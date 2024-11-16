@@ -194,10 +194,6 @@ void BC4DepthStreamer::sendData() {
         stats.timeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
         stats.bitrateMbps = (lz4Buffer.size() * 8 / timeutils::millisToSeconds(stats.timeToSendMs)) / MB_TO_BITS;
 
-        // std::cout << "LZ4 Compression Stats - Original: " << data.size()
-        //           << " bytes, Compressed: " << lz4Buffer.size()
-        //           << " bytes, Ratio: " << stats.lz4CompressionRatio << std::endl;
-
         prevTime = timeutils::getTimeMicros();
     }
 }

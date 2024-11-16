@@ -31,21 +31,13 @@ public:
     std::string receiverURL;
     unsigned int compressedSize;
 
-    // struct Stats {
-    //     float timeToCopyFrameMs = -1.0f;
-    //     float timeToSendMs = -1.0f;
-    //     float bitrateMbps = -1.0f;
-    // } stats;
-
-    struct StreamerStats {
-        float timeToCompressMs = -1.0f;
+    struct Stats {
         float timeToCopyFrameMs = -1.0f;
+        float timeToCompressMs = -1.0f;
         float timeToSendMs = -1.0f;
         float bitrateMbps = -1.0f;
         float lz4CompressionRatio = -1.0f;
-    };
-
-    StreamerStats stats;
+    } stats;
 
     BC4DepthStreamer(const RenderTargetCreateParams &params, std::string receiverURL);
     ~BC4DepthStreamer();
@@ -67,11 +59,9 @@ private:
     DataStreamerTCP streamer;
 
     std::vector<uint8_t> data;
-    
-    // lz4
+
     std::vector<uint8_t> lz4Buffer;
 
-    // BC4 compute shader
     ComputeShader bc4CompressionShader;
     void compressBC4();
 

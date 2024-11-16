@@ -54,7 +54,7 @@ add_subdirectory(${EXTERNAL_DIR}/jsmn/tnt)
 set(RENDERER_LIBS ${RENDERER_LIBS} jsmn)
 
 # lz4
-add_subdirectory(${EXTERNAL_DIR}/lz4_stream)
+add_subdirectory(${EXTERNAL_DIR}/lz4_stream/tnt)
 set(RENDERER_LIBS ${RENDERER_LIBS} lz4_stream)
 
 # include directories

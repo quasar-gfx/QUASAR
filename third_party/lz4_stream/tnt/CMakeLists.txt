@@ -3,18 +3,19 @@ project(lz4_stream)
 
 set(OUR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
-set(TARGET lz4_stream)
+set(TARGET      lz4_stream)
+set(LZ4_LIB_DIR ${OUR_DIR}/lz4/lib)
 
 set(LZ4_SRCS
-    ${OUR_DIR}/lz4/lib/lz4.c
-    ${OUR_DIR}/lz4/lib/lz4frame.c
-    ${OUR_DIR}/lz4/lib/lz4hc.c
-    ${OUR_DIR}/lz4/lib/xxhash.c
+    ${LZ4_LIB_DIR}/lz4.c
+    ${LZ4_LIB_DIR}/lz4frame.c
+    ${LZ4_LIB_DIR}/lz4hc.c
+    ${LZ4_LIB_DIR}/xxhash.c
 )
 
 add_library(lz4 STATIC ${LZ4_SRCS})
 
-target_include_directories(lz4 PUBLIC ${OUR_DIR}/lz4/lib)
+target_include_directories(lz4 PUBLIC ${LZ4_LIB_DIR})
 
 if(ANDROID)
     target_compile_options(lz4 PRIVATE -fPIC -DANDROID)
@@ -25,7 +26,7 @@ add_library(${TARGET} INTERFACE)
 target_include_directories(${TARGET}
     INTERFACE
     ${OUR_DIR}
-    ${OUR_DIR}/lz4/lib
+    ${LZ4_LIB_DIR}
 )
 
 target_link_libraries(${TARGET} INTERFACE lz4)
