@@ -14,7 +14,7 @@
 #include <QuadMaterial.h>
 #include <shaders_common.h>
 
-#define THREADS_PER_LOCALGROUP 16
+#define THREADS_PER_LOCALGROUP 32
 
 #define VERTICES_IN_A_QUAD 4
 #define NUM_SUB_QUADS 4
@@ -110,13 +110,6 @@ int main(int argc, char** argv) {
         }
     });
 
-    struct QuadMapDataPacked {
-        glm::uvec2 normalAndFlattenedAndSize; // (normal.xy, normal.z | (flattened | size) << 16)
-        float depth;
-        glm::vec2 uv;
-        unsigned int offset; // offset.xy packed into a single uint
-    };
-
     std::vector<Texture*> colorTextures(maxViews);
     for (int view = 0; view < maxViews; view++) {
         std::string colorFileName = DATA_PATH + "color" + std::to_string(view) + ".png";
@@ -137,6 +130,10 @@ int main(int argc, char** argv) {
     unsigned int totalTriangles = -1;
     unsigned int totalProxies = -1;
     unsigned int totalDepthOffsets = -1;
+
+    double startTime = glfwGetTime();
+    double loadFromFilesTime = 0.0;
+    double createMeshTime = 0.0;
     if (!args::get(loadProxies)) {
         for (int view = 0; view < maxViews; view++) {
             std::string verticesFileName = DATA_PATH + "vertices" + std::to_string(view) + ".bin";
@@ -144,6 +141,9 @@ int main(int argc, char** argv) {
 
             auto vertexData = FileIO::loadBinaryFile(verticesFileName);
             auto indexData = FileIO::loadBinaryFile(indicesFileName);
+
+            loadFromFilesTime += glfwGetTime() - startTime;
+            startTime = glfwGetTime();
 
             std::vector<Vertex> vertices(vertexData.size() / sizeof(Vertex));
             std::memcpy(vertices.data(), vertexData.data(), vertexData.size());
@@ -158,21 +158,25 @@ int main(int argc, char** argv) {
             });
 
             totalTriangles += indices.size() / 3;
+
+            createMeshTime += glfwGetTime() - startTime;
+            startTime = glfwGetTime();
         }
     }
     else {
-        for (int view = 0; view < maxViews; view++) {
-            unsigned int maxVertices = windowSize.x * windowSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
-            unsigned int numTriangles = windowSize.x * windowSize.y * NUM_SUB_QUADS * 2;
-            unsigned int maxIndices = numTriangles * 3;
+        unsigned int maxVertices = windowSize.x * windowSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
+        unsigned int numTriangles = windowSize.x * windowSize.y * NUM_SUB_QUADS * 2;
+        unsigned int maxIndices = numTriangles * 3;
 
-            struct BufferSizes {
-                unsigned int numVertices;
-                unsigned int numIndices;
-                unsigned int numProxies;
-                unsigned int numDepthOffsets;
-            };
-            BufferSizes bufferSizes = { 0 };
+        struct BufferSizes {
+            unsigned int numVertices;
+            unsigned int numIndices;
+            unsigned int numProxies;
+            unsigned int numDepthOffsets;
+        };
+        BufferSizes bufferSizes = { 0 };
+
+        for (int view = 0; view < maxViews; view++) {
             Buffer<BufferSizes> sizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, &bufferSizes);
 
             meshes[view] = new Mesh({
@@ -183,29 +187,37 @@ int main(int argc, char** argv) {
                 .indirectDraw = true
             });
 
+            startTime = glfwGetTime();
             std::string quadProxiesFileName = DATA_PATH + "quads" + std::to_string(view) + ".bin";
             auto quadProxiesData = FileIO::loadBinaryFile(quadProxiesFileName);
 
             // first uint in the file is the number of proxies
             unsigned int outputQuadsSize = *reinterpret_cast<unsigned int*>(quadProxiesData.data());
+            unsigned int bufferOffset = sizeof(unsigned int);
 
-            // next batch is the normalAndFlattenedAndSizes
-            auto normalAndFlattenedAndSizesPtr = reinterpret_cast<glm::uvec2*>(quadProxiesData.data() + sizeof(unsigned int));
-            Buffer<glm::uvec2> normalAndFlattenedAndSizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, outputQuadsSize, normalAndFlattenedAndSizesPtr);
+            // next batch is the normalSphericals
+            auto normalSphericalsPtr = reinterpret_cast<unsigned int*>(quadProxiesData.data() + bufferOffset);
+            Buffer<unsigned int> normalSphericalsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, outputQuadsSize, normalSphericalsPtr);
+            bufferOffset += outputQuadsSize * sizeof(unsigned int);
 
             // next batch is the depths
-            auto depthsPtr = reinterpret_cast<float*>(quadProxiesData.data() + sizeof(unsigned int) + outputQuadsSize * sizeof(glm::uvec2));
+            auto depthsPtr = reinterpret_cast<float*>(quadProxiesData.data() + bufferOffset);
             Buffer<float> depthsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, outputQuadsSize, depthsPtr);
+            bufferOffset += outputQuadsSize * sizeof(float);
 
             // next batch is the uvs
-            auto uvsPtr = reinterpret_cast<glm::vec2*>(quadProxiesData.data() + sizeof(unsigned int) + outputQuadsSize * sizeof(glm::uvec2) + outputQuadsSize * sizeof(float));
+            auto uvsPtr = reinterpret_cast<glm::vec2*>(quadProxiesData.data() + bufferOffset);
             Buffer<glm::vec2> uvsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, outputQuadsSize, uvsPtr);
+            bufferOffset += outputQuadsSize * sizeof(glm::vec2);
 
             // last batch is the offsets
-            auto offsetsPtr = reinterpret_cast<unsigned int*>(quadProxiesData.data() + sizeof(unsigned int) + outputQuadsSize * sizeof(glm::uvec2) + outputQuadsSize * sizeof(float) + outputQuadsSize * sizeof(glm::vec2));
-            Buffer<unsigned int> offsetsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, outputQuadsSize, offsetsPtr);
+            auto offsetSizeFlattenedsPtr = reinterpret_cast<unsigned int*>(quadProxiesData.data() + bufferOffset);
+            Buffer<unsigned int> offsetSizeFlattenedsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, outputQuadsSize, offsetSizeFlattenedsPtr);
 
             glm::uvec2 depthBufferSize = 4u * windowSize;
+
+            loadFromFilesTime += glfwGetTime() - startTime;
+            startTime = glfwGetTime();
 
             createMeshFromQuadsShader.bind();
             {
@@ -228,10 +240,10 @@ int main(int argc, char** argv) {
                 createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, meshes[view]->indexBuffer);
                 createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, meshes[view]->indirectBuffer);
 
-                createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, normalAndFlattenedAndSizesBuffer);
+                createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, normalSphericalsBuffer);
                 createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, depthsBuffer);
                 createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, uvsBuffer);
-                createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, offsetsBuffer);
+                createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, offsetSizeFlattenedsBuffer);
 
                 // createMeshFromQuadsShader.setImageTexture(0, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetBuffer.internalFormat);
             }
@@ -239,6 +251,8 @@ int main(int argc, char** argv) {
             createMeshFromQuadsShader.dispatch((outputQuadsSize + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
             createMeshFromQuadsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
                                                     GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+
+            createMeshTime += glfwGetTime() - startTime;
 
             sizesBuffer.bind();
             sizesBuffer.getSubData(0, 1, &bufferSizes);
@@ -347,6 +361,11 @@ int main(int argc, char** argv) {
                 camera.setRotationEuler(rotation);
             }
             ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
+
+            ImGui::Separator();
+
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to load data: %.3f ms", loadFromFilesTime * 1000.0);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to create mesh: %.3f ms", createMeshTime * 1000.0);
 
             ImGui::Separator();
 

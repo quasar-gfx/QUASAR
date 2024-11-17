@@ -7,16 +7,16 @@ struct QuadMapData {
     vec3 normal;
     float depth;
     vec2 uv;
-    ivec2 offset;
+    uvec2 offset;
     uint size;
     bool flattened;
 };
 
 struct QuadMapDataPacked {
-    uvec2 normalAndFlattenedAndSize;
+    uint normalSpherical;
     float depth;
     vec2 uv;
-    uint offset;
+    uint offsetSizeFlattened;
 };
 
 struct Quad {
@@ -103,6 +103,7 @@ uniform float flatThreshold;
 #define MAX_DEPTH 0.9999
 
 const float epsilon = 1e-5;
+const float PI = 3.1415926535897932384626433832795;
 
 const float surfelSize = 0.5;
 const vec3 origin = vec3(0.0, 0.0, 0.0);
@@ -111,27 +112,27 @@ const vec3 up = vec3(0.0, 1.0, 0.0);
 const vec3 left = vec3(-1.0, 0.0, 0.0);
 const vec3 right = vec3(1.0, 0.0, 0.0);
 
-layout(std430, binding = 0) buffer SizesBuffer {
+layout(std430, binding = 0) writeonly buffer SizesBuffer {
     uint numVertices;
     uint numIndices;
     uint numProxies;
     uint numDepthOffsets;
 };
 
-layout(std430, binding = 1) writeonly buffer normalAndFlattenedAndSizesBuffer {
-    uvec2 normalAndFlattenedAndSizes[];
+layout(std430, binding = 1) writeonly buffer normalSphericalsBufferInput {
+    uint normalSphericalsInput[];
 };
 
-layout(std430, binding = 2) writeonly buffer depthBuffer {
-    float depths[];
+layout(std430, binding = 2) writeonly buffer depthBufferInput {
+    float depthsInput[];
 };
 
-layout(std430, binding = 3) writeonly buffer uvsBuffer {
-    vec2 uvs[];
+layout(std430, binding = 3) writeonly buffer uvsBufferInput {
+    vec2 uvsInput[];
 };
 
-layout(std430, binding = 4) writeonly buffer offsetsBuffer {
-    uint offsets[];
+layout(std430, binding = 4) writeonly buffer offsetsBufferInput {
+    uint offsetSizeFlattenedsInput[];
 };
 
 layout(r16f, binding = 0) uniform image2D depthOffsetBuffer;
@@ -502,22 +503,32 @@ void createSurfels(
     surfelView.topRight    = surfelViewTopRight;
 }
 
-void storeInQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
-    uint flattenedAndSize = ((quadMapData.size & 0x7FFFu) | (quadMapData.flattened ? 1u << 15 : 0u)) & 0xFFFFu;
+uint packNormalToSphericalHalf(vec3 normal) {
+    float theta = atan(normal.z, normal.x);
+    float phi = acos(normal.y);
 
+    float theta01 = (theta + PI) / (2.0 * PI);
+    float phi01 = phi / PI;
+
+    return packHalf2x16(vec2(theta01, phi01));
+}
+
+void storeInQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
     QuadMapDataPacked quadMapDataPacked;
-    quadMapDataPacked.normalAndFlattenedAndSize.x = packHalf2x16(quadMapData.normal.xy);
-    uint packedNormalZ = packHalf2x16(vec2(quadMapData.normal.z, 0)) & 0xFFFFu;
-    quadMapDataPacked.normalAndFlattenedAndSize.y = packedNormalZ | (flattenedAndSize << 16);
+    quadMapDataPacked.normalSpherical = packNormalToSphericalHalf(quadMapData.normal);
     quadMapDataPacked.depth = quadMapData.depth;
     quadMapDataPacked.uv = quadMapData.uv;
-    quadMapDataPacked.offset = (quadMapData.offset.x & 0xFFFFu) | ((quadMapData.offset.y & 0xFFFFu) << 16);
+
+    uint flattenedAndSize = ((quadMapData.size & 0x7Fu) << 1) | (quadMapData.flattened ? 1u : 0u);
+    quadMapDataPacked.offsetSizeFlattened = ((quadMapData.offset.x & 0xFFFu) << 20) |
+                                                    ((quadMapData.offset.y & 0xFFFu) << 8) |
+                                                        (flattenedAndSize & 0xFFu);
 
     uint index = uint(pixelCoord.y) * uint(quadMapSize.x) + uint(pixelCoord.x);
-    normalAndFlattenedAndSizes[index] = quadMapDataPacked.normalAndFlattenedAndSize;
-    depths[index] = quadMapDataPacked.depth;
-    uvs[index] = quadMapDataPacked.uv;
-    offsets[index] = quadMapDataPacked.offset;
+    normalSphericalsInput[index] = quadMapDataPacked.normalSpherical;
+    depthsInput[index] = quadMapDataPacked.depth;
+    uvsInput[index] = quadMapDataPacked.uv;
+    offsetSizeFlattenedsInput[index] = quadMapDataPacked.offsetSizeFlattened;
 }
 
 void storeInDepthOffsetBuffer(in ivec2 pixelCoord, in float depthOffset) {
@@ -610,7 +621,7 @@ void storeSurfelsInQuadMap(
     quadMapData.uv = proxyPlaneUV;
     quadMapData.depth = proxyPlaneDepth;
     quadMapData.normal = proxyPlaneNormal;
-    quadMapData.offset = pixelCoord;
+    quadMapData.offset = uvec2(pixelCoord);
     quadMapData.size = 1; // 2x2 surfels, store as a power of 2
     storeInQuadMap(pixelCoord, quadMapData);
 
