@@ -110,23 +110,22 @@ int main(int argc, char** argv) {
     std::vector<Buffer<unsigned int>> offsetsBuffers(numQuadMaps);
 
     std::vector<glm::uvec2> quadMapSizes(numQuadMaps);
-    unsigned int maxQuads = 0;
     glm::vec2 currQuadMapSize = maxProxySize;
     for (int i = 0; i < numQuadMaps; i++) {
-        normalAndFlattenedAndSizesBuffers[i] = Buffer<glm::uvec2>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, currQuadMapSize.x * currQuadMapSize.y, nullptr);
-        depthsBuffers[i] = Buffer<float>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, currQuadMapSize.x * currQuadMapSize.y, nullptr);
-        uvsBuffers[i] = Buffer<glm::vec2>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, currQuadMapSize.x * currQuadMapSize.y, nullptr);
-        offsetsBuffers[i] = Buffer<unsigned int>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, currQuadMapSize.x * currQuadMapSize.y, nullptr);
+        normalAndFlattenedAndSizesBuffers[i] = Buffer<glm::uvec2>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, currQuadMapSize.x * currQuadMapSize.y, nullptr);
+        depthsBuffers[i] = Buffer<float>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, currQuadMapSize.x * currQuadMapSize.y, nullptr);
+        uvsBuffers[i] = Buffer<glm::vec2>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, currQuadMapSize.x * currQuadMapSize.y, nullptr);
+        offsetsBuffers[i] = Buffer<unsigned int>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, currQuadMapSize.x * currQuadMapSize.y, nullptr);
 
-        maxQuads += currQuadMapSize.x * currQuadMapSize.y;
         quadMapSizes[i] = currQuadMapSize;
         currQuadMapSize /= 2;
     }
 
-    Buffer<glm::uvec2> outputNormalAndFlattenedAndSizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, maxQuads, nullptr);
-    Buffer<float> outputDepthsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, maxQuads, nullptr);
-    Buffer<glm::vec2> outputUVsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, maxQuads, nullptr);
-    Buffer<unsigned int> outputOffsetsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, maxQuads, nullptr);
+    unsigned int maxQuads = remoteWindowSize.x * remoteWindowSize.y * NUM_SUB_QUADS;
+    Buffer<glm::uvec2> outputNormalAndFlattenedAndSizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
+    Buffer<float> outputDepthsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
+    Buffer<glm::vec2> outputUVsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
+    Buffer<unsigned int> outputOffsetsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
 
     glm::uvec2 depthBufferSize = 4u * remoteWindowSize;
     Texture depthOffsetBuffer({
@@ -165,7 +164,7 @@ int main(int argc, char** argv) {
         unsigned int numDepthOffsets;
     };
     BufferSizes bufferSizes = { 0 };
-    Buffer<BufferSizes> sizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, &bufferSizes);
+    Buffer<BufferSizes> sizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, 1, &bufferSizes);
 
     Mesh mesh = Mesh({
         .numVertices = maxVertices,

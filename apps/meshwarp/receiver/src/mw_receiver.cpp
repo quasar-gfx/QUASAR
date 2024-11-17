@@ -160,8 +160,9 @@ int main(int argc, char** argv) {
     pose_id_t poseIdColor = -1, poseIdDepth = -1;
     bool mwEnabled = true;
     bool sync = true;
-    RenderStats renderStats;
+    Pose currentColorFramePose, currentDepthFramePose;
 
+    RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = true;
@@ -254,6 +255,16 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Remote Pose ID: RGB (%d), D (%d)", poseIdColor, poseIdDepth);
 
+            glm::mat4 pose = glm::inverse(currentDepthFramePose.mono.view);
+            glm::vec3 skew, scale;
+            glm::quat rotationQuat;
+            glm::vec3 remotePosition;
+            glm::vec4 perspective;
+            glm::decompose(pose, scale, rotationQuat, remotePosition, skew, perspective);
+            glm::vec3 remoteRotation = glm::degrees(glm::eulerAngles(rotationQuat));
+            ImGui::InputFloat3("Remote Position", (float*)&remotePosition);
+            ImGui::InputFloat3("Remote Rotation", (float*)&remoteRotation);
+
             ImGui::Separator();
 
             ImGui::Checkbox("Mesh Warp Enabled", &mwEnabled);
@@ -308,7 +319,6 @@ int main(int argc, char** argv) {
         camera.updateProjectionMatrix();
     });
 
-    Pose currentColorFramePose, currentDepthFramePose;
     app.onRender([&](double now, double dt) {
         /// handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {

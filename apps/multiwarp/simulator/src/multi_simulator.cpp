@@ -131,15 +131,13 @@ int main(int argc, char** argv) {
     std::vector<Buffer<unsigned int>> offsetsBuffers(numQuadMaps);
 
     std::vector<glm::uvec2> quadMapSizes(numQuadMaps);
-    unsigned int maxQuads = 0;
     glm::vec2 currQuadMapSize = maxProxySize;
     for (int i = 0; i < numQuadMaps; i++) {
-        normalAndFlattenedAndSizesBuffers[i] = Buffer<glm::uvec2>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, currQuadMapSize.x * currQuadMapSize.y, nullptr);
-        depthsBuffers[i] = Buffer<float>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, currQuadMapSize.x * currQuadMapSize.y, nullptr);
-        uvsBuffers[i] = Buffer<glm::vec2>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, currQuadMapSize.x * currQuadMapSize.y, nullptr);
-        offsetsBuffers[i] = Buffer<unsigned int>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, currQuadMapSize.x * currQuadMapSize.y, nullptr);
+        normalAndFlattenedAndSizesBuffers[i] = Buffer<glm::uvec2>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, currQuadMapSize.x * currQuadMapSize.y, nullptr);
+        depthsBuffers[i] = Buffer<float>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, currQuadMapSize.x * currQuadMapSize.y, nullptr);
+        uvsBuffers[i] = Buffer<glm::vec2>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, currQuadMapSize.x * currQuadMapSize.y, nullptr);
+        offsetsBuffers[i] = Buffer<unsigned int>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, currQuadMapSize.x * currQuadMapSize.y, nullptr);
 
-        maxQuads += currQuadMapSize.x * currQuadMapSize.y;
         quadMapSizes[i] = currQuadMapSize;
         currQuadMapSize /= 2;
     }
@@ -149,11 +147,12 @@ int main(int argc, char** argv) {
     std::vector<Buffer<glm::vec2>> outputUVsBuffers(maxViews);
     std::vector<Buffer<unsigned int>> outputOffsetsBuffers(maxViews);
 
+    unsigned int maxQuads = remoteWindowSize.x * remoteWindowSize.y * NUM_SUB_QUADS;
     for (int view = 0; view < maxViews; view++) {
-        outputNormalAndFlattenedAndSizesBuffers[view] = Buffer<glm::uvec2>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, maxQuads, nullptr);
-        outputDepthsBuffers[view] = Buffer<float>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, maxQuads, nullptr);
-        outputUVsBuffers[view] = Buffer<glm::vec2>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, maxQuads, nullptr);
-        outputOffsetsBuffers[view] = Buffer<unsigned int>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, maxQuads, nullptr);
+        outputNormalAndFlattenedAndSizesBuffers[view] = Buffer<glm::uvec2>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
+        outputDepthsBuffers[view] = Buffer<float>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
+        outputUVsBuffers[view] = Buffer<glm::vec2>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
+        outputOffsetsBuffers[view] = Buffer<unsigned int>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
     }
 
     glm::uvec2 depthBufferSize = 4u * remoteWindowSize;
@@ -207,7 +206,7 @@ int main(int argc, char** argv) {
     std::vector<Node*> nodeWireframes(maxViews);
 
     for (int view = 0; view < maxViews; view++) {
-        sizesBuffers[view] = Buffer<BufferSizes>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, &bufferSizes);
+        sizesBuffers[view] = Buffer<BufferSizes>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, 1, &bufferSizes);
 
         meshes[view] = new Mesh({
             .numVertices = maxVertices / (view == 0 || view == maxViews - 1 ? 1 : 4),
@@ -342,9 +341,9 @@ int main(int argc, char** argv) {
         if (ImGui::BeginMenu("View")) {
             ImGui::MenuItem("FPS", 0, &showFPS);
             ImGui::MenuItem("UI", 0, &showUI);
-            ImGui::MenuItem("View Previews", 0, &showViewPreviews);
             ImGui::MenuItem("Frame Capture", 0, &showCaptureWindow);
             ImGui::MenuItem("Mesh Capture", 0, &showMeshCaptureWindow);
+            ImGui::MenuItem("View Previews", 0, &showViewPreviews);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();

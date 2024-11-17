@@ -158,6 +158,18 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
+            glm::vec3 position = camera.getPosition();
+            if (ImGui::InputFloat3("Camera Position", (float*)&position)) {
+                camera.setPosition(position);
+            }
+            glm::vec3 rotation = camera.getRotationEuler();
+            if (ImGui::InputFloat3("Camera Rotation", (float*)&rotation)) {
+                camera.setRotationEuler(rotation);
+            }
+            ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
+
+            ImGui::Separator();
+
             ImGui::Text("Video URL: %s (%s)", videoURL.c_str(), videoFormat.c_str());
             ImGui::Text("Pose URL: %s", poseURL.c_str());
 
@@ -173,17 +185,7 @@ int main(int argc, char** argv) {
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to resize frame: %.3f ms", videoTexture.stats.timeToResizeMs);
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: %.3f Mbps", videoTexture.stats.bitrateMbps);
 
-            // show currentFramePose
             ImGui::Separator();
-
-            glm::vec3 position = camera.getPosition();
-            if (ImGui::InputFloat3("Camera Position", (float*)&position)) {
-                camera.setPosition(position);
-            }
-            glm::vec3 rotation = camera.getRotationEuler();
-            if (ImGui::InputFloat3("Camera Rotation", (float*)&rotation)) {
-                camera.setRotationEuler(rotation);
-            }
 
             ImGui::Text("Remote Pose ID: %d", currentFramePose.id);
 
