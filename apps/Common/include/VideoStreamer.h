@@ -47,8 +47,8 @@ public:
 
     VideoStreamer(const RenderTargetCreateParams &params,
                   const std::string &videoURL,
-                  unsigned int targetFrameRate = 30,
-                  unsigned int targetBitRateMbps = 10,
+                  int targetFrameRate = 30,
+                  int targetBitRateMbps = 10,
                   const std::string &formatName = "mpegts");
     ~VideoStreamer();
 
@@ -71,7 +71,7 @@ public:
 
 private:
     int targetFrameRate;
-    unsigned int targetBitRate;
+    int targetBitRate;
 
     std::string preset = "p4";
     std::string tune = "ull";

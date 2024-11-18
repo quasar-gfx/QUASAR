@@ -285,11 +285,10 @@ int main(int argc, char** argv) {
     bool showDepth = false;
     bool showNormals = false;
     bool showWireframe = false;
-    bool doAverageNormal = true;
     bool doOrientationCorrection = true;
     bool preventCopyingLocalPose = false;
     float distanceThreshold = 0.75f;
-    float angleThreshold = 45.0f;
+    float angleThreshold = 85.0f;
     float flatThreshold = 1.0f;
     float proxySimilarityThreshold = 0.25f;
     bool restrictMovementToViewBox = false;
@@ -422,11 +421,6 @@ int main(int argc, char** argv) {
             ImGui::Checkbox("Show Depth Map as Point Cloud", &showDepth);
 
             ImGui::Separator();
-
-            if (ImGui::Checkbox("Average Normals", &doAverageNormal)) {
-                preventCopyingLocalPose = true;
-                rerender = true;
-            }
 
             if (ImGui::Checkbox("Correct Normal Orientation", &doOrientationCorrection)) {
                 preventCopyingLocalPose = true;
@@ -563,7 +557,8 @@ int main(int argc, char** argv) {
                     verticesFile.write((char*)vertices.data(), sizes.numVertices * sizeof(Vertex));
                     verticesFile.close();
                     std::cout << "Saved " << sizes.numVertices << " vertices (" <<
-                                             sizes.numVertices * 8*sizeof(Vertex) / MB_TO_BITS << " Mb)" << std::endl;
+                                             (float)sizes.numVertices * 8*sizeof(Vertex) / MB_TO_BITS <<
+                                             " Mb)" << std::endl;
 
                     // save indexBuffer
                     meshes[view]->indexBuffer.bind();
@@ -572,7 +567,8 @@ int main(int argc, char** argv) {
                     indicesFile.write((char*)indices.data(), sizes.numIndices * sizeof(unsigned int));
                     indicesFile.close();
                     std::cout << "Saved " << sizes.numIndices << " indicies (" <<
-                                             sizes.numIndices * 8*sizeof(Vertex) / MB_TO_BITS << " Mb)" << std::endl;
+                                             (float)sizes.numIndices * 8*sizeof(Vertex) / MB_TO_BITS <<
+                                             " Mb)" << std::endl;
 
                     // save color buffer
                     renderTargets[view]->saveColorAsPNG(colorFileName);
@@ -614,7 +610,8 @@ int main(int argc, char** argv) {
 
                     quadsFile.close();
                     std::cout << "Saved " << sizes.numProxies << " quads (" <<
-                                sizes.numProxies * 8*sizeof(QuadMapDataPacked) / MB_TO_BITS << " Mb)" << std::endl;
+                                (float)sizes.numProxies * 8*sizeof(QuadMapDataPacked) / MB_TO_BITS <<
+                                " Mb)" << std::endl;
 
                     // save color buffer
                     std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
@@ -788,7 +785,6 @@ int main(int argc, char** argv) {
                     genQuadMapShader.setFloat("far", remoteCamera->getFar());
                 }
                 {
-                    genQuadMapShader.setBool("doAverageNormal", doAverageNormal);
                     genQuadMapShader.setBool("doOrientationCorrection", doOrientationCorrection);
                     genQuadMapShader.setFloat("distanceThreshold", distanceThreshold);
                     genQuadMapShader.setFloat("angleThreshold", glm::radians(angleThreshold));
