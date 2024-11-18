@@ -14,7 +14,7 @@
 #include <Utils/Utils.h>
 #include <shaders_common.h>
 
-#define THREADS_PER_LOCALGROUP 16
+#define THREADS_PER_LOCALGROUP 32
 
 int main(int argc, char** argv) {
     Config config{};

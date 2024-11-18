@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
-project(MultiCameraStreamer)
+project(DepthPeelingSimulator)
 
-set(TARGET multi_streamer)
+set(TARGET dp_simulator)
 
 set(PUBLIC_HDR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
@@ -23,4 +23,4 @@ target_include_directories(${TARGET} PUBLIC ${PUBLIC_HDR_DIR})
 target_link_libraries(${TARGET} PRIVATE ${LIBS})
 
 # copy quadwarp shaders to the build directory
-file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}/../../quadwarp/streamer/shaders ${CMAKE_CURRENT_BINARY_DIR}/shaders SYMBOLIC)
+file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}/../../quadwarp/simulator/shaders ${CMAKE_CURRENT_BINARY_DIR}/shaders SYMBOLIC)

@@ -11,13 +11,15 @@
 #include <Shaders/ToneMapShader.h>
 
 #include <Utils/Utils.h>
-
 #include <QuadMaterial.h>
+#include <shaders_common.h>
+
+#define THREADS_PER_LOCALGROUP 32
 
 #define VERTICES_IN_A_QUAD 4
 #define NUM_SUB_QUADS 4
 
-const std::string DATA_PATH = "../streamer/";
+const std::string DATA_PATH = "../simulator/";
 
 int main(int argc, char** argv) {
     Config config{};
@@ -28,6 +30,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
+    args::Flag loadProxies(parser, "load-proxies", "Load proxies from quads.bin", {'m', "load-proxies"});
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -61,17 +64,21 @@ int main(int argc, char** argv) {
 
     Scene scene;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
+    PerspectiveCamera remoteCamera(windowSize.x, windowSize.y);
+    remoteCamera.setPosition(glm::vec3(0.0f, 3.0f, 10.0f));
+    remoteCamera.updateViewMatrix();
 
     // shaders
     ToneMapShader toneMapShader;
 
-    std::string verticesFileName = DATA_PATH + "vertices.bin";
-    std::string indicesFileName = DATA_PATH + "indices.bin";
+    ComputeShader createMeshFromQuadsShader({
+        .computeCodePath = "shaders/createMeshFromQuads.comp",
+        .defines = {
+            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
+        }
+    });
+
     std::string colorFileName = DATA_PATH + "color.png";
-
-    auto vertexData = FileIO::loadBinaryFile(verticesFileName);
-    auto indexData = FileIO::loadBinaryFile(indicesFileName);
-
     Texture colorTexture = Texture({
         .wrapS = GL_REPEAT,
         .wrapT = GL_REPEAT,
@@ -81,22 +88,143 @@ int main(int argc, char** argv) {
         .path = colorFileName
     });
 
-    std::vector<Vertex> vertices(vertexData.size() / sizeof(Vertex));
-    std::memcpy(vertices.data(), vertexData.data(), vertexData.size());
+    Mesh* mesh;
 
-    std::vector<unsigned int> indices(indexData.size() / sizeof(unsigned int));
-    std::memcpy(indices.data(), indexData.data(), indexData.size());
+    unsigned int totalTriangles = -1;
+    unsigned int totalProxies = -1;
+    unsigned int totalDepthOffsets = -1;
 
-    Mesh mesh = Mesh({
-        .vertices = vertices,
-        .indices = indices,
-        .material = new QuadMaterial({ .baseColorTexture = &colorTexture }),
-    });
-    Node node(&mesh);
+    double startTime = glfwGetTime();
+    double loadFromFilesTime = 0.0;
+    double createMeshTime = 0.0;
+    if (!args::get(loadProxies)) {
+        std::string verticesFileName = DATA_PATH + "vertices.bin";
+        std::string indicesFileName = DATA_PATH + "indices.bin";
+
+        auto vertexData = FileIO::loadBinaryFile(verticesFileName);
+        auto indexData = FileIO::loadBinaryFile(indicesFileName);
+
+        loadFromFilesTime = glfwGetTime() - startTime;
+        startTime = glfwGetTime();
+
+        std::vector<Vertex> vertices(vertexData.size() / sizeof(Vertex));
+        std::memcpy(vertices.data(), vertexData.data(), vertexData.size());
+
+        std::vector<unsigned int> indices(indexData.size() / sizeof(unsigned int));
+        std::memcpy(indices.data(), indexData.data(), indexData.size());
+
+        mesh = new Mesh({
+            .vertices = vertices,
+            .indices = indices,
+            .material = new QuadMaterial({ .baseColorTexture = &colorTexture }),
+        });
+
+        totalTriangles = indices.size() / 3;
+
+        createMeshTime = glfwGetTime() - startTime;
+    }
+    else {
+        unsigned int maxVertices = windowSize.x * windowSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
+        unsigned int numTriangles = windowSize.x * windowSize.y * NUM_SUB_QUADS * 2;
+        unsigned int maxIndices = numTriangles * 3;
+
+        struct BufferSizes {
+            unsigned int numVertices;
+            unsigned int numIndices;
+            unsigned int numProxies;
+            unsigned int numDepthOffsets;
+        };
+        BufferSizes bufferSizes = { 0 };
+        Buffer<BufferSizes> sizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, &bufferSizes);
+
+        mesh = new Mesh({
+            .numVertices = maxVertices,
+            .numIndices = maxIndices,
+            .material = new QuadMaterial({ .baseColorTexture = &colorTexture }),
+            .usage = GL_DYNAMIC_DRAW,
+            .indirectDraw = true
+        });
+
+        startTime = glfwGetTime();
+        std::string quadProxiesFileName = DATA_PATH + "quads.bin";
+        auto quadProxiesData = FileIO::loadBinaryFile(quadProxiesFileName);
+
+        // first uint in the file is the number of proxies
+        unsigned int outputQuadsSize = *reinterpret_cast<unsigned int*>(quadProxiesData.data());
+        unsigned int bufferOffset = sizeof(unsigned int);
+
+        // next batch is the normalSphericals
+        auto normalSphericalsPtr = reinterpret_cast<unsigned int*>(quadProxiesData.data() + bufferOffset);
+        Buffer<unsigned int> normalSphericalsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, outputQuadsSize, normalSphericalsPtr);
+        bufferOffset += outputQuadsSize * sizeof(unsigned int);
+
+        // next batch is the depths
+        auto depthsPtr = reinterpret_cast<float*>(quadProxiesData.data() + bufferOffset);
+        Buffer<float> depthsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, outputQuadsSize, depthsPtr);
+        bufferOffset += outputQuadsSize * sizeof(float);
+
+        // next batch is the uvs
+        auto uvsPtr = reinterpret_cast<glm::vec2*>(quadProxiesData.data() + bufferOffset);
+        Buffer<glm::vec2> uvsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, outputQuadsSize, uvsPtr);
+        bufferOffset += outputQuadsSize * sizeof(glm::vec2);
+
+        // last batch is the offsets
+        auto offsetSizeFlattenedsPtr = reinterpret_cast<unsigned int*>(quadProxiesData.data() + bufferOffset);
+        Buffer<unsigned int> offsetSizeFlattenedsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, outputQuadsSize, offsetSizeFlattenedsPtr);
+
+        glm::uvec2 depthBufferSize = 4u * windowSize;
+
+        loadFromFilesTime = glfwGetTime() - startTime;
+        startTime = glfwGetTime();
+
+        createMeshFromQuadsShader.bind();
+        {
+            createMeshFromQuadsShader.setMat4("view", remoteCamera.getViewMatrix());
+            createMeshFromQuadsShader.setMat4("projection", remoteCamera.getProjectionMatrix());
+            createMeshFromQuadsShader.setMat4("viewInverse", remoteCamera.getViewMatrixInverse());
+            createMeshFromQuadsShader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
+            createMeshFromQuadsShader.setFloat("near", remoteCamera.getNear());
+            createMeshFromQuadsShader.setFloat("far", remoteCamera.getFar());
+        }
+        {
+            createMeshFromQuadsShader.setVec2("remoteWindowSize", windowSize);
+            createMeshFromQuadsShader.setInt("quadMapSize", outputQuadsSize);
+            createMeshFromQuadsShader.setVec2("depthBufferSize", depthBufferSize);
+        }
+        {
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, sizesBuffer);
+
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh->vertexBuffer);
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, mesh->indexBuffer);
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, mesh->indirectBuffer);
+
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, normalSphericalsBuffer);
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, depthsBuffer);
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, uvsBuffer);
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, offsetSizeFlattenedsBuffer);
+
+            // createMeshFromQuadsShader.setImageTexture(0, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetBuffer.internalFormat);
+        }
+
+        createMeshFromQuadsShader.dispatch((outputQuadsSize + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
+        createMeshFromQuadsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
+                                                GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+
+        createMeshTime = glfwGetTime() - startTime;
+
+        sizesBuffer.bind();
+        sizesBuffer.getSubData(0, 1, &bufferSizes);
+
+        totalTriangles = bufferSizes.numIndices / 3;
+        totalProxies = outputQuadsSize;
+        totalDepthOffsets = 0;
+    }
+
+    Node node(mesh);
     node.frustumCulled = false;
     scene.addChildNode(&node);
 
-    Node nodeWireframe(&mesh);
+    Node nodeWireframe(mesh);
     nodeWireframe.frustumCulled = false;
     nodeWireframe.wireframe = true;
     nodeWireframe.visible = false;
@@ -146,12 +274,12 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (renderStats.trianglesDrawn < 100000)
-                ImGui::TextColored(ImVec4(0,1,0,1), "Triangles Drawn: %d", renderStats.trianglesDrawn);
-            else if (renderStats.trianglesDrawn < 500000)
-                ImGui::TextColored(ImVec4(1,1,0,1), "Triangles Drawn: %d", renderStats.trianglesDrawn);
+            if (totalTriangles < 100000)
+                ImGui::TextColored(ImVec4(0,1,0,1), "Triangles Drawn: %d", totalTriangles);
+            else if (totalTriangles < 500000)
+                ImGui::TextColored(ImVec4(1,1,0,1), "Triangles Drawn: %d", totalTriangles);
             else
-                ImGui::TextColored(ImVec4(1,0,0,1), "Triangles Drawn: %d", renderStats.trianglesDrawn);
+                ImGui::TextColored(ImVec4(1,0,0,1), "Triangles Drawn: %d", totalTriangles);
 
             if (renderStats.drawCalls < 200)
                 ImGui::TextColored(ImVec4(0,1,0,1), "Draw Calls: %d", renderStats.drawCalls);
@@ -159,6 +287,11 @@ int main(int argc, char** argv) {
                 ImGui::TextColored(ImVec4(1,1,0,1), "Draw Calls: %d", renderStats.drawCalls);
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
+
+            float proxySizeMb = static_cast<float>(totalProxies * 8*sizeof(QuadMapDataPacked)) / MB_TO_BITS;
+            float depthOffsetSizeMb = static_cast<float>(totalDepthOffsets * 8*sizeof(uint16_t)) / MB_TO_BITS;
+            ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%.3f Mb)", totalProxies, proxySizeMb);
+            ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%.3f Mb)", totalDepthOffsets, depthOffsetSizeMb);
 
             ImGui::Separator();
 
@@ -171,6 +304,11 @@ int main(int argc, char** argv) {
                 camera.setRotationEuler(rotation);
             }
             ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
+
+            ImGui::Separator();
+
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to load data: %.3f ms", loadFromFilesTime * 1000.0);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to create mesh: %.3f ms", createMeshTime * 1000.0);
 
             ImGui::Separator();
 

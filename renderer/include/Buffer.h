@@ -2,6 +2,7 @@
 #define BUFFER_H
 
 #include <iostream>
+#include <cstring>
 #include <vector>
 
 #include <OpenGLObject.h>
@@ -99,19 +100,41 @@ public:
         return numElems;
     }
 
-    void setSize(unsigned int numElems) {
-        this->numElems = numElems;
+    void resize(unsigned int newNumElems, bool copy = false) {
+        if (numElems == newNumElems) {
+            return;
+        }
+
+        std::vector<T> data;
+        if (copy) {
+            data.resize(numElems);
+            getData(data.data());
+        }
+
+        glBufferData(target, newNumElems * sizeof(T), nullptr, usage);
+
+        if (copy) {
+            unsigned int elemsToCopy = std::min(numElems, newNumElems);
+            glBufferSubData(target, 0, elemsToCopy * sizeof(T), data.data());
+        }
+
+        numElems = newNumElems;
     }
 
-    void resize(unsigned int numElems) {
-        setSize(numElems);
-        glBufferData(target, numElems * sizeof(T), nullptr, usage);
+    void smartResize(unsigned int newNumElems, bool copy = false) {
+        if (newNumElems > numElems) {
+            resize(numElems * 2, copy);
+        }
+        else if (newNumElems <= numElems / 4) {
+            resize(numElems / 4, copy);
+            std::cout << "Resizing buffer to " << numElems / 4 << " elements." << std::endl;
+        }
     }
 
     void getData(void* data) const {
         T* mappedBuffer = static_cast<T*>(glMapBufferRange(target, 0, numElems * sizeof(T), GL_MAP_READ_BIT));
         if (mappedBuffer) {
-            memcpy(data, mappedBuffer, numElems * sizeof(T));
+            std::memcpy(data, mappedBuffer, numElems * sizeof(T));
 
             glUnmapBuffer(target);
         } else {
@@ -132,7 +155,7 @@ public:
 #endif
 
     void setData(unsigned int numElems, const void* data) {
-        setSize(numElems);
+        resize(numElems);
         glBufferData(target, numElems * sizeof(T), data, usage);
     }
 

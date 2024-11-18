@@ -14,9 +14,11 @@ static int interrupt_callback(void* ctx) {
 
 VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params,
                              const std::string &videoURL,
-                             unsigned int targetBitRateMbps,
+                             int targetFrameRate,
+                             int targetBitRateMbps,
                              const std::string &formatName)
-        : targetBitRate(targetBitRateMbps * MB_TO_BITS)
+        : targetFrameRate(targetFrameRate)
+        , targetBitRate(targetBitRateMbps * MB_TO_BITS)
         , formatName(formatName)
         , RenderTarget(params) {
     this->videoURL = (formatName == "mpegts") ?

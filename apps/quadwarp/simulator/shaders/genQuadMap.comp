@@ -7,17 +7,16 @@ struct QuadMapData {
     vec3 normal;
     float depth;
     vec2 uv;
-    ivec2 offset;
+    uvec2 offset;
     uint size;
     bool flattened;
 };
 
 struct QuadMapDataPacked {
-    uvec2 normal;
+    uint normalSpherical;
     float depth;
     vec2 uv;
-    uint offset;
-    uint flattenedAndSize;
+    uint offsetSizeFlattened;
 };
 
 struct Quad {
@@ -95,7 +94,6 @@ uniform mat4 projectionInverse;
 uniform float near;
 uniform float far;
 
-uniform bool doAverageNormal;
 uniform bool doOrientationCorrection;
 uniform float distanceThreshold;
 uniform float angleThreshold;
@@ -104,6 +102,7 @@ uniform float flatThreshold;
 #define MAX_DEPTH 0.9999
 
 const float epsilon = 1e-5;
+const float PI = 3.1415926535897932384626433832795;
 
 const float surfelSize = 0.5;
 const vec3 origin = vec3(0.0, 0.0, 0.0);
@@ -112,15 +111,27 @@ const vec3 up = vec3(0.0, 1.0, 0.0);
 const vec3 left = vec3(-1.0, 0.0, 0.0);
 const vec3 right = vec3(1.0, 0.0, 0.0);
 
-layout(std430, binding = 0) writeonly buffer QuadMapBuffer {
-    QuadMapDataPacked quadMap[];
-};
-
-layout(std430, binding = 1) buffer SizesBuffer {
+layout(std430, binding = 0) writeonly buffer SizesBuffer {
     uint numVertices;
     uint numIndices;
     uint numProxies;
     uint numDepthOffsets;
+};
+
+layout(std430, binding = 1) writeonly buffer normalSphericalsBufferInput {
+    uint normalSphericalsInput[];
+};
+
+layout(std430, binding = 2) writeonly buffer depthBufferInput {
+    float depthsInput[];
+};
+
+layout(std430, binding = 3) writeonly buffer uvsBufferInput {
+    vec2 uvsInput[];
+};
+
+layout(std430, binding = 4) writeonly buffer offsetsBufferInput {
+    uint offsetSizeFlattenedsInput[];
 };
 
 layout(r16f, binding = 0) uniform image2D depthOffsetBuffer;
@@ -230,22 +241,6 @@ vec3 averageNormals(MultiQuad pixelNormalsView, MultiQuad pixelCoordsView) {
     return normal;
 }
 
-vec3 constrainToMaxAngle(vec3 vectorNormalized, vec3 axisNormalized, float maxAngle) {
-    float dotProduct = dot(vectorNormalized, axisNormalized);
-    float angle = acos(dotProduct);
-    if (angle > maxAngle) {
-        vec3 rotationAxis = normalize(cross(vectorNormalized, axisNormalized));
-        float cosMaxAngle = cos(maxAngle);
-        float sinMaxAngle = sin(maxAngle);
-        vec3 crossProduct = cross(rotationAxis, vectorNormalized);
-        vectorNormalized = vectorNormalized * cosMaxAngle + \
-                           cross(rotationAxis, vectorNormalized) * sinMaxAngle + \
-                           rotationAxis * dot(rotationAxis, vectorNormalized) * (1.0 - cosMaxAngle);
-    }
-
-    return normalize(vectorNormalized);
-}
-
 vec3 rayPlaneIntersection(vec3 rayOrigin, vec3 rayDirection, Plane plane) {
     float denominator = dot(rayDirection, plane.normal);
     if (abs(denominator) < epsilon) {
@@ -274,11 +269,6 @@ vec3 findQuadPointCorner(
     vec3 surfelViewPlanePixelNeighbor3,
     float pixelDepthCenter, float pixelDepthNeighbor1, float pixelDepthNeighbor2, float pixelDepthNeighbor3)
 {
-    // if (surfelNDC.x <= -1.0 || surfelNDC.x >= 1.0 ||
-    //     surfelNDC.y <= -1.0 || surfelNDC.y >= 1.0) {
-    //     return surfelViewPlane;
-    // }
-
     if (pixelDepthCenter >= MAX_DEPTH || pixelDepthNeighbor1 >= MAX_DEPTH || pixelDepthNeighbor2 >= MAX_DEPTH || pixelDepthNeighbor3 >= MAX_DEPTH) {
         return surfelViewPlane;
     }
@@ -319,11 +309,6 @@ vec3 findQuadPointEdge(
     vec3 surfelViewPlanePixelNeighbor,
     float pixelDepthCenter, float pixelDepthNeighbor)
 {
-    // if (surfelNDC.x <= -1.0 || surfelNDC.x >= 1.0 ||
-    //     surfelNDC.y <= -1.0 || surfelNDC.y >= 1.0) {
-    //     return surfelViewPlane;
-    // }
-
     if (pixelDepthCenter >= MAX_DEPTH || pixelDepthNeighbor >= MAX_DEPTH) {
         return surfelViewPlane;
     }
@@ -336,27 +321,27 @@ vec3 findQuadPointEdge(
     return surfelViewPlane;
 }
 
-float distanceAlongAxis(vec3 a, vec3 b, vec3 axis) {
+float distanceAlongAxis(in vec3 a, in vec3 b, in vec3 axis) {
     vec3 aProj = dot(a, axis) * axis;
     vec3 bProj = dot(b, axis) * axis;
     return distance(aProj, bProj);
 }
 
-bool quadHasExtremeOrientation(in MultiQuad quad, vec3 frustumNormalView) {
-    float avgDist = 0.0;
-    avgDist += distanceAlongAxis(quad.center, quad.bottomLeft, frustumNormalView);
-    avgDist += distanceAlongAxis(quad.center, quad.bottom, frustumNormalView);
-    avgDist += distanceAlongAxis(quad.center, quad.bottomRight, frustumNormalView);
-    avgDist += distanceAlongAxis(quad.center, quad.left, frustumNormalView);
-    avgDist += distanceAlongAxis(quad.center, quad.right, frustumNormalView);
-    avgDist += distanceAlongAxis(quad.center, quad.topLeft, frustumNormalView);
-    avgDist += distanceAlongAxis(quad.center, quad.top, frustumNormalView);
-    avgDist += distanceAlongAxis(quad.center, quad.topRight, frustumNormalView);
-    avgDist /= 8.0;
-    if (normalizeDepth(avgDist) > distanceThreshold) {
-        return true;
-    }
-    return false;
+bool quadHasExtremeOrientation(in vec3 centerNormal, in vec3 frustumNormalView) {
+    float dotProduct = dot(centerNormal, frustumNormalView);
+    float angle = acos(dotProduct);
+    return angle > angleThreshold;
+}
+
+vec3 constrainToMaxAngle(in vec3 centerNormal, in vec3 frustumNormalView) {
+    vec3 rotationAxis = normalize(cross(centerNormal, frustumNormalView));
+    float cosMaxAngle = cos(angleThreshold);
+    float sinMaxAngle = sin(angleThreshold);
+    vec3 crossProduct = cross(rotationAxis, centerNormal);
+    centerNormal = centerNormal * cosMaxAngle + \
+                        cross(rotationAxis, centerNormal) * sinMaxAngle + \
+                        rotationAxis * dot(rotationAxis, centerNormal) * (1.0 - cosMaxAngle);
+    return normalize(centerNormal);
 }
 
 void createSurfels(
@@ -491,17 +476,32 @@ void createSurfels(
     surfelView.topRight    = surfelViewTopRight;
 }
 
+uint packNormalToSphericalHalf(vec3 normal) {
+    float theta = atan(normal.z, normal.x);
+    float phi = acos(normal.y);
+
+    float theta01 = (theta + PI) / (2.0 * PI);
+    float phi01 = phi / PI;
+
+    return packHalf2x16(vec2(theta01, phi01));
+}
+
 void storeInQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
     QuadMapDataPacked quadMapDataPacked;
-    quadMapDataPacked.normal.x = packHalf2x16(quadMapData.normal.xy);
-    quadMapDataPacked.normal.y = packHalf2x16(vec2(quadMapData.normal.z, 0.0));
+    quadMapDataPacked.normalSpherical = packNormalToSphericalHalf(quadMapData.normal);
     quadMapDataPacked.depth = quadMapData.depth;
     quadMapDataPacked.uv = quadMapData.uv;
-    quadMapDataPacked.offset = (quadMapData.offset.x & 0xFFFFu) | ((quadMapData.offset.y & 0xFFFFu) << 16);
-    quadMapDataPacked.flattenedAndSize = quadMapData.size | (quadMapData.flattened ? 1u << 31 : 0u);
+
+    uint flattenedAndSize = ((quadMapData.size & 0x7Fu) << 1) | (quadMapData.flattened ? 1u : 0u);
+    quadMapDataPacked.offsetSizeFlattened = ((quadMapData.offset.x & 0xFFFu) << 20) |
+                                                    ((quadMapData.offset.y & 0xFFFu) << 8) |
+                                                        (flattenedAndSize & 0xFFu);
 
     uint index = uint(pixelCoord.y) * uint(quadMapSize.x) + uint(pixelCoord.x);
-    quadMap[index] = quadMapDataPacked;
+    normalSphericalsInput[index] = quadMapDataPacked.normalSpherical;
+    depthsInput[index] = quadMapDataPacked.depth;
+    uvsInput[index] = quadMapDataPacked.uv;
+    offsetSizeFlattenedsInput[index] = quadMapDataPacked.offsetSizeFlattened;
 }
 
 void storeInDepthOffsetBuffer(in ivec2 pixelCoord, in float depthOffset) {
@@ -594,7 +594,7 @@ void storeSurfelsInQuadMap(
     quadMapData.uv = proxyPlaneUV;
     quadMapData.depth = proxyPlaneDepth;
     quadMapData.normal = proxyPlaneNormal;
-    quadMapData.offset = pixelCoord;
+    quadMapData.offset = uvec2(pixelCoord);
     quadMapData.size = 1; // 2x2 surfels, store as a power of 2
     storeInQuadMap(pixelCoord, quadMapData);
 
@@ -748,8 +748,10 @@ void main() {
     pixelCoordsView.top         = ndcToView(projectionInverse, pixelCenterNDCs.top, pixelDepths.top);
     pixelCoordsView.topRight    = ndcToView(projectionInverse, pixelCenterNDCs.topRight, pixelDepths.topRight);
 
-    if (doAverageNormal) {
-        pixelNormalsView.center = averageNormals(pixelNormalsView, pixelCoordsView);
+    vec3 frustumNormalView = normalize(origin - pixelCoordsView.center);
+    if (doOrientationCorrection && quadHasExtremeOrientation(pixelNormalsView.center, frustumNormalView)) {
+        // if the quad has an extreme orientation, constrain the center normal
+        pixelNormalsView.center = constrainToMaxAngle(pixelNormalsView.center, frustumNormalView);
     }
 
     // project all points to near plane
@@ -767,13 +769,6 @@ void main() {
     // create surfels
     MultiQuad surfelView;
     createSurfels(surfelView, surfelNDCs, surfelViewNearPlane, pixelCoordsView, pixelNormalsView, pixelDepths);
-
-    vec3 frustumNormalView = normalize(origin - surfelView.center);
-    if (doOrientationCorrection && quadHasExtremeOrientation(surfelView, frustumNormalView)) {
-        // recreate surfels with rotated normal
-        pixelNormalsView.center = constrainToMaxAngle(pixelNormalsView.center, frustumNormalView, angleThreshold);
-        createSurfels(surfelView, surfelNDCs, surfelViewNearPlane, pixelCoordsView, pixelNormalsView, pixelDepths);
-    }
 
     /**********************
 

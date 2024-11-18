@@ -18,6 +18,7 @@
 int main(int argc, char** argv) {
     Config config{};
     config.title = "ATW Streamer";
+    config.targetFramerate = 30;
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
@@ -97,7 +98,7 @@ int main(int argc, char** argv) {
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR
-    }, videoURL, targetBitrate, videoFormat);
+    }, videoURL, config.targetFramerate, targetBitrate, videoFormat);
 
     PoseReceiver poseReceiver = PoseReceiver(camera.get(), poseURL);
 

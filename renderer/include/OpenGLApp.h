@@ -20,6 +20,8 @@ public:
     virtual void run();
 
 private:
+    double targetFramerate;
+
     RenderCallback renderCallback;
     ResizeCallback resizeCallback;
 

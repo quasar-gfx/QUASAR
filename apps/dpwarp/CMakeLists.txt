@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 project(DepthPeelingWarp)
 
-add_subdirectory(streamer)
+add_subdirectory(simulator)
 add_subdirectory(receiver)
 
 file(CREATE_LINK ${ASSETS_DIR} ${CMAKE_CURRENT_BINARY_DIR}/assets SYMBOLIC)
