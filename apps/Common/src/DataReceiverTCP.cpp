@@ -92,7 +92,7 @@ void DataReceiverTCP::recvData() {
 
         if (totalReceived == expectedSize && !data.empty()) {
             stats.timeToReceiveMs = timeutils::microsToMillis(timeutils::getTimeMicros() - receiveStartTime);
-            stats.bitrateMbps = ((sizeof(expectedSize) + data.size() * 8) / timeutils::millisToSeconds(stats.timeToReceiveMs)) / MB_TO_BITS;
+            stats.bitrateMbps = ((sizeof(expectedSize) + data.size() * 8) / timeutils::millisToSeconds(stats.timeToReceiveMs)) / BYTES_IN_MB;
 
             onDataReceived(std::move(data)); // notify about the received data
         }

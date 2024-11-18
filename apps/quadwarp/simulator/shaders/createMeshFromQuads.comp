@@ -97,7 +97,7 @@ layout(std430, binding = 7) readonly buffer offsetsBufferInput {
     uint offsetSizeFlattenedsInput[];
 };
 
-layout(r16f, binding = 0) uniform readonly image2D depthOffsetBuffer;
+layout(r16f, binding = 0) uniform readonly image2D depthOffsetsBuffer;
 
 uniform vec2 remoteWindowSize;
 uniform int quadMapSize;
@@ -244,7 +244,7 @@ QuadMapData loadQuadMap(uint index) {
 }
 
 float loadDepthOffset(in ivec2 pixelCoord) {
-    return imageLoad(depthOffsetBuffer, pixelCoord).x;
+    return imageLoad(depthOffsetsBuffer, pixelCoord).x;
 }
 
 void loadDepthOffsets(out Quad1D depthOffsets, in ivec2 pixelCoord) {
@@ -320,25 +320,25 @@ void storeSurfel(in Quad quad, in Quad2D pixelCoords, in QuadMapData quadMapData
     uint vertexIndexTopLeft = vertexIdxBase + 0;
     vertices[vertexIndexTopLeft].position = viewToWorld(viewInverse, quad.topLeft);
     vertices[vertexIndexTopLeft].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexTopLeft].texCoords = pixelCoords.topLeft / remoteWindowSize; // viewToScreen(projection, quad.topLeft);
+    vertices[vertexIndexTopLeft].texCoords = pixelCoords.topLeft / remoteWindowSize;
     vertices[vertexIndexTopLeft].normal = quadMapData.normal;
 
     uint vertexIndexTopRight = vertexIdxBase + 1;
     vertices[vertexIndexTopRight].position = viewToWorld(viewInverse, quad.topRight);
     vertices[vertexIndexTopRight].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexTopRight].texCoords = pixelCoords.topRight / remoteWindowSize; // viewToScreen(projection, quad.topRight);
+    vertices[vertexIndexTopRight].texCoords = pixelCoords.topRight / remoteWindowSize;
     vertices[vertexIndexTopRight].normal = quadMapData.normal;
 
     uint vertexIndexBottomLeft = vertexIdxBase + 2;
     vertices[vertexIndexBottomLeft].position = viewToWorld(viewInverse, quad.bottomLeft);
     vertices[vertexIndexBottomLeft].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexBottomLeft].texCoords = pixelCoords.bottomLeft / remoteWindowSize; // viewToScreen(projection, quad.bottomLeft);
+    vertices[vertexIndexBottomLeft].texCoords = pixelCoords.bottomLeft / remoteWindowSize;
     vertices[vertexIndexBottomLeft].normal = quadMapData.normal;
 
     uint vertexIndexBottomRight = vertexIdxBase + 3;
     vertices[vertexIndexBottomRight].position = viewToWorld(viewInverse, quad.bottomRight);
     vertices[vertexIndexBottomRight].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIndexBottomRight].texCoords = pixelCoords.bottomRight / remoteWindowSize; // viewToScreen(projection, quad.bottomRight);
+    vertices[vertexIndexBottomRight].texCoords = pixelCoords.bottomRight / remoteWindowSize;
     vertices[vertexIndexBottomRight].normal = quadMapData.normal;
 
     vec3 vertPositionsView[4];
@@ -347,16 +347,21 @@ void storeSurfel(in Quad quad, in Quad2D pixelCoords, in QuadMapData quadMapData
     vertPositionsView[2] = quad.topRight;
     vertPositionsView[3] = quad.topLeft;
 
-    // uv coordinates have to be in 3D to properly interpolate them in the fragment shader. add a q component to the uvs
+    // uv coordinates have to be in 3D to properly interpolate them in the fragment shader.
+    // to do this, add a q component to the uvs and the fragment shader will perform perspective-correct interpolation.
     vec3 uvqs[4];
     uvqs[0] = vec3(vertices[vertexIndexBottomLeft].texCoords,  1.0);
     uvqs[1] = vec3(vertices[vertexIndexBottomRight].texCoords, 1.0);
     uvqs[2] = vec3(vertices[vertexIndexTopRight].texCoords,    1.0);
     uvqs[3] = vec3(vertices[vertexIndexTopLeft].texCoords,     1.0);
 
-    // adapted from: https://www.roxlu.com/2014/026/mapping-a-texture-on-a-disc and https://www.reedbeta.com/blog/quadrilateral-interpolation-part-1/
+    // adapted from:
+    // https://www.roxlu.com/2014/026/mapping-a-texture-on-a-disc and
+    // https://www.reedbeta.com/blog/quadrilateral-interpolation-part-1/
     float vertDistanceToCenter[4];
-    vec3 intersectPointView = lineLineIntersection(vertPositionsView[0], vertPositionsView[2], vertPositionsView[1], vertPositionsView[3]);
+    vec3 intersectPointView = lineLineIntersection(
+                                vertPositionsView[0], vertPositionsView[2],
+                                vertPositionsView[1], vertPositionsView[3]);
     for (int i = 0; i < 4; i++) {
         float dist = distance(intersectPointView, vertPositionsView[i]);
         vertDistanceToCenter[i] = dist;

@@ -80,13 +80,6 @@ int main(int argc, char** argv) {
     // shaders
     ToneMapShader toneMapShader;
 
-    ComputeShader createMeshFromQuadsShader({
-        .computeCodePath = "shaders/createMeshFromQuads.comp",
-        .defines = {
-            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
-        }
-    });
-
     std::vector<Texture*> colorTextures(maxViews);
 
     for (int view = 0; view < maxViews; view++) {
@@ -142,6 +135,13 @@ int main(int argc, char** argv) {
         }
     }
     else {
+        ComputeShader createMeshFromQuadsShader({
+            .computeCodePath = "shaders/createMeshFromQuads.comp",
+            .defines = {
+                "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
+            }
+        });
+
         unsigned int maxVertices = windowSize.x * windowSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
         unsigned int numTriangles = windowSize.x * windowSize.y * NUM_SUB_QUADS * 2;
         unsigned int maxIndices = numTriangles * 3;
@@ -224,7 +224,7 @@ int main(int argc, char** argv) {
                 createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, uvsBuffer);
                 createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, offsetSizeFlattenedsBuffer);
 
-                // createMeshFromQuadsShader.setImageTexture(0, depthOffsetBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetBuffer.internalFormat);
+                // createMeshFromQuadsShader.setImageTexture(0, depthOffsetsBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetsBuffer.internalFormat);
             }
 
             createMeshFromQuadsShader.dispatch((outputQuadsSize + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
@@ -324,8 +324,8 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
-            float proxySizeMb = static_cast<float>(totalProxies * 8*sizeof(QuadMapDataPacked)) / MB_TO_BITS;
-            float depthOffsetSizeMb = static_cast<float>(totalDepthOffsets * 8*sizeof(uint16_t)) / MB_TO_BITS;
+            float proxySizeMb = static_cast<float>(totalProxies * 8*sizeof(QuadMapDataPacked)) / BYTES_IN_MB;
+            float depthOffsetSizeMb = static_cast<float>(totalDepthOffsets * 8*sizeof(uint16_t)) / BYTES_IN_MB;
             ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%.3f Mb)", totalProxies, proxySizeMb);
             ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%.3f Mb)", totalDepthOffsets, depthOffsetSizeMb);
 

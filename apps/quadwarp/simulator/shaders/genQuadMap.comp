@@ -134,7 +134,7 @@ layout(std430, binding = 4) writeonly buffer offsetsBufferInput {
     uint offsetSizeFlattenedsInput[];
 };
 
-layout(r16f, binding = 0) uniform image2D depthOffsetBuffer;
+layout(r16f, binding = 0) uniform image2D depthOffsetsBuffer;
 
 vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
     vec4 ndcPos;
@@ -338,15 +338,17 @@ vec3 constrainToMaxAngle(in vec3 centerNormal, in vec3 frustumNormalView) {
     float cosMaxAngle = cos(angleThreshold);
     float sinMaxAngle = sin(angleThreshold);
     vec3 crossProduct = cross(rotationAxis, centerNormal);
-    centerNormal = centerNormal * cosMaxAngle + \
+    vec3 newNormal = centerNormal * cosMaxAngle + \
                         cross(rotationAxis, centerNormal) * sinMaxAngle + \
                         rotationAxis * dot(rotationAxis, centerNormal) * (1.0 - cosMaxAngle);
-    return normalize(centerNormal);
+    return normalize(newNormal);
 }
 
 void createSurfels(
     out MultiQuad surfelView,
-    in MultiQuad2D surfelNDCs, in MultiQuad surfelViewNearPlane, in MultiQuad pixelCoordsView, in MultiQuad pixelNormalsView, in MultiQuad1D pixelDepths
+    in MultiQuad2D surfelNDCs,
+    in MultiQuad surfelViewNearPlane, in MultiQuad pixelCoordsView,
+    in MultiQuad pixelNormalsView, in MultiQuad1D pixelDepths
 ) {
     // create planes for each pixel
     Plane planeBottomLeft  = Plane(pixelNormalsView.bottomLeft, pixelCoordsView.bottomLeft);
@@ -504,15 +506,15 @@ void storeInQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
     offsetSizeFlattenedsInput[index] = quadMapDataPacked.offsetSizeFlattened;
 }
 
-void storeInDepthOffsetBuffer(in ivec2 pixelCoord, in float depthOffset) {
-    imageStore(depthOffsetBuffer, pixelCoord, vec4(depthOffset, 0.0, 0.0, 0.0));
+void storeInDepthOffsetsBuffer(in ivec2 pixelCoord, in float depthOffset) {
+    imageStore(depthOffsetsBuffer, pixelCoord, vec4(depthOffset, 0.0, 0.0, 0.0));
 }
 
 void storeDepthOffsets(in ivec2 pixelCoord, in Quad1D depthOffsets) {
-    storeInDepthOffsetBuffer(pixelCoord + ivec2(0, 0), depthOffsets.bottomLeft);
-    storeInDepthOffsetBuffer(pixelCoord + ivec2(1, 0), depthOffsets.bottomRight);
-    storeInDepthOffsetBuffer(pixelCoord + ivec2(0, 1), depthOffsets.topLeft);
-    storeInDepthOffsetBuffer(pixelCoord + ivec2(1, 1), depthOffsets.topRight);
+    storeInDepthOffsetsBuffer(pixelCoord + ivec2(0, 0), depthOffsets.bottomLeft);
+    storeInDepthOffsetsBuffer(pixelCoord + ivec2(1, 0), depthOffsets.bottomRight);
+    storeInDepthOffsetsBuffer(pixelCoord + ivec2(0, 1), depthOffsets.topLeft);
+    storeInDepthOffsetsBuffer(pixelCoord + ivec2(1, 1), depthOffsets.topRight);
 }
 
 Quad1D findDepthOffsets(in Quad quadView, in Plane proxyPlane) {

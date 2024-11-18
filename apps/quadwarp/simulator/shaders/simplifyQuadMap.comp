@@ -141,7 +141,7 @@ layout(std430, binding = 7) writeonly buffer offsetsBufferOutput {
     uint offsetSizeFlattenedsOutput[];
 };
 
-layout(r16f, binding = 0) uniform image2D depthOffsetBuffer;
+layout(r16f, binding = 0) uniform image2D depthOffsetsBuffer;
 
 vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
     vec4 ndcPos;
@@ -269,7 +269,7 @@ QuadMapData loadInputQuadMap(ivec2 pixelCoord) {
 }
 
 float loadDepthOffset(in ivec2 pixelCoord) {
-    return imageLoad(depthOffsetBuffer, pixelCoord).x;
+    return imageLoad(depthOffsetsBuffer, pixelCoord).x;
 }
 
 void storeInOutputQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
@@ -290,8 +290,8 @@ void storeInOutputQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
     offsetSizeFlattenedsOutput[index] = quadMapDataPacked.offsetSizeFlattened;
 }
 
-void storeInDepthOffsetBuffer(in ivec2 pixelCoord, in float depthOffset) {
-    imageStore(depthOffsetBuffer, pixelCoord, vec4(depthOffset));
+void storeInDepthOffsetsBuffer(in ivec2 pixelCoord, in float depthOffset) {
+    imageStore(depthOffsetsBuffer, pixelCoord, vec4(depthOffset));
 }
 
 void ignoreInputQuadMapData(in ivec2 pixelCoord) {
@@ -336,10 +336,10 @@ Quad1D findDepthOffsets(in Quad quadView, in Plane proxyPlane) {
 }
 
 void storeDepthOffsets(in ivec2 pixelCoord, in Quad1D depthOffsets) {
-    storeInDepthOffsetBuffer(pixelCoord + ivec2(0, 0), depthOffsets.bottomLeft);
-    storeInDepthOffsetBuffer(pixelCoord + ivec2(1, 0), depthOffsets.bottomRight);
-    storeInDepthOffsetBuffer(pixelCoord + ivec2(0, 1), depthOffsets.topLeft);
-    storeInDepthOffsetBuffer(pixelCoord + ivec2(1, 1), depthOffsets.topRight);
+    storeInDepthOffsetsBuffer(pixelCoord + ivec2(0, 0), depthOffsets.bottomLeft);
+    storeInDepthOffsetsBuffer(pixelCoord + ivec2(1, 0), depthOffsets.bottomRight);
+    storeInDepthOffsetsBuffer(pixelCoord + ivec2(0, 1), depthOffsets.topLeft);
+    storeInDepthOffsetsBuffer(pixelCoord + ivec2(1, 1), depthOffsets.topRight);
 }
 
 void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in Quad1D depthOffsets, in Plane proxyPlane) {
@@ -414,7 +414,10 @@ Plane averagePlanes(in Plane plane1, in Plane plane2, in Plane plane3, in Plane 
     return averagePlane;
 }
 
-bool shouldMerge(in Plane proxyPlaneBottomLeft, in Plane proxyPlaneBottomRight, in Plane proxyPlaneTopLeft, in Plane proxyPlaneTopRight) {
+bool shouldMerge(
+    in Plane proxyPlaneBottomLeft, in Plane proxyPlaneBottomRight,
+    in Plane proxyPlaneTopLeft, in Plane proxyPlaneTopRight
+) {
     PlaneEq proxyPlaneEqBottomLeft  = planeToPlaneEq(proxyPlaneBottomLeft);
     PlaneEq proxyPlaneEqBottomRight = planeToPlaneEq(proxyPlaneBottomRight);
     PlaneEq proxyPlaneEqTopLeft     = planeToPlaneEq(proxyPlaneTopLeft);
@@ -429,16 +432,61 @@ bool shouldMerge(in Plane proxyPlaneBottomLeft, in Plane proxyPlaneBottomRight, 
            planeEquationsSimilar(proxyPlaneEqTopLeft, proxyPlaneEqTopRight);
 }
 
+void recalcDepthOffsets(
+    in Plane newProxyPlane,
+    in QuadMapData quadMapData, in Plane proxyPlane,
+    inout int numBelowThreshold, inout int total
+) {
+    vec2 proxyPlaneUV = quadMapData.uv;
+    vec2 proxyPlanePixelCoords = vec2(proxyPlaneUV * remoteWindowSize);
+
+    uint size = 1 << quadMapData.size;
+    float halfGridSize = float(size) * surfelSize / 2;
+
+    // calculate new depth offsets relative to new proxy plane
+    vec2 start = vec2(proxyPlanePixelCoords - vec2(halfGridSize, halfGridSize));
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            ivec2 depthOffsetPixelCoords = 4 * ivec2(quadMapData.offset) + 2 * ivec2(i, j);
+
+            Quad2D surfelPixelCoords;
+            surfelPixelCoords.bottomLeft  = start + vec2(float(i) * 0.5, float(j) * 0.5);
+            surfelPixelCoords.bottomRight = surfelPixelCoords.bottomLeft + vec2(0.5, 0.0);
+            surfelPixelCoords.topLeft     = surfelPixelCoords.bottomLeft + vec2(0.0, 0.5);
+            surfelPixelCoords.topRight    = surfelPixelCoords.bottomLeft + vec2(0.5, 0.5);
+
+            Quad1D oldDepthOffsets;
+            loadDepthOffsets(oldDepthOffsets, depthOffsetPixelCoords);
+
+            Quad surfel;
+            createSurfel(surfel, surfelPixelCoords, oldDepthOffsets, proxyPlane);
+
+            Quad1D newDepthOffsets = findDepthOffsets(surfel, newProxyPlane);
+            storeDepthOffsets(depthOffsetPixelCoords, newDepthOffsets);
+
+            if (abs(newDepthOffsets.bottomLeft)  < flatThreshold) numBelowThreshold++;
+            if (abs(newDepthOffsets.bottomRight) < flatThreshold) numBelowThreshold++;
+            if (abs(newDepthOffsets.topLeft)     < flatThreshold) numBelowThreshold++;
+            if (abs(newDepthOffsets.topRight)    < flatThreshold) numBelowThreshold++;
+            total += 4;
+        }
+    }
+}
+
 void mergeQuadMapData(
     out QuadMapData mergedQuadMapData,
-    in Plane proxyPlaneBottomLeft, in Plane proxyPlaneBottomRight, in Plane proxyPlaneTopLeft, in Plane proxyPlaneTopRight,
-    in QuadMapData quadMapDataBottomLeft, in QuadMapData quadMapDataBottomRight, in QuadMapData quadMapDataTopLeft, in QuadMapData quadMapDataTopRight
+    in Plane proxyPlaneBottomLeft, in Plane proxyPlaneBottomRight,
+    in Plane proxyPlaneTopLeft, in Plane proxyPlaneTopRight,
+    in QuadMapData quadMapDataBottomLeft, in QuadMapData quadMapDataBottomRight,
+    in QuadMapData quadMapDataTopLeft, in QuadMapData quadMapDataTopRight
 ) {
     // get average plane
-    Plane newProxyPlane = averagePlanes(proxyPlaneBottomLeft, proxyPlaneBottomRight, proxyPlaneTopLeft, proxyPlaneTopRight);
+    Plane newProxyPlane = averagePlanes(proxyPlaneBottomLeft, proxyPlaneBottomRight,
+                                        proxyPlaneTopLeft, proxyPlaneTopRight);
 
     // find what depth the average uv maps to on the new plane
-    vec2 averageUV = (quadMapDataBottomLeft.uv + quadMapDataBottomRight.uv + quadMapDataTopLeft.uv + quadMapDataTopRight.uv) / 4.0;
+    vec2 averageUV = (quadMapDataBottomLeft.uv + quadMapDataBottomRight.uv +
+                      quadMapDataTopLeft.uv + quadMapDataTopRight.uv) / 4.0;
     vec2 averageNDC = averageUV * 2.0 - 1.0;
     vec3 averageNearPlane = ndcToView(projectionInverse, averageNDC, 0.0);
 
@@ -448,51 +496,22 @@ void mergeQuadMapData(
 
     float newProxyPlaneDepth = min(newProxyPlaneNDC.z, MAX_DEPTH);
 
+    bool flattened = (quadMapDataBottomLeft.flattened && quadMapDataBottomRight.flattened &&
+                      quadMapDataTopLeft.flattened && quadMapDataTopRight.flattened);
+    // if at least one of the quads to merge is not flattened,
     // recalculate the new merged proxy plane's surfel's depth offsets
-    int numBelowThreshold = 0;
-    int total = 0;
-    QuadMapData quadMapDatas[4] = QuadMapData[](quadMapDataBottomLeft, quadMapDataBottomRight, quadMapDataTopLeft, quadMapDataTopRight);
-    Plane proxyPlanes[4] = Plane[](proxyPlaneBottomLeft, proxyPlaneBottomRight, proxyPlaneTopLeft, proxyPlaneTopRight);
-    for (int i = 0; i < 4; i++) {
-        QuadMapData quadMapData = quadMapDatas[i];
-        Plane proxyPlane = proxyPlanes[i];
+    if (!flattened) {
+        // recalculate the new merged proxy plane's surfel's depth offsets
+        int numBelowThreshold = 0;
+        int total = 0;
+        recalcDepthOffsets(newProxyPlane, quadMapDataBottomLeft, proxyPlaneBottomLeft, numBelowThreshold, total);
+        recalcDepthOffsets(newProxyPlane, quadMapDataBottomRight, proxyPlaneBottomRight, numBelowThreshold, total);
+        recalcDepthOffsets(newProxyPlane, quadMapDataTopLeft, proxyPlaneTopLeft, numBelowThreshold, total);
+        recalcDepthOffsets(newProxyPlane, quadMapDataTopRight, proxyPlaneTopRight, numBelowThreshold, total);
 
-        vec2 proxyPlaneUV = quadMapData.uv;
-        vec2 proxyPlanePixelCoords = vec2(proxyPlaneUV * remoteWindowSize);
-
-        uint size = 1 << quadMapData.size;
-        float halfGridSize = float(size) * surfelSize / 2;
-
-        // calculate new depth offsets relative to new proxy plane
-        vec2 start = vec2(proxyPlanePixelCoords - vec2(halfGridSize, halfGridSize));
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                Quad2D surfelPixelCoords;
-                surfelPixelCoords.bottomLeft  = start + vec2(float(i) * 0.5, float(j) * 0.5);
-                surfelPixelCoords.bottomRight = surfelPixelCoords.bottomLeft + vec2(0.5, 0.0);
-                surfelPixelCoords.topLeft     = surfelPixelCoords.bottomLeft + vec2(0.0, 0.5);
-                surfelPixelCoords.topRight    = surfelPixelCoords.bottomLeft + vec2(0.5, 0.5);
-
-                Quad1D oldDepthOffsets;
-                loadDepthOffsets(oldDepthOffsets, 4 * ivec2(quadMapData.offset) + 2 * ivec2(i, j));
-
-                Quad surfel;
-                createSurfel(surfel, surfelPixelCoords, oldDepthOffsets, proxyPlane);
-
-                Quad1D newDepthOffsets = findDepthOffsets(surfel, newProxyPlane);
-                storeDepthOffsets(4 * ivec2(quadMapData.offset) + 2 * ivec2(i, j), newDepthOffsets);
-
-                if (abs(newDepthOffsets.bottomLeft)  < flatThreshold) numBelowThreshold++;
-                if (abs(newDepthOffsets.bottomRight) < flatThreshold) numBelowThreshold++;
-                if (abs(newDepthOffsets.topLeft)     < flatThreshold) numBelowThreshold++;
-                if (abs(newDepthOffsets.topRight)    < flatThreshold) numBelowThreshold++;
-                total += 4;
-            }
-        }
+        // if more than half the surfels are below the threshold, then the plane is considered flattened
+        flattened = numBelowThreshold > total / 2;
     }
-
-    // if more than half the surfels are below the threshold, then the plane is considered flattened
-    bool flattened = numBelowThreshold > total / 2;
 
     mergedQuadMapData.flattened = flattened;
     mergedQuadMapData.normal = newProxyPlane.normal;
@@ -529,8 +548,8 @@ void main() {
 
     // if any of the loaded proxy planes are empty, ignore the quad
     if (quadMapDataBottomLeft.size != 0 && quadMapDataBottomRight.size != 0 &&
-           quadMapDataTopLeft.size != 0 && quadMapDataTopRight.size != 0 &&
-            shouldMerge(proxyPlaneBottomLeft, proxyPlaneBottomRight, proxyPlaneTopLeft, proxyPlaneTopRight)) {
+            quadMapDataTopLeft.size != 0 && quadMapDataTopRight.size != 0 &&
+                shouldMerge(proxyPlaneBottomLeft, proxyPlaneBottomRight, proxyPlaneTopLeft, proxyPlaneTopRight)) {
         // merge the proxy planes
         mergeQuadMapData(
             mergedQuadMapData,

@@ -258,7 +258,7 @@ void VideoTexture::receiveVideo() {
         stats.totalTimeToReceiveMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
         framesReceived++;
 
-        stats.bitrateMbps = ((bytesReceived * 8) / timeutils::millisToSeconds(stats.totalTimeToReceiveMs)) / MB_TO_BITS;
+        stats.bitrateMbps = ((bytesReceived * 8) / timeutils::millisToSeconds(stats.totalTimeToReceiveMs)) / BYTES_IN_MB;
 
         prevTime = timeutils::getTimeMicros();
     }

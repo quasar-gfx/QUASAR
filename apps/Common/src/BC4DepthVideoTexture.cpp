@@ -84,7 +84,7 @@ void BC4DepthVideoTexture::onDataReceived(const std::vector<uint8_t>& compressed
     }
 
     stats.timeToReceiveMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
-    stats.bitrateMbps = ((sizeof(pose_id_t) + compressedData.size()) * 8 / timeutils::millisToSeconds(stats.timeToReceiveMs)) / MB_TO_BITS;
+    stats.bitrateMbps = ((sizeof(pose_id_t) + compressedData.size()) * 8 / timeutils::millisToSeconds(stats.timeToReceiveMs)) / BYTES_IN_MB;
 
     prevTime = timeutils::getTimeMicros();
 }
