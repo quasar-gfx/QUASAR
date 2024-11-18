@@ -242,7 +242,7 @@ int main(int argc, char** argv) {
     bool showWireframe = false;
     bool doOrientationCorrection = true;
     bool preventCopyingLocalPose = false;
-    float distanceThreshold = 0.75f;
+    float distanceThreshold = 0.5f;
     float angleThreshold = 85.0f;
     float flatThreshold = 1.0f;
     float proxySimilarityThreshold = 0.25f;
@@ -319,10 +319,10 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
-            float proxySizeMb = static_cast<float>(totalProxies * 8*sizeof(QuadMapDataPacked)) / BYTES_IN_MB;
-            float depthOffsetSizeMb = static_cast<float>(totalDepthOffsets * 8*sizeof(uint16_t)) / BYTES_IN_MB;
-            ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%.3f Mb)", totalProxies, proxySizeMb);
-            ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%.3f Mb)", totalDepthOffsets, depthOffsetSizeMb);
+            float proxySizeMb = static_cast<float>(totalProxies * sizeof(QuadMapDataPacked)) / BYTES_IN_MB;
+            float depthOffsetSizeMb = static_cast<float>(totalDepthOffsets * sizeof(uint16_t)) / BYTES_IN_MB;
+            ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%.3f MB)", totalProxies, proxySizeMb);
+            ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%.3f MB)", totalDepthOffsets, depthOffsetSizeMb);
 
             ImGui::Separator();
 
@@ -450,8 +450,8 @@ int main(int argc, char** argv) {
                 verticesFile.write((char*)vertices.data(), bufferSizes.numVertices * sizeof(Vertex));
                 verticesFile.close();
                 std::cout << "Saved " << bufferSizes.numVertices << " vertices (" <<
-                              (float)bufferSizes.numVertices * 8*sizeof(Vertex) / BYTES_IN_MB <<
-                              " Mb)" << std::endl;
+                              (float)bufferSizes.numVertices * sizeof(Vertex) / BYTES_IN_MB <<
+                              " MB)" << std::endl;
 
                 // save indexBuffer
                 mesh.indexBuffer.bind();
@@ -460,8 +460,8 @@ int main(int argc, char** argv) {
                 indicesFile.write((char*)indices.data(), bufferSizes.numIndices * sizeof(unsigned int));
                 indicesFile.close();
                 std::cout << "Saved " << bufferSizes.numIndices << " indices (" <<
-                             (float)bufferSizes.numIndices * 8*sizeof(unsigned int) / BYTES_IN_MB <<
-                             " Mb)" << std::endl;
+                             (float)bufferSizes.numIndices * sizeof(unsigned int) / BYTES_IN_MB <<
+                             " MB)" << std::endl;
 
                 // save color buffer
                 renderTarget.saveColorAsPNG(colorFileName);
@@ -500,8 +500,8 @@ int main(int argc, char** argv) {
 
                 quadsFile.close();
                 std::cout << "Saved " << bufferSizes.numProxies << " quads (" <<
-                              (float)bufferSizes.numProxies * 8*sizeof(QuadMapDataPacked) / BYTES_IN_MB <<
-                              " Mb)" << std::endl;
+                              (float)bufferSizes.numProxies * sizeof(QuadMapDataPacked) / BYTES_IN_MB <<
+                              " MB)" << std::endl;
 
                 // save color buffer
                 renderTarget.saveColorAsPNG(colorFileName);

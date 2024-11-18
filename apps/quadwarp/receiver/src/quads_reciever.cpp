@@ -288,10 +288,12 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
-            float proxySizeMb = static_cast<float>(totalProxies * 8*sizeof(QuadMapDataPacked)) / BYTES_IN_MB;
-            float depthOffsetSizeMb = static_cast<float>(totalDepthOffsets * 8*sizeof(uint16_t)) / BYTES_IN_MB;
-            ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%.3f Mb)", totalProxies, proxySizeMb);
-            ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%.3f Mb)", totalDepthOffsets, depthOffsetSizeMb);
+            if (totalProxies != -1 && totalDepthOffsets != -1) {
+                float proxySizeMb = static_cast<float>(totalProxies * sizeof(QuadMapDataPacked)) / BYTES_IN_MB;
+                float depthOffsetSizeMb = static_cast<float>(totalDepthOffsets * sizeof(uint16_t)) / BYTES_IN_MB;
+                ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%.3f MB)", totalProxies, proxySizeMb);
+                ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%.3f MB)", totalDepthOffsets, depthOffsetSizeMb);
+            }
 
             ImGui::Separator();
 
