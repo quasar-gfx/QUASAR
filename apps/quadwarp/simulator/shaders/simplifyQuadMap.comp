@@ -501,7 +501,6 @@ void mergeQuadMapData(
     // if at least one of the quads to merge is not flattened,
     // recalculate the new merged proxy plane's surfel's depth offsets
     if (!flattened) {
-        // recalculate the new merged proxy plane's surfel's depth offsets
         int numBelowThreshold = 0;
         int total = 0;
         recalcDepthOffsets(newProxyPlane, quadMapDataBottomLeft, proxyPlaneBottomLeft, numBelowThreshold, total);

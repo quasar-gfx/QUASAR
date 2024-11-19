@@ -5,7 +5,6 @@ Install dependencies:
 # Linux (reccomended)
 sudo apt-get install \
     cmake \
-    pkg-config \
     libglew-dev \
     libglfw3-dev \
     libao-dev \
@@ -17,14 +16,13 @@ sudo apt-get install \
     libavutil-dev \
     libswscale-dev \
     libswresample-dev \
-    libavfilter-dev \
-    cuda-12
+    libavfilter-dev
 ```
-NVIDIA GPUs are highly reccomended.
+NVIDIA GPUs are highly reccomended. Ensure you have CUDA.
 
 ```
 # Mac (not reccomended for streaming, but works)
-brew install cmake glew glfw3 ffmpeg pkg-config
+brew install cmake glew glfw3 ffmpeg
 ```
 
 # Building
@@ -58,7 +56,7 @@ To run streamer:
 ```
 # in build directory
 cd apps/atw/streamer
-./atw_streamer --size 1920x1080 --scene ../assets/scenes/sponza.json --display 1
+./atw_streamer --size 1920x1080 --scene ../assets/scenes/sponza.json
 ```
 
 In a new terminal, to run receiver:
@@ -76,7 +74,7 @@ To run streamer:
 ```
 # in build directory
 cd apps/meshwarp/streamer
-./mw_streamer --size 1920x1080 --scene ../assets/scenes/sponza.json --display 1
+./mw_streamer --size 1920x1080 --scene ../assets/scenes/sponza.json
 ```
 
 In a new terminal, to run receiver:
@@ -93,5 +91,5 @@ To run QuadWarp sample:
 ```
 # in build directory
 cd apps/quadwarp/simulator
-./quads_streamer --size 1920x1080 --size2 512x512 --scene ../assets/scenes/sponza.json
+./quads_simulator --size 1920x1080 --size2 1920x1080 --scene ../assets/scenes/sponza.json
 ```
