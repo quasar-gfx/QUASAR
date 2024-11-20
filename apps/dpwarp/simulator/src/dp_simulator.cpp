@@ -625,8 +625,8 @@ int main(int argc, char** argv) {
 
     app.onResize([&](unsigned int width, unsigned int height) {
         windowSize = glm::uvec2(width, height);
-        dpRenderer.resize(width, height);
-        forwardRenderer.resize(width, height);
+        dpRenderer.setWindowSize(width, height);
+        forwardRenderer.setWindowSize(width, height);
 
         camera.setAspect(windowSize.x, windowSize.y);
         camera.updateProjectionMatrix();

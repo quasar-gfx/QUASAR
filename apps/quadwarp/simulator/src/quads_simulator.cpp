@@ -180,7 +180,7 @@ int main(int argc, char** argv) {
 
     Mesh meshDepth = Mesh({
         .numVertices = maxVerticesDepth,
-        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
+        .material = new UnlitMaterial({ .baseColor = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) }),
         .usage = GL_DYNAMIC_DRAW
     });
     Node nodeDepth = Node(&meshDepth);
@@ -513,7 +513,7 @@ int main(int argc, char** argv) {
 
     app.onResize([&](unsigned int width, unsigned int height) {
         windowSize = glm::uvec2(width, height);
-        renderer.resize(windowSize.x, windowSize.y);
+        renderer.setWindowSize(windowSize.x, windowSize.y);
 
         camera.setAspect(windowSize.x, windowSize.y);
         camera.updateProjectionMatrix();

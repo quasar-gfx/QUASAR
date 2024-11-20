@@ -170,7 +170,7 @@ int main(int argc, char** argv) {
     Mesh meshDecompressed = Mesh({
         .vertices = std::vector<Vertex>(numVertices),
         .indices = std::vector<unsigned int>(indexBufferSize),
-        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
+        .material = new UnlitMaterial({ .baseColor = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) }),
         .usage = GL_DYNAMIC_DRAW
     });
     Node nodeDecompressed = Node(&meshDecompressed);
@@ -288,8 +288,8 @@ int main(int argc, char** argv) {
         windowSize.x = width;
         windowSize.y = height;
 
-        remoteRenderer.resize(width, height);
-        renderer.resize(width, height);
+        remoteRenderer.setWindowSize(width, height);
+        renderer.setWindowSize(width, height);
 
         camera.setAspect(windowSize.x, windowSize.y);
         camera.updateProjectionMatrix();
