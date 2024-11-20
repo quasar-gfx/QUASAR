@@ -291,7 +291,7 @@ int main(int argc, char** argv) {
     float angleThreshold = 85.0f;
     float flatThreshold = 1.0f;
     float proxySimilarityThreshold = 0.25f;
-    bool restrictMovementToViewBox = false;
+    bool restrictMovementToViewBox = true;
     float viewBoxSize = 0.5f;
     const int intervalValues[] = {0, 25, 50, 100, 200, 500, 1000};
     const char* intervalLabels[] = {"0ms", "25ms", "50ms", "100ms", "200ms", "500ms", "1000ms"};
@@ -304,7 +304,7 @@ int main(int argc, char** argv) {
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = true;
-        static bool showLayerPreviews = true;
+        static bool showLayerPreviews = false;
         static bool showCaptureWindow = false;
         static bool showMeshCaptureWindow = false;
         static bool saveAsHDR = false;
@@ -692,7 +692,6 @@ int main(int argc, char** argv) {
             std::cout << "======================================================" << std::endl;
 
             double startTime = glfwGetTime();
-            double avgRenderTime = 0.0;
             double avgGenQuadMapTime = 0.0;
             double avgSimplifyTime = 0.0;
             double avgFillQuadsTime = 0.0;
@@ -989,7 +988,6 @@ int main(int argc, char** argv) {
                 avgGenDepthTime += glfwGetTime() - startTime;
             }
 
-            std::cout << "  Avg Rendering Time: " << avgRenderTime / maxViews << "s" << std::endl;
             std::cout << "  Avg Gen Quad Map Time: " << avgGenQuadMapTime / maxViews << "s" << std::endl;
             std::cout << "  Avg Simplify Time: " << avgSimplifyTime / maxViews << "s" << std::endl;
             std::cout << "  Avg Fill Quads Time: " << avgFillQuadsTime / maxViews << "s" << std::endl;
