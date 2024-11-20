@@ -20,6 +20,18 @@ set(RENDERER_SHADERS_DIR ${RENDERER_DIR}/shaders)
 set(EXTERNAL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 set(ASSETS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/assets)
 
+# include directories
+include_directories(
+    # renderer-related includes
+    ${RENDERER_DIR}/include
+
+    # for all external includes
+    ${EXTERNAL_DIR}
+
+    # for GLFW/
+    ${EXTERNAL_DIR}/glfw/include
+)
+
 # set required libs
 set(RENDERER_LIBS )
 
@@ -56,13 +68,6 @@ set(RENDERER_LIBS ${RENDERER_LIBS} jsmn)
 # lz4
 add_subdirectory(${EXTERNAL_DIR}/lz4_stream/tnt)
 set(RENDERER_LIBS ${RENDERER_LIBS} lz4_stream)
-
-# include directories
-include_directories(
-    ${GLFW_INCLUDE_DIRS}
-    ${RENDERER_DIR}/include
-    ${EXTERNAL_DIR}
-)
 
 # add and link renderer library
 add_subdirectory(${RENDERER_DIR})

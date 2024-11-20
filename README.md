@@ -6,7 +6,6 @@ Install dependencies:
 sudo apt-get install \
     cmake \
     libglew-dev \
-    libglfw3-dev \
     libao-dev \
     libmpg123-dev \
     ffmpeg \
@@ -20,9 +19,11 @@ sudo apt-get install \
 ```
 NVIDIA GPUs are highly reccomended. Ensure you have CUDA.
 
+Optional: Follow instructions [here](https://docs.nvidia.com/video-technologies/video-codec-sdk/12.0/ffmpeg-with-nvidia-gpu/index.html) for installing FFMPEG from source with CUDA.
+
 ```
 # Mac (not reccomended for streaming, but works)
-brew install cmake glew glfw3 ffmpeg
+brew install cmake glew ffmpeg
 ```
 
 # Building
