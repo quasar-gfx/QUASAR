@@ -83,6 +83,7 @@ void glDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLs
 
 OpenGLRenderer::OpenGLRenderer(const Config &config)
         : width(config.width), height(config.height)
+        , windowWidth(config.width), windowHeight(config.height)
         , skyboxShader({
             .vertexCodeData = SHADER_BUILTIN_SKYBOX_VERT,
             .vertexCodeSize = SHADER_BUILTIN_SKYBOX_VERT_len,
@@ -110,6 +111,11 @@ OpenGLRenderer::OpenGLRenderer(const Config &config)
 void OpenGLRenderer::resize(unsigned int width, unsigned int height) {
     this->width = width;
     this->height = height;
+}
+
+void OpenGLRenderer::setWindowSize(unsigned int width, unsigned int height) {
+    windowWidth = width;
+    windowHeight = height;
 }
 
 RenderStats OpenGLRenderer::updateDirLightShadow(const Scene &scene, const Camera &camera) {
@@ -361,7 +367,7 @@ RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const Rende
     else {
         // screen buffer
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glViewport(0, 0, width, height);
+        glViewport(0, 0, windowWidth, windowHeight);
     }
 
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);

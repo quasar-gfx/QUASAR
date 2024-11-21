@@ -26,8 +26,7 @@ int main(int argc, char** argv) {
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
-    args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
-    args::ValueFlag<std::string> size2In(parser, "size2", "Size of pre-rendered content", {'z', "size2"}, "800x600");
+    args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'u', "data-path"}, ".");
@@ -50,13 +49,8 @@ int main(int argc, char** argv) {
     config.width = std::stoi(sizeStr.substr(0, pos));
     config.height = std::stoi(sizeStr.substr(pos + 1));
 
-    // parse size2
-    std::string size2Str = args::get(size2In);
-    pos = size2Str.find('x');
-    int size2Width = std::stoi(size2Str.substr(0, pos));
-    int size2Height = std::stoi(size2Str.substr(pos + 1));
-
-    glm::uvec2 remoteWindowSize = glm::uvec2(size2Width, size2Height);
+    // assume remote window size is the same as local window size
+    glm::uvec2 remoteWindowSize = glm::uvec2(config.width, config.height);
 
     // make sure maxProxySize is a power of 2
     glm::uvec2 maxProxySize = remoteWindowSize;
@@ -180,7 +174,7 @@ int main(int argc, char** argv) {
 
     Mesh meshDepth = Mesh({
         .numVertices = maxVerticesDepth,
-        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
+        .material = new UnlitMaterial({ .baseColor = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) }),
         .usage = GL_DYNAMIC_DRAW
     });
     Node nodeDepth = Node(&meshDepth);
@@ -513,7 +507,7 @@ int main(int argc, char** argv) {
 
     app.onResize([&](unsigned int width, unsigned int height) {
         windowSize = glm::uvec2(width, height);
-        renderer.resize(windowSize.x, windowSize.y);
+        renderer.setWindowSize(windowSize.x, windowSize.y);
 
         camera.setAspect(windowSize.x, windowSize.y);
         camera.updateProjectionMatrix();
