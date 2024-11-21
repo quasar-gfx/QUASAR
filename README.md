@@ -92,5 +92,5 @@ To run QuadWarp sample:
 ```
 # in build directory
 cd apps/quadwarp/simulator
-./quads_simulator --size 1920x1080 --size2 1920x1080 --scene ../assets/scenes/sponza.json
+./quads_simulator --size 1920x1080 --scene ../assets/scenes/sponza.json
 ```
