@@ -239,6 +239,26 @@ int main(int argc, char** argv) {
             ImGui::Text("Output Directory:");
             ImGui::InputText("##output directory", recordingPath, IM_ARRAYSIZE(recordingPath));
             
+            static int fps = 30;  // Default FPS
+            ImGui::Text("FPS:");
+            if (ImGui::InputInt("##fps", &fps)) {
+                fps = std::max(1, fps);  // Ensure FPS is at least 1
+                recorder.setFrameRate(fps);
+            }
+
+            static int formatIndex = 0;  // 0: PNG, 1: JPG, 2: MP4
+            const char* formats[] = { "PNG", "JPG", "MP4" };
+            ImGui::Text("Save Format:");
+            if (ImGui::Combo("##format", &formatIndex, formats, IM_ARRAYSIZE(formats))) {
+                OutputFormat selectedFormat = OutputFormat::PNG;
+                switch (formatIndex) {
+                    case 0: selectedFormat = OutputFormat::PNG; break;
+                    case 1: selectedFormat = OutputFormat::JPG; break;
+                    case 2: selectedFormat = OutputFormat::MP4; break;
+                }
+                recorder.setOutputFormat(selectedFormat);
+            }
+            
             ImGui::Separator();
             ImGui::Text("Record Frames");
             ImGui::Separator();
