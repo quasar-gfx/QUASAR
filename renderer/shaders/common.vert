@@ -10,6 +10,7 @@ layout(num_views = 2) in;
 #endif
 
 out VertexData {
+    flat uint drawID;
     vec2 TexCoords;
     vec3 FragPos;
     vec3 FragPosView;
@@ -34,11 +35,14 @@ uniform struct Camera {
     float far;
 } camera;
 
+uniform uint drawID;
+
 uniform mat4 model;
 uniform mat3 normalMatrix;
 uniform mat4 lightSpaceMatrix;
 
 void main() {
+    vsOut.drawID = drawID;
     vsOut.TexCoords = aTexCoords;
     vsOut.FragPos = vec3(model * vec4(aPos, 1.0));
     vsOut.Color = aColor;

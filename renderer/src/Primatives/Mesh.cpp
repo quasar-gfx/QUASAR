@@ -197,7 +197,13 @@ RenderStats Mesh::draw(GLenum primativeType, const Camera &camera, const glm::ma
     auto materialToUse = overrideMaterial != nullptr ? overrideMaterial : material;
     materialToUse->bind();
 
+    // set draw ID/object ID
+    materialToUse->getShader()->setUint("drawID", ID);
+
+    // set camera params
     setMaterialCameraParams(camera, materialToUse);
+
+    // set model and normal matrix
     materialToUse->getShader()->setMat4("model", model);
     materialToUse->getShader()->setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
 

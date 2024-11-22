@@ -48,12 +48,12 @@ public:
     glm::mat4 getTransformLocalFromWorld() const;
 
 protected:
-    unsigned int ID;
+    uint32_t ID;
     glm::vec3 position = glm::vec3(0.0f);
     glm::quat rotationQuat = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
     glm::vec3 scale = glm::vec3(1.0f);
 
-    static unsigned int nextID;
+    static uint32_t nextID;
 };
 
 #endif // NODE_H
