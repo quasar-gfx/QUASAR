@@ -64,8 +64,8 @@ public:
             , idBuffer({
                 .width = width,
                 .height = height,
-                .internalFormat = GL_R32UI,
-                .format = GL_RED_INTEGER,
+                .internalFormat = GL_RGB32UI,
+                .format = GL_RGB_INTEGER,
                 .type = GL_UNSIGNED_INT,
                 .wrapS = GL_CLAMP_TO_EDGE,
                 .wrapT = GL_CLAMP_TO_EDGE,

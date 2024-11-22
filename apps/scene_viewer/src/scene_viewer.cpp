@@ -187,7 +187,8 @@ int main(int argc, char** argv) {
                 ImGui::RadioButton("Show Depth", &shaderIndex, 1);
                 ImGui::RadioButton("Show Positions", &shaderIndex, 2);
                 ImGui::RadioButton("Show Normals", &shaderIndex, 3);
-                ImGui::RadioButton("Show Primative IDs", &shaderIndex, 4);
+                ImGui::RadioButton("Show Object IDs", &shaderIndex, 4);
+                ImGui::RadioButton("Show Primative IDs", &shaderIndex, 5);
             }
 
             ImGui::End();
@@ -296,6 +297,12 @@ int main(int argc, char** argv) {
         }
         else if (shaderIndex == 4) {
             showIDShader.bind();
+            showIDShader.setBool("showObjectIDs", true);
+            renderer.drawToScreen(showIDShader);
+        }
+        else if (shaderIndex == 5) {
+            showIDShader.bind();
+            showIDShader.setBool("showObjectIDs", false);
             renderer.drawToScreen(showIDShader);
         }
         else {

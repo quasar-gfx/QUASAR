@@ -63,10 +63,10 @@ public:
 
     virtual EntityType getType() const { return EntityType::EMPTY; }
 
-private:
-    unsigned int ID;
+protected:
+    uint32_t ID;
 
-    static unsigned int nextID;
+    static uint32_t nextID;
 };
 
 #endif // ENTITY_H

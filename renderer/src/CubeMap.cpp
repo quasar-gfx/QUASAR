@@ -242,6 +242,8 @@ RenderStats CubeMap::draw(const Shader &shader, const Camera &camera) const {
         projection = monoCamera.getProjectionMatrix();
     }
 
+    shader.setUint("drawID", ID);
+
     // remove translation from the view matrix
     view = glm::mat4(glm::mat3(view));
     shader.setMat4("view", view);
