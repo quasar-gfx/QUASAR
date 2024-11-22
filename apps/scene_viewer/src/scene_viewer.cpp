@@ -24,13 +24,10 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
-    args::ValueFlag<std::string> pathFileIn(parser, "path", "Path to camera animation file", {'p', "path"});
-    args::ValueFlag<int> frameRateIn(parser, "frame-rate", "Frame rate", {'f', "frame-rate"}, 30);
-
     args::Flag saveImage(parser, "save", "Take screenshot and exit", {'b', "save-image"});
+    args::ValueFlag<std::string> animationFileIn(parser, "path", "Path to camera animation file", {'A', "animation-path"});
     args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'u', "data-path"}, ".");
     args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
-    char recordingPath[256] = "./recordings";
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -69,25 +66,17 @@ int main(int argc, char** argv) {
 
     glm::uvec2 windowSize = window->getSize();
 
-    // Define the output path for the recorded frames
-    std::string outputPath = "./recordings";
-
-    // Create the Recorder instance
-    Recorder recorder(args::get(frameRateIn), outputPath, renderer); // Capturing every 1 second
-
+    Recorder recorder(config.targetFramerate, dataPath, renderer);
+    Animator animator;
+    if (args::get(animationFileIn).size() > 0) {
+        animator.loadAnimation(args::get(animationFileIn));
+    }
 
     Scene scene;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
     SceneLoader loader;
     loader.loadScene(scenePath, scene, camera);
 
-
-    std::shared_ptr<Animator> animator;
-
-    if (pathFileIn) {
-        std::string pathFile = args::get(pathFileIn);
-        animator = std::make_shared<Animator>(pathFile);
-    }
     // shaders
     ToneMapShader toneMapShader;
 
@@ -130,6 +119,10 @@ int main(int argc, char** argv) {
         static bool showRecordWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
+        static int recordingFPS = 30;
+        static int recordingFormatIndex = 0;
+        static const char* formats[] = { "PNG", "JPG", "MP4" };
+        static char recordingDir[256] = "recordings";
 
         ImGui::NewFrame();
 
@@ -214,13 +207,11 @@ int main(int argc, char** argv) {
                 ImGui::RadioButton("Show Primative IDs", &shaderIndex, 5);
             }
 
-            if (animator) {
-                ImGui::Separator();
-                if (ImGui::CollapsingHeader("Animation Settings")) {
-                    static float playbackSpeed = 1.0f;
-                    if (ImGui::SliderFloat("Playback Speed", &playbackSpeed, 0.1f, 10.0f)) {
-                        animator->setPlaybackSpeed(playbackSpeed);
-                    }
+            ImGui::Separator();
+            if (ImGui::CollapsingHeader("Animation Settings")) {
+                static float playbackSpeed = 1.0f;
+                if (ImGui::SliderFloat("Playback Speed", &playbackSpeed, 0.1f, 10.0f)) {
+                    animator.setPlaybackSpeed(playbackSpeed);
                 }
             }
 
@@ -251,40 +242,33 @@ int main(int argc, char** argv) {
             ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
             ImGui::Begin("Record", &showRecordWindow);
-            
+
             ImGui::Text("Output Directory:");
-            ImGui::InputText("##output directory", recordingPath, IM_ARRAYSIZE(recordingPath));
-            
-            static int fps = 30;  // Default FPS
+            ImGui::InputText("##output directory", recordingDir, IM_ARRAYSIZE(recordingDir));
+
             ImGui::Text("FPS:");
-            if (ImGui::InputInt("##fps", &fps)) {
-                fps = std::max(1, fps);  // Ensure FPS is at least 1
-                recorder.setFrameRate(fps);
+            if (ImGui::InputInt("##fps", &recordingFPS)) {
+                recordingFPS = std::max(1, recordingFPS);
+                recorder.setFrameRate(recordingFPS);
             }
 
-            static int formatIndex = 0;  // 0: PNG, 1: JPG, 2: MP4
-            const char* formats[] = { "PNG", "JPG", "MP4" };
-            ImGui::Text("Save Format:");
-            if (ImGui::Combo("##format", &formatIndex, formats, IM_ARRAYSIZE(formats))) {
-                OutputFormat selectedFormat = OutputFormat::PNG;
-                switch (formatIndex) {
-                    case 0: selectedFormat = OutputFormat::PNG; break;
-                    case 1: selectedFormat = OutputFormat::JPG; break;
-                    case 2: selectedFormat = OutputFormat::MP4; break;
+            ImGui::Text("Output Format:");
+            if (ImGui::Combo("##format", &recordingFormatIndex, formats, IM_ARRAYSIZE(formats))) {
+                Recorder::OutputFormat selectedFormat = Recorder::OutputFormat::PNG;
+                switch (recordingFormatIndex) {
+                    case 0: selectedFormat = Recorder::OutputFormat::PNG; break;
+                    case 1: selectedFormat = Recorder::OutputFormat::JPG; break;
+                    case 2: selectedFormat = Recorder::OutputFormat::MP4; break;
                 }
                 recorder.setOutputFormat(selectedFormat);
             }
-            
-            ImGui::Separator();
-            ImGui::Text("Record Frames");
-            ImGui::Separator();
-            
-            if (ImGui::Button("Record")) {
+
+            if (ImGui::Button("Begin Recording")) {
                 recording = true;
-                recorder.setOutputPath(recordingPath);
+                recorder.setOutputPath(recordingDir);
                 recorder.start();
             }
-            if (ImGui::Button("Stop")) {
+            if (ImGui::Button("Stop Recording")) {
                 recording = false;
                 recorder.stop();
             }
@@ -341,27 +325,17 @@ int main(int argc, char** argv) {
         if (keys.ESC_PRESSED) {
             window->close();
         }
-        if (animator && !animator->isFinished()) {
-            animator->update(dt);
-            glm::vec3 position = animator->getCurrentPosition();
 
-            glm::quat rotation = animator->getCurrentRotation();
+        if (animator.running) {
+            animator.update(dt);
+            glm::vec3 position = animator.getCurrentPosition();
+
+            glm::quat rotation = animator.getCurrentRotation();
             camera.setPosition(position);
             camera.setRotationQuat(rotation);
             camera.updateViewMatrix();
-        } else {
-            // handle keyboard input
-            camera.processKeyboard(keys, dt);
         }
-        if (animator && !animator->isFinished()) {
-            animator->update(dt);
-            glm::vec3 position = animator->getCurrentPosition();
-
-            glm::quat rotation = animator->getCurrentRotation();
-            camera.setPosition(position);
-            camera.setRotationQuat(rotation);
-            camera.updateViewMatrix();
-        } else {
+        else {
             // handle keyboard input
             camera.processKeyboard(keys, dt);
         }
@@ -379,7 +353,6 @@ int main(int argc, char** argv) {
 
         // render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);
-
 
         // render to screen
         if (shaderIndex == 1) {
@@ -410,19 +383,19 @@ int main(int argc, char** argv) {
             toneMapShader.bind();
             toneMapShader.setFloat("exposure", exposure);
             renderer.drawToScreen(toneMapShader);
+        }
 
-            if (saveImage) {
-                glm::vec3 position = camera.getPosition();
-                glm::vec3 rotation = camera.getRotationEuler();
-                std::string positionStr = to_string_with_precision(position.x) + "_" + to_string_with_precision(position.y) + "_" + to_string_with_precision(position.z);
-                std::string rotationStr = to_string_with_precision(rotation.x) + "_" + to_string_with_precision(rotation.y) + "_" + to_string_with_precision(rotation.z);
+        if (saveImage) {
+            glm::vec3 position = camera.getPosition();
+            glm::vec3 rotation = camera.getRotationEuler();
+            std::string positionStr = to_string_with_precision(position.x) + "_" + to_string_with_precision(position.y) + "_" + to_string_with_precision(position.z);
+            std::string rotationStr = to_string_with_precision(rotation.x) + "_" + to_string_with_precision(rotation.y) + "_" + to_string_with_precision(rotation.z);
 
-                std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
+            std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
 
-                std::string fileName = dataPath + "screenshot." + positionStr + "_" + rotationStr;
-                saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize);
-                window->close();
-            }
+            std::string fileName = dataPath + "screenshot." + positionStr + "_" + rotationStr;
+            saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize);
+            window->close();
         }
     });
 

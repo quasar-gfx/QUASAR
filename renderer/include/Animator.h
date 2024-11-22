@@ -5,41 +5,33 @@
 #include <string>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/quaternion.hpp> 
+#include <glm/gtc/quaternion.hpp>
 
 class Animator {
 public:
-    Animator(const std::string& pathFile);
-
-    // Update the animator's state
-    void update(double deltaTime);
-
-    // Get current camera position and rotation
-    glm::vec3 getCurrentPosition() const;
-    glm::quat getCurrentRotation() const;
-
-    // Check if the animation has finished
-    bool isFinished() const;
-
-    // 添加播放速度控制
-    void setPlaybackSpeed(float speed) { playbackSpeed = speed; }
-    float getPlaybackSpeed() const { return playbackSpeed; }
-
-private:
-    // Load path from file
-    void loadPath(const std::string& pathFile);
-
-    // Waypoint structure
     struct Waypoint {
         glm::vec3 position;
         glm::quat rotation;
         double timestamp;
     };
 
+    bool running = false;
+
+    Animator() = default;
+
+    void loadAnimation(const std::string& pathFile);
+    void update(double deltaTime);
+
+    glm::vec3 getCurrentPosition() const;
+    glm::quat getCurrentRotation() const;
+
+    void setPlaybackSpeed(float speed) { playbackSpeed = speed; }
+    float getPlaybackSpeed() const { return playbackSpeed; }
+
+private:
     std::vector<Waypoint> waypoints;
-    size_t currentIndex;
-    double timeAccumulator;
-    bool finished;
+    size_t currentIndex = 0;
+    double timeAccumulator = 0.0;
     float playbackSpeed = 1.0f;
 };
 

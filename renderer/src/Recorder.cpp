@@ -2,7 +2,7 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
-#include <filesystem> 
+#include <filesystem>
 #include "Utils/FileIO.h"
 
 Recorder::~Recorder() {
@@ -13,11 +13,13 @@ Recorder::~Recorder() {
 
 void Recorder::start() {
     running = true;
+
     recordingStartTime = std::chrono::steady_clock::now();
     lastCaptureTime = std::chrono::steady_clock::now();
     for (int i = 0; i < NUM_SAVE_THREADS; ++i) {
         saveThreadPool.emplace_back(&Recorder::saveFrames, this);
     }
+
     if (outputFormat == OutputFormat::MP4) {
         initializeFFmpeg();
     }
@@ -27,7 +29,7 @@ void Recorder::stop() {
     if (!running) {
         return;
     }
-    
+
     running = false;
     queueCV.notify_all();
     for (auto& thread : saveThreadPool) {
@@ -51,14 +53,14 @@ void Recorder::stop() {
                     av_packet_free(&pkt);
                     break;
                 }
-                
+
                 pkt->stream_index = videoStream->index;
                 av_packet_rescale_ts(pkt, codecContext->time_base, videoStream->time_base);
                 av_interleaved_write_frame(formatContext, pkt);
                 av_packet_free(&pkt);
             }
         }
-        
+
         finalizeFFmpeg();
     }
 
@@ -70,7 +72,7 @@ void Recorder::captureFrame(GeometryBuffer& gbuffer, Camera& camera) {
     auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - recordingStartTime).count();
     if (currentTime - lastCaptureTime >= frameInterval) {
         std::vector<unsigned char> frameData(captureTarget->width * captureTarget->height * 4);
-        
+
         gbuffer.colorBuffer.bind(0);
         glReadPixels(0, 0, captureTarget->width, captureTarget->height, GL_RGBA, GL_UNSIGNED_BYTE, frameData.data());
         gbuffer.colorBuffer.unbind();
@@ -104,12 +106,12 @@ void Recorder::saveFrames() {
             frameQueue.pop();
         }
 
-        if (outputFormat == OutputFormat::MP4) {   
+        if (outputFormat == OutputFormat::MP4) {
             AVFrame* inputFrame = av_frame_alloc();
             inputFrame->format = AV_PIX_FMT_RGBA;
             inputFrame->width = captureTarget->width;
             inputFrame->height = captureTarget->height;
-            
+
             std::vector<unsigned char> flippedData(frameData.frame.size());
             const int stride = captureTarget->width * 4;
             for (int y = 0; y < captureTarget->height; ++y) {
@@ -119,12 +121,12 @@ void Recorder::saveFrames() {
                     stride
                 );
             }
-            
-            av_image_fill_arrays(inputFrame->data, inputFrame->linesize, flippedData.data(), 
+
+            av_image_fill_arrays(inputFrame->data, inputFrame->linesize, flippedData.data(),
                 AV_PIX_FMT_RGBA, inputFrame->width, inputFrame->height, 1);
 
             sws_scale(swsContext, inputFrame->data, inputFrame->linesize, 0, inputFrame->height, frame->data, frame->linesize);
-            
+
             frame->pts = frameData.pts;
 
             int ret = avcodec_send_frame(codecContext, frame);
@@ -186,6 +188,10 @@ void Recorder::saveFrames() {
 
 void Recorder::setOutputPath(const std::string& path) {
     outputPath = path;
+    // create outputPath if it doesn't exist
+    if (!std::filesystem::exists(outputPath)) {
+        std::filesystem::create_directories(outputPath);
+    }
 }
 
 void Recorder::setFrameRate(int fps) {
@@ -199,14 +205,14 @@ void Recorder::initializeFFmpeg() {
 
     const AVCodec* codec = avcodec_find_encoder(AV_CODEC_ID_H264);
     codecContext = avcodec_alloc_context3(codec);
-    codecContext->bit_rate = 5000000;
+    codecContext->bit_rate = 10 * BYTES_IN_MB;
     codecContext->width = captureTarget->width;
     codecContext->height = captureTarget->height;
-    
-    int fps = static_cast<int>(1.0 / frameInterval.count());
+
+    int targetFrameRate = static_cast<int>(1.0 / frameInterval.count());
     codecContext->time_base = (AVRational){1, 1000};
-    codecContext->framerate = (AVRational){fps, 1};
-    
+    codecContext->framerate = (AVRational){targetFrameRate, 1};
+
     codecContext->gop_size = 12;
     codecContext->max_b_frames = 1;
     codecContext->pix_fmt = AV_PIX_FMT_YUV420P;
@@ -265,7 +271,7 @@ void Recorder::finalizeFFmpeg() {
             }
         }
     }
-    
+
     if (swsContext) {
         sws_freeContext(swsContext);
         swsContext = nullptr;
@@ -280,12 +286,12 @@ void Recorder::finalizeFFmpeg() {
         avcodec_free_context(&codecContext);
         codecContext = nullptr;
     }
-    
+
     if (formatContext) {
         avformat_free_context(formatContext);
         formatContext = nullptr;
     }
-    
+
     frameIndex = 0;
 }
 

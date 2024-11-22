@@ -19,44 +19,43 @@ extern "C" {
 #include <string>
 #include <vector>
 
-struct FrameData {
-    std::vector<unsigned char> frame;
-    glm::vec3 position;
-    glm::vec3 euler;
-    int64_t pts;
-};
-
-enum class OutputFormat {
-    PNG,
-    JPG,
-    MP4
-};
-
-
 class Recorder {
 public:
+    struct FrameData {
+        std::vector<unsigned char> frame;
+        glm::vec3 position;
+        glm::vec3 euler;
+        int64_t pts;
+    };
+
+    enum class OutputFormat {
+        PNG,
+        JPG,
+        MP4
+    };
+
     Recorder(float fps, const std::string& outputPath, ForwardRenderer &renderer)
         : captureTarget(&renderer)
         , running(false)
         , frameInterval(1.0 / fps)
         , outputPath(outputPath)
         , frameCount(0)
-        , outputFormat(OutputFormat::PNG)
-    {
-    }
+        , outputFormat(OutputFormat::PNG) { }
     ~Recorder();
+
     void setOutputPath(const std::string& path);
     void setFrameRate(int fps);
     void start();
     void stop();
     void captureFrame(GeometryBuffer& gbuffer, Camera& camera);
     void setOutputFormat(OutputFormat format);
-    
+
 private:
-    void saveFrames();
-    std::chrono::steady_clock::time_point recordingStartTime;
-    OutputFormat outputFormat = OutputFormat::PNG;
     static const int NUM_SAVE_THREADS = 16;
+    OutputFormat outputFormat = OutputFormat::PNG;
+
+    std::chrono::steady_clock::time_point recordingStartTime;
+
     std::vector<std::thread> saveThreadPool;
     std::atomic<bool> running{false};
     std::atomic<size_t> frameCount{0};
@@ -68,14 +67,17 @@ private:
     std::chrono::duration<double> frameInterval;
     std::chrono::steady_clock::time_point lastCaptureTime;
     std::string outputPath;
-    void initializeFFmpeg();
-    void finalizeFFmpeg();
+
     AVFormatContext* formatContext = nullptr;
     AVCodecContext* codecContext = nullptr;
     AVStream* videoStream = nullptr;
     SwsContext* swsContext = nullptr;
     AVFrame* frame = nullptr;
     int frameIndex = 0;
+
+    void initializeFFmpeg();
+    void finalizeFFmpeg();
+    void saveFrames();
 };
 
 #endif // RECORDER_H
