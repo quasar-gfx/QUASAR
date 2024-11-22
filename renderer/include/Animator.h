@@ -21,6 +21,10 @@ public:
     // Check if the animation has finished
     bool isFinished() const;
 
+    // 添加播放速度控制
+    void setPlaybackSpeed(float speed) { playbackSpeed = speed; }
+    float getPlaybackSpeed() const { return playbackSpeed; }
+
 private:
     // Load path from file
     void loadPath(const std::string& pathFile);
@@ -29,15 +33,14 @@ private:
     struct Waypoint {
         glm::vec3 position;
         glm::quat rotation;
+        double timestamp;
     };
 
     std::vector<Waypoint> waypoints;
     size_t currentIndex;
     double timeAccumulator;
-    double totalDuration;
-    double segmentDuration;
-
     bool finished;
+    float playbackSpeed = 1.0f;
 };
 
 #endif // ANIMATOR_H

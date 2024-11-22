@@ -213,6 +213,16 @@ int main(int argc, char** argv) {
                 ImGui::RadioButton("Show Primative IDs", &shaderIndex, 4);
             }
 
+            if (animator) {
+                ImGui::Separator();
+                if (ImGui::CollapsingHeader("Animation Settings")) {
+                    static float playbackSpeed = 1.0f;
+                    if (ImGui::SliderFloat("Playback Speed", &playbackSpeed, 0.1f, 10.0f)) {
+                        animator->setPlaybackSpeed(playbackSpeed);
+                    }
+                }
+            }
+
             ImGui::End();
         }
 

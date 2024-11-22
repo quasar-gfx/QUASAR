@@ -171,7 +171,8 @@ void Recorder::saveFrames() {
                              << frameData.position.z << " "
                              << frameData.euler.x << " "
                              << frameData.euler.y << " "
-                             << frameData.euler.z << std::endl;
+                             << frameData.euler.z << " "
+                             << frameData.pts << std::endl;
                     pathFile.close();
                 }
 
