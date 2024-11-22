@@ -1,6 +1,7 @@
 #include <Materials/UnlitMaterial.h>
 
 Shader* UnlitMaterial::shader = nullptr;
+std::vector<std::string> UnlitMaterial::extraShaderDefines;
 
 UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams &params)
         : baseColor(params.baseColor)
@@ -24,16 +25,21 @@ UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams &params)
     }
 
     if (shader == nullptr) {
+        std::vector<std::string> defines = {
+            "#define ALPHA_OPAQUE " + std::to_string(static_cast<uint8_t>(AlphaMode::OPAQUE)),
+            "#define ALPHA_MASK " + std::to_string(static_cast<uint8_t>(AlphaMode::MASKED)),
+            "#define ALPHA_BLEND " + std::to_string(static_cast<uint8_t>(AlphaMode::TRANSPARENT))
+        };
+        for (const auto &define : extraShaderDefines) {
+            defines.push_back(define);
+        }
+
         ShaderDataCreateParams unlitShaderParams{
             .vertexCodeData = SHADER_BUILTIN_COMMON_VERT,
             .vertexCodeSize = SHADER_BUILTIN_COMMON_VERT_len,
             .fragmentCodeData = SHADER_BUILTIN_MATERIAL_UNLIT_FRAG,
             .fragmentCodeSize = SHADER_BUILTIN_MATERIAL_UNLIT_FRAG_len,
-            .defines = {
-                "#define ALPHA_OPAQUE " + std::to_string(static_cast<uint8_t>(AlphaMode::OPAQUE)),
-                "#define ALPHA_MASK " + std::to_string(static_cast<uint8_t>(AlphaMode::MASKED)),
-                "#define ALPHA_BLEND " + std::to_string(static_cast<uint8_t>(AlphaMode::TRANSPARENT))
-            }
+            .defines = defines
         };
         shader = new Shader(unlitShaderParams);
     }

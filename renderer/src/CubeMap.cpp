@@ -212,7 +212,7 @@ void CubeMap::prefilter(const Shader &prefilterShader, const CubeMap &envCubeMap
         captureRBO.resize(mipWidth, mipHeight);
         glViewport(0, 0, mipWidth, mipHeight);
 
-        float roughness = (float)mip / (float)(maxMipLevels - 1);
+        float roughness = (float)mip / static_cast<float>(maxMipLevels - 1);
         prefilterShader.setFloat("roughness", roughness);
 
         for (int i = 0; i < NUM_CUBEMAP_FACES; i++) {

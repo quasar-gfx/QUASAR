@@ -18,6 +18,7 @@
 class OpenGLRenderer {
 public:
     unsigned int width, height;
+    unsigned int windowWidth, windowHeight;
 
     GraphicsPipeline pipeline;
 
@@ -29,6 +30,7 @@ public:
     virtual void setScreenShaderUniforms(const Shader &screenShader) {};
 
     virtual void resize(unsigned int width, unsigned int height);
+    virtual void setWindowSize(unsigned int width, unsigned int height);
 
     virtual void beginRendering() {}
     virtual void endRendering() {}

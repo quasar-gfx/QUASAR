@@ -7,11 +7,13 @@
 class DepthPeelingRenderer : public OpenGLRenderer {
 public:
     unsigned int maxLayers;
+    float viewBoxSize = 0.5f;
+    float edpDelta = 0.001f;
 
     GeometryBuffer gBuffer;
     std::vector<GeometryBuffer*> peelingLayers;
 
-    DepthPeelingRenderer(const Config &config, unsigned int maxLayers = 8);
+    DepthPeelingRenderer(const Config &config, unsigned int maxLayers = 4, bool edp = false);
     ~DepthPeelingRenderer() = default;
 
     void setScreenShaderUniforms(const Shader &screenShader) override;
@@ -27,7 +29,12 @@ public:
 
     RenderStats compositeLayers();
 
+    void setViewBoxSize(float viewBoxSize) {
+        this->viewBoxSize = viewBoxSize;
+    }
+
 private:
+    bool edp;
     Shader compositeLayersShader;
 };
 

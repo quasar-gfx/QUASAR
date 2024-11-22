@@ -1,8 +1,5 @@
 layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = THREADS_PER_LOCALGROUP, local_size_z = 1) in;
 
-precision highp sampler2D;
-precision highp image2D;
-
 layout(binding = 0) uniform sampler2D depthMap;
 
 struct Vertex {
@@ -72,25 +69,10 @@ vec2 viewToScreen(mat4 projection, vec3 viewCoord) {
     return uv;
 }
 
-float sampleDepth(sampler2D depthMap, vec2 sampleCoord) {
-    float depth = texture(depthMap, sampleCoord).x;
+float sampleDepth(sampler2D depthMap, ivec2 sampleCoord) {
+    float depth = texelFetch(depthMap, sampleCoord, 0).r;
     depth = clamp(depth, 0.0, MAX_DEPTH);
     return depth;
-}
-
-float LinearizeDepth(float depth) {
-    float z = depth * 2.0 - 1.0; // back to NDC
-    return (2.0 * near * far) / (far + near - z * (far - near));
-}
-
-float NormalizeDepth(float depth) {
-    depth = clamp(depth, near, far);
-    float z = (depth - near) / (far - near);
-    return (1.0 - (1.0 / (1.0 + z * (far - near) / near)));
-}
-
-vec3 sampleNormal(sampler2D normalMap, vec2 sampleCoord) {
-    return normalize(texture(normalMap, sampleCoord).xyz);
 }
 
 void main() {
@@ -101,12 +83,12 @@ void main() {
         return;
     }
 
-    vec2 surfelCoordBottomLeft = vec2(gl_GlobalInvocationID.xy);
-    vec2 pixelCoordsCenter     = surfelCoordBottomLeft + vec2(0.5, 0.5) + vec2(+0.0, +0.0);
-    vec2 uvCenter              = pixelCoordsCenter / size;
-    vec2 pixelCoordsNDC        = 2.0 * uvCenter - 1.0;
-    float pixelDepth           = sampleDepth(depthMap, uvCenter);
-    vec3 pixelCoordsViewCenter = ndcToView(projectionInverse, pixelCoordsNDC, pixelDepth);
+    vec2 surfelCornerCoordBottomLeft = float(surfelSize) * vec2(gl_GlobalInvocationID.xy);
+    vec2 pixelCenterCoord            = surfelCornerCoordBottomLeft + vec2(0.5, 0.5);
+    vec2 uvCenter                    = pixelCenterCoord / vec2(depthMapSize);
+    vec2 pixelCoordsNDC              = 2.0 * uvCenter - 1.0;
+    float pixelDepth                 = sampleDepth(depthMap, ivec2(pixelCenterCoord));
+    vec3 pixelCoordsViewCenter       = ndcToView(projectionInverse, pixelCoordsNDC, pixelDepth);
 
     // store depth
     uint shaderIndex = uint(gl_GlobalInvocationID.y * size.x + gl_GlobalInvocationID.x);

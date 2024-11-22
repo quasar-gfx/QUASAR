@@ -12,6 +12,7 @@
 #include <glm/glm.hpp>
 
 #include <Shaders/ComputeShader.h>
+#include <lz4_stream/lz4_stream.h>
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
 #include <cuda_gl_interop.h>
@@ -32,8 +33,10 @@ public:
 
     struct Stats {
         float timeToCopyFrameMs = -1.0f;
+        float timeToCompressMs = -1.0f;
         float timeToSendMs = -1.0f;
         float bitrateMbps = -1.0f;
+        float lz4CompressionRatio = -1.0f;
     } stats;
 
     BC4DepthStreamer(const RenderTargetCreateParams &params, std::string receiverURL);
@@ -57,9 +60,9 @@ private:
 
     std::vector<uint8_t> data;
 
-    // BC4 compute shader
-    ComputeShader bc4CompressionShader;
+    std::vector<uint8_t> lz4Buffer;
 
+    ComputeShader bc4CompressionShader;
     void compressBC4();
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)

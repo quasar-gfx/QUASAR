@@ -14,7 +14,7 @@
 #include <PoseStreamer.h>
 #include <shaders_common.h>
 
-#define THREADS_PER_LOCALGROUP 16
+#define THREADS_PER_LOCALGROUP 32
 
 #define TEXTURE_PREVIEW_SIZE 500
 
@@ -28,15 +28,14 @@ int main(int argc, char** argv) {
     Config config{};
     config.title = "MeshWarp Receiver";
 
-    RenderState renderState = RenderState::MESH;
-
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
-    args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
+    args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<unsigned int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
     args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "0.0.0.0:12345");
+    args::ValueFlag<std::string> videoFormatIn(parser, "video-format", "Video format", {'g', "video-format"}, "mpegts");
     args::ValueFlag<std::string> depthURLIn(parser, "depth", "Depth URL", {'e', "depth-url"}, "0.0.0.0:65432");
     args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "127.0.0.1:54321");
     args::ValueFlag<unsigned int> depthFactorIn(parser, "factor", "Depth Resolution Factor", {'a', "depth-factor"}, 1);
@@ -62,6 +61,7 @@ int main(int argc, char** argv) {
 
     std::string scenePath = args::get(scenePathIn);
     std::string videoURL = args::get(videoURLIn);
+    std::string videoFormat = args::get(videoFormatIn);
     std::string depthURL = args::get(depthURLIn);
     std::string poseURL = args::get(poseURLIn);
 
@@ -73,6 +73,8 @@ int main(int argc, char** argv) {
 
     config.window = window;
     config.guiManager = guiManager;
+
+    RenderState renderState = RenderState::MESH;
 
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
@@ -88,12 +90,12 @@ int main(int argc, char** argv) {
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR
-    }, videoURL);
+    }, videoURL, videoFormat);
 
     BC4DepthVideoTexture videoTextureDepth({
         .width = windowSize.x / depthFactor,
         .height = windowSize.y / depthFactor,
-        .internalFormat = GL_R16F,
+        .internalFormat = GL_R32F,
         .format = GL_RED,
         .type = GL_FLOAT,
         .wrapS = GL_CLAMP_TO_EDGE,
@@ -104,17 +106,13 @@ int main(int argc, char** argv) {
 
     // "remote" camera
     PerspectiveCamera remoteCamera(videoTextureColor.width, videoTextureColor.height);
-    remoteCamera.setFovy(glm::radians(args::get(fovIn)));
+    remoteCamera.setFovyDegrees(args::get(fovIn));
 
     // "local" scene
     Scene scene;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
 
     PoseStreamer poseStreamer(&camera, poseURL);
-
-    std::cout << "Video URL: " << videoURL << std::endl;
-    std::cout << "Depth URL: " << depthURL << std::endl;
-    std::cout << "Pose URL: " << poseURL << std::endl;
 
     glm::uvec2 adjustedWindowSize = windowSize / surfelSize;
 
@@ -162,8 +160,9 @@ int main(int argc, char** argv) {
     pose_id_t poseIdColor = -1, poseIdDepth = -1;
     bool mwEnabled = true;
     bool sync = true;
-    RenderStats renderStats;
+    Pose currentColorFramePose, currentDepthFramePose;
 
+    RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = true;
@@ -236,24 +235,35 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::Text("Video URL: %s", videoURL.c_str());
+            ImGui::Text("Video URL: %s (%s)", videoURL.c_str(), videoFormat.c_str());
+            ImGui::Text("Depth URL: %s", depthURL.c_str());
             ImGui::Text("Pose URL: %s", poseURL.c_str());
 
             ImGui::Separator();
 
             ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: RGB (%.1f FPS), D (%.1f FPS)", videoTextureColor.getFrameRate(), videoTextureDepth.getFrameRate());
-            ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: RGB (%.1f ms), D (%.1f ms)", elapsedTimeColor, elapsedTimeDepth);
+            ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: RGB (%.3f ms), D (%.3f ms)", elapsedTimeColor, elapsedTimeDepth);
 
             ImGui::Separator();
 
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to receive frame: %.1f ms", videoTextureColor.stats.timeToReceiveMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decode frame: %.1f ms", videoTextureColor.stats.timeToDecodeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to resize frame: %.1f ms", videoTextureColor.stats.timeToResizeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: RGB (%.1f Mbps), D (%.1f Mbps)", videoTextureColor.stats.bitrateMbps, videoTextureDepth.stats.bitrateMbps);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to receive frame: %.3f ms", videoTextureColor.stats.timeToReceiveMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decode frame: %.3f ms", videoTextureColor.stats.timeToDecodeMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to resize frame: %.3f ms", videoTextureColor.stats.timeToResizeMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: RGB (%.3f Mbps), D (%.3f Mbps)", videoTextureColor.stats.bitrateMbps, videoTextureDepth.stats.bitrateMbps);
 
             ImGui::Separator();
 
             ImGui::Text("Remote Pose ID: RGB (%d), D (%d)", poseIdColor, poseIdDepth);
+
+            glm::mat4 pose = glm::inverse(currentDepthFramePose.mono.view);
+            glm::vec3 skew, scale;
+            glm::quat rotationQuat;
+            glm::vec3 remotePosition;
+            glm::vec4 perspective;
+            glm::decompose(pose, scale, rotationQuat, remotePosition, skew, perspective);
+            glm::vec3 remoteRotation = glm::degrees(glm::eulerAngles(rotationQuat));
+            ImGui::InputFloat3("Remote Position", (float*)&remotePosition);
+            ImGui::InputFloat3("Remote Rotation", (float*)&remoteRotation);
 
             ImGui::Separator();
 
@@ -303,13 +313,12 @@ int main(int argc, char** argv) {
 
     app.onResize([&](unsigned int width, unsigned int height) {
         windowSize = glm::uvec2(width, height);
-        renderer.resize(windowSize.x, windowSize.y);
+        renderer.setWindowSize(windowSize.x, windowSize.y);
 
-        camera.aspect = (float)windowSize.x / (float)windowSize.y;
+        camera.setAspect(windowSize.x, windowSize.y);
         camera.updateProjectionMatrix();
     });
 
-    Pose currentColorFramePose, currentDepthFramePose;
     app.onRender([&](double now, double dt) {
         /// handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
@@ -382,13 +391,13 @@ int main(int argc, char** argv) {
         // set shader uniforms
         genMeshFromBC4Shader.bind();
         {
-            genMeshFromBC4Shader.setVec2("screenSize", windowSize);
+            genMeshFromBC4Shader.setBool("unlinearizeDepth", true);
             genMeshFromBC4Shader.setVec2("depthMapSize", glm::vec2(videoTextureDepth.width, videoTextureDepth.height));
             genMeshFromBC4Shader.setInt("surfelSize", surfelSize);
         }
         {
             genMeshFromBC4Shader.setMat4("projection", remoteCamera.getProjectionMatrix());
-            genMeshFromBC4Shader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+            genMeshFromBC4Shader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
             if (poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTimeColor)) {
                 genMeshFromBC4Shader.setMat4("viewColor", currentColorFramePose.mono.view);
             }
@@ -396,8 +405,8 @@ int main(int argc, char** argv) {
                 genMeshFromBC4Shader.setMat4("viewInverseDepth", glm::inverse(currentDepthFramePose.mono.view));
             }
 
-            genMeshFromBC4Shader.setFloat("near", remoteCamera.near);
-            genMeshFromBC4Shader.setFloat("far", remoteCamera.far);
+            genMeshFromBC4Shader.setFloat("near", remoteCamera.getNear());
+            genMeshFromBC4Shader.setFloat("far", remoteCamera.getFar());
         }
         {
             genMeshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
@@ -406,8 +415,11 @@ int main(int argc, char** argv) {
         }
 
         // dispatch compute shader to generate vertices and indices for both main and wireframe meshes
-        genMeshFromBC4Shader.dispatch((videoTextureDepth.width + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                      (videoTextureDepth.height + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+        genMeshFromBC4Shader.dispatch(
+                ((videoTextureDepth.width / surfelSize)  + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                ((videoTextureDepth.height / surfelSize) + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                1
+            );
         genMeshFromBC4Shader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
                                            GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 

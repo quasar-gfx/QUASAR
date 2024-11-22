@@ -1,4 +1,5 @@
 #include <iostream>
+#include <thread>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -7,7 +8,10 @@
 #include <Primatives/Entity.h>
 #include <OpenGLApp.h>
 
-OpenGLApp::OpenGLApp(const Config &config) : window(config.window), guiManager(config.guiManager) {
+OpenGLApp::OpenGLApp(const Config &config)
+        : window(config.window)
+        , guiManager(config.guiManager)
+        , targetFramerate(config.enableVSync ? config.targetFramerate : 0) {
     // check version
     if (config.openglMajorVersion < 3 || (config.openglMajorVersion == 3 && config.openglMinorVersion < 3)) {
         throw std::runtime_error("OpenGL version must be 3.3 or higher");
@@ -20,10 +24,19 @@ OpenGLApp::OpenGLApp(const Config &config) : window(config.window), guiManager(c
 }
 
 void OpenGLApp::run() {
+    const double targetDeltaTime = targetFramerate != 0 ? 1.0 / targetFramerate : 0.0;
+
     double prevTime = window->getTime();
     while (window->tick()) {
         double currTime = window->getTime();
         double deltaTime = currTime - prevTime;
+
+        if (deltaTime < targetDeltaTime) {
+            // sleep for the remaining time to meet target framerate
+            std::this_thread::sleep_for(std::chrono::duration<double>(targetDeltaTime - deltaTime));
+            currTime = window->getTime();
+            deltaTime = currTime - prevTime;
+        }
 
         if (window->resized()) {
             glm::uvec2 windowSize = window->getSize();

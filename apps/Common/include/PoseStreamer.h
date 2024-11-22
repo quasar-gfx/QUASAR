@@ -23,11 +23,13 @@ public:
     std::string receiverURL;
     unsigned int rate;
 
-    PoseStreamer(Camera* camera, std::string receiverURL, unsigned int rate = 60)
+    PoseStreamer(Camera* camera, std::string receiverURL, unsigned int rate = 30)
             : camera(camera)
             , receiverURL(receiverURL)
             , rate(rate)
-            , streamer(receiverURL, sizeof(Pose)) { }
+            , streamer(receiverURL, sizeof(Pose)) {
+        std::cout << "Created PoseStreamer that sends to URL: " << receiverURL << std::endl;
+    }
 
     bool epsilonEqual(const glm::mat4& mat1, const glm::mat4& mat2, float epsilon = 1e-5) {
         for (int i = 0; i < 4; i++) {
@@ -44,7 +46,7 @@ public:
         if (res != prevPoses.end()) { // found
             *pose = res->second;
             if (elapsedTime) {
-                *elapsedTime = timeutils::getTimeMillis() - pose->timestamp;
+                *elapsedTime = (timeutils::getTimeMicros() - pose->timestamp) / MICROSECONDS_IN_MILLISECOND;
             }
 
             return true;
@@ -94,7 +96,7 @@ public:
             //     return false;
             // }
         }
-        currPose.timestamp = timeutils::getTimeMillis();
+        currPose.timestamp = timeutils::getTimeMicros();
         streamer.send((uint8_t*)&currPose);
 
         prevPoses[currPoseID] = currPose;

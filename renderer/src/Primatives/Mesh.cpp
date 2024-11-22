@@ -96,8 +96,8 @@ void Mesh::setBuffers(unsigned int numVertices, unsigned int numIndices) {
 }
 
 void Mesh::resizeBuffers(unsigned int numVertices, unsigned int numIndices) {
-    vertexBuffer.setSize(numVertices);
-    indexBuffer.setSize(numIndices);
+    vertexBuffer.resize(numVertices);
+    indexBuffer.resize(numIndices);
 }
 
 void Mesh::updateAABB(const std::vector<Vertex> &vertices) {
@@ -116,18 +116,20 @@ void Mesh::updateAABB(const std::vector<Vertex> &vertices) {
 void Mesh::setMaterialCameraParams(const Camera &camera, const Material* material) {
     if (camera.isVR()) {
         auto& vrCamera = static_cast<const VRCamera&>(camera);
-        material->getShader()->setMat4("view[0]", vrCamera.left.getViewMatrix());
-        material->getShader()->setMat4("projection[0]", vrCamera.left.getProjectionMatrix());
-        material->getShader()->setMat4("view[1]", vrCamera.right.getViewMatrix());
-        material->getShader()->setMat4("projection[1]", vrCamera.right.getProjectionMatrix());
-        material->getShader()->setVec3("camPos", vrCamera.getPosition());
+        material->getShader()->setMat4("camera.view[0]", vrCamera.left.getViewMatrix());
+        material->getShader()->setMat4("camera.projection[0]", vrCamera.left.getProjectionMatrix());
+        material->getShader()->setMat4("camera.view[1]", vrCamera.right.getViewMatrix());
+        material->getShader()->setMat4("camera.projection[1]", vrCamera.right.getProjectionMatrix());
     }
     else {
         auto& monoCamera = static_cast<const PerspectiveCamera&>(camera);
-        material->getShader()->setMat4("view", monoCamera.getViewMatrix());
-        material->getShader()->setMat4("projection", monoCamera.getProjectionMatrix());
-        material->getShader()->setVec3("camPos", monoCamera.getPosition());
+        material->getShader()->setMat4("camera.view", monoCamera.getViewMatrix());
+        material->getShader()->setMat4("camera.projection", monoCamera.getProjectionMatrix());
     }
+    material->getShader()->setVec3("camera.position", camera.getPosition());
+    material->getShader()->setFloat("camera.fovy", camera.getFovyRadians());
+    material->getShader()->setFloat("camera.near", camera.getNear());
+    material->getShader()->setFloat("camera.far", camera.getFar());
 }
 
 void Mesh::bindMaterial(const Scene &scene, const glm::mat4 &model, const Material* overrideMaterial, const Texture* prevDepthMap) {

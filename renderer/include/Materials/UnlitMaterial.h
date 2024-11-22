@@ -32,6 +32,8 @@ public:
     unsigned int getTextureCount() const override { return 1; }
 
     static Shader* shader;
+
+    static std::vector<std::string> extraShaderDefines;
 };
 
 #endif // UNLIT_MATERIAL_H

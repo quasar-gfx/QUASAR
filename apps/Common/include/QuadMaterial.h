@@ -3,6 +3,13 @@
 
 #include <Materials/Material.h>
 
+struct QuadMapDataPacked {
+    unsigned int normalSpherical; // normal as 16 bit xy spherical coordinates packed into uint
+    float depth;
+    glm::vec2 uv;
+    unsigned int offsetSizeFlattened; // offset.xy << 8 | size << 1 | flattened
+};
+
 struct QuadMaterialCreateParams {
     glm::vec4 baseColor = glm::vec4(1.0f);
     glm::vec4 baseColorFactor = glm::vec4(1.0f);

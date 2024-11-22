@@ -178,4 +178,32 @@ ANativeActivity* FileIO::activity = nullptr;
 void FileIO::registerIOSystem(ANativeActivity* activity) {
     FileIO::activity = activity;
 }
+
+std::string FileIO::copyFileToCache(std::string filename) {
+    AAsset* asset = AAssetManager_open(getAssetManager(), filename.c_str(), AASSET_MODE_STREAMING);
+    if (!asset) {
+        throw std::runtime_error("Failed to open file " + filename);
+        return "";
+    }
+
+    std::string tempPath = "/data/user/0/app.wiselab.QuestClient/cache/" + filename;
+
+    std::ofstream outFile(tempPath, std::ios::binary);
+    if (!outFile) {
+        throw std::runtime_error("Failed to create temp file: " + tempPath);
+        AAsset_close(asset);
+        return "";
+    }
+
+    char buffer[1024];
+    int bytesRead;
+    while ((bytesRead = AAsset_read(asset, buffer, sizeof(buffer))) > 0) {
+        outFile.write(buffer, bytesRead);
+    }
+
+    AAsset_close(asset);
+    outFile.close();
+
+    return tempPath;
+}
 #endif

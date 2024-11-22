@@ -24,9 +24,10 @@ int main(int argc, char** argv) {
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
-    args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
+    args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "800x600");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "0.0.0.0:12345");
+    args::ValueFlag<std::string> videoFormatIn(parser, "video-format", "Video format", {'g', "video-format"}, "mpegts");
     args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "127.0.0.1:54321");
     try {
         parser.ParseCLI(argc, argv);
@@ -48,6 +49,7 @@ int main(int argc, char** argv) {
     config.enableVSync = args::get(vsyncIn);
 
     std::string videoURL = args::get(videoURLIn);
+    std::string videoFormat = args::get(videoFormatIn);
     std::string poseURL = args::get(poseURLIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
@@ -76,11 +78,9 @@ int main(int argc, char** argv) {
         // make out of frame regions black
         .hasBorder = true,
         .borderColor = glm::vec4(0.0f),
-    }, videoURL);
-    PoseStreamer poseStreamer(&camera, poseURL);
+    }, videoURL, videoFormat);
 
-    std::cout << "Video URL: " << videoURL << std::endl;
-    std::cout << "Pose URL: " << poseURL << std::endl;
+    PoseStreamer poseStreamer(&camera, poseURL);
 
     // shaders
     ToneMapShader toneMapShader;
@@ -158,24 +158,6 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::Text("Video URL: %s", videoURL.c_str());
-            ImGui::Text("Pose URL: %s", poseURL.c_str());
-
-            ImGui::Separator();
-
-            ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoTexture.getFrameRate(), 1000.0f / videoTexture.getFrameRate());
-            ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: %.1f ms", elapsedTime);
-
-            ImGui::Separator();
-
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to receive frame: %.1f ms", videoTexture.stats.timeToReceiveMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decode frame: %.1f ms", videoTexture.stats.timeToDecodeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to resize frame: %.1f ms", videoTexture.stats.timeToResizeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: %.1f Mbps", videoTexture.stats.bitrateMbps);
-
-            // show currentFramePose
-            ImGui::Separator();
-
             glm::vec3 position = camera.getPosition();
             if (ImGui::InputFloat3("Camera Position", (float*)&position)) {
                 camera.setPosition(position);
@@ -184,6 +166,26 @@ int main(int argc, char** argv) {
             if (ImGui::InputFloat3("Camera Rotation", (float*)&rotation)) {
                 camera.setRotationEuler(rotation);
             }
+            ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
+
+            ImGui::Separator();
+
+            ImGui::Text("Video URL: %s (%s)", videoURL.c_str(), videoFormat.c_str());
+            ImGui::Text("Pose URL: %s", poseURL.c_str());
+
+            ImGui::Separator();
+
+            ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoTexture.getFrameRate(), 1000.0f / videoTexture.getFrameRate());
+            ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: %.3f ms", elapsedTime);
+
+            ImGui::Separator();
+
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to receive frame: %.3f ms", videoTexture.stats.timeToReceiveMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decode frame: %.3f ms", videoTexture.stats.timeToDecodeMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to resize frame: %.3f ms", videoTexture.stats.timeToResizeMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: %.3f Mbps", videoTexture.stats.bitrateMbps);
+
+            ImGui::Separator();
 
             ImGui::Text("Remote Pose ID: %d", currentFramePose.id);
 
@@ -235,9 +237,9 @@ int main(int argc, char** argv) {
 
     app.onResize([&](unsigned int width, unsigned int height) {
         windowSize = glm::uvec2(width, height);
-        renderer.resize(windowSize.x, windowSize.y);
+        renderer.setWindowSize(windowSize.x, windowSize.y);
 
-        camera.aspect = (float)windowSize.x / (float)windowSize.y;
+        camera.setAspect(windowSize.x, windowSize.y);
         camera.updateProjectionMatrix();
     });
 
@@ -294,8 +296,8 @@ int main(int argc, char** argv) {
 
         atwShader.bind();
         atwShader.setBool("atwEnabled", atwEnabled);
-        atwShader.setMat4("projectionInverse", glm::inverse(camera.getProjectionMatrix()));
-        atwShader.setMat4("viewInverse", glm::inverse(camera.getViewMatrix()));
+        atwShader.setMat4("projectionInverse", camera.getProjectionMatrixInverse());
+        atwShader.setMat4("viewInverse", camera.getViewMatrixInverse());
         if (poseID != prevPoseID && poseStreamer.getPose(poseID, &currentFramePose, &elapsedTime)) {
             atwShader.setMat4("remoteProjection", currentFramePose.mono.proj);
             atwShader.setMat4("remoteView", currentFramePose.mono.view);

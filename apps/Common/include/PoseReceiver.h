@@ -20,10 +20,12 @@ class PoseReceiver : public DataReceiverUDP {
 public:
     std::string streamerURL;
 
-    PoseReceiver(Camera* camera, std::string streamerURL)
+    PoseReceiver(Camera* camera, std::string streamerURL, float poseDropThresMs = 50.0f)
             : camera(camera)
             , streamerURL(streamerURL)
+            , poseDropThresMs(poseDropThresMs)
             , DataReceiverUDP(streamerURL, sizeof(Pose)) {
+        std::cout << "Created PoseReceiver that recvs from URL: " << streamerURL << std::endl;
     }
 
     void onDataReceived(const std::vector<uint8_t>& data) override {
@@ -34,10 +36,12 @@ public:
             return;
         }
 
-        Pose pose;
-        std::memcpy(&pose, data.data(), sizeof(Pose));
+        Pose newPose;
+        std::memcpy(&newPose, data.data(), sizeof(Pose));
 
-        poses.push_back(pose);
+        if (poses.empty() || newPose.timestamp - poses.back().timestamp > timeutils::millisToMicros(poseDropThresMs)) {
+            poses.push_back(newPose);
+        }
     }
 
     pose_id_t receivePose(bool setProj = true) {
@@ -69,6 +73,7 @@ public:
 
 private:
     Camera* camera;
+    float poseDropThresMs;
 
     std::mutex m;
     std::deque<Pose> poses;

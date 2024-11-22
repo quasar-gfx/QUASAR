@@ -18,7 +18,7 @@ int main(int argc, char** argv) {
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
-    args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
+    args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     try {
@@ -95,6 +95,7 @@ int main(int argc, char** argv) {
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = true;
+        static bool showLayerPreviews = true;
         static bool showCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
@@ -113,6 +114,7 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("FPS", 0, &showFPS);
             ImGui::MenuItem("UI", 0, &showUI);
             ImGui::MenuItem("Frame Capture", 0, &showCaptureWindow);
+            ImGui::MenuItem("Layer Previews", 0, &showLayerPreviews);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -203,30 +205,27 @@ int main(int argc, char** argv) {
             ImGui::End();
         }
 
-        flags = ImGuiWindowFlags_AlwaysAutoResize;
+        if (showLayerPreviews) {
+            flags = ImGuiWindowFlags_AlwaysAutoResize;
 
-        const int texturePreviewSize = (windowSize.x * 2/3) / renderer.maxLayers;
+            const int texturePreviewSize = (windowSize.x * 2/3) / renderer.maxLayers;
 
-        for (int i = 0; i < renderer.maxLayers; i++) {
-            int layerIdx = renderer.maxLayers - i - 1;
+            for (int i = 0; i < renderer.maxLayers; i++) {
+                int layerIdx = renderer.maxLayers - i - 1;
 
-            ImGui::SetNextWindowPos(ImVec2(windowSize.x - (i + 1) * texturePreviewSize - 30, 40), ImGuiCond_FirstUseEver);
-            ImGui::Begin(("Layer " + std::to_string(layerIdx) + " Color").c_str(), 0, flags);
-            ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[layerIdx]->colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
-            ImGui::End();
-
-            ImGui::SetNextWindowPos(ImVec2(windowSize.x - (i + 1) * texturePreviewSize - 30, 40 + 60 + texturePreviewSize), ImGuiCond_FirstUseEver);
-            ImGui::Begin(("Layer " + std::to_string(layerIdx) + " Depth").c_str(), 0, flags);
-            ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[layerIdx]->depthStencilBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
-            ImGui::End();
+                ImGui::SetNextWindowPos(ImVec2(windowSize.x - (i + 1) * texturePreviewSize - 30, 40), ImGuiCond_FirstUseEver);
+                ImGui::Begin(("Layer " + std::to_string(layerIdx) + " Color").c_str(), 0, flags);
+                ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[layerIdx]->colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
+                ImGui::End();
+            }
         }
     });
 
     app.onResize([&](unsigned int width, unsigned int height) {
         windowSize = glm::uvec2(width, height);
-        renderer.resize(windowSize.x, windowSize.y);
+        renderer.setWindowSize(windowSize.x, windowSize.y);
 
-        camera.aspect = (float)windowSize.x / (float)windowSize.y;
+        camera.setAspect(windowSize.x, windowSize.y);
         camera.updateProjectionMatrix();
     });
 
@@ -279,8 +278,8 @@ int main(int argc, char** argv) {
         // render to screen
         if (shaderIndex == 1) {
             showDepthShader.bind();
-            showDepthShader.setFloat("near", camera.near);
-            showDepthShader.setFloat("far", camera.far);
+            showDepthShader.setFloat("near", camera.getNear());
+            showDepthShader.setFloat("far", camera.getFar());
             renderer.drawToScreen(showDepthShader);
         }
         else if (shaderIndex == 2) {

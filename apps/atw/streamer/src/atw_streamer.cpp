@@ -18,14 +18,16 @@
 int main(int argc, char** argv) {
     Config config{};
     config.title = "ATW Streamer";
+    config.targetFramerate = 30;
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
-    args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
+    args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<bool> displayIn(parser, "display", "Show window", {'d', "display"}, true);
     args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "127.0.0.1:12345");
+    args::ValueFlag<std::string> videoFormatIn(parser, "video-format", "Video format", {'g', "video-format"}, "mpegts");
     args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "0.0.0.0:54321");
     args::ValueFlag<int> targetBitrateIn(parser, "targetBitrate", "Target bitrate (Mbps)", {'b', "target-bitrate"}, 50);
     args::ValueFlag<bool> vrModeIn(parser, "vr", "Enable VR mode", {'r', "vr"}, false);
@@ -51,6 +53,7 @@ int main(int argc, char** argv) {
 
     std::string scenePath = args::get(scenePathIn);
     std::string videoURL = args::get(videoURLIn);
+    std::string videoFormat = args::get(videoFormatIn);
     std::string poseURL = args::get(poseURLIn);
 
     unsigned int targetBitrate = args::get(targetBitrateIn);
@@ -95,12 +98,9 @@ int main(int argc, char** argv) {
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR
-    }, videoURL, targetBitrate);
+    }, videoURL, config.targetFramerate, targetBitrate, videoFormat);
 
     PoseReceiver poseReceiver = PoseReceiver(camera.get(), poseURL);
-
-    std::cout << "Video URL: " << videoURL << std::endl;
-    std::cout << "Pose URL: " << poseURL << std::endl;
 
     // shaders
     ToneMapShader toneMapShader;
@@ -164,7 +164,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::Text("Video URL: %s", videoURL.c_str());
+            ImGui::Text("Video URL: %s (%s)", videoURL.c_str(), videoFormat.c_str());
             ImGui::Text("Pose URL: %s", poseURL.c_str());
 
             ImGui::Separator();
@@ -173,10 +173,10 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: %.1f ms", videoStreamerRT.stats.timeToCopyFrameMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.1f ms", videoStreamerRT.stats.timeToEncodeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: %.1f ms", videoStreamerRT.stats.timeToSendMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: %.1f Mbps", videoStreamerRT.stats.bitrateMbps);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: %.3f ms", videoStreamerRT.stats.timeToCopyFrameMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.3f ms", videoStreamerRT.stats.timeToEncodeMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: %.3f ms", videoStreamerRT.stats.timeToSendMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: %.3f Mbps", videoStreamerRT.stats.bitrateMbps);
 
             ImGui::Separator();
 
@@ -212,16 +212,17 @@ int main(int argc, char** argv) {
 
     app.onResize([&](unsigned int width, unsigned int height) {
         windowSize = glm::uvec2(width, height);
-        renderer.resize(windowSize.x, windowSize.y);
+        renderer.setWindowSize(windowSize.x, windowSize.y);
+
         if (vrMode) {
             auto vrCamera = static_cast<VRCamera*>(camera.get());
-            vrCamera->left.aspect = (float)(windowSize.x / 2) / (float)windowSize.y;
-            vrCamera->right.aspect = (float)(windowSize.x / 2) / (float)windowSize.y;
+            vrCamera->left.setAspect(windowSize.x / 2, windowSize.y);
+            vrCamera->right.setAspect(windowSize.x / 2, windowSize.y);
             vrCamera->updateProjectionMatrix();
         }
         else {
             auto perspectiveCamera = static_cast<PerspectiveCamera*>(camera.get());
-            perspectiveCamera->aspect = (float)windowSize.x / (float)windowSize.y;
+            perspectiveCamera->setAspect(windowSize.x, windowSize.y);
             perspectiveCamera->updateProjectionMatrix();
         }
     });

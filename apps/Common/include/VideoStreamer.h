@@ -33,6 +33,8 @@ class VideoStreamer : public RenderTarget {
 public:
     std::string videoURL = "0.0.0.0:12345";
 
+    std::string formatName;
+
     uint64_t framesSent = 0;
 
     struct Stats {
@@ -43,7 +45,11 @@ public:
         float bitrateMbps = -1.0f;
     } stats;
 
-    VideoStreamer(const RenderTargetCreateParams &params, const std::string &videoURL, unsigned int targetBitRateMbps = 50);
+    VideoStreamer(const RenderTargetCreateParams &params,
+                  const std::string &videoURL,
+                  int targetFrameRate = 30,
+                  int targetBitRateMbps = 10,
+                  const std::string &formatName = "mpegts");
     ~VideoStreamer();
 
     float getFrameRate() {
@@ -64,8 +70,11 @@ public:
     void sendFrame(pose_id_t poseID);
 
 private:
-    int targetFrameRate = 60;
-    unsigned int targetBitRate;
+    int targetFrameRate;
+    int targetBitRate;
+
+    std::string preset = "p4";
+    std::string tune = "ull";
 
     int poseIDOffset = sizeof(pose_id_t) * 8;
 

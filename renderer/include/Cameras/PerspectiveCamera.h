@@ -7,12 +7,7 @@
 
 class PerspectiveCamera : public Camera {
 public:
-    float aspect;
-    float fovy;
-    float near;
-    float far;
-
-    float movementSpeed = 5.0f;
+    float movementSpeed = 2.5f;
     float mouseSensitivity = 0.05f;
 
     Frustum frustum;
@@ -21,17 +16,28 @@ public:
     PerspectiveCamera(unsigned int width, unsigned int height);
     PerspectiveCamera(float fovy, float aspect, float near, float far);
 
-    void setFovy(float fovy) { this->fovy = fovy; updateProjectionMatrix(); }
+    float getFovyRadians() const override { return fovyRad; }
+    float getFovyDegrees() const override { return glm::degrees(fovyRad); }
+    void setFovyDegrees(float fovyDeg) { this->fovyRad = glm::radians(fovyDeg); updateProjectionMatrix(); }
+
+    float getAspect() const override { return aspect; }
     void setAspect(float aspect) { this->aspect = aspect; updateProjectionMatrix(); }
+    void setAspect(unsigned int width, unsigned int height) { setAspect((float)width / (float)height); }
+
+    float getNear() const override { return near; }
     void setNear(float near) { this->near = near; updateProjectionMatrix(); }
+
+    float getFar() const override { return far; }
     void setFar(float far) { this->far = far; updateProjectionMatrix(); }
 
-    glm::mat4 getProjectionMatrix() const { return proj; }
+    const glm::mat4& getProjectionMatrix() const { return proj; }
+    const glm::mat4& getProjectionMatrixInverse() const { return projInverse; }
     void setProjectionMatrix(const glm::mat4 &proj);
-    void setProjectionMatrix(float fovy, float aspect, float near, float far);
+    void setProjectionMatrix(float fovyDeg, float aspect, float near, float far);
     void updateProjectionMatrix();
 
-    glm::mat4 getViewMatrix() const { return view; }
+    const glm::mat4& getViewMatrix() const { return view; }
+    const glm::mat4& getViewMatrixInverse() const { return viewInverse; }
     void setViewMatrix(const glm::mat4 &view);
     void updateViewMatrix();
 
@@ -43,9 +49,17 @@ public:
     void processMouseMovement(float xoffset, float yoffset, bool constrainPitch = true);
 
     bool isVR() const override { return false; }
-protected:
+
+private:
+    float aspect;
+    float fovyRad;
+    float near;
+    float far;
+
     glm::mat4 view;
     glm::mat4 proj;
+    glm::mat4 projInverse;
+    glm::mat4 viewInverse;
 
     float yaw = -90.0f;
     float pitch = 0.0f;

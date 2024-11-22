@@ -27,10 +27,8 @@ public:
             : url(url)
             , maxDataSize(maxDataSize)
             , socket(nonBlocking) {
-        socket.bind(url);
-        socket.setReuseAddrPort();
+        socket.setReuseAddr();
         socket.setSendSize(maxDataSize);
-        socket.listen(1);
 
         dataSendingThread = std::thread(&DataStreamerTCP::sendData, this);
     }
@@ -56,6 +54,8 @@ private:
     std::queue<std::vector<uint8_t>> datas;
 
     void sendData();
+
+    int clientSocketID = -1;
 };
 
 #endif // DATA_STREAMER_TCP_H

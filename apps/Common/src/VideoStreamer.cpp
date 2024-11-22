@@ -12,12 +12,20 @@ static int interrupt_callback(void* ctx) {
     return shouldTerminate;
 }
 
-VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::string &videoURL, unsigned int targetBitRateMbps)
-        : videoURL("udp://" + videoURL)
-        , targetBitRate(targetBitRateMbps * MBPS_TO_BPS)
+VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params,
+                             const std::string &videoURL,
+                             int targetFrameRate,
+                             int targetBitRateMbps,
+                             const std::string &formatName)
+        : targetFrameRate(targetFrameRate)
+        , targetBitRate(targetBitRateMbps * BYTES_IN_MB)
+        , formatName(formatName)
         , RenderTarget(params) {
-    videoWidth = width + poseIDOffset;
-    videoHeight = height;
+    this->videoURL = (formatName == "mpegts") ?
+                        "udp://" + videoURL :
+                            formatName + "://" + videoURL;
+    this->videoWidth = width + poseIDOffset;
+    this->videoHeight = height;
 
     renderTargetCopy = new RenderTarget({
         .width = width,
@@ -39,7 +47,6 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
     if (ret < 0) {
         throw std::runtime_error("Error: Couldn't initialize CUDA");
     }
-
 #endif
 
     /* Setup codec to encode output (video to URL) */
@@ -69,12 +76,13 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
     codecCtx->time_base = {1, targetFrameRate};
     codecCtx->framerate = {targetFrameRate, 1};
     codecCtx->bit_rate = targetBitRate;
-
-    // Set zero latency
     codecCtx->gop_size = 60;    // One keyframe every second
     codecCtx->max_b_frames = 0; // No B-frames for low latency
-    av_opt_set_int(codecCtx->priv_data, "zerolatency", 1, 0); // Zero latency
-    av_opt_set_int(codecCtx->priv_data, "delay", 0, 0);       // No delay
+
+    av_opt_set(codecCtx->priv_data, "preset", preset.c_str(), 0);
+    av_opt_set(codecCtx->priv_data, "tune", tune.c_str(), 0);
+    av_opt_set(codecCtx->priv_data, "zerolatency", "1", 0);
+    av_opt_set_int(codecCtx->priv_data, "delay", 0, 0);
 
     ret = avcodec_open2(codecCtx, outputCodec, nullptr);
     if (ret < 0) {
@@ -83,7 +91,7 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
     }
 
     /* Setup output (to write video to URL) */
-    ret = avformat_alloc_output_context2(&outputFormatCtx, nullptr, "mpegts", videoURL.c_str());
+    ret = avformat_alloc_output_context2(&outputFormatCtx, nullptr, formatName.c_str(), videoURL.c_str());
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate output context: %s\n", av_err2str(ret));
         throw std::runtime_error("Video Streamer could not be created.");
@@ -155,6 +163,8 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params, const std::
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not make packet writable: %s\n", av_err2str(ret));
         return;
     }
+
+    std::cout << "Created VideoStreamer that sends to URL: " << videoURL << " (" << formatName << ")" << std::endl;
 
     videoStreamerThread = std::thread(&VideoStreamer::encodeAndSendFrames, this);
 }
@@ -340,7 +350,7 @@ void VideoStreamer::encodeAndSendFrames() {
         }
         stats.totalTimeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
 
-        stats.bitrateMbps = ((bytesSent * 8) / timeutils::millisToSeconds(stats.totalTimeToSendMs)) / MBPS_TO_BPS;
+        stats.bitrateMbps = ((bytesSent * 8) / timeutils::millisToSeconds(stats.totalTimeToSendMs)) / BYTES_IN_MB;
 
         prevTime = timeutils::getTimeMicros();
     }

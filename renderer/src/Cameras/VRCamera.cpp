@@ -5,6 +5,9 @@ VRCamera::VRCamera()
     , right() {
     left.setPosition(glm::vec3(-0.032f, 0.0f, 0.0f));
     right.setPosition(glm::vec3(0.032f, 0.0f, 0.0f));
+
+    addChildNode(&left);
+    addChildNode(&right);
 }
 
 VRCamera::VRCamera(unsigned int width, unsigned int height)
@@ -12,6 +15,9 @@ VRCamera::VRCamera(unsigned int width, unsigned int height)
     , right(PerspectiveCamera(width, height)) {
     left.setPosition(glm::vec3(-0.032f, 0.0f, 0.0f));
     right.setPosition(glm::vec3(0.032f, 0.0f, 0.0f));
+
+    addChildNode(&left);
+    addChildNode(&right);
 }
 
 VRCamera::VRCamera(float fovy, float aspect, float near, float far)

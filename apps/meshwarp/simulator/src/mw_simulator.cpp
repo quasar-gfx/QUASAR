@@ -1,4 +1,5 @@
 #include <iostream>
+#include <filesystem>
 
 #include <args/args.hxx>
 
@@ -13,9 +14,7 @@
 #include <Utils/Utils.h>
 #include <shaders_common.h>
 
-#define THREADS_PER_LOCALGROUP 16
-
-const std::string DATA_PATH = "./";
+#define THREADS_PER_LOCALGROUP 32
 
 int main(int argc, char** argv) {
     Config config{};
@@ -23,12 +22,13 @@ int main(int argc, char** argv) {
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
-    args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
+    args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<unsigned int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
     args::ValueFlag<float> fovIn(parser, "fov", "Field of view", {'f', "fov"}, 60.0f);
-    args::Flag saveImage(parser, "save", "Save image and exit", {'b', "save-image"});
+    args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'u', "data-path"}, ".");
+    args::Flag saveImage(parser, "save", "Take screenshot and exit", {'b', "save-image"});
     args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     try {
         parser.ParseCLI(argc, argv);
@@ -51,6 +51,11 @@ int main(int argc, char** argv) {
     config.showWindow = !args::get(saveImage);
 
     std::string scenePath = args::get(scenePathIn);
+    std::string dataPath = args::get(dataPathIn) + "/";
+    // create data path if it doesn't exist
+    if (!std::filesystem::exists(dataPath)) {
+        std::filesystem::create_directories(dataPath);
+    }
 
     unsigned int surfelSize = args::get(surfelSizeIn);
 
@@ -72,7 +77,7 @@ int main(int argc, char** argv) {
     loader.loadScene(scenePath, remoteScene, remoteCamera);
 
     float fov = args::get(fovIn);
-    remoteCamera.setFovy(glm::radians(fov));
+    remoteCamera.setFovyDegrees(fov);
 
     // scene with all the meshes
     Scene scene;
@@ -234,8 +239,8 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::SliderFloat("FOV", &fov, 60.0f, 120.0f)) {
-                remoteCamera.fovy = glm::radians(fov);
+            if (ImGui::SliderFloat("FOV (Degrees)", &fov, 60.0f, 120.0f)) {
+                remoteCamera.setFovyDegrees(fov);
                 remoteCamera.updateProjectionMatrix();
 
                 preventCopyingLocalPose = true;
@@ -262,7 +267,7 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = DATA_PATH + std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string fileName = dataPath + std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
@@ -278,9 +283,9 @@ int main(int argc, char** argv) {
 
     app.onResize([&](unsigned int width, unsigned int height) {
         windowSize = glm::uvec2(width, height);
-        renderer.resize(windowSize.x, windowSize.y);
+        renderer.setWindowSize(windowSize.x, windowSize.y);
 
-        camera.aspect = (float)windowSize.x / (float)windowSize.y;
+        camera.setAspect(windowSize.x, windowSize.y);
         camera.updateProjectionMatrix();
     });
 
@@ -365,12 +370,12 @@ int main(int argc, char** argv) {
             }
             {
                 genMeshFromDepthShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-                genMeshFromDepthShader.setMat4("projectionInverse", glm::inverse(remoteCamera.getProjectionMatrix()));
+                genMeshFromDepthShader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
                 genMeshFromDepthShader.setMat4("view", remoteCamera.getViewMatrix());
-                genMeshFromDepthShader.setMat4("viewInverse", glm::inverse(remoteCamera.getViewMatrix()));
+                genMeshFromDepthShader.setMat4("viewInverse", remoteCamera.getViewMatrixInverse());
 
-                genMeshFromDepthShader.setFloat("near", remoteCamera.near);
-                genMeshFromDepthShader.setFloat("far", remoteCamera.far);
+                genMeshFromDepthShader.setFloat("near", remoteCamera.getNear());
+                genMeshFromDepthShader.setFloat("far", remoteCamera.getFar());
             }
             {
                 genMeshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
@@ -420,7 +425,7 @@ int main(int argc, char** argv) {
 
             std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
 
-            std::string fileName = DATA_PATH + "screenshot." + positionStr + "_" + rotationStr;
+            std::string fileName = dataPath + "screenshot." + positionStr + "_" + rotationStr;
             saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize);
             window->close();
         }

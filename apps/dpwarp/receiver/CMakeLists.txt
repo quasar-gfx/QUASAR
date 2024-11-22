@@ -14,10 +14,13 @@ file(GLOB_RECURSE SRCS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
 )
 
-# # file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}/shaders ${CMAKE_CURRENT_BINARY_DIR}/shaders SYMBOLIC)
+# file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}/shaders ${CMAKE_CURRENT_BINARY_DIR}/shaders SYMBOLIC)
 
 add_executable(${TARGET} ${SRCS})
 
 target_include_directories(${TARGET} PUBLIC ${PUBLIC_HDR_DIR})
 
 target_link_libraries(${TARGET} PRIVATE ${LIBS})
+
+# copy quadwarp shaders to the build directory
+file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}/../../quadwarp/simulator/shaders ${CMAKE_CURRENT_BINARY_DIR}/shaders SYMBOLIC)

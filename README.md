@@ -6,7 +6,6 @@ Install dependencies:
 sudo apt-get install \
     cmake \
     libglew-dev \
-    libglfw3-dev \
     libao-dev \
     libmpg123-dev \
     ffmpeg \
@@ -16,14 +15,15 @@ sudo apt-get install \
     libavutil-dev \
     libswscale-dev \
     libswresample-dev \
-    libavfilter-dev \
-    cuda-12
+    libavfilter-dev
 ```
-NVIDIA GPUs are highly reccomended.
+NVIDIA GPUs are highly reccomended. Ensure you have CUDA.
+
+Optional: Follow instructions [here](https://docs.nvidia.com/video-technologies/video-codec-sdk/12.0/ffmpeg-with-nvidia-gpu/index.html) for installing FFMPEG from source with CUDA.
 
 ```
 # Mac (not reccomended for streaming, but works)
-brew install cmake glew glfw3 ffmpeg
+brew install cmake glew ffmpeg
 ```
 
 # Building
@@ -46,7 +46,7 @@ Run Scene Viewer app:
 ```
 # in build directory
 cd apps/scene_viewer
-./scene_viewer --size 2048x2048 --scene ../assets/scenes/sponza.json
+./scene_viewer --size 1920x1080 --scene ../assets/scenes/sponza.json
 ```
 
 ## Asynchronous Time Warp (ATW)
@@ -57,14 +57,14 @@ To run streamer:
 ```
 # in build directory
 cd apps/atw/streamer
-./atw_streamer --size 2048x2048 --scene ../assets/scenes/sponza.json --display 1
+./atw_streamer --size 1920x1080 --scene ../assets/scenes/sponza.json
 ```
 
 In a new terminal, to run receiver:
 ```
 # in build directory
 cd apps/atw/receiver
-./atw_receiver --size 2048x2048
+./atw_receiver --size 1920x1080
 ```
 
 ## MeshWarp
@@ -75,14 +75,14 @@ To run streamer:
 ```
 # in build directory
 cd apps/meshwarp/streamer
-./mw_streamer --size 2048x2048 --scene ../assets/scenes/sponza.json --display 1
+./mw_streamer --size 1920x1080 --scene ../assets/scenes/sponza.json
 ```
 
 In a new terminal, to run receiver:
 ```
 # in build directory
 cd apps/meshwarp/receiver
-./mw_receiver --size 2048x2048
+./mw_receiver --size 1920x1080
 ```
 
 ## QuadWarp
@@ -91,6 +91,6 @@ To run QuadWarp sample:
 
 ```
 # in build directory
-cd apps/quadwarp/streamer
-./quads_streamer --size 2048x2048 --size2 512x512 --scene ../assets/scenes/sponza.json
+cd apps/quadwarp/simulator
+./quads_simulator --size 1920x1080 --scene ../assets/scenes/sponza.json
 ```

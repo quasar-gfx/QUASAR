@@ -1,6 +1,7 @@
 #include <Materials/PBRMaterial.h>
 
 Shader* PBRMaterial::shader = nullptr;
+std::vector<std::string> PBRMaterial::extraShaderDefines;
 
 PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params)
         : baseColor(params.baseColor)
@@ -78,6 +79,16 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params)
     }
 
     if (shader == nullptr) {
+        std::vector<std::string> defines = {
+            "#define MAX_POINT_LIGHTS " + std::to_string(params.numPointLights),
+            "#define ALPHA_OPAQUE " + std::to_string(static_cast<uint8_t>(AlphaMode::OPAQUE)),
+            "#define ALPHA_MASK " + std::to_string(static_cast<uint8_t>(AlphaMode::MASKED)),
+            "#define ALPHA_BLEND " + std::to_string(static_cast<uint8_t>(AlphaMode::TRANSPARENT))
+        };
+        for (const auto &define : extraShaderDefines) {
+            defines.push_back(define);
+        }
+
         ShaderDataCreateParams pbrShaderParams{
             .vertexCodeData = SHADER_BUILTIN_COMMON_VERT,
             .vertexCodeSize = SHADER_BUILTIN_COMMON_VERT_len,
@@ -88,12 +99,7 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params)
                 "#extension GL_EXT_texture_cube_map_array : enable"
             },
 #endif
-            .defines = {
-                "#define MAX_POINT_LIGHTS " + std::to_string(params.numPointLights),
-                "#define ALPHA_OPAQUE " + std::to_string(static_cast<uint8_t>(AlphaMode::OPAQUE)),
-                "#define ALPHA_MASK " + std::to_string(static_cast<uint8_t>(AlphaMode::MASKED)),
-                "#define ALPHA_BLEND " + std::to_string(static_cast<uint8_t>(AlphaMode::TRANSPARENT))
-            }
+            .defines = defines
         };
         shader = new Shader(pbrShaderParams);
     }

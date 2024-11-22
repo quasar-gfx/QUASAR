@@ -53,6 +53,9 @@ public:
     void setBuffer(GLenum target, int slot, const Buffer<T>& buffer) const {
         glBindBufferBase(target, slot, buffer);
     }
+    void clearBuffer(GLenum target, int slot) const {
+        glBindBufferBase(target, slot, 0);
+    }
 
     void setImageTexture(int slot, const Texture& texture, GLuint level, GLboolean layered, GLuint layer, GLenum access, GLenum format) {
         glBindImageTexture(slot, texture, level, layered, layer, access, format);

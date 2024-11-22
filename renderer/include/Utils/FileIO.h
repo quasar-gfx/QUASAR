@@ -39,6 +39,8 @@ public:
     static AAssetManager* getAssetManager() {
         return activity->assetManager;
     }
+
+    static std::string copyFileToCache(std::string filename);
 #endif
 
 private:

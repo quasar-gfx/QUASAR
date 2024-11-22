@@ -28,14 +28,16 @@ enum class PauseState {
 int main(int argc, char** argv) {
     Config config{};
     config.title = "MeshWarp Streamer";
+    config.targetFramerate = 30;
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
-    args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
+    args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<bool> displayIn(parser, "display", "Show window", {'d', "display"}, true);
     args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "127.0.0.1:12345");
+    args::ValueFlag<std::string> videoFormatIn(parser, "video-format", "Video format", {'g', "video-format"}, "mpegts");
     args::ValueFlag<std::string> depthURLIn(parser, "depth", "Depth URL", {'e', "depth-url"}, "127.0.0.1:65432");
     args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "0.0.0.0:54321");
     args::ValueFlag<float> fovIn(parser, "fov", "Field of view", {'f', "fov"}, 60.0f);
@@ -63,6 +65,7 @@ int main(int argc, char** argv) {
 
     std::string scenePath = args::get(scenePathIn);
     std::string videoURL = args::get(videoURLIn);
+    std::string videoFormat = args::get(videoFormatIn);
     std::string depthURL = args::get(depthURLIn);
     std::string poseURL = args::get(poseURLIn);
 
@@ -86,7 +89,7 @@ int main(int argc, char** argv) {
     loader.loadScene(scenePath, scene, camera);
 
     // set fov
-    camera.setFovy(glm::radians(args::get(fovIn)));
+    camera.setFovyDegrees(args::get(fovIn));
 
     glm::vec3 initialPosition = camera.getPosition();
 
@@ -100,14 +103,14 @@ int main(int argc, char** argv) {
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR
-    }, videoURL, targetBitrate);
+    }, videoURL, config.targetFramerate, targetBitrate, videoFormat);
 
     BC4DepthStreamer BC4videoStreamerDepthRT = BC4DepthStreamer({
         .width = windowSize.x / depthFactor,
         .height = windowSize.y / depthFactor,
-        .internalFormat = GL_R16,
+        .internalFormat = GL_R32F,
         .format = GL_RED,
-        .type = GL_UNSIGNED_SHORT,
+        .type = GL_FLOAT,
         .wrapS = GL_CLAMP_TO_EDGE,
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_NEAREST,
@@ -186,7 +189,8 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::Text("Video URL: %s", videoURL.c_str());
+            ImGui::Text("Video URL: %s (%s)", videoURL.c_str(), videoFormat.c_str());
+            ImGui::Text("Depth URL: %s", depthURL.c_str());
             ImGui::Text("Pose URL: %s", poseURL.c_str());
 
             ImGui::Separator();
@@ -195,9 +199,10 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: RGB (%.1f ms), BC4 D (%.1f ms)", videoStreamerColorRT.stats.timeToCopyFrameMs, BC4videoStreamerDepthRT.stats.timeToCopyFrameMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: RGB (%.1f ms), BC4 D (%.1f ms)", videoStreamerColorRT.stats.timeToSendMs, BC4videoStreamerDepthRT.stats.timeToSendMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: RGB (%.1f Mbps), BC4 D (%.1f Mbps)", videoStreamerColorRT.stats.bitrateMbps, BC4videoStreamerDepthRT.stats.bitrateMbps);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: RGB (%.3f ms), BC4 D (%.3f ms)", videoStreamerColorRT.stats.timeToCopyFrameMs, BC4videoStreamerDepthRT.stats.timeToCopyFrameMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: RGB (%.3f ms), BC4 D (%.3f ms)", videoStreamerColorRT.stats.timeToEncodeMs, BC4videoStreamerDepthRT.stats.timeToCompressMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: RGB (%.3f ms), BC4 D (%.3f ms)", videoStreamerColorRT.stats.timeToSendMs, BC4videoStreamerDepthRT.stats.timeToSendMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: RGB (%.3f Mbps), BC4 D (%.3f Mbps)", videoStreamerColorRT.stats.bitrateMbps, BC4videoStreamerDepthRT.stats.bitrateMbps);
 
             ImGui::Separator();
 
@@ -232,9 +237,9 @@ int main(int argc, char** argv) {
 
     app.onResize([&](unsigned int width, unsigned int height) {
         windowSize = glm::uvec2(width, height);
-        renderer.resize(windowSize.x, windowSize.y);
+        renderer.setWindowSize(windowSize.x, windowSize.y);
 
-        camera.aspect = (float)windowSize.x / (float)windowSize.y;
+        camera.setAspect(windowSize.x, windowSize.y);
         camera.updateProjectionMatrix();
     });
 
@@ -272,8 +277,8 @@ int main(int argc, char** argv) {
 
         renderer.drawToRenderTarget(toneMapShader, videoStreamerColorRT);
         depthShader.bind();
-        depthShader.setFloat("near", camera.near);
-        depthShader.setFloat("far", camera.far);
+        depthShader.setFloat("near", camera.getNear());
+        depthShader.setFloat("far", camera.getFar());
         renderer.drawToRenderTarget(depthShader, BC4videoStreamerDepthRT);
 
         // render to screen

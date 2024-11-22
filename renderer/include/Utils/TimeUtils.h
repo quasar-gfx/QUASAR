@@ -7,7 +7,7 @@
 #define MICROSECONDS_IN_SECOND 1e6f
 #define MICROSECONDS_IN_MILLISECOND 1e3f
 
-#define MBPS_TO_BPS 1e6f
+#define BYTES_IN_MB (1024 * 1024)
 
 namespace timeutils {
 

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <filesystem>
 
 #include <args/args.hxx>
 
@@ -14,21 +15,20 @@
 
 #include <Utils/Utils.h>
 
-const std::string DATA_PATH = "./";
-
 int main(int argc, char** argv) {
     Config config{};
     config.title = "Scene Viewer";
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
-    args::ValueFlag<std::string> sizeIn(parser, "size", "Size of window", {'s', "size"}, "800x600");
+    args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<std::string> pathFileIn(parser, "path", "Path to camera animation file", {'p', "path"});
     args::ValueFlag<int> frameRateIn(parser, "frame-rate", "Frame rate", {'f', "frame-rate"}, 30);
 
-    args::Flag saveImage(parser, "save", "Save image and exit", {'b', "save-image"});
+    args::Flag saveImage(parser, "save", "Take screenshot and exit", {'b', "save-image"});
+    args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'u', "data-path"}, ".");
     args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     char recordingPath[256] = "./recordings";
     try {
@@ -52,6 +52,11 @@ int main(int argc, char** argv) {
     config.showWindow = !args::get(saveImage);
 
     std::string scenePath = args::get(scenePathIn);
+    std::string dataPath = args::get(dataPathIn) + "/";
+    // create data path if it doesn't exist
+    if (!std::filesystem::exists(dataPath)) {
+        std::filesystem::create_directories(dataPath);
+    }
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -218,7 +223,7 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = DATA_PATH + std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string fileName = dataPath + std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
@@ -281,9 +286,9 @@ int main(int argc, char** argv) {
 
     app.onResize([&](unsigned int width, unsigned int height) {
         windowSize = glm::uvec2(width, height);
-        renderer.resize(windowSize.x, windowSize.y);
+        renderer.setWindowSize(windowSize.x, windowSize.y);
 
-        camera.aspect = (float)windowSize.x / (float)windowSize.y;
+        camera.setAspect(windowSize.x, windowSize.y);
         camera.updateProjectionMatrix();
     });
 
@@ -368,8 +373,8 @@ int main(int argc, char** argv) {
         // render to screen
         if (shaderIndex == 1) {
             showDepthShader.bind();
-            showDepthShader.setFloat("near", camera.near);
-            showDepthShader.setFloat("far", camera.far);
+            showDepthShader.setFloat("near", camera.getNear());
+            showDepthShader.setFloat("far", camera.getFar());
             renderer.drawToScreen(showDepthShader);
         }
         else if (shaderIndex == 2) {
@@ -397,7 +402,7 @@ int main(int argc, char** argv) {
 
                 std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
 
-                std::string fileName = DATA_PATH + "screenshot." + positionStr + "_" + rotationStr;
+                std::string fileName = dataPath + "screenshot." + positionStr + "_" + rotationStr;
                 saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize);
                 window->close();
             }

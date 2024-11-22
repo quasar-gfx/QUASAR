@@ -10,6 +10,8 @@
 #include <CameraPose.h>
 #include <Buffer.h>
 
+#include <lz4_stream/lz4_stream.h>
+
 class BC4DepthVideoTexture : public Texture, public DataReceiverTCP {
 public:
     struct Block {
@@ -21,10 +23,19 @@ public:
 
     std::string streamerURL;
 
-    struct Stats {
+    // struct Stats {  
+    //     float timeToReceiveMs = -1.0f;
+    //     float bitrateMbps = -1.0f;
+    // } stats;
+
+    struct ReceiverStats {
         float timeToReceiveMs = -1.0f;
+        float timeToDecompressMs = -1.0f;
         float bitrateMbps = -1.0f;
-    } stats;
+        float lz4CompressionRatio = -1.0f;
+    };
+
+    ReceiverStats stats;
 
     BC4DepthVideoTexture(const TextureDataCreateParams &params, std::string streamerURL);
 

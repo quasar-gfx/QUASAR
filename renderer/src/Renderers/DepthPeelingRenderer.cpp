@@ -1,6 +1,6 @@
 #include <Renderers/DepthPeelingRenderer.h>
 
-DepthPeelingRenderer::DepthPeelingRenderer(const Config &config, unsigned int maxLayers)
+DepthPeelingRenderer::DepthPeelingRenderer(const Config &config, unsigned int maxLayers, bool edp)
         : gBuffer({ .width = config.width, .height = config.height })
         , maxLayers(maxLayers)
         , compositeLayersShader({
@@ -12,7 +12,13 @@ DepthPeelingRenderer::DepthPeelingRenderer(const Config &config, unsigned int ma
                 "#define MAX_LAYERS " + std::to_string(maxLayers)
             }
         })
+        , edp(edp)
         , OpenGLRenderer(config) {
+    PBRMaterial::extraShaderDefines.push_back("#define DO_DEPTH_PEELING");
+    UnlitMaterial::extraShaderDefines.push_back("#define DO_DEPTH_PEELING");
+    if (edp) {
+        PBRMaterial::extraShaderDefines.push_back("#define EDP");
+    }
 
     for (int i = 0; i < maxLayers; i++) {
         peelingLayers.push_back(new GeometryBuffer({ .width = config.width, .height = config.height }));
@@ -46,6 +52,18 @@ void DepthPeelingRenderer::endRendering() {
 
 RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &camera, uint32_t clearMask) {
     RenderStats stats;
+
+    if (edp) {
+        PBRMaterial::shader->bind();
+        PBRMaterial::shader->setInt("height", gBuffer.height);
+        PBRMaterial::shader->setFloat("E", (viewBoxSize / 2.0f) * glm::sqrt(3.0f));
+        PBRMaterial::shader->setFloat("edpDelta", edpDelta);
+
+        UnlitMaterial::shader->bind();
+        UnlitMaterial::shader->setInt("height", gBuffer.height);
+        UnlitMaterial::shader->setFloat("E", (viewBoxSize / 2.0f) * glm::sqrt(3.0f));
+        UnlitMaterial::shader->setFloat("edpDelta", edpDelta);
+    }
 
     for (int i = 0; i < maxLayers; i++) {
         auto& currentGBuffer = peelingLayers[i];

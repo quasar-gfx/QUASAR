@@ -10,22 +10,23 @@ PerspectiveCamera::PerspectiveCamera(unsigned int width, unsigned int height) {
     updateCameraOrientation();
 }
 
-PerspectiveCamera::PerspectiveCamera(float fovy, float aspect, float near, float far) {
-    setProjectionMatrix(fovy, aspect, near, far);
+PerspectiveCamera::PerspectiveCamera(float fovyDeg, float aspect, float near, float far) {
+    setProjectionMatrix(glm::radians(fovyDeg), aspect, near, far);
     updateCameraOrientation();
 }
 
 void PerspectiveCamera::setProjectionMatrix(const glm::mat4 &proj) {
     this->proj = proj;
+    this->projInverse = glm::inverse(proj);
 
-    fovy = atan(1.0f / proj[1][1]) * 2.0f;
+    fovyRad = atan(1.0f / proj[1][1]) * 2.0f;
     aspect = proj[1][1] / proj[0][0];
     near = proj[3][2] / (proj[2][2] - 1.0f);
     far = proj[3][2] / (proj[2][2] + 1.0f);
 }
 
-void PerspectiveCamera::setProjectionMatrix(float fovy, float aspect, float near, float far) {
-    this->fovy = fovy;
+void PerspectiveCamera::setProjectionMatrix(float fovyRad, float aspect, float near, float far) {
+    this->fovyRad = fovyRad;
     this->aspect = aspect;
     this->near = near;
     this->far = far;
@@ -33,12 +34,16 @@ void PerspectiveCamera::setProjectionMatrix(float fovy, float aspect, float near
 }
 
 void PerspectiveCamera::updateProjectionMatrix() {
-    proj = glm::perspective(fovy, aspect, near, far);
+    proj = glm::perspective(fovyRad, aspect, near, far);
+    projInverse = glm::inverse(proj);
+
     frustum.setFromCameraMatrices(view, proj);
 }
 
 void PerspectiveCamera::setViewMatrix(const glm::mat4 &view) {
     this->view = view;
+    viewInverse = glm::inverse(view);
+
     setTransformLocalFromParent(view);
     updateCameraOrientation();
     frustum.setFromCameraMatrices(view, proj);
@@ -46,6 +51,8 @@ void PerspectiveCamera::setViewMatrix(const glm::mat4 &view) {
 
 void PerspectiveCamera::updateViewMatrix() {
     view = getTransformLocalFromParent();
+    viewInverse = glm::inverse(view);
+
     updateCameraOrientation();
     frustum.setFromCameraMatrices(view, proj);
 }

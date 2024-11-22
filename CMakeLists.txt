@@ -20,40 +20,54 @@ set(RENDERER_SHADERS_DIR ${RENDERER_DIR}/shaders)
 set(EXTERNAL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 set(ASSETS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/assets)
 
+# include directories
+include_directories(
+    # renderer-related includes
+    ${RENDERER_DIR}/include
+
+    # for all external includes
+    ${EXTERNAL_DIR}
+
+    # for GLFW/
+    ${EXTERNAL_DIR}/glfw/include
+)
+
 # set required libs
 set(RENDERER_LIBS )
 
 set(RENDERER_LIBS ${RENDERER_LIBS} ${CMAKE_DL_LIBS})
 
-find_package(OpenGL REQUIRED)
-set(RENDERER_LIBS ${RENDERER_LIBS} ${OPENGL_LIBRARIES})
-
-find_package(glfw3 REQUIRED)
-set(RENDERER_LIBS ${RENDERER_LIBS} glfw)
-
-add_library(glad "${EXTERNAL_DIR}/glad/glad.c")
+# add third party libraries
+# glad
+add_library(glad ${EXTERNAL_DIR}/glad/glad.c)
 set(RENDERER_LIBS ${RENDERER_LIBS} glad)
 
-# add third party libraries
+# glfw
+set(GLFW_BUILD_EXAMPLES OFF)
+set(GLFW_BUILD_TESTS OFF)
+set(GLFW_BUILD_DOCS OFF)
+add_subdirectory(${EXTERNAL_DIR}/glfw)
+set(RENDERER_LIBS ${RENDERER_LIBS} glfw)
+
+# assimp
 add_subdirectory(${EXTERNAL_DIR}/libassimp/tnt)
 set(RENDERER_LIBS ${RENDERER_LIBS} assimp)
 
+# imgui
 add_subdirectory(${EXTERNAL_DIR}/imgui/tnt)
 set(RENDERER_LIBS ${RENDERER_LIBS} imgui)
 
+# stb
 add_subdirectory(${EXTERNAL_DIR}/stb/tnt)
 set(RENDERER_LIBS ${RENDERER_LIBS} stb)
 
+# jsmn
 add_subdirectory(${EXTERNAL_DIR}/jsmn/tnt)
 set(RENDERER_LIBS ${RENDERER_LIBS} jsmn)
 
-# include directories
-include_directories(
-    ${OPENGL_INCLUDE_DIRS}
-    ${GLFW_INCLUDE_DIRS}
-    ${RENDERER_DIR}/include
-    ${EXTERNAL_DIR}
-)
+# lz4
+add_subdirectory(${EXTERNAL_DIR}/lz4_stream/tnt)
+set(RENDERER_LIBS ${RENDERER_LIBS} lz4_stream)
 
 # add and link renderer library
 add_subdirectory(${RENDERER_DIR})
