@@ -4,6 +4,12 @@
 
 #include <Animator.h>
 
+Animator::Animator(const std::string& pathFile) {
+    if (!pathFile.empty()) {
+        loadAnimation(pathFile);
+    }
+}
+
 void Animator::loadAnimation(const std::string& pathFile) {
     running = true;
 

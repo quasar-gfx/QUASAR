@@ -12,10 +12,10 @@ std::string to_string_with_precision(float value, int sig_figs = 3) {
     return ss.str();
 }
 
-void saveRenderTargetToFile(OpenGLRenderer &renderer, const Shader &shader, const std::string &filename, const glm::uvec2 &size, bool saveAsHDR = false) {
+void saveRenderTargetToFile(OpenGLRenderer &renderer, const Shader &shader, const std::string &filename, bool saveAsHDR = false) {
     RenderTarget renderTargetTemp({
-        .width = size.x,
-        .height = size.y,
+        .width = renderer.width,
+        .height = renderer.height,
         .internalFormat = GL_RGBA,
         .format = GL_RGBA,
         .type = GL_UNSIGNED_BYTE,

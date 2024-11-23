@@ -137,6 +137,12 @@ public:
         depthStencilBuffer.resize(width, height);
     }
 
+    void readPixels(unsigned char *data, bool readAsFloat = false) {
+        bind();
+        colorBuffer.readPixels(data, readAsFloat);
+        unbind();
+    }
+
     void saveColorAsPNG(const std::string &path) {
         bind();
         colorBuffer.saveAsPNG(path);

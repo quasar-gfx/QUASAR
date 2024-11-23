@@ -18,7 +18,7 @@ public:
 
     bool running = false;
 
-    Animator() = default;
+    Animator(const std::string& pathFile);
 
     void loadAnimation(const std::string& pathFile);
     void update(double deltaTime);

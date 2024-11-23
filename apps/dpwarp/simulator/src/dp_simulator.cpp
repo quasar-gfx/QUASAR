@@ -64,7 +64,10 @@ int main(int argc, char** argv) {
     config.showWindow = !args::get(saveImage);
 
     std::string scenePath = args::get(scenePathIn);
-    std::string dataPath = args::get(dataPathIn) + "/";
+    std::string dataPath = args::get(dataPathIn);
+    if (dataPath.back() != '/') {
+        dataPath += "/";
+    }
     // create data path if it doesn't exist
     if (!std::filesystem::exists(dataPath)) {
         std::filesystem::create_directories(dataPath);
@@ -513,7 +516,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                saveRenderTargetToFile(forwardRenderer, toneMapShader, fileName, windowSize, saveAsHDR);
+                saveRenderTargetToFile(forwardRenderer, toneMapShader, fileName, saveAsHDR);
 
                 for (int view = 1; view < maxViews; view++) {
                     fileName = dataPath + std::string(fileNameBase) + ".view" + std::to_string(view) + "." + time;
@@ -1041,7 +1044,7 @@ int main(int argc, char** argv) {
             std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
 
             std::string fileName = dataPath + "screenshot." + positionStr + "_" + rotationStr;
-            saveRenderTargetToFile(forwardRenderer, toneMapShader, fileName, windowSize);
+            saveRenderTargetToFile(forwardRenderer, toneMapShader, fileName);
             window->close();
         }
     });

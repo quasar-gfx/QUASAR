@@ -77,10 +77,7 @@ void Recorder::captureFrame(GeometryBuffer& gbuffer, Camera& camera) {
     auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - recordingStartTime).count();
     if (currentTime - lastCaptureTime >= frameInterval) {
         std::vector<unsigned char> frameData(captureTarget->width * captureTarget->height * 4);
-
-        gbuffer.colorBuffer.bind(0);
-        glReadPixels(0, 0, captureTarget->width, captureTarget->height, GL_RGBA, GL_UNSIGNED_BYTE, frameData.data());
-        gbuffer.colorBuffer.unbind();
+        gbuffer.readPixels(frameData.data());
 
         {
             std::lock_guard<std::mutex> lock(queueMutex);
@@ -93,12 +90,6 @@ void Recorder::captureFrame(GeometryBuffer& gbuffer, Camera& camera) {
 }
 
 void Recorder::saveFrames() {
-    if (outputFormat != OutputFormat::MP4) {
-        if (!std::filesystem::exists(outputPath)) {
-            std::filesystem::create_directories(outputPath);
-        }
-    }
-
     while (running || !frameQueue.empty()) {
         FrameData frameData;
         {
@@ -156,7 +147,8 @@ void Recorder::saveFrames() {
             }
             av_frame_free(&inputFrame);
             frameIndex++;
-        } else {
+        }
+        else {
             size_t currentFrame = frameCount++;
             std::stringstream ss;
             ss << outputPath << "frame_" << std::setw(6) << std::setfill('0') << currentFrame << "." << (outputFormat == OutputFormat::PNG ? "png" : "jpg");
@@ -193,15 +185,19 @@ void Recorder::saveFrames() {
 }
 
 void Recorder::setOutputPath(const std::string& path) {
-    outputPath = path + "";
+    // add / if not present
+    outputPath = path;
+    if (outputPath.back() != '/') {
+        outputPath += "/";
+    }
     // create output path if it doesn't exist
     if (!std::filesystem::exists(outputPath)) {
         std::filesystem::create_directories(outputPath);
     }
 }
 
-void Recorder::setFrameRate(int fps) {
-    frameInterval = std::chrono::duration<double>(1.0 / fps);
+void Recorder::setTargetFrameRate(int targetFrameRate) {
+    frameInterval = std::chrono::duration<double>(1.0 / targetFrameRate);
     lastCaptureTime = std::chrono::steady_clock::now();
     frameIndex = 0;
 }
@@ -301,7 +297,7 @@ void Recorder::finalizeFFmpeg() {
     frameIndex = 0;
 }
 
-void Recorder::setOutputFormat(OutputFormat format) {
+void Recorder::setFormat(OutputFormat format) {
     if (running) {
         return;
     }

@@ -404,7 +404,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize, saveAsHDR);
+                saveRenderTargetToFile(renderer, toneMapShader, fileName, saveAsHDR);
             }
 
             ImGui::End();

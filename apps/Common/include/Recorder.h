@@ -19,7 +19,9 @@ extern "C" {
 #include <vector>
 #include <filesystem>
 
-#include <Renderers/ForwardRenderer.h>
+#include <RenderTargets/RenderTarget.h>
+#include <RenderTargets/GBuffer.h>
+#include <Renderers/OpenGLRenderer.h>
 
 class Recorder {
 public:
@@ -36,21 +38,21 @@ public:
         MP4
     };
 
-    Recorder(float fps, const std::string& outputPath, ForwardRenderer &renderer)
+    Recorder(OpenGLRenderer &renderer, const std::string& outputPath, float targetFrameRate)
         : captureTarget(&renderer)
         , running(false)
-        , frameInterval(1.0 / fps)
+        , frameInterval(1.0 / targetFrameRate)
         , outputPath(outputPath)
         , frameCount(0)
         , outputFormat(OutputFormat::PNG) { }
     ~Recorder();
 
     void setOutputPath(const std::string& path);
-    void setFrameRate(int fps);
+    void setTargetFrameRate(int targetFrameRate);
     void start();
     void stop();
     void captureFrame(GeometryBuffer& gbuffer, Camera& camera);
-    void setOutputFormat(OutputFormat format);
+    void setFormat(OutputFormat format);
     void updateResolution(int width, int height);
 
 private:
@@ -62,7 +64,7 @@ private:
     std::vector<std::thread> saveThreadPool;
     std::atomic<bool> running{false};
     std::atomic<size_t> frameCount{0};
-    ForwardRenderer* captureTarget;
+    OpenGLRenderer* captureTarget;
     std::thread saveThread;
     std::queue<FrameData> frameQueue;
     std::mutex queueMutex;
