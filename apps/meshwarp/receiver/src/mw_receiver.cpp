@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "800x600");
-    args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
+    args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<unsigned int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
     args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "0.0.0.0:12345");
@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
 
     config.enableVSync = args::get(vsyncIn);
 
-    std::string scenePath = args::get(scenePathIn);
+    std::string sceneFile = args::get(sceneFileIn);
     std::string videoURL = args::get(videoURLIn);
     std::string videoFormat = args::get(videoFormatIn);
     std::string depthURL = args::get(depthURLIn);

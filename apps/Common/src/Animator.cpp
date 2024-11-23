@@ -15,7 +15,7 @@ void Animator::loadAnimation(const std::string& pathFile) {
 
     std::ifstream file(pathFile);
     if (!file.is_open()) {
-        std::cerr << "Failed to open path file: " << pathFile << std::endl;
+        std::cerr << "Failed to open file: " << pathFile << std::endl;
         return;
     }
 

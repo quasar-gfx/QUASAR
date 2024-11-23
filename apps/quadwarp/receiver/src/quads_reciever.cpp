@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "800x600");
-    args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
+    args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::Flag loadProxies(parser, "load-proxies", "Load proxies from quads.bin", {'m', "load-proxies"});
     try {
@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
 
     config.enableVSync = args::get(vsyncIn);
 
-    std::string scenePath = args::get(scenePathIn);
+    std::string sceneFile = args::get(sceneFileIn);
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
 

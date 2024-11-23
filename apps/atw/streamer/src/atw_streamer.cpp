@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "800x600");
-    args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
+    args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<bool> displayIn(parser, "display", "Show window", {'d', "display"}, true);
     args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "127.0.0.1:12345");
@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
     config.enableVSync = args::get(vsyncIn);
     config.showWindow = args::get(displayIn);
 
-    std::string scenePath = args::get(scenePathIn);
+    std::string sceneFile = args::get(sceneFileIn);
     std::string videoURL = args::get(videoURLIn);
     std::string videoFormat = args::get(videoFormatIn);
     std::string poseURL = args::get(poseURLIn);
@@ -77,14 +77,14 @@ int main(int argc, char** argv) {
     SceneLoader loader;
     if (vrMode) {
         auto vrCamera = std::make_unique<VRCamera>(windowSize.x / 2, windowSize.y);
-        loader.loadScene(scenePath, scene, vrCamera->left);
+        loader.loadScene(sceneFile, scene, vrCamera->left);
         vrCamera->right.setViewMatrix(vrCamera->left.getViewMatrix());
         vrCamera->right.setProjectionMatrix(vrCamera->left.getProjectionMatrix());
         camera = std::move(vrCamera);
     }
     else {
         auto perspectiveCamera = std::make_unique<PerspectiveCamera>(windowSize.x, windowSize.y);
-        loader.loadScene(scenePath, scene, *perspectiveCamera);
+        loader.loadScene(sceneFile, scene, *perspectiveCamera);
         camera = std::move(perspectiveCamera);
     }
 

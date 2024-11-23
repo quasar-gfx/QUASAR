@@ -22,7 +22,7 @@ int main(int argc, char** argv) {
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "800x600");
-    args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
+    args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::Flag saveImage(parser, "save", "Take screenshot and exit", {'I', "save-image"});
     args::ValueFlag<std::string> animationFileIn(parser, "path", "Path to camera animation file", {'A', "animation-path"});
@@ -48,7 +48,8 @@ int main(int argc, char** argv) {
     config.enableVSync = args::get(vsyncIn);
     config.showWindow = !args::get(saveImage);
 
-    std::string scenePath = args::get(scenePathIn);
+    std::string sceneFile = args::get(sceneFileIn);
+    std::string animationFile = args::get(animationFileIn);
     std::string dataPath = args::get(dataPathIn);
     if (dataPath.back() != '/') {
         dataPath += "/";
@@ -57,7 +58,6 @@ int main(int argc, char** argv) {
     if (!std::filesystem::exists(dataPath)) {
         std::filesystem::create_directories(dataPath);
     }
-    std::string animationFileName = args::get(animationFileIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
     Scene scene;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
     SceneLoader loader;
-    loader.loadScene(scenePath, scene, camera);
+    loader.loadScene(sceneFile, scene, camera);
 
     // shaders
     ToneMapShader toneMapShader;
@@ -107,7 +107,7 @@ int main(int argc, char** argv) {
     });
 
     Recorder recorder(renderer, toneMapShader, dataPath, config.targetFramerate);
-    Animator animator(animationFileName);
+    Animator animator(animationFile);
 
     // start recording if headless
     std::ifstream fileStream;
@@ -115,9 +115,9 @@ int main(int argc, char** argv) {
         recorder.setOutputPath(dataPath);
         recorder.start();
 
-        fileStream.open(animationFileName);
+        fileStream.open(animationFile);
         if (!fileStream.is_open()) {
-            std::cerr << "Failed to open path file: " << animationFileName << std::endl;
+            std::cerr << "Failed to open file: " << animationFile << std::endl;
             return 1;
         }
     }
@@ -335,11 +335,8 @@ int main(int argc, char** argv) {
 
         if (animator.running) {
             animator.update(dt);
-            glm::vec3 position = animator.getCurrentPosition();
-
-            glm::quat rotation = animator.getCurrentRotation();
-            camera.setPosition(position);
-            camera.setRotationQuat(rotation);
+            camera.setPosition(animator.getCurrentPosition());
+            camera.setRotationQuat(animator.getCurrentRotation());
             camera.updateViewMatrix();
         }
         else {
