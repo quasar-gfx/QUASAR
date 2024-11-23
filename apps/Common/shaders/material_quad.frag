@@ -1,7 +1,7 @@
 layout(location = 0) out vec4 FragColor;
 layout(location = 1) out vec4 FragPosition;
 layout(location = 2) out vec4 FragNormal;
-layout(location = 3) out vec4 FragIDs;
+layout(location = 3) out uvec4 FragIDs;
 
 in VertexData {
     flat uint drawID;
@@ -44,5 +44,5 @@ void main() {
     FragColor = vec4(baseColor.rgb, alpha);
     FragPosition = vec4(fsIn.FragPos, 1.0);
     FragNormal = vec4(normalize(fsIn.Normal), 1.0);
-    FragIDs = vec4(fsIn.drawID, gl_PrimitiveID, 0.0, 1.0);
+    FragIDs = uvec4(fsIn.drawID, gl_PrimitiveID, 0.0, 1.0);
 }

@@ -76,7 +76,7 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &ca
 
         Texture* prevDepthMap = nullptr;
         if (i >= 1) {
-            prevDepthMap = &peelingLayers[i-1]->depthStencilBuffer;
+            prevDepthMap = &peelingLayers[i-1]->idBuffer;
         }
 
         for (auto& child : scene.children) {

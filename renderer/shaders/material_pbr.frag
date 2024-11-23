@@ -1,7 +1,7 @@
 layout(location = 0) out vec4 FragColor;
 layout(location = 1) out vec4 FragPosition;
 layout(location = 2) out vec4 FragNormal;
-layout(location = 3) out vec4 FragIDs;
+layout(location = 3) out uvec4 FragIDs;
 
 in VertexData {
     flat uint drawID;
@@ -114,7 +114,7 @@ uniform struct Camera {
 
 #ifdef DO_DEPTH_PEELING
 uniform bool peelDepth;
-uniform sampler2D prevDepthMap;
+uniform usampler2D prevDepthMap;
 
 uniform int height;
 uniform float E;
@@ -369,20 +369,13 @@ vec3 calcPointLight(PointLight light, PBRInfo pbrInputs) {
 
 #define EDP_SAMPLES 16
 
-float linearizeAndNormalizeDepth(float depth) {
-    float z = depth * 2.0 - 1.0; // back to NDC
-    float linearized = (2.0 * camera.near * camera.far) / (camera.far + camera.near - z * (camera.far - camera.near));
-    return (linearized - camera.near) / (camera.far - camera.near);
-}
-
 float LCOC(float d, float df) {
 	float K = float(height)*0.5 / df / tan(camera.fovy*0.5); // screen-space LCOC scale
 	return K * E * abs(df-d) / d; // relative radius of COC against df (blocker depth)
 }
 
-bool inPVHV(ivec2 pixelCoords, vec3 fragViewPos, float blockerDepthNonLinear) {
+bool inPVHV(ivec2 pixelCoords, vec3 fragViewPos, float blockerDepthNormalized) {
     float fragmentDepth = -fragViewPos.z;
-    float blockerDepthNormalized = linearizeAndNormalizeDepth(blockerDepthNonLinear);
 
 	float df = mix(camera.near, camera.far, blockerDepthNormalized);
     float R = LCOC(fragmentDepth, df);
@@ -392,14 +385,14 @@ bool inPVHV(ivec2 pixelCoords, vec3 fragViewPos, float blockerDepthNonLinear) {
         float y = R * sin(float(i) * 2*PI / EDP_SAMPLES);
         vec2 offset = vec2(x, y);
 
-        float sampleDepthNonLinear = texelFetch(prevDepthMap, ivec2(round(vec2(pixelCoords) + offset)), 0).r;
-        float sampleDepthNormalized = linearizeAndNormalizeDepth(sampleDepthNonLinear);
+        float sampleDepthNormalized = uintBitsToFloat(texelFetch(prevDepthMap, ivec2(round(vec2(pixelCoords) + offset)), 0).z);
         if (sampleDepthNormalized == 0) return true;
         if (sampleDepthNormalized >= MAX_DEPTH) continue;
 
         if      (sampleDepthNormalized >= blockerDepthNormalized + edpDelta) return true;
         else if (sampleDepthNormalized <= blockerDepthNormalized - edpDelta) return true;
     }
+
     return false;
 }
 #endif
@@ -408,8 +401,10 @@ void main() {
 #ifdef DO_DEPTH_PEELING
     if (peelDepth) {
         ivec2 pixelCoords = ivec2(gl_FragCoord.xy);
-        float currDepth = gl_FragCoord.z;
-        float prevDepth = texelFetch(prevDepthMap, pixelCoords, 0).r;
+        float currDepth = (-fsIn.FragPosView.z - camera.near) / (camera.far - camera.near);
+        float prevDepth = uintBitsToFloat(texelFetch(prevDepthMap, pixelCoords, 0).z);
+        if (prevDepth == 0 || prevDepth >= MAX_DEPTH)
+            discard;
         if (currDepth <= prevDepth)
             discard;
 #ifdef EDP
@@ -494,5 +489,6 @@ void main() {
     FragColor = vec4(radianceOut, alpha);
     FragPosition = vec4(fsIn.FragPos, 1.0);
     FragNormal = vec4(normalize(fsIn.Normal), 1.0);
-    FragIDs = vec4(fsIn.drawID, gl_PrimitiveID, 0.0, 1.0);
+    FragIDs = uvec4(fsIn.drawID, gl_PrimitiveID, 0, 1);
+    FragIDs.z = floatBitsToUint((-fsIn.FragPosView.z - camera.near) / (camera.far - camera.near));
 }

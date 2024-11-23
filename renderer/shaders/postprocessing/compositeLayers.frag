@@ -1,7 +1,7 @@
 layout(location = 0) out vec4 FragColor;
 layout(location = 1) out vec4 FragPosition;
 layout(location = 2) out vec4 FragNormal;
-layout(location = 3) out vec4 FragIDs;
+layout(location = 3) out uvec4 FragIDs;
 
 in vec2 TexCoords;
 
