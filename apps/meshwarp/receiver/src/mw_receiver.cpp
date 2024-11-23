@@ -8,6 +8,8 @@
 
 #include <Shaders/ToneMapShader.h>
 
+#include <Recorder.h>
+#include <Animator.h>
 #include <Utils/Utils.h>
 #include <VideoTexture.h>
 #include <BC4DepthVideoTexture.h>
@@ -155,6 +157,8 @@ int main(int argc, char** argv) {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
     });
+
+    Recorder recorder(renderer, toneMapShader, config.targetFramerate);
 
     double elapsedTimeColor, elapsedTimeDepth;
     pose_id_t poseIdColor = -1, poseIdDepth = -1;
@@ -304,7 +308,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize, saveAsHDR);
+                recorder.saveScreenshotToFile(fileName, saveAsHDR);
             }
 
             ImGui::End();

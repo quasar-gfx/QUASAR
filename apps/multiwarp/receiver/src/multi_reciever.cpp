@@ -10,6 +10,8 @@
 
 #include <Shaders/ToneMapShader.h>
 
+#include <Recorder.h>
+#include <Animator.h>
 #include <Utils/Utils.h>
 #include <QuadMaterial.h>
 #include <shaders_common.h>
@@ -102,6 +104,8 @@ int main(int argc, char** argv) {
 
     // shaders
     ToneMapShader toneMapShader;
+
+    Recorder recorder(renderer, toneMapShader, config.targetFramerate);
 
     std::vector<Texture*> colorTextures(maxViews);
     for (int view = 0; view < maxViews; view++) {
@@ -404,7 +408,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize, saveAsHDR);
+                recorder.saveScreenshotToFile(fileName, saveAsHDR);
             }
 
             ImGui::End();

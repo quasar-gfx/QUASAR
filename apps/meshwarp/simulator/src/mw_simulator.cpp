@@ -11,6 +11,8 @@
 
 #include <Shaders/ToneMapShader.h>
 
+#include <Recorder.h>
+#include <Animator.h>
 #include <Utils/Utils.h>
 #include <shaders_common.h>
 
@@ -51,7 +53,10 @@ int main(int argc, char** argv) {
     config.showWindow = !args::get(saveImage);
 
     std::string scenePath = args::get(scenePathIn);
-    std::string dataPath = args::get(dataPathIn) + "/";
+    std::string dataPath = args::get(dataPathIn);
+    if (dataPath.back() != '/') {
+        dataPath += "/";
+    }
     // create data path if it doesn't exist
     if (!std::filesystem::exists(dataPath)) {
         std::filesystem::create_directories(dataPath);
@@ -139,6 +144,8 @@ int main(int argc, char** argv) {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
     });
+
+    Recorder recorder(renderer, toneMapShader, config.targetFramerate);
 
     bool showWireframe = false;
     bool showDepth = false;
@@ -274,7 +281,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize, saveAsHDR);
+                recorder.saveScreenshotToFile(fileName, saveAsHDR);
             }
 
             ImGui::End();
@@ -426,7 +433,7 @@ int main(int argc, char** argv) {
             std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
 
             std::string fileName = dataPath + "screenshot." + positionStr + "_" + rotationStr;
-            saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize);
+            recorder.saveScreenshotToFile(fileName);
             window->close();
         }
     });

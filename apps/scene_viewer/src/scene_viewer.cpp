@@ -11,6 +11,8 @@
 
 #include <Shaders/ToneMapShader.h>
 
+#include <Recorder.h>
+#include <Animator.h>
 #include <Utils/Utils.h>
 
 int main(int argc, char** argv) {
@@ -22,8 +24,9 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
-    args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'u', "data-path"}, ".");
     args::Flag saveImage(parser, "save", "Take screenshot and exit", {'b', "save-image"});
+    args::ValueFlag<std::string> animationFileIn(parser, "path", "Path to camera animation file", {'A', "animation-path"});
+    args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'u', "data-path"}, ".");
     args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     try {
         parser.ParseCLI(argc, argv);
@@ -46,7 +49,10 @@ int main(int argc, char** argv) {
     config.showWindow = !args::get(saveImage);
 
     std::string scenePath = args::get(scenePathIn);
-    std::string dataPath = args::get(dataPathIn) + "/";
+    std::string dataPath = args::get(dataPathIn);
+    if (dataPath.back() != '/') {
+        dataPath += "/";
+    }
     // create data path if it doesn't exist
     if (!std::filesystem::exists(dataPath)) {
         std::filesystem::create_directories(dataPath);
@@ -99,15 +105,39 @@ int main(int argc, char** argv) {
         .fragmentCodeSize = SHADER_BUILTIN_DISPLAYIDS_FRAG_len
     });
 
+    Recorder recorder(renderer, toneMapShader, dataPath, config.targetFramerate);
+    Animator animator(args::get(animationFileIn));
+
+    // start recording if headless
+    std::ifstream fileStream;
+    std::string animationFileName;
+    if (saveImage && animationFileIn) {
+        animationFileName = args::get(animationFileIn);
+        recorder.setOutputPath(dataPath);
+        recorder.start();
+
+        fileStream.open(animationFileName);
+        if (!fileStream.is_open()) {
+            std::cerr << "Failed to open path file: " << animationFileName << std::endl;
+            return 1;
+        }
+    }
+
     float exposure = 1.0f;
     int shaderIndex = 0;
     RenderStats renderStats;
+    bool recording = false;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = true;
         static bool showCaptureWindow = false;
+        static bool showRecordWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
+        static int recordingFPS = 30;
+        static int recordingFormatIndex = 0;
+        static const char* formats[] = { "PNG", "JPG", "MP4" };
+        static char recordingDirBase[256] = "recordings";
 
         ImGui::NewFrame();
 
@@ -123,6 +153,7 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("FPS", 0, &showFPS);
             ImGui::MenuItem("UI", 0, &showUI);
             ImGui::MenuItem("Frame Capture", 0, &showCaptureWindow);
+            ImGui::MenuItem("Record", 0, &showRecordWindow);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -208,10 +239,52 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize, saveAsHDR);
+                recorder.saveScreenshotToFile(fileName, saveAsHDR);
             }
 
             ImGui::End();
+        }
+
+        if (showRecordWindow) {
+            ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 300), ImGuiCond_FirstUseEver);
+            ImGui::Begin("Record", &showRecordWindow);
+
+            ImGui::Text("Output Directory:");
+            ImGui::InputText("##output directory", recordingDirBase, IM_ARRAYSIZE(recordingDirBase));
+
+            ImGui::Text("FPS:");
+            if (ImGui::InputInt("##fps", &recordingFPS)) {
+                recordingFPS = std::max(1, recordingFPS);
+                recorder.setTargetFrameRate(recordingFPS);
+            }
+
+            ImGui::Text("Format:");
+            if (ImGui::Combo("##format", &recordingFormatIndex, formats, IM_ARRAYSIZE(formats))) {
+                Recorder::OutputFormat selectedFormat = Recorder::OutputFormat::PNG;
+                switch (recordingFormatIndex) {
+                    case 0: selectedFormat = Recorder::OutputFormat::PNG; break;
+                    case 1: selectedFormat = Recorder::OutputFormat::JPG; break;
+                    case 2: selectedFormat = Recorder::OutputFormat::MP4; break;
+                }
+                recorder.setFormat(selectedFormat);
+            }
+
+            if (ImGui::Button("Begin Recording")) {
+                recording = true;
+                std::string recordingDir = dataPath + std::string(recordingDirBase) + "." +
+                                                      std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+                recorder.setOutputPath(recordingDir);
+                recorder.start();
+            }
+            if (ImGui::Button("Stop Recording")) {
+                recording = false;
+                recorder.stop();
+            }
+            ImGui::End();
+        }
+        if (recording && !animationFileIn) {
+            recorder.captureFrame(camera);
         }
     });
 
@@ -224,7 +297,6 @@ int main(int argc, char** argv) {
     });
 
     app.onRender([&](double now, double dt) {
-        // handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
             auto mouseButtons = window->getMouseButtons();
             window->setMouseCursor(!mouseButtons.LEFT_PRESSED);
@@ -258,12 +330,23 @@ int main(int argc, char** argv) {
                 camera.processMouseMovement(xoffset, yoffset, true);
             }
         }
-
-        // handle keyboard input
         auto keys = window->getKeys();
-        camera.processKeyboard(keys, dt);
         if (keys.ESC_PRESSED) {
             window->close();
+        }
+
+        if (animator.running) {
+            animator.update(dt);
+            glm::vec3 position = animator.getCurrentPosition();
+
+            glm::quat rotation = animator.getCurrentRotation();
+            camera.setPosition(position);
+            camera.setRotationQuat(rotation);
+            camera.updateViewMatrix();
+        }
+        else {
+            // handle keyboard input
+            camera.processKeyboard(keys, dt);
         }
 
         if (saveImage && args::get(poseOffset).size() == 6) {
@@ -309,8 +392,10 @@ int main(int argc, char** argv) {
             toneMapShader.bind();
             toneMapShader.setFloat("exposure", exposure);
             renderer.drawToScreen(toneMapShader);
+        }
 
-            if (saveImage) {
+        if (saveImage) {
+            if (!animationFileIn) {
                 glm::vec3 position = camera.getPosition();
                 glm::vec3 rotation = camera.getRotationEuler();
                 std::string positionStr = to_string_with_precision(position.x) + "_" + to_string_with_precision(position.y) + "_" + to_string_with_precision(position.z);
@@ -319,8 +404,28 @@ int main(int argc, char** argv) {
                 std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
 
                 std::string fileName = dataPath + "screenshot." + positionStr + "_" + rotationStr;
-                saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize);
+                recorder.saveScreenshotToFile(fileName);
                 window->close();
+            }
+            else {
+                std::string line;
+                if (std::getline(fileStream, line)) {
+                    std::stringstream ss(line);
+                    float px, py, pz;
+                    float rx, ry, rz;
+                    int64_t timestamp;
+                    ss >> px >> py >> pz >> rx >> ry >> rz >> timestamp;
+                    camera.setPosition(glm::vec3(px, py, pz));
+                    camera.setRotationEuler(glm::vec3(glm::radians(rx), glm::radians(ry), glm::radians(rz)));
+                    camera.updateViewMatrix();
+
+                    recorder.captureFrame(camera);
+                }
+                else {
+                    fileStream.close();
+                    recorder.stop();
+                    window->close();
+                }
             }
         }
     });

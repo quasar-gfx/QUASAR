@@ -11,6 +11,8 @@
 
 #include <Shaders/ToneMapShader.h>
 
+#include <Recorder.h>
+#include <Animator.h>
 #include <Utils/Utils.h>
 #include <QuadMaterial.h>
 #include <shaders_common.h>
@@ -74,7 +76,10 @@ int main(int argc, char** argv) {
     config.showWindow = !args::get(saveImage);
 
     std::string scenePath = args::get(scenePathIn);
-    std::string dataPath = args::get(dataPathIn) + "/";
+    std::string dataPath = args::get(dataPathIn);
+    if (dataPath.back() != '/') {
+        dataPath += "/";
+    }
     // create data path if it doesn't exist
     if (!std::filesystem::exists(dataPath)) {
         std::filesystem::create_directories(dataPath);
@@ -89,6 +94,7 @@ int main(int argc, char** argv) {
     config.guiManager = guiManager;
 
     OpenGLApp app(config);
+    ForwardRenderer remoteRenderer(config);
     ForwardRenderer renderer(config);
 
     glm::uvec2 windowSize = window->getSize();
@@ -281,6 +287,8 @@ int main(int argc, char** argv) {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
     });
+
+    Recorder recorder(renderer, toneMapShader, config.targetFramerate);
 
     bool rerender = true;
     int rerenderInterval = 0;
@@ -520,7 +528,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize, saveAsHDR);
+                recorder.saveScreenshotToFile(fileName, saveAsHDR);
 
                 for (int view = 1; view < maxViews; view++) {
                     fileName = dataPath + std::string(fileNameBase) + ".view" + std::to_string(view) + "." + time;
@@ -720,35 +728,35 @@ int main(int argc, char** argv) {
                 // center view
                 if (view == 0) {
                     // render all objects in remoteScene normally
-                    renderer.drawObjects(remoteScene, *remoteCamera);
+                    remoteRenderer.drawObjects(remoteScene, *remoteCamera);
                 }
                 // other views
                 else {
                     // render mesh in meshScene into stencil buffer
-                    renderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
+                    remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
 
                     // make all previous meshes visible and everything else invisible
                     for (int prevView = 1; prevView < maxViews; prevView++) {
                         meshScene.children[prevView]->visible = (prevView < view);
                     }
-                    renderer.drawObjects(meshScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+                    remoteRenderer.drawObjects(meshScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
                     // render mesh in remoteScene using stencil buffer as a mask
-                    renderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask();
+                    remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask();
 
-                    renderer.drawObjects(remoteScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                    remoteRenderer.drawObjects(remoteScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-                    renderer.pipeline.stencilState.restoreStencilState();
+                    remoteRenderer.pipeline.stencilState.restoreStencilState();
                 }
 
                 // render to render target
                 if (!showNormals) {
                     toneMapShader.bind();
                     toneMapShader.setBool("toneMap", false); // dont apply tone mapping
-                    renderer.drawToRenderTarget(toneMapShader, *renderTargets[view]);
+                    remoteRenderer.drawToRenderTarget(toneMapShader, *renderTargets[view]);
                 }
                 else {
-                    renderer.drawToRenderTarget(screenShaderNormals, *renderTargets[view]);
+                    remoteRenderer.drawToRenderTarget(screenShaderNormals, *renderTargets[view]);
                 }
                 avgRenderTime += glfwGetTime() - startTime;
                 startTime = glfwGetTime();
@@ -760,8 +768,8 @@ int main(int argc, char** argv) {
                 */
                 genQuadMapShader.bind();
                 {
-                    genQuadMapShader.setTexture(renderer.gBuffer.normalsBuffer, 0);
-                    genQuadMapShader.setTexture(renderer.gBuffer.depthStencilBuffer, 1);
+                    genQuadMapShader.setTexture(remoteRenderer.gBuffer.normalsBuffer, 0);
+                    genQuadMapShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 1);
                 }
                 {
                     genQuadMapShader.setVec2("remoteWindowSize", remoteWindowSize);
@@ -951,7 +959,7 @@ int main(int argc, char** argv) {
                 */
                 meshFromDepthShader.bind();
                 {
-                    meshFromDepthShader.setTexture(renderer.gBuffer.depthStencilBuffer, 0);
+                    meshFromDepthShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
                 }
                 {
                     meshFromDepthShader.setVec2("depthMapSize", remoteWindowSize);
@@ -1036,7 +1044,7 @@ int main(int argc, char** argv) {
             std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
 
             std::string fileName = dataPath + "screenshot." + positionStr + "_" + rotationStr;
-            saveRenderTargetToFile(renderer, toneMapShader, fileName, windowSize);
+            recorder.saveScreenshotToFile(fileName);
             window->close();
         }
     });

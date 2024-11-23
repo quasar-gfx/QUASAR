@@ -119,6 +119,7 @@ public:
         glDeleteTextures(1, &ID);
     }
 
+    void readPixels(unsigned char* data, bool readAsFloat = false);
     void saveAsPNG(const std::string &filename);
     void saveAsJPG(const std::string &filename, int quality = 100);
     void saveAsHDR(const std::string &filename);

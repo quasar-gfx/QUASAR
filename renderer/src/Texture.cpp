@@ -106,12 +106,15 @@ void Texture::resize(unsigned int width, unsigned int height) {
     unbind();
 }
 
+void Texture::readPixels(unsigned char* data, bool readAsFloat) {
+    bind(0);
+    glGetTexImage(target, 0, GL_RGBA, !readAsFloat ? GL_UNSIGNED_BYTE : GL_FLOAT, data);
+    unbind();
+}
+
 void Texture::saveAsPNG(const std::string &filename) {
     std::vector<unsigned char> data(width * height * 4);
-
-    bind(0);
-    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
-    unbind();
+    readPixels(data.data());
 
     FileIO::flipVerticallyOnWrite(true);
     FileIO::saveAsPNG(filename, width, height, 4, data.data());
@@ -119,10 +122,7 @@ void Texture::saveAsPNG(const std::string &filename) {
 
 void Texture::saveAsJPG(const std::string &filename, int quality) {
     std::vector<unsigned char> data(width * height * 4);
-
-    bind(0);
-    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
-    unbind();
+    readPixels(data.data());
 
     FileIO::flipVerticallyOnWrite(true);
     FileIO::saveAsJPG(filename, width, height, 4, data.data(), quality);
@@ -130,10 +130,7 @@ void Texture::saveAsJPG(const std::string &filename, int quality) {
 
 void Texture::saveAsHDR(const std::string &filename) {
     std::vector<float> data(width * height * 4);
-
-    bind(0);
-    glReadPixels(0, 0, width, height, GL_RGBA, GL_FLOAT, data.data());
-    unbind();
+    readPixels(reinterpret_cast<unsigned char*>(data.data()), true);
 
     FileIO::flipVerticallyOnWrite(true);
     FileIO::saveAsHDR(filename, width, height, 4, data.data());
