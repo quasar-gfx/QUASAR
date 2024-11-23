@@ -11,6 +11,8 @@
 
 #include <Shaders/ToneMapShader.h>
 
+#include <Recorder.h>
+#include <Animator.h>
 #include <Utils/Utils.h>
 #include <shaders_common.h>
 
@@ -142,6 +144,8 @@ int main(int argc, char** argv) {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
     });
+
+    Recorder recorder(renderer, toneMapShader, config.targetFramerate);
 
     bool showWireframe = false;
     bool showDepth = false;
@@ -277,7 +281,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                saveRenderTargetToFile(renderer, toneMapShader, fileName, saveAsHDR);
+                recorder.saveScreenshotToFile(fileName, saveAsHDR);
             }
 
             ImGui::End();
@@ -429,7 +433,7 @@ int main(int argc, char** argv) {
             std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
 
             std::string fileName = dataPath + "screenshot." + positionStr + "_" + rotationStr;
-            saveRenderTargetToFile(renderer, toneMapShader, fileName);
+            recorder.saveScreenshotToFile(fileName);
             window->close();
         }
     });

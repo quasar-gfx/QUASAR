@@ -8,11 +8,11 @@
 #include <SceneLoader.h>
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
-#include <Recorder.h>
-#include <Animator.h>
 
 #include <Shaders/ToneMapShader.h>
 
+#include <Recorder.h>
+#include <Animator.h>
 #include <Utils/Utils.h>
 
 int main(int argc, char** argv) {
@@ -137,7 +137,7 @@ int main(int argc, char** argv) {
         static int recordingFPS = 30;
         static int recordingFormatIndex = 0;
         static const char* formats[] = { "PNG", "JPG", "MP4" };
-        static char recordingDirNameBase[256] = "recordings";
+        static char recordingDirBase[256] = "recordings";
 
         ImGui::NewFrame();
 
@@ -239,7 +239,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                recorder.saveToFile(fileName, saveAsHDR);
+                recorder.saveScreenshotToFile(fileName, saveAsHDR);
             }
 
             ImGui::End();
@@ -247,11 +247,11 @@ int main(int argc, char** argv) {
 
         if (showRecordWindow) {
             ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 300), ImGuiCond_FirstUseEver);
             ImGui::Begin("Record", &showRecordWindow);
 
             ImGui::Text("Output Directory:");
-            ImGui::InputText("##output directory", recordingDirNameBase, IM_ARRAYSIZE(recordingDirNameBase));
+            ImGui::InputText("##output directory", recordingDirBase, IM_ARRAYSIZE(recordingDirBase));
 
             ImGui::Text("FPS:");
             if (ImGui::InputInt("##fps", &recordingFPS)) {
@@ -272,8 +272,9 @@ int main(int argc, char** argv) {
 
             if (ImGui::Button("Begin Recording")) {
                 recording = true;
-                std::string recordingDirName = dataPath + std::string(recordingDirNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
-                recorder.setOutputPath(recordingDirName);
+                std::string recordingDir = dataPath + std::string(recordingDirBase) + "." +
+                                                      std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+                recorder.setOutputPath(recordingDir);
                 recorder.start();
             }
             if (ImGui::Button("Stop Recording")) {
@@ -403,7 +404,7 @@ int main(int argc, char** argv) {
                 std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
 
                 std::string fileName = dataPath + "screenshot." + positionStr + "_" + rotationStr;
-                recorder.saveToFile(fileName);
+                recorder.saveScreenshotToFile(fileName);
                 window->close();
             }
             else {

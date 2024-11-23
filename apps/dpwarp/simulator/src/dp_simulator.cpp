@@ -12,6 +12,8 @@
 
 #include <Shaders/ToneMapShader.h>
 
+#include <Recorder.h>
+#include <Animator.h>
 #include <Utils/Utils.h>
 #include <QuadMaterial.h>
 #include <shaders_common.h>
@@ -277,6 +279,8 @@ int main(int argc, char** argv) {
         }
     });
 
+    Recorder recorder(forwardRenderer, toneMapShader, config.targetFramerate);
+
     bool rerender = true;
     int rerenderInterval = 0;
     bool showDepth = false;
@@ -516,7 +520,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                saveRenderTargetToFile(forwardRenderer, toneMapShader, fileName, saveAsHDR);
+                recorder.saveScreenshotToFile(fileName, saveAsHDR);
 
                 for (int view = 1; view < maxViews; view++) {
                     fileName = dataPath + std::string(fileNameBase) + ".view" + std::to_string(view) + "." + time;
@@ -1044,7 +1048,7 @@ int main(int argc, char** argv) {
             std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
 
             std::string fileName = dataPath + "screenshot." + positionStr + "_" + rotationStr;
-            saveRenderTargetToFile(forwardRenderer, toneMapShader, fileName);
+            recorder.saveScreenshotToFile(fileName);
             window->close();
         }
     });

@@ -54,9 +54,11 @@ public:
         , frameInterval(1.0 / targetFrameRate)
         , outputPath(outputPath)
         , outputFormat(OutputFormat::PNG) { }
+    Recorder(OpenGLRenderer &renderer, Shader &shader, float targetFrameRate = 30)
+        : Recorder(renderer, shader, ".", targetFrameRate) { }
     ~Recorder();
 
-    void saveToFile(const std::string &filename, bool saveAsHDR = false);
+    void saveScreenshotToFile(const std::string &filename, bool saveAsHDR = false);
 
     void setOutputPath(const std::string& path);
     void setFormat(OutputFormat format);

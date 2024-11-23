@@ -10,6 +10,8 @@
 
 #include <Shaders/ToneMapShader.h>
 
+#include <Recorder.h>
+#include <Animator.h>
 #include <Utils/Utils.h>
 #include <shaders_common.h>
 
@@ -91,6 +93,8 @@ int main(int argc, char** argv) {
         .fragmentCodeData = SHADER_COMMON_ATW_FRAG,
         .fragmentCodeSize = SHADER_COMMON_ATW_FRAG_len
     });
+
+    Recorder recorder(renderer, toneMapShader, config.targetFramerate);
 
     bool atwEnabled = true;
     double elapsedTime = 0.0f;
@@ -228,7 +232,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                saveRenderTargetToFile(renderer, toneMapShader, fileName, saveAsHDR);
+                recorder.saveScreenshotToFile(fileName, saveAsHDR);
             }
 
             ImGui::End();

@@ -12,7 +12,7 @@ Recorder::~Recorder() {
     }
 }
 
-void Recorder::saveToFile(const std::string &filename, bool saveAsHDR) {
+void Recorder::saveScreenshotToFile(const std::string &filename, bool saveAsHDR) {
     shader.bind();
     shader.setBool("gammaCorrect", true);
     renderer.drawToRenderTarget(shader, renderTargetTemp);

@@ -10,6 +10,8 @@
 
 #include <Shaders/ToneMapShader.h>
 
+#include <Recorder.h>
+#include <Animator.h>
 #include <Utils/Utils.h>
 
 int main(int argc, char** argv) {
@@ -88,6 +90,8 @@ int main(int argc, char** argv) {
         .fragmentCodeData = SHADER_BUILTIN_DISPLAYIDS_FRAG,
         .fragmentCodeSize = SHADER_BUILTIN_DISPLAYIDS_FRAG_len
     });
+
+    Recorder recorder(renderer, toneMapShader, config.targetFramerate);
 
     float exposure = 1.0f;
     int shaderIndex = 0;
@@ -199,7 +203,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                saveRenderTargetToFile(renderer, toneMapShader, fileName, saveAsHDR);
+                recorder.saveScreenshotToFile(fileName, saveAsHDR);
             }
 
             ImGui::End();

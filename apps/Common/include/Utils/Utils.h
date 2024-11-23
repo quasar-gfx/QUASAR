@@ -12,30 +12,4 @@ std::string to_string_with_precision(float value, int sig_figs = 3) {
     return ss.str();
 }
 
-void saveRenderTargetToFile(OpenGLRenderer &renderer, const Shader &shader, const std::string &filename, bool saveAsHDR = false) {
-    RenderTarget renderTargetTemp({
-        .width = renderer.width,
-        .height = renderer.height,
-        .internalFormat = GL_RGBA,
-        .format = GL_RGBA,
-        .type = GL_UNSIGNED_BYTE,
-        .wrapS = GL_CLAMP_TO_EDGE,
-        .wrapT = GL_CLAMP_TO_EDGE,
-        .minFilter = GL_LINEAR,
-        .magFilter = GL_LINEAR
-    });
-
-    shader.bind();
-    shader.setBool("gammaCorrect", true);
-    renderer.drawToRenderTarget(shader, renderTargetTemp);
-    shader.setBool("gammaCorrect", false);
-
-    if (saveAsHDR) {
-        renderTargetTemp.saveColorAsHDR(filename + ".hdr");
-    }
-    else {
-        renderTargetTemp.saveColorAsPNG(filename + ".png");
-    }
-}
-
 #endif // UTILS_H
