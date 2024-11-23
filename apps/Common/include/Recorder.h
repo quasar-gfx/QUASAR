@@ -20,7 +20,6 @@ extern "C" {
 #include <filesystem>
 
 #include <RenderTargets/RenderTarget.h>
-#include <RenderTargets/GBuffer.h>
 #include <Renderers/OpenGLRenderer.h>
 
 class Recorder {
@@ -38,40 +37,55 @@ public:
         MP4
     };
 
-    Recorder(OpenGLRenderer &renderer, const std::string& outputPath, float targetFrameRate)
-        : captureTarget(&renderer)
-        , running(false)
+    Recorder(OpenGLRenderer &renderer, Shader &shader, const std::string& outputPath, float targetFrameRate = 30)
+        : renderer(renderer)
+        , shader(shader)
+        , renderTargetTemp({
+            .width = renderer.width,
+            .height = renderer.height,
+            .internalFormat = GL_RGBA,
+            .format = GL_RGBA,
+            .type = GL_UNSIGNED_BYTE,
+            .wrapS = GL_CLAMP_TO_EDGE,
+            .wrapT = GL_CLAMP_TO_EDGE,
+            .minFilter = GL_LINEAR,
+            .magFilter = GL_LINEAR
+        })
         , frameInterval(1.0 / targetFrameRate)
         , outputPath(outputPath)
-        , frameCount(0)
         , outputFormat(OutputFormat::PNG) { }
     ~Recorder();
 
+    void saveToFile(const std::string &filename, bool saveAsHDR = false);
+
     void setOutputPath(const std::string& path);
+    void setFormat(OutputFormat format);
     void setTargetFrameRate(int targetFrameRate);
+
     void start();
     void stop();
-    void captureFrame(GeometryBuffer& gbuffer, Camera& camera);
-    void setFormat(OutputFormat format);
-    void updateResolution(int width, int height);
+    void captureFrame(Camera& camera);
 
 private:
     static const int NUM_SAVE_THREADS = 16;
     OutputFormat outputFormat = OutputFormat::PNG;
+    std::string outputPath;
 
-    std::chrono::steady_clock::time_point recordingStartTime;
+    OpenGLRenderer& renderer;
+    Shader& shader;
 
-    std::vector<std::thread> saveThreadPool;
+    RenderTarget renderTargetTemp;
+
     std::atomic<bool> running{false};
     std::atomic<size_t> frameCount{0};
-    OpenGLRenderer* captureTarget;
-    std::thread saveThread;
+    std::vector<std::thread> saveThreadPool;
     std::queue<FrameData> frameQueue;
     std::mutex queueMutex;
     std::condition_variable queueCV;
+
     std::chrono::duration<double> frameInterval;
+    std::chrono::steady_clock::time_point recordingStartTime;
     std::chrono::steady_clock::time_point lastCaptureTime;
-    std::string outputPath;
 
     AVFormatContext* formatContext = nullptr;
     AVCodecContext* codecContext = nullptr;

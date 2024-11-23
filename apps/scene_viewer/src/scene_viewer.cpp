@@ -105,7 +105,7 @@ int main(int argc, char** argv) {
         .fragmentCodeSize = SHADER_BUILTIN_DISPLAYIDS_FRAG_len
     });
 
-    Recorder recorder(renderer, dataPath, config.targetFramerate);
+    Recorder recorder(renderer, toneMapShader, dataPath, config.targetFramerate);
     Animator animator(args::get(animationFileIn));
 
     // start recording if headless
@@ -239,7 +239,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                saveRenderTargetToFile(renderer, toneMapShader, fileName, saveAsHDR);
+                recorder.saveToFile(fileName, saveAsHDR);
             }
 
             ImGui::End();
@@ -283,14 +283,13 @@ int main(int argc, char** argv) {
             ImGui::End();
         }
         if (recording && !animationFileIn) {
-            recorder.captureFrame(renderer.gBuffer, camera);
+            recorder.captureFrame(camera);
         }
     });
 
     app.onResize([&](unsigned int width, unsigned int height) {
         windowSize = glm::uvec2(width, height);
         renderer.setWindowSize(windowSize.x, windowSize.y);
-        recorder.updateResolution(width, height);
 
         camera.setAspect(windowSize.x, windowSize.y);
         camera.updateProjectionMatrix();
@@ -404,7 +403,7 @@ int main(int argc, char** argv) {
                 std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
 
                 std::string fileName = dataPath + "screenshot." + positionStr + "_" + rotationStr;
-                saveRenderTargetToFile(renderer, toneMapShader, fileName);
+                recorder.saveToFile(fileName);
                 window->close();
             }
             else {
@@ -419,7 +418,7 @@ int main(int argc, char** argv) {
                     camera.setRotationEuler(glm::vec3(glm::radians(rx), glm::radians(ry), glm::radians(rz)));
                     camera.updateViewMatrix();
 
-                    recorder.captureFrame(renderer.gBuffer, camera);
+                    recorder.captureFrame(camera);
                 }
                 else {
                     fileStream.close();

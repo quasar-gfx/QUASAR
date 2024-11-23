@@ -12,6 +12,20 @@ Recorder::~Recorder() {
     }
 }
 
+void Recorder::saveToFile(const std::string &filename, bool saveAsHDR) {
+    shader.bind();
+    shader.setBool("gammaCorrect", true);
+    renderer.drawToRenderTarget(shader, renderTargetTemp);
+    shader.setBool("gammaCorrect", false);
+
+    if (saveAsHDR) {
+        renderTargetTemp.saveColorAsHDR(filename + ".hdr");
+    }
+    else {
+        renderTargetTemp.saveColorAsPNG(filename + ".png");
+    }
+}
+
 void Recorder::start() {
     running = true;
 
@@ -72,12 +86,18 @@ void Recorder::stop() {
     frameQueue = std::queue<FrameData>();
 }
 
-void Recorder::captureFrame(GeometryBuffer& gbuffer, Camera& camera) {
+void Recorder::captureFrame(Camera& camera) {
     auto currentTime = std::chrono::steady_clock::now();
     auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - recordingStartTime).count();
     if (currentTime - lastCaptureTime >= frameInterval) {
-        std::vector<unsigned char> frameData(captureTarget->width * captureTarget->height * 4);
-        gbuffer.readPixels(frameData.data());
+
+        shader.bind();
+        shader.setBool("gammaCorrect", true);
+        renderer.drawToRenderTarget(shader, renderTargetTemp);
+        shader.setBool("gammaCorrect", false);
+
+        std::vector<unsigned char> frameData(renderTargetTemp.width * renderTargetTemp.height * 4);
+        renderTargetTemp.readPixels(frameData.data());
 
         {
             std::lock_guard<std::mutex> lock(queueMutex);
@@ -106,15 +126,15 @@ void Recorder::saveFrames() {
             std::cout << "Saving frame to MP4" << std::endl;
             AVFrame* inputFrame = av_frame_alloc();
             inputFrame->format = AV_PIX_FMT_RGBA;
-            inputFrame->width = captureTarget->width;
-            inputFrame->height = captureTarget->height;
+            inputFrame->width = renderTargetTemp.width;
+            inputFrame->height = renderTargetTemp.height;
 
             std::vector<unsigned char> flippedData(frameData.frame.size());
-            const int stride = captureTarget->width * 4;
-            for (int y = 0; y < captureTarget->height; ++y) {
+            const int stride = renderTargetTemp.width * 4;
+            for (int y = 0; y < renderTargetTemp.height; ++y) {
                 std::memcpy(
                     flippedData.data() + y * stride,
-                    frameData.frame.data() + (captureTarget->height - 1 - y) * stride,
+                    frameData.frame.data() + (renderTargetTemp.height - 1 - y) * stride,
                     stride
                 );
             }
@@ -157,9 +177,9 @@ void Recorder::saveFrames() {
             try {
                 FileIO::flipVerticallyOnWrite(true);
                 if (outputFormat == OutputFormat::PNG) {
-                    FileIO::saveAsPNG(filename, captureTarget->width, captureTarget->height, 4, frameData.frame.data());
+                    FileIO::saveAsPNG(filename, renderTargetTemp.width, renderTargetTemp.height, 4, frameData.frame.data());
                 } else {
-                    FileIO::saveAsJPG(filename, captureTarget->width, captureTarget->height, 4, frameData.frame.data());
+                    FileIO::saveAsJPG(filename, renderTargetTemp.width, renderTargetTemp.height, 4, frameData.frame.data());
                 }
 
                 {
@@ -208,8 +228,8 @@ void Recorder::initializeFFmpeg() {
     const AVCodec* codec = avcodec_find_encoder(AV_CODEC_ID_H264);
     codecContext = avcodec_alloc_context3(codec);
     codecContext->bit_rate = 10 * BYTES_IN_MB;
-    codecContext->width = captureTarget->width;
-    codecContext->height = captureTarget->height;
+    codecContext->width = renderTargetTemp.width;
+    codecContext->height = renderTargetTemp.height;
 
     int targetFrameRate = static_cast<int>(1.0 / frameInterval.count());
     codecContext->time_base = (AVRational){1, 1000};
@@ -253,8 +273,8 @@ void Recorder::initializeFFmpeg() {
     }
 
     swsContext = sws_getContext(
-        captureTarget->width, captureTarget->height, AV_PIX_FMT_RGBA,
-        captureTarget->width, captureTarget->height, AV_PIX_FMT_YUV420P,
+        renderTargetTemp.width, renderTargetTemp.height, AV_PIX_FMT_RGBA,
+        renderTargetTemp.width, renderTargetTemp.height, AV_PIX_FMT_YUV420P,
         SWS_BILINEAR, nullptr, nullptr, nullptr);
 
     frame = av_frame_alloc();
@@ -303,9 +323,4 @@ void Recorder::setFormat(OutputFormat format) {
     }
 
     outputFormat = format;
-}
-
-void Recorder::updateResolution(int width, int height) {
-    captureTarget->width = width;
-    captureTarget->height = height;
 }
