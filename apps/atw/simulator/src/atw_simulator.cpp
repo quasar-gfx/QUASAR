@@ -25,8 +25,8 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
-    args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'u', "data-path"}, ".");
-    args::Flag saveImage(parser, "save", "Take screenshot and exit", {'b', "save-image"});
+    args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'D', "data-path"}, ".");
+    args::Flag saveImage(parser, "save", "Take screenshot and exit", {'I', "save-image"});
     args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     try {
         parser.ParseCLI(argc, argv);
@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
         .fragmentCodeSize = SHADER_COMMON_ATW_FRAG_len
     });
 
-    Recorder recorder(renderer, toneMapShader, config.targetFramerate);
+    Recorder recorder(renderer, toneMapShader, dataPath, config.targetFramerate);
 
     bool atwEnabled = true;
     bool rerender = true;

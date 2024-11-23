@@ -33,8 +33,8 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<int> maxLayersIn(parser, "layers", "Max layers", {'n', "max-layers"}, 4);
-    args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'u', "data-path"}, ".");
-    args::Flag saveImage(parser, "save", "Take screenshot and exit", {'b', "save-image"});
+    args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'D', "data-path"}, ".");
+    args::Flag saveImage(parser, "save", "Take screenshot and exit", {'I', "save-image"});
     args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     try {
         parser.ParseCLI(argc, argv);
@@ -279,7 +279,7 @@ int main(int argc, char** argv) {
         }
     });
 
-    Recorder recorder(forwardRenderer, toneMapShader, config.targetFramerate);
+    Recorder recorder(forwardRenderer, toneMapShader, dataPath, config.targetFramerate);
 
     bool rerender = true;
     int rerenderInterval = 0;

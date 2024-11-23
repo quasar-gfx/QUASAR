@@ -24,9 +24,9 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> scenePathIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
-    args::Flag saveImage(parser, "save", "Take screenshot and exit", {'b', "save-image"});
+    args::Flag saveImage(parser, "save", "Take screenshot and exit", {'I', "save-image"});
     args::ValueFlag<std::string> animationFileIn(parser, "path", "Path to camera animation file", {'A', "animation-path"});
-    args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'u', "data-path"}, ".");
+    args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'D', "data-path"}, ".");
     args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     try {
         parser.ParseCLI(argc, argv);
@@ -57,6 +57,7 @@ int main(int argc, char** argv) {
     if (!std::filesystem::exists(dataPath)) {
         std::filesystem::create_directories(dataPath);
     }
+    std::string animationFileName = args::get(animationFileIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -106,13 +107,11 @@ int main(int argc, char** argv) {
     });
 
     Recorder recorder(renderer, toneMapShader, dataPath, config.targetFramerate);
-    Animator animator(args::get(animationFileIn));
+    Animator animator(animationFileName);
 
     // start recording if headless
     std::ifstream fileStream;
-    std::string animationFileName;
     if (saveImage && animationFileIn) {
-        animationFileName = args::get(animationFileIn);
         recorder.setOutputPath(dataPath);
         recorder.start();
 
@@ -270,21 +269,20 @@ int main(int argc, char** argv) {
                 recorder.setFormat(selectedFormat);
             }
 
-            if (ImGui::Button("Begin Recording")) {
+            if (ImGui::Button("Start")) {
                 recording = true;
                 std::string recordingDir = dataPath + std::string(recordingDirBase) + "." +
                                                       std::to_string(static_cast<int>(window->getTime() * 1000.0f));
                 recorder.setOutputPath(recordingDir);
                 recorder.start();
             }
-            if (ImGui::Button("Stop Recording")) {
-                recording = false;
+            ImGui::SameLine();
+            if (ImGui::Button("Stop")) {
                 recorder.stop();
+                recording = false;
             }
+
             ImGui::End();
-        }
-        if (recording && !animationFileIn) {
-            recorder.captureFrame(camera);
         }
     });
 
@@ -392,6 +390,10 @@ int main(int argc, char** argv) {
             toneMapShader.bind();
             toneMapShader.setFloat("exposure", exposure);
             renderer.drawToScreen(toneMapShader);
+        }
+
+        if (recording) {
+            recorder.captureFrame(camera);
         }
 
         if (saveImage) {
