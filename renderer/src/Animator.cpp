@@ -33,7 +33,7 @@ void Animator::update(double deltaTime) {
     if (!running || waypoints.size() < 2)
         return;
 
-    timeAccumulator += (deltaTime * 1000.0 * playbackSpeed);
+    timeAccumulator += (deltaTime * 1000.0);
 
     while (currentIndex < waypoints.size() - 1 &&
            timeAccumulator >= waypoints[currentIndex + 1].timestamp) {

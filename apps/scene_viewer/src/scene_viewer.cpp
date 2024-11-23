@@ -67,6 +67,24 @@ int main(int argc, char** argv) {
     glm::uvec2 windowSize = window->getSize();
 
     Recorder recorder(config.targetFramerate, dataPath, renderer);
+
+    std::ifstream fileStream;
+    std::string pathFile;
+    if (animationFileIn && dataPathIn) {
+        pathFile = args::get(animationFileIn);
+        recorder.setOutputPath(dataPath);
+        glm::uvec2 windowSize = window->getSize();
+        renderer.resize(windowSize.x, windowSize.y); 
+        recorder.setUseTimestampedDirectory(false);
+        recorder.start(); 
+
+        fileStream.open(pathFile);
+        if (!fileStream.is_open()) {
+            std::cerr << "Failed to open path file: " << pathFile << std::endl;
+            return 1;
+        }
+    }
+
     Animator animator;
     if (args::get(animationFileIn).size() > 0) {
         animator.loadAnimation(args::get(animationFileIn));
@@ -207,14 +225,6 @@ int main(int argc, char** argv) {
                 ImGui::RadioButton("Show Primative IDs", &shaderIndex, 5);
             }
 
-            ImGui::Separator();
-            if (ImGui::CollapsingHeader("Animation Settings")) {
-                static float playbackSpeed = 1.0f;
-                if (ImGui::SliderFloat("Playback Speed", &playbackSpeed, 0.1f, 10.0f)) {
-                    animator.setPlaybackSpeed(playbackSpeed);
-                }
-            }
-
             ImGui::End();
         }
 
@@ -274,14 +284,35 @@ int main(int argc, char** argv) {
             }
             ImGui::End();
         }
-        if (recording) {
+        if (recording && !animationFileIn) {
             recorder.captureFrame(renderer.gBuffer, camera);
+        }
+        if (saveImage && dataPathIn) {
+            std::string line;
+            if (std::getline(fileStream, line)) {
+                std::stringstream ss(line);
+                float px, py, pz;
+                float rx, ry, rz;
+                int64_t timestamp;
+                ss >> px >> py >> pz >> rx >> ry >> rz >> timestamp;
+                camera.setPosition(glm::vec3(px, py, pz));
+                camera.setRotationEuler(glm::vec3(glm::radians(rx), glm::radians(ry), glm::radians(rz)));
+                camera.updateViewMatrix();
+                
+                recorder.captureFrame(renderer.gBuffer, camera);
+            } else {
+                std::cout << "End of file reached" << std::endl;
+                fileStream.close();
+                window->close();
+                recorder.stop();
+            }
         }
     });
 
     app.onResize([&](unsigned int width, unsigned int height) {
         windowSize = glm::uvec2(width, height);
         renderer.setWindowSize(windowSize.x, windowSize.y);
+        recorder.updateResolution(width, height);
 
         camera.setAspect(windowSize.x, windowSize.y);
         camera.updateProjectionMatrix();
@@ -385,7 +416,7 @@ int main(int argc, char** argv) {
             renderer.drawToScreen(toneMapShader);
         }
 
-        if (saveImage) {
+        if (saveImage && !animationFileIn) {
             glm::vec3 position = camera.getPosition();
             glm::vec3 rotation = camera.getRotationEuler();
             std::string positionStr = to_string_with_precision(position.x) + "_" + to_string_with_precision(position.y) + "_" + to_string_with_precision(position.z);

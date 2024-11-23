@@ -14,8 +14,16 @@ Recorder::~Recorder() {
 void Recorder::start() {
     running = true;
 
+    if (useTimestampedDirectory) {
+        outputPath = createTimestampedDirectory(outputPath);
+    }
+
     recordingStartTime = std::chrono::steady_clock::now();
     lastCaptureTime = std::chrono::steady_clock::now();
+
+    std::ofstream pathFile(outputPath + "/camera_path.txt");
+    pathFile.close();
+
     for (int i = 0; i < NUM_SAVE_THREADS; ++i) {
         saveThreadPool.emplace_back(&Recorder::saveFrames, this);
     }
@@ -107,6 +115,7 @@ void Recorder::saveFrames() {
         }
 
         if (outputFormat == OutputFormat::MP4) {
+            std::cout << "Saving frame to MP4" << std::endl;
             AVFrame* inputFrame = av_frame_alloc();
             inputFrame->format = AV_PIX_FMT_RGBA;
             inputFrame->width = captureTarget->width;
@@ -155,7 +164,7 @@ void Recorder::saveFrames() {
             std::stringstream ss;
             ss << outputPath << "/frame_" << std::setw(6) << std::setfill('0') << currentFrame << "." << (outputFormat == OutputFormat::PNG ? "png" : "jpg");
             std::string filename = ss.str();
-
+            std::cout << "Saving frame: " << filename << std::endl;
             try {
                 FileIO::flipVerticallyOnWrite(true);
                 if (outputFormat == OutputFormat::PNG) {
@@ -188,10 +197,6 @@ void Recorder::saveFrames() {
 
 void Recorder::setOutputPath(const std::string& path) {
     outputPath = path;
-    // create outputPath if it doesn't exist
-    if (!std::filesystem::exists(outputPath)) {
-        std::filesystem::create_directories(outputPath);
-    }
 }
 
 void Recorder::setFrameRate(int fps) {
@@ -301,4 +306,13 @@ void Recorder::setOutputFormat(OutputFormat format) {
     }
 
     outputFormat = format;
+}
+
+void Recorder::updateResolution(int width, int height) {
+    captureTarget->width = width;
+    captureTarget->height = height;
+}
+
+void Recorder::setUseTimestampedDirectory(bool use) {
+    useTimestampedDirectory = use;
 }
