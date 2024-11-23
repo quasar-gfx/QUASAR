@@ -1,7 +1,8 @@
-#include "Animator.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
+
+#include <Animator.h>
 
 void Animator::loadAnimation(const std::string& pathFile) {
     running = true;

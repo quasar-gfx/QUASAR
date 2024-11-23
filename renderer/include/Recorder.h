@@ -9,7 +9,6 @@ extern "C" {
 #include <libavutil/imgutils.h>
 }
 
-#include <Renderers/ForwardRenderer.h>
 #include <thread>
 #include <queue>
 #include <mutex>
@@ -19,6 +18,8 @@ extern "C" {
 #include <string>
 #include <vector>
 #include <filesystem>
+
+#include <Renderers/ForwardRenderer.h>
 
 class Recorder {
 public:
@@ -51,7 +52,6 @@ public:
     void captureFrame(GeometryBuffer& gbuffer, Camera& camera);
     void setOutputFormat(OutputFormat format);
     void updateResolution(int width, int height);
-    void setUseTimestampedDirectory(bool use);
 
 private:
     static const int NUM_SAVE_THREADS = 16;
@@ -77,18 +77,6 @@ private:
     SwsContext* swsContext = nullptr;
     AVFrame* frame = nullptr;
     int frameIndex = 0;
-
-    bool useTimestampedDirectory = true;
-
-    std::string createTimestampedDirectory(const std::string& basePath) {
-        auto now = std::chrono::system_clock::now();
-        auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
-            now.time_since_epoch()
-        ).count();
-        std::string fullPath = basePath + "." + std::to_string(timestamp);
-        std::filesystem::create_directories(fullPath);
-        return fullPath;
-    }
 
     void initializeFFmpeg();
     void finalizeFFmpeg();

@@ -70,13 +70,10 @@ int main(int argc, char** argv) {
 
     std::ifstream fileStream;
     std::string pathFile;
-    if (animationFileIn && dataPathIn) {
+    if (animationFileIn) {
         pathFile = args::get(animationFileIn);
         recorder.setOutputPath(dataPath);
-        glm::uvec2 windowSize = window->getSize();
-        renderer.resize(windowSize.x, windowSize.y); 
-        recorder.setUseTimestampedDirectory(false);
-        recorder.start(); 
+        recorder.start();
 
         fileStream.open(pathFile);
         if (!fileStream.is_open()) {
@@ -140,7 +137,7 @@ int main(int argc, char** argv) {
         static int recordingFPS = 30;
         static int recordingFormatIndex = 0;
         static const char* formats[] = { "PNG", "JPG", "MP4" };
-        static char recordingDir[256] = "recordings";
+        static char recordingDirNameBase[256] = "recordings";
 
         ImGui::NewFrame();
 
@@ -254,7 +251,7 @@ int main(int argc, char** argv) {
             ImGui::Begin("Record", &showRecordWindow);
 
             ImGui::Text("Output Directory:");
-            ImGui::InputText("##output directory", recordingDir, IM_ARRAYSIZE(recordingDir));
+            ImGui::InputText("##output directory", recordingDirNameBase, IM_ARRAYSIZE(recordingDirNameBase));
 
             ImGui::Text("FPS:");
             if (ImGui::InputInt("##fps", &recordingFPS)) {
@@ -275,7 +272,8 @@ int main(int argc, char** argv) {
 
             if (ImGui::Button("Begin Recording")) {
                 recording = true;
-                recorder.setOutputPath(recordingDir);
+                std::string recordingDirName = dataPath + std::string(recordingDirNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+                recorder.setOutputPath(recordingDirName);
                 recorder.start();
             }
             if (ImGui::Button("Stop Recording")) {
@@ -298,7 +296,7 @@ int main(int argc, char** argv) {
                 camera.setPosition(glm::vec3(px, py, pz));
                 camera.setRotationEuler(glm::vec3(glm::radians(rx), glm::radians(ry), glm::radians(rz)));
                 camera.updateViewMatrix();
-                
+
                 recorder.captureFrame(renderer.gBuffer, camera);
             } else {
                 std::cout << "End of file reached" << std::endl;

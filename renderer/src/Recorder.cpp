@@ -1,9 +1,10 @@
-#include <Recorder.h>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
 #include <filesystem>
-#include "Utils/FileIO.h"
+
+#include <Recorder.h>
+#include <Utils/FileIO.h>
 
 Recorder::~Recorder() {
     if (running) {
@@ -14,14 +15,10 @@ Recorder::~Recorder() {
 void Recorder::start() {
     running = true;
 
-    if (useTimestampedDirectory) {
-        outputPath = createTimestampedDirectory(outputPath);
-    }
-
     recordingStartTime = std::chrono::steady_clock::now();
     lastCaptureTime = std::chrono::steady_clock::now();
 
-    std::ofstream pathFile(outputPath + "/camera_path.txt");
+    std::ofstream pathFile(outputPath + "camera_path.txt");
     pathFile.close();
 
     for (int i = 0; i < NUM_SAVE_THREADS; ++i) {
@@ -162,7 +159,7 @@ void Recorder::saveFrames() {
         } else {
             size_t currentFrame = frameCount++;
             std::stringstream ss;
-            ss << outputPath << "/frame_" << std::setw(6) << std::setfill('0') << currentFrame << "." << (outputFormat == OutputFormat::PNG ? "png" : "jpg");
+            ss << outputPath << "frame_" << std::setw(6) << std::setfill('0') << currentFrame << "." << (outputFormat == OutputFormat::PNG ? "png" : "jpg");
             std::string filename = ss.str();
             std::cout << "Saving frame: " << filename << std::endl;
             try {
@@ -175,7 +172,7 @@ void Recorder::saveFrames() {
 
                 {
                     std::lock_guard<std::mutex> lock(queueMutex);
-                    std::ofstream pathFile(outputPath + "/camera_path.txt", std::ios::app);
+                    std::ofstream pathFile(outputPath + "camera_path.txt", std::ios::app);
                     pathFile << std::fixed << std::setprecision(4)
                              << frameData.position.x << " "
                              << frameData.position.y << " "
@@ -196,7 +193,11 @@ void Recorder::saveFrames() {
 }
 
 void Recorder::setOutputPath(const std::string& path) {
-    outputPath = path;
+    outputPath = path + "";
+    // create output path if it doesn't exist
+    if (!std::filesystem::exists(outputPath)) {
+        std::filesystem::create_directories(outputPath);
+    }
 }
 
 void Recorder::setFrameRate(int fps) {
@@ -206,7 +207,7 @@ void Recorder::setFrameRate(int fps) {
 }
 
 void Recorder::initializeFFmpeg() {
-    avformat_alloc_output_context2(&formatContext, nullptr, nullptr, (outputPath + "/output.mp4").c_str());
+    avformat_alloc_output_context2(&formatContext, nullptr, nullptr, (outputPath + "output.mp4").c_str());
 
     const AVCodec* codec = avcodec_find_encoder(AV_CODEC_ID_H264);
     codecContext = avcodec_alloc_context3(codec);
@@ -244,7 +245,7 @@ void Recorder::initializeFFmpeg() {
     avcodec_parameters_from_context(videoStream->codecpar, codecContext);
 
     if (!(formatContext->oformat->flags & AVFMT_NOFILE)) {
-        ret = avio_open(&formatContext->pb, (outputPath + "/output.mp4").c_str(), AVIO_FLAG_WRITE);
+        ret = avio_open(&formatContext->pb, (outputPath + "output.mp4").c_str(), AVIO_FLAG_WRITE);
         if (ret < 0) {
             throw std::runtime_error("Failed to open output file");
         }
@@ -311,8 +312,4 @@ void Recorder::setOutputFormat(OutputFormat format) {
 void Recorder::updateResolution(int width, int height) {
     captureTarget->width = width;
     captureTarget->height = height;
-}
-
-void Recorder::setUseTimestampedDirectory(bool use) {
-    useTimestampedDirectory = use;
 }
