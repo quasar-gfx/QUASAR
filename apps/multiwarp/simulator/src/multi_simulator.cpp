@@ -94,6 +94,7 @@ int main(int argc, char** argv) {
     config.guiManager = guiManager;
 
     OpenGLApp app(config);
+    ForwardRenderer remoteRenderer(config);
     ForwardRenderer renderer(config);
 
     glm::uvec2 windowSize = window->getSize();
@@ -727,35 +728,35 @@ int main(int argc, char** argv) {
                 // center view
                 if (view == 0) {
                     // render all objects in remoteScene normally
-                    renderer.drawObjects(remoteScene, *remoteCamera);
+                    remoteRenderer.drawObjects(remoteScene, *remoteCamera);
                 }
                 // other views
                 else {
                     // render mesh in meshScene into stencil buffer
-                    renderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
+                    remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
 
                     // make all previous meshes visible and everything else invisible
                     for (int prevView = 1; prevView < maxViews; prevView++) {
                         meshScene.children[prevView]->visible = (prevView < view);
                     }
-                    renderer.drawObjects(meshScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+                    remoteRenderer.drawObjects(meshScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
                     // render mesh in remoteScene using stencil buffer as a mask
-                    renderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask();
+                    remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask();
 
-                    renderer.drawObjects(remoteScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                    remoteRenderer.drawObjects(remoteScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-                    renderer.pipeline.stencilState.restoreStencilState();
+                    remoteRenderer.pipeline.stencilState.restoreStencilState();
                 }
 
                 // render to render target
                 if (!showNormals) {
                     toneMapShader.bind();
                     toneMapShader.setBool("toneMap", false); // dont apply tone mapping
-                    renderer.drawToRenderTarget(toneMapShader, *renderTargets[view]);
+                    remoteRenderer.drawToRenderTarget(toneMapShader, *renderTargets[view]);
                 }
                 else {
-                    renderer.drawToRenderTarget(screenShaderNormals, *renderTargets[view]);
+                    remoteRenderer.drawToRenderTarget(screenShaderNormals, *renderTargets[view]);
                 }
                 avgRenderTime += glfwGetTime() - startTime;
                 startTime = glfwGetTime();
@@ -767,8 +768,8 @@ int main(int argc, char** argv) {
                 */
                 genQuadMapShader.bind();
                 {
-                    genQuadMapShader.setTexture(renderer.gBuffer.normalsBuffer, 0);
-                    genQuadMapShader.setTexture(renderer.gBuffer.depthStencilBuffer, 1);
+                    genQuadMapShader.setTexture(remoteRenderer.gBuffer.normalsBuffer, 0);
+                    genQuadMapShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 1);
                 }
                 {
                     genQuadMapShader.setVec2("remoteWindowSize", remoteWindowSize);
@@ -958,7 +959,7 @@ int main(int argc, char** argv) {
                 */
                 meshFromDepthShader.bind();
                 {
-                    meshFromDepthShader.setTexture(renderer.gBuffer.depthStencilBuffer, 0);
+                    meshFromDepthShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
                 }
                 {
                     meshFromDepthShader.setVec2("depthMapSize", remoteWindowSize);
