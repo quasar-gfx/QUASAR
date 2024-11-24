@@ -72,6 +72,12 @@ int main(int argc, char** argv) {
 
     // shaders
     ToneMapShader toneMapShader;
+        ComputeShader createMeshFromQuadsShader({
+            .computeCodePath = "shaders/createMeshFromQuads.comp",
+            .defines = {
+                "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
+            }
+        });
 
     Recorder recorder(renderer, toneMapShader, config.targetFramerate);
 
@@ -90,6 +96,12 @@ int main(int argc, char** argv) {
     unsigned int totalTriangles = -1;
     unsigned int totalProxies = -1;
     unsigned int totalDepthOffsets = -1;
+
+    unsigned int maxQuads = windowSize.x * windowSize.y * NUM_SUB_QUADS;
+    Buffer<unsigned int> inputNormalSphericalsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
+    Buffer<float> inputDepthsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
+    Buffer<glm::vec2> inputUVsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
+    Buffer<unsigned int> inputOffsetSizeFlattenedsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
 
     double startTime = glfwGetTime();
     double loadFromFilesTime = 0.0;
@@ -118,16 +130,9 @@ int main(int argc, char** argv) {
 
         totalTriangles = indices.size() / 3;
 
-        createMeshTime = glfwGetTime() - startTime;
+        createMeshTime = (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
     }
     else {
-        ComputeShader createMeshFromQuadsShader({
-            .computeCodePath = "shaders/createMeshFromQuads.comp",
-            .defines = {
-                "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
-            }
-        });
-
         unsigned int maxVertices = windowSize.x * windowSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
         unsigned int numTriangles = windowSize.x * windowSize.y * NUM_SUB_QUADS * 2;
         unsigned int maxIndices = numTriangles * 3;
@@ -158,27 +163,31 @@ int main(int argc, char** argv) {
         unsigned int bufferOffset = sizeof(unsigned int);
 
         // next batch is the normalSphericals
-        auto normalSphericalsPtr = reinterpret_cast<unsigned int*>(quadProxiesData.data() + bufferOffset);
-        Buffer<unsigned int> normalSphericalsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, outputQuadsSize, normalSphericalsPtr);
+        auto normalSphericalsPtr = reinterpret_cast<void*>(quadProxiesData.data() + bufferOffset);
+        inputNormalSphericalsBuffer.bind();
+        inputNormalSphericalsBuffer.setData(outputQuadsSize, normalSphericalsPtr);
         bufferOffset += outputQuadsSize * sizeof(unsigned int);
 
         // next batch is the depths
-        auto depthsPtr = reinterpret_cast<float*>(quadProxiesData.data() + bufferOffset);
-        Buffer<float> depthsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, outputQuadsSize, depthsPtr);
+        auto depthsPtr = reinterpret_cast<void*>(quadProxiesData.data() + bufferOffset);
+        inputDepthsBuffer.bind();
+        inputDepthsBuffer.setData(outputQuadsSize, depthsPtr);
         bufferOffset += outputQuadsSize * sizeof(float);
 
         // next batch is the uvs
-        auto uvsPtr = reinterpret_cast<glm::vec2*>(quadProxiesData.data() + bufferOffset);
-        Buffer<glm::vec2> uvsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, outputQuadsSize, uvsPtr);
+        auto uvsPtr = reinterpret_cast<void*>(quadProxiesData.data() + bufferOffset);
+        inputUVsBuffer.bind();
+        inputUVsBuffer.setData(outputQuadsSize, uvsPtr);
         bufferOffset += outputQuadsSize * sizeof(glm::vec2);
 
         // last batch is the offsets
-        auto offsetSizeFlattenedsPtr = reinterpret_cast<unsigned int*>(quadProxiesData.data() + bufferOffset);
-        Buffer<unsigned int> offsetSizeFlattenedsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, outputQuadsSize, offsetSizeFlattenedsPtr);
+        auto offsetSizeFlattenedsPtr = reinterpret_cast<void*>(quadProxiesData.data() + bufferOffset);
+        inputOffsetSizeFlattenedsBuffer.bind();
+        inputOffsetSizeFlattenedsBuffer.setData(outputQuadsSize, offsetSizeFlattenedsPtr);
 
         glm::uvec2 depthBufferSize = 4u * windowSize;
 
-        loadFromFilesTime = glfwGetTime() - startTime;
+        loadFromFilesTime = (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
         startTime = glfwGetTime();
 
         createMeshFromQuadsShader.bind();
@@ -202,10 +211,10 @@ int main(int argc, char** argv) {
             createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, mesh->indexBuffer);
             createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, mesh->indirectBuffer);
 
-            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, normalSphericalsBuffer);
-            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, depthsBuffer);
-            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, uvsBuffer);
-            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, offsetSizeFlattenedsBuffer);
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, inputNormalSphericalsBuffer);
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, inputDepthsBuffer);
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, inputUVsBuffer);
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, inputOffsetSizeFlattenedsBuffer);
 
             // createMeshFromQuadsShader.setImageTexture(0, depthOffsetsBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetsBuffer.internalFormat);
         }
@@ -214,7 +223,7 @@ int main(int argc, char** argv) {
         createMeshFromQuadsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
                                                 GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
-        createMeshTime = glfwGetTime() - startTime;
+        createMeshTime = (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
 
         sizesBuffer.bind();
         sizesBuffer.getSubData(0, 1, &bufferSizes);
@@ -313,8 +322,8 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to load data: %.3f ms", loadFromFilesTime * 1000.0);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to create mesh: %.3f ms", createMeshTime * 1000.0);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to load data: %.3f ms", loadFromFilesTime);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to create mesh: %.3f ms", createMeshTime);
 
             ImGui::Separator();
 
