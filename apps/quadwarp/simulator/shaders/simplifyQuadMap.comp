@@ -462,7 +462,7 @@ void recalcDepthOffsets(
             vec4 newDepthOffsets = findDepthOffsets(surfel, newProxyPlane);
             storeDepthOffsets(depthOffsetPixelCoords, newDepthOffsets);
 
-            vec4 absOffsets = abs(oldDepthOffsets);
+            vec4 absOffsets = abs(newDepthOffsets);
             numBelowThreshold += int(absOffsets.x < flatThreshold) +
                                  int(absOffsets.y < flatThreshold) +
                                  int(absOffsets.z < flatThreshold) +
@@ -500,8 +500,7 @@ void mergeQuadMapData(
     // if at least one of the quads to merge is not flattened,
     // recalculate the new merged proxy plane's surfel's depth offsets
     if (!flattened) {
-        int numBelowThreshold = 0;
-        int total = 0;
+        int numBelowThreshold = 0, total = 0;
         recalcDepthOffsets(newProxyPlane, quadMapDataBottomLeft, proxyPlaneBottomLeft, numBelowThreshold, total);
         recalcDepthOffsets(newProxyPlane, quadMapDataBottomRight, proxyPlaneBottomRight, numBelowThreshold, total);
         recalcDepthOffsets(newProxyPlane, quadMapDataTopLeft, proxyPlaneTopLeft, numBelowThreshold, total);

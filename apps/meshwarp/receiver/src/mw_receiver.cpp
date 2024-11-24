@@ -16,7 +16,7 @@
 #include <PoseStreamer.h>
 #include <shaders_common.h>
 
-#define THREADS_PER_LOCALGROUP 32
+#define THREADS_PER_LOCALGROUP 16
 
 #define TEXTURE_PREVIEW_SIZE 500
 

@@ -16,7 +16,7 @@
 #include <QuadMaterial.h>
 #include <shaders_common.h>
 
-#define THREADS_PER_LOCALGROUP 32
+#define THREADS_PER_LOCALGROUP 16
 
 #define VERTICES_IN_A_QUAD 4
 #define NUM_SUB_QUADS 4
@@ -133,10 +133,6 @@ int main(int argc, char** argv) {
         createMeshTime = (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
     }
     else {
-        unsigned int maxVertices = windowSize.x * windowSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
-        unsigned int numTriangles = windowSize.x * windowSize.y * NUM_SUB_QUADS * 2;
-        unsigned int maxIndices = numTriangles * 3;
-
         struct BufferSizes {
             unsigned int numVertices;
             unsigned int numIndices;
@@ -146,14 +142,6 @@ int main(int argc, char** argv) {
         BufferSizes bufferSizes = { 0 };
         Buffer<BufferSizes> sizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, &bufferSizes);
 
-        mesh = new Mesh({
-            .numVertices = maxVertices,
-            .numIndices = maxIndices,
-            .material = new QuadMaterial({ .baseColorTexture = &colorTexture }),
-            .usage = GL_DYNAMIC_DRAW,
-            .indirectDraw = true
-        });
-
         startTime = glfwGetTime();
         std::string quadProxiesFileName = DATA_PATH + "quads.bin";
         auto quadProxiesData = FileIO::loadBinaryFile(quadProxiesFileName);
@@ -161,6 +149,14 @@ int main(int argc, char** argv) {
         // first uint in the file is the number of proxies
         unsigned int outputQuadsSize = *reinterpret_cast<unsigned int*>(quadProxiesData.data());
         unsigned int bufferOffset = sizeof(unsigned int);
+
+        mesh = new Mesh({
+            .numVertices = outputQuadsSize * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
+            .numIndices = outputQuadsSize * NUM_SUB_QUADS * 2 * 3,
+            .material = new QuadMaterial({ .baseColorTexture = &colorTexture }),
+            .usage = GL_DYNAMIC_DRAW,
+            .indirectDraw = true
+        });
 
         // next batch is the normalSphericals
         auto normalSphericalsPtr = reinterpret_cast<void*>(quadProxiesData.data() + bufferOffset);

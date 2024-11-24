@@ -16,7 +16,7 @@
 #include <QuadMaterial.h>
 #include <shaders_common.h>
 
-#define THREADS_PER_LOCALGROUP 32
+#define THREADS_PER_LOCALGROUP 16
 
 #define VERTICES_IN_A_QUAD 4
 #define NUM_SUB_QUADS 4
@@ -45,6 +45,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
     args::ValueFlag<int> maxAdditionalViewsIn(parser, "maxViews", "Max views", {'l', "num-views"}, 8);
     args::Flag loadProxies(parser, "load-proxies", "Load proxies from quads.bin", {'m', "load-proxies"});
+    args::Flag disableWideFov(parser, "disable-wide-fov", "Disable wide fov view", {'W', "disable-wide-fov"});
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -62,7 +63,8 @@ int main(int argc, char** argv) {
     config.width = std::stoi(sizeStr.substr(0, pos));
     config.height = std::stoi(sizeStr.substr(pos + 1));
 
-    int maxViews = args::get(maxAdditionalViewsIn) + 2;
+    int maxAdditionalViews = args::get(maxAdditionalViewsIn);
+    int maxViews = !disableWideFov ? maxAdditionalViews + 2 : maxAdditionalViews + 1;
 
     config.enableVSync = args::get(vsyncIn);
 
@@ -91,8 +93,10 @@ int main(int argc, char** argv) {
     centerRemoteCamera->setPosition(glm::vec3(0.0f, 3.0f, 10.0f));
     centerRemoteCamera->updateViewMatrix();
 
-    remoteCameras[maxViews-1]->setFovyDegrees(120.0f);
-    remoteCameras[maxViews-1]->setViewMatrix(centerRemoteCamera->getViewMatrix());
+    if (!disableWideFov) {
+        // make last camera have a larger fov
+        remoteCameras[maxViews-1]->setFovyDegrees(120.0f);
+    }
 
     for (int view = 1; view < maxViews - 1; view++) {
         glm::vec3 offset = offsets[view - 1];
@@ -100,7 +104,9 @@ int main(int argc, char** argv) {
         remoteCameras[view]->setPosition(centerRemoteCamera->getPosition() + viewBoxSize/2 * offset);
         remoteCameras[view]->updateViewMatrix();
     }
-    remoteCameras[maxViews-1]->setViewMatrix(centerRemoteCamera->getViewMatrix());
+    if (!disableWideFov) {
+        remoteCameras[maxViews-1]->setViewMatrix(centerRemoteCamera->getViewMatrix());
+    }
 
     // shaders
     ToneMapShader toneMapShader;
@@ -174,10 +180,6 @@ int main(int argc, char** argv) {
         }
     }
     else {
-        unsigned int maxVertices = windowSize.x * windowSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
-        unsigned int numTriangles = windowSize.x * windowSize.y * NUM_SUB_QUADS * 2;
-        unsigned int maxIndices = numTriangles * 3;
-
         struct BufferSizes {
             unsigned int numVertices;
             unsigned int numIndices;
@@ -189,14 +191,6 @@ int main(int argc, char** argv) {
         for (int view = 0; view < maxViews; view++) {
             Buffer<BufferSizes> sizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, &bufferSizes);
 
-            meshes[view] = new Mesh({
-                .numVertices = maxVertices / (view == 0 || view == maxViews - 1 ? 1 : 4),
-                .numIndices = maxIndices / (view == 0 || view == maxViews - 1 ? 1 : 4),
-                .material = new QuadMaterial({ .baseColorTexture = colorTextures[view] }),
-                .usage = GL_DYNAMIC_DRAW,
-                .indirectDraw = true
-            });
-
             startTime = glfwGetTime();
             std::string quadProxiesFileName = DATA_PATH + "quads" + std::to_string(view) + ".bin";
             auto quadProxiesData = FileIO::loadBinaryFile(quadProxiesFileName);
@@ -204,6 +198,14 @@ int main(int argc, char** argv) {
             // first uint in the file is the number of proxies
             unsigned int outputQuadsSize = *reinterpret_cast<unsigned int*>(quadProxiesData.data());
             unsigned int bufferOffset = sizeof(unsigned int);
+
+            meshes[view] = new Mesh({
+                .numVertices = outputQuadsSize * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
+                .numIndices = outputQuadsSize * NUM_SUB_QUADS * 2 * 3,
+                .material = new QuadMaterial({ .baseColorTexture = colorTextures[view] }),
+                .usage = GL_DYNAMIC_DRAW,
+                .indirectDraw = true
+            });
 
             // next batch is the normalSphericals
             auto normalSphericalsPtr = reinterpret_cast<unsigned int*>(quadProxiesData.data() + bufferOffset);

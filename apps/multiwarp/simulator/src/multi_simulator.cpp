@@ -17,7 +17,7 @@
 #include <QuadMaterial.h>
 #include <shaders_common.h>
 
-#define THREADS_PER_LOCALGROUP 32
+#define THREADS_PER_LOCALGROUP 16
 
 #define VERTICES_IN_A_QUAD 4
 #define NUM_SUB_QUADS 4
@@ -47,6 +47,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'D', "data-path"}, ".");
     args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     args::ValueFlag<int> maxAdditionalViewsIn(parser, "views", "Max views", {'n', "max-views"}, 8);
+    args::Flag disableWideFov(parser, "disable-wide-fov", "Disable wide fov view", {'W', "disable-wide-fov"});
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -87,7 +88,9 @@ int main(int argc, char** argv) {
         std::filesystem::create_directories(dataPath);
     }
 
-    int maxViews = args::get(maxAdditionalViewsIn) + 2; // 0th is standard view, maxViews-1 is large fov view
+    // 0th is standard view, maxViews-1 is large fov view
+    int maxAdditionalViews = args::get(maxAdditionalViewsIn);
+    int maxViews = !disableWideFov ? maxAdditionalViews + 2 : maxAdditionalViews + 1;
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -112,8 +115,10 @@ int main(int argc, char** argv) {
     loader.loadScene(sceneFile, remoteScene, *centerRemoteCamera);
 
     // make last camera have a larger fov
-    remoteCameras[maxViews-1]->setFovyDegrees(120.0f);
-    remoteCameras[maxViews-1]->setViewMatrix(centerRemoteCamera->getViewMatrix());
+    if (!disableWideFov) {
+        // make last camera have a larger fov
+        remoteCameras[maxViews-1]->setFovyDegrees(120.0f);
+    }
 
     // scene with all the meshes
     Scene scene;
@@ -205,8 +210,8 @@ int main(int argc, char** argv) {
         sizesBuffers[view] = Buffer<BufferSizes>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, 1, &bufferSizes);
 
         meshes[view] = new Mesh({
-            .numVertices = maxVertices / (view == 0 || view == maxViews - 1 ? 1 : 4),
-            .numIndices = maxIndices / (view == 0 || view == maxViews - 1 ? 1 : 4),
+            .numVertices = maxVertices / (view == 0 || (!disableWideFov && view == maxViews - 1) ? 1 : 4),
+            .numIndices = maxIndices / (view == 0 || (!disableWideFov && view == maxViews - 1) ? 1 : 4),
             .material = new QuadMaterial({ .baseColorTexture = &renderTargets[view]->colorBuffer }),
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true

@@ -1,7 +1,7 @@
 #include <BC4DepthStreamer.h>
 #include <shaders_common.h>
 
-#define THREADS_PER_LOCALGROUP 32
+#define THREADS_PER_LOCALGROUP 16
 #define BLOCK_SIZE 8
 
 BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams &params, std::string receiverURL)

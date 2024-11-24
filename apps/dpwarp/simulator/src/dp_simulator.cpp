@@ -18,7 +18,7 @@
 #include <QuadMaterial.h>
 #include <shaders_common.h>
 
-#define THREADS_PER_LOCALGROUP 32
+#define THREADS_PER_LOCALGROUP 16
 
 #define VERTICES_IN_A_QUAD 4
 #define NUM_SUB_QUADS 4
@@ -37,6 +37,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'D', "data-path"}, ".");
     args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     args::ValueFlag<int> maxLayersIn(parser, "layers", "Max layers", {'n', "max-layers"}, 4);
+    args::Flag disableWideFov(parser, "disable-wide-fov", "Disable wide fov view", {'W', "disable-wide-fov"});
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -78,7 +79,7 @@ int main(int argc, char** argv) {
     }
 
     int maxLayers = args::get(maxLayersIn);
-    int maxViews = maxLayers + 1;
+    int maxViews = !disableWideFov ? maxLayers + 1 : maxLayers;
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -102,9 +103,10 @@ int main(int argc, char** argv) {
     SceneLoader loader;
     loader.loadScene(sceneFile, remoteScene, *centerRemoteCamera);
 
-    // make last camera have a larger fov
-    remoteCameras[maxViews-1]->setFovyDegrees(120.0f);
-    remoteCameras[maxViews-1]->setViewMatrix(centerRemoteCamera->getViewMatrix());
+    if (!disableWideFov) {
+        // make last camera have a larger fov
+        remoteCameras[maxViews-1]->setFovyDegrees(120.0f);
+    }
 
     // scene with all the meshes
     Scene scene;
@@ -196,8 +198,8 @@ int main(int argc, char** argv) {
         sizesBuffers[view] = Buffer<BufferSizes>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, 1, &bufferSizes);
 
         meshes[view] = new Mesh({
-            .numVertices = maxVertices / (view == 0 || view == maxViews - 1 ? 1 : 4),
-            .numIndices = maxIndices / (view == 0 || view == maxViews - 1 ? 1 : 4),
+            .numVertices = maxVertices / (view == 0 || (!disableWideFov && view == maxViews - 1) ? 1 : 4),
+            .numIndices = maxIndices / (view == 0 || (!disableWideFov && view == maxViews - 1) ? 1 : 4),
             .material = new QuadMaterial({ .baseColorTexture = &renderTargets[view]->colorBuffer }),
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true
@@ -730,7 +732,7 @@ int main(int argc, char** argv) {
             ============================
             */
             dpRenderer.drawObjects(remoteScene, *centerRemoteCamera);
-            std::cout << "  Render Time: " << glfwGetTime() - startTime << std::endl;
+            std::cout << "  Render Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
             startTime = glfwGetTime();
 
             for (int view = 0; view < maxViews; view++) {
@@ -744,7 +746,7 @@ int main(int argc, char** argv) {
                 FIRST PASS: Render the scene to a G-Buffer render target
                 ============================
                 */
-                if (view < maxViews - 1) {
+                if (disableWideFov || view < maxViews - 1) {
                     // render to render target
                     if (!showNormals) {
                         toneMapShader.bind();
@@ -787,7 +789,7 @@ int main(int argc, char** argv) {
                 */
                 genQuadMapShader.bind();
                 {
-                    if (view != maxViews - 1) {
+                    if (disableWideFov || view != maxViews - 1) {
                         genQuadMapShader.setTexture(dpRenderer.peelingLayers[view]->normalsBuffer, 0);
                         genQuadMapShader.setTexture(dpRenderer.peelingLayers[view]->depthStencilBuffer, 1);
                     }
@@ -984,7 +986,7 @@ int main(int argc, char** argv) {
                 */
                 meshFromDepthShader.bind();
                 {
-                    if (view != maxViews - 1) {
+                    if (disableWideFov || view != maxViews - 1) {
                         meshFromDepthShader.setTexture(dpRenderer.peelingLayers[view]->depthStencilBuffer, 0);
                     }
                     else {

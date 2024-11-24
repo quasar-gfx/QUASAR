@@ -314,12 +314,6 @@ vec3 findQuadPointEdge(
     return surfelViewPlane;
 }
 
-float distanceAlongAxis(in vec3 a, in vec3 b, in vec3 axis) {
-    vec3 aProj = dot(a, axis) * axis;
-    vec3 bProj = dot(b, axis) * axis;
-    return distance(aProj, bProj);
-}
-
 bool quadHasExtremeOrientation(in vec3 centerNormal, in vec3 frustumNormalView) {
     float dotProduct = dot(centerNormal, frustumNormalView);
     float angle = acos(dotProduct);
@@ -327,14 +321,22 @@ bool quadHasExtremeOrientation(in vec3 centerNormal, in vec3 frustumNormalView) 
 }
 
 vec3 constrainToMaxAngle(in vec3 centerNormal, in vec3 frustumNormalView) {
-    vec3 rotationAxis = normalize(cross(centerNormal, frustumNormalView));
-    float cosMaxAngle = cos(angleThreshold);
-    float sinMaxAngle = sin(angleThreshold);
-    vec3 crossProduct = cross(rotationAxis, centerNormal);
-    vec3 newNormal = centerNormal * cosMaxAngle + \
-                        cross(rotationAxis, centerNormal) * sinMaxAngle + \
-                        rotationAxis * dot(rotationAxis, centerNormal) * (1.0 - cosMaxAngle);
-    return normalize(newNormal);
+    float maxCos = cos(angleThreshold);
+    float dotProduct = dot(centerNormal, frustumNormalView);
+    if (dotProduct >= maxCos) {
+        return centerNormal;
+    }
+
+    // project the centerNormal onto the plane orthogonal to frustumNormalView
+    vec3 frustumNormalUnit = normalize(frustumNormalView);
+    vec3 projectedNormal = centerNormal - dot(centerNormal, frustumNormalUnit) * frustumNormalUnit;
+
+    // normalize the projected normal and scale it to the cone surface
+    vec3 constrainedNormal = normalize(projectedNormal) * sqrt(1.0 - maxCos * maxCos);
+
+    // add the component along the frustumNormalView to make the vector within the cone
+    constrainedNormal += frustumNormalUnit * maxCos;
+    return normalize(constrainedNormal);
 }
 
 void createSurfels(
