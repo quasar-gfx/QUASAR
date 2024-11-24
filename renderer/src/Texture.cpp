@@ -108,7 +108,7 @@ void Texture::resize(unsigned int width, unsigned int height) {
 
 void Texture::readPixels(unsigned char* data, bool readAsFloat) {
     bind(0);
-    glGetTexImage(target, 0, GL_RGBA, !readAsFloat ? GL_UNSIGNED_BYTE : GL_FLOAT, data);
+    glReadPixels(0, 0, width, height, format, readAsFloat ? GL_FLOAT : GL_UNSIGNED_BYTE, data);
     unbind();
 }
 
