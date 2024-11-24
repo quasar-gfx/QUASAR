@@ -317,7 +317,7 @@ int main(int argc, char** argv) {
             // copy rendered result to video render target
             renderer.drawToRenderTarget(toneMapShader, renderTarget);
 
-            std::cout << "  Rendering Time: " << glfwGetTime() - startTime << "s" << std::endl;
+            std::cout << "  Rendering Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
             startTime = glfwGetTime();
 
             rerender = false;

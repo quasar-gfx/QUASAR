@@ -718,11 +718,11 @@ int main(int argc, char** argv) {
             std::cout << "======================================================" << std::endl;
 
             double startTime = glfwGetTime();
-            double avgGenQuadMapTime = 0.0;
-            double avgSimplifyTime = 0.0;
-            double avgFillQuadsTime = 0.0;
-            double avgCreateMeshTime = 0.0;
-            double avgGenDepthTime = 0.0;
+            double totalGenQuadMapTime = 0.0;
+            double totalSimplifyTime = 0.0;
+            double totalFillQuadsTime = 0.0;
+            double totalCreateMeshTime = 0.0;
+            double totalGenDepthTime = 0.0;
 
             /*
             ============================
@@ -829,7 +829,7 @@ int main(int argc, char** argv) {
                                           (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
                 genQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-                avgGenQuadMapTime += glfwGetTime() - startTime;
+                totalGenQuadMapTime += glfwGetTime() - startTime;
                 startTime = glfwGetTime();
 
                 /*
@@ -891,7 +891,7 @@ int main(int argc, char** argv) {
                 }
                 simplifyQuadMapShader.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-                avgSimplifyTime += glfwGetTime() - startTime;
+                totalSimplifyTime += glfwGetTime() - startTime;
                 startTime = glfwGetTime();
 
                 /*
@@ -929,7 +929,7 @@ int main(int argc, char** argv) {
                 }
                 fillOutputQuadsShader.memoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 
-                avgFillQuadsTime += glfwGetTime() - startTime;
+                totalFillQuadsTime += glfwGetTime() - startTime;
                 startTime = glfwGetTime();
 
                 /*
@@ -974,7 +974,7 @@ int main(int argc, char** argv) {
                 createMeshFromQuadsShader.dispatch((outputQuadsSize + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
                 createMeshFromQuadsShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
-                avgCreateMeshTime += glfwGetTime() - startTime;
+                totalCreateMeshTime += glfwGetTime() - startTime;
                 startTime = glfwGetTime();
 
                 /*
@@ -1011,14 +1011,14 @@ int main(int argc, char** argv) {
                                              (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
                 meshFromDepthShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
-                avgGenDepthTime += glfwGetTime() - startTime;
+                totalGenDepthTime += glfwGetTime() - startTime;
             }
 
-            std::cout << "  Avg Gen Quad Map Time: " << avgGenQuadMapTime / maxViews << "s" << std::endl;
-            std::cout << "  Avg Simplify Time: " << avgSimplifyTime / maxViews << "s" << std::endl;
-            std::cout << "  Avg Fill Quads Time: " << avgFillQuadsTime / maxViews << "s" << std::endl;
-            std::cout << "  Avg Create Mesh Time: " << avgCreateMeshTime / maxViews << "s" << std::endl;
-            std::cout << "  Avg Gen Depth Time: " << avgGenDepthTime / maxViews << "s" << std::endl;
+            std::cout << "  Gen Quad Map Time: " << totalGenQuadMapTime * MILLISECONDS_IN_SECOND << "ms" << std::endl;
+            std::cout << "  Simplify Time: " << totalSimplifyTime * MILLISECONDS_IN_SECOND << "ms" << std::endl;
+            std::cout << "  Fill Quads Time: " << totalFillQuadsTime * MILLISECONDS_IN_SECOND << "ms" << std::endl;
+            std::cout << "  Create Mesh Time: " << totalCreateMeshTime * MILLISECONDS_IN_SECOND << "ms" << std::endl;
+            std::cout << "  Gen Depth Time: " << totalGenDepthTime * MILLISECONDS_IN_SECOND << "ms" << std::endl;
 
             rerender = false;
         }

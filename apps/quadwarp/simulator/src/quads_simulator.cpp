@@ -620,7 +620,7 @@ int main(int argc, char** argv) {
                 remoteRenderer.drawToRenderTarget(screenShaderNormals, renderTarget);
             }
 
-            std::cout << "  Rendering Time: " << glfwGetTime() - startTime << "s" << std::endl;
+            std::cout << "  Rendering Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
             startTime = glfwGetTime();
 
             /*
@@ -666,7 +666,7 @@ int main(int argc, char** argv) {
                                       (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
             genQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-            std::cout << "  QuadMap Compute Shader Time: " << glfwGetTime() - startTime << "s" << std::endl;
+            std::cout << "  QuadMap Compute Shader Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
             startTime = glfwGetTime();
 
             /*
@@ -728,7 +728,7 @@ int main(int argc, char** argv) {
             }
             simplifyQuadMapShader.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-            std::cout << "  Simplify QuadMap Compute Shader Time: " << glfwGetTime() - startTime << "s" << std::endl;
+            std::cout << "  Simplify QuadMap Compute Shader Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
             startTime = glfwGetTime();
 
             /*
@@ -766,7 +766,7 @@ int main(int argc, char** argv) {
             }
             fillOutputQuadsShader.memoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 
-            std::cout << "  Fill Quads Compute Shader Time: " << glfwGetTime() - startTime << "s" << std::endl;
+            std::cout << "  Fill Quads Compute Shader Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
             startTime = glfwGetTime();
 
             /*
@@ -810,7 +810,7 @@ int main(int argc, char** argv) {
             createMeshFromQuadsShader.dispatch((outputQuadsSize + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
             createMeshFromQuadsShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
-            std::cout << "  Create Mesh Compute Shader Time: " << glfwGetTime() - startTime << "s" << std::endl;
+            std::cout << "  Create Mesh Compute Shader Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
             startTime = glfwGetTime();
 
             /*
@@ -842,7 +842,7 @@ int main(int argc, char** argv) {
                                          (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
             meshFromDepthShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
-            std::cout << "  Depth Compute Shader Time: " << glfwGetTime() - startTime << "s" << std::endl;
+            std::cout << "  Depth Compute Shader Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
 
             rerender = false;
         }

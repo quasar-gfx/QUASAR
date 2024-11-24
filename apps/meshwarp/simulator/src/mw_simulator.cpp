@@ -388,7 +388,7 @@ int main(int argc, char** argv) {
             toneMapShader.setBool("toneMap", false); // dont apply tone mapping
             renderer.drawToRenderTarget(toneMapShader, renderTarget);
 
-            std::cout << "  Rendering Time: " << glfwGetTime() - startTime << "s" << std::endl;
+            std::cout << "  Rendering Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
             startTime = glfwGetTime();
 
             // Set shader uniforms
@@ -420,7 +420,7 @@ int main(int argc, char** argv) {
             genMeshFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
                                             GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
-            std::cout << "  genMesh Compute Shader Time: " << glfwGetTime() - startTime << "s" << std::endl;
+            std::cout << "  genMesh Compute Shader Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
             startTime = glfwGetTime();
 
             rerender = false;
