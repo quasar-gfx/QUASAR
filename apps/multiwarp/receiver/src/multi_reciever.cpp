@@ -187,12 +187,12 @@ int main(int argc, char** argv) {
             auto quadProxiesData = FileIO::loadBinaryFile(quadProxiesFileName);
 
             // first uint in the file is the number of proxies
-            unsigned int outputQuadsSize = *reinterpret_cast<unsigned int*>(quadProxiesData.data());
+            unsigned int numProxies = *reinterpret_cast<unsigned int*>(quadProxiesData.data());
             unsigned int bufferOffset = sizeof(unsigned int);
 
             meshes[view] = new Mesh({
-                .numVertices = outputQuadsSize * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
-                .numIndices = outputQuadsSize * NUM_SUB_QUADS * 2 * 3,
+                .numVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
+                .numIndices = numProxies * NUM_SUB_QUADS * 2 * 3,
                 .material = new QuadMaterial({ .baseColorTexture = &colorTextures[view] }),
                 .usage = GL_DYNAMIC_DRAW,
                 .indirectDraw = true
@@ -201,25 +201,25 @@ int main(int argc, char** argv) {
             // next batch is the normalSphericals
             auto normalSphericalsPtr = reinterpret_cast<unsigned int*>(quadProxiesData.data() + bufferOffset);
             inputNormalSphericalsBuffer.bind();
-            inputNormalSphericalsBuffer.setData(outputQuadsSize, normalSphericalsPtr);
-            bufferOffset += outputQuadsSize * sizeof(unsigned int);
+            inputNormalSphericalsBuffer.setData(numProxies, normalSphericalsPtr);
+            bufferOffset += numProxies * sizeof(unsigned int);
 
             // next batch is the depths
             auto depthsPtr = reinterpret_cast<float*>(quadProxiesData.data() + bufferOffset);
             inputDepthsBuffer.bind();
-            inputDepthsBuffer.setData(outputQuadsSize, depthsPtr);
-            bufferOffset += outputQuadsSize * sizeof(float);
+            inputDepthsBuffer.setData(numProxies, depthsPtr);
+            bufferOffset += numProxies * sizeof(float);
 
             // next batch is the uvs
             auto uvsPtr = reinterpret_cast<glm::vec2*>(quadProxiesData.data() + bufferOffset);
             inputUVsBuffer.bind();
-            inputUVsBuffer.setData(outputQuadsSize, uvsPtr);
-            bufferOffset += outputQuadsSize * sizeof(glm::vec2);
+            inputUVsBuffer.setData(numProxies, uvsPtr);
+            bufferOffset += numProxies * sizeof(glm::vec2);
 
             // last batch is the offsets
             auto offsetSizeFlattenedsPtr = reinterpret_cast<unsigned int*>(quadProxiesData.data() + bufferOffset);
             inputOffsetSizeFlattenedsBuffer.bind();
-            inputOffsetSizeFlattenedsBuffer.setData(outputQuadsSize, offsetSizeFlattenedsPtr);
+            inputOffsetSizeFlattenedsBuffer.setData(numProxies, offsetSizeFlattenedsPtr);
 
             glm::uvec2 depthBufferSize = 4u * windowSize;
 
@@ -227,7 +227,7 @@ int main(int argc, char** argv) {
             startTime = glfwGetTime();
 
             meshFromQuads.createMeshFromProxies(
-                outputQuadsSize, depthBufferSize, *remoteCameras[view],
+                numProxies, depthBufferSize, *remoteCameras[view],
                 inputNormalSphericalsBuffer, inputDepthsBuffer, inputUVsBuffer, inputOffsetSizeFlattenedsBuffer,
                 sizesBuffer, *meshes[view]
             );
@@ -238,7 +238,7 @@ int main(int argc, char** argv) {
             sizesBuffer.getSubData(0, 1, &bufferSizes);
 
             totalTriangles += bufferSizes.numIndices / 3;
-            totalProxies += outputQuadsSize;
+            totalProxies += numProxies;
             totalDepthOffsets = 0;
         }
     }

@@ -252,44 +252,64 @@ public:
         stats.timeToFillOutputQuadsMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
     }
 
-    void createQuadsFromGBuffer(const GeometryBuffer& gBuffer, const PerspectiveCamera &remoteCamera){
+    void createProxiesFromGBuffer(const GeometryBuffer& gBuffer, const PerspectiveCamera &remoteCamera){
         generateInitialQuadMap(gBuffer, remoteCamera);
         simplifyQuadMaps(remoteCamera);
         fillOutputQuads();
     }
 
-    BufferSizes saveProxies(const std::string &filename) {
+    unsigned int getProxies(char* proxiesData) {
         auto bufferSizes = getBufferSizes();
 
-        std::ofstream quadsFile(filename, std::ios::binary);
+        unsigned int offset = 0;
+        unsigned int numProxies = bufferSizes.numProxies;
 
-        // save number of proxies
-        quadsFile.write((char*)&bufferSizes.numProxies, sizeof(unsigned int));
+        // write number of proxies
+        memcpy(proxiesData, &numProxies, sizeof(unsigned int));
+        offset += sizeof(unsigned int);
 
-        // save proxies
+        // write normals
+        std::vector<unsigned int> normalSphericals(numProxies);
         outputNormalSphericalsBuffer.bind();
-        std::vector<unsigned int> normalSphericals(bufferSizes.numProxies);
-        outputNormalSphericalsBuffer.getSubData(0, bufferSizes.numProxies, normalSphericals.data());
-        quadsFile.write((char*)normalSphericals.data(), bufferSizes.numProxies * sizeof(unsigned int));
+        outputNormalSphericalsBuffer.getSubData(0, numProxies, normalSphericals.data());
+        memcpy(proxiesData + offset, normalSphericals.data(), numProxies * sizeof(unsigned int));
+        offset += numProxies * sizeof(unsigned int);
 
+        // write depths
+        std::vector<float> depths(numProxies);
         outputDepthsBuffer.bind();
-        std::vector<float> depths(bufferSizes.numProxies);
-        outputDepthsBuffer.getSubData(0, bufferSizes.numProxies, depths.data());
-        quadsFile.write((char*)depths.data(), bufferSizes.numProxies * sizeof(float));
+        outputDepthsBuffer.getSubData(0, numProxies, depths.data());
+        memcpy(proxiesData + offset, depths.data(), numProxies * sizeof(float));
+        offset += numProxies * sizeof(float);
 
+        // write uvs
+        std::vector<glm::vec2> uvs(numProxies);
         outputUVsBuffer.bind();
-        std::vector<glm::vec2> uvs(bufferSizes.numProxies);
-        outputUVsBuffer.getSubData(0, bufferSizes.numProxies, uvs.data());
-        quadsFile.write((char*)uvs.data(), bufferSizes.numProxies * sizeof(glm::vec2));
+        outputUVsBuffer.getSubData(0, numProxies, uvs.data());
+        memcpy(proxiesData + offset, uvs.data(), numProxies * sizeof(glm::vec2));
+        offset += numProxies * sizeof(glm::vec2);
 
+        // write offsetSizeFlatteneds
+        std::vector<unsigned int> offsetSizeFlatteneds(numProxies);
         outputOffsetSizeFlattenedsBuffer.bind();
-        std::vector<unsigned int> offsets(bufferSizes.numProxies);
-        outputOffsetSizeFlattenedsBuffer.getSubData(0, bufferSizes.numProxies, offsets.data());
-        quadsFile.write((char*)offsets.data(), bufferSizes.numProxies * sizeof(unsigned int));
+        outputOffsetSizeFlattenedsBuffer.getSubData(0, numProxies, offsetSizeFlatteneds.data());
+        memcpy(proxiesData + offset, offsetSizeFlatteneds.data(), bufferSizes.numProxies * sizeof(unsigned int));
+        offset += numProxies * sizeof(unsigned int);
 
+        return offset;
+    }
+
+    unsigned int saveProxies(const std::string &filename) {
+        char* data = new char[sizeof(unsigned int) +
+                                maxQuads * (sizeof(unsigned int) + sizeof(float) + sizeof(glm::vec2) + sizeof(unsigned int))];
+        unsigned int payloadSize = getProxies(data);
+
+        std::ofstream quadsFile(filename, std::ios::binary);
+        quadsFile.write(data, payloadSize);
         quadsFile.close();
 
-        return bufferSizes;
+        delete[] data;
+        return payloadSize;
     }
 
     Buffer<BufferSizes>& getSizesBuffer() {

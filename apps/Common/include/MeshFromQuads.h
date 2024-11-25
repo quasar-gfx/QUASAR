@@ -33,7 +33,7 @@ public:
     }
 
     void createMeshFromProxies(
-                unsigned int outputQuadsSize, const glm::uvec2 &depthBufferSize,
+                unsigned int numProxies, const glm::uvec2 &depthBufferSize,
                 const PerspectiveCamera &remoteCamera,
                 const Buffer<unsigned int> &outputNormalSphericalsBuffer,
                 const Buffer<float> &outputDepthsBuffer,
@@ -55,7 +55,7 @@ public:
             createMeshFromQuadsShader.setFloat("far", remoteCamera.getFar());
         }
         {
-            createMeshFromQuadsShader.setInt("quadMapSize", outputQuadsSize);
+            createMeshFromQuadsShader.setInt("quadMapSize", numProxies);
             createMeshFromQuadsShader.setVec2("depthBufferSize", depthBufferSize);
         }
         {
@@ -72,14 +72,14 @@ public:
 
             createMeshFromQuadsShader.setImageTexture(0, depthOffsetsBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetsBuffer.internalFormat);
         }
-        createMeshFromQuadsShader.dispatch((outputQuadsSize + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
+        createMeshFromQuadsShader.dispatch((numProxies + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
         createMeshFromQuadsShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
         stats.timeToCreateMeshMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
     }
 
     void createMeshFromProxies(
-                unsigned int outputQuadsSize, const glm::uvec2 &depthBufferSize,
+                unsigned int numProxies, const glm::uvec2 &depthBufferSize,
                 const PerspectiveCamera &remoteCamera,
                 const Buffer<unsigned int> &outputNormalSphericalsBuffer,
                 const Buffer<float> &outputDepthsBuffer,
@@ -100,7 +100,7 @@ public:
             createMeshFromQuadsShader.setFloat("far", remoteCamera.getFar());
         }
         {
-            createMeshFromQuadsShader.setInt("quadMapSize", outputQuadsSize);
+            createMeshFromQuadsShader.setInt("quadMapSize", numProxies);
             createMeshFromQuadsShader.setVec2("depthBufferSize", depthBufferSize);
         }
         {
@@ -117,7 +117,7 @@ public:
 
             // createMeshFromQuadsShader.setImageTexture(0, depthOffsetsBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetsBuffer.internalFormat);
         }
-        createMeshFromQuadsShader.dispatch((outputQuadsSize + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
+        createMeshFromQuadsShader.dispatch((numProxies + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
         createMeshFromQuadsShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
         stats.timeToCreateMeshMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);

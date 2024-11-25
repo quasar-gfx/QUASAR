@@ -408,10 +408,8 @@ int main(int argc, char** argv) {
 
             if (ImGui::Button("Save Proxies")) {
                 std::string quadsFileName = dataPath + "quads.bin";
-                auto bufferSizes = quadsGenerator.saveProxies(quadsFileName);
-                std::cout << "Saved " << bufferSizes.numProxies << " quads (" <<
-                                (float)bufferSizes.numProxies * sizeof(QuadMapDataPacked) / BYTES_IN_MB <<
-                                " MB)" << std::endl;
+                unsigned int savedBytes = quadsGenerator.saveProxies(quadsFileName);
+                std::cout << "Saved " << savedBytes << " quads (" << (float)savedBytes / BYTES_IN_MB << " MB)" << std::endl;
 
                 // save color buffer
                 renderTarget.saveColorAsPNG(colorFileName);
@@ -520,7 +518,7 @@ int main(int argc, char** argv) {
             SECOND to FOURTH PASSES: Generate quad map and output proxies
             ============================
             */
-            quadsGenerator.createQuadsFromGBuffer(remoteRenderer.gBuffer, remoteCamera);
+            quadsGenerator.createProxiesFromGBuffer(remoteRenderer.gBuffer, remoteCamera);
 
             std::cout << "  QuadMap Compute Shader Time: " << quadsGenerator.stats.timeToGenerateQuadsMs << "ms" << std::endl;
             std::cout << "  Simplify QuadMap Compute Shader Time: " << quadsGenerator.stats.timeToSimplifyQuadsMs << "ms" << std::endl;
@@ -533,19 +531,19 @@ int main(int argc, char** argv) {
             ============================
             */
             // get output quads size (same as number of proxies)
-            unsigned int outputQuadsSize = quadsGenerator.getBufferSizes().numProxies;
+            unsigned int numProxies = quadsGenerator.getBufferSizes().numProxies;
 
             std::cout << "  Get Size of Proxies Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
             startTime = glfwGetTime();
 
             meshFromQuads.createMeshFromProxies(
-                    outputQuadsSize, quadsGenerator.depthBufferSize,
-                    remoteCamera,
-                    quadsGenerator.outputNormalSphericalsBuffer, quadsGenerator.outputDepthsBuffer,
-                    quadsGenerator.outputUVsBuffer, quadsGenerator.outputOffsetSizeFlattenedsBuffer,
-                    quadsGenerator.depthOffsetsBuffer,
-                    quadsGenerator.getSizesBuffer(),
-                    mesh
+                numProxies, quadsGenerator.depthBufferSize,
+                remoteCamera,
+                quadsGenerator.outputNormalSphericalsBuffer, quadsGenerator.outputDepthsBuffer,
+                quadsGenerator.outputUVsBuffer, quadsGenerator.outputOffsetSizeFlattenedsBuffer,
+                quadsGenerator.depthOffsetsBuffer,
+                quadsGenerator.getSizesBuffer(),
+                mesh
             );
 
             std::cout << "  Create Mesh Compute Shader Time: " << meshFromQuads.stats.timeToCreateMeshMs << "ms" << std::endl;

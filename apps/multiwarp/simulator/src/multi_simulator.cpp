@@ -567,10 +567,8 @@ int main(int argc, char** argv) {
             if (ImGui::Button("Save Proxies")) {
                 for (int view = 0; view < maxViews; view++) {
                     std::string quadsFileName = dataPath + "quads" + std::to_string(view) + ".bin";
-                    auto bufferSizes = quadsGenerator.saveProxies(quadsFileName);
-                    std::cout << "Saved " << bufferSizes.numProxies << " quads (" <<
-                                (float)bufferSizes.numProxies * sizeof(QuadMapDataPacked) / BYTES_IN_MB <<
-                                " MB)" << std::endl;
+                    unsigned int savedBytes = quadsGenerator.saveProxies(quadsFileName);
+                    std::cout << "Saved " << savedBytes << " quads (" << (float)savedBytes / BYTES_IN_MB << " MB)" << std::endl;
 
                     // save color buffer
                     std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
@@ -725,7 +723,7 @@ int main(int argc, char** argv) {
                 SECOND to FOURTH PASSES: Generate quad map and output proxies
                 ============================
                 */
-                quadsGenerator.createQuadsFromGBuffer(remoteRenderer.gBuffer, *remoteCamera);
+                quadsGenerator.createProxiesFromGBuffer(remoteRenderer.gBuffer, *remoteCamera);
 
                 totalGenQuadMapTime += quadsGenerator.stats.timeToGenerateQuadsMs;
                 totalSimplifyTime += quadsGenerator.stats.timeToSimplifyQuadsMs;
@@ -738,19 +736,19 @@ int main(int argc, char** argv) {
                 ============================
                 */
                 // get output quads size (same as number of proxies)
-                unsigned int outputQuadsSize = quadsGenerator.getBufferSizes().numProxies;
+                unsigned int numProxies = quadsGenerator.getBufferSizes().numProxies;
 
                 totalGetSizeOfProxiesTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
                 startTime = glfwGetTime();
 
                 meshFromQuads.createMeshFromProxies(
-                        outputQuadsSize, quadsGenerator.depthBufferSize,
-                        *remoteCamera,
-                        quadsGenerator.outputNormalSphericalsBuffer, quadsGenerator.outputDepthsBuffer,
-                        quadsGenerator.outputUVsBuffer, quadsGenerator.outputOffsetSizeFlattenedsBuffer,
-                        quadsGenerator.depthOffsetsBuffer,
-                        quadsGenerator.getSizesBuffer(),
-                        *currMesh
+                    numProxies, quadsGenerator.depthBufferSize,
+                    *remoteCamera,
+                    quadsGenerator.outputNormalSphericalsBuffer, quadsGenerator.outputDepthsBuffer,
+                    quadsGenerator.outputUVsBuffer, quadsGenerator.outputOffsetSizeFlattenedsBuffer,
+                    quadsGenerator.depthOffsetsBuffer,
+                    quadsGenerator.getSizesBuffer(),
+                    *currMesh
                 );
 
                 totalCreateMeshTime += meshFromQuads.stats.timeToCreateMeshMs;
