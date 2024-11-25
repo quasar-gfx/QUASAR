@@ -14,6 +14,9 @@
 #include <Recorder.h>
 #include <Animator.h>
 #include <Utils/Utils.h>
+
+#include <QuadsGenerator.h>
+#include <MeshFromQuads.h>
 #include <QuadMaterial.h>
 #include <shaders_common.h>
 
@@ -55,12 +58,6 @@ int main(int argc, char** argv) {
     // assume remote window size is the same as local window size
     glm::uvec2 remoteWindowSize = glm::uvec2(config.width, config.height);
 
-    // make sure maxProxySize is a power of 2
-    glm::uvec2 maxProxySize = remoteWindowSize;
-    maxProxySize.x = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize.x))));
-    maxProxySize.y = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize.y))));
-    int numQuadMaps = glm::log2(static_cast<float>(glm::min(maxProxySize.x, maxProxySize.y))) + 1;
-
     config.enableVSync = args::get(vsyncIn);
     config.showWindow = !args::get(saveImage);
 
@@ -99,41 +96,8 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera(windowSize.x, windowSize.y);
     camera.setViewMatrix(remoteCamera.getViewMatrix());
 
-    std::vector<Buffer<unsigned int>> normalSphericalsBuffers(numQuadMaps);
-    std::vector<Buffer<float>> depthsBuffers(numQuadMaps);
-    std::vector<Buffer<glm::vec2>> uvsBuffers(numQuadMaps);
-    std::vector<Buffer<unsigned int>> offsetSizeFlattenedsBuffers(numQuadMaps);
-
-    std::vector<glm::uvec2> quadMapSizes(numQuadMaps);
-    glm::vec2 currQuadMapSize = maxProxySize;
-    for (int i = 0; i < numQuadMaps; i++) {
-        normalSphericalsBuffers[i] = Buffer<unsigned int>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, currQuadMapSize.x * currQuadMapSize.y, nullptr);
-        depthsBuffers[i] = Buffer<float>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, currQuadMapSize.x * currQuadMapSize.y, nullptr);
-        uvsBuffers[i] = Buffer<glm::vec2>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, currQuadMapSize.x * currQuadMapSize.y, nullptr);
-        offsetSizeFlattenedsBuffers[i] = Buffer<unsigned int>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, currQuadMapSize.x * currQuadMapSize.y, nullptr);
-
-        quadMapSizes[i] = currQuadMapSize;
-        currQuadMapSize /= 2;
-    }
-
-    unsigned int maxQuads = remoteWindowSize.x * remoteWindowSize.y * NUM_SUB_QUADS;
-    Buffer<unsigned int> outputNormalSphericalsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
-    Buffer<float> outputDepthsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
-    Buffer<glm::vec2> outputUVsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
-    Buffer<unsigned int> outputOffsetSizeFlattenedsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
-
-    glm::uvec2 depthBufferSize = 4u * remoteWindowSize;
-    Texture depthOffsetsBuffer({
-        .width = depthBufferSize.x,
-        .height = depthBufferSize.y,
-        .internalFormat = GL_R16F,
-        .format = GL_RED,
-        .type = GL_FLOAT,
-        .wrapS = GL_REPEAT,
-        .wrapT = GL_REPEAT,
-        .minFilter = GL_NEAREST,
-        .magFilter = GL_NEAREST
-    });
+    QuadsGenerator quadsGenerator(remoteWindowSize);
+    MeshFromQuads meshFromQuads(remoteWindowSize);
 
     RenderTarget renderTarget({
         .width = windowSize.x,
@@ -151,15 +115,6 @@ int main(int argc, char** argv) {
     unsigned int numTriangles = remoteWindowSize.x * remoteWindowSize.y * NUM_SUB_QUADS * 2;
     unsigned int maxIndices = numTriangles * 3;
     unsigned int maxVerticesDepth = remoteWindowSize.x * remoteWindowSize.y;
-
-    struct BufferSizes {
-        unsigned int numVertices;
-        unsigned int numIndices;
-        unsigned int numProxies;
-        unsigned int numDepthOffsets;
-    };
-    BufferSizes bufferSizes = { 0 };
-    Buffer<BufferSizes> sizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, 1, &bufferSizes);
 
     Mesh mesh = Mesh({
         .numVertices = maxVertices,
@@ -200,34 +155,6 @@ int main(int argc, char** argv) {
         .fragmentCodeSize = SHADER_BUILTIN_DISPLAYNORMALS_FRAG_len
     });
 
-    ComputeShader genQuadMapShader({
-        .computeCodePath = "shaders/genQuadMap.comp",
-        .defines = {
-            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
-        }
-    });
-
-    ComputeShader simplifyQuadMapShader({
-        .computeCodePath = "shaders/simplifyQuadMap.comp",
-        .defines = {
-            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
-        }
-    });
-
-    ComputeShader fillOutputQuadsShader({
-        .computeCodePath = "shaders/fillOutputQuads.comp",
-        .defines = {
-            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
-        }
-    });
-
-    ComputeShader createMeshFromQuadsShader({
-        .computeCodePath = "shaders/createMeshFromQuads.comp",
-        .defines = {
-            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
-        }
-    });
-
     ComputeShader meshFromDepthShader({
         .computeCodeData = SHADER_COMMON_MESHFROMDEPTH_COMP,
         .computeCodeSize = SHADER_COMMON_MESHFROMDEPTH_COMP_len,
@@ -257,12 +184,8 @@ int main(int argc, char** argv) {
     bool showDepth = false;
     bool showNormals = false;
     bool showWireframe = false;
-    bool doOrientationCorrection = true;
     bool preventCopyingLocalPose = false;
-    float distanceThreshold = 0.5f;
-    float angleThreshold = 85.0f;
-    float flatThreshold = 1.0f;
-    float proxySimilarityThreshold = 0.25f;
+    bool saveProxies = false;
     bool restrictMovementToViewBox = !animationFileIn;
     float viewBoxSize = 0.5f;
     const int intervalValues[] = {0, 25, 50, 100, 200, 500, 1000};
@@ -317,8 +240,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            sizesBuffer.bind();
-            sizesBuffer.getSubData(0, 1, &bufferSizes);
+            auto bufferSizes = quadsGenerator.getBufferSizes();
 
             unsigned int totalTriangles = bufferSizes.numIndices / 3;
             unsigned int totalProxies = bufferSizes.numProxies;
@@ -380,27 +302,27 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::Checkbox("Correct Normal Orientation", &doOrientationCorrection)) {
+            if (ImGui::Checkbox("Correct Normal Orientation", &quadsGenerator.doOrientationCorrection)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
             }
 
-            if (ImGui::SliderFloat("Distance Threshold", &distanceThreshold, 0.0f, 1.0f)) {
+            if (ImGui::SliderFloat("Distance Threshold", &quadsGenerator.distanceThreshold, 0.0f, 1.0f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
             }
 
-            if (ImGui::SliderFloat("Angle Threshold", &angleThreshold, 0.0f, 180.0f)) {
+            if (ImGui::SliderFloat("Angle Threshold", &quadsGenerator.angleThreshold, 0.0f, 180.0f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
             }
 
-            if (ImGui::SliderFloat("Flat Threshold (x0.01)", &flatThreshold, 0.0f, 10.0f)) {
+            if (ImGui::SliderFloat("Flat Threshold (x0.01)", &quadsGenerator.flatThreshold, 0.0f, 10.0f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
             }
 
-            if (ImGui::SliderFloat("Similarity Threshold", &proxySimilarityThreshold, 0.0f, 1.0f)) {
+            if (ImGui::SliderFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.0f, 1.0f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
             }
@@ -456,8 +378,7 @@ int main(int argc, char** argv) {
             std::string colorFileName = dataPath + "color.png";
 
             if (ImGui::Button("Save Mesh")) {
-                sizesBuffer.bind();
-                sizesBuffer.getSubData(0, 1, &bufferSizes);
+                auto bufferSizes = quadsGenerator.getBufferSizes();
 
                 std::string verticesFileName = dataPath + "vertices.bin";
                 std::string indicesFileName = dataPath + "indices.bin";
@@ -487,43 +408,9 @@ int main(int argc, char** argv) {
             }
 
             if (ImGui::Button("Save Proxies")) {
-                sizesBuffer.bind();
-                sizesBuffer.getSubData(0, 1, &bufferSizes);
-
-                std::string quadsFileName = dataPath + "quads.bin";
-                std::ofstream quadsFile(quadsFileName, std::ios::binary);
-
-                // save number of proxies
-                quadsFile.write((char*)&bufferSizes.numProxies, sizeof(unsigned int));
-
-                // save proxies
-                outputNormalSphericalsBuffer.bind();
-                std::vector<unsigned int> normalSphericals(bufferSizes.numProxies);
-                outputNormalSphericalsBuffer.getSubData(0, bufferSizes.numProxies, normalSphericals.data());
-                quadsFile.write((char*)normalSphericals.data(), bufferSizes.numProxies * sizeof(unsigned int));
-
-                outputDepthsBuffer.bind();
-                std::vector<float> depths(bufferSizes.numProxies);
-                outputDepthsBuffer.getSubData(0, bufferSizes.numProxies, depths.data());
-                quadsFile.write((char*)depths.data(), bufferSizes.numProxies * sizeof(float));
-
-                outputUVsBuffer.bind();
-                std::vector<glm::vec2> uvs(bufferSizes.numProxies);
-                outputUVsBuffer.getSubData(0, bufferSizes.numProxies, uvs.data());
-                quadsFile.write((char*)uvs.data(), bufferSizes.numProxies * sizeof(glm::vec2));
-
-                outputOffsetSizeFlattenedsBuffer.bind();
-                std::vector<unsigned int> offsets(bufferSizes.numProxies);
-                outputOffsetSizeFlattenedsBuffer.getSubData(0, bufferSizes.numProxies, offsets.data());
-                quadsFile.write((char*)offsets.data(), bufferSizes.numProxies * sizeof(unsigned int));
-
-                quadsFile.close();
-                std::cout << "Saved " << bufferSizes.numProxies << " quads (" <<
-                              (float)bufferSizes.numProxies * sizeof(QuadMapDataPacked) / BYTES_IN_MB <<
-                              " MB)" << std::endl;
-
-                // save color buffer
-                renderTarget.saveColorAsPNG(colorFileName);
+                preventCopyingLocalPose = true;
+                rerender = true;
+                saveProxies = true;
             }
 
             ImGui::End();
@@ -605,6 +492,13 @@ int main(int argc, char** argv) {
             std::cout << "======================================================" << std::endl;
 
             double startTime = glfwGetTime();
+            double totalRenderTime = 0.0;
+            double totalGenQuadMapTime = 0.0;
+            double totalSimplifyTime = 0.0;
+            double totalFillQuadsTime = 0.0;
+            double totalGetSizeOfProxiesTime = 0.0;
+            double totalCreateMeshTime = 0.0;
+            double totalGenDepthTime = 0.0;
 
             /*
             ============================
@@ -621,153 +515,29 @@ int main(int argc, char** argv) {
                 remoteRenderer.drawToRenderTarget(screenShaderNormals, renderTarget);
             }
 
-            std::cout << "  Rendering Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
+            totalRenderTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
             startTime = glfwGetTime();
 
             /*
             ============================
-            SECOND PASS: Generate quads from G-Buffer
+            SECOND to FOURTH PASSES: Generate quad map and output proxies
             ============================
             */
-            genQuadMapShader.bind();
-            {
-                genQuadMapShader.setTexture(remoteRenderer.gBuffer.normalsBuffer, 0);
-                genQuadMapShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 1);
+            quadsGenerator.createProxiesFromGBuffer(remoteRenderer.gBuffer, remoteCamera);
+
+            if (saveProxies) {
+                std::string quadsFileName = dataPath + "quads.bin";
+                unsigned int savedBytes = quadsGenerator.saveProxies(quadsFileName);
+                std::cout << "Saved " << savedBytes << " quads (" << (float)savedBytes / BYTES_IN_MB << " MB)" << std::endl;
+
+                // save color buffer
+                std::string colorFileName = dataPath + "color.png";
+                renderTarget.saveColorAsPNG(colorFileName);
             }
-            {
-                genQuadMapShader.setVec2("remoteWindowSize", remoteWindowSize);
-                genQuadMapShader.setVec2("quadMapSize", quadMapSizes[0]);
-                genQuadMapShader.setVec2("depthBufferSize", depthBufferSize);
-            }
-            {
-                genQuadMapShader.setMat4("view", remoteCamera.getViewMatrix());
-                genQuadMapShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-                genQuadMapShader.setMat4("viewInverse", remoteCamera.getViewMatrixInverse());
-                genQuadMapShader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
-                genQuadMapShader.setFloat("near", remoteCamera.getNear());
-                genQuadMapShader.setFloat("far", remoteCamera.getFar());
-            }
-            {
-                genQuadMapShader.setBool("doOrientationCorrection", doOrientationCorrection);
-                genQuadMapShader.setFloat("distanceThreshold", distanceThreshold);
-                genQuadMapShader.setFloat("angleThreshold", glm::radians(angleThreshold));
-                genQuadMapShader.setFloat("flatThreshold", flatThreshold * 1e-2f);
-            }
-            {
-                genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, sizesBuffer);
 
-                genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, normalSphericalsBuffers[0]);
-                genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, depthsBuffers[0]);
-                genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, uvsBuffers[0]);
-                genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, offsetSizeFlattenedsBuffers[0]);
-
-                genQuadMapShader.setImageTexture(0, depthOffsetsBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsetsBuffer.internalFormat);
-            }
-            genQuadMapShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                      (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
-            genQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-            std::cout << "  QuadMap Compute Shader Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
-            startTime = glfwGetTime();
-
-            /*
-            ============================
-            THIRD PASS: Simplify quad map
-            ============================
-            */
-            simplifyQuadMapShader.bind();
-            {
-                simplifyQuadMapShader.setMat4("view", remoteCamera.getViewMatrix());
-                simplifyQuadMapShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-                simplifyQuadMapShader.setMat4("viewInverse", remoteCamera.getViewMatrixInverse());
-                simplifyQuadMapShader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
-                simplifyQuadMapShader.setFloat("near", remoteCamera.getNear());
-                simplifyQuadMapShader.setFloat("far", remoteCamera.getFar());
-            }
-            {
-                simplifyQuadMapShader.setVec2("remoteWindowSize", remoteWindowSize);
-                simplifyQuadMapShader.setVec2("depthBufferSize", depthBufferSize);
-            }
-            {
-                simplifyQuadMapShader.setFloat("flatThreshold", flatThreshold * 1e-2f);
-                simplifyQuadMapShader.setFloat("proxySimilarityThreshold", proxySimilarityThreshold);
-            }
-            {
-                simplifyQuadMapShader.setImageTexture(0, depthOffsetsBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsetsBuffer.internalFormat);
-            }
-            for (int i = 1; i < numQuadMaps; i++) {
-                auto& prevQuadMapSize = quadMapSizes[i-1];
-                auto& prevNormalSphericalBuffer = normalSphericalsBuffers[i-1];
-                auto& prevDepthsBuffer = depthsBuffers[i-1];
-                auto& prevUVsBuffer = uvsBuffers[i-1];
-                auto& prevOffsetsBuffer = offsetSizeFlattenedsBuffers[i-1];
-
-                auto& currQuadMapSize = quadMapSizes[i];
-                auto& currNormalSphericalBuffer = normalSphericalsBuffers[i];
-                auto& currDepthsBuffer = depthsBuffers[i];
-                auto& currUVsBuffer = uvsBuffers[i];
-                auto& currOffsetsBuffer = offsetSizeFlattenedsBuffers[i];
-
-                {
-                    simplifyQuadMapShader.setVec2("inputQuadMapSize", prevQuadMapSize);
-                    simplifyQuadMapShader.setVec2("outputQuadMapSize", currQuadMapSize);
-                }
-                {
-                    simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, prevNormalSphericalBuffer);
-                    simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, prevDepthsBuffer);
-                    simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, prevUVsBuffer);
-                    simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, prevOffsetsBuffer);
-
-                    simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, currNormalSphericalBuffer);
-                    simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, currDepthsBuffer);
-                    simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, currUVsBuffer);
-                    simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, currOffsetsBuffer);
-                }
-                simplifyQuadMapShader.dispatch((currQuadMapSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                               (currQuadMapSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
-                simplifyQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-            }
-            simplifyQuadMapShader.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-            std::cout << "  Simplify QuadMap Compute Shader Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
-            startTime = glfwGetTime();
-
-            /*
-            ============================
-            FOURTH PASS: Fill output quads buffer
-            ============================
-            */
-            fillOutputQuadsShader.bind();
-            for (int i = 0; i < numQuadMaps; i++) {
-                auto& currNormalSphericalBuffer = normalSphericalsBuffers[i];
-                auto& currDepthsBuffer = depthsBuffers[i];
-                auto& currUVsBuffer = uvsBuffers[i];
-                auto& currOffsetsBuffer = offsetSizeFlattenedsBuffers[i];
-
-                auto& currQuadMapSize = quadMapSizes[i];
-
-                {
-                    fillOutputQuadsShader.setVec2("quadMapSize", currQuadMapSize);
-                }
-                {
-                    fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, sizesBuffer);
-
-                    fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, currNormalSphericalBuffer);
-                    fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, currDepthsBuffer);
-                    fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, currUVsBuffer);
-                    fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, currOffsetsBuffer);
-
-                    fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, outputNormalSphericalsBuffer);
-                    fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, outputDepthsBuffer);
-                    fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, outputUVsBuffer);
-                    fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 8, outputOffsetSizeFlattenedsBuffer);
-                }
-                fillOutputQuadsShader.dispatch((currQuadMapSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                               (currQuadMapSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
-            }
-            fillOutputQuadsShader.memoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
-
-            std::cout << "  Fill Quads Compute Shader Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
+            totalGenQuadMapTime += quadsGenerator.stats.timeToGenerateQuadsMs;
+            totalSimplifyTime += quadsGenerator.stats.timeToSimplifyQuadsMs;
+            totalFillQuadsTime += quadsGenerator.stats.timeToFillOutputQuadsMs;
             startTime = glfwGetTime();
 
             /*
@@ -776,42 +546,22 @@ int main(int argc, char** argv) {
             ============================
             */
             // get output quads size (same as number of proxies)
-            sizesBuffer.bind();
-            sizesBuffer.getSubData(0, 1, &bufferSizes);
-            unsigned int outputQuadsSize = bufferSizes.numProxies;
+            unsigned int numProxies = quadsGenerator.getBufferSizes().numProxies;
 
-            createMeshFromQuadsShader.bind();
-            {
-                createMeshFromQuadsShader.setMat4("view", remoteCamera.getViewMatrix());
-                createMeshFromQuadsShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-                createMeshFromQuadsShader.setMat4("viewInverse", remoteCamera.getViewMatrixInverse());
-                createMeshFromQuadsShader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
-                createMeshFromQuadsShader.setFloat("near", remoteCamera.getNear());
-                createMeshFromQuadsShader.setFloat("far", remoteCamera.getFar());
-            }
-            {
-                createMeshFromQuadsShader.setVec2("remoteWindowSize", remoteWindowSize);
-                createMeshFromQuadsShader.setInt("quadMapSize", outputQuadsSize);
-                createMeshFromQuadsShader.setVec2("depthBufferSize", depthBufferSize);
-            }
-            {
-                createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, sizesBuffer);
+            totalGetSizeOfProxiesTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
+            startTime = glfwGetTime();
 
-                createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh.vertexBuffer);
-                createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, mesh.indexBuffer);
-                createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, mesh.indirectBuffer);
+            meshFromQuads.createMeshFromProxies(
+                numProxies, quadsGenerator.depthBufferSize,
+                remoteCamera,
+                quadsGenerator.outputNormalSphericalsBuffer, quadsGenerator.outputDepthsBuffer,
+                quadsGenerator.outputUVsBuffer, quadsGenerator.outputOffsetSizeFlattenedsBuffer,
+                quadsGenerator.depthOffsetsBuffer,
+                quadsGenerator.getSizesBuffer(),
+                mesh
+            );
 
-                createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, outputNormalSphericalsBuffer);
-                createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, outputDepthsBuffer);
-                createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, outputUVsBuffer);
-                createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, outputOffsetSizeFlattenedsBuffer);
-
-                createMeshFromQuadsShader.setImageTexture(0, depthOffsetsBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetsBuffer.internalFormat);
-            }
-            createMeshFromQuadsShader.dispatch((outputQuadsSize + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
-            createMeshFromQuadsShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
-
-            std::cout << "  Create Mesh Compute Shader Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
+            totalCreateMeshTime += meshFromQuads.stats.timeToCreateMeshMs;
             startTime = glfwGetTime();
 
             /*
@@ -843,9 +593,18 @@ int main(int argc, char** argv) {
                                          (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
             meshFromDepthShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
-            std::cout << "  Depth Compute Shader Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
+            totalGenDepthTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
+
+            std::cout << "  Rendering Time: " << totalRenderTime << "ms" << std::endl;
+            std::cout << "  Gen Quad Map Time: " << totalGenQuadMapTime << "ms" << std::endl;
+            std::cout << "  Simplify Time: " << totalSimplifyTime << "ms" << std::endl;
+            std::cout << "  Fill Quads Time: " << totalFillQuadsTime << "ms" << std::endl;
+            std::cout << "  Get Size of Proxies Time: " << totalGetSizeOfProxiesTime << "ms" << std::endl;
+            std::cout << "  Create Mesh Time: " << totalCreateMeshTime << "ms" << std::endl;
+            std::cout << "  Gen Depth Time: " << totalGenDepthTime << "ms" << std::endl;
 
             rerender = false;
+            saveProxies = false;
         }
 
         nodeWireframe.visible = showWireframe;

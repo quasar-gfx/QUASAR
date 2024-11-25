@@ -6,9 +6,9 @@
 #include <Shaders/Shader.h>
 #include <Lights/Lights.h>
 #include <CubeMap.h>
-#include <Primatives/Mesh.h>
+#include <Primitives/Mesh.h>
 #include <RenderTargets/RenderTarget.h>
-#include <Primatives/FullScreenQuad.h>
+#include <Primitives/FullScreenQuad.h>
 
 class Scene {
 public:

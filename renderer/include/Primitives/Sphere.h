@@ -1,7 +1,7 @@
 #ifndef SPHERE_H
 #define SPHERE_H
 
-#include <Primatives/Mesh.h>
+#include <Primitives/Mesh.h>
 
 class Sphere : public Mesh {
 public:

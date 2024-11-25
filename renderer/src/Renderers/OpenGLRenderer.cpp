@@ -1,5 +1,5 @@
 #include <Renderers/OpenGLRenderer.h>
-#include <Primatives/Sphere.h>
+#include <Primitives/Sphere.h>
 #include <Materials/UnlitMaterial.h>
 
 #ifndef __APPLE__

@@ -3,7 +3,7 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/matrix_decompose.hpp>
-#include <Primatives/Entity.h>
+#include <Primitives/Entity.h>
 #include <vector>
 
 class Node {

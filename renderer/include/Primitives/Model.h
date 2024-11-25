@@ -12,9 +12,9 @@
 
 #include <Vertex.h>
 #include <Shaders/Shader.h>
-#include <Primatives/Mesh.h>
+#include <Primitives/Mesh.h>
 #include <Materials/PBRMaterial.h>
-#include <Primatives/Entity.h>
+#include <Primitives/Entity.h>
 
 struct ModelCreateParams {
     bool flipTextures = false;

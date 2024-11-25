@@ -4,7 +4,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <Primatives/Entity.h>
+#include <Primitives/Entity.h>
 #include <Materials/Material.h>
 
 struct LightCreateParams {

@@ -1,7 +1,7 @@
 #ifndef CUBE_H
 #define CUBE_H
 
-#include <Primatives/Mesh.h>
+#include <Primitives/Mesh.h>
 
 class Cube : public Mesh {
 public:

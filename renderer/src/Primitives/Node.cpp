@@ -1,4 +1,4 @@
-#include <Primatives/Node.h>
+#include <Primitives/Node.h>
 
 unsigned int Node::nextID = 0;
 

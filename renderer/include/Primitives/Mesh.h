@@ -7,7 +7,7 @@
 #include <Buffer.h>
 #include <Shaders/Shader.h>
 #include <Texture.h>
-#include <Primatives/Entity.h>
+#include <Primitives/Entity.h>
 #include <Materials/Material.h>
 #include <Scene.h>
 #include <Cameras/PerspectiveCamera.h>

@@ -7,7 +7,7 @@
 #include <glm/gtx/matrix_decompose.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <Primatives/Node.h>
+#include <Primitives/Node.h>
 
 class Camera : public Node {
 public:
