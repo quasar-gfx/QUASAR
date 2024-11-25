@@ -555,40 +555,10 @@ int main(int argc, char** argv) {
 
             if (ImGui::Button("Save Proxies")) {
                 for (int view = 0; view < maxViews; view++) {
-                    BufferSizes sizes;
-                    sizesBuffers[view].bind();
-                    sizesBuffers[view].getSubData(0, 1, &sizes);
-
                     std::string quadsFileName = dataPath + "quads" + std::to_string(view) + ".bin";
-                    std::ofstream quadsFile(quadsFileName, std::ios::binary);
-
-                    // save number of proxies
-                    quadsFile.write((char*)&sizes.numProxies, sizeof(unsigned int));
-
-                    // // save proxies
-                    // outputNormalSphericalsBuffers[view].bind();
-                    // std::vector<unsigned int> normalSphericals(sizes.numProxies);
-                    // outputNormalSphericalsBuffers[view].getSubData(0, sizes.numProxies, normalSphericals.data());
-                    // quadsFile.write((char*)normalSphericals.data(), sizes.numProxies * sizeof(unsigned int));
-
-                    // outputDepthsBuffers[view].bind();
-                    // std::vector<float> depths(sizes.numProxies);
-                    // outputDepthsBuffers[view].getSubData(0, sizes.numProxies, depths.data());
-                    // quadsFile.write((char*)depths.data(), sizes.numProxies * sizeof(float));
-
-                    // outputUVsBuffers[view].bind();
-                    // std::vector<glm::vec2> uvs(sizes.numProxies);
-                    // outputUVsBuffers[view].getSubData(0, sizes.numProxies, uvs.data());
-                    // quadsFile.write((char*)uvs.data(), sizes.numProxies * sizeof(glm::vec2));
-
-                    // outputOffsetSizeFlattenedsBuffers[view].bind();
-                    // std::vector<unsigned int> offsets(sizes.numProxies);
-                    // outputOffsetSizeFlattenedsBuffers[view].getSubData(0, sizes.numProxies, offsets.data());
-                    // quadsFile.write((char*)offsets.data(), sizes.numProxies * sizeof(unsigned int));
-
-                    quadsFile.close();
-                    std::cout << "Saved " << sizes.numProxies << " quads (" <<
-                                (float)sizes.numProxies * sizeof(QuadMapDataPacked) / BYTES_IN_MB <<
+                    auto bufferSizes = quadsGenerator.saveProxies(quadsFileName);
+                    std::cout << "Saved " << bufferSizes.numProxies << " quads (" <<
+                                (float)bufferSizes.numProxies * sizeof(QuadMapDataPacked) / BYTES_IN_MB <<
                                 " MB)" << std::endl;
 
                     // save color buffer
