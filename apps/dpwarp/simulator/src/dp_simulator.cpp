@@ -264,6 +264,7 @@ int main(int argc, char** argv) {
     bool showWireframe = false;
     bool doOrientationCorrection = true;
     bool preventCopyingLocalPose = false;
+    bool saveProxies = false;
     float distanceThreshold = 0.5f;
     float angleThreshold = 85.0f;
     float flatThreshold = 1.0f;
@@ -534,8 +535,8 @@ int main(int argc, char** argv) {
                     std::ofstream verticesFile(dataPath + verticesFileName, std::ios::binary);
                     verticesFile.write((char*)vertices.data(), sizes.numVertices * sizeof(Vertex));
                     verticesFile.close();
-                    std::cout << "Saved " << sizes.numVertices << " vertices (" <<
-                                             (float)sizes.numVertices * sizeof(Vertex) / BYTES_IN_MB <<
+                    std::cout << "Saved " << vertices.size() << " vertices (" <<
+                                             (float)vertices.size() * sizeof(Vertex) / BYTES_IN_MB <<
                                              " MB)" << std::endl;
 
                     // save indexBuffer
@@ -544,8 +545,8 @@ int main(int argc, char** argv) {
                     std::ofstream indicesFile(dataPath + indicesFileName, std::ios::binary);
                     indicesFile.write((char*)indices.data(), sizes.numIndices * sizeof(unsigned int));
                     indicesFile.close();
-                    std::cout << "Saved " << sizes.numIndices << " indicies (" <<
-                                             (float)sizes.numIndices * sizeof(Vertex) / BYTES_IN_MB <<
+                    std::cout << "Saved " << indices.size() << " indicies (" <<
+                                             (float)indices.size() * sizeof(Vertex) / BYTES_IN_MB <<
                                              " MB)" << std::endl;
 
                     // save color buffer
@@ -554,15 +555,9 @@ int main(int argc, char** argv) {
             }
 
             if (ImGui::Button("Save Proxies")) {
-                for (int view = 0; view < maxViews; view++) {
-                    std::string quadsFileName = dataPath + "quads" + std::to_string(view) + ".bin";
-                    unsigned int savedBytes = quadsGenerator.saveProxies(quadsFileName);
-                    std::cout << "Saved " << savedBytes << " quads (" << (float)savedBytes / BYTES_IN_MB << " MB)" << std::endl;
-
-                    // save color buffer
-                    std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
-                    renderTargets[view].saveColorAsPNG(colorFileName);
-                }
+                preventCopyingLocalPose = true;
+                rerender = true;
+                saveProxies = true;
             }
 
             ImGui::End();
@@ -723,6 +718,16 @@ int main(int argc, char** argv) {
                 }
                 quadsGenerator.createProxiesFromGBuffer(*gBuffer, *remoteCamera);
 
+                if (saveProxies) {
+                    std::string quadsFileName = dataPath + "quads" + std::to_string(view) + ".bin";
+                    unsigned int savedBytes = quadsGenerator.saveProxies(quadsFileName);
+                    std::cout << "Saved " << savedBytes << " quads (" << (float)savedBytes / BYTES_IN_MB << " MB)" << std::endl;
+
+                    // save color buffer
+                    std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
+                    renderTargets[view].saveColorAsPNG(colorFileName);
+                }
+
                 totalGenQuadMapTime += quadsGenerator.stats.timeToGenerateQuadsMs;
                 totalSimplifyTime += quadsGenerator.stats.timeToSimplifyQuadsMs;
                 totalFillQuadsTime += quadsGenerator.stats.timeToFillOutputQuadsMs;
@@ -797,6 +802,7 @@ int main(int argc, char** argv) {
             std::cout << "  Gen Depth Time: " << totalGenDepthTime << "ms" << std::endl;
 
             rerender = false;
+            saveProxies = false;
         }
 
         // hide/show nodes based on user input

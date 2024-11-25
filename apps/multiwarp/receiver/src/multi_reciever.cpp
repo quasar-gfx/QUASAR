@@ -182,6 +182,17 @@ int main(int argc, char** argv) {
         for (int view = 0; view < maxViews; view++) {
             Buffer<QuadsGenerator::BufferSizes> sizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, &bufferSizes);
 
+            unsigned int maxVertices = windowSize.x * windowSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
+            unsigned int numTriangles = windowSize.x * windowSize.y * NUM_SUB_QUADS * 2 * 3;
+            unsigned int maxIndices = numTriangles * 3;
+            meshes[view] = new Mesh({
+                .numVertices = maxVertices / (view == 0 || view == maxViews - 1 ? 1 : 4),
+                .numIndices = maxIndices / (view == 0 || view == maxViews - 1 ? 1 : 4),
+                .material = new QuadMaterial({ .baseColorTexture = &colorTextures[view] }),
+                .usage = GL_DYNAMIC_DRAW,
+                .indirectDraw = true
+            });
+
             startTime = glfwGetTime();
             std::string quadProxiesFileName = DATA_PATH + "quads" + std::to_string(view) + ".bin";
             auto quadProxiesData = FileIO::loadBinaryFile(quadProxiesFileName);
@@ -189,14 +200,6 @@ int main(int argc, char** argv) {
             // first uint in the file is the number of proxies
             unsigned int numProxies = *reinterpret_cast<unsigned int*>(quadProxiesData.data());
             unsigned int bufferOffset = sizeof(unsigned int);
-
-            meshes[view] = new Mesh({
-                .numVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
-                .numIndices = numProxies * NUM_SUB_QUADS * 2 * 3,
-                .material = new QuadMaterial({ .baseColorTexture = &colorTextures[view] }),
-                .usage = GL_DYNAMIC_DRAW,
-                .indirectDraw = true
-            });
 
             // next batch is the normalSphericals
             auto normalSphericalsPtr = reinterpret_cast<unsigned int*>(quadProxiesData.data() + bufferOffset);
@@ -227,9 +230,12 @@ int main(int argc, char** argv) {
             startTime = glfwGetTime();
 
             meshFromQuads.createMeshFromProxies(
-                numProxies, depthBufferSize, *remoteCameras[view],
-                inputNormalSphericalsBuffer, inputDepthsBuffer, inputUVsBuffer, inputOffsetSizeFlattenedsBuffer,
-                sizesBuffer, *meshes[view]
+                numProxies, depthBufferSize,
+                *remoteCameras[view],
+                inputNormalSphericalsBuffer, inputDepthsBuffer,
+                inputUVsBuffer, inputOffsetSizeFlattenedsBuffer,
+                sizesBuffer,
+                *meshes[view]
             );
 
             createMeshTime += meshFromQuads.stats.timeToCreateMeshMs;

@@ -261,42 +261,42 @@ public:
     unsigned int getProxies(char* proxiesData) {
         auto bufferSizes = getBufferSizes();
 
-        unsigned int offset = 0;
+        unsigned int bufferOffset = 0;
         unsigned int numProxies = bufferSizes.numProxies;
 
         // write number of proxies
         memcpy(proxiesData, &numProxies, sizeof(unsigned int));
-        offset += sizeof(unsigned int);
+        bufferOffset += sizeof(unsigned int);
 
         // write normals
         std::vector<unsigned int> normalSphericals(numProxies);
         outputNormalSphericalsBuffer.bind();
         outputNormalSphericalsBuffer.getSubData(0, numProxies, normalSphericals.data());
-        memcpy(proxiesData + offset, normalSphericals.data(), numProxies * sizeof(unsigned int));
-        offset += numProxies * sizeof(unsigned int);
+        memcpy(proxiesData + bufferOffset, normalSphericals.data(), numProxies * sizeof(unsigned int));
+        bufferOffset += numProxies * sizeof(unsigned int);
 
         // write depths
         std::vector<float> depths(numProxies);
         outputDepthsBuffer.bind();
         outputDepthsBuffer.getSubData(0, numProxies, depths.data());
-        memcpy(proxiesData + offset, depths.data(), numProxies * sizeof(float));
-        offset += numProxies * sizeof(float);
+        memcpy(proxiesData + bufferOffset, depths.data(), numProxies * sizeof(float));
+        bufferOffset += numProxies * sizeof(float);
 
         // write uvs
         std::vector<glm::vec2> uvs(numProxies);
         outputUVsBuffer.bind();
         outputUVsBuffer.getSubData(0, numProxies, uvs.data());
-        memcpy(proxiesData + offset, uvs.data(), numProxies * sizeof(glm::vec2));
-        offset += numProxies * sizeof(glm::vec2);
+        memcpy(proxiesData + bufferOffset, uvs.data(), numProxies * sizeof(glm::vec2));
+        bufferOffset += numProxies * sizeof(glm::vec2);
 
         // write offsetSizeFlatteneds
         std::vector<unsigned int> offsetSizeFlatteneds(numProxies);
         outputOffsetSizeFlattenedsBuffer.bind();
         outputOffsetSizeFlattenedsBuffer.getSubData(0, numProxies, offsetSizeFlatteneds.data());
-        memcpy(proxiesData + offset, offsetSizeFlatteneds.data(), bufferSizes.numProxies * sizeof(unsigned int));
-        offset += numProxies * sizeof(unsigned int);
+        memcpy(proxiesData + bufferOffset, offsetSizeFlatteneds.data(), bufferSizes.numProxies * sizeof(unsigned int));
+        bufferOffset += numProxies * sizeof(unsigned int);
 
-        return offset;
+        return bufferOffset;
     }
 
     unsigned int saveProxies(const std::string &filename) {
