@@ -185,6 +185,7 @@ int main(int argc, char** argv) {
     bool showNormals = false;
     bool showWireframe = false;
     bool preventCopyingLocalPose = false;
+    bool saveProxies = false;
     bool restrictMovementToViewBox = !animationFileIn;
     float viewBoxSize = 0.5f;
     const int intervalValues[] = {0, 25, 50, 100, 200, 500, 1000};
@@ -407,12 +408,9 @@ int main(int argc, char** argv) {
             }
 
             if (ImGui::Button("Save Proxies")) {
-                std::string quadsFileName = dataPath + "quads.bin";
-                unsigned int savedBytes = quadsGenerator.saveProxies(quadsFileName);
-                std::cout << "Saved " << savedBytes << " quads (" << (float)savedBytes / BYTES_IN_MB << " MB)" << std::endl;
-
-                // save color buffer
-                renderTarget.saveColorAsPNG(colorFileName);
+                preventCopyingLocalPose = true;
+                rerender = true;
+                saveProxies = true;
             }
 
             ImGui::End();
@@ -494,6 +492,13 @@ int main(int argc, char** argv) {
             std::cout << "======================================================" << std::endl;
 
             double startTime = glfwGetTime();
+            double totalRenderTime = 0.0;
+            double totalGenQuadMapTime = 0.0;
+            double totalSimplifyTime = 0.0;
+            double totalFillQuadsTime = 0.0;
+            double totalGetSizeOfProxiesTime = 0.0;
+            double totalCreateMeshTime = 0.0;
+            double totalGenDepthTime = 0.0;
 
             /*
             ============================
@@ -510,7 +515,7 @@ int main(int argc, char** argv) {
                 remoteRenderer.drawToRenderTarget(screenShaderNormals, renderTarget);
             }
 
-            std::cout << "  Rendering Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
+            totalRenderTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
             startTime = glfwGetTime();
 
             /*
@@ -520,9 +525,19 @@ int main(int argc, char** argv) {
             */
             quadsGenerator.createProxiesFromGBuffer(remoteRenderer.gBuffer, remoteCamera);
 
-            std::cout << "  QuadMap Compute Shader Time: " << quadsGenerator.stats.timeToGenerateQuadsMs << "ms" << std::endl;
-            std::cout << "  Simplify QuadMap Compute Shader Time: " << quadsGenerator.stats.timeToSimplifyQuadsMs << "ms" << std::endl;
-            std::cout << "  Fill Quads Compute Shader Time: " << quadsGenerator.stats.timeToFillOutputQuadsMs << "ms" << std::endl;
+            if (saveProxies) {
+                std::string quadsFileName = dataPath + "quads.bin";
+                unsigned int savedBytes = quadsGenerator.saveProxies(quadsFileName);
+                std::cout << "Saved " << savedBytes << " quads (" << (float)savedBytes / BYTES_IN_MB << " MB)" << std::endl;
+
+                // save color buffer
+                std::string colorFileName = dataPath + "color.png";
+                renderTarget.saveColorAsPNG(colorFileName);
+            }
+
+            totalGenQuadMapTime += quadsGenerator.stats.timeToGenerateQuadsMs;
+            totalSimplifyTime += quadsGenerator.stats.timeToSimplifyQuadsMs;
+            totalFillQuadsTime += quadsGenerator.stats.timeToFillOutputQuadsMs;
             startTime = glfwGetTime();
 
             /*
@@ -533,7 +548,7 @@ int main(int argc, char** argv) {
             // get output quads size (same as number of proxies)
             unsigned int numProxies = quadsGenerator.getBufferSizes().numProxies;
 
-            std::cout << "  Get Size of Proxies Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
+            totalGetSizeOfProxiesTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
             startTime = glfwGetTime();
 
             meshFromQuads.createMeshFromProxies(
@@ -546,7 +561,7 @@ int main(int argc, char** argv) {
                 mesh
             );
 
-            std::cout << "  Create Mesh Compute Shader Time: " << meshFromQuads.stats.timeToCreateMeshMs << "ms" << std::endl;
+            totalCreateMeshTime += meshFromQuads.stats.timeToCreateMeshMs;
             startTime = glfwGetTime();
 
             /*
@@ -578,9 +593,18 @@ int main(int argc, char** argv) {
                                          (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
             meshFromDepthShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
-            std::cout << "  Depth Compute Shader Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
+            totalGenDepthTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
+
+            std::cout << "  Rendering Time: " << totalRenderTime << "ms" << std::endl;
+            std::cout << "  Gen Quad Map Time: " << totalGenQuadMapTime << "ms" << std::endl;
+            std::cout << "  Simplify Time: " << totalSimplifyTime << "ms" << std::endl;
+            std::cout << "  Fill Quads Time: " << totalFillQuadsTime << "ms" << std::endl;
+            std::cout << "  Get Size of Proxies Time: " << totalGetSizeOfProxiesTime << "ms" << std::endl;
+            std::cout << "  Create Mesh Time: " << totalCreateMeshTime << "ms" << std::endl;
+            std::cout << "  Gen Depth Time: " << totalGenDepthTime << "ms" << std::endl;
 
             rerender = false;
+            saveProxies = false;
         }
 
         nodeWireframe.visible = showWireframe;
