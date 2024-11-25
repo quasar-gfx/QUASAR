@@ -157,19 +157,20 @@ int main(int argc, char** argv) {
         .magFilter = GL_NEAREST
     });
 
-    std::vector<RenderTarget*> renderTargets(maxViews);
+    std::vector<RenderTarget> renderTargets; renderTargets.reserve(maxViews);
+    RenderTargetCreateParams params = {
+        .width = windowSize.x,
+        .height = windowSize.y,
+        .internalFormat = GL_RGBA16F,
+        .format = GL_RGBA,
+        .type = GL_FLOAT,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST
+    };
     for (int views = 0; views < maxViews; views++) {
-        renderTargets[views] = new RenderTarget({
-            .width = windowSize.x,
-            .height = windowSize.y,
-            .internalFormat = GL_RGBA16F,
-            .format = GL_RGBA,
-            .type = GL_FLOAT,
-            .wrapS = GL_CLAMP_TO_EDGE,
-            .wrapT = GL_CLAMP_TO_EDGE,
-            .minFilter = GL_NEAREST,
-            .magFilter = GL_NEAREST
-        });
+        renderTargets.emplace_back(params);
     }
 
     unsigned int maxVertices = remoteWindowSize.x * remoteWindowSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
@@ -200,7 +201,7 @@ int main(int argc, char** argv) {
         meshes[view] = new Mesh({
             .numVertices = maxVertices / (view == 0 || (!disableWideFov && view == maxViews - 1) ? 1 : 4),
             .numIndices = maxIndices / (view == 0 || (!disableWideFov && view == maxViews - 1) ? 1 : 4),
-            .material = new QuadMaterial({ .baseColorTexture = &renderTargets[view]->colorBuffer }),
+            .material = new QuadMaterial({ .baseColorTexture = &renderTargets[view].colorBuffer }),
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true
         });
@@ -518,7 +519,7 @@ int main(int argc, char** argv) {
                     );
 
                     ImGui::Begin(("View " + std::to_string(viewIdx)).c_str(), 0, flags);
-                    ImGui::Image((void*)(intptr_t)(renderTargets[viewIdx]->colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
+                    ImGui::Image((void*)(intptr_t)(renderTargets[viewIdx].colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
                     ImGui::End();
                 }
             }
@@ -544,10 +545,10 @@ int main(int argc, char** argv) {
                 for (int view = 1; view < maxViews; view++) {
                     fileName = dataPath + std::string(fileNameBase) + ".view" + std::to_string(view) + "." + time;
                     if (saveAsHDR) {
-                        renderTargets[view]->saveColorAsHDR(fileName + ".hdr");
+                        renderTargets[view].saveColorAsHDR(fileName + ".hdr");
                     }
                     else {
-                        renderTargets[view]->saveColorAsPNG(fileName + ".png");
+                        renderTargets[view].saveColorAsPNG(fileName + ".png");
                     }
                 }
             }
@@ -591,7 +592,7 @@ int main(int argc, char** argv) {
                                              " MB)" << std::endl;
 
                     // save color buffer
-                    renderTargets[view]->saveColorAsPNG(colorFileName);
+                    renderTargets[view].saveColorAsPNG(colorFileName);
                 }
             }
 
@@ -635,7 +636,7 @@ int main(int argc, char** argv) {
 
                     // save color buffer
                     std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
-                    renderTargets[view]->saveColorAsPNG(colorFileName);
+                    renderTargets[view].saveColorAsPNG(colorFileName);
                 }
             }
 
@@ -751,10 +752,10 @@ int main(int argc, char** argv) {
                     if (!showNormals) {
                         toneMapShader.bind();
                         toneMapShader.setBool("toneMap", false); // dont apply tone mapping
-                        dpRenderer.peelingLayers[view]->blitToRenderTarget(*renderTargets[view]);
+                        dpRenderer.peelingLayers[view]->blitToRenderTarget(renderTargets[view]);
                     }
                     else {
-                        dpRenderer.drawToRenderTarget(screenShaderNormals, *renderTargets[view]);
+                        dpRenderer.drawToRenderTarget(screenShaderNormals, renderTargets[view]);
                     }
                 }
                 // wide fov camera
@@ -775,10 +776,10 @@ int main(int argc, char** argv) {
                     if (!showNormals) {
                         toneMapShader.bind();
                         toneMapShader.setBool("toneMap", false); // dont apply tone mapping
-                        forwardRenderer.drawToRenderTarget(toneMapShader, *renderTargets[view]);
+                        forwardRenderer.drawToRenderTarget(toneMapShader, renderTargets[view]);
                     }
                     else {
-                        forwardRenderer.drawToRenderTarget(screenShaderNormals, *renderTargets[view]);
+                        forwardRenderer.drawToRenderTarget(screenShaderNormals, renderTargets[view]);
                     }
                 }
 

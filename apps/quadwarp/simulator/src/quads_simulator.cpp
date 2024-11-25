@@ -104,9 +104,6 @@ int main(int argc, char** argv) {
     auto& outputUVsBuffer = quadsGenerator.outputUVsBuffer;
     auto& outputOffsetSizeFlattenedsBuffer = quadsGenerator.outputOffsetSizeFlattenedsBuffer;
 
-    auto& depthBufferSize = quadsGenerator.depthBufferSize;
-    auto& depthOffsetsBuffer = quadsGenerator.depthOffsetsBuffer;
-
     RenderTarget renderTarget({
         .width = windowSize.x,
         .height = windowSize.y,
@@ -572,13 +569,14 @@ int main(int argc, char** argv) {
             unsigned int outputQuadsSize = quadsGenerator.getBufferSizes().numProxies;
 
             std::cout << "  Get Size of Proxies Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
+            startTime = glfwGetTime();
 
             meshFromQuads.createMeshFromProxies(
-                    outputQuadsSize, depthBufferSize,
+                    outputQuadsSize, quadsGenerator.depthBufferSize,
                     remoteCamera,
                     quadsGenerator.outputNormalSphericalsBuffer, quadsGenerator.outputDepthsBuffer,
                     quadsGenerator.outputUVsBuffer, quadsGenerator.outputOffsetSizeFlattenedsBuffer,
-                    depthOffsetsBuffer,
+                    quadsGenerator.depthOffsetsBuffer,
                     quadsGenerator.getSizesBuffer(),
                     mesh
             );
