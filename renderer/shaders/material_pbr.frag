@@ -374,9 +374,13 @@ float LCOC(float d, float df) {
 	return K * E * abs(df-d) / d; // relative radius of COC against df (blocker depth)
 }
 
-bool inPVHV(ivec2 pixelCoords, vec3 fragViewPos, float blockerDepthNormalized) {
+bool inPVHV(ivec2 pixelCoords, vec3 fragViewPos, uvec4 q) {
     float fragmentDepth = -fragViewPos.z;
 
+    uint q_item = q.r;
+    if (q_item < 0) return false;
+
+    float blockerDepthNormalized = uintBitsToFloat(q.z);
 	float df = mix(camera.near, camera.far, blockerDepthNormalized);
     float R = LCOC(fragmentDepth, df);
     for (int i = 0; i < EDP_SAMPLES; i++) {
@@ -385,11 +389,16 @@ bool inPVHV(ivec2 pixelCoords, vec3 fragViewPos, float blockerDepthNormalized) {
         float y = R * sin(float(i) * 2*PI / EDP_SAMPLES);
         vec2 offset = vec2(x, y);
 
-        float sampleDepthNormalized = uintBitsToFloat(texelFetch(prevDepthMap, ivec2(round(vec2(pixelCoords) + offset)), 0).z);
+        uvec4 w = texelFetch(prevDepthMap, ivec2(round(vec2(pixelCoords) + offset)), 0);
+        uint w_item = w.r;
+        if (w_item < 0) return true;
+
+        float sampleDepthNormalized = uintBitsToFloat(w.z);
         if (sampleDepthNormalized == 0) return true;
         if (sampleDepthNormalized >= MAX_DEPTH) continue;
 
-        if      (sampleDepthNormalized >= blockerDepthNormalized + edpDelta) return true;
+        if (q_item != w_item) return true;
+        else if (sampleDepthNormalized >= blockerDepthNormalized + edpDelta) return true;
         else if (sampleDepthNormalized <= blockerDepthNormalized - edpDelta) return true;
     }
 
@@ -401,15 +410,17 @@ void main() {
 #ifdef DO_DEPTH_PEELING
     if (peelDepth) {
         ivec2 pixelCoords = ivec2(gl_FragCoord.xy);
+        uvec4 q = texelFetch(prevDepthMap, pixelCoords, 0);
+
         float currDepth = (-fsIn.FragPosView.z - camera.near) / (camera.far - camera.near);
-        float prevDepth = uintBitsToFloat(texelFetch(prevDepthMap, pixelCoords, 0).z);
+        float prevDepth = uintBitsToFloat(q.z);
         if (prevDepth == 0 || prevDepth >= MAX_DEPTH)
             discard;
         if (currDepth <= prevDepth)
             discard;
 #ifdef EDP
         vec3 fragViewPos = fsIn.FragPosView;
-        if (!inPVHV(pixelCoords, fragViewPos, prevDepth))
+        if (!inPVHV(pixelCoords, fragViewPos, q))
             discard;
 #endif
     }
