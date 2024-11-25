@@ -684,7 +684,7 @@ int main(int argc, char** argv) {
                     // render mesh in meshScene into stencil buffer
                     forwardRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
 
-                    forwardRenderer.drawObjects(meshScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+                    forwardRenderer.drawObjects(meshScene, *remoteCamera);
 
                     // render mesh in remoteScene using stencil buffer as a mask
                     forwardRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask();

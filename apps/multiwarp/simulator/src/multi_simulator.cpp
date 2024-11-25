@@ -691,7 +691,7 @@ int main(int argc, char** argv) {
                     for (int prevView = 1; prevView < maxViews; prevView++) {
                         meshScene.children[prevView]->visible = (prevView < view);
                     }
-                    remoteRenderer.drawObjects(meshScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+                    remoteRenderer.drawObjects(meshScene, *remoteCamera);
 
                     // render mesh in remoteScene using stencil buffer as a mask
                     remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask();

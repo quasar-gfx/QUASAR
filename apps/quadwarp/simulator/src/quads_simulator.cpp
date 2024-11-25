@@ -90,11 +90,14 @@ int main(int argc, char** argv) {
     SceneLoader loader;
     loader.loadScene(sceneFile, remoteScene, remoteCamera);
 
+    // "local" scene
+    Scene localScene;
+    localScene.envCubeMap = remoteScene.envCubeMap;
+    PerspectiveCamera localCamera(windowSize.x, windowSize.y);
+    localCamera.setViewMatrix(remoteCamera.getViewMatrix());
+
     // scene with all the meshes
-    Scene scene;
-    scene.envCubeMap = remoteScene.envCubeMap;
-    PerspectiveCamera camera(windowSize.x, windowSize.y);
-    camera.setViewMatrix(remoteCamera.getViewMatrix());
+    Scene meshScene;
 
     QuadsGenerator quadsGenerator(remoteWindowSize);
     MeshFromQuads meshFromQuads(remoteWindowSize);
@@ -125,14 +128,15 @@ int main(int argc, char** argv) {
     });
     Node node = Node(&mesh);
     node.frustumCulled = false;
-    scene.addChildNode(&node);
+    localScene.addChildNode(&node);
+    meshScene.addChildNode(&node);
 
     Node nodeWireframe = Node(&mesh);
     nodeWireframe.frustumCulled = false;
     nodeWireframe.wireframe = true;
     nodeWireframe.visible = false;
     nodeWireframe.overrideMaterial = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
-    scene.addChildNode(&nodeWireframe);
+    localScene.addChildNode(&nodeWireframe);
 
     Mesh meshDepth = Mesh({
         .numVertices = maxVerticesDepth,
@@ -143,7 +147,7 @@ int main(int argc, char** argv) {
     nodeDepth.frustumCulled = false;
     nodeDepth.visible = false;
     nodeDepth.primativeType = GL_POINTS;
-    scene.addChildNode(&nodeDepth);
+    localScene.addChildNode(&nodeDepth);
 
     // shaders
     ToneMapShader toneMapShader;
@@ -179,13 +183,14 @@ int main(int argc, char** argv) {
         }
     }
 
-    bool rerender = true;
+    bool generateIFrame = true;
+    bool generatePFrame = false;
+    bool saveProxies = false;
     int rerenderInterval = 0;
     bool showDepth = false;
     bool showNormals = false;
     bool showWireframe = false;
     bool preventCopyingLocalPose = false;
-    bool saveProxies = false;
     bool restrictMovementToViewBox = !animationFileIn;
     float viewBoxSize = 0.5f;
     const int intervalValues[] = {0, 25, 50, 100, 200, 500, 1000};
@@ -266,25 +271,25 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            glm::vec3 position = camera.getPosition();
+            glm::vec3 position = localCamera.getPosition();
             if (ImGui::InputFloat3("Camera Position", (float*)&position)) {
-                camera.setPosition(position);
+                localCamera.setPosition(position);
             }
-            glm::vec3 rotation = camera.getRotationEuler();
+            glm::vec3 rotation = localCamera.getRotationEuler();
             if (ImGui::InputFloat3("Camera Rotation", (float*)&rotation)) {
-                camera.setRotationEuler(rotation);
+                localCamera.setRotationEuler(rotation);
             }
-            ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
+            ImGui::SliderFloat("Movement Speed", &localCamera.movementSpeed, 0.1f, 20.0f);
 
             if (ImGui::Checkbox("Show Environment Map", &showEnvMap)) {
-                scene.envCubeMap = showEnvMap ? remoteScene.envCubeMap : nullptr;
+                localScene.envCubeMap = showEnvMap ? remoteScene.envCubeMap : nullptr;
             }
 
             if (ImGui::Button("Change Background Color", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
                 ImGui::OpenPopup("Background Color Popup");
             }
             if (ImGui::BeginPopup("Background Color Popup")) {
-                ImGui::ColorPicker3("Background Color", (float*)&scene.backgroundColor);
+                ImGui::ColorPicker3("Background Color", (float*)&localScene.backgroundColor);
                 ImGui::EndPopup();
             }
 
@@ -292,7 +297,7 @@ int main(int argc, char** argv) {
 
             if (ImGui::Checkbox("Show Normals Instead of Color", &showNormals)) {
                 preventCopyingLocalPose = true;
-                rerender = true;
+                generateIFrame = true;
             }
 
             ImGui::Separator();
@@ -304,42 +309,48 @@ int main(int argc, char** argv) {
 
             if (ImGui::Checkbox("Correct Normal Orientation", &quadsGenerator.doOrientationCorrection)) {
                 preventCopyingLocalPose = true;
-                rerender = true;
+                generateIFrame = true;
             }
 
             if (ImGui::SliderFloat("Distance Threshold", &quadsGenerator.distanceThreshold, 0.0f, 1.0f)) {
                 preventCopyingLocalPose = true;
-                rerender = true;
+                generateIFrame = true;
             }
 
             if (ImGui::SliderFloat("Angle Threshold", &quadsGenerator.angleThreshold, 0.0f, 180.0f)) {
                 preventCopyingLocalPose = true;
-                rerender = true;
+                generateIFrame = true;
             }
 
             if (ImGui::SliderFloat("Flat Threshold (x0.01)", &quadsGenerator.flatThreshold, 0.0f, 10.0f)) {
                 preventCopyingLocalPose = true;
-                rerender = true;
+                generateIFrame = true;
             }
 
             if (ImGui::SliderFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.0f, 1.0f)) {
                 preventCopyingLocalPose = true;
-                rerender = true;
+                generateIFrame = true;
             }
 
             ImGui::Separator();
 
             if (ImGui::SliderFloat("View Box Size", &viewBoxSize, 0.1f, 5.0f)) {
                 preventCopyingLocalPose = true;
-                rerender = true;
+                generateIFrame = true;
             }
 
             ImGui::Checkbox("Restrict Movement to View Box", &restrictMovementToViewBox);
 
             ImGui::Separator();
 
-            if (ImGui::Button("Rerender", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
-                rerender = true;
+            float windowWidth = ImGui::GetContentRegionAvail().x;
+            float buttonWidth = (windowWidth - ImGui::GetStyle().ItemSpacing.x) / 2.0f;
+            if (ImGui::Button("Gen I-Frame", ImVec2(buttonWidth, 0))) {
+                generateIFrame = true;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Gen P-Frame", ImVec2(buttonWidth, 0))) {
+                generatePFrame = true;
             }
 
             if (ImGui::Combo("Rerender Interval", &intervalIndex, intervalLabels, IM_ARRAYSIZE(intervalLabels))) {
@@ -409,20 +420,24 @@ int main(int argc, char** argv) {
 
             if (ImGui::Button("Save Proxies")) {
                 preventCopyingLocalPose = true;
-                rerender = true;
+                generateIFrame = true;
                 saveProxies = true;
             }
 
             ImGui::End();
         }
+
+        ImGui::Begin("Render Target", 0, flags);
+        ImGui::Image((void*)(intptr_t)(renderTarget.colorBuffer.ID), ImVec2(windowSize.x/4, windowSize.y/4), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::End();
     });
 
     app.onResize([&](unsigned int width, unsigned int height) {
         windowSize = glm::uvec2(width, height);
         renderer.setWindowSize(windowSize.x, windowSize.y);
 
-        camera.setAspect(windowSize.x, windowSize.y);
-        camera.updateProjectionMatrix();
+        localCamera.setAspect(windowSize.x, windowSize.y);
+        localCamera.updateProjectionMatrix();
     });
 
     double startRenderTime = window->getTime();
@@ -458,7 +473,7 @@ int main(int argc, char** argv) {
                 lastX = xpos;
                 lastY = ypos;
 
-                camera.processMouseMovement(xoffset, yoffset, true);
+                localCamera.processMouseMovement(xoffset, yoffset, true);
             }
         }
         auto keys = window->getKeys();
@@ -468,29 +483,20 @@ int main(int argc, char** argv) {
 
         if (animator.running) {
             animator.update(dt);
-            camera.setPosition(animator.getCurrentPosition());
-            camera.setRotationQuat(animator.getCurrentRotation());
-            camera.updateViewMatrix();
+            localCamera.setPosition(animator.getCurrentPosition());
+            localCamera.setRotationQuat(animator.getCurrentRotation());
+            localCamera.updateViewMatrix();
         }
         else {
             // handle keyboard input
-            camera.processKeyboard(keys, dt);
+            localCamera.processKeyboard(keys, dt);
         }
 
         if (rerenderInterval > 0 && now - startRenderTime > rerenderInterval / 1000.0) {
-            rerender = true;
+            generateIFrame = true;
             startRenderTime = now;
         }
-        if (rerender) {
-            if (!preventCopyingLocalPose) {
-                remoteCamera.setPosition(camera.getPosition());
-                remoteCamera.setRotationQuat(camera.getRotationQuat());
-                remoteCamera.updateViewMatrix();
-            }
-            preventCopyingLocalPose = false;
-
-            std::cout << "======================================================" << std::endl;
-
+        if (generateIFrame || generatePFrame) {
             double startTime = glfwGetTime();
             double totalRenderTime = 0.0;
             double totalGenQuadMapTime = 0.0;
@@ -500,12 +506,36 @@ int main(int argc, char** argv) {
             double totalCreateMeshTime = 0.0;
             double totalGenDepthTime = 0.0;
 
+            if (!preventCopyingLocalPose) {
+                remoteCamera.setPosition(localCamera.getPosition());
+                remoteCamera.setRotationQuat(localCamera.getRotationQuat());
+                remoteCamera.updateViewMatrix();
+                std::cout << "Copying local pose to remote pose" << std::endl;
+            }
+
             /*
             ============================
             FIRST PASS: Render the scene to a G-Buffer render target
             ============================
             */
-            remoteRenderer.drawObjects(remoteScene, remoteCamera);
+            if (generateIFrame) {
+                // render all objects in remoteScene normally
+                remoteRenderer.drawObjects(remoteScene, remoteCamera);
+            }
+            else if (generatePFrame) {
+                // render mesh in meshScene into stencil buffer
+                remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
+
+                // draw old meshes at new remoteCamera view
+                remoteRenderer.drawObjects(meshScene, remoteCamera);
+
+                // render mesh in remoteScene using stencil buffer as a mask
+                remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask();
+
+                remoteRenderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+                remoteRenderer.pipeline.stencilState.restoreStencilState();
+            }
             if (!showNormals) {
                 toneMapShader.bind();
                 toneMapShader.setBool("toneMap", false); // dont apply tone mapping
@@ -514,7 +544,6 @@ int main(int argc, char** argv) {
             else {
                 remoteRenderer.drawToRenderTarget(screenShaderNormals, renderTarget);
             }
-
             totalRenderTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
             startTime = glfwGetTime();
 
@@ -534,7 +563,6 @@ int main(int argc, char** argv) {
                 std::string colorFileName = dataPath + "color.png";
                 renderTarget.saveColorAsPNG(colorFileName);
             }
-
             totalGenQuadMapTime += quadsGenerator.stats.timeToGenerateQuadsMs;
             totalSimplifyTime += quadsGenerator.stats.timeToSimplifyQuadsMs;
             totalFillQuadsTime += quadsGenerator.stats.timeToFillOutputQuadsMs;
@@ -560,7 +588,6 @@ int main(int argc, char** argv) {
                 quadsGenerator.getSizesBuffer(),
                 mesh
             );
-
             totalCreateMeshTime += meshFromQuads.stats.timeToCreateMeshMs;
             startTime = glfwGetTime();
 
@@ -592,9 +619,9 @@ int main(int argc, char** argv) {
             meshFromDepthShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
                                          (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
             meshFromDepthShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
-
             totalGenDepthTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
 
+            std::cout << "======================================================" << std::endl;
             std::cout << "  Rendering Time: " << totalRenderTime << "ms" << std::endl;
             std::cout << "  Gen Quad Map Time: " << totalGenQuadMapTime << "ms" << std::endl;
             std::cout << "  Simplify Time: " << totalSimplifyTime << "ms" << std::endl;
@@ -603,7 +630,9 @@ int main(int argc, char** argv) {
             std::cout << "  Create Mesh Time: " << totalCreateMeshTime << "ms" << std::endl;
             std::cout << "  Gen Depth Time: " << totalGenDepthTime << "ms" << std::endl;
 
-            rerender = false;
+            preventCopyingLocalPose = false;
+            generateIFrame = false;
+            generatePFrame = false;
             saveProxies = false;
         }
 
@@ -616,25 +645,25 @@ int main(int argc, char** argv) {
                 positionOffset[i] = args::get(poseOffset)[i];
                 rotationOffset[i] = args::get(poseOffset)[i + 3];
             }
-            camera.setPosition(camera.getPosition() + positionOffset);
-            camera.setRotationEuler(camera.getRotationEuler() + rotationOffset);
-            camera.updateViewMatrix();
+            localCamera.setPosition(localCamera.getPosition() + positionOffset);
+            localCamera.setRotationEuler(localCamera.getRotationEuler() + rotationOffset);
+            localCamera.updateViewMatrix();
         }
 
         if (restrictMovementToViewBox) {
             glm::vec3 remotePosition = remoteCamera.getPosition();
-            glm::vec3 position = camera.getPosition();
-            // restrict camera position to be inside position +/- viewBoxSize
+            glm::vec3 position = localCamera.getPosition();
+            // restrict localCamera position to be inside position +/- viewBoxSize
             position.x = glm::clamp(position.x, remotePosition.x - viewBoxSize/2, remotePosition.x + viewBoxSize/2);
             position.y = glm::clamp(position.y, remotePosition.y - viewBoxSize/2, remotePosition.y + viewBoxSize/2);
             position.z = glm::clamp(position.z, remotePosition.z - viewBoxSize/2, remotePosition.z + viewBoxSize/2);
-            camera.setPosition(position);
-            camera.updateViewMatrix();
+            localCamera.setPosition(position);
+            localCamera.updateViewMatrix();
         }
 
         // render generated meshes
         renderer.pipeline.rasterState.cullFaceEnabled = false;
-        renderStats = renderer.drawObjects(scene, camera);
+        renderStats = renderer.drawObjects(localScene, localCamera);
         renderer.pipeline.rasterState.cullFaceEnabled = true;
 
         // render to screen
@@ -643,13 +672,13 @@ int main(int argc, char** argv) {
         renderer.drawToScreen(toneMapShader);
 
         if (recording) {
-            recorder.captureFrame(camera);
+            recorder.captureFrame(localCamera);
         }
 
         if (saveImage) {
             if (!animationFileIn) {
-                glm::vec3 position = camera.getPosition();
-                glm::vec3 rotation = camera.getRotationEuler();
+                glm::vec3 position = localCamera.getPosition();
+                glm::vec3 rotation = localCamera.getRotationEuler();
                 std::string positionStr = to_string_with_precision(position.x) + "_" + to_string_with_precision(position.y) + "_" + to_string_with_precision(position.z);
                 std::string rotationStr = to_string_with_precision(rotation.x) + "_" + to_string_with_precision(rotation.y) + "_" + to_string_with_precision(rotation.z);
 
@@ -667,11 +696,11 @@ int main(int argc, char** argv) {
                     float rx, ry, rz;
                     int64_t timestamp;
                     ss >> px >> py >> pz >> rx >> ry >> rz >> timestamp;
-                    camera.setPosition(glm::vec3(px, py, pz));
-                    camera.setRotationEuler(glm::vec3(glm::radians(rx), glm::radians(ry), glm::radians(rz)));
-                    camera.updateViewMatrix();
+                    localCamera.setPosition(glm::vec3(px, py, pz));
+                    localCamera.setRotationEuler(glm::vec3(glm::radians(rx), glm::radians(ry), glm::radians(rz)));
+                    localCamera.updateViewMatrix();
 
-                    recorder.captureFrame(camera);
+                    recorder.captureFrame(localCamera);
                 }
                 else {
                     fileStream.close();
