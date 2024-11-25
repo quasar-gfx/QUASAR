@@ -5,7 +5,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <Primatives/Entity.h>
+#include <Primitives/Entity.h>
 #include <OpenGLApp.h>
 
 OpenGLApp::OpenGLApp(const Config &config)

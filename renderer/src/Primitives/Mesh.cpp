@@ -1,4 +1,4 @@
-#include <Primatives/Mesh.h>
+#include <Primitives/Mesh.h>
 
 #include <glm/gtx/string_cast.hpp>
 

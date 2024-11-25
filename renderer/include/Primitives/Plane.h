@@ -1,7 +1,7 @@
 #ifndef PLANE_H
 #define PLANE_H
 
-#include <Primatives/Mesh.h>
+#include <Primitives/Mesh.h>
 
 class Plane : public Mesh {
 public:

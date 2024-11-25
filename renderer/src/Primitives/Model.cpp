@@ -8,7 +8,7 @@
 #include <assimp/GltfMaterial.h>
 
 #include <Utils/FileIO.h>
-#include <Primatives/Model.h>
+#include <Primitives/Model.h>
 
 #ifdef __ANDROID__
 #include <assimp/port/AndroidJNI/AndroidJNIIOSystem.h>

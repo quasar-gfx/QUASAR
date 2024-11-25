@@ -8,7 +8,7 @@
 
 #include <Scene.h>
 #include <Cameras/PerspectiveCamera.h>
-#include <Primatives/Primatives.h>
+#include <Primitives/Primitives.h>
 
 #define CHECK_TOKTYPE(tok_, type_) if ((tok_).type != (type_)) { return -1; }
 #define CHECK_KEY(tok_) if ((tok_).type != JSMN_STRING || (tok_).size == 0) { return -1; }
