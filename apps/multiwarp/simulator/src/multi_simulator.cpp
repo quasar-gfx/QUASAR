@@ -123,10 +123,7 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera(windowSize.x, windowSize.y);
     camera.setViewMatrix(centerRemoteCamera->getViewMatrix());
 
-    std::vector<QuadsGenerator> quadsGenerators; quadsGenerators.reserve(maxViews);
-    for (int view = 0; view < maxViews; view++) {
-        quadsGenerators.emplace_back(remoteWindowSize);
-    }
+    QuadsGenerator quadsGenerator(remoteWindowSize);
     MeshFromQuads meshFromQuads(remoteWindowSize);
 
     std::vector<RenderTarget> renderTargets; renderTargets.reserve(maxViews);
@@ -758,11 +755,11 @@ int main(int argc, char** argv) {
                 SECOND to FOURTH PASSES: Generate quad map and output proxies
                 ============================
                 */
-                quadsGenerators[view].createQuadsFromGBuffer(remoteRenderer.gBuffer, *remoteCamera);
+                quadsGenerator.createQuadsFromGBuffer(remoteRenderer.gBuffer, *remoteCamera);
 
-                totalGenQuadMapTime += quadsGenerators[view].stats.timeToGenerateQuadsMs;
-                totalSimplifyTime += quadsGenerators[view].stats.timeToSimplifyQuadsMs;
-                totalFillQuadsTime += quadsGenerators[view].stats.timeToFillOutputQuadsMs;
+                totalGenQuadMapTime += quadsGenerator.stats.timeToGenerateQuadsMs;
+                totalSimplifyTime += quadsGenerator.stats.timeToSimplifyQuadsMs;
+                totalFillQuadsTime += quadsGenerator.stats.timeToFillOutputQuadsMs;
                 startTime = glfwGetTime();
 
                 /*
@@ -771,18 +768,18 @@ int main(int argc, char** argv) {
                 ============================
                 */
                 // get output quads size (same as number of proxies)
-                unsigned int outputQuadsSize = quadsGenerators[view].getBufferSizes().numProxies;
+                unsigned int outputQuadsSize = quadsGenerator.getBufferSizes().numProxies;
 
                 totalGetSizeOfProxiesTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
                 startTime = glfwGetTime();
 
                 meshFromQuads.createMeshFromProxies(
-                        outputQuadsSize, quadsGenerators[view].depthBufferSize,
+                        outputQuadsSize, quadsGenerator.depthBufferSize,
                         *remoteCamera,
-                        quadsGenerators[view].outputNormalSphericalsBuffer, quadsGenerators[view].outputDepthsBuffer,
-                        quadsGenerators[view].outputUVsBuffer, quadsGenerators[view].outputOffsetSizeFlattenedsBuffer,
-                        quadsGenerators[view].depthOffsetsBuffer,
-                        quadsGenerators[view].getSizesBuffer(),
+                        quadsGenerator.outputNormalSphericalsBuffer, quadsGenerator.outputDepthsBuffer,
+                        quadsGenerator.outputUVsBuffer, quadsGenerator.outputOffsetSizeFlattenedsBuffer,
+                        quadsGenerator.depthOffsetsBuffer,
+                        quadsGenerator.getSizesBuffer(),
                         *currMesh
                 );
 
