@@ -37,7 +37,7 @@ public:
                 const PerspectiveCamera &remoteCamera,
                 const Buffer<unsigned int> &outputNormalSphericalsBuffer,
                 const Buffer<float> &outputDepthsBuffer,
-                const Buffer<glm::vec2> &outputUVsBuffer,
+                const Buffer<unsigned int> &outputXYsBuffer,
                 const Buffer<unsigned int> &outputOffsetSizeFlattenedsBuffer,
                 const Texture& depthOffsetsBuffer,
                 const Buffer<QuadsGenerator::BufferSizes>& sizesBuffer,
@@ -67,7 +67,7 @@ public:
 
             createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, outputNormalSphericalsBuffer);
             createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, outputDepthsBuffer);
-            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, outputUVsBuffer);
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, outputXYsBuffer);
             createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, outputOffsetSizeFlattenedsBuffer);
 
             createMeshFromQuadsShader.setImageTexture(0, depthOffsetsBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetsBuffer.internalFormat);
@@ -83,7 +83,7 @@ public:
                 const PerspectiveCamera &remoteCamera,
                 const Buffer<unsigned int> &outputNormalSphericalsBuffer,
                 const Buffer<float> &outputDepthsBuffer,
-                const Buffer<glm::vec2> &outputUVsBuffer,
+                const Buffer<unsigned int> &outputXYsBuffer,
                 const Buffer<unsigned int> &outputOffsetSizeFlattenedsBuffer,
                 const Buffer<QuadsGenerator::BufferSizes>& sizesBuffer,
                 const Mesh& mesh
@@ -112,7 +112,7 @@ public:
 
             createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, outputNormalSphericalsBuffer);
             createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, outputDepthsBuffer);
-            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, outputUVsBuffer);
+            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, outputXYsBuffer);
             createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, outputOffsetSizeFlattenedsBuffer);
 
             // createMeshFromQuadsShader.setImageTexture(0, depthOffsetsBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetsBuffer.internalFormat);

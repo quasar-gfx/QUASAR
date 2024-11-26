@@ -98,7 +98,7 @@ int main(int argc, char** argv) {
     unsigned int maxQuads = windowSize.x * windowSize.y * NUM_SUB_QUADS;
     Buffer<unsigned int> inputNormalSphericalsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
     Buffer<float> inputDepthsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
-    Buffer<glm::vec2> inputUVsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
+    Buffer<unsigned int> inputUVsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
     Buffer<unsigned int> inputOffsetSizeFlattenedsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
 
     double startTime = glfwGetTime();
@@ -151,25 +151,25 @@ int main(int argc, char** argv) {
         });
 
         // next batch is the normalSphericals
-        auto normalSphericalsPtr = reinterpret_cast<void*>(quadProxiesData.data() + bufferOffset);
+        auto normalSphericalsPtr = reinterpret_cast<unsigned int*>(quadProxiesData.data() + bufferOffset);
         inputNormalSphericalsBuffer.bind();
         inputNormalSphericalsBuffer.setData(numProxies, normalSphericalsPtr);
         bufferOffset += numProxies * sizeof(unsigned int);
 
         // next batch is the depths
-        auto depthsPtr = reinterpret_cast<void*>(quadProxiesData.data() + bufferOffset);
+        auto depthsPtr = reinterpret_cast<float*>(quadProxiesData.data() + bufferOffset);
         inputDepthsBuffer.bind();
         inputDepthsBuffer.setData(numProxies, depthsPtr);
         bufferOffset += numProxies * sizeof(float);
 
         // next batch is the uvs
-        auto uvsPtr = reinterpret_cast<void*>(quadProxiesData.data() + bufferOffset);
+        auto uvsPtr = reinterpret_cast<unsigned int*>(quadProxiesData.data() + bufferOffset);
         inputUVsBuffer.bind();
         inputUVsBuffer.setData(numProxies, uvsPtr);
-        bufferOffset += numProxies * sizeof(glm::vec2);
+        bufferOffset += numProxies * sizeof(unsigned int);
 
         // last batch is the offsets
-        auto offsetSizeFlattenedsPtr = reinterpret_cast<void*>(quadProxiesData.data() + bufferOffset);
+        auto offsetSizeFlattenedsPtr = reinterpret_cast<unsigned int*>(quadProxiesData.data() + bufferOffset);
         inputOffsetSizeFlattenedsBuffer.bind();
         inputOffsetSizeFlattenedsBuffer.setData(numProxies, offsetSizeFlattenedsPtr);
 
