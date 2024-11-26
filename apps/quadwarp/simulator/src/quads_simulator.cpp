@@ -510,7 +510,6 @@ int main(int argc, char** argv) {
                 remoteCamera.setPosition(localCamera.getPosition());
                 remoteCamera.setRotationQuat(localCamera.getRotationQuat());
                 remoteCamera.updateViewMatrix();
-                std::cout << "Copying local pose to remote pose" << std::endl;
             }
 
             /*
