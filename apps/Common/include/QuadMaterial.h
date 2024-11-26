@@ -6,8 +6,8 @@
 struct QuadMapDataPacked {
     unsigned int normalSpherical; // normal as 16 bit xy spherical coordinates packed into uint
     float depth;
-    glm::vec2 uv;
-    unsigned int offsetSizeFlattened; // offset.xy << 8 | size << 1 | flattened
+    unsigned int xy; // x << 16 | y (12 bits each)
+    unsigned int offsetSizeFlattened; // offset.xy << 8 (12 bits each) | size << 1 (5 bits) | flattened (1 bit)
 };
 
 struct QuadMaterialCreateParams {

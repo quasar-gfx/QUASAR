@@ -12,7 +12,7 @@ struct QuadMapData {
 struct QuadMapDataPacked {
     uint normalSpherical;
     float depth;
-    vec2 uv;
+    uint xy;
     uint offsetSizeFlattened;
 };
 
@@ -111,7 +111,7 @@ layout(std430, binding = 1) readonly buffer depthBufferInput {
 };
 
 layout(std430, binding = 2) readonly buffer uvsBufferInput {
-    vec2 uvsInput[];
+    uint uvsInput[];
 };
 
 layout(std430, binding = 3) buffer offsetsBufferInput {
@@ -127,7 +127,7 @@ layout(std430, binding = 5) writeonly buffer depthBufferOutput {
 };
 
 layout(std430, binding = 6) writeonly buffer uvsBufferOutput {
-    vec2 uvsOutput[];
+    uint uvsOutput[];
 };
 
 layout(std430, binding = 7) writeonly buffer offsetsBufferOutput {
@@ -243,13 +243,12 @@ QuadMapData loadInputQuadMap(ivec2 pixelCoord) {
     QuadMapDataPacked quadMapDataPacked;
     quadMapDataPacked.normalSpherical = normalSphericalsInput[index];
     quadMapDataPacked.depth = depthsInput[index];
-    quadMapDataPacked.uv = uvsInput[index];
+    quadMapDataPacked.xy = uvsInput[index];
     quadMapDataPacked.offsetSizeFlattened = offsetSizeFlattenedsInput[index];
 
     QuadMapData quadMapData;
     quadMapData.normal = unpackSphericalToNormalHalf(quadMapDataPacked.normalSpherical);
     quadMapData.depth = quadMapDataPacked.depth;
-    quadMapData.uv = quadMapDataPacked.uv;
 
     quadMapData.offset.x = (quadMapDataPacked.offsetSizeFlattened >> 20) & 0xFFFu;
     quadMapData.offset.y = (quadMapDataPacked.offsetSizeFlattened >> 8) & 0xFFFu;
@@ -257,6 +256,11 @@ QuadMapData loadInputQuadMap(ivec2 pixelCoord) {
     uint flattenedAndSize = quadMapDataPacked.offsetSizeFlattened & 0xFFu;
     quadMapData.size = (flattenedAndSize >> 1) & 0x7Fu;
     quadMapData.flattened = (flattenedAndSize & 1u) != 0;
+
+    uint halfSize = 1 << (quadMapData.size - 1); // 2^size / 2
+    quadMapData.uv.x = (quadMapDataPacked.xy >> 12) & 0xFFFu;
+    quadMapData.uv.y = (quadMapDataPacked.xy >> 0) & 0xFFFu;
+    quadMapData.uv = (vec2(quadMapData.uv) + halfSize * vec2(0.5)) / remoteWindowSize;
 
     return quadMapData;
 }
@@ -269,7 +273,7 @@ void storeInOutputQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
     QuadMapDataPacked quadMapDataPacked;
     quadMapDataPacked.normalSpherical = packNormalToSphericalHalf(quadMapData.normal);
     quadMapDataPacked.depth = quadMapData.depth;
-    quadMapDataPacked.uv = quadMapData.uv;
+    quadMapDataPacked.xy = ((quadMapData.offset.x & 0xFFFu) << 12) | (quadMapData.offset.y & 0xFFFu);
 
     uint flattenedAndSize = ((quadMapData.size & 0x7Fu) << 1) | (quadMapData.flattened ? 1u : 0u);
     quadMapDataPacked.offsetSizeFlattened = ((quadMapData.offset.x & 0xFFFu) << 20) |
@@ -279,7 +283,7 @@ void storeInOutputQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
     uint index = uint(pixelCoord.y) * uint(outputQuadMapSize.x) + uint(pixelCoord.x);
     normalSphericalsOutput[index] = quadMapDataPacked.normalSpherical;
     depthsOutput[index] = quadMapDataPacked.depth;
-    uvsOutput[index] = quadMapDataPacked.uv;
+    uvsOutput[index] = quadMapDataPacked.xy;
     offsetSizeFlattenedsOutput[index] = quadMapDataPacked.offsetSizeFlattened;
 }
 

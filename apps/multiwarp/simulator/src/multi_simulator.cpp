@@ -750,7 +750,7 @@ int main(int argc, char** argv) {
                     numProxies, quadsGenerator.depthBufferSize,
                     *remoteCamera,
                     quadsGenerator.outputNormalSphericalsBuffer, quadsGenerator.outputDepthsBuffer,
-                    quadsGenerator.outputUVsBuffer, quadsGenerator.outputOffsetSizeFlattenedsBuffer,
+                    quadsGenerator.outputXYsBuffer, quadsGenerator.outputOffsetSizeFlattenedsBuffer,
                     quadsGenerator.depthOffsetsBuffer,
                     quadsGenerator.getSizesBuffer(),
                     *currMesh
