@@ -136,15 +136,6 @@ int main(int argc, char** argv) {
     unsigned int numTriangles = remoteWindowSize.x * remoteWindowSize.y * NUM_SUB_QUADS * 2;
     unsigned int maxIndices = numTriangles * 3;
 
-    struct BufferSizes {
-        unsigned int numVertices;
-        unsigned int numIndices;
-        unsigned int numProxies;
-        unsigned int numDepthOffsets;
-    };
-    BufferSizes bufferSizes = { 0 };
-    std::vector<Buffer<BufferSizes>> sizesBuffers(maxViews);
-
     std::vector<Mesh*> meshes(maxViews);
     std::vector<Node*> nodes(maxViews);
     std::vector<Node*> nodeWireframes(maxViews);
@@ -153,8 +144,6 @@ int main(int argc, char** argv) {
     std::vector<Node*> nodeDepths(maxViews);
 
     for (int view = 0; view < maxViews; view++) {
-        sizesBuffers[view] = Buffer<BufferSizes>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, 1, &bufferSizes);
-
         meshes[view] = new Mesh({
             .numVertices = maxVertices / (view == 0 || (!disableWideFov && view == maxViews - 1) ? 1 : 4),
             .numIndices = maxIndices / (view == 0 || (!disableWideFov && view == maxViews - 1) ? 1 : 4),
@@ -278,7 +267,6 @@ int main(int argc, char** argv) {
         showLayers[i] = true;
     }
 
-    unsigned int totalTriangles = 0;
     unsigned int totalProxies = 0;
     unsigned int totalDepthOffsets = 0;
 
@@ -295,6 +283,18 @@ int main(int argc, char** argv) {
         static int intervalIndex = 0;
 
         static bool showEnvMap = true;
+
+        std::vector<unsigned int> numVertices(maxViews);
+        std::vector<unsigned int> numIndicies(maxViews);
+        for (int view = 0; view < maxViews; view++) {
+            if (!showLayers[view]) {
+                continue;
+            }
+
+            auto meshBufferSizes = meshFromQuads.getBufferSizes();
+            numVertices[view] = meshBufferSizes.numVertices;
+            numIndicies[view] = meshBufferSizes.numIndices;
+        }
 
         ImGui::NewFrame();
 
@@ -333,6 +333,10 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
+            unsigned int totalTriangles = 0;
+            for (int view = 0; view < maxViews; view++) {
+                totalTriangles += numIndicies[view] / 3;
+            }
             if (totalTriangles < 100000)
                 ImGui::TextColored(ImVec4(0,1,0,1), "Triangles Drawn: %d", totalTriangles);
             else if (totalTriangles < 500000)
@@ -512,29 +516,29 @@ int main(int argc, char** argv) {
                 for (int view = 0; view < maxViews; view++) {
                     std::string verticesFileName = dataPath + "vertices" + std::to_string(view) + ".bin";
                     std::string indicesFileName = dataPath + "indices" + std::to_string(view) + ".bin";
-                    std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
 
                     // save vertexBuffer
                     meshes[view]->vertexBuffer.bind();
                     std::vector<Vertex> vertices = meshes[view]->vertexBuffer.getData();
                     std::ofstream verticesFile(dataPath + verticesFileName, std::ios::binary);
-                    verticesFile.write((char*)vertices.data(), maxVertices * sizeof(Vertex));
+                    verticesFile.write((char*)vertices.data(), numVertices[view] * sizeof(Vertex));
                     verticesFile.close();
-                    std::cout << "Saved " << vertices.size() << " vertices (" <<
-                                             (float)vertices.size() * sizeof(Vertex) / BYTES_IN_MB <<
+                    std::cout << "Saved " << numVertices[view] << " vertices (" <<
+                                             (float)numVertices[view] * sizeof(Vertex) / BYTES_IN_MB <<
                                              " MB)" << std::endl;
 
                     // save indexBuffer
                     meshes[view]->indexBuffer.bind();
                     std::vector<unsigned int> indices = meshes[view]->indexBuffer.getData();
                     std::ofstream indicesFile(dataPath + indicesFileName, std::ios::binary);
-                    indicesFile.write((char*)indices.data(), maxIndices * sizeof(unsigned int));
+                    indicesFile.write((char*)indices.data(), numIndicies[view] * sizeof(unsigned int));
                     indicesFile.close();
-                    std::cout << "Saved " << indices.size() << " indicies (" <<
-                                             (float)indices.size() * sizeof(Vertex) / BYTES_IN_MB <<
+                    std::cout << "Saved " << numIndicies[view] << " indicies (" <<
+                                             (float)numIndicies[view] * sizeof(Vertex) / BYTES_IN_MB <<
                                              " MB)" << std::endl;
 
                     // save color buffer
+                    std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
                     renderTargets[view].saveColorAsPNG(colorFileName);
                 }
             }
@@ -615,7 +619,6 @@ int main(int argc, char** argv) {
             startRenderTime = now;
         }
         if (rerender) {
-            totalTriangles = 0;
             totalProxies = 0;
             totalDepthOffsets = 0;
 
@@ -630,6 +633,7 @@ int main(int argc, char** argv) {
             std::cout << "======================================================" << std::endl;
 
             double startTime = glfwGetTime();
+            double totalRenderTime = 0.0;
             double totalGenQuadMapTime = 0.0;
             double totalSimplifyTime = 0.0;
             double totalFillQuadsTime = 0.0;
@@ -643,7 +647,7 @@ int main(int argc, char** argv) {
             ============================
             */
             dpRenderer.drawObjects(remoteScene, *centerRemoteCamera);
-            std::cout << "  Render Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
+            totalRenderTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
             startTime = glfwGetTime();
 
             for (int view = 0; view < maxViews; view++) {
@@ -728,20 +732,22 @@ int main(int argc, char** argv) {
                 ============================
                 */
                 // get output quads size (same as number of proxies)
-                auto bufferSizes = quadsGenerator.getBufferSizes();
-                totalProxies += bufferSizes.numProxies;
-                totalDepthOffsets += bufferSizes.numDepthOffsets;
+                auto quadBufferSizes = quadsGenerator.getBufferSizes();
+                unsigned int numProxies = quadBufferSizes.numProxies;
+                unsigned int numDepthOffsets = quadBufferSizes.numDepthOffsets;
+
+                totalProxies += numProxies;
+                totalDepthOffsets += numDepthOffsets;
 
                 totalGetSizeOfProxiesTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
                 startTime = glfwGetTime();
 
                 meshFromQuads.createMeshFromProxies(
-                    bufferSizes.numProxies, quadsGenerator.depthBufferSize,
+                    numProxies, quadsGenerator.depthBufferSize,
                     *remoteCamera,
                     quadsGenerator.outputNormalSphericalsBuffer, quadsGenerator.outputDepthsBuffer,
                     quadsGenerator.outputXYsBuffer, quadsGenerator.outputOffsetSizeFlattenedsBuffer,
                     quadsGenerator.depthOffsetsBuffer,
-                    quadsGenerator.getSizesBuffer(),
                     *currMesh
                 );
 
@@ -785,6 +791,7 @@ int main(int argc, char** argv) {
                 totalGenDepthTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
             }
 
+            std::cout << "  Renderng Time: " << totalRenderTime << "ms" << std::endl;
             std::cout << "  Gen Quad Map Time: " << totalGenQuadMapTime << "ms" << std::endl;
             std::cout << "  Simplify Time: " << totalSimplifyTime << "ms" << std::endl;
             std::cout << "  Fill Quads Time: " << totalFillQuadsTime << "ms" << std::endl;

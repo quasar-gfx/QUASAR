@@ -14,6 +14,11 @@
 
 class MeshFromQuads {
 public:
+    struct BufferSizes {
+        unsigned int numVertices;
+        unsigned int numIndices;
+    };
+
     glm::uvec2 remoteWindowSize;
 
     struct Stats {
@@ -22,6 +27,7 @@ public:
 
     MeshFromQuads(const glm::uvec2 &remoteWindowSize)
             : remoteWindowSize(remoteWindowSize)
+            , sizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, 1, &bufferSizes)
             , createMeshFromQuadsShader({
                 .computeCodePath = "shaders/createMeshFromQuads.comp",
                 .defines = {
@@ -40,7 +46,6 @@ public:
                 const Buffer<unsigned int> &outputXYsBuffer,
                 const Buffer<unsigned int> &outputOffsetSizeFlattenedsBuffer,
                 const Texture& depthOffsetsBuffer,
-                const Buffer<QuadsGenerator::BufferSizes>& sizesBuffer,
                 const Mesh& mesh
             ) {
         double startTime = timeutils::getTimeMicros();
@@ -85,7 +90,6 @@ public:
                 const Buffer<float> &outputDepthsBuffer,
                 const Buffer<unsigned int> &outputXYsBuffer,
                 const Buffer<unsigned int> &outputOffsetSizeFlattenedsBuffer,
-                const Buffer<QuadsGenerator::BufferSizes>& sizesBuffer,
                 const Mesh& mesh
             ) {
         double startTime = timeutils::getTimeMicros();
@@ -123,8 +127,16 @@ public:
         stats.timeToCreateMeshMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
     }
 
+    BufferSizes getBufferSizes() {
+        sizesBuffer.bind();
+        sizesBuffer.getData(&bufferSizes);
+        return bufferSizes;
+    }
 
 private:
+    BufferSizes bufferSizes = { 0 };
+    Buffer<BufferSizes> sizesBuffer;
+
     ComputeShader createMeshFromQuadsShader;
 };
 

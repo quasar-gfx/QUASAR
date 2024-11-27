@@ -16,9 +16,7 @@ struct QuadMapDataPacked {
     uint offsetSizeFlattened;
 };
 
-layout(std430, binding = 0) buffer SizesBuffer {
-    uint numVertices;
-    uint numIndices;
+layout(std430, binding = 0) buffer QuadBufferSizes {
     uint numProxies;
     uint numDepthOffsets;
 };

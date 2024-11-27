@@ -44,11 +44,9 @@ struct Plane {
     vec3 point;
 };
 
-layout(std430, binding = 0) buffer SizesBuffer {
+layout(std430, binding = 0) buffer MeshBufferSizes {
     uint numVertices;
     uint numIndices;
-    uint numProxies;
-    uint numDepthOffsets;
 };
 
 layout(std430, binding = 1) buffer VertexBuffer {
@@ -463,6 +461,13 @@ void main() {
     if (quadMapIndex >= quadMapSize) {
         return;
     }
+
+    // reset buffers on first invocation
+    if (quadMapIndex == 0) {
+        numVertices = 0;
+        numIndices = 0;
+    }
+    memoryBarrier();
 
     QuadMapData quadMapData = loadQuadMap(quadMapIndex);
     storeSurfelsFromQuadMap(quadMapData);

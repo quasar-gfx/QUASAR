@@ -131,7 +131,17 @@ public:
         }
     }
 
+#ifdef GL_CORE
+    void getSubData(unsigned int offset, unsigned int numElems, void* data) const {
+        glGetBufferSubData(target, offset * sizeof(T), numElems * sizeof(T), data);
+    }
+#endif
+
     void getData(void* data) const {
+#ifdef GL_CORE
+        // getSubData is faster than mapping the buffer
+        getSubData(0, numElems, data);
+#else
         T* mappedBuffer = static_cast<T*>(glMapBufferRange(target, 0, numElems * sizeof(T), GL_MAP_READ_BIT));
         if (mappedBuffer) {
             std::memcpy(data, mappedBuffer, numElems * sizeof(T));
@@ -140,6 +150,7 @@ public:
         } else {
             std::cerr << "Error: Could not map buffer data." << std::endl;
         }
+#endif
     }
 
     std::vector<T> getData() const {
@@ -147,12 +158,6 @@ public:
         getData(data.data());
         return data;
     }
-
-#ifdef GL_CORE
-    void getSubData(unsigned int offset, unsigned int numElems, void* data) const {
-        glGetBufferSubData(target, offset * sizeof(T), numElems * sizeof(T), data);
-    }
-#endif
 
     void setData(unsigned int numElems, const void* data) {
         resize(numElems);

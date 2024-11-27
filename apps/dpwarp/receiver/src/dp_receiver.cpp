@@ -150,10 +150,7 @@ int main(int argc, char** argv) {
         }
     }
     else {
-        QuadsGenerator::BufferSizes bufferSizes = { 0 };
         for (int view = 0; view < maxViews; view++) {
-            Buffer<QuadsGenerator::BufferSizes> sizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, &bufferSizes);
-
             unsigned int maxVertices = windowSize.x * windowSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
             unsigned int numTriangles = windowSize.x * windowSize.y * NUM_SUB_QUADS * 2 * 3;
             unsigned int maxIndices = numTriangles * 3;
@@ -204,15 +201,14 @@ int main(int argc, char** argv) {
             meshFromQuads.createMeshFromProxies(
                 numProxies, depthBufferSize, *cameraToUse,
                 inputNormalSphericalsBuffer, inputDepthsBuffer, inputUVsBuffer, inputOffsetSizeFlattenedsBuffer,
-                sizesBuffer, *meshes[view]
+                *meshes[view]
             );
 
             createMeshTime += meshFromQuads.stats.timeToCreateMeshMs;
 
-            sizesBuffer.bind();
-            sizesBuffer.getSubData(0, 1, &bufferSizes);
+            auto meshBufferSizes = meshFromQuads.getBufferSizes();
 
-            totalTriangles += bufferSizes.numIndices / 3;
+            totalTriangles += meshBufferSizes.numIndices / 3;
             totalProxies += numProxies;
             totalDepthOffsets = 0;
         }

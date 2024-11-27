@@ -209,6 +209,9 @@ int main(int argc, char** argv) {
 
         static bool showEnvMap = true;
 
+        auto quadBufferSizes = quadsGenerator.getBufferSizes();
+        auto meshBufferSizes = meshFromQuads.getBufferSizes();
+
         ImGui::NewFrame();
 
         unsigned int flags = 0;
@@ -245,11 +248,9 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            auto bufferSizes = quadsGenerator.getBufferSizes();
-
-            unsigned int totalTriangles = bufferSizes.numIndices / 3;
-            unsigned int totalProxies = bufferSizes.numProxies;
-            unsigned int totalDepthOffsets = bufferSizes.numDepthOffsets;
+            unsigned int totalTriangles = meshBufferSizes.numIndices / 3;
+            unsigned int totalProxies = quadBufferSizes.numProxies;
+            unsigned int totalDepthOffsets = quadBufferSizes.numDepthOffsets;
             if (totalTriangles < 100000)
                 ImGui::TextColored(ImVec4(0,1,0,1), "Triangles Drawn: %d", totalTriangles);
             else if (totalTriangles < 500000)
@@ -398,20 +399,20 @@ int main(int argc, char** argv) {
                 mesh.vertexBuffer.bind();
                 std::vector<Vertex> vertices = mesh.vertexBuffer.getData();
                 std::ofstream verticesFile(dataPath + verticesFileName, std::ios::binary);
-                verticesFile.write((char*)vertices.data(), bufferSizes.numVertices * sizeof(Vertex));
+                verticesFile.write((char*)vertices.data(), meshBufferSizes.numVertices * sizeof(Vertex));
                 verticesFile.close();
-                std::cout << "Saved " << bufferSizes.numVertices << " vertices (" <<
-                              (float)bufferSizes.numVertices * sizeof(Vertex) / BYTES_IN_MB <<
+                std::cout << "Saved " << meshBufferSizes.numVertices << " vertices (" <<
+                              (float)meshBufferSizes.numVertices * sizeof(Vertex) / BYTES_IN_MB <<
                               " MB)" << std::endl;
 
                 // save indexBuffer
                 mesh.indexBuffer.bind();
                 std::vector<unsigned int> indices = mesh.indexBuffer.getData();
                 std::ofstream indicesFile(dataPath + indicesFileName, std::ios::binary);
-                indicesFile.write((char*)indices.data(), bufferSizes.numIndices * sizeof(unsigned int));
+                indicesFile.write((char*)indices.data(), meshBufferSizes.numIndices * sizeof(unsigned int));
                 indicesFile.close();
-                std::cout << "Saved " << bufferSizes.numIndices << " indices (" <<
-                             (float)bufferSizes.numIndices * sizeof(unsigned int) / BYTES_IN_MB <<
+                std::cout << "Saved " << meshBufferSizes.numIndices << " indices (" <<
+                             (float)meshBufferSizes.numIndices * sizeof(unsigned int) / BYTES_IN_MB <<
                              " MB)" << std::endl;
 
                 // save color buffer
@@ -426,10 +427,6 @@ int main(int argc, char** argv) {
 
             ImGui::End();
         }
-
-        ImGui::Begin("Render Target", 0, flags);
-        ImGui::Image((void*)(intptr_t)(renderTarget.colorBuffer.ID), ImVec2(windowSize.x/4, windowSize.y/4), ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::End();
     });
 
     app.onResize([&](unsigned int width, unsigned int height) {
@@ -573,7 +570,8 @@ int main(int argc, char** argv) {
             ============================
             */
             // get output quads size (same as number of proxies)
-            unsigned int numProxies = quadsGenerator.getBufferSizes().numProxies;
+            auto quadBufferSizes = quadsGenerator.getBufferSizes();
+            unsigned int numProxies = quadBufferSizes.numProxies;
 
             totalGetSizeOfProxiesTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
             startTime = glfwGetTime();
@@ -584,7 +582,6 @@ int main(int argc, char** argv) {
                 quadsGenerator.outputNormalSphericalsBuffer, quadsGenerator.outputDepthsBuffer,
                 quadsGenerator.outputXYsBuffer, quadsGenerator.outputOffsetSizeFlattenedsBuffer,
                 quadsGenerator.depthOffsetsBuffer,
-                quadsGenerator.getSizesBuffer(),
                 mesh
             );
             totalCreateMeshTime += meshFromQuads.stats.timeToCreateMeshMs;

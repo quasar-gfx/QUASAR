@@ -14,8 +14,6 @@
 class QuadsGenerator {
 public:
     struct BufferSizes {
-        unsigned int numVertices;
-        unsigned int numIndices;
         unsigned int numProxies;
         unsigned int numDepthOffsets;
     };
@@ -315,17 +313,13 @@ public:
         delete[] data;
         return payloadSize;
     }
-
-    Buffer<BufferSizes>& getSizesBuffer() {
-        return sizesBuffer;
-    }
+#endif
 
     BufferSizes getBufferSizes() {
         sizesBuffer.bind();
-        sizesBuffer.getSubData(0, 1, &bufferSizes);
+        sizesBuffer.getData(&bufferSizes);
         return bufferSizes;
     }
-#endif
 
 private:
     BufferSizes bufferSizes = { 0 };

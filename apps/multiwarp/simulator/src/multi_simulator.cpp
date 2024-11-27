@@ -279,7 +279,6 @@ int main(int argc, char** argv) {
         showViews[view] = true;
     }
 
-    unsigned int totalTriangles = 0;
     unsigned int totalProxies = 0;
     unsigned int totalDepthOffsets = 0;
 
@@ -296,6 +295,18 @@ int main(int argc, char** argv) {
         static int intervalIndex = 0;
 
         static bool showEnvMap = true;
+
+        std::vector<unsigned int> numVertices(maxViews);
+        std::vector<unsigned int> numIndicies(maxViews);
+        for (int view = 0; view < maxViews; view++) {
+            if (!showViews[view]) {
+                continue;
+            }
+
+            auto meshBufferSizes = meshFromQuads.getBufferSizes();
+            numVertices[view] = meshBufferSizes.numVertices;
+            numIndicies[view] = meshBufferSizes.numIndices;
+        }
 
         ImGui::NewFrame();
 
@@ -334,6 +345,10 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
+            unsigned int totalTriangles = 0;
+            for (int view = 0; view < maxViews; view++) {
+                totalTriangles += numIndicies[view] / 3;
+            }
             if (totalTriangles < 100000)
                 ImGui::TextColored(ImVec4(0,1,0,1), "Triangles Drawn: %d", totalTriangles);
             else if (totalTriangles < 500000)
@@ -517,20 +532,20 @@ int main(int argc, char** argv) {
                     meshes[view]->vertexBuffer.bind();
                     std::vector<Vertex> vertices = meshes[view]->vertexBuffer.getData();
                     std::ofstream verticesFile(dataPath + verticesFileName, std::ios::binary);
-                    verticesFile.write((char*)vertices.data(), maxVertices * sizeof(Vertex));
+                    verticesFile.write((char*)vertices.data(), numVertices[view] * sizeof(Vertex));
                     verticesFile.close();
-                    std::cout << "Saved " << vertices.size() << " vertices (" <<
-                                             (float)vertices.size() * sizeof(Vertex) / BYTES_IN_MB <<
+                    std::cout << "Saved " << numVertices[view] << " vertices (" <<
+                                             (float)numVertices[view] * sizeof(Vertex) / BYTES_IN_MB <<
                                              " MB)" << std::endl;
 
                     // save indexBuffer
                     meshes[view]->indexBuffer.bind();
                     std::vector<unsigned int> indices = meshes[view]->indexBuffer.getData();
                     std::ofstream indicesFile(dataPath + indicesFileName, std::ios::binary);
-                    indicesFile.write((char*)indices.data(), maxIndices * sizeof(unsigned int));
+                    indicesFile.write((char*)indices.data(), numIndicies[view] * sizeof(unsigned int));
                     indicesFile.close();
-                    std::cout << "Saved " << indices.size() << " indicies (" <<
-                                             (float)indices.size() * sizeof(Vertex) / BYTES_IN_MB <<
+                    std::cout << "Saved " << numIndicies[view] << " indicies (" <<
+                                             (float)numIndicies[view] * sizeof(Vertex) / BYTES_IN_MB <<
                                              " MB)" << std::endl;
 
                     // save color buffer
@@ -614,7 +629,6 @@ int main(int argc, char** argv) {
             startRenderTime = now;
         }
         if (rerender) {
-            totalTriangles = 0;
             totalProxies = 0;
             totalDepthOffsets = 0;
 
@@ -719,20 +733,22 @@ int main(int argc, char** argv) {
                 ============================
                 */
                 // get output quads size (same as number of proxies)
-                auto bufferSizes = quadsGenerator.getBufferSizes();
-                totalProxies += bufferSizes.numProxies;
-                totalDepthOffsets += bufferSizes.numDepthOffsets;
+                auto quadBufferSizes = quadsGenerator.getBufferSizes();
+                unsigned int numProxies = quadBufferSizes.numProxies;
+                unsigned int numDepthOffsets = quadBufferSizes.numDepthOffsets;
+
+                totalProxies += numProxies;
+                totalDepthOffsets += numDepthOffsets;
 
                 totalGetSizeOfProxiesTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
                 startTime = glfwGetTime();
 
                 meshFromQuads.createMeshFromProxies(
-                    bufferSizes.numProxies, quadsGenerator.depthBufferSize,
+                    numProxies, quadsGenerator.depthBufferSize,
                     *remoteCamera,
                     quadsGenerator.outputNormalSphericalsBuffer, quadsGenerator.outputDepthsBuffer,
                     quadsGenerator.outputXYsBuffer, quadsGenerator.outputOffsetSizeFlattenedsBuffer,
                     quadsGenerator.depthOffsetsBuffer,
-                    quadsGenerator.getSizesBuffer(),
                     *currMesh
                 );
 

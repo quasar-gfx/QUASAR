@@ -131,9 +131,6 @@ int main(int argc, char** argv) {
         createMeshTime = (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
     }
     else {
-        QuadsGenerator::BufferSizes bufferSizes = { 0 };
-        Buffer<QuadsGenerator::BufferSizes> sizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, &bufferSizes);
-
         startTime = glfwGetTime();
         std::string quadProxiesFileName = DATA_PATH + "quads.bin";
         auto quadProxiesData = FileIO::loadBinaryFile(quadProxiesFileName);
@@ -181,15 +178,14 @@ int main(int argc, char** argv) {
         meshFromQuads.createMeshFromProxies(
             numProxies, depthBufferSize, remoteCamera,
             inputNormalSphericalsBuffer, inputDepthsBuffer, inputUVsBuffer, inputOffsetSizeFlattenedsBuffer,
-            sizesBuffer, *mesh
+            *mesh
         );
 
         createMeshTime = meshFromQuads.stats.timeToCreateMeshMs;
 
-        sizesBuffer.bind();
-        sizesBuffer.getSubData(0, 1, &bufferSizes);
+        auto meshBufferSizes = meshFromQuads.getBufferSizes();
 
-        totalTriangles = bufferSizes.numIndices / 3;
+        totalTriangles = meshBufferSizes.numIndices / 3;
         totalProxies = numProxies;
         totalDepthOffsets = 0;
     }
