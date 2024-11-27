@@ -261,6 +261,7 @@ public:
         fillOutputQuads();
     }
 
+#ifdef GL_CORE
     unsigned int getProxies(char* proxiesData) {
         auto bufferSizes = getBufferSizes();
 
@@ -324,6 +325,7 @@ public:
         sizesBuffer.getSubData(0, 1, &bufferSizes);
         return bufferSizes;
     }
+#endif
 
 private:
     BufferSizes bufferSizes = { 0 };

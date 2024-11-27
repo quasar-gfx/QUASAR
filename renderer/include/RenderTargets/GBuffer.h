@@ -91,6 +91,7 @@ public:
         framebuffer.unbind();
     }
 
+#ifdef GL_CORE
     void blitToGBuffer(GeometryBuffer &gBuffer) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gBuffer.getFramebufferID());
@@ -126,6 +127,7 @@ public:
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
+#endif
 
     void resize(unsigned int width, unsigned int height) override {
         RenderTargetBase::resize(width, height);

@@ -163,9 +163,11 @@ public:
         setData(data.size(), data.data());
     }
 
+#ifdef GL_CORE
     void setSubData(unsigned int offset, unsigned int numElems, const void* data) {
         glBufferSubData(target, offset * sizeof(T), numElems * sizeof(T), data);
     }
+#endif
 
     void setSubData(unsigned int offset, const std::vector<T>& data) {
         setSubData(offset, data.size(), data.data());
