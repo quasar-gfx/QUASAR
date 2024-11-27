@@ -21,11 +21,6 @@
 #include <QuadMaterial.h>
 #include <shaders_common.h>
 
-#define THREADS_PER_LOCALGROUP 16
-
-#define VERTICES_IN_A_QUAD 4
-#define NUM_SUB_QUADS 4
-
 int main(int argc, char** argv) {
     Config config{};
     config.title = "Depth Peeling Simulator";

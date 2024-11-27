@@ -2,7 +2,6 @@
 #include <Shaders/ComputeShader.h>
 
 void ComputeShader::loadFromFile(const std::string &computePath) {
-
     std::string computeCode = FileIO::loadTextFile(computePath);
 
     const char* cShaderCode = computeCode.c_str();
@@ -20,6 +19,7 @@ void ComputeShader::createAndCompileProgram(const char* computeCodeData, const G
 
     ID = glCreateProgram();
     glAttachShader(ID, compute);
+
     glLinkProgram(ID);
     checkCompileErrors(ID, ShaderType::PROGRAM);
 

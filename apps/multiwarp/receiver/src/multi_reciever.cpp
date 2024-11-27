@@ -18,11 +18,6 @@
 #include <QuadMaterial.h>
 #include <shaders_common.h>
 
-#define THREADS_PER_LOCALGROUP 16
-
-#define VERTICES_IN_A_QUAD 4
-#define NUM_SUB_QUADS 4
-
 const std::string DATA_PATH = "../simulator/";
 
 const std::vector<glm::vec3> offsets = {

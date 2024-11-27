@@ -20,11 +20,6 @@
 #include <QuadMaterial.h>
 #include <shaders_common.h>
 
-#define THREADS_PER_LOCALGROUP 16
-
-#define VERTICES_IN_A_QUAD 4
-#define NUM_SUB_QUADS 4
-
 const std::vector<glm::vec3> offsets = {
     glm::vec3(-1.0f, +1.0f, -1.0f), // Top-left
     glm::vec3(+1.0f, +1.0f, -1.0f), // Top-right

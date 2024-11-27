@@ -81,10 +81,14 @@ layout(std430, binding = 7) readonly buffer offsetsBufferInput {
     uint offsetSizeFlattenedsInput[];
 };
 
+#ifdef PLATFORM_CORE
 layout(r16f, binding = 0) uniform readonly image2D depthOffsetsBuffer;
+#else
+layout(rgba16f, binding = 0) uniform readonly image2D depthOffsetsBuffer;
+#endif
 
 uniform vec2 remoteWindowSize;
-uniform int quadMapSize;
+uniform uint quadMapSize;
 uniform vec2 depthBufferSize;
 
 uniform mat4 view;
@@ -97,15 +101,15 @@ uniform float far;
 
 #define MAX_DEPTH 0.9999
 
-#define VERTICES_IN_A_QUAD  4
-#define INDICES_IN_A_QUAD   6
-#define NUM_SUB_QUADS       4
+#define VERTICES_IN_A_QUAD  4u
+#define INDICES_IN_A_QUAD   6u
+#define NUM_SUB_QUADS       4u
 
 const float epsilon = 1e-5;
 const float PI = 3.1415926535897932384626433832795;
 
-const float minVal = -1;
-const float maxVal = 1;
+const float minVal = -1.0;
+const float maxVal = 1.0;
 const int numBits = 12;
 
 const float surfelSize = 0.5;
@@ -156,12 +160,12 @@ vec2 worldToScreen(mat4 view, mat4 projection, vec3 worldCoord) {
 vec3 rayPlaneIntersection(vec3 rayOrigin, vec3 rayDirection, Plane plane) {
     float denominator = dot(rayDirection, plane.normal);
     if (abs(denominator) < epsilon) {
-        return vec3(1.0/0.0);
+        return vec3(0.0);
     }
 
     float t = dot(plane.point - rayOrigin, plane.normal) / denominator;
     if (t < 0.0) {
-        return vec3(1.0/0.0);
+        return vec3(0.0);
     }
 
     vec3 intersection = rayOrigin + t * rayDirection;
@@ -221,12 +225,12 @@ QuadMapData loadQuadMap(uint index) {
 
     uint flattenedAndSize = quadMapDataPacked.offsetSizeFlattened & 0xFFu;
     quadMapData.size = (flattenedAndSize >> 1) & 0x7Fu;
-    quadMapData.flattened = (flattenedAndSize & 1u) != 0;
+    quadMapData.flattened = (flattenedAndSize & 1u) != 0u;
 
-    uint halfSize = 1 << (quadMapData.size - 1); // 2^size / 2
-    quadMapData.uv.x = (quadMapDataPacked.xy >> 12) & 0xFFFu;
-    quadMapData.uv.y = (quadMapDataPacked.xy >> 0) & 0xFFFu;
-    quadMapData.uv = (vec2(quadMapData.uv) + halfSize * vec2(0.5)) / remoteWindowSize;
+    uint halfSize = 1u << (quadMapData.size - 1u); // 2^size / 2
+    quadMapData.uv.x = float((quadMapDataPacked.xy >> 12) & 0xFFFu);
+    quadMapData.uv.y = float((quadMapDataPacked.xy >> 0) & 0xFFFu);
+    quadMapData.uv = (vec2(quadMapData.uv) + float(halfSize) * vec2(0.5)) / remoteWindowSize;
 
     return quadMapData;
 }
@@ -307,25 +311,25 @@ void storeSurfel(in Quad quad, in Quad2D pixelCoords, in QuadMapData quadMapData
 
     uint vertexIdxBase = atomicAdd(numVertices, VERTICES_IN_A_QUAD);
 
-    uint vertexIndexTopLeft = vertexIdxBase + 0;
+    uint vertexIndexTopLeft = vertexIdxBase + 0u;
     vertices[vertexIndexTopLeft].position = viewToWorld(viewInverse, quad.topLeft);
     vertices[vertexIndexTopLeft].color = vec3(1.0, 1.0, 1.0);
     vertices[vertexIndexTopLeft].texCoords = pixelCoords.topLeft / remoteWindowSize;
     vertices[vertexIndexTopLeft].normal = quadMapData.normal;
 
-    uint vertexIndexTopRight = vertexIdxBase + 1;
+    uint vertexIndexTopRight = vertexIdxBase + 1u;
     vertices[vertexIndexTopRight].position = viewToWorld(viewInverse, quad.topRight);
     vertices[vertexIndexTopRight].color = vec3(1.0, 1.0, 1.0);
     vertices[vertexIndexTopRight].texCoords = pixelCoords.topRight / remoteWindowSize;
     vertices[vertexIndexTopRight].normal = quadMapData.normal;
 
-    uint vertexIndexBottomLeft = vertexIdxBase + 2;
+    uint vertexIndexBottomLeft = vertexIdxBase + 2u;
     vertices[vertexIndexBottomLeft].position = viewToWorld(viewInverse, quad.bottomLeft);
     vertices[vertexIndexBottomLeft].color = vec3(1.0, 1.0, 1.0);
     vertices[vertexIndexBottomLeft].texCoords = pixelCoords.bottomLeft / remoteWindowSize;
     vertices[vertexIndexBottomLeft].normal = quadMapData.normal;
 
-    uint vertexIndexBottomRight = vertexIdxBase + 3;
+    uint vertexIndexBottomRight = vertexIdxBase + 3u;
     vertices[vertexIndexBottomRight].position = viewToWorld(viewInverse, quad.bottomRight);
     vertices[vertexIndexBottomRight].color = vec3(1.0, 1.0, 1.0);
     vertices[vertexIndexBottomRight].texCoords = pixelCoords.bottomRight / remoteWindowSize;
@@ -368,13 +372,13 @@ void storeSurfel(in Quad quad, in Quad2D pixelCoords, in QuadMapData quadMapData
 
     uint indexIdxBase = atomicAdd(numIndices, INDICES_IN_A_QUAD);
 
-    indices[indexIdxBase + 0] = vertexIndexTopLeft;
-    indices[indexIdxBase + 1] = vertexIndexBottomLeft;
-    indices[indexIdxBase + 2] = vertexIndexTopRight;
+    indices[indexIdxBase + 0u] = vertexIndexTopLeft;
+    indices[indexIdxBase + 1u] = vertexIndexBottomLeft;
+    indices[indexIdxBase + 2u] = vertexIndexTopRight;
 
-    indices[indexIdxBase + 3] = vertexIndexTopRight;
-    indices[indexIdxBase + 4] = vertexIndexBottomLeft;
-    indices[indexIdxBase + 5] = vertexIndexBottomRight;
+    indices[indexIdxBase + 3u] = vertexIndexTopRight;
+    indices[indexIdxBase + 4u] = vertexIndexBottomLeft;
+    indices[indexIdxBase + 5u] = vertexIndexBottomRight;
 
     meshIndirectCommandBuffer.count = numIndices;
 
@@ -411,8 +415,8 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
     vec2 proxyPlaneUV = quadMapData.uv;
     vec2 proxyPlanePixelCoords = vec2(proxyPlaneUV * remoteWindowSize);
 
-    uint size = 1 << quadMapData.size;
-    float halfGridSize = float(size) * surfelSize / 2;
+    uint size = 1u << quadMapData.size;
+    float halfGridSize = float(size) * surfelSize / 2.0;
 
     bool flattened = quadMapData.flattened;
     if (!flattened) {
@@ -420,9 +424,9 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
         vec2 stepSize = vec2(0.5);
 
         // create surfels for each subpixel in the quad map
-        for (int i = 0; i < size; i++) {
+        for (uint i = 0u; i < size; i++) {
             vec2 rowStart = start + vec2(float(i) * stepSize.x, 0.0);
-            for (int j = 0; j < size; j++) {
+            for (uint j = 0u; j < size; j++) {
                 vec2 surfelBaseCoord = rowStart + vec2(0.0, float(j) * stepSize.y);
 
                 Quad2D surfelPixelCoords;
@@ -463,9 +467,9 @@ void main() {
     }
 
     // reset buffers on first invocation
-    if (quadMapIndex == 0) {
-        numVertices = 0;
-        numIndices = 0;
+    if (quadMapIndex == 0u) {
+        numVertices = 0u;
+        numIndices = 0u;
     }
     memoryBarrier();
 

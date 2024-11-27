@@ -225,20 +225,39 @@ protected:
     }
 
     void checkCompileErrors(GLuint shader, ShaderType type) {
+        std::string shaderTypeStr;
+        switch (type) {
+            case ShaderType::VERTEX:
+                shaderTypeStr = "VERTEX";
+                break;
+            case ShaderType::FRAGMENT:
+                shaderTypeStr = "FRAGMENT";
+                break;
+            case ShaderType::GEOMETRY:
+                shaderTypeStr = "GEOMETRY";
+                break;
+            case ShaderType::COMPUTE:
+                shaderTypeStr = "COMPUTE";
+                break;
+            default:
+                shaderTypeStr = "UNKNOWN";
+                break;
+        }
+
         GLint success;
         GLchar infoLog[1024];
         if (type != ShaderType::PROGRAM) {
             glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
             if (!success) {
                 glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-                std::cerr << "Failed to compile shader of type: " << static_cast<int>(type) << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+                std::cerr << "Failed to compile " << shaderTypeStr << " shader:\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
             }
         }
         else {
             glGetProgramiv(shader, GL_LINK_STATUS, &success);
             if (!success) {
                 glGetProgramInfoLog(shader, 1024, NULL, infoLog);
-                std::cerr << "Failed to link shader of type: " << static_cast<int>(type) << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+                std::cerr << "Failed to link program:\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
             }
         }
     }

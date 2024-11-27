@@ -60,7 +60,7 @@ public:
             createMeshFromQuadsShader.setFloat("far", remoteCamera.getFar());
         }
         {
-            createMeshFromQuadsShader.setInt("quadMapSize", numProxies);
+            createMeshFromQuadsShader.setUint("quadMapSize", numProxies);
             createMeshFromQuadsShader.setVec2("depthBufferSize", depthBufferSize);
         }
         {
@@ -104,7 +104,7 @@ public:
             createMeshFromQuadsShader.setFloat("far", remoteCamera.getFar());
         }
         {
-            createMeshFromQuadsShader.setInt("quadMapSize", numProxies);
+            createMeshFromQuadsShader.setUint("quadMapSize", numProxies);
             createMeshFromQuadsShader.setVec2("depthBufferSize", depthBufferSize);
         }
         {
