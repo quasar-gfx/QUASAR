@@ -87,6 +87,8 @@ layout(r16f, binding = 0) uniform readonly image2D depthOffsetsBuffer;
 layout(rgba16f, binding = 0) uniform readonly image2D depthOffsetsBuffer;
 #endif
 
+uniform bool appendGeometry;
+
 uniform vec2 remoteWindowSize;
 uniform uint quadMapSize;
 uniform vec2 depthBufferSize;
@@ -467,7 +469,7 @@ void main() {
     }
 
     // reset buffers on first invocation
-    if (quadMapIndex == 0u) {
+    if (!appendGeometry && quadMapIndex == 0u) {
         numVertices = 0u;
         numIndices = 0u;
     }

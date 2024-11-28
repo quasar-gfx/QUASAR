@@ -39,59 +39,52 @@ public:
     }
 
     void createMeshFromProxies(
-                unsigned int numProxies, const glm::uvec2 &depthBufferSize,
-                const PerspectiveCamera &remoteCamera,
-                const Buffer<unsigned int> &outputNormalSphericalsBuffer,
-                const Buffer<float> &outputDepthsBuffer,
-                const Buffer<unsigned int> &outputXYsBuffer,
-                const Buffer<unsigned int> &outputOffsetSizeFlattenedsBuffer,
-                const Texture& depthOffsetsBuffer,
-                const Mesh& mesh
-            ) {
-        double startTime = timeutils::getTimeMicros();
-
+            unsigned int numProxies, const glm::uvec2 &depthBufferSize,
+            const PerspectiveCamera &remoteCamera,
+            const Buffer<unsigned int> &outputNormalSphericalsBuffer,
+            const Buffer<float> &outputDepthsBuffer,
+            const Buffer<unsigned int> &outputXYsBuffer,
+            const Buffer<unsigned int> &outputOffsetSizeFlattenedsBuffer,
+            const Texture& depthOffsetsBuffer,
+            const Mesh& mesh) {
         createMeshFromQuadsShader.bind();
-        {
-            createMeshFromQuadsShader.setMat4("view", remoteCamera.getViewMatrix());
-            createMeshFromQuadsShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-            createMeshFromQuadsShader.setMat4("viewInverse", remoteCamera.getViewMatrixInverse());
-            createMeshFromQuadsShader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
-            createMeshFromQuadsShader.setFloat("near", remoteCamera.getNear());
-            createMeshFromQuadsShader.setFloat("far", remoteCamera.getFar());
-        }
-        {
-            createMeshFromQuadsShader.setUint("quadMapSize", numProxies);
-            createMeshFromQuadsShader.setVec2("depthBufferSize", depthBufferSize);
-        }
-        {
-            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, sizesBuffer);
+        createMeshFromQuadsShader.setImageTexture(0, depthOffsetsBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetsBuffer.internalFormat);
 
-            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh.vertexBuffer);
-            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, mesh.indexBuffer);
-            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, mesh.indirectBuffer);
+        createMeshFromProxies(
+                numProxies, depthBufferSize,
+                remoteCamera,
+                outputNormalSphericalsBuffer, outputDepthsBuffer, outputXYsBuffer, outputOffsetSizeFlattenedsBuffer,
+                mesh, false);
+    }
 
-            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, outputNormalSphericalsBuffer);
-            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, outputDepthsBuffer);
-            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, outputXYsBuffer);
-            createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, outputOffsetSizeFlattenedsBuffer);
+    void appendGeometry(
+            unsigned int numProxies, const glm::uvec2 &depthBufferSize,
+            const PerspectiveCamera &remoteCamera,
+            const Buffer<unsigned int> &outputNormalSphericalsBuffer,
+            const Buffer<float> &outputDepthsBuffer,
+            const Buffer<unsigned int> &outputXYsBuffer,
+            const Buffer<unsigned int> &outputOffsetSizeFlattenedsBuffer,
+            const Texture& depthOffsetsBuffer,
+            const Mesh& mesh) {
+        createMeshFromQuadsShader.bind();
+        createMeshFromQuadsShader.setImageTexture(0, depthOffsetsBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetsBuffer.internalFormat);
 
-            createMeshFromQuadsShader.setImageTexture(0, depthOffsetsBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetsBuffer.internalFormat);
-        }
-        createMeshFromQuadsShader.dispatch((numProxies + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
-        createMeshFromQuadsShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
-
-        stats.timeToCreateMeshMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+        createMeshFromProxies(
+                numProxies, depthBufferSize,
+                remoteCamera,
+                outputNormalSphericalsBuffer, outputDepthsBuffer, outputXYsBuffer, outputOffsetSizeFlattenedsBuffer,
+                mesh, true);
     }
 
     void createMeshFromProxies(
-                unsigned int numProxies, const glm::uvec2 &depthBufferSize,
-                const PerspectiveCamera &remoteCamera,
-                const Buffer<unsigned int> &outputNormalSphericalsBuffer,
-                const Buffer<float> &outputDepthsBuffer,
-                const Buffer<unsigned int> &outputXYsBuffer,
-                const Buffer<unsigned int> &outputOffsetSizeFlattenedsBuffer,
-                const Mesh& mesh
-            ) {
+            unsigned int numProxies, const glm::uvec2 &depthBufferSize,
+            const PerspectiveCamera &remoteCamera,
+            const Buffer<unsigned int> &outputNormalSphericalsBuffer,
+            const Buffer<float> &outputDepthsBuffer,
+            const Buffer<unsigned int> &outputXYsBuffer,
+            const Buffer<unsigned int> &outputOffsetSizeFlattenedsBuffer,
+            const Mesh& mesh,
+            bool appendGeometry = false) {
         double startTime = timeutils::getTimeMicros();
 
         createMeshFromQuadsShader.bind();
@@ -104,6 +97,7 @@ public:
             createMeshFromQuadsShader.setFloat("far", remoteCamera.getFar());
         }
         {
+            createMeshFromQuadsShader.setBool("appendGeometry", appendGeometry);
             createMeshFromQuadsShader.setUint("quadMapSize", numProxies);
             createMeshFromQuadsShader.setVec2("depthBufferSize", depthBufferSize);
         }
@@ -118,8 +112,6 @@ public:
             createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, outputDepthsBuffer);
             createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, outputXYsBuffer);
             createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, outputOffsetSizeFlattenedsBuffer);
-
-            // createMeshFromQuadsShader.setImageTexture(0, depthOffsetsBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetsBuffer.internalFormat);
         }
         createMeshFromQuadsShader.dispatch((numProxies + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
         createMeshFromQuadsShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);

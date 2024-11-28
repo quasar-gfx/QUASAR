@@ -385,8 +385,6 @@ int main(int argc, char** argv) {
             std::string colorFileName = dataPath + "color.png";
 
             if (ImGui::Button("Save Mesh")) {
-                auto bufferSizes = quadsGenerator.getBufferSizes();
-
                 std::string verticesFileName = dataPath + "vertices.bin";
                 std::string indicesFileName = dataPath + "indices.bin";
 
@@ -571,14 +569,24 @@ int main(int argc, char** argv) {
             totalGetSizeOfProxiesTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
             startTime = glfwGetTime();
 
-            meshFromQuads.createMeshFromProxies(
-                numProxies, quadsGenerator.depthBufferSize,
-                remoteCamera,
-                quadsGenerator.outputNormalSphericalsBuffer, quadsGenerator.outputDepthsBuffer,
-                quadsGenerator.outputXYsBuffer, quadsGenerator.outputOffsetSizeFlattenedsBuffer,
-                quadsGenerator.depthOffsetsBuffer,
-                mesh
-            );
+            if (generateIFrame) {
+                meshFromQuads.createMeshFromProxies(
+                    numProxies, quadsGenerator.depthBufferSize,
+                    remoteCamera,
+                    quadsGenerator.outputNormalSphericalsBuffer, quadsGenerator.outputDepthsBuffer,
+                    quadsGenerator.outputXYsBuffer, quadsGenerator.outputOffsetSizeFlattenedsBuffer,
+                    quadsGenerator.depthOffsetsBuffer,
+                    mesh);
+            }
+            else if (generatePFrame) {
+                meshFromQuads.appendGeometry(
+                        numProxies, quadsGenerator.depthBufferSize,
+                        remoteCamera,
+                        quadsGenerator.outputNormalSphericalsBuffer, quadsGenerator.outputDepthsBuffer,
+                        quadsGenerator.outputXYsBuffer, quadsGenerator.outputOffsetSizeFlattenedsBuffer,
+                        quadsGenerator.depthOffsetsBuffer,
+                        mesh);
+            }
             totalCreateMeshTime += meshFromQuads.stats.timeToCreateMeshMs;
             startTime = glfwGetTime();
 
