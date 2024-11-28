@@ -1,6 +1,10 @@
 #ifndef QUADS_GENERATOR_H
 #define QUADS_GENERATOR_H
 
+#ifdef GL_CORE
+#include <fstream>
+#endif
+
 #include <Cameras/PerspectiveCamera.h>
 #include <Shaders/ComputeShader.h>
 #include <RenderTargets/GBuffer.h>

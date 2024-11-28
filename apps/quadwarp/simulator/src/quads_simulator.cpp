@@ -117,7 +117,7 @@ int main(int argc, char** argv) {
     Mesh mesh = Mesh({
         .numVertices = maxVertices,
         .numIndices = maxIndices,
-        .material = new QuadMaterial({ .baseColorTexture = &renderTarget.colorBuffer }),
+        .material = new QuadMaterial({ .baseColorTexture = &meshFromQuads.atlas }),
         .usage = GL_DYNAMIC_DRAW,
         .indirectDraw = true
     });
@@ -420,6 +420,11 @@ int main(int argc, char** argv) {
 
             ImGui::End();
         }
+
+        flags = ImGuiWindowFlags_AlwaysAutoResize;
+        ImGui::Begin("Texture Atlas", 0, flags);
+        ImGui::Image((void*)(intptr_t)(meshFromQuads.atlas), ImVec2(500, 500), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::End();
     });
 
     app.onResize([&](unsigned int width, unsigned int height) {
@@ -576,16 +581,18 @@ int main(int argc, char** argv) {
                     quadsGenerator.outputNormalSphericalsBuffer, quadsGenerator.outputDepthsBuffer,
                     quadsGenerator.outputXYsBuffer, quadsGenerator.outputOffsetSizeFlattenedsBuffer,
                     quadsGenerator.depthOffsetsBuffer,
+                    renderTarget.colorBuffer,
                     mesh);
             }
             else if (generatePFrame) {
                 meshFromQuads.appendGeometry(
-                        numProxies, quadsGenerator.depthBufferSize,
-                        remoteCamera,
-                        quadsGenerator.outputNormalSphericalsBuffer, quadsGenerator.outputDepthsBuffer,
-                        quadsGenerator.outputXYsBuffer, quadsGenerator.outputOffsetSizeFlattenedsBuffer,
-                        quadsGenerator.depthOffsetsBuffer,
-                        mesh);
+                    numProxies, quadsGenerator.depthBufferSize,
+                    remoteCamera,
+                    quadsGenerator.outputNormalSphericalsBuffer, quadsGenerator.outputDepthsBuffer,
+                    quadsGenerator.outputXYsBuffer, quadsGenerator.outputOffsetSizeFlattenedsBuffer,
+                    quadsGenerator.depthOffsetsBuffer,
+                    renderTarget.colorBuffer,
+                    mesh);
             }
             totalCreateMeshTime += meshFromQuads.stats.timeToCreateMeshMs;
             startTime = glfwGetTime();

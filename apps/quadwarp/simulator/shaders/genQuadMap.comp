@@ -1,8 +1,5 @@
 layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = THREADS_PER_LOCALGROUP, local_size_z = 1) in;
 
-layout(binding = 0) uniform sampler2D normalMap;
-layout(binding = 1) uniform sampler2D depthMap;
-
 struct QuadMapData {
     vec3 normal;
     float depth;
@@ -74,6 +71,9 @@ struct Plane {
     vec3 normal;
     vec3 point;
 };
+
+layout(binding = 0) uniform sampler2D normalMap;
+layout(binding = 1) uniform sampler2D depthMap;
 
 uniform vec2 remoteWindowSize;
 uniform vec2 quadMapSize;

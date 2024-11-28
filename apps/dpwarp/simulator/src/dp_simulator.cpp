@@ -743,6 +743,7 @@ int main(int argc, char** argv) {
                     quadsGenerator.outputNormalSphericalsBuffer, quadsGenerator.outputDepthsBuffer,
                     quadsGenerator.outputXYsBuffer, quadsGenerator.outputOffsetSizeFlattenedsBuffer,
                     quadsGenerator.depthOffsetsBuffer,
+                    renderTargets[view].colorBuffer,
                     *currMesh
                 );
 

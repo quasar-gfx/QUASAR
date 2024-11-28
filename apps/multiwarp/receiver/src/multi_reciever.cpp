@@ -224,8 +224,8 @@ int main(int argc, char** argv) {
             meshFromQuads.createMeshFromProxies(
                 numProxies, depthBufferSize,
                 *remoteCameras[view],
-                inputNormalSphericalsBuffer, inputDepthsBuffer,
-                inputUVsBuffer, inputOffsetSizeFlattenedsBuffer,
+                inputNormalSphericalsBuffer, inputDepthsBuffer, inputUVsBuffer, inputOffsetSizeFlattenedsBuffer,
+                colorTextures[view],
                 *meshes[view]
             );
 
