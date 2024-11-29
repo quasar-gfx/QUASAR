@@ -35,7 +35,7 @@ struct StencilState {
 
     void enableRenderingUsingStencilBufferAsMask() {
         stencilFunc = GL_EQUAL;
-        stencilRef = 0;
+        stencilRef = 1;
         stencilMask = 0xFF;
 
         writeStencilMask = 0x00;
@@ -79,8 +79,25 @@ struct RasterState {
     GLenum frontFace = GL_CCW; // GL_CW, GL_CCW
     bool scissorTestEnabled = false;
     bool polygonOffsetEnabled = false;
+    GLfloat polygonOffsetFactor = 0.0f;
     GLfloat polygonOffsetUnits = 0.0f;
     bool sRGB = true;
+};
+
+struct WriteMaskState {
+    bool red = true;
+    bool green = true;
+    bool blue = true;
+    bool alpha = true;
+    bool depth = true;
+
+    void disableColorWrites() {
+        red = green = blue = alpha = false;
+    };
+
+    void enableColorWrites() {
+        red = green = blue = alpha = true;
+    };
 };
 
 struct GraphicsPipeline {
@@ -89,6 +106,7 @@ struct GraphicsPipeline {
     BlendState blendState;
     MultiSampleState multiSampleState;
     RasterState rasterState;
+    WriteMaskState writeMaskState;
 
     void apply() {
         // Multisample Configuration
@@ -188,7 +206,7 @@ struct GraphicsPipeline {
         // Polygon Offset Configuration
         if (rasterState.polygonOffsetEnabled) {
             glEnable(GL_POLYGON_OFFSET_FILL);
-            glPolygonOffset(rasterState.polygonOffsetUnits, rasterState.polygonOffsetUnits);
+            glPolygonOffset(rasterState.polygonOffsetFactor, rasterState.polygonOffsetUnits);
         }
         else {
             glDisable(GL_POLYGON_OFFSET_FILL);
@@ -203,6 +221,10 @@ struct GraphicsPipeline {
             glDisable(GL_FRAMEBUFFER_SRGB);
         }
 #endif
+
+        // Color Write Mask Configuration
+        glColorMask(writeMaskState.red, writeMaskState.green, writeMaskState.blue, writeMaskState.alpha);
+        glDepthMask(writeMaskState.depth);
     }
 };
 

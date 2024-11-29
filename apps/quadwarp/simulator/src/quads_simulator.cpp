@@ -421,7 +421,7 @@ int main(int argc, char** argv) {
             ImGui::End();
         }
 
-        flags = ImGuiWindowFlags_AlwaysAutoResize;
+        flags = 0;
         ImGui::Begin("Texture Atlas", 0, flags);
         ImGui::Image((void*)(intptr_t)(meshFromQuads.atlas), ImVec2(500, 500), ImVec2(0, 1), ImVec2(1, 0));
         ImGui::End();
@@ -517,15 +517,26 @@ int main(int argc, char** argv) {
                 remoteRenderer.drawObjects(remoteScene, remoteCamera);
             }
             else if (generatePFrame) {
-                // render mesh in meshScene into stencil buffer
-                remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
-
-                // draw old meshes at new remoteCamera view
+                // draw old meshes at new remoteCamera view, filling depth buffer
+                remoteRenderer.pipeline.writeMaskState.disableColorWrites();
                 remoteRenderer.drawObjects(meshScene, remoteCamera);
 
-                // render mesh in remoteScene using stencil buffer as a mask
-                remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask();
+                // render remoteScene into stencil buffer, with depth buffer from meshScene
+                // this should draw objects in remoteScene that are not occluded by meshScene, setting
+                // the stencil buffer to 1 where the depth of remoteScene is less than meshScene
+                remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
+                remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = true;
+                remoteRenderer.pipeline.rasterState.polygonOffsetUnits = 10000.0f;
+                // remoteRenderer.pipeline.depthState.depthFunc = GL_LESS;
+                remoteRenderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
+                // render remoteScene using stencil buffer as a mask
+                // at values were stencil buffer is 1, remoteScene should render
+                remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask();
+                remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = false;
+                remoteRenderer.pipeline.rasterState.polygonOffsetUnits = 0.0f;
+                // remoteRenderer.pipeline.depthState.depthFunc = GL_LESS;
+                remoteRenderer.pipeline.writeMaskState.enableColorWrites();
                 remoteRenderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
                 remoteRenderer.pipeline.stencilState.restoreStencilState();
