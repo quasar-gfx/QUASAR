@@ -16,8 +16,6 @@
 #define VERTICES_IN_A_QUAD 4
 #define NUM_SUB_QUADS 4
 
-#define DEFAULT_ATLAS_SIZE glm::uvec2(4096, 4096)
-
 class MeshFromQuads {
 public:
     struct BufferSizes {
@@ -34,7 +32,7 @@ public:
 
     Texture atlas;
 
-    MeshFromQuads(const glm::uvec2 &remoteWindowSize, const glm::uvec2 &atlasSize = DEFAULT_ATLAS_SIZE);
+    MeshFromQuads(const glm::uvec2 &remoteWindowSize);
 
     void createMeshFromProxies(
             unsigned int numProxies, const glm::uvec2 &depthBufferSize,
@@ -70,14 +68,16 @@ public:
             bool appendGeometry = false);
 
     BufferSizes getBufferSizes() {
+        BufferSizes bufferSizes;
+
         sizesBuffer.bind();
         sizesBuffer.getData(&bufferSizes);
         return bufferSizes;
     }
 
 private:
-    BufferSizes bufferSizes = { 0 };
     Buffer<BufferSizes> sizesBuffer;
+    Buffer<glm::ivec2> atlasOffsetBuffer;
 
     ComputeShader createMeshFromQuadsShader;
 };

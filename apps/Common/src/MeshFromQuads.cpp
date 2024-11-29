@@ -1,9 +1,10 @@
 #include <MeshFromQuads.h>
 
-MeshFromQuads::MeshFromQuads(const glm::uvec2 &remoteWindowSize, const glm::uvec2 &atlasSize)
+MeshFromQuads::MeshFromQuads(const glm::uvec2 &remoteWindowSize)
         : remoteWindowSize(remoteWindowSize)
-        , atlasSize(atlasSize)
-        , sizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, 1, &bufferSizes)
+        , atlasSize(4u * remoteWindowSize)
+        , sizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, 1, nullptr)
+        , atlasOffsetBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, 1, nullptr)
         , atlas({
             .width = atlasSize.x,
             .height = atlasSize.y,
@@ -96,15 +97,16 @@ void MeshFromQuads::createMeshFromProxies(
     }
     {
         createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, sizesBuffer);
+        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, atlasOffsetBuffer);
 
-        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh.vertexBuffer);
-        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, mesh.indexBuffer);
-        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, mesh.indirectBuffer);
+        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, mesh.vertexBuffer);
+        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, mesh.indexBuffer);
+        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, mesh.indirectBuffer);
 
-        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, outputNormalSphericalsBuffer);
-        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, outputDepthsBuffer);
-        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, outputXYsBuffer);
-        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, outputOffsetSizeFlattenedsBuffer);
+        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, outputNormalSphericalsBuffer);
+        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, outputDepthsBuffer);
+        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, outputXYsBuffer);
+        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 8, outputOffsetSizeFlattenedsBuffer);
 
         createMeshFromQuadsShader.setImageTexture(1, colorTexture, 0, GL_FALSE, 0, GL_READ_ONLY, colorTexture.internalFormat);
         createMeshFromQuadsShader.setImageTexture(2, atlas, 0, GL_FALSE, 0, GL_WRITE_ONLY, atlas.internalFormat);

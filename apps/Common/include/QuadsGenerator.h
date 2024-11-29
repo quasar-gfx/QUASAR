@@ -12,8 +12,9 @@
 
 #define THREADS_PER_LOCALGROUP 16
 
-#define VERTICES_IN_A_QUAD 4
 #define NUM_SUB_QUADS 4
+
+#define MAX_PROXY_SIZE 2048
 
 class QuadsGenerator {
 public:
@@ -90,8 +91,8 @@ public:
             }) {
         // make sure maxProxySize is a power of 2
         maxProxySize = remoteWindowSize;
-        maxProxySize.x = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize.x))));
-        maxProxySize.y = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize.y))));
+        maxProxySize.x = glm::min(1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize.x)))), MAX_PROXY_SIZE);
+        maxProxySize.y = glm::min(1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize.y)))), MAX_PROXY_SIZE);
         numQuadMaps = glm::log2(static_cast<float>(glm::min(maxProxySize.x, maxProxySize.y))) + 1;
 
         initializeBuffers();

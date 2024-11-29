@@ -49,15 +49,20 @@ layout(std430, binding = 0) buffer MeshBufferSizes {
     uint numIndices;
 };
 
-layout(std430, binding = 1) buffer VertexBuffer {
+layout(std430, binding = 1) buffer AtlasOffsetBuffer {
+    uint atlasOffsetX;
+    uint atlasOffsetY;
+};
+
+layout(std430, binding = 2) buffer VertexBuffer {
     Vertex vertices[];
 };
 
-layout(std430, binding = 2) buffer IndexBuffer {
+layout(std430, binding = 3) buffer IndexBuffer {
     uint indices[];
 };
 
-layout(std430, binding = 3) buffer MeshIndirectCommandBuffer {
+layout(std430, binding = 4) buffer MeshIndirectCommandBuffer {
     uint count;
     uint instanceCount;
     uint firstIndex;
@@ -65,19 +70,19 @@ layout(std430, binding = 3) buffer MeshIndirectCommandBuffer {
     uint baseInstance;
 } meshIndirectCommandBuffer;
 
-layout(std430, binding = 4) readonly buffer normalSphericalsBufferInput {
+layout(std430, binding = 5) readonly buffer normalSphericalsBufferInput {
     uint normalSphericalsInput[];
 };
 
-layout(std430, binding = 5) readonly buffer depthBufferInput {
+layout(std430, binding = 6) readonly buffer depthBufferInput {
     float depthsInput[];
 };
 
-layout(std430, binding = 6) readonly buffer uvsBufferInput {
+layout(std430, binding = 7) readonly buffer uvsBufferInput {
     uint uvsInput[];
 };
 
-layout(std430, binding = 7) readonly buffer offsetsBufferInput {
+layout(std430, binding = 8) readonly buffer offsetsBufferInput {
     uint offsetSizeFlattenedsInput[];
 };
 
@@ -315,16 +320,18 @@ void storeSurfel(in Quad quad, in Quad2D uvsSrc, in QuadMapData quadMapData) {
         for (int j = pixelCoordsBottomLeft.y; j <= pixelCoordsTopLeft.y; j++) {
             ivec2 pixelCoords = ivec2(i, j);
             vec4 color = imageLoad(colorTexture, pixelCoords);
-            imageStore(atlas, pixelCoords, color);
+
+            ivec2 atlasPixelCoords = ivec2(atlasOffsetX, atlasOffsetY) + pixelCoords;
+            imageStore(atlas, atlasPixelCoords, color);
         }
     }
 
     // then, find UVs for the quad in atlas space
     Quad2D uvsAtlas;
-    uvsAtlas.bottomLeft  = vec2(pixelCoordsBottomLeft) / atlasSize;
-    uvsAtlas.bottomRight = vec2(pixelCoordsBottomRight) / atlasSize;
-    uvsAtlas.topLeft     = vec2(pixelCoordsTopLeft) / atlasSize;
-    uvsAtlas.topRight    = vec2(pixelCoordsTopRight) / atlasSize;
+    uvsAtlas.bottomLeft  = vec2(ivec2(atlasOffsetX, atlasOffsetY) + pixelCoordsBottomLeft)  / atlasSize;
+    uvsAtlas.bottomRight = vec2(ivec2(atlasOffsetX, atlasOffsetY) + pixelCoordsBottomRight) / atlasSize;
+    uvsAtlas.topLeft     = vec2(ivec2(atlasOffsetX, atlasOffsetY) + pixelCoordsTopLeft)     / atlasSize;
+    uvsAtlas.topRight    = vec2(ivec2(atlasOffsetX, atlasOffsetY) + pixelCoordsTopRight)    / atlasSize;
 
     /************************
 
@@ -501,9 +508,20 @@ void main() {
     }
 
     // reset buffers on first invocation
-    if (!appendGeometry && quadMapIndex == 0u) {
-        numVertices = 0u;
-        numIndices = 0u;
+    if (quadMapIndex == 0u) {
+        if (!appendGeometry) {
+            atomicExchange(numVertices, 0u);
+            atomicExchange(numIndices, 0u);
+            atomicExchange(atlasOffsetX, 0u);
+            atomicExchange(atlasOffsetY, 0u);
+        }
+        else {
+            uint oldAtlasOffsetX = atomicAdd(atlasOffsetX, uint(remoteWindowSize.x));
+            if (oldAtlasOffsetX + uint(remoteWindowSize.x) >= uint(atlasSize.x)) {
+                atomicExchange(atlasOffsetX, 0u);
+                atomicAdd(atlasOffsetY, uint(remoteWindowSize.y));
+            }
+        }
     }
     memoryBarrier();
 
