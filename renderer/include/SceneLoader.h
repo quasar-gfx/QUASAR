@@ -1,10 +1,11 @@
 #ifndef SCENE_LOADER_H
 #define SCENE_LOADER_H
 
+#include <fstream>
+#include <map>
+
 #define JSMN_STATIC
 #include <jsmn.h>
-
-#include <fstream>
 
 #include <Scene.h>
 #include <Cameras/PerspectiveCamera.h>
@@ -16,12 +17,19 @@
 
 class SceneLoader {
 public:
-    std::vector<Model*> models;
     std::vector<Mesh*> meshes;
+    std::map<std::string, int> meshIndices;
+
+    std::vector<Model*> models;
+    std::map<std::string, int> modelIndices;
+
     std::vector<PBRMaterial*> materials;
 
     SceneLoader() = default;
     ~SceneLoader();
+
+    Mesh* findMeshByName(const std::string &name);
+    Model* findModelByName(const std::string &name);
 
     void loadScene(const std::string &filename, Scene &scene, PerspectiveCamera &camera);
     void clearScene(Scene &scene, PerspectiveCamera &camera);

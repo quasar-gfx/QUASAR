@@ -14,6 +14,16 @@
 #include <assimp/port/AndroidJNI/AndroidJNIIOSystem.h>
 #endif
 
+Model::~Model() {
+    for (auto mesh : meshes) {
+        delete mesh;
+    }
+
+    for (auto& texture : texturesLoaded) {
+        delete texture.second;
+    }
+}
+
 void Model::bindMaterial(const Scene &scene, const glm::mat4 &model, const Material* overrideMaterial, const Texture* prevDepthMap) {
     for (auto& mesh : meshes) {
         mesh->bindMaterial(scene, model, overrideMaterial, prevDepthMap);
@@ -21,23 +31,55 @@ void Model::bindMaterial(const Scene &scene, const glm::mat4 &model, const Mater
 }
 
 RenderStats Model::draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
-    RenderStats stats;
+    RenderStats stats = drawNode(&rootNode, primativeType, camera, glm::mat4(1.0f), model, frustumCull, overrideMaterial);
+    return stats;
+}
 
-    for (auto& mesh : meshes) {
-        stats += mesh->draw(primativeType, camera, model, frustumCull, overrideMaterial);
+RenderStats Model::draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
+    RenderStats stats = drawNode(&rootNode, primativeType, camera, glm::mat4(1.0f), model, boundingSphere, overrideMaterial);
+    return stats;
+}
+
+RenderStats Model::drawNode(const Node* node,
+                            GLenum primativeType, const Camera &camera,
+                            const glm::mat4& parentTransform, const glm::mat4 &model,
+                            bool frustumCull, const Material* overrideMaterial) {
+    RenderStats stats;
+    const glm::mat4 &globalTransform = parentTransform * node->getTransformParentFromLocal();
+    const glm::mat4 &modelMatrix = model * globalTransform;
+
+    for (int meshIndex : node->meshIndices) {
+        stats += meshes[meshIndex]->draw(primativeType, camera, modelMatrix, frustumCull, overrideMaterial);
+    }
+
+    for (const auto* child : node->children) {
+        stats += drawNode(child, primativeType, camera, globalTransform, model, frustumCull, overrideMaterial);
     }
 
     return stats;
 }
 
-RenderStats Model::draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
+RenderStats Model::drawNode(const Node* node,
+                            GLenum primativeType, const Camera &camera,
+                            const glm::mat4& parentTransform, const glm::mat4 &model,
+                            const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
     RenderStats stats;
+    const glm::mat4 &globalTransform = parentTransform * node->getTransformParentFromLocal();
+    const glm::mat4 &modelMatrix = model * globalTransform;
 
-    for (auto& mesh : meshes) {
-        stats += mesh->draw(primativeType, camera, model, boundingSphere, overrideMaterial);
+    for (int meshIndex : node->meshIndices) {
+        stats += meshes[meshIndex]->draw(primativeType, camera, modelMatrix, boundingSphere, overrideMaterial);
+    }
+
+    for (const auto* child : node->children) {
+        stats += drawNode(child, primativeType, camera, globalTransform, model, boundingSphere, overrideMaterial);
     }
 
     return stats;
+}
+
+Node* Model::findNodeByName(const std::string &name) {
+    return rootNode.findNodeByName(name);
 }
 
 void Model::loadFromFile(const ModelCreateParams &params) {
@@ -94,17 +136,23 @@ void Model::loadFromFile(const ModelCreateParams &params) {
 
     rootDirectory = path.substr(0, path.find_last_of('/'))  + '/';
 
-    processNode(scene->mRootNode, scene, params.material);
+    processNode(scene->mRootNode, scene, &rootNode, params.material);
 }
 
-void Model::processNode(aiNode* node, const aiScene* scene, PBRMaterial* material) {
+void Model::processNode(aiNode* node, const aiScene* scene, Node* currentNode, PBRMaterial* material) {
+    currentNode->setName(node->mName.C_Str());
+    currentNode->setTransformParentFromLocal(glm::transpose(glm::make_mat4(&node->mTransformation.a1)));
+
     for (int i = 0; i < node->mNumMeshes; i++) {
         aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
         meshes.push_back(processMesh(mesh, scene, material));
+
+        currentNode->meshIndices.push_back(node->mMeshes[i]);
     }
 
     for (int i = 0; i < node->mNumChildren; i++) {
-        processNode(node->mChildren[i], scene, material);
+        currentNode->children.push_back(new Node());
+        processNode(node->mChildren[i], scene, currentNode->children.back(), material);
     }
 }
 
@@ -415,15 +463,5 @@ Texture* Model::loadMaterialTexture(aiMaterial const* aiMat, aiString aiTextureP
         });
         texturesLoaded[texturePath] = texture;
         return texturesLoaded[texturePath];
-    }
-}
-
-Model::~Model() {
-    for (auto mesh : meshes) {
-        delete mesh;
-    }
-
-    for (auto& texture : texturesLoaded) {
-        delete texture.second;
     }
 }

@@ -29,6 +29,22 @@ private:
     jsmntok_t* tokens;
 };
 
+Mesh* SceneLoader::findMeshByName(const std::string &name) {
+    auto it = meshIndices.find(name);
+    if (it != meshIndices.end()) {
+        return meshes[it->second];
+    }
+    return nullptr;
+}
+
+Model* SceneLoader::findModelByName(const std::string &name) {
+    auto it = modelIndices.find(name);
+    if (it != modelIndices.end()) {
+        return models[it->second];
+    }
+    return nullptr;
+}
+
 void SceneLoader::loadScene(const std::string &filename, Scene &scene, PerspectiveCamera &camera) {
     unsigned int size;
     std::string sceneJSON = FileIO::loadTextFile(filename, &size);
@@ -266,12 +282,16 @@ int SceneLoader::parseMaterials(jsmntok_t* tokens, int i, const char* json, Scen
 int SceneLoader::parseModel(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera) {
     CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
+    std::string name = "Model" + std::to_string(models.size());
     ModelCreateParams params{};
 
     int size = tokens[i++].size;
     for (int j = 0; j < size; j++) {
         const jsmntok_t tok = tokens[i];
-        if (compare(tok, json, "path") == 0) {
+        if (compare(tok, json, "name") == 0) {
+            i = parseString(tokens, i + 1, json, &name);
+        }
+        else if (compare(tok, json, "path") == 0) {
             i = parseString(tokens, i + 1, json, &params.path);
         }
         else if (compare(tok, json, "IBL") == 0) {
@@ -306,6 +326,7 @@ int SceneLoader::parseModel(jsmntok_t* tokens, int i, const char* json, Scene &s
 
     auto model = new Model(params);
     models.push_back(model);
+    modelIndices[name] = models.size() - 1;
 
     return i;
 }
@@ -325,12 +346,16 @@ int SceneLoader::parseMesh(jsmntok_t* tokens, int i, const char* json, Scene &sc
     CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
     std::string meshType = "cube";
+    std::string name = "Mesh" + std::to_string(meshes.size());
     MeshDataCreateParams params{};
 
     int size = tokens[i++].size;
     for (int j = 0; j < size; j++) {
         const jsmntok_t tok = tokens[i];
-        if (compare(tok, json, "type") == 0) {
+        if (compare(tok, json, "name") == 0) {
+            i = parseString(tokens, i + 1, json, &name);
+        }
+        else if (compare(tok, json, "type") == 0) {
             i = parseString(tokens, i + 1, json, &meshType);
         }
         else if (compare(tok, json, "material") == 0) {
@@ -365,6 +390,7 @@ int SceneLoader::parseMesh(jsmntok_t* tokens, int i, const char* json, Scene &sc
         mesh = new Plane(params);
     }
     meshes.push_back(mesh);
+    meshIndices[name] = meshes.size() - 1;
 
     return i;
 }
@@ -689,11 +715,11 @@ int SceneLoader::parse(jsmntok_t* tokens, int i, const char* json, Scene &scene,
 }
 
 SceneLoader::~SceneLoader() {
-    for (auto model : models) {
-        delete model;
-    }
     for (auto mesh : meshes) {
         delete mesh;
+    }
+    for (auto model : models) {
+        delete model;
     }
     for (auto material : materials) {
         delete material;

@@ -46,7 +46,11 @@ Scene::Scene()
             .fragmentCodeSize = SHADER_BUILTIN_BRDF_FRAG_len }) { }
 
 void Scene::addChildNode(Node* node) {
-    children.push_back(node);
+    rootNode.addChildNode(node);
+}
+
+Node* Scene::findNodeByName(const std::string &name) {
+    return rootNode.findNodeByName(name);
 }
 
 void Scene::setEnvMap(CubeMap* envCubeMap) {
@@ -124,7 +128,6 @@ void Scene::setupIBL(const CubeMap &envCubeMap) {
 }
 
 void Scene::clear() {
-    children.clear();
     pointLights.clear();
     envCubeMap = nullptr;
     ambientLight = nullptr;

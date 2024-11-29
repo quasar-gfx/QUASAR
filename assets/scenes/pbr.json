@@ -34,6 +34,7 @@
     ],
     "models": [
         {
+            "name": "Cerberus",
             "path": "../assets/models/cerberus/cerberus.fbx",
             "material": 2,
             "IBL": 1.0,
@@ -41,6 +42,7 @@
             "gammaCorrected": true
         },
         {
+            "name": "DamagedHelmet",
             "path": "../assets/models/DamagedHelmet.glb",
             "IBL": 1.0,
             "flipTextures": true,

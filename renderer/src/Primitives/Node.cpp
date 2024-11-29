@@ -4,11 +4,39 @@ unsigned int Node::nextID = 0;
 
 Node::Node() {
     ID = nextID++;
+    this->name = "Node" + std::to_string(ID);
+}
+
+Node::Node(const std::string &name) {
+    ID = nextID++;
+    this->name = name;
 }
 
 Node::Node(Entity* entity) {
     ID = nextID++;
+    this->name = "Node" + std::to_string(ID);
     setEntity(entity);
+}
+
+Node::Node(const std::string &name, Entity* entity) {
+    ID = nextID++;
+    this->name = name;
+    setEntity(entity);
+}
+
+Node* Node::findNodeByName(const std::string &name) {
+    if (this->name == name) {
+        return this;
+    }
+
+    for (Node* child : children) {
+        Node* found = child->findNodeByName(name);
+        if (found != nullptr) {
+            return found;
+        }
+    }
+
+    return nullptr;
 }
 
 int Node::getID() const {
@@ -18,6 +46,10 @@ int Node::getID() const {
 void Node::setEntity(Entity* entity) {
     this->entity = entity;
     entity->parentNode = this;
+}
+
+void Node::setName(const std::string &name) {
+    this->name = name;
 }
 
 void Node::addChildNode(Node* node) {
@@ -83,15 +115,17 @@ void Node::setTransformLocalFromParent(const glm::mat4 &view) {
     scale.z = glm::length(glm::vec3(view[2]));
 }
 
-glm::mat4 Node::getTransformParentFromLocal() const {
-    return glm::translate(glm::mat4(1.0f), position) * glm::mat4_cast(rotationQuat) * glm::scale(glm::mat4(1.0f), scale);
+const glm::mat4 Node::getTransformParentFromLocal() const {
+    const glm::mat4& transform = glm::translate(glm::mat4(1.0f), position) * glm::mat4_cast(rotationQuat) * glm::scale(glm::mat4(1.0f), scale);
+    return transform * transformAnimation;
 }
 
-glm::mat4 Node::getTransformLocalFromParent() const {
-    return glm::scale(glm::mat4(1.0f), 1.0f/scale) * glm::mat4_cast(glm::conjugate(rotationQuat)) * glm::translate(glm::mat4(1.0f), -position);
+const glm::mat4 Node::getTransformLocalFromParent() const {
+    const glm::mat4& transformInv = glm::scale(glm::mat4(1.0f), 1.0f/scale) * glm::mat4_cast(glm::conjugate(rotationQuat)) * glm::translate(glm::mat4(1.0f), -position);
+    return glm::inverse(transformAnimation) * transformInv;
 }
 
-glm::mat4 Node::getTransformLocalFromWorld() const {
+const glm::mat4 Node::getTransformLocalFromWorld() const {
     glm::mat4 transformLocalFromWorld = getTransformLocalFromParent();
 
     Node* parent = this->parent;
@@ -102,4 +136,12 @@ glm::mat4 Node::getTransformLocalFromWorld() const {
     }
 
     return transformLocalFromWorld;
+}
+
+void Node::setTransformAnimation(const glm::mat4 &transform) {
+    transformAnimation = transform;
+}
+
+const glm::mat4 Node::getTransformAnimation() const {
+    return transformAnimation;
 }

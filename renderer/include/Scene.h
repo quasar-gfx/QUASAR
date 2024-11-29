@@ -17,7 +17,7 @@ public:
     DirectionalLight* directionalLight = nullptr;
     std::vector<PointLight*> pointLights;
 
-    std::vector<Node*> children;
+    Node rootNode;
 
     bool hasPBREnvMap = false;
 
@@ -61,6 +61,8 @@ public:
     void bindMaterial(const Material* material) const;
 
     void clear();
+
+    Node* findNodeByName(const std::string &name);
 
     static const unsigned int numTextures = 3;
 

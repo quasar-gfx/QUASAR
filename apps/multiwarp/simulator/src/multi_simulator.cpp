@@ -676,7 +676,7 @@ int main(int argc, char** argv) {
 
                     // make all previous meshes visible and everything else invisible
                     for (int prevView = 1; prevView < maxViews; prevView++) {
-                        meshScene.children[prevView]->visible = (prevView < view);
+                        meshScene.rootNode.children[prevView]->visible = (prevView < view);
                     }
                     remoteRenderer.drawObjects(meshScene, *remoteCamera);
 

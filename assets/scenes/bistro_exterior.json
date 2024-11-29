@@ -8,6 +8,7 @@
     },
     "models": [
         {
+            "name": "BistroExterior",
             "path": "~/Desktop/Models/BistroExterior.glb",
             "IBL": 1.0,
             "gammaCorrected": true

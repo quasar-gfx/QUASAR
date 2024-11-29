@@ -130,7 +130,7 @@ RenderStats OpenGLRenderer::updateDirLightShadow(const Scene &scene, const Camer
     shadowMapRT.setViewport(0, 0, shadowMapRT.width, shadowMapRT.height);
     glClear(GL_DEPTH_BUFFER_BIT);
 
-    for (auto& child : scene.children) {
+    for (auto& child : scene.rootNode.children) {
         stats += drawNode(scene, camera, child, glm::mat4(1.0f), false, &scene.directionalLight->shadowMapMaterial);
     }
 
@@ -163,7 +163,7 @@ RenderStats OpenGLRenderer::updatePointLightShadows(const Scene &scene, const Ca
         }
         pointLight->shadowMapMaterial.unbind();
 
-        for (auto& child : scene.children) {
+        for (auto& child : scene.rootNode.children) {
             stats += drawNode(scene, camera, child, glm::mat4(1.0f), pointLight, &pointLight->shadowMapMaterial);
         }
 
@@ -180,7 +180,7 @@ RenderStats OpenGLRenderer::drawSceneImpl(const Scene &scene, const Camera &came
     }
 
     RenderStats stats;
-    for (auto& child : scene.children) {
+    for (auto& child : scene.rootNode.children) {
         stats += drawNode(scene, camera, child, glm::mat4(1.0f), true);
     }
 
@@ -290,7 +290,7 @@ RenderStats OpenGLRenderer::drawObjects(const Scene &scene, const Camera &camera
 
 RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,
                                      bool frustumCull, const Material* overrideMaterial, const Texture* prevDepthMap) {
-    const glm::mat4 &model = parentTransform * node->getTransformParentFromLocal();
+    const glm::mat4 &model = parentTransform * node->getTransformParentFromLocal() * node->getTransformAnimation();
 
     auto materialToUse = overrideMaterial != nullptr ? overrideMaterial : node->overrideMaterial;
 
@@ -341,7 +341,7 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, N
 
 RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,
                                      const PointLight* pointLight, const Material* overrideMaterial) {
-    const glm::mat4 &model = parentTransform * node->getTransformParentFromLocal();
+    const glm::mat4 &model = parentTransform * node->getTransformParentFromLocal() * node->getTransformAnimation();
 
     RenderStats stats;
     if (node->entity != nullptr) {

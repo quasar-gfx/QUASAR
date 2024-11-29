@@ -27,6 +27,7 @@ struct ModelCreateParams {
 class Model : public Entity {
 public:
     std::vector<Mesh*> meshes;
+    Node rootNode;
 
     std::string rootDirectory;
 
@@ -56,16 +57,27 @@ public:
 
     EntityType getType() const override { return EntityType::MODEL; }
 
+    Node* findNodeByName(const std::string &name);
+
 private:
     const aiScene* scene;
     std::unordered_map<std::string, Texture*> texturesLoaded;
 
     void loadFromFile(const ModelCreateParams &params);
-    void processNode(aiNode* node, const aiScene* scene, PBRMaterial* material);
+    void processNode(aiNode* node, const aiScene* scene, Node* parentNode, PBRMaterial* material);
     Mesh* processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* material);
     void processMaterial(aiMaterial const* aiMat, PBRMaterialCreateParams &materialParams);
     Texture* loadMaterialTexture(aiMaterial const* aiMat, aiString aiTexturePath, bool shouldGammaCorrect = false);
     int32_t getEmbeddedTextureId(const aiString &path);
+
+    RenderStats drawNode(const Node* node,
+                         GLenum primativeType, const Camera &camera,
+                         const glm::mat4& parentTransform, const glm::mat4 &model,
+                         bool frustumCull = true, const Material* overrideMaterial = nullptr);
+    RenderStats drawNode(const Node* node,
+                         GLenum primativeType, const Camera &camera,
+                         const glm::mat4& parentTransform, const glm::mat4 &model,
+                         const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr);
 };
 
 #endif // MODEL_H
