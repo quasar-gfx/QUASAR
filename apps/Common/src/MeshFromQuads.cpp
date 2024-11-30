@@ -27,6 +27,14 @@ MeshFromQuads::MeshFromQuads(const glm::uvec2 &remoteWindowSize)
     createMeshFromQuadsShader.setVec2("atlasSize", atlasSize);
 }
 
+MeshFromQuads::BufferSizes MeshFromQuads::getBufferSizes() {
+    BufferSizes bufferSizes;
+
+    sizesBuffer.bind();
+    sizesBuffer.getData(&bufferSizes);
+    return bufferSizes;
+}
+
 void MeshFromQuads::createMeshFromProxies(
         unsigned int numProxies, const glm::uvec2 &depthBufferSize,
         const PerspectiveCamera &remoteCamera,
@@ -55,9 +63,9 @@ void MeshFromQuads::appendGeometry(
         const Buffer<float> &outputDepthsBuffer,
         const Buffer<unsigned int> &outputXYsBuffer,
         const Buffer<unsigned int> &outputOffsetSizeFlattenedsBuffer,
-        const Texture& depthOffsetsBuffer,
-        const Texture& colorTexture,
-        const Mesh& mesh) {
+        const Texture &depthOffsetsBuffer,
+        const Texture &colorTexture,
+        const Mesh &mesh) {
     createMeshFromQuadsShader.bind();
     createMeshFromQuadsShader.setImageTexture(0, depthOffsetsBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetsBuffer.internalFormat);
 
@@ -76,8 +84,8 @@ void MeshFromQuads::createMeshFromProxies(
         const Buffer<float> &outputDepthsBuffer,
         const Buffer<unsigned int> &outputXYsBuffer,
         const Buffer<unsigned int> &outputOffsetSizeFlattenedsBuffer,
-        const Texture& colorTexture,
-        const Mesh& mesh,
+        const Texture &colorTexture,
+        const Mesh &mesh,
         bool appendGeometry) {
     double startTime = timeutils::getTimeMicros();
 

@@ -41,9 +41,9 @@ public:
             const Buffer<float> &outputDepthsBuffer,
             const Buffer<unsigned int> &outputXYsBuffer,
             const Buffer<unsigned int> &outputOffsetSizeFlattenedsBuffer,
-            const Texture& depthOffsetsBuffer,
-            const Texture& colorTexture,
-            const Mesh& mesh);
+            const Texture &depthOffsetsBuffer,
+            const Texture &colorTexture,
+            const Mesh &mesh);
 
     void appendGeometry(
             unsigned int numProxies, const glm::uvec2 &depthBufferSize,
@@ -52,9 +52,9 @@ public:
             const Buffer<float> &outputDepthsBuffer,
             const Buffer<unsigned int> &outputXYsBuffer,
             const Buffer<unsigned int> &outputOffsetSizeFlattenedsBuffer,
-            const Texture& depthOffsetsBuffer,
-            const Texture& colorTexture,
-            const Mesh& mesh);
+            const Texture &depthOffsetsBuffer,
+            const Texture &colorTexture,
+            const Mesh &mesh);
 
     void createMeshFromProxies(
             unsigned int numProxies, const glm::uvec2 &depthBufferSize,
@@ -63,17 +63,11 @@ public:
             const Buffer<float> &outputDepthsBuffer,
             const Buffer<unsigned int> &outputXYsBuffer,
             const Buffer<unsigned int> &outputOffsetSizeFlattenedsBuffer,
-            const Texture& colorTexture,
-            const Mesh& mesh,
+            const Texture &colorTexture,
+            const Mesh &mesh,
             bool appendGeometry = false);
 
-    BufferSizes getBufferSizes() {
-        BufferSizes bufferSizes;
-
-        sizesBuffer.bind();
-        sizesBuffer.getData(&bufferSizes);
-        return bufferSizes;
-    }
+    BufferSizes getBufferSizes();
 
 private:
     Buffer<BufferSizes> sizesBuffer;

@@ -2,6 +2,7 @@
 #define GBUFFER_H
 
 #include <RenderTargets/RenderTargetBase.h>
+#include <RenderTargets/RenderTarget.h>
 
 class GeometryBuffer : public RenderTargetBase {
 public:
