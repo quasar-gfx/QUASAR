@@ -311,13 +311,12 @@ int main(int argc, char** argv) {
 
             double startTime = glfwGetTime();
 
-            std::cout << "======================================================" << std::endl;
-
             renderer.drawObjects(remoteScene, remoteCamera);
 
             // copy rendered result to video render target
             renderer.drawToRenderTarget(toneMapShader, renderTarget);
 
+            std::cout << "======================================================" << std::endl;
             std::cout << "  Rendering Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
             startTime = glfwGetTime();
 

@@ -117,7 +117,7 @@ int main(int argc, char** argv) {
     Mesh mesh = Mesh({
         .numVertices = maxVertices,
         .numIndices = maxIndices,
-        .material = new QuadMaterial({ .baseColorTexture = &meshFromQuads.atlas }),
+        .material = new QuadMaterial({ .baseColorTexture = &renderTarget.colorBuffer }),
         .usage = GL_DYNAMIC_DRAW,
         .indirectDraw = true
     });
@@ -420,11 +420,6 @@ int main(int argc, char** argv) {
 
             ImGui::End();
         }
-
-        flags = 0;
-        ImGui::Begin("Texture Atlas", 0, flags);
-        ImGui::Image((void*)(intptr_t)(meshFromQuads.atlas), ImVec2(500, 500), ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::End();
     });
 
     app.onResize([&](unsigned int width, unsigned int height) {

@@ -161,7 +161,6 @@ RenderStats OpenGLRenderer::updatePointLightShadows(const Scene &scene, const Ca
         for (int face = 0; face < NUM_CUBEMAP_FACES; face++) {
             pointLight->shadowMapMaterial.shader->setMat4("shadowMatrices[" + std::to_string(face) + "]", shadowProj * pointLight->lookAtPerFace[face]);
         }
-        pointLight->shadowMapMaterial.unbind();
 
         for (auto& child : scene.rootNode.children) {
             stats += drawNode(scene, camera, child, glm::mat4(1.0f), pointLight, &pointLight->shadowMapMaterial);
@@ -292,7 +291,7 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, N
                                      bool frustumCull, const Material* overrideMaterial, const Texture* prevDepthMap) {
     const glm::mat4 &model = parentTransform * node->getTransformParentFromLocal() * node->getTransformAnimation();
 
-    auto materialToUse = overrideMaterial != nullptr ? overrideMaterial : node->overrideMaterial;
+    auto* materialToUse = overrideMaterial != nullptr ? overrideMaterial : node->overrideMaterial;
 
     RenderStats stats;
     if (node->entity != nullptr) {

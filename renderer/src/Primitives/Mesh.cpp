@@ -133,7 +133,7 @@ void Mesh::setMaterialCameraParams(const Camera &camera, const Material* materia
 }
 
 void Mesh::bindMaterial(const Scene &scene, const glm::mat4 &model, const Material* overrideMaterial, const Texture* prevDepthMap) {
-    auto materialToUse = overrideMaterial != nullptr ? overrideMaterial : material;
+    auto* materialToUse = overrideMaterial != nullptr ? overrideMaterial : material;
     materialToUse->bind();
 
     if (scene.ambientLight != nullptr) {
@@ -145,12 +145,9 @@ void Mesh::bindMaterial(const Scene &scene, const glm::mat4 &model, const Materi
     int texIdx = materialToUse->getTextureCount() + Scene::numTextures;
     if (scene.directionalLight != nullptr) {
         scene.directionalLight->bindMaterial(materialToUse);
-        if (overrideMaterial != nullptr) {
-            materialToUse->getShader()->setMat4("lightSpaceMatrix", scene.directionalLight->lightSpaceMatrix * model);
-        }
-        else {
+        materialToUse->getShader()->setMat4("lightSpaceMatrix", scene.directionalLight->lightSpaceMatrix);
+        if (overrideMaterial == nullptr) {
             materialToUse->getShader()->setTexture("dirLightShadowMap", scene.directionalLight->shadowMapRenderTarget.depthBuffer, texIdx);
-            materialToUse->getShader()->setMat4("lightSpaceMatrix", scene.directionalLight->lightSpaceMatrix);
         }
     }
     texIdx++;

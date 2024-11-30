@@ -1,0 +1,78 @@
+{
+    "skybox": {
+        "path": "../assets/textures/ibr/barcelona.hdr",
+        "HDR": true,
+        "flipVertically": true,
+        "width": 1024,
+        "height": 1024
+    },
+    "models": [
+        {
+            "name": "BistroInterior",
+            "path": "~/Desktop/Models/BistroInterior.glb",
+            "IBL": 0.1,
+            "gammaCorrected": true
+        }
+    ],
+    "meshes": [
+    ],
+    "nodes": [
+        {
+            "model": 0,
+            "position": [0.0, 0.0, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [1.0, 1.0, 1.0]
+        }
+    ],
+    "camera": {
+        "fov": 60.0,
+        "near": 0.1,
+        "far": 1000.0,
+        "position": [7.0, 2.5, -5.0],
+        "rotation": [0.0, 180.0, 0.0]
+    },
+    "ambientLight": {
+        "color": [1.0, 1.0, 1.0],
+        "intensity": 0.1
+    },
+    "directionalLight": {
+        "color": [1.0, 0.98, 0.92],
+        "direction": [3.5, 0.2, -1.7],
+        "distance": 0.1,
+        "intensity": 5.0
+    },
+    "pointLights": [
+        {
+            "color": [1.0, 0.84, 0.7],
+            "position": [11.7, 4.25, 1.5],
+            "intensity": 7.5,
+            "constant": 1.0,
+            "linear": 0.22,
+            "quadratic": 0.2
+        },
+        {
+            "color": [1.0, 0.84, 0.7],
+            "position": [7.3, 4.25, -0.7],
+            "intensity": 7.5,
+            "constant": 1.0,
+            "linear": 0.22,
+            "quadratic": 0.2
+        },
+        {
+            "color": [1.0, 0.84, 0.7],
+            "position": [6.25, 4.25, -7.2],
+            "intensity": 7.5,
+            "constant": 1.0,
+            "linear": 0.22,
+            "quadratic": 0.2
+        },
+        {
+            "color": [1.0, 0.84, 0.7],
+            "position": [9.0, 4.25, 12.5],
+            "intensity": 7.5,
+            "constant": 1.0,
+            "linear": 0.22,
+            "quadratic": 0.2
+        }
+    ]
+}

@@ -689,7 +689,8 @@ int SceneLoader::parseAnimation(jsmntok_t* tokens, int i, const char* json, Scen
     glm::vec3 fromPosition{0.0f, 0.0f, 0.0f}, toPosition{0.0f, 0.0f, 0.0f};
     glm::vec3 fromRotation{0.0f, 0.0f, 0.0f}, toRotation{0.0f, 0.0f, 0.0f};
     glm::vec3 fromScale{1.0f, 1.0f, 1.0f}, toScale{1.0f, 1.0f, 1.0f};
-    float duration;
+    float duration = 1.0f;
+    bool reverse = false;
     bool loop = false;
 
     int size = tokens[i++].size;
@@ -722,6 +723,9 @@ int SceneLoader::parseAnimation(jsmntok_t* tokens, int i, const char* json, Scen
         else if (compare(tok, json, "duration") == 0) {
             i = parseFloat(tokens, i + 1, json, &duration);
         }
+        else if (compare(tok, json, "reverse") == 0) {
+            i = parseBool(tokens, i + 1, json, &reverse);
+        }
         else if (compare(tok, json, "loop") == 0) {
             i = parseBool(tokens, i + 1, json, &loop);
         }
@@ -737,9 +741,9 @@ int SceneLoader::parseAnimation(jsmntok_t* tokens, int i, const char* json, Scen
     Node* node = findNodeByName(nodeName);
     if (node != nullptr) {
         Animation* animation = new Animation();
-        animation->setTranslation(fromPosition, toPosition, duration, loop);
-        animation->setRotation(fromRotation, toRotation, duration, loop);
-        animation->setScale(fromScale, toScale, duration, loop);
+        animation->setTranslation(fromPosition, toPosition, duration, reverse, loop);
+        animation->setRotation(fromRotation, toRotation, duration, reverse, loop);
+        animation->setScale(fromScale, toScale, duration, reverse, loop);
 
         node->animation = animation;
     }
