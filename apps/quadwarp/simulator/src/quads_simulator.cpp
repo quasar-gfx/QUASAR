@@ -117,7 +117,7 @@ int main(int argc, char** argv) {
     Mesh mesh = Mesh({
         .numVertices = maxVertices,
         .numIndices = maxIndices,
-        .material = new QuadMaterial({ .baseColorTexture = &meshFromQuads.atlas }),
+        .material = new QuadMaterial({ .baseColorTexture = &renderTarget.colorBuffer }),
         .usage = GL_DYNAMIC_DRAW,
         .indirectDraw = true
     });
@@ -527,15 +527,12 @@ int main(int argc, char** argv) {
                 remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
                 remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = true;
                 remoteRenderer.pipeline.rasterState.polygonOffsetUnits = 10000.0f;
-                // remoteRenderer.pipeline.depthState.depthFunc = GL_LESS;
                 remoteRenderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
                 // render remoteScene using stencil buffer as a mask
                 // at values were stencil buffer is 1, remoteScene should render
                 remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask();
                 remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = false;
-                remoteRenderer.pipeline.rasterState.polygonOffsetUnits = 0.0f;
-                // remoteRenderer.pipeline.depthState.depthFunc = GL_LESS;
                 remoteRenderer.pipeline.writeMaskState.enableColorWrites();
                 remoteRenderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

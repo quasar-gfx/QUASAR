@@ -311,27 +311,27 @@ void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in vec4 depthOff
 }
 
 void storeSurfel(in Quad quad, in Quad2D uvsSrc, in QuadMapData quadMapData) {
-    // first, copy the color from the color texture to the atlas
-    ivec2 pixelCoordsBottomLeft = ivec2(uvsSrc.bottomLeft * remoteWindowSize);
-    ivec2 pixelCoordsBottomRight = ivec2(uvsSrc.bottomRight * remoteWindowSize);
-    ivec2 pixelCoordsTopLeft = ivec2(uvsSrc.topLeft * remoteWindowSize);
-    ivec2 pixelCoordsTopRight = ivec2(uvsSrc.topRight * remoteWindowSize);
-    for (int i = pixelCoordsBottomLeft.x; i <= pixelCoordsBottomRight.x; i++) {
-        for (int j = pixelCoordsBottomLeft.y; j <= pixelCoordsTopLeft.y; j++) {
-            ivec2 pixelCoords = ivec2(i, j);
-            vec4 color = imageLoad(colorTexture, pixelCoords);
+    // // first, copy the color from the color texture to the atlas
+    // ivec2 pixelCoordsBottomLeft = ivec2(uvsSrc.bottomLeft * remoteWindowSize);
+    // ivec2 pixelCoordsBottomRight = ivec2(uvsSrc.bottomRight * remoteWindowSize);
+    // ivec2 pixelCoordsTopLeft = ivec2(uvsSrc.topLeft * remoteWindowSize);
+    // ivec2 pixelCoordsTopRight = ivec2(uvsSrc.topRight * remoteWindowSize);
+    // for (int i = pixelCoordsBottomLeft.x; i <= pixelCoordsBottomRight.x; i++) {
+    //     for (int j = pixelCoordsBottomLeft.y; j <= pixelCoordsTopLeft.y; j++) {
+    //         ivec2 pixelCoords = ivec2(i, j);
+    //         vec4 color = imageLoad(colorTexture, pixelCoords);
 
-            ivec2 atlasPixelCoords = ivec2(atlasOffsetX, atlasOffsetY) + pixelCoords;
-            imageStore(atlas, atlasPixelCoords, color);
-        }
-    }
+    //         ivec2 atlasPixelCoords = ivec2(atlasOffsetX, atlasOffsetY) + pixelCoords;
+    //         imageStore(atlas, atlasPixelCoords, color);
+    //     }
+    // }
 
-    // then, find UVs for the quad in atlas space
-    Quad2D uvsAtlas;
-    uvsAtlas.bottomLeft  = vec2(ivec2(atlasOffsetX, atlasOffsetY) + pixelCoordsBottomLeft)  / atlasSize;
-    uvsAtlas.bottomRight = vec2(ivec2(atlasOffsetX, atlasOffsetY) + pixelCoordsBottomRight) / atlasSize;
-    uvsAtlas.topLeft     = vec2(ivec2(atlasOffsetX, atlasOffsetY) + pixelCoordsTopLeft)     / atlasSize;
-    uvsAtlas.topRight    = vec2(ivec2(atlasOffsetX, atlasOffsetY) + pixelCoordsTopRight)    / atlasSize;
+    // // then, find UVs for the quad in atlas space
+    // Quad2D uvsAtlas;
+    // uvsAtlas.bottomLeft  = vec2(ivec2(atlasOffsetX, atlasOffsetY) + pixelCoordsBottomLeft)  / atlasSize;
+    // uvsAtlas.bottomRight = vec2(ivec2(atlasOffsetX, atlasOffsetY) + pixelCoordsBottomRight) / atlasSize;
+    // uvsAtlas.topLeft     = vec2(ivec2(atlasOffsetX, atlasOffsetY) + pixelCoordsTopLeft)     / atlasSize;
+    // uvsAtlas.topRight    = vec2(ivec2(atlasOffsetX, atlasOffsetY) + pixelCoordsTopRight)    / atlasSize;
 
     /************************
 
@@ -347,25 +347,25 @@ void storeSurfel(in Quad quad, in Quad2D uvsSrc, in QuadMapData quadMapData) {
     uint vertexIdxTopLeft = vertexIdxBase + 0u;
     vertices[vertexIdxTopLeft].position = viewToWorld(viewInverse, quad.topLeft);
     vertices[vertexIdxTopLeft].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIdxTopLeft].texCoords = uvsAtlas.topLeft;
+    vertices[vertexIdxTopLeft].texCoords = uvsSrc.topLeft;
     vertices[vertexIdxTopLeft].normal = quadMapData.normal;
 
     uint vertexIdxTopRight = vertexIdxBase + 1u;
     vertices[vertexIdxTopRight].position = viewToWorld(viewInverse, quad.topRight);
     vertices[vertexIdxTopRight].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIdxTopRight].texCoords = uvsAtlas.topRight;
+    vertices[vertexIdxTopRight].texCoords = uvsSrc.topRight;
     vertices[vertexIdxTopRight].normal = quadMapData.normal;
 
     uint vertexIdxBottomLeft = vertexIdxBase + 2u;
     vertices[vertexIdxBottomLeft].position = viewToWorld(viewInverse, quad.bottomLeft);
     vertices[vertexIdxBottomLeft].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIdxBottomLeft].texCoords = uvsAtlas.bottomLeft;
+    vertices[vertexIdxBottomLeft].texCoords = uvsSrc.bottomLeft;
     vertices[vertexIdxBottomLeft].normal = quadMapData.normal;
 
     uint vertexIdxBottomRight = vertexIdxBase + 3u;
     vertices[vertexIdxBottomRight].position = viewToWorld(viewInverse, quad.bottomRight);
     vertices[vertexIdxBottomRight].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIdxBottomRight].texCoords = uvsAtlas.bottomRight;
+    vertices[vertexIdxBottomRight].texCoords = uvsSrc.bottomRight;
     vertices[vertexIdxBottomRight].normal = quadMapData.normal;
 
     vec3 vertPositionsView[4];
