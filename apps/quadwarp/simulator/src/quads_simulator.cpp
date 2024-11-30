@@ -117,7 +117,7 @@ int main(int argc, char** argv) {
     Mesh mesh = Mesh({
         .numVertices = maxVertices,
         .numIndices = maxIndices,
-        .material = new QuadMaterial({ .baseColorTexture = &renderTarget.colorBuffer }),
+        .material = new QuadMaterial({ .baseColorTexture = &meshFromQuads.atlas }),
         .usage = GL_DYNAMIC_DRAW,
         .indirectDraw = true
     });
