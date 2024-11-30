@@ -247,12 +247,6 @@ int main(int argc, char** argv) {
         camera.updateProjectionMatrix();
     });
 
-    std::vector<glm::vec3> pointLightPositions(4);
-    pointLightPositions[0] = scene.pointLights[0]->position;
-    pointLightPositions[1] = scene.pointLights[1]->position;
-    pointLightPositions[2] = scene.pointLights[2]->position;
-    pointLightPositions[3] = scene.pointLights[3]->position;
-
     pose_id_t poseID = 0;
     app.onRender([&](double now, double dt) {
         if (pauseState == PauseState::PAUSE_BOTH) {
@@ -262,11 +256,8 @@ int main(int argc, char** argv) {
         // receive pose
         poseID = poseReceiver.receivePose(false);
 
-        // animate lights
-        // scene.pointLights[0]->setPosition(pointLightPositions[0] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
-        // scene.pointLights[1]->setPosition(pointLightPositions[1] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
-        // scene.pointLights[2]->setPosition(pointLightPositions[2] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
-        // scene.pointLights[3]->setPosition(pointLightPositions[3] + glm::vec3(1.1f * sin(now), 0.0f, 0.0f));
+        // update all animations
+        scene.updateAnimations(dt);
 
         // offset camera
         camera.setPosition(camera.getPosition() + initialPosition);

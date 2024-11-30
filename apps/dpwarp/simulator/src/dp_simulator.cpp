@@ -81,7 +81,8 @@ int main(int argc, char** argv) {
 
     OpenGLApp app(config);
     DepthPeelingRenderer dpRenderer(config, maxLayers, true);
-    ForwardRenderer forwardRenderer(config);
+    ForwardRenderer remoteRenderer(config);
+    ForwardRenderer renderer(config);
 
     glm::uvec2 windowSize = window->getSize();
 
@@ -225,7 +226,7 @@ int main(int argc, char** argv) {
         }
     });
 
-    Recorder recorder(forwardRenderer, toneMapShader, dataPath, config.targetFramerate);
+    Recorder recorder(renderer, toneMapShader, dataPath, config.targetFramerate);
     Animator animator(animationFile);
 
     // start recording if headless
@@ -551,7 +552,7 @@ int main(int argc, char** argv) {
     app.onResize([&](unsigned int width, unsigned int height) {
         windowSize = glm::uvec2(width, height);
         dpRenderer.setWindowSize(width, height);
-        forwardRenderer.setWindowSize(width, height);
+        renderer.setWindowSize(width, height);
 
         camera.setAspect(windowSize.x, windowSize.y);
         camera.updateProjectionMatrix();
@@ -669,26 +670,37 @@ int main(int argc, char** argv) {
                 }
                 // wide fov camera
                 else {
-                    // render mesh in meshScene into stencil buffer
-                    forwardRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
+                    // draw old meshes at new remoteCamera view, filling depth buffer
+                    remoteRenderer.pipeline.writeMaskState.disableColorWrites();
+                    remoteRenderer.drawObjects(meshScene, *remoteCamera);
 
-                    forwardRenderer.drawObjects(meshScene, *remoteCamera);
+                    // render remoteScene into stencil buffer, with depth buffer from meshScene
+                    // this should draw objects in remoteScene that are not occluded by meshScene, setting
+                    // the stencil buffer to 1 where the depth of remoteScene is less than meshScene
+                    remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
+                    remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = true;
+                    remoteRenderer.pipeline.rasterState.polygonOffsetUnits = 10000.0f;
+                    // remoteRenderer.pipeline.depthState.depthFunc = GL_LESS;
+                    remoteRenderer.drawObjects(remoteScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-                    // render mesh in remoteScene using stencil buffer as a mask
-                    forwardRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask();
+                    // render remoteScene using stencil buffer as a mask
+                    // at values were stencil buffer is 1, remoteScene should render
+                    remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask();
+                    remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = false;
+                    // remoteRenderer.pipeline.depthState.depthFunc = GL_LESS;
+                    remoteRenderer.pipeline.writeMaskState.enableColorWrites();
+                    remoteRenderer.drawObjects(remoteScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-                    forwardRenderer.drawObjects(remoteScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-                    forwardRenderer.pipeline.stencilState.restoreStencilState();
+                    remoteRenderer.pipeline.stencilState.restoreStencilState();
 
                     // render to render target
                     if (!showNormals) {
                         toneMapShader.bind();
                         toneMapShader.setBool("toneMap", false); // dont apply tone mapping
-                        forwardRenderer.drawToRenderTarget(toneMapShader, renderTargets[view]);
+                        remoteRenderer.drawToRenderTarget(toneMapShader, renderTargets[view]);
                     }
                     else {
-                        forwardRenderer.drawToRenderTarget(screenShaderNormals, renderTargets[view]);
+                        remoteRenderer.drawToRenderTarget(screenShaderNormals, renderTargets[view]);
                     }
                 }
 
@@ -697,13 +709,9 @@ int main(int argc, char** argv) {
                 SECOND to FOURTH PASSES: Generate quad map and output proxies
                 ============================
                 */
-                GeometryBuffer* gBuffer;
-                if (disableWideFov || view != maxViews - 1) {
-                    gBuffer = dpRenderer.peelingLayers[view];
-                }
-                else {
-                    gBuffer = &forwardRenderer.gBuffer;
-                }
+                GeometryBuffer* gBuffer = (disableWideFov || view != maxViews - 1) ?
+                                            dpRenderer.peelingLayers[view] :
+                                                &remoteRenderer.gBuffer;
                 quadsGenerator.createProxiesFromGBuffer(*gBuffer, *remoteCamera);
 
                 if (saveProxies) {
@@ -761,7 +769,7 @@ int main(int argc, char** argv) {
                         meshFromDepthShader.setTexture(dpRenderer.peelingLayers[view]->depthStencilBuffer, 0);
                     }
                     else {
-                        meshFromDepthShader.setTexture(forwardRenderer.gBuffer.depthStencilBuffer, 0);
+                        meshFromDepthShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
                     }
                 }
                 {
@@ -831,14 +839,14 @@ int main(int argc, char** argv) {
         }
 
         // render all objects in scene
-        forwardRenderer.pipeline.rasterState.cullFaceEnabled = false;
-        renderStats = forwardRenderer.drawObjects(scene, camera);
-        forwardRenderer.pipeline.rasterState.cullFaceEnabled = true;
+        renderer.pipeline.rasterState.cullFaceEnabled = false;
+        renderStats = renderer.drawObjects(scene, camera);
+        renderer.pipeline.rasterState.cullFaceEnabled = true;
 
         // render to screen
         toneMapShader.bind();
         toneMapShader.setBool("toneMap", !showNormals);
-        forwardRenderer.drawToScreen(toneMapShader);
+        renderer.drawToScreen(toneMapShader);
 
         if (recording) {
             recorder.captureFrame(camera);
