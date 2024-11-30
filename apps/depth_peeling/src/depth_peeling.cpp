@@ -276,6 +276,9 @@ int main(int argc, char** argv) {
             window->close();
         }
 
+        // update all animations
+        scene.updateAnimations(dt);
+
         // render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);
 
