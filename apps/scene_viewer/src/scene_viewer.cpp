@@ -356,6 +356,9 @@ int main(int argc, char** argv) {
             camera.updateViewMatrix();
         }
 
+        // update all animations
+        scene.updateAnimations(dt);
+
         // render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);
 

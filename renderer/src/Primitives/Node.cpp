@@ -117,12 +117,12 @@ void Node::setTransformLocalFromParent(const glm::mat4 &view) {
 
 const glm::mat4 Node::getTransformParentFromLocal() const {
     const glm::mat4& transform = glm::translate(glm::mat4(1.0f), position) * glm::mat4_cast(rotationQuat) * glm::scale(glm::mat4(1.0f), scale);
-    return transform * transformAnimation;
+    return transform * getTransformAnimation();
 }
 
 const glm::mat4 Node::getTransformLocalFromParent() const {
     const glm::mat4& transformInv = glm::scale(glm::mat4(1.0f), 1.0f/scale) * glm::mat4_cast(glm::conjugate(rotationQuat)) * glm::translate(glm::mat4(1.0f), -position);
-    return glm::inverse(transformAnimation) * transformInv;
+    return glm::inverse(getTransformAnimation()) * transformInv;
 }
 
 const glm::mat4 Node::getTransformLocalFromWorld() const {
@@ -138,10 +138,26 @@ const glm::mat4 Node::getTransformLocalFromWorld() const {
     return transformLocalFromWorld;
 }
 
-void Node::setTransformAnimation(const glm::mat4 &transform) {
-    transformAnimation = transform;
+const glm::mat4 Node::getTransformAnimation() const {
+    glm::mat4 transformAnimation = glm::mat4(1.0f);
+
+    if (animation != nullptr) {
+        transformAnimation = animation->getTransformation();
+    }
+
+    return transformAnimation;
 }
 
-const glm::mat4 Node::getTransformAnimation() const {
-    return transformAnimation;
+void Node::updateAnimations(double dt) {
+    if (animation != nullptr) {
+        animation->update(dt);
+    }
+
+    if (entity != nullptr) {
+        entity->updateAnimations(dt);
+    }
+
+    for (auto* child : children) {
+        child->updateAnimations(dt);
+    }
 }

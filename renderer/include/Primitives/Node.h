@@ -1,10 +1,13 @@
 #ifndef NODE_H
 #define NODE_H
+#include <vector>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/matrix_decompose.hpp>
+
 #include <Primitives/Entity.h>
-#include <vector>
+
+#include <Animation.h>
 
 class Node {
 public:
@@ -13,6 +16,8 @@ public:
     Node* parent = nullptr;
     Entity* entity = nullptr;
     std::vector<Node*> children;
+
+    Animation* animation = nullptr;
 
     bool frustumCulled = true;
     bool visible = true;
@@ -56,17 +61,15 @@ public:
     const glm::mat4 getTransformLocalFromParent() const;
     const glm::mat4 getTransformLocalFromWorld() const;
 
-    void setTransformAnimation(const glm::mat4 &transform);
-
     const glm::mat4 getTransformAnimation() const;
+
+    void updateAnimations(double dt);
 
 protected:
     uint32_t ID;
     glm::vec3 position = glm::vec3(0.0f);
     glm::quat rotationQuat = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
     glm::vec3 scale = glm::vec3(1.0f);
-
-    glm::mat4 transformAnimation = glm::mat4(1.0f);
 
     static uint32_t nextID;
 };

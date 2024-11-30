@@ -155,7 +155,8 @@ void Recorder::saveFrames() {
                 ret = avcodec_receive_packet(codecContext, pkt);
                 if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                     break;
-                } else if (ret < 0) {
+                }
+                else if (ret < 0) {
                     std::cerr << "Error encoding frame: " << ret << std::endl;
                     break;
                 }
@@ -178,7 +179,8 @@ void Recorder::saveFrames() {
                 FileIO::flipVerticallyOnWrite(true);
                 if (outputFormat == OutputFormat::PNG) {
                     FileIO::saveAsPNG(filename, renderTargetTemp.width, renderTargetTemp.height, 4, frameData.frame.data());
-                } else {
+                }
+                else {
                     FileIO::saveAsJPG(filename, renderTargetTemp.width, renderTargetTemp.height, 4, frameData.frame.data());
                 }
 

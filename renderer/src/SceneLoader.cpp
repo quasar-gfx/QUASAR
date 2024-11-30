@@ -45,6 +45,17 @@ Model* SceneLoader::findModelByName(const std::string &name) {
     return nullptr;
 }
 
+Node* SceneLoader::findNodeByName(const std::string &name) {
+    for (auto model : models) {
+        Node* node = model->rootNode.findNodeByName(name);
+        if (node != nullptr) {
+            return node;
+        }
+    }
+
+    return nullptr;
+}
+
 void SceneLoader::loadScene(const std::string &filename, Scene &scene, PerspectiveCamera &camera) {
     unsigned int size;
     std::string sceneJSON = FileIO::loadTextFile(filename, &size);
@@ -670,6 +681,86 @@ int SceneLoader::parsePointLights(jsmntok_t* tokens, int i, const char* json, Sc
     return i;
 }
 
+int SceneLoader::parseAnimation(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera) {
+    CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+    std::string nodeName;
+    std::string property;
+    glm::vec3 fromPosition{0.0f, 0.0f, 0.0f}, toPosition{0.0f, 0.0f, 0.0f};
+    glm::vec3 fromRotation{0.0f, 0.0f, 0.0f}, toRotation{0.0f, 0.0f, 0.0f};
+    glm::vec3 fromScale{1.0f, 1.0f, 1.0f}, toScale{1.0f, 1.0f, 1.0f};
+    float duration;
+    bool loop = false;
+
+    int size = tokens[i++].size;
+    for (int j = 0; j < size; j++) {
+        const jsmntok_t tok = tokens[i];
+        if (compare(tok, json, "node") == 0) {
+            i = parseString(tokens, i + 1, json, &nodeName);
+        }
+        else if (compare(tok, json, "property") == 0) {
+            i = parseString(tokens, i + 1, json, &property);
+        }
+        else if (compare(tok, json, "fromPosition") == 0) {
+            i = parseVec3(tokens, i + 1, json, &fromPosition);
+        }
+        else if (compare(tok, json, "toPosition") == 0) {
+            i = parseVec3(tokens, i + 1, json, &toPosition);
+        }
+        else if (compare(tok, json, "fromRotation") == 0) {
+            i = parseVec3(tokens, i + 1, json, &fromRotation);
+        }
+        else if (compare(tok, json, "toRotation") == 0) {
+            i = parseVec3(tokens, i + 1, json, &toRotation);
+        }
+        else if (compare(tok, json, "fromScale") == 0) {
+            i = parseVec3(tokens, i + 1, json, &fromScale);
+        }
+        else if (compare(tok, json, "toScale") == 0) {
+            i = parseVec3(tokens, i + 1, json, &toScale);
+        }
+        else if (compare(tok, json, "duration") == 0) {
+            i = parseFloat(tokens, i + 1, json, &duration);
+        }
+        else if (compare(tok, json, "loop") == 0) {
+            i = parseBool(tokens, i + 1, json, &loop);
+        }
+        else {
+            i = parse(tokens, i + 1);
+        }
+        if (i < 0) {
+            return i;
+        }
+    }
+
+    // add animation to node
+    Node* node = findNodeByName(nodeName);
+    if (node != nullptr) {
+        Animation* animation = new Animation();
+        animation->setTranslation(fromPosition, toPosition, duration, loop);
+        animation->setRotation(fromRotation, toRotation, duration, loop);
+        animation->setScale(fromScale, toScale, duration, loop);
+
+        node->animation = animation;
+    }
+    else {
+        std::cerr << "Node not found: " << nodeName << std::endl;
+    }
+
+    return i;
+}
+
+int SceneLoader::parseAnimations(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera) {
+    CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
+
+    int size = tokens[i++].size;
+    for (int j = 0; j < size; j++) {
+        i = parseAnimation(tokens, i, json, scene, camera);
+    }
+
+    return i;
+}
+
 int SceneLoader::parse(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera) {
     CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
@@ -702,6 +793,9 @@ int SceneLoader::parse(jsmntok_t* tokens, int i, const char* json, Scene &scene,
         }
         else if (compare(tok, json, "pointLights") == 0) {
             i = parsePointLights(tokens, i + 1, json, scene, camera);
+        }
+        else if (compare(tok, json, "animations") == 0) {
+            i = parseAnimations(tokens, i + 1, json, scene, camera);
         }
         else {
             i = parse(tokens, i + 1);

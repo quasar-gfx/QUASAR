@@ -61,6 +61,8 @@ public:
                              const BoundingSphere &boundingSphere,
                              const Material* overrideMaterial = nullptr) = 0;
 
+    virtual void updateAnimations(float dt) {}
+
     virtual EntityType getType() const { return EntityType::EMPTY; }
 
 protected:

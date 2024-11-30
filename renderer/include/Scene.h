@@ -47,6 +47,8 @@ public:
 
     Scene();
 
+    void updateAnimations(float dt);
+
     void addChildNode(Node* node);
 
     void setEnvMap(CubeMap* envCubeMap);

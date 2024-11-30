@@ -33,7 +33,8 @@ void DataReceiverTCP::recvData() {
     while (true) {
         if (socket.connect(url) < 0) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        } else {
+        }
+        else {
             ready = true;
             break;
         }

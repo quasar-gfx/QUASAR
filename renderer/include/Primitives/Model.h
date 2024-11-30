@@ -54,6 +54,7 @@ public:
                              bool frustumCull = true, const Material* overrideMaterial = nullptr) override;
     virtual RenderStats draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model,
                              const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) override;
+    virtual void updateAnimations(float dt) override;
 
     EntityType getType() const override { return EntityType::MODEL; }
 

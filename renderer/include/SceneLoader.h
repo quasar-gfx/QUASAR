@@ -30,6 +30,7 @@ public:
 
     Mesh* findMeshByName(const std::string &name);
     Model* findModelByName(const std::string &name);
+    Node* findNodeByName(const std::string &name);
 
     void loadScene(const std::string &filename, Scene &scene, PerspectiveCamera &camera);
     void clearScene(Scene &scene, PerspectiveCamera &camera);
@@ -57,6 +58,8 @@ private:
     int parseDirectionalLight(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
     int parsePointLight(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
     int parsePointLights(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
+    int parseAnimation(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
+    int parseAnimations(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
     int parse(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
 };
 

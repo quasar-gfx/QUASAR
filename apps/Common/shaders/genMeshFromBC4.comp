@@ -116,7 +116,8 @@ float sampleBC4Buffer(vec2 pixelCoordNormalized) {
     if (bitOffset <= 29u) {
         // Normal case: all 3 bits are in the current uint
         index = (compressedBlock.data[uintIndex] >> (29u - bitOffset)) & 0x7u;
-    } else {
+    }
+    else {
         // Split case: the 3 bits are split across two uints
         uint bitsInCurrent = 32u - bitOffset;
         uint bitsInNext = 3u - bitsInCurrent;

@@ -82,6 +82,10 @@ Node* Model::findNodeByName(const std::string &name) {
     return rootNode.findNodeByName(name);
 }
 
+void Model::updateAnimations(float dt) {
+    rootNode.updateAnimations(dt);
+}
+
 void Model::loadFromFile(const ModelCreateParams &params) {
     std::string path = params.path;
     std::cout << "Loading model: " << path << std::endl;

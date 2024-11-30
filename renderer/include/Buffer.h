@@ -147,7 +147,8 @@ public:
             std::memcpy(data, mappedBuffer, numElems * sizeof(T));
 
             glUnmapBuffer(target);
-        } else {
+        }
+        else {
             std::cerr << "Error: Could not map buffer data." << std::endl;
         }
 #endif

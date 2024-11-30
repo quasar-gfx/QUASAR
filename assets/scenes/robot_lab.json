@@ -74,5 +74,22 @@
             "linear": 0.07,
             "quadratic": 0.017
         }
+    ],
+    "animations": [
+        {
+            "node": "prop_robotArm_body",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [0.0, 360.0, 0.0],
+            "duration": 60.0,
+            "loop": true
+        },
+        {
+            "node": "vehicle_rcFlyer_clean",
+            "fromPosition": [0.0, 0.0, 0.0],
+            "toPosition": [0.0, 2.0, 0.0],
+            "duration": 5.0,
+            "reverse": true,
+            "loop": true
+        }
     ]
 }
