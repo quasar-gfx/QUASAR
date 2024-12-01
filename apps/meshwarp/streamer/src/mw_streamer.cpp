@@ -100,7 +100,7 @@ int main(int argc, char** argv) {
         .height = windowSize.y,
         .internalFormat = GL_SRGB8,
         .format = GL_RGB,
-        .type = GL_FLOAT,
+        .type = GL_UNSIGNED_BYTE,
         .wrapS = GL_CLAMP_TO_EDGE,
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_LINEAR,

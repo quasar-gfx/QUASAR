@@ -10,7 +10,7 @@ MeshFromQuads::MeshFromQuads(const glm::uvec2 &remoteWindowSize)
             .height = atlasSize.y,
             .internalFormat = GL_RGBA16F,
             .format = GL_RGBA,
-            .type = GL_FLOAT,
+            .type = GL_HALF_FLOAT,
             .wrapS = GL_CLAMP_TO_EDGE,
             .wrapT = GL_CLAMP_TO_EDGE,
             .minFilter = GL_NEAREST,

@@ -7,7 +7,7 @@ Scene::Scene()
                                 .height = 512,
                                 .internalFormat = GL_RGB16F,
                                 .format = GL_RGB,
-                                .type = GL_FLOAT,
+                                .type = GL_HALF_FLOAT,
                                 .wrapS = GL_CLAMP_TO_EDGE,
                                 .wrapT = GL_CLAMP_TO_EDGE,
                                 .minFilter = GL_LINEAR,
@@ -16,7 +16,7 @@ Scene::Scene()
         , brdfLUT({
             .internalFormat = GL_RG16F,
             .format = GL_RG,
-            .type = GL_FLOAT,
+            .type = GL_HALF_FLOAT,
             .wrapS = GL_CLAMP_TO_EDGE,
             .wrapT = GL_CLAMP_TO_EDGE,
             .minFilter = GL_LINEAR,

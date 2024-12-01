@@ -42,7 +42,7 @@ void Texture::loadFromFile(const TextureFileCreateParams &params) {
     if (type == GL_UNSIGNED_BYTE) {
         data = FileIO::loadImage(path, &texWidth, &texHeight, &texChannels);
     }
-    else if (type == GL_FLOAT) {
+    else if (type == GL_FLOAT || type == GL_HALF_FLOAT) {
         data = FileIO::loadImageHDR(path, &texWidth, &texHeight, &texChannels);
     }
 

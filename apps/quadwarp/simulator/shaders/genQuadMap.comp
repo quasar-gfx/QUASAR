@@ -125,7 +125,7 @@ layout(std430, binding = 4) writeonly buffer offsetsBufferInput {
     uint offsetSizeFlattenedsInput[];
 };
 
-layout(rg32ui, binding = 0) uniform uimage2D depthOffsetsBuffer;
+layout(rgba16f, binding = 0) uniform image2D depthOffsetsBuffer;
 
 vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
     vec4 ndcPos;
@@ -516,9 +516,7 @@ void storeInQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
 }
 
 void storeDepthOffsets(in ivec2 pixelCoord, in vec4 depthOffsets) {
-    uint r = packHalf2x16(vec2(depthOffsets.x, depthOffsets.y));
-    uint g = packHalf2x16(vec2(depthOffsets.z, depthOffsets.w));
-    imageStore(depthOffsetsBuffer, pixelCoord, uvec4(r, g, 0, 0));
+    imageStore(depthOffsetsBuffer, pixelCoord, depthOffsets);
 }
 
 void storeSurfelsInQuadMap(

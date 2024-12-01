@@ -33,9 +33,9 @@ QuadsGenerator::QuadsGenerator(const glm::uvec2 &remoteWindowSize)
         , depthOffsetsBuffer({
             .width = depthBufferSize.x,
             .height = depthBufferSize.y,
-            .internalFormat = GL_RG32UI,
-            .format = GL_RG_INTEGER,
-            .type = GL_UNSIGNED_INT,
+            .internalFormat = GL_RGBA16F,
+            .format = GL_RGBA,
+            .type = GL_HALF_FLOAT,
             .wrapS = GL_CLAMP_TO_EDGE,
             .wrapT = GL_CLAMP_TO_EDGE,
             .minFilter = GL_NEAREST,

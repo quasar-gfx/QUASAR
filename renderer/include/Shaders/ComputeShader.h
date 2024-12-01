@@ -11,7 +11,7 @@ struct ComputeShaderDataCreateParams {
 #ifdef GL_CORE
     std::string version = "430 core";
 #else
-    std::string version = "310 es";
+    std::string version = "320 es";
 #endif
     const char* computeCodeData = nullptr;
     unsigned int computeCodeSize = 0;
@@ -23,7 +23,7 @@ struct ComputeShaderFileCreateParams {
 #ifdef GL_CORE
     std::string version = "430 core";
 #else
-    std::string version = "310 es";
+    std::string version = "320 es";
 #endif
     std::string computeCodePath = "";
     std::vector<std::string> extensions;
