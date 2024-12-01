@@ -235,7 +235,14 @@ QuadMapData loadQuadMap(uint index) {
 }
 
 vec4 loadDepthOffsets(in ivec2 pixelCoord) {
+<<<<<<< HEAD
     return imageLoad(depthOffsetsBuffer, pixelCoord);
+=======
+    uvec2 val = imageLoad(depthOffsetsBuffer, pixelCoord).rg;
+    vec2 depthOffsetsX = unpackHalf2x16(val.x);
+    vec2 depthOffsetsY = unpackHalf2x16(val.y);
+    return vec4(depthOffsetsX, depthOffsetsY);
+>>>>>>> eb24d48e (store depth offsets in rg32ui)
 }
 
 Plane quadMapDataToPlane(in QuadMapData quadMapData) {
