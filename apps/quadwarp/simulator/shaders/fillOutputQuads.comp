@@ -109,7 +109,7 @@ QuadMapData loadQuadMap(ivec2 pixelCoord) {
     return quadMapData;
 }
 
-void storeInOutputQuadMap(in uint index, in QuadMapData quadMapData) {
+void storeOutputQuadMap(in uint index, in QuadMapData quadMapData) {
     QuadMapDataPacked quadMapDataPacked;
     quadMapDataPacked.normalSpherical = packNormalToSphericalHalf(quadMapData.normal);
     quadMapDataPacked.depth = quadMapData.depth;
@@ -148,5 +148,5 @@ void main() {
     }
 
     uint index = atomicAdd(numProxies, 1);
-    storeInOutputQuadMap(index, quadMapData);
+    storeOutputQuadMap(index, quadMapData);
 }

@@ -125,7 +125,7 @@ layout(std430, binding = 4) writeonly buffer offsetsBufferInput {
     uint offsetSizeFlattenedsInput[];
 };
 
-layout(r16f, binding = 0) uniform image2D depthOffsetsBuffer;
+layout(rg32ui, binding = 0) uniform uimage2D depthOffsetsBuffer;
 
 vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
     vec4 ndcPos;
@@ -161,11 +161,6 @@ vec2 viewToScreen(mat4 projection, vec3 viewCoord) {
     vec2 ndc = viewToNDC(projection, viewCoord).xy;
     vec2 uv = (ndc + 1.0) / 2.0;
     return uv;
-}
-
-float signedDistance(vec3 p1, vec3 p2) {
-    float dist = distance(p1, p2);
-    return (length(p1) > length(p2)) ? dist : -dist;
 }
 
 float sampleDepth(sampler2D depthMap, ivec2 sampleCoord) {
@@ -337,6 +332,27 @@ vec3 constrainToMaxAngle(in vec3 centerNormal, in vec3 frustumNormalView) {
     return normalize(constrainedNormal);
 }
 
+float signedDistance(vec3 p1, vec3 p2) {
+    float dist = distance(p1, p2);
+    return (length(p1) > length(p2)) ? dist : -dist;
+}
+
+vec4 findDepthOffsets(in Quad quadView, in Plane proxyPlane) {
+    Quad quadPtsOnPlane;
+    quadPtsOnPlane.bottomLeft  = pointPlaneIntersection(quadView.bottomLeft,  proxyPlane);
+    quadPtsOnPlane.bottomRight = pointPlaneIntersection(quadView.bottomRight, proxyPlane);
+    quadPtsOnPlane.topLeft     = pointPlaneIntersection(quadView.topLeft,     proxyPlane);
+    quadPtsOnPlane.topRight    = pointPlaneIntersection(quadView.topRight,    proxyPlane);
+
+    vec4 depthOffsets;
+    depthOffsets.x = signedDistance(quadPtsOnPlane.bottomLeft,  quadView.bottomLeft);
+    depthOffsets.y = signedDistance(quadPtsOnPlane.bottomRight, quadView.bottomRight);
+    depthOffsets.z = signedDistance(quadPtsOnPlane.topLeft,     quadView.topLeft);
+    depthOffsets.w = signedDistance(quadPtsOnPlane.topRight,    quadView.topRight);
+
+    return depthOffsets;
+}
+
 void createSurfels(
     out MultiQuad surfelView,
     in MultiQuad2D surfelNDCs,
@@ -499,31 +515,10 @@ void storeInQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
     offsetSizeFlattenedsInput[index] = quadMapDataPacked.offsetSizeFlattened;
 }
 
-void storeInDepthOffsetsBuffer(in ivec2 pixelCoord, in float depthOffset) {
-    imageStore(depthOffsetsBuffer, pixelCoord, vec4(depthOffset, 0.0, 0.0, 0.0));
-}
-
 void storeDepthOffsets(in ivec2 pixelCoord, in vec4 depthOffsets) {
-    storeInDepthOffsetsBuffer(pixelCoord + ivec2(0, 0), depthOffsets.x);
-    storeInDepthOffsetsBuffer(pixelCoord + ivec2(1, 0), depthOffsets.y);
-    storeInDepthOffsetsBuffer(pixelCoord + ivec2(0, 1), depthOffsets.z);
-    storeInDepthOffsetsBuffer(pixelCoord + ivec2(1, 1), depthOffsets.w);
-}
-
-vec4 findDepthOffsets(in Quad quadView, in Plane proxyPlane) {
-    Quad quadPtsOnPlane;
-    quadPtsOnPlane.bottomLeft  = pointPlaneIntersection(quadView.bottomLeft,  proxyPlane);
-    quadPtsOnPlane.bottomRight = pointPlaneIntersection(quadView.bottomRight, proxyPlane);
-    quadPtsOnPlane.topLeft     = pointPlaneIntersection(quadView.topLeft,     proxyPlane);
-    quadPtsOnPlane.topRight    = pointPlaneIntersection(quadView.topRight,    proxyPlane);
-
-    vec4 depthOffsets;
-    depthOffsets.x = signedDistance(quadPtsOnPlane.bottomLeft,  quadView.bottomLeft);
-    depthOffsets.y = signedDistance(quadPtsOnPlane.bottomRight, quadView.bottomRight);
-    depthOffsets.z = signedDistance(quadPtsOnPlane.topLeft,     quadView.topLeft);
-    depthOffsets.w = signedDistance(quadPtsOnPlane.topRight,    quadView.topRight);
-
-    return depthOffsets;
+    uint r = packHalf2x16(vec2(depthOffsets.x, depthOffsets.y));
+    uint g = packHalf2x16(vec2(depthOffsets.z, depthOffsets.w));
+    imageStore(depthOffsetsBuffer, pixelCoord, uvec4(r, g, 0, 0));
 }
 
 void storeSurfelsInQuadMap(
@@ -605,10 +600,10 @@ void storeSurfelsInQuadMap(
         depthOffsetsTopRight    = vec4(0.0);
     }
 
-    storeDepthOffsets(4 * pixelCoord + 2 * ivec2(0, 0), depthOffsetsBottomLeft);
-    storeDepthOffsets(4 * pixelCoord + 2 * ivec2(1, 0), depthOffsetsBottomRight);
-    storeDepthOffsets(4 * pixelCoord + 2 * ivec2(0, 1), depthOffsetsTopLeft);
-    storeDepthOffsets(4 * pixelCoord + 2 * ivec2(1, 1), depthOffsetsTopRight);
+    storeDepthOffsets(2 * pixelCoord + ivec2(0, 0), depthOffsetsBottomLeft);
+    storeDepthOffsets(2 * pixelCoord + ivec2(1, 0), depthOffsetsBottomRight);
+    storeDepthOffsets(2 * pixelCoord + ivec2(0, 1), depthOffsetsTopLeft);
+    storeDepthOffsets(2 * pixelCoord + ivec2(1, 1), depthOffsetsTopRight);
 }
 
 void main() {

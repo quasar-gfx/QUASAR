@@ -87,12 +87,12 @@ layout(std430, binding = 8) readonly buffer offsetsBufferInput {
 };
 
 #ifdef PLATFORM_CORE
-layout(r16f, binding = 0) uniform readonly image2D depthOffsetsBuffer;
+layout(rg32ui, binding = 0) uniform readonly uimage2D depthOffsetsBuffer;
 #else
-layout(rgba16f, binding = 0) uniform readonly image2D depthOffsetsBuffer;
+layout(rgba32ui, binding = 0) uniform readonly uimage2D depthOffsetsBuffer;
 #endif
-// layout(rgba16f, binding = 1) uniform readonly image2D colorTexture;
-// layout(rgba16f, binding = 2) uniform writeonly image2D atlas;
+layout(rgba16f, binding = 1) uniform readonly image2D colorTexture;
+layout(rgba16f, binding = 2) uniform writeonly image2D atlas;
 
 uniform bool appendGeometry;
 
@@ -246,17 +246,11 @@ QuadMapData loadQuadMap(uint index) {
     return quadMapData;
 }
 
-float loadDepthOffset(in ivec2 pixelCoord) {
-    return imageLoad(depthOffsetsBuffer, pixelCoord).x;
-}
-
 vec4 loadDepthOffsets(in ivec2 pixelCoord) {
-    vec4 depthOffsets;
-    depthOffsets.x = loadDepthOffset(pixelCoord + ivec2(0, 0));
-    depthOffsets.y = loadDepthOffset(pixelCoord + ivec2(1, 0));
-    depthOffsets.z = loadDepthOffset(pixelCoord + ivec2(0, 1));
-    depthOffsets.w = loadDepthOffset(pixelCoord + ivec2(1, 1));
-    return depthOffsets;
+    uvec2 val = imageLoad(depthOffsetsBuffer, pixelCoord).rg;
+    vec2 depthOffsetsX = unpackHalf2x16(val.x);
+    vec2 depthOffsetsY = unpackHalf2x16(val.y);
+    return vec4(depthOffsetsX, depthOffsetsY);
 }
 
 Plane quadMapDataToPlane(in QuadMapData quadMapData) {
@@ -464,7 +458,8 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
                 surfelPixelCoords.topLeft     = surfelBaseCoord + vec2(0.0, stepSize.y);
                 surfelPixelCoords.topRight    = surfelBaseCoord + stepSize;
 
-                vec4 depthOffsets = loadDepthOffsets(4 * ivec2(quadMapData.offset) + 2 * ivec2(i, j));
+                ivec2 depthOffsetPixelCoords = 2 * ivec2(quadMapData.offset) + ivec2(i, j);
+                vec4 depthOffsets = loadDepthOffsets(depthOffsetPixelCoords);
                 // ivec4 depthOffsetsQuantized;
                 // quantizeDepthOffsets(depthOffsets, depthOffsetsQuantized); // quantize depth offsets
                 // unQuantizeDepthOffsets(depthOffsetsQuantized, depthOffsets); // recover depth offsets

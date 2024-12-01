@@ -134,7 +134,7 @@ layout(std430, binding = 7) writeonly buffer offsetsBufferOutput {
     uint offsetSizeFlattenedsOutput[];
 };
 
-layout(r16f, binding = 0) uniform image2D depthOffsetsBuffer;
+layout(rg32ui, binding = 0) uniform uimage2D depthOffsetsBuffer;
 
 vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
     vec4 ndcPos;
@@ -265,11 +265,7 @@ QuadMapData loadInputQuadMap(ivec2 pixelCoord) {
     return quadMapData;
 }
 
-float loadDepthOffset(in ivec2 pixelCoord) {
-    return imageLoad(depthOffsetsBuffer, pixelCoord).x;
-}
-
-void storeInOutputQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
+void storeOutputQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
     QuadMapDataPacked quadMapDataPacked;
     quadMapDataPacked.normalSpherical = packNormalToSphericalHalf(quadMapData.normal);
     quadMapDataPacked.depth = quadMapData.depth;
@@ -287,22 +283,16 @@ void storeInOutputQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
     offsetSizeFlattenedsOutput[index] = quadMapDataPacked.offsetSizeFlattened;
 }
 
-void storeInDepthOffsetsBuffer(in ivec2 pixelCoord, in float depthOffset) {
-    imageStore(depthOffsetsBuffer, pixelCoord, vec4(depthOffset));
-}
-
 void ignoreInputQuadMapData(in ivec2 pixelCoord) {
     uint index = uint(pixelCoord.y) * uint(inputQuadMapSize.x) + uint(pixelCoord.x);
     offsetSizeFlattenedsInput[index] = 0;
 }
 
 vec4 loadDepthOffsets(in ivec2 pixelCoord) {
-    vec4 depthOffsets;
-    depthOffsets.x = loadDepthOffset(pixelCoord + ivec2(0, 0));
-    depthOffsets.y = loadDepthOffset(pixelCoord + ivec2(1, 0));
-    depthOffsets.z = loadDepthOffset(pixelCoord + ivec2(0, 1));
-    depthOffsets.w = loadDepthOffset(pixelCoord + ivec2(1, 1));
-    return depthOffsets;
+    uvec2 val = imageLoad(depthOffsetsBuffer, pixelCoord).rg;
+    vec2 depthOffsetsX = unpackHalf2x16(val.x);
+    vec2 depthOffsetsY = unpackHalf2x16(val.y);
+    return vec4(depthOffsetsX, depthOffsetsY);
 }
 
 Plane quadMapDataToPlane(in QuadMapData quadMapData) {
@@ -335,10 +325,9 @@ vec4 findDepthOffsets(in Quad quadView, in Plane proxyPlane) {
 }
 
 void storeDepthOffsets(in ivec2 pixelCoord, in vec4 depthOffsets) {
-    storeInDepthOffsetsBuffer(pixelCoord + ivec2(0, 0), depthOffsets.x);
-    storeInDepthOffsetsBuffer(pixelCoord + ivec2(1, 0), depthOffsets.y);
-    storeInDepthOffsetsBuffer(pixelCoord + ivec2(0, 1), depthOffsets.z);
-    storeInDepthOffsetsBuffer(pixelCoord + ivec2(1, 1), depthOffsets.w);
+    uint r = packHalf2x16(vec2(depthOffsets.x, depthOffsets.y));
+    uint g = packHalf2x16(vec2(depthOffsets.z, depthOffsets.w));
+    imageStore(depthOffsetsBuffer, pixelCoord, uvec4(r, g, 0, 0));
 }
 
 void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in vec4 depthOffsets, in Plane proxyPlane) {
@@ -449,8 +438,6 @@ void recalcDepthOffsets(
     for (int i = 0; i < size; i++) {
         vec2 rowStart = start + vec2(float(i) * stepSize.x, 0.0);
         for (int j = 0; j < size; j++) {
-            ivec2 depthOffsetPixelCoords = 4 * ivec2(quadMapData.offset) + 2 * ivec2(i, j);
-
             vec2 surfelBaseCoord = rowStart + vec2(0.0, float(j) * stepSize.y);
 
             Quad2D surfelPixelCoords;
@@ -458,6 +445,8 @@ void recalcDepthOffsets(
             surfelPixelCoords.bottomRight = surfelBaseCoord + vec2(stepSize.x, 0.0);
             surfelPixelCoords.topLeft     = surfelBaseCoord + vec2(0.0, stepSize.y);
             surfelPixelCoords.topRight    = surfelBaseCoord + stepSize;
+
+            ivec2 depthOffsetPixelCoords = 2 * ivec2(quadMapData.offset) + ivec2(i, j);
 
             vec4 oldDepthOffsets = loadDepthOffsets(depthOffsetPixelCoords);
             Quad surfel;
@@ -565,5 +554,5 @@ void main() {
         ignoreInputQuadMapData(pixelCoordsTopRight);
     }
 
-    storeInOutputQuadMap(pixelCoord, mergedQuadMapData);
+    storeOutputQuadMap(pixelCoord, mergedQuadMapData);
 }

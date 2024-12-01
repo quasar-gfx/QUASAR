@@ -5,7 +5,7 @@
 
 QuadsGenerator::QuadsGenerator(const glm::uvec2 &remoteWindowSize)
         : remoteWindowSize(remoteWindowSize)
-        , depthBufferSize(4u * remoteWindowSize)
+        , depthBufferSize(2u * remoteWindowSize)
         , maxQuads(remoteWindowSize.x * remoteWindowSize.y * NUM_SUB_QUADS)
         , genQuadMapShader({
             .computeCodePath = "shaders/genQuadMap.comp",
@@ -33,11 +33,11 @@ QuadsGenerator::QuadsGenerator(const glm::uvec2 &remoteWindowSize)
         , depthOffsetsBuffer({
             .width = depthBufferSize.x,
             .height = depthBufferSize.y,
-            .internalFormat = GL_R16F,
-            .format = GL_RED,
-            .type = GL_FLOAT,
-            .wrapS = GL_REPEAT,
-            .wrapT = GL_REPEAT,
+            .internalFormat = GL_RG32UI,
+            .format = GL_RG_INTEGER,
+            .type = GL_UNSIGNED_INT,
+            .wrapS = GL_CLAMP_TO_EDGE,
+            .wrapT = GL_CLAMP_TO_EDGE,
             .minFilter = GL_NEAREST,
             .magFilter = GL_NEAREST
         }) {
@@ -129,7 +129,7 @@ void QuadsGenerator::generateInitialQuadMap(const GeometryBuffer& gBuffer, const
         genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, offsetSizeFlattenedsBuffers[0]);
     }
     genQuadMapShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+                              (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
     genQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
     stats.timeToGenerateQuadsMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
