@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
         static bool showCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
-        static bool showVideoPreview = true;
+        static bool showVideoPreview = false;
 
         ImGui::NewFrame();
 
@@ -295,25 +295,24 @@ int main(int argc, char** argv) {
 
         // render video frame
         videoTexture.bind();
-        pose_id_t poseID = videoTexture.draw();
-        videoTexture.unbind();
+        pose_id_t currPoseID = videoTexture.draw();
 
         atwShader.bind();
         atwShader.setBool("atwEnabled", atwEnabled);
         atwShader.setMat4("projectionInverse", camera.getProjectionMatrixInverse());
         atwShader.setMat4("viewInverse", camera.getViewMatrixInverse());
-        if (poseID != prevPoseID && poseStreamer.getPose(poseID, &currentFramePose, &elapsedTime)) {
+        if (currPoseID != prevPoseID && poseStreamer.getPose(currPoseID, &currentFramePose, &elapsedTime)) {
             atwShader.setMat4("remoteProjection", currentFramePose.mono.proj);
             atwShader.setMat4("remoteView", currentFramePose.mono.view);
 
-            poseStreamer.removePosesLessThan(poseID);
+            poseStreamer.removePosesLessThan(currPoseID);
         }
         atwShader.setTexture("videoTexture", videoTexture, 5);
 
         // render to screen
         renderStats = renderer.drawToScreen(atwShader);
 
-        prevPoseID = poseID;
+        prevPoseID = currPoseID;
     });
 
     // run app loop (blocking)

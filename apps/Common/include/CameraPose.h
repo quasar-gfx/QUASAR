@@ -21,7 +21,7 @@ struct Pose {
             glm::mat4 pad2;
         } mono;
     };
-    int timestamp;
+    unsigned int timestamp;
 
     void setViewMatrix(const glm::mat4 &view) {
         mono.view = view;

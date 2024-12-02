@@ -46,7 +46,7 @@ public:
         if (res != prevPoses.end()) { // found
             *pose = res->second;
             if (elapsedTime) {
-                *elapsedTime = (timeutils::getTimeMicros() - pose->timestamp) / MICROSECONDS_IN_MILLISECOND;
+                *elapsedTime = timeutils::microsToMillis(timeutils::getTimeMicros() - pose->timestamp);
             }
 
             return true;

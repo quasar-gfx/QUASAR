@@ -247,47 +247,48 @@ int main(int argc, char** argv) {
         camera.updateProjectionMatrix();
     });
 
-    pose_id_t poseID = 0;
     app.onRender([&](double now, double dt) {
+        // handle keyboard input
+        auto keys = window->getKeys();
+        if (keys.ESC_PRESSED) {
+            window->close();
+        }
+
         if (pauseState == PauseState::PAUSE_BOTH) {
             return;
         }
 
         // receive pose
-        poseID = poseReceiver.receivePose(false);
+        pose_id_t poseID = poseReceiver.receivePose(false);
+        if (poseID != -1) {
+            // update all animations
+            scene.updateAnimations(dt);
 
-        // update all animations
-        scene.updateAnimations(dt);
+            // offset camera
+            camera.setPosition(camera.getPosition() + initialPosition);
+            camera.updateViewMatrix();
 
-        // offset camera
-        camera.setPosition(camera.getPosition() + initialPosition);
-        camera.updateViewMatrix();
+            // render all objects in scene
+            renderStats = renderer.drawObjects(scene, camera);
 
-        // render all objects in scene
-        renderStats = renderer.drawObjects(scene, camera);
+            // restore camera position
+            camera.setPosition(camera.getPosition() - initialPosition);
+            camera.updateViewMatrix();
 
-        // restore camera position
-        camera.setPosition(camera.getPosition() - initialPosition);
-        camera.updateViewMatrix();
+            renderer.drawToRenderTarget(toneMapShader, videoStreamerColorRT);
+            depthShader.bind();
+            depthShader.setFloat("near", camera.getNear());
+            depthShader.setFloat("far", camera.getFar());
+            renderer.drawToRenderTarget(depthShader, BC4videoStreamerDepthRT);
 
-        renderer.drawToRenderTarget(toneMapShader, videoStreamerColorRT);
-        depthShader.bind();
-        depthShader.setFloat("near", camera.getNear());
-        depthShader.setFloat("far", camera.getFar());
-        renderer.drawToRenderTarget(depthShader, BC4videoStreamerDepthRT);
+            if (pauseState != PauseState::PAUSE_COLOR) videoStreamerColorRT.sendFrame(poseID);
+            if (pauseState != PauseState::PAUSE_DEPTH) BC4videoStreamerDepthRT.sendFrame(poseID);
+        }
 
         // render to screen
         if (config.showWindow) {
             renderer.drawToScreen(toneMapShader);
         }
-
-        // Send compressed depth frame
-        if (poseID != -1) {
-            if (pauseState != PauseState::PAUSE_COLOR) videoStreamerColorRT.sendFrame(poseID);
-            if (pauseState != PauseState::PAUSE_DEPTH) BC4videoStreamerDepthRT.sendFrame(poseID);
-        }
-
-        // std::this_thread::sleep_for(std::chrono::milliseconds(10));
     });
 
     // run app loop (blocking)

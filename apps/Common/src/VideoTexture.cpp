@@ -240,10 +240,10 @@ void VideoTexture::receiveVideo() {
 
             poseID = unpackPoseIDFromFrame(frameRGB);
 
+            FrameData frameData = {poseID, frameRGB, buffer};
             {
                 std::unique_lock<std::mutex> lock(m);
 
-                FrameData frameData = {poseID, frameRGB, buffer};
                 frames.push_back(frameData);
                 if (frames.size() > maxQueueSize) {
                     FrameData frameToFree = frames.front();
@@ -274,35 +274,24 @@ pose_id_t VideoTexture::draw(pose_id_t poseID) {
         return prevPoseID;
     }
 
-    pose_id_t resPoseID = -1;
-    AVFrame* frameRGB = nullptr;
-    if (poseID == -1) {
-        FrameData frameData = frames.back();
-        frameRGB = frameData.frame;
-        resPoseID = frameData.poseID;
-    }
-    else {
+    FrameData& resFrameData = frames.back();
+    if (poseID != -1) { // search for frame with poseID
         for (auto it = frames.begin(); it != frames.end(); it++) {
             FrameData frameData = *it;
             if (frameData.poseID == poseID) {
-                frameRGB = frameData.frame;
-                resPoseID = frameData.poseID;
+                resFrameData = frameData;
                 break;
             }
-        }
-
-        if (frameRGB == nullptr) {
-            return -1;
         }
     }
 
     int stride = internalWidth;
     glPixelStorei(GL_UNPACK_ROW_LENGTH, stride);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, frameRGB->data[0]);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, resFrameData.frame->data[0]);
 
-    prevPoseID = resPoseID;
+    prevPoseID = resFrameData.poseID;
 
-    return resPoseID;
+    return resFrameData.poseID;
 }
 
 pose_id_t VideoTexture::getLatestPoseID() {

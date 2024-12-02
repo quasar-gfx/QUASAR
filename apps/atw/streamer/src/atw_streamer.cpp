@@ -244,50 +244,50 @@ int main(int argc, char** argv) {
 
         // receive pose
         pose_id_t poseID = poseReceiver.receivePose();
-
-        // update all animations
-        scene.updateAnimations(dt);
-
-        // offset camera
-        if (camera->isVR()) {
-            auto* vrCamera = static_cast<VRCamera*>(camera.get());
-            vrCamera->left.setPosition(vrCamera->left.getPosition() + initialPosition);
-            vrCamera->right.setPosition(vrCamera->right.getPosition() + initialPosition);
-            vrCamera->left.updateViewMatrix();
-            vrCamera->right.updateViewMatrix();
-        }
-        else {
-            auto* perspectiveCamera = static_cast<PerspectiveCamera*>(camera.get());
-            perspectiveCamera->setPosition(perspectiveCamera->getPosition() + initialPosition);
-            perspectiveCamera->updateViewMatrix();
-        }
-
-        renderer.drawObjects(scene, *camera);
-
-        // restore camera position
-        if (camera->isVR()) {
-            auto* vrCamera = static_cast<VRCamera*>(camera.get());
-            vrCamera->left.setPosition(vrCamera->left.getPosition() - initialPosition);
-            vrCamera->right.setPosition(vrCamera->right.getPosition() - initialPosition);
-            vrCamera->left.updateViewMatrix();
-            vrCamera->right.updateViewMatrix();
-        }
-        else {
-            auto* perspectiveCamera = static_cast<PerspectiveCamera*>(camera.get());
-            perspectiveCamera->setPosition(perspectiveCamera->getPosition() - initialPosition);
-            perspectiveCamera->updateViewMatrix();
-        }
-
-        // copy rendered result to video render target
-        renderer.drawToRenderTarget(toneMapShader, videoStreamerRT);
-        if (config.showWindow) {
-            renderer.drawToScreen(toneMapShader);
-        }
-
-        // send video frame
         if (poseID != -1) {
+            // update all animations
+            scene.updateAnimations(dt);
+
+            // offset camera
+            if (camera->isVR()) {
+                auto* vrCamera = static_cast<VRCamera*>(camera.get());
+                vrCamera->left.setPosition(vrCamera->left.getPosition() + initialPosition);
+                vrCamera->right.setPosition(vrCamera->right.getPosition() + initialPosition);
+                vrCamera->left.updateViewMatrix();
+                vrCamera->right.updateViewMatrix();
+            }
+            else {
+                auto* perspectiveCamera = static_cast<PerspectiveCamera*>(camera.get());
+                perspectiveCamera->setPosition(perspectiveCamera->getPosition() + initialPosition);
+                perspectiveCamera->updateViewMatrix();
+            }
+
+            renderer.drawObjects(scene, *camera);
+
+            // restore camera position
+            if (camera->isVR()) {
+                auto* vrCamera = static_cast<VRCamera*>(camera.get());
+                vrCamera->left.setPosition(vrCamera->left.getPosition() - initialPosition);
+                vrCamera->right.setPosition(vrCamera->right.getPosition() - initialPosition);
+                vrCamera->left.updateViewMatrix();
+                vrCamera->right.updateViewMatrix();
+            }
+            else {
+                auto* perspectiveCamera = static_cast<PerspectiveCamera*>(camera.get());
+                perspectiveCamera->setPosition(perspectiveCamera->getPosition() - initialPosition);
+                perspectiveCamera->updateViewMatrix();
+            }
+
+            // copy rendered result to video render target
+            renderer.drawToRenderTarget(toneMapShader, videoStreamerRT);
+
+            // send video frame
             currentFramePoseID = poseID;
             videoStreamerRT.sendFrame(poseID);
+        }
+
+        if (config.showWindow) {
+            renderer.drawToScreen(toneMapShader);
         }
     });
 

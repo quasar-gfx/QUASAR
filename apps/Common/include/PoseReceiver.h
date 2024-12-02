@@ -23,7 +23,7 @@ public:
     PoseReceiver(Camera* camera, std::string streamerURL, float poseDropThresMs = 50.0f)
             : camera(camera)
             , streamerURL(streamerURL)
-            , poseDropThresMs(poseDropThresMs)
+            , poseDropThresUs(timeutils::millisToMicros(poseDropThresMs))
             , DataReceiverUDP(streamerURL, sizeof(Pose)) {
         std::cout << "Created PoseReceiver that recvs from URL: " << streamerURL << std::endl;
     }
@@ -39,20 +39,19 @@ public:
         Pose newPose;
         std::memcpy(&newPose, data.data(), sizeof(Pose));
 
-        if (poses.empty() || newPose.timestamp - poses.back().timestamp > timeutils::millisToMicros(poseDropThresMs)) {
-            poses.push_back(newPose);
+        if (newPose.timestamp - currPose.timestamp > poseDropThresUs) {
+            currPose = newPose;
+            currPoseDirty = true;
         }
     }
 
     pose_id_t receivePose(bool setProj = true) {
         std::lock_guard<std::mutex> lock(m);
 
-        if (poses.size() == 0) {
+        if (!currPoseDirty) {
             return -1;
         }
-
-        Pose currPose = poses.back();
-        poses.clear();
+        currPoseDirty = false;
 
         if (camera->isVR()) {
             auto* vrCamera = static_cast<VRCamera*>(camera);
@@ -68,15 +67,17 @@ public:
             }
             perspectiveCamera->setViewMatrix(currPose.mono.view);
         }
+
         return currPose.id;
     }
 
 private:
     Camera* camera;
-    float poseDropThresMs;
+    float poseDropThresUs;
 
     std::mutex m;
-    std::deque<Pose> poses;
+    bool currPoseDirty = false;
+    Pose currPose;
 };
 
 #endif // POSE_RECEIVER_H
