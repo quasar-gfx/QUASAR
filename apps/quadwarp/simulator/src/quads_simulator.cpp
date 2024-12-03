@@ -527,6 +527,9 @@ int main(int argc, char** argv) {
                 remoteCamera.updateViewMatrix();
             }
 
+            // update all animations
+            remoteScene.updateAnimations(dt);
+
             /*
             ============================
             FIRST PASS: Render the scene to a G-Buffer render target
