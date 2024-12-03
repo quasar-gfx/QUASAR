@@ -297,20 +297,23 @@ int main(int argc, char** argv) {
             camera.processKeyboard(keys, dt);
         }
 
+        // update all animations
+        remoteScene.updateAnimations(dt);
+
         if (rerenderInterval > 0 && now - startRenderTime > rerenderInterval / 1000.0) {
             rerender = true;
             startRenderTime = now;
         }
         if (rerender) {
+            double startTime = glfwGetTime();
+
             if (!preventCopyingLocalPose) {
                 remoteCamera.setPosition(camera.getPosition());
                 remoteCamera.setRotationQuat(camera.getRotationQuat());
                 remoteCamera.updateViewMatrix();
             }
-            preventCopyingLocalPose = false;
 
-            double startTime = glfwGetTime();
-
+            // render remoteScene
             renderer.drawObjects(remoteScene, remoteCamera);
 
             // copy rendered result to video render target
@@ -320,6 +323,7 @@ int main(int argc, char** argv) {
             std::cout << "  Rendering Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
             startTime = glfwGetTime();
 
+            preventCopyingLocalPose = false;
             rerender = false;
         }
 

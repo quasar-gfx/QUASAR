@@ -366,11 +366,16 @@ int main(int argc, char** argv) {
             camera.processKeyboard(keys, dt);
         }
 
+        // update all animations
+        remoteScene.updateAnimations(dt);
+
         if (rerenderInterval > 0 && now - startRenderTime > rerenderInterval / 1000.0) {
             rerender = true;
             startRenderTime = now;
         }
         if (rerender) {
+            double startTime = glfwGetTime();
+
             if (!preventCopyingLocalPose) {
                 remoteCamera.setPosition(camera.getPosition());
                 remoteCamera.setRotationQuat(camera.getRotationQuat());
@@ -378,10 +383,7 @@ int main(int argc, char** argv) {
             }
             preventCopyingLocalPose = false;
 
-            std::cout << "======================================================" << std::endl;
-
-            double startTime = glfwGetTime();
-
+            // render remoteScene
             renderer.drawObjects(remoteScene, remoteCamera);
 
             // copy rendered result to video render target
@@ -421,6 +423,7 @@ int main(int argc, char** argv) {
             genMeshFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
                                             GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
+            std::cout << "======================================================" << std::endl;
             std::cout << "  genMesh Compute Shader Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
             startTime = glfwGetTime();
 

@@ -610,11 +610,23 @@ int main(int argc, char** argv) {
             camera.processKeyboard(keys, dt);
         }
 
+        // update all animations
+        remoteScene.updateAnimations(dt);
+
         if (rerenderInterval > 0 && now - startRenderTime > rerenderInterval / 1000.0) {
             rerender = true;
             startRenderTime = now;
         }
         if (rerender) {
+            double startTime = glfwGetTime();
+            double totalRenderTime = 0.0;
+            double totalGenQuadMapTime = 0.0;
+            double totalSimplifyTime = 0.0;
+            double totalFillQuadsTime = 0.0;
+            double totalGetSizeOfProxiesTime = 0.0;
+            double totalCreateMeshTime = 0.0;
+            double totalGenDepthTime = 0.0;
+
             totalProxies = 0;
             totalDepthOffsets = 0;
 
@@ -625,17 +637,6 @@ int main(int argc, char** argv) {
                 }
             }
             preventCopyingLocalPose = false;
-
-            std::cout << "======================================================" << std::endl;
-
-            double startTime = glfwGetTime();
-            double totalRenderTime = 0.0;
-            double totalGenQuadMapTime = 0.0;
-            double totalSimplifyTime = 0.0;
-            double totalFillQuadsTime = 0.0;
-            double totalGetSizeOfProxiesTime = 0.0;
-            double totalCreateMeshTime = 0.0;
-            double totalGenDepthTime = 0.0;
 
             /*
             ============================
@@ -795,7 +796,8 @@ int main(int argc, char** argv) {
                 totalGenDepthTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
             }
 
-            std::cout << "  Renderng Time: " << totalRenderTime << "ms" << std::endl;
+            std::cout << "======================================================" << std::endl;
+            std::cout << "  Rendering Time: " << totalRenderTime << "ms" << std::endl;
             std::cout << "  Gen Quad Map Time: " << totalGenQuadMapTime << "ms" << std::endl;
             std::cout << "  Simplify Time: " << totalSimplifyTime << "ms" << std::endl;
             std::cout << "  Fill Quads Time: " << totalFillQuadsTime << "ms" << std::endl;
@@ -803,6 +805,7 @@ int main(int argc, char** argv) {
             std::cout << "  Create Mesh Time: " << totalCreateMeshTime << "ms" << std::endl;
             std::cout << "  Gen Depth Time: " << totalGenDepthTime << "ms" << std::endl;
 
+            preventCopyingLocalPose = false;
             rerender = false;
             saveProxies = false;
         }

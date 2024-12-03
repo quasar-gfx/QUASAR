@@ -608,6 +608,9 @@ int main(int argc, char** argv) {
             window->close();
         }
 
+        // update all animations
+        remoteScene.updateAnimations(dt);
+
         if (animator.running) {
             animator.update(dt);
             camera.setPosition(animator.getCurrentPosition());
@@ -624,6 +627,15 @@ int main(int argc, char** argv) {
             startRenderTime = now;
         }
         if (rerender) {
+            double startTime = glfwGetTime();
+            double totalRenderTime = 0.0;
+            double totalGenQuadMapTime = 0.0;
+            double totalSimplifyTime = 0.0;
+            double totalFillQuadsTime = 0.0;
+            double totalGetSizeOfProxiesTime = 0.0;
+            double totalCreateMeshTime = 0.0;
+            double totalGenDepthTime = 0.0;
+
             totalProxies = 0;
             totalDepthOffsets = 0;
 
@@ -639,18 +651,6 @@ int main(int argc, char** argv) {
                 }
                 remoteCameras[maxViews-1]->setViewMatrix(centerRemoteCamera->getViewMatrix());
             }
-            preventCopyingLocalPose = false;
-
-            std::cout << "======================================================" << std::endl;
-
-            double startTime = glfwGetTime();
-            double totalRenderTime = 0.0;
-            double totalGenQuadMapTime = 0.0;
-            double totalSimplifyTime = 0.0;
-            double totalFillQuadsTime = 0.0;
-            double totalGetSizeOfProxiesTime = 0.0;
-            double totalCreateMeshTime = 0.0;
-            double totalGenDepthTime = 0.0;
 
             for (int view = 0; view < maxViews; view++) {
                 auto* remoteCamera = remoteCameras[view];
@@ -685,14 +685,12 @@ int main(int argc, char** argv) {
                     remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
                     remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = true;
                     remoteRenderer.pipeline.rasterState.polygonOffsetUnits = 10000.0f;
-                    // remoteRenderer.pipeline.depthState.depthFunc = GL_LESS;
                     remoteRenderer.drawObjects(remoteScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
                     // render remoteScene using stencil buffer as a mask
                     // at values were stencil buffer is 1, remoteScene should render
                     remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask();
                     remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = false;
-                    // remoteRenderer.pipeline.depthState.depthFunc = GL_LESS;
                     remoteRenderer.pipeline.writeMaskState.enableColorWrites();
                     remoteRenderer.drawObjects(remoteScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -794,6 +792,7 @@ int main(int argc, char** argv) {
                 totalGenDepthTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
             }
 
+            std::cout << "======================================================" << std::endl;
             std::cout << "  Rendering Time: " << totalRenderTime << "ms" << std::endl;
             std::cout << "  Gen Quad Map Time: " << totalGenQuadMapTime << "ms" << std::endl;
             std::cout << "  Simplify Time: " << totalSimplifyTime << "ms" << std::endl;
@@ -802,6 +801,7 @@ int main(int argc, char** argv) {
             std::cout << "  Create Mesh Time: " << totalCreateMeshTime << "ms" << std::endl;
             std::cout << "  Gen Depth Time: " << totalGenDepthTime << "ms" << std::endl;
 
+            preventCopyingLocalPose = false;
             rerender = false;
             saveProxies = false;
         }

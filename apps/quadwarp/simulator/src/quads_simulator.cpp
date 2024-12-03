@@ -471,6 +471,9 @@ int main(int argc, char** argv) {
             window->close();
         }
 
+        // update all animations
+        remoteScene.updateAnimations(dt);
+
         if (animator.running) {
             animator.update(dt);
             localCamera.setPosition(animator.getCurrentPosition());
