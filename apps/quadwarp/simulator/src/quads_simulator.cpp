@@ -532,9 +532,6 @@ int main(int argc, char** argv) {
                 remoteCamera.updateViewMatrix();
             }
 
-            // update all animations
-            remoteScene.updateAnimations(dt);
-
             /*
             ============================
             FIRST PASS: Render the scene to a G-Buffer render target
@@ -561,6 +558,7 @@ int main(int argc, char** argv) {
                 // at values were stencil buffer is 1, remoteScene should render
                 remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask();
                 remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = false;
+                // remoteRenderer.pipeline.depthState.depthFunc = GL_LESS;
                 remoteRenderer.pipeline.writeMaskState.enableColorWrites();
                 remoteRenderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

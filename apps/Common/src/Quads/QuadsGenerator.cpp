@@ -1,4 +1,4 @@
-#include <QuadsGenerator.h>
+#include <Quads/QuadsGenerator.h>
 #include <Utils/TimeUtils.h>
 
 #define THREADS_PER_LOCALGROUP 16
@@ -7,7 +7,7 @@
 
 QuadsGenerator::QuadsGenerator(const glm::uvec2 &remoteWindowSize)
         : remoteWindowSize(remoteWindowSize)
-        , depthBufferSize(2u * remoteWindowSize)
+        , depthBufferSize(2u * remoteWindowSize) // 4 offsets per pixel
         , maxQuads(remoteWindowSize.x * remoteWindowSize.y)
         , genQuadMapShader({
             .computeCodePath = "shaders/genQuadMap.comp",
@@ -28,18 +28,8 @@ QuadsGenerator::QuadsGenerator(const glm::uvec2 &remoteWindowSize)
             }
         })
         , sizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, 1, nullptr)
-        , outputQuadBuffers(maxQuads)
-        , depthOffsetsBuffer({
-            .width = depthBufferSize.x,
-            .height = depthBufferSize.y,
-            .internalFormat = GL_RGBA16F,
-            .format = GL_RGBA,
-            .type = GL_HALF_FLOAT,
-            .wrapS = GL_CLAMP_TO_EDGE,
-            .wrapT = GL_CLAMP_TO_EDGE,
-            .minFilter = GL_NEAREST,
-            .magFilter = GL_NEAREST
-        }) {
+        , depthOffsets(depthBufferSize)
+        , outputQuadBuffers(maxQuads) {
     // make sure maxProxySize is a power of 2
     glm::uvec2 maxProxySize = remoteWindowSize;
     maxProxySize.x = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize.x))));
@@ -63,9 +53,9 @@ QuadsGenerator::QuadsGenerator(const glm::uvec2 &remoteWindowSize)
     // set stuff that won't change
     genQuadMapShader.bind();
     genQuadMapShader.setVec2("remoteWindowSize", remoteWindowSize);
-    genQuadMapShader.setVec2("depthBufferSize", depthBufferSize);
+    genQuadMapShader.setVec2("depthBufferSize", depthOffsets.size);
     genQuadMapShader.setVec2("quadMapSize", quadMapSizes[0]);
-    genQuadMapShader.setImageTexture(0, depthOffsetsBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsetsBuffer.internalFormat);
+    genQuadMapShader.setImageTexture(0, depthOffsets.buffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsets.buffer.internalFormat);
 
     simplifyQuadMapShader.bind();
     simplifyQuadMapShader.setVec2("remoteWindowSize", remoteWindowSize);
@@ -142,14 +132,14 @@ void QuadsGenerator::simplifyQuadMaps(const PerspectiveCamera &remoteCamera) {
         simplifyQuadMapShader.setFloat("far", remoteCamera.getFar());
     }
     {
-        simplifyQuadMapShader.setVec2("depthBufferSize", depthBufferSize);
+        simplifyQuadMapShader.setVec2("depthBufferSize", depthOffsets.size);
     }
     {
         simplifyQuadMapShader.setFloat("flatThreshold", flatThreshold * 0.01f);
         simplifyQuadMapShader.setFloat("proxySimilarityThreshold", proxySimilarityThreshold);
     }
     {
-        simplifyQuadMapShader.setImageTexture(0, depthOffsetsBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsetsBuffer.internalFormat);
+        simplifyQuadMapShader.setImageTexture(0, depthOffsets.buffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsets.buffer.internalFormat);
     }
     for (int i = 1; i < numQuadMaps; i++) {
         auto& prevQuadMapSize = quadMapSizes[i-1];
@@ -230,10 +220,14 @@ QuadsGenerator::BufferSizes QuadsGenerator::createProxiesFromGBuffer(const Geome
 }
 
 #ifdef GL_CORE
-unsigned int QuadsGenerator::saveProxiesToFile(const std::string &filename) {
+unsigned int QuadsGenerator::saveToFile(const std::string &filename) {
     auto bufferSizes = getBufferSizes();
     unsigned int numProxies = bufferSizes.numProxies;
     outputQuadBuffers.resize(numProxies);
-    return outputQuadBuffers.saveProxiesToFile(filename);
+    return outputQuadBuffers.saveToFile(filename);
+}
+
+unsigned int QuadsGenerator::saveDepthOffsetsToFile(const std::string &filename) {
+    return depthOffsets.saveToFile(filename);
 }
 #endif

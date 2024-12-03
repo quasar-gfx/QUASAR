@@ -479,18 +479,17 @@ void main() {
             atomicExchange(atlasOffsetX, 0u);
             atomicExchange(atlasOffsetY, 0u);
         }
-        // else {
-        //     uint oldAtlasOffsetX = atomicAdd(atlasOffsetX, uint(remoteWindowSize.x));
-        //     if (oldAtlasOffsetX + uint(remoteWindowSize.x) >= uint(atlasSize.x)) {
-        //         atomicExchange(atlasOffsetX, 0u);
-        //         atomicAdd(atlasOffsetY, uint(remoteWindowSize.y));
-        //     }
-        // }
+        else {
+            uint oldAtlasOffsetX = atomicAdd(atlasOffsetX, uint(remoteWindowSize.x));
+            if (oldAtlasOffsetX + uint(remoteWindowSize.x) >= uint(atlasSize.x)) {
+                atomicExchange(atlasOffsetX, 0u);
+                atomicAdd(atlasOffsetY, uint(remoteWindowSize.y));
+            }
+        }
     }
 
     QuadMapData quadMapData = loadQuadMap(quadMapIndex);
     storeSurfelsFromQuadMap(quadMapData);
 
-    meshIndirectCommandBuffer.count = numIndices;
-    memoryBarrier();
+    atomicExchange(meshIndirectCommandBuffer.count, numIndices);
 }
