@@ -121,6 +121,7 @@ uniform float E;
 uniform float edpDelta;
 #endif
 
+#define MAX_DEPTH 0.9999
 const float PI = 3.1415926535897932384626433832795;
 
 vec3 gridSamplingDisk[20] = vec3[]
@@ -170,6 +171,7 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
 }
 
 vec3 getNormal() {
+#ifdef VIEW_DEPENDENT_LIGHTING
 	vec3 N = normalize(fsIn.Normal);
 	vec3 T = normalize(fsIn.Tangent);
 	vec3 B = normalize(fsIn.BiTangent);
@@ -186,10 +188,13 @@ vec3 getNormal() {
 	mat3 TBN = mat3(T, B, N);
 	vec3 tangentNormal = normalize(texture(material.normalMap, fsIn.TexCoords).xyz * 2.0 - 1.0);
 	return normalize(TBN * tangentNormal);
+#else
+    return normalize(fsIn.Normal);
+#endif
 }
 
 vec3 getIBLContribution(PBRInfo pbrInputs) {
-#ifdef PLATFORM_CORE
+#if defined(PLATFORM_CORE) && defined(VIEW_DEPENDENT_LIGHTING)
     vec3 N = pbrInputs.N;
     vec3 V = pbrInputs.V;
     vec3 R = pbrInputs.R;
@@ -365,7 +370,6 @@ vec3 calcPointLight(PointLight light, PBRInfo pbrInputs) {
 }
 
 #ifdef DO_DEPTH_PEELING
-#define MAX_DEPTH 0.9999
 
 #define EDP_SAMPLES 16
 
@@ -458,7 +462,11 @@ void main() {
 
     // input lighting data
     vec3 N = getNormal();
+#ifdef VIEW_DEPENDENT_LIGHTING
     vec3 V = normalize(camera.position - fsIn.FragPos);
+#else
+    vec3 V = vec3(0.0, -1.0, 0.0); // Default view direction
+#endif
     vec3 R = reflect(-V, N);
 
     // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0

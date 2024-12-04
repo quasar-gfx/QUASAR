@@ -71,7 +71,7 @@ public:
             , magFilter(params.magFilter)
             , alignment(params.alignment)
             , multiSampled(params.multiSampled) {
-        target = !multiSampled ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
+        target = !params.multiSampled ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
         loadFromData(params.data);
 
         if (params.hasBorder) {
