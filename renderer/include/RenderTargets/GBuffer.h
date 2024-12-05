@@ -24,7 +24,8 @@ public:
                 .wrapT = GL_CLAMP_TO_EDGE,
                 .minFilter = GL_LINEAR,
                 .magFilter = GL_LINEAR,
-                .multiSampled = params.multiSampled
+                .multiSampled = params.multiSampled,
+                .numSamples = params.numSamples
             })
             , depthStencilBuffer({
                 .width = width,
@@ -36,7 +37,8 @@ public:
                 .wrapT = GL_CLAMP_TO_EDGE,
                 .minFilter = GL_NEAREST,
                 .magFilter = GL_NEAREST,
-                .multiSampled = params.multiSampled
+                .multiSampled = params.multiSampled,
+                .numSamples = params.numSamples
             })
             , positionBuffer({
                 .width = width,
@@ -48,7 +50,8 @@ public:
                 .wrapT = GL_CLAMP_TO_EDGE,
                 .minFilter = GL_NEAREST,
                 .magFilter = GL_NEAREST ,
-                .multiSampled = params.multiSampled
+                .multiSampled = params.multiSampled,
+                .numSamples = params.numSamples
             })
             , normalsBuffer({
                 .width = width,
@@ -60,7 +63,8 @@ public:
                 .wrapT = GL_CLAMP_TO_EDGE,
                 .minFilter = GL_NEAREST,
                 .magFilter = GL_NEAREST ,
-                .multiSampled = params.multiSampled
+                .multiSampled = params.multiSampled,
+                .numSamples = params.numSamples
             })
             , idBuffer({
                 .width = width,
@@ -72,7 +76,8 @@ public:
                 .wrapT = GL_CLAMP_TO_EDGE,
                 .minFilter = GL_NEAREST,
                 .magFilter = GL_NEAREST,
-                .multiSampled = params.multiSampled
+                .multiSampled = params.multiSampled,
+                .numSamples = params.numSamples
             }) {
 
         framebuffer.bind();
@@ -127,6 +132,10 @@ public:
         glBlitFramebuffer(0, 0, width, height, 0, 0, renderTarget.width, renderTarget.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    void blitToScreen(unsigned int width, unsigned int height) {
+        framebuffer.blitToScreen(width, height);
     }
 #endif
 

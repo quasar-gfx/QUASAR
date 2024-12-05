@@ -80,9 +80,9 @@ int main(int argc, char** argv) {
     config.guiManager = guiManager;
 
     OpenGLApp app(config);
-    DepthPeelingRenderer dpRenderer(config, maxLayers, true);
-    ForwardRenderer remoteRenderer(config);
     ForwardRenderer renderer(config);
+    ForwardRenderer remoteRenderer(config);
+    DepthPeelingRenderer dpRenderer(config, maxLayers, true);
 
     glm::uvec2 windowSize = window->getSize();
 

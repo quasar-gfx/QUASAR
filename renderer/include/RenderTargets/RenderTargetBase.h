@@ -16,6 +16,7 @@ struct RenderTargetCreateParams {
     GLint minFilter = GL_LINEAR;
     GLint magFilter = GL_LINEAR;
     bool multiSampled = false;
+    unsigned int numSamples = 4;
 };
 
 class RenderTargetBase {

@@ -91,8 +91,8 @@ int main(int argc, char** argv) {
     config.guiManager = guiManager;
 
     OpenGLApp app(config);
-    ForwardRenderer remoteRenderer(config);
     ForwardRenderer renderer(config);
+    ForwardRenderer remoteRenderer(config);
 
     glm::uvec2 windowSize = window->getSize();
 

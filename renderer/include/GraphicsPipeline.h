@@ -65,7 +65,7 @@ struct BlendState {
 };
 
 struct MultiSampleState {
-    bool multiSampleEnabled = true;
+    bool multiSampleEnabled = false;
     unsigned int numSamples = 4;
     bool sampleShadingEnabled = false;
     GLfloat minSampleShading = 1.0f;

@@ -1,24 +1,25 @@
 #include <Utils/FileIO.h>
 #include <Texture.h>
 
-void Texture::loadFromData(unsigned char* data) {
+void Texture::loadFromData(const unsigned char* data) {
     glGenTextures(1, &ID);
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
 
     glBindTexture(target, ID);
     if (!multiSampled) {
+        glTexParameteri(target, GL_TEXTURE_WRAP_S, wrapS);
+        glTexParameteri(target, GL_TEXTURE_WRAP_T, wrapT);
+        glTexParameteri(target, GL_TEXTURE_MIN_FILTER, minFilter);
+        glTexParameteri(target, GL_TEXTURE_MAG_FILTER, magFilter);
+
         glTexImage2D(target, 0, internalFormat, width, height, 0, format, type, data);
     }
 #ifdef GL_CORE
     else {
-        glTexImage2DMultisample(target, 4, internalFormat, width, height, GL_TRUE);
+        glTexImage2DMultisample(target, numSamples, internalFormat, width, height, GL_TRUE);
     }
 #endif // gles does not have glTexImage2DMultisample
-    glTexParameteri(target, GL_TEXTURE_WRAP_S, wrapS);
-    glTexParameteri(target, GL_TEXTURE_WRAP_T, wrapT);
-    glTexParameteri(target, GL_TEXTURE_MIN_FILTER, minFilter);
-    glTexParameteri(target, GL_TEXTURE_MAG_FILTER, magFilter);
     if (minFilter == GL_LINEAR_MIPMAP_LINEAR || minFilter == GL_LINEAR_MIPMAP_NEAREST) {
         glGenerateMipmap(target);
     }

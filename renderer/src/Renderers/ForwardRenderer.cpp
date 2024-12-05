@@ -1,7 +1,14 @@
 #include <Renderers/ForwardRenderer.h>
 
 ForwardRenderer::ForwardRenderer(const Config &config)
-        : gBuffer({ .width = config.width, .height = config.height })
+        : multiSampled(config.pipeline.multiSampleState.multiSampleEnabled)
+        , gBuffer({ .width = config.width, .height = config.height, .multiSampled = false })
+        , gBufferMS({
+            .width = config.width,
+            .height = config.height,
+            .multiSampled = true,
+            .numSamples = config.pipeline.multiSampleState.numSamples
+        })
         , OpenGLRenderer(config) {
 }
 
@@ -41,12 +48,24 @@ RenderStats ForwardRenderer::drawObjects(const Scene &scene, const Camera &camer
 void ForwardRenderer::resize(unsigned int width, unsigned int height) {
     OpenGLRenderer::resize(width, height);
     gBuffer.resize(width, height);
+    gBufferMS.resize(width, height);
 }
 
 void ForwardRenderer::beginRendering() {
-    gBuffer.bind();
+    if (!multiSampled) {
+        gBuffer.bind();
+    }
+    else {
+        gBufferMS.bind();
+    }
 }
 
 void ForwardRenderer::endRendering() {
-    gBuffer.unbind();
+    if (!multiSampled) {
+        gBuffer.unbind();
+    }
+    else {
+        gBufferMS.blitToGBuffer(gBuffer);
+        gBufferMS.unbind();
+    }
 }

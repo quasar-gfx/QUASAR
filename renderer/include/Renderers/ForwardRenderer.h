@@ -6,19 +6,22 @@
 
 class ForwardRenderer : public OpenGLRenderer {
 public:
+    bool multiSampled = false;
+
     GeometryBuffer gBuffer;
+    GeometryBuffer gBufferMS;
 
     ForwardRenderer(const Config &config);
     ~ForwardRenderer() = default;
 
-    void setScreenShaderUniforms(const Shader &screenShader) override;
+    virtual void setScreenShaderUniforms(const Shader &screenShader) override;
 
-    void resize(unsigned int width, unsigned int height) override;
+    virtual void resize(unsigned int width, unsigned int height) override;
 
-    void beginRendering() override;
-    void endRendering() override;
+    virtual void beginRendering() override;
+    virtual void endRendering() override;
 
-    RenderStats drawObjects(const Scene &scene, const Camera &camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT) override;
+    virtual RenderStats drawObjects(const Scene &scene, const Camera &camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT) override;
 };
 
 #endif // FORWARD_RENDERER_H

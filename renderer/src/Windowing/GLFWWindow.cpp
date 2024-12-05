@@ -6,8 +6,14 @@ GLFWWindow::GLFWWindow(const Config &config) {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, config.openglMajorVersion);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, config.openglMinorVersion);
-    glfwWindowHint(GLFW_SAMPLES, config.pipeline.multiSampleState.numSamples);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+#ifdef __APPLE__
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
+
+    glfwWindowHint(GLFW_SAMPLES, config.pipeline.multiSampleState.numSamples);
+
     glfwWindowHint(GLFW_VISIBLE, config.showWindow);
 
 #ifdef __APPLE__

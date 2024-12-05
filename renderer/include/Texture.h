@@ -22,6 +22,7 @@ struct TextureDataCreateParams {
     bool gammaCorrected = false;
     GLint alignment = 4;
     bool multiSampled = false;
+    unsigned int numSamples = 4;
     unsigned char* data = nullptr;
 };
 
@@ -35,6 +36,7 @@ struct TextureFileCreateParams {
     bool gammaCorrected = false;
     GLint alignment = 1;
     bool multiSampled = false;
+    unsigned int numSamples = 4;
     std::string path = "";
 };
 
@@ -55,6 +57,7 @@ public:
     GLint alignment = 4;
 
     bool multiSampled = false;
+    unsigned int numSamples = 4;
 
     Texture() {
         target = GL_TEXTURE_2D;
@@ -70,7 +73,8 @@ public:
             , minFilter(params.minFilter)
             , magFilter(params.magFilter)
             , alignment(params.alignment)
-            , multiSampled(params.multiSampled) {
+            , multiSampled(params.multiSampled)
+            , numSamples(params.numSamples) {
         target = !params.multiSampled ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
         loadFromData(params.data);
 
@@ -85,7 +89,8 @@ public:
             , minFilter(params.minFilter)
             , magFilter(params.magFilter)
             , alignment(params.alignment)
-            , multiSampled(params.multiSampled) {
+            , multiSampled(params.multiSampled)
+            , numSamples(params.numSamples) {
         target = !params.multiSampled ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
         loadFromFile(params);
     }
@@ -130,7 +135,7 @@ public:
 protected:
     GLenum target;
 
-    void loadFromData(unsigned char* data);
+    void loadFromData(const unsigned char* data);
     void loadFromFile(const TextureFileCreateParams &params);
 };
 

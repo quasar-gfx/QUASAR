@@ -1,8 +1,9 @@
 #include <Renderers/DepthPeelingRenderer.h>
 
 DepthPeelingRenderer::DepthPeelingRenderer(const Config &config, unsigned int maxLayers, bool edp)
-        : gBuffer({ .width = config.width, .height = config.height })
-        , maxLayers(maxLayers)
+        : maxLayers(maxLayers)
+        , OpenGLRenderer(config)
+        , gBuffer({ .width = config.width, .height = config.height })
         , compositeLayersShader({
             .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
             .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
@@ -12,8 +13,8 @@ DepthPeelingRenderer::DepthPeelingRenderer(const Config &config, unsigned int ma
                 "#define MAX_LAYERS " + std::to_string(maxLayers)
             }
         })
-        , edp(edp)
-        , OpenGLRenderer(config) {
+        , edp(edp) {
+    // enable depth peeling in shaders
     PBRMaterial::extraShaderDefines.push_back("#define DO_DEPTH_PEELING");
     UnlitMaterial::extraShaderDefines.push_back("#define DO_DEPTH_PEELING");
     if (edp) {
@@ -66,9 +67,9 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &ca
     }
 
     for (int i = 0; i < maxLayers; i++) {
-        auto& currentGBuffer = peelingLayers[i];
+        auto& gBuffer = peelingLayers[i];
 
-        currentGBuffer->bind();
+        gBuffer->bind();
         if (clearMask != 0) {
             glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
             glClear(clearMask);
@@ -83,7 +84,7 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &ca
             stats += drawNode(scene, camera, child, glm::mat4(1.0f), true, nullptr, prevDepthMap);
         }
 
-        currentGBuffer->unbind();
+        gBuffer->unbind();
     }
 
     return stats;
@@ -109,19 +110,15 @@ RenderStats DepthPeelingRenderer::drawObjects(const Scene &scene, const Camera &
 RenderStats DepthPeelingRenderer::compositeLayers() {
     RenderStats stats;
 
-    beginRendering();
-
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
     compositeLayersShader.bind();
-
     for (int i = 0; i < maxLayers; i++) {
         compositeLayersShader.setTexture("peelingLayers[" + std::to_string(i) + "]", peelingLayers[i]->colorBuffer, i);
     }
 
+    beginRendering();
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
     stats += outputFsQuad.draw();
-
     endRendering();
 
     return stats;
