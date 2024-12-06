@@ -64,11 +64,20 @@ public:
     void loadFromFile(const std::string &computePath);
     void loadFromData(const char* computeCodeData, const GLint computeCodeSize);
 
-    void dispatch(GLuint numGroupsX, GLuint numGroupsY, GLuint numGroupsZ) const;
-    void memoryBarrier(GLbitfield barriers) const;
+    void dispatch(GLuint numGroupsX, GLuint numGroupsY, GLuint numGroupsZ);
+    void memoryBarrier(GLbitfield barriers);
+
+    void startTiming();
+    void endTiming();
+    double getElapsedTime() const;
 
 private:
     void createAndCompileProgram(const char* computeCodeData, const GLint computeCodeSize);
+
+    mutable GLuint startQueryID = 0;
+    mutable GLuint endQueryID = 0;
+    mutable bool isQueried = false;
+    mutable GLuint64 lastElapsedTime = 0;
 };
 
 #endif // COMPUTE_SHADER_H

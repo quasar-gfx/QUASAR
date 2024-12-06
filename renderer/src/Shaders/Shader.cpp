@@ -1,8 +1,6 @@
 #include <Utils/FileIO.h>
 #include <Shaders/Shader.h>
 
-GLuint ShaderBase::bindedShaderID = 0;
-
 void Shader::loadFromFiles(const std::string vertexPath, const std::string fragmentPath, const std::string geometryPath) {
     std::string vertexCode = FileIO::loadTextFile(vertexPath);
     std::string fragmentCode = FileIO::loadTextFile(fragmentPath);

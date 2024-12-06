@@ -1,5 +1,42 @@
 #include <Utils/FileIO.h>
+#include <Utils/TimeUtils.h>
+
 #include <Shaders/ComputeShader.h>
+
+void ComputeShader::startTiming() {
+    if (!startQueryID) {
+        glGenQueries(1, &startQueryID);
+    }
+    glQueryCounter(startQueryID, GL_TIMESTAMP);
+    isQueried = true;
+}
+
+void ComputeShader::endTiming() {
+    if (!endQueryID) {
+        glGenQueries(1, &endQueryID);
+    }
+    glQueryCounter(endQueryID, GL_TIMESTAMP);
+
+    isQueried = false;
+}
+
+double ComputeShader::getElapsedTime() const {
+    if (isQueried) {
+        return timeutils::nanoToMillis(lastElapsedTime);
+    }
+
+    if (startQueryID && endQueryID) {
+        GLuint64 startTime = 0, endTime = 0;
+
+        glGetQueryObjectui64v(startQueryID, GL_QUERY_RESULT, &startTime);
+        glGetQueryObjectui64v(endQueryID, GL_QUERY_RESULT, &endTime);
+
+        lastElapsedTime = endTime - startTime;
+        isQueried = true;
+    }
+
+    return timeutils::nanoToMillis(lastElapsedTime);
+}
 
 void ComputeShader::loadFromFile(const std::string &computePath) {
     std::string computeCode = FileIO::loadTextFile(computePath);
@@ -26,10 +63,10 @@ void ComputeShader::createAndCompileProgram(const char* computeCodeData, const G
     glDeleteShader(compute);
 }
 
-void ComputeShader::dispatch(GLuint numGroupsX, GLuint numGroupsY, GLuint numGroupsZ) const {
+void ComputeShader::dispatch(GLuint numGroupsX, GLuint numGroupsY, GLuint numGroupsZ) {
     glDispatchCompute(numGroupsX, numGroupsY, numGroupsZ);
 }
 
-void ComputeShader::memoryBarrier(GLbitfield barriers) const {
+void ComputeShader::memoryBarrier(GLbitfield barriers) {
     glMemoryBarrier(barriers);
 }

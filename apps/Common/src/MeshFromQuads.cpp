@@ -87,7 +87,7 @@ void MeshFromQuads::createMeshFromProxies(
         const Texture &colorTexture,
         const Mesh &mesh,
         bool appendGeometry) {
-    double startTime = timeutils::getTimeMicros();
+    createMeshFromQuadsShader.startTiming();
 
     createMeshFromQuadsShader.bind();
     {
@@ -122,5 +122,6 @@ void MeshFromQuads::createMeshFromProxies(
     createMeshFromQuadsShader.dispatch((numProxies + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
     createMeshFromQuadsShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
-    stats.timeToCreateMeshMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+    createMeshFromQuadsShader.endTiming();
+    stats.timeToCreateMeshMs = createMeshFromQuadsShader.getElapsedTime();
 }

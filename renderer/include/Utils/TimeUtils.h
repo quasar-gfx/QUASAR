@@ -6,6 +6,8 @@
 #define MILLISECONDS_IN_SECOND 1e3f
 #define MICROSECONDS_IN_SECOND 1e6f
 #define MICROSECONDS_IN_MILLISECOND 1e3f
+#define NANOSECONDS_IN_SECOND 1e9f
+#define NANOSECONDS_IN_MILLISECOND 1e6f
 
 #define BYTES_IN_MB (1024 * 1024)
 
@@ -33,6 +35,10 @@ inline int getTimeNanos() {
             std::chrono::system_clock::now().time_since_epoch()
     );
     return ns.count();
+}
+
+inline float nanoToMillis(float nanos) {
+    return nanos / NANOSECONDS_IN_MILLISECOND;
 }
 
 inline float microsToMillis(float micros) {

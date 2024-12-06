@@ -657,13 +657,14 @@ int main(int argc, char** argv) {
 
                 auto* currMesh = meshes[view];
                 auto* currMeshDepth = meshDepths[view];
-                startTime = glfwGetTime();
 
                 /*
                 ============================
                 FIRST PASS: Render the scene to a G-Buffer render target
                 ============================
                 */
+                startTime = glfwGetTime();
+
                 // center view
                 if (view == 0) {
                     // render all objects in remoteScene normally
@@ -707,7 +708,6 @@ int main(int argc, char** argv) {
                     remoteRenderer.drawToRenderTarget(screenShaderNormals, renderTargets[view]);
                 }
                 totalRenderTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
-                startTime = glfwGetTime();
 
                 /*
                 ============================
@@ -729,13 +729,14 @@ int main(int argc, char** argv) {
                 totalGenQuadMapTime += quadsGenerator.stats.timeToGenerateQuadsMs;
                 totalSimplifyTime += quadsGenerator.stats.timeToSimplifyQuadsMs;
                 totalFillQuadsTime += quadsGenerator.stats.timeToFillOutputQuadsMs;
-                startTime = glfwGetTime();
 
                 /*
                 ============================
                 FIFTH PASS: Generate mesh from quads
                 ============================
                 */
+                startTime = glfwGetTime();
+
                 // get output quads size (same as number of proxies)
                 auto quadBufferSizes = quadsGenerator.getBufferSizes();
                 unsigned int numProxies = quadBufferSizes.numProxies;
@@ -758,38 +759,42 @@ int main(int argc, char** argv) {
                 );
 
                 totalCreateMeshTime += meshFromQuads.stats.timeToCreateMeshMs;
-                startTime = glfwGetTime();
 
                 /*
                 ============================
                 For debugging: Generate point cloud from depth map
                 ============================
                 */
-                meshFromDepthShader.bind();
-                {
-                    meshFromDepthShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
-                }
-                {
-                    meshFromDepthShader.setVec2("depthMapSize", remoteWindowSize);
-                }
-                {
-                    meshFromDepthShader.setMat4("view", remoteCamera->getViewMatrix());
-                    meshFromDepthShader.setMat4("projection", remoteCamera->getProjectionMatrix());
-                    meshFromDepthShader.setMat4("viewInverse", glm::inverse(remoteCamera->getViewMatrix()));
-                    meshFromDepthShader.setMat4("projectionInverse", glm::inverse(remoteCamera->getProjectionMatrix()));
+                if (showDepth) {
+                    meshFromDepthShader.startTiming();
 
-                    meshFromDepthShader.setFloat("near", remoteCamera->getNear());
-                    meshFromDepthShader.setFloat("far", remoteCamera->getFar());
-                }
-                {
-                    meshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currMeshDepth->vertexBuffer);
-                    meshFromDepthShader.clearBuffer(GL_SHADER_STORAGE_BUFFER, 1);
-                }
-                meshFromDepthShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                             (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
-                meshFromDepthShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+                    meshFromDepthShader.bind();
+                    {
+                        meshFromDepthShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
+                    }
+                    {
+                        meshFromDepthShader.setVec2("depthMapSize", remoteWindowSize);
+                    }
+                    {
+                        meshFromDepthShader.setMat4("view", remoteCamera->getViewMatrix());
+                        meshFromDepthShader.setMat4("projection", remoteCamera->getProjectionMatrix());
+                        meshFromDepthShader.setMat4("viewInverse", glm::inverse(remoteCamera->getViewMatrix()));
+                        meshFromDepthShader.setMat4("projectionInverse", glm::inverse(remoteCamera->getProjectionMatrix()));
 
-                totalGenDepthTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
+                        meshFromDepthShader.setFloat("near", remoteCamera->getNear());
+                        meshFromDepthShader.setFloat("far", remoteCamera->getFar());
+                    }
+                    {
+                        meshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currMeshDepth->vertexBuffer);
+                        meshFromDepthShader.clearBuffer(GL_SHADER_STORAGE_BUFFER, 1);
+                    }
+                    meshFromDepthShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                                 (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+                    meshFromDepthShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+
+                    meshFromDepthShader.endTiming();
+                    totalGenDepthTime += meshFromDepthShader.getElapsedTime();
+                }
             }
 
             std::cout << "======================================================" << std::endl;
@@ -799,7 +804,7 @@ int main(int argc, char** argv) {
             std::cout << "  Fill Quads Time: " << totalFillQuadsTime << "ms" << std::endl;
             std::cout << "  Get Size of Proxies Time: " << totalGetSizeOfProxiesTime << "ms" << std::endl;
             std::cout << "  Create Mesh Time: " << totalCreateMeshTime << "ms" << std::endl;
-            std::cout << "  Gen Depth Time: " << totalGenDepthTime << "ms" << std::endl;
+            if (showDepth) std::cout << "  Gen Depth Time: " << totalGenDepthTime << "ms" << std::endl;
 
             preventCopyingLocalPose = false;
             rerender = false;

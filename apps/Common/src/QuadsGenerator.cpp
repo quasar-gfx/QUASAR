@@ -99,7 +99,7 @@ void QuadsGenerator::generateInitialQuadMap(const GeometryBuffer& gBuffer, const
     SECOND PASS: Generate quads from G-Buffer
     ============================
     */
-    double startTime = timeutils::getTimeMicros();
+    genQuadMapShader.startTiming();
 
     genQuadMapShader.bind();
     {
@@ -132,7 +132,8 @@ void QuadsGenerator::generateInitialQuadMap(const GeometryBuffer& gBuffer, const
                               (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
     genQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-    stats.timeToGenerateQuadsMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+    genQuadMapShader.endTiming();
+    stats.timeToGenerateQuadsMs = genQuadMapShader.getElapsedTime();
 }
 
 void QuadsGenerator::simplifyQuadMaps(const PerspectiveCamera &remoteCamera) {
@@ -141,7 +142,7 @@ void QuadsGenerator::simplifyQuadMaps(const PerspectiveCamera &remoteCamera) {
     THIRD PASS: Simplify quad map
     ============================
     */
-    double startTime = timeutils::getTimeMicros();
+    simplifyQuadMapShader.startTiming();
 
     simplifyQuadMapShader.bind();
     {
@@ -196,7 +197,8 @@ void QuadsGenerator::simplifyQuadMaps(const PerspectiveCamera &remoteCamera) {
     }
     simplifyQuadMapShader.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-    stats.timeToSimplifyQuadsMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+    simplifyQuadMapShader.endTiming();
+    stats.timeToSimplifyQuadsMs = simplifyQuadMapShader.getElapsedTime();
 }
 
 void QuadsGenerator::fillOutputQuads() {
@@ -205,7 +207,7 @@ void QuadsGenerator::fillOutputQuads() {
     FOURTH PASS: Fill output quads buffer
     ============================
     */
-    double startTime = timeutils::getTimeMicros();
+    fillOutputQuadsShader.startTiming();
 
     fillOutputQuadsShader.bind();
     for (int i = 0; i < numQuadMaps; i++) {
@@ -237,7 +239,8 @@ void QuadsGenerator::fillOutputQuads() {
     }
     fillOutputQuadsShader.memoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 
-    stats.timeToFillOutputQuadsMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+    fillOutputQuadsShader.endTiming();
+    stats.timeToFillOutputQuadsMs = fillOutputQuadsShader.getElapsedTime();
 }
 
 void QuadsGenerator::createProxiesFromGBuffer(const GeometryBuffer& gBuffer, const PerspectiveCamera &remoteCamera) {
