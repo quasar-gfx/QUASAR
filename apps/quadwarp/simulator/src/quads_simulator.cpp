@@ -552,16 +552,6 @@ int main(int argc, char** argv) {
             ============================
             */
             quadsGenerator.createProxiesFromGBuffer(remoteRenderer.gBuffer, remoteCamera);
-
-            if (saveProxies) {
-                std::string quadsFileName = dataPath + "quads.bin";
-                unsigned int savedBytes = quadsGenerator.saveProxies(quadsFileName);
-                std::cout << "Saved " << savedBytes << " quads (" << (float)savedBytes / BYTES_IN_MB << " MB)" << std::endl;
-
-                // save color buffer
-                std::string colorFileName = dataPath + "color.png";
-                renderTarget.saveColorAsPNG(colorFileName);
-            }
             totalGenQuadMapTime += quadsGenerator.stats.timeToGenerateQuadsMs;
             totalSimplifyTime += quadsGenerator.stats.timeToSimplifyQuadsMs;
             totalFillQuadsTime += quadsGenerator.stats.timeToFillOutputQuadsMs;
@@ -578,7 +568,19 @@ int main(int argc, char** argv) {
             unsigned int numProxies = quadBufferSizes.numProxies;
 
             totalGetSizeOfProxiesTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
-            startTime = glfwGetTime();
+
+            if (saveProxies) {
+                startTime = glfwGetTime();
+
+                std::string quadsFileName = dataPath + "quads.bin";
+                unsigned int savedBytes = quadsGenerator.saveProxies(quadsFileName);
+                std::cout << "Saved " << savedBytes << " quads (" << (float)savedBytes / BYTES_IN_MB << " MB)" << std::endl;
+                std::cout << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms to save proxies" << std::endl;
+
+                // save color buffer
+                std::string colorFileName = dataPath + "color.png";
+                renderTarget.saveColorAsPNG(colorFileName);
+            }
 
             if (generateIFrame) {
                 meshFromQuads.createMeshFromProxies(

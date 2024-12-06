@@ -64,8 +64,8 @@ public:
     void loadFromFile(const std::string &computePath);
     void loadFromData(const char* computeCodeData, const GLint computeCodeSize);
 
-    void dispatch(GLuint numGroupsX, GLuint numGroupsY, GLuint numGroupsZ);
-    void memoryBarrier(GLbitfield barriers);
+    void dispatch(GLuint numGroupsX, GLuint numGroupsY, GLuint numGroupsZ) const;
+    void memoryBarrier(GLbitfield barriers) const;
 
     void startTiming();
     void endTiming();
@@ -74,9 +74,14 @@ public:
 private:
     void createAndCompileProgram(const char* computeCodeData, const GLint computeCodeSize);
 
+#ifdef GL_CORE
     mutable GLuint startQueryID = 0;
     mutable GLuint endQueryID = 0;
     mutable bool isQueried = false;
+#else
+    double startTime = 0;
+    double endTime = 0;
+#endif
     mutable GLuint64 lastElapsedTime = 0;
 };
 

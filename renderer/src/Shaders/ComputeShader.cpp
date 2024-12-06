@@ -4,23 +4,33 @@
 #include <Shaders/ComputeShader.h>
 
 void ComputeShader::startTiming() {
+#ifdef GL_CORE
     if (!startQueryID) {
         glGenQueries(1, &startQueryID);
     }
     glQueryCounter(startQueryID, GL_TIMESTAMP);
     isQueried = true;
+#else
+    startTime = timeutils::getTimeNanos();
+#endif
 }
 
 void ComputeShader::endTiming() {
+#ifdef GL_CORE
     if (!endQueryID) {
         glGenQueries(1, &endQueryID);
     }
     glQueryCounter(endQueryID, GL_TIMESTAMP);
 
     isQueried = false;
+#else
+    endTime = timeutils::getTimeNanos();
+    lastElapsedTime = endTime - startTime;
+#endif
 }
 
 double ComputeShader::getElapsedTime() const {
+#ifdef GL_CORE
     if (isQueried) {
         return timeutils::nanoToMillis(lastElapsedTime);
     }
@@ -34,6 +44,7 @@ double ComputeShader::getElapsedTime() const {
         lastElapsedTime = endTime - startTime;
         isQueried = true;
     }
+#endif
 
     return timeutils::nanoToMillis(lastElapsedTime);
 }
@@ -63,10 +74,10 @@ void ComputeShader::createAndCompileProgram(const char* computeCodeData, const G
     glDeleteShader(compute);
 }
 
-void ComputeShader::dispatch(GLuint numGroupsX, GLuint numGroupsY, GLuint numGroupsZ) {
+void ComputeShader::dispatch(GLuint numGroupsX, GLuint numGroupsY, GLuint numGroupsZ) const {
     glDispatchCompute(numGroupsX, numGroupsY, numGroupsZ);
 }
 
-void ComputeShader::memoryBarrier(GLbitfield barriers) {
+void ComputeShader::memoryBarrier(GLbitfield barriers) const {
     glMemoryBarrier(barriers);
 }

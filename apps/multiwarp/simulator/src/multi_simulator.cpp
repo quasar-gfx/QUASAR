@@ -715,17 +715,6 @@ int main(int argc, char** argv) {
                 ============================
                 */
                 quadsGenerator.createProxiesFromGBuffer(remoteRenderer.gBuffer, *remoteCamera);
-
-                if (saveProxies) {
-                    std::string quadsFileName = dataPath + "quads" + std::to_string(view) + ".bin";
-                    unsigned int savedBytes = quadsGenerator.saveProxies(quadsFileName);
-                    std::cout << "Saved " << savedBytes << " quads (" << (float)savedBytes / BYTES_IN_MB << " MB)" << std::endl;
-
-                    // save color buffer
-                    std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
-                    renderTargets[view].saveColorAsPNG(colorFileName);
-                }
-
                 totalGenQuadMapTime += quadsGenerator.stats.timeToGenerateQuadsMs;
                 totalSimplifyTime += quadsGenerator.stats.timeToSimplifyQuadsMs;
                 totalFillQuadsTime += quadsGenerator.stats.timeToFillOutputQuadsMs;
@@ -746,7 +735,18 @@ int main(int argc, char** argv) {
                 totalDepthOffsets += numDepthOffsets;
 
                 totalGetSizeOfProxiesTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
-                startTime = glfwGetTime();
+
+                if (saveProxies) {
+                    startTime = glfwGetTime();
+
+                    std::string quadsFileName = dataPath + "quads" + std::to_string(view) + ".bin";
+                    unsigned int savedBytes = quadsGenerator.saveProxies(quadsFileName);
+                    std::cout << "Saved " << savedBytes << " quads (" << (float)savedBytes / BYTES_IN_MB << " MB)" << std::endl;
+
+                    // save color buffer
+                    std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
+                    renderTargets[view].saveColorAsPNG(colorFileName);
+                }
 
                 meshFromQuads.createMeshFromProxies(
                     numProxies, quadsGenerator.depthBufferSize,

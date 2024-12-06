@@ -192,7 +192,7 @@ void QuadsGenerator::simplifyQuadMaps(const PerspectiveCamera &remoteCamera) {
             simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, currOffsetsBuffer);
         }
         simplifyQuadMapShader.dispatch((currQuadMapSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                        (currQuadMapSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+                                       (currQuadMapSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
         simplifyQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
     }
     simplifyQuadMapShader.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -235,7 +235,7 @@ void QuadsGenerator::fillOutputQuads() {
             fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 8, outputOffsetSizeFlattenedsBuffer);
         }
         fillOutputQuadsShader.dispatch((currQuadMapSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                        (currQuadMapSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+                                       (currQuadMapSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
     }
     fillOutputQuadsShader.memoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 
@@ -274,11 +274,11 @@ unsigned int QuadsGenerator::getProxies(char* proxiesData) {
     memcpy(proxiesData + bufferOffset, depths.data(), numProxies * sizeof(float));
     bufferOffset += numProxies * sizeof(float);
 
-    // write uvs
-    std::vector<unsigned int> uvs(numProxies);
+    // write xys
+    std::vector<unsigned int> xys(numProxies);
     outputXYsBuffer.bind();
-    outputXYsBuffer.getSubData(0, numProxies, uvs.data());
-    memcpy(proxiesData + bufferOffset, uvs.data(), numProxies * sizeof(unsigned int));
+    outputXYsBuffer.getSubData(0, numProxies, xys.data());
+    memcpy(proxiesData + bufferOffset, xys.data(), numProxies * sizeof(unsigned int));
     bufferOffset += numProxies * sizeof(unsigned int);
 
     // write offsetSizeFlatteneds
