@@ -9,7 +9,9 @@ public:
     bool multiSampled = false;
 
     GeometryBuffer gBuffer;
+#ifndef __APPLE__
     GeometryBuffer gBufferMS;
+#endif
 
     ForwardRenderer(const Config &config);
     ~ForwardRenderer() = default;

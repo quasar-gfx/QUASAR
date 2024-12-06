@@ -3,12 +3,14 @@
 ForwardRenderer::ForwardRenderer(const Config &config)
         : multiSampled(config.pipeline.multiSampleState.multiSampleEnabled)
         , gBuffer({ .width = config.width, .height = config.height, .multiSampled = false })
+#ifndef __APPLE__
         , gBufferMS({
             .width = config.width,
             .height = config.height,
             .multiSampled = true,
             .numSamples = config.pipeline.multiSampleState.numSamples
         })
+#endif
         , OpenGLRenderer(config) {
 }
 
@@ -48,19 +50,26 @@ RenderStats ForwardRenderer::drawObjects(const Scene &scene, const Camera &camer
 void ForwardRenderer::resize(unsigned int width, unsigned int height) {
     OpenGLRenderer::resize(width, height);
     gBuffer.resize(width, height);
+#ifndef __APPLE__
     gBufferMS.resize(width, height);
+#endif
 }
 
 void ForwardRenderer::beginRendering() {
+#ifndef __APPLE__
     if (!multiSampled) {
         gBuffer.bind();
     }
     else {
         gBufferMS.bind();
     }
+#else
+    gBuffer.bind();
+#endif
 }
 
 void ForwardRenderer::endRendering() {
+#ifndef __APPLE__
     if (!multiSampled) {
         gBuffer.unbind();
     }
@@ -68,4 +77,7 @@ void ForwardRenderer::endRendering() {
         gBufferMS.blitToGBuffer(gBuffer);
         gBufferMS.unbind();
     }
+#else
+    gBuffer.unbind();
+#endif
 }

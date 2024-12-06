@@ -79,7 +79,6 @@ public:
                 .multiSampled = params.multiSampled,
                 .numSamples = params.numSamples
             }) {
-
         framebuffer.bind();
         framebuffer.attachTexture(colorBuffer, GL_COLOR_ATTACHMENT0);
         framebuffer.attachTexture(positionBuffer, GL_COLOR_ATTACHMENT1);
