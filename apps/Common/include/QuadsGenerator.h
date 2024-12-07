@@ -72,6 +72,7 @@ public:
 
 private:
     Buffer<BufferSizes> sizesBuffer;
+    char* proxiesData = nullptr;
 
     std::vector<Buffer<unsigned int>> normalSphericalsBuffers;
     std::vector<Buffer<float>> depthsBuffers;

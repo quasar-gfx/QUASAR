@@ -190,34 +190,6 @@ int main(int argc, char** argv) {
         .fragmentCodeSize = SHADER_BUILTIN_DISPLAYNORMALS_FRAG_len
     });
 
-    ComputeShader genQuadMapShader({
-        .computeCodePath = "shaders/genQuadMap.comp",
-        .defines = {
-            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
-        }
-    });
-
-    ComputeShader simplifyQuadMapShader({
-        .computeCodePath = "shaders/simplifyQuadMap.comp",
-        .defines = {
-            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
-        }
-    });
-
-    ComputeShader fillOutputQuadsShader({
-        .computeCodePath = "shaders/fillOutputQuads.comp",
-        .defines = {
-            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
-        }
-    });
-
-    ComputeShader createMeshFromQuadsShader({
-        .computeCodePath = "shaders/createMeshFromQuads.comp",
-        .defines = {
-            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
-        }
-    });
-
     ComputeShader meshFromDepthShader({
         .computeCodeData = SHADER_COMMON_MESHFROMDEPTH_COMP,
         .computeCodeSize = SHADER_COMMON_MESHFROMDEPTH_COMP_len,
@@ -247,13 +219,9 @@ int main(int argc, char** argv) {
     bool showDepth = false;
     bool showNormals = false;
     bool showWireframe = false;
-    bool doOrientationCorrection = true;
     bool preventCopyingLocalPose = false;
+    bool runAnimations = false;
     bool saveProxies = false;
-    float distanceThreshold = 0.5f;
-    float angleThreshold = 85.0f;
-    float flatThreshold = 1.0f;
-    float proxySimilarityThreshold = 0.25f;
     bool restrictMovementToViewBox = !animationFileIn;
     float viewBoxSize = 0.5f;
     const int intervalValues[] = {0, 25, 50, 100, 200, 500, 1000};
@@ -381,6 +349,7 @@ int main(int argc, char** argv) {
             if (ImGui::Checkbox("Show Normals Instead of Color", &showNormals)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
+                runAnimations = false;
             }
 
             ImGui::Separator();
@@ -390,29 +359,34 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::Checkbox("Correct Normal Orientation", &doOrientationCorrection)) {
+            if (ImGui::Checkbox("Correct Normal Orientation", &quadsGenerator.doOrientationCorrection)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
+                runAnimations = false;
             }
 
-            if (ImGui::SliderFloat("Distance Threshold", &distanceThreshold, 0.0f, 1.0f)) {
+            if (ImGui::SliderFloat("Distance Threshold", &quadsGenerator.distanceThreshold, 0.0f, 1.0f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
+                runAnimations = false;
             }
 
-            if (ImGui::SliderFloat("Angle Threshold", &angleThreshold, 0.0f, 180.0f)) {
+            if (ImGui::SliderFloat("Angle Threshold", &quadsGenerator.angleThreshold, 0.0f, 180.0f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
+                runAnimations = false;
             }
 
-            if (ImGui::SliderFloat("Flat Threshold (x0.01)", &flatThreshold, 0.0f, 10.0f)) {
+            if (ImGui::SliderFloat("Flat Threshold (x0.01)", &quadsGenerator.flatThreshold, 0.0f, 10.0f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
+                runAnimations = false;
             }
 
-            if (ImGui::SliderFloat("Similarity Threshold", &proxySimilarityThreshold, 0.0f, 1.0f)) {
+            if (ImGui::SliderFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.0f, 1.0f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
+                runAnimations = false;
             }
 
             ImGui::Separator();
@@ -420,6 +394,7 @@ int main(int argc, char** argv) {
             if (ImGui::SliderFloat("View Box Size", &viewBoxSize, 0.1f, 5.0f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
+                runAnimations = false;
                 dpRenderer.setViewBoxSize(viewBoxSize);
             }
 
@@ -429,6 +404,7 @@ int main(int argc, char** argv) {
 
             if (ImGui::Button("Rerender", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
                 rerender = true;
+                runAnimations = true;
             }
 
             if (ImGui::Combo("Rerender Interval", &intervalIndex, intervalLabels, IM_ARRAYSIZE(intervalLabels))) {
@@ -542,6 +518,7 @@ int main(int argc, char** argv) {
             if (ImGui::Button("Save Proxies")) {
                 preventCopyingLocalPose = true;
                 rerender = true;
+                runAnimations = false;
                 saveProxies = true;
             }
 
@@ -610,13 +587,16 @@ int main(int argc, char** argv) {
             camera.processKeyboard(keys, dt);
         }
 
-        // update all animations
-        remoteScene.updateAnimations(dt);
-
         if (rerenderInterval > 0 && now - startRenderTime > rerenderInterval / 1000.0) {
             rerender = true;
             startRenderTime = now;
         }
+
+        if (runAnimations) {
+            // update all animations
+            remoteScene.updateAnimations(dt);
+        }
+
         if (rerender) {
             double startTime = glfwGetTime();
             double totalRenderTime = 0.0;

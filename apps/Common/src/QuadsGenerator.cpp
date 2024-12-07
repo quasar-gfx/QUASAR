@@ -83,6 +83,8 @@ void QuadsGenerator::initializeBuffers() {
         quadMapSizes[i] = currQuadMapSize;
         currQuadMapSize = glm::max(currQuadMapSize / 2u, glm::uvec2(1u));
     }
+
+    proxiesData = new char[sizeof(unsigned int) + maxQuads * sizeof(QuadMapDataPacked)];
 }
 
 QuadsGenerator::BufferSizes QuadsGenerator::getBufferSizes() {
@@ -292,15 +294,12 @@ unsigned int QuadsGenerator::getProxies(char* proxiesData) {
 }
 
 unsigned int QuadsGenerator::saveProxies(const std::string &filename) {
-    char* data = new char[sizeof(unsigned int) +
-                            maxQuads * (sizeof(unsigned int) + sizeof(float) + sizeof(glm::vec2) + sizeof(unsigned int))];
-    unsigned int payloadSize = getProxies(data);
+    unsigned int payloadSize = getProxies(proxiesData);
 
     std::ofstream quadsFile(filename, std::ios::binary);
-    quadsFile.write(data, payloadSize);
+    quadsFile.write(proxiesData, payloadSize);
     quadsFile.close();
 
-    delete[] data;
     return payloadSize;
 }
 #endif

@@ -186,6 +186,7 @@ int main(int argc, char** argv) {
     bool showNormals = false;
     bool showWireframe = false;
     bool preventCopyingLocalPose = false;
+    bool runAnimations = false;
     bool restrictMovementToViewBox = !animationFileIn;
     float viewBoxSize = 0.5f;
     const int intervalValues[] = {0, 25, 50, 100, 200, 500, 1000};
@@ -294,6 +295,7 @@ int main(int argc, char** argv) {
             if (ImGui::Checkbox("Show Normals Instead of Color", &showNormals)) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
+                runAnimations = false;
             }
 
             ImGui::Separator();
@@ -306,26 +308,31 @@ int main(int argc, char** argv) {
             if (ImGui::Checkbox("Correct Normal Orientation", &quadsGenerator.doOrientationCorrection)) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
+                runAnimations = false;
             }
 
             if (ImGui::SliderFloat("Distance Threshold", &quadsGenerator.distanceThreshold, 0.0f, 1.0f)) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
+                runAnimations = false;
             }
 
             if (ImGui::SliderFloat("Angle Threshold", &quadsGenerator.angleThreshold, 0.0f, 180.0f)) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
+                runAnimations = false;
             }
 
             if (ImGui::SliderFloat("Flat Threshold (x0.01)", &quadsGenerator.flatThreshold, 0.0f, 10.0f)) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
+                runAnimations = false;
             }
 
             if (ImGui::SliderFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.0f, 1.0f)) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
+                runAnimations = false;
             }
 
             ImGui::Separator();
@@ -333,6 +340,7 @@ int main(int argc, char** argv) {
             if (ImGui::SliderFloat("View Box Size", &viewBoxSize, 0.1f, 5.0f)) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
+                runAnimations = false;
             }
 
             ImGui::Checkbox("Restrict Movement to View Box", &restrictMovementToViewBox);
@@ -343,10 +351,12 @@ int main(int argc, char** argv) {
             float buttonWidth = (windowWidth - ImGui::GetStyle().ItemSpacing.x) / 2.0f;
             if (ImGui::Button("Gen I-Frame", ImVec2(buttonWidth, 0))) {
                 generateIFrame = true;
+                runAnimations = true;
             }
             ImGui::SameLine();
             if (ImGui::Button("Gen P-Frame", ImVec2(buttonWidth, 0))) {
                 generatePFrame = true;
+                runAnimations = true;
             }
 
             if (ImGui::Combo("Rerender Interval", &intervalIndex, intervalLabels, IM_ARRAYSIZE(intervalLabels))) {
@@ -415,6 +425,7 @@ int main(int argc, char** argv) {
             if (ImGui::Button("Save Proxies")) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
+                runAnimations = false;
                 saveProxies = true;
             }
 
@@ -471,9 +482,6 @@ int main(int argc, char** argv) {
             window->close();
         }
 
-        // update all animations
-        remoteScene.updateAnimations(dt);
-
         if (animator.running) {
             animator.update(dt);
             localCamera.setPosition(animator.getCurrentPosition());
@@ -487,8 +495,15 @@ int main(int argc, char** argv) {
 
         if (rerenderInterval > 0 && now - startRenderTime > rerenderInterval / 1000.0) {
             generateIFrame = true;
+            runAnimations = true;
             startRenderTime = now;
         }
+
+        // update all animations
+        if (runAnimations) {
+            remoteScene.updateAnimations(dt);
+        }
+
         if (generateIFrame || generatePFrame) {
             double startTime = glfwGetTime();
             double totalRenderTime = 0.0;
