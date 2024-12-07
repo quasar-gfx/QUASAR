@@ -81,7 +81,7 @@ vec3 unpackSphericalToNormalHalf(uint packedNormal) {
     );
 }
 
-QuadMapData loadQuadMap(ivec2 pixelCoord) {
+QuadMapData loadInputQuadMap(ivec2 pixelCoord) {
     uint index = uint(pixelCoord.y) * uint(quadMapSize.x) + uint(pixelCoord.x);
 
     QuadMapDataPacked quadMapDataPacked;
@@ -131,7 +131,7 @@ void main() {
         return;
     }
 
-    QuadMapData quadMapData = loadQuadMap(quadMapPixelCoords);
+    QuadMapData quadMapData = loadInputQuadMap(quadMapPixelCoords);
     if (quadMapData.size == 0) {
         return;
     }

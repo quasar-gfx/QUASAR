@@ -291,10 +291,10 @@ void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in vec4 depthOff
     quadPtsOnPlane.topRight    = pointPlaneIntersection(surfelNearPlane.topRight,    proxyPlane);
 
     // apply depth offsets to the quad points
-    surfel.bottomLeft  = quadPtsOnPlane.bottomLeft  - depthOffsets.x * normalize(quadPtsOnPlane.bottomLeft);
-    surfel.bottomRight = quadPtsOnPlane.bottomRight - depthOffsets.y * normalize(quadPtsOnPlane.bottomRight);
-    surfel.topLeft     = quadPtsOnPlane.topLeft     - depthOffsets.z * normalize(quadPtsOnPlane.topLeft);
-    surfel.topRight    = quadPtsOnPlane.topRight    - depthOffsets.w * normalize(quadPtsOnPlane.topRight);
+    surfel.bottomLeft  = quadPtsOnPlane.bottomLeft  + depthOffsets.x * normalize(quadPtsOnPlane.bottomLeft);
+    surfel.bottomRight = quadPtsOnPlane.bottomRight + depthOffsets.y * normalize(quadPtsOnPlane.bottomRight);
+    surfel.topLeft     = quadPtsOnPlane.topLeft     + depthOffsets.z * normalize(quadPtsOnPlane.topLeft);
+    surfel.topRight    = quadPtsOnPlane.topRight    + depthOffsets.w * normalize(quadPtsOnPlane.topRight);
 }
 
 void storeSurfel(in Quad quad, in Quad2D uvsSrc, in QuadMapData quadMapData) {
@@ -503,15 +503,14 @@ void main() {
             atomicExchange(atlasOffsetX, 0u);
             atomicExchange(atlasOffsetY, 0u);
         }
-        else {
-            uint oldAtlasOffsetX = atomicAdd(atlasOffsetX, uint(remoteWindowSize.x));
-            if (oldAtlasOffsetX + uint(remoteWindowSize.x) >= uint(atlasSize.x)) {
-                atomicExchange(atlasOffsetX, 0u);
-                atomicAdd(atlasOffsetY, uint(remoteWindowSize.y));
-            }
-        }
+        // else {
+        //     uint oldAtlasOffsetX = atomicAdd(atlasOffsetX, uint(remoteWindowSize.x));
+        //     if (oldAtlasOffsetX + uint(remoteWindowSize.x) >= uint(atlasSize.x)) {
+        //         atomicExchange(atlasOffsetX, 0u);
+        //         atomicAdd(atlasOffsetY, uint(remoteWindowSize.y));
+        //     }
+        // }
     }
-    memoryBarrier();
 
     QuadMapData quadMapData = loadQuadMap(quadMapIndex);
     storeSurfelsFromQuadMap(quadMapData);

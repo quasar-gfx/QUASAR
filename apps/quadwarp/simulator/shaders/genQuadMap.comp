@@ -109,20 +109,20 @@ layout(std430, binding = 0) writeonly buffer QuadBufferSizes {
     uint numDepthOffsets;
 };
 
-layout(std430, binding = 1) writeonly buffer normalSphericalsBufferInput {
-    uint normalSphericalsInput[];
+layout(std430, binding = 1) writeonly buffer normalSphericalsBufferOutput {
+    uint normalSphericalsOutput[];
 };
 
-layout(std430, binding = 2) writeonly buffer depthBufferInput {
-    float depthsInput[];
+layout(std430, binding = 2) writeonly buffer depthBufferOutput {
+    float depthsOutput[];
 };
 
-layout(std430, binding = 3) writeonly buffer uvsBufferInput {
-    uint uvsInput[];
+layout(std430, binding = 3) writeonly buffer uvsBufferOutput {
+    uint uvsOutput[];
 };
 
-layout(std430, binding = 4) writeonly buffer offsetsBufferInput {
-    uint offsetSizeFlattenedsInput[];
+layout(std430, binding = 4) writeonly buffer offsetsBufferOutput {
+    uint offsetSizeFlattenedsOutput[];
 };
 
 layout(rgba16f, binding = 0) uniform image2D depthOffsetsBuffer;
@@ -309,16 +309,12 @@ vec3 findQuadPointEdge(
 
 bool quadHasExtremeOrientation(in vec3 centerNormal, in vec3 frustumNormalView) {
     float dotProduct = dot(centerNormal, frustumNormalView);
-    float angle = acos(dotProduct);
-    return angle > angleThreshold;
+    return abs(dotProduct) <= cos(angleThreshold);
 }
 
 vec3 constrainToMaxAngle(in vec3 centerNormal, in vec3 frustumNormalView) {
     float maxCos = cos(angleThreshold);
     float dotProduct = dot(centerNormal, frustumNormalView);
-    if (dotProduct >= maxCos) {
-        return centerNormal;
-    }
 
     // project the centerNormal onto the plane orthogonal to frustumNormalView
     vec3 frustumNormalUnit = normalize(frustumNormalView);
@@ -334,7 +330,7 @@ vec3 constrainToMaxAngle(in vec3 centerNormal, in vec3 frustumNormalView) {
 
 float signedDistance(vec3 p1, vec3 p2) {
     float dist = distance(p1, p2);
-    return (length(p1) > length(p2)) ? dist : -dist;
+    return (length(p1) > length(p2)) ? -dist : dist;
 }
 
 vec4 findDepthOffsets(in Quad quadView, in Plane proxyPlane) {
@@ -509,10 +505,10 @@ void storeInQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
                                                         (flattenedAndSize & 0xFFu);
 
     uint index = uint(pixelCoord.y) * uint(quadMapSize.x) + uint(pixelCoord.x);
-    normalSphericalsInput[index] = quadMapDataPacked.normalSpherical;
-    depthsInput[index] = quadMapDataPacked.depth;
-    uvsInput[index] = quadMapDataPacked.xy;
-    offsetSizeFlattenedsInput[index] = quadMapDataPacked.offsetSizeFlattened;
+    normalSphericalsOutput[index] = quadMapDataPacked.normalSpherical;
+    depthsOutput[index] = quadMapDataPacked.depth;
+    uvsOutput[index] = quadMapDataPacked.xy;
+    offsetSizeFlattenedsOutput[index] = quadMapDataPacked.offsetSizeFlattened;
 }
 
 void storeDepthOffsets(in ivec2 pixelCoord, in vec4 depthOffsets) {
@@ -579,7 +575,7 @@ void storeSurfelsInQuadMap(
                          int(absDepthOffsetsTopRight.z < flatThreshold) +
                          int(absDepthOffsetsTopRight.w < flatThreshold);
 
-    bool flattened = numBelowThreshold > total / 2;
+    bool flattened = numBelowThreshold >= total / 2;
 
     QuadMapData quadMapData;
     quadMapData.flattened = flattened;
@@ -626,10 +622,9 @@ void main() {
 
     // reset buffers on first invocation
     if (pixelCoord == ivec2(0)) {
-        numProxies = 0;
-        numDepthOffsets = 0;
+        atomicExchange(numProxies, 0u);
+        atomicExchange(numDepthOffsets, 0u);
     }
-    memoryBarrier();
 
     // store an empty plane to clear the output quad map
     QuadMapData ignoredQuadMapData;
@@ -695,27 +690,16 @@ void main() {
     pixelNormalsView.topRight    = normalToView(view, sampleNormal(normalMap, ivec2(pixelCenterCoords.topRight)));
 
     // project 2D points to 3D view space
-    MultiQuad2D uvs;
-    uvs.bottomLeft  = pixelCenterCoords.bottomLeft  / remoteWindowSize;
-    uvs.bottom      = pixelCenterCoords.bottom      / remoteWindowSize;
-    uvs.bottomRight = pixelCenterCoords.bottomRight / remoteWindowSize;
-    uvs.left        = pixelCenterCoords.left        / remoteWindowSize;
-    uvs.center      = pixelCenterCoords.center      / remoteWindowSize;
-    uvs.right       = pixelCenterCoords.right       / remoteWindowSize;
-    uvs.topLeft     = pixelCenterCoords.topLeft     / remoteWindowSize;
-    uvs.top         = pixelCenterCoords.top         / remoteWindowSize;
-    uvs.topRight    = pixelCenterCoords.topRight    / remoteWindowSize;
-
     MultiQuad2D pixelCenterNDCs;
-    pixelCenterNDCs.bottomLeft  = uvs.bottomLeft  * 2.0 - 1.0;
-    pixelCenterNDCs.bottom      = uvs.bottom      * 2.0 - 1.0;
-    pixelCenterNDCs.bottomRight = uvs.bottomRight * 2.0 - 1.0;
-    pixelCenterNDCs.left        = uvs.left        * 2.0 - 1.0;
-    pixelCenterNDCs.center      = uvs.center      * 2.0 - 1.0;
-    pixelCenterNDCs.right       = uvs.right       * 2.0 - 1.0;
-    pixelCenterNDCs.topLeft     = uvs.topLeft     * 2.0 - 1.0;
-    pixelCenterNDCs.top         = uvs.top         * 2.0 - 1.0;
-    pixelCenterNDCs.topRight    = uvs.topRight    * 2.0 - 1.0;
+    pixelCenterNDCs.bottomLeft  = (pixelCenterCoords.bottomLeft  / remoteWindowSize) * 2.0 - 1.0;
+    pixelCenterNDCs.bottom      = (pixelCenterCoords.bottom      / remoteWindowSize) * 2.0 - 1.0;
+    pixelCenterNDCs.bottomRight = (pixelCenterCoords.bottomRight / remoteWindowSize) * 2.0 - 1.0;
+    pixelCenterNDCs.left        = (pixelCenterCoords.left        / remoteWindowSize) * 2.0 - 1.0;
+    pixelCenterNDCs.center      = (pixelCenterCoords.center      / remoteWindowSize) * 2.0 - 1.0;
+    pixelCenterNDCs.right       = (pixelCenterCoords.right       / remoteWindowSize) * 2.0 - 1.0;
+    pixelCenterNDCs.topLeft     = (pixelCenterCoords.topLeft     / remoteWindowSize) * 2.0 - 1.0;
+    pixelCenterNDCs.top         = (pixelCenterCoords.top         / remoteWindowSize) * 2.0 - 1.0;
+    pixelCenterNDCs.topRight    = (pixelCenterCoords.topRight    / remoteWindowSize) * 2.0 - 1.0;
 
     MultiQuad2D surfelNDCs;
     surfelNDCs.bottomLeft  = (surfelCornerCoords.bottomLeft  / remoteWindowSize) * 2.0 - 1.0;

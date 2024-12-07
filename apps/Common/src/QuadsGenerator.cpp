@@ -3,10 +3,14 @@
 #include <QuadsGenerator.h>
 #include <Utils/TimeUtils.h>
 
+#define THREADS_PER_LOCALGROUP 16
+
+#define MAX_PROXY_SIZE 1024
+
 QuadsGenerator::QuadsGenerator(const glm::uvec2 &remoteWindowSize)
         : remoteWindowSize(remoteWindowSize)
         , depthBufferSize(2u * remoteWindowSize)
-        , maxQuads(remoteWindowSize.x * remoteWindowSize.y * NUM_SUB_QUADS)
+        , maxQuads(remoteWindowSize.x * remoteWindowSize.y)
         , genQuadMapShader({
             .computeCodePath = "shaders/genQuadMap.comp",
             .defines = {
@@ -47,7 +51,7 @@ QuadsGenerator::QuadsGenerator(const glm::uvec2 &remoteWindowSize)
     maxProxySize.y = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize.y))));
     maxProxySize = glm::min(maxProxySize, glm::uvec2(MAX_PROXY_SIZE));
 
-    numQuadMaps = glm::log2(static_cast<float>(glm::min(maxProxySize.x, maxProxySize.y))) + 1;
+    numQuadMaps = glm::log2(static_cast<float>(glm::min(maxProxySize.x, maxProxySize.y)));
 
     initializeBuffers();
 
@@ -80,7 +84,7 @@ void QuadsGenerator::initializeBuffers() {
         xysBuffers.emplace_back(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, currQuadMapSize.x * currQuadMapSize.y, nullptr);
         offsetSizeFlattenedsBuffers.emplace_back(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, currQuadMapSize.x * currQuadMapSize.y, nullptr);
 
-        quadMapSizes[i] = currQuadMapSize;
+        quadMapSizes.emplace_back(currQuadMapSize);
         currQuadMapSize = glm::max(currQuadMapSize / 2u, glm::uvec2(1u));
     }
 
@@ -120,7 +124,7 @@ void QuadsGenerator::generateInitialQuadMap(const GeometryBuffer& gBuffer, const
         genQuadMapShader.setBool("doOrientationCorrection", doOrientationCorrection);
         genQuadMapShader.setFloat("distanceThreshold", distanceThreshold);
         genQuadMapShader.setFloat("angleThreshold", glm::radians(angleThreshold));
-        genQuadMapShader.setFloat("flatThreshold", flatThreshold * 1e-2f);
+        genQuadMapShader.setFloat("flatThreshold", flatThreshold * 0.01f);
     }
     {
         genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, sizesBuffer);
@@ -159,7 +163,7 @@ void QuadsGenerator::simplifyQuadMaps(const PerspectiveCamera &remoteCamera) {
         simplifyQuadMapShader.setVec2("depthBufferSize", depthBufferSize);
     }
     {
-        simplifyQuadMapShader.setFloat("flatThreshold", flatThreshold * 1e-2f);
+        simplifyQuadMapShader.setFloat("flatThreshold", flatThreshold * 0.01f);
         simplifyQuadMapShader.setFloat("proxySimilarityThreshold", proxySimilarityThreshold);
     }
     {

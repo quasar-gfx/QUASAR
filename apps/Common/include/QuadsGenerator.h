@@ -5,11 +5,6 @@
 #include <Shaders/ComputeShader.h>
 #include <RenderTargets/GBuffer.h>
 
-#define THREADS_PER_LOCALGROUP 16
-
-#define NUM_SUB_QUADS 4
-#define MAX_PROXY_SIZE 1024
-
 struct QuadMapDataPacked {
     // normal converted into spherical coordinates. theta, phi (16 bits each) packed into 32 bits
     unsigned int normalSpherical;
@@ -42,9 +37,9 @@ public:
 
     bool doOrientationCorrection = true;
     float distanceThreshold = 0.5f;
-    float angleThreshold = 85.0f;
-    float flatThreshold = 1.0f;
-    float proxySimilarityThreshold = 0.25f;
+    float angleThreshold = 87.0f;
+    float flatThreshold = 2.0f;
+    float proxySimilarityThreshold = 0.2f;
 
     std::vector<glm::uvec2> quadMapSizes;
 

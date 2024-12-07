@@ -355,7 +355,11 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             ImGui::Checkbox("Show Wireframe", &showWireframe);
-            ImGui::Checkbox("Show Depth Map as Point Cloud", &showDepth);
+            if (ImGui::Checkbox("Show Depth Map as Point Cloud", &showDepth)) {
+                preventCopyingLocalPose = true;
+                rerender = true;
+                runAnimations = false;
+            }
 
             ImGui::Separator();
 

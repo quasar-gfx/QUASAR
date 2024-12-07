@@ -72,11 +72,6 @@ struct Plane {
     vec3 point;
 };
 
-struct PlaneEq {
-    vec3 normal;
-    float constant;
-};
-
 uniform vec2 remoteWindowSize;
 uniform vec2 inputQuadMapSize;
 uniform vec2 outputQuadMapSize;
@@ -185,7 +180,7 @@ vec3 normalToView(mat4 view, vec3 normalWorld) {
 
 float signedDistance(vec3 p1, vec3 p2) {
     float dist = distance(p1, p2);
-    return (length(p1) > length(p2)) ? dist : -dist;
+    return (length(p1) > length(p2)) ? -dist : dist;
 }
 
 float normalizeDepth(float depth) {
@@ -358,53 +353,42 @@ void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in vec4 depthOff
     surfel.topRight    = quadPtsOnPlane.topRight    - depthOffsets.w * normalize(quadPtsOnPlane.topRight);
 }
 
-bool planeEquationsSimilar(in PlaneEq planeEq1, in PlaneEq planeEq2) {
-    vec4 planeEq1Vec = vec4(planeEq1.normal, planeEq1.constant);
-    vec4 planeEq2Vec = vec4(planeEq2.normal, planeEq2.constant);
-    float similarity = distance(planeEq1Vec, planeEq2Vec);
-    return similarity < proxySimilarityThreshold;
-}
-
-PlaneEq planeToPlaneEq(in Plane plane) {
-    PlaneEq planeEq;
-    planeEq.normal = plane.normal;
-    planeEq.constant = -dot(planeEq.normal, plane.point);
+vec4 planeToPlaneEq(in Plane plane) {
+    vec4 planeEq = vec4(plane.normal, -dot(plane.normal, plane.point));
     return planeEq;
 }
 
-Plane planeEqToPlane(in PlaneEq planeEq) {
+Plane planeEqToPlane(in vec4 planeEq) {
     Plane plane;
-    plane.normal = planeEq.normal;
-    if (planeEq.normal.z != 0.0) {
-        float z = -planeEq.constant / planeEq.normal.z;
+    plane.normal = planeEq.xyz;
+    if (planeEq.z != 0.0) {
+        float z = -planeEq.w / planeEq.z;
         plane.point = vec3(0.0, 0.0, z);
     }
-    else if (planeEq.normal.y != 0.0) {
-        float y = -planeEq.constant / planeEq.normal.y;
+    else if (planeEq.y != 0.0) {
+        float y = -planeEq.w / planeEq.y;
         plane.point = vec3(0.0, y, 0.0);
     }
-    else if (planeEq.normal.x != 0.0) {
-        float x = -planeEq.constant / planeEq.normal.x;
+    else if (planeEq.x != 0.0) {
+        float x = -planeEq.w / planeEq.x;
         plane.point = vec3(x, 0.0, 0.0);
     }
     return plane;
 }
 
-Plane averagePlanes(in Plane plane1, in Plane plane2, in Plane plane3, in Plane plane4) {
-    Plane averagePlane;
-    averagePlane.normal = normalize((plane1.normal + plane2.normal + plane3.normal + plane4.normal) / 4.0);
-    averagePlane.point = (plane1.point + plane2.point + plane3.point + plane4.point) / 4.0;
-    return averagePlane;
+bool planeEquationsSimilar(in vec4 planeEq1, in vec4 planeEq2) {
+    float similarity = distance(planeEq1, planeEq2);
+    return similarity < proxySimilarityThreshold;
 }
 
 bool shouldMerge(
     in Plane proxyPlaneBottomLeft, in Plane proxyPlaneBottomRight,
     in Plane proxyPlaneTopLeft, in Plane proxyPlaneTopRight
 ) {
-    PlaneEq proxyPlaneEqBottomLeft  = planeToPlaneEq(proxyPlaneBottomLeft);
-    PlaneEq proxyPlaneEqBottomRight = planeToPlaneEq(proxyPlaneBottomRight);
-    PlaneEq proxyPlaneEqTopLeft     = planeToPlaneEq(proxyPlaneTopLeft);
-    PlaneEq proxyPlaneEqTopRight    = planeToPlaneEq(proxyPlaneTopRight);
+    vec4 proxyPlaneEqBottomLeft  = planeToPlaneEq(proxyPlaneBottomLeft);
+    vec4 proxyPlaneEqBottomRight = planeToPlaneEq(proxyPlaneBottomRight);
+    vec4 proxyPlaneEqTopLeft     = planeToPlaneEq(proxyPlaneTopLeft);
+    vec4 proxyPlaneEqTopRight    = planeToPlaneEq(proxyPlaneTopRight);
 
     // we merge the quad if all the proxy planes are similar
     return planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight) &&
@@ -413,6 +397,13 @@ bool shouldMerge(
            planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopLeft) &&
            planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopRight) &&
            planeEquationsSimilar(proxyPlaneEqTopLeft, proxyPlaneEqTopRight);
+}
+
+Plane averagePlanes(in Plane plane1, in Plane plane2, in Plane plane3, in Plane plane4) {
+    Plane newProxyPlane;
+    newProxyPlane.normal = normalize((plane1.normal + plane2.normal + plane3.normal + plane4.normal) / 4.0);
+    newProxyPlane.point = (plane1.point + plane2.point + plane3.point + plane4.point) / 4.0;
+    return newProxyPlane;
 }
 
 void recalcDepthOffsets(
@@ -495,7 +486,7 @@ void mergeQuadMapData(
         recalcDepthOffsets(newProxyPlane, quadMapDataTopRight, proxyPlaneTopRight, numBelowThreshold, total);
 
         // if more than half the surfels are below the threshold, then the plane is considered flattened
-        flattened = numBelowThreshold > total / 2;
+        flattened = numBelowThreshold >= total / 2;
     }
 
     mergedQuadMapData.flattened = flattened;
