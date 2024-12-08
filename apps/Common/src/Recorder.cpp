@@ -5,6 +5,7 @@
 
 #include <Recorder.h>
 #include <Utils/FileIO.h>
+#include <Utils/TimeUtils.h>
 
 Recorder::~Recorder() {
     if (running) {
@@ -29,8 +30,8 @@ void Recorder::saveScreenshotToFile(const std::string &filename, bool saveAsHDR)
 void Recorder::start() {
     running = true;
 
-    recordingStartTime = std::chrono::steady_clock::now();
-    lastCaptureTime = std::chrono::steady_clock::now();
+    recordingStartTime = timeutils::getTimeMillis();
+    lastCaptureTime = recordingStartTime;
 
     std::ofstream pathFile(outputPath + "camera_path.txt");
     pathFile.close();
@@ -86,11 +87,10 @@ void Recorder::stop() {
     frameQueue = std::queue<FrameData>();
 }
 
-void Recorder::captureFrame(Camera& camera) {
-    auto currentTime = std::chrono::steady_clock::now();
-    auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - recordingStartTime).count();
-    if (currentTime - lastCaptureTime >= frameInterval) {
-
+void Recorder::captureFrame(const Camera &camera) {
+    int64_t currentTime = timeutils::getTimeMillis();
+    int64_t elapsedTime = currentTime - recordingStartTime;
+    if (elapsedTime >= frameInterval) {
         shader.bind();
         shader.setBool("gammaCorrect", true);
         renderer.drawToRenderTarget(shader, renderTargetTemp);
@@ -123,8 +123,6 @@ void Recorder::saveFrames() {
         }
 
         if (outputFormat == OutputFormat::MP4) {
-            std::cout << "Saving frame to MP4" << std::endl;
-            AVFrame* inputFrame = av_frame_alloc();
             inputFrame->format = AV_PIX_FMT_RGBA;
             inputFrame->width = renderTargetTemp.width;
             inputFrame->height = renderTargetTemp.height;
@@ -148,7 +146,6 @@ void Recorder::saveFrames() {
 
             int ret = avcodec_send_frame(codecContext, frame);
             while (ret >= 0) {
-                AVPacket* pkt = av_packet_alloc();
                 pkt->data = nullptr;
                 pkt->size = 0;
 
@@ -166,42 +163,35 @@ void Recorder::saveFrames() {
                 av_interleaved_write_frame(formatContext, pkt);
                 av_packet_unref(pkt);
             }
-            av_frame_free(&inputFrame);
             frameIndex++;
         }
         else {
             size_t currentFrame = frameCount++;
             std::stringstream ss;
-            ss << outputPath << "frame_" << std::setw(6) << std::setfill('0') << currentFrame << "." << (outputFormat == OutputFormat::PNG ? "png" : "jpg");
+            ss << outputPath << "frame_" << std::setw(6) << std::setfill('0') << currentFrame;
             std::string filename = ss.str();
-            std::cout << "Saving frame: " << filename << std::endl;
-            try {
-                FileIO::flipVerticallyOnWrite(true);
-                if (outputFormat == OutputFormat::PNG) {
-                    FileIO::saveAsPNG(filename, renderTargetTemp.width, renderTargetTemp.height, 4, frameData.frame.data());
-                }
-                else {
-                    FileIO::saveAsJPG(filename, renderTargetTemp.width, renderTargetTemp.height, 4, frameData.frame.data());
-                }
 
-                {
-                    std::lock_guard<std::mutex> lock(queueMutex);
-                    std::ofstream pathFile(outputPath + "camera_path.txt", std::ios::app);
-                    pathFile << std::fixed << std::setprecision(4)
-                             << frameData.position.x << " "
-                             << frameData.position.y << " "
-                             << frameData.position.z << " "
-                             << frameData.euler.x << " "
-                             << frameData.euler.y << " "
-                             << frameData.euler.z << " "
-                             << frameData.pts << std::endl;
-                    pathFile.close();
-                }
-
-                std::cout << "Saved frame: " << filename << std::endl;
-            } catch (const std::exception& e) {
-                std::cerr << "Error saving frame: " << filename << " - " << e.what() << std::endl;
+            FileIO::flipVerticallyOnWrite(true);
+            if (outputFormat == OutputFormat::PNG) {
+                FileIO::saveAsPNG(filename + ".png", renderTargetTemp.width, renderTargetTemp.height, 4, frameData.frame.data());
             }
+            else {
+                FileIO::saveAsJPG(filename + ".jpg", renderTargetTemp.width, renderTargetTemp.height, 4, frameData.frame.data());
+            }
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(queueMutex);
+            std::ofstream pathFile(outputPath + "camera_path.txt", std::ios::app);
+            pathFile << std::fixed << std::setprecision(4)
+                        << frameData.position.x << " "
+                        << frameData.position.y << " "
+                        << frameData.position.z << " "
+                        << frameData.euler.x << " "
+                        << frameData.euler.y << " "
+                        << frameData.euler.z << " "
+                        << frameData.pts << std::endl;
+            pathFile.close();
         }
     }
 }
@@ -219,8 +209,8 @@ void Recorder::setOutputPath(const std::string& path) {
 }
 
 void Recorder::setTargetFrameRate(int targetFrameRate) {
-    frameInterval = std::chrono::duration<double>(1.0 / targetFrameRate);
-    lastCaptureTime = std::chrono::steady_clock::now();
+    frameInterval = 1.0 / targetFrameRate;
+    lastCaptureTime = timeutils::getTimeMillis();
     frameIndex = 0;
 }
 
@@ -233,7 +223,7 @@ void Recorder::initializeFFmpeg() {
     codecContext->width = renderTargetTemp.width;
     codecContext->height = renderTargetTemp.height;
 
-    int targetFrameRate = static_cast<int>(1.0 / frameInterval.count());
+    int targetFrameRate = static_cast<int>(1.0 / frameInterval);
     codecContext->time_base = (AVRational){1, 1000};
     codecContext->framerate = (AVRational){targetFrameRate, 1};
 
@@ -241,19 +231,18 @@ void Recorder::initializeFFmpeg() {
     codecContext->max_b_frames = 1;
     codecContext->pix_fmt = AV_PIX_FMT_YUV420P;
 
-    AVDictionary* opt = nullptr;
-    av_dict_set(&opt, "preset", "medium", 0);
-    av_dict_set(&opt, "crf", "23", 0);
-    av_dict_set(&opt, "threads", "auto", 0);
-    av_dict_set(&opt, "refs", "3", 0);
-    av_dict_set(&opt, "me_range", "16", 0);
+    AVDictionary* options = nullptr;
+    av_dict_set(&options, "preset", "medium", 0);
+    av_dict_set(&options, "crf", "23", 0);
+    av_dict_set(&options, "threads", "auto", 0);
+    av_dict_set(&options, "refs", "3", 0);
+    av_dict_set(&options, "me_range", "16", 0);
 
     if (formatContext->oformat->flags & AVFMT_GLOBALHEADER) {
         codecContext->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
     }
 
-    int ret = avcodec_open2(codecContext, codec, &opt);
-    av_dict_free(&opt);
+    int ret = avcodec_open2(codecContext, codec, &options);
     if (ret < 0) {
         throw std::runtime_error("Failed to open codec");
     }

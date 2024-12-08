@@ -66,7 +66,7 @@ public:
 
     void start();
     void stop();
-    void captureFrame(Camera& camera);
+    void captureFrame(const Camera &camera);
 
 private:
     static const int NUM_SAVE_THREADS = 16;
@@ -85,9 +85,9 @@ private:
     std::mutex queueMutex;
     std::condition_variable queueCV;
 
-    std::chrono::duration<double> frameInterval;
-    std::chrono::steady_clock::time_point recordingStartTime;
-    std::chrono::steady_clock::time_point lastCaptureTime;
+    int64_t frameInterval;
+    int64_t recordingStartTime;
+    int64_t lastCaptureTime;
 
     AVFormatContext* formatContext = nullptr;
     AVCodecContext* codecContext = nullptr;
@@ -95,6 +95,9 @@ private:
     SwsContext* swsContext = nullptr;
     AVFrame* frame = nullptr;
     int frameIndex = 0;
+
+    AVFrame* inputFrame = av_frame_alloc();
+    AVPacket* pkt = av_packet_alloc();
 
     void initializeFFmpeg();
     void finalizeFFmpeg();

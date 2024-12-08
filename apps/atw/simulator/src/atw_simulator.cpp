@@ -378,10 +378,10 @@ int main(int argc, char** argv) {
                     std::stringstream ss(line);
                     float px, py, pz;
                     float rx, ry, rz;
-                    int64_t timestamp;
-                    ss >> px >> py >> pz >> rx >> ry >> rz >> timestamp;
+                    int64_t timestampMs;
+                    ss >> px >> py >> pz >> rx >> ry >> rz >> timestampMs;
                     camera.setPosition(glm::vec3(px, py, pz));
-                    camera.setRotationEuler(glm::vec3(glm::radians(rx), glm::radians(ry), glm::radians(rz)));
+                    camera.setRotationEuler(glm::radians(glm::vec3(rx, ry, rz)));
                     camera.updateViewMatrix();
 
                     recorder.captureFrame(camera);

@@ -44,10 +44,10 @@ public:
     void setName(const std::string &name);
     void addChildNode(Node* node);
 
-    void setPosition(glm::vec3 position);
-    void setRotationQuat(glm::quat quat);
-    void setRotationEuler(glm::vec3 euler, bool radians = false);
-    void setScale(glm::vec3 scale);
+    void setPosition(const glm::vec3 &position);
+    void setRotationQuat(const glm::quat &quat);
+    void setRotationEuler(const glm::vec3 &euler, bool radians = false);
+    void setScale(const glm::vec3 &scale);
 
     virtual glm::vec3 getPosition() const;
     glm::quat getRotationQuat() const;

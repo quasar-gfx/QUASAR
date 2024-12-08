@@ -246,9 +246,13 @@ int main(int argc, char** argv) {
         }
 
         if (showRecordWindow) {
-            ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(300, 300), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 300), ImGuiCond_FirstUseEver);
             ImGui::Begin("Record", &showRecordWindow);
+
+            if (recording) {
+                ImGui::TextColored(ImVec4(1,0,0,1), "Recording in progress...");
+            }
 
             ImGui::Text("Output Directory:");
             ImGui::InputText("##output directory", recordingDirBase, IM_ARRAYSIZE(recordingDirBase));
@@ -416,10 +420,10 @@ int main(int argc, char** argv) {
                     std::stringstream ss(line);
                     float px, py, pz;
                     float rx, ry, rz;
-                    int64_t timestamp;
-                    ss >> px >> py >> pz >> rx >> ry >> rz >> timestamp;
+                    int64_t timestampMs;
+                    ss >> px >> py >> pz >> rx >> ry >> rz >> timestampMs;
                     camera.setPosition(glm::vec3(px, py, pz));
-                    camera.setRotationEuler(glm::vec3(glm::radians(rx), glm::radians(ry), glm::radians(rz)));
+                    camera.setRotationEuler(glm::radians(glm::vec3(rx, ry, rz)));
                     camera.updateViewMatrix();
 
                     recorder.captureFrame(camera);

@@ -126,7 +126,7 @@ public:
 
     void readPixels(unsigned char* data, bool readAsFloat = false);
     void saveAsPNG(const std::string &filename);
-    void saveAsJPG(const std::string &filename, int quality = 100);
+    void saveAsJPG(const std::string &filename, int quality = 90);
     void saveAsHDR(const std::string &filename);
 #ifdef GL_CORE
     void saveDepthToFile(const std::string &filename);

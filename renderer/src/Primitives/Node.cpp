@@ -57,22 +57,23 @@ void Node::addChildNode(Node* node) {
     node->parent = this;
 }
 
-void Node::setPosition(glm::vec3 position) {
+void Node::setPosition(const glm::vec3 &position) {
     this->position = position;
 }
 
-void Node::setRotationQuat(glm::quat quat) {
+void Node::setRotationQuat(const glm::quat &quat) {
     this->rotationQuat = quat;
 }
 
-void Node::setRotationEuler(glm::vec3 euler, bool radians) {
+void Node::setRotationEuler(const glm::vec3 &euler, bool radians) {
+    glm::vec3 eulerCopy = euler;
     if (!radians) {
-        euler = glm::radians(euler);
+        eulerCopy = glm::radians(eulerCopy);
     }
-    this->rotationQuat = glm::quat(euler);
+    this->rotationQuat = glm::quat(eulerCopy);
 }
 
-void Node::setScale(glm::vec3 scale) {
+void Node::setScale(const glm::vec3 &scale) {
     this->scale = scale;
 }
 

@@ -71,6 +71,12 @@ public:
         unbind();
     }
 
+    void saveColorAsJPG(const std::string &path, int quality = 90) {
+        bind();
+        colorBuffer.saveAsJPG(path, quality);
+        unbind();
+    }
+
     void saveColorAsHDR(const std::string &path) {
         bind();
         colorBuffer.saveAsHDR(path);

@@ -215,15 +215,15 @@ int main(int argc, char** argv) {
     }
 
     bool rerender = true;
-    int rerenderInterval = 0;
+    bool saveProxies = false;
     bool showDepth = false;
     bool showNormals = false;
     bool showWireframe = false;
     bool preventCopyingLocalPose = false;
     bool runAnimations = false;
-    bool saveProxies = false;
     bool restrictMovementToViewBox = !animationFileIn;
     float viewBoxSize = 0.5f;
+    int rerenderInterval = 0;
     const int intervalValues[] = {0, 25, 50, 100, 200, 500, 1000};
     const char* intervalLabels[] = {"0ms", "25ms", "50ms", "100ms", "200ms", "500ms", "1000ms"};
     bool* showLayers = new bool[maxViews];
@@ -244,7 +244,7 @@ int main(int argc, char** argv) {
         static bool showMeshCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
-        static int intervalIndex = 0;
+        static int intervalIndex = saveImage ? 0 : 3;
 
         static bool showEnvMap = true;
 
@@ -411,9 +411,8 @@ int main(int argc, char** argv) {
                 runAnimations = true;
             }
 
-            if (ImGui::Combo("Rerender Interval", &intervalIndex, intervalLabels, IM_ARRAYSIZE(intervalLabels))) {
-                rerenderInterval = intervalValues[intervalIndex];
-            }
+            ImGui::Combo("Rerender Interval", &intervalIndex, intervalLabels, IM_ARRAYSIZE(intervalLabels));
+            rerenderInterval = intervalValues[intervalIndex];
 
             ImGui::Separator();
 
@@ -863,10 +862,10 @@ int main(int argc, char** argv) {
                     std::stringstream ss(line);
                     float px, py, pz;
                     float rx, ry, rz;
-                    int64_t timestamp;
-                    ss >> px >> py >> pz >> rx >> ry >> rz >> timestamp;
+                    int64_t timestampMs;
+                    ss >> px >> py >> pz >> rx >> ry >> rz >> timestampMs;
                     camera.setPosition(glm::vec3(px, py, pz));
-                    camera.setRotationEuler(glm::vec3(glm::radians(rx), glm::radians(ry), glm::radians(rz)));
+                    camera.setRotationEuler(glm::radians(glm::vec3(rx, ry, rz)));
                     camera.updateViewMatrix();
 
                     recorder.captureFrame(camera);
