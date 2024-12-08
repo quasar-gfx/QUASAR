@@ -135,7 +135,7 @@ int main(int argc, char** argv) {
         static bool showCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
-        static int intervalIndex = 0;
+        static int intervalIndex = !animationFileIn ? 0 : 3;
 
         ImGui::NewFrame();
 
@@ -208,9 +208,8 @@ int main(int argc, char** argv) {
                 rerender = true;
             }
 
-            if (ImGui::Combo("Rerender Interval", &intervalIndex, intervalLabels, IM_ARRAYSIZE(intervalLabels))) {
-                rerenderInterval = intervalValues[intervalIndex];
-            }
+            ImGui::Combo("Rerender Interval", &intervalIndex, intervalLabels, IM_ARRAYSIZE(intervalLabels));
+            rerenderInterval = intervalValues[intervalIndex];
 
             ImGui::End();
         }

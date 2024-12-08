@@ -244,7 +244,7 @@ int main(int argc, char** argv) {
         static bool showMeshCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
-        static int intervalIndex = !saveImage ? 0 : 3;
+        static int intervalIndex = !animationFileIn ? 0 : 3;
 
         static bool showEnvMap = true;
 
