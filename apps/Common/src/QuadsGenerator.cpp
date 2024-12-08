@@ -55,6 +55,8 @@ QuadsGenerator::QuadsGenerator(const glm::uvec2 &remoteWindowSize)
 
     initializeBuffers();
 
+    proxiesData = new char[sizeof(unsigned int) + maxQuads * sizeof(QuadMapDataPacked)];
+
     // set stuff that won't change
     genQuadMapShader.bind();
     genQuadMapShader.setVec2("remoteWindowSize", remoteWindowSize);
@@ -67,6 +69,27 @@ QuadsGenerator::QuadsGenerator(const glm::uvec2 &remoteWindowSize)
 
     fillOutputQuadsShader.bind();
     fillOutputQuadsShader.setVec2("remoteWindowSize", remoteWindowSize);
+
+#if !defined(__APPLE__) && !defined(__ANDROID__)
+    cudautils::checkCudaDevice();
+    CHECK_CUDA_ERROR(cudaGraphicsGLRegisterBuffer(&cudaResourceNormalSphericals, outputNormalSphericalsBuffer, cudaGraphicsRegisterFlagsNone));
+    CHECK_CUDA_ERROR(cudaGraphicsGLRegisterBuffer(&cudaResourceDepths, outputDepthsBuffer, cudaGraphicsRegisterFlagsNone));
+    CHECK_CUDA_ERROR(cudaGraphicsGLRegisterBuffer(&cudaResourceXys, outputXYsBuffer, cudaGraphicsRegisterFlagsNone));
+    CHECK_CUDA_ERROR(cudaGraphicsGLRegisterBuffer(&cudaResourceOffsetSizeFlatteneds, outputOffsetSizeFlattenedsBuffer, cudaGraphicsRegisterFlagsNone));
+#endif
+}
+
+QuadsGenerator::~QuadsGenerator() {
+    delete[] proxiesData;
+
+#if !defined(__APPLE__) && !defined(__ANDROID__)
+    cudaDeviceSynchronize();
+
+    CHECK_CUDA_ERROR(cudaGraphicsUnregisterResource(cudaResourceNormalSphericals));
+    CHECK_CUDA_ERROR(cudaGraphicsUnregisterResource(cudaResourceDepths));
+    CHECK_CUDA_ERROR(cudaGraphicsUnregisterResource(cudaResourceXys));
+    CHECK_CUDA_ERROR(cudaGraphicsUnregisterResource(cudaResourceOffsetSizeFlatteneds));
+#endif
 }
 
 void QuadsGenerator::initializeBuffers() {
@@ -87,8 +110,6 @@ void QuadsGenerator::initializeBuffers() {
         quadMapSizes.emplace_back(currQuadMapSize);
         currQuadMapSize = glm::max(currQuadMapSize / 2u, glm::uvec2(1u));
     }
-
-    proxiesData = new char[sizeof(unsigned int) + maxQuads * sizeof(QuadMapDataPacked)];
 }
 
 QuadsGenerator::BufferSizes QuadsGenerator::getBufferSizes() {
@@ -262,37 +283,62 @@ unsigned int QuadsGenerator::getProxies(char* proxiesData) {
     unsigned int bufferOffset = 0;
     unsigned int numProxies = bufferSizes.numProxies;
 
+#if !defined(__APPLE__) && !defined(__ANDROID__)
+    void* cudaPtr;
+    size_t size;
+
+    // write number of proxies
+    memcpy(proxiesData, &numProxies, sizeof(unsigned int));
+    bufferOffset += sizeof(unsigned int);
+
+    CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResourceNormalSphericals));
+    CHECK_CUDA_ERROR(cudaGraphicsResourceGetMappedPointer(&cudaPtr, &size, cudaResourceNormalSphericals));
+    CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResourceNormalSphericals));
+    CHECK_CUDA_ERROR(cudaMemcpy(proxiesData + bufferOffset, cudaPtr, numProxies * sizeof(unsigned int), cudaMemcpyDeviceToHost));
+    bufferOffset += numProxies * sizeof(unsigned int);
+
+    CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResourceDepths));
+    CHECK_CUDA_ERROR(cudaGraphicsResourceGetMappedPointer(&cudaPtr, &size, cudaResourceDepths));
+    CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResourceDepths));
+    CHECK_CUDA_ERROR(cudaMemcpy(proxiesData + bufferOffset, cudaPtr, numProxies * sizeof(float), cudaMemcpyDeviceToHost));
+    bufferOffset += numProxies * sizeof(float);
+
+    CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResourceXys));
+    CHECK_CUDA_ERROR(cudaGraphicsResourceGetMappedPointer(&cudaPtr, &size, cudaResourceXys));
+    CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResourceXys));
+    CHECK_CUDA_ERROR(cudaMemcpy(proxiesData + bufferOffset, cudaPtr, numProxies * sizeof(unsigned int), cudaMemcpyDeviceToHost));
+    bufferOffset += numProxies * sizeof(unsigned int);
+
+    CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResourceOffsetSizeFlatteneds));
+    CHECK_CUDA_ERROR(cudaGraphicsResourceGetMappedPointer(&cudaPtr, &size, cudaResourceOffsetSizeFlatteneds));
+    CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResourceOffsetSizeFlatteneds));
+    CHECK_CUDA_ERROR(cudaMemcpy(proxiesData + bufferOffset, cudaPtr, numProxies * sizeof(unsigned int), cudaMemcpyDeviceToHost));
+    bufferOffset += numProxies * sizeof(unsigned int);
+#else
     // write number of proxies
     memcpy(proxiesData, &numProxies, sizeof(unsigned int));
     bufferOffset += sizeof(unsigned int);
 
     // write normals
-    std::vector<unsigned int> normalSphericals(numProxies);
     outputNormalSphericalsBuffer.bind();
-    outputNormalSphericalsBuffer.getSubData(0, numProxies, normalSphericals.data());
-    memcpy(proxiesData + bufferOffset, normalSphericals.data(), numProxies * sizeof(unsigned int));
+    outputNormalSphericalsBuffer.getSubData(0, numProxies, proxiesData + bufferOffset);
     bufferOffset += numProxies * sizeof(unsigned int);
 
     // write depths
-    std::vector<float> depths(numProxies);
     outputDepthsBuffer.bind();
-    outputDepthsBuffer.getSubData(0, numProxies, depths.data());
-    memcpy(proxiesData + bufferOffset, depths.data(), numProxies * sizeof(float));
+    outputDepthsBuffer.getSubData(0, numProxies, proxiesData + bufferOffset);
     bufferOffset += numProxies * sizeof(float);
 
     // write xys
-    std::vector<unsigned int> xys(numProxies);
     outputXYsBuffer.bind();
-    outputXYsBuffer.getSubData(0, numProxies, xys.data());
-    memcpy(proxiesData + bufferOffset, xys.data(), numProxies * sizeof(unsigned int));
+    outputXYsBuffer.getSubData(0, numProxies, proxiesData + bufferOffset);
     bufferOffset += numProxies * sizeof(unsigned int);
 
     // write offsetSizeFlatteneds
-    std::vector<unsigned int> offsetSizeFlatteneds(numProxies);
     outputOffsetSizeFlattenedsBuffer.bind();
-    outputOffsetSizeFlattenedsBuffer.getSubData(0, numProxies, offsetSizeFlatteneds.data());
-    memcpy(proxiesData + bufferOffset, offsetSizeFlatteneds.data(), bufferSizes.numProxies * sizeof(unsigned int));
+    outputOffsetSizeFlattenedsBuffer.getSubData(0, numProxies, proxiesData + bufferOffset);
     bufferOffset += numProxies * sizeof(unsigned int);
+#endif
 
     return bufferOffset;
 }

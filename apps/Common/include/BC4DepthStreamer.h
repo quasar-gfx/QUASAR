@@ -6,6 +6,7 @@
 #include <thread>
 #include <queue>
 #include <atomic>
+
 #include <RenderTargets/RenderTarget.h>
 #include <Networking/DataStreamerTCP.h>
 #include <CameraPose.h>

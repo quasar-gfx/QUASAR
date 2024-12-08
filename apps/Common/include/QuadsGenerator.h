@@ -5,6 +5,11 @@
 #include <Shaders/ComputeShader.h>
 #include <RenderTargets/GBuffer.h>
 
+#if !defined(__APPLE__) && !defined(__ANDROID__)
+#include <cuda_gl_interop.h>
+#include <Utils/CudaUtils.h>
+#endif
+
 struct QuadMapDataPacked {
     // normal converted into spherical coordinates. theta, phi (16 bits each) packed into 32 bits
     unsigned int normalSpherical;
@@ -51,7 +56,7 @@ public:
     Texture depthOffsetsBuffer;
 
     QuadsGenerator(const glm::uvec2 &remoteWindowSize);
-    ~QuadsGenerator() = default;
+    ~QuadsGenerator();
 
     void generateInitialQuadMap(const GeometryBuffer& gBuffer, const PerspectiveCamera &remoteCamera);
     void simplifyQuadMaps(const PerspectiveCamera &remoteCamera);
@@ -77,6 +82,14 @@ private:
     ComputeShader genQuadMapShader;
     ComputeShader simplifyQuadMapShader;
     ComputeShader fillOutputQuadsShader;
+
+#if !defined(__APPLE__) && !defined(__ANDROID__)
+    cudaGraphicsResource* cudaResourceNormalSphericals;
+    cudaGraphicsResource* cudaResourceDepths;
+    cudaGraphicsResource* cudaResourceXys;
+    cudaGraphicsResource* cudaResourceOffsetSizeFlatteneds;
+    cudaGraphicsResource* cudaResource;
+#endif
 
     void initializeBuffers();
 };
