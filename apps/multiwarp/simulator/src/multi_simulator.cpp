@@ -98,25 +98,25 @@ int main(int argc, char** argv) {
 
     // "remote" scene
     Scene remoteScene;
-    std::vector<PerspectiveCamera*> remoteCameras(maxViews);
+    std::vector<PerspectiveCamera> remoteCameras; remoteCameras.reserve(maxViews);
     for (int view = 0; view < maxViews; view++) {
-        remoteCameras[view] = new PerspectiveCamera(remoteWindowSize.x, remoteWindowSize.y);
+        remoteCameras.emplace_back(remoteWindowSize.x, remoteWindowSize.y);
     }
-    PerspectiveCamera* centerRemoteCamera = remoteCameras[0];
+    PerspectiveCamera& remoteCameraCenter = remoteCameras[0];
     SceneLoader loader;
-    loader.loadScene(sceneFile, remoteScene, *centerRemoteCamera);
+    loader.loadScene(sceneFile, remoteScene, remoteCameraCenter);
 
     // make last camera have a larger fov
     if (!disableWideFov) {
         // make last camera have a larger fov
-        remoteCameras[maxViews-1]->setFovyDegrees(120.0f);
+        remoteCameras[maxViews-1].setFovyDegrees(120.0f);
     }
 
     // scene with all the meshes
     Scene scene;
     scene.envCubeMap = remoteScene.envCubeMap;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
-    camera.setViewMatrix(centerRemoteCamera->getViewMatrix());
+    camera.setViewMatrix(remoteCameraCenter.getViewMatrix());
 
     QuadsGenerator quadsGenerator(remoteWindowSize);
     MeshFromQuads meshFromQuads(remoteWindowSize);
@@ -226,7 +226,7 @@ int main(int argc, char** argv) {
     }
 
     bool rerender = true;
-    bool saveProxies = false;
+    bool saveProxiesToFile = false;
     bool showDepth = false;
     bool showNormals = false;
     bool showWireframe = false;
@@ -532,7 +532,7 @@ int main(int argc, char** argv) {
                 preventCopyingLocalPose = true;
                 rerender = true;
                 runAnimations = false;
-                saveProxies = true;
+                saveProxiesToFile = true;
             }
 
             ImGui::End();
@@ -612,10 +612,10 @@ int main(int argc, char** argv) {
         if (rerender) {
             double startTime = glfwGetTime();
             double totalRenderTime = 0.0;
+            double totalCreateProxiesTime = 0.0;
             double totalGenQuadMapTime = 0.0;
             double totalSimplifyTime = 0.0;
             double totalFillQuadsTime = 0.0;
-            double totalGetSizeOfProxiesTime = 0.0;
             double totalCreateMeshTime = 0.0;
             double totalGenDepthTime = 0.0;
 
@@ -623,20 +623,20 @@ int main(int argc, char** argv) {
             totalDepthOffsets = 0;
 
             if (!preventCopyingLocalPose) {
-                centerRemoteCamera->setViewMatrix(camera.getViewMatrix());
+                remoteCameraCenter.setViewMatrix(camera.getViewMatrix());
 
                 // update other views
                 for (int view = 1; view < maxViews - 1; view++) {
                     glm::vec3 offset = offsets[view - 1];
-                    remoteCameras[view]->setViewMatrix(centerRemoteCamera->getViewMatrix());
-                    remoteCameras[view]->setPosition(centerRemoteCamera->getPosition() + viewBoxSize/2 * offset);
-                    remoteCameras[view]->updateViewMatrix();
+                    remoteCameras[view].setViewMatrix(remoteCameraCenter.getViewMatrix());
+                    remoteCameras[view].setPosition(remoteCameraCenter.getPosition() + viewBoxSize/2 * offset);
+                    remoteCameras[view].updateViewMatrix();
                 }
-                remoteCameras[maxViews-1]->setViewMatrix(centerRemoteCamera->getViewMatrix());
+                remoteCameras[maxViews-1].setViewMatrix(remoteCameraCenter.getViewMatrix());
             }
 
             for (int view = 0; view < maxViews; view++) {
-                auto* remoteCamera = remoteCameras[view];
+                auto& remoteCamera = remoteCameras[view];
 
                 auto* currMesh = meshes[view];
                 auto* currMeshDepth = meshDepths[view];
@@ -651,7 +651,7 @@ int main(int argc, char** argv) {
                 // center view
                 if (view == 0) {
                     // render all objects in remoteScene normally
-                    remoteRenderer.drawObjects(remoteScene, *remoteCamera);
+                    remoteRenderer.drawObjects(remoteScene, remoteCamera);
                 }
                 // other views
                 else {
@@ -661,7 +661,7 @@ int main(int argc, char** argv) {
                     }
                     // draw old meshes at new remoteCamera view, filling depth buffer
                     remoteRenderer.pipeline.writeMaskState.disableColorWrites();
-                    remoteRenderer.drawObjects(meshScene, *remoteCamera);
+                    remoteRenderer.drawObjects(meshScene, remoteCamera);
 
                     // render remoteScene into stencil buffer, with depth buffer from meshScene
                     // this should draw objects in remoteScene that are not occluded by meshScene, setting
@@ -669,14 +669,14 @@ int main(int argc, char** argv) {
                     remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
                     remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = true;
                     remoteRenderer.pipeline.rasterState.polygonOffsetUnits = 10000.0f;
-                    remoteRenderer.drawObjects(remoteScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+                    remoteRenderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
                     // render remoteScene using stencil buffer as a mask
                     // at values were stencil buffer is 1, remoteScene should render
                     remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask();
                     remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = false;
                     remoteRenderer.pipeline.writeMaskState.enableColorWrites();
-                    remoteRenderer.drawObjects(remoteScene, *remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                    remoteRenderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
                     remoteRenderer.pipeline.stencilState.restoreStencilState();
                 }
@@ -697,33 +697,18 @@ int main(int argc, char** argv) {
                 SECOND to FOURTH PASSES: Generate quad map and output proxies
                 ============================
                 */
-                quadsGenerator.createProxiesFromGBuffer(remoteRenderer.gBuffer, *remoteCamera);
+                startTime = glfwGetTime();
+                unsigned int numProxies = quadsGenerator.createProxiesFromGBuffer(remoteRenderer.gBuffer, remoteCamera);
+                totalCreateProxiesTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
                 totalGenQuadMapTime += quadsGenerator.stats.timeToGenerateQuadsMs;
                 totalSimplifyTime += quadsGenerator.stats.timeToSimplifyQuadsMs;
                 totalFillQuadsTime += quadsGenerator.stats.timeToFillOutputQuadsMs;
 
-                /*
-                ============================
-                FIFTH PASS: Generate mesh from quads
-                ============================
-                */
-                startTime = glfwGetTime();
-
-                // get output quads size (same as number of proxies)
-                auto quadBufferSizes = quadsGenerator.getBufferSizes();
-                unsigned int numProxies = quadBufferSizes.numProxies;
-                unsigned int numDepthOffsets = quadBufferSizes.numDepthOffsets;
-
-                totalProxies += numProxies;
-                totalDepthOffsets += numDepthOffsets;
-
-                totalGetSizeOfProxiesTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
-
-                if (saveProxies) {
+                if (saveProxiesToFile) {
                     startTime = glfwGetTime();
 
                     std::string quadsFileName = dataPath + "quads" + std::to_string(view) + ".bin";
-                    unsigned int savedBytes = quadsGenerator.saveProxies(quadsFileName);
+                    unsigned int savedBytes = quadsGenerator.saveProxiesToFile(quadsFileName);
                     std::cout << "Saved " << savedBytes << " quads (" << (float)savedBytes / BYTES_IN_MB << " MB)" << std::endl;
 
                     // save color buffer
@@ -731,16 +716,20 @@ int main(int argc, char** argv) {
                     renderTargets[view].saveColorAsPNG(colorFileName);
                 }
 
+                /*
+                ============================
+                FIFTH PASS: Generate mesh from quads
+                ============================
+                */
+                startTime = glfwGetTime();
                 meshFromQuads.createMeshFromProxies(
                     numProxies, quadsGenerator.depthBufferSize,
-                    *remoteCamera,
-                    quadsGenerator.outputNormalSphericalsBuffer, quadsGenerator.outputDepthsBuffer,
-                    quadsGenerator.outputXYsBuffer, quadsGenerator.outputOffsetSizeFlattenedsBuffer,
+                    remoteCamera,
+                    quadsGenerator.outputQuadBuffers,
                     quadsGenerator.depthOffsetsBuffer,
                     renderTargets[view].colorBuffer,
                     *currMesh
                 );
-
                 totalCreateMeshTime += meshFromQuads.stats.timeToCreateMeshMs;
 
                 /*
@@ -759,13 +748,13 @@ int main(int argc, char** argv) {
                         meshFromDepthShader.setVec2("depthMapSize", remoteWindowSize);
                     }
                     {
-                        meshFromDepthShader.setMat4("view", remoteCamera->getViewMatrix());
-                        meshFromDepthShader.setMat4("projection", remoteCamera->getProjectionMatrix());
-                        meshFromDepthShader.setMat4("viewInverse", glm::inverse(remoteCamera->getViewMatrix()));
-                        meshFromDepthShader.setMat4("projectionInverse", glm::inverse(remoteCamera->getProjectionMatrix()));
+                        meshFromDepthShader.setMat4("view", remoteCamera.getViewMatrix());
+                        meshFromDepthShader.setMat4("projection", remoteCamera.getProjectionMatrix());
+                        meshFromDepthShader.setMat4("viewInverse", remoteCamera.getViewMatrixInverse());
+                        meshFromDepthShader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
 
-                        meshFromDepthShader.setFloat("near", remoteCamera->getNear());
-                        meshFromDepthShader.setFloat("far", remoteCamera->getFar());
+                        meshFromDepthShader.setFloat("near", remoteCamera.getNear());
+                        meshFromDepthShader.setFloat("far", remoteCamera.getFar());
                     }
                     {
                         meshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currMeshDepth->vertexBuffer);
@@ -782,16 +771,16 @@ int main(int argc, char** argv) {
 
             std::cout << "======================================================" << std::endl;
             std::cout << "  Rendering Time: " << totalRenderTime << "ms" << std::endl;
-            std::cout << "  Gen Quad Map Time: " << totalGenQuadMapTime << "ms" << std::endl;
-            std::cout << "  Simplify Time: " << totalSimplifyTime << "ms" << std::endl;
-            std::cout << "  Fill Quads Time: " << totalFillQuadsTime << "ms" << std::endl;
-            std::cout << "  Get Size of Proxies Time: " << totalGetSizeOfProxiesTime << "ms" << std::endl;
+            std::cout << "  Create Proxies Time: " << totalCreateProxiesTime << "ms" << std::endl;
+            std::cout << "    Gen Quad Map Time: " << totalGenQuadMapTime << "ms" << std::endl;
+            std::cout << "    Simplify Time: " << totalSimplifyTime << "ms" << std::endl;
+            std::cout << "    Fill Quads Time: " << totalFillQuadsTime << "ms" << std::endl;
             std::cout << "  Create Mesh Time: " << totalCreateMeshTime << "ms" << std::endl;
             if (showDepth) std::cout << "  Gen Depth Time: " << totalGenDepthTime << "ms" << std::endl;
 
             preventCopyingLocalPose = false;
             rerender = false;
-            saveProxies = false;
+            saveProxiesToFile = false;
         }
 
         // hide/show nodes based on user input
@@ -815,7 +804,7 @@ int main(int argc, char** argv) {
         }
 
         if (restrictMovementToViewBox) {
-            glm::vec3 remotePosition = centerRemoteCamera->getPosition();
+            glm::vec3 remotePosition = remoteCameraCenter.getPosition();
             glm::vec3 position = camera.getPosition();
             // restrict camera position to be inside position +/- viewBoxSize
             position.x = glm::clamp(position.x, remotePosition.x - viewBoxSize/2, remotePosition.x + viewBoxSize/2);

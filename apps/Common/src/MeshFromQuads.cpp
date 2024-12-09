@@ -38,10 +38,7 @@ MeshFromQuads::BufferSizes MeshFromQuads::getBufferSizes() {
 void MeshFromQuads::createMeshFromProxies(
         unsigned int numProxies, const glm::uvec2 &depthBufferSize,
         const PerspectiveCamera &remoteCamera,
-        const Buffer<unsigned int> &outputNormalSphericalsBuffer,
-        const Buffer<float> &outputDepthsBuffer,
-        const Buffer<unsigned int> &outputXYsBuffer,
-        const Buffer<unsigned int> &outputOffsetSizeFlattenedsBuffer,
+        const QuadBuffers &quadBuffers,
         const Texture& depthOffsetsBuffer,
         const Texture& colorTexture,
         const Mesh& mesh) {
@@ -50,19 +47,14 @@ void MeshFromQuads::createMeshFromProxies(
 
     createMeshFromProxies(
             numProxies, depthBufferSize,
-            remoteCamera,
-            outputNormalSphericalsBuffer, outputDepthsBuffer, outputXYsBuffer, outputOffsetSizeFlattenedsBuffer,
-            colorTexture,
+            remoteCamera, quadBuffers, colorTexture,
             mesh, false);
 }
 
 void MeshFromQuads::appendGeometry(
         unsigned int numProxies, const glm::uvec2 &depthBufferSize,
         const PerspectiveCamera &remoteCamera,
-        const Buffer<unsigned int> &outputNormalSphericalsBuffer,
-        const Buffer<float> &outputDepthsBuffer,
-        const Buffer<unsigned int> &outputXYsBuffer,
-        const Buffer<unsigned int> &outputOffsetSizeFlattenedsBuffer,
+        const QuadBuffers &quadBuffers,
         const Texture &depthOffsetsBuffer,
         const Texture &colorTexture,
         const Mesh &mesh) {
@@ -71,19 +63,14 @@ void MeshFromQuads::appendGeometry(
 
     createMeshFromProxies(
             numProxies, depthBufferSize,
-            remoteCamera,
-            outputNormalSphericalsBuffer, outputDepthsBuffer, outputXYsBuffer, outputOffsetSizeFlattenedsBuffer,
-            colorTexture,
+            remoteCamera, quadBuffers, colorTexture,
             mesh, true);
 }
 
 void MeshFromQuads::createMeshFromProxies(
         unsigned int numProxies, const glm::uvec2 &depthBufferSize,
         const PerspectiveCamera &remoteCamera,
-        const Buffer<unsigned int> &outputNormalSphericalsBuffer,
-        const Buffer<float> &outputDepthsBuffer,
-        const Buffer<unsigned int> &outputXYsBuffer,
-        const Buffer<unsigned int> &outputOffsetSizeFlattenedsBuffer,
+        const QuadBuffers &quadBuffers,
         const Texture &colorTexture,
         const Mesh &mesh,
         bool appendGeometry) {
@@ -111,10 +98,10 @@ void MeshFromQuads::createMeshFromProxies(
         createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, mesh.indexBuffer);
         createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, mesh.indirectBuffer);
 
-        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, outputNormalSphericalsBuffer);
-        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, outputDepthsBuffer);
-        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, outputXYsBuffer);
-        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 8, outputOffsetSizeFlattenedsBuffer);
+        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, quadBuffers.normalSphericalsBuffer);
+        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, quadBuffers.depthsBuffer);
+        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, quadBuffers.xysBuffer);
+        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 8, quadBuffers.offsetSizeFlattenedsBuffer);
 
         // createMeshFromQuadsShader.setImageTexture(1, colorTexture, 0, GL_FALSE, 0, GL_READ_ONLY, colorTexture.internalFormat);
         // createMeshFromQuadsShader.setImageTexture(2, atlas, 0, GL_FALSE, 0, GL_WRITE_ONLY, atlas.internalFormat);

@@ -6,8 +6,7 @@
 #include <Cameras/PerspectiveCamera.h>
 #include <Shaders/ComputeShader.h>
 
-#include <QuadsGenerator.h>
-#include <QuadMaterial.h>
+#include <QuadsBuffers.h>
 
 #include <Utils/TimeUtils.h>
 
@@ -33,14 +32,12 @@ public:
     Texture atlas;
 
     MeshFromQuads(const glm::uvec2 &remoteWindowSize);
+    ~MeshFromQuads() = default;
 
     void createMeshFromProxies(
             unsigned int numProxies, const glm::uvec2 &depthBufferSize,
             const PerspectiveCamera &remoteCamera,
-            const Buffer<unsigned int> &outputNormalSphericalsBuffer,
-            const Buffer<float> &outputDepthsBuffer,
-            const Buffer<unsigned int> &outputXYsBuffer,
-            const Buffer<unsigned int> &outputOffsetSizeFlattenedsBuffer,
+            const QuadBuffers &quadBuffers,
             const Texture &depthOffsetsBuffer,
             const Texture &colorTexture,
             const Mesh &mesh);
@@ -48,10 +45,7 @@ public:
     void appendGeometry(
             unsigned int numProxies, const glm::uvec2 &depthBufferSize,
             const PerspectiveCamera &remoteCamera,
-            const Buffer<unsigned int> &outputNormalSphericalsBuffer,
-            const Buffer<float> &outputDepthsBuffer,
-            const Buffer<unsigned int> &outputXYsBuffer,
-            const Buffer<unsigned int> &outputOffsetSizeFlattenedsBuffer,
+            const QuadBuffers &quadBuffers,
             const Texture &depthOffsetsBuffer,
             const Texture &colorTexture,
             const Mesh &mesh);
@@ -59,10 +53,7 @@ public:
     void createMeshFromProxies(
             unsigned int numProxies, const glm::uvec2 &depthBufferSize,
             const PerspectiveCamera &remoteCamera,
-            const Buffer<unsigned int> &outputNormalSphericalsBuffer,
-            const Buffer<float> &outputDepthsBuffer,
-            const Buffer<unsigned int> &outputXYsBuffer,
-            const Buffer<unsigned int> &outputOffsetSizeFlattenedsBuffer,
+            const QuadBuffers &quadBuffers,
             const Texture &colorTexture,
             const Mesh &mesh,
             bool appendGeometry = false);

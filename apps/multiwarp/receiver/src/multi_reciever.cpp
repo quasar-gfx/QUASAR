@@ -82,27 +82,27 @@ int main(int argc, char** argv) {
     Scene scene;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
 
-    std::vector<PerspectiveCamera*> remoteCameras(maxViews);
+    std::vector<PerspectiveCamera> remoteCameras; remoteCameras.reserve(maxViews);
     for (int view = 0; view < maxViews; view++) {
-        remoteCameras[view] = new PerspectiveCamera(windowSize.x, windowSize.y);
+        remoteCameras.emplace_back(windowSize.x, windowSize.y);
     }
-    PerspectiveCamera* centerRemoteCamera = remoteCameras[0];
-    centerRemoteCamera->setPosition(glm::vec3(0.0f, 3.0f, 10.0f));
-    centerRemoteCamera->updateViewMatrix();
+    PerspectiveCamera& remoteCameraCenter = remoteCameras[0];
+    remoteCameraCenter.setPosition(glm::vec3(0.0f, 3.0f, 10.0f));
+    remoteCameraCenter.updateViewMatrix();
 
     if (!disableWideFov) {
         // make last camera have a larger fov
-        remoteCameras[maxViews-1]->setFovyDegrees(120.0f);
+        remoteCameras[maxViews-1].setFovyDegrees(120.0f);
     }
 
     for (int view = 1; view < maxViews - 1; view++) {
         glm::vec3 offset = offsets[view - 1];
-        remoteCameras[view]->setViewMatrix(centerRemoteCamera->getViewMatrix());
-        remoteCameras[view]->setPosition(centerRemoteCamera->getPosition() + viewBoxSize/2 * offset);
-        remoteCameras[view]->updateViewMatrix();
+        remoteCameras[view].setViewMatrix(remoteCameraCenter.getViewMatrix());
+        remoteCameras[view].setPosition(remoteCameraCenter.getPosition() + viewBoxSize/2 * offset);
+        remoteCameras[view].updateViewMatrix();
     }
     if (!disableWideFov) {
-        remoteCameras[maxViews-1]->setViewMatrix(centerRemoteCamera->getViewMatrix());
+        remoteCameras[maxViews-1].setViewMatrix(remoteCameraCenter.getViewMatrix());
     }
 
     // shaders
@@ -135,10 +135,7 @@ int main(int argc, char** argv) {
     unsigned int totalDepthOffsets = -1;
 
     unsigned int maxQuads = windowSize.x * windowSize.y * NUM_SUB_QUADS;
-    Buffer<unsigned int> inputNormalSphericalsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
-    Buffer<float> inputDepthsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
-    Buffer<unsigned int> inputUVsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
-    Buffer<unsigned int> inputOffsetSizeFlattenedsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxQuads, nullptr);
+    QuadBuffers quadBuffers(maxQuads);
 
     double startTime = glfwGetTime();
     double loadFromFilesTime = 0.0;
@@ -173,62 +170,28 @@ int main(int argc, char** argv) {
         }
     }
     else {
+        glm::uvec2 depthBufferSize = 4u * windowSize;
+
         for (int view = 0; view < maxViews; view++) {
-            unsigned int maxVertices = windowSize.x * windowSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
-            unsigned int numTriangles = windowSize.x * windowSize.y * NUM_SUB_QUADS * 2 * 3;
-            unsigned int maxIndices = numTriangles * 3;
+            startTime = glfwGetTime();
+            std::string quadProxiesFileName = DATA_PATH + "quads" + std::to_string(view) + ".bin";
+            unsigned int numProxies = quadBuffers.loadFromFile(quadProxiesFileName);
+
             meshes[view] = new Mesh({
-                .numVertices = maxVertices / (view == 0 || view == maxViews - 1 ? 1 : 4),
-                .numIndices = maxIndices / (view == 0 || view == maxViews - 1 ? 1 : 4),
+                .numVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
+                .numIndices = numProxies * NUM_SUB_QUADS * 2 * 3,
                 .material = new QuadMaterial({ .baseColorTexture = &colorTextures[view] }),
                 .usage = GL_DYNAMIC_DRAW,
                 .indirectDraw = true
             });
-
-            startTime = glfwGetTime();
-            std::string quadProxiesFileName = DATA_PATH + "quads" + std::to_string(view) + ".bin";
-            auto quadProxiesData = FileIO::loadBinaryFile(quadProxiesFileName);
-
-            // first uint in the file is the number of proxies
-            unsigned int numProxies = *reinterpret_cast<unsigned int*>(quadProxiesData.data());
-            unsigned int bufferOffset = sizeof(unsigned int);
-
-            // next batch is the normalSphericals
-            auto normalSphericalsPtr = reinterpret_cast<unsigned int*>(quadProxiesData.data() + bufferOffset);
-            inputNormalSphericalsBuffer.bind();
-            inputNormalSphericalsBuffer.setData(numProxies, normalSphericalsPtr);
-            bufferOffset += numProxies * sizeof(unsigned int);
-
-            // next batch is the depths
-            auto depthsPtr = reinterpret_cast<float*>(quadProxiesData.data() + bufferOffset);
-            inputDepthsBuffer.bind();
-            inputDepthsBuffer.setData(numProxies, depthsPtr);
-            bufferOffset += numProxies * sizeof(float);
-
-            // next batch is the uvs
-            auto uvsPtr = reinterpret_cast<glm::vec2*>(quadProxiesData.data() + bufferOffset);
-            inputUVsBuffer.bind();
-            inputUVsBuffer.setData(numProxies, uvsPtr);
-            bufferOffset += numProxies * sizeof(unsigned int);
-
-            // last batch is the offsets
-            auto offsetSizeFlattenedsPtr = reinterpret_cast<unsigned int*>(quadProxiesData.data() + bufferOffset);
-            inputOffsetSizeFlattenedsBuffer.bind();
-            inputOffsetSizeFlattenedsBuffer.setData(numProxies, offsetSizeFlattenedsPtr);
-
-            glm::uvec2 depthBufferSize = 4u * windowSize;
-
             loadFromFilesTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
-            startTime = glfwGetTime();
 
+            startTime = glfwGetTime();
             meshFromQuads.createMeshFromProxies(
                 numProxies, depthBufferSize,
-                *remoteCameras[view],
-                inputNormalSphericalsBuffer, inputDepthsBuffer, inputUVsBuffer, inputOffsetSizeFlattenedsBuffer,
-                colorTextures[view],
+                remoteCameras[view], quadBuffers, colorTextures[view],
                 *meshes[view]
             );
-
             createMeshTime += meshFromQuads.stats.timeToCreateMeshMs;
 
             auto meshBufferSizes = meshFromQuads.getBufferSizes();
