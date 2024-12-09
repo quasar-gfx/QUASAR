@@ -690,7 +690,11 @@ int main(int argc, char** argv) {
                 */
                 startTime = glfwGetTime();
                 auto* gBuffer = (disableWideFov || view != maxViews - 1) ? dpRenderer.peelingLayers[view] : &remoteRenderer.gBuffer;
-                unsigned int numProxies = quadsGenerator.createProxiesFromGBuffer(*gBuffer, remoteCamera);
+                auto sizes = quadsGenerator.createProxiesFromGBuffer(*gBuffer, remoteCamera);
+                unsigned int numProxies = sizes.numProxies;
+                unsigned int numDepthOffsets = sizes.numDepthOffsets;
+                totalProxies += numProxies;
+                totalDepthOffsets += numDepthOffsets;
                 totalCreateProxiesTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
                 totalGenQuadMapTime += quadsGenerator.stats.timeToGenerateQuadsMs;
                 totalSimplifyTime += quadsGenerator.stats.timeToSimplifyQuadsMs;

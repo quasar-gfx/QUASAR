@@ -212,16 +212,16 @@ void QuadsGenerator::fillOutputQuads() {
     stats.timeToFillOutputQuadsMs = fillOutputQuadsShader.getElapsedTime();
 }
 
-unsigned int QuadsGenerator::createProxiesFromGBuffer(const GeometryBuffer& gBuffer, const PerspectiveCamera &remoteCamera) {
+QuadsGenerator::BufferSizes QuadsGenerator::createProxiesFromGBuffer(const GeometryBuffer& gBuffer, const PerspectiveCamera &remoteCamera) {
     generateInitialQuadMap(gBuffer, remoteCamera);
     simplifyQuadMaps(remoteCamera);
     fillOutputQuads();
 
-    auto bufferSizes = getBufferSizes();
+    QuadsGenerator::BufferSizes bufferSizes = getBufferSizes();
     unsigned int numProxies = bufferSizes.numProxies;
     outputQuadBuffers.resize(numProxies);
 
-    return numProxies;
+    return bufferSizes;
 }
 
 #ifdef GL_CORE

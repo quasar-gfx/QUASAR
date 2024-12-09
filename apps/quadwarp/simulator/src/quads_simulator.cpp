@@ -570,7 +570,8 @@ int main(int argc, char** argv) {
             ============================
             */
             startTime = glfwGetTime();
-            unsigned int numProxies = quadsGenerator.createProxiesFromGBuffer(remoteRenderer.gBuffer, remoteCamera);
+            auto sizes = quadsGenerator.createProxiesFromGBuffer(remoteRenderer.gBuffer, remoteCamera);
+            unsigned int numProxies = sizes.numProxies;
             totalCreateProxiesTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
             totalGenQuadMapTime += quadsGenerator.stats.timeToGenerateQuadsMs;
             totalSimplifyTime += quadsGenerator.stats.timeToSimplifyQuadsMs;
