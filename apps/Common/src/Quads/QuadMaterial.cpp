@@ -1,4 +1,4 @@
-#include <QuadMaterial.h>
+#include <Quads/QuadMaterial.h>
 #include <shaders_common.h>
 
 Shader* QuadMaterial::shader = nullptr;

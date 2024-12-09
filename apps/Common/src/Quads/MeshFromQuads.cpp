@@ -1,4 +1,4 @@
-#include <MeshFromQuads.h>
+#include <Quads/MeshFromQuads.h>
 
 MeshFromQuads::MeshFromQuads(const glm::uvec2 &remoteWindowSize)
         : remoteWindowSize(remoteWindowSize)
@@ -39,11 +39,11 @@ void MeshFromQuads::createMeshFromProxies(
         unsigned int numProxies, const glm::uvec2 &depthBufferSize,
         const PerspectiveCamera &remoteCamera,
         const QuadBuffers &quadBuffers,
-        const Texture& depthOffsetsBuffer,
+        const DepthOffsets &depthOffsets,
         const Texture& colorTexture,
         const Mesh& mesh) {
     createMeshFromQuadsShader.bind();
-    createMeshFromQuadsShader.setImageTexture(0, depthOffsetsBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetsBuffer.internalFormat);
+    createMeshFromQuadsShader.setImageTexture(0, depthOffsets.buffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsets.buffer.internalFormat);
 
     createMeshFromProxies(
             numProxies, depthBufferSize,
@@ -55,11 +55,11 @@ void MeshFromQuads::appendGeometry(
         unsigned int numProxies, const glm::uvec2 &depthBufferSize,
         const PerspectiveCamera &remoteCamera,
         const QuadBuffers &quadBuffers,
-        const Texture &depthOffsetsBuffer,
+        const DepthOffsets &depthOffsets,
         const Texture &colorTexture,
         const Mesh &mesh) {
     createMeshFromQuadsShader.bind();
-    createMeshFromQuadsShader.setImageTexture(0, depthOffsetsBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsetsBuffer.internalFormat);
+    createMeshFromQuadsShader.setImageTexture(0, depthOffsets.buffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsets.buffer.internalFormat);
 
     createMeshFromProxies(
             numProxies, depthBufferSize,

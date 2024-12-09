@@ -6,7 +6,8 @@
 #include <Cameras/PerspectiveCamera.h>
 #include <Shaders/ComputeShader.h>
 
-#include <QuadsBuffers.h>
+#include <Quads/QuadsBuffers.h>
+#include <Quads/DepthOffsets.h>
 
 #include <Utils/TimeUtils.h>
 
@@ -38,7 +39,7 @@ public:
             unsigned int numProxies, const glm::uvec2 &depthBufferSize,
             const PerspectiveCamera &remoteCamera,
             const QuadBuffers &quadBuffers,
-            const Texture &depthOffsetsBuffer,
+            const DepthOffsets &depthOffsets,
             const Texture &colorTexture,
             const Mesh &mesh);
 
@@ -46,7 +47,7 @@ public:
             unsigned int numProxies, const glm::uvec2 &depthBufferSize,
             const PerspectiveCamera &remoteCamera,
             const QuadBuffers &quadBuffers,
-            const Texture &depthOffsetsBuffer,
+            const DepthOffsets &depthOffsets,
             const Texture &colorTexture,
             const Mesh &mesh);
 

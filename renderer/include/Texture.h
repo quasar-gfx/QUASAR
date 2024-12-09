@@ -119,6 +119,7 @@ public:
     }
 
     void resize(unsigned int width, unsigned int height);
+    void setData(unsigned int width, unsigned int height, const void* data, bool resize = false);
 
     void cleanup() {
         glDeleteTextures(1, &ID);

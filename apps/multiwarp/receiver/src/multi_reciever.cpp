@@ -14,8 +14,8 @@
 #include <Animator.h>
 #include <Utils/Utils.h>
 
-#include <MeshFromQuads.h>
-#include <QuadMaterial.h>
+#include <Quads/MeshFromQuads.h>
+#include <Quads/QuadMaterial.h>
 #include <shaders_common.h>
 
 const std::string DATA_PATH = "../simulator/";
@@ -134,9 +134,6 @@ int main(int argc, char** argv) {
     unsigned int totalProxies = -1;
     unsigned int totalDepthOffsets = -1;
 
-    unsigned int maxQuads = windowSize.x * windowSize.y * NUM_SUB_QUADS;
-    QuadBuffers quadBuffers(maxQuads);
-
     double startTime = glfwGetTime();
     double loadFromFilesTime = 0.0;
     double createMeshTime = 0.0;
@@ -170,12 +167,20 @@ int main(int argc, char** argv) {
         }
     }
     else {
-        glm::uvec2 depthBufferSize = 4u * windowSize;
+        unsigned int maxQuads = windowSize.x * windowSize.y * NUM_SUB_QUADS;
+        QuadBuffers quadBuffers(maxQuads);
+
+        const glm::uvec2 depthBufferSize = 2u * windowSize;
+        DepthOffsets depthOffsets(depthBufferSize);
 
         for (int view = 0; view < maxViews; view++) {
             startTime = glfwGetTime();
+            // load proxies
             std::string quadProxiesFileName = DATA_PATH + "quads" + std::to_string(view) + ".bin";
             unsigned int numProxies = quadBuffers.loadFromFile(quadProxiesFileName);
+            // load depth offsets
+            std::string depthOffsetsFileName = DATA_PATH + "depthOffsets" + std::to_string(view) + ".bin";
+            unsigned int numDepthOffsets = depthOffsets.loadFromFile(depthOffsetsFileName);
 
             meshes[view] = new Mesh({
                 .numVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
@@ -189,7 +194,8 @@ int main(int argc, char** argv) {
             startTime = glfwGetTime();
             meshFromQuads.createMeshFromProxies(
                 numProxies, depthBufferSize,
-                remoteCameras[view], quadBuffers, colorTextures[view],
+                remoteCameras[view], quadBuffers, depthOffsets,
+                colorTextures[view],
                 *meshes[view]
             );
             createMeshTime += meshFromQuads.stats.timeToCreateMeshMs;
@@ -198,7 +204,7 @@ int main(int argc, char** argv) {
 
             totalTriangles += meshBufferSizes.numIndices / 3;
             totalProxies += numProxies;
-            totalDepthOffsets = 0;
+            totalDepthOffsets = numDepthOffsets;
         }
     }
 

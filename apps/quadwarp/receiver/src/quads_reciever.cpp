@@ -14,8 +14,8 @@
 #include <Animator.h>
 #include <Utils/Utils.h>
 
-#include <MeshFromQuads.h>
-#include <QuadMaterial.h>
+#include <Quads/MeshFromQuads.h>
+#include <Quads/QuadMaterial.h>
 #include <shaders_common.h>
 
 const std::string DATA_PATH = "../simulator/";
@@ -90,9 +90,6 @@ int main(int argc, char** argv) {
     unsigned int totalProxies = -1;
     unsigned int totalDepthOffsets = -1;
 
-    unsigned int maxQuads = windowSize.x * windowSize.y * NUM_SUB_QUADS;
-    QuadBuffers quadBuffers(maxQuads);
-
     double startTime = glfwGetTime();
     double loadFromFilesTime = 0.0;
     double createMeshTime = 0.0;
@@ -123,11 +120,17 @@ int main(int argc, char** argv) {
         createMeshTime = (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
     }
     else {
-        glm::uvec2 depthBufferSize = 4u * windowSize;
+        unsigned int maxQuads = windowSize.x * windowSize.y * NUM_SUB_QUADS;
+        QuadBuffers quadBuffers(maxQuads);
+
+        const glm::uvec2 depthBufferSize = 2u * windowSize;
+        DepthOffsets depthOffsets(depthBufferSize);
 
         startTime = glfwGetTime();
-        std::string quadProxiesFileName = DATA_PATH + "quads.bin";
-        unsigned int numProxies = quadBuffers.loadFromFile(quadProxiesFileName);
+        // load proxies
+        unsigned int numProxies = quadBuffers.loadFromFile(DATA_PATH + "quads.bin");
+        // load depth offsets
+        unsigned int numDepthOffsets = depthOffsets.loadFromFile(DATA_PATH + "depthOffsets.bin");
 
         mesh = new Mesh({
             .numVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
@@ -141,7 +144,8 @@ int main(int argc, char** argv) {
         startTime = glfwGetTime();
         meshFromQuads.createMeshFromProxies(
             numProxies, depthBufferSize,
-            remoteCamera, quadBuffers, colorTexture,
+            remoteCamera, quadBuffers, depthOffsets,
+            colorTexture,
             *mesh
         );
 
@@ -151,7 +155,7 @@ int main(int argc, char** argv) {
 
         totalTriangles = meshBufferSizes.numIndices / 3;
         totalProxies = numProxies;
-        totalDepthOffsets = 0;
+        totalDepthOffsets = numDepthOffsets;
     }
 
     Node node(mesh);

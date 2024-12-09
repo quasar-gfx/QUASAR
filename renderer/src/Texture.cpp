@@ -89,12 +89,21 @@ void Texture::loadFromFile(const TextureFileCreateParams &params) {
 }
 
 void Texture::resize(unsigned int width, unsigned int height) {
+    setData(width, height, nullptr, true);
+}
+
+void Texture::setData(unsigned int width, unsigned int height, const void* data, bool resize) {
     this->width = width;
     this->height = height;
 
     bind(0);
     if (!multiSampled) {
-        glTexImage2D(target, 0, internalFormat, width, height, 0, format, type, nullptr);
+        if (resize) {
+            glTexImage2D(target, 0, internalFormat, width, height, 0, format, type, nullptr);
+        }
+        else {
+            glTexSubImage2D(target, 0, internalFormat, width, height, 0, format, type, data);
+        }
     }
 #ifdef GL_CORE
     else {

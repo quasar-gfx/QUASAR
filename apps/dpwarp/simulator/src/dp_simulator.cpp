@@ -16,9 +16,9 @@
 #include <Animator.h>
 #include <Utils/Utils.h>
 
-#include <QuadsGenerator.h>
-#include <MeshFromQuads.h>
-#include <QuadMaterial.h>
+#include <Quads/QuadsGenerator.h>
+#include <Quads/MeshFromQuads.h>
+#include <Quads/QuadMaterial.h>
 #include <shaders_common.h>
 
 int main(int argc, char** argv) {
@@ -212,7 +212,7 @@ int main(int argc, char** argv) {
     }
 
     bool rerender = true;
-    bool saveProxiesToFile = false;
+    bool saveToFile = false;
     bool showDepth = false;
     bool showNormals = false;
     bool showWireframe = false;
@@ -519,7 +519,7 @@ int main(int argc, char** argv) {
                 preventCopyingLocalPose = true;
                 rerender = true;
                 runAnimations = false;
-                saveProxiesToFile = true;
+                saveToFile = true;
             }
 
             ImGui::End();
@@ -696,12 +696,21 @@ int main(int argc, char** argv) {
                 totalSimplifyTime += quadsGenerator.stats.timeToSimplifyQuadsMs;
                 totalFillQuadsTime += quadsGenerator.stats.timeToFillOutputQuadsMs;
 
-                if (saveProxiesToFile) {
+                if (saveToFile) {
                     startTime = glfwGetTime();
 
+                    unsigned int savedBytes;
+
                     std::string quadsFileName = dataPath + "quads" + std::to_string(view) + ".bin";
-                    unsigned int savedBytes = quadsGenerator.saveProxiesToFile(quadsFileName);
+                    savedBytes = quadsGenerator.saveToFile(quadsFileName);
                     std::cout << "Saved " << savedBytes << " quads (" << (float)savedBytes / BYTES_IN_MB << " MB)" << std::endl;
+                    std::cout << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms to save proxies" << std::endl;
+
+                    startTime = glfwGetTime();
+                    std::string depthOffsetsFileName = dataPath + "depthOffsets" + std::to_string(view) + ".bin";
+                    savedBytes = quadsGenerator.saveDepthOffsetsToFile(depthOffsetsFileName);
+                    std::cout << "Saved " << savedBytes << " depth offsets (" << (float)savedBytes / BYTES_IN_MB << " MB)" << std::endl;
+                    std::cout << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms to save depth offsets" << std::endl;
 
                     // save color buffer
                     std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
@@ -718,7 +727,7 @@ int main(int argc, char** argv) {
                     numProxies, quadsGenerator.depthBufferSize,
                     remoteCamera,
                     quadsGenerator.outputQuadBuffers,
-                    quadsGenerator.depthOffsetsBuffer,
+                    quadsGenerator.depthOffsets,
                     renderTargets[view].colorBuffer,
                     *currMesh
                 );
@@ -777,7 +786,7 @@ int main(int argc, char** argv) {
 
             preventCopyingLocalPose = false;
             rerender = false;
-            saveProxiesToFile = false;
+            saveToFile = false;
         }
 
         // hide/show nodes based on user input

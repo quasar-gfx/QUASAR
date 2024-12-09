@@ -30,7 +30,7 @@ public:
     Buffer<unsigned int> xysBuffer;
     Buffer<unsigned int> offsetSizeFlattenedsBuffer;
 
-    char* proxiesData;
+    std::vector<uint8_t> data;
 
     QuadBuffers(unsigned int maxProxies);
     ~QuadBuffers();
@@ -40,8 +40,8 @@ public:
     unsigned int loadFromMemory(const char* data);
     unsigned int loadFromFile(const std::string &filename);
 #ifdef GL_CORE
-    unsigned int saveProxiesToFile(const std::string &filename);
-    unsigned int updateProxiesDataBuffer();
+    unsigned int saveToFile(const std::string &filename);
+    unsigned int updatedataBuffer();
 #endif
 
 private:
