@@ -535,7 +535,7 @@ int main(int argc, char** argv) {
             else if (generatePFrame) {
                 // draw old meshes at new remoteCamera view, filling depth buffer
                 remoteRenderer.pipeline.writeMaskState.disableColorWrites();
-                remoteRenderer.drawObjects(meshScene, remoteCamera);
+                remoteRenderer.drawObjectsNoLighting(meshScene, remoteCamera);
 
                 // render remoteScene into stencil buffer, with depth buffer from meshScene
                 // this should draw objects in remoteScene that are not occluded by meshScene, setting
@@ -543,7 +543,7 @@ int main(int argc, char** argv) {
                 remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
                 remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = true;
                 remoteRenderer.pipeline.rasterState.polygonOffsetUnits = 10000.0f;
-                remoteRenderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+                remoteRenderer.drawObjectsNoLighting(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
                 // render remoteScene using stencil buffer as a mask
                 // at values were stencil buffer is 1, remoteScene should render
@@ -733,7 +733,7 @@ int main(int argc, char** argv) {
                     int64_t timestampMs;
                     ss >> px >> py >> pz >> rx >> ry >> rz >> timestampMs;
                     localCamera.setPosition(glm::vec3(px, py, pz));
-                    localCamera.setRotationEuler(glm::radians(glm::vec3(rx, ry, rz)));
+                    localCamera.setRotationEuler(glm::vec3(rx, ry, rz));
                     localCamera.updateViewMatrix();
 
                     recorder.captureFrame(localCamera);

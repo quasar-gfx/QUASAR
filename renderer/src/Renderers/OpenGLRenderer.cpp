@@ -266,6 +266,17 @@ RenderStats OpenGLRenderer::drawSkyBox(const Scene &scene, const Camera &camera)
     return stats;
 }
 
+RenderStats OpenGLRenderer::drawObjectsNoLighting(const Scene &scene, const Camera &camera, uint32_t clearMask) {
+    pipeline.apply();
+
+    RenderStats stats;
+
+    // draw all objects in the scene
+    stats += drawScene(scene, camera, clearMask);
+
+    return stats;
+}
+
 RenderStats OpenGLRenderer::drawObjects(const Scene &scene, const Camera &camera, uint32_t clearMask) {
     pipeline.apply();
 

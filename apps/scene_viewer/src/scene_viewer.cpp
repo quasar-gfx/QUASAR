@@ -423,7 +423,7 @@ int main(int argc, char** argv) {
                     int64_t timestampMs;
                     ss >> px >> py >> pz >> rx >> ry >> rz >> timestampMs;
                     camera.setPosition(glm::vec3(px, py, pz));
-                    camera.setRotationEuler(glm::radians(glm::vec3(rx, ry, rz)));
+                    camera.setRotationEuler(glm::vec3(rx, ry, rz));
                     camera.updateViewMatrix();
 
                     recorder.captureFrame(camera);
