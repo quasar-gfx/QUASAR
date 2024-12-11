@@ -134,7 +134,7 @@ int main(int argc, char** argv) {
     unsigned int totalProxies = -1;
     unsigned int totalDepthOffsets = -1;
 
-    double startTime = glfwGetTime();
+    double startTime = window->getTime();
     double loadFromFilesTime = 0.0;
     double createMeshTime = 0.0;
     if (!args::get(loadProxies)) {
@@ -145,8 +145,8 @@ int main(int argc, char** argv) {
             auto vertexData = FileIO::loadBinaryFile(verticesFileName);
             auto indexData = FileIO::loadBinaryFile(indicesFileName);
 
-            loadFromFilesTime += glfwGetTime() - startTime;
-            startTime = glfwGetTime();
+            loadFromFilesTime += window->getTime() - startTime;
+            startTime = window->getTime();
 
             std::vector<Vertex> vertices(vertexData.size() / sizeof(Vertex));
             std::memcpy(vertices.data(), vertexData.data(), vertexData.size());
@@ -162,8 +162,8 @@ int main(int argc, char** argv) {
 
             totalTriangles += indices.size() / 3;
 
-            createMeshTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
-            startTime = glfwGetTime();
+            createMeshTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
+            startTime = window->getTime();
         }
     }
     else {
@@ -174,7 +174,7 @@ int main(int argc, char** argv) {
         DepthOffsets depthOffsets(depthBufferSize);
 
         for (int view = 0; view < maxViews; view++) {
-            startTime = glfwGetTime();
+            startTime = window->getTime();
             // load proxies
             std::string quadProxiesFileName = DATA_PATH + "quads" + std::to_string(view) + ".bin";
             unsigned int numProxies = quadBuffers.loadFromFile(quadProxiesFileName);
@@ -189,9 +189,9 @@ int main(int argc, char** argv) {
                 .usage = GL_DYNAMIC_DRAW,
                 .indirectDraw = true
             });
-            loadFromFilesTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
+            loadFromFilesTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
 
-            startTime = glfwGetTime();
+            startTime = window->getTime();
             meshFromQuads.createMeshFromProxies(
                 numProxies, depthBufferSize,
                 remoteCameras[view], quadBuffers, depthOffsets,

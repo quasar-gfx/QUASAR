@@ -17,11 +17,12 @@ public:
     };
 
     bool running = false;
+    bool tween = false;
 
-    Animator(const std::string& pathFile);
+    Animator(const std::string& pathFile, bool tween = false);
 
     void loadAnimation(const std::string& pathFile);
-    void update(double deltaTime);
+    void update(double dt);
 
     glm::vec3 getCurrentPosition() const;
     glm::quat getCurrentRotation() const;

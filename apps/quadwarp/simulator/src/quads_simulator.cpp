@@ -201,7 +201,7 @@ int main(int argc, char** argv) {
         static bool showMeshCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
-        static int intervalIndex = !animationFileIn ? 0 : 3;
+        static int intervalIndex = !animationFileIn ? 0 : 5;
 
         static bool showEnvMap = true;
 
@@ -486,10 +486,14 @@ int main(int argc, char** argv) {
         }
 
         if (animator.running) {
-            animator.update(dt);
             localCamera.setPosition(animator.getCurrentPosition());
             localCamera.setRotationQuat(animator.getCurrentRotation());
             localCamera.updateViewMatrix();
+
+            animator.update(dt);
+            if (!animator.running) {
+                window->close();
+            }
         }
         else {
             // handle keyboard input
@@ -504,11 +508,11 @@ int main(int argc, char** argv) {
 
         // update all animations
         if (runAnimations) {
-            remoteScene.updateAnimations(dt);
+            // remoteScene.updateAnimations(dt);
         }
 
         if (generateIFrame || generatePFrame) {
-            double startTime = glfwGetTime();
+            double startTime = window->getTime();
             double totalRenderTime = 0.0;
             double totalCreateProxiesTime = 0.0;
             double totalGenQuadMapTime = 0.0;
@@ -562,17 +566,17 @@ int main(int argc, char** argv) {
             else {
                 remoteRenderer.drawToRenderTarget(screenShaderNormals, renderTarget);
             }
-            totalRenderTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
+            totalRenderTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
 
             /*
             ============================
             SECOND to FOURTH PASSES: Generate quad map and output proxies
             ============================
             */
-            startTime = glfwGetTime();
+            startTime = window->getTime();
             auto sizes = quadsGenerator.createProxiesFromGBuffer(remoteRenderer.gBuffer, remoteCamera);
             unsigned int numProxies = sizes.numProxies;
-            totalCreateProxiesTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
+            totalCreateProxiesTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
             totalGenQuadMapTime += quadsGenerator.stats.timeToGenerateQuadsMs;
             totalSimplifyTime += quadsGenerator.stats.timeToSimplifyQuadsMs;
             totalFillQuadsTime += quadsGenerator.stats.timeToFillOutputQuadsMs;
@@ -580,15 +584,15 @@ int main(int argc, char** argv) {
             if (saveToFile) {
                 unsigned int savedBytes;
 
-                startTime = glfwGetTime();
+                startTime = window->getTime();
                 savedBytes = quadsGenerator.saveToFile(dataPath + "quads.bin");
                 std::cout << "Saved " << savedBytes << " quads (" << (float)savedBytes / BYTES_IN_MB << " MB)" << std::endl;
-                std::cout << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms to save proxies" << std::endl;
+                std::cout << (window->getTime() - startTime) * MILLISECONDS_IN_SECOND << "ms to save proxies" << std::endl;
 
-                startTime = glfwGetTime();
+                startTime = window->getTime();
                 savedBytes = quadsGenerator.saveDepthOffsetsToFile(dataPath + "depthOffsets.bin");
                 std::cout << "Saved " << savedBytes << " depth offsets (" << (float)savedBytes / BYTES_IN_MB << " MB)" << std::endl;
-                std::cout << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms to save depth offsets" << std::endl;
+                std::cout << (window->getTime() - startTime) * MILLISECONDS_IN_SECOND << "ms to save depth offsets" << std::endl;
 
                 // save color buffer
                 std::string colorFileName = dataPath + "color.png";
@@ -600,7 +604,7 @@ int main(int argc, char** argv) {
             FIFTH PASS: Generate mesh from quads
             ============================
             */
-            startTime = glfwGetTime();
+            startTime = window->getTime();
             if (generateIFrame) {
                 meshFromQuads.createMeshFromProxies(
                     numProxies, quadsGenerator.depthBufferSize,
@@ -712,38 +716,11 @@ int main(int argc, char** argv) {
         }
 
         if (saveImage) {
-            if (!animationFileIn) {
-                glm::vec3 position = localCamera.getPosition();
-                glm::vec3 rotation = localCamera.getRotationEuler();
-                std::string positionStr = to_string_with_precision(position.x) + "_" + to_string_with_precision(position.y) + "_" + to_string_with_precision(position.z);
-                std::string rotationStr = to_string_with_precision(rotation.x) + "_" + to_string_with_precision(rotation.y) + "_" + to_string_with_precision(rotation.z);
-
-                std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
-
-                std::string fileName = dataPath + "screenshot." + positionStr + "_" + rotationStr;
-                recorder.saveScreenshotToFile(fileName);
-                window->close();
-            }
-            else {
-                std::string line;
-                if (std::getline(fileStream, line)) {
-                    std::stringstream ss(line);
-                    float px, py, pz;
-                    float rx, ry, rz;
-                    int64_t timestampMs;
-                    ss >> px >> py >> pz >> rx >> ry >> rz >> timestampMs;
-                    localCamera.setPosition(glm::vec3(px, py, pz));
-                    localCamera.setRotationEuler(glm::vec3(rx, ry, rz));
-                    localCamera.updateViewMatrix();
-
-                    recorder.captureFrame(localCamera);
-                }
-                else {
-                    fileStream.close();
-                    recorder.stop();
-                    window->close();
-                }
-            }
+            static int frameNum = 0;
+            std::stringstream ss;
+            ss << dataPath << "frame_" << std::setw(6) << std::setfill('0') << frameNum++;
+            std::string fileName = ss.str();
+            recorder.saveScreenshotToFile(fileName);
         }
     });
 

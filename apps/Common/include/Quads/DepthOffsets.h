@@ -46,8 +46,8 @@ public:
 #endif
     }
 
-#if !defined(__APPLE__) && !defined(__ANDROID__)
     unsigned int saveToFile(const std::string &filename) {
+#if !defined(__APPLE__) && !defined(__ANDROID__)
         cudaArray* cudaBuffer;
         CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
         CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
@@ -62,10 +62,10 @@ public:
         std::ofstream file(filename, std::ios::binary);
         file.write(reinterpret_cast<const char*>(data.data()), data.size());
         file.close();
+#endif
 
         return data.size();
     }
-#endif
 
     unsigned int loadFromMemory(const char* data) {
 #if !defined(__APPLE__) && !defined(__ANDROID__)

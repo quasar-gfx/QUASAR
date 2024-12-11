@@ -113,7 +113,6 @@ int main(int argc, char** argv) {
     std::ifstream fileStream;
     if (saveImage && animationFileIn) {
         recorder.setOutputPath(dataPath);
-        recorder.start();
 
         fileStream.open(animationFile);
         if (!fileStream.is_open()) {
@@ -339,10 +338,14 @@ int main(int argc, char** argv) {
         }
 
         if (animator.running) {
-            animator.update(dt);
             camera.setPosition(animator.getCurrentPosition());
             camera.setRotationQuat(animator.getCurrentRotation());
             camera.updateViewMatrix();
+
+            animator.update(dt);
+            if (!animator.running) {
+                window->close();
+            }
         }
         else {
             // handle keyboard input
@@ -402,38 +405,11 @@ int main(int argc, char** argv) {
         }
 
         if (saveImage) {
-            if (!animationFileIn) {
-                glm::vec3 position = camera.getPosition();
-                glm::vec3 rotation = camera.getRotationEuler();
-                std::string positionStr = to_string_with_precision(position.x) + "_" + to_string_with_precision(position.y) + "_" + to_string_with_precision(position.z);
-                std::string rotationStr = to_string_with_precision(rotation.x) + "_" + to_string_with_precision(rotation.y) + "_" + to_string_with_precision(rotation.z);
-
-                std::cout << "Saving output with pose: Position(" << positionStr << ") Rotation(" << rotationStr << ")" << std::endl;
-
-                std::string fileName = dataPath + "screenshot." + positionStr + "_" + rotationStr;
-                recorder.saveScreenshotToFile(fileName);
-                window->close();
-            }
-            else {
-                std::string line;
-                if (std::getline(fileStream, line)) {
-                    std::stringstream ss(line);
-                    float px, py, pz;
-                    float rx, ry, rz;
-                    int64_t timestampMs;
-                    ss >> px >> py >> pz >> rx >> ry >> rz >> timestampMs;
-                    camera.setPosition(glm::vec3(px, py, pz));
-                    camera.setRotationEuler(glm::vec3(rx, ry, rz));
-                    camera.updateViewMatrix();
-
-                    recorder.captureFrame(camera);
-                }
-                else {
-                    fileStream.close();
-                    recorder.stop();
-                    window->close();
-                }
-            }
+            static int frameNum = 0;
+            std::stringstream ss;
+            ss << dataPath << "frame_" << std::setw(6) << std::setfill('0') << frameNum++;
+            std::string fileName = ss.str();
+            recorder.saveScreenshotToFile(fileName);
         }
     });
 

@@ -13,17 +13,17 @@ Recorder::~Recorder() {
     }
 }
 
-void Recorder::saveScreenshotToFile(const std::string &filename, bool saveAsHDR) {
+void Recorder::saveScreenshotToFile(const std::string &fileName, bool saveAsHDR) {
     shader.bind();
     shader.setBool("gammaCorrect", true);
     renderer.drawToRenderTarget(shader, renderTargetTemp);
     shader.setBool("gammaCorrect", false);
 
     if (saveAsHDR) {
-        renderTargetTemp.saveColorAsHDR(filename + ".hdr");
+        renderTargetTemp.saveColorAsHDR(fileName + ".hdr");
     }
     else {
-        renderTargetTemp.saveColorAsPNG(filename + ".png");
+        renderTargetTemp.saveColorAsPNG(fileName + ".png");
     }
 }
 
@@ -169,14 +169,14 @@ void Recorder::saveFrames() {
             size_t currentFrame = frameCount++;
             std::stringstream ss;
             ss << outputPath << "frame_" << std::setw(6) << std::setfill('0') << currentFrame;
-            std::string filename = ss.str();
+            std::string fileName = ss.str();
 
             FileIO::flipVerticallyOnWrite(true);
             if (outputFormat == OutputFormat::PNG) {
-                FileIO::saveAsPNG(filename + ".png", renderTargetTemp.width, renderTargetTemp.height, 4, frameData.frame.data());
+                FileIO::saveAsPNG(fileName + ".png", renderTargetTemp.width, renderTargetTemp.height, 4, frameData.frame.data());
             }
             else {
-                FileIO::saveAsJPG(filename + ".jpg", renderTargetTemp.width, renderTargetTemp.height, 4, frameData.frame.data());
+                FileIO::saveAsJPG(fileName + ".jpg", renderTargetTemp.width, renderTargetTemp.height, 4, frameData.frame.data());
             }
         }
 

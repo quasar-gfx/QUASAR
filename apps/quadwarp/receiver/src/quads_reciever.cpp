@@ -90,7 +90,7 @@ int main(int argc, char** argv) {
     unsigned int totalProxies = -1;
     unsigned int totalDepthOffsets = -1;
 
-    double startTime = glfwGetTime();
+    double startTime = window->getTime();
     double loadFromFilesTime = 0.0;
     double createMeshTime = 0.0;
     if (!args::get(loadProxies)) {
@@ -100,8 +100,8 @@ int main(int argc, char** argv) {
         auto vertexData = FileIO::loadBinaryFile(verticesFileName);
         auto indexData = FileIO::loadBinaryFile(indicesFileName);
 
-        loadFromFilesTime = glfwGetTime() - startTime;
-        startTime = glfwGetTime();
+        loadFromFilesTime = window->getTime() - startTime;
+        startTime = window->getTime();
 
         std::vector<Vertex> vertices(vertexData.size() / sizeof(Vertex));
         std::memcpy(vertices.data(), vertexData.data(), vertexData.size());
@@ -117,7 +117,7 @@ int main(int argc, char** argv) {
 
         totalTriangles = indices.size() / 3;
 
-        createMeshTime = (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
+        createMeshTime = (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
     }
     else {
         unsigned int maxQuads = windowSize.x * windowSize.y * NUM_SUB_QUADS;
@@ -126,7 +126,7 @@ int main(int argc, char** argv) {
         const glm::uvec2 depthBufferSize = 2u * windowSize;
         DepthOffsets depthOffsets(depthBufferSize);
 
-        startTime = glfwGetTime();
+        startTime = window->getTime();
         // load proxies
         unsigned int numProxies = quadBuffers.loadFromFile(DATA_PATH + "quads.bin");
         // load depth offsets
@@ -139,9 +139,9 @@ int main(int argc, char** argv) {
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true
         });
-        loadFromFilesTime = (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
+        loadFromFilesTime = (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
 
-        startTime = glfwGetTime();
+        startTime = window->getTime();
         meshFromQuads.createMeshFromProxies(
             numProxies, depthBufferSize,
             remoteCamera, quadBuffers, depthOffsets,
