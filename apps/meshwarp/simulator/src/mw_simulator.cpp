@@ -73,6 +73,7 @@ int main(int argc, char** argv) {
     config.guiManager = guiManager;
 
     OpenGLApp app(config);
+    ForwardRenderer remoteRenderer(config);
     ForwardRenderer renderer(config);
 
     glm::uvec2 windowSize = window->getSize();
@@ -383,12 +384,12 @@ int main(int argc, char** argv) {
             preventCopyingLocalPose = false;
 
             // render remoteScene
-            renderer.drawObjects(remoteScene, remoteCamera);
+            remoteRenderer.drawObjects(remoteScene, remoteCamera);
 
             // copy rendered result to video render target
             toneMapShader.bind();
             toneMapShader.setBool("toneMap", false); // dont apply tone mapping
-            renderer.drawToRenderTarget(toneMapShader, renderTarget);
+            remoteRenderer.drawToRenderTarget(toneMapShader, renderTarget);
 
             std::cout << "  Rendering Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
             startTime = glfwGetTime();
@@ -396,7 +397,7 @@ int main(int argc, char** argv) {
             // Set shader uniforms
             genMeshFromDepthShader.bind();
             {
-                genMeshFromDepthShader.setTexture(renderer.gBuffer.depthStencilBuffer, 0);
+                genMeshFromDepthShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
             }
             {
                 genMeshFromDepthShader.setVec2("depthMapSize", depthMapSize);

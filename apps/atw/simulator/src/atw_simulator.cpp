@@ -67,6 +67,7 @@ int main(int argc, char** argv) {
     config.guiManager = guiManager;
 
     OpenGLApp app(config);
+    ForwardRenderer remoteRenderer(config);
     ForwardRenderer renderer(config);
 
     glm::uvec2 windowSize = window->getSize();
@@ -313,10 +314,10 @@ int main(int argc, char** argv) {
             }
 
             // render remoteScene
-            renderer.drawObjects(remoteScene, remoteCamera);
+            remoteRenderer.drawObjects(remoteScene, remoteCamera);
 
             // copy rendered result to video render target
-            renderer.drawToRenderTarget(toneMapShader, renderTarget);
+            remoteRenderer.drawToRenderTarget(toneMapShader, renderTarget);
 
             std::cout << "======================================================" << std::endl;
             std::cout << "  Rendering Time: " << (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
@@ -352,7 +353,11 @@ int main(int argc, char** argv) {
         {
             atwShader.setTexture("videoTexture", renderTarget.colorBuffer, 5);
         }
-        renderStats = renderer.drawToScreen(atwShader);
+        renderStats = remoteRenderer.drawToRenderTarget(atwShader, renderer.gBuffer);
+
+        toneMapShader.bind();
+        toneMapShader.setBool("toneMap", false);
+        renderer.drawToScreen(toneMapShader);
 
         if (recording) {
             recorder.captureFrame(camera);
