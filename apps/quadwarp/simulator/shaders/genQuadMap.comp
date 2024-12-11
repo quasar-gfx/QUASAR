@@ -82,7 +82,6 @@ uniform mat4 view;
 uniform mat4 projection;
 uniform mat4 viewInverse;
 uniform mat4 projectionInverse;
-
 uniform float near;
 uniform float far;
 

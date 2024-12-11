@@ -24,16 +24,22 @@ public:
     };
 
     struct Stats {
+        double timeToFillOutputQuadsMs = -1.0f;
         double timeToCreateMeshMs = -1.0f;
     } stats;
 
     glm::uvec2 remoteWindowSize;
     glm::uvec2 atlasSize;
+    unsigned int maxQuads;
 
     Texture atlas;
 
     MeshFromQuads(const glm::uvec2 &remoteWindowSize);
     ~MeshFromQuads() = default;
+
+    void fillQuadIndices(
+            unsigned int numProxies,
+            const QuadBuffers &quadBuffers);
 
     void createMeshFromProxies(
             unsigned int numProxies, const glm::uvec2 &depthBufferSize,
@@ -62,9 +68,13 @@ public:
     BufferSizes getBufferSizes();
 
 private:
-    Buffer<BufferSizes> sizesBuffer;
-    Buffer<glm::ivec2> atlasOffsetBuffer;
+    Buffer<BufferSizes> meshSizesBuffer;
+    // Buffer<glm::ivec2> atlasOffsetBuffer;
+    Buffer<int> quadCreatedFlagsBuffer;
 
+    Texture quadIndicesBuffer;
+
+    ComputeShader fillQuadIndicesShader;
     ComputeShader createMeshFromQuadsShader;
 };
 

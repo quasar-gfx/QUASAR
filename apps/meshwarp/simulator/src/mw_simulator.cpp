@@ -456,9 +456,7 @@ int main(int argc, char** argv) {
         }
 
         // render generated meshes
-        renderer.pipeline.rasterState.cullFaceEnabled = false;
         renderStats = renderer.drawObjects(scene, camera);
-        renderer.pipeline.rasterState.cullFaceEnabled = true;
 
         toneMapShader.bind();
         toneMapShader.setBool("toneMap", true);

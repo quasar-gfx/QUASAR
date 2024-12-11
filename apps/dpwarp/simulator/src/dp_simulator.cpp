@@ -829,9 +829,7 @@ int main(int argc, char** argv) {
         }
 
         // render all objects in scene
-        renderer.pipeline.rasterState.cullFaceEnabled = false;
         renderStats = renderer.drawObjects(scene, camera);
-        renderer.pipeline.rasterState.cullFaceEnabled = true;
 
         // render to screen
         toneMapShader.bind();

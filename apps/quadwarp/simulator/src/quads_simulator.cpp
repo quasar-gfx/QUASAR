@@ -81,24 +81,44 @@ int main(int argc, char** argv) {
     // "remote" scene
     Scene remoteScene;
     PerspectiveCamera remoteCamera(remoteWindowSize.x, remoteWindowSize.y);
+    PerspectiveCamera remoteCameraPrev(remoteWindowSize.x, remoteWindowSize.y);
     SceneLoader loader;
     loader.loadScene(sceneFile, remoteScene, remoteCamera);
+    remoteCameraPrev.setViewMatrix(remoteCamera.getViewMatrix());
 
     // "local" scene
-    Scene localScene;
-    localScene.envCubeMap = remoteScene.envCubeMap;
+    std::vector<Scene> localScenes(2);
+    localScenes[0].envCubeMap = remoteScene.envCubeMap;
+    localScenes[1].envCubeMap = remoteScene.envCubeMap;
     PerspectiveCamera localCamera(windowSize.x, windowSize.y);
     localCamera.setViewMatrix(remoteCamera.getViewMatrix());
 
-    // scene with all the meshes
-    Scene meshScene;
+    // scenes with resulting mesh
+    std::vector<Scene> meshScenes(2);
+    int currMeshIndex = 0, prevMeshIndex = 1;
 
     QuadsGenerator quadsGenerator(remoteWindowSize);
     MeshFromQuads meshFromQuads(remoteWindowSize);
 
+    unsigned int maxVertices = remoteWindowSize.x * remoteWindowSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
+    unsigned int maxTriangles = remoteWindowSize.x * remoteWindowSize.y * NUM_SUB_QUADS * 2;
+    unsigned int maxIndices = maxTriangles * 3;
+    unsigned int maxVerticesDepth = remoteWindowSize.x * remoteWindowSize.y;
+
     RenderTarget renderTarget({
-        .width = windowSize.x,
-        .height = windowSize.y,
+        .width = remoteWindowSize.x,
+        .height = remoteWindowSize.y,
+        .internalFormat = GL_RGBA16F,
+        .format = GL_RGBA,
+        .type = GL_HALF_FLOAT,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST
+    });
+    RenderTarget renderTargetPrev({
+        .width = remoteWindowSize.x,
+        .height = remoteWindowSize.y,
         .internalFormat = GL_RGBA16F,
         .format = GL_RGBA,
         .type = GL_HALF_FLOAT,
@@ -108,29 +128,31 @@ int main(int argc, char** argv) {
         .magFilter = GL_NEAREST
     });
 
-    unsigned int maxVertices = remoteWindowSize.x * remoteWindowSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
-    unsigned int numTriangles = remoteWindowSize.x * remoteWindowSize.y * NUM_SUB_QUADS * 2;
-    unsigned int maxIndices = numTriangles * 3;
-    unsigned int maxVerticesDepth = remoteWindowSize.x * remoteWindowSize.y;
-
-    Mesh mesh = Mesh({
+    std::vector<Mesh> meshes; meshes.reserve(2);
+    std::vector<Node> nodeMeshes(2);
+    std::vector<Node> nodeWireframes(2);
+    MeshSizeCreateParams meshParams = {
         .numVertices = maxVertices,
         .numIndices = maxIndices,
-        .material = new QuadMaterial({ .baseColorTexture = &meshFromQuads.atlas }),
         .usage = GL_DYNAMIC_DRAW,
         .indirectDraw = true
-    });
-    Node node = Node(&mesh);
-    node.frustumCulled = false;
-    localScene.addChildNode(&node);
-    meshScene.addChildNode(&node);
+    };
+    for (int i = 0; i < 2; i++) {
+        meshParams.material = new QuadMaterial({ .baseColorTexture = &renderTarget.colorBuffer });
+        meshes.emplace_back(meshParams);
+        nodeMeshes[i] = Node(&meshes[i]);
+        nodeMeshes[i].frustumCulled = false;
+        meshScenes[i].addChildNode(&nodeMeshes[i]);
 
-    Node nodeWireframe = Node(&mesh);
-    nodeWireframe.frustumCulled = false;
-    nodeWireframe.wireframe = true;
-    nodeWireframe.visible = false;
-    nodeWireframe.overrideMaterial = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
-    localScene.addChildNode(&nodeWireframe);
+        nodeWireframes[i] = Node(&meshes[i]);
+        nodeWireframes[i].frustumCulled = false;
+        nodeWireframes[i].wireframe = true;
+        nodeWireframes[i].visible = false;
+        nodeWireframes[i].overrideMaterial = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
+
+        localScenes[i].addChildNode(&nodeMeshes[i]);
+        localScenes[i].addChildNode(&nodeWireframes[i]);
+    }
 
     Mesh meshDepth = Mesh({
         .numVertices = maxVerticesDepth,
@@ -141,7 +163,8 @@ int main(int argc, char** argv) {
     nodeDepth.frustumCulled = false;
     nodeDepth.visible = false;
     nodeDepth.primativeType = GL_POINTS;
-    localScene.addChildNode(&nodeDepth);
+    localScenes[0].addChildNode(&nodeDepth);
+    localScenes[1].addChildNode(&nodeDepth);
 
     // shaders
     ToneMapShader toneMapShader;
@@ -278,14 +301,18 @@ int main(int argc, char** argv) {
             ImGui::SliderFloat("Movement Speed", &localCamera.movementSpeed, 0.1f, 20.0f);
 
             if (ImGui::Checkbox("Show Environment Map", &showEnvMap)) {
-                localScene.envCubeMap = showEnvMap ? remoteScene.envCubeMap : nullptr;
+                localScenes[0].envCubeMap = showEnvMap ? remoteScene.envCubeMap : nullptr;
+                localScenes[1].envCubeMap = showEnvMap ? remoteScene.envCubeMap : nullptr;
             }
 
             if (ImGui::Button("Change Background Color", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
                 ImGui::OpenPopup("Background Color Popup");
             }
             if (ImGui::BeginPopup("Background Color Popup")) {
-                ImGui::ColorPicker3("Background Color", (float*)&localScene.backgroundColor);
+                glm::vec4 background = localScenes[0].backgroundColor;
+                ImGui::ColorPicker3("Background Color", (float*)&background);
+                localScenes[0].backgroundColor = background;
+                localScenes[1].backgroundColor = background;
                 ImGui::EndPopup();
             }
 
@@ -401,8 +428,8 @@ int main(int argc, char** argv) {
                 std::string indicesFileName = dataPath + "indices.bin";
 
                 // save vertexBuffer
-                mesh.vertexBuffer.bind();
-                std::vector<Vertex> vertices = mesh.vertexBuffer.getData();
+                meshes[currMeshIndex].vertexBuffer.bind();
+                std::vector<Vertex> vertices = meshes[currMeshIndex].vertexBuffer.getData();
                 std::ofstream verticesFile(dataPath + verticesFileName, std::ios::binary);
                 verticesFile.write((char*)vertices.data(), meshBufferSizes.numVertices * sizeof(Vertex));
                 verticesFile.close();
@@ -411,8 +438,8 @@ int main(int argc, char** argv) {
                               " MB)" << std::endl;
 
                 // save indexBuffer
-                mesh.indexBuffer.bind();
-                std::vector<unsigned int> indices = mesh.indexBuffer.getData();
+                meshes[currMeshIndex].indexBuffer.bind();
+                std::vector<unsigned int> indices = meshes[currMeshIndex].indexBuffer.getData();
                 std::ofstream indicesFile(dataPath + indicesFileName, std::ios::binary);
                 indicesFile.write((char*)indices.data(), meshBufferSizes.numIndices * sizeof(unsigned int));
                 indicesFile.close();
@@ -435,8 +462,12 @@ int main(int argc, char** argv) {
         }
 
         flags = 0;
-        ImGui::Begin("Texture Atlas", 0, flags);
-        ImGui::Image((void*)(intptr_t)(meshFromQuads.atlas), ImVec2(500, 500), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Begin("Prev Color", 0, flags);
+        ImGui::Image((void*)(intptr_t)(renderTargetPrev.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::End();
+
+        ImGui::Begin("Current Color", 0, flags);
+        ImGui::Image((void*)(intptr_t)(renderTarget.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
         ImGui::End();
     });
 
@@ -524,7 +555,11 @@ int main(int argc, char** argv) {
             double totalSimplifyTime = 0.0;
             double totalFillQuadsTime = 0.0;
             double totalCreateMeshTime = 0.0;
+            double totalStencilTime = 0.0;
             double totalGenDepthTime = 0.0;
+
+            std::cout << "======================================================" << std::endl;
+            std::cout << "currMeshIndex: " << currMeshIndex << std::endl;
 
             if (!preventCopyingLocalPose) {
                 remoteCamera.setPosition(localCamera.getPosition());
@@ -532,38 +567,12 @@ int main(int argc, char** argv) {
                 remoteCamera.updateViewMatrix();
             }
 
-            /*
-            ============================
-            FIRST PASS: Render the scene to a G-Buffer render target
-            ============================
-            */
-            if (generateIFrame) {
-                // render all objects in remoteScene normally
-                remoteRenderer.drawObjects(remoteScene, remoteCamera);
-            }
-            else if (generatePFrame) {
-                // draw old meshes at new remoteCamera view, filling depth buffer
-                remoteRenderer.pipeline.writeMaskState.disableColorWrites();
-                remoteRenderer.drawObjectsNoLighting(meshScene, remoteCamera);
+            auto& currRemoteCamera = generatePFrame ? remoteCameraPrev : remoteCamera;
 
-                // render remoteScene into stencil buffer, with depth buffer from meshScene
-                // this should draw objects in remoteScene that are not occluded by meshScene, setting
-                // the stencil buffer to 1 where the depth of remoteScene is less than meshScene
-                remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
-                remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = true;
-                remoteRenderer.pipeline.rasterState.polygonOffsetUnits = 10000.0f;
-                remoteRenderer.drawObjectsNoLighting(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+            // render all objects in remoteScene normally
+            remoteRenderer.drawObjects(remoteScene, currRemoteCamera);
 
-                // render remoteScene using stencil buffer as a mask
-                // at values were stencil buffer is 1, remoteScene should render
-                remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask();
-                remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = false;
-                // remoteRenderer.pipeline.depthState.depthFunc = GL_LESS;
-                remoteRenderer.pipeline.writeMaskState.enableColorWrites();
-                remoteRenderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-                remoteRenderer.pipeline.stencilState.restoreStencilState();
-            }
+            renderTarget.blitToRenderTarget(renderTargetPrev);
             if (!showNormals) {
                 toneMapShader.bind();
                 toneMapShader.setBool("toneMap", false); // dont apply tone mapping
@@ -574,11 +583,6 @@ int main(int argc, char** argv) {
             }
             totalRenderTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
 
-            /*
-            ============================
-            SECOND to FOURTH PASSES: Generate quad map and output proxies
-            ============================
-            */
             startTime = window->getTime();
             auto sizes = quadsGenerator.createProxiesFromGBuffer(remoteRenderer.gBuffer, remoteCamera);
             unsigned int numProxies = sizes.numProxies;
@@ -587,6 +591,69 @@ int main(int argc, char** argv) {
             totalSimplifyTime += quadsGenerator.stats.timeToSimplifyQuadsMs;
             totalFillQuadsTime += quadsGenerator.stats.timeToFillOutputQuadsMs;
 
+            // create mesh from proxies
+            startTime = glfwGetTime();
+            meshFromQuads.fillQuadIndices(numProxies, quadsGenerator.outputQuadBuffers);
+            meshFromQuads.createMeshFromProxies(
+                numProxies, quadsGenerator.depthBufferSize,
+                currRemoteCamera,
+                quadsGenerator.outputQuadBuffers,
+                quadsGenerator.depthOffsets,
+                renderTarget.colorBuffer,
+                meshes[currMeshIndex]
+            );
+            totalCreateMeshTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
+
+            if (generatePFrame) {
+                startTime = glfwGetTime();
+                // at this point, the current mesh is filled with the current frame
+
+                // draw prev meshes at old remoteCamera view, filling depth buffer
+                remoteRenderer.pipeline.writeMaskState.disableColorWrites();
+                remoteRenderer.drawObjectsNoLighting(meshScenes[prevMeshIndex], currRemoteCamera);
+
+                // render the current mesh scene into stencil buffer, with depth buffer from the prev mesh scene
+                // this should draw fragments in the curr mesh that are not occluded by the prev mesh scene, setting
+                // the stencil buffer to 1 where the depth of the curr mesh is the same as the prev mesh scene
+                remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
+                // remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = true;
+                // remoteRenderer.pipeline.rasterState.polygonOffsetUnits = 10000.0f;
+                remoteRenderer.pipeline.depthState.depthFunc = GL_EQUAL;
+                remoteRenderer.drawObjectsNoLighting(meshScenes[currMeshIndex], currRemoteCamera, GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+                // now, render remoteScene using stencil buffer as a mask
+                // at values were stencil buffer is 1, remoteScene should render
+                remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask();
+                // remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = false;
+                remoteRenderer.pipeline.depthState.depthFunc = GL_LESS;
+                remoteRenderer.pipeline.writeMaskState.enableColorWrites();
+                remoteRenderer.drawObjects(remoteScene, currRemoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+                remoteRenderer.pipeline.stencilState.restoreStencilState();
+                totalStencilTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
+
+                startTime = glfwGetTime();
+                auto sizes = quadsGenerator.createProxiesFromGBuffer(remoteRenderer.gBuffer, currRemoteCamera);
+                unsigned int numProxies = sizes.numProxies;
+                totalCreateProxiesTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
+                totalGenQuadMapTime += quadsGenerator.stats.timeToGenerateQuadsMs;
+                totalSimplifyTime += quadsGenerator.stats.timeToSimplifyQuadsMs;
+                totalFillQuadsTime += quadsGenerator.stats.timeToFillOutputQuadsMs;
+
+                // generate mesh from proxies
+                meshFromQuads.fillQuadIndices(numProxies, quadsGenerator.outputQuadBuffers);
+                meshFromQuads.createMeshFromProxies(
+                    numProxies, quadsGenerator.depthBufferSize,
+                    currRemoteCamera,
+                    quadsGenerator.outputQuadBuffers,
+                    quadsGenerator.depthOffsets,
+                    renderTarget.colorBuffer,
+                    meshes[currMeshIndex]
+                );
+                totalCreateMeshTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
+            }
+
+            // save to file if requested
             if (saveToFile) {
                 unsigned int savedBytes;
 
@@ -604,32 +671,10 @@ int main(int argc, char** argv) {
                 std::string colorFileName = dataPath + "color.png";
                 renderTarget.saveColorAsPNG(colorFileName);
             }
+            currMeshIndex = (currMeshIndex + 1) % 2;
+            prevMeshIndex = (prevMeshIndex + 1) % 2;
 
-            /*
-            ============================
-            FIFTH PASS: Generate mesh from quads
-            ============================
-            */
-            startTime = window->getTime();
-            if (generateIFrame) {
-                meshFromQuads.createMeshFromProxies(
-                    numProxies, quadsGenerator.depthBufferSize,
-                    remoteCamera,
-                    quadsGenerator.outputQuadBuffers,
-                    quadsGenerator.depthOffsets,
-                    renderTarget.colorBuffer,
-                    mesh);
-            }
-            else if (generatePFrame) {
-                meshFromQuads.appendGeometry(
-                    numProxies, quadsGenerator.depthBufferSize,
-                    remoteCamera,
-                    quadsGenerator.outputQuadBuffers,
-                    quadsGenerator.depthOffsets,
-                    renderTarget.colorBuffer,
-                    mesh);
-            }
-            totalCreateMeshTime += meshFromQuads.stats.timeToCreateMeshMs;
+            remoteCameraPrev.setViewMatrix(remoteCamera.getViewMatrix());
 
             /*
             ============================
@@ -674,6 +719,7 @@ int main(int argc, char** argv) {
             std::cout << "     Simplify Time: " << totalSimplifyTime << "ms" << std::endl;
             std::cout << "     Fill Quads Time: " << totalFillQuadsTime << "ms" << std::endl;
             std::cout << "  Create Mesh Time: " << totalCreateMeshTime << "ms" << std::endl;
+            std::cout << "  Stencil Time: " << totalStencilTime << "ms" << std::endl;
             if (showDepth) std::cout << "  Gen Depth Time: " << totalGenDepthTime << "ms" << std::endl;
 
             preventCopyingLocalPose = false;
@@ -682,7 +728,9 @@ int main(int argc, char** argv) {
             saveToFile = false;
         }
 
-        nodeWireframe.visible = showWireframe;
+        for (int i = 0; i < 2; i++) {
+            nodeWireframes[i].visible = showWireframe;
+        }
         nodeDepth.visible = showDepth;
 
         if (saveImage && args::get(poseOffset).size() == 6) {
@@ -709,7 +757,7 @@ int main(int argc, char** argv) {
 
         // render generated meshes
         renderer.pipeline.rasterState.cullFaceEnabled = false;
-        renderStats = renderer.drawObjects(localScene, localCamera);
+        renderStats = renderer.drawObjects(localScenes[prevMeshIndex], localCamera);
         renderer.pipeline.rasterState.cullFaceEnabled = true;
 
         // render to screen

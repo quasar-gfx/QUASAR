@@ -34,7 +34,7 @@ struct StencilState {
     };
 
     void enableRenderingUsingStencilBufferAsMask() {
-        stencilFunc = GL_EQUAL;
+        stencilFunc = GL_NOTEQUAL;
         stencilRef = 1;
         stencilMask = 0xFF;
 
