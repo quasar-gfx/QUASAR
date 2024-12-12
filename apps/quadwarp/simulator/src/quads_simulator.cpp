@@ -333,7 +333,7 @@ int main(int argc, char** argv) {
                 runAnimations = false;
             }
 
-            if (ImGui::SliderFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.0f, 1.0f)) {
+            if (ImGui::SliderFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.0f, 5.0f)) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
                 runAnimations = false;

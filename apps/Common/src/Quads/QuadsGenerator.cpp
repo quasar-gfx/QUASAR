@@ -104,8 +104,7 @@ void QuadsGenerator::generateInitialQuadMap(const GeometryBuffer& gBuffer, const
 
         genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, quadBuffers[0].normalSphericalsBuffer);
         genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, quadBuffers[0].depthsBuffer);
-        genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, quadBuffers[0].xysBuffer);
-        genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, quadBuffers[0].offsetSizeFlattenedsBuffer);
+        genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, quadBuffers[0].offsetSizeFlattenedsBuffer);
     }
     genQuadMapShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
                               (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
@@ -156,13 +155,11 @@ void QuadsGenerator::simplifyQuadMaps(const PerspectiveCamera &remoteCamera) {
         {
             simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, prevQuadBuffers.normalSphericalsBuffer);
             simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, prevQuadBuffers.depthsBuffer);
-            simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, prevQuadBuffers.xysBuffer);
-            simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, prevQuadBuffers.offsetSizeFlattenedsBuffer);
+            simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, prevQuadBuffers.offsetSizeFlattenedsBuffer);
 
-            simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, currQuadBuffers.normalSphericalsBuffer);
-            simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, currQuadBuffers.depthsBuffer);
-            simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, currQuadBuffers.xysBuffer);
-            simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, currQuadBuffers.offsetSizeFlattenedsBuffer);
+            simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, currQuadBuffers.normalSphericalsBuffer);
+            simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, currQuadBuffers.depthsBuffer);
+            simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, currQuadBuffers.offsetSizeFlattenedsBuffer);
         }
         simplifyQuadMapShader.dispatch((currQuadMapSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
                                        (currQuadMapSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
@@ -195,13 +192,11 @@ void QuadsGenerator::fillOutputQuads() {
 
             fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, currQuadBuffers.normalSphericalsBuffer);
             fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, currQuadBuffers.depthsBuffer);
-            fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, currQuadBuffers.xysBuffer);
-            fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, currQuadBuffers.offsetSizeFlattenedsBuffer);
+            fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, currQuadBuffers.offsetSizeFlattenedsBuffer);
 
-            fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, outputQuadBuffers.normalSphericalsBuffer);
-            fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, outputQuadBuffers.depthsBuffer);
-            fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, outputQuadBuffers.xysBuffer);
-            fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 8, outputQuadBuffers.offsetSizeFlattenedsBuffer);
+            fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, outputQuadBuffers.normalSphericalsBuffer);
+            fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, outputQuadBuffers.depthsBuffer);
+            fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, outputQuadBuffers.offsetSizeFlattenedsBuffer);
         }
         fillOutputQuadsShader.dispatch((currQuadMapSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
                                        (currQuadMapSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);

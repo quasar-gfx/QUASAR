@@ -100,8 +100,7 @@ void MeshFromQuads::createMeshFromProxies(
 
         createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, quadBuffers.normalSphericalsBuffer);
         createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, quadBuffers.depthsBuffer);
-        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, quadBuffers.xysBuffer);
-        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 8, quadBuffers.offsetSizeFlattenedsBuffer);
+        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, quadBuffers.offsetSizeFlattenedsBuffer);
 
         // createMeshFromQuadsShader.setImageTexture(1, colorTexture, 0, GL_FALSE, 0, GL_READ_ONLY, colorTexture.internalFormat);
         // createMeshFromQuadsShader.setImageTexture(2, atlas, 0, GL_FALSE, 0, GL_WRITE_ONLY, atlas.internalFormat);

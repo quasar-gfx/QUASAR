@@ -12,7 +12,6 @@ struct QuadMapData {
 struct QuadMapDataPacked {
     uint normalSpherical;
     float depth;
-    uint xy;
     uint offsetSizeFlattened;
 };
 
@@ -29,27 +28,19 @@ layout(std430, binding = 2) readonly buffer depthBufferInput {
     float depthsInput[];
 };
 
-layout(std430, binding = 3) readonly buffer uvsBufferInput {
-    uint uvsInput[];
-};
-
-layout(std430, binding = 4) readonly buffer offsetsBufferInput {
+layout(std430, binding = 3) readonly buffer offsetsBufferInput {
     uint offsetSizeFlattenedsInput[];
 };
 
-layout(std430, binding = 5) writeonly buffer normalSphericalsBufferOutput {
+layout(std430, binding = 4) writeonly buffer normalSphericalsBufferOutput {
     uint normalSphericalsOutput[];
 };
 
-layout(std430, binding = 6) writeonly buffer depthBufferOutput {
+layout(std430, binding = 5) writeonly buffer depthBufferOutput {
     float depthsOutput[];
 };
 
-layout(std430, binding = 7) writeonly buffer uvsBufferOutput {
-    uint uvsOutput[];
-};
-
-layout(std430, binding = 8) writeonly buffer offsetsBufferOutput {
+layout(std430, binding = 6) writeonly buffer offsetsBufferOutput {
     uint offsetSizeFlattenedsOutput[];
 };
 
@@ -87,7 +78,6 @@ QuadMapData loadInputQuadMap(ivec2 pixelCoord) {
     QuadMapDataPacked quadMapDataPacked;
     quadMapDataPacked.normalSpherical = normalSphericalsInput[index];
     quadMapDataPacked.depth = depthsInput[index];
-    quadMapDataPacked.xy = uvsInput[index];
     quadMapDataPacked.offsetSizeFlattened = offsetSizeFlattenedsInput[index];
 
     QuadMapData quadMapData;
@@ -102,9 +92,7 @@ QuadMapData loadInputQuadMap(ivec2 pixelCoord) {
     quadMapData.flattened = (flattenedAndSize & 1u) != 0;
 
     uint halfSize = 1 << (quadMapData.size - 1); // 2^size / 2
-    quadMapData.uv.x = (quadMapDataPacked.xy >> 12) & 0xFFFu;
-    quadMapData.uv.y = (quadMapDataPacked.xy >> 0) & 0xFFFu;
-    quadMapData.uv = (vec2(quadMapData.uv) + halfSize * vec2(0.5)) / remoteWindowSize;
+    quadMapData.uv = (vec2(quadMapData.offset) + halfSize * vec2(0.5)) / remoteWindowSize;
 
     return quadMapData;
 }
@@ -113,7 +101,6 @@ void storeOutputQuadMap(in uint index, in QuadMapData quadMapData) {
     QuadMapDataPacked quadMapDataPacked;
     quadMapDataPacked.normalSpherical = packNormalToSphericalHalf(quadMapData.normal);
     quadMapDataPacked.depth = quadMapData.depth;
-    quadMapDataPacked.xy = ((quadMapData.offset.x & 0xFFFu) << 12) | (quadMapData.offset.y & 0xFFFu);
 
     uint flattenedAndSize = ((quadMapData.size & 0x7Fu) << 1) | (quadMapData.flattened ? 1u : 0u);
     quadMapDataPacked.offsetSizeFlattened = ((quadMapData.offset.x & 0xFFFu) << 20) |
@@ -121,7 +108,6 @@ void storeOutputQuadMap(in uint index, in QuadMapData quadMapData) {
                                                         (flattenedAndSize & 0xFFu);
     normalSphericalsOutput[index] = quadMapDataPacked.normalSpherical;
     depthsOutput[index] = quadMapDataPacked.depth;
-    uvsOutput[index] = quadMapDataPacked.xy;
     offsetSizeFlattenedsOutput[index] = quadMapDataPacked.offsetSizeFlattened;
 }
 

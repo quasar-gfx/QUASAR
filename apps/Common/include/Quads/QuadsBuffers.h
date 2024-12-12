@@ -14,11 +14,9 @@ struct QuadMapDataPacked {
     unsigned int normalSpherical;
     // full resolution depth (32 bits)
     float depth;
-    // x << 12 | y (12 bits each). 24 bits used
-    unsigned int xy;
     // offset.x << 20 | offset.y << 8 (12 bits each) | size << 1 (5 bits) | flattened (1 bit). 30 bits used
     unsigned int offsetSizeFlattened;
-}; // 128 bits total
+}; // 96 bits total
 
 class QuadBuffers {
 public:
@@ -27,7 +25,6 @@ public:
 
     Buffer<unsigned int> normalSphericalsBuffer;
     Buffer<float> depthsBuffer;
-    Buffer<unsigned int> xysBuffer;
     Buffer<unsigned int> offsetSizeFlattenedsBuffer;
 
     std::vector<uint8_t> data;
@@ -41,14 +38,13 @@ public:
     unsigned int loadFromFile(const std::string &filename);
 #ifdef GL_CORE
     unsigned int saveToFile(const std::string &filename);
-    unsigned int updatedataBuffer();
+    unsigned int updateDataBuffer();
 #endif
 
 private:
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     cudaGraphicsResource* cudaResourceNormalSphericals;
     cudaGraphicsResource* cudaResourceDepths;
-    cudaGraphicsResource* cudaResourceXys;
     cudaGraphicsResource* cudaResourceOffsetSizeFlatteneds;
 #endif
 };
