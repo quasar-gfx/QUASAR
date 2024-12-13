@@ -327,13 +327,11 @@ void VideoStreamer::encodeAndSendFrames() {
 
             // send packet to output URL
             ret = av_interleaved_write_frame(outputFormatCtx, packet);
+            av_packet_unref(packet);
             if (ret < 0) {
-                av_packet_unref(packet);
                 av_log(nullptr, AV_LOG_ERROR, "Error writing frame\n");
                 continue;
             }
-
-            av_packet_unref(packet);
 
             framesSent++;
 

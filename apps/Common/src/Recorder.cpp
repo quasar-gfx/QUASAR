@@ -7,10 +7,31 @@
 #include <Utils/FileIO.h>
 #include <Utils/TimeUtils.h>
 
+#undef av_err2str
+#define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
+
 Recorder::~Recorder() {
     if (running) {
         stop();
     }
+}
+
+void Recorder::setOutputPath(const std::string& path) {
+    // add / if not present
+    outputPath = path;
+    if (outputPath.back() != '/') {
+        outputPath += "/";
+    }
+    // create output path if it doesn't exist
+    if (!std::filesystem::exists(outputPath)) {
+        std::filesystem::create_directories(outputPath);
+    }
+}
+
+void Recorder::setTargetFrameRate(int targetFrameRate) {
+    this->targetFrameRate = std::max(1, targetFrameRate);
+    lastCaptureTime = timeutils::getTimeMillis();
+    frameCount = 0;
 }
 
 void Recorder::saveScreenshotToFile(const std::string &fileName, bool saveAsHDR) {
@@ -60,53 +81,35 @@ void Recorder::stop() {
     saveThreadPool.clear();
 
     if (outputFormat == OutputFormat::MP4) {
-        if (codecContext) {
-            int ret = avcodec_send_frame(codecContext, nullptr);
-            while (ret >= 0) {
-                AVPacket* pkt = av_packet_alloc();
-                ret = avcodec_receive_packet(codecContext, pkt);
-                if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-                    av_packet_free(&pkt);
-                    break;
-                }
-                if (ret < 0) {
-                    av_packet_free(&pkt);
-                    break;
-                }
-
-                pkt->stream_index = videoStream->index;
-                av_packet_rescale_ts(pkt, codecContext->time_base, videoStream->time_base);
-                av_interleaved_write_frame(formatContext, pkt);
-                av_packet_free(&pkt);
-            }
-        }
-
         finalizeFFmpeg();
     }
 
     frameQueue = std::queue<FrameData>();
+    frameCount = 0;
 }
 
 void Recorder::captureFrame(const Camera &camera) {
     int64_t currentTime = timeutils::getTimeMillis();
     int64_t elapsedTime = currentTime - recordingStartTime;
-    if (elapsedTime >= frameInterval) {
-        shader.bind();
-        shader.setBool("gammaCorrect", true);
-        renderer.drawToRenderTarget(shader, renderTargetTemp);
-        shader.setBool("gammaCorrect", false);
-
-        std::vector<unsigned char> frameData(renderTargetTemp.width * renderTargetTemp.height * 4);
-        renderTargetTemp.readPixels(frameData.data());
-
-        {
-            std::lock_guard<std::mutex> lock(queueMutex);
-            frameQueue.push(FrameData{std::move(frameData), camera.getPosition(), camera.getRotationEuler(), elapsedTime});
-        }
-        queueCV.notify_one();
-
-        lastCaptureTime = currentTime;
+    if (elapsedTime < 1.0f / targetFrameRate) {
+        return;
     }
+
+    shader.bind();
+    shader.setBool("gammaCorrect", true);
+    renderer.drawToRenderTarget(shader, renderTargetTemp);
+    shader.setBool("gammaCorrect", false);
+
+    std::vector<unsigned char> frameData(renderTargetTemp.width * renderTargetTemp.height * 4);
+    renderTargetTemp.readPixels(frameData.data());
+
+    {
+        std::lock_guard<std::mutex> lock(queueMutex);
+        frameQueue.push(FrameData{std::move(frameData), camera.getPosition(), camera.getRotationEuler(), elapsedTime});
+    }
+    queueCV.notify_one();
+
+    lastCaptureTime = currentTime;
 }
 
 void Recorder::saveFrames() {
@@ -123,47 +126,45 @@ void Recorder::saveFrames() {
         }
 
         if (outputFormat == OutputFormat::MP4) {
-            inputFrame->format = AV_PIX_FMT_RGBA;
-            inputFrame->width = renderTargetTemp.width;
-            inputFrame->height = renderTargetTemp.height;
-
-            std::vector<unsigned char> flippedData(frameData.frame.size());
             const int stride = renderTargetTemp.width * 4;
             for (int y = 0; y < renderTargetTemp.height; ++y) {
                 std::memcpy(
-                    flippedData.data() + y * stride,
+                    rgbaVideoFrameData.data() + y * stride,
                     frameData.frame.data() + (renderTargetTemp.height - 1 - y) * stride,
                     stride
                 );
             }
 
-            av_image_fill_arrays(inputFrame->data, inputFrame->linesize, flippedData.data(),
-                AV_PIX_FMT_RGBA, inputFrame->width, inputFrame->height, 1);
+            {
+                const uint8_t* srcData[] = { rgbaVideoFrameData.data() };
+                int srcStride[] = { static_cast<int>(renderTargetTemp.width * 4) }; // RGBA has 4 bytes per pixel
 
-            sws_scale(swsContext, inputFrame->data, inputFrame->linesize, 0, inputFrame->height, frame->data, frame->linesize);
-
-            frame->pts = frameData.pts;
-
-            int ret = avcodec_send_frame(codecContext, frame);
-            while (ret >= 0) {
-                pkt->data = nullptr;
-                pkt->size = 0;
-
-                ret = avcodec_receive_packet(codecContext, pkt);
-                if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-                    break;
-                }
-                else if (ret < 0) {
-                    std::cerr << "Error encoding frame: " << ret << std::endl;
-                    break;
-                }
-
-                pkt->stream_index = videoStream->index;
-                av_packet_rescale_ts(pkt, codecContext->time_base, videoStream->time_base);
-                av_interleaved_write_frame(formatContext, pkt);
-                av_packet_unref(pkt);
+                sws_scale(swsCtx, srcData, srcStride, 0, renderTargetTemp.height, frame->data, frame->linesize);
             }
-            frameIndex++;
+
+            int ret = avcodec_send_frame(codecCtx, frame);
+            if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+                av_log(nullptr, AV_LOG_ERROR, "Error: Could not send frame to output encoder: %s\n", av_err2str(ret));
+                continue;
+            }
+
+            ret = avcodec_receive_packet(codecCtx, packet);
+            if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+                continue;
+            }
+            else if (ret < 0) {
+                av_log(nullptr, AV_LOG_ERROR, "Error: Could not receive frame from encoder: %s\n", av_err2str(ret));
+                break;
+            }
+
+            AVRational timeBase = outputFormatCtx->streams[outputVideoStream->index]->time_base;
+            packet->pts = av_rescale_q(frameCount, (AVRational){1, targetFrameRate}, timeBase);
+            packet->dts = packet->pts;
+
+            av_interleaved_write_frame(outputFormatCtx, packet);
+            av_packet_unref(packet);
+
+            frameCount++;
         }
         else {
             size_t currentFrame = frameCount++;
@@ -190,122 +191,153 @@ void Recorder::saveFrames() {
                         << frameData.euler.x << " "
                         << frameData.euler.y << " "
                         << frameData.euler.z << " "
-                        << frameData.pts << std::endl;
+                        << frameData.elapsedTime << std::endl;
             pathFile.close();
         }
     }
 }
 
-void Recorder::setOutputPath(const std::string& path) {
-    // add / if not present
-    outputPath = path;
-    if (outputPath.back() != '/') {
-        outputPath += "/";
-    }
-    // create output path if it doesn't exist
-    if (!std::filesystem::exists(outputPath)) {
-        std::filesystem::create_directories(outputPath);
-    }
-}
-
-void Recorder::setTargetFrameRate(int targetFrameRate) {
-    frameInterval = 1.0 / targetFrameRate;
-    lastCaptureTime = timeutils::getTimeMillis();
-    frameIndex = 0;
-}
-
 void Recorder::initializeFFmpeg() {
-    avformat_alloc_output_context2(&formatContext, nullptr, nullptr, (outputPath + "output.mp4").c_str());
-
-    const AVCodec* codec = avcodec_find_encoder(AV_CODEC_ID_H264);
-    codecContext = avcodec_alloc_context3(codec);
-    codecContext->bit_rate = 10 * BYTES_IN_MB;
-    codecContext->width = renderTargetTemp.width;
-    codecContext->height = renderTargetTemp.height;
-
-    int targetFrameRate = static_cast<int>(1.0 / frameInterval);
-    codecContext->time_base = (AVRational){1, 1000};
-    codecContext->framerate = (AVRational){targetFrameRate, 1};
-
-    codecContext->gop_size = 12;
-    codecContext->max_b_frames = 1;
-    codecContext->pix_fmt = AV_PIX_FMT_YUV420P;
-
-    AVDictionary* options = nullptr;
-    av_dict_set(&options, "preset", "medium", 0);
-    av_dict_set(&options, "crf", "23", 0);
-    av_dict_set(&options, "threads", "auto", 0);
-    av_dict_set(&options, "refs", "3", 0);
-    av_dict_set(&options, "me_range", "16", 0);
-
-    if (formatContext->oformat->flags & AVFMT_GLOBALHEADER) {
-        codecContext->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+#ifdef __APPLE__
+    std::string encoderName = "h264_videotoolbox";
+#elif __linux__
+    std::string encoderName = "h264_nvenc";
+#else
+    std::string encoderName = "libx264";
+#endif
+    auto outputCodec = avcodec_find_encoder_by_name(encoderName.c_str());
+    if (!outputCodec) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate encoder.\n");
+        throw std::runtime_error("Recorder could not be created.");
     }
 
-    int ret = avcodec_open2(codecContext, codec, &options);
+    codecCtx = avcodec_alloc_context3(outputCodec);
+    if (!codecCtx) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate codec context.\n");
+        throw std::runtime_error("Recorder could not be created.");
+    }
+
+    codecCtx->pix_fmt = videoPixelFormat;
+    codecCtx->width = renderTargetTemp.width;
+    codecCtx->height = renderTargetTemp.height;
+    codecCtx->time_base = (AVRational){1, targetFrameRate};
+    codecCtx->framerate = (AVRational){targetFrameRate, 1};
+    codecCtx->bit_rate = 10 * BYTES_IN_MB;
+    codecCtx->gop_size = 12;
+    codecCtx->max_b_frames = 1;
+
+    int ret = avcodec_open2(codecCtx, outputCodec, nullptr);
     if (ret < 0) {
         throw std::runtime_error("Failed to open codec");
     }
 
-    videoStream = avformat_new_stream(formatContext, nullptr);
-    videoStream->time_base = codecContext->time_base;
-    avcodec_parameters_from_context(videoStream->codecpar, codecContext);
+    ret = avformat_alloc_output_context2(&outputFormatCtx, nullptr, nullptr, (outputPath + "output.mp4").c_str());
+    if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate output context: %s\n", av_err2str(ret));
+        throw std::runtime_error("Recorder could not be created.");
+    }
 
-    if (!(formatContext->oformat->flags & AVFMT_NOFILE)) {
-        ret = avio_open(&formatContext->pb, (outputPath + "output.mp4").c_str(), AVIO_FLAG_WRITE);
+    outputVideoStream = avformat_new_stream(outputFormatCtx, nullptr);
+    if (!outputVideoStream) {
+        throw std::runtime_error("Failed to create new video stream");
+    }
+
+    outputVideoStream->time_base = codecCtx->time_base;
+
+    avcodec_parameters_from_context(outputVideoStream->codecpar, codecCtx);
+
+    if (!(outputFormatCtx->oformat->flags & AVFMT_NOFILE)) {
+        ret = avio_open(&outputFormatCtx->pb, (outputPath + "output.mp4").c_str(), AVIO_FLAG_WRITE);
         if (ret < 0) {
-            throw std::runtime_error("Failed to open output file");
+            av_log(nullptr, AV_LOG_ERROR, "Cannot open output file\n");
+            throw std::runtime_error("Recorder could not be created.");
         }
     }
 
-    ret = avformat_write_header(formatContext, nullptr);
+    ret = avformat_write_header(outputFormatCtx, nullptr);
     if (ret < 0) {
-        throw std::runtime_error("Failed to write header");
+        av_log(nullptr, AV_LOG_ERROR, "Error writing header\n");
+        throw std::runtime_error("Recorder could not be created.");
     }
 
-    swsContext = sws_getContext(
-        renderTargetTemp.width, renderTargetTemp.height, AV_PIX_FMT_RGBA,
-        renderTargetTemp.width, renderTargetTemp.height, AV_PIX_FMT_YUV420P,
-        SWS_BILINEAR, nullptr, nullptr, nullptr);
+    swsCtx = sws_getContext(renderTargetTemp.width, renderTargetTemp.height, rgbaPixelFormat,
+                            renderTargetTemp.width, renderTargetTemp.height, videoPixelFormat,
+                            SWS_BICUBIC, nullptr, nullptr, nullptr);
+    if (!swsCtx) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate conversion context\n");
+        throw std::runtime_error("Recorder could not be created.");
+    }
 
-    frame = av_frame_alloc();
-    frame->format = AV_PIX_FMT_YUV420P;
-    frame->width = codecContext->width;
-    frame->height = codecContext->height;
-    av_frame_get_buffer(frame, 0);
+    rgbaVideoFrameData = std::vector<uint8_t>(renderTargetTemp.width * renderTargetTemp.height * 4);
+
+    frame->width = renderTargetTemp.width;
+    frame->height = renderTargetTemp.height;
+    frame->format = videoPixelFormat;
+    ret = av_frame_get_buffer(frame, 0);
+    if (ret < 0) {
+        std::cout << "Error: Could not allocate frame data: " << av_err2str(ret) << std::endl;
+        return;
+    }
+
+    ret = av_frame_make_writable(frame);
+    if (ret < 0) {
+        std::cout << "Error: Could not make frame writable: " << av_err2str(ret) << std::endl;
+        return;
+    }
+
+    /* setup packet */
+    ret = av_packet_make_writable(packet);
+    if (ret < 0) {
+        std::cout << "Error: Could not make packet writable: " << av_err2str(ret) << std::endl;
+        return;
+    }
 }
 
 void Recorder::finalizeFFmpeg() {
-    if (formatContext) {
-        if (formatContext->pb != nullptr) {
-            av_write_trailer(formatContext);
-            if (!(formatContext->oformat->flags & AVFMT_NOFILE)) {
-                avio_closep(&formatContext->pb);
+    // flush encoder
+    int ret;
+    avcodec_send_frame(codecCtx, nullptr);
+    while (true) {
+        ret = avcodec_receive_packet(codecCtx, packet);
+        if (ret != 0) {
+            break;
+        }
+
+        AVRational timeBase = outputFormatCtx->streams[outputVideoStream->index]->time_base;
+        packet->pts = av_rescale_q(frameCount, (AVRational){1, targetFrameRate}, timeBase);
+        packet->dts = packet->pts;
+
+        av_interleaved_write_frame(outputFormatCtx, packet);
+        av_packet_unref(packet);
+
+        frameCount++;
+    }
+
+    if (outputFormatCtx) {
+        if (outputFormatCtx->pb != nullptr) {
+            av_write_trailer(outputFormatCtx);
+            if (!(outputFormatCtx->oformat->flags & AVFMT_NOFILE)) {
+                avio_closep(&outputFormatCtx->pb);
             }
         }
     }
 
-    if (swsContext) {
-        sws_freeContext(swsContext);
-        swsContext = nullptr;
+    if (swsCtx) {
+        sws_freeContext(swsCtx);
+        swsCtx = nullptr;
     }
 
-    if (frame) {
-        av_frame_free(&frame);
-        frame = nullptr;
+    if (codecCtx) {
+        avcodec_free_context(&codecCtx);
+        codecCtx = nullptr;
     }
 
-    if (codecContext) {
-        avcodec_free_context(&codecContext);
-        codecContext = nullptr;
+    if (outputFormatCtx) {
+        avformat_free_context(outputFormatCtx);
+        outputFormatCtx = nullptr;
     }
 
-    if (formatContext) {
-        avformat_free_context(formatContext);
-        formatContext = nullptr;
-    }
-
-    frameIndex = 0;
+    frameCount = 0;
 }
 
 void Recorder::setFormat(OutputFormat format) {

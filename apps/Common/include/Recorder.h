@@ -28,16 +28,16 @@ public:
         std::vector<unsigned char> frame;
         glm::vec3 position;
         glm::vec3 euler;
-        int64_t pts;
+        int64_t elapsedTime;
     };
 
     enum class OutputFormat {
+        MP4,
         PNG,
         JPG,
-        MP4
     };
 
-    Recorder(OpenGLRenderer &renderer, Shader &shader, const std::string& outputPath, float targetFrameRate = 30)
+    Recorder(OpenGLRenderer &renderer, Shader &shader, const std::string& outputPath, int targetFrameRate = 30)
         : renderer(renderer)
         , shader(shader)
         , renderTargetTemp({
@@ -51,10 +51,9 @@ public:
             .minFilter = GL_LINEAR,
             .magFilter = GL_LINEAR
         })
-        , frameInterval(1.0 / targetFrameRate)
-        , outputPath(outputPath)
-        , outputFormat(OutputFormat::PNG) { }
-    Recorder(OpenGLRenderer &renderer, Shader &shader, float targetFrameRate = 30)
+        , targetFrameRate(targetFrameRate)
+        , outputPath(outputPath) { }
+    Recorder(OpenGLRenderer &renderer, Shader &shader, int targetFrameRate = 30)
         : Recorder(renderer, shader, ".", targetFrameRate) { }
     ~Recorder();
 
@@ -70,7 +69,7 @@ public:
 
 private:
     static const int NUM_SAVE_THREADS = 16;
-    OutputFormat outputFormat = OutputFormat::PNG;
+    OutputFormat outputFormat = OutputFormat::MP4;
     std::string outputPath;
 
     OpenGLRenderer& renderer;
@@ -78,26 +77,30 @@ private:
 
     RenderTarget renderTargetTemp;
 
+    AVCodecID codecID = AV_CODEC_ID_H264;
+    AVPixelFormat rgbaPixelFormat = AV_PIX_FMT_RGBA;
+    AVPixelFormat videoPixelFormat = AV_PIX_FMT_YUV420P;
+
     std::atomic<bool> running{false};
-    std::atomic<size_t> frameCount{0};
+    std::atomic<int> frameCount{0};
     std::vector<std::thread> saveThreadPool;
     std::queue<FrameData> frameQueue;
     std::mutex queueMutex;
     std::condition_variable queueCV;
 
-    int64_t frameInterval;
+    int targetFrameRate;
     int64_t recordingStartTime;
     int64_t lastCaptureTime;
 
-    AVFormatContext* formatContext = nullptr;
-    AVCodecContext* codecContext = nullptr;
-    AVStream* videoStream = nullptr;
-    SwsContext* swsContext = nullptr;
-    AVFrame* frame = nullptr;
-    int frameIndex = 0;
+    std::vector<uint8_t> rgbaVideoFrameData;
 
-    AVFrame* inputFrame = av_frame_alloc();
-    AVPacket* pkt = av_packet_alloc();
+    AVFormatContext* outputFormatCtx = nullptr;
+    AVCodecContext* codecCtx = nullptr;
+    AVStream* outputVideoStream = nullptr;
+    SwsContext* swsCtx = nullptr;
+
+    AVFrame* frame = av_frame_alloc();
+    AVPacket* packet = av_packet_alloc();
 
     void initializeFFmpeg();
     void finalizeFFmpeg();

@@ -134,7 +134,7 @@ int main(int argc, char** argv) {
         static char fileNameBase[256] = "screenshot";
         static int recordingFPS = 30;
         static int recordingFormatIndex = 0;
-        static const char* formats[] = { "PNG", "JPG", "MP4" };
+        static const char* formats[] = { "MP4", "PNG", "JPG" };
         static char recordingDirBase[256] = "recordings";
 
         ImGui::NewFrame();
@@ -258,17 +258,17 @@ int main(int argc, char** argv) {
 
             ImGui::Text("FPS:");
             if (ImGui::InputInt("##fps", &recordingFPS)) {
-                recordingFPS = std::max(1, recordingFPS);
                 recorder.setTargetFrameRate(recordingFPS);
             }
 
             ImGui::Text("Format:");
             if (ImGui::Combo("##format", &recordingFormatIndex, formats, IM_ARRAYSIZE(formats))) {
-                Recorder::OutputFormat selectedFormat = Recorder::OutputFormat::PNG;
+                Recorder::OutputFormat selectedFormat = Recorder::OutputFormat::MP4;
                 switch (recordingFormatIndex) {
-                    case 0: selectedFormat = Recorder::OutputFormat::PNG; break;
-                    case 1: selectedFormat = Recorder::OutputFormat::JPG; break;
-                    case 2: selectedFormat = Recorder::OutputFormat::MP4; break;
+                    case 0: selectedFormat = Recorder::OutputFormat::MP4; break;
+                    case 1: selectedFormat = Recorder::OutputFormat::PNG; break;
+                    case 2: selectedFormat = Recorder::OutputFormat::JPG; break;
+                    default: break;
                 }
                 recorder.setFormat(selectedFormat);
             }
