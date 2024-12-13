@@ -37,9 +37,9 @@
     },
     "directionalLight": {
         "color": [1.0, 0.98, 0.92],
-        "direction": [3.5, 0.2, -1.7],
-        "distance": 0.1,
-        "intensity": 5.0
+        "direction": [-2.0, -0.05, -1.7],
+        "distance": 0.2,
+        "intensity": 10.0
     },
     "pointLights": [
         {

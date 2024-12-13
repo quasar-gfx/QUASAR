@@ -136,7 +136,7 @@ int main(int argc, char** argv) {
         static bool showCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
-        static int intervalIndex = !animationFileIn ? 0 : 5;
+        static int intervalIndex = !animationFileIn ? 0 : 3;
 
         ImGui::NewFrame();
 
@@ -245,7 +245,7 @@ int main(int argc, char** argv) {
         camera.updateProjectionMatrix();
     });
 
-    double startRenderTime = window->getTime();
+    double startRenderTime = 0.0;
     app.onRender([&](double now, double dt) {
         // handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {

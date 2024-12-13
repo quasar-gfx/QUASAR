@@ -34,7 +34,7 @@ void Animator::loadAnimation(const std::string& pathFile) {
         glm::vec3 rotationEuler = glm::radians(glm::vec3(rx, ry, rz));
         glm::quat rotationQuat = glm::quat(rotationEuler);
 
-        waypoints.push_back({ position, rotationQuat, static_cast<double>(timestampMillis) });
+        waypoints.push_back({ position, rotationQuat, timeutils::millisToSeconds(timestampMillis) });
     }
     file.close();
 }
@@ -44,7 +44,7 @@ void Animator::update(double dt) {
         return;
 
     if (tween) {
-        now += timeutils::secondsToMillis(dt);
+        now += dt;
         while (currentIndex < waypoints.size() - 1 && now >= waypoints[currentIndex + 1].timestamp) {
             currentIndex++;
         }
@@ -60,8 +60,7 @@ void Animator::update(double dt) {
     }
 
     if (currentIndex > 0) {
-        auto deltaMillis = waypoints[currentIndex].timestamp - waypoints[currentIndex - 1].timestamp;
-        auto deltaSeconds = timeutils::millisToSeconds(deltaMillis);
+        auto deltaSeconds = waypoints[currentIndex].timestamp - waypoints[currentIndex - 1].timestamp;
         this->dt = glm::max(deltaSeconds, 0.0);
     }
 }

@@ -91,6 +91,14 @@
             "duration": 5.0,
             "reverse": true,
             "loop": true
+        },
+        {
+            "node": "vehicle_rcLand_clean",
+            "fromPosition": [0.0, 0.0, 0.0],
+            "toPosition": [2.0, 0.0, -2.0],
+            "duration": 30.0,
+            "reverse": true,
+            "loop": true
         }
     ]
 }

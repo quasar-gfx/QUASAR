@@ -12,7 +12,7 @@
         {
             "name": "Sponza",
             "path": "../assets/models/Sponza/Sponza.gltf",
-            "IBL": 0.5,
+            "IBL": 0.01,
             "flipTextures": true,
             "gammaCorrected": true
         }

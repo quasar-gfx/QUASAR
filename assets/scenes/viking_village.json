@@ -16,7 +16,7 @@
         {
             "name": "VikingVillageWater",
             "path": "~/Desktop/Models/VikingVillageWater.glb",
-            "IBL": 1.0,
+            "IBL": 0.1,
             "gammaCorrected": true
         }
     ],
@@ -87,6 +87,136 @@
             "constant": 0.0,
             "linear": 0.09,
             "quadratic": 1.0
+        }
+    ],
+    "animations": [
+        {
+            "node": "pf_sword_01",
+            "fromPosition": [0.0, 0.0, 0.0],
+            "toPosition": [0.0, 2.0, 0.0],
+            "duration": 2.0,
+            "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "pf_sword_01.002",
+            "fromPosition": [0.0, 0.0, 0.0],
+            "toPosition": [0.0, 2.0, 0.0],
+            "duration": 2.0,
+            "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "pf_sword_01.003",
+            "fromPosition": [0.0, 0.0, 0.0],
+            "toPosition": [0.0, 2.0, 0.0],
+            "duration": 2.0,
+            "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "pf_sword_01.007",
+            "fromPosition": [0.0, 0.0, 0.0],
+            "toPosition": [0.0, 2.0, 0.0],
+            "duration": 2.0,
+            "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "build_small_house_tall_roof_01_dragonhead_01.001",
+            "fromRotation": [-0.5, 0.0, 0.0],
+            "toRotation": [0.5, 0.0, 0.0],
+            "duration": 2.0,
+            "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "build_small_house_tall_roof_01_dragonhead_01.002",
+            "fromRotation": [-0.5, 0.0, 0.0],
+            "toRotation": [0.5, 0.0, 0.0],
+            "duration": 2.0,
+            "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "build_small_house_tall_roof_01_dragonhead_01.003",
+            "fromRotation": [-0.5, 0.0, 0.0],
+            "toRotation": [0.5, 0.0, 0.0],
+            "duration": 2.0,
+            "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "build_small_house_tall_roof_01_dragonhead_01.004",
+            "fromRotation": [-0.5, 0.0, 0.0],
+            "toRotation": [0.5, 0.0, 0.0],
+            "duration": 2.0,
+            "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "build_small_house_tall_roof_01_dragonhead_01.005",
+            "fromRotation": [-0.5, 0.0, 0.0],
+            "toRotation": [0.5, 0.0, 0.0],
+            "duration": 2.0,
+            "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "build_small_house_tall_roof_01_dragonhead_01.006",
+            "fromRotation": [-0.5, 0.0, 0.0],
+            "toRotation": [0.5, 0.0, 0.0],
+            "duration": 2.0,
+            "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "build_small_house_tall_roof_01_dragonhead_01.007",
+            "fromRotation": [-0.5, 0.0, 0.0],
+            "toRotation": [0.5, 0.0, 0.0],
+            "duration": 2.0,
+            "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "build_bighouse_01_dragonhead_01",
+            "fromRotation": [-0.5, 0.0, 0.0],
+            "toRotation": [0.5, 0.0, 0.0],
+            "duration": 2.0,
+            "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "build_small_house_tall_roof_01_dragonhead_01",
+            "fromRotation": [-0.5, 0.0, 0.0],
+            "toRotation": [0.5, 0.0, 0.0],
+            "duration": 2.0,
+            "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "build_small_house_tall_roof_01_dragonhead_01.005",
+            "fromRotation": [-0.5, 0.0, 0.0],
+            "toRotation": [0.5, 0.0, 0.0],
+            "duration": 2.0,
+            "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "build_small_house_tall_roof_01_dragonhead_01.006",
+            "fromRotation": [-0.5, 0.0, 0.0],
+            "toRotation": [0.5, 0.0, 0.0],
+            "duration": 2.0,
+            "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "build_bighouse_01_dragonhead_01.001",
+            "fromRotation": [-0.5, 0.0, 0.0],
+            "toRotation": [0.5, 0.0, 0.0],
+            "duration": 2.0,
+            "reverse": true,
+            "loop": true
         }
     ]
 }

@@ -169,6 +169,7 @@ int main(int argc, char** argv) {
     bool rerender = true;
     int rerenderInterval = 0;
     bool preventCopyingLocalPose = false;
+    bool runAnimations = animationFileIn;
     const int intervalValues[] = {0, 25, 50, 100, 200, 500, 1000};
     const char* intervalLabels[] = {"0ms", "25ms", "50ms", "100ms", "200ms", "500ms", "1000ms"};
 
@@ -180,7 +181,7 @@ int main(int argc, char** argv) {
         static bool showCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
-        static int intervalIndex = !animationFileIn ? 0 : 5;
+        static int intervalIndex = !animationFileIn ? 0 : 3;
 
         static bool showEnvMap = true;
 
@@ -270,12 +271,14 @@ int main(int argc, char** argv) {
 
                 preventCopyingLocalPose = true;
                 rerender = true;
+                runAnimations = false;
             }
 
             ImGui::Separator();
 
             if (ImGui::Button("Rerender", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
                 rerender = true;
+                runAnimations = true;
             }
 
             ImGui::Combo("Rerender Interval", &intervalIndex, intervalLabels, IM_ARRAYSIZE(intervalLabels));
@@ -314,7 +317,7 @@ int main(int argc, char** argv) {
         camera.updateProjectionMatrix();
     });
 
-    double startRenderTime = window->getTime();
+    double startRenderTime = 0.0;
     app.onRender([&](double now, double dt) {
         // handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
@@ -373,10 +376,13 @@ int main(int argc, char** argv) {
         }
 
         // update all animations
-        remoteScene.updateAnimations(dt);
+        if (runAnimations) {
+            remoteScene.updateAnimations(dt);
+        }
 
         if (rerenderInterval > 0 && now - startRenderTime > rerenderInterval / 1000.0) {
             rerender = true;
+            runAnimations = true;
             startRenderTime = now;
         }
         if (rerender) {

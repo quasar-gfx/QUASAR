@@ -7,7 +7,7 @@
 
 class PerspectiveCamera : public Camera {
 public:
-    float movementSpeed = 2.5f;
+    float movementSpeed = 2.0f;
     float mouseSensitivity = 0.05f;
 
     Frustum frustum;
