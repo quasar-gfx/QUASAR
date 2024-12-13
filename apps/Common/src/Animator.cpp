@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include <Animator.h>
+#include <Utils/TimeUtils.h>
 
 Animator::Animator(const std::string& pathFile, bool tween) : tween(tween) {
     if (!pathFile.empty()) {
@@ -22,18 +23,18 @@ void Animator::loadAnimation(const std::string& pathFile) {
     }
 
     std::string line;
-    while(std::getline(file, line)) {
+    while (std::getline(file, line)) {
         std::stringstream ss(line);
         float px, py, pz;
         float rx, ry, rz;
-        int64_t timestamp;
-        ss >> px >> py >> pz >> rx >> ry >> rz >> timestamp;
+        int64_t timestampMillis;
+        ss >> px >> py >> pz >> rx >> ry >> rz >> timestampMillis;
 
         glm::vec3 position = glm::vec3(px, py, pz);
-        glm::vec3 eulerAnglesRadians = glm::radians(glm::vec3(rx, ry, rz));
-        glm::quat rotation = glm::quat(eulerAnglesRadians);
+        glm::vec3 rotationEuler = glm::radians(glm::vec3(rx, ry, rz));
+        glm::quat rotationQuat = glm::quat(rotationEuler);
 
-        waypoints.push_back({ position, rotation, static_cast<double>(timestamp) });
+        waypoints.push_back({ position, rotationQuat, static_cast<double>(timestampMillis) });
     }
     file.close();
 }
@@ -43,25 +44,41 @@ void Animator::update(double dt) {
         return;
 
     if (tween) {
-        timeAccumulator += (dt * 1000.0);
-        while(currentIndex < waypoints.size() - 1 && timeAccumulator >= waypoints[currentIndex + 1].timestamp) {
+        now += timeutils::secondsToMillis(dt);
+        while (currentIndex < waypoints.size() - 1 && now >= waypoints[currentIndex + 1].timestamp) {
             currentIndex++;
         }
     }
     else {
+        now = waypoints[currentIndex].timestamp;
         currentIndex++;
     }
 
     if (currentIndex >= waypoints.size()) {
-        running = false;
         currentIndex = waypoints.size() - 1;
+        running = false;
+    }
+
+    if (currentIndex > 0) {
+        auto deltaMillis = waypoints[currentIndex].timestamp - waypoints[currentIndex - 1].timestamp;
+        auto deltaSeconds = timeutils::millisToSeconds(deltaMillis);
+        this->dt = glm::max(deltaSeconds, 0.0);
     }
 }
 
-glm::vec3 Animator::getCurrentPosition() const {
+void Animator::copyPoseToCamera(PerspectiveCamera &camera) const {
     if (waypoints.empty())
-        return glm::vec3(0.0f);
+        return;
 
+    if (!running || currentIndex >= waypoints.size())
+        return;
+
+    camera.setPosition(getCurrentPosition());
+    camera.setRotationQuat(getCurrentRotation());
+    camera.updateViewMatrix();
+}
+
+const glm::vec3 Animator::getCurrentPosition() const {
     if (!running || currentIndex >= waypoints.size())
         return waypoints.back().position;
 
@@ -70,7 +87,7 @@ glm::vec3 Animator::getCurrentPosition() const {
         const Waypoint& end = waypoints[currentIndex + 1];
 
         double segmentDuration = end.timestamp - start.timestamp;
-        double segmentTime = timeAccumulator - start.timestamp;
+        double segmentTime = now - start.timestamp;
         float t = static_cast<float>(segmentTime / segmentDuration);
 
         return glm::mix(start.position, end.position, t);
@@ -80,7 +97,7 @@ glm::vec3 Animator::getCurrentPosition() const {
     }
 }
 
-glm::quat Animator::getCurrentRotation() const {
+const glm::quat Animator::getCurrentRotation() const {
     if (waypoints.empty())
         return glm::quat();
 
@@ -92,7 +109,7 @@ glm::quat Animator::getCurrentRotation() const {
         const Waypoint& end = waypoints[currentIndex + 1];
 
         double segmentDuration = end.timestamp - start.timestamp;
-        double segmentTime = timeAccumulator - start.timestamp;
+        double segmentTime = now - start.timestamp;
         float t = static_cast<float>(segmentTime / segmentDuration);
 
         return glm::slerp(start.rotation, end.rotation, t);

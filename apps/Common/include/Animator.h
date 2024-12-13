@@ -8,6 +8,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <Cameras/PerspectiveCamera.h>
+
 class Animator {
 public:
     struct Waypoint {
@@ -17,24 +19,25 @@ public:
     };
 
     bool running = false;
-    bool tween = false;
+
+    double now = 0.0;
+    double dt = 0.0;
 
     Animator(const std::string& pathFile, bool tween = false);
 
     void loadAnimation(const std::string& pathFile);
     void update(double dt);
 
-    glm::vec3 getCurrentPosition() const;
-    glm::quat getCurrentRotation() const;
-
-    void setPlaybackSpeed(float speed) { playbackSpeed = speed; }
-    float getPlaybackSpeed() const { return playbackSpeed; }
+    void copyPoseToCamera(PerspectiveCamera &camera) const;
 
 private:
+    bool tween = false;
+
     std::vector<Waypoint> waypoints;
     size_t currentIndex = 0;
-    double timeAccumulator = 0.0;
-    float playbackSpeed = 1.0f;
+
+    const glm::vec3 getCurrentPosition() const;
+    const glm::quat getCurrentRotation() const;
 };
 
 #endif // ANIMATOR_H

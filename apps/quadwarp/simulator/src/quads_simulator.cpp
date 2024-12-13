@@ -185,7 +185,7 @@ int main(int argc, char** argv) {
     bool showNormals = false;
     bool showWireframe = false;
     bool preventCopyingLocalPose = false;
-    bool runAnimations = false;
+    bool runAnimations = animationFileIn;
     bool restrictMovementToViewBox = !animationFileIn;
     float viewBoxSize = 0.5f;
     int rerenderInterval = 0;
@@ -486,10 +486,7 @@ int main(int argc, char** argv) {
         }
 
         if (animator.running) {
-            localCamera.setPosition(animator.getCurrentPosition());
-            localCamera.setRotationQuat(animator.getCurrentRotation());
-            localCamera.updateViewMatrix();
-
+            animator.copyPoseToCamera(localCamera);
             animator.update(dt);
             if (!animator.running) {
                 window->close();
@@ -500,17 +497,21 @@ int main(int argc, char** argv) {
             localCamera.processKeyboard(keys, dt);
         }
 
+        if (animationFileIn) {
+            now = animator.now;
+            dt = animator.dt;
+        }
+
+        // update all animations
+        if (runAnimations) {
+            remoteScene.updateAnimations(dt);
+        }
+
         if (rerenderInterval > 0 && now - startRenderTime > rerenderInterval / 1000.0) {
             generateIFrame = true;
             runAnimations = true;
             startRenderTime = now;
         }
-
-        // update all animations
-        if (runAnimations) {
-            // remoteScene.updateAnimations(dt);
-        }
-
         if (generateIFrame || generatePFrame) {
             double startTime = window->getTime();
             double totalRenderTime = 0.0;

@@ -66,7 +66,7 @@ void main() {
         // Find closest interpolated value
         int bestIndex = 0;
         float minDiff = abs(pixelValue - interpVals[0]);
-        for(int k = 1; k < 8; k++) {
+        for (int k = 1; k < 8; k++) {
             float diff = abs(pixelValue - interpVals[k]);
             if(diff < minDiff) {
                 minDiff = diff;

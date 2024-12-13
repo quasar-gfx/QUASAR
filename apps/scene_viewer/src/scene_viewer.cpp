@@ -338,10 +338,7 @@ int main(int argc, char** argv) {
         }
 
         if (animator.running) {
-            camera.setPosition(animator.getCurrentPosition());
-            camera.setRotationQuat(animator.getCurrentRotation());
-            camera.updateViewMatrix();
-
+            animator.copyPoseToCamera(camera);
             animator.update(dt);
             if (!animator.running) {
                 window->close();
@@ -350,6 +347,11 @@ int main(int argc, char** argv) {
         else {
             // handle keyboard input
             camera.processKeyboard(keys, dt);
+        }
+
+        if (animationFileIn) {
+            now = animator.now;
+            dt = animator.dt;
         }
 
         if (saveImage && args::get(poseOffset).size() == 6) {
@@ -364,7 +366,7 @@ int main(int argc, char** argv) {
         }
 
         // update all animations
-        // scene.updateAnimations(dt);
+        scene.updateAnimations(dt);
 
         // render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);
