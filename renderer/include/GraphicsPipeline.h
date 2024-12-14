@@ -33,9 +33,9 @@ struct StencilState {
         stencilPassDepthPass = GL_REPLACE;
     };
 
-    void enableRenderingUsingStencilBufferAsMask() {
-        stencilFunc = GL_NOTEQUAL;
-        stencilRef = 1;
+    void enableRenderingUsingStencilBufferAsMask(GLenum stencilFunc, GLint stencilRef) {
+        this->stencilFunc = stencilFunc;
+        this->stencilRef = stencilRef;
         stencilMask = 0xFF;
 
         writeStencilMask = 0x00;

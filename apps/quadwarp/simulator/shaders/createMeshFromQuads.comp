@@ -48,11 +48,6 @@ layout(std430, binding = 0) buffer MeshBufferSizes {
     uint numIndices;
 };
 
-// layout(std430, binding = 1) buffer AtlasOffsetBuffer {
-//     uint atlasOffsetX;
-//     uint atlasOffsetY;
-// };
-
 layout(std430, binding = 1) buffer QuadCreatedFlagsBuffer {
     int quadCreatedFlags[];
 };
@@ -73,15 +68,15 @@ layout(std430, binding = 4) buffer MeshIndirectCommandBuffer {
     uint baseInstance;
 } meshIndirectCommandBuffer;
 
-layout(std430, binding = 5) readonly buffer normalSphericalsBufferInput {
+layout(std430, binding = 5) readonly buffer NormalSphericalsBufferInput {
     uint normalSphericalsInput[];
 };
 
-layout(std430, binding = 6) readonly buffer depthBufferInput {
+layout(std430, binding = 6) readonly buffer DepthBufferInput {
     float depthsInput[];
 };
 
-layout(std430, binding = 7) readonly buffer offsetsBufferInput {
+layout(std430, binding = 7) readonly buffer OffsetsBufferInput {
     uint offsetSizeFlattenedsInput[];
 };
 
@@ -297,28 +292,6 @@ void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in vec4 depthOff
 }
 
 void storeSurfel(in Quad quad, in Quad2D uvsSrc, in QuadMapData quadMapData) {
-    // // first, copy the color from the color texture to the atlas
-    // ivec2 pixelCoordsBottomLeft = ivec2(uvsSrc.bottomLeft * remoteWindowSize);
-    // ivec2 pixelCoordsBottomRight = ivec2(uvsSrc.bottomRight * remoteWindowSize);
-    // ivec2 pixelCoordsTopLeft = ivec2(uvsSrc.topLeft * remoteWindowSize);
-    // ivec2 pixelCoordsTopRight = ivec2(uvsSrc.topRight * remoteWindowSize);
-    // for (int i = pixelCoordsBottomLeft.x; i <= pixelCoordsBottomRight.x; i++) {
-    //     for (int j = pixelCoordsBottomLeft.y; j <= pixelCoordsTopLeft.y; j++) {
-    //         ivec2 pixelCoords = ivec2(i, j);
-    //         vec4 color = imageLoad(colorTexture, pixelCoords);
-
-    //         ivec2 atlasPixelCoords = ivec2(atlasOffsetX, atlasOffsetY) + pixelCoords;
-    //         imageStore(atlas, atlasPixelCoords, color);
-    //     }
-    // }
-
-    // // then, find UVs for the quad in atlas space
-    // Quad2D uvsAtlas;
-    // uvsAtlas.bottomLeft  = vec2(ivec2(atlasOffsetX, atlasOffsetY) + pixelCoordsBottomLeft)  / atlasSize;
-    // uvsAtlas.bottomRight = vec2(ivec2(atlasOffsetX, atlasOffsetY) + pixelCoordsBottomRight) / atlasSize;
-    // uvsAtlas.topLeft     = vec2(ivec2(atlasOffsetX, atlasOffsetY) + pixelCoordsTopLeft)     / atlasSize;
-    // uvsAtlas.topRight    = vec2(ivec2(atlasOffsetX, atlasOffsetY) + pixelCoordsTopRight)    / atlasSize;
-
     /************************
 
             tl -- tr
@@ -499,16 +472,7 @@ void main() {
         if (!appendGeometry) {
             atomicExchange(numVertices, 0u);
             atomicExchange(numIndices, 0u);
-            // atomicExchange(atlasOffsetX, 0u);
-            // atomicExchange(atlasOffsetY, 0u);
         }
-        // else {
-        //     uint oldAtlasOffsetX = atomicAdd(atlasOffsetX, uint(remoteWindowSize.x));
-        //     if (oldAtlasOffsetX + uint(remoteWindowSize.x) >= uint(atlasSize.x)) {
-        //         atomicExchange(atlasOffsetX, 0u);
-        //         atomicAdd(atlasOffsetY, uint(remoteWindowSize.y));
-        //     }
-        // }
     }
 
     // uint quadMapIndex = quadIndicesPixelCoord.y * uint(remoteWindowSize.x) + quadIndicesPixelCoord.x;

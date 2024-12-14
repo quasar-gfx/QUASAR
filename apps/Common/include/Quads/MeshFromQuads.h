@@ -24,44 +24,44 @@ public:
     };
 
     struct Stats {
+        double timeToappendProxiesMs = -1.0f;
         double timeToFillOutputQuadsMs = -1.0f;
         double timeToCreateMeshMs = -1.0f;
     } stats;
 
     glm::uvec2 remoteWindowSize;
-    glm::uvec2 atlasSize;
-    unsigned int maxQuads;
+    glm::uvec2 depthBufferSize;
+    unsigned int maxProxies;
 
-    Texture atlas;
+    unsigned int currNumProxies = 0;
+
+    QuadBuffers currentQuadBuffers;
 
     MeshFromQuads(const glm::uvec2 &remoteWindowSize);
     ~MeshFromQuads() = default;
 
-    void fillQuadIndices(
+    void appendProxies(
             unsigned int numProxies,
-            const QuadBuffers &quadBuffers);
+            const QuadBuffers &newQuadBuffers,
+            bool iFrame = true);
+
+    void fillQuadIndices();
 
     void createMeshFromProxies(
-            unsigned int numProxies, const glm::uvec2 &depthBufferSize,
+            unsigned int numProxies,
             const PerspectiveCamera &remoteCamera,
-            const QuadBuffers &quadBuffers,
             const DepthOffsets &depthOffsets,
-            const Texture &colorTexture,
             const Mesh &mesh);
 
     void appendGeometry(
-            unsigned int numProxies, const glm::uvec2 &depthBufferSize,
+            unsigned int numProxies,
             const PerspectiveCamera &remoteCamera,
-            const QuadBuffers &quadBuffers,
             const DepthOffsets &depthOffsets,
-            const Texture &colorTexture,
             const Mesh &mesh);
 
     void createMeshFromProxies(
-            unsigned int numProxies, const glm::uvec2 &depthBufferSize,
+            unsigned int numProxies,
             const PerspectiveCamera &remoteCamera,
-            const QuadBuffers &quadBuffers,
-            const Texture &colorTexture,
             const Mesh &mesh,
             bool appendGeometry = false);
 
@@ -69,11 +69,12 @@ public:
 
 private:
     Buffer<BufferSizes> meshSizesBuffer;
-    // Buffer<glm::ivec2> atlasOffsetBuffer;
-    Buffer<int> quadCreatedFlagsBuffer;
+    Buffer<unsigned int> currNumProxiesBuffer;
 
+    Buffer<int> quadCreatedFlagsBuffer;
     Texture quadIndicesBuffer;
 
+    ComputeShader appendProxiesShader;
     ComputeShader fillQuadIndicesShader;
     ComputeShader createMeshFromQuadsShader;
 };

@@ -555,11 +555,11 @@ int main(int argc, char** argv) {
             double totalSimplifyTime = 0.0;
             double totalFillQuadsTime = 0.0;
             double totalCreateMeshTime = 0.0;
-            double totalStencilTime = 0.0;
+            double totalAppendProxiesMsTime = 0.0f;
+            double totalFillOutputQuadsMsTime = 0.0f;
+            double totalCreateVertIndTime = 0.0f;
+            double totalCreatePFrameTime = 0.0;
             double totalGenDepthTime = 0.0;
-
-            std::cout << "======================================================" << std::endl;
-            std::cout << "currMeshIndex: " << currMeshIndex << std::endl;
 
             if (!preventCopyingLocalPose) {
                 remoteCamera.setPosition(localCamera.getPosition());
@@ -583,6 +583,7 @@ int main(int argc, char** argv) {
             }
             totalRenderTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
 
+            // create proxies from the current frame
             startTime = window->getTime();
             auto sizes = quadsGenerator.createProxiesFromGBuffer(remoteRenderer.gBuffer, remoteCamera);
             unsigned int numProxies = sizes.numProxies;
@@ -593,16 +594,17 @@ int main(int argc, char** argv) {
 
             // create mesh from proxies
             startTime = glfwGetTime();
-            meshFromQuads.fillQuadIndices(numProxies, quadsGenerator.outputQuadBuffers);
+            meshFromQuads.appendProxies(numProxies, quadsGenerator.outputQuadBuffers);
             meshFromQuads.createMeshFromProxies(
-                numProxies, quadsGenerator.depthBufferSize,
+                numProxies,
                 currRemoteCamera,
-                quadsGenerator.outputQuadBuffers,
                 quadsGenerator.depthOffsets,
-                renderTarget.colorBuffer,
                 meshes[currMeshIndex]
             );
             totalCreateMeshTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
+            totalAppendProxiesMsTime += meshFromQuads.stats.timeToappendProxiesMs;
+            totalFillOutputQuadsMsTime += meshFromQuads.stats.timeToFillOutputQuadsMs;
+            totalCreateVertIndTime += meshFromQuads.stats.timeToCreateMeshMs;
 
             if (generatePFrame) {
                 startTime = glfwGetTime();
@@ -616,22 +618,20 @@ int main(int argc, char** argv) {
                 // this should draw fragments in the curr mesh that are not occluded by the prev mesh scene, setting
                 // the stencil buffer to 1 where the depth of the curr mesh is the same as the prev mesh scene
                 remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
-                // remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = true;
-                // remoteRenderer.pipeline.rasterState.polygonOffsetUnits = 10000.0f;
                 remoteRenderer.pipeline.depthState.depthFunc = GL_EQUAL;
                 remoteRenderer.drawObjectsNoLighting(meshScenes[currMeshIndex], currRemoteCamera, GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
                 // now, render remoteScene using stencil buffer as a mask
                 // at values were stencil buffer is 1, remoteScene should render
-                remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask();
-                // remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = false;
+                remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_NOTEQUAL, 1);
                 remoteRenderer.pipeline.depthState.depthFunc = GL_LESS;
                 remoteRenderer.pipeline.writeMaskState.enableColorWrites();
                 remoteRenderer.drawObjects(remoteScene, currRemoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
                 remoteRenderer.pipeline.stencilState.restoreStencilState();
-                totalStencilTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
+                totalCreatePFrameTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
 
+                // create proxies from the new frame
                 startTime = glfwGetTime();
                 auto sizes = quadsGenerator.createProxiesFromGBuffer(remoteRenderer.gBuffer, currRemoteCamera);
                 unsigned int numProxies = sizes.numProxies;
@@ -640,14 +640,12 @@ int main(int argc, char** argv) {
                 totalSimplifyTime += quadsGenerator.stats.timeToSimplifyQuadsMs;
                 totalFillQuadsTime += quadsGenerator.stats.timeToFillOutputQuadsMs;
 
-                // generate mesh from proxies
-                meshFromQuads.fillQuadIndices(numProxies, quadsGenerator.outputQuadBuffers);
+                // create mesh from proxies
+                meshFromQuads.appendProxies(numProxies, quadsGenerator.outputQuadBuffers, false);
                 meshFromQuads.createMeshFromProxies(
-                    numProxies, quadsGenerator.depthBufferSize,
+                    numProxies,
                     currRemoteCamera,
-                    quadsGenerator.outputQuadBuffers,
                     quadsGenerator.depthOffsets,
-                    renderTarget.colorBuffer,
                     meshes[currMeshIndex]
                 );
                 totalCreateMeshTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
@@ -676,11 +674,7 @@ int main(int argc, char** argv) {
 
             remoteCameraPrev.setViewMatrix(remoteCamera.getViewMatrix());
 
-            /*
-            ============================
-            For debugging: Generate point cloud from depth map
-            ============================
-            */
+            // For debugging: Generate point cloud from depth map
             if (showDepth) {
                 meshFromDepthShader.startTiming();
 
@@ -718,8 +712,11 @@ int main(int argc, char** argv) {
             std::cout << "     Gen Quad Map Time: " << totalGenQuadMapTime << "ms" << std::endl;
             std::cout << "     Simplify Time: " << totalSimplifyTime << "ms" << std::endl;
             std::cout << "     Fill Quads Time: " << totalFillQuadsTime << "ms" << std::endl;
+            std::cout << "  P-Frame Creation Time: " << totalCreatePFrameTime << "ms" << std::endl;
             std::cout << "  Create Mesh Time: " << totalCreateMeshTime << "ms" << std::endl;
-            std::cout << "  Stencil Time: " << totalStencilTime << "ms" << std::endl;
+            std::cout << "     Append Quads Time: " << totalAppendProxiesMsTime << "ms" << std::endl;
+            std::cout << "     Fill Output Quads Time: " << totalFillOutputQuadsMsTime << "ms" << std::endl;
+            std::cout << "     Create Vert/Ind Time: " << totalCreateVertIndTime << "ms" << std::endl;
             if (showDepth) std::cout << "  Gen Depth Time: " << totalGenDepthTime << "ms" << std::endl;
 
             preventCopyingLocalPose = false;

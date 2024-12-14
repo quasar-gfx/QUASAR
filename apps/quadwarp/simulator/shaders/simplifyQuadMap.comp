@@ -95,27 +95,27 @@ const float PI = 3.1415926535897932384626433832795;
 const vec3 origin = vec3(0.0, 0.0, 0.0);
 const vec3 forward = vec3(0.0, 0.0, -1.0);
 
-layout(std430, binding = 0) readonly buffer normalSphericalsBufferInput {
+layout(std430, binding = 0) readonly buffer NormalSphericalsBufferInput {
     uint normalSphericalsInput[];
 };
 
-layout(std430, binding = 1) readonly buffer depthBufferInput {
+layout(std430, binding = 1) readonly buffer DepthBufferInput {
     float depthsInput[];
 };
 
-layout(std430, binding = 2) buffer offsetsBufferInput {
+layout(std430, binding = 2) buffer OffsetsBufferInput {
     uint offsetSizeFlattenedsInput[];
 };
 
-layout(std430, binding = 3) writeonly buffer normalSphericalsBufferOutput {
+layout(std430, binding = 3) writeonly buffer NormalSphericalsBufferOutput {
     uint normalSphericalsOutput[];
 };
 
-layout(std430, binding = 4) writeonly buffer depthBufferOutput {
+layout(std430, binding = 4) writeonly buffer DepthBufferOutput {
     float depthsOutput[];
 };
 
-layout(std430, binding = 5) writeonly buffer offsetsBufferOutput {
+layout(std430, binding = 5) writeonly buffer OffsetsBufferOutput {
     uint offsetSizeFlattenedsOutput[];
 };
 
@@ -385,9 +385,13 @@ bool shouldMerge(
 }
 
 Plane averagePlanes(in Plane plane1, in Plane plane2, in Plane plane3, in Plane plane4) {
-    Plane newProxyPlane;
-    newProxyPlane.normal = normalize((plane1.normal + plane2.normal + plane3.normal + plane4.normal) / 4.0);
-    newProxyPlane.point = (plane1.point + plane2.point + plane3.point + plane4.point) / 4.0;
+    vec4 proxyPlaneEq1 = planeToPlaneEq(plane1);
+    vec4 proxyPlaneEq2 = planeToPlaneEq(plane2);
+    vec4 proxyPlaneEq3 = planeToPlaneEq(plane3);
+    vec4 proxyPlaneEq4 = planeToPlaneEq(plane4);
+
+    vec4 newProxyPlaneEq = (proxyPlaneEq1 + proxyPlaneEq2 + proxyPlaneEq3 + proxyPlaneEq4) / 4.0;
+    Plane newProxyPlane = planeEqToPlane(newProxyPlaneEq);
     return newProxyPlane;
 }
 

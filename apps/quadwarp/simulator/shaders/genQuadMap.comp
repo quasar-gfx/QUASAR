@@ -107,15 +107,15 @@ layout(std430, binding = 0) writeonly buffer QuadBufferSizes {
     uint numDepthOffsets;
 };
 
-layout(std430, binding = 1) writeonly buffer normalSphericalsBufferOutput {
+layout(std430, binding = 1) writeonly buffer NormalSphericalsBufferOutput {
     uint normalSphericalsOutput[];
 };
 
-layout(std430, binding = 2) writeonly buffer depthBufferOutput {
+layout(std430, binding = 2) writeonly buffer DepthBufferOutput {
     float depthsOutput[];
 };
 
-layout(std430, binding = 3) writeonly buffer offsetsBufferOutput {
+layout(std430, binding = 3) writeonly buffer OffsetsBufferOutput {
     uint offsetSizeFlattenedsOutput[];
 };
 

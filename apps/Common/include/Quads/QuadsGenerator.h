@@ -32,7 +32,7 @@ public:
     std::vector<glm::uvec2> quadMapSizes;
 
     unsigned int numQuadMaps;
-    unsigned int maxQuads;
+    unsigned int maxProxies;
 
     QuadBuffers outputQuadBuffers;
     DepthOffsets depthOffsets;

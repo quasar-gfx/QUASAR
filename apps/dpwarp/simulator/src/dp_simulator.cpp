@@ -663,14 +663,12 @@ int main(int argc, char** argv) {
                     remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
                     remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = true;
                     remoteRenderer.pipeline.rasterState.polygonOffsetUnits = 10000.0f;
-                    // remoteRenderer.pipeline.depthState.depthFunc = GL_LESS;
                     remoteRenderer.drawObjectsNoLighting(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
                     // render remoteScene using stencil buffer as a mask
                     // at values were stencil buffer is 1, remoteScene should render
-                    remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask();
+                    remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_EQUAL, 1);
                     remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = false;
-                    // remoteRenderer.pipeline.depthState.depthFunc = GL_LESS;
                     remoteRenderer.pipeline.writeMaskState.enableColorWrites();
                     remoteRenderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -687,11 +685,7 @@ int main(int argc, char** argv) {
                     }
                 }
 
-                /*
-                ============================
-                SECOND to FOURTH PASSES: Generate quad map and output proxies
-                ============================
-                */
+                // create proxies from the new frame
                 startTime = window->getTime();
                 auto* gBuffer = (disableWideFov || view != maxViews - 1) ? dpRenderer.peelingLayers[view] : &remoteRenderer.gBuffer;
                 auto sizes = quadsGenerator.createProxiesFromGBuffer(*gBuffer, remoteCamera);
@@ -725,27 +719,18 @@ int main(int argc, char** argv) {
                     renderTargets[view].saveColorAsPNG(colorFileName);
                 }
 
-                /*
-                ============================
-                FIFTH PASS: Generate mesh from quads
-                ============================
-                */
+                // create mesh from proxies
                 startTime = window->getTime();
+                meshFromQuads.appendProxies(numProxies, quadsGenerator.outputQuadBuffers);
                 meshFromQuads.createMeshFromProxies(
-                    numProxies, quadsGenerator.depthBufferSize,
+                    numProxies,
                     remoteCamera,
-                    quadsGenerator.outputQuadBuffers,
                     quadsGenerator.depthOffsets,
-                    renderTargets[view].colorBuffer,
                     *currMesh
                 );
                 totalCreateMeshTime += meshFromQuads.stats.timeToCreateMeshMs;
 
-                /*
-                ============================
-                For debugging: Generate point cloud from depth map
-                ============================
-                */
+                // For debugging: Generate point cloud from depth map
                 if (showDepth) {
                     meshFromDepthShader.startTiming();
 
