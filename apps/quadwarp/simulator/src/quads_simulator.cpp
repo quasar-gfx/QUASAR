@@ -13,7 +13,6 @@
 
 #include <Recorder.h>
 #include <Animator.h>
-#include <Utils/Utils.h>
 
 #include <Quads/QuadsGenerator.h>
 #include <Quads/MeshFromQuads.h>

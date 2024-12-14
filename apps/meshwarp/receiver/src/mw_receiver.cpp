@@ -10,7 +10,6 @@
 
 #include <Recorder.h>
 #include <Animator.h>
-#include <Utils/Utils.h>
 #include <VideoTexture.h>
 #include <BC4DepthVideoTexture.h>
 #include <PoseStreamer.h>

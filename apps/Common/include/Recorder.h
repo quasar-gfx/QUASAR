@@ -22,15 +22,13 @@ extern "C" {
 #include <RenderTargets/RenderTarget.h>
 #include <Renderers/OpenGLRenderer.h>
 
+#if !defined(__APPLE__) && !defined(__ANDROID__)
+#include <cuda_gl_interop.h>
+#include <Utils/CudaUtils.h>
+#endif
+
 class Recorder {
 public:
-    struct FrameData {
-        std::vector<unsigned char> frame;
-        glm::vec3 position;
-        glm::vec3 euler;
-        int64_t elapsedTime;
-    };
-
     enum class OutputFormat {
         MP4,
         PNG,
@@ -38,21 +36,31 @@ public:
     };
 
     Recorder(OpenGLRenderer &renderer, Shader &shader, const std::string& outputPath, int targetFrameRate = 30)
-        : renderer(renderer)
-        , shader(shader)
-        , renderTargetTemp({
-            .width = renderer.width,
-            .height = renderer.height,
-            .internalFormat = GL_RGBA,
-            .format = GL_RGBA,
-            .type = GL_UNSIGNED_BYTE,
-            .wrapS = GL_CLAMP_TO_EDGE,
-            .wrapT = GL_CLAMP_TO_EDGE,
-            .minFilter = GL_LINEAR,
-            .magFilter = GL_LINEAR
-        })
-        , targetFrameRate(targetFrameRate)
-        , outputPath(outputPath) { }
+            : renderer(renderer)
+            , shader(shader)
+            , renderTargetCopy({
+                .width = renderer.width,
+                .height = renderer.height,
+                .internalFormat = GL_RGBA,
+                .format = GL_RGBA,
+                .type = GL_UNSIGNED_BYTE,
+                .wrapS = GL_CLAMP_TO_EDGE,
+                .wrapT = GL_CLAMP_TO_EDGE,
+                .minFilter = GL_LINEAR,
+                .magFilter = GL_LINEAR
+            })
+            , targetFrameRate(targetFrameRate)
+            , outputPath(outputPath) {
+#if !defined(__APPLE__) && !defined(__ANDROID__)
+        cudautils::checkCudaDevice();
+        // register opengl texture with cuda
+        CHECK_CUDA_ERROR(cudaGraphicsGLRegisterImage(&cudaResource,
+                                                    renderTargetCopy.colorBuffer.ID, GL_TEXTURE_2D,
+                                                    cudaGraphicsRegisterFlagsReadOnly));
+#else
+        openglFrameData.resize(renderTargetCopy.width * renderTargetCopy.height * 4);
+#endif
+    }
     Recorder(OpenGLRenderer &renderer, Shader &shader, int targetFrameRate = 30)
         : Recorder(renderer, shader, ".", targetFrameRate) { }
     ~Recorder();
@@ -75,11 +83,22 @@ private:
     OpenGLRenderer& renderer;
     Shader& shader;
 
-    RenderTarget renderTargetTemp;
+    RenderTarget renderTargetCopy;
 
     AVCodecID codecID = AV_CODEC_ID_H264;
     AVPixelFormat rgbaPixelFormat = AV_PIX_FMT_RGBA;
     AVPixelFormat videoPixelFormat = AV_PIX_FMT_YUV420P;
+
+    struct FrameData {
+#if !defined(__APPLE__) && !defined(__ANDROID__)
+        cudaArray* cudaBuffer;
+#else
+        std::vector<unsigned char> frame;
+#endif
+        glm::vec3 position;
+        glm::vec3 euler;
+        int64_t elapsedTime;
+    };
 
     std::atomic<bool> running{false};
     std::atomic<int> frameCount{0};
@@ -91,6 +110,11 @@ private:
     int targetFrameRate;
     int64_t recordingStartTime;
     int64_t lastCaptureTime;
+#if !defined(__APPLE__) && !defined(__ANDROID__)
+    cudaGraphicsResource* cudaResource;
+#else
+    std::vector<unsigned char> openglFrameData;
+#endif
 
     std::vector<uint8_t> rgbaVideoFrameData;
 

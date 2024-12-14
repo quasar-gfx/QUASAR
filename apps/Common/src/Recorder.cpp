@@ -37,14 +37,14 @@ void Recorder::setTargetFrameRate(int targetFrameRate) {
 void Recorder::saveScreenshotToFile(const std::string &fileName, bool saveAsHDR) {
     shader.bind();
     shader.setBool("gammaCorrect", true);
-    renderer.drawToRenderTarget(shader, renderTargetTemp);
+    renderer.drawToRenderTarget(shader, renderTargetCopy);
     shader.setBool("gammaCorrect", false);
 
     if (saveAsHDR) {
-        renderTargetTemp.saveColorAsHDR(fileName + ".hdr");
+        renderTargetCopy.saveColorAsHDR(fileName + ".hdr");
     }
     else {
-        renderTargetTemp.saveColorAsPNG(fileName + ".png");
+        renderTargetCopy.saveColorAsPNG(fileName + ".png");
     }
 }
 
@@ -97,16 +97,28 @@ void Recorder::captureFrame(const Camera &camera) {
 
     shader.bind();
     shader.setBool("gammaCorrect", true);
-    renderer.drawToRenderTarget(shader, renderTargetTemp);
+    renderer.drawToRenderTarget(shader, renderTargetCopy);
     shader.setBool("gammaCorrect", false);
 
-    std::vector<unsigned char> frameData(renderTargetTemp.width * renderTargetTemp.height * 4);
-    renderTargetTemp.readPixels(frameData.data());
+#if !defined(__APPLE__) && !defined(__ANDROID__)
+    // add cuda buffer
+    cudaArray* cudaBuffer;
+    CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
+    CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
+    CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
 
     {
         std::lock_guard<std::mutex> lock(queueMutex);
-        frameQueue.push(FrameData{std::move(frameData), camera.getPosition(), camera.getRotationEuler(), elapsedTime});
+        frameQueue.push(FrameData{cudaBuffer, camera.getPosition(), camera.getRotationEuler(), elapsedTime});
     }
+#else
+    renderTargetCopy.readPixels(openglFrameData.data());
+
+    {
+        std::lock_guard<std::mutex> lock(queueMutex);
+        frameQueue.push(FrameData{std::move(openglFrameData), camera.getPosition(), camera.getRotationEuler(), elapsedTime});
+    }
+#endif
     queueCV.notify_one();
 
     lastCaptureTime = currentTime;
@@ -125,21 +137,31 @@ void Recorder::saveFrames() {
             frameQueue.pop();
         }
 
-        if (outputFormat == OutputFormat::MP4) {
-            const int stride = renderTargetTemp.width * 4;
-            for (int y = 0; y < renderTargetTemp.height; ++y) {
-                std::memcpy(
-                    rgbaVideoFrameData.data() + y * stride,
-                    frameData.frame.data() + (renderTargetTemp.height - 1 - y) * stride,
-                    stride
-                );
-            }
+#if !defined(__APPLE__) && !defined(__ANDROID__)
+        cudaArray* cudaBuffer = frameData.cudaBuffer;
+        CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(rgbaVideoFrameData.data(),
+                                               renderTargetCopy.width * 4,
+                                               cudaBuffer,
+                                               0, 0,
+                                               renderTargetCopy.width * 4, renderTargetCopy.height,
+                                               cudaMemcpyDeviceToHost));
+#else
+        const int stride = renderTargetCopy.width * 4;
+        for (int y = 0; y < renderTargetCopy.height; ++y) {
+            std::memcpy(
+                rgbaVideoFrameData.data() + y * stride,
+                frameData.frame.data() + (renderTargetCopy.height - 1 - y) * stride,
+                stride
+            );
+        }
+#endif
 
+        if (outputFormat == OutputFormat::MP4) {
             {
                 const uint8_t* srcData[] = { rgbaVideoFrameData.data() };
-                int srcStride[] = { static_cast<int>(renderTargetTemp.width * 4) }; // RGBA has 4 bytes per pixel
+                int srcStride[] = { static_cast<int>(renderTargetCopy.width * 4) }; // RGBA has 4 bytes per pixel
 
-                sws_scale(swsCtx, srcData, srcStride, 0, renderTargetTemp.height, frame->data, frame->linesize);
+                sws_scale(swsCtx, srcData, srcStride, 0, renderTargetCopy.height, frame->data, frame->linesize);
             }
 
             int ret = avcodec_send_frame(codecCtx, frame);
@@ -174,10 +196,10 @@ void Recorder::saveFrames() {
 
             FileIO::flipVerticallyOnWrite(true);
             if (outputFormat == OutputFormat::PNG) {
-                FileIO::saveAsPNG(fileName + ".png", renderTargetTemp.width, renderTargetTemp.height, 4, frameData.frame.data());
+                FileIO::saveAsPNG(fileName + ".png", renderTargetCopy.width, renderTargetCopy.height, 4, rgbaVideoFrameData.data());
             }
             else {
-                FileIO::saveAsJPG(fileName + ".jpg", renderTargetTemp.width, renderTargetTemp.height, 4, frameData.frame.data());
+                FileIO::saveAsJPG(fileName + ".jpg", renderTargetCopy.width, renderTargetCopy.height, 4, rgbaVideoFrameData.data());
             }
         }
 
@@ -218,8 +240,8 @@ void Recorder::initializeFFmpeg() {
     }
 
     codecCtx->pix_fmt = videoPixelFormat;
-    codecCtx->width = renderTargetTemp.width;
-    codecCtx->height = renderTargetTemp.height;
+    codecCtx->width = renderTargetCopy.width;
+    codecCtx->height = renderTargetCopy.height;
     codecCtx->time_base = (AVRational){1, targetFrameRate};
     codecCtx->framerate = (AVRational){targetFrameRate, 1};
     codecCtx->bit_rate = 10 * BYTES_IN_MB;
@@ -260,18 +282,18 @@ void Recorder::initializeFFmpeg() {
         throw std::runtime_error("Recorder could not be created.");
     }
 
-    swsCtx = sws_getContext(renderTargetTemp.width, renderTargetTemp.height, rgbaPixelFormat,
-                            renderTargetTemp.width, renderTargetTemp.height, videoPixelFormat,
+    swsCtx = sws_getContext(renderTargetCopy.width, renderTargetCopy.height, rgbaPixelFormat,
+                            renderTargetCopy.width, renderTargetCopy.height, videoPixelFormat,
                             SWS_BICUBIC, nullptr, nullptr, nullptr);
     if (!swsCtx) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate conversion context\n");
         throw std::runtime_error("Recorder could not be created.");
     }
 
-    rgbaVideoFrameData = std::vector<uint8_t>(renderTargetTemp.width * renderTargetTemp.height * 4);
+    rgbaVideoFrameData = std::vector<uint8_t>(renderTargetCopy.width * renderTargetCopy.height * 4);
 
-    frame->width = renderTargetTemp.width;
-    frame->height = renderTargetTemp.height;
+    frame->width = renderTargetCopy.width;
+    frame->height = renderTargetCopy.height;
     frame->format = videoPixelFormat;
     ret = av_frame_get_buffer(frame, 0);
     if (ret < 0) {

@@ -12,7 +12,6 @@
 
 #include <Recorder.h>
 #include <Animator.h>
-#include <Utils/Utils.h>
 
 #include <VideoTexture.h>
 #include <DepthVideoTexture.h>

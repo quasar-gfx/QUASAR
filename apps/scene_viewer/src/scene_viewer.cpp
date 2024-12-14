@@ -13,7 +13,6 @@
 
 #include <Recorder.h>
 #include <Animator.h>
-#include <Utils/Utils.h>
 
 int main(int argc, char** argv) {
     Config config{};

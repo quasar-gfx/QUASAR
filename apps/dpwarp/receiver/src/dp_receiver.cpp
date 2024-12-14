@@ -12,7 +12,6 @@
 
 #include <Recorder.h>
 #include <Animator.h>
-#include <Utils/Utils.h>
 
 #include <Quads/MeshFromQuads.h>
 #include <Quads/QuadMaterial.h>
