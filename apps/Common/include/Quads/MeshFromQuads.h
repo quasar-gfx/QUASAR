@@ -14,7 +14,10 @@
 #define THREADS_PER_LOCALGROUP 16
 
 #define VERTICES_IN_A_QUAD 4
+#define INDICES_IN_A_QUAD 6
 #define NUM_SUB_QUADS 4
+
+#define MAX_NUM_PROXIES 2e6
 
 class MeshFromQuads {
 public:
@@ -49,14 +52,14 @@ public:
 
     void createMeshFromProxies(
             unsigned int numProxies,
-            const PerspectiveCamera &remoteCamera,
             const DepthOffsets &depthOffsets,
+            const PerspectiveCamera &remoteCamera,
             const Mesh &mesh);
 
     void appendGeometry(
             unsigned int numProxies,
-            const PerspectiveCamera &remoteCamera,
             const DepthOffsets &depthOffsets,
+            const PerspectiveCamera &remoteCamera,
             const Mesh &mesh);
 
     void createMeshFromProxies(

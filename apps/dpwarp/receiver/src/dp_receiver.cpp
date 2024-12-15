@@ -166,8 +166,8 @@ int main(int argc, char** argv) {
             auto& cameraToUse = (!disableWideFov && view == maxViews - 1) ? remoteCameraWideFov : remoteCamera;
             meshFromQuads.appendProxies(numProxies, quadBuffers);
             meshFromQuads.createMeshFromProxies(
-                numProxies,
-                cameraToUse, depthOffsets,
+                numProxies, depthOffsets,
+                cameraToUse,
                 *meshes[view]
             );
             createMeshTime += meshFromQuads.stats.timeToCreateMeshMs;

@@ -90,8 +90,8 @@ int main(int argc, char** argv) {
     std::vector<Scene> localScenes(2);
     localScenes[0].envCubeMap = remoteScene.envCubeMap;
     localScenes[1].envCubeMap = remoteScene.envCubeMap;
-    PerspectiveCamera localCamera(windowSize.x, windowSize.y);
-    localCamera.setViewMatrix(remoteCamera.getViewMatrix());
+    PerspectiveCamera camera(windowSize.x, windowSize.y);
+    camera.setViewMatrix(remoteCamera.getViewMatrix());
 
     // scenes with resulting mesh
     std::vector<Scene> meshScenes(2);
@@ -100,9 +100,8 @@ int main(int argc, char** argv) {
     QuadsGenerator quadsGenerator(remoteWindowSize);
     MeshFromQuads meshFromQuads(remoteWindowSize);
 
-    unsigned int maxVertices = remoteWindowSize.x * remoteWindowSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
-    unsigned int maxTriangles = remoteWindowSize.x * remoteWindowSize.y * NUM_SUB_QUADS * 2;
-    unsigned int maxIndices = maxTriangles * 3;
+    unsigned int maxVertices = MAX_NUM_PROXIES * VERTICES_IN_A_QUAD;
+    unsigned int maxIndices = MAX_NUM_PROXIES * INDICES_IN_A_QUAD;
     unsigned int maxVerticesDepth = remoteWindowSize.x * remoteWindowSize.y;
 
     RenderTarget renderTarget({
@@ -116,17 +115,17 @@ int main(int argc, char** argv) {
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST
     });
-    RenderTarget renderTargetPrev({
-        .width = remoteWindowSize.x,
-        .height = remoteWindowSize.y,
-        .internalFormat = GL_RGBA16F,
-        .format = GL_RGBA,
-        .type = GL_HALF_FLOAT,
-        .wrapS = GL_CLAMP_TO_EDGE,
-        .wrapT = GL_CLAMP_TO_EDGE,
-        .minFilter = GL_NEAREST,
-        .magFilter = GL_NEAREST
-    });
+    // RenderTarget renderTargetPrev({
+    //     .width = remoteWindowSize.x,
+    //     .height = remoteWindowSize.y,
+    //     .internalFormat = GL_RGBA16F,
+    //     .format = GL_RGBA,
+    //     .type = GL_HALF_FLOAT,
+    //     .wrapS = GL_CLAMP_TO_EDGE,
+    //     .wrapT = GL_CLAMP_TO_EDGE,
+    //     .minFilter = GL_NEAREST,
+    //     .magFilter = GL_NEAREST
+    // });
 
     std::vector<Mesh> meshes; meshes.reserve(2);
     std::vector<Node> nodeMeshes(2);
@@ -290,15 +289,15 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            glm::vec3 position = localCamera.getPosition();
+            glm::vec3 position = camera.getPosition();
             if (ImGui::InputFloat3("Camera Position", (float*)&position)) {
-                localCamera.setPosition(position);
+                camera.setPosition(position);
             }
-            glm::vec3 rotation = localCamera.getRotationEuler();
+            glm::vec3 rotation = camera.getRotationEuler();
             if (ImGui::InputFloat3("Camera Rotation", (float*)&rotation)) {
-                localCamera.setRotationEuler(rotation);
+                camera.setRotationEuler(rotation);
             }
-            ImGui::SliderFloat("Movement Speed", &localCamera.movementSpeed, 0.1f, 20.0f);
+            ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
 
             if (ImGui::Checkbox("Show Environment Map", &showEnvMap)) {
                 localScenes[0].envCubeMap = showEnvMap ? remoteScene.envCubeMap : nullptr;
@@ -461,22 +460,22 @@ int main(int argc, char** argv) {
             ImGui::End();
         }
 
-        flags = 0;
-        ImGui::Begin("Prev Color", 0, flags);
-        ImGui::Image((void*)(intptr_t)(renderTargetPrev.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::End();
+        // flags = 0;
+        // ImGui::Begin("Prev Color", 0, flags);
+        // ImGui::Image((void*)(intptr_t)(renderTargetPrev.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
+        // ImGui::End();
 
-        ImGui::Begin("Current Color", 0, flags);
-        ImGui::Image((void*)(intptr_t)(renderTarget.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::End();
+        // ImGui::Begin("Current Color", 0, flags);
+        // ImGui::Image((void*)(intptr_t)(renderTarget.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
+        // ImGui::End();
     });
 
     app.onResize([&](unsigned int width, unsigned int height) {
         windowSize = glm::uvec2(width, height);
         renderer.setWindowSize(windowSize.x, windowSize.y);
 
-        localCamera.setAspect(windowSize.x, windowSize.y);
-        localCamera.updateProjectionMatrix();
+        camera.setAspect(windowSize.x, windowSize.y);
+        camera.updateProjectionMatrix();
     });
 
     double startRenderTime = 0.0;
@@ -512,7 +511,7 @@ int main(int argc, char** argv) {
                 lastX = xpos;
                 lastY = ypos;
 
-                localCamera.processMouseMovement(xoffset, yoffset, true);
+                camera.processMouseMovement(xoffset, yoffset, true);
             }
         }
         auto keys = window->getKeys();
@@ -521,7 +520,7 @@ int main(int argc, char** argv) {
         }
 
         if (animator.running) {
-            animator.copyPoseToCamera(localCamera);
+            animator.copyPoseToCamera(camera);
             animator.update(dt);
             if (!animator.running) {
                 window->close();
@@ -529,7 +528,7 @@ int main(int argc, char** argv) {
         }
         else {
             // handle keyboard input
-            localCamera.processKeyboard(keys, dt);
+            camera.processKeyboard(keys, dt);
         }
 
         if (animationFileIn) {
@@ -562,17 +561,17 @@ int main(int argc, char** argv) {
             double totalGenDepthTime = 0.0;
 
             if (!preventCopyingLocalPose) {
-                remoteCamera.setPosition(localCamera.getPosition());
-                remoteCamera.setRotationQuat(localCamera.getRotationQuat());
+                remoteCamera.setPosition(camera.getPosition());
+                remoteCamera.setRotationQuat(camera.getRotationQuat());
                 remoteCamera.updateViewMatrix();
             }
 
-            auto& currRemoteCamera = generatePFrame ? remoteCameraPrev : remoteCamera;
+            auto& remoteCameraToUse = generatePFrame ? remoteCameraPrev : remoteCamera;
 
             // render all objects in remoteScene normally
-            remoteRenderer.drawObjects(remoteScene, currRemoteCamera);
+            remoteRenderer.drawObjects(remoteScene, remoteCameraToUse);
 
-            renderTarget.blitToRenderTarget(renderTargetPrev);
+            // renderTarget.blitToRenderTarget(renderTargetPrev);
             if (!showNormals) {
                 toneMapShader.bind();
                 toneMapShader.setBool("toneMap", false); // dont apply tone mapping
@@ -585,7 +584,7 @@ int main(int argc, char** argv) {
 
             // create proxies from the current frame
             startTime = window->getTime();
-            auto sizes = quadsGenerator.createProxiesFromGBuffer(remoteRenderer.gBuffer, remoteCamera);
+            auto sizes = quadsGenerator.createProxiesFromGBuffer(remoteRenderer.gBuffer, remoteCameraToUse);
             unsigned int numProxies = sizes.numProxies;
             totalCreateProxiesTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
             totalGenQuadMapTime += quadsGenerator.stats.timeToGenerateQuadsMs;
@@ -596,9 +595,8 @@ int main(int argc, char** argv) {
             startTime = glfwGetTime();
             meshFromQuads.appendProxies(numProxies, quadsGenerator.outputQuadBuffers);
             meshFromQuads.createMeshFromProxies(
-                numProxies,
-                currRemoteCamera,
-                quadsGenerator.depthOffsets,
+                numProxies, quadsGenerator.depthOffsets,
+                remoteCameraToUse,
                 meshes[currMeshIndex]
             );
             totalCreateMeshTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
@@ -610,30 +608,30 @@ int main(int argc, char** argv) {
                 startTime = glfwGetTime();
                 // at this point, the current mesh is filled with the current frame
 
-                // draw prev meshes at old remoteCamera view, filling depth buffer
+                // first, draw the previous mesh at the previous camera view, filling depth buffer
                 remoteRenderer.pipeline.writeMaskState.disableColorWrites();
-                remoteRenderer.drawObjectsNoLighting(meshScenes[prevMeshIndex], currRemoteCamera);
+                remoteRenderer.drawObjectsNoLighting(meshScenes[prevMeshIndex], remoteCameraToUse);
 
-                // render the current mesh scene into stencil buffer, with depth buffer from the prev mesh scene
-                // this should draw fragments in the curr mesh that are not occluded by the prev mesh scene, setting
+                // then, render the current mesh scene into stencil buffer, using the depth buffer from the prev mesh scene
+                // this should draw fragments in the current mesh that are not occluded by the prev mesh scene, setting
                 // the stencil buffer to 1 where the depth of the curr mesh is the same as the prev mesh scene
                 remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
                 remoteRenderer.pipeline.depthState.depthFunc = GL_EQUAL;
-                remoteRenderer.drawObjectsNoLighting(meshScenes[currMeshIndex], currRemoteCamera, GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+                remoteRenderer.drawObjectsNoLighting(meshScenes[currMeshIndex], remoteCameraToUse, GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-                // now, render remoteScene using stencil buffer as a mask
-                // at values were stencil buffer is 1, remoteScene should render
+                // now, render the full remote scene using the stencil buffer as a mask
+                // with this, at values where stencil buffer is 1, remoteScene should render
                 remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_NOTEQUAL, 1);
                 remoteRenderer.pipeline.depthState.depthFunc = GL_LESS;
                 remoteRenderer.pipeline.writeMaskState.enableColorWrites();
-                remoteRenderer.drawObjects(remoteScene, currRemoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                remoteRenderer.drawObjects(remoteScene, remoteCameraToUse, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
                 remoteRenderer.pipeline.stencilState.restoreStencilState();
                 totalCreatePFrameTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
 
                 // create proxies from the new frame
                 startTime = glfwGetTime();
-                auto sizes = quadsGenerator.createProxiesFromGBuffer(remoteRenderer.gBuffer, currRemoteCamera);
+                auto sizes = quadsGenerator.createProxiesFromGBuffer(remoteRenderer.gBuffer, remoteCameraToUse);
                 unsigned int numProxies = sizes.numProxies;
                 totalCreateProxiesTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
                 totalGenQuadMapTime += quadsGenerator.stats.timeToGenerateQuadsMs;
@@ -644,8 +642,8 @@ int main(int argc, char** argv) {
                 meshFromQuads.appendProxies(numProxies, quadsGenerator.outputQuadBuffers, false);
                 meshFromQuads.createMeshFromProxies(
                     numProxies,
-                    currRemoteCamera,
                     quadsGenerator.depthOffsets,
+                    remoteCameraToUse,
                     meshes[currMeshIndex]
                 );
                 totalCreateMeshTime += (glfwGetTime() - startTime) * MILLISECONDS_IN_SECOND;
@@ -672,7 +670,10 @@ int main(int argc, char** argv) {
             currMeshIndex = (currMeshIndex + 1) % 2;
             prevMeshIndex = (prevMeshIndex + 1) % 2;
 
-            remoteCameraPrev.setViewMatrix(remoteCamera.getViewMatrix());
+            // only update the previous camera pose if we are not generating a P-Frame
+            if (!generatePFrame) {
+                remoteCameraPrev.setViewMatrix(remoteCamera.getViewMatrix());
+            }
 
             // For debugging: Generate point cloud from depth map
             if (showDepth) {
@@ -736,25 +737,25 @@ int main(int argc, char** argv) {
                 positionOffset[i] = args::get(poseOffset)[i];
                 rotationOffset[i] = args::get(poseOffset)[i + 3];
             }
-            localCamera.setPosition(localCamera.getPosition() + positionOffset);
-            localCamera.setRotationEuler(localCamera.getRotationEuler() + rotationOffset);
-            localCamera.updateViewMatrix();
+            camera.setPosition(camera.getPosition() + positionOffset);
+            camera.setRotationEuler(camera.getRotationEuler() + rotationOffset);
+            camera.updateViewMatrix();
         }
 
         if (restrictMovementToViewBox) {
             glm::vec3 remotePosition = remoteCamera.getPosition();
-            glm::vec3 position = localCamera.getPosition();
-            // restrict localCamera position to be inside position +/- viewBoxSize
+            glm::vec3 position = camera.getPosition();
+            // restrict camera position to be inside position +/- viewBoxSize
             position.x = glm::clamp(position.x, remotePosition.x - viewBoxSize/2, remotePosition.x + viewBoxSize/2);
             position.y = glm::clamp(position.y, remotePosition.y - viewBoxSize/2, remotePosition.y + viewBoxSize/2);
             position.z = glm::clamp(position.z, remotePosition.z - viewBoxSize/2, remotePosition.z + viewBoxSize/2);
-            localCamera.setPosition(position);
-            localCamera.updateViewMatrix();
+            camera.setPosition(position);
+            camera.updateViewMatrix();
         }
 
         // render generated meshes
         renderer.pipeline.rasterState.cullFaceEnabled = false;
-        renderStats = renderer.drawObjects(localScenes[prevMeshIndex], localCamera);
+        renderStats = renderer.drawObjects(localScenes[prevMeshIndex], camera);
         renderer.pipeline.rasterState.cullFaceEnabled = true;
 
         // render to screen
@@ -763,7 +764,7 @@ int main(int argc, char** argv) {
         renderer.drawToScreen(toneMapShader);
 
         if (recording) {
-            recorder.captureFrame(localCamera);
+            recorder.captureFrame(camera);
         }
 
         if (saveImage) {

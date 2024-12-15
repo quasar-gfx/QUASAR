@@ -143,8 +143,8 @@ int main(int argc, char** argv) {
         startTime = window->getTime();
         meshFromQuads.appendProxies(numProxies, quadBuffers);
         meshFromQuads.createMeshFromProxies(
-            numProxies,
-            remoteCamera, depthOffsets,
+            numProxies, depthOffsets,
+            remoteCamera,
             *mesh
         );
 

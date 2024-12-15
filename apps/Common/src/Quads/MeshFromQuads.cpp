@@ -3,7 +3,7 @@
 MeshFromQuads::MeshFromQuads(const glm::uvec2 &remoteWindowSize)
         : remoteWindowSize(remoteWindowSize)
         , depthBufferSize(2u * remoteWindowSize) // 4 offsets per pixel
-        , maxProxies(remoteWindowSize.x * remoteWindowSize.y)
+        , maxProxies(MAX_NUM_PROXIES)
         , meshSizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, 1, nullptr)
         , quadIndicesBuffer({
             .width = remoteWindowSize.x,
@@ -111,8 +111,8 @@ void MeshFromQuads::fillQuadIndices() {
 
 void MeshFromQuads::createMeshFromProxies(
         unsigned int numProxies,
-        const PerspectiveCamera &remoteCamera,
         const DepthOffsets &depthOffsets,
+        const PerspectiveCamera &remoteCamera,
         const Mesh& mesh) {
     createMeshFromQuadsShader.bind();
     createMeshFromQuadsShader.setImageTexture(0, depthOffsets.buffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsets.buffer.internalFormat);
@@ -122,8 +122,8 @@ void MeshFromQuads::createMeshFromProxies(
 
 void MeshFromQuads::appendGeometry(
         unsigned int numProxies,
-        const PerspectiveCamera &remoteCamera,
         const DepthOffsets &depthOffsets,
+        const PerspectiveCamera &remoteCamera,
         const Mesh &mesh) {
     createMeshFromQuadsShader.bind();
     createMeshFromQuadsShader.setImageTexture(0, depthOffsets.buffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsets.buffer.internalFormat);

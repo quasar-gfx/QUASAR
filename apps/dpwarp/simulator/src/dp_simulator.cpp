@@ -122,11 +122,9 @@ int main(int argc, char** argv) {
         renderTargets.emplace_back(params);
     }
 
-    unsigned int maxVertices = remoteWindowSize.x * remoteWindowSize.y * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
+    unsigned int maxVertices = MAX_NUM_PROXIES * VERTICES_IN_A_QUAD;
+    unsigned int maxIndices = MAX_NUM_PROXIES * INDICES_IN_A_QUAD;
     unsigned int maxVerticesDepth = remoteWindowSize.x * remoteWindowSize.y;
-
-    unsigned int numTriangles = remoteWindowSize.x * remoteWindowSize.y * NUM_SUB_QUADS * 2;
-    unsigned int maxIndices = numTriangles * 3;
 
     std::vector<Mesh*> meshes(maxViews);
     std::vector<Node*> nodes(maxViews);
@@ -643,8 +641,6 @@ int main(int argc, char** argv) {
                 if (disableWideFov || view < maxViews - 1) {
                     // render to render target
                     if (!showNormals) {
-                        toneMapShader.bind();
-                        toneMapShader.setBool("toneMap", false); // dont apply tone mapping
                         dpRenderer.peelingLayers[view]->blitToRenderTarget(renderTargets[view]);
                     }
                     else {
@@ -674,7 +670,6 @@ int main(int argc, char** argv) {
 
                     remoteRenderer.pipeline.stencilState.restoreStencilState();
 
-                    // render to render target
                     if (!showNormals) {
                         toneMapShader.bind();
                         toneMapShader.setBool("toneMap", false); // dont apply tone mapping
@@ -723,9 +718,8 @@ int main(int argc, char** argv) {
                 startTime = window->getTime();
                 meshFromQuads.appendProxies(numProxies, quadsGenerator.outputQuadBuffers);
                 meshFromQuads.createMeshFromProxies(
-                    numProxies,
+                    numProxies, quadsGenerator.depthOffsets,
                     remoteCamera,
-                    quadsGenerator.depthOffsets,
                     *currMesh
                 );
                 totalCreateMeshTime += meshFromQuads.stats.timeToCreateMeshMs;
