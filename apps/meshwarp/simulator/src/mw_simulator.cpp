@@ -387,6 +387,9 @@ int main(int argc, char** argv) {
         }
         if (rerender) {
             double startTime = window->getTime();
+            double totalRenderTime = 0.0;
+            double totalGenMeshTime = 0.0;
+            double totalCreateVertIndTime = 0.0;
 
             if (!preventCopyingLocalPose) {
                 remoteCamera.setPosition(camera.getPosition());
@@ -403,10 +406,11 @@ int main(int argc, char** argv) {
             toneMapShader.setBool("toneMap", false); // dont apply tone mapping
             remoteRenderer.drawToRenderTarget(toneMapShader, renderTarget);
 
-            std::cout << "  Rendering Time: " << (window->getTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
-            startTime = window->getTime();
+            totalRenderTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
 
-            // Set shader uniforms
+            startTime = window->getTime();
+            genMeshFromDepthShader.startTiming();
+
             genMeshFromDepthShader.bind();
             {
                 genMeshFromDepthShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
@@ -428,15 +432,18 @@ int main(int argc, char** argv) {
                 genMeshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
                 genMeshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
             }
-
-            // dispatch compute shader to generate vertices and indices for both main and wireframe meshes
             genMeshFromDepthShader.dispatch((adjustedWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
                                             (adjustedWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
-            genMeshFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
-                                            GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+            genMeshFromDepthShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+
+            genMeshFromDepthShader.endTiming();
+            totalGenMeshTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
+            totalCreateVertIndTime += genMeshFromDepthShader.getElapsedTime();
 
             std::cout << "======================================================" << std::endl;
-            std::cout << "  genMesh Compute Shader Time: " << (window->getTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
+            std::cout << "  Rendering Time: " << totalRenderTime << "ms" << std::endl;
+            std::cout << "  Create Mesh Time: " << totalGenMeshTime << "ms" << std::endl;
+            std::cout << "     Create Vert/Ind Time: " << totalCreateVertIndTime << "ms" << std::endl;
             startTime = window->getTime();
 
             rerender = false;
