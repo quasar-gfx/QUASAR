@@ -1,0 +1,116 @@
+layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = 1, local_size_z = 1) in;
+
+struct QuadMapData {
+    vec3 normal;
+    float depth;
+    vec2 uv;
+    uvec2 offset;
+    uint size;
+    bool flattened;
+};
+
+struct QuadMapDataPacked {
+    uint normalSpherical;
+    float depth;
+    uint offsetSizeFlattened;
+};
+
+layout(std430, binding = 0) readonly buffer CurrNumProxiesBuffer {
+    uint currNumProxies;
+};
+
+layout(std430, binding = 1) writeonly buffer QuadCreatedFlagsBuffer {
+    int quadCreatedFlags[];
+};
+
+layout(std430, binding = 2) readonly buffer NormalSphericalsBufferInput {
+    uint normalSphericalsInput[];
+};
+
+layout(std430, binding = 3) readonly buffer DepthBufferInput {
+    float depthsInput[];
+};
+
+layout(std430, binding = 4) readonly buffer OffsetsBufferInput {
+    uint offsetSizeFlattenedsInput[];
+};
+
+layout(r32ui, binding = 0) uniform writeonly uimage2D quadIndices;
+
+uniform vec2 remoteWindowSize;
+
+const float epsilon = 1e-5;
+const float PI = 3.1415926535897932384626433832795;
+
+void storeQuadIndex(ivec2 pixelCoords, uint index) {
+    imageStore(quadIndices, pixelCoords, uvec4(index));
+}
+
+vec3 unpackSphericalToNormalHalf(uint packedNormal) {
+    vec2 spherical01 = unpackHalf2x16(packedNormal);
+
+    float theta = spherical01.x * (2.0 * PI) - PI;
+    float phi = spherical01.y * PI;
+
+    return vec3(
+        sin(phi) * cos(theta),
+        cos(phi),
+        sin(phi) * sin(theta)
+    );
+}
+
+QuadMapData loadQuadMap(uint index) {
+    QuadMapDataPacked quadMapDataPacked;
+    quadMapDataPacked.normalSpherical = normalSphericalsInput[index];
+    quadMapDataPacked.depth = depthsInput[index];
+    quadMapDataPacked.offsetSizeFlattened = offsetSizeFlattenedsInput[index];
+
+    QuadMapData quadMapData;
+    quadMapData.normal = unpackSphericalToNormalHalf(quadMapDataPacked.normalSpherical);
+    quadMapData.depth = quadMapDataPacked.depth;
+
+    quadMapData.offset.x = (quadMapDataPacked.offsetSizeFlattened >> 20) & 0xFFFu;
+    quadMapData.offset.y = (quadMapDataPacked.offsetSizeFlattened >> 8) & 0xFFFu;
+
+    uint flattenedAndSize = quadMapDataPacked.offsetSizeFlattened & 0xFFu;
+    quadMapData.size = (flattenedAndSize >> 1) & 0x7Fu;
+    quadMapData.flattened = (flattenedAndSize & 1u) != 0u;
+
+    uint halfSize = 1 << (quadMapData.size - 1); // 2^size / 2
+    quadMapData.uv = (vec2(quadMapData.offset) + halfSize * vec2(0.5)) / remoteWindowSize;
+
+    return quadMapData;
+}
+
+void main() {
+    uint proxyIndex = gl_GlobalInvocationID.x;
+    if (proxyIndex >= currNumProxies) {
+        return;
+    }
+
+    // reset quadCreatedFlags
+    quadCreatedFlags[proxyIndex] = 0;
+
+    // uncomment for debugging:
+    // ivec2 pixelCoords = ivec2(proxyIndex % int(remoteWindowSize.x), proxyIndex / int(remoteWindowSize.x));
+    // storeQuadIndex(pixelCoords, proxyIndex);
+
+    QuadMapData quadMapData = loadQuadMap(proxyIndex);
+    if (quadMapData.size == 0u) {
+        return;
+    }
+
+    vec2 proxyPlaneUV = quadMapData.uv;
+    ivec2 proxyPlanePixelCoord = ivec2(quadMapData.offset);
+
+    uint halfSize = 1u << (quadMapData.size - 1u); // 2^size / 2
+
+    // put proxyIndex into quadIndices
+    ivec2 baseCoord = proxyPlanePixelCoord;
+    for (int i = 0; i < halfSize; i++) {
+        for (int j = 0; j < halfSize; j++) {
+            ivec2 pixelCoords = baseCoord + ivec2(i, j);
+            storeQuadIndex(pixelCoords, proxyIndex);
+        }
+    }
+}

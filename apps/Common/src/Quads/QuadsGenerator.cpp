@@ -8,7 +8,7 @@
 QuadsGenerator::QuadsGenerator(const glm::uvec2 &remoteWindowSize)
         : remoteWindowSize(remoteWindowSize)
         , depthBufferSize(2u * remoteWindowSize) // 4 offsets per pixel
-        , maxQuads(remoteWindowSize.x * remoteWindowSize.y)
+        , maxProxies(remoteWindowSize.x * remoteWindowSize.y)
         , genQuadMapShader({
             .computeCodePath = "shaders/genQuadMap.comp",
             .defines = {
@@ -29,7 +29,7 @@ QuadsGenerator::QuadsGenerator(const glm::uvec2 &remoteWindowSize)
         })
         , sizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, 1, nullptr)
         , depthOffsets(depthBufferSize)
-        , outputQuadBuffers(maxQuads) {
+        , outputQuadBuffers(maxProxies) {
     // make sure maxProxySize is a power of 2
     glm::uvec2 maxProxySize = remoteWindowSize;
     maxProxySize.x = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize.x))));

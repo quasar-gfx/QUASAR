@@ -14,7 +14,10 @@
 #define THREADS_PER_LOCALGROUP 16
 
 #define VERTICES_IN_A_QUAD 4
+#define INDICES_IN_A_QUAD 6
 #define NUM_SUB_QUADS 4
+
+#define MAX_NUM_PROXIES 2e6
 
 class MeshFromQuads {
 public:
@@ -24,47 +27,58 @@ public:
     };
 
     struct Stats {
+        double timeToappendProxiesMs = -1.0f;
+        double timeToFillOutputQuadsMs = -1.0f;
         double timeToCreateMeshMs = -1.0f;
     } stats;
 
     glm::uvec2 remoteWindowSize;
-    glm::uvec2 atlasSize;
+    glm::uvec2 depthBufferSize;
+    unsigned int maxProxies;
 
-    Texture atlas;
+    unsigned int currNumProxies = 0;
+
+    QuadBuffers currentQuadBuffers;
 
     MeshFromQuads(const glm::uvec2 &remoteWindowSize);
     ~MeshFromQuads() = default;
 
+    void appendProxies(
+            unsigned int numProxies,
+            const QuadBuffers &newQuadBuffers,
+            bool iFrame = true);
+
+    void fillQuadIndices();
+
     void createMeshFromProxies(
-            unsigned int numProxies, const glm::uvec2 &depthBufferSize,
-            const PerspectiveCamera &remoteCamera,
-            const QuadBuffers &quadBuffers,
+            unsigned int numProxies,
             const DepthOffsets &depthOffsets,
-            const Texture &colorTexture,
+            const PerspectiveCamera &remoteCamera,
             const Mesh &mesh);
 
     void appendGeometry(
-            unsigned int numProxies, const glm::uvec2 &depthBufferSize,
-            const PerspectiveCamera &remoteCamera,
-            const QuadBuffers &quadBuffers,
+            unsigned int numProxies,
             const DepthOffsets &depthOffsets,
-            const Texture &colorTexture,
+            const PerspectiveCamera &remoteCamera,
             const Mesh &mesh);
 
     void createMeshFromProxies(
-            unsigned int numProxies, const glm::uvec2 &depthBufferSize,
+            unsigned int numProxies,
             const PerspectiveCamera &remoteCamera,
-            const QuadBuffers &quadBuffers,
-            const Texture &colorTexture,
             const Mesh &mesh,
             bool appendGeometry = false);
 
     BufferSizes getBufferSizes();
 
 private:
-    Buffer<BufferSizes> sizesBuffer;
-    Buffer<glm::ivec2> atlasOffsetBuffer;
+    Buffer<BufferSizes> meshSizesBuffer;
+    Buffer<unsigned int> currNumProxiesBuffer;
 
+    Buffer<int> quadCreatedFlagsBuffer;
+    Texture quadIndicesBuffer;
+
+    ComputeShader appendProxiesShader;
+    ComputeShader fillQuadIndicesShader;
     ComputeShader createMeshFromQuadsShader;
 };
 

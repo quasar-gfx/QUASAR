@@ -20,27 +20,27 @@ layout(std430, binding = 0) buffer QuadBufferSizes {
     uint numDepthOffsets;
 };
 
-layout(std430, binding = 1) readonly buffer normalSphericalsBufferInput {
+layout(std430, binding = 1) readonly buffer NormalSphericalsBufferInput {
     uint normalSphericalsInput[];
 };
 
-layout(std430, binding = 2) readonly buffer depthBufferInput {
+layout(std430, binding = 2) readonly buffer DepthBufferInput {
     float depthsInput[];
 };
 
-layout(std430, binding = 3) readonly buffer offsetsBufferInput {
+layout(std430, binding = 3) readonly buffer OffsetsBufferInput {
     uint offsetSizeFlattenedsInput[];
 };
 
-layout(std430, binding = 4) writeonly buffer normalSphericalsBufferOutput {
+layout(std430, binding = 4) writeonly buffer NormalSphericalsBufferOutput {
     uint normalSphericalsOutput[];
 };
 
-layout(std430, binding = 5) writeonly buffer depthBufferOutput {
+layout(std430, binding = 5) writeonly buffer DepthBufferOutput {
     float depthsOutput[];
 };
 
-layout(std430, binding = 6) writeonly buffer offsetsBufferOutput {
+layout(std430, binding = 6) writeonly buffer OffsetsBufferOutput {
     uint offsetSizeFlattenedsOutput[];
 };
 

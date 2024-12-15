@@ -166,8 +166,8 @@ int main(int argc, char** argv) {
         }
     }
     else {
-        unsigned int maxQuads = windowSize.x * windowSize.y * NUM_SUB_QUADS;
-        QuadBuffers quadBuffers(maxQuads);
+        unsigned int maxProxies = windowSize.x * windowSize.y * NUM_SUB_QUADS;
+        QuadBuffers quadBuffers(maxProxies);
 
         const glm::uvec2 depthBufferSize = 2u * windowSize;
         DepthOffsets depthOffsets(depthBufferSize);
@@ -191,10 +191,10 @@ int main(int argc, char** argv) {
             loadFromFilesTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
 
             startTime = window->getTime();
+            meshFromQuads.appendProxies(numProxies, quadBuffers);
             meshFromQuads.createMeshFromProxies(
-                numProxies, depthBufferSize,
-                remoteCameras[view], quadBuffers, depthOffsets,
-                colorTextures[view],
+                numProxies, depthOffsets,
+                remoteCameras[view],
                 *meshes[view]
             );
             createMeshTime += meshFromQuads.stats.timeToCreateMeshMs;

@@ -138,8 +138,8 @@ int main(int argc, char** argv) {
         }
     }
     else {
-        unsigned int maxQuads = windowSize.x * windowSize.y * NUM_SUB_QUADS;
-        QuadBuffers quadBuffers(maxQuads);
+        unsigned int maxProxies = windowSize.x * windowSize.y * NUM_SUB_QUADS;
+        QuadBuffers quadBuffers(maxProxies);
 
         const glm::uvec2 depthBufferSize = 2u * windowSize;
         DepthOffsets depthOffsets(depthBufferSize);
@@ -164,10 +164,10 @@ int main(int argc, char** argv) {
 
             startTime = window->getTime();
             auto& cameraToUse = (!disableWideFov && view == maxViews - 1) ? remoteCameraWideFov : remoteCamera;
+            meshFromQuads.appendProxies(numProxies, quadBuffers);
             meshFromQuads.createMeshFromProxies(
-                numProxies, depthBufferSize,
-                cameraToUse, quadBuffers, depthOffsets,
-                colorTextures[view],
+                numProxies, depthOffsets,
+                cameraToUse,
                 *meshes[view]
             );
             createMeshTime += meshFromQuads.stats.timeToCreateMeshMs;
