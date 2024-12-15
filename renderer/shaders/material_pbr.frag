@@ -194,6 +194,7 @@ vec3 getNormal() {
 }
 
 vec3 getIBLContribution(PBRInfo pbrInputs) {
+#ifdef PLATFORM_CORE
     vec3 N = pbrInputs.N;
     vec3 V = pbrInputs.V;
     vec3 R = pbrInputs.R;
@@ -216,6 +217,9 @@ vec3 getIBLContribution(PBRInfo pbrInputs) {
     vec2 brdf = texture(material.brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
     vec3 specular = prefilteredColor * (kS * brdf.x + brdf.y);
     return kD * diffuse + specular;
+#else
+    return vec3(0.0);
+#endif
 }
 
 float calcDirLightShadow(DirectionalLight light, vec4 fragPosLightSpace) {
