@@ -1,3 +1,5 @@
+#include <spdlog/spdlog.h>
+
 #include <Utils/FileIO.h>
 #include <SceneLoader.h>
 
@@ -68,7 +70,7 @@ void SceneLoader::loadScene(const std::string &filename, Scene &scene, Perspecti
         throw std::runtime_error("Failed to parse scene file " + filename);
     }
 
-    std::cout << "Loading scene: " << filename << std::endl;
+    spdlog::info("Loading scene: {}", filename);
 
     jsmntok_t* tokens = parser.getTokens();
     parse(tokens, 0, sceneJSON.data(), scene, camera);
@@ -748,7 +750,7 @@ int SceneLoader::parseAnimation(jsmntok_t* tokens, int i, const char* json, Scen
         node->animation = animation;
     }
     else {
-        std::cerr << "Node not found: " << nodeName << std::endl;
+        spdlog::warn("Node not found: {}", nodeName);
     }
 
     return i;

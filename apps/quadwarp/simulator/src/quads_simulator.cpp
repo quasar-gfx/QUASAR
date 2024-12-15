@@ -3,6 +3,7 @@
 #include <queue>
 
 #include <args/args.hxx>
+#include <spdlog/spdlog.h>
 
 #include <OpenGLApp.h>
 #include <Renderers/ForwardRenderer.h>
@@ -21,6 +22,8 @@
 #include <shaders_common.h>
 
 int main(int argc, char** argv) {
+    spdlog::set_pattern("[%H:%M:%S] [%^%L%$] %v");
+
     Config config{};
     config.title = "QuadStream Simulator";
 
@@ -28,7 +31,8 @@ int main(int argc, char** argv) {
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
-    args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
+    args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'V', "vsync"}, true);
+    args::Flag verbose(parser, "verbose", "Enable verbose logging", {'v', "verbose"});
     args::Flag saveImage(parser, "save", "Take screenshot and exit", {'I', "save-image"});
     args::ValueFlag<std::string> animationFileIn(parser, "path", "Path to camera animation file", {'A', "animation-path"});
     args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'D', "data-path"}, ".");
@@ -42,6 +46,10 @@ int main(int argc, char** argv) {
         std::cerr << e.what() << std::endl;
         std::cerr << parser;
         return 1;
+    }
+
+    if (verbose) {
+        spdlog::set_level(spdlog::level::debug);
     }
 
     // parse size
@@ -195,7 +203,7 @@ int main(int argc, char** argv) {
 
         fileStream.open(animationFile);
         if (!fileStream.is_open()) {
-            std::cerr << "Failed to open file: " << animationFile << std::endl;
+            spdlog::error("Failed to open file: {}", animationFile);
             return 1;
         }
     }
@@ -438,9 +446,8 @@ int main(int argc, char** argv) {
                 std::ofstream verticesFile(dataPath + verticesFileName, std::ios::binary);
                 verticesFile.write((char*)vertices.data(), meshBufferSizes.numVertices * sizeof(Vertex));
                 verticesFile.close();
-                std::cout << "Saved " << meshBufferSizes.numVertices << " vertices (" <<
-                              (float)meshBufferSizes.numVertices * sizeof(Vertex) / BYTES_IN_MB <<
-                              " MB)" << std::endl;
+                spdlog::info("Saved {} vertices ({:.3f} MB)", meshBufferSizes.numVertices,
+                                        (float)meshBufferSizes.numVertices * sizeof(Vertex) / BYTES_IN_MB);
 
                 // save indexBuffer
                 meshes[currMeshIndex].indexBuffer.bind();
@@ -448,9 +455,8 @@ int main(int argc, char** argv) {
                 std::ofstream indicesFile(dataPath + indicesFileName, std::ios::binary);
                 indicesFile.write((char*)indices.data(), meshBufferSizes.numIndices * sizeof(unsigned int));
                 indicesFile.close();
-                std::cout << "Saved " << meshBufferSizes.numIndices << " indices (" <<
-                             (float)meshBufferSizes.numIndices * sizeof(unsigned int) / BYTES_IN_MB <<
-                             " MB)" << std::endl;
+                spdlog::info("Saved {} indices ({:.3f} MB)", meshBufferSizes.numIndices,
+                                        (float)meshBufferSizes.numIndices * sizeof(unsigned int) / BYTES_IN_MB);
 
                 // save color buffer
                 renderTarget.saveColorAsPNG(colorFileName);
@@ -597,6 +603,7 @@ int main(int argc, char** argv) {
             startTime = window->getTime();
             auto sizes = quadsGenerator.createProxiesFromGBuffer(remoteRenderer.gBuffer, remoteCameraToUse);
             unsigned int numProxies = sizes.numProxies;
+            unsigned int numDepthOffsets = sizes.numDepthOffsets;
             totalCreateProxiesTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
             totalGenQuadMapTime += quadsGenerator.stats.timeToGenerateQuadsMs;
             totalSimplifyTime += quadsGenerator.stats.timeToSimplifyQuadsMs;
@@ -666,13 +673,15 @@ int main(int argc, char** argv) {
 
                 startTime = window->getTime();
                 savedBytes = quadsGenerator.saveToFile(dataPath + "quads.bin");
-                std::cout << "Saved " << savedBytes << " quads (" << (float)savedBytes / BYTES_IN_MB << " MB)" << std::endl;
-                std::cout << (window->getTime() - startTime) * MILLISECONDS_IN_SECOND << "ms to save proxies" << std::endl;
+                spdlog::info("Saved {} quads ({:.3f} MB) in {:.3f}ms", numProxies,
+                                                    (float)savedBytes / BYTES_IN_MB,
+                                                    (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
 
                 startTime = window->getTime();
                 savedBytes = quadsGenerator.saveDepthOffsetsToFile(dataPath + "depthOffsets.bin");
-                std::cout << "Saved " << savedBytes << " depth offsets (" << (float)savedBytes / BYTES_IN_MB << " MB)" << std::endl;
-                std::cout << (window->getTime() - startTime) * MILLISECONDS_IN_SECOND << "ms to save depth offsets" << std::endl;
+                spdlog::info("Saved {} depth offsets ({:.3f} MB) in {:.3f}ms", numDepthOffsets,
+                                                    (float)savedBytes / BYTES_IN_MB,
+                                                    (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
 
                 // save color buffer
                 std::string colorFileName = dataPath + "color.png";
@@ -718,18 +727,18 @@ int main(int argc, char** argv) {
                 totalGenDepthTime += meshFromDepthShader.getElapsedTime();
             }
 
-            std::cout << "======================================================" << std::endl;
-            std::cout << "  Rendering Time: " << totalRenderTime << "ms" << std::endl;
-            std::cout << "  Create Proxies Time: " << totalCreateProxiesTime << "ms" << std::endl;
-            std::cout << "     Gen Quad Map Time: " << totalGenQuadMapTime << "ms" << std::endl;
-            std::cout << "     Simplify Time: " << totalSimplifyTime << "ms" << std::endl;
-            std::cout << "     Fill Quads Time: " << totalFillQuadsTime << "ms" << std::endl;
-            if (generatePFrame) std::cout << "  P-Frame Creation Time: " << totalCreatePFrameTime << "ms" << std::endl;
-            std::cout << "  Create Mesh Time: " << totalCreateMeshTime << "ms" << std::endl;
-            std::cout << "     Append Quads Time: " << totalAppendProxiesMsTime << "ms" << std::endl;
-            std::cout << "     Fill Output Quads Time: " << totalFillOutputQuadsMsTime << "ms" << std::endl;
-            std::cout << "     Create Vert/Ind Time: " << totalCreateVertIndTime << "ms" << std::endl;
-            if (showDepth) std::cout << "  Gen Depth Time: " << totalGenDepthTime << "ms" << std::endl;
+            spdlog::info("======================================================");
+            spdlog::info("Rendering Time: {:.3f}ms", totalRenderTime);
+            spdlog::info("Create Proxies Time: {:.3f}ms", totalCreateProxiesTime);
+            spdlog::info("  Gen Quad Map Time: {:.3f}ms", totalGenQuadMapTime);
+            spdlog::info("  Simplify Time: {:.3f}ms", totalSimplifyTime);
+            spdlog::info("  Fill Quads Time: {:.3f}ms", totalFillQuadsTime);
+            if (generatePFrame) spdlog::info("P-Frame Creation Time: {:.3f}ms", totalCreatePFrameTime);
+            spdlog::info("Create Mesh Time: {:.3f}ms", totalCreateMeshTime);
+            spdlog::info("  Append Quads Time: {:.3f}ms", totalAppendProxiesMsTime);
+            spdlog::info("  Fill Output Quads Time: {:.3f}ms", totalFillOutputQuadsMsTime);
+            spdlog::info("  Create Vert/Ind Time: {:.3f}ms", totalCreateVertIndTime);
+            if (showDepth) spdlog::info("Gen Depth Time: {:.3f}ms", totalGenDepthTime);
 
             preventCopyingLocalPose = false;
             generateIFrame = false;

@@ -1,5 +1,7 @@
 #if !defined(__APPLE__) && !defined(__ANDROID__)
 
+#include <spdlog/spdlog.h>
+
 #include <Utils/CudaUtils.h>
 
 CUdevice cudautils::gDevice = -1;
@@ -20,7 +22,7 @@ CUdevice cudautils::checkCudaDevice() {
     char name[100];
     cuDeviceGet(&gDevice, 0);
     cuDeviceGetName(name, 100, gDevice);
-    std::cout << "Using CUDA Device 0: " << name << std::endl;
+    spdlog::info("Using CUDA device 0: {}", name);
 
     return gDevice;
 }

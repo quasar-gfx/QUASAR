@@ -49,6 +49,10 @@ set(GLFW_BUILD_DOCS OFF)
 add_subdirectory(${EXTERNAL_DIR}/glfw)
 set(RENDERER_LIBS ${RENDERER_LIBS} glfw)
 
+# spdlog
+add_subdirectory(${EXTERNAL_DIR}/spdlog)
+set(RENDERER_LIBS ${RENDERER_LIBS} spdlog)
+
 # assimp
 add_subdirectory(${EXTERNAL_DIR}/libassimp/tnt)
 set(RENDERER_LIBS ${RENDERER_LIBS} assimp)

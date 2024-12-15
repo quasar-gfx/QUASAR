@@ -3,6 +3,7 @@
 #include <queue>
 
 #include <args/args.hxx>
+#include <spdlog/spdlog.h>
 
 #include <OpenGLApp.h>
 #include <Renderers/ForwardRenderer.h>
@@ -19,6 +20,8 @@
 #define THREADS_PER_LOCALGROUP 16
 
 int main(int argc, char** argv) {
+    spdlog::set_pattern("[%H:%M:%S] [%^%L%$] %v");
+
     Config config{};
     config.title = "MeshWarp Simulator";
 
@@ -26,7 +29,8 @@ int main(int argc, char** argv) {
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
-    args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
+    args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'V', "vsync"}, true);
+    args::Flag verbose(parser, "verbose", "Enable verbose logging", {'v', "verbose"});
     args::Flag saveImage(parser, "save", "Take screenshot and exit", {'I', "save-image"});
     args::ValueFlag<std::string> animationFileIn(parser, "path", "Path to camera animation file", {'A', "animation-path"});
     args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'D', "data-path"}, ".");
@@ -42,6 +46,10 @@ int main(int argc, char** argv) {
         std::cerr << e.what() << std::endl;
         std::cerr << parser;
         return 1;
+    }
+
+    if (verbose) {
+        spdlog::set_level(spdlog::level::debug);
     }
 
     // parse size
@@ -159,7 +167,7 @@ int main(int argc, char** argv) {
 
         fileStream.open(animationFile);
         if (!fileStream.is_open()) {
-            std::cerr << "Failed to open file: " << animationFile << std::endl;
+            spdlog::error("Failed to open file: {}", animationFile);
             return 1;
         }
     }
@@ -449,10 +457,10 @@ int main(int argc, char** argv) {
             totalGenMeshTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
             totalCreateVertIndTime += genMeshFromDepthShader.getElapsedTime();
 
-            std::cout << "======================================================" << std::endl;
-            std::cout << "  Rendering Time: " << totalRenderTime << "ms" << std::endl;
-            std::cout << "  Create Mesh Time: " << totalGenMeshTime << "ms" << std::endl;
-            std::cout << "     Create Vert/Ind Time: " << totalCreateVertIndTime << "ms" << std::endl;
+            spdlog::info("======================================================");
+            spdlog::info("Rendering Time: {:.2f}ms", totalRenderTime);
+            spdlog::info("Create Mesh Time: {:.2f}ms", totalGenMeshTime);
+            spdlog::info("  Create Vert/Ind Time: {:.2f}ms", totalCreateVertIndTime);
 
             preventCopyingLocalPose = false;
             rerender = false;

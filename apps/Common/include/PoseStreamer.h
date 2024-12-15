@@ -7,6 +7,8 @@
 #include <cstring>
 #include <map>
 
+#include <spdlog/spdlog.h>
+
 #include <Networking/Socket.h>
 
 #include <glm/gtc/type_ptr.hpp>
@@ -28,7 +30,7 @@ public:
             , receiverURL(receiverURL)
             , rate(rate)
             , streamer(receiverURL, sizeof(Pose)) {
-        std::cout << "Created PoseStreamer that sends to URL: " << receiverURL << std::endl;
+        spdlog::info("Created PoseStreamer that sends to URL: {}", receiverURL);
     }
 
     bool epsilonEqual(const glm::mat4& mat1, const glm::mat4& mat2, float epsilon = 1e-5) {

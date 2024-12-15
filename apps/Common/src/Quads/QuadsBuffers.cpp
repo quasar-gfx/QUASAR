@@ -2,6 +2,8 @@
 #include <filesystem>
 #endif
 
+#include <spdlog/spdlog.h>
+
 #include <Quads/QuadsBuffers.h>
 
 QuadBuffers::QuadBuffers(unsigned int maxProxies)
@@ -57,7 +59,7 @@ unsigned int QuadBuffers::loadFromMemory(const char* data) {
 unsigned int QuadBuffers::loadFromFile(const std::string &filename) {
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     if (!std::filesystem::exists(filename)) {
-        std::cerr << "File " << filename << " does not exist" << std::endl;
+        spdlog::error("File {} does not exist", filename);
         return 0;
     }
 #endif

@@ -1,3 +1,5 @@
+#include <spdlog/spdlog.h>
+
 #include <Utils/TimeUtils.h>
 #include <BC4DepthVideoTexture.h>
 
@@ -39,7 +41,7 @@ void BC4DepthVideoTexture::onDataReceived(const std::vector<uint8_t>& compressed
     LZ4F_dctx* dctx = nullptr;
     size_t status = LZ4F_createDecompressionContext(&dctx, LZ4F_VERSION);
     if (LZ4F_isError(status)) {
-        std::cerr << "Failed to create LZ4 context: " << LZ4F_getErrorName(status) << std::endl;
+        spdlog::error("Failed to create LZ4 context: {}", LZ4F_getErrorName(status));
         return;
     }
 
@@ -53,13 +55,12 @@ void BC4DepthVideoTexture::onDataReceived(const std::vector<uint8_t>& compressed
     LZ4F_freeDecompressionContext(dctx);
 
     if (LZ4F_isError(status)) {
-        std::cerr << "LZ4 decompression failed: " << LZ4F_getErrorName(status) << std::endl;
+        spdlog::error("LZ4 decompression failed: {}", LZ4F_getErrorName(status));
         return;
     }
 
     if (dstSize != expectedSize) {
-        std::cerr << "Decompressed data size mismatch! Expected: " << expectedSize
-                  << ", Got: " << dstSize << std::endl;
+        spdlog::warn("Decompressed data size mismatch! Expected: {}, Got: {}", expectedSize, dstSize);
         // don't return - try to process the frame anyway if size is reasonable
     }
 

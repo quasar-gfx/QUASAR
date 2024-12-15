@@ -1,3 +1,5 @@
+#include <spdlog/spdlog.h>
+
 #include <BC4DepthStreamer.h>
 #include <shaders_common.h>
 
@@ -32,7 +34,7 @@ BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams &params, std::
     dataSendingThread = std::thread(&BC4DepthStreamer::sendData, this);
 #endif
 
-    std::cout << "Created BC4DepthStreamer that sends to URL: " << receiverURL << std::endl;
+    spdlog::info("Created BC4DepthStreamer that sends to URL: {}", receiverURL);
 }
 
 BC4DepthStreamer::~BC4DepthStreamer() {
@@ -117,7 +119,7 @@ void BC4DepthStreamer::sendFrame(pose_id_t poseID) {
                                               &prefs);
 
     if (LZ4F_isError(compressedSize)) {
-        std::cerr << "LZ4 compression failed: " << LZ4F_getErrorName(compressedSize) << std::endl;
+        spdlog::error("LZ4 compression failed: {}", LZ4F_getErrorName(compressedSize));
         return;
     }
 
@@ -129,9 +131,8 @@ void BC4DepthStreamer::sendFrame(pose_id_t poseID) {
 
     streamer.send(lz4Buffer);
 
-    // std::cout << "Frame Stats - Original: " << data.size()
-    //           << " bytes, Compressed: " << compressedSize
-    //           << " bytes, Ratio: " << stats.lz4CompressionRatio << std::endl;
+    // spdlog::info("Frame Stats - Original: {} bytes, Compressed: {} bytes, Ratio: {}",
+    //              data.size(), compressedSize, stats.lz4CompressionRatio);
 #endif
 }
 
