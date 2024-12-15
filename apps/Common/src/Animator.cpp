@@ -81,8 +81,8 @@ const glm::vec3 Animator::getCurrentPosition() const {
         return waypoints.back().position;
 
     if (tween) {
-        const CameraWaypoint& start = waypoints[currentIndex];
-        const CameraWaypoint& end = waypoints[currentIndex + 1];
+        const CameraPose& start = waypoints[currentIndex];
+        const CameraPose& end = waypoints[currentIndex + 1];
 
         double segmentDuration = end.timestamp - start.timestamp;
         double segmentTime = now - start.timestamp;
@@ -103,8 +103,8 @@ const glm::quat Animator::getCurrentRotation() const {
         return waypoints.back().rotation;
 
     if (tween) {
-        const CameraWaypoint& start = waypoints[currentIndex];
-        const CameraWaypoint& end = waypoints[currentIndex + 1];
+        const CameraPose& start = waypoints[currentIndex];
+        const CameraPose& end = waypoints[currentIndex + 1];
 
         double segmentDuration = end.timestamp - start.timestamp;
         double segmentTime = now - start.timestamp;

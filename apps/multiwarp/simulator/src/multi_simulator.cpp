@@ -1,5 +1,6 @@
 #include <iostream>
 #include <filesystem>
+#include <queue>
 
 #include <args/args.hxx>
 
@@ -222,7 +223,6 @@ int main(int argc, char** argv) {
         }
     }
 
-    bool rerender = true;
     bool saveToFile = false;
     bool showDepth = false;
     bool showNormals = false;
@@ -232,7 +232,10 @@ int main(int argc, char** argv) {
     bool restrictMovementToViewBox = !animationFileIn;
     float viewBoxSize = 0.5f;
 
+    bool rerender = true;
     double rerenderInterval = 0.0;
+    float networkLatency = !animationFileIn ? 0.0 : 100.0;
+    std::queue<Animator::CameraPose> cameraPoses;
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};
 
@@ -254,7 +257,7 @@ int main(int argc, char** argv) {
         static bool showMeshCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
-        static int serverFPSIndex = !animationFileIn ? 0 : 4;
+        static int serverFPSIndex = !animationFileIn ? 0 : 5;
 
         static bool showEnvMap = true;
 
@@ -415,12 +418,14 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::Button("Rerender", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+            if (ImGui::Button("Send Server Frame", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
                 rerender = true;
                 runAnimations = true;
             }
 
-            ImGui::Combo("Rerender Interval", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels));
+            ImGui::SliderFloat("Network Latency (ms)", &networkLatency, 0.0f, 1000.0f);
+
+            ImGui::Combo("Server Framerate", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels));
             rerenderInterval = 1000.0 / serverFPSValues[serverFPSIndex];
 
             ImGui::Separator();
@@ -546,7 +551,7 @@ int main(int argc, char** argv) {
         camera.updateProjectionMatrix();
     });
 
-    double startRenderTime = 0.0;
+    double lastRenderTime = 0.0;
     app.onRender([&](double now, double dt) {
         // handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
@@ -604,14 +609,9 @@ int main(int argc, char** argv) {
             dt = animator.dt;
         }
 
-        if (runAnimations) {
-            // update all animations
-            remoteScene.updateAnimations(dt);
-        }
-
-        if (rerenderInterval > 0 && now - startRenderTime > rerenderInterval / 1000.0) {
+        if (rerenderInterval > 0 && now - lastRenderTime > rerenderInterval / MILLISECONDS_IN_SECOND) {
             rerender = true;
-            startRenderTime = now;
+            lastRenderTime = now;
         }
         if (rerender) {
             double startTime = window->getTime();
@@ -626,17 +626,34 @@ int main(int argc, char** argv) {
             totalProxies = 0;
             totalDepthOffsets = 0;
 
-            if (!preventCopyingLocalPose) {
-                remoteCameraCenter.setViewMatrix(camera.getViewMatrix());
+            // update all animations
+            if (runAnimations) {
+                remoteScene.updateAnimations(dt);
+            }
 
-                // update other views
-                for (int view = 1; view < maxViews - 1; view++) {
-                    glm::vec3 offset = offsets[view - 1];
-                    remoteCameras[view].setViewMatrix(remoteCameraCenter.getViewMatrix());
-                    remoteCameras[view].setPosition(remoteCameraCenter.getPosition() + viewBoxSize/2 * offset);
-                    remoteCameras[view].updateViewMatrix();
+            cameraPoses.push({camera.getPosition(), camera.getRotationQuat(), now});
+            if (!preventCopyingLocalPose) {
+                while (!cameraPoses.empty() && now - cameraPoses.front().timestamp > networkLatency / MILLISECONDS_IN_SECOND) {
+                    auto pose = cameraPoses.front();
+
+                    // update center camera
+                    remoteCameraCenter.setPosition(pose.position);
+                    remoteCameraCenter.setRotationQuat(pose.rotation);
+                    remoteCameraCenter.updateViewMatrix();
+
+                    // update other cameras in view box corners
+                    for (int view = 1; view < maxViews - 1; view++) {
+                        glm::vec3 offset = offsets[view - 1];
+                        remoteCameras[view].setViewMatrix(remoteCameraCenter.getViewMatrix());
+                        remoteCameras[view].setPosition(remoteCameraCenter.getPosition() + viewBoxSize/2 * offset);
+                        remoteCameras[view].updateViewMatrix();
+                    }
+
+                    // update wide fov camera
+                    remoteCameras[maxViews-1].setViewMatrix(remoteCameraCenter.getViewMatrix());
+
+                    cameraPoses.pop();
                 }
-                remoteCameras[maxViews-1].setViewMatrix(remoteCameraCenter.getViewMatrix());
             }
 
             for (int view = 0; view < maxViews; view++) {

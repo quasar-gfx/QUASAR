@@ -1,5 +1,6 @@
 #include <iostream>
 #include <filesystem>
+#include <queue>
 
 #include <args/args.hxx>
 
@@ -121,10 +122,12 @@ int main(int argc, char** argv) {
     }
 
     bool atwEnabled = true;
-    bool rerender = true;
     bool preventCopyingLocalPose = false;
 
+    bool rerender = true;
     double rerenderInterval = 0.0;
+    float networkLatency = !animationFileIn ? 0.0 : 100.0;
+    std::queue<Animator::CameraPose> cameraPoses;
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};
 
@@ -136,7 +139,7 @@ int main(int argc, char** argv) {
         static bool showCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
-        static int serverFPSIndex = !animationFileIn ? 0 : 4;
+        static int serverFPSIndex = !animationFileIn ? 0 : 5;
 
         ImGui::NewFrame();
 
@@ -205,11 +208,13 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::Button("Rerender", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+            if (ImGui::Button("Send Server Frame", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
                 rerender = true;
             }
 
-            ImGui::Combo("Rerender Interval", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels));
+            ImGui::SliderFloat("Network Latency (ms)", &networkLatency, 0.0f, 1000.0f);
+
+            ImGui::Combo("Server Framerate", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels));
             rerenderInterval = 1000.0 / serverFPSValues[serverFPSIndex];
 
             ImGui::End();
@@ -245,7 +250,7 @@ int main(int argc, char** argv) {
         camera.updateProjectionMatrix();
     });
 
-    double startRenderTime = 0.0;
+    double lastRenderTime = 0.0;
     app.onRender([&](double now, double dt) {
         // handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
@@ -303,20 +308,25 @@ int main(int argc, char** argv) {
             dt = animator.dt;
         }
 
-        // update all animations
-        remoteScene.updateAnimations(dt);
-
-        if (rerenderInterval > 0 && now - startRenderTime > rerenderInterval / 1000.0) {
+        if (rerenderInterval > 0 && now - lastRenderTime > rerenderInterval / MILLISECONDS_IN_SECOND) {
             rerender = true;
-            startRenderTime = now;
+            lastRenderTime = now;
         }
         if (rerender) {
             double startTime = window->getTime();
 
+            // update all animations
+            remoteScene.updateAnimations(dt);
+
+            cameraPoses.push({camera.getPosition(), camera.getRotationQuat(), now});
             if (!preventCopyingLocalPose) {
-                remoteCamera.setPosition(camera.getPosition());
-                remoteCamera.setRotationQuat(camera.getRotationQuat());
-                remoteCamera.updateViewMatrix();
+                while (!cameraPoses.empty() && now - cameraPoses.front().timestamp > networkLatency / MILLISECONDS_IN_SECOND) {
+                    auto pose = cameraPoses.front();
+                    remoteCamera.setPosition(pose.position);
+                    remoteCamera.setRotationQuat(pose.rotation);
+                    remoteCamera.updateViewMatrix();
+                    cameraPoses.pop();
+                }
             }
 
             // render remoteScene

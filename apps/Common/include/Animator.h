@@ -12,7 +12,7 @@
 
 class Animator {
 public:
-    struct CameraWaypoint {
+    struct CameraPose {
         glm::vec3 position;
         glm::quat rotation;
         double timestamp;
@@ -33,7 +33,7 @@ public:
 private:
     bool tween = false;
 
-    std::vector<CameraWaypoint> waypoints;
+    std::vector<CameraPose> waypoints;
     size_t currentIndex = 0;
 
     const glm::vec3 getCurrentPosition() const;
