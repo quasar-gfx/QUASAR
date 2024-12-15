@@ -5,15 +5,14 @@
 #include <Animator.h>
 #include <Utils/TimeUtils.h>
 
-Animator::Animator(const std::string& pathFile, bool tween) : tween(tween) {
+Animator::Animator(const std::string &pathFile, bool tween) : tween(tween) {
     if (!pathFile.empty()) {
         loadAnimation(pathFile);
     }
 }
 
-void Animator::loadAnimation(const std::string& pathFile) {
+void Animator::loadAnimation(const std::string &pathFile) {
     running = true;
-
     currentIndex = 0;
 
     std::ifstream file(pathFile);
@@ -82,8 +81,8 @@ const glm::vec3 Animator::getCurrentPosition() const {
         return waypoints.back().position;
 
     if (tween) {
-        const Waypoint& start = waypoints[currentIndex];
-        const Waypoint& end = waypoints[currentIndex + 1];
+        const CameraWaypoint& start = waypoints[currentIndex];
+        const CameraWaypoint& end = waypoints[currentIndex + 1];
 
         double segmentDuration = end.timestamp - start.timestamp;
         double segmentTime = now - start.timestamp;
@@ -104,8 +103,8 @@ const glm::quat Animator::getCurrentRotation() const {
         return waypoints.back().rotation;
 
     if (tween) {
-        const Waypoint& start = waypoints[currentIndex];
-        const Waypoint& end = waypoints[currentIndex + 1];
+        const CameraWaypoint& start = waypoints[currentIndex];
+        const CameraWaypoint& end = waypoints[currentIndex + 1];
 
         double segmentDuration = end.timestamp - start.timestamp;
         double segmentTime = now - start.timestamp;

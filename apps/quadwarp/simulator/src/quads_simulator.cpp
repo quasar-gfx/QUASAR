@@ -209,9 +209,10 @@ int main(int argc, char** argv) {
     bool runAnimations = animationFileIn;
     bool restrictMovementToViewBox = !animationFileIn;
     float viewBoxSize = 0.5f;
-    int rerenderInterval = 0;
-    const int intervalValues[] = {0, 25, 50, 100, 200, 500, 1000};
-    const char* intervalLabels[] = {"0ms", "25ms", "50ms", "100ms", "200ms", "500ms", "1000ms"};
+
+    double rerenderInterval = 0.0;
+    const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
+    const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};
 
     RenderStats renderStats;
     bool recording = false;
@@ -222,7 +223,7 @@ int main(int argc, char** argv) {
         static bool showMeshCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
-        static int intervalIndex = !animationFileIn ? 0 : 3;
+        static int serverFPSIndex = !animationFileIn ? 0 : 4;
 
         static bool showEnvMap = true;
 
@@ -388,8 +389,8 @@ int main(int argc, char** argv) {
                 runAnimations = true;
             }
 
-            ImGui::Combo("Rerender Interval", &intervalIndex, intervalLabels, IM_ARRAYSIZE(intervalLabels));
-            rerenderInterval = intervalValues[intervalIndex];
+            ImGui::Combo("Rerender Interval", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels));
+            rerenderInterval = 1000.0 / serverFPSValues[serverFPSIndex];
 
             ImGui::End();
         }
@@ -713,7 +714,7 @@ int main(int argc, char** argv) {
             std::cout << "     Gen Quad Map Time: " << totalGenQuadMapTime << "ms" << std::endl;
             std::cout << "     Simplify Time: " << totalSimplifyTime << "ms" << std::endl;
             std::cout << "     Fill Quads Time: " << totalFillQuadsTime << "ms" << std::endl;
-            std::cout << "  P-Frame Creation Time: " << totalCreatePFrameTime << "ms" << std::endl;
+            if (generatePFrame) std::cout << "  P-Frame Creation Time: " << totalCreatePFrameTime << "ms" << std::endl;
             std::cout << "  Create Mesh Time: " << totalCreateMeshTime << "ms" << std::endl;
             std::cout << "     Append Quads Time: " << totalAppendProxiesMsTime << "ms" << std::endl;
             std::cout << "     Fill Output Quads Time: " << totalFillOutputQuadsMsTime << "ms" << std::endl;
