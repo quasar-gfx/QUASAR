@@ -29,12 +29,12 @@ layout(std430, binding = 7) writeonly buffer OffsetsBufferOutput {
 };
 
 uniform bool iFrame;
-uniform uint numNewProxies;
+uniform uint newNumProxies;
 uniform uint prevNumProxies;
 
 void main() {
     uint proxyIndex = gl_GlobalInvocationID.x;
-    if (proxyIndex >= numNewProxies) {
+    if (proxyIndex >= newNumProxies) {
         return;
     }
 

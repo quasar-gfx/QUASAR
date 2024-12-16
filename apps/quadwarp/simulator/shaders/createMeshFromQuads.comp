@@ -48,7 +48,7 @@ layout(std430, binding = 0) buffer MeshBufferSizes {
     uint numIndices;
 };
 
-layout(std430, binding = 1) buffer QuadCreatedFlagsBuffer {
+layout(std430, binding = 1) readonly buffer QuadCreatedFlagsBuffer {
     int quadCreatedFlags[];
 };
 
@@ -82,13 +82,11 @@ layout(std430, binding = 7) readonly buffer OffsetsBufferInput {
 
 layout(rgba16f, binding = 0) uniform readonly image2D depthOffsetsBuffer;
 layout(r32ui, binding = 1) uniform readonly uimage2D quadIndices;
-// layout(rgba16f, binding = 1) uniform readonly image2D colorTexture;
-// layout(rgba16f, binding = 2) uniform writeonly image2D atlas;
 
 uniform bool appendGeometry;
 
 uniform vec2 remoteWindowSize;
-uniform uint quadMapSize;
+uniform uint currNumProxies;
 uniform vec2 depthBufferSize;
 uniform vec2 atlasSize;
 
@@ -126,35 +124,10 @@ vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
     return viewCoord.xyz;
 }
 
-vec3 viewToNDC(mat4 projection, vec3 viewCoord) {
-    vec4 ndcCoord = projection * vec4(viewCoord, 1.0);
-    ndcCoord = ndcCoord / ndcCoord.w;
-    ndcCoord.z = (ndcCoord.z + 1.0) / 2.0;
-    return ndcCoord.xyz;
-}
-
 vec3 viewToWorld(mat4 viewInverse, vec3 viewCoord) {
     vec4 worldCoord = viewInverse * vec4(viewCoord, 1.0);
     worldCoord = worldCoord / worldCoord.w;
     return worldCoord.xyz;
-}
-
-vec3 worldToView(mat4 view, vec3 worldCoord) {
-    vec4 viewCoord = view * vec4(worldCoord, 1.0);
-    viewCoord = viewCoord / viewCoord.w;
-    return viewCoord.xyz;
-}
-
-vec2 viewToScreen(mat4 projection, vec3 viewCoord) {
-    vec2 ndc = viewToNDC(projection, viewCoord).xy;
-    vec2 uv = (ndc + 1.0) / 2.0;
-    return uv;
-}
-
-vec2 worldToScreen(mat4 view, mat4 projection, vec3 worldCoord) {
-    vec2 ndc = viewToNDC(projection, worldToView(view, worldCoord)).xy;
-    vec2 uv = (ndc + 1.0) / 2.0;
-    return uv;
 }
 
 vec3 rayPlaneIntersection(vec3 rayOrigin, vec3 rayDirection, Plane plane) {
@@ -476,6 +449,9 @@ void main() {
     }
 
     // uint quadMapIndex = quadIndicesPixelCoord.y * uint(remoteWindowSize.x) + quadIndicesPixelCoord.x;
+    // if (quadMapIndex >= currNumProxies) {
+    //     return;
+    // }
     uint quadMapIndex = loadQuadMapIndex(ivec2(quadIndicesPixelCoord));
 
     // if the quad has already been created, skip it
