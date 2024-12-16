@@ -27,7 +27,7 @@ public:
     };
 
     struct Stats {
-        double timeToappendProxiesMs = -1.0f;
+        double timeToAppendProxiesMs = -1.0f;
         double timeToFillOutputQuadsMs = -1.0f;
         double timeToCreateMeshMs = -1.0f;
     } stats;

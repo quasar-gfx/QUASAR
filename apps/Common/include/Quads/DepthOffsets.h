@@ -4,6 +4,8 @@
 #include <Texture.h>
 #include <Utils/FileIO.h>
 
+#include <spdlog/spdlog.h>
+
 #if !defined(__APPLE__) && !defined(__ANDROID__)
 #include <filesystem>
 #include <cuda_gl_interop.h>
@@ -86,7 +88,7 @@ public:
     unsigned int loadFromFile(const std::string &filename) {
 #if !defined(__APPLE__) && !defined(__ANDROID__)
         if (!std::filesystem::exists(filename)) {
-            std::cerr << "File " << filename << " does not exist" << std::endl;
+            spdlog::error("File {} does not exist", filename);
             return 0;
         }
 #endif

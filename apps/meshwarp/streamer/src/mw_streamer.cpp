@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include <args/args.hxx>
+#include <spdlog/spdlog.h>
 
 #include <OpenGLApp.h>
 #include <Renderers/ForwardRenderer.h>
@@ -27,6 +28,8 @@ enum class PauseState {
 };
 
 int main(int argc, char** argv) {
+    spdlog::set_pattern("[%H:%M:%S] [%^%L%$] %v");
+
     Config config{};
     config.title = "MeshWarp Streamer";
     config.targetFramerate = 30;
@@ -35,7 +38,8 @@ int main(int argc, char** argv) {
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
-    args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
+    args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'V', "vsync"}, true);
+    args::Flag verbose(parser, "verbose", "Enable verbose logging", {'v', "verbose"});
     args::ValueFlag<bool> displayIn(parser, "display", "Show window", {'d', "display"}, true);
     args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "127.0.0.1:12345");
     args::ValueFlag<std::string> videoFormatIn(parser, "video-format", "Video format", {'g', "video-format"}, "mpegts");
@@ -53,6 +57,10 @@ int main(int argc, char** argv) {
         std::cerr << e.what() << std::endl;
         std::cerr << parser;
         return 1;
+    }
+
+    if (verbose) {
+        spdlog::set_level(spdlog::level::debug);
     }
 
     // parse size
@@ -293,7 +301,7 @@ int main(int argc, char** argv) {
     // run app loop (blocking)
     app.run();
 
-    std::cout << "Please do CTRL-C to exit!" << std::endl;
+    spdlog::info("Please do CTRL-C to exit!");
 
     return 0;
 }

@@ -3,6 +3,7 @@
 #include <queue>
 
 #include <args/args.hxx>
+#include <spdlog/spdlog.h>
 
 #include <OpenGLApp.h>
 #include <Renderers/ForwardRenderer.h>
@@ -17,6 +18,8 @@
 #include <shaders_common.h>
 
 int main(int argc, char** argv) {
+    spdlog::set_pattern("[%H:%M:%S] [%^%L%$] %v");
+
     Config config{};
     config.title = "ATW Simulator";
 
@@ -24,7 +27,8 @@ int main(int argc, char** argv) {
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "800x600");
     args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
-    args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'v', "vsync"}, true);
+    args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'V', "vsync"}, true);
+    args::Flag verbose(parser, "verbose", "Enable verbose logging", {'v', "verbose"});
     args::Flag saveImage(parser, "save", "Take screenshot and exit", {'I', "save-image"});
     args::ValueFlag<std::string> animationFileIn(parser, "path", "Path to camera animation file", {'A', "animation-path"});
     args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'D', "data-path"}, ".");
@@ -38,6 +42,10 @@ int main(int argc, char** argv) {
         std::cerr << e.what() << std::endl;
         std::cerr << parser;
         return 1;
+    }
+
+    if (verbose) {
+        spdlog::set_level(spdlog::level::debug);
     }
 
     // parse size
@@ -116,7 +124,7 @@ int main(int argc, char** argv) {
 
         fileStream.open(animationFile);
         if (!fileStream.is_open()) {
-            std::cerr << "Failed to open file: " << animationFile << std::endl;
+            spdlog::error("Failed to open file: {}", animationFile);
             return 1;
         }
     }
@@ -335,8 +343,8 @@ int main(int argc, char** argv) {
             // copy rendered result to video render target
             remoteRenderer.drawToRenderTarget(toneMapShader, renderTarget);
 
-            std::cout << "======================================================" << std::endl;
-            std::cout << "  Rendering Time: " << (window->getTime() - startTime) * MILLISECONDS_IN_SECOND << "ms" << std::endl;
+            spdlog::info("======================================================");
+            spdlog::info("Rendering Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
             startTime = window->getTime();
 
             preventCopyingLocalPose = false;

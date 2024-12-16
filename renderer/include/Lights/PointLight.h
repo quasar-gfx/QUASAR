@@ -1,6 +1,8 @@
 #ifndef POINT_LIGHT_H
 #define POINT_LIGHT_H
 
+#include <spdlog/spdlog.h>
+
 #include <Lights/Light.h>
 #include <CubeMap.h>
 #include <RenderTargets/PointLightShadowRT.h>
@@ -67,7 +69,7 @@ public:
 
     void bindMaterial(const Material* material) override {
         if (channel == -1) {
-            std::cerr << "Point light channel is not set!" << std::endl;
+            spdlog::warn("Point light channel is not set!");
             return;
         }
 

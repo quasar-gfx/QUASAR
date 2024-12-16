@@ -241,8 +241,8 @@ QuadMapData loadInputQuadMap(ivec2 pixelCoord) {
     quadMapData.size = (flattenedAndSize >> 1) & 0x7Fu;
     quadMapData.flattened = (flattenedAndSize & 1u) != 0;
 
-    uint halfSize = 1 << (quadMapData.size - 1); // 2^size / 2
-    quadMapData.uv = (vec2(quadMapData.offset) + halfSize * vec2(0.5)) / remoteWindowSize;
+    uint halfSize = 1u << (quadMapData.size - 1u); // 2^size / 2
+    quadMapData.uv = (vec2(quadMapData.offset) + float(halfSize) * vec2(0.5)) / remoteWindowSize;
 
     return quadMapData;
 }

@@ -2,6 +2,8 @@
 #include <sstream>
 #include <iostream>
 
+#include <spdlog/spdlog.h>
+
 #include <Animator.h>
 #include <Utils/TimeUtils.h>
 
@@ -17,7 +19,7 @@ void Animator::loadAnimation(const std::string &pathFile) {
 
     std::ifstream file(pathFile);
     if (!file.is_open()) {
-        std::cerr << "Failed to open camera path file: " << pathFile << std::endl;
+        spdlog::error("Failed to open camera path file: {}", pathFile);
         return;
     }
 

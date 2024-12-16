@@ -1,5 +1,7 @@
 #include <iostream>
 
+#include <spdlog/spdlog.h>
+
 #include <Windowing/GLFWWindow.h>
 
 GLFWWindow::GLFWWindow(const Config &config) {
@@ -34,7 +36,7 @@ GLFWWindow::GLFWWindow(const Config &config) {
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cout << "Failed to initialize GLAD" << std::endl;
+        spdlog::error("Failed to initialize GLAD");
         return;
     }
 }

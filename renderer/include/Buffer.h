@@ -5,6 +5,8 @@
 #include <cstring>
 #include <vector>
 
+#include <spdlog/spdlog.h>
+
 #include <OpenGLObject.h>
 
 template<typename T>
@@ -127,7 +129,6 @@ public:
         }
         else if (newNumElems <= numElems / 4) {
             resize(numElems / 4, copy);
-            std::cout << "Resizing buffer to " << numElems / 4 << " elements." << std::endl;
         }
     }
 
@@ -149,7 +150,7 @@ public:
             glUnmapBuffer(target);
         }
         else {
-            std::cerr << "Error: Could not map buffer data." << std::endl;
+            spdlog::error("Error: Could not map buffer data.");
         }
 #endif
     }

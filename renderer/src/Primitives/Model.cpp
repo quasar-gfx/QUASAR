@@ -2,6 +2,8 @@
 #include <iostream>
 #include <unistd.h>
 
+#include <spdlog/spdlog.h>
+
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/cimport.h>
@@ -88,7 +90,7 @@ void Model::updateAnimations(float dt) {
 
 void Model::loadFromFile(const ModelCreateParams &params) {
     std::string path = params.path;
-    std::cout << "Loading model: " << path << std::endl;
+    spdlog::info("Loading model: {}", path);
 
     // use absolute path if path starts with ~/
     if (path[0] == '~') {

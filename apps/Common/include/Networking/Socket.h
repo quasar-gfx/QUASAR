@@ -104,7 +104,6 @@ public:
     }
 
     virtual int send(const void* buf, size_t len, int flags) {
-        std::cout << "socket id" << socketID << std::endl;
         return ::send(socketID, buf, len, flags);
     }
 

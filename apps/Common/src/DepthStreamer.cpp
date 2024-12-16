@@ -1,3 +1,5 @@
+#include <spdlog/spdlog.h>
+
 #include <DepthStreamer.h>
 
 DepthStreamer::DepthStreamer(const RenderTargetCreateParams &params, std::string receiverURL)
@@ -20,7 +22,7 @@ DepthStreamer::DepthStreamer(const RenderTargetCreateParams &params, std::string
         .multiSampled = colorBuffer.multiSampled
     });
 
-    std::cout << "Created DepthStreamer that sends to URL: " << receiverURL << std::endl;
+    spdlog::info("Created DepthStreamer that sends to URL: {}", receiverURL);
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     cudautils::checkCudaDevice();

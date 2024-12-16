@@ -1,6 +1,8 @@
 #include <iostream>
 #include <cstring>
 
+#include <spdlog/spdlog.h>
+
 #include <Utils/FileIO.h>
 #include <VideoTexture.h>
 
@@ -22,7 +24,7 @@ VideoTexture::VideoTexture(const TextureDataCreateParams &params,
 #if defined(__ANDROID__)
     if (formatName != "mpegts") {
         sdpFileName = FileIO::copyFileToCache(sdpFileName);
-        std::cout << "Copied SDP file to: " << sdpFileName << std::endl;
+        spdlog::info("Copied SDP file to: {}", sdpFileName);
     }
 #else
     sdpFileName = "../assets/" + sdpFileName;
@@ -32,7 +34,8 @@ VideoTexture::VideoTexture(const TextureDataCreateParams &params,
                         "udp://" + videoURL + "?overrun_nonfatal=1&fifo_size=50000000" :
                             sdpFileName;
 
-    std::cout << "Created VideoTexture that recvs from URL: " << videoURL << " (" << formatName << ")" << std::endl;
+    spdlog::info("Created VideoTexture that recvs from URL: {} ({})", videoURL, formatName);
+
     videoReceiverThread = std::thread(&VideoTexture::receiveVideo, this);
 }
 
@@ -65,7 +68,7 @@ VideoTexture::~VideoTexture() {
 int VideoTexture::initFFMpeg() {
     AVStream* inputVideoStream = nullptr;
 
-    std::cout << "Waiting to receive video..." << std::endl;
+    spdlog::info("Waiting to receive video...");
 
     inputFormatCtx->interrupt_callback.callback = interrupt_callback;
     inputFormatCtx->interrupt_callback.opaque = &shouldTerminate;
@@ -116,7 +119,7 @@ int VideoTexture::initFFMpeg() {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate decoder.\n");
         return -1;
     }
-    std::cout << "Decoder: " << codec->name << std::endl;
+    spdlog::info("Decoder: {}", codec->name);
 
     codecCtx = avcodec_alloc_context3(codec);
     if (!codecCtx) {
@@ -138,7 +141,7 @@ int VideoTexture::initFFMpeg() {
 
     videoWidth = codecCtx->width;
     videoHeight = codecCtx->height;
-    std::cout << "Video resolution: " << videoWidth << "x" << videoHeight << std::endl;
+    spdlog::info("Video resolution: {}x{}", videoWidth, videoHeight);
 
     internalWidth = videoWidth;
     internalHeight = videoHeight;

@@ -83,7 +83,7 @@ void MeshFromQuads::appendProxies(
     currNumProxiesBuffer.getData(&currNumProxies);
 
     appendProxiesShader.endTiming();
-    stats.timeToappendProxiesMs = appendProxiesShader.getElapsedTime();
+    stats.timeToAppendProxiesMs = appendProxiesShader.getElapsedTime();
 
     fillQuadIndices();
 }
@@ -103,7 +103,7 @@ void MeshFromQuads::fillQuadIndices() {
         fillQuadIndicesShader.setImageTexture(0, quadIndicesBuffer, 0, GL_FALSE, 0, GL_WRITE_ONLY, quadIndicesBuffer.internalFormat);
     }
     fillQuadIndicesShader.dispatch((currNumProxies + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
-    fillQuadIndicesShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    fillQuadIndicesShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
     fillQuadIndicesShader.endTiming();
     stats.timeToFillOutputQuadsMs = fillQuadIndicesShader.getElapsedTime();

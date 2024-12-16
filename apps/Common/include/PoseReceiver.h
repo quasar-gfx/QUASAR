@@ -6,6 +6,8 @@
 #include <thread>
 #include <cstring>
 
+#include <spdlog/spdlog.h>
+
 #include <Networking/Socket.h>
 
 #include <glm/gtc/type_ptr.hpp>
@@ -25,14 +27,14 @@ public:
             , streamerURL(streamerURL)
             , poseDropThresUs(timeutils::millisToMicros(poseDropThresMs))
             , DataReceiverUDP(streamerURL, sizeof(Pose)) {
-        std::cout << "Created PoseReceiver that recvs from URL: " << streamerURL << std::endl;
+        spdlog::info("Created PoseReceiver that recvs from URL: {}", streamerURL);
     }
 
     void onDataReceived(const std::vector<uint8_t>& data) override {
         std::lock_guard<std::mutex> lock(m);
 
         if (data.size() < sizeof(Pose)) {
-            std::cerr << "Error: Received data size is smaller than expected Pose size" << std::endl;
+            spdlog::warn("Received data size is smaller than expected Pose size");
             return;
         }
 

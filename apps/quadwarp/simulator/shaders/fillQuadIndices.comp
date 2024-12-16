@@ -76,8 +76,8 @@ QuadMapData loadQuadMap(uint index) {
     quadMapData.size = (flattenedAndSize >> 1) & 0x7Fu;
     quadMapData.flattened = (flattenedAndSize & 1u) != 0u;
 
-    uint halfSize = 1 << (quadMapData.size - 1); // 2^size / 2
-    quadMapData.uv = (vec2(quadMapData.offset) + halfSize * vec2(0.5)) / remoteWindowSize;
+    uint halfSize = 1u << (quadMapData.size - 1u); // 2^size / 2
+    quadMapData.uv = (vec2(quadMapData.offset) + float(halfSize) * vec2(0.5)) / remoteWindowSize;
 
     return quadMapData;
 }
@@ -92,7 +92,7 @@ void main() {
     quadCreatedFlags[proxyIndex] = 0;
 
     // uncomment for debugging:
-    // ivec2 pixelCoords = ivec2(proxyIndex % int(remoteWindowSize.x), proxyIndex / int(remoteWindowSize.x));
+    // ivec2 pixelCoords = ivec2(proxyIndex % uint(remoteWindowSize.x), proxyIndex / uint(remoteWindowSize.x));
     // storeQuadIndex(pixelCoords, proxyIndex);
 
     QuadMapData quadMapData = loadQuadMap(proxyIndex);
@@ -107,8 +107,8 @@ void main() {
 
     // put proxyIndex into quadIndices
     ivec2 baseCoord = proxyPlanePixelCoord;
-    for (int i = 0; i < halfSize; i++) {
-        for (int j = 0; j < halfSize; j++) {
+    for (uint i = 0u; i < halfSize; i++) {
+        for (uint j = 0u; j < halfSize; j++) {
             ivec2 pixelCoords = baseCoord + ivec2(i, j);
             storeQuadIndex(pixelCoords, proxyIndex);
         }

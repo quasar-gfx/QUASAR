@@ -1,3 +1,5 @@
+#include <spdlog/spdlog.h>
+
 #include <Shaders/ShaderBase.h>
 
 GLuint ShaderBase::bindedShaderID = 0;
@@ -194,7 +196,7 @@ GLuint ShaderBase::createShader(std::string version, std::vector<std::string> ex
             shader = glCreateShader(GL_COMPUTE_SHADER);
             break;
         default:
-            std::cerr << "Invalid shader type: " << static_cast<int>(type) << std::endl;
+            spdlog::error("Invalid shader type: {}", static_cast<int>(type));
             return -1;
     }
 
@@ -231,13 +233,13 @@ void ShaderBase::checkCompileErrors(GLuint shader, ShaderType type) {
         glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
         if (!success) {
             glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-            std::cerr << "Failed to compile " << shaderTypeStr << " shader:\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+            spdlog::error("Failed to compile {} shader:\n{}", shaderTypeStr, infoLog);
         }
     } else {
         glGetProgramiv(shader, GL_LINK_STATUS, &success);
         if (!success) {
             glGetProgramInfoLog(shader, 1024, NULL, infoLog);
-            std::cerr << "Failed to link program:\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+            spdlog::error("Failed to link program:\n{}", infoLog);
         }
     }
 }

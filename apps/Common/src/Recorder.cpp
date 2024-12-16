@@ -292,25 +292,26 @@ void Recorder::initializeFFmpeg() {
 
     rgbaVideoFrameData = std::vector<uint8_t>(renderTargetCopy.width * renderTargetCopy.height * 4);
 
+    /* setup frame */
     frame->width = renderTargetCopy.width;
     frame->height = renderTargetCopy.height;
     frame->format = videoPixelFormat;
     ret = av_frame_get_buffer(frame, 0);
     if (ret < 0) {
-        std::cout << "Error: Could not allocate frame data: " << av_err2str(ret) << std::endl;
+        av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate frame data: %s\n", av_err2str(ret));
         return;
     }
 
     ret = av_frame_make_writable(frame);
     if (ret < 0) {
-        std::cout << "Error: Could not make frame writable: " << av_err2str(ret) << std::endl;
+        av_log(nullptr, AV_LOG_ERROR, "Error: Could not make frame writable: %s\n", av_err2str(ret));
         return;
     }
 
     /* setup packet */
     ret = av_packet_make_writable(packet);
     if (ret < 0) {
-        std::cout << "Error: Could not make packet writable: " << av_err2str(ret) << std::endl;
+        av_log(nullptr, AV_LOG_ERROR, "Error: Could not make packet writable: %s\n", av_err2str(ret));
         return;
     }
 }

@@ -1,6 +1,8 @@
 #include <iostream>
 #include <thread>
 
+#include <spdlog/spdlog.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -40,12 +42,11 @@ void OpenGLApp::run() {
 
         if (window->resized()) {
             glm::uvec2 windowSize = window->getSize();
-
-            std::cout << "Resized to " << windowSize.x << "x" << windowSize.y << std::endl;
-
             if (resizeCallback) {
                 resizeCallback(windowSize.x, windowSize.y);
             }
+
+            spdlog::info("Window resized to {}x{}", windowSize.x, windowSize.y);
         }
 
         if (renderCallback) {

@@ -1,5 +1,7 @@
 #include <cstring>
 
+#include <spdlog/spdlog.h>
+
 #include <Utils/TimeUtils.h>
 #include <VideoStreamer.h>
 
@@ -58,7 +60,7 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params,
     std::string encoderName = "libx264";
 #endif
     auto outputCodec = avcodec_find_encoder_by_name(encoderName.c_str());
-    std::cout << "Encoder: " << encoderName << std::endl;
+    spdlog::info("Encoder: {}", encoderName);
     if (!outputCodec) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate encoder.\n");
         throw std::runtime_error("Video Streamer could not be created.");
@@ -164,7 +166,7 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params,
         return;
     }
 
-    std::cout << "Created VideoStreamer that sends to URL: " << videoURL << " (" << formatName << ")" << std::endl;
+    spdlog::info("Created VideoStreamer that sends to URL: {} ({})", videoURL, formatName);
 
     videoStreamerThread = std::thread(&VideoStreamer::encodeAndSendFrames, this);
 }
