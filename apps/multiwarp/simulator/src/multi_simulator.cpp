@@ -426,15 +426,15 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::Button("Send Server Frame", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
-                rerender = true;
-                runAnimations = true;
-            }
-
             ImGui::SliderFloat("Network Latency (ms)", &networkLatency, 0.0f, 1000.0f);
 
             ImGui::Combo("Server Framerate", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels));
             rerenderInterval = 1000.0 / serverFPSValues[serverFPSIndex];
+
+            if (ImGui::Button("Send Server Frame", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+                rerender = true;
+                runAnimations = true;
+            }
 
             ImGui::Separator();
 

@@ -225,7 +225,7 @@ int main(int argc, char** argv) {
     bool preventCopyingLocalPose = false;
     bool runAnimations = animationFileIn;
     bool restrictMovementToViewBox = !animationFileIn;
-    float viewBoxSize = 0.5f;
+    float viewSphereDiameter = 0.5f;
 
     double rerenderInterval = 0.0;
     float networkLatency = !animationFileIn ? 0.0 : 100.0;
@@ -402,26 +402,26 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::SliderFloat("View Box Size", &viewBoxSize, 0.1f, 5.0f)) {
+            if (ImGui::SliderFloat("View Sphere Diameter", &viewSphereDiameter, 0.1f, 5.0f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
                 runAnimations = false;
-                dpRenderer.setViewBoxSize(viewBoxSize);
+                dpRenderer.setViewSphereDiameter(viewSphereDiameter);
             }
 
-            ImGui::Checkbox("Restrict Movement to View Box", &restrictMovementToViewBox);
+            ImGui::Checkbox("Restrict Movement to View Sphere", &restrictMovementToViewBox);
 
             ImGui::Separator();
-
-            if (ImGui::Button("Send Server Frame", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
-                rerender = true;
-                runAnimations = true;
-            }
 
             ImGui::SliderFloat("Network Latency (ms)", &networkLatency, 0.0f, 1000.0f);
 
             ImGui::Combo("Server Framerate", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels));
             rerenderInterval = 1000.0 / serverFPSValues[serverFPSIndex];
+
+            if (ImGui::Button("Send Server Frame", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+                rerender = true;
+                runAnimations = true;
+            }
 
             ImGui::Separator();
 
@@ -825,10 +825,12 @@ int main(int argc, char** argv) {
         if (restrictMovementToViewBox) {
             glm::vec3 remotePosition = remoteCameraCenter.getPosition();
             glm::vec3 position = camera.getPosition();
-            // restrict camera position to be inside position +/- viewBoxSize
-            position.x = glm::clamp(position.x, remotePosition.x - viewBoxSize/2, remotePosition.x + viewBoxSize/2);
-            position.y = glm::clamp(position.y, remotePosition.y - viewBoxSize/2, remotePosition.y + viewBoxSize/2);
-            position.z = glm::clamp(position.z, remotePosition.z - viewBoxSize/2, remotePosition.z + viewBoxSize/2);
+            glm::vec3 direction = position - remotePosition;
+            float distanceSquared = glm::dot(direction, direction);
+            float radius = viewSphereDiameter / 2.0f;
+            if (distanceSquared > radius * radius) {
+                position = remotePosition + glm::normalize(direction) * radius;
+            }
             camera.setPosition(position);
             camera.updateViewMatrix();
         }

@@ -388,6 +388,11 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
+            ImGui::SliderFloat("Network Latency (ms)", &networkLatency, 0.0f, 1000.0f);
+
+            ImGui::Combo("Server Framerate", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels));
+            rerenderInterval = 1000.0 / serverFPSValues[serverFPSIndex];
+
             float windowWidth = ImGui::GetContentRegionAvail().x;
             float buttonWidth = (windowWidth - ImGui::GetStyle().ItemSpacing.x) / 2.0f;
             if (ImGui::Button("Gen I-Frame", ImVec2(buttonWidth, 0))) {
@@ -399,11 +404,6 @@ int main(int argc, char** argv) {
                 generatePFrame = true;
                 runAnimations = true;
             }
-
-            ImGui::SliderFloat("Network Latency (ms)", &networkLatency, 0.0f, 1000.0f);
-
-            ImGui::Combo("Server Framerate", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels));
-            rerenderInterval = 1000.0 / serverFPSValues[serverFPSIndex];
 
             ImGui::End();
         }

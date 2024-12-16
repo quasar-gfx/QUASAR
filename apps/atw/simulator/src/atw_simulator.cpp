@@ -131,6 +131,7 @@ int main(int argc, char** argv) {
 
     bool atwEnabled = true;
     bool preventCopyingLocalPose = false;
+    bool runAnimations = animationFileIn;
 
     bool rerender = true;
     double rerenderInterval = 0.0;
@@ -216,14 +217,15 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::Button("Send Server Frame", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
-                rerender = true;
-            }
-
             ImGui::SliderFloat("Network Latency (ms)", &networkLatency, 0.0f, 1000.0f);
 
             ImGui::Combo("Server Framerate", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels));
             rerenderInterval = 1000.0 / serverFPSValues[serverFPSIndex];
+
+            if (ImGui::Button("Send Server Frame", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+                rerender = true;
+                runAnimations = true;
+            }
 
             ImGui::End();
         }
@@ -318,13 +320,16 @@ int main(int argc, char** argv) {
 
         if (rerenderInterval > 0 && now - lastRenderTime > rerenderInterval / MILLISECONDS_IN_SECOND) {
             rerender = true;
+            runAnimations = true;
             lastRenderTime = now;
         }
         if (rerender) {
             double startTime = window->getTime();
 
             // update all animations
-            remoteScene.updateAnimations(dt);
+            if (runAnimations) {
+                remoteScene.updateAnimations(dt);
+            }
 
             cameraPoses.push({camera.getPosition(), camera.getRotationQuat(), now});
             if (!preventCopyingLocalPose) {

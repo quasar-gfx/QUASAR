@@ -7,7 +7,7 @@
 class DepthPeelingRenderer : public OpenGLRenderer {
 public:
     unsigned int maxLayers;
-    float viewBoxSize = 0.5f;
+    float viewSphereDiameter = 0.5f;
     float edpDelta = 0.002f;
 
     GeometryBuffer gBuffer;
@@ -29,8 +29,8 @@ public:
 
     RenderStats compositeLayers();
 
-    void setViewBoxSize(float viewBoxSize) {
-        this->viewBoxSize = viewBoxSize;
+    void setViewSphereDiameter(float viewSphereDiameter) {
+        this->viewSphereDiameter = viewSphereDiameter;
     }
 
 private:
