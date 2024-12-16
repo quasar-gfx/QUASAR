@@ -639,7 +639,7 @@ int main(int argc, char** argv) {
 
             cameraPoses.push({camera.getPosition(), camera.getRotationQuat(), now});
             if (!preventCopyingLocalPose) {
-                while (!cameraPoses.empty() && now - cameraPoses.front().timestamp > networkLatency / MILLISECONDS_IN_SECOND) {
+                while (!cameraPoses.empty() && now - cameraPoses.front().timestamp >= networkLatency / MILLISECONDS_IN_SECOND) {
                     auto pose = cameraPoses.front();
 
                     // update center camera
