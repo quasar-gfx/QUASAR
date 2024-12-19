@@ -228,7 +228,7 @@ int main(int argc, char** argv) {
     float viewSphereDiameter = 0.5f;
 
     double rerenderInterval = 0.0;
-    float networkLatency = !animationFileIn ? 0.0 : 100.0;
+    float networkLatency = !animationFileIn ? 0.0 : 50.0;
     std::queue<Animator::CameraPose> cameraPoses;
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};
@@ -603,6 +603,11 @@ int main(int argc, char** argv) {
             dt = animator.dt;
         }
 
+        // update all animations
+        if (runAnimations) {
+            remoteScene.updateAnimations(dt);
+        }
+
         if (rerenderInterval > 0 && now - lastRenderTime > rerenderInterval / MILLISECONDS_IN_SECOND) {
             rerender = true;
             lastRenderTime = now;
@@ -619,11 +624,6 @@ int main(int argc, char** argv) {
 
             totalProxies = 0;
             totalDepthOffsets = 0;
-
-            // update all animations
-            if (runAnimations) {
-                remoteScene.updateAnimations(dt);
-            }
 
             cameraPoses.push({camera.getPosition(), camera.getRotationQuat(), now});
             if (!preventCopyingLocalPose) {

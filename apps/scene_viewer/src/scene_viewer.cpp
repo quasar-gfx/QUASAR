@@ -368,6 +368,9 @@ int main(int argc, char** argv) {
             dt = animator.dt;
         }
 
+        // update all animations
+        scene.updateAnimations(dt);
+
         if (saveImage && args::get(poseOffset).size() == 6) {
             glm::vec3 positionOffset, rotationOffset;
             for (int i = 0; i < 3; i++) {
