@@ -26,60 +26,6 @@ Model::~Model() {
     }
 }
 
-void Model::bindMaterial(const Scene &scene, const glm::mat4 &model, const Material* overrideMaterial, const Texture* prevDepthMap) {
-    for (auto& mesh : meshes) {
-        mesh->bindMaterial(scene, model, overrideMaterial, prevDepthMap);
-    }
-}
-
-RenderStats Model::draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
-    RenderStats stats = drawNode(&rootNode, primativeType, camera, glm::mat4(1.0f), model, frustumCull, overrideMaterial);
-    return stats;
-}
-
-RenderStats Model::draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
-    RenderStats stats = drawNode(&rootNode, primativeType, camera, glm::mat4(1.0f), model, boundingSphere, overrideMaterial);
-    return stats;
-}
-
-RenderStats Model::drawNode(const Node* node,
-                            GLenum primativeType, const Camera &camera,
-                            const glm::mat4& parentTransform, const glm::mat4 &model,
-                            bool frustumCull, const Material* overrideMaterial) {
-    RenderStats stats;
-    const glm::mat4 &globalTransform = parentTransform * node->getTransformParentFromLocal();
-    const glm::mat4 &modelMatrix = model * globalTransform;
-
-    for (int meshIndex : node->meshIndices) {
-        stats += meshes[meshIndex]->draw(primativeType, camera, modelMatrix, frustumCull, overrideMaterial);
-    }
-
-    for (const auto* child : node->children) {
-        stats += drawNode(child, primativeType, camera, globalTransform, model, frustumCull, overrideMaterial);
-    }
-
-    return stats;
-}
-
-RenderStats Model::drawNode(const Node* node,
-                            GLenum primativeType, const Camera &camera,
-                            const glm::mat4& parentTransform, const glm::mat4 &model,
-                            const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
-    RenderStats stats;
-    const glm::mat4 &globalTransform = parentTransform * node->getTransformParentFromLocal();
-    const glm::mat4 &modelMatrix = model * globalTransform;
-
-    for (int meshIndex : node->meshIndices) {
-        stats += meshes[meshIndex]->draw(primativeType, camera, modelMatrix, boundingSphere, overrideMaterial);
-    }
-
-    for (const auto* child : node->children) {
-        stats += drawNode(child, primativeType, camera, globalTransform, model, boundingSphere, overrideMaterial);
-    }
-
-    return stats;
-}
-
 Node* Model::findNodeByName(const std::string &name) {
     return rootNode.findNodeByName(name);
 }
@@ -147,12 +93,11 @@ void Model::loadFromFile(const ModelCreateParams &params) {
 
 void Model::processNode(aiNode* node, const aiScene* scene, Node* currentNode, PBRMaterial* material) {
     currentNode->setName(node->mName.C_Str());
-    currentNode->setTransformParentFromLocal(glm::transpose(glm::make_mat4(&node->mTransformation.a1)));
+    currentNode->setTransformParentFromLocal(glm::transpose(reinterpret_cast<glm::mat4&>(node->mTransformation)));
 
     for (int i = 0; i < node->mNumMeshes; i++) {
         aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
         meshes.push_back(processMesh(mesh, scene, material));
-
         currentNode->meshIndices.push_back(node->mMeshes[i]);
     }
 
@@ -166,28 +111,46 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
 
+    std::vector<aiVector3D> normals(mesh->mNumVertices, aiVector3D(0, 0, 0));
+
+    // set up indices and manually calculate normals
+    for (int i = 0; i < mesh->mNumFaces; i++) {
+        const aiFace &face = mesh->mFaces[i];
+        const aiVector3D &v0 = mesh->mVertices[face.mIndices[0]];
+        const aiVector3D &v1 = mesh->mVertices[face.mIndices[1]];
+        const aiVector3D &v2 = mesh->mVertices[face.mIndices[2]];
+
+        aiVector3D normal = (v1 - v0) ^ (v2 - v0);
+        normal.Normalize();
+
+        for (int j = 0; j < face.mNumIndices; j++) {
+            indices.push_back(face.mIndices[j]);
+            normals[face.mIndices[j]] += normal;
+        }
+    }
+
     // set up vertices
     glm::vec3 min = glm::vec3(FLT_MAX);
     glm::vec3 max = glm::vec3(-FLT_MAX);
     for (int i = 0; i < mesh->mNumVertices; i++) {
         Vertex vertex;
-        glm::vec3 vector;
+        glm::vec3 tmpVec3;
 
         if (mesh->HasPositions()) {
-            vector.x = mesh->mVertices[i].x;
-            vector.y = mesh->mVertices[i].y;
-            vector.z = mesh->mVertices[i].z;
-            vertex.position = vector;
+            tmpVec3.x = mesh->mVertices[i].x;
+            tmpVec3.y = mesh->mVertices[i].y;
+            tmpVec3.z = mesh->mVertices[i].z;
+            vertex.position = tmpVec3;
 
-            min = glm::min(min, vector);
-            max = glm::max(max, vector);
+            min = glm::min(min, tmpVec3);
+            max = glm::max(max, tmpVec3);
         }
 
         if (mesh->HasNormals()) {
-            vector.x = mesh->mNormals[i].x;
-            vector.y = mesh->mNormals[i].y;
-            vector.z = mesh->mNormals[i].z;
-            vertex.normal = vector;
+            tmpVec3.x = normals[i].x;
+            tmpVec3.y = normals[i].y;
+            tmpVec3.z = normals[i].z;
+            vertex.normal = tmpVec3;
         }
 
         if (mesh->HasTextureCoords(0)) {
@@ -203,15 +166,15 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
         }
 
         if (mesh->HasTangentsAndBitangents()) {
-            vector.x = mesh->mTangents[i].x;
-            vector.y = mesh->mTangents[i].y;
-            vector.z = mesh->mTangents[i].z;
-            vertex.tangent = vector;
+            tmpVec3.x = mesh->mTangents[i].x;
+            tmpVec3.y = mesh->mTangents[i].y;
+            tmpVec3.z = mesh->mTangents[i].z;
+            vertex.tangent = tmpVec3;
 
-            vector.x = mesh->mBitangents[i].x;
-            vector.y = mesh->mBitangents[i].y;
-            vector.z = mesh->mBitangents[i].z;
-            vertex.bitangent = vector;
+            tmpVec3.x = mesh->mBitangents[i].x;
+            tmpVec3.y = mesh->mBitangents[i].y;
+            tmpVec3.z = mesh->mBitangents[i].z;
+            vertex.bitangent = tmpVec3;
         }
         else {
             vertex.bitangent = glm::normalize(glm::cross(vertex.normal, glm::vec3(1.0f, 0.0f, 0.0f)));
@@ -223,15 +186,6 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
 
     // set up AABB
     aabb.update(min, max);
-
-    // set up indices
-    for (int i = 0; i < mesh->mNumFaces; i++) {
-        aiFace face = mesh->mFaces[i];
-
-        for (int j = 0; j < face.mNumIndices; j++) {
-            indices.push_back(face.mIndices[j]);
-        }
-    }
 
     // set up material
     uint32_t materialId = mesh->mMaterialIndex;
@@ -470,4 +424,58 @@ Texture* Model::loadMaterialTexture(aiMaterial const* aiMat, aiString aiTextureP
         texturesLoaded[texturePath] = texture;
         return texturesLoaded[texturePath];
     }
+}
+
+void Model::bindMaterial(const Scene &scene, const glm::mat4 &model, const Material* overrideMaterial, const Texture* prevDepthMap) {
+    for (auto& mesh : meshes) {
+        mesh->bindMaterial(scene, model, overrideMaterial, prevDepthMap);
+    }
+}
+
+RenderStats Model::draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
+    RenderStats stats = drawNode(&rootNode, primativeType, camera, glm::mat4(1.0f), model, frustumCull, overrideMaterial);
+    return stats;
+}
+
+RenderStats Model::draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
+    RenderStats stats = drawNode(&rootNode, primativeType, camera, glm::mat4(1.0f), model, boundingSphere, overrideMaterial);
+    return stats;
+}
+
+RenderStats Model::drawNode(const Node* node,
+                            GLenum primativeType, const Camera &camera,
+                            const glm::mat4& parentTransform, const glm::mat4 &model,
+                            bool frustumCull, const Material* overrideMaterial) {
+    RenderStats stats;
+    const glm::mat4 &globalTransform = parentTransform * node->getTransformParentFromLocal();
+    const glm::mat4 &modelMatrix = model * globalTransform;
+
+    for (int meshIndex : node->meshIndices) {
+        stats += meshes[meshIndex]->draw(primativeType, camera, modelMatrix, frustumCull, overrideMaterial);
+    }
+
+    for (const auto* child : node->children) {
+        stats += drawNode(child, primativeType, camera, globalTransform, model, frustumCull, overrideMaterial);
+    }
+
+    return stats;
+}
+
+RenderStats Model::drawNode(const Node* node,
+                            GLenum primativeType, const Camera &camera,
+                            const glm::mat4& parentTransform, const glm::mat4 &model,
+                            const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
+    RenderStats stats;
+    const glm::mat4 &globalTransform = parentTransform * node->getTransformParentFromLocal();
+    const glm::mat4 &modelMatrix = model * globalTransform;
+
+    for (int meshIndex : node->meshIndices) {
+        stats += meshes[meshIndex]->draw(primativeType, camera, modelMatrix, boundingSphere, overrideMaterial);
+    }
+
+    for (const auto* child : node->children) {
+        stats += drawNode(child, primativeType, camera, globalTransform, model, boundingSphere, overrideMaterial);
+    }
+
+    return stats;
 }

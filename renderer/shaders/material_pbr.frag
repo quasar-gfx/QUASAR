@@ -171,7 +171,6 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
 }
 
 vec3 getNormal() {
-#ifdef VIEW_DEPENDENT_LIGHTING
 	vec3 N = normalize(fsIn.Normal);
 	vec3 T = normalize(fsIn.Tangent);
 	vec3 B = normalize(fsIn.BiTangent);
@@ -179,18 +178,19 @@ vec3 getNormal() {
     if (!material.hasNormalMap)
         return N;
 
-    // HACK: sometimes bitangent is nan, so recompute it
     if (any(isnan(B))) {
-        B = normalize(cross(T, N));
-        T = normalize(cross(N, B));
+        vec3 q1 = dFdx(fsIn.FragPos);
+        vec3 q2 = dFdy(fsIn.FragPos);
+        vec2 st1 = dFdx(fsIn.TexCoords);
+        vec2 st2 = dFdy(fsIn.TexCoords);
+
+        T = normalize(q1 * st2.t - q2 * st1.t);
+        B = -normalize(cross(N, T));
     }
 
 	mat3 TBN = mat3(T, B, N);
-	vec3 tangentNormal = normalize(texture(material.normalMap, fsIn.TexCoords).xyz * 2.0 - 1.0);
+	vec3 tangentNormal = texture(material.normalMap, fsIn.TexCoords).xyz * 2.0 - 1.0;
 	return normalize(TBN * tangentNormal);
-#else
-    return normalize(fsIn.Normal);
-#endif
 }
 
 vec3 getIBLContribution(PBRInfo pbrInputs) {
@@ -460,19 +460,20 @@ void main() {
     metallic = material.metallicFactor * metallic;
     roughness = material.roughnessFactor * roughness;
 
-    // input lighting data
-    vec3 N = getNormal();
-#ifdef VIEW_DEPENDENT_LIGHTING
-    vec3 V = normalize(camera.position - fsIn.FragPos);
-#else
-    vec3 V = vec3(0.0, -1.0, 0.0); // Default view direction
-#endif
-    vec3 R = reflect(-V, N);
-
     // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0
     // of 0.04 and if it's a metal, use the albedo baseColor as F0 (metallic workflow)
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo, metallic);
+
+    // input lighting data
+    vec3 N = getNormal();
+#ifdef VIEW_DEPENDENT_LIGHTING
+    vec3 V = normalize(camera.position - fsIn.FragPos);
+    vec3 R = reflect(-V, N);
+#else
+    vec3 V = vec3(0.0, -1.0, 0.0);
+    vec3 R = vec3(0.0);
+#endif
 
     PBRInfo pbrInputs = PBRInfo(N, V, R, albedo, metallic, roughness, F0);
 
