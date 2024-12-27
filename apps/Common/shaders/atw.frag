@@ -28,6 +28,10 @@ uniform sampler2D videoTexture;
 
 const float epsilon = 0.0001;
 
+vec3 linearToSRGB(vec3 color) {
+    return mix(pow(color, vec3(1.0 / 2.4)) * 1.055 - 0.055, color * 12.92, lessThanEqual(color, vec3(0.0031308)));
+}
+
 vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
     vec4 ndcPos;
     ndcPos.xy = ndc;
@@ -64,18 +68,18 @@ vec2 worldToScreen(mat4 view, mat4 projection, vec3 worldCoord) {
 }
 
 void main() {
-    vec2 adjustedTexCoords = TexCoords;
+    vec2 TexCoordsAdjusted = TexCoords;
 #ifdef ANDROID
     if (IsLeftEye > 0.5) {
-        adjustedTexCoords.x = TexCoords.x / 2.0;
+        TexCoordsAdjusted.x = TexCoords.x / 2.0;
     }
     else {
-        adjustedTexCoords.x = TexCoords.x / 2.0 + 0.5;
+        TexCoordsAdjusted.x = TexCoords.x / 2.0 + 0.5;
     }
 #endif
 
     if (!atwEnabled) {
-        FragColor = vec4(texture(videoTexture, adjustedTexCoords).rgb, 1.0);
+        FragColor = vec4(texture(videoTexture, TexCoordsAdjusted).rgb, 1.0);
         return;
     }
 
@@ -103,5 +107,7 @@ void main() {
     vec2 TexCoordsRemote = worldToScreen(mat4(mat3(remoteView)), remoteProjection, worldPose);
 #endif
 
-    FragColor = vec4(texture(videoTexture, TexCoordsRemote).rgb, 1.0);
+    vec3 color = texture(videoTexture, TexCoordsRemote).rgb;
+    color = linearToSRGB(color);
+    FragColor = vec4(color, 1.0);
 }

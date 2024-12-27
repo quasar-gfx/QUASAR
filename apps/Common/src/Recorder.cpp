@@ -36,9 +36,7 @@ void Recorder::setTargetFrameRate(int targetFrameRate) {
 
 void Recorder::saveScreenshotToFile(const std::string &fileName, bool saveAsHDR) {
     shader.bind();
-    shader.setBool("gammaCorrect", true);
     renderer.drawToRenderTarget(shader, renderTargetCopy);
-    shader.setBool("gammaCorrect", false);
 
     if (saveAsHDR) {
         renderTargetCopy.saveColorAsHDR(fileName + ".hdr");
@@ -96,9 +94,7 @@ void Recorder::captureFrame(const Camera &camera) {
     }
 
     shader.bind();
-    shader.setBool("gammaCorrect", true);
     renderer.drawToRenderTarget(shader, renderTargetCopy);
-    shader.setBool("gammaCorrect", false);
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     // add cuda buffer
@@ -112,11 +108,11 @@ void Recorder::captureFrame(const Camera &camera) {
         frameQueue.push(FrameData{cudaBuffer, camera.getPosition(), camera.getRotationEuler(), elapsedTime});
     }
 #else
-    renderTargetCopy.readPixels(openglFrameData.data());
+    renderTargetCopy.readPixels(rgbaVideoFrameData.data());
 
     {
         std::lock_guard<std::mutex> lock(queueMutex);
-        frameQueue.push(FrameData{std::move(openglFrameData), camera.getPosition(), camera.getRotationEuler(), elapsedTime});
+        frameQueue.push(FrameData{rgbaVideoFrameData, camera.getPosition(), camera.getRotationEuler(), elapsedTime});
     }
 #endif
     queueCV.notify_one();
@@ -135,6 +131,8 @@ void Recorder::saveFrames() {
             }
             frameData = std::move(frameQueue.front());
             frameQueue.pop();
+
+            frameCount++;
         }
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
@@ -185,13 +183,10 @@ void Recorder::saveFrames() {
 
             av_interleaved_write_frame(outputFormatCtx, packet);
             av_packet_unref(packet);
-
-            frameCount++;
         }
         else {
-            size_t currentFrame = frameCount++;
             std::stringstream ss;
-            ss << outputPath << "frame_" << std::setw(6) << std::setfill('0') << currentFrame;
+            ss << outputPath << "frame_" << std::setw(6) << std::setfill('0') << frameCount;
             std::string fileName = ss.str();
 
             FileIO::flipVerticallyOnWrite(true);
@@ -207,13 +202,13 @@ void Recorder::saveFrames() {
             std::lock_guard<std::mutex> lock(queueMutex);
             std::ofstream pathFile(outputPath + "camera_path.txt", std::ios::app);
             pathFile << std::fixed << std::setprecision(4)
-                        << frameData.position.x << " "
-                        << frameData.position.y << " "
-                        << frameData.position.z << " "
-                        << frameData.euler.x << " "
-                        << frameData.euler.y << " "
-                        << frameData.euler.z << " "
-                        << frameData.elapsedTime << std::endl;
+                     << frameData.position.x << " "
+                     << frameData.position.y << " "
+                     << frameData.position.z << " "
+                     << frameData.euler.x << " "
+                     << frameData.euler.y << " "
+                     << frameData.euler.z << " "
+                     << frameData.elapsedTime << std::endl;
             pathFile.close();
         }
     }
@@ -289,8 +284,6 @@ void Recorder::initializeFFmpeg() {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate conversion context\n");
         throw std::runtime_error("Recorder could not be created.");
     }
-
-    rgbaVideoFrameData = std::vector<uint8_t>(renderTargetCopy.width * renderTargetCopy.height * 4);
 
     /* setup frame */
     frame->width = renderTargetCopy.width;

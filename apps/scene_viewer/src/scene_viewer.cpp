@@ -116,18 +116,6 @@ int main(int argc, char** argv) {
     Recorder recorder(renderer, toneMapShader, dataPath, config.targetFramerate);
     Animator animator(animationFile);
 
-    // start recording if headless
-    std::ifstream fileStream;
-    if (saveImage && animationFileIn) {
-        recorder.setOutputPath(dataPath);
-
-        fileStream.open(animationFile);
-        if (!fileStream.is_open()) {
-            spdlog::error("Failed to open file: {}", animationFile);
-            return 1;
-        }
-    }
-
     float exposure = 1.0f;
     int shaderIndex = 0;
     RenderStats renderStats;

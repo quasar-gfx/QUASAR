@@ -9,7 +9,7 @@ uniform sampler2D screenNormals;
 uniform usampler2D idBuffer;
 
 uniform bool toneMap = true;
-uniform bool gammaCorrect = false;
+uniform bool gammaCorrect = true;
 uniform float exposure = 1.0;
 
 vec3 linearToSRGB(vec3 color) {
@@ -21,9 +21,9 @@ void main() {
     if (toneMap) {
         vec3 toneMappedResult = vec3(1.0) - exp(-color.rgb * exposure);
         color = toneMappedResult;
-    }
-    if (gammaCorrect) {
-        color = linearToSRGB(color);
+        if (gammaCorrect) {
+            color = linearToSRGB(color);
+        }
     }
     FragColor = vec4(color, 1.0);
 }

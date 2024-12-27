@@ -159,19 +159,6 @@ int main(int argc, char** argv) {
     Recorder recorder(renderer, toneMapShader, dataPath, config.targetFramerate);
     Animator animator(animationFile);
 
-    // start recording if headless
-    std::ifstream fileStream;
-    if (saveImage && animationFileIn) {
-        recorder.setOutputPath(dataPath);
-        recorder.start();
-
-        fileStream.open(animationFile);
-        if (!fileStream.is_open()) {
-            spdlog::error("Failed to open file: {}", animationFile);
-            return 1;
-        }
-    }
-
     bool showWireframe = false;
     bool showDepth = false;
     bool preventCopyingLocalPose = false;
@@ -179,7 +166,7 @@ int main(int argc, char** argv) {
 
     bool rerender = true;
     double rerenderInterval = 0.0;
-    float networkLatency = !animationFileIn ? 0.0 : 50.0;
+    float networkLatency = !animationFileIn ? 0.0 : 25.0;
     std::queue<Animator::CameraPose> cameraPoses;
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};

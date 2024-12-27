@@ -81,7 +81,7 @@ struct RasterState {
     bool polygonOffsetEnabled = false;
     GLfloat polygonOffsetFactor = 0.0f;
     GLfloat polygonOffsetUnits = 0.0f;
-    bool sRGB = true;
+    bool sRGB = false;
 };
 
 struct WriteMaskState {

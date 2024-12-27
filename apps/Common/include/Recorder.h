@@ -57,9 +57,8 @@ public:
         CHECK_CUDA_ERROR(cudaGraphicsGLRegisterImage(&cudaResource,
                                                     renderTargetCopy.colorBuffer.ID, GL_TEXTURE_2D,
                                                     cudaGraphicsRegisterFlagsReadOnly));
-#else
-        openglFrameData.resize(renderTargetCopy.width * renderTargetCopy.height * 4);
 #endif
+        rgbaVideoFrameData.resize(renderTargetCopy.width * renderTargetCopy.height * 4);
     }
     Recorder(OpenGLRenderer &renderer, Shader &shader, int targetFrameRate = 30)
         : Recorder(renderer, shader, ".", targetFrameRate) { }
@@ -76,7 +75,7 @@ public:
     void captureFrame(const Camera &camera);
 
 private:
-    static const int NUM_SAVE_THREADS = 16;
+    static const int NUM_SAVE_THREADS = 8;
     OutputFormat outputFormat = OutputFormat::MP4;
     std::string outputPath;
 
