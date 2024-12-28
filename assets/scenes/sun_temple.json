@@ -79,7 +79,7 @@
         {
             "node": "SM_Statue_5",
             "fromRotation": [0.0, 0.0, 0.0],
-            "toRotation": [0.0, 360.0, 0.0],
+            "toRotation": [0.0, 0.0, 360.0],
             "fromScale": [1.0, 1.0, 1.0],
             "toScale": [1.25, 1.25, 1.25],
             "duration": 10.0,
@@ -89,7 +89,7 @@
         {
             "node": "SM_Statue_2",
             "fromPosition": [0.0, 0.0, 0.0],
-            "toPosition": [0.0, 2.0, 0.0],
+            "toPosition": [0.0, 0.0, -100.0],
             "duration": 5.0,
             "reverse": true,
             "loop": true
@@ -97,7 +97,7 @@
         {
             "node": "SM_Statue_3",
             "fromPosition": [0.0, 0.0, 0.0],
-            "toPosition": [0.0, 1.0, 0.0],
+            "toPosition": [0.0, 0.0, -50.0],
             "duration": 3.0,
             "reverse": true,
             "loop": true
@@ -105,7 +105,7 @@
         {
             "node": "SM_Statue_4",
             "fromPosition": [0.0, 0.0, 0.0],
-            "toPosition": [0.0, 1.0, 0.0],
+            "toPosition": [0.0, 0.0, -50.0],
             "duration": 3.0,
             "reverse": true,
             "loop": true
@@ -113,7 +113,7 @@
         {
             "node": "SM_Statue_6",
             "fromPosition": [0.0, 0.0, 0.0],
-            "toPosition": [0.0, 1.0, 0.0],
+            "toPosition": [0.0, 0.0, -50.0],
             "duration": 3.0,
             "reverse": true,
             "loop": true
@@ -121,7 +121,7 @@
         {
             "node": "SM_Statue_304",
             "fromPosition": [0.0, 0.0, 0.0],
-            "toPosition": [0.0, 1.0, 0.0],
+            "toPosition": [0.0, 0.0, -50.0],
             "duration": 3.0,
             "reverse": true,
             "loop": true

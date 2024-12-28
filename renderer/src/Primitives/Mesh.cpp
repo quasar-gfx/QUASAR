@@ -213,7 +213,7 @@ RenderStats Mesh::draw(GLenum primativeType, const Camera &camera, const glm::ma
 
 RenderStats Mesh::draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
     RenderStats stats;
-    if (!boundingSphere.intersects(aabb)) {
+    if (!boundingSphere.intersects(model, aabb)) {
         return stats;
     }
     return draw(primativeType, camera, model, false, overrideMaterial);

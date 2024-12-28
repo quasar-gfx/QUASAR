@@ -65,7 +65,7 @@ private:
     std::unordered_map<std::string, Texture*> texturesLoaded;
 
     void loadFromFile(const ModelCreateParams &params);
-    void processNode(aiNode* node, const aiScene* scene, Node* parentNode, PBRMaterial* material);
+    void processNode(aiNode* aiNode, const aiScene* scene, Node* node, PBRMaterial* material);
     Mesh* processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* material);
     void processMaterial(aiMaterial const* aiMat, PBRMaterialCreateParams &materialParams);
     Texture* loadMaterialTexture(aiMaterial const* aiMat, aiString aiTexturePath, bool shouldGammaCorrect = false);

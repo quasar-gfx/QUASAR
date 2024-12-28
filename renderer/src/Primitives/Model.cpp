@@ -71,9 +71,7 @@ void Model::loadFromFile(const ModelCreateParams &params) {
             aiProcess_ImproveCacheLocality |
             aiProcess_SortByPType |
             // we only support triangles
-            aiProcess_Triangulate |
-            // pre-transform vertices
-            aiProcess_PreTransformVertices;
+            aiProcess_Triangulate;
     scene = importer.ReadFile(path, flags);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         throw std::runtime_error("ERROR::ASSIMP:: " + std::string(importer.GetErrorString()));
@@ -88,22 +86,27 @@ void Model::loadFromFile(const ModelCreateParams &params) {
 
     rootDirectory = path.substr(0, path.find_last_of('/'))  + '/';
 
+    meshes.resize(scene->mNumMeshes);
+
     processNode(scene->mRootNode, scene, &rootNode, params.material);
 }
 
-void Model::processNode(aiNode* node, const aiScene* scene, Node* currentNode, PBRMaterial* material) {
-    currentNode->setName(node->mName.C_Str());
-    currentNode->setTransformParentFromLocal(glm::transpose(reinterpret_cast<glm::mat4&>(node->mTransformation)));
+void Model::processNode(aiNode* aiNode, const aiScene* scene, Node* node, PBRMaterial* material) {
+    const glm::mat4 &transform = glm::transpose(reinterpret_cast<glm::mat4&>(aiNode->mTransformation));
 
-    for (int i = 0; i < node->mNumMeshes; i++) {
-        aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-        meshes.push_back(processMesh(mesh, scene, material));
-        currentNode->meshIndices.push_back(node->mMeshes[i]);
+    node->setName(aiNode->mName.C_Str());
+    node->setTransformParentFromLocal(transform);
+
+    for (int i = 0; i < aiNode->mNumMeshes; i++) {
+        const int meshIndex = aiNode->mMeshes[i];
+        aiMesh* mesh = scene->mMeshes[meshIndex];
+        meshes[meshIndex] = processMesh(mesh, scene, material);
+        node->meshIndices.push_back(meshIndex);
     }
 
-    for (int i = 0; i < node->mNumChildren; i++) {
-        currentNode->children.push_back(new Node());
-        processNode(node->mChildren[i], scene, currentNode->children.back(), material);
+    for (int i = 0; i < aiNode->mNumChildren; i++) {
+        node->children.push_back(new Node());
+        processNode(aiNode->mChildren[i], scene, node->children.back(), material);
     }
 }
 

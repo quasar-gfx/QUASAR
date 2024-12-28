@@ -85,6 +85,13 @@
             "loop": true
         },
         {
+            "node": "prop_fan_large",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [-360.0, 0.0, 0.0],
+            "duration": 30.0,
+            "loop": true
+        },
+        {
             "node": "vehicle_rcFlyer_clean",
             "fromPosition": [0.0, 0.0, 0.0],
             "toPosition": [0.0, 2.0, 0.0],
@@ -95,8 +102,40 @@
         {
             "node": "vehicle_rcLand_clean",
             "fromPosition": [0.0, 0.0, 0.0],
-            "toPosition": [2.0, 0.0, -2.0],
-            "duration": 30.0,
+            "toPosition": [0.0, 0.0, 3.0],
+            "duration": 20.0,
+            "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "vehicle_rcLand_wheel_rearLeft",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [360.0, 0.0, 0.0],
+            "duration": 20.0,
+            "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "vehicle_rcLand_wheel_rearRight",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [360.0, 0.0, 0.0],
+            "duration": 20.0,
+            "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "vehicle_rcLand_wheel_frontLeft",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [360.0, 0.0, 0.0],
+            "duration": 20.0,
+            "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "vehicle_rcLand_wheel_frontRight",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [360.0, 0.0, 0.0],
+            "duration": 20.0,
             "reverse": true,
             "loop": true
         }

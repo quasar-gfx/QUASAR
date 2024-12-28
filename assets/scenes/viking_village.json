@@ -93,129 +93,165 @@
         {
             "node": "pf_sword_01",
             "fromPosition": [0.0, 0.0, 0.0],
-            "toPosition": [0.0, 2.0, 0.0],
-            "duration": 2.0,
+            "toPosition": [0.0, -3.0, 0.0],
+            "duration": 3.0,
             "reverse": true,
             "loop": true
         },
         {
             "node": "pf_sword_01.002",
             "fromPosition": [0.0, 0.0, 0.0],
-            "toPosition": [0.0, 2.0, 0.0],
-            "duration": 2.0,
+            "toPosition": [0.0, -3.0, 0.0],
+            "duration": 3.0,
             "reverse": true,
             "loop": true
         },
         {
             "node": "pf_sword_01.003",
             "fromPosition": [0.0, 0.0, 0.0],
-            "toPosition": [0.0, 2.0, 0.0],
-            "duration": 2.0,
+            "toPosition": [0.0, -3.0, 0.0],
+            "duration": 3.0,
             "reverse": true,
             "loop": true
         },
         {
             "node": "pf_sword_01.007",
             "fromPosition": [0.0, 0.0, 0.0],
-            "toPosition": [0.0, 2.0, 0.0],
-            "duration": 2.0,
+            "toPosition": [0.0, -3.0, 0.0],
+            "duration": 3.0,
             "reverse": true,
             "loop": true
         },
         {
             "node": "build_small_house_tall_roof_01_dragonhead_01.001",
-            "fromRotation": [-0.5, 0.0, 0.0],
-            "toRotation": [0.5, 0.0, 0.0],
-            "duration": 2.0,
+            "fromRotation": [0.0, 0.0, -0.5],
+            "toRotation": [0.0, 0.0, 0.5],
+            "duration": 1.0,
             "reverse": true,
             "loop": true
         },
         {
             "node": "build_small_house_tall_roof_01_dragonhead_01.002",
-            "fromRotation": [-0.5, 0.0, 0.0],
-            "toRotation": [0.5, 0.0, 0.0],
-            "duration": 2.0,
+            "fromRotation": [0.0, 0.0, -0.5],
+            "toRotation": [0.0, 0.0, 0.5],
+            "duration": 1.0,
             "reverse": true,
             "loop": true
         },
         {
             "node": "build_small_house_tall_roof_01_dragonhead_01.003",
-            "fromRotation": [-0.5, 0.0, 0.0],
-            "toRotation": [0.5, 0.0, 0.0],
-            "duration": 2.0,
+            "fromRotation": [0.0, 0.0, -0.5],
+            "toRotation": [0.0, 0.0, 0.5],
+            "duration": 1.0,
             "reverse": true,
             "loop": true
         },
         {
             "node": "build_small_house_tall_roof_01_dragonhead_01.004",
-            "fromRotation": [-0.5, 0.0, 0.0],
-            "toRotation": [0.5, 0.0, 0.0],
-            "duration": 2.0,
+            "fromRotation": [0.0, 0.0, -0.5],
+            "toRotation": [0.0, 0.0, 0.5],
+            "duration": 1.0,
             "reverse": true,
             "loop": true
         },
         {
             "node": "build_small_house_tall_roof_01_dragonhead_01.005",
-            "fromRotation": [-0.5, 0.0, 0.0],
-            "toRotation": [0.5, 0.0, 0.0],
-            "duration": 2.0,
+            "fromRotation": [0.0, 0.0, -0.5],
+            "toRotation": [0.0, 0.0, 0.5],
+            "duration": 1.0,
             "reverse": true,
             "loop": true
         },
         {
             "node": "build_small_house_tall_roof_01_dragonhead_01.006",
-            "fromRotation": [-0.5, 0.0, 0.0],
-            "toRotation": [0.5, 0.0, 0.0],
-            "duration": 2.0,
+            "fromRotation": [0.0, 0.0, -0.5],
+            "toRotation": [0.0, 0.0, 0.5],
+            "duration": 1.0,
             "reverse": true,
             "loop": true
         },
         {
             "node": "build_small_house_tall_roof_01_dragonhead_01.007",
-            "fromRotation": [-0.5, 0.0, 0.0],
-            "toRotation": [0.5, 0.0, 0.0],
-            "duration": 2.0,
+            "fromRotation": [0.0, 0.0, -0.5],
+            "toRotation": [0.0, 0.0, 0.5],
+            "duration": 1.0,
             "reverse": true,
             "loop": true
         },
         {
             "node": "build_bighouse_01_dragonhead_01",
-            "fromRotation": [-0.5, 0.0, 0.0],
-            "toRotation": [0.5, 0.0, 0.0],
-            "duration": 2.0,
+            "fromRotation": [0.0, 0.0, -0.5],
+            "toRotation": [0.0, 0.0, 0.5],
+            "duration": 1.0,
             "reverse": true,
             "loop": true
         },
         {
             "node": "build_small_house_tall_roof_01_dragonhead_01",
-            "fromRotation": [-0.5, 0.0, 0.0],
-            "toRotation": [0.5, 0.0, 0.0],
-            "duration": 2.0,
+            "fromRotation": [0.0, 0.0, -0.5],
+            "toRotation": [0.0, 0.0, 0.5],
+            "duration": 1.0,
             "reverse": true,
             "loop": true
         },
         {
             "node": "build_small_house_tall_roof_01_dragonhead_01.005",
-            "fromRotation": [-0.5, 0.0, 0.0],
-            "toRotation": [0.5, 0.0, 0.0],
-            "duration": 2.0,
+            "fromRotation": [0.0, 0.0, -0.5],
+            "toRotation": [0.0, 0.0, 0.5],
+            "duration": 1.0,
             "reverse": true,
             "loop": true
         },
         {
             "node": "build_small_house_tall_roof_01_dragonhead_01.006",
-            "fromRotation": [-0.5, 0.0, 0.0],
-            "toRotation": [0.5, 0.0, 0.0],
-            "duration": 2.0,
+            "fromRotation": [0.0, 0.0, -0.5],
+            "toRotation": [0.0, 0.0, 0.5],
+            "duration": 1.0,
             "reverse": true,
             "loop": true
         },
         {
             "node": "build_bighouse_01_dragonhead_01.001",
-            "fromRotation": [-0.5, 0.0, 0.0],
-            "toRotation": [0.5, 0.0, 0.0],
-            "duration": 2.0,
+            "fromRotation": [0.0, 0.0, -0.5],
+            "toRotation": [0.0, 0.0, 0.5],
+            "duration": 1.0,
             "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "prop_skull_01.002",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [0.0, -360.0, 0.0],
+            "duration": 2.5,
+            "loop": true
+        },
+        {
+            "node": "prop_skull_01.003",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [0.0, 360.0, 0.0],
+            "duration": 2.0,
+            "loop": true
+        },
+        {
+            "node": "prop_skull_01.004",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [0.0, -360.0, 0.0],
+            "duration": 3.0,
+            "loop": true
+        },
+        {
+            "node": "prop_skull_01.006",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [0.0, 360.0, 0.0],
+            "duration": 1.0,
+            "loop": true
+        },
+        {
+            "node": "pf_menhir_01.001",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [0.0, 360.0, 0.0],
+            "duration": 3.0,
+            "repeat": true,
             "loop": true
         }
     ]
