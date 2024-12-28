@@ -12,7 +12,7 @@
         {
             "name": "Sponza",
             "path": "../assets/models/Sponza/Sponza.gltf",
-            "IBL": 0.01,
+            "IBL": 0.05,
             "flipTextures": true,
             "gammaCorrected": true
         }
@@ -22,16 +22,16 @@
     "nodes": [
         {
             "model": 0,
-            "position": [0.0, -0.05, 0.0],
+            "position": [0.0, 0.0, 0.0],
             "rotation": [0.0, -90.0, 0.0],
-            "scale": [1.0, 1.0, 1.0]
+            "scale": [2.0, 2.0, 2.0]
         }
     ],
     "camera": {
         "fov": 60.0,
         "near": 0.1,
         "far": 1000.0,
-        "position": [0.0, 1.6, 0.0],
+        "position": [0.0, 3.0, 0.0],
         "rotation": [0.0, 0.0, 0.0]
     },
     "ambientLight": {
@@ -42,7 +42,8 @@
         "color": [1.0, 1.0, 1.0],
         "direction": [-0.25, -5.0, 0.0],
         "distance": 10.0,
-        "intensity": 5.0
+        "intensity": 5.0,
+        "orthoBoxSize": 50.0
     },
     "pointLights": [
         {
