@@ -37,6 +37,8 @@ int main(int argc, char** argv) {
     args::Flag saveImage(parser, "save", "Take screenshot and exit", {'I', "save-image"});
     args::ValueFlag<std::string> animationFileIn(parser, "path", "Path to camera animation file", {'A', "animation-path"});
     args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'D', "data-path"}, ".");
+    args::ValueFlag<float> networkLatencyIn(parser, "network-latency", "Simulated network latency in ms", {'N', "network-latency"}, 25.0f);
+    args::ValueFlag<float> viewSphereDiameterIn(parser, "view-sphere-diameter", "Size of view sphere in m", {'B', "view-size"}, 0.5f);
     args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     args::ValueFlag<int> maxLayersIn(parser, "layers", "Max layers", {'n', "max-layers"}, 4);
     args::Flag disableWideFov(parser, "disable-wide-fov", "Disable wide fov view", {'W', "disable-wide-fov"});
@@ -212,10 +214,10 @@ int main(int argc, char** argv) {
     bool preventCopyingLocalPose = false;
     bool runAnimations = animationFileIn;
     bool restrictMovementToViewBox = !animationFileIn;
-    float viewSphereDiameter = 0.5f;
+    float viewSphereDiameter = args::get(viewSphereDiameterIn);
 
     double rerenderInterval = 0.0;
-    float networkLatency = !animationFileIn ? 0.0 : 25.0;
+    float networkLatency = !animationFileIn ? 0.0 : args::get(networkLatencyIn);
     std::queue<Animator::CameraPose> cameraPoses;
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};
