@@ -80,7 +80,7 @@
             "node": "Chair_Cafe_Round",
             "fromPosition": [0.0, 0.0, 0.0],
             "toPosition": [0.5, -0.5, 0.0],
-            "duration": 49.41,
+            "duration": 19.41,
             "reverse": true,
             "loop": true
         },
@@ -88,7 +88,7 @@
             "node": "Chair_Cafe_Round (2)",
             "fromPosition": [0.0, 0.0, 0.0],
             "toPosition": [0.5, 0.5, 0.0],
-            "duration": 30.88,
+            "duration": 10.88,
             "reverse": true,
             "loop": true
         },
@@ -96,7 +96,7 @@
             "node": "Chair_Cafe_Round (5)",
             "fromPosition": [0.0, 0.0, 0.0],
             "toPosition": [-0.5, 0.5, 0.0],
-            "duration": 44.49,
+            "duration": 14.49,
             "reverse": true,
             "loop": true
         },
@@ -104,7 +104,7 @@
             "node": "Chair_Cafe_Round (17)",
             "fromPosition": [0.0, 0.0, 0.0],
             "toPosition": [0.5, 0.5, 0.0],
-            "duration": 40.04,
+            "duration": 20.04,
             "reverse": true,
             "loop": true
         },
@@ -112,7 +112,7 @@
             "node": "Chair_Cafe_Round (19)",
             "fromPosition": [0.0, 0.0, 0.0],
             "toPosition": [-0.5, -0.5, 0.0],
-            "duration": 9.12,
+            "duration": 11.12,
             "reverse": true,
             "loop": true
         },
@@ -120,7 +120,7 @@
             "node": "Chair_Cafe_Round (20)",
             "fromPosition": [0.0, 0.0, 0.0],
             "toPosition": [0.5, 0.5, 0.0],
-            "duration": 5.58,
+            "duration": 11.58,
             "reverse": true,
             "loop": true
         },
@@ -128,7 +128,7 @@
             "node": "Chair_Cafe_Round (21)",
             "fromPosition": [0.0, 0.0, 0.0],
             "toPosition": [0.5, 0.5, 0.0],
-            "duration": 34.03,
+            "duration": 14.03,
             "reverse": true,
             "loop": true
         },
@@ -144,7 +144,7 @@
             "node": "Chair_Cafe_Square (3)",
             "fromPosition": [0.0, 0.0, 0.0],
             "toPosition": [0.0, 0.5, 0.0],
-            "duration": 39.33,
+            "duration": 19.33,
             "reverse": true,
             "loop": true
         },
@@ -152,7 +152,7 @@
             "node": "Chair_Cafe_Square (7)",
             "fromPosition": [0.0, 0.0, 0.0],
             "toPosition": [-0.5, 0.0, 0.0],
-            "duration": 37.73,
+            "duration": 17.73,
             "reverse": true,
             "loop": true
         },
@@ -160,7 +160,7 @@
             "node": "Chair_Cafe_Square (8)",
             "fromPosition": [0.0, 0.0, 0.0],
             "toPosition": [0.5, 0.0, 0.0],
-            "duration": 23.82,
+            "duration": 13.82,
             "reverse": true,
             "loop": true
         },
@@ -168,7 +168,7 @@
             "node": "Chair_Cafe_Square (10)",
             "fromPosition": [0.0, 0.0, 0.0],
             "toPosition": [0.0, -0.5, 0.0],
-            "duration": 56.83,
+            "duration": 16.83,
             "reverse": true,
             "loop": true
         },
@@ -176,7 +176,7 @@
             "node": "Chair_Cafe_Square (11)",
             "fromPosition": [0.0, 0.0, 0.0],
             "toPosition": [0.0, 0.5, 0.0],
-            "duration": 23.6,
+            "duration": 13.6,
             "reverse": true,
             "loop": true
         },
@@ -184,7 +184,7 @@
             "node": "Chair_Cafe_Square (30)",
             "fromPosition": [0.0, 0.0, 0.0],
             "toPosition": [0.5, 0.0, 0.0],
-            "duration": 35.45,
+            "duration": 15.45,
             "reverse": true,
             "loop": true
         },
@@ -192,7 +192,7 @@
             "node": "Chair_Cafe_Square (31)",
             "fromPosition": [0.0, 0.0, 0.0],
             "toPosition": [-0.5, 0.0, 0.0],
-            "duration": 39.28,
+            "duration": 19.28,
             "reverse": true,
             "loop": true
         },
@@ -232,7 +232,7 @@
             "node": "Chair_Wood (10)",
             "fromPosition": [0.0, 0.0, 0.0],
             "toPosition": [-0.5, 0.5, 0.0],
-            "duration": 35.53,
+            "duration": 15.53,
             "reverse": true,
             "loop": true
         },
@@ -248,7 +248,7 @@
             "node": "Chair_Wood (16)",
             "fromPosition": [0.0, 0.0, 0.0],
             "toPosition": [-0.5, 0.5, 0.0],
-            "duration": 55.01,
+            "duration": 17.01,
             "reverse": true,
             "loop": true
         },
@@ -272,7 +272,7 @@
             "node": "Chair_Wood (24)",
             "fromPosition": [0.0, 0.0, 0.0],
             "toPosition": [0.5, 0.5, 0.0],
-            "duration": 36.58,
+            "duration": 16.58,
             "reverse": true,
             "loop": true
         },
@@ -280,7 +280,7 @@
             "node": "Water",
             "fromPosition": [0.0, 0.0, 0.0],
             "toPosition": [0.0, 0.0, -0.01],
-            "duration": 5.47,
+            "duration": 5.0,
             "reverse": true,
             "loop": true
         }

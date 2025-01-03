@@ -403,7 +403,7 @@ bool inPVHV(ivec2 pixelCoords, vec3 fragViewPos, uvec4 q) {
 
         uvec4 w = texelFetch(prevDepthMap, ivec2(round(vec2(pixelCoords) + offset)), 0);
         uint w_item = w.r;
-        if (w_item < 0) return true;
+        if (w_item < 0) return false;
 
         float sampleDepthNormalized = uintBitsToFloat(w.z);
         if (sampleDepthNormalized == 0) return true;
