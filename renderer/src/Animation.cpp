@@ -25,7 +25,8 @@ void Animation::AnimationProperty::update(double deltaTime) {
 
     if (shouldReverse) {
         elapsedTime -= deltaTime;
-    } else {
+    }
+    else {
         elapsedTime += deltaTime;
     }
 
@@ -89,10 +90,20 @@ void Animation::AnimationProperty::update(double deltaTime) {
             currentState = glm::mix(prev->value, next->value, t);
         }
         else {
-            glm::quat prevQuat = glm::quat(glm::radians(prev->value));
-            glm::quat nextQuat = glm::quat(glm::radians(next->value));
-            glm::quat interpolatedQuat = glm::slerp(prevQuat, nextQuat, t);
-            currentState = glm::degrees(glm::eulerAngles(interpolatedQuat));
+            if (keyframes.size() == 2) {
+                glm::vec3 prevEuler = prev->value;
+                glm::vec3 nextEuler = next->value;
+
+                glm::vec3 interpolatedEuler = glm::mix(prevEuler, nextEuler, t);
+                glm::quat interpolatedQuat = glm::quat(glm::radians(interpolatedEuler));
+                currentState = glm::degrees(glm::eulerAngles(interpolatedQuat));
+            }
+            else {
+                glm::quat prevQuat = glm::quat(glm::radians(prev->value));
+                glm::quat nextQuat = glm::quat(glm::radians(next->value));
+                glm::quat interpolatedQuat = glm::slerp(prevQuat, nextQuat, t);
+                currentState = glm::degrees(glm::eulerAngles(interpolatedQuat));
+            }
         }
     }
     else {
