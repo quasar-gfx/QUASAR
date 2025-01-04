@@ -247,10 +247,92 @@
             "loop": true
         },
         {
+            "node": "prop_skull_01.008",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [0.0, 360.0, 0.0],
+            "duration": 1.0,
+            "loop": true
+        },
+        {
+            "node": "prop_skull_01.014",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [0.0, 360.0, 0.0],
+            "duration": 1.0,
+            "loop": true
+        },
+        {
+            "node": "prop_skull_01",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [0.0, 360.0, 0.0],
+            "duration": 1.0,
+            "loop": true
+        },
+        {
+            "node": "prop_skull_01.001",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [0.0, 360.0, 0.0],
+            "duration": 1.0,
+            "loop": true
+        },
+        {
+            "node": "prop_skull_01.005",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [0.0, 360.0, 0.0],
+            "duration": 1.0,
+            "loop": true
+        },
+        {
+            "node": "prop_skull_01.007",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [0.0, 360.0, 0.0],
+            "duration": 1.0,
+            "loop": true
+        },
+        {
             "node": "pf_menhir_01.001",
             "fromRotation": [0.0, 0.0, 0.0],
             "toRotation": [0.0, 360.0, 0.0],
             "duration": 3.0,
+            "repeat": true,
+            "loop": true
+        },
+        {
+            "node": "pf_menhir_02",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [0.0, 360.0, 0.0],
+            "duration": 2.0,
+            "repeat": true,
+            "loop": true
+        },
+        {
+            "node": "pf_menhir_02.001",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [0.0, 360.0, 0.0],
+            "duration": 2.0,
+            "repeat": true,
+            "loop": true
+        },
+        {
+            "node": "pf_menhir_02.002",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [0.0, 360.0, 0.0],
+            "duration": 2.0,
+            "repeat": true,
+            "loop": true
+        },
+        {
+            "node": "pf_menhir_02.003",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [0.0, 360.0, 0.0],
+            "duration": 2.0,
+            "repeat": true,
+            "loop": true
+        },
+        {
+            "node": "pf_menhir_02.004",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [0.0, 360.0, 0.0],
+            "duration": 2.0,
             "repeat": true,
             "loop": true
         }
