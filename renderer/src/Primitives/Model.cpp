@@ -89,6 +89,52 @@ void Model::loadFromFile(const ModelCreateParams &params) {
     meshes.resize(scene->mNumMeshes);
 
     processNode(scene->mRootNode, scene, &rootNode, params.material);
+
+    processAnimations(scene);
+}
+
+void Model::processAnimations(const aiScene* scene) {
+    for (unsigned int i = 0; i < scene->mNumAnimations; ++i) {
+        aiAnimation* animation = scene->mAnimations[i];
+
+        for (unsigned int j = 0; j < animation->mNumChannels; ++j) {
+            aiNodeAnim* channel = animation->mChannels[j];
+
+            Node* node = rootNode.findNodeByName(channel->mNodeName.C_Str());
+            if (node == nullptr) {
+                spdlog::warn("Node {} not found in model", channel->mNodeName.C_Str());
+                continue;
+            }
+
+            Animation* anim = (node->animation != nullptr) ? node->animation : new Animation();
+
+            const glm::mat4 &transformInv = node->getTransformLocalFromParent();
+
+            for (unsigned int k = 0; k < channel->mNumPositionKeys; k++) {
+                aiVectorKey positionKey = channel->mPositionKeys[k];
+                const glm::vec3 pos = glm::vec3(positionKey.mValue.x, positionKey.mValue.y, positionKey.mValue.z);
+                const glm::vec3 adjustedPos = glm::vec3(transformInv * glm::vec4(pos, 1.0f));
+                anim->addPositionKey(adjustedPos, positionKey.mTime / animation->mTicksPerSecond);
+            }
+
+            for (unsigned int k = 0; k < channel->mNumRotationKeys; k++) {
+                aiQuatKey rotationKey = channel->mRotationKeys[k];
+                const glm::quat rot = glm::quat(rotationKey.mValue.w, rotationKey.mValue.x, rotationKey.mValue.y, rotationKey.mValue.z);
+                const glm::quat adjustedRot = glm::quat(transformInv) * rot;
+                anim->addRotationKey(glm::degrees(glm::eulerAngles(adjustedRot)), rotationKey.mTime / animation->mTicksPerSecond);
+            }
+
+            for (unsigned int k = 0; k < channel->mNumScalingKeys; k++) {
+                aiVectorKey scalingKey = channel->mScalingKeys[k];
+                const glm::vec3 scale = glm::vec3(scalingKey.mValue.x, scalingKey.mValue.y, scalingKey.mValue.z);
+                anim->addScaleKey(scale, scalingKey.mTime / animation->mTicksPerSecond);
+            }
+
+            if (node->animation == nullptr) {
+                node->animation = anim;
+            }
+        }
+    }
 }
 
 void Model::processNode(aiNode* aiNode, const aiScene* scene, Node* node, PBRMaterial* material) {
@@ -450,7 +496,7 @@ RenderStats Model::drawNode(const Node* node,
                             const glm::mat4& parentTransform, const glm::mat4 &model,
                             bool frustumCull, const Material* overrideMaterial) {
     RenderStats stats;
-    const glm::mat4 &globalTransform = parentTransform * node->getTransformParentFromLocal();
+    const glm::mat4 &globalTransform = parentTransform * node->getTransformParentFromLocal() * node->getTransformAnimation();
     const glm::mat4 &modelMatrix = model * globalTransform;
 
     for (int meshIndex : node->meshIndices) {
@@ -469,7 +515,7 @@ RenderStats Model::drawNode(const Node* node,
                             const glm::mat4& parentTransform, const glm::mat4 &model,
                             const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
     RenderStats stats;
-    const glm::mat4 &globalTransform = parentTransform * node->getTransformParentFromLocal();
+    const glm::mat4 &globalTransform = parentTransform * node->getTransformParentFromLocal() * node->getTransformAnimation();
     const glm::mat4 &modelMatrix = model * globalTransform;
 
     for (int meshIndex : node->meshIndices) {

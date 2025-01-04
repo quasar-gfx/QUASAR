@@ -692,6 +692,7 @@ int SceneLoader::parseAnimation(jsmntok_t* tokens, int i, const char* json, Scen
     glm::vec3 fromRotation{0.0f, 0.0f, 0.0f}, toRotation{0.0f, 0.0f, 0.0f};
     glm::vec3 fromScale{1.0f, 1.0f, 1.0f}, toScale{1.0f, 1.0f, 1.0f};
     float duration = 1.0f;
+    float delay = 0.0f;
     bool reverse = false;
     bool loop = false;
 
@@ -722,6 +723,9 @@ int SceneLoader::parseAnimation(jsmntok_t* tokens, int i, const char* json, Scen
         else if (compare(tok, json, "toScale") == 0) {
             i = parseVec3(tokens, i + 1, json, &toScale);
         }
+        else if (compare(tok, json, "delay") == 0) {
+            i = parseFloat(tokens, i + 1, json, &delay);
+        }
         else if (compare(tok, json, "duration") == 0) {
             i = parseFloat(tokens, i + 1, json, &duration);
         }
@@ -742,12 +746,23 @@ int SceneLoader::parseAnimation(jsmntok_t* tokens, int i, const char* json, Scen
     // add animation to node
     Node* node = findNodeByName(nodeName);
     if (node != nullptr) {
-        Animation* animation = new Animation();
-        animation->setTranslation(fromPosition, toPosition, duration, reverse, loop);
-        animation->setRotation(fromRotation, toRotation, duration, reverse, loop);
-        animation->setScale(fromScale, toScale, duration, reverse, loop);
+        Animation* anim = (node->animation != nullptr) ? node->animation : new Animation();
 
-        node->animation = animation;
+        anim->addPositionKey(fromPosition, delay);
+        anim->addPositionKey(toPosition, delay + duration);
+        anim->setPositionProperties(reverse, loop);
+
+        anim->addRotationKey(fromRotation, delay);
+        anim->addRotationKey(toRotation, delay + duration);
+        anim->setRotationProperties(reverse, loop);
+
+        anim->addScaleKey(fromScale, delay);
+        anim->addScaleKey(toScale, delay + duration);
+        anim->setScaleProperties(reverse, loop);
+
+        if (node->animation == nullptr) {
+            node->animation = anim;
+        }
     }
     else {
         spdlog::warn("Node not found: {}", nodeName);

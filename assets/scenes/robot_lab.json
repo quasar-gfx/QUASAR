@@ -85,13 +85,6 @@
             "loop": true
         },
         {
-            "node": "prop_fan_large",
-            "fromRotation": [0.0, 0.0, 0.0],
-            "toRotation": [-360.0, 0.0, 0.0],
-            "duration": 30.0,
-            "loop": true
-        },
-        {
             "node": "vehicle_rcFlyer_clean",
             "fromPosition": [0.0, 0.0, 0.0],
             "toPosition": [0.0, 2.0, 0.0],

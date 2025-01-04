@@ -1,70 +1,139 @@
 #include <iostream>
+#include <algorithm>
+
+#include <spdlog/spdlog.h>
 
 #include <Animation.h>
 
-AnimationProperty::AnimationProperty()
-    : initialState(0.0f), finalState(0.0f), currentState(0.0f) {}
+Animation::AnimationProperty::AnimationProperty(const glm::vec3& initialState, bool isRotation)
+    : initialState(initialState), currentState(initialState), isRotation(isRotation) {}
 
-AnimationProperty::AnimationProperty(const glm::vec3& initialState)
-    : initialState(initialState), finalState(initialState), currentState(initialState) {
-}
-
-void AnimationProperty::set(const glm::vec3& from, const glm::vec3& to, float duration, bool reverse, bool loop) {
-    this->initialState = from;
-    this->finalState = to;
-    this->currentState = from;
-    this->duration = duration;
+void Animation::AnimationProperty::setProperties(bool reverse, bool loop) {
     this->reverse = reverse;
     this->loop = loop;
-    this->elapsedTime = 0.0f;
 }
 
-void AnimationProperty::update(float deltaTime) {
-    if (duration <= 0.0f) return;
+void Animation::AnimationProperty::addKeyframe(const glm::vec3& value, double time) {
+    keyframes.push_back({value, time});
+    std::sort(keyframes.begin(), keyframes.end(), [](const Keyframe& a, const Keyframe& b) {
+        return a.time < b.time;
+    });
+}
 
-    elapsedTime += deltaTime;
-    float t = elapsedTime / duration;
+void Animation::AnimationProperty::update(double deltaTime) {
+    if (keyframes.size() <= 1) return;
 
-    if (t > 1.0f) {
+    if (shouldReverse) {
+        elapsedTime -= deltaTime;
+    } else {
+        elapsedTime += deltaTime;
+    }
+
+    float totalTime = keyframes.back().time;
+
+    if (elapsedTime > totalTime) {
         if (reverse) {
-            elapsedTime = 0.0f;
-            std::swap(initialState, finalState);
-            t = 0.0f;
+            elapsedTime = totalTime;
+            shouldReverse = true;
         }
         else if (loop) {
-            elapsedTime = 0.0f;
-            t = 0.0f;
+            elapsedTime = fmod(elapsedTime, totalTime);
         }
         else {
-            t = 1.0f;
+            elapsedTime = totalTime;
+        }
+    }
+    else if (elapsedTime < 0.0f) {
+        if (reverse) {
+            elapsedTime = 0.0f;
+            shouldReverse = false;
+        }
+        else if (loop) {
+            elapsedTime = totalTime + fmod(elapsedTime, totalTime);
+        }
+        else {
+            elapsedTime = 0.0f;
         }
     }
 
-    currentState = glm::mix(initialState, finalState, t);
+    Keyframe* prev = nullptr;
+    Keyframe* next = nullptr;
+
+    for (size_t i = 0; i < keyframes.size(); ++i) {
+        if (keyframes[i].time >= elapsedTime) {
+            next = &keyframes[i];
+            prev = (i > 0) ? &keyframes[i - 1] : &keyframes.back();
+            break;
+        }
+    }
+
+    if (!next) {
+        prev = &keyframes.back();
+        next = &keyframes.front();
+    }
+
+    if (prev && next) {
+        float t = 0.0f;
+
+        if (next == &keyframes.front() && elapsedTime > keyframes.back().time) {
+            float wrappedTime = elapsedTime - keyframes.back().time;
+            t = wrappedTime / (keyframes.front().time + totalTime - keyframes.back().time);
+        }
+        else {
+            if (prev->time != next->time) {
+                t = (elapsedTime - prev->time) / (next->time - prev->time);
+            }
+        }
+
+        if (!isRotation) {
+            currentState = glm::mix(prev->value, next->value, t);
+        }
+        else {
+            glm::quat prevQuat = glm::quat(glm::radians(prev->value));
+            glm::quat nextQuat = glm::quat(glm::radians(next->value));
+            glm::quat interpolatedQuat = glm::slerp(prevQuat, nextQuat, t);
+            currentState = glm::degrees(glm::eulerAngles(interpolatedQuat));
+        }
+    }
+    else {
+        currentState = keyframes.empty() ? initialState : keyframes.back().value;
+    }
 }
 
-void AnimationProperty::reset() {
+
+void Animation::AnimationProperty::reset() {
     elapsedTime = 0.0f;
-    currentState = initialState;
+    currentState = keyframes.empty() ? initialState : keyframes.front().value;
 }
 
-void Animation::setTranslation(const glm::vec3& from, const glm::vec3& to, float duration, bool reverse, bool loop) {
-    translation.set(from, to, duration, reverse, loop);
+void Animation::addPositionKey(const glm::vec3& value, double time) {
+    translation.addKeyframe(value, time);
 }
 
-void Animation::setRotation(const glm::vec3& fromEuler, const glm::vec3& toEuler, float duration, bool reverse, bool loop) {
-    rotation.set(fromEuler, toEuler, duration, reverse, loop);
+void Animation::addRotationKey(const glm::vec3& value, double time) {
+    rotation.addKeyframe(value, time);
 }
 
-void Animation::setScale(const glm::vec3& from, const glm::vec3& to, float duration, bool reverse, bool loop) {
-    scale.set(from, to, duration, reverse, loop);
+void Animation::addScaleKey(const glm::vec3& value, double time) {
+    scale.addKeyframe(value, time);
 }
 
-void Animation::update(float deltaTime) {
+void Animation::setPositionProperties(bool reverse, bool loop) {
+    translation.setProperties(reverse, loop);
+}
+
+void Animation::setRotationProperties(bool reverse, bool loop) {
+    rotation.setProperties(reverse, loop);
+}
+
+void Animation::setScaleProperties(bool reverse, bool loop) {
+    scale.setProperties(reverse, loop);
+}
+
+void Animation::update(double deltaTime) {
     translation.update(deltaTime);
     rotation.update(deltaTime);
     scale.update(deltaTime);
-
     updateTransformation();
 }
 

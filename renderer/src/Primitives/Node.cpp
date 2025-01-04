@@ -118,12 +118,12 @@ void Node::setTransformLocalFromParent(const glm::mat4 &view) {
 
 const glm::mat4 Node::getTransformParentFromLocal() const {
     const glm::mat4& transform = glm::translate(glm::mat4(1.0f), position) * glm::mat4_cast(rotationQuat) * glm::scale(glm::mat4(1.0f), scale);
-    return transform * getTransformAnimation();
+    return transform;
 }
 
 const glm::mat4 Node::getTransformLocalFromParent() const {
     const glm::mat4& transformInv = glm::scale(glm::mat4(1.0f), 1.0f/scale) * glm::mat4_cast(glm::conjugate(rotationQuat)) * glm::translate(glm::mat4(1.0f), -position);
-    return glm::inverse(getTransformAnimation()) * transformInv;
+    return transformInv;
 }
 
 const glm::mat4 Node::getTransformLocalFromWorld() const {

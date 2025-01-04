@@ -215,7 +215,11 @@ vec3 getIBLContribution(PBRInfo pbrInputs) {
     const float MAX_REFLECTION_LOD = 4.0;
     vec3 prefilteredColor = textureLod(material.prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
     vec2 brdf = texture(material.brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
+#ifdef VIEW_DEPENDENT_LIGHTING
     vec3 specular = prefilteredColor * (kS * brdf.x + brdf.y);
+#else
+    vec3 specular = vec3(0.0);
+#endif
     return kD * diffuse + specular;
 #else
     return vec3(0.0);
