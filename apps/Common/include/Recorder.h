@@ -35,7 +35,7 @@ public:
         JPG,
     };
 
-    Recorder(OpenGLRenderer &renderer, Shader &shader, const std::string& outputPath, int targetFrameRate = 30)
+    Recorder(OpenGLRenderer &renderer, Shader &shader, const std::string& outputPath, int targetFrameRate = 30, unsigned int numThreads = 8)
             : renderer(renderer)
             , shader(shader)
             , renderTargetCopy({
@@ -50,6 +50,7 @@ public:
                 .magFilter = GL_LINEAR
             })
             , targetFrameRate(targetFrameRate)
+            , numThreads(numThreads)
             , outputPath(outputPath) {
 #if !defined(__APPLE__) && !defined(__ANDROID__)
         cudautils::checkCudaDevice();
@@ -58,9 +59,8 @@ public:
                                                     renderTargetCopy.colorBuffer.ID, GL_TEXTURE_2D,
                                                     cudaGraphicsRegisterFlagsReadOnly));
 #endif
-        rgbaVideoFrameData.resize(renderTargetCopy.width * renderTargetCopy.height * 4);
     }
-    Recorder(OpenGLRenderer &renderer, Shader &shader, int targetFrameRate = 30)
+    Recorder(OpenGLRenderer &renderer, Shader &shader, int targetFrameRate = 30, unsigned int numThreads = 8)
         : Recorder(renderer, shader, ".", targetFrameRate) { }
     ~Recorder();
 
@@ -75,7 +75,8 @@ public:
     void captureFrame(const Camera &camera);
 
 private:
-    static const int NUM_SAVE_THREADS = 8;
+    unsigned int numThreads;
+
     OutputFormat outputFormat = OutputFormat::MP4;
     std::string outputPath;
 
@@ -89,13 +90,10 @@ private:
     AVPixelFormat videoPixelFormat = AV_PIX_FMT_YUV420P;
 
     struct FrameData {
-#if !defined(__APPLE__) && !defined(__ANDROID__)
-        cudaArray* cudaBuffer;
-#else
-        std::vector<unsigned char> frame;
-#endif
+        int ID;
         glm::vec3 position;
         glm::vec3 euler;
+        std::vector<unsigned char> data;
         int64_t elapsedTime;
     };
 
@@ -111,11 +109,7 @@ private:
     int64_t lastCaptureTime;
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     cudaGraphicsResource* cudaResource;
-#else
-    std::vector<unsigned char> openglFrameData;
 #endif
-
-    std::vector<uint8_t> rgbaVideoFrameData;
 
     AVFormatContext* outputFormatCtx = nullptr;
     AVCodecContext* codecCtx = nullptr;

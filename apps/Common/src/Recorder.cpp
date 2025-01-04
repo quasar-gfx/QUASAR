@@ -48,6 +48,7 @@ void Recorder::saveScreenshotToFile(const std::string &fileName, bool saveAsHDR)
 
 void Recorder::start() {
     running = true;
+    frameCount = 0;
 
     recordingStartTime = timeutils::getTimeMillis();
     lastCaptureTime = recordingStartTime;
@@ -55,12 +56,12 @@ void Recorder::start() {
     std::ofstream pathFile(outputPath + "camera_path.txt");
     pathFile.close();
 
-    for (int i = 0; i < NUM_SAVE_THREADS; ++i) {
-        saveThreadPool.emplace_back(&Recorder::saveFrames, this);
-    }
-
     if (outputFormat == OutputFormat::MP4) {
         initializeFFmpeg();
+    }
+
+    for (int i = 0; i < numThreads; ++i) {
+        saveThreadPool.emplace_back(&Recorder::saveFrames, this);
     }
 }
 
@@ -89,34 +90,37 @@ void Recorder::stop() {
 void Recorder::captureFrame(const Camera &camera) {
     int64_t currentTime = timeutils::getTimeMillis();
     int64_t elapsedTime = currentTime - recordingStartTime;
-    if (elapsedTime < 1.0f / targetFrameRate) {
+    if (targetFrameRate > 0 && elapsedTime < 1.0f / targetFrameRate) {
         return;
     }
 
     shader.bind();
     renderer.drawToRenderTarget(shader, renderTargetCopy);
 
+    std::vector<uint8_t> renderTargetData(renderTargetCopy.width * renderTargetCopy.height * 4);
+
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-    // add cuda buffer
     cudaArray* cudaBuffer;
     CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
     CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
+    CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(renderTargetData.data(),
+                                            renderTargetCopy.width * 4,
+                                            cudaBuffer,
+                                            0, 0,
+                                            renderTargetCopy.width * 4, renderTargetCopy.height,
+                                            cudaMemcpyDeviceToHost));
     CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
-
-    {
-        std::lock_guard<std::mutex> lock(queueMutex);
-        frameQueue.push(FrameData{cudaBuffer, camera.getPosition(), camera.getRotationEuler(), elapsedTime});
-    }
 #else
-    renderTargetCopy.readPixels(rgbaVideoFrameData.data());
+    renderTargetCopy.readPixels(renderTargetData.data());
+#endif
 
     {
         std::lock_guard<std::mutex> lock(queueMutex);
-        frameQueue.push(FrameData{rgbaVideoFrameData, camera.getPosition(), camera.getRotationEuler(), elapsedTime});
+        frameQueue.push(FrameData{frameCount, camera.getPosition(), camera.getRotationEuler(), renderTargetData, elapsedTime});
     }
-#endif
     queueCV.notify_one();
 
+    frameCount++;
     lastCaptureTime = currentTime;
 }
 
@@ -131,32 +135,22 @@ void Recorder::saveFrames() {
             }
             frameData = std::move(frameQueue.front());
             frameQueue.pop();
-
-            frameCount++;
         }
 
-#if !defined(__APPLE__) && !defined(__ANDROID__)
-        cudaArray* cudaBuffer = frameData.cudaBuffer;
-        CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(rgbaVideoFrameData.data(),
-                                               renderTargetCopy.width * 4,
-                                               cudaBuffer,
-                                               0, 0,
-                                               renderTargetCopy.width * 4, renderTargetCopy.height,
-                                               cudaMemcpyDeviceToHost));
-#else
-        const int stride = renderTargetCopy.width * 4;
-        for (int y = 0; y < renderTargetCopy.height; ++y) {
-            std::memcpy(
-                rgbaVideoFrameData.data() + y * stride,
-                frameData.frame.data() + (renderTargetCopy.height - 1 - y) * stride,
-                stride
-            );
-        }
-#endif
+        int frameID = frameData.ID;
+        auto &renderTargetData = frameData.data;
 
         if (outputFormat == OutputFormat::MP4) {
+#if !defined(__APPLE__) && !defined(__ANDROID__)
+            for (int y = 0; y < renderTargetCopy.height / 2; ++y) {
+                for (int x = 0; x < renderTargetCopy.width * 4; ++x) {
+                    std::swap(renderTargetData[y * renderTargetCopy.width * 4 + x],
+                              renderTargetData[(renderTargetCopy.height - 1 - y) * renderTargetCopy.width * 4 + x]);
+                }
+            }
+#endif
             {
-                const uint8_t* srcData[] = { rgbaVideoFrameData.data() };
+                const uint8_t* srcData[] = { renderTargetData.data() };
                 int srcStride[] = { static_cast<int>(renderTargetCopy.width * 4) }; // RGBA has 4 bytes per pixel
 
                 sws_scale(swsCtx, srcData, srcStride, 0, renderTargetCopy.height, frame->data, frame->linesize);
@@ -178,7 +172,7 @@ void Recorder::saveFrames() {
             }
 
             AVRational timeBase = outputFormatCtx->streams[outputVideoStream->index]->time_base;
-            packet->pts = av_rescale_q(frameCount, (AVRational){1, targetFrameRate}, timeBase);
+            packet->pts = av_rescale_q(frameID, (AVRational){1, targetFrameRate}, timeBase);
             packet->dts = packet->pts;
 
             av_interleaved_write_frame(outputFormatCtx, packet);
@@ -186,15 +180,15 @@ void Recorder::saveFrames() {
         }
         else {
             std::stringstream ss;
-            ss << outputPath << "frame_" << std::setw(6) << std::setfill('0') << frameCount;
+            ss << outputPath << "frame_" << std::setw(6) << std::setfill('0') << frameID;
             std::string fileName = ss.str();
 
             FileIO::flipVerticallyOnWrite(true);
             if (outputFormat == OutputFormat::PNG) {
-                FileIO::saveAsPNG(fileName + ".png", renderTargetCopy.width, renderTargetCopy.height, 4, rgbaVideoFrameData.data());
+                FileIO::saveAsPNG(fileName + ".png", renderTargetCopy.width, renderTargetCopy.height, 4, renderTargetData.data());
             }
             else {
-                FileIO::saveAsJPG(fileName + ".jpg", renderTargetCopy.width, renderTargetCopy.height, 4, rgbaVideoFrameData.data());
+                FileIO::saveAsJPG(fileName + ".jpg", renderTargetCopy.width, renderTargetCopy.height, 4, renderTargetData.data());
             }
         }
 

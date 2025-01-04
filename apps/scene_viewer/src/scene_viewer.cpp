@@ -116,6 +116,12 @@ int main(int argc, char** argv) {
     Recorder recorder(renderer, toneMapShader, dataPath, config.targetFramerate);
     Animator animator(animationFile);
 
+    if (saveImage) {
+        recorder.setTargetFrameRate(-1 /* unlimited */);
+        recorder.setFormat(Recorder::OutputFormat::PNG);
+        recorder.start();
+    }
+
     float exposure = 1.0f;
     int shaderIndex = 0;
     RenderStats renderStats;
@@ -343,6 +349,7 @@ int main(int argc, char** argv) {
             animator.copyPoseToCamera(camera);
             animator.update(dt);
             if (!animator.running) {
+                recorder.stop();
                 window->close();
             }
         }
@@ -404,16 +411,8 @@ int main(int argc, char** argv) {
             renderer.drawToScreen(toneMapShader);
         }
 
-        if (recording) {
+        if (saveImage || recording) {
             recorder.captureFrame(camera);
-        }
-
-        if (saveImage) {
-            static int frameNum = 0;
-            std::stringstream ss;
-            ss << dataPath << "frame_" << std::setw(6) << std::setfill('0') << frameNum++;
-            std::string fileName = ss.str();
-            recorder.saveScreenshotToFile(fileName);
         }
     });
 
