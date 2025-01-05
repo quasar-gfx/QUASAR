@@ -146,8 +146,8 @@ int main(int argc, char** argv) {
 
     for (int view = 0; view < maxViews; view++) {
         meshes[view] = new Mesh({
-            .numVertices = maxVertices / (view == 0 || (!disableWideFov && view == maxViews - 1) ? 1 : 4),
-            .numIndices = maxIndices / (view == 0 || (!disableWideFov && view == maxViews - 1) ? 1 : 4),
+            .numVertices = maxVertices,
+            .numIndices = maxIndices,
             .material = new QuadMaterial({ .baseColorTexture = &renderTargets[view].colorBuffer }),
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true
