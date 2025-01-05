@@ -91,8 +91,9 @@ int main(int argc, char** argv) {
 
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
-    ForwardRenderer remoteRenderer(config);
     DepthPeelingRenderer dpRenderer(config, maxLayers, true);
+    config.width = 1280; config.height = 720; // render at reduced resolution
+    ForwardRenderer wideFOVRenderer(config);
 
     glm::uvec2 windowSize = window->getSize();
 
@@ -670,39 +671,39 @@ int main(int argc, char** argv) {
                 // wide fov camera
                 else {
                     // draw old meshes at new remoteCamera view, filling depth buffer
-                    remoteRenderer.pipeline.writeMaskState.disableColorWrites();
-                    remoteRenderer.drawObjectsNoLighting(meshScene, remoteCamera);
+                    wideFOVRenderer.pipeline.writeMaskState.disableColorWrites();
+                    wideFOVRenderer.drawObjectsNoLighting(meshScene, remoteCamera);
 
                     // render remoteScene into stencil buffer, with depth buffer from meshScene
                     // this should draw objects in remoteScene that are not occluded by meshScene, setting
                     // the stencil buffer to 1 where the depth of remoteScene is less than meshScene
-                    remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
-                    remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = true;
-                    remoteRenderer.pipeline.rasterState.polygonOffsetUnits = 10000.0f;
-                    remoteRenderer.drawObjectsNoLighting(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+                    wideFOVRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
+                    wideFOVRenderer.pipeline.rasterState.polygonOffsetEnabled = true;
+                    wideFOVRenderer.pipeline.rasterState.polygonOffsetUnits = 10000.0f;
+                    wideFOVRenderer.drawObjectsNoLighting(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
                     // render remoteScene using stencil buffer as a mask
                     // at values were stencil buffer is 1, remoteScene should render
-                    remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_EQUAL, 1);
-                    remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = false;
-                    remoteRenderer.pipeline.writeMaskState.enableColorWrites();
-                    remoteRenderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                    wideFOVRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_EQUAL, 1);
+                    wideFOVRenderer.pipeline.rasterState.polygonOffsetEnabled = false;
+                    wideFOVRenderer.pipeline.writeMaskState.enableColorWrites();
+                    wideFOVRenderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-                    remoteRenderer.pipeline.stencilState.restoreStencilState();
+                    wideFOVRenderer.pipeline.stencilState.restoreStencilState();
 
                     if (!showNormals) {
                         toneMapShader.bind();
                         toneMapShader.setBool("toneMap", false); // dont apply tone mapping
-                        remoteRenderer.drawToRenderTarget(toneMapShader, renderTargets[view]);
+                        wideFOVRenderer.drawToRenderTarget(toneMapShader, renderTargets[view]);
                     }
                     else {
-                        remoteRenderer.drawToRenderTarget(screenShaderNormals, renderTargets[view]);
+                        wideFOVRenderer.drawToRenderTarget(screenShaderNormals, renderTargets[view]);
                     }
                 }
 
                 // create proxies from the new frame
                 startTime = window->getTime();
-                auto* gBuffer = (disableWideFov || view != maxViews - 1) ? dpRenderer.peelingLayers[view] : &remoteRenderer.gBuffer;
+                auto* gBuffer = (disableWideFov || view != maxViews - 1) ? dpRenderer.peelingLayers[view] : &wideFOVRenderer.gBuffer;
                 auto sizes = quadsGenerator.createProxiesFromGBuffer(*gBuffer, remoteCamera);
                 unsigned int numProxies = sizes.numProxies;
                 unsigned int numDepthOffsets = sizes.numDepthOffsets;
@@ -740,7 +741,7 @@ int main(int argc, char** argv) {
                 startTime = window->getTime();
                 meshFromQuads.appendProxies(numProxies, quadsGenerator.outputQuadBuffers);
                 meshFromQuads.createMeshFromProxies(
-                    glm::vec2(remoteRenderer.gBuffer.width, remoteRenderer.gBuffer.height),
+                    glm::vec2(gBuffer->width, gBuffer->height),
                     numProxies, quadsGenerator.depthOffsets,
                     remoteCamera,
                     *currMesh
@@ -757,7 +758,7 @@ int main(int argc, char** argv) {
                             meshFromDepthShader.setTexture(dpRenderer.peelingLayers[view]->depthStencilBuffer, 0);
                         }
                         else {
-                            meshFromDepthShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
+                            meshFromDepthShader.setTexture(wideFOVRenderer.gBuffer.depthStencilBuffer, 0);
                         }
                     }
                     {

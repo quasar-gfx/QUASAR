@@ -103,6 +103,8 @@ int main(int argc, char** argv) {
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
     ForwardRenderer remoteRenderer(config);
+    config.width = 1280; config.height = 720; // render at reduced resolution
+    ForwardRenderer wideFOVRenderer(config);
 
     glm::uvec2 windowSize = window->getSize();
 
@@ -666,10 +668,12 @@ int main(int argc, char** argv) {
 
                 startTime = window->getTime();
 
+                auto &renderer = (view != maxViews - 1) ? remoteRenderer : wideFOVRenderer;
+
                 // center view
                 if (view == 0) {
                     // render all objects in remoteScene normally
-                    remoteRenderer.drawObjects(remoteScene, remoteCamera);
+                    renderer.drawObjects(remoteScene, remoteCamera);
                 }
                 // other views
                 else {
@@ -678,39 +682,39 @@ int main(int argc, char** argv) {
                         meshScene.rootNode.children[prevView]->visible = (prevView < view);
                     }
                     // draw old meshes at new remoteCamera view, filling depth buffer
-                    remoteRenderer.pipeline.writeMaskState.disableColorWrites();
-                    remoteRenderer.drawObjectsNoLighting(meshScene, remoteCamera);
+                    renderer.pipeline.writeMaskState.disableColorWrites();
+                    renderer.drawObjectsNoLighting(meshScene, remoteCamera);
 
                     // render remoteScene into stencil buffer, with depth buffer from meshScene
                     // this should draw objects in remoteScene that are not occluded by meshScene, setting
                     // the stencil buffer to 1 where the depth of remoteScene is less than meshScene
-                    remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
-                    remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = true;
-                    remoteRenderer.pipeline.rasterState.polygonOffsetUnits = 10000.0f;
-                    remoteRenderer.drawObjectsNoLighting(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+                    renderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
+                    renderer.pipeline.rasterState.polygonOffsetEnabled = true;
+                    renderer.pipeline.rasterState.polygonOffsetUnits = 10000.0f;
+                    renderer.drawObjectsNoLighting(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
                     // render remoteScene using stencil buffer as a mask
                     // at values were stencil buffer is 1, remoteScene should render
-                    remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_EQUAL, 1);
-                    remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = false;
-                    remoteRenderer.pipeline.writeMaskState.enableColorWrites();
-                    remoteRenderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                    renderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_EQUAL, 1);
+                    renderer.pipeline.rasterState.polygonOffsetEnabled = false;
+                    renderer.pipeline.writeMaskState.enableColorWrites();
+                    renderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-                    remoteRenderer.pipeline.stencilState.restoreStencilState();
+                    renderer.pipeline.stencilState.restoreStencilState();
                 }
                 if (!showNormals) {
                     toneMapShader.bind();
                     toneMapShader.setBool("toneMap", false); // dont apply tone mapping
-                    remoteRenderer.drawToRenderTarget(toneMapShader, renderTargets[view]);
+                    renderer.drawToRenderTarget(toneMapShader, renderTargets[view]);
                 }
                 else {
-                    remoteRenderer.drawToRenderTarget(screenShaderNormals, renderTargets[view]);
+                    renderer.drawToRenderTarget(screenShaderNormals, renderTargets[view]);
                 }
                 totalRenderTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
 
                 // create proxies from the new frame
                 startTime = window->getTime();
-                auto sizes = quadsGenerator.createProxiesFromGBuffer(remoteRenderer.gBuffer, remoteCamera);
+                auto sizes = quadsGenerator.createProxiesFromGBuffer(renderer.gBuffer, remoteCamera);
                 unsigned int numProxies = sizes.numProxies;
                 unsigned int numDepthOffsets = sizes.numDepthOffsets;
                 totalProxies += numProxies;
@@ -748,7 +752,7 @@ int main(int argc, char** argv) {
                 startTime = window->getTime();
                 meshFromQuads.appendProxies(numProxies, quadsGenerator.outputQuadBuffers);
                 meshFromQuads.createMeshFromProxies(
-                    glm::vec2(remoteRenderer.gBuffer.width, remoteRenderer.gBuffer.height),
+                    glm::vec2(renderer.gBuffer.width, renderer.gBuffer.height),
                     numProxies, quadsGenerator.depthOffsets,
                     remoteCamera,
                     *currMesh
