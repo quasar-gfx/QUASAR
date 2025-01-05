@@ -174,6 +174,7 @@ int main(int argc, char** argv) {
             auto& cameraToUse = (!disableWideFov && view == maxViews - 1) ? remoteCameraWideFov : remoteCamera;
             meshFromQuads.appendProxies(numProxies, quadBuffers);
             meshFromQuads.createMeshFromProxies(
+                glm::vec2(windowSize.x, windowSize.y),
                 numProxies, depthOffsets,
                 cameraToUse,
                 *meshes[view]

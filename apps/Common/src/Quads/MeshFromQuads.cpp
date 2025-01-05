@@ -37,11 +37,6 @@ MeshFromQuads::MeshFromQuads(const glm::uvec2 &remoteWindowSize)
                 "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
             }
         }) {
-    createMeshFromQuadsShader.bind();
-    createMeshFromQuadsShader.setVec2("remoteWindowSize", remoteWindowSize);
-
-    fillQuadIndicesShader.bind();
-    fillQuadIndicesShader.setVec2("remoteWindowSize", remoteWindowSize);
 }
 
 MeshFromQuads::BufferSizes MeshFromQuads::getBufferSizes() {
@@ -93,6 +88,7 @@ void MeshFromQuads::fillQuadIndices() {
 
     fillQuadIndicesShader.bind();
     {
+        fillQuadIndicesShader.setVec2("remoteWindowSize", remoteWindowSize);
         fillQuadIndicesShader.setUint("currNumProxies", currNumProxies);
     }
     {
@@ -112,29 +108,9 @@ void MeshFromQuads::fillQuadIndices() {
 }
 
 void MeshFromQuads::createMeshFromProxies(
+        const glm::vec2 &gBufferSize,
         unsigned int numProxies,
         const DepthOffsets &depthOffsets,
-        const PerspectiveCamera &remoteCamera,
-        const Mesh& mesh) {
-    createMeshFromQuadsShader.bind();
-    createMeshFromQuadsShader.setImageTexture(0, depthOffsets.buffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsets.buffer.internalFormat);
-
-    createMeshFromProxies(numProxies, remoteCamera, mesh, false);
-}
-
-void MeshFromQuads::appendGeometry(
-        unsigned int numProxies,
-        const DepthOffsets &depthOffsets,
-        const PerspectiveCamera &remoteCamera,
-        const Mesh &mesh) {
-    createMeshFromQuadsShader.bind();
-    createMeshFromQuadsShader.setImageTexture(0, depthOffsets.buffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsets.buffer.internalFormat);
-
-    createMeshFromProxies(numProxies, remoteCamera, mesh, true);
-}
-
-void MeshFromQuads::createMeshFromProxies(
-        unsigned int numProxies,
         const PerspectiveCamera &remoteCamera,
         const Mesh &mesh,
         bool appendGeometry) {
@@ -142,17 +118,20 @@ void MeshFromQuads::createMeshFromProxies(
 
     createMeshFromQuadsShader.bind();
     {
+        createMeshFromQuadsShader.setVec2("remoteWindowSize", gBufferSize);
+        createMeshFromQuadsShader.setVec2("depthBufferSize", depthBufferSize);
+    }
+    {
+        createMeshFromQuadsShader.setBool("appendGeometry", appendGeometry);
+        createMeshFromQuadsShader.setUint("currNumProxies", currNumProxies);
+    }
+    {
         createMeshFromQuadsShader.setMat4("view", remoteCamera.getViewMatrix());
         createMeshFromQuadsShader.setMat4("projection", remoteCamera.getProjectionMatrix());
         createMeshFromQuadsShader.setMat4("viewInverse", remoteCamera.getViewMatrixInverse());
         createMeshFromQuadsShader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
         createMeshFromQuadsShader.setFloat("near", remoteCamera.getNear());
         createMeshFromQuadsShader.setFloat("far", remoteCamera.getFar());
-    }
-    {
-        createMeshFromQuadsShader.setBool("appendGeometry", appendGeometry);
-        createMeshFromQuadsShader.setUint("currNumProxies", currNumProxies);
-        createMeshFromQuadsShader.setVec2("depthBufferSize", depthBufferSize);
     }
     {
         createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, meshSizesBuffer);
@@ -166,10 +145,11 @@ void MeshFromQuads::createMeshFromProxies(
         createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, currentQuadBuffers.depthsBuffer);
         createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, currentQuadBuffers.offsetSizeFlattenedsBuffer);
 
-        fillQuadIndicesShader.setImageTexture(1, quadIndicesBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, quadIndicesBuffer.internalFormat);
+        createMeshFromQuadsShader.setImageTexture(0, depthOffsets.buffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsets.buffer.internalFormat);
+        createMeshFromQuadsShader.setImageTexture(1, quadIndicesBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, quadIndicesBuffer.internalFormat);
     }
-    createMeshFromQuadsShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                       (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+    createMeshFromQuadsShader.dispatch((gBufferSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                       (gBufferSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
     createMeshFromQuadsShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
     createMeshFromQuadsShader.endTiming();

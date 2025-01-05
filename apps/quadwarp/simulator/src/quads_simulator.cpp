@@ -609,6 +609,7 @@ int main(int argc, char** argv) {
             startTime = glfwGetTime();
             meshFromQuads.appendProxies(numProxies, quadsGenerator.outputQuadBuffers);
             meshFromQuads.createMeshFromProxies(
+                glm::vec2(remoteRenderer.gBuffer.width, remoteRenderer.gBuffer.height),
                 numProxies, quadsGenerator.depthOffsets,
                 remoteCameraToUse,
                 meshes[currMeshIndex]
@@ -655,8 +656,8 @@ int main(int argc, char** argv) {
                 // create mesh from proxies
                 meshFromQuads.appendProxies(numProxies, quadsGenerator.outputQuadBuffers, false);
                 meshFromQuads.createMeshFromProxies(
-                    numProxies,
-                    quadsGenerator.depthOffsets,
+                    glm::vec2(remoteRenderer.gBuffer.width, remoteRenderer.gBuffer.height),
+                    numProxies, quadsGenerator.depthOffsets,
                     remoteCameraToUse,
                     meshes[currMeshIndex]
                 );

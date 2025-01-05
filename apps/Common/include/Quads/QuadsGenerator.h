@@ -56,9 +56,9 @@ private:
     ComputeShader simplifyQuadMapShader;
     ComputeShader fillOutputQuadsShader;
 
-    void generateInitialQuadMap(const GeometryBuffer& gBuffer, const PerspectiveCamera &remoteCamera);
-    void simplifyQuadMaps(const PerspectiveCamera &remoteCamera);
-    void fillOutputQuads();
+    void generateInitialQuadMap(const GeometryBuffer& gBuffer, const PerspectiveCamera &remoteCamera, const glm::vec2 &gBufferSize);
+    void simplifyQuadMaps(const PerspectiveCamera &remoteCamera, const glm::vec2 &gBufferSize);
+    void fillOutputQuads(const glm::vec2 &gBufferSize);
 };
 
 #endif // QUADS_GENERATOR_H

@@ -51,19 +51,9 @@ public:
     void fillQuadIndices();
 
     void createMeshFromProxies(
+            const glm::vec2 &gBufferSize,
             unsigned int numProxies,
             const DepthOffsets &depthOffsets,
-            const PerspectiveCamera &remoteCamera,
-            const Mesh &mesh);
-
-    void appendGeometry(
-            unsigned int numProxies,
-            const DepthOffsets &depthOffsets,
-            const PerspectiveCamera &remoteCamera,
-            const Mesh &mesh);
-
-    void createMeshFromProxies(
-            unsigned int numProxies,
             const PerspectiveCamera &remoteCamera,
             const Mesh &mesh,
             bool appendGeometry = false);
