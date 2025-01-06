@@ -1,6 +1,5 @@
 #include <iostream>
 #include <filesystem>
-#include <queue>
 
 #include <args/args.hxx>
 #include <spdlog/spdlog.h>
@@ -16,6 +15,8 @@
 #include <Recorder.h>
 #include <Animator.h>
 #include <shaders_common.h>
+
+#include <PoseSendRecvSimulator.h>
 
 #define THREADS_PER_LOCALGROUP 16
 
@@ -174,7 +175,7 @@ int main(int argc, char** argv) {
     bool rerender = true;
     double rerenderInterval = 0.0;
     float networkLatency = !animationFileIn ? 0.0 : args::get(networkLatencyIn);
-    std::queue<Animator::CameraPose> cameraPoses;
+    PoseSendRecvSimulator poseSendRecvSimulator(networkLatency);
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};
 
@@ -188,7 +189,7 @@ int main(int argc, char** argv) {
         static char fileNameBase[256] = "screenshot";
         static int serverFPSIndex = !animationFileIn ? 0 : 5;
 
-        static bool showEnvMap = true;
+        static bool showSkyBox = true;
 
         ImGui::NewFrame();
 
@@ -251,8 +252,8 @@ int main(int argc, char** argv) {
             }
             ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
 
-            if (ImGui::Checkbox("Show Environment Map", &showEnvMap)) {
-                scene.envCubeMap = showEnvMap ? remoteScene.envCubeMap : nullptr;
+            if (ImGui::Checkbox("Show Sky Box", &showSkyBox)) {
+                scene.envCubeMap = showSkyBox ? remoteScene.envCubeMap : nullptr;
             }
 
             if (ImGui::Button("Change Background Color", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
@@ -281,7 +282,9 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::SliderFloat("Network Latency (ms)", &networkLatency, 0.0f, 1000.0f);
+            if (ImGui::SliderFloat("Network Latency (ms)", &networkLatency, 0.0f, 1000.0f)) {
+                poseSendRecvSimulator.setNetworkLatency(networkLatency);
+            }
 
             ImGui::Combo("Server Framerate", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels));
             rerenderInterval = 1000.0 / serverFPSValues[serverFPSIndex];
@@ -399,14 +402,11 @@ int main(int argc, char** argv) {
             double totalGenMeshTime = 0.0;
             double totalCreateVertIndTime = 0.0;
 
-            cameraPoses.push({camera.getPosition(), camera.getRotationQuat(), now});
+            poseSendRecvSimulator.addPose(camera, now);
             if (!preventCopyingLocalPose) {
-                while (!cameraPoses.empty() && now - cameraPoses.front().timestamp >= networkLatency / MILLISECONDS_IN_SECOND) {
-                    auto pose = cameraPoses.front();
-                    remoteCamera.setPosition(pose.position);
-                    remoteCamera.setRotationQuat(pose.rotation);
-                    remoteCamera.updateViewMatrix();
-                    cameraPoses.pop();
+                Pose clientPose;
+                if (poseSendRecvSimulator.getPose(clientPose, now)) {
+                    remoteCamera.setViewMatrix(clientPose.mono.view);
                 }
             }
 

@@ -23,6 +23,10 @@ struct Pose {
     };
     unsigned int timestamp;
 
+    Pose() = default;
+    Pose(const glm::mat4 &view, const glm::mat4 &proj, unsigned int timestamp)
+            : mono{view, glm::mat4(1.0f), proj, glm::mat4(1.0f)}, timestamp(timestamp) {}
+
     void setViewMatrix(const glm::mat4 &view) {
         mono.view = view;
     }
