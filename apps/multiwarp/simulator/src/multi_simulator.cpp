@@ -104,7 +104,7 @@ int main(int argc, char** argv) {
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
     ForwardRenderer remoteRenderer(config);
-    // config.width = 1280; config.height = 720; // set to lower resolution for wide fov
+    config.width = 1280; config.height = 720; // set to lower resolution for wide fov
     ForwardRenderer wideFOVRenderer(config);
 
     glm::uvec2 windowSize = window->getSize();
@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
     Scene remoteScene;
     std::vector<PerspectiveCamera> remoteCameras; remoteCameras.reserve(maxViews);
     for (int view = 0; view < maxViews; view++) {
-        remoteCameras.emplace_back(remoteWindowSize.x, remoteWindowSize.y);
+        remoteCameras.emplace_back(remoteRenderer.width, remoteRenderer.height);
     }
     PerspectiveCamera& remoteCameraCenter = remoteCameras[0];
     SceneLoader loader;
@@ -240,7 +240,7 @@ int main(int argc, char** argv) {
 
     bool rerender = true;
     double rerenderInterval = 0.0;
-    float networkLatency = args::get(networkLatencyIn);
+    float networkLatency = !animationFileIn ? 0.0f : args::get(networkLatencyIn);
     PoseSendRecvSimulator poseSendRecvSimulator(networkLatency);
     bool posePrediction = true;
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
@@ -649,18 +649,18 @@ int main(int argc, char** argv) {
                 if (poseSendRecvSimulator.recvPose(clientPose, now)) {
                     // update center camera
                     remoteCameraCenter.setViewMatrix(clientPose.mono.view);
-
-                    // update other cameras in view box corners
-                    for (int view = 1; view < maxViews - 1; view++) {
-                        glm::vec3 offset = offsets[view - 1];
-                        remoteCameras[view].setViewMatrix(remoteCameraCenter.getViewMatrix());
-                        remoteCameras[view].setPosition(remoteCameraCenter.getPosition() + viewBoxSize/2 * offset);
-                        remoteCameras[view].updateViewMatrix();
-                    }
-
-                    // update wide fov camera
-                    remoteCameras[maxViews-1].setViewMatrix(remoteCameraCenter.getViewMatrix());
                 }
+
+                // update other cameras in view box corners
+                for (int view = 1; view < maxViews - 1; view++) {
+                    glm::vec3 offset = offsets[view - 1];
+                    remoteCameras[view].setViewMatrix(remoteCameraCenter.getViewMatrix());
+                    remoteCameras[view].setPosition(remoteCameraCenter.getPosition() + viewBoxSize/2 * offset);
+                    remoteCameras[view].updateViewMatrix();
+                }
+
+                // update wide fov camera
+                remoteCameras[maxViews-1].setViewMatrix(remoteCameraCenter.getViewMatrix());
             }
 
             for (int view = 0; view < maxViews; view++) {
@@ -684,22 +684,14 @@ int main(int argc, char** argv) {
                     for (int prevView = 1; prevView < maxViews; prevView++) {
                         meshScene.rootNode.children[prevView]->visible = (prevView < view);
                     }
-                    // draw old meshes at new remoteCamera view, filling depth buffer
+                    // draw old meshes at new remoteCamera view, filling stencil buffer with 1
+                    wideFOVRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
                     renderer.pipeline.writeMaskState.disableColorWrites();
                     renderer.drawObjectsNoLighting(meshScene, remoteCamera);
 
-                    // render remoteScene into stencil buffer, with depth buffer from meshScene
-                    // this should draw objects in remoteScene that are not occluded by meshScene, setting
-                    // the stencil buffer to 1 where the depth of remoteScene is less than meshScene
-                    renderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
-                    renderer.pipeline.rasterState.polygonOffsetEnabled = true;
-                    wideFOVRenderer.pipeline.rasterState.polygonOffsetUnits = 1678.0f;
-                    renderer.drawObjectsNoLighting(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
                     // render remoteScene using stencil buffer as a mask
-                    // at values were stencil buffer is 1, remoteScene should render
-                    renderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_EQUAL, 1);
-                    renderer.pipeline.rasterState.polygonOffsetEnabled = false;
+                    // at values where stencil buffer is not 1, remoteScene should render
+                    renderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_NOTEQUAL, 1);
                     renderer.pipeline.writeMaskState.enableColorWrites();
                     renderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

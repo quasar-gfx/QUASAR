@@ -93,18 +93,18 @@ int main(int argc, char** argv) {
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
     DepthPeelingRenderer dpRenderer(config, maxLayers, true);
-    // config.width = 1280; config.height = 720; // set to lower resolution for wide fov
+    config.width = 1280; config.height = 720; // set to lower resolution for wide fov
     ForwardRenderer wideFOVRenderer(config);
 
     glm::uvec2 windowSize = window->getSize();
 
     // "remote" scene
     Scene remoteScene;
-    PerspectiveCamera remoteCameraCenter(remoteWindowSize.x, remoteWindowSize.y);
+    PerspectiveCamera remoteCameraCenter(dpRenderer.width, dpRenderer.height);
     SceneLoader loader;
     loader.loadScene(sceneFile, remoteScene, remoteCameraCenter);
 
-    PerspectiveCamera remoteCameraWideFov(remoteWindowSize.x, remoteWindowSize.y);
+    PerspectiveCamera remoteCameraWideFov(wideFOVRenderer.width, wideFOVRenderer.height);
     if (!disableWideFov) {
         // make last camera have a larger fov
         remoteCameraWideFov.setFovyDegrees(120.0f);
@@ -225,7 +225,7 @@ int main(int argc, char** argv) {
     float viewSphereDiameter = args::get(viewSphereDiameterIn);
 
     double rerenderInterval = 0.0;
-    float networkLatency = args::get(networkLatencyIn);
+    float networkLatency = !animationFileIn ? 0.0f : args::get(networkLatencyIn);
     PoseSendRecvSimulator poseSendRecvSimulator(networkLatency);
     bool posePrediction = true;
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
@@ -640,10 +640,9 @@ int main(int argc, char** argv) {
                 if (poseSendRecvSimulator.recvPose(clientPose, now)) {
                     // update center camera
                     remoteCameraCenter.setViewMatrix(clientPose.mono.view);
-
-                    // update wide fov camera
-                    remoteCameraWideFov.setViewMatrix(remoteCameraCenter.getViewMatrix());
                 }
+                // update wide fov camera
+                remoteCameraWideFov.setViewMatrix(remoteCameraCenter.getViewMatrix());
             }
 
             /*
@@ -677,21 +676,14 @@ int main(int argc, char** argv) {
                 }
                 // wide fov camera
                 else {
-                    // draw old meshes at new remoteCamera view, filling depth buffer
+                    // draw old meshes at new remoteCamera view, filling stencil buffer with 1
+                    wideFOVRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
                     wideFOVRenderer.pipeline.writeMaskState.disableColorWrites();
                     wideFOVRenderer.drawObjectsNoLighting(meshScene, remoteCamera);
 
-                    // render remoteScene into stencil buffer, with depth buffer from meshScene
-                    // this should draw objects in remoteScene that are not occluded by meshScene, setting
-                    // the stencil buffer to 1 where the depth of remoteScene is less than meshScene
-                    wideFOVRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
-                    wideFOVRenderer.pipeline.rasterState.polygonOffsetEnabled = true;
-                    wideFOVRenderer.pipeline.rasterState.polygonOffsetUnits = 1678.0f;
-                    wideFOVRenderer.drawObjectsNoLighting(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
                     // render remoteScene using stencil buffer as a mask
-                    // at values were stencil buffer is 1, remoteScene should render
-                    wideFOVRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_EQUAL, 1);
+                    // at values where stencil buffer is not 1, remoteScene should render
+                    wideFOVRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_NOTEQUAL, 1);
                     wideFOVRenderer.pipeline.rasterState.polygonOffsetEnabled = false;
                     wideFOVRenderer.pipeline.writeMaskState.enableColorWrites();
                     wideFOVRenderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
