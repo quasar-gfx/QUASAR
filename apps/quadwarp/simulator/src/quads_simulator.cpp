@@ -218,6 +218,7 @@ int main(int argc, char** argv) {
     double rerenderInterval = 0.0;
     float networkLatency = !animationFileIn ? 0.0 : args::get(networkLatencyIn);
     PoseSendRecvSimulator poseSendRecvSimulator(networkLatency);
+    bool posePrediction = true;
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};
 
@@ -374,18 +375,12 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::SliderFloat("View Box Size", &viewBoxSize, 0.1f, 5.0f)) {
-                preventCopyingLocalPose = true;
-                generateIFrame = true;
-                runAnimations = false;
+            if (ImGui::SliderFloat("Network Latency (ms)", &networkLatency, 0.0f, 500.0f)) {
+                poseSendRecvSimulator.setNetworkLatency(networkLatency);
             }
 
-            ImGui::Checkbox("Restrict Movement to View Box", &restrictMovementToViewBox);
-
-            ImGui::Separator();
-
-            if (ImGui::SliderFloat("Network Latency (ms)", &networkLatency, 0.0f, 1000.0f)) {
-                poseSendRecvSimulator.setNetworkLatency(networkLatency);
+            if (ImGui::Checkbox("Pose Prediction Enabled", &posePrediction)) {
+                poseSendRecvSimulator.setPosePrediction(posePrediction);
             }
 
             ImGui::Combo("Server Framerate", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels));
@@ -402,6 +397,16 @@ int main(int argc, char** argv) {
                 generatePFrame = true;
                 runAnimations = true;
             }
+
+            ImGui::Separator();
+
+            if (ImGui::SliderFloat("View Box Size", &viewBoxSize, 0.1f, 5.0f)) {
+                preventCopyingLocalPose = true;
+                generateIFrame = true;
+                runAnimations = false;
+            }
+
+            ImGui::Checkbox("Restrict Movement to View Box", &restrictMovementToViewBox);
 
             ImGui::End();
         }
@@ -571,10 +576,10 @@ int main(int argc, char** argv) {
             double totalCreatePFrameTime = 0.0;
             double totalGenDepthTime = 0.0;
 
-            poseSendRecvSimulator.addPose(camera, now);
+            poseSendRecvSimulator.sendPose(camera, now);
             if (!preventCopyingLocalPose) {
                 Pose clientPose;
-                if (poseSendRecvSimulator.getPose(clientPose, now)) {
+                if (poseSendRecvSimulator.recvPose(clientPose, now)) {
                     remoteCamera.setViewMatrix(clientPose.mono.view);
                 }
             }

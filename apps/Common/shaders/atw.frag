@@ -79,7 +79,9 @@ void main() {
 #endif
 
     if (!atwEnabled) {
-        FragColor = vec4(texture(videoTexture, TexCoordsAdjusted).rgb, 1.0);
+        vec3 color = texture(videoTexture, TexCoordsAdjusted).rgb;
+        color = linearToSRGB(color);
+        FragColor = vec4(color, 1.0);
         return;
     }
 

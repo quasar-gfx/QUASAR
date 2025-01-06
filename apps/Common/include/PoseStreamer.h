@@ -43,7 +43,7 @@ public:
         return true;
     }
 
-    bool getPose(pose_id_t poseID, Pose* pose, double* elapsedTime = nullptr) {
+    bool getPosePredicted(pose_id_t poseID, Pose* pose, double* elapsedTime = nullptr) {
         auto res = prevPoses.find(poseID);
         if (res != prevPoses.end()) { // found
             *pose = res->second;

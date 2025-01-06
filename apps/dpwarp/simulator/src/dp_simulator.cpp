@@ -93,7 +93,7 @@ int main(int argc, char** argv) {
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
     DepthPeelingRenderer dpRenderer(config, maxLayers, true);
-    config.width = 1280; config.height = 720; // render at reduced resolution
+    config.width = 1280; config.height = 720; // set to lower resolution for wide fov
     ForwardRenderer wideFOVRenderer(config);
 
     glm::uvec2 windowSize = window->getSize();
@@ -227,6 +227,7 @@ int main(int argc, char** argv) {
     double rerenderInterval = 0.0;
     float networkLatency = !animationFileIn ? 0.0 : args::get(networkLatencyIn);
     PoseSendRecvSimulator poseSendRecvSimulator(networkLatency);
+    bool posePrediction = true;
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};
 
@@ -399,19 +400,12 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::SliderFloat("View Sphere Diameter", &viewSphereDiameter, 0.1f, 5.0f)) {
-                preventCopyingLocalPose = true;
-                rerender = true;
-                runAnimations = false;
-                dpRenderer.setViewSphereDiameter(viewSphereDiameter);
+            if (ImGui::SliderFloat("Network Latency (ms)", &networkLatency, 0.0f, 500.0f)) {
+                poseSendRecvSimulator.setNetworkLatency(networkLatency);
             }
 
-            ImGui::Checkbox("Restrict Movement to View Sphere", &restrictMovementToViewBox);
-
-            ImGui::Separator();
-
-            if (ImGui::SliderFloat("Network Latency (ms)", &networkLatency, 0.0f, 1000.0f)) {
-                poseSendRecvSimulator.setNetworkLatency(networkLatency);
+            if (ImGui::Checkbox("Pose Prediction Enabled", &posePrediction)) {
+                poseSendRecvSimulator.setPosePrediction(posePrediction);
             }
 
             ImGui::Combo("Server Framerate", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels));
@@ -421,6 +415,17 @@ int main(int argc, char** argv) {
                 rerender = true;
                 runAnimations = true;
             }
+
+            ImGui::Separator();
+
+            if (ImGui::SliderFloat("View Sphere Diameter", &viewSphereDiameter, 0.1f, 5.0f)) {
+                preventCopyingLocalPose = true;
+                rerender = true;
+                runAnimations = false;
+                dpRenderer.setViewSphereDiameter(viewSphereDiameter);
+            }
+
+            ImGui::Checkbox("Restrict Movement to View Sphere", &restrictMovementToViewBox);
 
             ImGui::Separator();
 
@@ -625,10 +630,10 @@ int main(int argc, char** argv) {
             totalProxies = 0;
             totalDepthOffsets = 0;
 
-            poseSendRecvSimulator.addPose(camera, now);
+            poseSendRecvSimulator.sendPose(camera, now);
             if (!preventCopyingLocalPose) {
                 Pose clientPose;
-                if (poseSendRecvSimulator.getPose(clientPose, now)) {
+                if (poseSendRecvSimulator.recvPose(clientPose, now)) {
                     // update center camera
                     remoteCameraCenter.setViewMatrix(clientPose.mono.view);
 
@@ -677,7 +682,7 @@ int main(int argc, char** argv) {
                     // the stencil buffer to 1 where the depth of remoteScene is less than meshScene
                     wideFOVRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
                     wideFOVRenderer.pipeline.rasterState.polygonOffsetEnabled = true;
-                    wideFOVRenderer.pipeline.rasterState.polygonOffsetUnits = 10000.0f;
+                    wideFOVRenderer.pipeline.rasterState.polygonOffsetUnits = 1678.0f;
                     wideFOVRenderer.drawObjectsNoLighting(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
                     // render remoteScene using stencil buffer as a mask

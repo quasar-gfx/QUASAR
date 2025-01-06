@@ -389,7 +389,7 @@ int main(int argc, char** argv) {
         }
 
         if (!mwEnabled) {
-            if (poseIdColor != -1) poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTimeColor);
+            if (poseIdColor != -1) poseStreamer.getPosePredicted(poseIdColor, &currentColorFramePose, &elapsedTimeColor);
 
             videoShader.bind();
             videoShader.setTexture("tex", videoTextureColor, 5);
@@ -408,10 +408,10 @@ int main(int argc, char** argv) {
         {
             genMeshFromBC4Shader.setMat4("projection", remoteCamera.getProjectionMatrix());
             genMeshFromBC4Shader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
-            if (poseStreamer.getPose(poseIdColor, &currentColorFramePose, &elapsedTimeColor)) {
+            if (poseStreamer.getPosePredicted(poseIdColor, &currentColorFramePose, &elapsedTimeColor)) {
                 genMeshFromBC4Shader.setMat4("viewColor", currentColorFramePose.mono.view);
             }
-            if (poseStreamer.getPose(poseIdDepth, &currentDepthFramePose, &elapsedTimeDepth)) {
+            if (poseStreamer.getPosePredicted(poseIdDepth, &currentDepthFramePose, &elapsedTimeDepth)) {
                 genMeshFromBC4Shader.setMat4("viewInverseDepth", glm::inverse(currentDepthFramePose.mono.view));
             }
 
