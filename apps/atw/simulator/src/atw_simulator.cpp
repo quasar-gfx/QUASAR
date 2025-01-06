@@ -352,7 +352,10 @@ int main(int argc, char** argv) {
 
             spdlog::info("======================================================");
             spdlog::info("Rendering Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
-            startTime = window->getTime();
+
+            float avgPosError, avgRotError;
+            poseSendRecvSimulator.getAvgErrors(avgPosError, avgRotError);
+            spdlog::warn("Avg Pose Error: Pos ({:.3f}), Rot ({:.3f})", avgPosError, avgRotError);
 
             preventCopyingLocalPose = false;
             rerender = false;

@@ -742,6 +742,10 @@ int main(int argc, char** argv) {
             spdlog::info("  Create Vert/Ind Time: {:.3f}ms", totalCreateVertIndTime);
             if (showDepth) spdlog::info("Gen Depth Time: {:.3f}ms", totalGenDepthTime);
 
+            float avgPosError, avgRotError;
+            poseSendRecvSimulator.getAvgErrors(avgPosError, avgRotError);
+            spdlog::warn("Avg Pose Error: Pos ({:.3f}), Rot ({:.3f})", avgPosError, avgRotError);
+
             preventCopyingLocalPose = false;
             generateIFrame = false;
             generatePFrame = false;

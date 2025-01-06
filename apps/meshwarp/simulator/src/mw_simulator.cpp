@@ -412,6 +412,7 @@ int main(int argc, char** argv) {
                 Pose clientPose;
                 if (poseSendRecvSimulator.recvPose(clientPose, now)) {
                     remoteCamera.setViewMatrix(clientPose.mono.view);
+                    poseSendRecvSimulator.accumulateError(camera, remoteCamera);
                 }
             }
 
@@ -461,6 +462,10 @@ int main(int argc, char** argv) {
             spdlog::info("Rendering Time: {:.2f}ms", totalRenderTime);
             spdlog::info("Create Mesh Time: {:.2f}ms", totalGenMeshTime);
             spdlog::info("  Create Vert/Ind Time: {:.2f}ms", totalCreateVertIndTime);
+
+            float avgPosError, avgRotError;
+            poseSendRecvSimulator.getAvgErrors(avgPosError, avgRotError);
+            spdlog::warn("Avg Pose Error: Pos ({:.3f}), Rot ({:.3f})", avgPosError, avgRotError);
 
             preventCopyingLocalPose = false;
             rerender = false;

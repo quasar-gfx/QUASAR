@@ -66,8 +66,40 @@ public:
         return true;
     }
 
+    void accumulateError(const PerspectiveCamera &camera, const PerspectiveCamera &remoteCamera) {
+        float positionDiff = glm::distance(camera.getPosition(), remoteCamera.getPosition());
+
+        glm::quat delta = glm::conjugate(camera.getRotationQuat()) * remoteCamera.getRotationQuat();
+        float angleDiffRadians = 2.0f * glm::acos(glm::clamp(delta.w, -1.0f, 1.0f));
+        float angleDiffDegrees = glm::degrees(angleDiffRadians);
+        if (angleDiffDegrees > 180.0f) {
+            angleDiffDegrees -= 360.0f;
+        }
+        else if (angleDiffDegrees < -180.0f) {
+            angleDiffDegrees += 360.0f;
+        }
+
+        totalPositionError += positionDiff;
+        totalRotationError += glm::abs(angleDiffDegrees);
+        count++;
+    }
+
+    void getAvgErrors(float &positionError, float &rotationError) {
+        if (count == 0) {
+            positionError = 0.0f;
+            rotationError = 0.0f;
+            return;
+        }
+        positionError = totalPositionError / count;
+        rotationError = totalRotationError / count;
+    }
+
 private:
     bool posePrediction = true;
+
+    float totalPositionError = 0.0f;
+    float totalRotationError = 0.0f;
+    int count = 0;
 
     std::deque<Pose> inPoses;
     std::deque<double> inTimestamps;
@@ -84,8 +116,8 @@ private:
         double t2 = inTimestamps[1];
         double t3 = inTimestamps[0];
 
-        double dt1 = t2 - t1;
-        double dt2 = t3 - t2;
+        float dt1 = t2 - t1;
+        float dt2 = t3 - t2;
 
         if (dt1 == 0 || dt2 == 0) {
             return false;
@@ -100,28 +132,18 @@ private:
         glm::decompose(glm::inverse(secondLastPose.mono.view), scale, rotation2, position2, skew, perspective);
         glm::decompose(glm::inverse(lastPose.mono.view), scale, rotation3, position3, skew, perspective);
 
-        double dt = targetTime - t3;
+        float dt = targetTime - t3;
 
-        glm::vec3 velocity1 = (position2 - position1) / static_cast<float>(dt1);
-        glm::vec3 velocity2 = (position3 - position2) / static_cast<float>(dt2);
-        glm::vec3 linearAcc = (velocity2 - velocity1) / static_cast<float>(dt2);
+        glm::vec3 velocity1 = (position2 - position1) / dt1;
+        glm::vec3 velocity2 = (position3 - position2) / dt2;
+        glm::vec3 linearAcc = (velocity2 - velocity1) / dt2;
 
         // p = p0 + v0*t + 0.5*a*t^2
         glm::vec3 predictedPosition = position3 +
-                                      velocity2 * static_cast<float>(dt) +
-                                      0.5f * linearAcc * static_cast<float>(dt * dt);
+                                      velocity2 * dt +
+                                      0.5f * linearAcc * (dt * dt);
 
-        glm::quat deltaRotation1 = rotation2 * glm::inverse(rotation1);
-        glm::quat deltaRotation2 = rotation3 * glm::inverse(rotation2);
-
-        glm::vec3 angVelocity1 = glm::axis(deltaRotation1) * glm::angle(deltaRotation1) / static_cast<float>(dt1);
-        glm::vec3 angVelocity2 = glm::axis(deltaRotation2) * glm::angle(deltaRotation2) / static_cast<float>(dt2);
-
-        glm::vec3 angAcc = (angVelocity2 - angVelocity1) / static_cast<float>(dt2);
-
-        glm::quat predictedRotation = rotation3;// *
-                                    //   glm::quat(angVelocity2 * static_cast<float>(dt)) *
-                                    //   glm::quat(0.5f * angAcc * static_cast<float>(dt * dt));
+        glm::quat predictedRotation = rotation3;
 
         glm::mat4 predictedTransform = glm::translate(glm::mat4(1.0f), predictedPosition) * glm::mat4_cast(predictedRotation);
         glm::mat4 predictedView = glm::inverse(predictedTransform);
