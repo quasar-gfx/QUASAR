@@ -104,7 +104,7 @@ int main(int argc, char** argv) {
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
     ForwardRenderer remoteRenderer(config);
-    config.width = 1280; config.height = 720; // set to lower resolution for wide fov
+    // config.width = 1280; config.height = 720; // set to lower resolution for wide fov
     ForwardRenderer wideFOVRenderer(config);
 
     glm::uvec2 windowSize = window->getSize();
@@ -240,7 +240,7 @@ int main(int argc, char** argv) {
 
     bool rerender = true;
     double rerenderInterval = 0.0;
-    float networkLatency = !animationFileIn ? 0.0 : args::get(networkLatencyIn);
+    float networkLatency = args::get(networkLatencyIn);
     PoseSendRecvSimulator poseSendRecvSimulator(networkLatency);
     bool posePrediction = true;
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};

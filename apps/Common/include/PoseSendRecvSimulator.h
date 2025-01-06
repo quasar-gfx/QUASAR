@@ -41,8 +41,10 @@ public:
 
         Pose poseToSend = inPoses.front();
 
-        if (posePrediction) {
-            getPosePredicted(poseToSend, now + networkLatency / MILLISECONDS_IN_SECOND);
+        if (posePrediction && (inPoses.size() >= 3 && inTimestamps.size() >= 3)) {
+            if (!getPosePredicted(poseToSend, now + networkLatency / MILLISECONDS_IN_SECOND)) {
+                return false;
+            }
         }
 
         outPoses.push_back(poseToSend);
@@ -73,18 +75,14 @@ private:
     std::deque<Pose> outPoses;
     std::deque<double> outTimestamps;
 
-    bool getPosePredicted(Pose& predictedPose, double timeOfPrediction) {
-        if (inPoses.size() < 3 || inTimestamps.size() < 3) {
-            return false;
-        }
+    bool getPosePredicted(Pose& predictedPose, double targetTime) {
+        auto thirdLastPose  = inPoses[2];
+        auto secondLastPose = inPoses[1];
+        auto lastPose       = inPoses[0];
 
-        auto thirdLastPose  = inPoses[inPoses.size() - 3];
-        auto secondLastPose = inPoses[inPoses.size() - 2];
-        auto lastPose       = inPoses[inPoses.size() - 1];
-
-        double t1 = inTimestamps[inTimestamps.size() - 3];
-        double t2 = inTimestamps[inTimestamps.size() - 2];
-        double t3 = inTimestamps[inTimestamps.size() - 1];
+        double t1 = inTimestamps[2];
+        double t2 = inTimestamps[1];
+        double t3 = inTimestamps[0];
 
         double dt1 = t2 - t1;
         double dt2 = t3 - t2;
@@ -98,36 +96,35 @@ private:
         glm::vec3 position1, position2, position3;
         glm::quat rotation1, rotation2, rotation3;
 
-        glm::decompose(thirdLastPose.mono.view, scale, rotation1, position1, skew, perspective);
-        glm::decompose(secondLastPose.mono.view, scale, rotation2, position2, skew, perspective);
-        glm::decompose(lastPose.mono.view, scale, rotation3, position3, skew, perspective);
+        glm::decompose(glm::inverse(thirdLastPose.mono.view), scale, rotation1, position1, skew, perspective);
+        glm::decompose(glm::inverse(secondLastPose.mono.view), scale, rotation2, position2, skew, perspective);
+        glm::decompose(glm::inverse(lastPose.mono.view), scale, rotation3, position3, skew, perspective);
 
-        position1 = -position1;
-        position2 = -position2;
-        position3 = -position3;
-
-        rotation1 = glm::conjugate(rotation1);
-        rotation2 = glm::conjugate(rotation2);
-        rotation3 = glm::conjugate(rotation3);
+        double dt = targetTime - t3;
 
         glm::vec3 velocity1 = (position2 - position1) / static_cast<float>(dt1);
         glm::vec3 velocity2 = (position3 - position2) / static_cast<float>(dt2);
+        glm::vec3 linearAcc = (velocity2 - velocity1) / static_cast<float>(dt2);
 
-        glm::vec3 acceleration = (velocity2 - velocity1) / static_cast<float>(dt2);
+        // p = p0 + v0*t + 0.5*a*t^2
+        glm::vec3 predictedPosition = position3 +
+                                      velocity2 * static_cast<float>(dt) +
+                                      0.5f * linearAcc * static_cast<float>(dt * dt);
 
-        double deltaTime = timeOfPrediction - t3;
+        glm::quat deltaRotation1 = rotation2 * glm::inverse(rotation1);
+        glm::quat deltaRotation2 = rotation3 * glm::inverse(rotation2);
 
-        glm::vec3 predictedPosition = position3 + velocity2 * static_cast<float>(deltaTime) +
-                                      0.5f * acceleration * static_cast<float>(deltaTime * deltaTime);
+        glm::vec3 angVelocity1 = glm::axis(deltaRotation1) * glm::angle(deltaRotation1) / static_cast<float>(dt1);
+        glm::vec3 angVelocity2 = glm::axis(deltaRotation2) * glm::angle(deltaRotation2) / static_cast<float>(dt2);
 
-        glm::quat velocityRotation1 = glm::normalize(rotation2 * glm::inverse(rotation1));
-        glm::quat velocityRotation2 = glm::normalize(rotation3 * glm::inverse(rotation2));
+        glm::vec3 angAcc = (angVelocity2 - angVelocity1) / static_cast<float>(dt2);
 
-        glm::quat accelerationRotation = glm::normalize(velocityRotation2 * glm::inverse(velocityRotation1));
+        glm::quat predictedRotation = rotation3;// *
+                                    //   glm::quat(angVelocity2 * static_cast<float>(dt)) *
+                                    //   glm::quat(0.5f * angAcc * static_cast<float>(dt * dt));
 
-        glm::quat predictedRotation = rotation3 * glm::slerp(glm::quat(1.0f, 0.0f, 0.0f, 0.0f), accelerationRotation, static_cast<float>(deltaTime));
-
-        glm::mat4 predictedView = glm::translate(glm::mat4(1.0f), -predictedPosition) * glm::mat4_cast(glm::conjugate(predictedRotation));
+        glm::mat4 predictedTransform = glm::translate(glm::mat4(1.0f), predictedPosition) * glm::mat4_cast(predictedRotation);
+        glm::mat4 predictedView = glm::inverse(predictedTransform);
 
         predictedPose.setViewMatrix(predictedView);
         predictedPose.setProjectionMatrix(lastPose.mono.proj);
