@@ -227,7 +227,7 @@ int main(int argc, char** argv) {
     double rerenderInterval = 0.0;
     float networkLatency = !animationFileIn ? 0.0f : args::get(networkLatencyIn);
     PoseSendRecvSimulator poseSendRecvSimulator(networkLatency);
-    bool posePrediction = true;
+    bool posePrediction = false;
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};
 
@@ -640,6 +640,7 @@ int main(int argc, char** argv) {
                 if (poseSendRecvSimulator.recvPose(clientPose, now)) {
                     // update center camera
                     remoteCameraCenter.setViewMatrix(clientPose.mono.view);
+                    poseSendRecvSimulator.accumulateError(camera, remoteCameraCenter);
                 }
                 // update wide fov camera
                 remoteCameraWideFov.setViewMatrix(remoteCameraCenter.getViewMatrix());

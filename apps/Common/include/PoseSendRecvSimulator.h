@@ -22,6 +22,11 @@ public:
 
     void setPosePrediction(bool posePrediction) {
         this->posePrediction = posePrediction;
+
+        // clear avg errors
+        totalPositionError = 0.0f;
+        totalRotationError = 0.0f;
+        count = 0;
     }
 
     void sendPose(const PerspectiveCamera &camera, double now) {
@@ -42,6 +47,7 @@ public:
         Pose poseToSend = inPoses.front();
 
         if (posePrediction && (inPoses.size() >= 3 && inTimestamps.size() >= 3)) {
+            // predict networkLatency ms into the future
             if (!getPosePredicted(poseToSend, now + networkLatency / MILLISECONDS_IN_SECOND)) {
                 return false;
             }
@@ -95,7 +101,7 @@ public:
     }
 
 private:
-    bool posePrediction = true;
+    bool posePrediction = false;
 
     float totalPositionError = 0.0f;
     float totalRotationError = 0.0f;
@@ -143,6 +149,21 @@ private:
                                       velocity2 * dt +
                                       0.5f * linearAcc * (dt * dt);
 
+        glm::quat delta1 = glm::conjugate(rotation1) * rotation2;
+        glm::quat delta2 = glm::conjugate(rotation2) * rotation3;
+
+        // glm::vec3 angVelocity1 = glm::axis(delta1) * glm::angle(delta1) / dt1;
+        // glm::vec3 angVelocity2 = glm::axis(delta2) * glm::angle(delta2) / dt2;
+        // glm::vec3 angAcc = (angVelocity2 - angVelocity1) / dt2;
+        // angAcc = glm::clamp(angAcc, glm::vec3(-0.1f), glm::vec3(0.1f));
+
+        // glm::quat angDisplacement = angVelocity2 * dt + 0.5f * angAcc * (dt * dt);
+
+        // float futureAngle = glm::angle(angDisplacement);
+        // glm::vec3 futureAxis = glm::axis(angDisplacement);
+
+        // glm::quat rotationDelta = glm::angleAxis(futureAngle, futureAxis);
+        // glm::quat predictedRotation = glm::normalize(rotationDelta * rotation3);
         glm::quat predictedRotation = rotation3;
 
         glm::mat4 predictedTransform = glm::translate(glm::mat4(1.0f), predictedPosition) * glm::mat4_cast(predictedRotation);
