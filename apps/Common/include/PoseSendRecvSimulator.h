@@ -40,7 +40,7 @@ public:
         }
 
         // server waits networkLatency ms before receiving the pose
-        if (now - inTimestamps.front() < networkLatency / MILLISECONDS_IN_SECOND) {
+        if (networkLatency != 0 && now - inTimestamps.front() <= networkLatency / MILLISECONDS_IN_SECOND) {
             return false;
         }
 
@@ -60,7 +60,7 @@ public:
         inTimestamps.pop_front();
 
         // client waits networkLatency ms before receiving the next pose
-        if (now - outTimestamps.front() < networkLatency / MILLISECONDS_IN_SECOND) {
+        if (networkLatency != 0 && now - outTimestamps.front() <= networkLatency / MILLISECONDS_IN_SECOND) {
             return false;
         }
 

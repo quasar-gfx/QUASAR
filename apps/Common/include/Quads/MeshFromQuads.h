@@ -17,7 +17,7 @@
 #define INDICES_IN_A_QUAD 6
 #define NUM_SUB_QUADS 4
 
-#define MAX_NUM_PROXIES 1e6
+#define MAX_NUM_PROXIES 1.5e6
 
 class MeshFromQuads {
 public:
