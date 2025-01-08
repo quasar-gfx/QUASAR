@@ -380,13 +380,13 @@ int main(int argc, char** argv) {
                 camera.processMouseMovement(xoffset, yoffset, true);
             }
         }
-
-        // handle keyboard input
         auto keys = window->getKeys();
         camera.processKeyboard(keys, dt);
         if (keys.ESC_PRESSED) {
             window->close();
         }
+        auto scroll = window->getScrollOffset();
+        camera.processScroll(scroll.y);
 
         for (int i = 0; i < maxViews; i++) {
             bool showLayer = showLayers[i];

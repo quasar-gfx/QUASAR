@@ -7,6 +7,7 @@
 
 class PerspectiveCamera : public Camera {
 public:
+    float scrollSensitivity = 0.1f;
     float movementSpeed = 2.0f;
     float mouseSensitivity = 0.05f;
 
@@ -45,7 +46,8 @@ public:
     glm::vec3 getRightVector() const { return right; }
     glm::vec3 getUpVector() const { return up; }
 
-    void processKeyboard(Keys keys, float deltaTime);
+    void processKeyboard(Keys keys, double deltaTime);
+    void processScroll(float yoffset);
     void processMouseMovement(float xoffset, float yoffset, bool constrainPitch = true);
 
     bool isVR() const override { return false; }

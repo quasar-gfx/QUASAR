@@ -344,6 +344,8 @@ int main(int argc, char** argv) {
         if (keys.ESC_PRESSED) {
             window->close();
         }
+        auto scroll = window->getScrollOffset();
+        camera.processScroll(scroll.y);
 
         if (animator.running) {
             animator.copyPoseToCamera(camera);

@@ -57,7 +57,12 @@ void PerspectiveCamera::updateViewMatrix() {
     frustum.setFromCameraMatrices(view, proj);
 }
 
-void PerspectiveCamera::processKeyboard(Keys keys, float deltaTime) {
+void PerspectiveCamera::processScroll(float yoffset) {
+    movementSpeed += yoffset * scrollSensitivity;
+    movementSpeed = glm::clamp(movementSpeed, 0.1f, 20.0f);
+}
+
+void PerspectiveCamera::processKeyboard(Keys keys, double deltaTime) {
     float velocity = movementSpeed * deltaTime;
     if (keys.W_PRESSED)
         position += front * velocity;
@@ -76,11 +81,8 @@ void PerspectiveCamera::processKeyboard(Keys keys, float deltaTime) {
 }
 
 void PerspectiveCamera::processMouseMovement(float xoffset, float yoffset, bool constrainPitch) {
-    xoffset *= mouseSensitivity;
-    yoffset *= mouseSensitivity;
-
-    yaw   += xoffset;
-    pitch += yoffset;
+    yaw   += xoffset * mouseSensitivity;
+    pitch += yoffset * mouseSensitivity;
 
     // make sure that when pitch is out of bounds, screen doesn't get flipped
     if (constrainPitch) {

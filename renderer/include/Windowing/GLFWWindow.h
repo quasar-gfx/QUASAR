@@ -23,19 +23,28 @@ public:
     CursorPos getCursorPos() override;
     Keys getKeys() override;
     void setMouseCursor(bool enabled) override;
-    void swapBuffers() override;
+    ScrollOffset getScrollOffset() override;
 
     double getTime() override;
     bool tick() override;
 
+    void swapBuffers() override;
+
     void close() override;
 
     static void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
-        auto me = reinterpret_cast<GLFWWindow*>(glfwGetWindowUserPointer(window));
+        auto* me = reinterpret_cast<GLFWWindow*>(glfwGetWindowUserPointer(window));
         me->frameResized = true;
     }
 
+    static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+        auto* me = reinterpret_cast<GLFWWindow*>(glfwGetWindowUserPointer(window));
+        me->scrollOffset = {xoffset, yoffset};
+    }
+
 private:
+    ScrollOffset scrollOffset;
+
     bool frameResized = true;
 };
 

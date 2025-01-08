@@ -16,8 +16,8 @@ GLFWWindow::GLFWWindow(const Config &config) {
     glfwWindowHint(GLFW_SAMPLES, config.pipeline.multiSampleState.numSamples);
     glfwWindowHint(GLFW_VISIBLE, config.showWindow);
 
-    window = glfwCreateWindow(config.width, config.height, config.title.c_str(), NULL, NULL);
-    if (window == NULL) {
+    window = glfwCreateWindow(config.width, config.height, config.title.c_str(), nullptr, nullptr);
+    if (window == nullptr) {
         throw std::runtime_error("Failed to create GLFW window");
         glfwTerminate();
         return;
@@ -28,6 +28,7 @@ GLFWWindow::GLFWWindow(const Config &config) {
 
     glfwSetWindowUserPointer(window, this);
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
+    glfwSetScrollCallback(window, scrollCallback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         spdlog::error("Failed to initialize GLAD");
@@ -84,6 +85,12 @@ Keys GLFWWindow::getKeys() {
         .ESC_PRESSED = (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     };
     return keys;
+}
+
+ScrollOffset GLFWWindow::getScrollOffset() {
+    auto res = scrollOffset;
+    scrollOffset = {0.0, 0.0};
+    return res;
 }
 
 void GLFWWindow::setMouseCursor(bool enabled) {

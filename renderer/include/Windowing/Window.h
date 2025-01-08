@@ -24,6 +24,11 @@ struct CursorPos {
     double y;
 };
 
+struct ScrollOffset {
+    double x;
+    double y;
+};
+
 class Window {
 public:
     virtual ~Window() = default;
@@ -35,6 +40,7 @@ public:
     virtual CursorPos getCursorPos() = 0;
     virtual Keys getKeys() = 0;
     virtual void setMouseCursor(bool enabled) = 0;
+    virtual ScrollOffset getScrollOffset() = 0;
     virtual double getTime() = 0;
 
     virtual void swapBuffers() = 0;
