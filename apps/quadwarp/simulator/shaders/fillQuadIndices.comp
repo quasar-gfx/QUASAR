@@ -15,32 +15,42 @@ struct QuadMapDataPacked {
     uint offsetSizeFlattened;
 };
 
-layout(std430, binding = 0) writeonly buffer QuadCreatedFlagsBuffer {
+layout(std430, binding = 0) readonly buffer CurrNumProxiesBuffer {
+    uint currNumProxies;
+};
+
+layout(std430, binding = 1) writeonly buffer PrevNumProxiesBuffer {
+    uint prevNumProxies;
+};
+
+layout(std430, binding = 2) writeonly buffer QuadCreatedFlagsBuffer {
     int quadCreatedFlags[];
 };
 
-layout(std430, binding = 1) readonly buffer NormalSphericalsBufferInput {
+layout(std430, binding = 3) readonly buffer NormalSphericalsBufferInput {
     uint normalSphericalsInput[];
 };
 
-layout(std430, binding = 2) readonly buffer DepthBufferInput {
+layout(std430, binding = 4) readonly buffer DepthBufferInput {
     float depthsInput[];
 };
 
-layout(std430, binding = 3) readonly buffer OffsetsBufferInput {
+layout(std430, binding = 5) readonly buffer OffsetsBufferInput {
     uint offsetSizeFlattenedsInput[];
 };
 
-layout(r32ui, binding = 0) uniform writeonly uimage2D quadIndices;
+layout(std430, binding = 6) writeonly buffer QuadIndicesBuffer {
+    uint quadIndices[];
+};
 
 uniform vec2 remoteWindowSize;
-uniform uint currNumProxies;
 
 const float epsilon = 1e-5;
 const float PI = 3.1415926535897932384626433832795;
 
 void storeQuadIndex(ivec2 pixelCoords, uint index) {
-    imageStore(quadIndices, pixelCoords, uvec4(index));
+    uint pixelIndex = uint(pixelCoords.y) * uint(remoteWindowSize.x) + uint(pixelCoords.x);
+    quadIndices[pixelIndex] = index;
 }
 
 vec3 unpackSphericalToNormalHalf(uint packedNormal) {
@@ -83,6 +93,10 @@ void main() {
     uint proxyIndex = gl_GlobalInvocationID.x;
     if (proxyIndex >= currNumProxies) {
         return;
+    }
+
+    if (proxyIndex == 0u) {
+        prevNumProxies = currNumProxies;
     }
 
     // reset quadCreatedFlags

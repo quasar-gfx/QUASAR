@@ -741,7 +741,11 @@ int main(int argc, char** argv) {
 
                 // create mesh from proxies
                 startTime = window->getTime();
-                meshFromQuads.appendProxies(numProxies, quadsGenerator.outputQuadBuffers);
+                meshFromQuads.appendProxies(
+                    glm::vec2(gBuffer->width, gBuffer->height),
+                    numProxies,
+                    quadsGenerator.outputQuadBuffers
+                );
                 meshFromQuads.createMeshFromProxies(
                     glm::vec2(gBuffer->width, gBuffer->height),
                     numProxies, quadsGenerator.depthOffsets,

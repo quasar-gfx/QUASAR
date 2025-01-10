@@ -199,7 +199,11 @@ int main(int argc, char** argv) {
             loadFromFilesTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
 
             startTime = window->getTime();
-            meshFromQuads.appendProxies(numProxies, quadBuffers);
+            meshFromQuads.appendProxies(
+                glm::vec2(windowSize.x, windowSize.y),
+                numProxies,
+                quadBuffers
+            );
             meshFromQuads.createMeshFromProxies(
                 glm::vec2(windowSize.x, windowSize.y),
                 numProxies, depthOffsets,

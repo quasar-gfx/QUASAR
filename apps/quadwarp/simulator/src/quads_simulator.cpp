@@ -615,7 +615,11 @@ int main(int argc, char** argv) {
 
             // create mesh from proxies
             startTime = glfwGetTime();
-            meshFromQuads.appendProxies(numProxies, quadsGenerator.outputQuadBuffers);
+            meshFromQuads.appendProxies(
+                glm::vec2(remoteRenderer.gBuffer.width, remoteRenderer.gBuffer.height),
+                numProxies,
+                quadsGenerator.outputQuadBuffers
+            );
             meshFromQuads.createMeshFromProxies(
                 glm::vec2(remoteRenderer.gBuffer.width, remoteRenderer.gBuffer.height),
                 numProxies, quadsGenerator.depthOffsets,
@@ -662,7 +666,12 @@ int main(int argc, char** argv) {
                 totalFillQuadsTime += quadsGenerator.stats.timeToFillOutputQuadsMs;
 
                 // create mesh from proxies
-                meshFromQuads.appendProxies(numProxies, quadsGenerator.outputQuadBuffers, false);
+                meshFromQuads.appendProxies(
+                    glm::vec2(remoteRenderer.gBuffer.width, remoteRenderer.gBuffer.height),
+                    numProxies,
+                    quadsGenerator.outputQuadBuffers,
+                    false
+                );
                 meshFromQuads.createMeshFromProxies(
                     glm::vec2(remoteRenderer.gBuffer.width, remoteRenderer.gBuffer.height),
                     numProxies, quadsGenerator.depthOffsets,

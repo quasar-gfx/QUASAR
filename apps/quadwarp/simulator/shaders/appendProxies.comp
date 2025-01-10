@@ -4,6 +4,10 @@ layout(std430, binding = 0) writeonly buffer CurrNumProxiesBuffer {
     uint currNumProxies;
 };
 
+layout(std430, binding = 1) readonly buffer PrevNumProxiesBuffer {
+    uint prevNumProxies;
+};
+
 layout(std430, binding = 2) readonly buffer NormalSphericalsBufferInput {
     uint normalSphericalsInput[];
 };
@@ -30,7 +34,8 @@ layout(std430, binding = 7) writeonly buffer OffsetsBufferOutput {
 
 uniform bool iFrame;
 uniform uint newNumProxies;
-uniform uint prevNumProxies;
+
+shared uint localNumProxies;
 
 void main() {
     uint proxyIndex = gl_GlobalInvocationID.x;
@@ -38,21 +43,27 @@ void main() {
         return;
     }
 
-    // if p-frame, append to the end of the previous frame's proxies
-    uint startIndex = prevNumProxies;
-
     // if i-frame, start from the beginning
-    if (iFrame) {
-        if (proxyIndex == 0u) {
-            atomicExchange(currNumProxies, 0u);
-        }
-        startIndex = 0u;
+    if (iFrame && proxyIndex == 0u) {
+        currNumProxies = 0u;
     }
 
-    normalSphericalsOutput[startIndex + proxyIndex] = normalSphericalsInput[proxyIndex];
-    depthsOutput[startIndex + proxyIndex] = depthsInput[proxyIndex];
-    offsetSizeFlattenedsOutput[startIndex + proxyIndex] = offsetSizeFlattenedsInput[proxyIndex];
+    uint startIndex = iFrame ? 0u : prevNumProxies;
+    if (gl_LocalInvocationID.x == 0u) {
+        localNumProxies = 0u;
+    }
+    barrier();
 
-    // increment the number of proxies
-    atomicAdd(currNumProxies, 1u);
+    atomicAdd(localNumProxies, 1u);
+
+    uint globalIndex = startIndex + proxyIndex;
+    normalSphericalsOutput[globalIndex] = normalSphericalsInput[proxyIndex];
+    depthsOutput[globalIndex] = depthsInput[proxyIndex];
+    offsetSizeFlattenedsOutput[globalIndex] = offsetSizeFlattenedsInput[proxyIndex];
+
+    barrier();
+
+    if (gl_LocalInvocationID.x == 0u) {
+        atomicAdd(currNumProxies, localNumProxies);
+    }
 }

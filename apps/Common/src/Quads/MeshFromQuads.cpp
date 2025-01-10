@@ -5,18 +5,9 @@ MeshFromQuads::MeshFromQuads(const glm::uvec2 &remoteWindowSize)
         , depthBufferSize(2u * remoteWindowSize) // 4 offsets per pixel
         , maxProxies(MAX_NUM_PROXIES)
         , meshSizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, 1, nullptr)
-        , quadIndicesBuffer({
-            .width = remoteWindowSize.x,
-            .height = remoteWindowSize.y,
-            .internalFormat = GL_R32UI,
-            .format = GL_RED_INTEGER,
-            .type = GL_UNSIGNED_INT,
-            .wrapS = GL_CLAMP_TO_EDGE,
-            .wrapT = GL_CLAMP_TO_EDGE,
-            .minFilter = GL_NEAREST,
-            .magFilter = GL_NEAREST
-        })
-        , currNumProxiesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, 1, nullptr)
+        , quadIndicesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, remoteWindowSize.x * remoteWindowSize.y, nullptr)
+        , prevNumProxiesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, nullptr)
+        , currNumProxiesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, nullptr)
         , currentQuadBuffers(maxProxies)
         , quadCreatedFlagsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, maxProxies, nullptr)
         , appendProxiesShader({
@@ -48,6 +39,7 @@ MeshFromQuads::BufferSizes MeshFromQuads::getBufferSizes() {
 }
 
 void MeshFromQuads::appendProxies(
+        const glm::vec2 &gBufferSize,
         unsigned int numProxies,
         const QuadBuffers &newQuadBuffers,
         bool iFrame) {
@@ -57,11 +49,10 @@ void MeshFromQuads::appendProxies(
     {
         appendProxiesShader.setBool("iFrame", iFrame);
         appendProxiesShader.setUint("newNumProxies", numProxies);
-        appendProxiesShader.setUint("prevNumProxies", currNumProxies);
     }
     {
         appendProxiesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currNumProxiesBuffer);
-        appendProxiesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, quadCreatedFlagsBuffer);
+        appendProxiesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, prevNumProxiesBuffer);
 
         appendProxiesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, newQuadBuffers.normalSphericalsBuffer);
         appendProxiesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, newQuadBuffers.depthsBuffer);
@@ -74,33 +65,31 @@ void MeshFromQuads::appendProxies(
     appendProxiesShader.dispatch((numProxies + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
     appendProxiesShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-    currNumProxiesBuffer.bind();
-    currNumProxiesBuffer.getData(&currNumProxies);
-
     appendProxiesShader.endTiming();
     stats.timeToAppendProxiesMs = appendProxiesShader.getElapsedTime();
 
-    fillQuadIndices();
+    fillQuadIndices(gBufferSize);
 }
 
-void MeshFromQuads::fillQuadIndices() {
+void MeshFromQuads::fillQuadIndices(const glm::vec2 &gBufferSize) {
     fillQuadIndicesShader.startTiming();
 
     fillQuadIndicesShader.bind();
     {
-        fillQuadIndicesShader.setVec2("remoteWindowSize", remoteWindowSize);
-        fillQuadIndicesShader.setUint("currNumProxies", currNumProxies);
+        fillQuadIndicesShader.setVec2("remoteWindowSize", gBufferSize);
     }
     {
-        fillQuadIndicesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, quadCreatedFlagsBuffer);
+        fillQuadIndicesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currNumProxiesBuffer);
+        fillQuadIndicesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, prevNumProxiesBuffer);
+        fillQuadIndicesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, quadCreatedFlagsBuffer);
 
-        fillQuadIndicesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, currentQuadBuffers.normalSphericalsBuffer);
-        fillQuadIndicesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, currentQuadBuffers.depthsBuffer);
-        fillQuadIndicesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, currentQuadBuffers.offsetSizeFlattenedsBuffer);
+        fillQuadIndicesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, currentQuadBuffers.normalSphericalsBuffer);
+        fillQuadIndicesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, currentQuadBuffers.depthsBuffer);
+        fillQuadIndicesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, currentQuadBuffers.offsetSizeFlattenedsBuffer);
 
-        fillQuadIndicesShader.setImageTexture(0, quadIndicesBuffer, 0, GL_FALSE, 0, GL_WRITE_ONLY, quadIndicesBuffer.internalFormat);
+        fillQuadIndicesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, quadIndicesBuffer);
     }
-    fillQuadIndicesShader.dispatch((currNumProxies + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
+    fillQuadIndicesShader.dispatch((MAX_NUM_PROXIES + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
     fillQuadIndicesShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
     fillQuadIndicesShader.endTiming();
@@ -123,7 +112,6 @@ void MeshFromQuads::createMeshFromProxies(
     }
     {
         createMeshFromQuadsShader.setBool("appendGeometry", appendGeometry);
-        createMeshFromQuadsShader.setUint("currNumProxies", currNumProxies);
     }
     {
         createMeshFromQuadsShader.setMat4("view", remoteCamera.getViewMatrix());
@@ -145,8 +133,11 @@ void MeshFromQuads::createMeshFromProxies(
         createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, currentQuadBuffers.depthsBuffer);
         createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, currentQuadBuffers.offsetSizeFlattenedsBuffer);
 
+        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 8, quadIndicesBuffer);
+
+        createMeshFromQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 9, currNumProxiesBuffer);
+
         createMeshFromQuadsShader.setImageTexture(0, depthOffsets.buffer, 0, GL_FALSE, 0, GL_READ_ONLY, depthOffsets.buffer.internalFormat);
-        createMeshFromQuadsShader.setImageTexture(1, quadIndicesBuffer, 0, GL_FALSE, 0, GL_READ_ONLY, quadIndicesBuffer.internalFormat);
     }
     createMeshFromQuadsShader.dispatch((gBufferSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
                                        (gBufferSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);

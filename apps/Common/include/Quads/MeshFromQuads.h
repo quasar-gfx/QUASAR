@@ -36,19 +36,18 @@ public:
     glm::uvec2 depthBufferSize;
     unsigned int maxProxies;
 
-    unsigned int currNumProxies = 0;
-
     QuadBuffers currentQuadBuffers;
 
     MeshFromQuads(const glm::uvec2 &remoteWindowSize);
     ~MeshFromQuads() = default;
 
     void appendProxies(
+            const glm::vec2 &gBufferSize,
             unsigned int numProxies,
             const QuadBuffers &newQuadBuffers,
             bool iFrame = true);
 
-    void fillQuadIndices();
+    void fillQuadIndices(const glm::vec2 &gBufferSize);
 
     void createMeshFromProxies(
             const glm::vec2 &gBufferSize,
@@ -62,10 +61,11 @@ public:
 
 private:
     Buffer<BufferSizes> meshSizesBuffer;
+    Buffer<unsigned int> prevNumProxiesBuffer;
     Buffer<unsigned int> currNumProxiesBuffer;
 
     Buffer<int> quadCreatedFlagsBuffer;
-    Texture quadIndicesBuffer;
+    Buffer<unsigned int> quadIndicesBuffer;
 
     ComputeShader appendProxiesShader;
     ComputeShader fillQuadIndicesShader;

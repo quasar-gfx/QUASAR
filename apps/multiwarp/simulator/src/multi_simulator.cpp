@@ -688,7 +688,7 @@ int main(int argc, char** argv) {
                         meshScene.rootNode.children[prevView]->visible = (prevView < view);
                     }
                     // draw old meshes at new remoteCamera view, filling stencil buffer with 1
-                    wideFOVRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
+                    renderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
                     renderer.pipeline.writeMaskState.disableColorWrites();
                     renderer.drawObjectsNoLighting(meshScene, remoteCamera);
 
@@ -748,7 +748,11 @@ int main(int argc, char** argv) {
 
                 // create mesh from proxies
                 startTime = window->getTime();
-                meshFromQuads.appendProxies(numProxies, quadsGenerator.outputQuadBuffers);
+                meshFromQuads.appendProxies(
+                    glm::vec2(renderer.gBuffer.width, renderer.gBuffer.height),
+                    numProxies,
+                    quadsGenerator.outputQuadBuffers
+                );
                 meshFromQuads.createMeshFromProxies(
                     glm::vec2(renderer.gBuffer.width, renderer.gBuffer.height),
                     numProxies, quadsGenerator.depthOffsets,
