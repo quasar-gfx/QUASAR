@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
     DepthPeelingRenderer dpRenderer(config, maxLayers, true);
-    config.width = 1280; config.height = 720; // set to lower resolution for wide fov
+    config.width /= 2; config.height /= 2; // set to lower resolution for wide fov
     ForwardRenderer wideFOVRenderer(config);
 
     glm::uvec2 windowSize = window->getSize();
@@ -133,6 +133,10 @@ int main(int argc, char** argv) {
         .magFilter = GL_NEAREST
     };
     for (int views = 0; views < maxViews; views++) {
+        if (views == maxViews - 1) {
+            params.width = wideFOVRenderer.width;
+            params.height = wideFOVRenderer.height;
+        }
         renderTargets.emplace_back(params);
     }
 
@@ -140,11 +144,12 @@ int main(int argc, char** argv) {
     unsigned int maxIndices = MAX_NUM_PROXIES * INDICES_IN_A_QUAD;
     unsigned int maxVerticesDepth = remoteWindowSize.x * remoteWindowSize.y;
 
+    Scene meshScene;
     std::vector<Mesh*> meshes(maxViews);
+    std::vector<Mesh*> meshDepths(maxViews);
+
     std::vector<Node*> nodes(maxViews);
     std::vector<Node*> nodeWireframes(maxViews);
-
-    std::vector<Mesh*> meshDepths(maxViews);
     std::vector<Node*> nodeDepths(maxViews);
 
     for (int view = 0; view < maxViews; view++) {
@@ -183,10 +188,10 @@ int main(int argc, char** argv) {
         scene.addChildNode(nodeDepths[view]);
     }
 
-    Scene meshScene;
-    Node* node = new Node(meshes[0]);
-    node->frustumCulled = false;
-    meshScene.addChildNode(node);
+    // first mesh covers everything
+    Node* meshNode = new Node(meshes[0]);
+    meshNode->frustumCulled = false;
+    meshScene.addChildNode(meshNode);
 
     // shaders
     ToneMapShader toneMapShader;
@@ -654,27 +659,18 @@ int main(int argc, char** argv) {
                 remoteCameraWideFov.setViewMatrix(remoteCameraCenter.getViewMatrix());
             }
 
-            /*
-            ============================
-            FIRST PASS: Render the scene to a G-Buffer render target
-            ============================
-            */
+            // render remote scene in multiple layers
             dpRenderer.drawObjects(remoteScene, remoteCameraCenter);
             totalRenderTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
             startTime = window->getTime();
 
             for (int view = 0; view < maxViews; view++) {
-                auto& remoteCamera = (view < maxViews - 1) ? remoteCameraCenter : remoteCameraWideFov;
+                auto& remoteCamera = (disableWideFov || view != maxViews - 1) ? remoteCameraCenter : remoteCameraWideFov;
 
                 auto* currMesh = meshes[view];
                 auto* currMeshDepth = meshDepths[view];
 
-                /*
-                ============================
-                FIRST PASS: Render the scene to a G-Buffer render target
-                ============================
-                */
-                if (disableWideFov || view < maxViews - 1) {
+                if (disableWideFov || view != maxViews - 1) {
                     // render to render target
                     if (!showNormals) {
                         dpRenderer.peelingLayers[view]->blitToRenderTarget(renderTargets[view]);
@@ -745,15 +741,17 @@ int main(int argc, char** argv) {
                     renderTargets[view].saveColorAsPNG(colorFileName);
                 }
 
+                glm::vec2 gBufferSize = glm::vec2(gBuffer->width, gBuffer->height);
+
                 // create mesh from proxies
                 startTime = window->getTime();
                 meshFromQuads.appendProxies(
-                    glm::vec2(gBuffer->width, gBuffer->height),
+                    gBufferSize,
                     numProxies,
                     quadsGenerator.outputQuadBuffers
                 );
                 meshFromQuads.createMeshFromProxies(
-                    glm::vec2(gBuffer->width, gBuffer->height),
+                    gBufferSize,
                     numProxies, quadsGenerator.depthOffsets,
                     remoteCamera,
                     *currMesh
@@ -774,7 +772,7 @@ int main(int argc, char** argv) {
                         }
                     }
                     {
-                        meshFromDepthShader.setVec2("depthMapSize", remoteWindowSize);
+                        meshFromDepthShader.setVec2("depthMapSize", gBufferSize);
                     }
                     {
                         meshFromDepthShader.setMat4("view", remoteCamera.getViewMatrix());
@@ -789,8 +787,8 @@ int main(int argc, char** argv) {
                         meshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currMeshDepth->vertexBuffer);
                         meshFromDepthShader.clearBuffer(GL_SHADER_STORAGE_BUFFER, 1);
                     }
-                    meshFromDepthShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                                 (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+                    meshFromDepthShader.dispatch((gBufferSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                                 (gBufferSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
                     meshFromDepthShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
                     meshFromDepthShader.endTiming();

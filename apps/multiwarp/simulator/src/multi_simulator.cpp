@@ -105,7 +105,7 @@ int main(int argc, char** argv) {
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
     ForwardRenderer remoteRenderer(config);
-    config.width = 1280; config.height = 720; // set to lower resolution for wide fov
+    config.width /= 2; config.height /= 2; // set to lower resolution for wide fov
     ForwardRenderer wideFOVRenderer(config);
 
     glm::uvec2 windowSize = window->getSize();
@@ -114,7 +114,12 @@ int main(int argc, char** argv) {
     Scene remoteScene;
     std::vector<PerspectiveCamera> remoteCameras; remoteCameras.reserve(maxViews);
     for (int view = 0; view < maxViews; view++) {
-        remoteCameras.emplace_back(remoteRenderer.width, remoteRenderer.height);
+        if (view == maxViews - 1) {
+            remoteCameras.emplace_back(wideFOVRenderer.width, wideFOVRenderer.height);
+        }
+        else {
+            remoteCameras.emplace_back(remoteRenderer.width, remoteRenderer.height);
+        }
     }
     PerspectiveCamera& remoteCameraCenter = remoteCameras[0];
     SceneLoader loader;
@@ -148,6 +153,10 @@ int main(int argc, char** argv) {
         .magFilter = GL_NEAREST
     };
     for (int views = 0; views < maxViews; views++) {
+        if (views == maxViews - 1) {
+            params.width = wideFOVRenderer.width;
+            params.height = wideFOVRenderer.height;
+        }
         renderTargets.emplace_back(params);
     }
 
@@ -158,14 +167,15 @@ int main(int argc, char** argv) {
     Scene meshScene;
     std::vector<Mesh*> meshes(maxViews);
     std::vector<Mesh*> meshDepths(maxViews);
+
     std::vector<Node*> nodeDepths(maxViews);
     std::vector<Node*> nodes(maxViews);
     std::vector<Node*> nodeWireframes(maxViews);
 
     for (int view = 0; view < maxViews; view++) {
         meshes[view] = new Mesh({
-            .numVertices = maxVertices,
-            .numIndices = maxIndices,
+            .numVertices = maxVertices / (view == 0 || view == maxViews - 1 ? 1 : 2),
+            .numIndices = maxIndices / (view == 0 || view == maxViews - 1 ? 1 : 2),
             .material = new QuadMaterial({ .baseColorTexture = &renderTargets[view].colorBuffer }),
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true
@@ -752,15 +762,17 @@ int main(int argc, char** argv) {
                     renderTargets[view].saveColorAsPNG(colorFileName);
                 }
 
+                glm::vec2 gBufferSize = glm::vec2(renderer.gBuffer.width, renderer.gBuffer.height);
+
                 // create mesh from proxies
                 startTime = window->getTime();
                 meshFromQuads.appendProxies(
-                    glm::vec2(renderer.gBuffer.width, renderer.gBuffer.height),
+                    gBufferSize,
                     numProxies,
                     quadsGenerator.outputQuadBuffers
                 );
                 meshFromQuads.createMeshFromProxies(
-                    glm::vec2(renderer.gBuffer.width, renderer.gBuffer.height),
+                    gBufferSize,
                     numProxies, quadsGenerator.depthOffsets,
                     remoteCamera,
                     *currMesh
@@ -776,7 +788,7 @@ int main(int argc, char** argv) {
                         meshFromDepthShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
                     }
                     {
-                        meshFromDepthShader.setVec2("depthMapSize", remoteWindowSize);
+                        meshFromDepthShader.setVec2("depthMapSize", gBufferSize);
                     }
                     {
                         meshFromDepthShader.setMat4("view", remoteCamera.getViewMatrix());
@@ -791,8 +803,8 @@ int main(int argc, char** argv) {
                         meshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currMeshDepth->vertexBuffer);
                         meshFromDepthShader.clearBuffer(GL_SHADER_STORAGE_BUFFER, 1);
                     }
-                    meshFromDepthShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                                 (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+                    meshFromDepthShader.dispatch((gBufferSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                                 (gBufferSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
                     meshFromDepthShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
                     meshFromDepthShader.endTiming();

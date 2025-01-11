@@ -11,13 +11,21 @@
 
 #include <Utils/TimeUtils.h>
 
+#ifndef __ANDROID__
 #define THREADS_PER_LOCALGROUP 16
+#else
+#define THREADS_PER_LOCALGROUP 32
+#endif
+
+#ifndef __ANDROID__
+#define MAX_NUM_PROXIES (2 * 1024 * 1024)
+#else
+#define MAX_NUM_PROXIES (1024 * 1024)
+#endif
 
 #define VERTICES_IN_A_QUAD 4
 #define INDICES_IN_A_QUAD 6
 #define NUM_SUB_QUADS 4
-
-#define MAX_NUM_PROXIES 1.5e6
 
 class MeshFromQuads {
 public:
