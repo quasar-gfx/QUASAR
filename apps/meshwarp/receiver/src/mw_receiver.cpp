@@ -443,8 +443,6 @@ int main(int argc, char** argv) {
         renderStats = renderer.drawObjects(scene, camera);
 
         // render to screen
-        toneMapShader.bind();
-        toneMapShader.setBool("toneMap", false); // video is already tone mapped
         renderer.drawToScreen(toneMapShader);
     });
 

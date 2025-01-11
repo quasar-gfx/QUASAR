@@ -21,10 +21,10 @@ struct Pose {
             glm::mat4 pad2;
         } mono;
     };
-    unsigned int timestamp;
+    uint64_t timestamp;
 
     Pose() = default;
-    Pose(const glm::mat4 &view, const glm::mat4 &proj, unsigned int timestamp)
+    Pose(const glm::mat4 &view, const glm::mat4 &proj, uint64_t timestamp)
             : mono{view, glm::mat4(1.0f), proj, glm::mat4(1.0f)}, timestamp(timestamp) {}
 
     void setViewMatrix(const glm::mat4 &view) {

@@ -36,6 +36,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> animationFileIn(parser, "path", "Path to camera animation file", {'A', "animation-path"});
     args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'D', "data-path"}, ".");
     args::ValueFlag<float> networkLatencyIn(parser, "network-latency", "Simulated network latency in ms", {'N', "network-latency"}, 25.0f);
+    args::ValueFlag<float> networkJitterIn(parser, "network-jitter", "Simulated network jitter in ms", {'J', "network-jitter"}, 10.0f);
     args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     args::ValueFlag<unsigned int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
     args::ValueFlag<float> fovIn(parser, "fov", "Field of view", {'f', "fov"}, 60.0f);
@@ -175,8 +176,9 @@ int main(int argc, char** argv) {
     bool rerender = true;
     double rerenderInterval = 0.0;
     float networkLatency = !animationFileIn ? 0.0f : args::get(networkLatencyIn);
-    PoseSendRecvSimulator poseSendRecvSimulator(networkLatency);
-    bool posePrediction = false;
+    float networkJitter = !animationFileIn ? 0.0f : args::get(networkJitterIn);
+    PoseSendRecvSimulator poseSendRecvSimulator(networkLatency, networkJitter);
+    bool posePrediction = true;
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};
 
@@ -272,7 +274,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::SliderFloat("FOV (Degrees)", &fov, 60.0f, 120.0f)) {
+            if (ImGui::SliderFloat("FoV (degrees)", &fov, 60.0f, 120.0f)) {
                 remoteCamera.setFovyDegrees(fov);
                 remoteCamera.updateProjectionMatrix();
 
@@ -285,6 +287,10 @@ int main(int argc, char** argv) {
 
             if (ImGui::SliderFloat("Network Latency (ms)", &networkLatency, 0.0f, 500.0f)) {
                 poseSendRecvSimulator.setNetworkLatency(networkLatency);
+            }
+
+            if (ImGui::SliderFloat("Network Jitter (ms)", &networkJitter, 0.0f, 50.0f)) {
+                poseSendRecvSimulator.setNetworkJitter(networkJitter);
             }
 
             if (ImGui::Checkbox("Pose Prediction Enabled", &posePrediction)) {
@@ -465,9 +471,9 @@ int main(int argc, char** argv) {
             spdlog::info("Create Mesh Time: {:.2f}ms", totalGenMeshTime);
             spdlog::info("  Create Vert/Ind Time: {:.2f}ms", totalCreateVertIndTime);
 
-            float avgPosError, avgRotError;
-            poseSendRecvSimulator.getAvgErrors(avgPosError, avgRotError);
-            spdlog::warn("Avg Pose Error: Pos ({:.3f}), Rot ({:.3f})", avgPosError, avgRotError);
+            double avgPosError, avgRotError, avgTimeError;
+            poseSendRecvSimulator.getAvgErrors(avgPosError, avgRotError, avgTimeError);
+            spdlog::warn("Avg Pose Error: Pos ({:.3f}), Rot ({:.3f}), Time ({:.3f})", avgPosError, avgRotError, avgTimeError);
 
             preventCopyingLocalPose = false;
             rerender = false;
