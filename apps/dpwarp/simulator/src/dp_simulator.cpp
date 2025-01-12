@@ -609,10 +609,6 @@ int main(int argc, char** argv) {
             if (!animator.running) {
                 recorder.stop();
                 window->close();
-
-                double avgPosError, avgRotError, avgTimeError;
-                poseSendRecvSimulator.getAvgErrors(avgPosError, avgRotError, avgTimeError);
-                spdlog::warn("Avg Pose Error: Pos ({:.3f}), Rot ({:.3f}), Time ({:.3f})", avgPosError, avgRotError, avgTimeError);
             }
         }
         else {
@@ -805,9 +801,10 @@ int main(int argc, char** argv) {
             spdlog::info("Create Mesh Time: {:.3f}ms", totalCreateMeshTime);
             if (showDepth) spdlog::info("Gen Depth Time: {:.3f}ms", totalGenDepthTime);
 
-            double avgPosError, avgRotError, avgTimeError;
-            poseSendRecvSimulator.getAvgErrors(avgPosError, avgRotError, avgTimeError);
-            spdlog::warn("Avg Pose Error: Pos ({:.3f}), Rot ({:.3f}), Time ({:.3f})", avgPosError, avgRotError, avgTimeError);
+            double avgPosError, avgRotError, avgTimeError, stdPosError, stdRotError, stdTimeError;
+            poseSendRecvSimulator.getAvgErrors(avgPosError, avgRotError, avgTimeError, stdPosError, stdRotError, stdTimeError);
+            spdlog::warn("Pose Error: Pos ({:.2f}±{:.2f}), Rot ({:.2f}±{:.2f}), RTT ({:.2f}±{:.2f})",
+                        avgPosError, stdPosError, avgRotError, stdRotError, avgTimeError, stdTimeError);
 
             preventCopyingLocalPose = false;
             rerender = false;

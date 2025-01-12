@@ -3,6 +3,9 @@
 
 #include <random>
 #include <deque>
+#include <vector>
+#include <numeric>
+#include <cmath>
 
 #include <Cameras/PerspectiveCamera.h>
 #include <CameraPose.h>
@@ -39,18 +42,14 @@ public:
         outPoses.clear();
         outTimestamps.clear();
 
-        totalPositionError = 0.0f;
-        totalRotationError = 0.0f;
-        totalTimeError = 0.0f;
+        positionErrors.clear();
+        rotationErrors.clear();
+        timeErrors.clear();
     }
 
     void setPosePrediction(bool posePrediction) {
         this->posePrediction = posePrediction;
-
-        // clear avg errors
-        totalPositionError = 0.0f;
-        totalRotationError = 0.0f;
-        count = 0;
+        clear();
     }
 
     void sendPose(const PerspectiveCamera &camera, double now) {
@@ -92,7 +91,7 @@ public:
             return false;
         }
 
-        totalTimeError += now - outTimestamps.front();
+        timeErrors.push_back(now - outTimestamps.front());
 
         pose = outPoses.front();
 
@@ -116,37 +115,51 @@ public:
         float angleDiffRadians = 2.0f * glm::acos(glm::clamp(glm::dot(q1, q2), -1.0f, 1.0f));
         float angleDiffDegrees = glm::degrees(angleDiffRadians);
 
-        totalPositionError += positionDiff;
-        totalRotationError += glm::abs(angleDiffDegrees);
-        count++;
+        positionErrors.push_back(positionDiff);
+        rotationErrors.push_back(std::abs(angleDiffDegrees));
     }
 
-    void getAvgErrors(double &positionError, double &rotationError, double &timeError) {
-        if (count == 0) {
-            positionError = 0.0f;
-            rotationError = 0.0f;
-            timeError = 0.0f;
-            return;
-        }
+    void getAvgErrors(double &positionError, double &rotationError, double &timeError,
+                      double &positionStdDev, double &rotationStdDev, double &timeStdDev) {
+        positionError = calculateMean(positionErrors);
+        rotationError = calculateMean(rotationErrors);
+        timeError = calculateMean(timeErrors);
 
-        positionError = totalPositionError / count;
-        rotationError = totalRotationError / count;
-        timeError = totalTimeError / count;
+        positionStdDev = calculateStdDev(positionErrors, positionError);
+        rotationStdDev = calculateStdDev(rotationErrors, rotationError);
+        timeStdDev = calculateStdDev(timeErrors, timeError);
     }
 
 private:
     bool posePrediction = true;
-
-    double totalPositionError = 0.0f;
-    double totalRotationError = 0.0f;
-    double totalTimeError = 0.0f;
-    int count = 0;
 
     std::deque<Pose> inPoses;
     std::deque<double> inTimestamps;
 
     std::deque<Pose> outPoses;
     std::deque<double> outTimestamps;
+
+    std::vector<double> positionErrors;
+    std::vector<double> rotationErrors;
+    std::vector<double> timeErrors;
+
+    double randomJitter() {
+        return distribution(generator);
+    }
+
+    double calculateMean(const std::vector<double>& errors) const {
+        if (errors.empty()) return 0.0;
+        return std::accumulate(errors.begin(), errors.end(), 0.0) / errors.size();
+    }
+
+    double calculateStdDev(const std::vector<double>& errors, double mean) const {
+        if (errors.size() < 2) return 0.0;
+        double sumSquaredDiffs = 0.0;
+        for (double err : errors) {
+            sumSquaredDiffs += (err - mean) * (err - mean);
+        }
+        return std::sqrt(sumSquaredDiffs / (errors.size() - 1));
+    }
 
     bool getPosePredicted(Pose& predictedPose, double targetTime) {
         int poseCount = inPoses.size();
@@ -158,7 +171,6 @@ private:
         double t0 = inTimestamps[poseCount - 1];
 
         float dt = t0 - t1;
-
         if (dt <= 0) {
             spdlog::error("Invalid timestamps for pose prediction!");
             return false;
@@ -172,6 +184,10 @@ private:
         glm::decompose(glm::inverse(secondLastPose.mono.view), scale, rotationSecondLast, positionSecondLast, skew, perspective);
         glm::decompose(glm::inverse(lastPose.mono.view), scale, rotationLatest, positionLast, skew, perspective);
 
+        if (glm::dot(rotationSecondLast, rotationLatest) < 0.0f) {
+            rotationSecondLast = -rotationSecondLast;
+        }
+
         float dtFuture = targetTime - t0;
 
         glm::vec3 velocity = (positionLast - positionSecondLast) / dt;
@@ -179,16 +195,16 @@ private:
 
         glm::quat deltaRotation = glm::normalize(rotationLatest * glm::inverse(rotationSecondLast));
 
-        float angle;
-        glm::vec3 axis;
-        angle = glm::angle(deltaRotation);
-        axis = glm::axis(deltaRotation);
-
-        if (glm::length(axis) < 1e-6f) {
-            axis = glm::vec3(0.0f, 1.0f, 0.0f); // default axis if undefined
+        float angle = glm::angle(deltaRotation);
+        glm::vec3 axis = glm::axis(deltaRotation);
+        if (glm::length(axis) < 1e-6f || glm::isnan(glm::length(axis))) {
+            axis = glm::vec3(0.0f, 1.0f, 0.0f);
         }
 
         float angularVelocity = angle / dt;
+        const float maxAngularVelocity = glm::radians(180.0f);
+        angularVelocity = glm::clamp(angularVelocity, -maxAngularVelocity, maxAngularVelocity);
+
         float futureAngle = angularVelocity * dtFuture;
         glm::quat predictedRotation = glm::normalize(glm::angleAxis(futureAngle, axis) * rotationLatest);
 
@@ -199,10 +215,6 @@ private:
         predictedPose.setProjectionMatrix(lastPose.mono.proj);
 
         return true;
-    }
-
-    double randomJitter() {
-        return distribution(generator);
     }
 };
 

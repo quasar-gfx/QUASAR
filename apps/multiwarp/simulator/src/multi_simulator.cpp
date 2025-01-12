@@ -821,9 +821,10 @@ int main(int argc, char** argv) {
             spdlog::info("Create Mesh Time: {:.3f}ms", totalCreateMeshTime);
             if (showDepth) spdlog::info("Gen Depth Time: {:.3f}ms", totalGenDepthTime);
 
-            double avgPosError, avgRotError, avgTimeError;
-            poseSendRecvSimulator.getAvgErrors(avgPosError, avgRotError, avgTimeError);
-            spdlog::warn("Avg Pose Error: Pos ({:.3f}), Rot ({:.3f}), Time ({:.3f})", avgPosError, avgRotError, avgTimeError);
+            double avgPosError, avgRotError, avgTimeError, stdPosError, stdRotError, stdTimeError;
+            poseSendRecvSimulator.getAvgErrors(avgPosError, avgRotError, avgTimeError, stdPosError, stdRotError, stdTimeError);
+            spdlog::warn("Pose Error: Pos ({:.2f}±{:.2f}), Rot ({:.2f}±{:.2f}), RTT ({:.2f}±{:.2f})",
+                        avgPosError, stdPosError, avgRotError, stdRotError, avgTimeError, stdTimeError);
 
             preventCopyingLocalPose = false;
             rerender = false;
@@ -853,7 +854,7 @@ int main(int argc, char** argv) {
         if (restrictMovementToViewBox) {
             glm::vec3 remotePosition = remoteCameraCenter.getPosition();
             glm::vec3 position = camera.getPosition();
-            // restrict camera position to be inside position +/- viewBoxSize
+            // restrict camera position to be inside position±viewBoxSize
             position.x = glm::clamp(position.x, remotePosition.x - viewBoxSize/2, remotePosition.x + viewBoxSize/2);
             position.y = glm::clamp(position.y, remotePosition.y - viewBoxSize/2, remotePosition.y + viewBoxSize/2);
             position.z = glm::clamp(position.z, remotePosition.z - viewBoxSize/2, remotePosition.z + viewBoxSize/2);
