@@ -292,7 +292,7 @@
             "node": "pf_menhir_01",
             "fromPosition": [0.0, 0.0, 0.0],
             "toPosition": [0.0, 2.0, 0.0],
-            "duration": 2.0,
+            "duration": 3.0,
             "repeat": true,
             "loop": true
         },

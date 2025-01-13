@@ -10,8 +10,8 @@ public:
     float viewSphereDiameter = 0.5f;
     float edpDelta = 0.002f;
 
-    GeometryBuffer gBuffer;
-    std::vector<GeometryBuffer*> peelingLayers;
+    GBuffer gBuffer;
+    std::vector<GBuffer*> peelingLayers;
 
     DepthPeelingRenderer(const Config &config, unsigned int maxLayers = 4, bool edp = false);
     ~DepthPeelingRenderer() = default;

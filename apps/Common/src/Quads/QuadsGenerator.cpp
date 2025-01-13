@@ -59,7 +59,7 @@ QuadsGenerator::BufferSizes QuadsGenerator::getBufferSizes() {
     return bufferSizes;
 }
 
-void QuadsGenerator::generateInitialQuadMap(const GeometryBuffer& gBuffer, const glm::vec2 &gBufferSize, const PerspectiveCamera &remoteCamera) {
+void QuadsGenerator::generateInitialQuadMap(const GBuffer& gBuffer, const glm::vec2 &gBufferSize, const PerspectiveCamera &remoteCamera) {
     /*
     ============================
     FIRST PASS: Generate quads from G-Buffer
@@ -226,7 +226,7 @@ void QuadsGenerator::fillOutputQuads(const glm::vec2 &gBufferSize) {
     stats.timeToFillOutputQuadsMs = fillOutputQuadsShader.getElapsedTime();
 }
 
-QuadsGenerator::BufferSizes QuadsGenerator::createProxiesFromGBuffer(const GeometryBuffer& gBuffer, const PerspectiveCamera &remoteCamera) {
+QuadsGenerator::BufferSizes QuadsGenerator::createProxiesFromGBuffer(const GBuffer& gBuffer, const PerspectiveCamera &remoteCamera) {
     const glm::vec2 gBufferSize = glm::vec2(gBuffer.width, gBuffer.height);
 
     generateInitialQuadMap(gBuffer, gBufferSize, remoteCamera);

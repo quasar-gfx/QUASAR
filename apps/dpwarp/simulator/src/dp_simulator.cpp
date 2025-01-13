@@ -94,7 +94,6 @@ int main(int argc, char** argv) {
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
     DepthPeelingRenderer dpRenderer(config, maxLayers, true);
-    config.width /= 2; config.height /= 2; // set to lower resolution for wide fov
     ForwardRenderer wideFOVRenderer(config);
 
     glm::uvec2 windowSize = window->getSize();
@@ -120,7 +119,7 @@ int main(int argc, char** argv) {
     QuadsGenerator quadsGenerator(remoteWindowSize);
     MeshFromQuads meshFromQuads(remoteWindowSize);
 
-    std::vector<RenderTarget> renderTargets; renderTargets.reserve(maxViews);
+    std::vector<GBuffer> gBufferRTs; gBufferRTs.reserve(maxViews);
     RenderTargetCreateParams params = {
         .width = windowSize.x,
         .height = windowSize.y,
@@ -134,10 +133,9 @@ int main(int argc, char** argv) {
     };
     for (int views = 0; views < maxViews; views++) {
         if (views == maxViews - 1) {
-            params.width = wideFOVRenderer.width;
-            params.height = wideFOVRenderer.height;
+            params.width /= 2; params.height /= 2; // set to lower resolution for wide fov
         }
-        renderTargets.emplace_back(params);
+        gBufferRTs.emplace_back(params);
     }
 
     unsigned int maxVertices = MAX_NUM_PROXIES * VERTICES_IN_A_QUAD;
@@ -156,7 +154,7 @@ int main(int argc, char** argv) {
         meshes[view] = new Mesh({
             .numVertices = maxVertices,
             .numIndices = maxIndices,
-            .material = new QuadMaterial({ .baseColorTexture = &renderTargets[view].colorBuffer }),
+            .material = new QuadMaterial({ .baseColorTexture = &gBufferRTs[view].colorBuffer }),
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true
         });
@@ -218,6 +216,9 @@ int main(int argc, char** argv) {
         recorder.setTargetFrameRate(-1 /* unlimited */);
         recorder.setFormat(Recorder::OutputFormat::PNG);
         recorder.start();
+
+        animator.copyPoseToCamera(camera);
+        animator.copyPoseToCamera(remoteCameraCenter);
     }
 
     bool rerender = true;
@@ -469,7 +470,7 @@ int main(int argc, char** argv) {
                     );
 
                     ImGui::Begin(("View " + std::to_string(viewIdx)).c_str(), 0, flags);
-                    ImGui::Image((void*)(intptr_t)(renderTargets[viewIdx].colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
+                    ImGui::Image((void*)(intptr_t)(gBufferRTs[viewIdx].colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
                     ImGui::End();
                 }
             }
@@ -495,10 +496,10 @@ int main(int argc, char** argv) {
                 for (int view = 1; view < maxViews; view++) {
                     fileName = dataPath + std::string(fileNameBase) + ".view" + std::to_string(view) + "." + time;
                     if (saveAsHDR) {
-                        renderTargets[view].saveColorAsHDR(fileName + ".hdr");
+                        gBufferRTs[view].saveColorAsHDR(fileName + ".hdr");
                     }
                     else {
-                        renderTargets[view].saveColorAsPNG(fileName + ".png");
+                        gBufferRTs[view].saveColorAsPNG(fileName + ".png");
                     }
                 }
             }
@@ -536,7 +537,7 @@ int main(int argc, char** argv) {
 
                     // save color buffer
                     std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
-                    renderTargets[view].saveColorAsPNG(colorFileName);
+                    gBufferRTs[view].saveColorAsPNG(colorFileName);
                 }
             }
 
@@ -600,8 +601,6 @@ int main(int argc, char** argv) {
         if (keys.ESC_PRESSED) {
             window->close();
         }
-        auto scroll = window->getScrollOffset();
-        camera.processScroll(scroll.y);
 
         if (animator.running) {
             animator.copyPoseToCamera(camera);
@@ -612,7 +611,8 @@ int main(int argc, char** argv) {
             }
         }
         else {
-            // handle keyboard input
+            auto scroll = window->getScrollOffset();
+            camera.processScroll(scroll.y);
             camera.processKeyboard(keys, dt);
         }
 
@@ -669,10 +669,10 @@ int main(int argc, char** argv) {
                 if (disableWideFov || view != maxViews - 1) {
                     // render to render target
                     if (!showNormals) {
-                        dpRenderer.peelingLayers[view]->blitToRenderTarget(renderTargets[view]);
+                        dpRenderer.peelingLayers[view]->blitToGBuffer(gBufferRTs[view]);
                     }
                     else {
-                        dpRenderer.drawToRenderTarget(screenShaderNormals, renderTargets[view]);
+                        dpRenderer.drawToRenderTarget(screenShaderNormals, gBufferRTs[view]);
                     }
                 }
                 // wide fov camera
@@ -685,26 +685,22 @@ int main(int argc, char** argv) {
                     // render remoteScene using stencil buffer as a mask
                     // at values where stencil buffer is not 1, remoteScene should render
                     wideFOVRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_NOTEQUAL, 1);
-                    wideFOVRenderer.pipeline.rasterState.polygonOffsetEnabled = false;
                     wideFOVRenderer.pipeline.writeMaskState.enableColorWrites();
                     wideFOVRenderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
                     wideFOVRenderer.pipeline.stencilState.restoreStencilState();
 
                     if (!showNormals) {
-                        toneMapShader.bind();
-                        toneMapShader.setBool("toneMap", false); // dont apply tone mapping
-                        wideFOVRenderer.drawToRenderTarget(toneMapShader, renderTargets[view]);
+                        wideFOVRenderer.gBuffer.blitToGBuffer(gBufferRTs[view]);
                     }
                     else {
-                        wideFOVRenderer.drawToRenderTarget(screenShaderNormals, renderTargets[view]);
+                        wideFOVRenderer.drawToRenderTarget(screenShaderNormals, gBufferRTs[view]);
                     }
                 }
 
                 // create proxies from the new frame
                 startTime = window->getTime();
-                auto* gBuffer = (disableWideFov || view != maxViews - 1) ? dpRenderer.peelingLayers[view] : &wideFOVRenderer.gBuffer;
-                auto sizes = quadsGenerator.createProxiesFromGBuffer(*gBuffer, remoteCamera);
+                auto sizes = quadsGenerator.createProxiesFromGBuffer(gBufferRTs[view], remoteCamera);
                 unsigned int numProxies = sizes.numProxies;
                 unsigned int numDepthOffsets = sizes.numDepthOffsets;
                 totalProxies += numProxies;
@@ -734,10 +730,10 @@ int main(int argc, char** argv) {
 
                     // save color buffer
                     std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
-                    renderTargets[view].saveColorAsPNG(colorFileName);
+                    gBufferRTs[view].saveColorAsPNG(colorFileName);
                 }
 
-                glm::vec2 gBufferSize = glm::vec2(gBuffer->width, gBuffer->height);
+                glm::vec2 gBufferSize = glm::vec2(gBufferRTs[view].width, gBufferRTs[view].height);
 
                 // create mesh from proxies
                 startTime = window->getTime();
@@ -852,7 +848,7 @@ int main(int argc, char** argv) {
         toneMapShader.setBool("toneMap", !showNormals);
         renderer.drawToScreen(toneMapShader);
 
-        if (saveImage || recording) {
+        if (animator.running || recording) {
             recorder.captureFrame(camera);
         }
     });

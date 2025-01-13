@@ -41,7 +41,7 @@ public:
     ~QuadsGenerator() = default;
 
     BufferSizes getBufferSizes();
-    BufferSizes createProxiesFromGBuffer(const GeometryBuffer& gBuffer, const PerspectiveCamera &remoteCamera);
+    BufferSizes createProxiesFromGBuffer(const GBuffer& gBuffer, const PerspectiveCamera &remoteCamera);
 #ifdef GL_CORE
     unsigned int saveToFile(const std::string &filename);
     unsigned int saveDepthOffsetsToFile(const std::string &filename);
@@ -56,7 +56,7 @@ private:
     ComputeShader simplifyQuadMapShader;
     ComputeShader fillOutputQuadsShader;
 
-    void generateInitialQuadMap(const GeometryBuffer& gBuffer, const glm::vec2 &gBufferSize, const PerspectiveCamera &remoteCamera);
+    void generateInitialQuadMap(const GBuffer& gBuffer, const glm::vec2 &gBufferSize, const PerspectiveCamera &remoteCamera);
     void simplifyQuadMaps(const PerspectiveCamera &remoteCamera, const glm::vec2 &gBufferSize);
     void fillOutputQuads(const glm::vec2 &gBufferSize);
 };

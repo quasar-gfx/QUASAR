@@ -105,7 +105,6 @@ int main(int argc, char** argv) {
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
     ForwardRenderer remoteRenderer(config);
-    config.width /= 2; config.height /= 2; // set to lower resolution for wide fov
     ForwardRenderer wideFOVRenderer(config);
 
     glm::uvec2 windowSize = window->getSize();
@@ -114,12 +113,7 @@ int main(int argc, char** argv) {
     Scene remoteScene;
     std::vector<PerspectiveCamera> remoteCameras; remoteCameras.reserve(maxViews);
     for (int view = 0; view < maxViews; view++) {
-        if (view == maxViews - 1) {
-            remoteCameras.emplace_back(wideFOVRenderer.width, wideFOVRenderer.height);
-        }
-        else {
-            remoteCameras.emplace_back(remoteRenderer.width, remoteRenderer.height);
-        }
+        remoteCameras.emplace_back(remoteRenderer.width, remoteRenderer.height);
     }
     PerspectiveCamera& remoteCameraCenter = remoteCameras[0];
     SceneLoader loader;
@@ -140,7 +134,7 @@ int main(int argc, char** argv) {
     QuadsGenerator quadsGenerator(remoteWindowSize);
     MeshFromQuads meshFromQuads(remoteWindowSize);
 
-    std::vector<RenderTarget> renderTargets; renderTargets.reserve(maxViews);
+    std::vector<GBuffer> gBufferRTs; gBufferRTs.reserve(maxViews);
     RenderTargetCreateParams params = {
         .width = windowSize.x,
         .height = windowSize.y,
@@ -154,10 +148,9 @@ int main(int argc, char** argv) {
     };
     for (int views = 0; views < maxViews; views++) {
         if (views == maxViews - 1) {
-            params.width = wideFOVRenderer.width;
-            params.height = wideFOVRenderer.height;
+            params.width /= 2; params.height /= 2; // set to lower resolution for wide fov
         }
-        renderTargets.emplace_back(params);
+        gBufferRTs.emplace_back(params);
     }
 
     unsigned int maxVertices = MAX_NUM_PROXIES * VERTICES_IN_A_QUAD;
@@ -176,7 +169,7 @@ int main(int argc, char** argv) {
         meshes[view] = new Mesh({
             .numVertices = maxVertices / (view == 0 || view == maxViews - 1 ? 1 : 2),
             .numIndices = maxIndices / (view == 0 || view == maxViews - 1 ? 1 : 2),
-            .material = new QuadMaterial({ .baseColorTexture = &renderTargets[view].colorBuffer }),
+            .material = new QuadMaterial({ .baseColorTexture = &gBufferRTs[view].colorBuffer }),
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true
         });
@@ -238,6 +231,9 @@ int main(int argc, char** argv) {
         recorder.setTargetFrameRate(-1 /* unlimited */);
         recorder.setFormat(Recorder::OutputFormat::PNG);
         recorder.start();
+
+        animator.copyPoseToCamera(camera);
+        animator.copyPoseToCamera(remoteCameraCenter);
     }
 
     bool saveToFile = false;
@@ -488,7 +484,7 @@ int main(int argc, char** argv) {
                     );
 
                     ImGui::Begin(("View " + std::to_string(viewIdx)).c_str(), 0, flags);
-                    ImGui::Image((void*)(intptr_t)(renderTargets[viewIdx].colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
+                    ImGui::Image((void*)(intptr_t)(gBufferRTs[viewIdx].colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
                     ImGui::End();
                 }
             }
@@ -514,10 +510,10 @@ int main(int argc, char** argv) {
                 for (int view = 1; view < maxViews; view++) {
                     fileName = dataPath + std::string(fileNameBase) + ".view" + std::to_string(view) + "." + time;
                     if (saveAsHDR) {
-                        renderTargets[view].saveColorAsHDR(fileName + ".hdr");
+                        gBufferRTs[view].saveColorAsHDR(fileName + ".hdr");
                     }
                     else {
-                        renderTargets[view].saveColorAsPNG(fileName + ".png");
+                        gBufferRTs[view].saveColorAsPNG(fileName + ".png");
                     }
                 }
             }
@@ -555,7 +551,7 @@ int main(int argc, char** argv) {
 
                     // save color buffer
                     std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
-                    renderTargets[view].saveColorAsPNG(colorFileName);
+                    gBufferRTs[view].saveColorAsPNG(colorFileName);
                 }
             }
 
@@ -618,8 +614,6 @@ int main(int argc, char** argv) {
         if (keys.ESC_PRESSED) {
             window->close();
         }
-        auto scroll = window->getScrollOffset();
-        camera.processScroll(scroll.y);
 
         if (animator.running) {
             animator.copyPoseToCamera(camera);
@@ -630,7 +624,8 @@ int main(int argc, char** argv) {
             }
         }
         else {
-            // handle keyboard input
+            auto scroll = window->getScrollOffset();
+            camera.processScroll(scroll.y);
             camera.processKeyboard(keys, dt);
         }
 
@@ -717,12 +712,10 @@ int main(int argc, char** argv) {
                     renderer.pipeline.stencilState.restoreStencilState();
                 }
                 if (!showNormals) {
-                    toneMapShader.bind();
-                    toneMapShader.setBool("toneMap", false); // dont apply tone mapping
-                    renderer.drawToRenderTarget(toneMapShader, renderTargets[view]);
+                    renderer.gBuffer.blitToGBuffer(gBufferRTs[view]);
                 }
                 else {
-                    renderer.drawToRenderTarget(screenShaderNormals, renderTargets[view]);
+                    renderer.drawToRenderTarget(screenShaderNormals, gBufferRTs[view]);
                 }
                 totalRenderTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
 
@@ -759,7 +752,7 @@ int main(int argc, char** argv) {
 
                     // save color buffer
                     std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
-                    renderTargets[view].saveColorAsPNG(colorFileName);
+                    gBufferRTs[view].saveColorAsPNG(colorFileName);
                 }
 
                 glm::vec2 gBufferSize = glm::vec2(renderer.gBuffer.width, renderer.gBuffer.height);
@@ -870,7 +863,7 @@ int main(int argc, char** argv) {
         toneMapShader.setBool("toneMap", !showNormals);
         renderer.drawToScreen(toneMapShader);
 
-        if (saveImage || recording) {
+        if (animator.running || recording) {
             recorder.captureFrame(camera);
         }
     });

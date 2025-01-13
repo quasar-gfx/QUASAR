@@ -22,7 +22,7 @@ DepthPeelingRenderer::DepthPeelingRenderer(const Config &config, unsigned int ma
     }
 
     for (int i = 0; i < maxLayers; i++) {
-        peelingLayers.push_back(new GeometryBuffer({ .width = config.width, .height = config.height }));
+        peelingLayers.push_back(new GBuffer({ .width = config.width, .height = config.height }));
     }
 }
 

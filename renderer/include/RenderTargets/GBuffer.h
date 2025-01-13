@@ -4,7 +4,7 @@
 #include <RenderTargets/RenderTargetBase.h>
 #include <RenderTargets/RenderTarget.h>
 
-class GeometryBuffer : public RenderTargetBase {
+class GBuffer : public RenderTargetBase {
 public:
     Texture positionBuffer;
     Texture normalsBuffer;
@@ -12,7 +12,7 @@ public:
     Texture colorBuffer;
     Texture depthStencilBuffer;
 
-    GeometryBuffer(const RenderTargetCreateParams &params)
+    GBuffer(const RenderTargetCreateParams &params)
             : RenderTargetBase(params)
             , colorBuffer({
                 .width = width,
@@ -22,8 +22,8 @@ public:
                 .type = GL_HALF_FLOAT,
                 .wrapS = GL_CLAMP_TO_EDGE,
                 .wrapT = GL_CLAMP_TO_EDGE,
-                .minFilter = GL_LINEAR,
-                .magFilter = GL_LINEAR,
+                .minFilter = params.minFilter,
+                .magFilter = params.magFilter,
                 .multiSampled = params.multiSampled,
                 .numSamples = params.numSamples
             })
@@ -97,7 +97,7 @@ public:
     }
 
 #ifdef GL_CORE
-    void blitToGBuffer(GeometryBuffer &gBuffer) {
+    void blitToGBuffer(GBuffer &gBuffer) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gBuffer.getFramebufferID());
 

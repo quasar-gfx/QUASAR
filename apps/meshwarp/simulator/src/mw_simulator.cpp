@@ -166,6 +166,9 @@ int main(int argc, char** argv) {
         recorder.setTargetFrameRate(-1 /* unlimited */);
         recorder.setFormat(Recorder::OutputFormat::PNG);
         recorder.start();
+
+        animator.copyPoseToCamera(camera);
+        animator.copyPoseToCamera(remoteCamera);
     }
 
     bool showWireframe = false;
@@ -378,8 +381,6 @@ int main(int argc, char** argv) {
         if (keys.ESC_PRESSED) {
             window->close();
         }
-        auto scroll = window->getScrollOffset();
-        camera.processScroll(scroll.y);
 
         if (animator.running) {
             animator.copyPoseToCamera(camera);
@@ -390,7 +391,8 @@ int main(int argc, char** argv) {
             }
         }
         else {
-            // handle keyboard input
+            auto scroll = window->getScrollOffset();
+            camera.processScroll(scroll.y);
             camera.processKeyboard(keys, dt);
         }
 
@@ -501,7 +503,7 @@ int main(int argc, char** argv) {
         toneMapShader.setBool("toneMap", true);
         renderer.drawToScreen(toneMapShader);
 
-        if (saveImage || recording) {
+        if (animator.running || recording) {
             recorder.captureFrame(camera);
         }
     });

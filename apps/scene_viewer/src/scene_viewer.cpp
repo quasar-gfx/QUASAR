@@ -120,6 +120,8 @@ int main(int argc, char** argv) {
         recorder.setTargetFrameRate(-1 /* unlimited */);
         recorder.setFormat(Recorder::OutputFormat::PNG);
         recorder.start();
+
+        animator.copyPoseToCamera(camera);
     }
 
     float exposure = 1.0f;
@@ -413,7 +415,7 @@ int main(int argc, char** argv) {
             renderer.drawToScreen(toneMapShader);
         }
 
-        if (saveImage || recording) {
+        if (animator.running || recording) {
             recorder.captureFrame(camera);
         }
     });

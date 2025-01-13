@@ -8,9 +8,9 @@ class ForwardRenderer : public OpenGLRenderer {
 public:
     bool multiSampled = false;
 
-    GeometryBuffer gBuffer;
+    GBuffer gBuffer;
 #ifndef __APPLE__
-    GeometryBuffer gBufferMS;
+    GBuffer gBufferMS;
 #endif
 
     ForwardRenderer(const Config &config);
