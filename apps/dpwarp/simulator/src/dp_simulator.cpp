@@ -429,7 +429,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::SliderFloat("View Sphere Diameter", &viewSphereDiameter, 0.1f, 5.0f)) {
+            if (ImGui::SliderFloat("View Sphere Diameter", &viewSphereDiameter, 0.1f, 1.0f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
                 runAnimations = false;

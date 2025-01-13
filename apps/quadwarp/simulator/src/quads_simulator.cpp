@@ -406,7 +406,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::SliderFloat("View Box Size", &viewBoxSize, 0.1f, 5.0f)) {
+            if (ImGui::SliderFloat("View Box Size", &viewBoxSize, 0.1f, 1.0f)) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
                 runAnimations = false;
