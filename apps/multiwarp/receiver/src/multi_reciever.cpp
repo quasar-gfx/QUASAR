@@ -97,20 +97,16 @@ int main(int argc, char** argv) {
     remoteCameraCenter.setPosition(glm::vec3(0.0f, 3.0f, 10.0f));
     remoteCameraCenter.updateViewMatrix();
 
-    if (!disableWideFov) {
-        // make last camera have a larger fov
-        remoteCameras[maxViews-1].setFovyDegrees(120.0f);
-    }
-
     for (int view = 1; view < maxViews - 1; view++) {
-        glm::vec3 offset = offsets[view - 1];
+        const glm::vec3 &offset = offsets[view - 1];
         remoteCameras[view].setViewMatrix(remoteCameraCenter.getViewMatrix());
         remoteCameras[view].setPosition(remoteCameraCenter.getPosition() + viewBoxSize/2 * offset);
         remoteCameras[view].updateViewMatrix();
     }
-    if (!disableWideFov) {
-        remoteCameras[maxViews-1].setViewMatrix(remoteCameraCenter.getViewMatrix());
-    }
+
+    // make last camera have a larger fov
+    remoteCameras[maxViews-1].setFovyDegrees(120.0f);
+    remoteCameras[maxViews-1].setViewMatrix(remoteCameraCenter.getViewMatrix());
 
     // shaders
     ToneMapShader toneMapShader;
@@ -198,14 +194,15 @@ int main(int argc, char** argv) {
             });
             loadFromFilesTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
 
+            glm::vec2 gBufferSize = glm::vec2(colorTextures[view].width, colorTextures[view].height);
+
             startTime = window->getTime();
             meshFromQuads.appendProxies(
-                glm::vec2(windowSize.x, windowSize.y),
-                numProxies,
-                quadBuffers
+                gBufferSize,
+                numProxies, quadBuffers
             );
             meshFromQuads.createMeshFromProxies(
-                glm::vec2(windowSize.x, windowSize.y),
+                gBufferSize,
                 numProxies, depthOffsets,
                 remoteCameras[view],
                 *meshes[view]

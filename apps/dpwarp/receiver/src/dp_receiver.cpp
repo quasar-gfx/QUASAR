@@ -170,15 +170,16 @@ int main(int argc, char** argv) {
             });
             loadFromFilesTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
 
+            glm::vec2 gBufferSize = glm::vec2(colorTextures[view].width, colorTextures[view].height);
+
             startTime = window->getTime();
             auto& cameraToUse = (!disableWideFov && view == maxViews - 1) ? remoteCameraWideFov : remoteCamera;
             meshFromQuads.appendProxies(
-                glm::vec2(windowSize.x, windowSize.y),
-                numProxies,
-                quadBuffers
+                gBufferSize,
+                numProxies, quadBuffers
             );
             meshFromQuads.createMeshFromProxies(
-                glm::vec2(windowSize.x, windowSize.y),
+                gBufferSize,
                 numProxies, depthOffsets,
                 cameraToUse,
                 *meshes[view]

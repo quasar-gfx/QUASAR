@@ -711,10 +711,9 @@ int main(int argc, char** argv) {
                 totalFillQuadsTime += quadsGenerator.stats.timeToFillOutputQuadsMs;
 
                 if (saveToFile) {
-                    startTime = window->getTime();
-
                     unsigned int savedBytes;
 
+                    startTime = window->getTime();
                     std::string quadsFileName = dataPath + "quads" + std::to_string(view) + ".bin";
                     savedBytes = quadsGenerator.saveToFile(quadsFileName);
                     spdlog::info("Saved {} quads ({:.3f} MB) in {:.3f}ms", numProxies,

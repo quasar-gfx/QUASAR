@@ -667,7 +667,7 @@ int main(int argc, char** argv) {
 
                 // update other cameras in view box corners
                 for (int view = 1; view < maxViews - 1; view++) {
-                    glm::vec3 offset = offsets[view - 1];
+                    const glm::vec3 &offset = offsets[view - 1];
                     remoteCameras[view].setViewMatrix(remoteCameraCenter.getViewMatrix());
                     remoteCameras[view].setPosition(remoteCameraCenter.getPosition() + viewBoxSize/2 * offset);
                     remoteCameras[view].updateViewMatrix();
@@ -721,7 +721,7 @@ int main(int argc, char** argv) {
 
                 // create proxies from the new frame
                 startTime = window->getTime();
-                auto sizes = quadsGenerator.createProxiesFromGBuffer(renderer.gBuffer, remoteCamera);
+                auto sizes = quadsGenerator.createProxiesFromGBuffer(gBufferRTs[view], remoteCamera);
                 unsigned int numProxies = sizes.numProxies;
                 unsigned int numDepthOffsets = sizes.numDepthOffsets;
                 totalProxies += numProxies;
@@ -732,8 +732,6 @@ int main(int argc, char** argv) {
                 totalFillQuadsTime += quadsGenerator.stats.timeToFillOutputQuadsMs;
 
                 if (saveToFile) {
-                    startTime = window->getTime();
-
                     unsigned int savedBytes;
 
                     startTime = window->getTime();
@@ -755,7 +753,7 @@ int main(int argc, char** argv) {
                     gBufferRTs[view].saveColorAsPNG(colorFileName);
                 }
 
-                glm::vec2 gBufferSize = glm::vec2(renderer.gBuffer.width, renderer.gBuffer.height);
+                glm::vec2 gBufferSize = glm::vec2(gBufferRTs[view].width, gBufferRTs[view].height);
 
                 // create mesh from proxies
                 startTime = window->getTime();
