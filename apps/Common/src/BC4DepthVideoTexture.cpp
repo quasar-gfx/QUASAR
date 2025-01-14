@@ -16,6 +16,17 @@ BC4DepthVideoTexture::BC4DepthVideoTexture(const TextureDataCreateParams &params
 
     compressedSize = (width / BLOCK_SIZE) * (height / BLOCK_SIZE);
     bc4CompressedBuffer = Buffer<Block>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, compressedSize, nullptr);
+
+    // setup LZ4 decompression context
+    auto ret = LZ4F_createDecompressionContext(&dctx, LZ4F_VERSION);
+    if (LZ4F_isError(ret)) {
+        spdlog::error("Failed to create LZ4 context: {}", LZ4F_getErrorName(ret));
+        return;
+    }
+}
+
+BC4DepthVideoTexture::~BC4DepthVideoTexture() {
+    LZ4F_freeDecompressionContext(dctx);
 }
 
 pose_id_t BC4DepthVideoTexture::getLatestPoseID() {
@@ -37,25 +48,15 @@ void BC4DepthVideoTexture::onDataReceived(const std::vector<uint8_t>& compressed
     size_t expectedSize = sizeof(pose_id_t) + compressedSize * sizeof(Block);
     std::vector<uint8_t> decompressedData(expectedSize);
 
-    // setup LZ4 decompression context
-    LZ4F_dctx* dctx = nullptr;
-    size_t status = LZ4F_createDecompressionContext(&dctx, LZ4F_VERSION);
-    if (LZ4F_isError(status)) {
-        spdlog::error("Failed to create LZ4 context: {}", LZ4F_getErrorName(status));
-        return;
-    }
-
     // decompress in one shot
     size_t srcSize = compressedData.size();
     size_t dstSize = expectedSize;
-    status = LZ4F_decompress(dctx, decompressedData.data(), &dstSize,
-                            compressedData.data(), &srcSize,
-                            nullptr);
-
-    LZ4F_freeDecompressionContext(dctx);
-
-    if (LZ4F_isError(status)) {
-        spdlog::error("LZ4 decompression failed: {}", LZ4F_getErrorName(status));
+    auto ret = LZ4F_decompress(dctx,
+                                 decompressedData.data(), &dstSize,
+                                 compressedData.data(), &srcSize,
+                                 nullptr);
+    if (LZ4F_isError(ret)) {
+        spdlog::error("LZ4 decompression failed: {}", LZ4F_getErrorName(ret));
         return;
     }
 

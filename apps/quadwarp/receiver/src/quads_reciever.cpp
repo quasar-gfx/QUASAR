@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'V', "vsync"}, true);
     args::Flag verbose(parser, "verbose", "Enable verbose logging", {'v', "verbose"});
-    args::Flag loadProxies(parser, "load-proxies", "Load proxies from quads.bin", {'m', "load-proxies"});
+    args::Flag loadProxies(parser, "load-proxies", "Load proxies from quads.bin.lz4", {'m', "load-proxies"});
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -97,12 +97,15 @@ int main(int argc, char** argv) {
     unsigned int totalProxies = -1;
     unsigned int totalDepthOffsets = -1;
 
+    unsigned int numBytesProxies = 0;
+    unsigned int numBytesDepthOffsets = 0;
+
     double startTime = window->getTime();
     double loadFromFilesTime = 0.0;
     double createMeshTime = 0.0;
     if (!args::get(loadProxies)) {
-        std::string verticesFileName = DATA_PATH + "vertices.bin";
-        std::string indicesFileName = DATA_PATH + "indices.bin";
+        std::string verticesFileName = DATA_PATH + "vertices.bin.lz4";
+        std::string indicesFileName = DATA_PATH + "indices.bin.lz4";
 
         auto vertexData = FileIO::loadBinaryFile(verticesFileName);
         auto indexData = FileIO::loadBinaryFile(indicesFileName);
@@ -135,9 +138,9 @@ int main(int argc, char** argv) {
 
         startTime = window->getTime();
         // load proxies
-        unsigned int numProxies = quadBuffers.loadFromFile(DATA_PATH + "quads.bin");
+        unsigned int numProxies = quadBuffers.loadFromFile(DATA_PATH + "quads.bin.lz4", &numBytesProxies);
         // load depth offsets
-        unsigned int numDepthOffsets = depthOffsets.loadFromFile(DATA_PATH + "depthOffsets.bin");
+        unsigned int numDepthOffsets = depthOffsets.loadFromFile(DATA_PATH + "depthOffsets.bin.lz4", &numBytesDepthOffsets);
 
         mesh = new Mesh({
             .numVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
@@ -238,12 +241,10 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
-            if (totalProxies != -1 && totalDepthOffsets != -1) {
-                float proxySizeMb = static_cast<float>(totalProxies * sizeof(QuadMapDataPacked)) / BYTES_IN_MB;
-                float depthOffsetSizeMb = static_cast<float>(totalDepthOffsets * sizeof(uint16_t)) / BYTES_IN_MB;
-                ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%.3f MB)", totalProxies, proxySizeMb);
-                ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%.3f MB)", totalDepthOffsets, depthOffsetSizeMb);
-            }
+            float proxySizeMb = static_cast<float>(numBytesProxies) / BYTES_IN_MB;
+            float depthOffsetSizeMb = static_cast<float>(numBytesDepthOffsets) / BYTES_IN_MB;
+            ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%.3f MB)", totalProxies, proxySizeMb);
+            ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%.3f MB)", totalDepthOffsets, depthOffsetSizeMb);
 
             ImGui::Separator();
 

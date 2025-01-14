@@ -1,13 +1,17 @@
 #ifndef DEPTH_OFFSETS_H
 #define DEPTH_OFFSETS_H
 
+#include <spdlog/spdlog.h>
+#include <lz4_stream/lz4_stream.h>
+
 #include <Texture.h>
 #include <Utils/FileIO.h>
 
-#include <spdlog/spdlog.h>
+#if !defined(__ANDROID__)
+#include <filesystem>
+#endif
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-#include <filesystem>
 #include <cuda_gl_interop.h>
 #include <Utils/CudaUtils.h>
 #endif
@@ -34,39 +38,27 @@ public:
         })
         , data(size.x * size.y * 4 * sizeof(uint16_t)) {
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-    cudautils::checkCudaDevice();
-    // register opengl texture with cuda
-    CHECK_CUDA_ERROR(cudaGraphicsGLRegisterImage(&cudaResource,
-                                                 buffer, GL_TEXTURE_2D,
-                                                 cudaGraphicsRegisterFlagsReadOnly));
+        cudautils::checkCudaDevice();
+        // register opengl texture with cuda
+        CHECK_CUDA_ERROR(cudaGraphicsGLRegisterImage(&cudaResource,
+                                                    buffer, GL_TEXTURE_2D,
+                                                    cudaGraphicsRegisterFlagsReadOnly));
 #endif
+
+        // setup LZ4 decompression context
+        auto status = LZ4F_createDecompressionContext(&dctx, LZ4F_VERSION);
+        if (LZ4F_isError(status)) {
+            spdlog::error("Failed to create LZ4 context: {}", LZ4F_getErrorName(status));
+            return;
+        }
     }
 
     ~DepthOffsets() {
 #if !defined(__APPLE__) && !defined(__ANDROID__)
         CHECK_CUDA_ERROR(cudaGraphicsUnregisterResource(cudaResource));
 #endif
-    }
 
-    unsigned int saveToFile(const std::string &filename) {
-#if !defined(__APPLE__) && !defined(__ANDROID__)
-        cudaArray* cudaBuffer;
-        CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
-        CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
-        CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
-        CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(data.data(),
-                                                size.x * 4 * sizeof(uint16_t),
-                                                cudaBuffer,
-                                                0, 0,
-                                                size.x * 4 * sizeof(uint16_t), size.y,
-                                                cudaMemcpyDeviceToHost));
-
-        std::ofstream file(filename, std::ios::binary);
-        file.write(reinterpret_cast<const char*>(data.data()), data.size());
-        file.close();
-#endif
-
-        return data.size();
+        LZ4F_freeDecompressionContext(dctx);
     }
 
     unsigned int loadFromMemory(const char* data) {
@@ -85,18 +77,59 @@ public:
         return this->data.size();
     }
 
-    unsigned int loadFromFile(const std::string &filename) {
-#if !defined(__APPLE__) && !defined(__ANDROID__)
+    unsigned int loadFromFile(const std::string &filename, unsigned int* numBytesLoaded = nullptr) {
+#if !defined(__ANDROID__)
         if (!std::filesystem::exists(filename)) {
             spdlog::error("File {} does not exist", filename);
             return 0;
         }
 #endif
-        auto depthOffsets = FileIO::loadBinaryFile(filename);
-        return loadFromMemory(depthOffsets.data());
+
+        auto depthOffsetsCompressed = FileIO::loadBinaryFile(filename);
+        size_t srcSize = depthOffsetsCompressed.size();
+        size_t dstSize = data.size();
+
+        auto ret = LZ4F_decompress(dctx,
+                                   data.data(), &dstSize,
+                                   depthOffsetsCompressed.data(), &srcSize,
+                                   nullptr);
+        if (LZ4F_isError(ret)) {
+            spdlog::error("LZ4 decompression failed: {}", LZ4F_getErrorName(ret));
+            return 0;
+        }
+
+        if (numBytesLoaded != nullptr) {
+            *numBytesLoaded = srcSize;
+        }
+
+        return loadFromMemory(reinterpret_cast<const char*>(data.data()));
+    }
+
+    unsigned int saveToFile(const std::string &filename) {
+#if !defined(__APPLE__) && !defined(__ANDROID__)
+        cudaArray* cudaBuffer;
+        CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
+        CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
+        CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
+        CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(data.data(),
+                                                size.x * 4 * sizeof(uint16_t),
+                                                cudaBuffer,
+                                                0, 0,
+                                                size.x * 4 * sizeof(uint16_t), size.y,
+                                                cudaMemcpyDeviceToHost));
+
+        std::ofstream quadsFile(filename + ".lz4", std::ios::binary);
+        lz4_stream::ostream lz4_stream(quadsFile);
+        lz4_stream.write(reinterpret_cast<const char*>(data.data()), data.size());
+        lz4_stream.close();
+#endif
+
+        return data.size();
     }
 
 private:
+    LZ4F_dctx* dctx = nullptr;
+
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     cudaGraphicsResource* cudaResource;
 #endif

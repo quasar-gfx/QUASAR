@@ -1,4 +1,4 @@
-#if !defined(__APPLE__) && !defined(__ANDROID__)
+#if !defined(__ANDROID__)
 #include <filesystem>
 #endif
 
@@ -19,6 +19,13 @@ QuadBuffers::QuadBuffers(unsigned int maxProxies)
     CHECK_CUDA_ERROR(cudaGraphicsGLRegisterBuffer(&cudaResourceDepths, depthsBuffer, cudaGraphicsRegisterFlagsNone));
     CHECK_CUDA_ERROR(cudaGraphicsGLRegisterBuffer(&cudaResourceOffsetSizeFlatteneds, offsetSizeFlattenedsBuffer, cudaGraphicsRegisterFlagsNone));
 #endif
+
+    // setup LZ4 decompression context
+    auto status = LZ4F_createDecompressionContext(&dctx, LZ4F_VERSION);
+    if (LZ4F_isError(status)) {
+        spdlog::error("Failed to create LZ4 context: {}", LZ4F_getErrorName(status));
+        return;
+    }
 }
 
 QuadBuffers::~QuadBuffers() {
@@ -27,10 +34,40 @@ QuadBuffers::~QuadBuffers() {
     CHECK_CUDA_ERROR(cudaGraphicsUnregisterResource(cudaResourceDepths));
     CHECK_CUDA_ERROR(cudaGraphicsUnregisterResource(cudaResourceOffsetSizeFlatteneds));
 #endif
+
+    LZ4F_freeDecompressionContext(dctx);
 }
 
 void QuadBuffers::resize(unsigned int numProxies) {
     this->numProxies = numProxies;
+}
+
+unsigned int QuadBuffers::loadFromFile(const std::string &filename, unsigned int* numBytesLoaded) {
+#if !defined(__ANDROID__)
+    if (!std::filesystem::exists(filename)) {
+        spdlog::error("File {} does not exist", filename);
+        return 0;
+    }
+#endif
+
+    auto quadDataCompressed = FileIO::loadBinaryFile(filename);
+    size_t srcSize = quadDataCompressed.size();
+    size_t dstSize = maxProxies * sizeof(QuadMapDataPacked) + sizeof(unsigned int);
+
+    auto ret = LZ4F_decompress(dctx,
+                               data.data(), &dstSize,
+                               quadDataCompressed.data(), &srcSize,
+                               nullptr);
+    if (LZ4F_isError(ret)) {
+        spdlog::error("LZ4 decompression failed: {}", LZ4F_getErrorName(ret));
+        return 0;
+    }
+
+    if (numBytesLoaded != nullptr) {
+        *numBytesLoaded = srcSize;
+    }
+
+    return loadFromMemory(reinterpret_cast<const char*>(data.data()));
 }
 
 unsigned int QuadBuffers::loadFromMemory(const char* data) {
@@ -56,18 +93,16 @@ unsigned int QuadBuffers::loadFromMemory(const char* data) {
     return numProxies;
 }
 
-unsigned int QuadBuffers::loadFromFile(const std::string &filename) {
-#if !defined(__APPLE__) && !defined(__ANDROID__)
-    if (!std::filesystem::exists(filename)) {
-        spdlog::error("File {} does not exist", filename);
-        return 0;
-    }
-#endif
-    auto quaddata = FileIO::loadBinaryFile(filename);
-    return loadFromMemory(quaddata.data());
+#ifdef GL_CORE
+unsigned int QuadBuffers::saveToFile(const std::string &filename) {
+    unsigned int size = updateDataBuffer();
+    std::ofstream quadsFile(filename + ".lz4", std::ios::binary);
+    lz4_stream::ostream lz4_stream(quadsFile);
+    lz4_stream.write(reinterpret_cast<const char*>(data.data()), size);
+    lz4_stream.close();
+    return size;
 }
 
-#ifdef GL_CORE
 unsigned int QuadBuffers::updateDataBuffer() {
     unsigned int bufferOffset = 0;
 
@@ -112,13 +147,5 @@ unsigned int QuadBuffers::updateDataBuffer() {
     bufferOffset += numProxies * sizeof(unsigned int);
 #endif
     return bufferOffset;
-}
-
-unsigned int QuadBuffers::saveToFile(const std::string &filename) {
-    unsigned int size = updateDataBuffer();
-    std::ofstream quadsFile(filename, std::ios::binary);
-    quadsFile.write(reinterpret_cast<const char*>(data.data()), size);
-    quadsFile.close();
-    return size;
 }
 #endif

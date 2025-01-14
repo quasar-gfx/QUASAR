@@ -1,6 +1,8 @@
 #ifndef QUAD_BUFFERS_H
 #define QUAD_BUFFERS_H
 
+#include <lz4_stream/lz4_stream.h>
+
 #include <Buffer.h>
 #include <Utils/FileIO.h>
 
@@ -35,13 +37,15 @@ public:
     void resize(unsigned int numProxies);
 
     unsigned int loadFromMemory(const char* data);
-    unsigned int loadFromFile(const std::string &filename);
+    unsigned int loadFromFile(const std::string &filename, unsigned int* numBytesLoaded = nullptr);
 #ifdef GL_CORE
     unsigned int saveToFile(const std::string &filename);
     unsigned int updateDataBuffer();
 #endif
 
 private:
+    LZ4F_dctx* dctx = nullptr;
+
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     cudaGraphicsResource* cudaResourceNormalSphericals;
     cudaGraphicsResource* cudaResourceDepths;

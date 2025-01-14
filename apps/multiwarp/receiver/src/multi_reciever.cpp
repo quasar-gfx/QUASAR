@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'V', "vsync"}, true);
     args::Flag verbose(parser, "verbose", "Enable verbose logging", {'v', "verbose"});
     args::ValueFlag<int> maxAdditionalViewsIn(parser, "maxViews", "Max views", {'l', "num-views"}, 8);
-    args::Flag loadProxies(parser, "load-proxies", "Load proxies from quads.bin", {'m', "load-proxies"});
+    args::Flag loadProxies(parser, "load-proxies", "Load proxies from quads.bin.lz4", {'m', "load-proxies"});
     args::Flag disableWideFov(parser, "disable-wide-fov", "Disable wide fov view", {'W', "disable-wide-fov"});
     try {
         parser.ParseCLI(argc, argv);
@@ -137,13 +137,16 @@ int main(int argc, char** argv) {
     unsigned int totalProxies = -1;
     unsigned int totalDepthOffsets = -1;
 
+    unsigned int numBytesProxies = 0;
+    unsigned int numBytesDepthOffsets = 0;
+
     double startTime = window->getTime();
     double loadFromFilesTime = 0.0;
     double createMeshTime = 0.0;
     if (!args::get(loadProxies)) {
         for (int view = 0; view < maxViews; view++) {
-            std::string verticesFileName = DATA_PATH + "vertices" + std::to_string(view) + ".bin";
-            std::string indicesFileName = DATA_PATH + "indices" + std::to_string(view) + ".bin";
+            std::string verticesFileName = DATA_PATH + "vertices" + std::to_string(view) + ".bin.lz4";
+            std::string indicesFileName = DATA_PATH + "indices" + std::to_string(view) + ".bin.lz4";
 
             auto vertexData = FileIO::loadBinaryFile(verticesFileName);
             auto indexData = FileIO::loadBinaryFile(indicesFileName);
@@ -176,14 +179,18 @@ int main(int argc, char** argv) {
         const glm::uvec2 depthBufferSize = 2u * windowSize;
         DepthOffsets depthOffsets(depthBufferSize);
 
+        unsigned int numBytes;
         for (int view = 0; view < maxViews; view++) {
             startTime = window->getTime();
+
             // load proxies
-            std::string quadProxiesFileName = DATA_PATH + "quads" + std::to_string(view) + ".bin";
-            unsigned int numProxies = quadBuffers.loadFromFile(quadProxiesFileName);
+            std::string quadProxiesFileName = DATA_PATH + "quads" + std::to_string(view) + ".bin.lz4";
+            unsigned int numProxies = quadBuffers.loadFromFile(quadProxiesFileName, &numBytes);
+            numBytesProxies += numBytes;
             // load depth offsets
-            std::string depthOffsetsFileName = DATA_PATH + "depthOffsets" + std::to_string(view) + ".bin";
-            unsigned int numDepthOffsets = depthOffsets.loadFromFile(depthOffsetsFileName);
+            std::string depthOffsetsFileName = DATA_PATH + "depthOffsets" + std::to_string(view) + ".bin.lz4";
+            unsigned int numDepthOffsets = depthOffsets.loadFromFile(depthOffsetsFileName, &numBytes);
+            numBytesDepthOffsets += numBytes;
 
             meshes[view] = new Mesh({
                 .numVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
@@ -299,12 +306,10 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
-            if (totalProxies != -1 && totalDepthOffsets != -1) {
-                float proxySizeMb = static_cast<float>(totalProxies * sizeof(QuadMapDataPacked)) / BYTES_IN_MB;
-                float depthOffsetSizeMb = static_cast<float>(totalDepthOffsets * sizeof(uint16_t)) / BYTES_IN_MB;
-                ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%.3f MB)", totalProxies, proxySizeMb);
-                ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%.3f MB)", totalDepthOffsets, depthOffsetSizeMb);
-            }
+            float proxySizeMb = static_cast<float>(numBytesProxies) / BYTES_IN_MB;
+            float depthOffsetSizeMb = static_cast<float>(numBytesDepthOffsets) / BYTES_IN_MB;
+            ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%.3f MB)", totalProxies, proxySizeMb);
+            ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%.3f MB)", totalDepthOffsets, depthOffsetSizeMb);
 
             ImGui::Separator();
 

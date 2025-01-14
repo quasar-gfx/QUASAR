@@ -4,13 +4,15 @@
 #include <iostream>
 #include <iomanip>
 #include <deque>
+
+#include <lz4_stream/lz4_stream.h>
+
+#include <Buffer.h>
 #include <Texture.h>
 #include <Networking/DataReceiverTCP.h>
 #include <Utils/TimeUtils.h>
-#include <CameraPose.h>
-#include <Buffer.h>
 
-#include <lz4_stream/lz4_stream.h>
+#include <CameraPose.h>
 
 class BC4DepthVideoTexture : public Texture, public DataReceiverTCP {
 public:
@@ -23,7 +25,7 @@ public:
 
     std::string streamerURL;
 
-    // struct Stats {  
+    // struct Stats {
     //     float timeToReceiveMs = -1.0f;
     //     float bitrateMbps = -1.0f;
     // } stats;
@@ -38,6 +40,7 @@ public:
     ReceiverStats stats;
 
     BC4DepthVideoTexture(const TextureDataCreateParams &params, std::string streamerURL);
+    ~BC4DepthVideoTexture() override;
 
     void setMaxQueueSize(unsigned int maxQueueSize) {
         this->maxQueueSize = maxQueueSize;
@@ -60,6 +63,8 @@ private:
     };
     std::deque<FrameData> depthFrames;
     size_t compressedSize;
+
+    LZ4F_dctx* dctx = nullptr;
 
     void onDataReceived(const std::vector<uint8_t>& data) override;
 };
