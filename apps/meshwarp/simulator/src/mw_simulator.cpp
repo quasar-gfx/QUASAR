@@ -21,8 +21,6 @@
 #define THREADS_PER_LOCALGROUP 16
 
 int main(int argc, char** argv) {
-    spdlog::set_pattern("[%H:%M:%S] [%^%L%$] %v");
-
     Config config{};
     config.title = "MeshWarp Simulator";
 
@@ -388,6 +386,11 @@ int main(int argc, char** argv) {
             if (!animator.running) {
                 recorder.stop();
                 window->close();
+
+                double avgPosError, avgRotError, avgTimeError, stdPosError, stdRotError, stdTimeError;
+                poseSendRecvSimulator.getAvgErrors(avgPosError, avgRotError, avgTimeError, stdPosError, stdRotError, stdTimeError);
+                spdlog::info("Pose Error: Pos ({:.2f}±{:.2f}), Rot ({:.2f}±{:.2f}), RTT ({:.2f}±{:.2f})",
+                            avgPosError, stdPosError, avgRotError, stdRotError, avgTimeError, stdTimeError);
             }
         }
         else {
@@ -472,11 +475,6 @@ int main(int argc, char** argv) {
             spdlog::info("Rendering Time: {:.2f}ms", totalRenderTime);
             spdlog::info("Create Mesh Time: {:.2f}ms", totalGenMeshTime);
             spdlog::info("  Create Vert/Ind Time: {:.2f}ms", totalCreateVertIndTime);
-
-            double avgPosError, avgRotError, avgTimeError, stdPosError, stdRotError, stdTimeError;
-            poseSendRecvSimulator.getAvgErrors(avgPosError, avgRotError, avgTimeError, stdPosError, stdRotError, stdTimeError);
-            spdlog::warn("Pose Error: Pos ({:.2f}±{:.2f}), Rot ({:.2f}±{:.2f}), RTT ({:.2f}±{:.2f})",
-                        avgPosError, stdPosError, avgRotError, stdRotError, avgTimeError, stdTimeError);
 
             preventCopyingLocalPose = false;
             rerender = false;

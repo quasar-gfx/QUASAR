@@ -14,7 +14,9 @@ OpenGLApp::OpenGLApp(const Config &config)
         : window(config.window)
         , guiManager(config.guiManager)
         , targetFramerate(config.enableVSync ? config.targetFramerate : 0) {
-    // check version
+    spdlog::set_pattern("[%H:%M:%S] [%^%L%$] %v");
+
+    // check opengl version
     if (config.openglMajorVersion < 3 || (config.openglMajorVersion == 3 && config.openglMinorVersion < 3)) {
         throw std::runtime_error("OpenGL version must be 3.3 or higher");
     }

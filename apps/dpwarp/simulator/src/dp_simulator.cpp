@@ -19,13 +19,13 @@
 #include <Quads/QuadsGenerator.h>
 #include <Quads/MeshFromQuads.h>
 #include <Quads/QuadMaterial.h>
-#include <shaders_common.h>
+#include <Quads/FrameGenerator.h>
 
 #include <PoseSendRecvSimulator.h>
 
-int main(int argc, char** argv) {
-    spdlog::set_pattern("[%H:%M:%S] [%^%L%$] %v");
+#include <shaders_common.h>
 
+int main(int argc, char** argv) {
     Config config{};
     config.title = "Depth Peeling Simulator";
 
@@ -116,6 +116,7 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera(windowSize.x, windowSize.y);
     camera.setViewMatrix(remoteCameraCenter.getViewMatrix());
 
+    FrameGenerator frameGenerator;
     QuadsGenerator quadsGenerator(remoteWindowSize);
     MeshFromQuads meshFromQuads(remoteWindowSize);
 
@@ -442,9 +443,13 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             const int columns = 3;
-            for (int i = 0; i < maxViews; i++) {
-                ImGui::Checkbox(("Show Layer " + std::to_string(i)).c_str(), &showLayers[i]);
-                if ((i + 1) % columns != 0) {
+            for (int view = 0; view < maxViews; view++) {
+                if (ImGui::Checkbox(("Show View " + std::to_string(view)).c_str(), &showLayers[view])) {
+                    preventCopyingLocalPose = true;
+                    rerender = true;
+                    runAnimations = false;
+                }
+                if ((view + 1) % columns != 0) {
                     ImGui::SameLine();
                 }
             }
@@ -608,6 +613,11 @@ int main(int argc, char** argv) {
             if (!animator.running) {
                 recorder.stop();
                 window->close();
+
+                double avgPosError, avgRotError, avgTimeError, stdPosError, stdRotError, stdTimeError;
+                poseSendRecvSimulator.getAvgErrors(avgPosError, avgRotError, avgTimeError, stdPosError, stdRotError, stdTimeError);
+                spdlog::info("Pose Error: Pos ({:.2f}±{:.2f}), Rot ({:.2f}±{:.2f}), RTT ({:.2f}±{:.2f})",
+                            avgPosError, stdPosError, avgRotError, stdRotError, avgTimeError, stdTimeError);
             }
         }
         else {
@@ -628,6 +638,7 @@ int main(int argc, char** argv) {
 
         if (rerenderInterval > 0 && now - lastRenderTime > rerenderInterval / MILLISECONDS_IN_SECOND) {
             rerender = true;
+            runAnimations = true;
             lastRenderTime = now;
         }
         if (rerender) {
@@ -638,6 +649,9 @@ int main(int argc, char** argv) {
             double totalSimplifyTime = 0.0;
             double totalFillQuadsTime = 0.0;
             double totalCreateMeshTime = 0.0;
+            double totalAppendProxiesMsTime = 0.0;
+            double totalFillQuadsIndiciesMsTime = 0.0;
+            double totalCreateVertIndTime = 0.0;
             double totalGenDepthTime = 0.0;
 
             totalProxies = 0;
@@ -678,7 +692,7 @@ int main(int argc, char** argv) {
                 // wide fov camera
                 else {
                     // draw old meshes at new remoteCamera view, filling stencil buffer with 1
-                    wideFOVRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
+                    wideFOVRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer(GL_KEEP, GL_KEEP, GL_REPLACE);
                     wideFOVRenderer.pipeline.writeMaskState.disableColorWrites();
                     wideFOVRenderer.drawObjectsNoLighting(meshScene, remoteCamera);
 
@@ -698,17 +712,27 @@ int main(int argc, char** argv) {
                     }
                 }
 
-                // create proxies from the new frame
-                startTime = window->getTime();
-                auto sizes = quadsGenerator.createProxiesFromGBuffer(gBufferRTs[view], remoteCamera);
-                unsigned int numProxies = sizes.numProxies;
-                unsigned int numDepthOffsets = sizes.numDepthOffsets;
-                totalProxies += numProxies;
-                totalDepthOffsets += numDepthOffsets;
-                totalCreateProxiesTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
-                totalGenQuadMapTime += quadsGenerator.stats.timeToGenerateQuadsMs;
-                totalSimplifyTime += quadsGenerator.stats.timeToSimplifyQuadsMs;
-                totalFillQuadsTime += quadsGenerator.stats.timeToFillOutputQuadsMs;
+                unsigned int numProxies = 0, numDepthOffsets = 0;
+                frameGenerator.generateIFrame(
+                    gBufferRTs[view], remoteCamera,
+                    quadsGenerator, meshFromQuads, *currMesh,
+                    numProxies, numDepthOffsets
+                );
+                if (showLayers[view]) {
+                    totalProxies += numProxies;
+                    totalDepthOffsets += numDepthOffsets;
+                }
+
+                totalCreateProxiesTime += frameGenerator.stats.timeToCreateProxies;
+                totalCreateMeshTime += frameGenerator.stats.timeToCreateMeshes;
+
+                totalGenQuadMapTime += frameGenerator.stats.timeToGenerateQuads;
+                totalSimplifyTime += frameGenerator.stats.timeToSimplifyQuads;
+                totalFillQuadsTime += frameGenerator.stats.timeToFillOutputQuads;
+
+                totalAppendProxiesMsTime += frameGenerator.stats.timeToAppendProxies;
+                totalFillQuadsIndiciesMsTime += frameGenerator.stats.timeToFillQuadIndices;
+                totalCreateVertIndTime += frameGenerator.stats.timeToCreateVertInd;
 
                 if (saveToFile) {
                     unsigned int savedBytes;
@@ -732,25 +756,10 @@ int main(int argc, char** argv) {
                     gBufferRTs[view].saveColorAsPNG(colorFileName);
                 }
 
-                glm::vec2 gBufferSize = glm::vec2(gBufferRTs[view].width, gBufferRTs[view].height);
-
-                // create mesh from proxies
-                startTime = window->getTime();
-                meshFromQuads.appendProxies(
-                    gBufferSize,
-                    numProxies,
-                    quadsGenerator.outputQuadBuffers
-                );
-                meshFromQuads.createMeshFromProxies(
-                    gBufferSize,
-                    numProxies, quadsGenerator.depthOffsets,
-                    remoteCamera,
-                    *currMesh
-                );
-                totalCreateMeshTime += meshFromQuads.stats.timeToCreateMeshMs;
-
                 // For debugging: Generate point cloud from depth map
                 if (showDepth) {
+                    glm::vec2 gBufferSize = glm::vec2(gBufferRTs[view].width, gBufferRTs[view].height);
+
                     meshFromDepthShader.startTiming();
 
                     meshFromDepthShader.bind();
@@ -794,12 +803,10 @@ int main(int argc, char** argv) {
             spdlog::info("  Simplify Time: {:.3f}ms", totalSimplifyTime);
             spdlog::info("  Fill Quads Time: {:.3f}ms", totalFillQuadsTime);
             spdlog::info("Create Mesh Time: {:.3f}ms", totalCreateMeshTime);
+            spdlog::info("  Append Quads Time: {:.3f}ms", totalAppendProxiesMsTime);
+            spdlog::info("  Fill Output Quads Time: {:.3f}ms", totalFillQuadsIndiciesMsTime);
+            spdlog::info("  Create Vert/Ind Time: {:.3f}ms", totalCreateVertIndTime);
             if (showDepth) spdlog::info("Gen Depth Time: {:.3f}ms", totalGenDepthTime);
-
-            double avgPosError, avgRotError, avgTimeError, stdPosError, stdRotError, stdTimeError;
-            poseSendRecvSimulator.getAvgErrors(avgPosError, avgRotError, avgTimeError, stdPosError, stdRotError, stdTimeError);
-            spdlog::warn("Pose Error: Pos ({:.2f}±{:.2f}), Rot ({:.2f}±{:.2f}), RTT ({:.2f}±{:.2f})",
-                        avgPosError, stdPosError, avgRotError, stdRotError, avgTimeError, stdTimeError);
 
             preventCopyingLocalPose = false;
             rerender = false;

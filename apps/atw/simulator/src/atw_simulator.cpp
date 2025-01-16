@@ -19,8 +19,6 @@
 #include <PoseSendRecvSimulator.h>
 
 int main(int argc, char** argv) {
-    spdlog::set_pattern("[%H:%M:%S] [%^%L%$] %v");
-
     Config config{};
     config.title = "ATW Simulator";
 
@@ -320,6 +318,11 @@ int main(int argc, char** argv) {
             if (!animator.running) {
                 recorder.stop();
                 window->close();
+
+                double avgPosError, avgRotError, avgTimeError, stdPosError, stdRotError, stdTimeError;
+                poseSendRecvSimulator.getAvgErrors(avgPosError, avgRotError, avgTimeError, stdPosError, stdRotError, stdTimeError);
+                spdlog::info("Pose Error: Pos ({:.2f}±{:.2f}), Rot ({:.2f}±{:.2f}), RTT ({:.2f}±{:.2f})",
+                            avgPosError, stdPosError, avgRotError, stdRotError, avgTimeError, stdTimeError);
             }
         }
         else {
@@ -363,11 +366,6 @@ int main(int argc, char** argv) {
 
             spdlog::info("======================================================");
             spdlog::info("Rendering Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
-
-            double avgPosError, avgRotError, avgTimeError, stdPosError, stdRotError, stdTimeError;
-            poseSendRecvSimulator.getAvgErrors(avgPosError, avgRotError, avgTimeError, stdPosError, stdRotError, stdTimeError);
-            spdlog::warn("Pose Error: Pos ({:.2f}±{:.2f}), Rot ({:.2f}±{:.2f}), RTT ({:.2f}±{:.2f})",
-                        avgPosError, stdPosError, avgRotError, stdRotError, avgTimeError, stdTimeError);
 
             preventCopyingLocalPose = false;
             rerender = false;

@@ -46,7 +46,7 @@ public:
 
     QuadBuffers currentQuadBuffers;
 
-    MeshFromQuads(const glm::uvec2 &remoteWindowSize);
+    MeshFromQuads(const glm::uvec2 &remoteWindowSize, unsigned int maxNumProxies = MAX_NUM_PROXIES);
     ~MeshFromQuads() = default;
 
     void appendProxies(

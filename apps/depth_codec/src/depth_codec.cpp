@@ -47,8 +47,6 @@ double calculateMSE(const std::vector<float>& original, const std::vector<float>
 }
 
 int main(int argc, char** argv) {
-    spdlog::set_pattern("[%H:%M:%S] [%^%L%$] %v");
-
     Config config{};
     config.title = "BC4 Compression";
 
