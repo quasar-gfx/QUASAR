@@ -26,8 +26,6 @@ enum class RenderState {
 };
 
 int main(int argc, char** argv) {
-    spdlog::set_pattern("[%H:%M:%S] [%^%L%$] %v");
-
     Config config{};
     config.title = "MeshWarp Receiver";
 

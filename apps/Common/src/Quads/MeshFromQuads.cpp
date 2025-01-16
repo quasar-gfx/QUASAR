@@ -1,9 +1,9 @@
 #include <Quads/MeshFromQuads.h>
 
-MeshFromQuads::MeshFromQuads(const glm::uvec2 &remoteWindowSize)
+MeshFromQuads::MeshFromQuads(const glm::uvec2 &remoteWindowSize, unsigned int maxNumProxies)
         : remoteWindowSize(remoteWindowSize)
         , depthBufferSize(2u * remoteWindowSize) // 4 offsets per pixel
-        , maxProxies(MAX_NUM_PROXIES)
+        , maxProxies(maxNumProxies)
         , meshSizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, 1, nullptr)
         , quadIndicesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, remoteWindowSize.x * remoteWindowSize.y, nullptr)
         , prevNumProxiesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, nullptr)

@@ -34,8 +34,6 @@ const std::vector<glm::vec3> offsets = {
 };
 
 int main(int argc, char** argv) {
-    spdlog::set_pattern("[%H:%M:%S] [%^%L%$] %v");
-
     Config config{};
     config.title = "Multi-Camera Simulator";
 
@@ -641,6 +639,7 @@ int main(int argc, char** argv) {
 
         if (rerenderInterval > 0 && now - lastRenderTime > rerenderInterval / MILLISECONDS_IN_SECOND) {
             rerender = true;
+            runAnimations = true;
             lastRenderTime = now;
         }
         if (rerender) {
@@ -699,7 +698,7 @@ int main(int argc, char** argv) {
                         meshScene.rootNode.children[prevView]->visible = (prevView < view);
                     }
                     // draw old meshes at new remoteCamera view, filling stencil buffer with 1
-                    renderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
+                    renderer.pipeline.stencilState.enableRenderingIntoStencilBuffer(GL_KEEP, GL_KEEP, GL_REPLACE);
                     renderer.pipeline.writeMaskState.disableColorWrites();
                     renderer.drawObjectsNoLighting(meshScene, remoteCamera);
 

@@ -21,8 +21,6 @@
 #define THREADS_PER_LOCALGROUP 16
 
 int main(int argc, char** argv) {
-    spdlog::set_pattern("[%H:%M:%S] [%^%L%$] %v");
-
     Config config{};
     config.title = "MeshWarp Simulator";
 

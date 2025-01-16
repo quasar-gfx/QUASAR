@@ -43,7 +43,7 @@ public:
     }
 
 private:
-    ScrollOffset scrollOffset;
+    ScrollOffset scrollOffset = {0.0, 0.0};
 
     bool frameResized = true;
 };

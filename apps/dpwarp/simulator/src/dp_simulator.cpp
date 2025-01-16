@@ -24,8 +24,6 @@
 #include <PoseSendRecvSimulator.h>
 
 int main(int argc, char** argv) {
-    spdlog::set_pattern("[%H:%M:%S] [%^%L%$] %v");
-
     Config config{};
     config.title = "Depth Peeling Simulator";
 
@@ -628,6 +626,7 @@ int main(int argc, char** argv) {
 
         if (rerenderInterval > 0 && now - lastRenderTime > rerenderInterval / MILLISECONDS_IN_SECOND) {
             rerender = true;
+            runAnimations = true;
             lastRenderTime = now;
         }
         if (rerender) {
@@ -678,7 +677,7 @@ int main(int argc, char** argv) {
                 // wide fov camera
                 else {
                     // draw old meshes at new remoteCamera view, filling stencil buffer with 1
-                    wideFOVRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer();
+                    wideFOVRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer(GL_KEEP, GL_KEEP, GL_REPLACE);
                     wideFOVRenderer.pipeline.writeMaskState.disableColorWrites();
                     wideFOVRenderer.drawObjectsNoLighting(meshScene, remoteCamera);
 

@@ -19,7 +19,7 @@ struct StencilState {
     GLenum stencilPassDepthPass = GL_KEEP;
     GLuint writeStencilMask = 0xFF;
 
-    void enableRenderingIntoStencilBuffer() {
+    void enableRenderingIntoStencilBuffer(GLenum stencilFail, GLenum stencilPassDepthFail, GLenum stencilPassDepthPass) {
         stencilTestEnabled = true;
 
         stencilFunc = GL_ALWAYS;
@@ -28,9 +28,9 @@ struct StencilState {
 
         writeStencilMask = 0xFF;
 
-        stencilFail = GL_KEEP;
-        stencilPassDepthFail = GL_KEEP;
-        stencilPassDepthPass = GL_REPLACE;
+        this->stencilFail = stencilFail;
+        this->stencilPassDepthFail = stencilPassDepthFail;
+        this->stencilPassDepthPass = stencilPassDepthPass;
     };
 
     void enableRenderingUsingStencilBufferAsMask(GLenum stencilFunc, GLint stencilRef) {
