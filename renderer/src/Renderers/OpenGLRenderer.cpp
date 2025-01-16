@@ -312,7 +312,7 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, N
 
 #ifdef GL_CORE
             // set polygon mode to wireframe if needed
-            if (node->wireframe) {
+            if (node->wireframe || node->primativeType == GL_LINES) {
                 glEnable(GL_POLYGON_OFFSET_LINE); // to avoid z-fighting
                 glPolygonOffset(-1.0, -1.0); // adjust depth
                 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -323,6 +323,11 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, N
                 glPolygonOffset(-1.0, -1.0); // adjust depth
                 glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
                 glPointSize(node->pointSize);
+            }
+#else
+            if (node->primativeType == GL_LINES) {
+                glLineWidth(node->wireframeLineWidth);
+                glDepthRangef(0.0f, 0.999f);
             }
 #endif
 
@@ -337,6 +342,10 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, N
             if (node->primativeType == GL_POINTS) {
                 glDisable(GL_POLYGON_OFFSET_POINT);
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            }
+#else
+            if (node->primativeType == GL_LINES) {
+                glDepthRangef(0.0f, 1.0f);
             }
 #endif
         }
