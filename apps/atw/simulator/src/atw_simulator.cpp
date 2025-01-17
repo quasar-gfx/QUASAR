@@ -366,6 +366,7 @@ int main(int argc, char** argv) {
 
             spdlog::info("======================================================");
             spdlog::info("Rendering Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
+            spdlog::info("Frame Size: {:.3f}MB", 0.000f);
 
             preventCopyingLocalPose = false;
             rerender = false;

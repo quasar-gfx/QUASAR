@@ -667,6 +667,8 @@ int main(int argc, char** argv) {
             double totalCreateVertIndTime = 0.0;
             double totalGenDepthTime = 0.0;
 
+            unsigned int compressedSize = 0;
+
             totalProxies = 0;
             totalDepthOffsets = 0;
 
@@ -734,7 +736,7 @@ int main(int argc, char** argv) {
                 totalRenderTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
 
                 unsigned int numProxies = 0, numDepthOffsets = 0;
-                frameGenerator.generateIFrame(
+                compressedSize += frameGenerator.generateIFrame(
                     gBufferRTs[view], remoteCamera,
                     quadsGenerator, meshFromQuads, *currMesh,
                     numProxies, numDepthOffsets
@@ -823,6 +825,7 @@ int main(int argc, char** argv) {
             spdlog::info("  Fill Output Quads Time: {:.3f}ms", totalFillQuadsIndiciesMsTime);
             spdlog::info("  Create Vert/Ind Time: {:.3f}ms", totalCreateVertIndTime);
             if (showDepth) spdlog::info("Gen Depth Time: {:.3f}ms", totalGenDepthTime);
+            spdlog::info("Frame Size: {:.3f}MB", (float)(compressedSize) / BYTES_IN_MB);
 
             preventCopyingLocalPose = false;
             rerender = false;

@@ -2,6 +2,7 @@
 #include <filesystem>
 #endif
 
+#include <lz4.h>
 #include <spdlog/spdlog.h>
 
 #include <Quads/QuadsBuffers.h>
@@ -94,6 +95,17 @@ unsigned int QuadBuffers::loadFromMemory(const char* data) {
 }
 
 #ifdef GL_CORE
+unsigned int QuadBuffers::saveToMemory(std::vector<char> &compressedData) {
+    unsigned int dataSize = updateDataBuffer();
+    compressedData.resize(LZ4F_compressFrameBound(dataSize, nullptr));
+    int outputSize = LZ4_compress_default(
+                        reinterpret_cast<const char*>(data.data()),
+                        compressedData.data(),
+                        dataSize,
+                        compressedData.size());
+    return outputSize;
+}
+
 unsigned int QuadBuffers::saveToFile(const std::string &filename) {
     unsigned int size = updateDataBuffer();
     std::ofstream quadsFile(filename + ".lz4", std::ios::binary);

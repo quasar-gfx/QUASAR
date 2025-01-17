@@ -241,6 +241,17 @@ QuadsGenerator::BufferSizes QuadsGenerator::createProxiesFromGBuffer(const GBuff
 }
 
 #ifdef GL_CORE
+unsigned int QuadsGenerator::saveQuadsToMemory(std::vector<char> &compressedData) {
+    auto bufferSizes = getBufferSizes();
+    unsigned int numProxies = bufferSizes.numProxies;
+    outputQuadBuffers.resize(numProxies);
+    return outputQuadBuffers.saveToMemory(compressedData);
+}
+
+unsigned int QuadsGenerator::saveDepthOffsetsToMemory(std::vector<char> &compressedData) {
+    return depthOffsets.saveToMemory(compressedData);
+}
+
 unsigned int QuadsGenerator::saveToFile(const std::string &filename) {
     auto bufferSizes = getBufferSizes();
     unsigned int numProxies = bufferSizes.numProxies;

@@ -475,6 +475,7 @@ int main(int argc, char** argv) {
             spdlog::info("Rendering Time: {:.2f}ms", totalRenderTime);
             spdlog::info("Create Mesh Time: {:.2f}ms", totalGenMeshTime);
             spdlog::info("  Create Vert/Ind Time: {:.2f}ms", totalCreateVertIndTime);
+            spdlog::info("Frame Size: {:.3f}MB", ((float)(windowSize.x * windowSize.y * sizeof(uint32_t)) / 8) / BYTES_IN_MB);
 
             preventCopyingLocalPose = false;
             rerender = false;

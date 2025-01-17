@@ -39,6 +39,7 @@ public:
     unsigned int loadFromMemory(const char* data);
     unsigned int loadFromFile(const std::string &filename, unsigned int* numBytesLoaded = nullptr);
 #ifdef GL_CORE
+    unsigned int saveToMemory(std::vector<char> &compressedData);
     unsigned int saveToFile(const std::string &filename);
     unsigned int updateDataBuffer();
 #endif

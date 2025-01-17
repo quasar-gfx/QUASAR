@@ -2,6 +2,7 @@
 #define DEPTH_OFFSETS_H
 
 #include <spdlog/spdlog.h>
+#include <lz4.h>
 #include <lz4_stream/lz4_stream.h>
 
 #include <Texture.h>
@@ -105,8 +106,29 @@ public:
         return loadFromMemory(reinterpret_cast<const char*>(data.data()));
     }
 
-    unsigned int saveToFile(const std::string &filename) {
 #if !defined(__APPLE__) && !defined(__ANDROID__)
+    unsigned int saveToMemory(std::vector<char> &compressedData) {
+        cudaArray* cudaBuffer;
+        CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
+        CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
+        CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
+        CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(data.data(),
+                                              size.x * 4 * sizeof(uint16_t),
+                                              cudaBuffer,
+                                              0, 0,
+                                              size.x * 4 * sizeof(uint16_t), size.y,
+                                              cudaMemcpyDeviceToHost));
+
+        compressedData.resize(LZ4F_compressFrameBound(data.size(), nullptr));
+        int outputSize = LZ4_compress_default(
+                            reinterpret_cast<const char*>(data.data()),
+                            compressedData.data(),
+                            data.size(),
+                            compressedData.size());
+        return outputSize;
+    }
+
+    unsigned int saveToFile(const std::string &filename) {
         cudaArray* cudaBuffer;
         CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
         CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
@@ -122,10 +144,10 @@ public:
         lz4_stream::ostream lz4_stream(quadsFile);
         lz4_stream.write(reinterpret_cast<const char*>(data.data()), data.size());
         lz4_stream.close();
-#endif
 
         return data.size();
     }
+#endif
 
 private:
     LZ4F_dctx* dctx = nullptr;

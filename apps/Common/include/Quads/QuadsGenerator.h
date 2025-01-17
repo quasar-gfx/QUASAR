@@ -25,7 +25,7 @@ public:
     float distanceThreshold = 0.5f;
     float angleThreshold = 87.0f;
     float flatThreshold = 2.0f;
-    float proxySimilarityThreshold = 0.05f;
+    float proxySimilarityThreshold = 0.5f;
 
     glm::uvec2 remoteWindowSize;
     glm::uvec2 depthBufferSize;
@@ -43,6 +43,8 @@ public:
     BufferSizes getBufferSizes();
     BufferSizes createProxiesFromGBuffer(const GBuffer& gBuffer, const PerspectiveCamera &remoteCamera);
 #ifdef GL_CORE
+    unsigned int saveQuadsToMemory(std::vector<char> &compressedData);
+    unsigned int saveDepthOffsetsToMemory(std::vector<char> &compressedData);
     unsigned int saveToFile(const std::string &filename);
     unsigned int saveDepthOffsetsToFile(const std::string &filename);
 #endif
