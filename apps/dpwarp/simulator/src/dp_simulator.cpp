@@ -110,7 +110,7 @@ int main(int argc, char** argv) {
         remoteCameraWideFov.setFovyDegrees(120.0f);
     }
 
-    // scene with all the meshes
+    // scene with all the meshLayers
     Scene scene;
     scene.envCubeMap = remoteScene.envCubeMap;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
@@ -144,24 +144,27 @@ int main(int argc, char** argv) {
     unsigned int maxVerticesDepth = remoteWindowSize.x * remoteWindowSize.y;
 
     Scene meshScene;
-    std::vector<Mesh*> meshes(maxViews);
-    std::vector<Mesh*> meshDepths(maxViews);
 
-    std::vector<Node*> nodes(maxViews);
-    std::vector<Node*> nodeWireframes(maxViews);
-    std::vector<Node*> nodeDepths(maxViews);
+    std::vector<Mesh> meshLayers; meshLayers.reserve(maxViews);
+    std::vector<Mesh> meshDepths; meshDepths.reserve(maxViews);
+
+    std::vector<Node> nodes; nodes.reserve(maxViews);
+    std::vector<Node> nodeWireframes; nodeWireframes.reserve(maxViews);
+    std::vector<Node> nodeDepths; nodeDepths.reserve(maxViews);
 
     for (int view = 0; view < maxViews; view++) {
-        meshes[view] = new Mesh({
+        MeshSizeCreateParams meshParams = {
             .numVertices = maxVertices,
             .numIndices = maxIndices,
             .material = new QuadMaterial({ .baseColorTexture = &gBufferRTs[view].colorBuffer }),
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true
-        });
-        nodes[view] = new Node(meshes[view]);
-        nodes[view]->frustumCulled = false;
-        scene.addChildNode(nodes[view]);
+        };
+        meshLayers.emplace_back(meshParams);
+
+        nodes.emplace_back(&meshLayers[view]);
+        nodes[view].frustumCulled = false;
+        scene.addChildNode(&nodes[view]);
 
         // primary view color is yellow
         glm::vec4 color = (view == 0) ? glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) :
@@ -170,25 +173,27 @@ int main(int argc, char** argv) {
                             fmod(view * 0.5f, 1.0f),
                             1.0f);
 
-        nodeWireframes[view] = new Node(meshes[view]);
-        nodeWireframes[view]->frustumCulled = false;
-        nodeWireframes[view]->wireframe = true;
-        nodeWireframes[view]->overrideMaterial = new UnlitMaterial({ .baseColor = color });
-        scene.addChildNode(nodeWireframes[view]);
+        nodeWireframes.emplace_back(&meshLayers[view]);
+        nodeWireframes[view].frustumCulled = false;
+        nodeWireframes[view].wireframe = true;
+        nodeWireframes[view].overrideMaterial = new UnlitMaterial({ .baseColor = color });
+        scene.addChildNode(&nodeWireframes[view]);
 
-        meshDepths[view] = new Mesh({
+        MeshSizeCreateParams meshDepthParams = {
             .numVertices = maxVerticesDepth,
             .material = new UnlitMaterial({ .baseColor = color }),
             .usage = GL_DYNAMIC_DRAW
-        });
-        nodeDepths[view] = new Node(meshDepths[view]);
-        nodeDepths[view]->frustumCulled = false;
-        nodeDepths[view]->primativeType = GL_POINTS;
-        scene.addChildNode(nodeDepths[view]);
+        };
+        meshDepths.emplace_back(meshDepthParams);
+
+        nodeDepths.emplace_back(&meshDepths[view]);
+        nodeDepths[view].frustumCulled = false;
+        nodeDepths[view].primativeType = GL_POINTS;
+        scene.addChildNode(&nodeDepths[view]);
     }
 
     // first mesh covers everything
-    Node* meshNode = new Node(meshes[0]);
+    Node* meshNode = new Node(&meshLayers[0]);
     meshNode->frustumCulled = false;
     meshScene.addChildNode(meshNode);
 
@@ -523,8 +528,8 @@ int main(int argc, char** argv) {
                     std::string indicesFileName = dataPath + "indices" + std::to_string(view) + ".bin";
 
                     // save vertexBuffer
-                    meshes[view]->vertexBuffer.bind();
-                    std::vector<Vertex> vertices = meshes[view]->vertexBuffer.getData();
+                    meshLayers[view].vertexBuffer.bind();
+                    std::vector<Vertex> vertices = meshLayers[view].vertexBuffer.getData();
                     std::ofstream verticesFile(dataPath + verticesFileName, std::ios::binary);
                     verticesFile.write((char*)vertices.data(), numVertices[view] * sizeof(Vertex));
                     verticesFile.close();
@@ -532,8 +537,8 @@ int main(int argc, char** argv) {
                                                 (float)numVertices[view] * sizeof(Vertex) / BYTES_IN_MB, view);
 
                     // save indexBuffer
-                    meshes[view]->indexBuffer.bind();
-                    std::vector<unsigned int> indices = meshes[view]->indexBuffer.getData();
+                    meshLayers[view].indexBuffer.bind();
+                    std::vector<unsigned int> indices = meshLayers[view].indexBuffer.getData();
                     std::ofstream indicesFile(dataPath + indicesFileName, std::ios::binary);
                     indicesFile.write((char*)indices.data(), numIndicies[view] * sizeof(unsigned int));
                     indicesFile.close();
@@ -679,8 +684,8 @@ int main(int argc, char** argv) {
             for (int view = 0; view < maxViews; view++) {
                 auto& remoteCamera = (disableWideFov || view != maxViews - 1) ? remoteCameraCenter : remoteCameraWideFov;
 
-                auto* currMesh = meshes[view];
-                auto* currMeshDepth = meshDepths[view];
+                auto& currMesh = meshLayers[view];
+                auto& currMeshDepth = meshDepths[view];
 
                 if (disableWideFov || view != maxViews - 1) {
                     // render to render target
@@ -693,7 +698,7 @@ int main(int argc, char** argv) {
                 }
                 // wide fov camera
                 else {
-                    // draw old meshes at new remoteCamera view, filling stencil buffer with 1
+                    // draw old meshLayers at new remoteCamera view, filling stencil buffer with 1
                     wideFOVRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer(GL_KEEP, GL_KEEP, GL_REPLACE);
                     wideFOVRenderer.pipeline.writeMaskState.disableColorWrites();
                     wideFOVRenderer.drawObjectsNoLighting(meshScene, remoteCamera);
@@ -717,7 +722,7 @@ int main(int argc, char** argv) {
                 unsigned int numProxies = 0, numDepthOffsets = 0;
                 compressedSize += frameGenerator.generateIFrame(
                     gBufferRTs[view], remoteCamera,
-                    quadsGenerator, meshFromQuads, *currMesh,
+                    quadsGenerator, meshFromQuads, currMesh,
                     numProxies, numDepthOffsets
                 );
                 if (showLayers[view]) {
@@ -781,7 +786,7 @@ int main(int argc, char** argv) {
                         meshFromDepthShader.setFloat("far", remoteCamera.getFar());
                     }
                     {
-                        meshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currMeshDepth->vertexBuffer);
+                        meshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currMeshDepth.vertexBuffer);
                         meshFromDepthShader.clearBuffer(GL_SHADER_STORAGE_BUFFER, 1);
                     }
                     meshFromDepthShader.dispatch((gBufferSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
@@ -815,9 +820,9 @@ int main(int argc, char** argv) {
         for (int view = 0; view < maxViews; view++) {
             bool showLayer = showLayers[view];
 
-            nodes[view]->visible = showLayer;
-            nodeWireframes[view]->visible = showLayer && showWireframe;
-            nodeDepths[view]->visible = showLayer && showDepth;
+            nodes[view].visible = showLayer;
+            nodeWireframes[view].visible = showLayer && showWireframe;
+            nodeDepths[view].visible = showLayer && showDepth;
         }
 
         if (saveImage && args::get(poseOffset).size() == 6) {

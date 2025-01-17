@@ -125,7 +125,7 @@ int main(int argc, char** argv) {
         remoteCameras[maxViews-1].setFovyDegrees(120.0f);
     }
 
-    // scene with all the meshes
+    // scene with all the meshViews
     Scene scene;
     scene.envCubeMap = remoteScene.envCubeMap;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
@@ -159,24 +159,27 @@ int main(int argc, char** argv) {
     unsigned int maxVerticesDepth = remoteWindowSize.x * remoteWindowSize.y;
 
     Scene meshScene;
-    std::vector<Mesh*> meshes(maxViews);
-    std::vector<Mesh*> meshDepths(maxViews);
+    std::vector<Mesh> meshViews; meshViews.reserve(maxViews);
+    std::vector<Mesh> meshDepths; meshDepths.reserve(maxViews);
 
-    std::vector<Node*> nodeDepths(maxViews);
-    std::vector<Node*> nodes(maxViews);
-    std::vector<Node*> nodeWireframes(maxViews);
+    std::vector<Node> nodes; nodes.reserve(maxViews);
+    std::vector<Node> nodeMeshes; nodeMeshes.reserve(maxViews);
+    std::vector<Node> nodeWireframes; nodeWireframes.reserve(maxViews);
+    std::vector<Node> nodeDepths; nodeDepths.reserve(maxViews);
 
     for (int view = 0; view < maxViews; view++) {
-        meshes[view] = new Mesh({
+        MeshSizeCreateParams meshParams = {
             .numVertices = maxVertices / (view == 0 || view == maxViews - 1 ? 1 : 2),
             .numIndices = maxIndices / (view == 0 || view == maxViews - 1 ? 1 : 2),
             .material = new QuadMaterial({ .baseColorTexture = &gBufferRTs[view].colorBuffer }),
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true
-        });
-        nodes[view] = new Node(meshes[view]);
-        nodes[view]->frustumCulled = false;
-        scene.addChildNode(nodes[view]);
+        };
+        meshViews.emplace_back(meshParams);
+
+        nodes.emplace_back(&meshViews[view]);
+        nodes[view].frustumCulled = false;
+        scene.addChildNode(&nodes[view]);
 
         // primary view color is yellow
         glm::vec4 color = (view == 0) ? glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) :
@@ -185,26 +188,28 @@ int main(int argc, char** argv) {
                             fmod(view * 0.5f, 1.0f),
                             1.0f);
 
-        nodeWireframes[view] = new Node(meshes[view]);
-        nodeWireframes[view]->frustumCulled = false;
-        nodeWireframes[view]->wireframe = true;
-        nodeWireframes[view]->overrideMaterial = new UnlitMaterial({ .baseColor = color });
-        scene.addChildNode(nodeWireframes[view]);
+        nodeWireframes.emplace_back(&meshViews[view]);
+        nodeWireframes[view].frustumCulled = false;
+        nodeWireframes[view].wireframe = true;
+        nodeWireframes[view].overrideMaterial = new UnlitMaterial({ .baseColor = color });
+        scene.addChildNode(&nodeWireframes[view]);
 
-        meshDepths[view] = new Mesh({
+        MeshSizeCreateParams meshDepthParams = {
             .numVertices = maxVerticesDepth,
             .material = new UnlitMaterial({ .baseColor = color }),
             .usage = GL_DYNAMIC_DRAW
-        });
-        nodeDepths[view] = new Node(meshDepths[view]);
-        nodeDepths[view]->frustumCulled = false;
-        nodeDepths[view]->primativeType = GL_POINTS;
-        scene.addChildNode(nodeDepths[view]);
+        };
+        meshDepths.emplace_back(meshDepthParams);
 
-        Node* meshNode = new Node(meshes[view]);
-        meshNode->frustumCulled = false;
-        meshNode->visible = (view == 0);
-        meshScene.addChildNode(meshNode);
+        nodeDepths.emplace_back(&meshDepths[view]);
+        nodeDepths[view].frustumCulled = false;
+        nodeDepths[view].primativeType = GL_POINTS;
+        scene.addChildNode(&nodeDepths[view]);
+
+        nodeMeshes.emplace_back(&meshViews[view]);
+        nodeMeshes[view].frustumCulled = false;
+        nodeMeshes[view].visible = (view == 0);
+        meshScene.addChildNode(&nodeMeshes[view]);
     }
 
     // shaders
@@ -537,8 +542,8 @@ int main(int argc, char** argv) {
                     std::string indicesFileName = dataPath + "indices" + std::to_string(view) + ".bin";
 
                     // save vertexBuffer
-                    meshes[view]->vertexBuffer.bind();
-                    std::vector<Vertex> vertices = meshes[view]->vertexBuffer.getData();
+                    meshViews[view].vertexBuffer.bind();
+                    std::vector<Vertex> vertices = meshViews[view].vertexBuffer.getData();
                     std::ofstream verticesFile(dataPath + verticesFileName, std::ios::binary);
                     verticesFile.write((char*)vertices.data(), numVertices[view] * sizeof(Vertex));
                     verticesFile.close();
@@ -546,8 +551,8 @@ int main(int argc, char** argv) {
                                                 (float)numVertices[view] * sizeof(Vertex) / BYTES_IN_MB, view);
 
                     // save indexBuffer
-                    meshes[view]->indexBuffer.bind();
-                    std::vector<unsigned int> indices = meshes[view]->indexBuffer.getData();
+                    meshViews[view].indexBuffer.bind();
+                    std::vector<unsigned int> indices = meshViews[view].indexBuffer.getData();
                     std::ofstream indicesFile(dataPath + indicesFileName, std::ios::binary);
                     indicesFile.write((char*)indices.data(), numIndicies[view] * sizeof(unsigned int));
                     indicesFile.close();
@@ -696,8 +701,8 @@ int main(int argc, char** argv) {
             for (int view = 0; view < maxViews; view++) {
                 auto& remoteCamera = remoteCameras[view];
 
-                auto* currMesh = meshes[view];
-                auto* currMeshDepth = meshDepths[view];
+                auto& currMesh = meshViews[view];
+                auto& currMeshDepth = meshDepths[view];
 
                 startTime = window->getTime();
 
@@ -710,11 +715,11 @@ int main(int argc, char** argv) {
                 }
                 // other views
                 else {
-                    // make all previous meshes visible and everything else invisible
+                    // make all previous meshViews visible and everything else invisible
                     for (int prevView = 1; prevView < maxViews; prevView++) {
                         meshScene.rootNode.children[prevView]->visible = (prevView < view);
                     }
-                    // draw old meshes at new remoteCamera view, filling stencil buffer with 1
+                    // draw old meshViews at new remoteCamera view, filling stencil buffer with 1
                     renderer.pipeline.stencilState.enableRenderingIntoStencilBuffer(GL_KEEP, GL_KEEP, GL_REPLACE);
                     renderer.pipeline.writeMaskState.disableColorWrites();
                     renderer.drawObjectsNoLighting(meshScene, remoteCamera);
@@ -738,7 +743,7 @@ int main(int argc, char** argv) {
                 unsigned int numProxies = 0, numDepthOffsets = 0;
                 compressedSize += frameGenerator.generateIFrame(
                     gBufferRTs[view], remoteCamera,
-                    quadsGenerator, meshFromQuads, *currMesh,
+                    quadsGenerator, meshFromQuads, currMesh,
                     numProxies, numDepthOffsets
                 );
                 if (showViews[view]) {
@@ -802,7 +807,7 @@ int main(int argc, char** argv) {
                         meshFromDepthShader.setFloat("far", remoteCamera.getFar());
                     }
                     {
-                        meshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currMeshDepth->vertexBuffer);
+                        meshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currMeshDepth.vertexBuffer);
                         meshFromDepthShader.clearBuffer(GL_SHADER_STORAGE_BUFFER, 1);
                     }
                     meshFromDepthShader.dispatch((gBufferSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
@@ -836,9 +841,9 @@ int main(int argc, char** argv) {
         for (int view = 0; view < maxViews; view++) {
             bool showView = showViews[view];
 
-            nodes[view]->visible = showView;
-            nodeWireframes[view]->visible = showView && showWireframe;
-            nodeDepths[view]->visible = showView && showDepth;
+            nodes[view].visible = showView;
+            nodeWireframes[view].visible = showView && showWireframe;
+            nodeDepths[view].visible = showView && showDepth;
         }
 
         if (saveImage && args::get(poseOffset).size() == 6) {
