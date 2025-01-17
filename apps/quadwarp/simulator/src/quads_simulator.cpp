@@ -23,6 +23,8 @@
 
 #include <shaders_common.h>
 
+#define IFRAME_PERIOD 5
+
 int main(int argc, char** argv) {
     Config config{};
     config.title = "QuadStream Simulator";
@@ -537,6 +539,7 @@ int main(int argc, char** argv) {
     });
 
     double lastRenderTime = 0.0;
+    int frameCounter = 0;
     app.onRender([&](double now, double dt) {
         // handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
@@ -607,9 +610,11 @@ int main(int argc, char** argv) {
         }
 
         if (rerenderInterval > 0 && now - lastRenderTime > rerenderInterval / MILLISECONDS_IN_SECOND) {
-            generateIFrame = true;
+            generateIFrame = frameCounter % IFRAME_PERIOD == 0; // insert I-Frame every IFRAME_PERIOD frames
+            generatePFrame = !generateIFrame;
             runAnimations = true;
             lastRenderTime = now;
+            frameCounter++;
         }
         if (generateIFrame || generatePFrame) {
             double startTime = window->getTime();
@@ -781,9 +786,12 @@ int main(int argc, char** argv) {
             saveToFile = false;
         }
 
-        for (int i = 0; i < 2; i++) {
-            nodeWireframes[i].visible = showWireframe;
-        }
+        // show previous mesh
+        nodeMeshesLocal[currMeshIndex].visible = false;
+        nodeMeshesLocal[prevMeshIndex].visible = true;
+        nodeWireframes[currMeshIndex].visible = false;
+        nodeWireframes[prevMeshIndex].visible = showWireframe;
+
         nodeMaskWireframe.visible = nodeMask.visible && showWireframe;
         nodeDepth.visible = showDepth;
 
@@ -812,8 +820,6 @@ int main(int argc, char** argv) {
         double startTime = window->getTime();
 
         // render generated meshes
-        nodeMeshesLocal[currMeshIndex].visible = false;
-        nodeMeshesLocal[prevMeshIndex].visible = true;
         renderStats = renderer.drawObjects(localScene, camera);
 
         // render to screen
