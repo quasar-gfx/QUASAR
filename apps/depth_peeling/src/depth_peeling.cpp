@@ -224,7 +224,7 @@ int main(int argc, char** argv) {
 
                 ImGui::SetNextWindowPos(ImVec2(windowSize.x - (i + 1) * texturePreviewSize - 30, 40), ImGuiCond_FirstUseEver);
                 ImGui::Begin(("Layer " + std::to_string(layerIdx) + " Color").c_str(), 0, flags);
-                ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[layerIdx]->colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
+                ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[layerIdx].colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
                 ImGui::End();
             }
         }

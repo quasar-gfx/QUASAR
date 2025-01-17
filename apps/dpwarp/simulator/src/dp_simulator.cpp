@@ -683,7 +683,7 @@ int main(int argc, char** argv) {
                 if (disableWideFov || view != maxViews - 1) {
                     // render to render target
                     if (!showNormals) {
-                        dpRenderer.peelingLayers[view]->blitToGBuffer(gBufferRTs[view]);
+                        dpRenderer.peelingLayers[view].blitToGBuffer(gBufferRTs[view]);
                     }
                     else {
                         dpRenderer.drawToRenderTarget(screenShaderNormals, gBufferRTs[view]);

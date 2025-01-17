@@ -11,7 +11,7 @@ public:
     float edpDelta = 0.002f;
 
     GBuffer gBuffer;
-    std::vector<GBuffer*> peelingLayers;
+    std::vector<GBuffer> peelingLayers;
 
     DepthPeelingRenderer(const Config &config, unsigned int maxLayers = 4, bool edp = false);
     ~DepthPeelingRenderer() = default;

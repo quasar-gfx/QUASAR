@@ -21,8 +21,14 @@ DepthPeelingRenderer::DepthPeelingRenderer(const Config &config, unsigned int ma
         PBRMaterial::extraShaderDefines.push_back("#define EDP");
     }
 
+    peelingLayers.reserve(maxLayers);
+
+    RenderTargetCreateParams params {
+        .width = config.width,
+        .height = config.height
+    };
     for (int i = 0; i < maxLayers; i++) {
-        peelingLayers.push_back(new GBuffer({ .width = config.width, .height = config.height }));
+        peelingLayers.emplace_back(params);
     }
 }
 
@@ -30,7 +36,7 @@ void DepthPeelingRenderer::resize(unsigned int width, unsigned int height) {
     OpenGLRenderer::resize(width, height);
     gBuffer.resize(width, height);
     for (auto layer : peelingLayers) {
-        layer->resize(width, height);
+        layer.resize(width, height);
     }
 }
 
@@ -69,7 +75,7 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &ca
     for (int i = 0; i < maxLayers; i++) {
         auto& gBuffer = peelingLayers[i];
 
-        gBuffer->bind();
+        gBuffer.bind();
         if (clearMask != 0) {
             glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
             glClear(clearMask);
@@ -77,14 +83,14 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &ca
 
         Texture* prevDepthMap = nullptr;
         if (i >= 1) {
-            prevDepthMap = &peelingLayers[i-1]->idBuffer;
+            prevDepthMap = &peelingLayers[i-1].idBuffer;
         }
 
         for (auto& child : scene.rootNode.children) {
             stats += drawNode(scene, camera, child, glm::mat4(1.0f), true, nullptr, prevDepthMap);
         }
 
-        gBuffer->unbind();
+        gBuffer.unbind();
     }
 
     return stats;
@@ -93,9 +99,9 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &ca
 RenderStats DepthPeelingRenderer::drawSkyBox(const Scene &scene, const Camera &camera) {
     RenderStats stats;
 
-    peelingLayers[0]->bind();
+    peelingLayers[0].bind();
     stats += OpenGLRenderer::drawSkyBoxImpl(scene, camera);
-    peelingLayers[0]->unbind();
+    peelingLayers[0].unbind();
 
     return stats;
 }
@@ -112,7 +118,7 @@ RenderStats DepthPeelingRenderer::compositeLayers() {
 
     compositeLayersShader.bind();
     for (int i = 0; i < maxLayers; i++) {
-        compositeLayersShader.setTexture("peelingLayers[" + std::to_string(i) + "]", peelingLayers[i]->colorBuffer, i);
+        compositeLayersShader.setTexture("peelingLayers[" + std::to_string(i) + "]", peelingLayers[i].colorBuffer, i);
     }
 
     beginRendering();
