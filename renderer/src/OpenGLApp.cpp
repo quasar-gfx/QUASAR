@@ -51,12 +51,12 @@ void OpenGLApp::run() {
             spdlog::info("Window resized to {}x{}", windowSize.x, windowSize.y);
         }
 
-        if (guiManager) {
-            guiManager->draw(currTime, deltaTime);
-        }
-
         if (renderCallback) {
             renderCallback(currTime, deltaTime);
+        }
+
+        if (guiManager) {
+            guiManager->draw(currTime, deltaTime);
         }
 
         window->swapBuffers();

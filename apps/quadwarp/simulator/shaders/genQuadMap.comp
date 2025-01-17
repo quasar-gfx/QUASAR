@@ -189,38 +189,6 @@ vec3 normalToView(mat4 view, vec3 normalWorld) {
     return normalize(rotationMatrix * normalWorld);
 }
 
-vec3 averageNormals(MultiQuad pixelNormalsView, MultiQuad pixelCoordsView) {
-    vec3 normal = pixelNormalsView.center;
-    float n = 1;
-    if (normalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.bottomLeft)) < distanceThreshold) {
-        normal += pixelNormalsView.bottomLeft; n++;
-    }
-    if (normalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.bottom)) < distanceThreshold) {
-        normal += pixelNormalsView.bottom; n++;
-    }
-    if (normalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.bottomRight)) < distanceThreshold) {
-        normal += pixelNormalsView.bottomRight; n++;
-    }
-    if (normalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.left)) < distanceThreshold) {
-        normal += pixelNormalsView.left; n++;
-    }
-    if (normalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.right)) < distanceThreshold) {
-        normal += pixelNormalsView.right; n++;
-    }
-    if (normalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.topLeft)) < distanceThreshold) {
-        normal += pixelNormalsView.topLeft; n++;
-    }
-    if (normalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.top)) < distanceThreshold) {
-        normal += pixelNormalsView.top; n++;
-    }
-    if (normalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.topRight)) < distanceThreshold) {
-        normal += pixelNormalsView.topRight; n++;
-    }
-    normal /= n;
-    normal = normalize(normal);
-    return normal;
-}
-
 vec3 rayPlaneIntersection(vec3 rayOrigin, vec3 rayDirection, Plane plane) {
     float denominator = dot(rayDirection, plane.normal);
     if (abs(denominator) < epsilon) {

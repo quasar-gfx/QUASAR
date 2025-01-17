@@ -143,6 +143,8 @@ int main(int argc, char** argv) {
         .magFilter = GL_NEAREST
     };
     GBuffer gBufferRT(rtParams);
+    rtParams.width /= 2; rtParams.height /= 2;
+    GBuffer gBufferRTLowRes(rtParams);
     GBuffer gBufferMaskRT(rtParams);
     GBuffer gBufferTemp(rtParams);
 
@@ -408,7 +410,7 @@ int main(int argc, char** argv) {
                 runAnimations = false;
             }
 
-            if (ImGui::SliderFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.0f, 5.0f)) {
+            if (ImGui::SliderFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.0f, 1.0f)) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
                 runAnimations = false;
@@ -643,9 +645,11 @@ int main(int argc, char** argv) {
             remoteRenderer.drawObjects(remoteScene, remoteCameraToUse);
             if (!showNormals) {
                 remoteRenderer.gBuffer.blitToGBuffer(gBufferRT);
+                remoteRenderer.gBuffer.blitToGBuffer(gBufferRTLowRes);
             }
             else {
                 remoteRenderer.drawToRenderTarget(screenShaderNormals, gBufferRT);
+                remoteRenderer.drawToRenderTarget(screenShaderNormals, gBufferRTLowRes);
             }
             totalRenderTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
 
@@ -656,7 +660,7 @@ int main(int argc, char** argv) {
             */
             unsigned int numProxies = 0, numDepthOffsets = 0;
             compressedSize = frameGenerator.generateIFrame(
-                gBufferRT, remoteCameraToUse,
+                gBufferRTLowRes, remoteCameraToUse,
                 quadsGenerator, meshFromQuads, meshes[currMeshIndex],
                 numProxies, numDepthOffsets
             );
@@ -741,10 +745,10 @@ int main(int argc, char** argv) {
 
                 meshFromDepthShader.bind();
                 {
-                    meshFromDepthShader.setTexture(gBufferRT.depthStencilBuffer, 0);
+                    meshFromDepthShader.setTexture(gBufferRTLowRes.depthStencilBuffer, 0);
                 }
                 {
-                    meshFromDepthShader.setVec2("depthMapSize", remoteWindowSize);
+                    meshFromDepthShader.setVec2("depthMapSize", remoteWindowSize / 2u);
                 }
                 {
                     meshFromDepthShader.setMat4("view", remoteCamera.getViewMatrix());
@@ -759,8 +763,8 @@ int main(int argc, char** argv) {
                     meshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, meshDepth.vertexBuffer);
                     meshFromDepthShader.clearBuffer(GL_SHADER_STORAGE_BUFFER, 1);
                 }
-                meshFromDepthShader.dispatch((remoteWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                             (remoteWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+                meshFromDepthShader.dispatch(((remoteWindowSize.x / 2u) + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                             ((remoteWindowSize.y / 2u) + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
                 meshFromDepthShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
                 meshFromDepthShader.endTiming();

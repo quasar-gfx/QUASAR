@@ -103,15 +103,15 @@ public:
 
         glReadBuffer(GL_COLOR_ATTACHMENT0);
         glDrawBuffer(GL_COLOR_ATTACHMENT0);
-        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
         glReadBuffer(GL_COLOR_ATTACHMENT1);
         glDrawBuffer(GL_COLOR_ATTACHMENT1);
-        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
         glReadBuffer(GL_COLOR_ATTACHMENT2);
         glDrawBuffer(GL_COLOR_ATTACHMENT2);
-        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
         glReadBuffer(GL_COLOR_ATTACHMENT3);
         glDrawBuffer(GL_COLOR_ATTACHMENT3);

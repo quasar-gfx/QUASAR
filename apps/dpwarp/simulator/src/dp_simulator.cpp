@@ -146,8 +146,6 @@ int main(int argc, char** argv) {
         .magFilter = GL_NEAREST
     };
     GBuffer gBufferCenterRT(rtParams);
-    GBuffer gBufferCenterMaskRT(rtParams);
-    GBuffer gBufferCenterTempRT(rtParams);
 
     // hidden layers and wide fov RTs
     std::vector<GBuffer> gBufferHiddenRTs; gBufferHiddenRTs.reserve(numViewsWithoutCenter);
@@ -156,6 +154,18 @@ int main(int argc, char** argv) {
             rtParams.width /= 2; rtParams.height /= 2; // set to lower resolution for wide fov
         }
         gBufferHiddenRTs.emplace_back(rtParams);
+    }
+
+    GBuffer gBufferCenterRTLowRes(rtParams);
+    GBuffer gBufferCenterMaskRT(rtParams);
+    GBuffer gBufferCenterTempRT(rtParams);
+
+    std::vector<GBuffer> gBufferHiddenRTLowRes; gBufferHiddenRTLowRes.reserve(numViewsWithoutCenter);
+    for (int views = 0; views < numViewsWithoutCenter; views++) {
+        if (views == numViewsWithoutCenter - 1) {
+            rtParams.width /= 2; rtParams.height /= 2; // set to lower resolution for wide fov
+        }
+        gBufferHiddenRTLowRes.emplace_back(rtParams);
     }
 
     unsigned int maxVertices = MAX_NUM_PROXIES * VERTICES_IN_A_QUAD;
@@ -488,7 +498,7 @@ int main(int argc, char** argv) {
                 runAnimations = false;
             }
 
-            if (ImGui::SliderFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.0f, 5.0f)) {
+            if (ImGui::SliderFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.0f, 1.0f)) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
                 runAnimations = false;
@@ -783,6 +793,7 @@ int main(int argc, char** argv) {
                                             ((view != maxViews - 1) ? remoteCameraCenter : remoteCameraWideFov);
 
                 auto& gBufferToUse = (view == 0) ? gBufferCenterRT : gBufferHiddenRTs[hiddenIndex];
+                auto& gBufferToUseLowRes = (view == 0) ? gBufferCenterRTLowRes : gBufferHiddenRTLowRes[hiddenIndex];
                 auto& meshToUse = (view == 0) ? meshesCenter[currMeshIndex] : meshLayers[hiddenIndex];
                 auto& currMeshDepth = meshDepths[hiddenIndex];
 
@@ -790,18 +801,22 @@ int main(int argc, char** argv) {
                     remoteRenderer.drawObjects(remoteScene, remoteCameraToUse);
                     if (!showNormals) {
                         remoteRenderer.gBuffer.blitToGBuffer(gBufferCenterRT);
+                        remoteRenderer.gBuffer.blitToGBuffer(gBufferCenterRTLowRes);
                     }
                     else {
                         remoteRenderer.drawToRenderTarget(screenShaderNormals, gBufferCenterRT);
+                        remoteRenderer.drawToRenderTarget(screenShaderNormals, gBufferCenterRTLowRes);
                     }
                 }
                 else if (view != maxViews - 1) {
                     // copy to render target
                     if (!showNormals) {
                         dpRenderer.peelingLayers[hiddenIndex+1].blitToGBuffer(gBufferToUse);
+                        dpRenderer.peelingLayers[hiddenIndex+1].blitToGBuffer(gBufferToUseLowRes);
                     }
                     else {
                         dpRenderer.drawToRenderTarget(screenShaderNormals, gBufferToUse);
+                        dpRenderer.drawToRenderTarget(screenShaderNormals, gBufferToUseLowRes);
                     }
                 }
                 // wide fov camera
@@ -823,9 +838,11 @@ int main(int argc, char** argv) {
 
                     if (!showNormals) {
                         wideFOVRenderer.gBuffer.blitToGBuffer(gBufferToUse);
+                        wideFOVRenderer.gBuffer.blitToGBuffer(gBufferToUseLowRes);
                     }
                     else {
                         wideFOVRenderer.drawToRenderTarget(screenShaderNormals, gBufferToUse);
+                        wideFOVRenderer.drawToRenderTarget(screenShaderNormals, gBufferToUseLowRes);
                     }
                 }
 
