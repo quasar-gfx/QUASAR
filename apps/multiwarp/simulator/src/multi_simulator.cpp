@@ -745,7 +745,7 @@ int main(int argc, char** argv) {
                 }
 
                 totalCreateProxiesTime += frameGenerator.stats.timeToCreateProxies;
-                totalCreateMeshTime += frameGenerator.stats.timeToCreateMeshes;
+                totalCreateMeshTime += frameGenerator.stats.timeToCreateMesh;
 
                 totalGenQuadMapTime += frameGenerator.stats.timeToGenerateQuads;
                 totalSimplifyTime += frameGenerator.stats.timeToSimplifyQuads;
@@ -785,7 +785,7 @@ int main(int argc, char** argv) {
 
                     meshFromDepthShader.bind();
                     {
-                        meshFromDepthShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
+                        meshFromDepthShader.setTexture(gBufferRTs[view].depthStencilBuffer, 0);
                     }
                     {
                         meshFromDepthShader.setVec2("depthMapSize", gBufferSize);

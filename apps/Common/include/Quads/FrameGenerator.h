@@ -15,7 +15,7 @@ public:
 
     struct Stats {
         double timeToCreateProxies = 0.0f;
-        double timeToCreateMeshes = 0.0f;
+        double timeToCreateMesh = 0.0f;
         double timeToGenerateQuads = 0.0f;
         double timeToSimplifyQuads = 0.0f;
         double timeToFillOutputQuads = 0.0f;
@@ -59,7 +59,7 @@ public:
         stats.timeToFillQuadIndices = meshFromQuads.stats.timeToFillOutputQuadsMs;
         stats.timeToFillQuadIndices = meshFromQuads.stats.timeToFillOutputQuadsMs;
         stats.timeToCreateVertInd = meshFromQuads.stats.timeToCreateMeshMs;
-        stats.timeToCreateMeshes = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+        stats.timeToCreateMesh = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
     }
 
     void generatePFrame(
@@ -132,7 +132,7 @@ public:
         {
             // create proxies
             auto sizes = quadsGenerator.createProxiesFromGBuffer(gBuffer, prevRemoteCamera);
-            numProxies += sizes.numProxies;
+            numProxies = sizes.numProxies;
             stats.timeToCreateProxies = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
             stats.timeToGenerateQuads = quadsGenerator.stats.timeToGenerateQuadsMs;
             stats.timeToSimplifyQuads = quadsGenerator.stats.timeToSimplifyQuadsMs;

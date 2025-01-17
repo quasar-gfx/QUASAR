@@ -1,12 +1,17 @@
 #include <Cameras/PerspectiveCamera.h>
 
+#define DEFAULT_FOV_DEG 60.0f
+#define DEFAULT_ASPECT 16.0f / 9.0f
+#define DEFAULT_NEAR 0.1f
+#define DEFAULT_FAR 1000.0f
+
 PerspectiveCamera::PerspectiveCamera() {
-    setProjectionMatrix(glm::radians(60.0f), 16.0f / 9.0f, 0.1f, 1000.0f);
+    setProjectionMatrix(glm::radians(DEFAULT_FOV_DEG), DEFAULT_ASPECT, DEFAULT_NEAR, DEFAULT_FAR);
     updateCameraOrientation();
 }
 
 PerspectiveCamera::PerspectiveCamera(unsigned int width, unsigned int height) {
-    setProjectionMatrix(glm::radians(60.0f), (float)width / (float)height, 0.1f, 1000.0f);
+    setProjectionMatrix(glm::radians(DEFAULT_FOV_DEG), (float)width / (float)height, DEFAULT_NEAR, DEFAULT_FAR);
     updateCameraOrientation();
 }
 

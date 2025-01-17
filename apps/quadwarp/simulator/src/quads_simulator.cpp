@@ -260,6 +260,9 @@ int main(int argc, char** argv) {
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};
 
+    unsigned int totalProxies = 0;
+    unsigned int totalDepthOffsets = 0;
+
     RenderStats renderStats;
     bool recording = false;
     guiManager->onRender([&](double now, double dt) {
@@ -267,13 +270,13 @@ int main(int argc, char** argv) {
         static bool showUI = true;
         static bool showCaptureWindow = false;
         static bool showMeshCaptureWindow = false;
+        static bool showGBufferPreviewWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
         static int serverFPSIndex = !animationFileIn ? 0 : 5;
 
         static bool showSkyBox = true;
 
-        auto quadBufferSizes = quadsGenerator.getBufferSizes();
         auto meshBufferSizes = meshFromQuads.getBufferSizes();
         auto meshBufferSizesMask = meshFromQuadsMask.getBufferSizes();
 
@@ -292,6 +295,7 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("UI", 0, &showUI);
             ImGui::MenuItem("Frame Capture", 0, &showCaptureWindow);
             ImGui::MenuItem("Mesh Capture", 0, &showMeshCaptureWindow);
+            ImGui::MenuItem("GBuffer Preview", 0, &showGBufferPreviewWindow);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -314,8 +318,6 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             unsigned int totalTriangles = (meshBufferSizes.numIndices + meshBufferSizesMask.numIndices) / 3;
-            unsigned int totalProxies = quadBufferSizes.numProxies;
-            unsigned int totalDepthOffsets = quadBufferSizes.numDepthOffsets;
             if (totalTriangles < 100000)
                 ImGui::TextColored(ImVec4(0,1,0,1), "Triangles Drawn: %d", totalTriangles);
             else if (totalTriangles < 500000)
@@ -514,14 +516,16 @@ int main(int argc, char** argv) {
             ImGui::End();
         }
 
-        // flags = 0;
-        // ImGui::Begin("GBuffer Color", 0, flags);
-        // ImGui::Image((void*)(intptr_t)(gBuffer.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
-        // ImGui::End();
+        if (showGBufferPreviewWindow) {
+            flags = 0;
+            ImGui::Begin("GBuffer Color", 0, flags);
+            ImGui::Image((void*)(intptr_t)(gBuffer.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::End();
 
-        // ImGui::Begin("GBuffer Mask Color", 0, flags);
-        // ImGui::Image((void*)(intptr_t)(gBufferMask.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
-        // ImGui::End();
+            ImGui::Begin("GBuffer Mask Color", 0, flags);
+            ImGui::Image((void*)(intptr_t)(gBufferMask.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::End();
+        }
     });
 
     app.onResize([&](unsigned int width, unsigned int height) {
@@ -620,6 +624,9 @@ int main(int argc, char** argv) {
             double totalCreateVertIndTime = 0.0;
             double totalGenDepthTime = 0.0;
 
+            totalProxies = 0;
+            totalDepthOffsets = 0;
+
             poseSendRecvSimulator.sendPose(camera, now);
             if (!preventCopyingLocalPose) {
                 Pose clientPose;
@@ -651,9 +658,13 @@ int main(int argc, char** argv) {
                 quadsGenerator, meshFromQuads, meshes[currMeshIndex],
                 numProxies, numDepthOffsets
             );
+            if (!generatePFrame) {
+                totalProxies += numProxies;
+                totalDepthOffsets += numDepthOffsets;
+            }
 
             totalCreateProxiesTime += frameGenerator.stats.timeToCreateProxies;
-            totalCreateMeshTime += frameGenerator.stats.timeToCreateMeshes;
+            totalCreateMeshTime += frameGenerator.stats.timeToCreateMesh;
 
             totalGenQuadMapTime += frameGenerator.stats.timeToGenerateQuads;
             totalSimplifyTime += frameGenerator.stats.timeToSimplifyQuads;
@@ -672,9 +683,11 @@ int main(int argc, char** argv) {
                     meshes[currMeshIndex], meshMask,
                     numProxies, numDepthOffsets
                 );
+                totalProxies += numProxies;
+                totalDepthOffsets += numDepthOffsets;
 
                 totalCreateProxiesTime += frameGenerator.stats.timeToCreateProxies;
-                totalCreateMeshTime += frameGenerator.stats.timeToCreateMeshes;
+                totalCreateMeshTime += frameGenerator.stats.timeToCreateMesh;
 
                 totalGenQuadMapTime += frameGenerator.stats.timeToGenerateQuads;
                 totalSimplifyTime += frameGenerator.stats.timeToSimplifyQuads;

@@ -344,13 +344,13 @@ void storeSurfel(in Quad quad, in Quad2D uvsSrc, in QuadMapData quadMapData) {
 
     uint indexIdxBase = atomicAdd(numIndices, INDICES_IN_A_QUAD);
 
-    indices[indexIdxBase + 0u] = vertexIdxTopLeft;
-    indices[indexIdxBase + 1u] = vertexIdxBottomLeft;
+    indices[indexIdxBase + 0u] = vertexIdxBottomLeft;
+    indices[indexIdxBase + 1u] = vertexIdxBottomRight;
     indices[indexIdxBase + 2u] = vertexIdxTopRight;
 
     indices[indexIdxBase + 3u] = vertexIdxTopRight;
-    indices[indexIdxBase + 4u] = vertexIdxBottomLeft;
-    indices[indexIdxBase + 5u] = vertexIdxBottomRight;
+    indices[indexIdxBase + 4u] = vertexIdxTopLeft;
+    indices[indexIdxBase + 5u] = vertexIdxBottomLeft;
 }
 
 void quantizeDepthOffsets(in vec4 depthOffsets, out ivec4 depthOffsetsQuantized) {
