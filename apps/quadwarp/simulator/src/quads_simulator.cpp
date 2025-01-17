@@ -99,9 +99,8 @@ int main(int argc, char** argv) {
     remoteCameraPrev.setViewMatrix(remoteCamera.getViewMatrix());
 
     // "local" scene
-    std::vector<Scene> localScenes(2);
-    localScenes[0].envCubeMap = remoteScene.envCubeMap;
-    localScenes[1].envCubeMap = remoteScene.envCubeMap;
+    Scene localScene;
+    localScene.envCubeMap = remoteScene.envCubeMap;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
     camera.setViewMatrix(remoteCamera.getViewMatrix());
 
@@ -154,6 +153,7 @@ int main(int argc, char** argv) {
 
     std::vector<Mesh> meshes; meshes.reserve(2);
     std::vector<Node> nodeMeshes(2);
+    std::vector<Node> nodeMeshesLocal(2);
     std::vector<Node> nodeWireframes(2);
     MeshSizeCreateParams meshParams = {
         .numVertices = maxVertices,
@@ -164,18 +164,21 @@ int main(int argc, char** argv) {
     for (int i = 0; i < 2; i++) {
         meshParams.material = new QuadMaterial({ .baseColorTexture = &gBuffer.colorBuffer });
         meshes.emplace_back(meshParams);
+
         nodeMeshes[i] = Node(&meshes[i]);
         nodeMeshes[i].frustumCulled = false;
         meshScenes[i].addChildNode(&nodeMeshes[i]);
+
+        nodeMeshesLocal[i] = Node(&meshes[i]);
+        nodeMeshesLocal[i].frustumCulled = false;
+        localScene.addChildNode(&nodeMeshesLocal[i]);
 
         nodeWireframes[i] = Node(&meshes[i]);
         nodeWireframes[i].frustumCulled = false;
         nodeWireframes[i].wireframe = true;
         nodeWireframes[i].visible = false;
         nodeWireframes[i].overrideMaterial = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
-
-        localScenes[i].addChildNode(&nodeMeshes[i]);
-        localScenes[i].addChildNode(&nodeWireframes[i]);
+        localScene.addChildNode(&nodeWireframes[i]);
     }
 
     Mesh meshMask({
@@ -194,10 +197,8 @@ int main(int argc, char** argv) {
     nodeMaskWireframe.visible = false;
     nodeMaskWireframe.overrideMaterial = new UnlitMaterial({ .baseColor = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) });
 
-    localScenes[0].addChildNode(&nodeMask);
-    localScenes[1].addChildNode(&nodeMask);
-    localScenes[0].addChildNode(&nodeMaskWireframe);
-    localScenes[1].addChildNode(&nodeMaskWireframe);
+    localScene.addChildNode(&nodeMask);
+    localScene.addChildNode(&nodeMaskWireframe);
 
     Mesh meshDepth = Mesh({
         .numVertices = maxVerticesDepth,
@@ -208,8 +209,7 @@ int main(int argc, char** argv) {
     nodeDepth.frustumCulled = false;
     nodeDepth.visible = false;
     nodeDepth.primativeType = GL_POINTS;
-    localScenes[0].addChildNode(&nodeDepth);
-    localScenes[1].addChildNode(&nodeDepth);
+    localScene.addChildNode(&nodeDepth);
 
     // shaders
     ToneMapShader toneMapShader;
@@ -348,18 +348,14 @@ int main(int argc, char** argv) {
             ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
 
             if (ImGui::Checkbox("Show Sky Box", &showSkyBox)) {
-                localScenes[0].envCubeMap = showSkyBox ? remoteScene.envCubeMap : nullptr;
-                localScenes[1].envCubeMap = showSkyBox ? remoteScene.envCubeMap : nullptr;
+                localScene.envCubeMap = showSkyBox ? remoteScene.envCubeMap : nullptr;
             }
 
             if (ImGui::Button("Change Background Color", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
                 ImGui::OpenPopup("Background Color Popup");
             }
             if (ImGui::BeginPopup("Background Color Popup")) {
-                glm::vec4 background = localScenes[0].backgroundColor;
-                ImGui::ColorPicker3("Background Color", (float*)&background);
-                localScenes[0].backgroundColor = background;
-                localScenes[1].backgroundColor = background;
+                ImGui::ColorPicker3("Background Color", (float*)&localScene.backgroundColor);
                 ImGui::EndPopup();
             }
 
@@ -518,14 +514,14 @@ int main(int argc, char** argv) {
             ImGui::End();
         }
 
-        flags = 0;
-        ImGui::Begin("GBuffer Color", 0, flags);
-        ImGui::Image((void*)(intptr_t)(gBuffer.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::End();
+        // flags = 0;
+        // ImGui::Begin("GBuffer Color", 0, flags);
+        // ImGui::Image((void*)(intptr_t)(gBuffer.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
+        // ImGui::End();
 
-        ImGui::Begin("GBuffer Mask Color", 0, flags);
-        ImGui::Image((void*)(intptr_t)(gBufferMask.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::End();
+        // ImGui::Begin("GBuffer Mask Color", 0, flags);
+        // ImGui::Image((void*)(intptr_t)(gBufferMask.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
+        // ImGui::End();
     });
 
     app.onResize([&](unsigned int width, unsigned int height) {
@@ -797,15 +793,20 @@ int main(int argc, char** argv) {
             camera.updateViewMatrix();
         }
 
+        double startTime = window->getTime();
+
         // render generated meshes
-        renderer.pipeline.rasterState.cullFaceEnabled = false;
-        renderStats = renderer.drawObjects(localScenes[prevMeshIndex], camera);
-        renderer.pipeline.rasterState.cullFaceEnabled = true;
+        nodeMeshesLocal[currMeshIndex].visible = false;
+        nodeMeshesLocal[prevMeshIndex].visible = true;
+        renderStats = renderer.drawObjects(localScene, camera);
 
         // render to screen
         toneMapShader.bind();
         toneMapShader.setBool("toneMap", !showNormals);
         renderer.drawToScreen(toneMapShader);
+        if (animator.running) {
+            spdlog::info("Client Render Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
+        }
 
         if (animator.running || recording) {
             recorder.captureFrame(camera);

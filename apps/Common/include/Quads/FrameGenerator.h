@@ -104,6 +104,7 @@ public:
 
             remoteRenderer.gBuffer.blitToGBuffer(gBuffer);
         }
+
         /*
         ============================
         Generate frame using current frame as a mask for movement

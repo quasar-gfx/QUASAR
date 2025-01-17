@@ -494,12 +494,17 @@ int main(int argc, char** argv) {
             camera.updateViewMatrix();
         }
 
+        double startTime = window->getTime();
+
         // render generated meshes
         renderStats = renderer.drawObjects(scene, camera);
 
         toneMapShader.bind();
         toneMapShader.setBool("toneMap", true);
         renderer.drawToScreen(toneMapShader);
+        if (animator.running) {
+            spdlog::info("Client Render Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
+        }
 
         if (animator.running || recording) {
             recorder.captureFrame(camera);
