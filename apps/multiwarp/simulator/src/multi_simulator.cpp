@@ -35,6 +35,18 @@ const std::vector<glm::vec3> offsets = {
     glm::vec3(-1.0f, -1.0f, +1.0f), // Bottom-left
 };
 
+const std::vector<glm::vec4> colors = {
+    glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), // primary view color is yellow
+    glm::vec4(0.0f, 0.0f, 1.0f, 1.0f),
+    glm::vec4(0.0f, 1.0f, 0.0f, 1.0f),
+    glm::vec4(1.0f, 0.5f, 0.5f, 1.0f),
+    glm::vec4(0.5f, 0.0f, 0.0f, 1.0f),
+    glm::vec4(0.0f, 1.0f, 1.0f, 1.0f),
+    glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
+    glm::vec4(0.0f, 0.5f, 0.0f, 1.0f),
+    glm::vec4(0.0f, 0.0f, 0.5f, 1.0f),
+};
+
 int main(int argc, char** argv) {
     Config config{};
     config.title = "Multi-Camera Simulator";
@@ -51,9 +63,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<float> networkLatencyIn(parser, "network-latency", "Simulated network latency in ms", {'N', "network-latency"}, 25.0f);
     args::ValueFlag<float> networkJitterIn(parser, "network-jitter", "Simulated network jitter in ms", {'J', "network-jitter"}, 10.0f);
     args::ValueFlag<float> viewBoxSizeIn(parser, "view-box-size", "Size of view box in m", {'B', "view-size"}, 0.5f);
-    args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     args::ValueFlag<int> maxAdditionalViewsIn(parser, "views", "Max views", {'n', "max-views"}, 8);
-    args::Flag disableWideFov(parser, "disable-wide-fov", "Disable wide fov view", {'W', "disable-wide-fov"});
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -94,7 +104,7 @@ int main(int argc, char** argv) {
 
     // 0th is standard view, maxViews-1 is large fov view
     int maxAdditionalViews = args::get(maxAdditionalViewsIn);
-    int maxViews = !disableWideFov ? maxAdditionalViews + 2 : maxAdditionalViews + 1;
+    int maxViews = maxAdditionalViews + 2;
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -120,10 +130,7 @@ int main(int argc, char** argv) {
     loader.loadScene(sceneFile, remoteScene, remoteCameraCenter);
 
     // make last camera have a larger fov
-    if (!disableWideFov) {
-        // make last camera have a larger fov
-        remoteCameras[maxViews-1].setFovyDegrees(120.0f);
-    }
+    remoteCameras[maxViews-1].setFovyDegrees(120.0f);
 
     // scene with all the meshViews
     Scene scene;
@@ -181,12 +188,7 @@ int main(int argc, char** argv) {
         nodes[view].frustumCulled = false;
         scene.addChildNode(&nodes[view]);
 
-        // primary view color is yellow
-        glm::vec4 color = (view == 0) ? glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) :
-                  glm::vec4(fmod(view * 0.6180339887f, 1.0f),
-                            fmod(view * 0.9f, 1.0f),
-                            fmod(view * 0.5f, 1.0f),
-                            1.0f);
+        const glm::vec4 &color = colors[view % colors.size()];
 
         nodeWireframes.emplace_back(&meshViews[view]);
         nodeWireframes[view].frustumCulled = false;
@@ -844,17 +846,6 @@ int main(int argc, char** argv) {
             nodes[view].visible = showView;
             nodeWireframes[view].visible = showView && showWireframe;
             nodeDepths[view].visible = showView && showDepth;
-        }
-
-        if (saveImage && args::get(poseOffset).size() == 6) {
-            glm::vec3 positionOffset, rotationOffset;
-            for (int i = 0; i < 3; i++) {
-                positionOffset[i] = args::get(poseOffset)[i];
-                rotationOffset[i] = args::get(poseOffset)[i + 3];
-            }
-            camera.setPosition(camera.getPosition() + positionOffset);
-            camera.setRotationEuler(camera.getRotationEuler() + rotationOffset);
-            camera.updateViewMatrix();
         }
 
         if (restrictMovementToViewBox) {

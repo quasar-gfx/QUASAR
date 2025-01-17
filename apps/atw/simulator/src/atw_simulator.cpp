@@ -33,7 +33,6 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'D', "data-path"}, ".");
     args::ValueFlag<float> networkLatencyIn(parser, "network-latency", "Simulated network latency in ms", {'N', "network-latency"}, 25.0f);
     args::ValueFlag<float> networkJitterIn(parser, "network-jitter", "Simulated network jitter in ms", {'J', "network-jitter"}, 10.0f);
-    args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -370,17 +369,6 @@ int main(int argc, char** argv) {
 
             preventCopyingLocalPose = false;
             rerender = false;
-        }
-
-        if (saveImage && args::get(poseOffset).size() == 6) {
-            glm::vec3 positionOffset, rotationOffset;
-            for (int i = 0; i < 3; i++) {
-                positionOffset[i] = args::get(poseOffset)[i];
-                rotationOffset[i] = args::get(poseOffset)[i + 3];
-            }
-            camera.setPosition(camera.getPosition() + positionOffset);
-            camera.setRotationEuler(camera.getRotationEuler() + rotationOffset);
-            camera.updateViewMatrix();
         }
 
         atwShader.bind();

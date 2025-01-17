@@ -28,7 +28,6 @@ int main(int argc, char** argv) {
     args::Flag saveImage(parser, "save", "Take screenshot and exit", {'I', "save-image"});
     args::ValueFlag<std::string> animationFileIn(parser, "path", "Path to camera animation file", {'A', "animation-path"});
     args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'D', "data-path"}, ".");
-    args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -367,17 +366,6 @@ int main(int argc, char** argv) {
 
         // update all animations
         scene.updateAnimations(dt);
-
-        if (saveImage && args::get(poseOffset).size() == 6) {
-            glm::vec3 positionOffset, rotationOffset;
-            for (int i = 0; i < 3; i++) {
-                positionOffset[i] = args::get(poseOffset)[i];
-                rotationOffset[i] = args::get(poseOffset)[i + 3];
-            }
-            camera.setPosition(camera.getPosition() + positionOffset);
-            camera.setRotationEuler(camera.getRotationEuler() + rotationOffset);
-            camera.updateViewMatrix();
-        }
 
         // render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);

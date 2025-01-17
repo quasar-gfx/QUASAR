@@ -41,7 +41,6 @@ int main(int argc, char** argv) {
     args::ValueFlag<float> networkLatencyIn(parser, "network-latency", "Simulated network latency in ms", {'N', "network-latency"}, 25.0f);
     args::ValueFlag<float> networkJitterIn(parser, "network-jitter", "Simulated network jitter in ms", {'J', "network-jitter"}, 10.0f);
     args::ValueFlag<float> viewBoxSizeIn(parser, "view-box-size", "Size of view box in m", {'B', "view-size"}, 0.5f);
-    args::PositionalList<float> poseOffset(parser, "pose-offset", "Offset for the pose (only used when --save-image is set)");
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -94,8 +93,8 @@ int main(int argc, char** argv) {
 
     // "remote" scene
     Scene remoteScene;
-    PerspectiveCamera remoteCamera(remoteWindowSize.x, remoteWindowSize.y);
-    PerspectiveCamera remoteCameraPrev(remoteWindowSize.x, remoteWindowSize.y);
+    PerspectiveCamera remoteCamera(remoteRenderer.width, remoteRenderer.height);
+    PerspectiveCamera remoteCameraPrev(remoteRenderer.width, remoteRenderer.height);
     SceneLoader loader;
     loader.loadScene(sceneFile, remoteScene, remoteCamera);
     remoteCameraPrev.setViewMatrix(remoteCamera.getViewMatrix());
@@ -120,8 +119,8 @@ int main(int argc, char** argv) {
     unsigned int maxVerticesDepth = remoteWindowSize.x * remoteWindowSize.y;
 
     RenderTargetCreateParams rtParams = {
-        .width = windowSize.x,
-        .height = windowSize.y,
+        .width = remoteWindowSize.x,
+        .height = remoteWindowSize.y,
         .internalFormat = GL_RGBA16F,
         .format = GL_RGBA,
         .type = GL_HALF_FLOAT,
@@ -179,7 +178,7 @@ int main(int argc, char** argv) {
     nodeMaskWireframe.frustumCulled = false;
     nodeMaskWireframe.wireframe = true;
     nodeMaskWireframe.visible = false;
-    nodeMaskWireframe.overrideMaterial = new UnlitMaterial({ .baseColor = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) });
+    nodeMaskWireframe.overrideMaterial = new UnlitMaterial({ .baseColor = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f) });
 
     localScene.addChildNode(&nodeMask);
     localScene.addChildNode(&nodeMaskWireframe);
@@ -413,12 +412,12 @@ int main(int argc, char** argv) {
 
             float windowWidth = ImGui::GetContentRegionAvail().x;
             float buttonWidth = (windowWidth - ImGui::GetStyle().ItemSpacing.x) / 2.0f;
-            if (ImGui::Button("Gen I-Frame", ImVec2(buttonWidth, 0))) {
+            if (ImGui::Button("Send I-Frame", ImVec2(buttonWidth, 0))) {
                 generateIFrame = true;
                 runAnimations = true;
             }
             ImGui::SameLine();
-            if (ImGui::Button("Gen P-Frame", ImVec2(buttonWidth, 0))) {
+            if (ImGui::Button("Send P-Frame", ImVec2(buttonWidth, 0))) {
                 generatePFrame = true;
                 runAnimations = true;
             }
@@ -592,11 +591,10 @@ int main(int argc, char** argv) {
         }
 
         if (rerenderInterval > 0 && now - lastRenderTime > rerenderInterval / MILLISECONDS_IN_SECOND) {
-            generateIFrame = frameCounter % IFRAME_PERIOD == 0; // insert I-Frame every IFRAME_PERIOD frames
+            generateIFrame = (++frameCounter) % IFRAME_PERIOD == 0; // insert I-Frame every IFRAME_PERIOD frames
             generatePFrame = !generateIFrame;
             runAnimations = true;
             lastRenderTime = now;
-            frameCounter++;
         }
         if (generateIFrame || generatePFrame) {
             double startTime = window->getTime();
@@ -627,9 +625,6 @@ int main(int argc, char** argv) {
 
             auto& remoteCameraToUse = generatePFrame ? remoteCameraPrev : remoteCamera;
 
-            /*
-                Generate I-frame
-            */
             // render all objects in remoteScene normally
             remoteRenderer.drawObjects(remoteScene, remoteCameraToUse);
             if (!showNormals) {
@@ -640,7 +635,11 @@ int main(int argc, char** argv) {
             }
             totalRenderTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
 
-            // create proxies from the current frame
+            /*
+            ============================
+            Generate I-frame
+            ============================
+            */
             unsigned int numProxies = 0, numDepthOffsets = 0;
             compressedSize = frameGenerator.generateIFrame(
                 gBufferRT, remoteCameraToUse,
@@ -663,9 +662,15 @@ int main(int argc, char** argv) {
             totalFillQuadsIndiciesMsTime += frameGenerator.stats.timeToFillQuadIndices;
             totalCreateVertIndTime += frameGenerator.stats.timeToCreateVertInd;
 
-           if (generatePFrame) {
+            /*
+            ============================
+            Generate P-frame
+            ============================
+            */
+            if (generatePFrame) {
                 compressedSize = frameGenerator.generatePFrame(
-                    remoteRenderer, remoteScene, meshScenes[currMeshIndex], meshScenes[prevMeshIndex],
+                    remoteRenderer, remoteScene,
+                    meshScenes[currMeshIndex], meshScenes[prevMeshIndex],
                     gBufferTemp, gBufferMaskRT,
                     remoteCamera, remoteCameraPrev,
                     quadsGenerator, meshFromQuads, meshFromQuadsMask,
@@ -776,17 +781,6 @@ int main(int argc, char** argv) {
 
         nodeMaskWireframe.visible = nodeMask.visible && showWireframe;
         nodeDepth.visible = showDepth;
-
-        if (saveImage && args::get(poseOffset).size() == 6) {
-            glm::vec3 positionOffset, rotationOffset;
-            for (int i = 0; i < 3; i++) {
-                positionOffset[i] = args::get(poseOffset)[i];
-                rotationOffset[i] = args::get(poseOffset)[i + 3];
-            }
-            camera.setPosition(camera.getPosition() + positionOffset);
-            camera.setRotationEuler(camera.getRotationEuler() + rotationOffset);
-            camera.updateViewMatrix();
-        }
 
         if (restrictMovementToViewBox) {
             glm::vec3 remotePosition = remoteCamera.getPosition();
