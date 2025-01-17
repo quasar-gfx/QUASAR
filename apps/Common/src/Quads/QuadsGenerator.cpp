@@ -249,7 +249,11 @@ unsigned int QuadsGenerator::saveQuadsToMemory(std::vector<char> &compressedData
 }
 
 unsigned int QuadsGenerator::saveDepthOffsetsToMemory(std::vector<char> &compressedData) {
+#if !defined(__APPLE__) && !defined(__ANDROID__)
     return depthOffsets.saveToMemory(compressedData);
+#else
+    return 0;
+#endif
 }
 
 unsigned int QuadsGenerator::saveToFile(const std::string &filename) {
@@ -260,6 +264,10 @@ unsigned int QuadsGenerator::saveToFile(const std::string &filename) {
 }
 
 unsigned int QuadsGenerator::saveDepthOffsetsToFile(const std::string &filename) {
+#if !defined(__APPLE__) && !defined(__ANDROID__)
     return depthOffsets.saveToFile(filename);
+#else
+    return 0;
+#endif
 }
 #endif

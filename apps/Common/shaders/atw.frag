@@ -23,6 +23,7 @@ uniform mat4 remoteView;
 #endif
 
 uniform bool atwEnabled;
+uniform bool toneMap;
 
 uniform sampler2D videoTexture;
 
@@ -80,7 +81,7 @@ void main() {
 
     if (!atwEnabled) {
         vec3 color = texture(videoTexture, TexCoordsAdjusted).rgb;
-        color = linearToSRGB(color);
+        if (toneMap) color = linearToSRGB(color);
         FragColor = vec4(color, 1.0);
         return;
     }
@@ -110,6 +111,6 @@ void main() {
 #endif
 
     vec3 color = texture(videoTexture, TexCoordsRemote).rgb;
-    color = linearToSRGB(color);
+    if (toneMap) color = linearToSRGB(color);
     FragColor = vec4(color, 1.0);
 }

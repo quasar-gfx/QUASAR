@@ -75,11 +75,12 @@ int main(int argc, char** argv) {
     Scene scene;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
     PerspectiveCamera remoteCamera(windowSize.x, windowSize.y);
+    remoteCamera.setFovyDegrees(100.0f);
     remoteCamera.setPosition(glm::vec3(0.0f, 3.0f, 10.0f));
     remoteCamera.updateViewMatrix();
 
     PerspectiveCamera remoteCameraWideFov(windowSize.x, windowSize.y);
-    remoteCameraWideFov.setFovyDegrees(120.0f);
+    remoteCameraWideFov.setFovyDegrees(140.0f);
     remoteCameraWideFov.setViewMatrix(remoteCamera.getViewMatrix());
 
     // shaders
