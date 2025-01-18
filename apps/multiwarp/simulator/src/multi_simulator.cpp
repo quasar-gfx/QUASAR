@@ -45,6 +45,7 @@ const std::vector<glm::vec4> colors = {
     glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
     glm::vec4(0.0f, 0.5f, 0.0f, 1.0f),
     glm::vec4(0.0f, 0.0f, 0.5f, 1.0f),
+    glm::vec4(0.5f, 0.0f, 0.5f, 1.0f),
 };
 
 int main(int argc, char** argv) {
@@ -465,11 +466,7 @@ int main(int argc, char** argv) {
 
             const int columns = 4;
             for (int view = 0; view < maxViews; view++) {
-                if (ImGui::Checkbox(("Show View " + std::to_string(view)).c_str(), &showViews[view])) {
-                    preventCopyingLocalPose = true;
-                    rerender = true;
-                    runAnimations = false;
-                }
+                ImGui::Checkbox(("Show View " + std::to_string(view)).c_str(), &showViews[view]);
                 if ((view + 1) % columns != 0) {
                     ImGui::SameLine();
                 }
@@ -720,15 +717,21 @@ int main(int argc, char** argv) {
                     // make all previous meshViews visible and everything else invisible
                     for (int prevView = 1; prevView < maxViews; prevView++) {
                         meshScene.rootNode.children[prevView]->visible = (prevView < view);
+                        if (view == maxViews - 1) meshScene.rootNode.children[prevView]->setScale(glm::vec3(0.99f));
+                        // else meshScene.rootNode.children[prevView]->setScale(glm::vec3(1.01f));
                     }
                     // draw old meshViews at new remoteCamera view, filling stencil buffer with 1
                     renderer.pipeline.stencilState.enableRenderingIntoStencilBuffer(GL_KEEP, GL_KEEP, GL_REPLACE);
                     renderer.pipeline.writeMaskState.disableColorWrites();
                     renderer.drawObjectsNoLighting(meshScene, remoteCamera);
+                    for (int prevView = 1; prevView < maxViews; prevView++) {
+                        meshScene.rootNode.children[prevView]->setScale(glm::vec3(1.0f));
+                    }
 
                     // render remoteScene using stencil buffer as a mask
                     // at values where stencil buffer is not 1, remoteScene should render
                     renderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_NOTEQUAL, 1);
+                    renderer.pipeline.rasterState.polygonOffsetEnabled = false;
                     renderer.pipeline.writeMaskState.enableColorWrites();
                     renderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

@@ -1,6 +1,8 @@
 #ifndef GRAPHICS_PIPELINE_H
 #define GRAPHICS_PIPELINE_H
 
+#include <spdlog/spdlog.h>
+
 #include <Utils/Platform.h>
 
 struct DepthState {
