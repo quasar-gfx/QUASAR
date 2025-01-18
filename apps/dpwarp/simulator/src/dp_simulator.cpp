@@ -589,8 +589,8 @@ int main(int argc, char** argv) {
             if (ImGui::Button("Capture Current Frame")) {
                 recorder.saveScreenshotToFile(fileName, saveAsHDR);
 
-                for (int view = 1; view < maxViews; view++) {
-                    fileName = dataPath + std::string(fileNameBase) + ".view" + std::to_string(view) + "." + time;
+                for (int view = 0; view < numViewsWithoutCenter; view++) {
+                    fileName = dataPath + std::string(fileNameBase) + ".view" + std::to_string(view+1) + "." + time;
                     if (saveAsHDR) {
                         gBufferHiddenRTs[view].saveColorAsHDR(fileName + ".hdr");
                     }
