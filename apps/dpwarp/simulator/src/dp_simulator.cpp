@@ -11,8 +11,6 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
-#include <Shaders/ToneMapShader.h>
-
 #include <Recorder.h>
 #include <Animator.h>
 
@@ -25,7 +23,7 @@
 
 #include <shaders_common.h>
 
-// #define IFRAME_PERIOD 5
+#define IFRAME_PERIOD 5
 
 const std::vector<glm::vec4> colors = {
     glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), // primary view color is yellow
@@ -273,7 +271,12 @@ int main(int argc, char** argv) {
     meshScene.addChildNode(&nodeMask);
 
     // shaders
-    ToneMapShader toneMapShader;
+    Shader blurEdgesShader({
+        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_COMMON_BLUREDGES_FRAG,
+        .fragmentCodeSize = SHADER_COMMON_BLUREDGES_FRAG_len
+    });
 
     Shader screenShaderNormals({
         .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
@@ -290,7 +293,7 @@ int main(int argc, char** argv) {
         }
     });
 
-    Recorder recorder(renderer, toneMapShader, dataPath, config.targetFramerate);
+    Recorder recorder(renderer, blurEdgesShader, dataPath, config.targetFramerate);
     Animator animator(animationFile);
 
     if (saveImage) {
@@ -669,7 +672,7 @@ int main(int argc, char** argv) {
     });
 
     double lastRenderTime = 0.0;
-    // int frameCounter = 0;
+    int frameCounter = 0;
     app.onRender([&](double now, double dt) {
         // handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
@@ -740,9 +743,9 @@ int main(int argc, char** argv) {
         }
 
         if (rerenderInterval > 0 && now - lastRenderTime > rerenderInterval / MILLISECONDS_IN_SECOND) {
-            // generateIFrame = (++frameCounter) % IFRAME_PERIOD == 0; // insert I-Frame every IFRAME_PERIOD frames
-            // generatePFrame = !generateIFrame;
-            generateIFrame = true;
+            generateIFrame = (++frameCounter) % IFRAME_PERIOD == 0; // insert I-Frame every IFRAME_PERIOD frames
+            generatePFrame = !generateIFrame;
+            // generateIFrame = true;
             runAnimations = true;
             lastRenderTime = now;
         }
@@ -1020,9 +1023,9 @@ int main(int argc, char** argv) {
         renderStats = renderer.drawObjects(localScene, camera);
 
         // render to screen
-        toneMapShader.bind();
-        toneMapShader.setBool("toneMap", !showNormals);
-        renderer.drawToScreen(toneMapShader);
+        blurEdgesShader.bind();
+        blurEdgesShader.setBool("toneMap", !showNormals);
+        renderer.drawToScreen(blurEdgesShader);
         if (animator.running) {
             spdlog::info("Client Render Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
         }

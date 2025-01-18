@@ -196,6 +196,12 @@ int main(int argc, char** argv) {
 
     // shaders
     ToneMapShader toneMapShader;
+    Shader blurEdgesShader({
+        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_COMMON_BLUREDGES_FRAG,
+        .fragmentCodeSize = SHADER_COMMON_BLUREDGES_FRAG_len
+    });
 
     Shader screenShaderNormals({
         .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
@@ -799,9 +805,9 @@ int main(int argc, char** argv) {
         renderStats = renderer.drawObjects(localScene, camera);
 
         // render to screen
-        toneMapShader.bind();
-        toneMapShader.setBool("toneMap", !showNormals);
-        renderer.drawToScreen(toneMapShader);
+        blurEdgesShader.bind();
+        blurEdgesShader.setBool("toneMap", !showNormals);
+        renderer.drawToScreen(blurEdgesShader);
         if (animator.running) {
             spdlog::info("Client Render Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
         }
