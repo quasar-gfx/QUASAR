@@ -19,6 +19,7 @@ DepthPeelingRenderer::DepthPeelingRenderer(const Config &config, unsigned int ma
     UnlitMaterial::extraShaderDefines.push_back("#define DO_DEPTH_PEELING");
     if (edp) {
         PBRMaterial::extraShaderDefines.push_back("#define EDP");
+        UnlitMaterial::extraShaderDefines.push_back("#define EDP");
     }
 
     peelingLayers.reserve(maxLayers);
