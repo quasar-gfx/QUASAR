@@ -132,13 +132,15 @@ int main(int argc, char** argv) {
     bool runAnimations = animationFileIn;
 
     bool rerender = true;
-    double rerenderInterval = 0.0;
+
     float networkLatency = !animationFileIn ? 0.0f : args::get(networkLatencyIn);
     float networkJitter = !animationFileIn ? 0.0f : args::get(networkJitterIn);
     PoseSendRecvSimulator poseSendRecvSimulator(networkLatency, networkJitter);
     bool posePrediction = true;
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};
+    int serverFPSIndex = !animationFileIn ? 0 : 5; // default to 30fps
+    double rerenderInterval = MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
 
     RenderStats renderStats;
     bool recording = false;
@@ -148,7 +150,6 @@ int main(int argc, char** argv) {
         static bool showCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
-        static int serverFPSIndex = !animationFileIn ? 0 : 5;
 
         ImGui::NewFrame();
 
@@ -229,8 +230,9 @@ int main(int argc, char** argv) {
                 poseSendRecvSimulator.setPosePrediction(posePrediction);
             }
 
-            ImGui::Combo("Server Framerate", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels));
-            rerenderInterval = 1000.0 / serverFPSValues[serverFPSIndex];
+            if (ImGui::Combo("Server Framerate", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels))) {
+                rerenderInterval = MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
+            }
 
             if (ImGui::Button("Send Server Frame", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
                 rerender = true;
@@ -340,7 +342,7 @@ int main(int argc, char** argv) {
             remoteScene.updateAnimations(dt);
         }
 
-        if (rerenderInterval > 0 && now - lastRenderTime > rerenderInterval / MILLISECONDS_IN_SECOND) {
+        if (rerenderInterval > 0.0 && now - lastRenderTime >= rerenderInterval / MILLISECONDS_IN_SECOND) {
             rerender = true;
             runAnimations = true;
             lastRenderTime = now;
