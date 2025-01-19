@@ -125,6 +125,32 @@ void Recorder::captureFrame(const Camera &camera) {
 }
 
 void Recorder::saveFrames() {
+    /* setup frame */
+    AVFrame* frame = av_frame_alloc();
+
+    frame->width = renderTargetCopy.width;
+    frame->height = renderTargetCopy.height;
+    frame->format = videoPixelFormat;
+    int ret = av_frame_get_buffer(frame, 0);
+    if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate frame data: %s\n", av_err2str(ret));
+        return;
+    }
+
+    ret = av_frame_make_writable(frame);
+    if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Could not make frame writable: %s\n", av_err2str(ret));
+        return;
+    }
+
+    /* setup packet */
+    AVPacket* packet = av_packet_alloc();
+    ret = av_packet_make_writable(packet);
+    if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Error: Could not make packet writable: %s\n", av_err2str(ret));
+        return;
+    }
+
     while (running || !frameQueue.empty()) {
         FrameData frameData;
         {
@@ -149,14 +175,17 @@ void Recorder::saveFrames() {
                 }
             }
 #endif
+
             {
+                std::unique_lock<std::mutex> lock(swsMutex);
+
                 const uint8_t* srcData[] = { renderTargetData.data() };
                 int srcStride[] = { static_cast<int>(renderTargetCopy.width * 4) }; // RGBA has 4 bytes per pixel
 
                 sws_scale(swsCtx, srcData, srcStride, 0, renderTargetCopy.height, frame->data, frame->linesize);
             }
 
-            int ret = avcodec_send_frame(codecCtx, frame);
+            ret = avcodec_send_frame(codecCtx, frame);
             if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                 av_log(nullptr, AV_LOG_ERROR, "Error: Could not send frame to output encoder: %s\n", av_err2str(ret));
                 continue;
@@ -206,6 +235,9 @@ void Recorder::saveFrames() {
             pathFile.close();
         }
     }
+
+    av_packet_free(&packet);
+    av_frame_free(&frame);
 }
 
 void Recorder::initializeFFmpeg() {
@@ -278,34 +310,18 @@ void Recorder::initializeFFmpeg() {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate conversion context\n");
         throw std::runtime_error("Recorder could not be created.");
     }
+}
 
-    /* setup frame */
-    frame->width = renderTargetCopy.width;
-    frame->height = renderTargetCopy.height;
-    frame->format = videoPixelFormat;
-    ret = av_frame_get_buffer(frame, 0);
-    if (ret < 0) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate frame data: %s\n", av_err2str(ret));
-        return;
-    }
-
-    ret = av_frame_make_writable(frame);
-    if (ret < 0) {
-        av_log(nullptr, AV_LOG_ERROR, "Error: Could not make frame writable: %s\n", av_err2str(ret));
-        return;
-    }
-
+void Recorder::finalizeFFmpeg() {
     /* setup packet */
-    ret = av_packet_make_writable(packet);
+    AVPacket* packet = av_packet_alloc();
+    int ret = av_packet_make_writable(packet);
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not make packet writable: %s\n", av_err2str(ret));
         return;
     }
-}
 
-void Recorder::finalizeFFmpeg() {
     // flush encoder
-    int ret;
     avcodec_send_frame(codecCtx, nullptr);
     while (true) {
         ret = avcodec_receive_packet(codecCtx, packet);
@@ -322,6 +338,7 @@ void Recorder::finalizeFFmpeg() {
 
         frameCount++;
     }
+    av_packet_free(&packet);
 
     if (outputFormatCtx) {
         if (outputFormatCtx->pb != nullptr) {

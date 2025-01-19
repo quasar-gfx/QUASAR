@@ -102,6 +102,7 @@ private:
     std::vector<std::thread> saveThreadPool;
     std::queue<FrameData> frameQueue;
     std::mutex queueMutex;
+    std::mutex swsMutex;
     std::condition_variable queueCV;
 
     int targetFrameRate;
@@ -115,9 +116,6 @@ private:
     AVCodecContext* codecCtx = nullptr;
     AVStream* outputVideoStream = nullptr;
     SwsContext* swsCtx = nullptr;
-
-    AVFrame* frame = av_frame_alloc();
-    AVPacket* packet = av_packet_alloc();
 
     void initializeFFmpeg();
     void finalizeFFmpeg();
