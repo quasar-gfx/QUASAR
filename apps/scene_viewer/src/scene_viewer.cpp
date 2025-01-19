@@ -123,8 +123,9 @@ int main(int argc, char** argv) {
 
     float exposure = 1.0f;
     int shaderIndex = 0;
-    RenderStats renderStats;
     bool recording = false;
+    float animationInterval = animationFileIn ? (MILLISECONDS_IN_SECOND / 30.0) : -1.0; // run at 30fps if animation file is provided
+    RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = true;
@@ -305,6 +306,8 @@ int main(int argc, char** argv) {
         camera.updateProjectionMatrix();
     });
 
+    double lastRenderTime = 0.0;
+    double totalDT = 0.0;
     app.onRender([&](double now, double dt) {
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
             auto mouseButtons = window->getMouseButtons();
@@ -364,8 +367,14 @@ int main(int argc, char** argv) {
             dt = animator.dt;
         }
 
+        totalDT += dt;
+
         // update all animations
-        scene.updateAnimations(dt);
+        if (animationInterval == -1.0 || now - lastRenderTime >= animationInterval / MILLISECONDS_IN_SECOND) {
+            scene.updateAnimations(totalDT);
+            lastRenderTime = now;
+            totalDT = 0.0;
+        }
 
         // render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);

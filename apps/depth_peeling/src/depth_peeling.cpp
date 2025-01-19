@@ -209,16 +209,24 @@ int main(int argc, char** argv) {
 
             if (ImGui::Button("Capture Current Frame")) {
                 recorder.saveScreenshotToFile(fileName, saveAsHDR);
+
+                for (int view = 1; view < renderer.maxLayers; view++) {
+                    fileName = std::string(fileNameBase) + ".view" + std::to_string(view) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+                    if (saveAsHDR) {
+                        renderer.peelingLayers[view].saveColorAsHDR(fileName + ".hdr");
+                    }
+                    else {
+                        renderer.peelingLayers[view].saveColorAsPNG(fileName + ".png");
+                    }
+                }
             }
 
             ImGui::End();
         }
 
         if (showLayerPreviews) {
-            flags = ImGuiWindowFlags_AlwaysAutoResize;
-
+            flags = 0;
             const int texturePreviewSize = (windowSize.x * 2/3) / renderer.maxLayers;
-
             for (int i = 0; i < renderer.maxLayers; i++) {
                 int layerIdx = renderer.maxLayers - i - 1;
 

@@ -383,6 +383,7 @@ vec3 calcPointLight(PointLight light, PBRInfo pbrInputs) {
 
 #ifdef DO_DEPTH_PEELING
 
+#define DP_EPSILON 0.0005
 #define EDP_SAMPLES 16
 
 float LCOC(float d, float df) {
@@ -428,11 +429,11 @@ void main() {
         ivec2 pixelCoords = ivec2(gl_FragCoord.xy);
         uvec4 q = texelFetch(prevDepthMap, pixelCoords, 0);
 
-        float currDepth = (-fsIn.FragPosView.z - camera.near) / (camera.far - camera.near);
-        float prevDepth = uintBitsToFloat(q.z);
-        if (prevDepth == 0 || prevDepth >= MAX_DEPTH)
+        float currDepth = -fsIn.FragPosView.z;
+        float prevDepthNormalized = uintBitsToFloat(q.z);
+        if (prevDepthNormalized == 0 || prevDepthNormalized >= MAX_DEPTH)
             discard;
-        if (currDepth <= prevDepth)
+        if (-fsIn.FragPosView.z <= mix(camera.near, camera.far, prevDepthNormalized + DP_EPSILON))
             discard;
 #ifdef EDP
         vec3 fragViewPos = fsIn.FragPosView;

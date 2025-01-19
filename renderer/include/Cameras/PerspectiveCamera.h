@@ -19,7 +19,13 @@ public:
 
     float getFovyRadians() const override { return fovyRad; }
     float getFovyDegrees() const override { return glm::degrees(fovyRad); }
+    void setFovyRadians(float fovyRad) { this->fovyRad = fovyRad; updateProjectionMatrix(); }
     void setFovyDegrees(float fovyDeg) { this->fovyRad = glm::radians(fovyDeg); updateProjectionMatrix(); }
+    void setFovxDegrees(float fovxDeg) {
+        float fovxRad = glm::radians(fovxDeg);
+        float newFovyRad = 2.0f * glm::atan(glm::tan(fovxRad / 2.0f) / aspect);
+        setFovyRadians(newFovyRad);
+    }
 
     float getAspect() const override { return aspect; }
     void setAspect(float aspect) { this->aspect = aspect; updateProjectionMatrix(); }

@@ -45,6 +45,7 @@ const std::vector<glm::vec4> colors = {
     glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
     glm::vec4(0.0f, 0.5f, 0.0f, 1.0f),
     glm::vec4(0.0f, 0.0f, 0.5f, 1.0f),
+    glm::vec4(0.5f, 0.0f, 0.5f, 1.0f),
 };
 
 int main(int argc, char** argv) {
@@ -254,13 +255,15 @@ int main(int argc, char** argv) {
     float viewBoxSize = args::get(viewBoxSizeIn);
 
     bool rerender = true;
-    double rerenderInterval = 0.0;
+
     float networkLatency = !animationFileIn ? 0.0f : args::get(networkLatencyIn);
     float networkJitter = !animationFileIn ? 0.0f : args::get(networkJitterIn);
     PoseSendRecvSimulator poseSendRecvSimulator(networkLatency, networkJitter);
     bool posePrediction = true;
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};
+    int serverFPSIndex = !animationFileIn ? 0 : 5; // default to 30fps
+    double rerenderInterval = MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
 
     bool* showViews = new bool[maxViews];
     for (int view = 0; view < maxViews; ++view) {
@@ -280,7 +283,7 @@ int main(int argc, char** argv) {
         static bool showMeshCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
-        static int serverFPSIndex = !animationFileIn ? 0 : 5;
+        static int serverFPSIndex = !animationFileIn ? 0 : 5; // default to 30fps
 
         static bool showSkyBox = true;
 
@@ -443,8 +446,9 @@ int main(int argc, char** argv) {
                 poseSendRecvSimulator.setPosePrediction(posePrediction);
             }
 
-            ImGui::Combo("Server Framerate", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels));
-            rerenderInterval = 1000.0 / serverFPSValues[serverFPSIndex];
+            if (ImGui::Combo("Server Framerate", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels))) {
+                rerenderInterval = MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
+            }
 
             if (ImGui::Button("Send Server Frame", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
                 rerender = true;
@@ -465,11 +469,7 @@ int main(int argc, char** argv) {
 
             const int columns = 4;
             for (int view = 0; view < maxViews; view++) {
-                if (ImGui::Checkbox(("Show View " + std::to_string(view)).c_str(), &showViews[view])) {
-                    preventCopyingLocalPose = true;
-                    rerender = true;
-                    runAnimations = false;
-                }
+                ImGui::Checkbox(("Show View " + std::to_string(view)).c_str(), &showViews[view]);
                 if ((view + 1) % columns != 0) {
                     ImGui::SameLine();
                 }
@@ -656,7 +656,7 @@ int main(int argc, char** argv) {
             remoteScene.updateAnimations(dt);
         }
 
-        if (rerenderInterval > 0 && now - lastRenderTime > rerenderInterval / MILLISECONDS_IN_SECOND) {
+        if (rerenderInterval > 0.0 && now - lastRenderTime >= rerenderInterval / MILLISECONDS_IN_SECOND) {
             rerender = true;
             runAnimations = true;
             lastRenderTime = now;
@@ -720,15 +720,21 @@ int main(int argc, char** argv) {
                     // make all previous meshViews visible and everything else invisible
                     for (int prevView = 1; prevView < maxViews; prevView++) {
                         meshScene.rootNode.children[prevView]->visible = (prevView < view);
+                        if (view == maxViews - 1) meshScene.rootNode.children[prevView]->setScale(glm::vec3(0.99f));
+                        // else meshScene.rootNode.children[prevView]->setScale(glm::vec3(1.01f));
                     }
                     // draw old meshViews at new remoteCamera view, filling stencil buffer with 1
                     renderer.pipeline.stencilState.enableRenderingIntoStencilBuffer(GL_KEEP, GL_KEEP, GL_REPLACE);
                     renderer.pipeline.writeMaskState.disableColorWrites();
                     renderer.drawObjectsNoLighting(meshScene, remoteCamera);
+                    for (int prevView = 1; prevView < maxViews; prevView++) {
+                        meshScene.rootNode.children[prevView]->setScale(glm::vec3(1.0f));
+                    }
 
                     // render remoteScene using stencil buffer as a mask
                     // at values where stencil buffer is not 1, remoteScene should render
                     renderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_NOTEQUAL, 1);
+                    renderer.pipeline.rasterState.polygonOffsetEnabled = false;
                     renderer.pipeline.writeMaskState.enableColorWrites();
                     renderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

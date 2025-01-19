@@ -11,8 +11,6 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
-#include <Shaders/ToneMapShader.h>
-
 #include <Recorder.h>
 #include <Animator.h>
 
@@ -25,7 +23,7 @@
 
 #include <shaders_common.h>
 
-// #define IFRAME_PERIOD 5
+#define IFRAME_PERIOD 5
 
 const std::vector<glm::vec4> colors = {
     glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), // primary view color is yellow
@@ -273,7 +271,12 @@ int main(int argc, char** argv) {
     meshScene.addChildNode(&nodeMask);
 
     // shaders
-    ToneMapShader toneMapShader;
+    Shader blurEdgesShader({
+        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_COMMON_BLUREDGES_FRAG,
+        .fragmentCodeSize = SHADER_COMMON_BLUREDGES_FRAG_len
+    });
 
     Shader screenShaderNormals({
         .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
@@ -290,7 +293,7 @@ int main(int argc, char** argv) {
         }
     });
 
-    Recorder recorder(renderer, toneMapShader, dataPath, config.targetFramerate);
+    Recorder recorder(renderer, blurEdgesShader, dataPath, config.targetFramerate);
     Animator animator(animationFile);
 
     if (saveImage) {
@@ -313,13 +316,14 @@ int main(int argc, char** argv) {
     bool restrictMovementToViewBox = !animationFileIn;
     float viewSphereDiameter = args::get(viewSphereDiameterIn);
 
-    double rerenderInterval = 0.0;
     float networkLatency = !animationFileIn ? 0.0f : args::get(networkLatencyIn);
     float networkJitter = !animationFileIn ? 0.0f : args::get(networkJitterIn);
     PoseSendRecvSimulator poseSendRecvSimulator(networkLatency, networkJitter);
     bool posePrediction = true;
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};
+    int serverFPSIndex = !animationFileIn ? 0 : 5; // default to 30fps
+    double rerenderInterval = MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
 
     bool* showLayers = new bool[maxViews];
     for (int i = 0; i < maxViews; ++i) {
@@ -340,7 +344,7 @@ int main(int argc, char** argv) {
         static bool showGBufferPreviewWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
-        static int serverFPSIndex = !animationFileIn ? 0 : 5;
+        static int serverFPSIndex = !animationFileIn ? 0 : 5; // default to 30fps
 
         static bool showSkyBox = true;
 
@@ -504,8 +508,9 @@ int main(int argc, char** argv) {
                 poseSendRecvSimulator.setPosePrediction(posePrediction);
             }
 
-            ImGui::Combo("Server Framerate", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels));
-            rerenderInterval = 1000.0 / serverFPSValues[serverFPSIndex];
+            if (ImGui::Combo("Server Framerate", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels))) {
+                rerenderInterval = MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
+            }
 
             float windowWidth = ImGui::GetContentRegionAvail().x;
             float buttonWidth = (windowWidth - ImGui::GetStyle().ItemSpacing.x) / 2.0f;
@@ -589,8 +594,8 @@ int main(int argc, char** argv) {
             if (ImGui::Button("Capture Current Frame")) {
                 recorder.saveScreenshotToFile(fileName, saveAsHDR);
 
-                for (int view = 1; view < maxViews; view++) {
-                    fileName = dataPath + std::string(fileNameBase) + ".view" + std::to_string(view) + "." + time;
+                for (int view = 0; view < numViewsWithoutCenter; view++) {
+                    fileName = dataPath + std::string(fileNameBase) + ".view" + std::to_string(view+1) + "." + time;
                     if (saveAsHDR) {
                         gBufferHiddenRTs[view].saveColorAsHDR(fileName + ".hdr");
                     }
@@ -669,7 +674,7 @@ int main(int argc, char** argv) {
     });
 
     double lastRenderTime = 0.0;
-    // int frameCounter = 0;
+    int frameCounter = 0;
     app.onRender([&](double now, double dt) {
         // handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
@@ -739,10 +744,10 @@ int main(int argc, char** argv) {
             remoteScene.updateAnimations(dt);
         }
 
-        if (rerenderInterval > 0 && now - lastRenderTime > rerenderInterval / MILLISECONDS_IN_SECOND) {
-            // generateIFrame = (++frameCounter) % IFRAME_PERIOD == 0; // insert I-Frame every IFRAME_PERIOD frames
-            // generatePFrame = !generateIFrame;
-            generateIFrame = true;
+        if (rerenderInterval > 0.0 && now - lastRenderTime >= rerenderInterval / MILLISECONDS_IN_SECOND) {
+            generateIFrame = (++frameCounter) % IFRAME_PERIOD == 0; // insert I-Frame every IFRAME_PERIOD frames
+            generatePFrame = !generateIFrame;
+            // generateIFrame = true;
             runAnimations = true;
             lastRenderTime = now;
         }
@@ -786,11 +791,9 @@ int main(int argc, char** argv) {
                 auto& remoteCameraToUse = (view == 0 && generatePFrame) ? remoteCameraCenterPrev :
                                             ((view != maxViews - 1) ? remoteCameraCenter : remoteCameraWideFov);
 
-                auto& currMeshHidden = meshLayers[hiddenIndex];
-                auto& currMeshDepth = meshDepths[hiddenIndex];
-
                 auto& gBufferToUse = (view == 0) ? gBufferCenterRT : gBufferHiddenRTs[hiddenIndex];
-                auto& meshToUse = (view == 0) ? meshesCenter[currMeshIndex] : currMeshHidden;
+                auto& meshToUse = (view == 0) ? meshesCenter[currMeshIndex] : meshLayers[hiddenIndex];
+                auto& currMeshDepth = meshDepths[hiddenIndex];
 
                 if (view == 0) {
                     remoteRenderer.drawObjects(remoteScene, remoteCameraToUse);
@@ -812,10 +815,6 @@ int main(int argc, char** argv) {
                 }
                 // wide fov camera
                 else {
-                    if (generatePFrame) {
-                        remoteCameraToUse.setViewMatrix(remoteCameraCenterPrev.getViewMatrix());
-                    }
-
                     // draw old center mesh at new remoteCamera view, filling stencil buffer with 1
                     wideFOVRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer(GL_KEEP, GL_KEEP, GL_REPLACE);
                     wideFOVRenderer.pipeline.writeMaskState.disableColorWrites();
@@ -1020,9 +1019,9 @@ int main(int argc, char** argv) {
         renderStats = renderer.drawObjects(localScene, camera);
 
         // render to screen
-        toneMapShader.bind();
-        toneMapShader.setBool("toneMap", !showNormals);
-        renderer.drawToScreen(toneMapShader);
+        blurEdgesShader.bind();
+        blurEdgesShader.setBool("toneMap", !showNormals);
+        renderer.drawToScreen(blurEdgesShader);
         if (animator.running) {
             spdlog::info("Client Render Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
         }

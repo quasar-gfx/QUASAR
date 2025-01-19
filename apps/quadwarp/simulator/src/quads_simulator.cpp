@@ -196,6 +196,12 @@ int main(int argc, char** argv) {
 
     // shaders
     ToneMapShader toneMapShader;
+    Shader blurEdgesShader({
+        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
+        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
+        .fragmentCodeData = SHADER_COMMON_BLUREDGES_FRAG,
+        .fragmentCodeSize = SHADER_COMMON_BLUREDGES_FRAG_len
+    });
 
     Shader screenShaderNormals({
         .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
@@ -235,13 +241,15 @@ int main(int argc, char** argv) {
 
     bool generateIFrame = true;
     bool generatePFrame = false;
-    double rerenderInterval = 0.0;
+
     float networkLatency = !animationFileIn ? 0.0f : args::get(networkLatencyIn);
     float networkJitter = !animationFileIn ? 0.0f : args::get(networkJitterIn);
     PoseSendRecvSimulator poseSendRecvSimulator(networkLatency, networkJitter);
     bool posePrediction = true;
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};
+    int serverFPSIndex = !animationFileIn ? 0 : 5; // default to 30fps
+    double rerenderInterval = MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
 
     unsigned int totalProxies = 0;
     unsigned int totalDepthOffsets = 0;
@@ -256,7 +264,7 @@ int main(int argc, char** argv) {
         static bool showGBufferPreviewWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
-        static int serverFPSIndex = !animationFileIn ? 0 : 5;
+        static int serverFPSIndex = !animationFileIn ? 0 : 5; // default to 30fps
 
         static bool showSkyBox = true;
 
@@ -407,8 +415,9 @@ int main(int argc, char** argv) {
                 poseSendRecvSimulator.setPosePrediction(posePrediction);
             }
 
-            ImGui::Combo("Server Framerate", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels));
-            rerenderInterval = 1000.0 / serverFPSValues[serverFPSIndex];
+            if (ImGui::Combo("Server Framerate", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels))) {
+                rerenderInterval = MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
+            }
 
             float windowWidth = ImGui::GetContentRegionAvail().x;
             float buttonWidth = (windowWidth - ImGui::GetStyle().ItemSpacing.x) / 2.0f;
@@ -590,7 +599,7 @@ int main(int argc, char** argv) {
             remoteScene.updateAnimations(dt);
         }
 
-        if (rerenderInterval > 0 && now - lastRenderTime > rerenderInterval / MILLISECONDS_IN_SECOND) {
+        if (rerenderInterval > 0.0 && now - lastRenderTime >= rerenderInterval / MILLISECONDS_IN_SECOND) {
             generateIFrame = (++frameCounter) % IFRAME_PERIOD == 0; // insert I-Frame every IFRAME_PERIOD frames
             generatePFrame = !generateIFrame;
             runAnimations = true;
@@ -799,9 +808,9 @@ int main(int argc, char** argv) {
         renderStats = renderer.drawObjects(localScene, camera);
 
         // render to screen
-        toneMapShader.bind();
-        toneMapShader.setBool("toneMap", !showNormals);
-        renderer.drawToScreen(toneMapShader);
+        blurEdgesShader.bind();
+        blurEdgesShader.setBool("toneMap", !showNormals);
+        renderer.drawToScreen(blurEdgesShader);
         if (animator.running) {
             spdlog::info("Client Render Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
         }
