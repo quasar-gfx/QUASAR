@@ -39,13 +39,14 @@ shared uint localNumProxies;
 
 void main() {
     uint proxyIndex = gl_GlobalInvocationID.x;
-    if (proxyIndex >= newNumProxies) {
-        return;
-    }
 
     // if i-frame, start from the beginning
     if (iFrame && proxyIndex == 0u) {
         currNumProxies = 0u;
+    }
+
+    if (proxyIndex >= newNumProxies) {
+        return;
     }
 
     uint startIndex = iFrame ? 0u : prevNumProxies;

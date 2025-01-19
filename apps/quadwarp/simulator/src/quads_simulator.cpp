@@ -593,6 +593,7 @@ int main(int argc, char** argv) {
         if (rerenderInterval > 0.0 && now - lastRenderTime >= rerenderInterval / MILLISECONDS_IN_SECOND) {
             generateIFrame = (++frameCounter) % IFRAME_PERIOD == 0; // insert I-Frame every IFRAME_PERIOD frames
             generatePFrame = !generateIFrame;
+            // generateIFrame = true;
             runAnimations = true;
             lastRenderTime = now;
         }

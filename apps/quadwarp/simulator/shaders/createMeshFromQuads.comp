@@ -90,8 +90,6 @@ layout(std430, binding = 9) readonly buffer CurrNumProxiesBuffer {
 
 layout(rgba16f, binding = 0) uniform readonly image2D depthOffsetsBuffer;
 
-uniform bool appendGeometry;
-
 uniform vec2 remoteWindowSize;
 uniform vec2 depthBufferSize;
 uniform vec2 atlasSize;
@@ -449,17 +447,17 @@ void main() {
 
     // reset buffers on first invocation
     if (quadIndicesPixelCoord == uvec2(0u)) {
-        if (!appendGeometry) {
-            atomicExchange(numVertices, 0u);
-            atomicExchange(numIndices, 0u);
-        }
+        // reset mesh buffers
+        atomicExchange(numVertices, 0u);
+        atomicExchange(numIndices, 0u);
+        atomicExchange(meshIndirectCommandBuffer.count, 0u);
     }
 
     // uint quadMapIndex = quadIndicesPixelCoord.y * uint(remoteWindowSize.x) + quadIndicesPixelCoord.x;
-    // if (quadMapIndex >= currNumProxies) {
-    //     return;
-    // }
     uint quadMapIndex = loadQuadMapIndex(ivec2(quadIndicesPixelCoord));
+    if (quadMapIndex >= currNumProxies) {
+        return;
+    }
 
     // if the quad has already been created, skip it
     bool quadCreated = bool(atomicExchange(quadCreatedFlags[quadMapIndex], 1));

@@ -62,8 +62,7 @@ public:
             unsigned int numProxies,
             const DepthOffsets &depthOffsets,
             const PerspectiveCamera &remoteCamera,
-            const Mesh &mesh,
-            bool appendGeometry = false);
+            const Mesh &mesh);
 
     BufferSizes getBufferSizes();
 

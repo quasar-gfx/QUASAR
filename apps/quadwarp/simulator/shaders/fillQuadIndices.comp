@@ -91,9 +91,6 @@ QuadMapData loadQuadMap(uint index) {
 
 void main() {
     uint proxyIndex = gl_GlobalInvocationID.x;
-    if (proxyIndex >= currNumProxies) {
-        return;
-    }
 
     if (proxyIndex == 0u) {
         prevNumProxies = currNumProxies;
@@ -101,6 +98,10 @@ void main() {
 
     // reset quadCreatedFlags
     quadCreatedFlags[proxyIndex] = 0;
+
+    if (proxyIndex >= currNumProxies) {
+        return;
+    }
 
     // uncomment for debugging:
     // ivec2 pixelCoords = ivec2(proxyIndex % uint(remoteWindowSize.x), proxyIndex / uint(remoteWindowSize.x));

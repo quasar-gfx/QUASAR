@@ -1,7 +1,7 @@
 #include <Quads/QuadsGenerator.h>
 #include <Utils/TimeUtils.h>
 
-#define THREADS_PER_LOCALGROUP 16
+#define THREADS_PER_LOCALGROUP 2
 
 #define MAX_PROXY_SIZE 1024
 

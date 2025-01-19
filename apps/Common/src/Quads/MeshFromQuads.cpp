@@ -62,7 +62,7 @@ void MeshFromQuads::appendProxies(
         appendProxiesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, currentQuadBuffers.depthsBuffer);
         appendProxiesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, currentQuadBuffers.offsetSizeFlattenedsBuffer);
     }
-    appendProxiesShader.dispatch((numProxies + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
+    appendProxiesShader.dispatch(((numProxies + 1) + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
     appendProxiesShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
     appendProxiesShader.endTiming();
@@ -101,17 +101,13 @@ void MeshFromQuads::createMeshFromProxies(
         unsigned int numProxies,
         const DepthOffsets &depthOffsets,
         const PerspectiveCamera &remoteCamera,
-        const Mesh &mesh,
-        bool appendGeometry) {
+        const Mesh &mesh) {
     createMeshFromQuadsShader.startTiming();
 
     createMeshFromQuadsShader.bind();
     {
         createMeshFromQuadsShader.setVec2("remoteWindowSize", gBufferSize);
         createMeshFromQuadsShader.setVec2("depthBufferSize", depthBufferSize);
-    }
-    {
-        createMeshFromQuadsShader.setBool("appendGeometry", appendGeometry);
     }
     {
         createMeshFromQuadsShader.setMat4("view", remoteCamera.getViewMatrix());
