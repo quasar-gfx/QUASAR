@@ -55,14 +55,14 @@ void Animator::update(double dt) {
         currentIndex++;
     }
 
-    if (currentIndex >= waypoints.size()) {
-        currentIndex = waypoints.size() - 1;
-        running = false;
-    }
-
     if (currentIndex > 0) {
         auto deltaSeconds = waypoints[currentIndex].timestamp - waypoints[currentIndex - 1].timestamp;
         this->dt = glm::max(deltaSeconds, 0.0);
+    }
+
+    if (currentIndex >= waypoints.size()) {
+        currentIndex = waypoints.size() - 1;
+        running = false;
     }
 }
 

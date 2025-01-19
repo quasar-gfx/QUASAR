@@ -352,10 +352,6 @@ int main(int argc, char** argv) {
         if (animator.running) {
             animator.copyPoseToCamera(camera);
             animator.update(dt);
-            if (!animator.running) {
-                recorder.stop();
-                window->close();
-            }
         }
         else {
             // handle keyboard input
@@ -410,8 +406,13 @@ int main(int argc, char** argv) {
             renderer.drawToScreen(toneMapShader);
         }
 
-        if (animator.running || recording) {
+        if ((animationFileIn && animator.running) || recording) {
             recorder.captureFrame(camera);
+        }
+        if (animationFileIn && !animator.running) {
+            recorder.captureFrame(camera); // capture final frame
+            recorder.stop();
+            window->close();
         }
     });
 

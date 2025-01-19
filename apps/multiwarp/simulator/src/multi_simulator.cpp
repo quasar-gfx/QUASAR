@@ -630,15 +630,6 @@ int main(int argc, char** argv) {
         if (animator.running) {
             animator.copyPoseToCamera(camera);
             animator.update(dt);
-            if (!animator.running) {
-                recorder.stop();
-                window->close();
-
-                double avgPosError, avgRotError, avgTimeError, stdPosError, stdRotError, stdTimeError;
-                poseSendRecvSimulator.getAvgErrors(avgPosError, avgRotError, avgTimeError, stdPosError, stdRotError, stdTimeError);
-                spdlog::info("Pose Error: Pos ({:.2f}±{:.2f}), Rot ({:.2f}±{:.2f}), RTT ({:.2f}±{:.2f})",
-                            avgPosError, stdPosError, avgRotError, stdRotError, avgTimeError, stdTimeError);
-            }
         }
         else {
             auto scroll = window->getScrollOffset();
@@ -878,8 +869,18 @@ int main(int argc, char** argv) {
             spdlog::info("Client Render Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
         }
 
-        if (animator.running || recording) {
+        if ((animationFileIn && animator.running) || recording) {
             recorder.captureFrame(camera);
+        }
+        if (animationFileIn && !animator.running) {
+            recorder.captureFrame(camera); // capture final frame
+            recorder.stop();
+            window->close();
+
+            double avgPosError, avgRotError, avgTimeError, stdPosError, stdRotError, stdTimeError;
+            poseSendRecvSimulator.getAvgErrors(avgPosError, avgRotError, avgTimeError, stdPosError, stdRotError, stdTimeError);
+            spdlog::info("Pose Error: Pos ({:.2f}±{:.2f}), Rot ({:.2f}±{:.2f}), RTT ({:.2f}±{:.2f})",
+                        avgPosError, stdPosError, avgRotError, stdRotError, avgTimeError, stdTimeError);
         }
     });
 
