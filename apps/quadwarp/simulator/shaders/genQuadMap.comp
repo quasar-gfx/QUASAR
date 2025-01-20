@@ -567,7 +567,7 @@ void storeSurfelsInQuadMap(
                          int(absDepthOffsetsTopRight.z < flatThreshold) +
                          int(absDepthOffsetsTopRight.w < flatThreshold);
 
-    bool flattened = (numBelowThreshold == total);
+    bool flattened = (numBelowThreshold >= total / 2);
 
     QuadMapData quadMapData;
     quadMapData.flattened = flattened;

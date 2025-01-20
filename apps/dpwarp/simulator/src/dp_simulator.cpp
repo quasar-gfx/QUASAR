@@ -211,7 +211,7 @@ int main(int argc, char** argv) {
     nodeMaskWireframe.frustumCulled = false;
     nodeMaskWireframe.wireframe = true;
     nodeMaskWireframe.visible = false;
-    nodeMaskWireframe.overrideMaterial = new UnlitMaterial({ .baseColor = colors[1] });
+    nodeMaskWireframe.overrideMaterial = new UnlitMaterial({ .baseColor = colors[colors.size()-1] });
 
     localScene.addChildNode(&nodeMask);
     localScene.addChildNode(&nodeMaskWireframe);
@@ -240,7 +240,7 @@ int main(int argc, char** argv) {
         nodeLayers[view].frustumCulled = false;
         localScene.addChildNode(&nodeLayers[view]);
 
-        const glm::vec4 &color = colors[(view + 2) % colors.size()];
+        const glm::vec4 &color = colors[(view + 1) % colors.size()];
 
         nodeWireframes.emplace_back(&meshLayers[view]);
         nodeWireframes[view].frustumCulled = false;
@@ -835,11 +835,12 @@ int main(int argc, char** argv) {
                 ============================
                 */
                 unsigned int numProxies = 0, numDepthOffsets = 0;
-                compressedSize += frameGenerator.generateIFrame(
+                unsigned int numBytesIFrame = frameGenerator.generateIFrame(
                     gBufferToUse, remoteCameraToUse,
                     quadsGenerator, meshFromQuads, meshToUse,
                     numProxies, numDepthOffsets
                 );
+                compressedSize += numBytesIFrame;
                 if (!(view == 0 && generatePFrame) && showLayers[view]) {
                     totalProxies += numProxies;
                     totalDepthOffsets += numDepthOffsets;
@@ -863,6 +864,7 @@ int main(int argc, char** argv) {
                 */
                 if (view == 0) {
                     if (generatePFrame) {
+                        compressedSize -= numBytesIFrame;
                         compressedSize += frameGenerator.generatePFrame(
                             remoteRenderer, remoteScene,
                             meshScenesCenter[currMeshIndex], meshScenesCenter[prevMeshIndex],

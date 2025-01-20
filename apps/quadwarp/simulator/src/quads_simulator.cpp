@@ -25,6 +25,19 @@
 
 #define IFRAME_PERIOD 5
 
+const std::vector<glm::vec4> colors = {
+    glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), // primary view color is yellow
+    glm::vec4(0.0f, 0.0f, 1.0f, 1.0f),
+    glm::vec4(0.0f, 1.0f, 0.0f, 1.0f),
+    glm::vec4(1.0f, 0.5f, 0.5f, 1.0f),
+    glm::vec4(0.5f, 0.0f, 0.0f, 1.0f),
+    glm::vec4(0.0f, 1.0f, 1.0f, 1.0f),
+    glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
+    glm::vec4(0.0f, 0.5f, 0.0f, 1.0f),
+    glm::vec4(0.0f, 0.0f, 0.5f, 1.0f),
+    glm::vec4(0.5f, 0.0f, 0.5f, 1.0f),
+};
+
 int main(int argc, char** argv) {
     Config config{};
     config.title = "QuadStream Simulator";
@@ -160,7 +173,7 @@ int main(int argc, char** argv) {
         nodeWireframes[i].frustumCulled = false;
         nodeWireframes[i].wireframe = true;
         nodeWireframes[i].visible = false;
-        nodeWireframes[i].overrideMaterial = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
+        nodeWireframes[i].overrideMaterial = new UnlitMaterial({ .baseColor = colors[0] });
         localScene.addChildNode(&nodeWireframes[i]);
     }
 
@@ -178,7 +191,7 @@ int main(int argc, char** argv) {
     nodeMaskWireframe.frustumCulled = false;
     nodeMaskWireframe.wireframe = true;
     nodeMaskWireframe.visible = false;
-    nodeMaskWireframe.overrideMaterial = new UnlitMaterial({ .baseColor = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f) });
+    nodeMaskWireframe.overrideMaterial = new UnlitMaterial({ .baseColor = colors[colors.size()-1] });
 
     localScene.addChildNode(&nodeMask);
     localScene.addChildNode(&nodeMaskWireframe);
