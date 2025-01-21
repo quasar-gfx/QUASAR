@@ -408,7 +408,7 @@ int main(int argc, char** argv) {
                 runAnimations = false;
             }
 
-            if (ImGui::SliderFloat("Distance Threshold", &quadsGenerator.distanceThreshold, 0.0f, 1.0f)) {
+            if (ImGui::SliderFloat("Depth Threshold (x0.1)", &quadsGenerator.distanceThreshold, 0.0f, 10.0f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
                 runAnimations = false;
@@ -420,7 +420,7 @@ int main(int argc, char** argv) {
                 runAnimations = false;
             }
 
-            if (ImGui::SliderFloat("Flat Threshold (0.01)", &quadsGenerator.flatThreshold, 0.0f, 10.0f)) {
+            if (ImGui::SliderFloat("Flat Threshold (x0.1)", &quadsGenerator.flatThreshold, 0.0f, 10.0f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
                 runAnimations = false;

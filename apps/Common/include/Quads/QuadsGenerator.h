@@ -22,10 +22,10 @@ public:
     } stats;
 
     bool doOrientationCorrection = true;
-    float distanceThreshold = 0.5f;
-    float angleThreshold = 87.0f;
-    float flatThreshold = 5.0f;
-    float proxySimilarityThreshold = 0.5f;
+    float distanceThreshold = 0.001f;
+    float angleThreshold = 85.0f;
+    float flatThreshold = 1.0f;
+    float proxySimilarityThreshold = 1.0f;
 
     glm::uvec2 remoteWindowSize;
     glm::uvec2 depthBufferSize;

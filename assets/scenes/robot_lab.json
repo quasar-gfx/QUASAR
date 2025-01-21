@@ -79,8 +79,8 @@
     "animations": [
         {
             "node": "prop_robotArm_body",
-            "fromRotation": [0.0, 0.0, 0.0],
-            "toRotation": [0.0, 360.0, 0.0],
+            "fromRotation": [0.0, 360.0, 0.0],
+            "toRotation": [0.0, 0.0, 0.0],
             "duration": 60.0,
             "loop": true
         },
