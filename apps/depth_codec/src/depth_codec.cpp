@@ -1,5 +1,4 @@
 #include <iostream>
-#include <iomanip>
 #include <args/args.hxx>
 
 #include <OpenGLApp.h>
@@ -13,9 +12,9 @@
 #include <Recorder.h>
 #include <Animator.h>
 
-#include <VideoTexture.h>
-#include <DepthVideoTexture.h>
+#include <BC4DepthStreamer.h>
 #include <PoseStreamer.h>
+
 #include <shaders_common.h>
 
 #define THREADS_PER_LOCALGROUP 16
@@ -27,13 +26,6 @@ const std::string DATA_PATH = "./";
 enum class RenderState {
     MESH,
     POINTCLOUD
-};
-
-struct Block {
-    float max; // 32 - unit32
-    float min;
-    uint32_t arr[6];
-    //float real[64];
 };
 
 // Function to calculate MSE
@@ -148,8 +140,8 @@ int main(int argc, char** argv) {
     unsigned int originalSize = windowSize.x * windowSize.y * sizeof(float);
 
     // create buffer for compressed data
-    unsigned int compressedSize = (windowSize.x / 8) * (windowSize.y / 8) * sizeof(Block);
-    Buffer<Block> bc4Buffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, compressedSize / sizeof(Block), nullptr);
+    unsigned int compressedSize = (windowSize.x / 8) * (windowSize.y / 8) * sizeof(BC4DepthStreamer::Block);
+    Buffer<BC4DepthStreamer::Block> bc4Buffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, compressedSize / sizeof(BC4DepthStreamer::Block), nullptr);
 
     float compressionRatio = originalSize / compressedSize;
 
@@ -380,7 +372,7 @@ int main(int argc, char** argv) {
         genMeshFromBC4Shader.dispatch((adjustedWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
                                       (adjustedWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
         meshFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
-                                     GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+                                          GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
         // compress depth data using BC4
         bc4CompressionShader.bind();

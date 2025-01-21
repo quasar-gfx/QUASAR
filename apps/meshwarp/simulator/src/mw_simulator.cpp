@@ -14,9 +14,10 @@
 
 #include <Recorder.h>
 #include <Animator.h>
-#include <shaders_common.h>
 
 #include <PoseSendRecvSimulator.h>
+
+#include <shaders_common.h>
 
 #define THREADS_PER_LOCALGROUP 16
 
@@ -148,7 +149,7 @@ int main(int argc, char** argv) {
     // shaders
     ToneMapShader toneMapShader;
 
-    ComputeShader genMeshFromDepthShader({
+    ComputeShader meshFromDepthShader({
         .computeCodeData = SHADER_COMMON_MESHFROMDEPTH_COMP,
         .computeCodeSize = SHADER_COMMON_MESHFROMDEPTH_COMP_len,
         .defines = {
@@ -433,36 +434,36 @@ int main(int argc, char** argv) {
             totalRenderTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
 
             startTime = window->getTime();
-            genMeshFromDepthShader.startTiming();
+            meshFromDepthShader.startTiming();
 
-            genMeshFromDepthShader.bind();
+            meshFromDepthShader.bind();
             {
-                genMeshFromDepthShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
+                meshFromDepthShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
             }
             {
-                genMeshFromDepthShader.setVec2("depthMapSize", depthMapSize);
-                genMeshFromDepthShader.setInt("surfelSize", surfelSize);
+                meshFromDepthShader.setVec2("depthMapSize", depthMapSize);
+                meshFromDepthShader.setInt("surfelSize", surfelSize);
             }
             {
-                genMeshFromDepthShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-                genMeshFromDepthShader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
-                genMeshFromDepthShader.setMat4("view", remoteCamera.getViewMatrix());
-                genMeshFromDepthShader.setMat4("viewInverse", remoteCamera.getViewMatrixInverse());
+                meshFromDepthShader.setMat4("projection", remoteCamera.getProjectionMatrix());
+                meshFromDepthShader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
+                meshFromDepthShader.setMat4("view", remoteCamera.getViewMatrix());
+                meshFromDepthShader.setMat4("viewInverse", remoteCamera.getViewMatrixInverse());
 
-                genMeshFromDepthShader.setFloat("near", remoteCamera.getNear());
-                genMeshFromDepthShader.setFloat("far", remoteCamera.getFar());
+                meshFromDepthShader.setFloat("near", remoteCamera.getNear());
+                meshFromDepthShader.setFloat("far", remoteCamera.getFar());
             }
             {
-                genMeshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
-                genMeshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
+                meshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
+                meshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
             }
-            genMeshFromDepthShader.dispatch((adjustedWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                            (adjustedWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
-            genMeshFromDepthShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+            meshFromDepthShader.dispatch((adjustedWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                         (adjustedWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+            meshFromDepthShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
-            genMeshFromDepthShader.endTiming();
+            meshFromDepthShader.endTiming();
             totalGenMeshTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
-            totalCreateVertIndTime += genMeshFromDepthShader.getElapsedTime();
+            totalCreateVertIndTime += meshFromDepthShader.getElapsedTime();
 
             spdlog::info("======================================================");
             spdlog::info("Rendering Time: {:.2f}ms", totalRenderTime);
