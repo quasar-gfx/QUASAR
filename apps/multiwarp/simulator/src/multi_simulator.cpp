@@ -420,7 +420,7 @@ int main(int argc, char** argv) {
                 runAnimations = false;
             }
 
-            if (ImGui::SliderFloat("Flat Threshold (x0.1)", &quadsGenerator.flatThreshold, 0.0f, 10.0f)) {
+            if (ImGui::SliderFloat("Flat Threshold", &quadsGenerator.flatThreshold, 0.0f, 1.0f)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
                 runAnimations = false;

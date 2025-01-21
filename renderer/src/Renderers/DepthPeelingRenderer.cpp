@@ -87,6 +87,14 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &ca
             prevDepthMap = &peelingLayers[i-1].idBuffer;
         }
 
+        // set layer index in shaders
+        PBRMaterial::shader->bind();
+        PBRMaterial::shader->setInt("layerIndex", i);
+
+        UnlitMaterial::shader->bind();
+        UnlitMaterial::shader->setInt("layerIndex", i);
+
+        // render scene
         for (auto& child : scene.rootNode.children) {
             stats += drawNode(scene, camera, child, glm::mat4(1.0f), true, nullptr, prevDepthMap);
         }

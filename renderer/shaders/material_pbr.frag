@@ -119,6 +119,7 @@ uniform usampler2D prevDepthMap;
 uniform int height;
 uniform float E;
 uniform float edpDelta;
+uniform int layerIndex;
 #endif
 
 #define MAX_DEPTH 0.9999
@@ -383,8 +384,18 @@ vec3 calcPointLight(PointLight light, PBRInfo pbrInputs) {
 
 #ifdef DO_DEPTH_PEELING
 
+// adapted from https://github.com/cgskku/pvhv/blob/main/shaders/edp.frag
 #define DP_EPSILON 0.0005
 #define EDP_SAMPLES 16
+
+bool cullUmbra(float fragmentDepth, float zf) {
+    float d = fragmentDepth; // fragment depth
+	float df = mix(camera.near, camera.far, zf); // blocker depth
+	float s  = tan(camera.fovy * 0.5) * 2.0 * df / height; // pixel geometry size
+	if (E < s) return true; // no more peeling, because the pixel geometry size > lens size
+	float x  = df * s / (E - s);
+	return d < df + x;
+}
 
 float LCOC(float d, float df) {
 	float K = float(height)*0.5 / df / tan(camera.fovy*0.5); // screen-space LCOC scale
@@ -393,6 +404,8 @@ float LCOC(float d, float df) {
 
 bool inPVHV(ivec2 pixelCoords, vec3 fragViewPos, uvec4 q) {
     float fragmentDepth = -fragViewPos.z;
+
+    if (layerIndex > 2) return cullUmbra(fragmentDepth, uintBitsToFloat(q.z));
 
     uint q_item = q.r;
     if (q_item < 0) return false;
