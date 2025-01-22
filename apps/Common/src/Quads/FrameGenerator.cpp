@@ -3,7 +3,8 @@
 unsigned int FrameGenerator::generateIFrame(
     const GBuffer &gBuffer, const PerspectiveCamera &remoteCamera,
     QuadsGenerator &quadsGenerator, MeshFromQuads &meshFromQuads, const Mesh &mesh,
-    unsigned int &numProxies, unsigned int &numDepthOffsets) {
+    unsigned int &numProxies, unsigned int &numDepthOffsets,
+    bool doLZ4) {
     const glm::vec2 gBufferSize = glm::vec2(gBuffer.width, gBuffer.height);
 
     double startTimeTotal = timeutils::getTimeMicros();
@@ -35,7 +36,7 @@ unsigned int FrameGenerator::generateIFrame(
     stats.timeToCreateVertInd = meshFromQuads.stats.timeToCreateMeshMs;
     stats.timeToCreateMesh = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
-    return quadsGenerator.saveQuadsToMemory(compressedQuads) +
+    return quadsGenerator.saveQuadsToMemory(compressedQuads, doLZ4) +
            numDepthOffsets * sizeof(uint16_t) / 8;
 }
 
@@ -46,7 +47,8 @@ unsigned int FrameGenerator::generatePFrame(
     const PerspectiveCamera &currRemoteCamera, const PerspectiveCamera &prevRemoteCamera,
     QuadsGenerator &quadsGenerator, MeshFromQuads &meshFromQuads, MeshFromQuads &meshFromQuadsMask,
     const Mesh &currMesh, const Mesh &maskMesh,
-    unsigned int &numProxies, unsigned int &numDepthOffsets, const ComputeShader* downsampleShader) {
+    unsigned int &numProxies, unsigned int &numDepthOffsets, const ComputeShader &downsampleShader,
+    bool doLZ4) {
 
     const glm::vec2 gBufferSize = glm::vec2(gBufferLowRes.width, gBufferLowRes.height);
     unsigned int outputSize = 0;
@@ -70,21 +72,17 @@ unsigned int FrameGenerator::generatePFrame(
 
         remoteRenderer.pipeline.stencilState.restoreStencilState();
         remoteRenderer.gBuffer.blitToGBuffer(gBufferLowRes);
-        if (downsampleShader == nullptr) {
-            remoteRenderer.gBuffer.blitToGBuffer(gBuffer);
-        }
-        else {
-            downsampleShader->bind();
-            downsampleShader->setFloat("depthThreshold", quadsGenerator.depthThreshold);
-            downsampleShader->setTexture(remoteRenderer.gBuffer.colorBuffer, 0);
-            downsampleShader->setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 1);
-            downsampleShader->setTexture(gBufferLowRes.colorBuffer, 2);
-            downsampleShader->setTexture(gBufferLowRes.depthStencilBuffer, 3);
-            downsampleShader->setImageTexture(0, gBuffer.colorBuffer, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-            downsampleShader->dispatch((gBufferLowRes.width + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                         (gBufferLowRes.height + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
-            downsampleShader->memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-        }
+
+        downsampleShader.bind();
+        downsampleShader.setFloat("depthThreshold", quadsGenerator.depthThreshold);
+        downsampleShader.setTexture(remoteRenderer.gBuffer.colorBuffer, 0);
+        downsampleShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 1);
+        downsampleShader.setTexture(gBufferLowRes.colorBuffer, 2);
+        downsampleShader.setTexture(gBufferLowRes.depthStencilBuffer, 3);
+        downsampleShader.setImageTexture(0, gBuffer.colorBuffer, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+        downsampleShader.dispatch((gBufferLowRes.width + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                        (gBufferLowRes.height + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+        downsampleShader.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
     }
 
     // generate frame using current frame as a mask for movement
@@ -99,21 +97,17 @@ unsigned int FrameGenerator::generatePFrame(
 
         remoteRenderer.pipeline.stencilState.restoreStencilState();
         remoteRenderer.gBuffer.blitToGBuffer(gBufferMaskLowRes);
-        if (downsampleShader == nullptr) {
-            remoteRenderer.gBuffer.blitToGBuffer(gBufferMask);
-        }
-        else {
-            downsampleShader->bind();
-            downsampleShader->setFloat("depthThreshold", quadsGenerator.depthThreshold);
-            downsampleShader->setTexture(remoteRenderer.gBuffer.colorBuffer, 0);
-            downsampleShader->setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 1);
-            downsampleShader->setTexture(gBufferMaskLowRes.colorBuffer, 2);
-            downsampleShader->setTexture(gBufferMaskLowRes.depthStencilBuffer, 3);
-            downsampleShader->setImageTexture(0, gBufferMask.colorBuffer, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-            downsampleShader->dispatch((gBufferMaskLowRes.width + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                            (gBufferMaskLowRes.height + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
-            downsampleShader->memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-        }
+
+        downsampleShader.bind();
+        downsampleShader.setFloat("depthThreshold", quadsGenerator.depthThreshold);
+        downsampleShader.setTexture(remoteRenderer.gBuffer.colorBuffer, 0);
+        downsampleShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 1);
+        downsampleShader.setTexture(gBufferMaskLowRes.colorBuffer, 2);
+        downsampleShader.setTexture(gBufferMaskLowRes.depthStencilBuffer, 3);
+        downsampleShader.setImageTexture(0, gBufferMask.colorBuffer, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+        downsampleShader.dispatch((gBufferMaskLowRes.width + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                        (gBufferMaskLowRes.height + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+        downsampleShader.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
         stats.timeToRenderMasks = timeutils::microsToMillis(timeutils::getTimeMicros() - startTimeTotal);
     }
@@ -139,7 +133,7 @@ unsigned int FrameGenerator::generatePFrame(
         stats.timeToAppendProxies = meshFromQuads.stats.timeToAppendProxiesMs;
         stats.timeToCreateVertInd = meshFromQuads.stats.timeToCreateMeshMs;
 
-        outputSize += quadsGenerator.saveQuadsToMemory(compressedQuads);
+        outputSize += quadsGenerator.saveQuadsToMemory(compressedQuads, doLZ4);
     }
 
     {
@@ -160,7 +154,7 @@ unsigned int FrameGenerator::generatePFrame(
         stats.timeToAppendProxies += meshFromQuadsMask.stats.timeToAppendProxiesMs;
         stats.timeToCreateVertInd += meshFromQuadsMask.stats.timeToCreateMeshMs;
 
-        outputSize += quadsGenerator.saveQuadsToMemory(compressedQuads);
+        outputSize += quadsGenerator.saveQuadsToMemory(compressedQuads, doLZ4);
         outputSize += numDepthOffsets * sizeof(uint16_t) / 8;
     }
 

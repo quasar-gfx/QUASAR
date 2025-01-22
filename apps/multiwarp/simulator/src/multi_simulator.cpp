@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
     };
     for (int views = 0; views < maxViews; views++) {
         if (views == maxViews - 1) {
-            params.width /= 2; params.height /= 2; // set to lower resolution for wide fov
+            params.width = 1280; params.height = 720;
         }
         gBufferRTs.emplace_back(params);
     }
@@ -711,16 +711,11 @@ int main(int argc, char** argv) {
                     // make all previous meshViews visible and everything else invisible
                     for (int prevView = 1; prevView < maxViews; prevView++) {
                         meshScene.rootNode.children[prevView]->visible = (prevView < view);
-                        if (view == maxViews - 1) meshScene.rootNode.children[prevView]->setScale(glm::vec3(0.99f));
-                        // else meshScene.rootNode.children[prevView]->setScale(glm::vec3(1.01f));
                     }
                     // draw old meshViews at new remoteCamera view, filling stencil buffer with 1
                     renderer.pipeline.stencilState.enableRenderingIntoStencilBuffer(GL_KEEP, GL_KEEP, GL_REPLACE);
                     renderer.pipeline.writeMaskState.disableColorWrites();
                     renderer.drawObjectsNoLighting(meshScene, remoteCamera);
-                    for (int prevView = 1; prevView < maxViews; prevView++) {
-                        meshScene.rootNode.children[prevView]->setScale(glm::vec3(1.0f));
-                    }
 
                     // render remoteScene using stencil buffer as a mask
                     // at values where stencil buffer is not 1, remoteScene should render
@@ -743,7 +738,8 @@ int main(int argc, char** argv) {
                 compressedSize += frameGenerator.generateIFrame(
                     gBufferRTs[view], remoteCamera,
                     quadsGenerator, meshFromQuads, currMesh,
-                    numProxies, numDepthOffsets
+                    numProxies, numDepthOffsets,
+                    false
                 );
                 if (showViews[view]) {
                     totalProxies += numProxies;
@@ -829,7 +825,8 @@ int main(int argc, char** argv) {
             spdlog::info("  Fill Output Quads Time: {:.3f}ms", totalFillQuadsIndiciesMsTime);
             spdlog::info("  Create Vert/Ind Time: {:.3f}ms", totalCreateVertIndTime);
             if (showDepth) spdlog::info("Gen Depth Time: {:.3f}ms", totalGenDepthTime);
-            spdlog::info("Frame Size: {:.3f}MB", (float)(compressedSize) / BYTES_IN_MB);
+            // QS has data structures that are 103 bits
+            spdlog::info("Frame Size: {:.3f}MB", (float)(compressedSize) / BYTES_IN_MB * (103.0) / (8*sizeof(QuadMapDataPacked)));
 
             preventCopyingLocalPose = false;
             rerender = false;

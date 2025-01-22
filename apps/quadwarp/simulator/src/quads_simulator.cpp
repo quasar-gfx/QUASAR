@@ -716,7 +716,7 @@ int main(int argc, char** argv) {
                     quadsGenerator, meshFromQuads, meshFromQuadsMask,
                     meshes[currMeshIndex], meshMask,
                     numProxies, numDepthOffsets,
-                    &smartDownsampleShader
+                    smartDownsampleShader
                 );
                 totalProxies += numProxies;
                 totalDepthOffsets += numDepthOffsets;

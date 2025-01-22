@@ -95,15 +95,22 @@ unsigned int QuadBuffers::loadFromMemory(const char* data) {
 }
 
 #ifdef GL_CORE
-unsigned int QuadBuffers::saveToMemory(std::vector<char> &compressedData) {
+unsigned int QuadBuffers::saveToMemory(std::vector<char> &compressedData, bool doLZ4) {
     unsigned int dataSize = updateDataBuffer();
-    compressedData.resize(LZ4F_compressFrameBound(dataSize, nullptr));
-    int outputSize = LZ4_compress_default(
-                        reinterpret_cast<const char*>(data.data()),
-                        compressedData.data(),
-                        dataSize,
-                        compressedData.size());
-    return outputSize;
+    if (doLZ4) {
+        compressedData.resize(LZ4F_compressFrameBound(dataSize, nullptr));
+        int outputSize = LZ4_compress_default(
+                            reinterpret_cast<const char*>(data.data()),
+                            compressedData.data(),
+                            dataSize,
+                            compressedData.size());
+        return outputSize;
+    }
+    else {
+        compressedData.resize(dataSize);
+        memcpy(compressedData.data(), data.data(), dataSize);
+        return dataSize;
+    }
 }
 
 unsigned int QuadBuffers::saveToFile(const std::string &filename) {

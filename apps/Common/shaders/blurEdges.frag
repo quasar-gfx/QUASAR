@@ -9,6 +9,7 @@ uniform sampler2D screenNormals;
 uniform usampler2D idBuffer;
 
 #define MAX_DEPTH 0.9999
+#define DEPTH_THRESHOLD 0.0001
 
 uniform bool toneMap = true;
 uniform bool gammaCorrect = true;
@@ -31,8 +32,11 @@ void main() {
         float bottomDepth = texture(screenDepth, TexCoords + vec2(0.0, searchRadius) / textureSize).r;
         float leftDepth   = texture(screenDepth, TexCoords + vec2(-searchRadius, 0.0) / textureSize).r;
         float rightDepth  = texture(screenDepth, TexCoords + vec2(searchRadius, 0.0) / textureSize).r;
-        bool bothSidesUnder = (topDepth < MAX_DEPTH && bottomDepth < MAX_DEPTH) ||
-                              (leftDepth < MAX_DEPTH && rightDepth < MAX_DEPTH);
+        bool bothSidesUnder = ((abs(topDepth - bottomDepth) <= DEPTH_THRESHOLD) && (abs(topDepth - depth) > DEPTH_THRESHOLD) && (abs(bottomDepth - depth) > DEPTH_THRESHOLD)) ||
+                              ((abs(leftDepth - rightDepth) <= DEPTH_THRESHOLD) && (abs(leftDepth - depth) > DEPTH_THRESHOLD) && (abs(rightDepth - depth) > DEPTH_THRESHOLD));
+        bothSidesUnder = bothSidesUnder ||
+                         (topDepth < MAX_DEPTH && bottomDepth < MAX_DEPTH) ||
+                         (leftDepth < MAX_DEPTH && rightDepth < MAX_DEPTH);
 
         if (bothSidesUnder) {
             // average the surrounding pixels whose depth is less than MAX_DEPTH
