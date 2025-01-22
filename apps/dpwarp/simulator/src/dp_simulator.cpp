@@ -337,6 +337,7 @@ int main(int argc, char** argv) {
     bool runAnimations = animationFileIn;
     bool restrictMovementToViewBox = !animationFileIn;
     float viewSphereDiameter = args::get(viewSphereDiameterIn);
+    dpRenderer.setViewSphereDiameter(viewSphereDiameter);
 
     float networkLatency = !animationFileIn ? 0.0f : args::get(networkLatencyIn);
     float networkJitter = !animationFileIn ? 0.0f : args::get(networkJitterIn);
@@ -1013,6 +1014,7 @@ int main(int argc, char** argv) {
             spdlog::info("  Create Vert/Ind Time: {:.3f}ms", totalCreateVertIndTime);
             if (showDepth) spdlog::info("Gen Depth Time: {:.3f}ms", totalGenDepthTime);
             spdlog::info("Frame Size: {:.3f}MB", (float)(compressedSize) / BYTES_IN_MB);
+            spdlog::info("Num Proxies: {} Proxies", totalProxies);
 
             preventCopyingLocalPose = false;
             generateIFrame = false;
