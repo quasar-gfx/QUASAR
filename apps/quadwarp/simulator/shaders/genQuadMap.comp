@@ -86,7 +86,7 @@ uniform float near;
 uniform float far;
 
 uniform bool doOrientationCorrection;
-uniform float distanceThreshold;
+uniform float depthThreshold;
 uniform float angleThreshold;
 uniform float flatThreshold;
 
@@ -226,24 +226,24 @@ vec3 findQuadPointCorner(
     float dist2 = normalizeDepth(distance(surfelViewPlane, surfelViewPlanePixelNeighbor2));
     float dist3 = normalizeDepth(distance(surfelViewPlane, surfelViewPlanePixelNeighbor3));
 
-    // add the contribution of each neighboring pixel to interpolated depth, if it is within distanceThreshold
+    // add the contribution of each neighboring pixel to interpolated depth, if it is within depthThreshold
     float depth = pixelDepthCenter;
     float n = 1;
-    if (dist1 < distanceThreshold) {
+    if (dist1 < depthThreshold) {
         depth += pixelDepthNeighbor1;
         n++;
     }
-    if (dist2 < distanceThreshold) {
+    if (dist2 < depthThreshold) {
         depth += pixelDepthNeighbor2;
         n++;
     }
-    if (dist3 < distanceThreshold) {
+    if (dist3 < depthThreshold) {
         depth += pixelDepthNeighbor3;
         n++;
     }
     depth /= n;
 
-    // only return the interpolated point if all neighboring pixels are within distanceThreshold
+    // only return the interpolated point if all neighboring pixels are within depthThreshold
     vec3 surfelViewBottomLeftInterp = ndcToView(projectionInverse, surfelNDC, depth);
     if (n >= 3) {
         return surfelViewBottomLeftInterp;
@@ -261,8 +261,8 @@ vec3 findQuadPointEdge(
         return surfelViewPlane;
     }
 
-    // return interpolated point if neighboring pixel's depth is within distanceThreshold
-    if (normalizeDepth(distance(surfelViewPlane, surfelViewPlanePixelNeighbor)) < distanceThreshold) {
+    // return interpolated point if neighboring pixel's depth is within depthThreshold
+    if (normalizeDepth(distance(surfelViewPlane, surfelViewPlanePixelNeighbor)) < depthThreshold) {
         float depth = (pixelDepthCenter + pixelDepthNeighbor) / 2.0;
         return ndcToView(projectionInverse, surfelNDC, depth);
     }

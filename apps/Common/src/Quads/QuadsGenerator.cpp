@@ -94,7 +94,7 @@ void QuadsGenerator::generateInitialQuadMap(const GBuffer& gBuffer, const glm::v
     }
     {
         genQuadMapShader.setBool("doOrientationCorrection", doOrientationCorrection);
-        genQuadMapShader.setFloat("distanceThreshold", distanceThreshold);
+        genQuadMapShader.setFloat("depthThreshold", depthThreshold);
         genQuadMapShader.setFloat("angleThreshold", glm::radians(angleThreshold));
         genQuadMapShader.setFloat("flatThreshold", flatThreshold);
     }

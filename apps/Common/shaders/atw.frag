@@ -23,7 +23,6 @@ uniform mat4 remoteView;
 #endif
 
 uniform bool atwEnabled;
-uniform bool toneMap;
 
 #ifndef ANDROID
 uniform bool toneMap = true;
@@ -91,13 +90,13 @@ void main() {
 
     vec3 color;
     if (!atwEnabled) {
-<<<<<<< HEAD
         color = texture(videoTexture, TexCoordsAdjusted).rgb;
-=======
-        vec3 color = texture(videoTexture, TexCoordsAdjusted).rgb;
-        if (toneMap) color = linearToSRGB(color);
+        vec3 toneMappedResult = vec3(1.0) - exp(-color.rgb * exposure);
+        color = toneMappedResult;
+        if (gammaCorrect) {
+            color = linearToSRGB(color);
+        }
         FragColor = vec4(color, 1.0);
->>>>>>> 7376185f (fix atw)
         return;
     }
     else {
@@ -125,7 +124,6 @@ void main() {
         vec2 TexCoordsRemote = worldToScreen(mat4(mat3(remoteView)), remoteProjection, worldPose);
 #endif
 
-<<<<<<< HEAD
         color = texture(videoTexture, TexCoordsRemote).rgb;
     }
 
@@ -136,9 +134,5 @@ void main() {
             color = linearToSRGB(color);
         }
     }
-=======
-    vec3 color = texture(videoTexture, TexCoordsRemote).rgb;
-    if (toneMap) color = linearToSRGB(color);
->>>>>>> 7376185f (fix atw)
     FragColor = vec4(color, 1.0);
 }

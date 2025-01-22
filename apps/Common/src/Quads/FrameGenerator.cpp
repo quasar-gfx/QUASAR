@@ -42,12 +42,13 @@ unsigned int FrameGenerator::generateIFrame(
 unsigned int FrameGenerator::generatePFrame(
     ForwardRenderer &remoteRenderer, const Scene &remoteScene, const Scene &currScene, const Scene &prevScene,
     GBuffer &gBuffer, GBuffer &gBufferMask,
+    GBuffer &gBufferLowRes, GBuffer &gBufferMaskLowRes,
     const PerspectiveCamera &currRemoteCamera, const PerspectiveCamera &prevRemoteCamera,
     QuadsGenerator &quadsGenerator, MeshFromQuads &meshFromQuads, MeshFromQuads &meshFromQuadsMask,
     const Mesh &currMesh, const Mesh &maskMesh,
-    unsigned int &numProxies, unsigned int &numDepthOffsets) {
+    unsigned int &numProxies, unsigned int &numDepthOffsets, const ComputeShader* downsampleShader) {
 
-    const glm::vec2 gBufferSize = glm::vec2(gBuffer.width, gBuffer.height);
+    const glm::vec2 gBufferSize = glm::vec2(gBufferLowRes.width, gBufferLowRes.height);
     unsigned int outputSize = 0;
 
     double startTimeTotal = timeutils::getTimeMicros();
@@ -68,7 +69,22 @@ unsigned int FrameGenerator::generatePFrame(
         remoteRenderer.drawObjects(remoteScene, prevRemoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         remoteRenderer.pipeline.stencilState.restoreStencilState();
-        remoteRenderer.gBuffer.blitToGBuffer(gBuffer);
+        remoteRenderer.gBuffer.blitToGBuffer(gBufferLowRes);
+        if (downsampleShader == nullptr) {
+            remoteRenderer.gBuffer.blitToGBuffer(gBuffer);
+        }
+        else {
+            downsampleShader->bind();
+            downsampleShader->setFloat("depthThreshold", quadsGenerator.depthThreshold);
+            downsampleShader->setTexture(remoteRenderer.gBuffer.colorBuffer, 0);
+            downsampleShader->setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 1);
+            downsampleShader->setTexture(gBufferLowRes.colorBuffer, 2);
+            downsampleShader->setTexture(gBufferLowRes.depthStencilBuffer, 3);
+            downsampleShader->setImageTexture(0, gBuffer.colorBuffer, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+            downsampleShader->dispatch((gBufferLowRes.width + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                         (gBufferLowRes.height + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+            downsampleShader->memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+        }
     }
 
     // generate frame using current frame as a mask for movement
@@ -82,14 +98,29 @@ unsigned int FrameGenerator::generatePFrame(
         remoteRenderer.drawObjects(remoteScene, currRemoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         remoteRenderer.pipeline.stencilState.restoreStencilState();
-        remoteRenderer.gBuffer.blitToGBuffer(gBufferMask);
+        remoteRenderer.gBuffer.blitToGBuffer(gBufferMaskLowRes);
+        if (downsampleShader == nullptr) {
+            remoteRenderer.gBuffer.blitToGBuffer(gBufferMask);
+        }
+        else {
+            downsampleShader->bind();
+            downsampleShader->setFloat("depthThreshold", quadsGenerator.depthThreshold);
+            downsampleShader->setTexture(remoteRenderer.gBuffer.colorBuffer, 0);
+            downsampleShader->setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 1);
+            downsampleShader->setTexture(gBufferMaskLowRes.colorBuffer, 2);
+            downsampleShader->setTexture(gBufferMaskLowRes.depthStencilBuffer, 3);
+            downsampleShader->setImageTexture(0, gBufferMask.colorBuffer, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+            downsampleShader->dispatch((gBufferMaskLowRes.width + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                            (gBufferMaskLowRes.height + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+            downsampleShader->memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+        }
 
         stats.timeToRenderMasks = timeutils::microsToMillis(timeutils::getTimeMicros() - startTimeTotal);
     }
 
     // create proxies and meshes
     {
-        auto sizes = quadsGenerator.createProxiesFromGBuffer(gBuffer, prevRemoteCamera);
+        auto sizes = quadsGenerator.createProxiesFromGBuffer(gBufferLowRes, prevRemoteCamera);
         numProxies = sizes.numProxies;
         numDepthOffsets = sizes.numDepthOffsets;
         stats.timeToCreateProxies = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
@@ -112,7 +143,7 @@ unsigned int FrameGenerator::generatePFrame(
     }
 
     {
-        auto sizes = quadsGenerator.createProxiesFromGBuffer(gBufferMask, currRemoteCamera);
+        auto sizes = quadsGenerator.createProxiesFromGBuffer(gBufferMaskLowRes, currRemoteCamera);
         numProxies += sizes.numProxies;
         numDepthOffsets += sizes.numDepthOffsets;
 

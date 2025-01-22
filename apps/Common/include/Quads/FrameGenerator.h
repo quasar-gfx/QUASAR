@@ -33,10 +33,12 @@ public:
     unsigned int generatePFrame(
         ForwardRenderer &remoteRenderer, const Scene &remoteScene, const Scene &currScene, const Scene &prevScene,
         GBuffer &gBuffer, GBuffer &gBufferMask,
+        GBuffer &gBufferLowRes, GBuffer &gBufferMaskLowRes,
         const PerspectiveCamera &currRemoteCamera, const PerspectiveCamera &prevRemoteCamera,
         QuadsGenerator &quadsGenerator, MeshFromQuads &meshFromQuads, MeshFromQuads &meshFromQuadsMask,
         const Mesh &currMesh, const Mesh &maskMesh,
-        unsigned int &numProxies, unsigned int &numDepthOffsets);
+        unsigned int &numProxies, unsigned int &numDepthOffsets,
+        const ComputeShader* downsampleShader = nullptr);
 
 private:
     std::vector<char> compressedQuads;
