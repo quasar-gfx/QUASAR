@@ -1003,18 +1003,18 @@ int main(int argc, char** argv) {
             }
 
             spdlog::info("======================================================");
-            spdlog::info("Rendering Time: {:.3f}ms", totalRenderTime);
-            spdlog::info("Create Proxies Time: {:.3f}ms", totalCreateProxiesTime);
-            spdlog::info("  Gen Quad Map Time: {:.3f}ms", totalGenQuadMapTime);
-            spdlog::info("  Simplify Time: {:.3f}ms", totalSimplifyTime);
-            spdlog::info("  Fill Quads Time: {:.3f}ms", totalFillQuadsTime);
-            spdlog::info("Create Mesh Time: {:.3f}ms", totalCreateMeshTime);
-            spdlog::info("  Append Quads Time: {:.3f}ms", totalAppendProxiesMsTime);
-            spdlog::info("  Fill Output Quads Time: {:.3f}ms", totalFillQuadsIndiciesMsTime);
-            spdlog::info("  Create Vert/Ind Time: {:.3f}ms", totalCreateVertIndTime);
-            if (showDepth) spdlog::info("Gen Depth Time: {:.3f}ms", totalGenDepthTime);
+            spdlog::info("Rendering Time ({}): {:.3f}ms", generatePFrame, totalRenderTime);
+            spdlog::info("Create Proxies Time ({}): {:.3f}ms", generatePFrame, totalCreateProxiesTime);
+            spdlog::info("  Gen Quad Map Time ({}): {:.3f}ms", generatePFrame, totalGenQuadMapTime);
+            spdlog::info("  Simplify Time ({}): {:.3f}ms", generatePFrame, totalSimplifyTime);
+            spdlog::info("  Fill Quads Time ({}): {:.3f}ms", generatePFrame, totalFillQuadsTime);
+            spdlog::info("Create Mesh Time ({}): {:.3f}ms", generatePFrame, totalCreateMeshTime);
+            spdlog::info("  Append Quads Time ({}): {:.3f}ms", generatePFrame, totalAppendProxiesMsTime);
+            spdlog::info("  Fill Output Quads Time ({}): {:.3f}ms", generatePFrame, totalFillQuadsIndiciesMsTime);
+            spdlog::info("  Create Vert/Ind Time ({}): {:.3f}ms", generatePFrame, totalCreateVertIndTime);
+            if (showDepth) spdlog::info("Gen Depth Time ({}): {:.3f}ms", generatePFrame, totalGenDepthTime);
             spdlog::info("Frame Size: {:.3f}MB", (float)(compressedSize) / BYTES_IN_MB);
-            spdlog::info("Num Proxies: {} Proxies", totalProxies);
+            spdlog::info("Num Proxies: {}Proxies", totalProxies);
 
             preventCopyingLocalPose = false;
             generateIFrame = false;

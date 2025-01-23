@@ -827,7 +827,7 @@ int main(int argc, char** argv) {
             if (showDepth) spdlog::info("Gen Depth Time: {:.3f}ms", totalGenDepthTime);
             // QS has data structures that are 103 bits
             spdlog::info("Frame Size: {:.3f}MB", (float)(compressedSize) / BYTES_IN_MB * (103.0) / (8*sizeof(QuadMapDataPacked)));
-            spdlog::info("Num Proxies: {} Proxies", totalProxies);
+            spdlog::info("Num Proxies: {}Proxies", totalProxies);
 
             preventCopyingLocalPose = false;
             rerender = false;
