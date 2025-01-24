@@ -4,6 +4,7 @@
 
 #include <lz4.h>
 #include <spdlog/spdlog.h>
+#include <Utils/TimeUtils.h>
 
 #include <Quads/QuadsBuffers.h>
 
@@ -55,6 +56,11 @@ unsigned int QuadBuffers::loadFromFile(const std::string &filename, unsigned int
     size_t srcSize = quadDataCompressed.size();
     size_t dstSize = maxProxies * sizeof(QuadMapDataPacked) + sizeof(unsigned int);
 
+    if (numBytesLoaded != nullptr) {
+        *numBytesLoaded = srcSize;
+    }
+
+    auto startTime = timeutils::getTimeMicros();
     auto ret = LZ4F_decompress(dctx,
                                data.data(), &dstSize,
                                quadDataCompressed.data(), &srcSize,
@@ -64,11 +70,9 @@ unsigned int QuadBuffers::loadFromFile(const std::string &filename, unsigned int
         return 0;
     }
 
-    if (numBytesLoaded != nullptr) {
-        *numBytesLoaded = srcSize;
-    }
-
-    return loadFromMemory(reinterpret_cast<const char*>(data.data()));
+    auto numBytes = loadFromMemory(reinterpret_cast<const char*>(data.data()));
+    stats.timeToDecompressionMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+    return numBytes;
 }
 
 unsigned int QuadBuffers::loadFromMemory(const char* data) {
@@ -98,12 +102,14 @@ unsigned int QuadBuffers::loadFromMemory(const char* data) {
 unsigned int QuadBuffers::saveToMemory(std::vector<char> &compressedData, bool doLZ4) {
     unsigned int dataSize = updateDataBuffer();
     if (doLZ4) {
+        auto startTime = timeutils::getTimeMicros();
         compressedData.resize(LZ4F_compressFrameBound(dataSize, nullptr));
         int outputSize = LZ4_compress_default(
                             reinterpret_cast<const char*>(data.data()),
                             compressedData.data(),
                             dataSize,
                             compressedData.size());
+        stats.timeToCompressionMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
         return outputSize;
     }
     else {
@@ -114,12 +120,16 @@ unsigned int QuadBuffers::saveToMemory(std::vector<char> &compressedData, bool d
 }
 
 unsigned int QuadBuffers::saveToFile(const std::string &filename) {
-    unsigned int size = updateDataBuffer();
+    auto startTime = timeutils::getTimeMicros();
+
+    unsigned int dataSize = updateDataBuffer();
     std::ofstream quadsFile(filename + ".lz4", std::ios::binary);
     lz4_stream::ostream lz4_stream(quadsFile);
-    lz4_stream.write(reinterpret_cast<const char*>(data.data()), size);
+    lz4_stream.write(reinterpret_cast<const char*>(data.data()), dataSize);
     lz4_stream.close();
-    return size;
+
+    stats.timeToCompressionMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+    return dataSize;
 }
 
 unsigned int QuadBuffers::updateDataBuffer() {

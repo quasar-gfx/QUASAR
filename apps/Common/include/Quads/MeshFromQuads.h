@@ -50,15 +50,15 @@ public:
     ~MeshFromQuads() = default;
 
     void appendProxies(
-            const glm::vec2 &gBufferSize,
+            const glm::uvec2 &gBufferSize,
             unsigned int numProxies,
             const QuadBuffers &newQuadBuffers,
             bool iFrame = true);
 
-    void fillQuadIndices(const glm::vec2 &gBufferSize);
+    void fillQuadIndices(const glm::uvec2 &gBufferSize);
 
     void createMeshFromProxies(
-            const glm::vec2 &gBufferSize,
+            const glm::uvec2 &gBufferSize,
             unsigned int numProxies,
             const DepthOffsets &depthOffsets,
             const PerspectiveCamera &remoteCamera,

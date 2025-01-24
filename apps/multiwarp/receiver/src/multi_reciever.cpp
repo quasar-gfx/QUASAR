@@ -199,7 +199,7 @@ int main(int argc, char** argv) {
             });
             loadFromFilesTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
 
-            glm::vec2 gBufferSize = glm::vec2(colorTextures[view].width, colorTextures[view].height);
+           const  glm::vec2 gBufferSize = glm::vec2(colorTextures[view].width, colorTextures[view].height);
 
             startTime = window->getTime();
             meshFromQuads.appendProxies(

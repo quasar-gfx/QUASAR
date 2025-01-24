@@ -75,9 +75,6 @@ int main(int argc, char** argv) {
     config.width = std::stoi(sizeStr.substr(0, pos));
     config.height = std::stoi(sizeStr.substr(pos + 1));
 
-    // assume remote window size is the same as local window size
-    glm::uvec2 remoteWindowSize = glm::uvec2(config.width, config.height);
-
     config.enableVSync = args::get(vsyncIn);
     config.showWindow = !args::get(saveImage);
 
@@ -108,6 +105,9 @@ int main(int argc, char** argv) {
     ForwardRenderer wideFOVRenderer(config);
 
     glm::uvec2 windowSize = window->getSize();
+    // assume remote window size is the same as local window size
+    glm::uvec2 remoteWindowSize = glm::uvec2(config.width, config.height);
+    glm::uvec2 halfRemoteWindowSize = windowSize / 2u;
 
     // "remote" scene
     Scene remoteScene;
@@ -115,6 +115,7 @@ int main(int argc, char** argv) {
     PerspectiveCamera remoteCameraCenterPrev(dpRenderer.width, dpRenderer.height);
     PerspectiveCamera remoteCameraWideFov(wideFOVRenderer.width, wideFOVRenderer.height);
     remoteCameraWideFov.setFovyDegrees(120.0f); // make last camera have a larger fov
+
     SceneLoader loader;
     loader.loadScene(sceneFile, remoteScene, remoteCameraCenter);
     remoteCameraWideFov.setViewMatrix(remoteCameraCenter.getViewMatrix());
@@ -129,9 +130,9 @@ int main(int argc, char** argv) {
     camera.setViewMatrix(remoteCameraCenter.getViewMatrix());
 
     FrameGenerator frameGenerator;
-    QuadsGenerator quadsGenerator(remoteWindowSize);
-    MeshFromQuads meshFromQuads(remoteWindowSize);
-    MeshFromQuads meshFromQuadsMask(remoteWindowSize, MAX_NUM_PROXIES / 4);
+    QuadsGenerator quadsGenerator(halfRemoteWindowSize);
+    MeshFromQuads meshFromQuads(halfRemoteWindowSize);
+    MeshFromQuads meshFromQuadsMask(halfRemoteWindowSize, MAX_NUM_PROXIES / 4);
 
     // center RTs
     RenderTargetCreateParams rtParams = {
@@ -155,8 +156,8 @@ int main(int argc, char** argv) {
         gBufferHiddenRTs.emplace_back(rtParams);
     }
 
-    rtParams.width /= 2; rtParams.height /= 2;
-
+    rtParams.width = halfRemoteWindowSize.x;
+    rtParams.height = halfRemoteWindowSize.y;
     GBuffer gBufferCenterRTLowRes(rtParams);
     GBuffer gBufferCenterMaskRTLowRes(rtParams);
     GBuffer gBufferCenterTempRTLowRes(rtParams);
@@ -969,7 +970,7 @@ int main(int argc, char** argv) {
 
                 // For debugging: Generate point cloud from depth map
                 if (showDepth) {
-                    glm::vec2 gBufferSize = glm::vec2(gBufferToUse.width, gBufferToUse.height);
+                   const  glm::vec2 gBufferSize = glm::vec2(gBufferToUse.width, gBufferToUse.height);
 
                     meshFromDepthShader.startTiming();
 

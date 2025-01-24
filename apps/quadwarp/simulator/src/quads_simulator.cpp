@@ -75,9 +75,6 @@ int main(int argc, char** argv) {
     config.width = std::stoi(sizeStr.substr(0, pos));
     config.height = std::stoi(sizeStr.substr(pos + 1));
 
-    // assume remote window size is the same as local window size
-    glm::uvec2 remoteWindowSize = glm::uvec2(config.width, config.height);
-
     config.enableVSync = args::get(vsyncIn);
     config.showWindow = !args::get(saveImage);
 
@@ -103,6 +100,9 @@ int main(int argc, char** argv) {
     ForwardRenderer remoteRenderer(config);
 
     glm::uvec2 windowSize = window->getSize();
+    // assume remote window size is the same as local window size
+    glm::uvec2 remoteWindowSize = glm::uvec2(config.width, config.height);
+    glm::uvec2 halfRemoteWindowSize = remoteWindowSize / 2u;
 
     // "remote" scene
     Scene remoteScene;
@@ -123,9 +123,9 @@ int main(int argc, char** argv) {
     int currMeshIndex = 0, prevMeshIndex = 1;
 
     FrameGenerator frameGenerator;
-    QuadsGenerator quadsGenerator(remoteWindowSize / 2u);
-    MeshFromQuads meshFromQuads(remoteWindowSize / 2u);
-    MeshFromQuads meshFromQuadsMask(remoteWindowSize / 2u, MAX_NUM_PROXIES / 4);
+    QuadsGenerator quadsGenerator(halfRemoteWindowSize);
+    MeshFromQuads meshFromQuads(halfRemoteWindowSize);
+    MeshFromQuads meshFromQuadsMask(halfRemoteWindowSize, MAX_NUM_PROXIES / 4);
 
     unsigned int maxVertices = MAX_NUM_PROXIES * VERTICES_IN_A_QUAD;
     unsigned int maxIndices = MAX_NUM_PROXIES * INDICES_IN_A_QUAD;
@@ -146,7 +146,8 @@ int main(int argc, char** argv) {
     GBuffer gBufferMaskRT(rtParams);
     GBuffer gBufferTemp(rtParams);
 
-    rtParams.width /= 2; rtParams.height /= 2;
+    rtParams.width = halfRemoteWindowSize.x;
+    rtParams.height = halfRemoteWindowSize.y;
     GBuffer gBufferRTLowRes(rtParams);
     GBuffer gBufferMaskRTLowRes(rtParams);
     GBuffer gBufferTempRTLowRes(rtParams);
@@ -771,7 +772,7 @@ int main(int argc, char** argv) {
                     meshFromDepthShader.setTexture(gBufferRTLowRes.depthStencilBuffer, 0);
                 }
                 {
-                    meshFromDepthShader.setVec2("depthMapSize", remoteWindowSize / 2u);
+                    meshFromDepthShader.setVec2("depthMapSize", halfRemoteWindowSize);
                 }
                 {
                     meshFromDepthShader.setMat4("view", remoteCamera.getViewMatrix());

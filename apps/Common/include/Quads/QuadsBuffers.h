@@ -3,6 +3,8 @@
 
 #include <lz4_stream/lz4_stream.h>
 
+#include <glm/glm.hpp>
+
 #include <Buffer.h>
 #include <Utils/FileIO.h>
 
@@ -10,6 +12,15 @@
 #include <cuda_gl_interop.h>
 #include <Utils/CudaUtils.h>
 #endif
+
+struct QuadMapData {
+    glm::vec3 normal;
+    float depth;
+    glm::vec2 uv;
+    glm::ivec2 offset;
+    unsigned int size;
+    bool flattened;
+};
 
 struct QuadMapDataPacked {
     // normal converted into spherical coordinates. theta, phi (16 bits each) packed into 32 bits
@@ -22,6 +33,11 @@ struct QuadMapDataPacked {
 
 class QuadBuffers {
 public:
+    struct Stats {
+        double timeToCompressionMs = 0.0f;
+        double timeToDecompressionMs = 0.0f;
+    } stats;
+
     unsigned int maxProxies;
     unsigned int numProxies;
 
