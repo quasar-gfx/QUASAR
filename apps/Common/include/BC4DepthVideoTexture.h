@@ -41,6 +41,11 @@ public:
     ReceiverStats stats;
 
     BC4DepthVideoTexture(const TextureDataCreateParams &params, std::string streamerURL);
+    ~BC4DepthVideoTexture() override {
+        if (dctx) {
+            LZ4F_freeDecompressionContext(dctx);
+        }
+    }
 
     void setMaxQueueSize(unsigned int maxQueueSize) {
         this->maxQueueSize = maxQueueSize;
@@ -54,6 +59,8 @@ public:
     pose_id_t getLatestPoseID();
 
 private:
+    LZ4F_dctx* dctx = nullptr;
+
     pose_id_t prevPoseID = -1;
     unsigned int maxQueueSize = 10;
     std::mutex m;

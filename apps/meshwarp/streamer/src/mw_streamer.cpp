@@ -263,11 +263,12 @@ int main(int argc, char** argv) {
             return;
         }
 
+        // update all animations
+        scene.updateAnimations(dt);
+
         // receive pose
         pose_id_t poseID = poseReceiver.receivePose(false);
         if (poseID != -1) {
-            // update all animations
-            scene.updateAnimations(dt);
 
             // offset camera
             camera.setPosition(camera.getPosition() + initialPosition);

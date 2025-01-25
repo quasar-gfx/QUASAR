@@ -1,3 +1,4 @@
+#include <lz4_stream/lz4_stream.h>
 #include <spdlog/spdlog.h>
 
 #include <BC4DepthStreamer.h>
@@ -105,23 +106,21 @@ void BC4DepthStreamer::sendFrame(pose_id_t poseID) {
 
     stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
-    // Compress with LZ4_compress_default
+    // Compress with LZ4 using direct buffer operations instead of streams
     startTime = timeutils::getTimeMicros();
 
     // Calculate max compressed size
-    size_t maxCompressedSize = LZ4_compressBound(fullSize);
+    size_t maxCompressedSize = LZ4F_compressFrameBound(fullSize, nullptr);
     lz4Buffer.resize(maxCompressedSize);
 
     // Compress in one shot
-    int compressedSize = LZ4_compress_default(
-        reinterpret_cast<const char*>(data.data()), // Source data
-        reinterpret_cast<char*>(lz4Buffer.data()),  // Destination buffer
-        static_cast<int>(fullSize),                // Source size
-        static_cast<int>(maxCompressedSize)        // Max destination size
-    );
+    LZ4F_preferences_t prefs = {};
+    size_t compressedSize = LZ4F_compressFrame(lz4Buffer.data(), lz4Buffer.size(),
+                                              data.data(), data.size(),
+                                              &prefs);
 
-    if (compressedSize <= 0) {
-        spdlog::error("LZ4 compression failed. Returned size: {}", compressedSize);
+    if (LZ4F_isError(compressedSize)) {
+        spdlog::error("LZ4 compression failed: {}", LZ4F_getErrorName(compressedSize));
         return;
     }
 
@@ -168,28 +167,19 @@ void BC4DepthStreamer::sendData() {
 
         stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
-        // compress with LZ4
+        // Compress with LZ4
         startTime = timeutils::getTimeMicros();
 
-        // calculate the maximum compressed size
-        size_t maxCompressedSize = LZ4_compressBound(data.size());
-        lz4Buffer.resize(maxCompressedSize);
+        std::stringstream compressed;
+        lz4_stream::ostream lz4_compressor(compressed);
+        lz4_compressor.write(reinterpret_cast<const char*>(data.data()), data.size());
+        lz4_compressor.close();
 
-        int compressedSize = LZ4_compress_default(
-            reinterpret_cast<const char*>(data.data()),  // source data
-            reinterpret_cast<char*>(lz4Buffer.data()),   // destination buffer
-            static_cast<int>(data.size()),               // source size
-            static_cast<int>(maxCompressedSize)          // max destination size
-        );
-        if (compressedSize <= 0) {
-            spdlog::error("LZ4 compression failed. Returned size: {}", compressedSize);
-            return;
-        }
-
-        lz4Buffer.resize(compressedSize);
+        std::string compressedStr = compressed.str();
+        lz4Buffer.assign(compressedStr.begin(), compressedStr.end());
 
         stats.timeToCompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
-        stats.lz4CompressionRatio = static_cast<float>(data.size()) / compressedSize;
+        stats.lz4CompressionRatio = static_cast<float>(data.size()) / lz4Buffer.size();
 
         float elapsedTimeSec = timeutils::microsToSeconds(timeutils::getTimeMicros() - prevTime);
         if (elapsedTimeSec < (1.0f / targetFrameRate)) {

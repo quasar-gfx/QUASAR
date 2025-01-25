@@ -247,12 +247,12 @@ int main(int argc, char** argv) {
             return;
         }
 
+        // update all animations
+        scene.updateAnimations(dt);
+
         // receive pose
         pose_id_t poseID = poseReceiver.receivePose();
         if (poseID != -1) {
-            // update all animations
-            scene.updateAnimations(dt);
-
             // offset camera
             if (camera->isVR()) {
                 auto* vrCamera = static_cast<VRCamera*>(camera.get());

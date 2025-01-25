@@ -2,6 +2,8 @@
 #include <filesystem>
 #endif
 
+#include <lz4_stream/lz4_stream.h>
+
 #include <spdlog/spdlog.h>
 #include <Utils/TimeUtils.h>
 
@@ -103,26 +105,15 @@ unsigned int QuadBuffers::saveToMemory(std::vector<char> &compressedData, bool d
 
     if (doLZ4) {
         auto startTime = timeutils::getTimeMicros();
-
-        int maxCompressedSize = LZ4_compressBound(dataSize);
-        compressedData.resize(maxCompressedSize);
-
-        int compressedSize = LZ4_compress_default(
-            reinterpret_cast<const char*>(data.data()), // source data
-            compressedData.data(),                      // destination buffer
-            dataSize,                                   // input size
-            maxCompressedSize                           // maximum output size
-        );
-
-        if (compressedSize <= 0) {
-            spdlog::error("LZ4 compression failed.");
-            return 0;
-        }
-
-        compressedData.resize(compressedSize);
-
+        unsigned int dataSize = updateDataBuffer();
+        compressedData.resize(LZ4F_compressFrameBound(dataSize, nullptr));
+        int outputSize = LZ4_compress_default(
+                            reinterpret_cast<const char*>(data.data()),
+                            compressedData.data(),
+                            dataSize,
+                            compressedData.size());
         stats.timeToCompressionMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
-        return compressedSize;
+        return outputSize;
     }
     else {
         compressedData.resize(dataSize);
@@ -132,17 +123,12 @@ unsigned int QuadBuffers::saveToMemory(std::vector<char> &compressedData, bool d
 }
 
 unsigned int QuadBuffers::saveToFile(const std::string &filename) {
-    auto startTime = timeutils::getTimeMicros();
-
-    std::vector<char> compressedData;
-    unsigned int dataSize = saveToMemory(compressedData, true);
-
+    unsigned int size = updateDataBuffer();
     std::ofstream quadsFile(filename + ".lz4", std::ios::binary);
-    quadsFile.write(compressedData.data(), dataSize);
-    quadsFile.close();
-
-    stats.timeToCompressionMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
-    return dataSize;
+    lz4_stream::ostream lz4_stream(quadsFile);
+    lz4_stream.write(reinterpret_cast<const char*>(data.data()), size);
+    lz4_stream.close();
+    return size;
 }
 
 unsigned int QuadBuffers::updateDataBuffer() {
