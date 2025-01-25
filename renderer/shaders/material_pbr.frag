@@ -427,8 +427,7 @@ bool inPVHV(ivec2 pixelCoords, vec3 fragViewPos, uvec4 q) {
         if (sampleDepthNormalized == 0) return true;
         if (sampleDepthNormalized >= MAX_DEPTH) continue;
 
-        if (q_item != w_item) return true;
-        else if (sampleDepthNormalized >= blockerDepthNormalized + edpDelta) return true;
+        if (sampleDepthNormalized >= blockerDepthNormalized + edpDelta) return true;
         else if (sampleDepthNormalized <= blockerDepthNormalized - edpDelta) return true;
     }
 

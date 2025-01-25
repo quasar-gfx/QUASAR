@@ -39,7 +39,7 @@ MeshFromQuads::BufferSizes MeshFromQuads::getBufferSizes() {
 }
 
 void MeshFromQuads::appendProxies(
-        const glm::vec2 &gBufferSize,
+        const glm::uvec2 &gBufferSize,
         unsigned int numProxies,
         const QuadBuffers &newQuadBuffers,
         bool iFrame) {
@@ -71,7 +71,7 @@ void MeshFromQuads::appendProxies(
     fillQuadIndices(gBufferSize);
 }
 
-void MeshFromQuads::fillQuadIndices(const glm::vec2 &gBufferSize) {
+void MeshFromQuads::fillQuadIndices(const glm::uvec2 &gBufferSize) {
     fillQuadIndicesShader.startTiming();
 
     fillQuadIndicesShader.bind();
@@ -97,7 +97,7 @@ void MeshFromQuads::fillQuadIndices(const glm::vec2 &gBufferSize) {
 }
 
 void MeshFromQuads::createMeshFromProxies(
-        const glm::vec2 &gBufferSize,
+        const glm::uvec2 &gBufferSize,
         unsigned int numProxies,
         const DepthOffsets &depthOffsets,
         const PerspectiveCamera &remoteCamera,

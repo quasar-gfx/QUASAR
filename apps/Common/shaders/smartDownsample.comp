@@ -1,0 +1,72 @@
+layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = THREADS_PER_LOCALGROUP, local_size_z = 1) in;
+
+layout(binding = 0) uniform sampler2D highResColor;
+layout(binding = 1) uniform sampler2D highResDepth;
+layout(binding = 2) uniform sampler2D lowResColor;
+layout(binding = 3) uniform sampler2D lowResDepth;
+
+layout(rgba16f, binding = 0) uniform writeonly image2D colorBuffer;
+
+uniform float depthThreshold;
+
+void main() {
+    ivec2 pixelCoordLowRes = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 pixelCoordHighRes = pixelCoordLowRes * 2;
+
+    vec3 colorBottomLeft = texelFetch(highResColor, pixelCoordHighRes + ivec2(0, 0), 0).rgb;
+    vec3 colorBottomRight = texelFetch(highResColor, pixelCoordHighRes + ivec2(1, 0), 0).rgb;
+    vec3 colorTopLeft = texelFetch(highResColor, pixelCoordHighRes + ivec2(0, 1), 0).rgb;
+    vec3 colorTopRight = texelFetch(highResColor, pixelCoordHighRes + ivec2(1, 1), 0).rgb;
+
+    float depthBottomLeft = texelFetch(highResDepth, pixelCoordHighRes + ivec2(0, 0), 0).r;
+    float depthBottomRight = texelFetch(highResDepth, pixelCoordHighRes + ivec2(1, 0), 0).r;
+    float depthTopLeft = texelFetch(highResDepth, pixelCoordHighRes + ivec2(0, 1), 0).r;
+    float depthTopRight = texelFetch(highResDepth, pixelCoordHighRes + ivec2(1, 1), 0).r;
+
+    if (abs(depthBottomLeft - depthBottomRight) > depthThreshold ||
+        abs(depthBottomLeft - depthTopRight) > depthThreshold ||
+        abs(depthBottomLeft - depthTopLeft) > depthThreshold) {
+
+        float lowResDepthCenter = texelFetch(lowResDepth, pixelCoordLowRes, 0).r;
+
+        // find closet one to lowResDepthCenter
+        float diffBottomLeft = abs(lowResDepthCenter - depthBottomLeft);
+        float diffBottomRight = abs(lowResDepthCenter - depthBottomRight);
+        float diffTopLeft = abs(lowResDepthCenter - depthTopLeft);
+        float diffTopRight = abs(lowResDepthCenter - depthTopRight);
+
+        vec3 closestColor;
+        if (diffBottomLeft < diffBottomRight && diffBottomLeft < diffTopLeft && diffBottomLeft < diffTopRight) {
+            closestColor = colorBottomLeft;
+        }
+        else if (diffBottomRight < diffBottomLeft && diffBottomRight < diffTopLeft && diffBottomRight < diffTopRight) {
+            closestColor = colorBottomRight;
+        }
+        else if (diffTopLeft < diffBottomLeft && diffTopLeft < diffBottomRight && diffTopLeft < diffTopRight) {
+            closestColor = colorTopLeft;
+        }
+        else {
+            closestColor = colorTopRight;
+        }
+
+        // if any of them are closet to lowResDepthCenter, dont change their color
+        // if they are not, set their color to closestColor
+        if (diffBottomLeft > depthThreshold) {
+            colorBottomLeft = closestColor;
+        }
+        if (diffBottomRight > depthThreshold) {
+            colorBottomRight = closestColor;
+        }
+        if (diffTopLeft > depthThreshold) {
+            colorTopLeft = closestColor;
+        }
+        if (diffTopRight > depthThreshold) {
+            colorTopRight = closestColor;
+        }
+    }
+
+    imageStore(colorBuffer, pixelCoordHighRes + ivec2(0, 0), vec4(colorBottomLeft, 1.0));
+    imageStore(colorBuffer, pixelCoordHighRes + ivec2(1, 0), vec4(colorBottomRight, 1.0));
+    imageStore(colorBuffer, pixelCoordHighRes + ivec2(0, 1), vec4(colorTopLeft, 1.0));
+    imageStore(colorBuffer, pixelCoordHighRes + ivec2(1, 1), vec4(colorTopRight, 1.0));
+}

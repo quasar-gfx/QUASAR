@@ -91,6 +91,12 @@ void main() {
     vec3 color;
     if (!atwEnabled) {
         color = texture(videoTexture, TexCoordsAdjusted).rgb;
+        vec3 toneMappedResult = vec3(1.0) - exp(-color.rgb * exposure);
+        color = toneMappedResult;
+        if (gammaCorrect) {
+            color = linearToSRGB(color);
+        }
+        FragColor = vec4(color, 1.0);
         return;
     }
     else {

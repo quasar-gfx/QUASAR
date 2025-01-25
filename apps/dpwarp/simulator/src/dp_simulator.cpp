@@ -75,9 +75,6 @@ int main(int argc, char** argv) {
     config.width = std::stoi(sizeStr.substr(0, pos));
     config.height = std::stoi(sizeStr.substr(pos + 1));
 
-    // assume remote window size is the same as local window size
-    glm::uvec2 remoteWindowSize = glm::uvec2(config.width, config.height);
-
     config.enableVSync = args::get(vsyncIn);
     config.showWindow = !args::get(saveImage);
 
@@ -108,6 +105,9 @@ int main(int argc, char** argv) {
     ForwardRenderer wideFOVRenderer(config);
 
     glm::uvec2 windowSize = window->getSize();
+    // assume remote window size is the same as local window size
+    glm::uvec2 remoteWindowSize = glm::uvec2(config.width, config.height);
+    glm::uvec2 halfRemoteWindowSize = windowSize / 2u;
 
     // "remote" scene
     Scene remoteScene;
@@ -115,6 +115,7 @@ int main(int argc, char** argv) {
     PerspectiveCamera remoteCameraCenterPrev(dpRenderer.width, dpRenderer.height);
     PerspectiveCamera remoteCameraWideFov(wideFOVRenderer.width, wideFOVRenderer.height);
     remoteCameraWideFov.setFovyDegrees(120.0f); // make last camera have a larger fov
+
     SceneLoader loader;
     loader.loadScene(sceneFile, remoteScene, remoteCameraCenter);
     remoteCameraWideFov.setViewMatrix(remoteCameraCenter.getViewMatrix());
@@ -129,9 +130,9 @@ int main(int argc, char** argv) {
     camera.setViewMatrix(remoteCameraCenter.getViewMatrix());
 
     FrameGenerator frameGenerator;
-    QuadsGenerator quadsGenerator(remoteWindowSize);
-    MeshFromQuads meshFromQuads(remoteWindowSize);
-    MeshFromQuads meshFromQuadsMask(remoteWindowSize, MAX_NUM_PROXIES / 4);
+    QuadsGenerator quadsGenerator(halfRemoteWindowSize);
+    MeshFromQuads meshFromQuads(halfRemoteWindowSize);
+    MeshFromQuads meshFromQuadsMask(halfRemoteWindowSize, MAX_NUM_PROXIES / 4);
 
     // center RTs
     RenderTargetCreateParams rtParams = {
@@ -152,10 +153,21 @@ int main(int argc, char** argv) {
     // hidden layers and wide fov RTs
     std::vector<GBuffer> gBufferHiddenRTs; gBufferHiddenRTs.reserve(numViewsWithoutCenter);
     for (int views = 0; views < numViewsWithoutCenter; views++) {
+        gBufferHiddenRTs.emplace_back(rtParams);
+    }
+
+    rtParams.width = halfRemoteWindowSize.x;
+    rtParams.height = halfRemoteWindowSize.y;
+    GBuffer gBufferCenterRTLowRes(rtParams);
+    GBuffer gBufferCenterMaskRTLowRes(rtParams);
+    GBuffer gBufferCenterTempRTLowRes(rtParams);
+
+    std::vector<GBuffer> gBufferHiddenRTLowRes; gBufferHiddenRTLowRes.reserve(numViewsWithoutCenter);
+    for (int views = 0; views < numViewsWithoutCenter; views++) {
         if (views == numViewsWithoutCenter - 1) {
             rtParams.width /= 2; rtParams.height /= 2; // set to lower resolution for wide fov
         }
-        gBufferHiddenRTs.emplace_back(rtParams);
+        gBufferHiddenRTLowRes.emplace_back(rtParams);
     }
 
     unsigned int maxVertices = MAX_NUM_PROXIES * VERTICES_IN_A_QUAD;
@@ -261,7 +273,7 @@ int main(int argc, char** argv) {
         localScene.addChildNode(&nodeDepths[view]);
     }
 
-    // main mesh covers everything
+    // add all meshes to cover everything
     std::vector<Node> nodeMeshes; nodeMeshes.reserve(2);
     for (int i = 0; i < 2; i++) {
         nodeMeshes.emplace_back(&meshesCenter[i]);
@@ -269,6 +281,9 @@ int main(int argc, char** argv) {
         meshScene.addChildNode(&nodeMeshes[i]);
     }
     meshScene.addChildNode(&nodeMask);
+    for (int i = 0; i < numViewsWithoutCenter-1; i++) {
+        meshScene.addChildNode(&nodeLayers[i]);
+    }
 
     // shaders
     Shader blurEdgesShader({
@@ -276,6 +291,14 @@ int main(int argc, char** argv) {
         .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
         .fragmentCodeData = SHADER_COMMON_BLUREDGES_FRAG,
         .fragmentCodeSize = SHADER_COMMON_BLUREDGES_FRAG_len
+    });
+
+    ComputeShader smartDownsampleShader({
+        .computeCodeData = SHADER_COMMON_SMARTDOWNSAMPLE_COMP,
+        .computeCodeSize = SHADER_COMMON_SMARTDOWNSAMPLE_COMP_len,
+        .defines = {
+            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
+        }
     });
 
     Shader screenShaderNormals({
@@ -315,6 +338,7 @@ int main(int argc, char** argv) {
     bool runAnimations = animationFileIn;
     bool restrictMovementToViewBox = !animationFileIn;
     float viewSphereDiameter = args::get(viewSphereDiameterIn);
+    dpRenderer.setViewSphereDiameter(viewSphereDiameter);
 
     float networkLatency = !animationFileIn ? 0.0f : args::get(networkLatencyIn);
     float networkJitter = !animationFileIn ? 0.0f : args::get(networkJitterIn);
@@ -470,7 +494,7 @@ int main(int argc, char** argv) {
                 runAnimations = false;
             }
 
-            if (ImGui::SliderFloat("Depth Threshold (x0.1)", &quadsGenerator.distanceThreshold, 0.0f, 10.0f)) {
+            if (ImGui::SliderFloat("Depth Threshold (x0.1)", &quadsGenerator.depthThreshold, 0.0f, 10.0f)) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
                 runAnimations = false;
@@ -488,7 +512,7 @@ int main(int argc, char** argv) {
                 runAnimations = false;
             }
 
-            if (ImGui::SliderFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.0f, 5.0f)) {
+            if (ImGui::SliderFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.0f, 1.0f)) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
                 runAnimations = false;
@@ -783,25 +807,32 @@ int main(int argc, char** argv) {
                                             ((view != maxViews - 1) ? remoteCameraCenter : remoteCameraWideFov);
 
                 auto& gBufferToUse = (view == 0) ? gBufferCenterRT : gBufferHiddenRTs[hiddenIndex];
+                auto& gBufferToUseLowRes = (view == 0) ? gBufferCenterRTLowRes : gBufferHiddenRTLowRes[hiddenIndex];
+                auto& gBufferSourceToUse = (view == 0) ? remoteRenderer.gBuffer :
+                                                ((view != maxViews - 1) ? dpRenderer.peelingLayers[hiddenIndex+1] :
+                                                    wideFOVRenderer.gBuffer);
+
                 auto& meshToUse = (view == 0) ? meshesCenter[currMeshIndex] : meshLayers[hiddenIndex];
                 auto& currMeshDepth = meshDepths[hiddenIndex];
 
                 if (view == 0) {
                     remoteRenderer.drawObjects(remoteScene, remoteCameraToUse);
                     if (!showNormals) {
-                        remoteRenderer.gBuffer.blitToGBuffer(gBufferCenterRT);
+                        remoteRenderer.gBuffer.blitToGBuffer(gBufferToUseLowRes);
                     }
                     else {
                         remoteRenderer.drawToRenderTarget(screenShaderNormals, gBufferCenterRT);
+                        remoteRenderer.drawToRenderTarget(screenShaderNormals, gBufferToUseLowRes);
                     }
                 }
                 else if (view != maxViews - 1) {
                     // copy to render target
                     if (!showNormals) {
-                        dpRenderer.peelingLayers[hiddenIndex+1].blitToGBuffer(gBufferToUse);
+                        dpRenderer.peelingLayers[hiddenIndex+1].blitToGBuffer(gBufferToUseLowRes);
                     }
                     else {
                         dpRenderer.drawToRenderTarget(screenShaderNormals, gBufferToUse);
+                        dpRenderer.drawToRenderTarget(screenShaderNormals, gBufferToUseLowRes);
                     }
                 }
                 // wide fov camera
@@ -822,11 +853,26 @@ int main(int argc, char** argv) {
                     wideFOVRenderer.pipeline.stencilState.restoreStencilState();
 
                     if (!showNormals) {
+                        wideFOVRenderer.gBuffer.blitToGBuffer(gBufferToUseLowRes);
                         wideFOVRenderer.gBuffer.blitToGBuffer(gBufferToUse);
                     }
                     else {
                         wideFOVRenderer.drawToRenderTarget(screenShaderNormals, gBufferToUse);
+                        wideFOVRenderer.drawToRenderTarget(screenShaderNormals, gBufferToUseLowRes);
                     }
+                }
+
+                if (!showNormals && view != maxViews - 1) {
+                    smartDownsampleShader.bind();
+                    smartDownsampleShader.setFloat("depthThreshold", quadsGenerator.depthThreshold);
+                    smartDownsampleShader.setTexture(gBufferSourceToUse.colorBuffer, 0);
+                    smartDownsampleShader.setTexture(gBufferSourceToUse.depthStencilBuffer, 1);
+                    smartDownsampleShader.setTexture(gBufferToUseLowRes.colorBuffer, 2);
+                    smartDownsampleShader.setTexture(gBufferToUseLowRes.depthStencilBuffer, 3);
+                    smartDownsampleShader.setImageTexture(0, gBufferToUse.colorBuffer, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+                    smartDownsampleShader.dispatch((gBufferToUseLowRes.width + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                                   (gBufferToUseLowRes.height + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+                    smartDownsampleShader.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
                 }
 
                 /*
@@ -836,7 +882,7 @@ int main(int argc, char** argv) {
                 */
                 unsigned int numProxies = 0, numDepthOffsets = 0;
                 unsigned int numBytesIFrame = frameGenerator.generateIFrame(
-                    gBufferToUse, remoteCameraToUse,
+                    gBufferToUseLowRes, remoteCameraToUse,
                     quadsGenerator, meshFromQuads, meshToUse,
                     numProxies, numDepthOffsets
                 );
@@ -869,10 +915,12 @@ int main(int argc, char** argv) {
                             remoteRenderer, remoteScene,
                             meshScenesCenter[currMeshIndex], meshScenesCenter[prevMeshIndex],
                             gBufferCenterTempRT, gBufferCenterMaskRT,
+                            gBufferCenterTempRTLowRes, gBufferCenterMaskRTLowRes,
                             remoteCameraCenter, remoteCameraCenterPrev,
                             quadsGenerator, meshFromQuads, meshFromQuadsMask,
                             meshesCenter[currMeshIndex], meshMask,
-                            numProxies, numDepthOffsets
+                            numProxies, numDepthOffsets,
+                            smartDownsampleShader
                         );
                         totalProxies += numProxies;
                         totalDepthOffsets += numDepthOffsets;
@@ -922,7 +970,7 @@ int main(int argc, char** argv) {
 
                 // For debugging: Generate point cloud from depth map
                 if (showDepth) {
-                    glm::vec2 gBufferSize = glm::vec2(gBufferToUse.width, gBufferToUse.height);
+                   const  glm::vec2 gBufferSize = glm::vec2(gBufferToUse.width, gBufferToUse.height);
 
                     meshFromDepthShader.startTiming();
 
@@ -956,17 +1004,18 @@ int main(int argc, char** argv) {
             }
 
             spdlog::info("======================================================");
-            spdlog::info("Rendering Time: {:.3f}ms", totalRenderTime);
-            spdlog::info("Create Proxies Time: {:.3f}ms", totalCreateProxiesTime);
-            spdlog::info("  Gen Quad Map Time: {:.3f}ms", totalGenQuadMapTime);
-            spdlog::info("  Simplify Time: {:.3f}ms", totalSimplifyTime);
-            spdlog::info("  Fill Quads Time: {:.3f}ms", totalFillQuadsTime);
-            spdlog::info("Create Mesh Time: {:.3f}ms", totalCreateMeshTime);
-            spdlog::info("  Append Quads Time: {:.3f}ms", totalAppendProxiesMsTime);
-            spdlog::info("  Fill Output Quads Time: {:.3f}ms", totalFillQuadsIndiciesMsTime);
-            spdlog::info("  Create Vert/Ind Time: {:.3f}ms", totalCreateVertIndTime);
-            if (showDepth) spdlog::info("Gen Depth Time: {:.3f}ms", totalGenDepthTime);
+            spdlog::info("Rendering Time ({}): {:.3f}ms", generatePFrame, totalRenderTime);
+            spdlog::info("Create Proxies Time ({}): {:.3f}ms", generatePFrame, totalCreateProxiesTime);
+            spdlog::info("  Gen Quad Map Time ({}): {:.3f}ms", generatePFrame, totalGenQuadMapTime);
+            spdlog::info("  Simplify Time ({}): {:.3f}ms", generatePFrame, totalSimplifyTime);
+            spdlog::info("  Fill Quads Time ({}): {:.3f}ms", generatePFrame, totalFillQuadsTime);
+            spdlog::info("Create Mesh Time ({}): {:.3f}ms", generatePFrame, totalCreateMeshTime);
+            spdlog::info("  Append Quads Time ({}): {:.3f}ms", generatePFrame, totalAppendProxiesMsTime);
+            spdlog::info("  Fill Output Quads Time ({}): {:.3f}ms", generatePFrame, totalFillQuadsIndiciesMsTime);
+            spdlog::info("  Create Vert/Ind Time ({}): {:.3f}ms", generatePFrame, totalCreateVertIndTime);
+            if (showDepth) spdlog::info("Gen Depth Time ({}): {:.3f}ms", generatePFrame, totalGenDepthTime);
             spdlog::info("Frame Size: {:.3f}MB", (float)(compressedSize) / BYTES_IN_MB);
+            spdlog::info("Num Proxies: {}Proxies", totalProxies);
 
             preventCopyingLocalPose = false;
             generateIFrame = false;

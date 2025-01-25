@@ -57,7 +57,7 @@ public:
         glBindBufferBase(target, slot, 0);
     }
 
-    void setImageTexture(int slot, const Texture& texture, GLuint level, GLboolean layered, GLuint layer, GLenum access, GLenum format) {
+    void setImageTexture(int slot, const Texture& texture, GLuint level, GLboolean layered, GLuint layer, GLenum access, GLenum format) const {
         glBindImageTexture(slot, texture, level, layered, layer, access, format);
     }
 

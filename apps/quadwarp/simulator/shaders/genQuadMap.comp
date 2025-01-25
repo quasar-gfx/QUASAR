@@ -86,7 +86,7 @@ uniform float near;
 uniform float far;
 
 uniform bool doOrientationCorrection;
-uniform float distanceThreshold;
+uniform float depthThreshold;
 uniform float angleThreshold;
 uniform float flatThreshold;
 
@@ -189,38 +189,6 @@ vec3 normalToView(mat4 view, vec3 normalWorld) {
     return normalize(rotationMatrix * normalWorld);
 }
 
-vec3 averageNormals(MultiQuad pixelNormalsView, MultiQuad pixelCoordsView) {
-    vec3 normal = pixelNormalsView.center;
-    float n = 1;
-    if (normalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.bottomLeft)) < distanceThreshold) {
-        normal += pixelNormalsView.bottomLeft; n++;
-    }
-    if (normalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.bottom)) < distanceThreshold) {
-        normal += pixelNormalsView.bottom; n++;
-    }
-    if (normalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.bottomRight)) < distanceThreshold) {
-        normal += pixelNormalsView.bottomRight; n++;
-    }
-    if (normalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.left)) < distanceThreshold) {
-        normal += pixelNormalsView.left; n++;
-    }
-    if (normalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.right)) < distanceThreshold) {
-        normal += pixelNormalsView.right; n++;
-    }
-    if (normalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.topLeft)) < distanceThreshold) {
-        normal += pixelNormalsView.topLeft; n++;
-    }
-    if (normalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.top)) < distanceThreshold) {
-        normal += pixelNormalsView.top; n++;
-    }
-    if (normalizeDepth(distance(pixelCoordsView.center, pixelCoordsView.topRight)) < distanceThreshold) {
-        normal += pixelNormalsView.topRight; n++;
-    }
-    normal /= n;
-    normal = normalize(normal);
-    return normal;
-}
-
 vec3 rayPlaneIntersection(vec3 rayOrigin, vec3 rayDirection, Plane plane) {
     float denominator = dot(rayDirection, plane.normal);
     if (abs(denominator) < epsilon) {
@@ -258,24 +226,24 @@ vec3 findQuadPointCorner(
     float dist2 = normalizeDepth(distance(surfelViewPlane, surfelViewPlanePixelNeighbor2));
     float dist3 = normalizeDepth(distance(surfelViewPlane, surfelViewPlanePixelNeighbor3));
 
-    // add the contribution of each neighboring pixel to interpolated depth, if it is within distanceThreshold
+    // add the contribution of each neighboring pixel to interpolated depth, if it is within depthThreshold
     float depth = pixelDepthCenter;
     float n = 1;
-    if (dist1 < distanceThreshold) {
+    if (dist1 < depthThreshold) {
         depth += pixelDepthNeighbor1;
         n++;
     }
-    if (dist2 < distanceThreshold) {
+    if (dist2 < depthThreshold) {
         depth += pixelDepthNeighbor2;
         n++;
     }
-    if (dist3 < distanceThreshold) {
+    if (dist3 < depthThreshold) {
         depth += pixelDepthNeighbor3;
         n++;
     }
     depth /= n;
 
-    // only return the interpolated point if all neighboring pixels are within distanceThreshold
+    // only return the interpolated point if all neighboring pixels are within depthThreshold
     vec3 surfelViewBottomLeftInterp = ndcToView(projectionInverse, surfelNDC, depth);
     if (n >= 3) {
         return surfelViewBottomLeftInterp;
@@ -293,8 +261,8 @@ vec3 findQuadPointEdge(
         return surfelViewPlane;
     }
 
-    // return interpolated point if neighboring pixel's depth is within distanceThreshold
-    if (normalizeDepth(distance(surfelViewPlane, surfelViewPlanePixelNeighbor)) < distanceThreshold) {
+    // return interpolated point if neighboring pixel's depth is within depthThreshold
+    if (normalizeDepth(distance(surfelViewPlane, surfelViewPlanePixelNeighbor)) < depthThreshold) {
         float depth = (pixelDepthCenter + pixelDepthNeighbor) / 2.0;
         return ndcToView(projectionInverse, surfelNDC, depth);
     }

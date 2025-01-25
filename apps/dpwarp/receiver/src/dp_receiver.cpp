@@ -20,6 +20,18 @@
 
 const std::string DATA_PATH = "../simulator/";
 
+const std::vector<glm::vec4> colors = {
+    glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), // primary view color is yellow
+    glm::vec4(0.0f, 0.0f, 1.0f, 1.0f),
+    glm::vec4(0.0f, 1.0f, 0.0f, 1.0f),
+    glm::vec4(1.0f, 0.5f, 0.5f, 1.0f),
+    glm::vec4(0.0f, 0.5f, 0.5f, 1.0f),
+    glm::vec4(0.5f, 0.0f, 0.0f, 1.0f),
+    glm::vec4(0.0f, 1.0f, 1.0f, 1.0f),
+    glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
+    glm::vec4(0.0f, 0.5f, 0.0f, 1.0f),
+};
+
 int main(int argc, char** argv) {
     Config config{};
     config.title = "Depth Peeling Receiver";
@@ -71,16 +83,16 @@ int main(int argc, char** argv) {
     ForwardRenderer renderer(config);
 
     glm::uvec2 windowSize = window->getSize();
+    glm::uvec2 halfWindowSize = windowSize / 2u;
 
     Scene scene;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
     PerspectiveCamera remoteCamera(windowSize.x, windowSize.y);
-    remoteCamera.setFovyDegrees(100.0f);
     remoteCamera.setPosition(glm::vec3(0.0f, 3.0f, 10.0f));
     remoteCamera.updateViewMatrix();
 
     PerspectiveCamera remoteCameraWideFov(windowSize.x, windowSize.y);
-    remoteCameraWideFov.setFovyDegrees(140.0f);
+    remoteCameraWideFov.setFovyDegrees(120.0f);
     remoteCameraWideFov.setViewMatrix(remoteCamera.getViewMatrix());
 
     // shaders
@@ -88,7 +100,7 @@ int main(int argc, char** argv) {
 
     Recorder recorder(renderer, toneMapShader, config.targetFramerate);
 
-    MeshFromQuads meshFromQuads(windowSize);
+    MeshFromQuads meshFromQuads(halfWindowSize);
 
     std::vector<Texture> colorTextures; colorTextures.reserve(maxViews);
     TextureFileCreateParams params = {
@@ -156,8 +168,8 @@ int main(int argc, char** argv) {
 
         unsigned int numBytes;
         for (int view = 0; view < maxViews; view++) {
-
             startTime = window->getTime();
+
             // load proxies
             std::string quadProxiesFileName = DATA_PATH + "quads" + std::to_string(view) + ".bin.lz4";
             unsigned int numProxies = quadBuffers.loadFromFile(quadProxiesFileName, &numBytes);
@@ -176,7 +188,10 @@ int main(int argc, char** argv) {
             });
             loadFromFilesTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
 
-            glm::vec2 gBufferSize = glm::vec2(colorTextures[view].width, colorTextures[view].height);
+            glm::uvec2 gBufferSize = glm::uvec2(colorTextures[view].width, colorTextures[view].height) / 2u;
+            if (view == maxViews - 1) {
+                gBufferSize /= 2u;
+            }
 
             startTime = window->getTime();
             auto& cameraToUse = (!disableWideFov && view == maxViews - 1) ? remoteCameraWideFov : remoteCamera;
@@ -205,18 +220,11 @@ int main(int argc, char** argv) {
         nodes[view]->frustumCulled = false;
         scene.addChildNode(nodes[view]);
 
-        // primary view color is yellow
-        glm::vec4 color = (view == 0) ? glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) :
-                glm::vec4(fmod(view * 0.6180339887f, 1.0f),
-                            fmod(view * 0.9f, 1.0f),
-                            fmod(view * 0.5f, 1.0f),
-                            1.0f);
-
         nodeWireframes[view] = new Node(meshes[view]);
         nodeWireframes[view]->frustumCulled = false;
         nodeWireframes[view]->wireframe = true;
         nodeWireframes[view]->visible = false;
-        nodeWireframes[view]->overrideMaterial = new QuadMaterial({ .baseColor = color });
+        nodeWireframes[view]->overrideMaterial = new QuadMaterial({ .baseColor = colors[view] });
         scene.addChildNode(nodeWireframes[view]);
     }
 
@@ -398,9 +406,7 @@ int main(int argc, char** argv) {
         camera.processScroll(scroll.y);
 
         for (int i = 0; i < maxViews; i++) {
-            bool showLayer = showLayers[i];
-
-            nodes[i]->visible = showLayer;
+            nodes[i]->visible = showLayers[i];
         }
 
         // render all objects in scene

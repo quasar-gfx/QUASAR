@@ -8,7 +8,7 @@ class DepthPeelingRenderer : public OpenGLRenderer {
 public:
     unsigned int maxLayers;
     float viewSphereDiameter = 0.5f;
-    float edpDelta = 0.002f;
+    float edpDelta = 0.001f;
 
     GBuffer gBuffer;
     std::vector<GBuffer> peelingLayers;
