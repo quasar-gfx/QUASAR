@@ -186,7 +186,11 @@ std::string FileIO::copyFileToCache(std::string filename) {
         return "";
     }
 
-    std::string tempPath = "/data/user/0/app.wiselab.QuestClient/cache/" + filename;
+    std::string internalAppPath = activity->internalDataPath;
+    // remove "files/" from end of path
+    internalAppPath = internalAppPath.substr(0, internalAppPath.find_last_of('/'));
+    internalAppPath += "/cache/";
+    std::string tempPath = internalAppPath + filename;
 
     std::ofstream outFile(tempPath, std::ios::binary);
     if (!outFile) {
