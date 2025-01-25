@@ -7,13 +7,16 @@
 #include <queue>
 #include <atomic>
 
+#include <lz4.h>
+#include <lz4frame.h>
+
+#include <glm/glm.hpp>
+
 #include <RenderTargets/RenderTarget.h>
 #include <Networking/DataStreamerTCP.h>
 #include <CameraPose.h>
-#include <glm/glm.hpp>
 
 #include <Shaders/ComputeShader.h>
-#include <lz4_stream/lz4_stream.h>
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
 #include <cuda_gl_interop.h>

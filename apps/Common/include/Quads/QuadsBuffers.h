@@ -1,7 +1,8 @@
 #ifndef QUAD_BUFFERS_H
 #define QUAD_BUFFERS_H
 
-#include <lz4_stream/lz4_stream.h>
+#include <lz4.h>
+#include <lz4frame.h>
 
 #include <glm/glm.hpp>
 

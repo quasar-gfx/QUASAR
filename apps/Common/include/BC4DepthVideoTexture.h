@@ -5,7 +5,8 @@
 #include <iomanip>
 #include <deque>
 
-#include <lz4_stream/lz4_stream.h>
+#include <lz4.h>
+#include <lz4frame.h>
 
 #include <Buffer.h>
 #include <Texture.h>
@@ -40,7 +41,6 @@ public:
     ReceiverStats stats;
 
     BC4DepthVideoTexture(const TextureDataCreateParams &params, std::string streamerURL);
-    ~BC4DepthVideoTexture() override;
 
     void setMaxQueueSize(unsigned int maxQueueSize) {
         this->maxQueueSize = maxQueueSize;
@@ -63,8 +63,6 @@ private:
     };
     std::deque<FrameData> depthFrames;
     size_t compressedSize;
-
-    LZ4F_dctx* dctx = nullptr;
 
     void onDataReceived(const std::vector<uint8_t>& data) override;
 };
