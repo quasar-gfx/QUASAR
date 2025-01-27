@@ -494,7 +494,7 @@ int main(int argc, char** argv) {
                 runAnimations = false;
             }
 
-            if (ImGui::SliderFloat("Depth Threshold (x0.1)", &quadsGenerator.depthThreshold, 0.0f, 10.0f)) {
+            if (ImGui::SliderFloat("Depth Threshold", &quadsGenerator.depthThreshold, 0.0f, 1.0f, "%.4f")) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
                 runAnimations = false;
@@ -1063,6 +1063,7 @@ int main(int argc, char** argv) {
         // render to screen
         blurEdgesShader.bind();
         blurEdgesShader.setBool("toneMap", !showNormals);
+        blurEdgesShader.setFloat("depthThreshold", quadsGenerator.depthThreshold);
         renderer.drawToScreen(blurEdgesShader);
         if (animator.running) {
             spdlog::info("Client Render Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);

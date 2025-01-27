@@ -408,7 +408,7 @@ int main(int argc, char** argv) {
                 runAnimations = false;
             }
 
-            if (ImGui::SliderFloat("Depth Threshold (x0.1)", &quadsGenerator.depthThreshold, 0.0f, 10.0f)) {
+            if (ImGui::SliderFloat("Depth Threshold", &quadsGenerator.depthThreshold, 0.0f, 1.0f, "%.4f")) {
                 preventCopyingLocalPose = true;
                 rerender = true;
                 runAnimations = false;
