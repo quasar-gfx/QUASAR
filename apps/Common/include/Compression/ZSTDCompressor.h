@@ -30,7 +30,7 @@ public:
             numBytesUncompressed);
     }
 
-    unsigned int decompress(const std::vector<char> &compressedData, std::vector<char> &decompressedData) override {
+    unsigned int decompress(const std::vector<char> &compressedData, std::vector<char> &decompressedData) {
         return ZSTD_decompressDCtx(decompressionCtx,
             decompressedData.data(),
             decompressedData.size(),
