@@ -100,7 +100,7 @@ unsigned int QuadBuffers::saveToFile(const std::string &filename) {
     std::vector<char> compressedData;
     unsigned int outputSize = saveToMemory(compressedData, true);
 
-    std::ofstream quadsFile = std::ofstream(filename + ".lz4", std::ios::binary);
+    std::ofstream quadsFile = std::ofstream(filename + ".zstd", std::ios::binary);
     quadsFile.write(compressedData.data(), outputSize);
     quadsFile.close();
 

@@ -110,16 +110,16 @@ void BC4DepthStreamer::sendFrame(pose_id_t poseID) {
 
     // compress
     size_t maxSizeBytes = data.size();
-    lz4Buffer.resize(maxSizeBytes);
-    compressor.compress(data.data(), lz4Buffer, data.size());
+    compressedData.resize(maxSizeBytes);
+    compressor.compress(data.data(), compressedData, data.size());
 
     stats.timeToCompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
-    stats.lz4CompressionRatio = static_cast<float>(data.size()) / compressedSize;
+    stats.compressionRatio = static_cast<float>(data.size()) / compressedSize;
 
-    streamer.send(lz4Buffer);
+    streamer.send(compressedData);
 
     // spdlog::info("Frame Stats - Original: {} bytes, Compressed: {} bytes, Ratio: {}",
-    //              data.size(), compressedSize, stats.lz4CompressionRatio);
+    //              data.size(), compressedSize, stats.compressionRatio);
 #endif
 }
 
@@ -157,11 +157,11 @@ void BC4DepthStreamer::sendData() {
 
         // compress
         size_t maxSizeBytes = data.size();
-        lz4Buffer.resize(maxSizeBytes);
-        compressor.compress(data.data(), lz4Buffer, data.size());
+        compressedData.resize(maxSizeBytes);
+        compressor.compress(data.data(), compressedData, data.size());
 
         stats.timeToCompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
-        stats.lz4CompressionRatio = static_cast<float>(data.size()) / lz4Buffer.size();
+        stats.compressionRatio = static_cast<float>(data.size()) / compressedData.size();
 
         float elapsedTimeSec = timeutils::microsToSeconds(timeutils::getTimeMicros() - prevTime);
         if (elapsedTimeSec < (1.0f / targetFrameRate)) {
@@ -172,11 +172,11 @@ void BC4DepthStreamer::sendData() {
             );
         }
 
-        // Send LZ4 compressed data
-        streamer.send(lz4Buffer);
+        // Send compressed data
+        streamer.send(compressedData);
 
         stats.timeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
-        stats.bitrateMbps = (lz4Buffer.size() * 8 / timeutils::millisToSeconds(stats.timeToSendMs)) / BYTES_IN_MB;
+        stats.bitrateMbps = (compressedData.size() * 8 / timeutils::millisToSeconds(stats.timeToSendMs)) / BYTES_IN_MB;
 
         prevTime = timeutils::getTimeMicros();
     }

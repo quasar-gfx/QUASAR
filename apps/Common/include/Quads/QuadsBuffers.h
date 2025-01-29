@@ -6,12 +6,12 @@
 #include <Buffer.h>
 #include <Utils/FileIO.h>
 
+#include <Compression/ZSTDCompressor.h>
+
 #if !defined(__APPLE__) && !defined(__ANDROID__)
 #include <cuda_gl_interop.h>
 #include <Utils/CudaUtils.h>
 #endif
-
-#include <Compression/LZ4Compressor.h>
 
 struct QuadMapData {
     glm::vec3 normal;
@@ -59,7 +59,7 @@ public:
 #endif
 
 private:
-    LZ4Compressor compressor;
+    ZSTDCompressor compressor;
 
     std::vector<char> data;
 
