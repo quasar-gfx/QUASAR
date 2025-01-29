@@ -20,7 +20,7 @@
 #include <Utils/CudaUtils.h>
 #endif
 
-#include <Compression/LZ4Compressor.h>
+#include <Compression/ZSTDCompressor.h>
 
 class BC4DepthStreamer : public RenderTarget {
 public:
@@ -39,7 +39,7 @@ public:
         float timeToCompressMs = -1.0f;
         float timeToSendMs = -1.0f;
         float bitrateMbps = -1.0f;
-        float lz4CompressionRatio = -1.0f;
+        float compressionRatio = -1.0f;
     } stats;
 
     BC4DepthStreamer(const RenderTargetCreateParams &params, std::string receiverURL);
@@ -62,8 +62,8 @@ private:
     DataStreamerTCP streamer;
 
     std::vector<char> data;
-    std::vector<char> lz4Buffer;
-    LZ4Compressor compressor;
+    std::vector<char> compressedData;
+    ZSTDCompressor compressor;
 
     ComputeShader bc4CompressionShader;
     void compressBC4();

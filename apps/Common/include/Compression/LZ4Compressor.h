@@ -22,7 +22,7 @@ public:
             maxCompressedBytes);
     }
 
-    unsigned int decompress(const std::vector<char> &compressedData, std::vector<char> &decompressedData) {
+    unsigned int decompress(const std::vector<char> &compressedData, std::vector<char> &decompressedData) override {
         return LZ4_decompress_safe(
             (const char*)compressedData.data(),
             decompressedData.data(),

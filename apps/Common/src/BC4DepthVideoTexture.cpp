@@ -41,7 +41,7 @@ void BC4DepthVideoTexture::onDataReceived(const std::vector<char>& compressedDat
     size_t dstSize = compressor.decompress(compressedData, decompressedData);
 
     stats.timeToDecompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
-    stats.lz4CompressionRatio = static_cast<float>(dstSize) / compressedData.size();
+    stats.compressionRatio = static_cast<float>(dstSize) / compressedData.size();
 
     // extract pose ID
     pose_id_t poseID;

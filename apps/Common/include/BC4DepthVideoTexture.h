@@ -12,7 +12,7 @@
 
 #include <CameraPose.h>
 
-#include <Compression/LZ4Compressor.h>
+#include <Compression/ZSTDCompressor.h>
 
 class BC4DepthVideoTexture : public Texture, public DataReceiverTCP {
 public:
@@ -34,7 +34,7 @@ public:
         float timeToReceiveMs = -1.0f;
         float timeToDecompressMs = -1.0f;
         float bitrateMbps = -1.0f;
-        float lz4CompressionRatio = -1.0f;
+        float compressionRatio = -1.0f;
     };
 
     ReceiverStats stats;
@@ -63,7 +63,7 @@ private:
     std::deque<FrameData> depthFrames;
     size_t compressedSize;
 
-    LZ4Compressor compressor;
+    ZSTDCompressor compressor;
 
     void onDataReceived(const std::vector<char>& data) override;
 };

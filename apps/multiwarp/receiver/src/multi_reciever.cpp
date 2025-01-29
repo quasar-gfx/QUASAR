@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'V', "vsync"}, true);
     args::Flag verbose(parser, "verbose", "Enable verbose logging", {'v', "verbose"});
     args::ValueFlag<int> maxAdditionalViewsIn(parser, "maxViews", "Max views", {'l', "num-views"}, 8);
-    args::Flag loadProxies(parser, "load-proxies", "Load proxies from quads.bin.lz4", {'m', "load-proxies"});
+    args::Flag loadProxies(parser, "load-proxies", "Load proxies from quads.bin.zstd", {'m', "load-proxies"});
     args::Flag disableWideFov(parser, "disable-wide-fov", "Disable wide fov view", {'W', "disable-wide-fov"});
     try {
         parser.ParseCLI(argc, argv);
@@ -143,8 +143,8 @@ int main(int argc, char** argv) {
     double createMeshTime = 0.0;
     if (!args::get(loadProxies)) {
         for (int view = 0; view < maxViews; view++) {
-            std::string verticesFileName = DATA_PATH + "vertices" + std::to_string(view) + ".bin.lz4";
-            std::string indicesFileName = DATA_PATH + "indices" + std::to_string(view) + ".bin.lz4";
+            std::string verticesFileName = DATA_PATH + "vertices" + std::to_string(view) + ".bin.zstd";
+            std::string indicesFileName = DATA_PATH + "indices" + std::to_string(view) + ".bin.zstd";
 
             auto vertexData = FileIO::loadBinaryFile(verticesFileName);
             auto indexData = FileIO::loadBinaryFile(indicesFileName);
@@ -182,11 +182,11 @@ int main(int argc, char** argv) {
             startTime = window->getTime();
 
             // load proxies
-            std::string quadProxiesFileName = DATA_PATH + "quads" + std::to_string(view) + ".bin.lz4";
+            std::string quadProxiesFileName = DATA_PATH + "quads" + std::to_string(view) + ".bin.zstd";
             unsigned int numProxies = quadBuffers.loadFromFile(quadProxiesFileName, &numBytes);
             numBytesProxies += numBytes;
             // load depth offsets
-            std::string depthOffsetsFileName = DATA_PATH + "depthOffsets" + std::to_string(view) + ".bin.lz4";
+            std::string depthOffsetsFileName = DATA_PATH + "depthOffsets" + std::to_string(view) + ".bin.zstd";
             unsigned int numDepthOffsets = depthOffsets.loadFromFile(depthOffsetsFileName, &numBytes);
             numBytesDepthOffsets += numBytes;
 

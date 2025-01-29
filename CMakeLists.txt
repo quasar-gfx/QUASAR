@@ -73,6 +73,10 @@ set(RENDERER_LIBS ${RENDERER_LIBS} jsmn)
 add_subdirectory(${EXTERNAL_DIR}/lz4_stream/tnt)
 set(RENDERER_LIBS ${RENDERER_LIBS} lz4_stream)
 
+# zstd
+add_subdirectory(${EXTERNAL_DIR}/zstd/build/cmake)
+set(RENDERER_LIBS ${RENDERER_LIBS} libzstd_static)
+
 # add and link renderer library
 add_subdirectory(${RENDERER_DIR})
 target_link_libraries(renderer ${RENDERER_LIBS})
