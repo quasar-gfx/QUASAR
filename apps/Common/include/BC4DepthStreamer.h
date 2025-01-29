@@ -7,9 +7,6 @@
 #include <queue>
 #include <atomic>
 
-#include <lz4.h>
-#include <lz4frame.h>
-
 #include <glm/glm.hpp>
 
 #include <RenderTargets/RenderTarget.h>
@@ -22,6 +19,8 @@
 #include <cuda_gl_interop.h>
 #include <Utils/CudaUtils.h>
 #endif
+
+#include <Compression/LZ4Compressor.h>
 
 class BC4DepthStreamer : public RenderTarget {
 public:
@@ -62,9 +61,9 @@ private:
     int targetFrameRate = 60;
     DataStreamerTCP streamer;
 
-    std::vector<uint8_t> data;
-
-    std::vector<uint8_t> lz4Buffer;
+    std::vector<char> data;
+    std::vector<char> lz4Buffer;
+    LZ4Compressor compressor;
 
     ComputeShader bc4CompressionShader;
     void compressBC4();

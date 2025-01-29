@@ -7,7 +7,7 @@ DepthStreamer::DepthStreamer(const RenderTargetCreateParams &params, std::string
         , imageSize(params.width * params.height * sizeof(GLushort))
         , streamer(receiverURL)
         , RenderTarget(params) {
-    data = std::vector<uint8_t>(sizeof(pose_id_t) + imageSize);
+    data = std::vector<char>(sizeof(pose_id_t) + imageSize);
 
     renderTargetCopy = new RenderTarget({
         .width = width,

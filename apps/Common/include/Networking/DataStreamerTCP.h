@@ -39,7 +39,7 @@ public:
 
     void close();
 
-    int send(std::vector<uint8_t> data, bool copy = false);
+    int send(std::vector<char> &data, bool copy = false);
 
 private:
     SocketTCP socket;
@@ -51,7 +51,7 @@ private:
 
     std::atomic_bool ready = false;
 
-    std::queue<std::vector<uint8_t>> datas;
+    std::queue<std::vector<char>> datas;
 
     void sendData();
 

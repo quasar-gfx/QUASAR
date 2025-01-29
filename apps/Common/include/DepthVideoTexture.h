@@ -42,12 +42,12 @@ private:
 
     struct FrameData {
         pose_id_t poseID;
-        std::vector<uint8_t> buffer;
+        std::vector<char> buffer;
     };
 
     std::deque<FrameData> depthFrames;
 
-    void onDataReceived(const std::vector<uint8_t>& data) override;
+    void onDataReceived(const std::vector<char>& data) override;
 };
 
 #endif // DEPTH_VIDEO_TEXTURE_H

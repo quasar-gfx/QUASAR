@@ -4,7 +4,7 @@ unsigned int FrameGenerator::generateIFrame(
     const GBuffer &gBuffer, const PerspectiveCamera &remoteCamera,
     QuadsGenerator &quadsGenerator, MeshFromQuads &meshFromQuads, const Mesh &mesh,
     unsigned int &numProxies, unsigned int &numDepthOffsets,
-    bool doLZ4) {
+    bool compress) {
     const glm::vec2 gBufferSize = glm::vec2(gBuffer.width, gBuffer.height);
 
     double startTimeTotal = timeutils::getTimeMicros();
@@ -36,7 +36,7 @@ unsigned int FrameGenerator::generateIFrame(
     stats.timeToCreateVertInd = meshFromQuads.stats.timeToCreateMeshMs;
     stats.timeToCreateMesh = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
-    return quadsGenerator.saveQuadsToMemory(compressedQuads, doLZ4) +
+    return quadsGenerator.saveQuadsToMemory(compressedQuads, compress) +
            numDepthOffsets * sizeof(uint16_t) / 8;
 }
 
@@ -48,7 +48,7 @@ unsigned int FrameGenerator::generatePFrame(
     QuadsGenerator &quadsGenerator, MeshFromQuads &meshFromQuads, MeshFromQuads &meshFromQuadsMask,
     const Mesh &currMesh, const Mesh &maskMesh,
     unsigned int &numProxies, unsigned int &numDepthOffsets, const ComputeShader &downsampleShader,
-    bool doLZ4) {
+    bool compress) {
 
     const glm::vec2 gBufferSize = glm::vec2(gBufferLowRes.width, gBufferLowRes.height);
     unsigned int outputSize = 0;
@@ -133,7 +133,7 @@ unsigned int FrameGenerator::generatePFrame(
         stats.timeToAppendProxies = meshFromQuads.stats.timeToAppendProxiesMs;
         stats.timeToCreateVertInd = meshFromQuads.stats.timeToCreateMeshMs;
 
-        outputSize += quadsGenerator.saveQuadsToMemory(compressedQuads, doLZ4);
+        outputSize += quadsGenerator.saveQuadsToMemory(compressedQuads, compress);
     }
 
     {
@@ -154,7 +154,7 @@ unsigned int FrameGenerator::generatePFrame(
         stats.timeToAppendProxies += meshFromQuadsMask.stats.timeToAppendProxiesMs;
         stats.timeToCreateVertInd += meshFromQuadsMask.stats.timeToCreateMeshMs;
 
-        outputSize += quadsGenerator.saveQuadsToMemory(compressedQuads, doLZ4);
+        outputSize += quadsGenerator.saveQuadsToMemory(compressedQuads, compress);
         outputSize += numDepthOffsets * sizeof(uint16_t) / 8;
     }
 

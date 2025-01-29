@@ -1,7 +1,7 @@
-#include <lz4_stream/lz4_stream.h>
 #include <spdlog/spdlog.h>
 
 #include <BC4DepthStreamer.h>
+
 #include <shaders_common.h>
 
 #define THREADS_PER_LOCALGROUP 16
@@ -24,7 +24,7 @@ BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams &params, std::
     resize(width, height);
 
     compressedSize = (width / BLOCK_SIZE) * (height / BLOCK_SIZE);
-    data = std::vector<uint8_t>(sizeof(pose_id_t) + compressedSize * sizeof(Block));
+    data = std::vector<char>(sizeof(pose_id_t) + compressedSize * sizeof(Block));
     bc4CompressedBuffer = Buffer<Block>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, compressedSize, nullptr);
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
@@ -106,26 +106,12 @@ void BC4DepthStreamer::sendFrame(pose_id_t poseID) {
 
     stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
-    // Compress with LZ4 using direct buffer operations instead of streams
     startTime = timeutils::getTimeMicros();
 
-    // Calculate max compressed size
-    size_t maxCompressedSize = LZ4F_compressFrameBound(fullSize, nullptr);
-    lz4Buffer.resize(maxCompressedSize);
-
-    // Compress in one shot
-    LZ4F_preferences_t prefs = {};
-    size_t compressedSize = LZ4F_compressFrame(lz4Buffer.data(), lz4Buffer.size(),
-                                              data.data(), data.size(),
-                                              &prefs);
-
-    if (LZ4F_isError(compressedSize)) {
-        spdlog::error("LZ4 compression failed: {}", LZ4F_getErrorName(compressedSize));
-        return;
-    }
-
-    // Resize buffer to actual compressed size
-    lz4Buffer.resize(compressedSize);
+    // compress
+    size_t maxSizeBytes = data.size();
+    lz4Buffer.resize(maxSizeBytes);
+    compressor.compress(data.data(), lz4Buffer, data.size());
 
     stats.timeToCompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
     stats.lz4CompressionRatio = static_cast<float>(data.size()) / compressedSize;
@@ -167,16 +153,12 @@ void BC4DepthStreamer::sendData() {
 
         stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
-        // Compress with LZ4
         startTime = timeutils::getTimeMicros();
 
-        std::stringstream compressed;
-        lz4_stream::ostream lz4_compressor(compressed);
-        lz4_compressor.write(reinterpret_cast<const char*>(data.data()), data.size());
-        lz4_compressor.close();
-
-        std::string compressedStr = compressed.str();
-        lz4Buffer.assign(compressedStr.begin(), compressedStr.end());
+        // compress
+        size_t maxSizeBytes = data.size();
+        lz4Buffer.resize(maxSizeBytes);
+        compressor.compress(data.data(), lz4Buffer, data.size());
 
         stats.timeToCompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
         stats.lz4CompressionRatio = static_cast<float>(data.size()) / lz4Buffer.size();

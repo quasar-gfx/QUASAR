@@ -1,9 +1,6 @@
 #ifndef QUAD_BUFFERS_H
 #define QUAD_BUFFERS_H
 
-#include <lz4.h>
-#include <lz4frame.h>
-
 #include <glm/glm.hpp>
 
 #include <Buffer.h>
@@ -13,6 +10,8 @@
 #include <cuda_gl_interop.h>
 #include <Utils/CudaUtils.h>
 #endif
+
+#include <Compression/LZ4Compressor.h>
 
 struct QuadMapData {
     glm::vec3 normal;
@@ -46,8 +45,6 @@ public:
     Buffer<float> depthsBuffer;
     Buffer<unsigned int> offsetSizeFlattenedsBuffer;
 
-    std::vector<uint8_t> data;
-
     QuadBuffers(unsigned int maxProxies);
     ~QuadBuffers();
 
@@ -56,13 +53,15 @@ public:
     unsigned int loadFromMemory(const char* data);
     unsigned int loadFromFile(const std::string &filename, unsigned int* numBytesLoaded = nullptr);
 #ifdef GL_CORE
-    unsigned int saveToMemory(std::vector<char> &compressedData, bool doLZ4 = true);
+    unsigned int saveToMemory(std::vector<char> &compressedData, bool compress = true);
     unsigned int saveToFile(const std::string &filename);
     unsigned int updateDataBuffer();
 #endif
 
 private:
-    LZ4F_dctx* dctx = nullptr;
+    LZ4Compressor compressor;
+
+    std::vector<char> data;
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     cudaGraphicsResource* cudaResourceNormalSphericals;

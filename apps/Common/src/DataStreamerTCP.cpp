@@ -8,7 +8,7 @@ void DataStreamerTCP::close() {
     }
 }
 
-int DataStreamerTCP::send(std::vector<uint8_t> data, bool copy) {
+int DataStreamerTCP::send(std::vector<char> &data, bool copy) {
     if (!ready) {
         return -1;
     }
@@ -55,14 +55,14 @@ void DataStreamerTCP::sendData() {
             break;
         }
 
-        std::vector<uint8_t> data = std::move(datas.front());
+        std::vector<char> data = std::move(datas.front());
         datas.pop();
 
         int startSendTime = timeutils::getTimeMicros();
 
         // add header
         int dataSize = data.size();
-        std::vector<uint8_t> header(sizeof(dataSize));
+        std::vector<char> header(sizeof(dataSize));
         std::memcpy(header.data(), &dataSize, sizeof(dataSize));
 
         // send header

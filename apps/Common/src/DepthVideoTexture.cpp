@@ -12,10 +12,10 @@ pose_id_t DepthVideoTexture::getLatestPoseID() {
     return poseID;
 }
 
-void DepthVideoTexture::onDataReceived(const std::vector<uint8_t>& data) {
+void DepthVideoTexture::onDataReceived(const std::vector<char>& data) {
     std::lock_guard<std::mutex> lock(m);
 
-    std::vector<uint8_t> depthFrame = std::move(data);
+    std::vector<char> depthFrame = std::move(data);
 
     pose_id_t poseID;
     std::memcpy(&poseID, depthFrame.data(), sizeof(pose_id_t));
@@ -39,7 +39,7 @@ pose_id_t DepthVideoTexture::draw(pose_id_t poseID) {
     }
 
     pose_id_t resPoseID = -1;
-    std::vector<uint8_t> res;
+    std::vector<char> res;
     bool found = false;
     if (poseID == -1) {
         FrameData frameData = depthFrames.back();

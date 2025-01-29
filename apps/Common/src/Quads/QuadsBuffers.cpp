@@ -2,8 +2,6 @@
 #include <filesystem>
 #endif
 
-#include <lz4_stream/lz4_stream.h>
-
 #include <spdlog/spdlog.h>
 #include <Utils/TimeUtils.h>
 
@@ -22,13 +20,6 @@ QuadBuffers::QuadBuffers(unsigned int maxProxies)
     CHECK_CUDA_ERROR(cudaGraphicsGLRegisterBuffer(&cudaResourceDepths, depthsBuffer, cudaGraphicsRegisterFlagsNone));
     CHECK_CUDA_ERROR(cudaGraphicsGLRegisterBuffer(&cudaResourceOffsetSizeFlatteneds, offsetSizeFlattenedsBuffer, cudaGraphicsRegisterFlagsNone));
 #endif
-
-    // setup LZ4 decompression context
-    auto status = LZ4F_createDecompressionContext(&dctx, LZ4F_VERSION);
-    if (LZ4F_isError(status)) {
-        spdlog::error("Failed to create LZ4 context: {}", LZ4F_getErrorName(status));
-        return;
-    }
 }
 
 QuadBuffers::~QuadBuffers() {
@@ -37,8 +28,6 @@ QuadBuffers::~QuadBuffers() {
     CHECK_CUDA_ERROR(cudaGraphicsUnregisterResource(cudaResourceDepths));
     CHECK_CUDA_ERROR(cudaGraphicsUnregisterResource(cudaResourceOffsetSizeFlatteneds));
 #endif
-
-    LZ4F_freeDecompressionContext(dctx);
 }
 
 void QuadBuffers::resize(unsigned int numProxies) {
@@ -54,23 +43,12 @@ unsigned int QuadBuffers::loadFromFile(const std::string &filename, unsigned int
 #endif
 
     auto quadDataCompressed = FileIO::loadBinaryFile(filename);
-    size_t srcSize = quadDataCompressed.size();
-    size_t dstSize = maxProxies * sizeof(QuadMapDataPacked) + sizeof(unsigned int);
-
     if (numBytesLoaded != nullptr) {
-        *numBytesLoaded = srcSize;
+        *numBytesLoaded = quadDataCompressed.size();
     }
 
     auto startTime = timeutils::getTimeMicros();
-    auto ret = LZ4F_decompress(dctx,
-                               data.data(), &dstSize,
-                               quadDataCompressed.data(), &srcSize,
-                               nullptr);
-    if (LZ4F_isError(ret)) {
-        spdlog::error("LZ4 decompression failed: {}", LZ4F_getErrorName(ret));
-        return 0;
-    }
-
+    compressor.decompress(quadDataCompressed, data);
     auto numBytes = loadFromMemory(reinterpret_cast<const char*>(data.data()));
     stats.timeToDecompressionMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
     return numBytes;
@@ -100,18 +78,14 @@ unsigned int QuadBuffers::loadFromMemory(const char* data) {
 }
 
 #ifdef GL_CORE
-unsigned int QuadBuffers::saveToMemory(std::vector<char> &compressedData, bool doLZ4) {
+unsigned int QuadBuffers::saveToMemory(std::vector<char> &compressedData, bool compress) {
     unsigned int dataSize = updateDataBuffer();
 
-    if (doLZ4) {
+    if (compress) {
         auto startTime = timeutils::getTimeMicros();
-        unsigned int dataSize = updateDataBuffer();
-        compressedData.resize(LZ4F_compressFrameBound(dataSize, nullptr));
-        int outputSize = LZ4_compress_default(
-                            reinterpret_cast<const char*>(data.data()),
-                            compressedData.data(),
-                            dataSize,
-                            compressedData.size());
+        size_t maxSizeBytes = maxProxies * sizeof(QuadMapDataPacked) + sizeof(unsigned int);
+        compressedData.resize(maxSizeBytes);
+        unsigned int outputSize = compressor.compress(data.data(), compressedData, dataSize);
         stats.timeToCompressionMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
         return outputSize;
     }
@@ -123,12 +97,14 @@ unsigned int QuadBuffers::saveToMemory(std::vector<char> &compressedData, bool d
 }
 
 unsigned int QuadBuffers::saveToFile(const std::string &filename) {
-    unsigned int size = updateDataBuffer();
-    std::ofstream quadsFile(filename + ".lz4", std::ios::binary);
-    lz4_stream::ostream lz4_stream(quadsFile);
-    lz4_stream.write(reinterpret_cast<const char*>(data.data()), size);
-    lz4_stream.close();
-    return size;
+    std::vector<char> compressedData;
+    unsigned int outputSize = saveToMemory(compressedData, true);
+
+    std::ofstream quadsFile = std::ofstream(filename + ".lz4", std::ios::binary);
+    quadsFile.write(compressedData.data(), outputSize);
+    quadsFile.close();
+
+    return outputSize;
 }
 
 unsigned int QuadBuffers::updateDataBuffer() {

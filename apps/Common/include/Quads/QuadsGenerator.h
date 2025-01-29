@@ -43,7 +43,7 @@ public:
     BufferSizes getBufferSizes();
     BufferSizes createProxiesFromGBuffer(const GBuffer& gBuffer, const PerspectiveCamera &remoteCamera);
 #ifdef GL_CORE
-    unsigned int saveQuadsToMemory(std::vector<char> &compressedData, bool doLZ4 = true);
+    unsigned int saveQuadsToMemory(std::vector<char> &compressedData, bool compress = true);
     unsigned int saveDepthOffsetsToMemory(std::vector<char> &compressedData);
     unsigned int saveToFile(const std::string &filename);
     unsigned int saveDepthOffsetsToFile(const std::string &filename);

@@ -16,13 +16,6 @@ BC4DepthVideoTexture::BC4DepthVideoTexture(const TextureDataCreateParams &params
 
     compressedSize = (width / BLOCK_SIZE) * (height / BLOCK_SIZE);
     bc4CompressedBuffer = Buffer<Block>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, compressedSize, nullptr);
-
-    // setup LZ4 decompression context
-    auto status = LZ4F_createDecompressionContext(&dctx, LZ4F_VERSION);
-    if (LZ4F_isError(status)) {
-        spdlog::error("Failed to create LZ4 context: {}", LZ4F_getErrorName(status));
-        return;
-    }
 }
 
 pose_id_t BC4DepthVideoTexture::getLatestPoseID() {
@@ -35,31 +28,17 @@ pose_id_t BC4DepthVideoTexture::getLatestPoseID() {
     return frameData.poseID;
 }
 
-void BC4DepthVideoTexture::onDataReceived(const std::vector<uint8_t>& compressedData) {
+void BC4DepthVideoTexture::onDataReceived(const std::vector<char>& compressedData) {
     static float prevTime = timeutils::getTimeMicros();
 
     float startTime = timeutils::getTimeMicros();
 
     // calculate expected decompressed size
     size_t expectedSize = sizeof(pose_id_t) + compressedSize * sizeof(Block);
-    std::vector<uint8_t> decompressedData(expectedSize);
+    std::vector<char> decompressedData(expectedSize);
 
     // decompress in one shot
-    size_t srcSize = compressedData.size();
-    size_t dstSize = expectedSize;
-    auto ret = LZ4F_decompress(dctx,
-                                 decompressedData.data(), &dstSize,
-                                 compressedData.data(), &srcSize,
-                                 nullptr);
-    if (LZ4F_isError(ret)) {
-        spdlog::error("LZ4 decompression failed: {}", LZ4F_getErrorName(ret));
-        return;
-    }
-
-    if (dstSize != expectedSize) {
-        spdlog::warn("Decompressed data size mismatch! Expected: {}, Got: {}", expectedSize, dstSize);
-        // don't return - try to process the frame anyway if size is reasonable
-    }
+    size_t dstSize = compressor.decompress(compressedData, decompressedData);
 
     stats.timeToDecompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
     stats.lz4CompressionRatio = static_cast<float>(dstSize) / compressedData.size();
@@ -69,7 +48,7 @@ void BC4DepthVideoTexture::onDataReceived(const std::vector<uint8_t>& compressed
     std::memcpy(&poseID, decompressedData.data(), sizeof(pose_id_t));
 
     // create frame data with the rest of the buffer
-    std::vector<uint8_t> frameBuffer(decompressedData.begin() + sizeof(pose_id_t),
+    std::vector<char> frameBuffer(decompressedData.begin() + sizeof(pose_id_t),
                                      decompressedData.end());
 
     std::lock_guard<std::mutex> lock(m);
@@ -95,7 +74,7 @@ pose_id_t BC4DepthVideoTexture::draw(pose_id_t poseID) {
     }
 
     pose_id_t resPoseID = -1;
-    std::vector<uint8_t> res;
+    std::vector<char> res;
     if (poseID == -1) {
         FrameData frameData = depthFrames.back();
         res = std::move(frameData.buffer);

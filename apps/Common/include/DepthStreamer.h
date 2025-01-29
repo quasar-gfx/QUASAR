@@ -48,7 +48,7 @@ private:
 
     DataStreamerTCP streamer;
 
-    std::vector<uint8_t> data;
+    std::vector<char> data;
     RenderTarget* renderTargetCopy;
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)

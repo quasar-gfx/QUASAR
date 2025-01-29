@@ -5,15 +5,14 @@
 #include <iomanip>
 #include <deque>
 
-#include <lz4.h>
-#include <lz4frame.h>
-
 #include <Buffer.h>
 #include <Texture.h>
 #include <Networking/DataReceiverTCP.h>
 #include <Utils/TimeUtils.h>
 
 #include <CameraPose.h>
+
+#include <Compression/LZ4Compressor.h>
 
 class BC4DepthVideoTexture : public Texture, public DataReceiverTCP {
 public:
@@ -41,11 +40,6 @@ public:
     ReceiverStats stats;
 
     BC4DepthVideoTexture(const TextureDataCreateParams &params, std::string streamerURL);
-    ~BC4DepthVideoTexture() override {
-        if (dctx) {
-            LZ4F_freeDecompressionContext(dctx);
-        }
-    }
 
     void setMaxQueueSize(unsigned int maxQueueSize) {
         this->maxQueueSize = maxQueueSize;
@@ -59,19 +53,19 @@ public:
     pose_id_t getLatestPoseID();
 
 private:
-    LZ4F_dctx* dctx = nullptr;
-
     pose_id_t prevPoseID = -1;
     unsigned int maxQueueSize = 10;
     std::mutex m;
     struct FrameData {
         pose_id_t poseID;
-        std::vector<uint8_t> buffer;
+        std::vector<char> buffer;
     };
     std::deque<FrameData> depthFrames;
     size_t compressedSize;
 
-    void onDataReceived(const std::vector<uint8_t>& data) override;
+    LZ4Compressor compressor;
+
+    void onDataReceived(const std::vector<char>& data) override;
 };
 
 #endif // BC4_DEPTH_VIDEO_TEXTURE_H

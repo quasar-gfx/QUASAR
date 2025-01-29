@@ -29,7 +29,7 @@ public:
         const GBuffer &gBuffer, const PerspectiveCamera &remoteCamera,
         QuadsGenerator &quadsGenerator, MeshFromQuads &meshFromQuads, const Mesh &mesh,
         unsigned int &numProxies, unsigned int &numDepthOffsets,
-        bool doLZ4 = true);
+        bool compress = true);
 
     unsigned int generatePFrame(
         ForwardRenderer &remoteRenderer, const Scene &remoteScene, const Scene &currScene, const Scene &prevScene,
@@ -40,7 +40,7 @@ public:
         const Mesh &currMesh, const Mesh &maskMesh,
         unsigned int &numProxies, unsigned int &numDepthOffsets,
         const ComputeShader &downsampleShader,
-        bool doLZ4 = true);
+        bool compress = true);
 
 private:
     std::vector<char> compressedQuads;

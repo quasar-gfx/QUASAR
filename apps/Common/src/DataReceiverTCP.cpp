@@ -41,8 +41,8 @@ void DataReceiverTCP::recvData() {
     }
 
     while (ready) {
-        std::vector<uint8_t> data;
-        uint8_t buffer[MAX_RECV_SIZE];
+        std::vector<char> data;
+        char buffer[MAX_RECV_SIZE];
 
         int received = 0;
         int expectedSize = 0;

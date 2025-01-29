@@ -29,7 +29,7 @@ protected:
     Stats stats;
     std::atomic_bool ready = false;
 
-    virtual void onDataReceived(const std::vector<uint8_t>& data) = 0;
+    virtual void onDataReceived(const std::vector<char>& data) = 0;
 
 private:
     SocketTCP socket;
