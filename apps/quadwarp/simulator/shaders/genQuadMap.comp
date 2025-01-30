@@ -71,10 +71,13 @@ struct Plane {
     vec3 point;
 };
 
-layout(binding = 0) uniform sampler2D normalMap;
+layout(binding = 0) uniform sampler2D normalsMap;
 layout(binding = 1) uniform sampler2D depthMap;
+layout(binding = 2) uniform sampler2D normalsMapHighRes;
+layout(binding = 3) uniform sampler2D depthMapHighRes;
 
 uniform vec2 gBufferSize;
+uniform vec2 gBufferHighResSize;
 uniform vec2 quadMapSize;
 uniform vec2 depthBufferSize;
 
@@ -85,7 +88,8 @@ uniform mat4 projectionInverse;
 uniform float near;
 uniform float far;
 
-uniform bool doOrientationCorrection;
+uniform bool expandEdges;
+uniform bool correctOrientation;
 uniform float depthThreshold;
 uniform float angleThreshold;
 uniform float flatThreshold;
@@ -120,6 +124,8 @@ layout(std430, binding = 3) writeonly buffer OffsetsBufferOutput {
 };
 
 layout(rgba16f, binding = 0) uniform image2D depthOffsetsBuffer;
+layout(rgba16f, binding = 1) uniform image2D colorMapSrc;
+layout(rgba16f, binding = 2) uniform image2D colorMapDst;
 
 vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
     vec4 ndcPos;
@@ -157,6 +163,14 @@ vec2 viewToScreen(mat4 projection, vec3 viewCoord) {
     return uv;
 }
 
+vec3 sampleColorSrc(ivec2 sampleCoord) {
+    return imageLoad(colorMapSrc, sampleCoord).rgb;
+}
+
+vec3 sampleColorDst(ivec2 sampleCoord) {
+    return imageLoad(colorMapDst, sampleCoord).rgb;
+}
+
 float sampleDepth(sampler2D depthMap, ivec2 sampleCoord) {
     float depth = texelFetch(depthMap, sampleCoord, 0).r;
     depth = clamp(depth, 0.0, MAX_DEPTH);
@@ -169,8 +183,8 @@ float normalizeDepth(float depth) {
     return (1.0 - (1.0 / (1.0 + z * (far - near) / near)));
 }
 
-vec3 sampleNormal(sampler2D normalMap, ivec2 sampleCoord) {
-    vec3 normal = normalize(texelFetch(normalMap, sampleCoord, 0).xyz);
+vec3 sampleNormal(sampler2D normalsMap, ivec2 sampleCoord) {
+    vec3 normal = normalize(texelFetch(normalsMap, sampleCoord, 0).xyz);
     // clamp normals to a reasonable range to fix floating point errors
     normal.x = abs(normal.x) < 0.005 ? 0.0 : normal.x;
     normal.y = abs(normal.y) < 0.005 ? 0.0 : normal.y;
@@ -599,16 +613,16 @@ void main() {
     ivec2 minBounds = ivec2(0);
     ivec2 maxBounds = ivec2(gBufferSize) - ivec2(1);
 
-    MultiQuad2D pixelCenterCoords;
-    pixelCenterCoords.bottomLeft  = clamp(pixelCenterCoord + vec2(-1, -1), minBounds, maxBounds);
-    pixelCenterCoords.bottom      = clamp(pixelCenterCoord + vec2(+0, -1), minBounds, maxBounds);
-    pixelCenterCoords.bottomRight = clamp(pixelCenterCoord + vec2(+1, -1), minBounds, maxBounds);
-    pixelCenterCoords.left        = clamp(pixelCenterCoord + vec2(-1, +0), minBounds, maxBounds);
-    pixelCenterCoords.center      = clamp(pixelCenterCoord + vec2(+0, +0), minBounds, maxBounds);
-    pixelCenterCoords.right       = clamp(pixelCenterCoord + vec2(+1, +0), minBounds, maxBounds);
-    pixelCenterCoords.topLeft     = clamp(pixelCenterCoord + vec2(-1, +1), minBounds, maxBounds);
-    pixelCenterCoords.top         = clamp(pixelCenterCoord + vec2(+0, +1), minBounds, maxBounds);
-    pixelCenterCoords.topRight    = clamp(pixelCenterCoord + vec2(+1, +1), minBounds, maxBounds);
+    MultiQuad2D pixelNeighborCoords;
+    pixelNeighborCoords.bottomLeft  = clamp(pixelCenterCoord + vec2(-1, -1), minBounds, maxBounds);
+    pixelNeighborCoords.bottom      = clamp(pixelCenterCoord + vec2(+0, -1), minBounds, maxBounds);
+    pixelNeighborCoords.bottomRight = clamp(pixelCenterCoord + vec2(+1, -1), minBounds, maxBounds);
+    pixelNeighborCoords.left        = clamp(pixelCenterCoord + vec2(-1, +0), minBounds, maxBounds);
+    pixelNeighborCoords.center      = clamp(pixelCenterCoord + vec2(+0, +0), minBounds, maxBounds);
+    pixelNeighborCoords.right       = clamp(pixelCenterCoord + vec2(+1, +0), minBounds, maxBounds);
+    pixelNeighborCoords.topLeft     = clamp(pixelCenterCoord + vec2(-1, +1), minBounds, maxBounds);
+    pixelNeighborCoords.top         = clamp(pixelCenterCoord + vec2(+0, +1), minBounds, maxBounds);
+    pixelNeighborCoords.topRight    = clamp(pixelCenterCoord + vec2(+1, +1), minBounds, maxBounds);
 
     MultiQuad2D surfelCornerCoords;
     surfelCornerCoords.bottomLeft  = surfelCenterCoord + vec2(-0.5, -0.5);
@@ -623,43 +637,204 @@ void main() {
 
     // sample texture maps
     MultiQuad1D pixelDepths;
-    pixelDepths.bottomLeft  = sampleDepth(depthMap, ivec2(pixelCenterCoords.bottomLeft));
-    pixelDepths.bottom      = sampleDepth(depthMap, ivec2(pixelCenterCoords.bottom));
-    pixelDepths.bottomRight = sampleDepth(depthMap, ivec2(pixelCenterCoords.bottomRight));
-    pixelDepths.left        = sampleDepth(depthMap, ivec2(pixelCenterCoords.left));
-    pixelDepths.center      = sampleDepth(depthMap, ivec2(pixelCenterCoords.center));
-    pixelDepths.right       = sampleDepth(depthMap, ivec2(pixelCenterCoords.right));
-    pixelDepths.topLeft     = sampleDepth(depthMap, ivec2(pixelCenterCoords.topLeft));
-    pixelDepths.top         = sampleDepth(depthMap, ivec2(pixelCenterCoords.top));
-    pixelDepths.topRight    = sampleDepth(depthMap, ivec2(pixelCenterCoords.topRight));
-
-    if (pixelDepths.center == 0 || pixelDepths.center >= MAX_DEPTH) {
-        return;
-    }
+    pixelDepths.bottomLeft  = sampleDepth(depthMap, ivec2(pixelNeighborCoords.bottomLeft));
+    pixelDepths.bottom      = sampleDepth(depthMap, ivec2(pixelNeighborCoords.bottom));
+    pixelDepths.bottomRight = sampleDepth(depthMap, ivec2(pixelNeighborCoords.bottomRight));
+    pixelDepths.left        = sampleDepth(depthMap, ivec2(pixelNeighborCoords.left));
+    pixelDepths.center      = sampleDepth(depthMap, ivec2(pixelNeighborCoords.center));
+    pixelDepths.right       = sampleDepth(depthMap, ivec2(pixelNeighborCoords.right));
+    pixelDepths.topLeft     = sampleDepth(depthMap, ivec2(pixelNeighborCoords.topLeft));
+    pixelDepths.top         = sampleDepth(depthMap, ivec2(pixelNeighborCoords.top));
+    pixelDepths.topRight    = sampleDepth(depthMap, ivec2(pixelNeighborCoords.topRight));
 
     // transform normals to view space
     MultiQuad pixelNormalsView;
-    pixelNormalsView.bottomLeft  = normalToView(view, sampleNormal(normalMap, ivec2(pixelCenterCoords.bottomLeft)));
-    pixelNormalsView.bottom      = normalToView(view, sampleNormal(normalMap, ivec2(pixelCenterCoords.bottom)));
-    pixelNormalsView.bottomRight = normalToView(view, sampleNormal(normalMap, ivec2(pixelCenterCoords.bottomRight)));
-    pixelNormalsView.left        = normalToView(view, sampleNormal(normalMap, ivec2(pixelCenterCoords.left)));
-    pixelNormalsView.center      = normalToView(view, sampleNormal(normalMap, ivec2(pixelCenterCoords.center)));
-    pixelNormalsView.right       = normalToView(view, sampleNormal(normalMap, ivec2(pixelCenterCoords.right)));
-    pixelNormalsView.topLeft     = normalToView(view, sampleNormal(normalMap, ivec2(pixelCenterCoords.topLeft)));
-    pixelNormalsView.top         = normalToView(view, sampleNormal(normalMap, ivec2(pixelCenterCoords.top)));
-    pixelNormalsView.topRight    = normalToView(view, sampleNormal(normalMap, ivec2(pixelCenterCoords.topRight)));
+    pixelNormalsView.bottomLeft  = normalToView(view, sampleNormal(normalsMap, ivec2(pixelNeighborCoords.bottomLeft)));
+    pixelNormalsView.bottom      = normalToView(view, sampleNormal(normalsMap, ivec2(pixelNeighborCoords.bottom)));
+    pixelNormalsView.bottomRight = normalToView(view, sampleNormal(normalsMap, ivec2(pixelNeighborCoords.bottomRight)));
+    pixelNormalsView.left        = normalToView(view, sampleNormal(normalsMap, ivec2(pixelNeighborCoords.left)));
+    pixelNormalsView.center      = normalToView(view, sampleNormal(normalsMap, ivec2(pixelNeighborCoords.center)));
+    pixelNormalsView.right       = normalToView(view, sampleNormal(normalsMap, ivec2(pixelNeighborCoords.right)));
+    pixelNormalsView.topLeft     = normalToView(view, sampleNormal(normalsMap, ivec2(pixelNeighborCoords.topLeft)));
+    pixelNormalsView.top         = normalToView(view, sampleNormal(normalsMap, ivec2(pixelNeighborCoords.top)));
+    pixelNormalsView.topRight    = normalToView(view, sampleNormal(normalsMap, ivec2(pixelNeighborCoords.topRight)));
 
     // project 2D points to 3D view space
     MultiQuad2D pixelCenterNDCs;
-    pixelCenterNDCs.bottomLeft  = (pixelCenterCoords.bottomLeft  / gBufferSize) * 2.0 - 1.0;
-    pixelCenterNDCs.bottom      = (pixelCenterCoords.bottom      / gBufferSize) * 2.0 - 1.0;
-    pixelCenterNDCs.bottomRight = (pixelCenterCoords.bottomRight / gBufferSize) * 2.0 - 1.0;
-    pixelCenterNDCs.left        = (pixelCenterCoords.left        / gBufferSize) * 2.0 - 1.0;
-    pixelCenterNDCs.center      = (pixelCenterCoords.center      / gBufferSize) * 2.0 - 1.0;
-    pixelCenterNDCs.right       = (pixelCenterCoords.right       / gBufferSize) * 2.0 - 1.0;
-    pixelCenterNDCs.topLeft     = (pixelCenterCoords.topLeft     / gBufferSize) * 2.0 - 1.0;
-    pixelCenterNDCs.top         = (pixelCenterCoords.top         / gBufferSize) * 2.0 - 1.0;
-    pixelCenterNDCs.topRight    = (pixelCenterCoords.topRight    / gBufferSize) * 2.0 - 1.0;
+    pixelCenterNDCs.bottomLeft  = (pixelNeighborCoords.bottomLeft  / gBufferSize) * 2.0 - 1.0;
+    pixelCenterNDCs.bottom      = (pixelNeighborCoords.bottom      / gBufferSize) * 2.0 - 1.0;
+    pixelCenterNDCs.bottomRight = (pixelNeighborCoords.bottomRight / gBufferSize) * 2.0 - 1.0;
+    pixelCenterNDCs.left        = (pixelNeighborCoords.left        / gBufferSize) * 2.0 - 1.0;
+    pixelCenterNDCs.center      = (pixelNeighborCoords.center      / gBufferSize) * 2.0 - 1.0;
+    pixelCenterNDCs.right       = (pixelNeighborCoords.right       / gBufferSize) * 2.0 - 1.0;
+    pixelCenterNDCs.topLeft     = (pixelNeighborCoords.topLeft     / gBufferSize) * 2.0 - 1.0;
+    pixelCenterNDCs.top         = (pixelNeighborCoords.top         / gBufferSize) * 2.0 - 1.0;
+    pixelCenterNDCs.topRight    = (pixelNeighborCoords.topRight    / gBufferSize) * 2.0 - 1.0;
+
+    int downsampleFactor = int(gBufferHighResSize.x / gBufferSize.x);
+
+    ivec2 outputPixelCoords = ivec2(pixelCoord * downsampleFactor);
+    ivec2 outputPixelCoordsBottomLeft = outputPixelCoords + ivec2(0, 0);
+    ivec2 outputPixelCoordsBottomRight = outputPixelCoords + ivec2(1, 0);
+    ivec2 outputPixelCoordsTopLeft = outputPixelCoords + ivec2(0, 1);
+    ivec2 outputPixelCoordsTopRight = outputPixelCoords + ivec2(1, 1);
+
+    if (pixelDepths.center >= MAX_DEPTH) {
+        return;
+
+        // // find a valid pixel
+        // int numValid = 0;
+        // float validDepth = 0.0;
+        // vec2 validPixelNDC = vec2(0.0);
+        // vec3 validNormal = vec3(0.0);
+        // vec3 validColor = vec3(0.0);
+
+        // if (pixelDepths.left < MAX_DEPTH) {
+        //     numValid++;
+        //     validNormal = pixelNormalsView.left;
+        //     validColor = sampleColorSrc(ivec2(pixelNeighborCoords.left));
+        //     validDepth = pixelDepths.left;
+        //     validPixelNDC = pixelCenterNDCs.left;
+        // }
+        // if (pixelDepths.right < MAX_DEPTH) {
+        //     numValid++;
+        //     validNormal = pixelNormalsView.right;
+        //     validColor = sampleColorSrc(ivec2(pixelNeighborCoords.right));
+        //     validDepth = pixelDepths.right;
+        //     validPixelNDC = pixelCenterNDCs.right;
+        // }
+        // if (pixelDepths.bottom < MAX_DEPTH) {
+        //     numValid++;
+        //     validNormal = pixelNormalsView.bottom;
+        //     validColor = sampleColorSrc(ivec2(pixelNeighborCoords.bottom));
+        //     validDepth = pixelDepths.bottom;
+        //     validPixelNDC = pixelCenterNDCs.bottom;
+        // }
+        // if (pixelDepths.top < MAX_DEPTH) {
+        //     numValid++;
+        //     validNormal = pixelNormalsView.top;
+        //     validColor = sampleColorSrc(ivec2(pixelNeighborCoords.top));
+        //     validDepth = pixelDepths.top;
+        //     validPixelNDC = pixelCenterNDCs.top;
+        // }
+
+        // if (expandEdges) {
+        //     // if all of the neighboring pixels are empty, then return
+        //     if (numValid == 0) {
+        //         return;
+        //     }
+
+        //     vec3 validPixelCoordsView = ndcToView(projectionInverse, validPixelNDC, validDepth);
+        //     vec3 frustumNormalView = normalize(origin - validPixelCoordsView);
+        //     if (correctOrientation && quadHasExtremeOrientation(validNormal, frustumNormalView)) {
+        //         // if the quad has an extreme orientation, ignore it
+        //         return;
+        //     }
+
+        //     // make plane using validDepth and validPixelNDC
+        //     Plane proxyPlane;
+        //     proxyPlane.normal = validNormal;
+        //     proxyPlane.point = validPixelCoordsView;
+
+        //     // the resulting depth is the point where a ray from the center pixel intersects the proxy plane
+        //     vec3 pixelCenterView = ndcToView(projectionInverse, pixelCenterNDCs.center, 0.0);
+        //     vec3 surfelViewCenter = pointPlaneIntersection(pixelCenterView, proxyPlane);
+        //     vec3 resultingNDC = viewToNDC(projection, surfelViewCenter);
+        //     float resultingDepth = min(resultingNDC.z, MAX_DEPTH);
+
+        //     pixelDepths.center = resultingDepth;
+        //     pixelNormalsView.center = validNormal;
+
+        //     for (int i = 0; i < downsampleFactor; i++) {
+        //         for (int j = 0; j < downsampleFactor; j++) {
+        //             imageStore(colorMapDst, outputPixelCoords + ivec2(i, j), vec4(validColor, 1.0));
+        //         }
+        //     }
+        // }
+        // else {
+        //     return;
+        // }
+    }
+
+    float depthBottomLeftHighRes = sampleDepth(depthMapHighRes, outputPixelCoordsBottomLeft);
+    float depthBottomRightHighRes = sampleDepth(depthMapHighRes, outputPixelCoordsBottomRight);
+    float depthTopLeftHighRes = sampleDepth(depthMapHighRes, outputPixelCoordsTopLeft);
+    float depthTopRightHighRes = sampleDepth(depthMapHighRes, outputPixelCoordsTopRight);
+
+    vec3 normalBottomLeftHighRes = normalToView(view, sampleNormal(normalsMapHighRes, outputPixelCoordsBottomLeft));
+    vec3 normalBottomRightHighRes = normalToView(view, sampleNormal(normalsMapHighRes, outputPixelCoordsBottomRight));
+    vec3 normalTopLeftHighRes = normalToView(view, sampleNormal(normalsMapHighRes, outputPixelCoordsTopLeft));
+    vec3 normalTopRightHighRes = normalToView(view, sampleNormal(normalsMapHighRes, outputPixelCoordsTopRight));
+
+    float diffBottomLeft = abs(pixelDepths.center - depthBottomLeftHighRes);
+    float diffBottomRight = abs(pixelDepths.center - depthBottomRightHighRes);
+    float diffTopLeft = abs(pixelDepths.center - depthTopLeftHighRes);
+    float diffTopRight = abs(pixelDepths.center - depthTopRightHighRes);
+
+    if (downsampleFactor > 1 &&
+            depthBottomLeftHighRes >= MAX_DEPTH &&
+            depthBottomRightHighRes >= MAX_DEPTH &&
+            depthTopLeftHighRes >= MAX_DEPTH &&
+            depthTopRightHighRes >= MAX_DEPTH) {
+        return;
+    }
+
+    // recolor if there is a depth discontinuity within a pixel
+    if (downsampleFactor > 1 &&
+            (abs(depthBottomLeftHighRes - depthBottomRightHighRes) > depthThreshold ||
+             abs(depthBottomLeftHighRes - depthTopLeftHighRes) > depthThreshold ||
+             abs(depthBottomLeftHighRes - depthTopRightHighRes) > depthThreshold)) {
+        vec3 colorBottomLeft = sampleColorDst(outputPixelCoordsBottomLeft);
+        vec3 colorBottomRight = sampleColorDst(outputPixelCoordsBottomRight);
+        vec3 colorTopLeft = sampleColorDst(outputPixelCoordsTopLeft);
+        vec3 colorTopRight = sampleColorDst(outputPixelCoordsTopRight);
+
+        vec3 closestNormal;
+        vec3 closestColor;
+
+        // find which depth is closest to the depth of the center pixel
+        float smallestDiff = MAX_DEPTH;
+        if (diffBottomLeft < smallestDiff) {
+            smallestDiff = diffBottomLeft;
+            closestColor = colorBottomLeft;
+            closestNormal = normalBottomLeftHighRes;
+        }
+        if (diffBottomRight < smallestDiff) {
+            smallestDiff = diffBottomRight;
+            closestColor = colorBottomRight;
+            closestNormal = normalBottomRightHighRes;
+        }
+        if (diffTopLeft < smallestDiff) {
+            smallestDiff = diffTopLeft;
+            closestColor = colorTopLeft;
+            closestNormal = normalTopLeftHighRes;
+        }
+        if (diffTopRight < smallestDiff) {
+            smallestDiff = diffTopRight;
+            closestColor = colorTopRight;
+            closestNormal = normalTopRightHighRes;
+        }
+
+        if (diffBottomLeft > depthThreshold) {
+            colorBottomLeft = closestColor;
+        }
+        if (diffBottomRight > depthThreshold) {
+            colorBottomRight = closestColor;
+        }
+        if (diffTopLeft > depthThreshold) {
+            colorTopLeft = closestColor;
+        }
+        if (diffTopRight > depthThreshold) {
+            colorTopRight = closestColor;
+        }
+
+        pixelNormalsView.center = closestNormal;
+
+        imageStore(colorMapDst, outputPixelCoordsBottomLeft, vec4(colorBottomLeft, 1.0));
+        imageStore(colorMapDst, outputPixelCoordsBottomRight, vec4(colorBottomRight, 1.0));
+        imageStore(colorMapDst, outputPixelCoordsTopLeft, vec4(colorTopLeft, 1.0));
+        imageStore(colorMapDst, outputPixelCoordsTopRight, vec4(colorTopRight, 1.0));
+    }
 
     MultiQuad2D surfelNDCs;
     surfelNDCs.bottomLeft  = (surfelCornerCoords.bottomLeft  / gBufferSize) * 2.0 - 1.0;
@@ -684,7 +859,7 @@ void main() {
     pixelCoordsView.topRight    = ndcToView(projectionInverse, pixelCenterNDCs.topRight, pixelDepths.topRight);
 
     vec3 frustumNormalView = normalize(origin - pixelCoordsView.center);
-    if (doOrientationCorrection && quadHasExtremeOrientation(pixelNormalsView.center, frustumNormalView)) {
+    if (correctOrientation && quadHasExtremeOrientation(pixelNormalsView.center, frustumNormalView)) {
         // if the quad has an extreme orientation, constrain the center normal
         pixelNormalsView.center = constrainToMaxAngle(pixelNormalsView.center, frustumNormalView);
     }
@@ -768,7 +943,7 @@ void main() {
     // save quads in quad map
     storeSurfelsInQuadMap(
         pixelCoord,
-        pixelCenterCoords.center,
+        pixelNeighborCoords.center,
         pixelNormalsView.center,
         subQuadBottomLeft, subQuadBottomRight, subQuadTopLeft, subQuadTopRight
     );

@@ -24,41 +24,59 @@ vec3 linearToSRGB(vec3 color) {
 
 void main() {
     vec3 color = texture(screenColor, TexCoords).rgb;
-    vec2 textureSize = vec2(textureSize(screenColor, 0));
-
     float centerDepth = texture(screenDepth, TexCoords).r;
-    if (centerDepth >= MAX_DEPTH) {
-        // check if opposite ends both are under threshold
-        float topDepth    = texture(screenDepth, TexCoords + vec2(0.0, -searchRadius) / textureSize).r;
-        float bottomDepth = texture(screenDepth, TexCoords + vec2(0.0, searchRadius) / textureSize).r;
-        float leftDepth   = texture(screenDepth, TexCoords + vec2(-searchRadius, 0.0) / textureSize).r;
-        float rightDepth  = texture(screenDepth, TexCoords + vec2(searchRadius, 0.0) / textureSize).r;
-        bool bothSidesUnder = ((abs(topDepth - bottomDepth) <= depthThreshold) && (abs(topDepth - centerDepth) > depthThreshold) && (abs(bottomDepth - centerDepth) > depthThreshold)) ||
-                              ((abs(leftDepth - rightDepth) <= depthThreshold) && (abs(leftDepth - centerDepth) > depthThreshold) && (abs(rightDepth - centerDepth) > depthThreshold));
-        bothSidesUnder = bothSidesUnder ||
-                         (topDepth < MAX_DEPTH && bottomDepth < MAX_DEPTH) ||
-                         (leftDepth < MAX_DEPTH && rightDepth < MAX_DEPTH);
 
-        if (bothSidesUnder) {
-            // average the surrounding pixels whose centerDepth is less than MAX_DEPTH
-            vec3 sum = vec3(0.0);
-            int count = 0;
+    if (centerDepth >= MAX_DEPTH) {
+        vec2 textureSize = vec2(textureSize(screenColor, 0));
+
+        bool isSkyBox = true;
+        for (int i = 1; i <= searchRadius; i++) {
+            float topDepth = texture(screenDepth, TexCoords + vec2(0.0, i / textureSize.y)).r;
+            float bottomDepth = texture(screenDepth, TexCoords - vec2(0.0, i / textureSize.y)).r;
+            float leftDepth = texture(screenDepth, TexCoords - vec2(i / textureSize.x, 0.0)).r;
+            float rightDepth = texture(screenDepth, TexCoords + vec2(i / textureSize.x, 0.0)).r;
+
+            bool bothSidesUnder =
+                ((abs(topDepth - bottomDepth) <= depthThreshold) &&
+                 (abs(topDepth - centerDepth) > depthThreshold) &&
+                 (abs(bottomDepth - centerDepth) > depthThreshold)) ||
+                ((abs(leftDepth - rightDepth) <= depthThreshold) &&
+                 (abs(leftDepth - centerDepth) > depthThreshold) &&
+                 (abs(rightDepth - centerDepth) > depthThreshold));
+            bothSidesUnder = bothSidesUnder ||
+                             ((topDepth < MAX_DEPTH && bottomDepth < MAX_DEPTH) ||
+                              (leftDepth < MAX_DEPTH && rightDepth < MAX_DEPTH));
+            if (bothSidesUnder) {
+                isSkyBox = false;
+                break;
+            }
+        }
+
+        // fill hole
+        if (!isSkyBox) {
+            vec3 sumColor = vec3(0.0);
+            float sumWeight = 0.0;
+
             for (int x = -searchRadius; x <= searchRadius; x++) {
                 for (int y = -searchRadius; y <= searchRadius; y++) {
-                    vec2 offset = vec2(x, y) / textureSize;
-                    float sampleDepth = texture(screenDepth, TexCoords + offset).r;
+                    vec2 texCoords = TexCoords + vec2(x, y) / textureSize;
+                    float sampleDepth = texture(screenDepth, texCoords).r;
                     if (sampleDepth < MAX_DEPTH) {
-                        sum += texture(screenColor, TexCoords + offset).rgb;
-                        count++;
+                        float weight = 1.0 / (1.0 + abs(centerDepth - sampleDepth));
+                        sumColor += texture(screenColor, texCoords).rgb * weight;
+                        sumWeight += weight;
                     }
                 }
             }
-            if (count > 0) color = sum / float(count);
+
+            if (sumWeight > 0.0) {
+                color = sumColor / sumWeight;
+            }
         }
     }
 
     if (toneMap) {
-        vec3 toneMappedResult = vec3(1.0) - exp(-color.rgb * exposure);
+        vec3 toneMappedResult = vec3(1.0) - exp(-color * exposure);
         color = toneMappedResult;
         if (gammaCorrect) {
             color = linearToSRGB(color);

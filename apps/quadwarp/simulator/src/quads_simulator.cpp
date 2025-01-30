@@ -215,20 +215,6 @@ int main(int argc, char** argv) {
 
     // shaders
     ToneMapShader toneMapShader;
-    Shader blurEdgesShader({
-        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_COMMON_BLUREDGES_FRAG,
-        .fragmentCodeSize = SHADER_COMMON_BLUREDGES_FRAG_len
-    });
-
-    ComputeShader smartDownsampleShader({
-        .computeCodeData = SHADER_COMMON_SMARTDOWNSAMPLE_COMP,
-        .computeCodeSize = SHADER_COMMON_SMARTDOWNSAMPLE_COMP_len,
-        .defines = {
-            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
-        }
-    });
 
     Shader screenShaderNormals({
         .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
@@ -398,7 +384,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::Checkbox("Correct Normal Orientation", &quadsGenerator.doOrientationCorrection)) {
+            if (ImGui::Checkbox("Correct Normal Orientation", &quadsGenerator.correctOrientation)) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
                 runAnimations = false;
@@ -657,20 +643,10 @@ int main(int argc, char** argv) {
             remoteRenderer.drawObjects(remoteScene, remoteCameraToUse);
             if (!showNormals) {
                 remoteRenderer.gBuffer.blitToGBuffer(gBufferRTLowRes);
-
-                smartDownsampleShader.bind();
-                smartDownsampleShader.setFloat("depthThreshold", quadsGenerator.depthThreshold);
-                smartDownsampleShader.setTexture(remoteRenderer.gBuffer.colorBuffer, 0);
-                smartDownsampleShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 1);
-                smartDownsampleShader.setTexture(gBufferRTLowRes.colorBuffer, 2);
-                smartDownsampleShader.setTexture(gBufferRTLowRes.depthStencilBuffer, 3);
-                smartDownsampleShader.setImageTexture(0, gBufferRT.colorBuffer, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-                smartDownsampleShader.dispatch((gBufferRTLowRes.width + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                               (gBufferRTLowRes.height + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
-                smartDownsampleShader.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+                remoteRenderer.gBuffer.blitToGBuffer(gBufferRT);
             }
             else {
-                remoteRenderer.gBuffer.blitToGBuffer(gBufferRTLowRes);
+                remoteRenderer.drawToRenderTarget(screenShaderNormals, gBufferRTLowRes);
                 remoteRenderer.drawToRenderTarget(screenShaderNormals, gBufferRT);
             }
             totalRenderTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
@@ -682,7 +658,8 @@ int main(int argc, char** argv) {
             */
             unsigned int numProxies = 0, numDepthOffsets = 0;
             compressedSize = frameGenerator.generateIFrame(
-                gBufferRTLowRes, remoteCameraToUse,
+                gBufferRTLowRes, gBufferRT,
+                remoteCameraToUse,
                 quadsGenerator, meshFromQuads, meshes[currMeshIndex],
                 numProxies, numDepthOffsets
             );
@@ -716,8 +693,7 @@ int main(int argc, char** argv) {
                     remoteCamera, remoteCameraPrev,
                     quadsGenerator, meshFromQuads, meshFromQuadsMask,
                     meshes[currMeshIndex], meshMask,
-                    numProxies, numDepthOffsets,
-                    smartDownsampleShader
+                    numProxies, numDepthOffsets
                 );
                 totalProxies += numProxies;
                 totalDepthOffsets += numDepthOffsets;
@@ -738,7 +714,7 @@ int main(int argc, char** argv) {
             prevMeshIndex = (prevMeshIndex + 1) % 2;
 
             // only update the previous camera pose if we are not generating a P-Frame
-            if (!generatePFrame) {
+            if (generateIFrame) {
                 remoteCameraPrev.setViewMatrix(remoteCamera.getViewMatrix());
             }
 
@@ -765,6 +741,8 @@ int main(int argc, char** argv) {
 
             // For debugging: Generate point cloud from depth map
             if (showDepth) {
+                const glm::vec2 gBufferSize = glm::vec2(gBufferRTLowRes.width, gBufferRTLowRes.height);
+
                 meshFromDepthShader.startTiming();
 
                 meshFromDepthShader.bind();
@@ -772,7 +750,7 @@ int main(int argc, char** argv) {
                     meshFromDepthShader.setTexture(gBufferRTLowRes.depthStencilBuffer, 0);
                 }
                 {
-                    meshFromDepthShader.setVec2("depthMapSize", halfRemoteWindowSize);
+                    meshFromDepthShader.setVec2("depthMapSize", gBufferSize);
                 }
                 {
                     meshFromDepthShader.setMat4("view", remoteCamera.getViewMatrix());
@@ -787,8 +765,8 @@ int main(int argc, char** argv) {
                     meshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, meshDepth.vertexBuffer);
                     meshFromDepthShader.clearBuffer(GL_SHADER_STORAGE_BUFFER, 1);
                 }
-                meshFromDepthShader.dispatch(((remoteWindowSize.x / 2u) + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                             ((remoteWindowSize.y / 2u) + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+                meshFromDepthShader.dispatch((gBufferSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                             (gBufferSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
                 meshFromDepthShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
                 meshFromDepthShader.endTiming();
@@ -841,10 +819,9 @@ int main(int argc, char** argv) {
         renderStats = renderer.drawObjects(localScene, camera);
 
         // render to screen
-        blurEdgesShader.bind();
-        blurEdgesShader.setBool("toneMap", !showNormals);
-        blurEdgesShader.setFloat("depthThreshold", quadsGenerator.depthThreshold);
-        renderer.drawToScreen(blurEdgesShader);
+        toneMapShader.bind();
+        toneMapShader.setBool("toneMap", !showNormals);
+        renderer.drawToScreen(toneMapShader);
         if (animator.running) {
             spdlog::info("Client Render Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
         }

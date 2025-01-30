@@ -11,6 +11,8 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 
+#include <Shaders/ToneMapShader.h>
+
 #include <Recorder.h>
 #include <Animator.h>
 
@@ -107,7 +109,7 @@ int main(int argc, char** argv) {
     glm::uvec2 windowSize = window->getSize();
     // assume remote window size is the same as local window size
     glm::uvec2 remoteWindowSize = glm::uvec2(config.width, config.height);
-    glm::uvec2 halfRemoteWindowSize = windowSize / 2u;
+    glm::uvec2 halfRemoteWindowSize = remoteWindowSize / 2u;
 
     // "remote" scene
     Scene remoteScene;
@@ -183,14 +185,14 @@ int main(int argc, char** argv) {
     std::vector<Node> nodeMeshesLocal; nodeMeshesLocal.reserve(2);
     std::vector<Node> nodeWireframesCenter; nodeWireframesCenter.reserve(2);
 
+    MeshSizeCreateParams meshParams = {
+        .numVertices = maxVertices,
+        .numIndices = maxIndices,
+        .material = new QuadMaterial({ .baseColorTexture = &gBufferCenterRT.colorBuffer }),
+        .usage = GL_DYNAMIC_DRAW,
+        .indirectDraw = true
+    };
     for (int i = 0; i < 2; i++) {
-        MeshSizeCreateParams meshParams = {
-            .numVertices = maxVertices,
-            .numIndices = maxIndices,
-            .material = new QuadMaterial({ .baseColorTexture = &gBufferCenterRT.colorBuffer }),
-            .usage = GL_DYNAMIC_DRAW,
-            .indirectDraw = true
-        };
         meshesCenter.emplace_back(meshParams);
 
         nodeMeshesCenter.emplace_back(&meshesCenter[i]);
@@ -228,9 +230,18 @@ int main(int argc, char** argv) {
     localScene.addChildNode(&nodeMask);
     localScene.addChildNode(&nodeMaskWireframe);
 
-    // hidden layers and wide fov scenes and meshes
-    Scene meshScene;
+    Mesh meshDepthCenter = Mesh({
+        .numVertices = maxVerticesDepth,
+        .material = new UnlitMaterial({ .baseColor = colors[0] }),
+        .usage = GL_DYNAMIC_DRAW
+    });
+    Node nodeDepth = Node(&meshDepthCenter);
+    nodeDepth.frustumCulled = false;
+    nodeDepth.visible = false;
+    nodeDepth.primativeType = GL_POINTS;
+    localScene.addChildNode(&nodeDepth);
 
+    // hidden layers and wide fov scenes and meshes
     std::vector<Mesh> meshLayers; meshLayers.reserve(numViewsWithoutCenter);
     std::vector<Mesh> meshDepths; meshDepths.reserve(numViewsWithoutCenter);
 
@@ -274,31 +285,26 @@ int main(int argc, char** argv) {
     }
 
     // add all meshes to cover everything
+    Scene meshScene;
     std::vector<Node> nodeMeshes; nodeMeshes.reserve(2);
     for (int i = 0; i < 2; i++) {
         nodeMeshes.emplace_back(&meshesCenter[i]);
         nodeMeshes[i].frustumCulled = false;
         meshScene.addChildNode(&nodeMeshes[i]);
     }
-    meshScene.addChildNode(&nodeMask);
     for (int i = 0; i < numViewsWithoutCenter-1; i++) {
         meshScene.addChildNode(&nodeLayers[i]);
     }
+    meshScene.addChildNode(&nodeMask);
 
     // shaders
+    ToneMapShader toneMapShader;
+
     Shader blurEdgesShader({
         .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
         .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
         .fragmentCodeData = SHADER_COMMON_BLUREDGES_FRAG,
         .fragmentCodeSize = SHADER_COMMON_BLUREDGES_FRAG_len
-    });
-
-    ComputeShader smartDownsampleShader({
-        .computeCodeData = SHADER_COMMON_SMARTDOWNSAMPLE_COMP,
-        .computeCodeSize = SHADER_COMMON_SMARTDOWNSAMPLE_COMP_len,
-        .defines = {
-            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
-        }
     });
 
     Shader screenShaderNormals({
@@ -488,7 +494,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::Checkbox("Correct Normal Orientation", &quadsGenerator.doOrientationCorrection)) {
+            if (ImGui::Checkbox("Correct Normal Orientation", &quadsGenerator.correctOrientation)) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
                 runAnimations = false;
@@ -806,33 +812,32 @@ int main(int argc, char** argv) {
                 auto& remoteCameraToUse = (view == 0 && generatePFrame) ? remoteCameraCenterPrev :
                                             ((view != maxViews - 1) ? remoteCameraCenter : remoteCameraWideFov);
 
-                auto& gBufferToUse = (view == 0) ? gBufferCenterRT : gBufferHiddenRTs[hiddenIndex];
+                auto& gBufferToUseHighRes = (view == 0) ? gBufferCenterRT : gBufferHiddenRTs[hiddenIndex];
                 auto& gBufferToUseLowRes = (view == 0) ? gBufferCenterRTLowRes : gBufferHiddenRTLowRes[hiddenIndex];
-                auto& gBufferSourceToUse = (view == 0) ? remoteRenderer.gBuffer :
-                                                ((view != maxViews - 1) ? dpRenderer.peelingLayers[hiddenIndex+1] :
-                                                    wideFOVRenderer.gBuffer);
 
                 auto& meshToUse = (view == 0) ? meshesCenter[currMeshIndex] : meshLayers[hiddenIndex];
-                auto& currMeshDepth = meshDepths[hiddenIndex];
+                auto& currMeshDepth = (view == 0) ? meshDepthCenter : meshDepths[hiddenIndex];
 
                 if (view == 0) {
                     remoteRenderer.drawObjects(remoteScene, remoteCameraToUse);
                     if (!showNormals) {
                         remoteRenderer.gBuffer.blitToGBuffer(gBufferToUseLowRes);
+                        remoteRenderer.gBuffer.blitToGBuffer(gBufferToUseHighRes);
                     }
                     else {
-                        remoteRenderer.drawToRenderTarget(screenShaderNormals, gBufferCenterRT);
                         remoteRenderer.drawToRenderTarget(screenShaderNormals, gBufferToUseLowRes);
+                        remoteRenderer.drawToRenderTarget(screenShaderNormals, gBufferToUseHighRes);
                     }
                 }
                 else if (view != maxViews - 1) {
                     // copy to render target
                     if (!showNormals) {
                         dpRenderer.peelingLayers[hiddenIndex+1].blitToGBuffer(gBufferToUseLowRes);
+                        dpRenderer.peelingLayers[hiddenIndex+1].blitToGBuffer(gBufferToUseHighRes);
                     }
                     else {
-                        dpRenderer.drawToRenderTarget(screenShaderNormals, gBufferToUse);
                         dpRenderer.drawToRenderTarget(screenShaderNormals, gBufferToUseLowRes);
+                        dpRenderer.drawToRenderTarget(screenShaderNormals, gBufferToUseHighRes);
                     }
                 }
                 // wide fov camera
@@ -854,25 +859,12 @@ int main(int argc, char** argv) {
 
                     if (!showNormals) {
                         wideFOVRenderer.gBuffer.blitToGBuffer(gBufferToUseLowRes);
-                        wideFOVRenderer.gBuffer.blitToGBuffer(gBufferToUse);
+                        wideFOVRenderer.gBuffer.blitToGBuffer(gBufferToUseHighRes);
                     }
                     else {
-                        wideFOVRenderer.drawToRenderTarget(screenShaderNormals, gBufferToUse);
                         wideFOVRenderer.drawToRenderTarget(screenShaderNormals, gBufferToUseLowRes);
+                        wideFOVRenderer.drawToRenderTarget(screenShaderNormals, gBufferToUseHighRes);
                     }
-                }
-
-                if (!showNormals && view != maxViews - 1) {
-                    smartDownsampleShader.bind();
-                    smartDownsampleShader.setFloat("depthThreshold", quadsGenerator.depthThreshold);
-                    smartDownsampleShader.setTexture(gBufferSourceToUse.colorBuffer, 0);
-                    smartDownsampleShader.setTexture(gBufferSourceToUse.depthStencilBuffer, 1);
-                    smartDownsampleShader.setTexture(gBufferToUseLowRes.colorBuffer, 2);
-                    smartDownsampleShader.setTexture(gBufferToUseLowRes.depthStencilBuffer, 3);
-                    smartDownsampleShader.setImageTexture(0, gBufferToUse.colorBuffer, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-                    smartDownsampleShader.dispatch((gBufferToUseLowRes.width + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                                   (gBufferToUseLowRes.height + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
-                    smartDownsampleShader.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
                 }
 
                 /*
@@ -882,7 +874,7 @@ int main(int argc, char** argv) {
                 */
                 unsigned int numProxies = 0, numDepthOffsets = 0;
                 unsigned int numBytesIFrame = frameGenerator.generateIFrame(
-                    gBufferToUseLowRes, remoteCameraToUse,
+                    gBufferToUseLowRes, gBufferToUseHighRes, remoteCameraToUse,
                     quadsGenerator, meshFromQuads, meshToUse,
                     numProxies, numDepthOffsets
                 );
@@ -919,8 +911,7 @@ int main(int argc, char** argv) {
                             remoteCameraCenter, remoteCameraCenterPrev,
                             quadsGenerator, meshFromQuads, meshFromQuadsMask,
                             meshesCenter[currMeshIndex], meshMask,
-                            numProxies, numDepthOffsets,
-                            smartDownsampleShader
+                            numProxies, numDepthOffsets
                         );
                         totalProxies += numProxies;
                         totalDepthOffsets += numDepthOffsets;
@@ -941,7 +932,7 @@ int main(int argc, char** argv) {
                     prevMeshIndex = (prevMeshIndex + 1) % 2;
 
                     // only update the previous camera pose if we are not generating a P-Frame
-                    if (!generatePFrame) {
+                    if (generateIFrame) {
                         remoteCameraCenterPrev.setViewMatrix(remoteCameraCenter.getViewMatrix());
                     }
                 }
@@ -965,30 +956,30 @@ int main(int argc, char** argv) {
 
                     // save color buffer
                     std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
-                    gBufferToUse.saveColorAsPNG(colorFileName);
+                    gBufferToUseHighRes.saveColorAsPNG(colorFileName);
                 }
 
                 // For debugging: Generate point cloud from depth map
                 if (showDepth) {
-                   const  glm::vec2 gBufferSize = glm::vec2(gBufferToUse.width, gBufferToUse.height);
+                   const glm::vec2 gBufferSize = glm::vec2(gBufferToUseLowRes.width, gBufferToUseLowRes.height);
 
                     meshFromDepthShader.startTiming();
 
                     meshFromDepthShader.bind();
                     {
-                        meshFromDepthShader.setTexture(gBufferToUse.depthStencilBuffer, 0);
+                        meshFromDepthShader.setTexture(gBufferToUseLowRes.depthStencilBuffer, 0);
                     }
                     {
                         meshFromDepthShader.setVec2("depthMapSize", gBufferSize);
                     }
                     {
-                        meshFromDepthShader.setMat4("view", remoteCameraCenter.getViewMatrix());
-                        meshFromDepthShader.setMat4("projection", remoteCameraCenter.getProjectionMatrix());
-                        meshFromDepthShader.setMat4("viewInverse", remoteCameraCenter.getViewMatrixInverse());
-                        meshFromDepthShader.setMat4("projectionInverse", remoteCameraCenter.getProjectionMatrixInverse());
+                        meshFromDepthShader.setMat4("view", remoteCameraToUse.getViewMatrix());
+                        meshFromDepthShader.setMat4("projection", remoteCameraToUse.getProjectionMatrix());
+                        meshFromDepthShader.setMat4("viewInverse", remoteCameraToUse.getViewMatrixInverse());
+                        meshFromDepthShader.setMat4("projectionInverse", remoteCameraToUse.getProjectionMatrixInverse());
 
-                        meshFromDepthShader.setFloat("near", remoteCameraCenter.getNear());
-                        meshFromDepthShader.setFloat("far", remoteCameraCenter.getFar());
+                        meshFromDepthShader.setFloat("near", remoteCameraToUse.getNear());
+                        meshFromDepthShader.setFloat("far", remoteCameraToUse.getFar());
                     }
                     {
                         meshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currMeshDepth.vertexBuffer);
@@ -1033,6 +1024,7 @@ int main(int argc, char** argv) {
                 nodeMeshesLocal[prevMeshIndex].visible = showLayer;
                 nodeWireframesCenter[currMeshIndex].visible = false;
                 nodeWireframesCenter[prevMeshIndex].visible = showLayer && showWireframe;
+                nodeDepth.visible = showLayer && showDepth;
             }
             else {
                 nodeLayers[view-1].visible = showLayer;
