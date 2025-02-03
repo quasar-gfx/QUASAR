@@ -21,9 +21,10 @@ public:
         double timeToFillOutputQuadsMs = -1.0f;
     } stats;
 
-    bool doOrientationCorrection = true;
+    bool expandEdges = false;
+    bool correctOrientation = true;
     float depthThreshold = 0.001f;
-    float angleThreshold = 85.0f;
+    float angleThreshold = 87.5f;
     float flatThreshold = 0.1f;
     float proxySimilarityThreshold = 0.1f;
 
@@ -41,7 +42,7 @@ public:
     ~QuadsGenerator() = default;
 
     BufferSizes getBufferSizes();
-    BufferSizes createProxiesFromGBuffer(const GBuffer& gBuffer, const PerspectiveCamera &remoteCamera);
+    BufferSizes createProxiesFromGBuffer(const GBuffer& gBuffer, const GBuffer& gBufferHighRes, const PerspectiveCamera &remoteCamera);
 #ifdef GL_CORE
     unsigned int saveQuadsToMemory(std::vector<char> &compressedData, bool compress = true);
     unsigned int saveDepthOffsetsToMemory(std::vector<char> &compressedData);
@@ -58,7 +59,7 @@ private:
     ComputeShader simplifyQuadMapShader;
     ComputeShader fillOutputQuadsShader;
 
-    void generateInitialQuadMap(const GBuffer& gBuffer, const glm::vec2 &gBufferSize, const PerspectiveCamera &remoteCamera);
+    void generateInitialQuadMap(const GBuffer& gBuffer, const GBuffer& gBufferHighRes, const glm::vec2 &gBufferSize, const PerspectiveCamera &remoteCamera);
     void simplifyQuadMaps(const PerspectiveCamera &remoteCamera, const glm::vec2 &gBufferSize);
     void fillOutputQuads(const glm::vec2 &gBufferSize);
 };

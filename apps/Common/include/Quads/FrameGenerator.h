@@ -26,20 +26,20 @@ public:
     } stats;
 
     unsigned int generateIFrame(
-        const GBuffer &gBuffer, const PerspectiveCamera &remoteCamera,
+        const GBuffer &gBuffer, const GBuffer &gBufferHighRes,
+        const PerspectiveCamera &remoteCamera,
         QuadsGenerator &quadsGenerator, MeshFromQuads &meshFromQuads, const Mesh &mesh,
         unsigned int &numProxies, unsigned int &numDepthOffsets,
         bool compress = true);
 
     unsigned int generatePFrame(
         ForwardRenderer &remoteRenderer, const Scene &remoteScene, const Scene &currScene, const Scene &prevScene,
-        GBuffer &gBuffer, GBuffer &gBufferMask,
+        GBuffer &gBufferHighRes, GBuffer &gBufferMaskHighRes,
         GBuffer &gBufferLowRes, GBuffer &gBufferMaskLowRes,
         const PerspectiveCamera &currRemoteCamera, const PerspectiveCamera &prevRemoteCamera,
         QuadsGenerator &quadsGenerator, MeshFromQuads &meshFromQuads, MeshFromQuads &meshFromQuadsMask,
         const Mesh &currMesh, const Mesh &maskMesh,
         unsigned int &numProxies, unsigned int &numDepthOffsets,
-        const ComputeShader &downsampleShader,
         bool compress = true);
 
 private:

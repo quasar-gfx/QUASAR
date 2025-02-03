@@ -385,7 +385,7 @@ vec3 calcPointLight(PointLight light, PBRInfo pbrInputs) {
 #ifdef DO_DEPTH_PEELING
 
 // adapted from https://github.com/cgskku/pvhv/blob/main/shaders/edp.frag
-#define DP_EPSILON 0.0005
+#define DP_EPSILON 0.0001
 #define EDP_SAMPLES 16
 
 bool cullUmbra(float fragmentDepth, float zf) {

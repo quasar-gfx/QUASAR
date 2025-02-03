@@ -59,7 +59,12 @@ QuadsGenerator::BufferSizes QuadsGenerator::getBufferSizes() {
     return bufferSizes;
 }
 
-void QuadsGenerator::generateInitialQuadMap(const GBuffer& gBuffer, const glm::vec2 &gBufferSize, const PerspectiveCamera &remoteCamera) {
+void QuadsGenerator::generateInitialQuadMap(
+        const GBuffer& gBuffer,
+        const GBuffer &gBufferHighRes,
+        const glm::vec2 &gBufferSize,
+        const PerspectiveCamera &remoteCamera
+    ) {
     /*
     ============================
     FIRST PASS: Generate quads from G-Buffer
@@ -77,12 +82,15 @@ void QuadsGenerator::generateInitialQuadMap(const GBuffer& gBuffer, const glm::v
     genQuadMapShader.bind();
     {
         genQuadMapShader.setVec2("gBufferSize", gBufferSize);
+        genQuadMapShader.setVec2("gBufferHighResSize", glm::vec2(gBufferHighRes.width, gBufferHighRes.height));
         genQuadMapShader.setVec2("depthBufferSize", depthOffsets.size);
         genQuadMapShader.setVec2("quadMapSize", quadMapSizes[closestQuadMapIdx]);
     }
     {
         genQuadMapShader.setTexture(gBuffer.normalsBuffer, 0);
         genQuadMapShader.setTexture(gBuffer.depthStencilBuffer, 1);
+        genQuadMapShader.setTexture(gBufferHighRes.normalsBuffer, 2);
+        genQuadMapShader.setTexture(gBufferHighRes.depthStencilBuffer, 3);
     }
     {
         genQuadMapShader.setMat4("view", remoteCamera.getViewMatrix());
@@ -93,7 +101,8 @@ void QuadsGenerator::generateInitialQuadMap(const GBuffer& gBuffer, const glm::v
         genQuadMapShader.setFloat("far", remoteCamera.getFar());
     }
     {
-        genQuadMapShader.setBool("doOrientationCorrection", doOrientationCorrection);
+        genQuadMapShader.setBool("expandEdges", expandEdges);
+        genQuadMapShader.setBool("correctOrientation", correctOrientation);
         genQuadMapShader.setFloat("depthThreshold", depthThreshold);
         genQuadMapShader.setFloat("angleThreshold", glm::radians(angleThreshold));
         genQuadMapShader.setFloat("flatThreshold", flatThreshold);
@@ -106,6 +115,8 @@ void QuadsGenerator::generateInitialQuadMap(const GBuffer& gBuffer, const glm::v
         genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, quadBuffers[closestQuadMapIdx].offsetSizeFlattenedsBuffer);
 
         genQuadMapShader.setImageTexture(0, depthOffsets.buffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsets.buffer.internalFormat);
+        genQuadMapShader.setImageTexture(1, gBuffer.colorBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, gBuffer.colorBuffer.internalFormat);
+        genQuadMapShader.setImageTexture(2, gBufferHighRes.colorBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, gBufferHighRes.colorBuffer.internalFormat);
     }
     genQuadMapShader.dispatch((gBufferSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
                               (gBufferSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
@@ -226,10 +237,14 @@ void QuadsGenerator::fillOutputQuads(const glm::vec2 &gBufferSize) {
     stats.timeToFillOutputQuadsMs = fillOutputQuadsShader.getElapsedTime();
 }
 
-QuadsGenerator::BufferSizes QuadsGenerator::createProxiesFromGBuffer(const GBuffer& gBuffer, const PerspectiveCamera &remoteCamera) {
+QuadsGenerator::BufferSizes QuadsGenerator::createProxiesFromGBuffer(
+        const GBuffer& gBuffer,
+        const GBuffer &gBufferHighRes,
+        const PerspectiveCamera &remoteCamera
+    ) {
     const glm::vec2 gBufferSize = glm::vec2(gBuffer.width, gBuffer.height);
 
-    generateInitialQuadMap(gBuffer, gBufferSize, remoteCamera);
+    generateInitialQuadMap(gBuffer, gBufferHighRes, gBufferSize, remoteCamera);
     simplifyQuadMaps(remoteCamera, gBufferSize);
     fillOutputQuads(gBufferSize);
 

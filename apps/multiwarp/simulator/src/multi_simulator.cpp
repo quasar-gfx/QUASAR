@@ -141,6 +141,10 @@ int main(int argc, char** argv) {
 
     FrameGenerator frameGenerator;
     QuadsGenerator quadsGenerator(remoteWindowSize);
+    quadsGenerator.depthThreshold = 1e-4f;
+    quadsGenerator.flatThreshold = 1e-2f;
+    quadsGenerator.proxySimilarityThreshold = 0.1f;
+    quadsGenerator.expandEdges = true; // must expand edges to fill small holes in quad boundaries
     MeshFromQuads meshFromQuads(remoteWindowSize);
 
     std::vector<GBuffer> gBufferRTs; gBufferRTs.reserve(maxViews);
@@ -402,7 +406,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::Checkbox("Correct Normal Orientation", &quadsGenerator.doOrientationCorrection)) {
+            if (ImGui::Checkbox("Correct Normal Orientation", &quadsGenerator.correctOrientation)) {
                 preventCopyingLocalPose = true;
                 rerender = true;
                 runAnimations = false;
@@ -736,7 +740,7 @@ int main(int argc, char** argv) {
 
                 unsigned int numProxies = 0, numDepthOffsets = 0;
                 compressedSize += frameGenerator.generateIFrame(
-                    gBufferRTs[view], remoteCamera,
+                    gBufferRTs[view], gBufferRTs[view], remoteCamera,
                     quadsGenerator, meshFromQuads, currMesh,
                     numProxies, numDepthOffsets,
                     false
