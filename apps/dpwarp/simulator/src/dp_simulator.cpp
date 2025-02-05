@@ -784,6 +784,7 @@ int main(int argc, char** argv) {
             double totalFillQuadsIndiciesMsTime = 0.0;
             double totalCreateVertIndTime = 0.0;
             double totalGenDepthTime = 0.0;
+            double totalTimeToCompress = 0.0;
 
             unsigned int compressedSize = 0;
 
@@ -882,6 +883,8 @@ int main(int argc, char** argv) {
                 if (!(view == 0 && generatePFrame) && showLayers[view]) {
                     totalProxies += numProxies;
                     totalDepthOffsets += numDepthOffsets;
+
+                    totalTimeToCompress += frameGenerator.stats.timeToCompress;
                 }
 
                 totalCreateProxiesTime += frameGenerator.stats.timeToCreateProxies;
@@ -926,6 +929,8 @@ int main(int argc, char** argv) {
                         totalAppendProxiesMsTime += frameGenerator.stats.timeToAppendProxies;
                         totalFillQuadsIndiciesMsTime += frameGenerator.stats.timeToFillOutputQuads;
                         totalCreateVertIndTime += frameGenerator.stats.timeToCreateVertInd;
+
+                        totalTimeToCompress += frameGenerator.stats.timeToCompress;
                     }
                     nodeMask.visible = generatePFrame;
                     currMeshIndex = (currMeshIndex + 1) % 2;
@@ -1004,6 +1009,7 @@ int main(int argc, char** argv) {
             spdlog::info("  Append Quads Time ({}): {:.3f}ms", generatePFrame, totalAppendProxiesMsTime);
             spdlog::info("  Fill Output Quads Time ({}): {:.3f}ms", generatePFrame, totalFillQuadsIndiciesMsTime);
             spdlog::info("  Create Vert/Ind Time ({}): {:.3f}ms", generatePFrame, totalCreateVertIndTime);
+            spdlog::info("Compress Time ({}): {:.3f}ms", generatePFrame, totalTimeToCompress);
             if (showDepth) spdlog::info("Gen Depth Time ({}): {:.3f}ms", generatePFrame, totalGenDepthTime);
             spdlog::info("Frame Size: {:.3f}MB", (float)(compressedSize) / BYTES_IN_MB);
             spdlog::info("Num Proxies: {}Proxies", totalProxies);

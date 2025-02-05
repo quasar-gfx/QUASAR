@@ -38,8 +38,12 @@ unsigned int FrameGenerator::generateIFrame(
     stats.timeToCreateVertInd = meshFromQuads.stats.timeToCreateMeshMs;
     stats.timeToCreateMesh = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
-    return quadsGenerator.saveQuadsToMemory(compressedQuads, compress) +
-           numDepthOffsets * sizeof(uint16_t) / 8;
+    startTime = timeutils::getTimeMicros();
+    unsigned int outputSize = quadsGenerator.saveQuadsToMemory(compressedQuads, compress) +
+                                            numDepthOffsets * sizeof(uint16_t) / 8;
+    stats.timeToCompress = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+
+    return outputSize;
 }
 
 unsigned int FrameGenerator::generatePFrame(
@@ -90,12 +94,13 @@ unsigned int FrameGenerator::generatePFrame(
         remoteRenderer.pipeline.stencilState.restoreStencilState();
         remoteRenderer.gBuffer.blitToGBuffer(gBufferMaskLowRes);
         remoteRenderer.gBuffer.blitToGBuffer(gBufferMaskHighRes);
-
-        stats.timeToRenderMasks = timeutils::microsToMillis(timeutils::getTimeMicros() - startTimeTotal);
     }
+
+    stats.timeToRenderMasks = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     // create proxies and meshes
     {
+        startTime = timeutils::getTimeMicros();
         auto sizes = quadsGenerator.createProxiesFromGBuffer(gBufferLowRes, gBufferHighRes, prevRemoteCamera);
         numProxies = sizes.numProxies;
         numDepthOffsets = sizes.numDepthOffsets;
@@ -115,16 +120,20 @@ unsigned int FrameGenerator::generatePFrame(
         stats.timeToAppendProxies = meshFromQuads.stats.timeToAppendProxiesMs;
         stats.timeToCreateVertInd = meshFromQuads.stats.timeToCreateMeshMs;
 
+        startTime = timeutils::getTimeMicros();
         outputSize += quadsGenerator.saveQuadsToMemory(compressedQuads, compress);
+        stats.timeToCompress = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
     }
 
     // bool oldExpandEdges = quadsGenerator.expandEdges;
     // quadsGenerator.expandEdges = true; // must expand edges to fill small holes in quad boundaries when creating mask
 
     {
+        startTime = timeutils::getTimeMicros();
         auto sizes = quadsGenerator.createProxiesFromGBuffer(gBufferMaskLowRes, gBufferMaskHighRes, currRemoteCamera);
         numProxies += sizes.numProxies;
         numDepthOffsets += sizes.numDepthOffsets;
+        stats.timeToCreateProxies += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
         meshFromQuadsMask.appendProxies(
             gBufferSize,
@@ -139,8 +148,10 @@ unsigned int FrameGenerator::generatePFrame(
         stats.timeToAppendProxies += meshFromQuadsMask.stats.timeToAppendProxiesMs;
         stats.timeToCreateVertInd += meshFromQuadsMask.stats.timeToCreateMeshMs;
 
+        startTime = timeutils::getTimeMicros();
         outputSize += quadsGenerator.saveQuadsToMemory(compressedQuads, compress);
         outputSize += numDepthOffsets * sizeof(uint16_t) / 8;
+        stats.timeToCompress += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
     }
 
     // restore expand edges

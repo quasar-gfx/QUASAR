@@ -23,6 +23,7 @@ public:
         double timeToFillQuadIndices = 0.0f;
         double timeToCreateVertInd = 0.0f;
         double timeToRenderMasks = 0.0f;
+        double timeToCompress = 0.0f;
     } stats;
 
     unsigned int generateIFrame(

@@ -9,12 +9,18 @@
 
 class ZSTDCompressor : public Compressor {
 public:
-    ZSTDCompressor(uint32_t compressionLevel = 20, uint32_t compressionStrategy = 4, uint32_t numWorkers = 0) {
+    ZSTDCompressor(
+            uint32_t compressionLevel = 3,
+            uint32_t compressionStrategy = ZSTD_fast,
+            uint32_t numWorkers = 4,
+            uint32_t overlapLog = 6) {
         compressionCtx = ZSTD_createCCtx();
         decompressionCtx = ZSTD_createDCtx();
         ZSTD_CCtx_setParameter(compressionCtx, ZSTD_c_compressionLevel, compressionLevel);
         ZSTD_CCtx_setParameter(compressionCtx, ZSTD_c_strategy, compressionStrategy);
         ZSTD_CCtx_setParameter(compressionCtx, ZSTD_c_nbWorkers, numWorkers);
+        ZSTD_CCtx_setParameter(compressionCtx, ZSTD_c_overlapLog, overlapLog);
+        ZSTD_CCtx_setParameter(compressionCtx, ZSTD_c_enableLongDistanceMatching, 1);
     }
     ~ZSTDCompressor() override = default;
 
