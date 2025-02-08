@@ -41,9 +41,9 @@ public:
     unsigned int maxProxies;
     unsigned int numProxies;
 
-    Buffer<unsigned int> normalSphericalsBuffer;
-    Buffer<float> depthsBuffer;
-    Buffer<unsigned int> offsetSizeFlattenedsBuffer;
+    Buffer normalSphericalsBuffer;
+    Buffer depthsBuffer;
+    Buffer offsetSizeFlattenedsBuffer;
 
     QuadBuffers(unsigned int maxProxies);
     ~QuadBuffers();

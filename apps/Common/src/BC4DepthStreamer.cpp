@@ -25,7 +25,7 @@ BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams &params, std::
 
     compressedSize = (width / BLOCK_SIZE) * (height / BLOCK_SIZE);
     data = std::vector<char>(sizeof(pose_id_t) + compressedSize * sizeof(Block));
-    bc4CompressedBuffer = Buffer<Block>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, compressedSize, nullptr);
+    bc4CompressedBuffer = Buffer(GL_SHADER_STORAGE_BUFFER, compressedSize, sizeof(Block), nullptr, GL_DYNAMIC_DRAW);
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     cudautils::checkCudaDevice();

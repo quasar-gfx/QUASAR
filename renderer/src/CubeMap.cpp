@@ -1,7 +1,7 @@
-#include <Utils/FileIO.h>
 #include <CubeMap.h>
 #include <Cameras/PerspectiveCamera.h>
 #include <Cameras/VRCamera.h>
+#include <Utils/FileIO.h>
 
 const glm::mat4 CubeMap::captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
 const glm::mat4 CubeMap::captureViews[] = {
@@ -126,7 +126,7 @@ void CubeMap::initBuffers() {
     glBindVertexArray(vertexArrayBuffer);
 
     vertexBuffer.bind();
-    vertexBuffer.setData(skyboxVertices);
+    vertexBuffer.setData(skyboxVertices.size(), skyboxVertices.data());
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(CubeMapVertex), (void*)0);

@@ -159,8 +159,8 @@ int main(int argc, char** argv) {
 
     for (int i = 0; i < 2; i++) {
         MeshSizeCreateParams meshParams = {
-            .numVertices = maxVertices,
-            .numIndices = maxIndices,
+            .maxVertices = maxVertices,
+            .maxIndices = maxIndices,
             .material = new QuadMaterial({ .baseColorTexture = &gBufferRT.colorBuffer }),
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true
@@ -184,8 +184,8 @@ int main(int argc, char** argv) {
     }
 
     Mesh meshMask({
-        .numVertices = maxVertices,
-        .numIndices = maxIndices,
+        .maxVertices = maxVertices,
+        .maxIndices = maxIndices,
         .material = new QuadMaterial({ .baseColorTexture = &gBufferMaskRT.colorBuffer }),
         .usage = GL_DYNAMIC_DRAW,
         .indirectDraw = true
@@ -203,7 +203,7 @@ int main(int argc, char** argv) {
     localScene.addChildNode(&nodeMaskWireframe);
 
     Mesh meshDepth = Mesh({
-        .numVertices = maxVerticesDepth,
+        .maxVertices = maxVerticesDepth,
         .material = new UnlitMaterial({ .baseColor = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) }),
         .usage = GL_DYNAMIC_DRAW
     });
@@ -491,7 +491,7 @@ int main(int argc, char** argv) {
 
                 // save vertexBuffer
                 meshes[currMeshIndex].vertexBuffer.bind();
-                std::vector<Vertex> vertices = meshes[currMeshIndex].vertexBuffer.getData();
+                std::vector<Vertex> vertices = meshes[currMeshIndex].vertexBuffer.getData<Vertex>();
                 std::ofstream verticesFile(dataPath + verticesFileName, std::ios::binary);
                 verticesFile.write((char*)vertices.data(), meshBufferSizes.numVertices * sizeof(Vertex));
                 verticesFile.close();
@@ -500,7 +500,7 @@ int main(int argc, char** argv) {
 
                 // save indexBuffer
                 meshes[currMeshIndex].indexBuffer.bind();
-                std::vector<unsigned int> indices = meshes[currMeshIndex].indexBuffer.getData();
+                std::vector<unsigned int> indices = meshes[currMeshIndex].indexBuffer.getData<unsigned int>();
                 std::ofstream indicesFile(dataPath + indicesFileName, std::ios::binary);
                 indicesFile.write((char*)indices.data(), meshBufferSizes.numIndices * sizeof(unsigned int));
                 indicesFile.close();

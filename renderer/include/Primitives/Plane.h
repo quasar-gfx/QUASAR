@@ -30,7 +30,7 @@ public:
                 4, 5, 6,
                 6, 7, 4,
             };
-            setBuffers(vertices, indices);
+            setBuffers(vertices.data(), vertices.size(), indices.data(), indices.size());
         }
         else {
             std::vector<Vertex> vertices = {
@@ -41,7 +41,7 @@ public:
                 { {-1.0f, 0.0f,  1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f} }, // Top Left
                 { {-1.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f} }  // Bottom Left
             };
-            setBuffers(vertices);
+            setBuffers(vertices.data(), vertices.size());
         }
     }
 };

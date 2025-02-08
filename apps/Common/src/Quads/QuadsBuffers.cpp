@@ -10,9 +10,9 @@
 QuadBuffers::QuadBuffers(unsigned int maxProxies)
         : maxProxies(maxProxies)
         , numProxies(maxProxies)
-        , normalSphericalsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxProxies, nullptr)
-        , depthsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxProxies, nullptr)
-        , offsetSizeFlattenedsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, maxProxies, nullptr)
+        , normalSphericalsBuffer(GL_SHADER_STORAGE_BUFFER, maxProxies, sizeof(unsigned int), nullptr, GL_DYNAMIC_COPY)
+        , depthsBuffer(GL_SHADER_STORAGE_BUFFER, maxProxies, sizeof(float), nullptr, GL_DYNAMIC_COPY)
+        , offsetSizeFlattenedsBuffer(GL_SHADER_STORAGE_BUFFER, maxProxies, sizeof(unsigned int), nullptr, GL_DYNAMIC_COPY)
         , data(sizeof(unsigned int) + maxProxies * sizeof(QuadMapDataPacked)) {
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     cudautils::checkCudaDevice();

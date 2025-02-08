@@ -21,7 +21,7 @@ public:
         float min;
         uint32_t data[6];
     };
-    Buffer<Block> bc4CompressedBuffer;
+    Buffer bc4CompressedBuffer;
 
     std::string streamerURL;
 

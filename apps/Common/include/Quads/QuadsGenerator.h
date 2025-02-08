@@ -51,7 +51,7 @@ public:
 #endif
 
 private:
-    Buffer<BufferSizes> sizesBuffer;
+    Buffer sizesBuffer;
 
     std::vector<QuadBuffers> quadBuffers;
 

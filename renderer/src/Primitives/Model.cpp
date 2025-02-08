@@ -250,8 +250,10 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
         this->material = new PBRMaterial(materialParams);
     }
 
-    meshParams.vertices = vertices;
-    meshParams.indices = indices;
+    meshParams.verticesData = vertices.data();
+    meshParams.verticesSize = vertices.size();
+    meshParams.indicesData = indices.data();
+    meshParams.indicesSize = indices.size();
     meshParams.IBL = IBL;
     meshParams.material = this->material;
 

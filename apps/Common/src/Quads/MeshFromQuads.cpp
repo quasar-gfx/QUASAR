@@ -4,12 +4,12 @@ MeshFromQuads::MeshFromQuads(const glm::uvec2 &remoteWindowSize, unsigned int ma
         : remoteWindowSize(remoteWindowSize)
         , depthBufferSize(2u * remoteWindowSize) // 4 offsets per pixel
         , maxProxies(maxNumProxies)
-        , meshSizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, 1, nullptr)
-        , quadIndicesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, remoteWindowSize.x * remoteWindowSize.y, nullptr)
-        , prevNumProxiesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, nullptr)
-        , currNumProxiesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, 1, nullptr)
+        , meshSizesBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizeof(BufferSizes), nullptr, GL_DYNAMIC_COPY)
+        , prevNumProxiesBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizeof(unsigned int), nullptr, GL_DYNAMIC_DRAW)
+        , currNumProxiesBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizeof(unsigned int), nullptr, GL_DYNAMIC_DRAW)
         , currentQuadBuffers(maxProxies)
-        , quadCreatedFlagsBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, maxProxies, nullptr)
+        , quadIndicesBuffer(GL_SHADER_STORAGE_BUFFER, remoteWindowSize.x * remoteWindowSize.y, sizeof(unsigned int), nullptr, GL_DYNAMIC_DRAW)
+        , quadCreatedFlagsBuffer(GL_SHADER_STORAGE_BUFFER, maxProxies, sizeof(int), nullptr, GL_DYNAMIC_DRAW)
         , appendProxiesShader({
             .computeCodePath = "shaders/appendProxies.comp",
             .defines = {

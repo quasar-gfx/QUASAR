@@ -1,24 +1,22 @@
 #ifndef BUFFER_H
 #define BUFFER_H
 
-#include <iostream>
-#include <cstring>
 #include <vector>
+#include <cstring>
+#include <type_traits>
 
 #include <spdlog/spdlog.h>
 
 #include <OpenGLObject.h>
 
-template<typename T>
-struct Buffer : OpenGLObject {
+class Buffer : public OpenGLObject {
 public:
-    Buffer(GLenum target = GL_ARRAY_BUFFER, GLenum usage = GL_STATIC_DRAW)
-            : target(target), usage(usage), numElems(0) {
+    Buffer(GLenum target = GL_ARRAY_BUFFER, size_t dataSize = sizeof(float), GLenum usage = GL_STATIC_DRAW)
+        : target(target), numElems(0), dataSize(dataSize), usage(usage) {
         glGenBuffers(1, &ID);
     }
-
-    Buffer(GLenum target, GLenum usage, unsigned int numElems, const T* data)
-            : Buffer(target, usage) {
+    Buffer(GLenum target, unsigned int numElems, size_t dataSize, const void* data = nullptr, GLenum usage = GL_STATIC_DRAW)
+        : Buffer(target, dataSize, usage) {
         bind();
         setData(numElems, data);
     }
@@ -27,62 +25,54 @@ public:
         glDeleteBuffers(1, &ID);
     }
 
-    // copy constructor
-    Buffer(const Buffer<T>& other)
-            : target(other.target), usage(other.usage), numElems(other.numElems) {
+    Buffer(const Buffer& other)
+        : target(other.target), usage(other.usage), numElems(other.numElems), dataSize(other.dataSize) {
         glGenBuffers(1, &ID);
         bind();
-        std::vector<T> data(other.numElems);
+        std::vector<char> data(other.numElems * other.dataSize);
         other.getSubData(0, other.numElems, data.data());
-        setData(data);
+        setData(other.numElems, data.data());
         unbind();
     }
 
-    // copy assignment operator
-    Buffer<T>& operator=(const Buffer<T>& other) {
-        if (this == &other) {
-            return *this;
-        }
+    Buffer& operator=(const Buffer& other) {
+        if (this == &other) return *this;
+
         glDeleteBuffers(1, &ID);
 
-        // recreate the buffer and copy data
         target = other.target;
         usage = other.usage;
         numElems = other.numElems;
+        dataSize = other.dataSize;
         glGenBuffers(1, &ID);
 
         if (numElems > 0) {
             bind();
-            std::vector<T> data(numElems);
+            std::vector<char> data(numElems * dataSize);
             other.getSubData(0, numElems, data.data());
-            setData(data);
+            setData(numElems, data.data());
             unbind();
         }
 
         return *this;
     }
 
-    // move constructor
-    Buffer(Buffer<T>&& other) noexcept
-            : target(other.target), usage(other.usage), numElems(other.numElems) {
-        ID = other.ID;
+    Buffer(Buffer&& other) noexcept
+        : target(other.target), usage(other.usage), numElems(other.numElems), dataSize(other.dataSize) {
         other.ID = 0;
         other.numElems = 0;
     }
 
-    // move assignment operator
-    Buffer<T>& operator=(Buffer<T>&& other) noexcept {
-        if (this == &other) {
-            return *this;
-        }
+    Buffer& operator=(Buffer&& other) noexcept {
+        if (this == &other) return *this;
 
         glDeleteBuffers(1, &ID);
 
-        // move the data
         ID = other.ID;
         target = other.target;
         usage = other.usage;
         numElems = other.numElems;
+        dataSize = other.dataSize;
 
         other.ID = 0;
         other.numElems = 0;
@@ -103,21 +93,19 @@ public:
     }
 
     void resize(unsigned int newNumElems, bool copy = false) {
-        if (numElems == newNumElems) {
-            return;
-        }
+        if (numElems == newNumElems) return;
 
-        std::vector<T> data;
+        std::vector<char> data;
         if (copy) {
-            data.resize(numElems);
+            data.resize(numElems * dataSize);
             getData(data.data());
         }
 
-        glBufferData(target, newNumElems * sizeof(T), nullptr, usage);
+        glBufferData(target, newNumElems * dataSize, nullptr, usage);
 
         if (copy) {
             unsigned int elemsToCopy = std::min(numElems, newNumElems);
-            glBufferSubData(target, 0, elemsToCopy * sizeof(T), data.data());
+            glBufferSubData(target, 0, elemsToCopy * dataSize, data.data());
         }
 
         numElems = newNumElems;
@@ -134,57 +122,63 @@ public:
 
 #ifdef GL_CORE
     void getSubData(unsigned int offset, unsigned int numElems, void* data) const {
-        glGetBufferSubData(target, offset * sizeof(T), numElems * sizeof(T), data);
+        glGetBufferSubData(target, offset * dataSize, numElems * dataSize, data);
     }
 #endif
 
     void getData(void* data) const {
 #ifdef GL_CORE
-        // getSubData is faster than mapping the buffer
         getSubData(0, numElems, data);
 #else
-        T* mappedBuffer = static_cast<T*>(glMapBufferRange(target, 0, numElems * sizeof(T), GL_MAP_READ_BIT));
+        void* mappedBuffer = glMapBufferRange(target, 0, numElems * dataSize, GL_MAP_READ_BIT);
         if (mappedBuffer) {
-            std::memcpy(data, mappedBuffer, numElems * sizeof(T));
-
+            std::memcpy(data, mappedBuffer, numElems * dataSize);
             glUnmapBuffer(target);
         }
         else {
-            spdlog::error("Error: Could not map buffer data.");
+            spdlog::error("Could not map buffer data.");
         }
 #endif
     }
 
+    template<typename T>
     std::vector<T> getData() const {
+        static_assert(std::is_trivially_copyable<T>::value, "Buffer data must be trivially copyable.");
+
+        if (sizeof(T) != dataSize) {
+            spdlog::error("Data size mismatch. Requested type has size {}, but buffer holds size {}.", sizeof(T), dataSize);
+            return {};
+        }
+
         std::vector<T> data(numElems);
-        getData(data.data());
+        getData(static_cast<void*>(data.data()));
         return data;
     }
 
     void setData(unsigned int numElems, const void* data) {
         resize(numElems);
-        glBufferData(target, numElems * sizeof(T), data, usage);
+        glBufferData(target, numElems * dataSize, data, usage);
     }
 
-    void setData(const std::vector<T>& data) {
-        setData(data.size(), data.data());
+    void setData(const std::vector<char>& data) {
+        setData(data.size() / dataSize, data.data());
     }
 
 #ifdef GL_CORE
     void setSubData(unsigned int offset, unsigned int numElems, const void* data) {
-        glBufferSubData(target, offset * sizeof(T), numElems * sizeof(T), data);
+        glBufferSubData(target, offset * dataSize, numElems * dataSize, data);
     }
 #endif
 
-    void setSubData(unsigned int offset, const std::vector<T>& data) {
-        setSubData(offset, data.size(), data.data());
+    void setSubData(unsigned int offset, const std::vector<char>& data) {
+        setSubData(offset, data.size() / dataSize, data.data());
     }
 
 private:
     GLenum target;
     GLenum usage;
-
     unsigned int numElems;
+    size_t dataSize;
 };
 
 #endif // BUFFER_H

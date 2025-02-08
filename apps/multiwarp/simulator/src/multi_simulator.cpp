@@ -181,8 +181,8 @@ int main(int argc, char** argv) {
 
     for (int view = 0; view < maxViews; view++) {
         MeshSizeCreateParams meshParams = {
-            .numVertices = maxVertices / (view == 0 || view == maxViews - 1 ? 1 : 2),
-            .numIndices = maxIndices / (view == 0 || view == maxViews - 1 ? 1 : 2),
+            .maxVertices = maxVertices / (view == 0 || view == maxViews - 1 ? 1 : 2),
+            .maxIndices = maxIndices / (view == 0 || view == maxViews - 1 ? 1 : 2),
             .material = new QuadMaterial({ .baseColorTexture = &gBufferRTs[view].colorBuffer }),
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true
@@ -202,7 +202,7 @@ int main(int argc, char** argv) {
         scene.addChildNode(&nodeWireframes[view]);
 
         MeshSizeCreateParams meshDepthParams = {
-            .numVertices = maxVerticesDepth,
+            .maxVertices = maxVerticesDepth,
             .material = new UnlitMaterial({ .baseColor = color }),
             .usage = GL_DYNAMIC_DRAW
         };
@@ -549,7 +549,7 @@ int main(int argc, char** argv) {
 
                     // save vertexBuffer
                     meshViews[view].vertexBuffer.bind();
-                    std::vector<Vertex> vertices = meshViews[view].vertexBuffer.getData();
+                    std::vector<Vertex> vertices = meshViews[view].vertexBuffer.getData<Vertex>();
                     std::ofstream verticesFile(dataPath + verticesFileName, std::ios::binary);
                     verticesFile.write((char*)vertices.data(), numVertices[view] * sizeof(Vertex));
                     verticesFile.close();
@@ -558,7 +558,7 @@ int main(int argc, char** argv) {
 
                     // save indexBuffer
                     meshViews[view].indexBuffer.bind();
-                    std::vector<unsigned int> indices = meshViews[view].indexBuffer.getData();
+                    std::vector<unsigned int> indices = meshViews[view].indexBuffer.getData<unsigned int>();
                     std::ofstream indicesFile(dataPath + indicesFileName, std::ios::binary);
                     indicesFile.write((char*)indices.data(), numIndicies[view] * sizeof(unsigned int));
                     indicesFile.close();

@@ -63,7 +63,7 @@ public:
             }
         }
 
-        setBuffers(vertices, indices);
+        setBuffers(vertices.data(), vertices.size(), indices.data(), indices.size());
     }
 };
 

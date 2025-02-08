@@ -149,8 +149,10 @@ int main(int argc, char** argv) {
             std::memcpy(indices.data(), indexData.data(), indexData.size());
 
             meshes[view] = new Mesh({
-                .vertices = vertices,
-                .indices = indices,
+                .verticesData = vertices.data(),
+                .verticesSize = vertices.size(),
+                .indicesData = indices.data(),
+                .indicesSize = indices.size(),
                 .material = new QuadMaterial({ .baseColorTexture = &colorTextures[view] }),
             });
 
@@ -180,8 +182,8 @@ int main(int argc, char** argv) {
             numBytesDepthOffsets += numBytes;
 
             meshes[view] = new Mesh({
-                .numVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
-                .numIndices = numProxies * NUM_SUB_QUADS * 2 * 3,
+                .maxVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
+                .maxIndices = numProxies * NUM_SUB_QUADS * 2 * 3,
                 .material = new QuadMaterial({ .baseColorTexture = &colorTextures[view] }),
                 .usage = GL_DYNAMIC_DRAW,
                 .indirectDraw = true

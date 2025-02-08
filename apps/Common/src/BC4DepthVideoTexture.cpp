@@ -15,7 +15,7 @@ BC4DepthVideoTexture::BC4DepthVideoTexture(const TextureDataCreateParams &params
     resize(width, height);
 
     compressedSize = (width / BLOCK_SIZE) * (height / BLOCK_SIZE);
-    bc4CompressedBuffer = Buffer<Block>(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, compressedSize, nullptr);
+    bc4CompressedBuffer = Buffer(GL_SHADER_STORAGE_BUFFER, compressedSize, sizeof(Block), nullptr, GL_DYNAMIC_DRAW);
 }
 
 pose_id_t BC4DepthVideoTexture::getLatestPoseID() {

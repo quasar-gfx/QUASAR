@@ -27,7 +27,7 @@ QuadsGenerator::QuadsGenerator(const glm::uvec2 &remoteWindowSize)
                 "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
             }
         })
-        , sizesBuffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_COPY, 1, nullptr)
+        , sizesBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizeof(BufferSizes), nullptr, GL_DYNAMIC_COPY)
         , depthOffsets(depthBufferSize)
         , outputQuadBuffers(maxProxies) {
     // make sure maxProxySize is a power of 2

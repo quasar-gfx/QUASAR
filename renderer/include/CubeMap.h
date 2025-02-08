@@ -45,7 +45,7 @@ private:
     };
 
 public:
-    Buffer<CubeMapVertex> vertexBuffer;
+    Buffer vertexBuffer;
 
     CubeMapType type;
 
@@ -53,7 +53,7 @@ public:
 
     GLint wrapR = GL_CLAMP_TO_EDGE;
 
-    CubeMap() : vertexBuffer(GL_ARRAY_BUFFER) {
+    CubeMap() : vertexBuffer(GL_ARRAY_BUFFER, GL_STATIC_DRAW, sizeof(CubeMapVertex)) {
         target = GL_TEXTURE_CUBE_MAP;
     }
     CubeMap(const CubeMapCreateParams &params)
@@ -68,7 +68,7 @@ public:
                 .minFilter = params.minFilter,
                 .magFilter = params.magFilter
             })
-            , vertexBuffer(GL_ARRAY_BUFFER) {
+            , vertexBuffer(GL_ARRAY_BUFFER, GL_STATIC_DRAW, sizeof(CubeMapVertex)) {
         target = GL_TEXTURE_CUBE_MAP;
         if (params.rightFaceTexturePath != "" && params.leftFaceTexturePath != "" &&
             params.topFaceTexturePath != "" && params.bottomFaceTexturePath != "" &&

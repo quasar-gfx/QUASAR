@@ -14,8 +14,12 @@
 #include <Cameras/VRCamera.h>
 
 struct MeshDataCreateParams {
-    std::vector<Vertex> vertices;
-    std::vector<unsigned int> indices;
+    const void* verticesData;
+    size_t verticesSize;
+    const unsigned int* indicesData = nullptr;
+    size_t indicesSize = 0;
+    unsigned int vertexSize = sizeof(Vertex);
+    VertexInputAttributes attributes = Vertex::getVertexInputAttributes();
     Material* material;
     float IBL = 1.0;
     GLenum usage = GL_STATIC_DRAW;
@@ -23,8 +27,10 @@ struct MeshDataCreateParams {
 };
 
 struct MeshSizeCreateParams {
-    unsigned int numVertices = 0;
-    unsigned int numIndices = 0;
+    unsigned int maxVertices;
+    unsigned int maxIndices = 0;
+    unsigned int vertexSize = sizeof(Vertex);
+    VertexInputAttributes attributes = Vertex::getVertexInputAttributes();
     Material* material;
     float IBL = 1.0;
     GLenum usage = GL_STATIC_DRAW;
@@ -41,9 +47,9 @@ struct DrawElementsIndirectCommand {
 
 class Mesh : public Entity {
 public:
-    Buffer<Vertex> vertexBuffer;
-    Buffer<unsigned int> indexBuffer;
-    Buffer<DrawElementsIndirectCommand> indirectBuffer;
+    Buffer vertexBuffer;
+    Buffer indexBuffer;
+    Buffer indirectBuffer;
 
     Material* material;
 
@@ -53,19 +59,20 @@ public:
 
     bool indirectDraw = false;
 
-    Mesh() : vertexBuffer(GL_ARRAY_BUFFER), indexBuffer(GL_ELEMENT_ARRAY_BUFFER) {
-        createArrayBuffer();
+    Mesh() : vertexBuffer(GL_ARRAY_BUFFER, GL_STATIC_DRAW, sizeof(Vertex))
+            , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, sizeof(unsigned int)) {
+        setArrayBufferAttributes(Vertex::getVertexInputAttributes(), sizeof(Vertex));
     }
     Mesh(const MeshDataCreateParams &params)
             : material(params.material)
             , IBL(params.IBL)
             , usage(params.usage)
-            , vertexBuffer(GL_ARRAY_BUFFER, params.usage)
-            , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, params.usage)
+            , vertexBuffer(GL_ARRAY_BUFFER, params.usage, sizeof(Vertex))
+            , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, params.usage, sizeof(unsigned int))
             , indirectDraw(params.indirectDraw)
-            , indirectBuffer(GL_DRAW_INDIRECT_BUFFER, params.usage) {
-        createArrayBuffer();
-        setBuffers(params.vertices, params.indices);
+            , indirectBuffer(GL_DRAW_INDIRECT_BUFFER, params.usage, sizeof(DrawElementsIndirectCommand)) {
+        setArrayBufferAttributes(params.attributes, params.vertexSize);
+        setBuffers(params.verticesData, params.verticesSize, params.indicesData, params.indicesSize);
 
         if (indirectDraw) {
             indirectBuffer.bind();
@@ -78,12 +85,12 @@ public:
             : material(params.material)
             , IBL(params.IBL)
             , usage(params.usage)
-            , vertexBuffer(GL_ARRAY_BUFFER, params.usage)
-            , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, params.usage)
+            , vertexBuffer(GL_ARRAY_BUFFER, params.usage, sizeof(Vertex))
+            , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, params.usage, sizeof(unsigned int))
             , indirectDraw(params.indirectDraw)
-            , indirectBuffer(GL_DRAW_INDIRECT_BUFFER, params.usage) {
-        createArrayBuffer();
-        setBuffers(params.numVertices, params.numIndices);
+            , indirectBuffer(GL_DRAW_INDIRECT_BUFFER, params.usage, sizeof(DrawElementsIndirectCommand)) {
+        setArrayBufferAttributes(params.attributes, params.vertexSize);
+        setBuffers(params.maxVertices, params.maxIndices);
 
         if (indirectDraw) {
             indirectBuffer.bind();
@@ -102,20 +109,18 @@ public:
                              const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) override;
     virtual RenderStats draw(GLenum primativeType);
 
-    void setBuffers(const std::vector<Vertex> &vertices);
-    void setBuffers(const std::vector<Vertex> &vertices, const std::vector<unsigned int> &indices);
-    void setBuffers(unsigned int numVertices, unsigned int numIndices);
+    void setBuffers(const void* vertices, unsigned int verticesSize, const unsigned int* indices = nullptr, unsigned int indicesSize = 0);
+    void setBuffers(unsigned int verticesSize, unsigned int indicesSize);
 
-    void resizeBuffers(unsigned int numVertices, unsigned int numIndices);
-    void updateAABB(const std::vector<Vertex> &vertices);
+    void resizeBuffers(unsigned int verticesSize, unsigned int indicesSize);
+    void updateAABB(const void* vertices, unsigned int verticesSize);
 
     EntityType getType() const override { return EntityType::MESH; }
 
 protected:
     GLuint vertexArrayBuffer;
 
-    void createArrayBuffer();
-    void createAttributes();
+    void setArrayBufferAttributes(const VertexInputAttributes &attributes, unsigned int vertexSize);
 
     void setMaterialCameraParams(const Camera &camera, const Material* material);
 };

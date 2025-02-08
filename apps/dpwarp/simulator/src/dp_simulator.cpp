@@ -186,8 +186,8 @@ int main(int argc, char** argv) {
     std::vector<Node> nodeWireframesCenter; nodeWireframesCenter.reserve(2);
 
     MeshSizeCreateParams meshParams = {
-        .numVertices = maxVertices,
-        .numIndices = maxIndices,
+        .maxVertices = maxVertices,
+        .maxIndices = maxIndices,
         .material = new QuadMaterial({ .baseColorTexture = &gBufferCenterRT.colorBuffer }),
         .usage = GL_DYNAMIC_DRAW,
         .indirectDraw = true
@@ -212,8 +212,8 @@ int main(int argc, char** argv) {
     }
 
     Mesh meshMask({
-        .numVertices = maxVertices,
-        .numIndices = maxIndices,
+        .maxVertices = maxVertices,
+        .maxIndices = maxIndices,
         .material = new QuadMaterial({ .baseColorTexture = &gBufferCenterMaskRT.colorBuffer }),
         .usage = GL_DYNAMIC_DRAW,
         .indirectDraw = true
@@ -231,7 +231,7 @@ int main(int argc, char** argv) {
     localScene.addChildNode(&nodeMaskWireframe);
 
     Mesh meshDepthCenter = Mesh({
-        .numVertices = maxVerticesDepth,
+        .maxVertices = maxVerticesDepth,
         .material = new UnlitMaterial({ .baseColor = colors[0] }),
         .usage = GL_DYNAMIC_DRAW
     });
@@ -251,8 +251,8 @@ int main(int argc, char** argv) {
 
     for (int view = 0; view < numViewsWithoutCenter; view++) {
         MeshSizeCreateParams meshParams = {
-            .numVertices = maxVertices,
-            .numIndices = maxIndices,
+            .maxVertices = maxVertices,
+            .maxIndices = maxIndices,
             .material = new QuadMaterial({ .baseColorTexture = &gBufferHiddenRTs[view].colorBuffer }),
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true
@@ -272,7 +272,7 @@ int main(int argc, char** argv) {
         localScene.addChildNode(&nodeWireframes[view]);
 
         MeshSizeCreateParams meshDepthParams = {
-            .numVertices = maxVerticesDepth,
+            .maxVertices = maxVerticesDepth,
             .material = new UnlitMaterial({ .baseColor = color }),
             .usage = GL_DYNAMIC_DRAW
         };
@@ -650,7 +650,7 @@ int main(int argc, char** argv) {
 
                     // save vertexBuffer
                     meshLayers[view].vertexBuffer.bind();
-                    std::vector<Vertex> vertices = meshLayers[view].vertexBuffer.getData();
+                    std::vector<Vertex> vertices = meshLayers[view].vertexBuffer.getData<Vertex>();
                     std::ofstream verticesFile(dataPath + verticesFileName, std::ios::binary);
                     verticesFile.write((char*)vertices.data(), numVertices[view] * sizeof(Vertex));
                     verticesFile.close();
@@ -659,7 +659,7 @@ int main(int argc, char** argv) {
 
                     // save indexBuffer
                     meshLayers[view].indexBuffer.bind();
-                    std::vector<unsigned int> indices = meshLayers[view].indexBuffer.getData();
+                    std::vector<unsigned int> indices = meshLayers[view].indexBuffer.getData<unsigned int>();
                     std::ofstream indicesFile(dataPath + indicesFileName, std::ios::binary);
                     indicesFile.write((char*)indices.data(), numIndicies[view] * sizeof(unsigned int));
                     indicesFile.close();

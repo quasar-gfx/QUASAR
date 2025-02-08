@@ -49,8 +49,7 @@ public:
         loadFromFile(params.computeCodePath);
     }
 
-    template <template<typename> class Buffer, typename T>
-    void setBuffer(GLenum target, int slot, const Buffer<T>& buffer) const {
+    void setBuffer(GLenum target, int slot, const Buffer& buffer) const {
         glBindBufferBase(target, slot, buffer);
     }
     void clearBuffer(GLenum target, int slot) const {

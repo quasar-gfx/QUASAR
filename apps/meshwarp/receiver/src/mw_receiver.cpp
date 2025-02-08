@@ -125,8 +125,8 @@ int main(int argc, char** argv) {
     unsigned int maxIndices = numTriangles * 3;
 
     Mesh mesh = Mesh({
-        .vertices = std::vector<Vertex>(maxVertices),
-        .indices = std::vector<unsigned int>(maxIndices),
+        .maxVertices = maxVertices,
+        .maxIndices = maxIndices,
         .material = new UnlitMaterial({ .baseColorTexture = &videoTextureColor }),
         .usage = GL_DYNAMIC_DRAW
     });

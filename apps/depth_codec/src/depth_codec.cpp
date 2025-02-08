@@ -141,21 +141,20 @@ int main(int argc, char** argv) {
 
     // create buffer for compressed data
     unsigned int compressedSize = (windowSize.x / 8) * (windowSize.y / 8) * sizeof(BC4DepthStreamer::Block);
-    Buffer<BC4DepthStreamer::Block> bc4Buffer(GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW, compressedSize / sizeof(BC4DepthStreamer::Block), nullptr);
+    Buffer bc4Buffer(GL_SHADER_STORAGE_BUFFER, compressedSize / sizeof(BC4DepthStreamer::Block), sizeof(BC4DepthStreamer::Block), nullptr, GL_DYNAMIC_COPY);
 
     float compressionRatio = originalSize / compressedSize;
 
     // set up meshes for rendering
     glm::uvec2 adjustedWindowSize = windowSize / surfelSize;
 
-    int numVertices = adjustedWindowSize.x * adjustedWindowSize.y;
-
-    int numTriangles = (adjustedWindowSize.x-1) * (adjustedWindowSize.y-1) * 2;
-    int indexBufferSize = numTriangles * 3;
+    unsigned int maxVertices = adjustedWindowSize.x * adjustedWindowSize.y;
+    unsigned int numTriangles = (adjustedWindowSize.x-1) * (adjustedWindowSize.y-1) * 2;
+    unsigned int maxIndices = numTriangles * 3;
 
     Mesh mesh = Mesh({
-        .vertices = std::vector<Vertex>(numVertices),
-        .indices = std::vector<unsigned int>(indexBufferSize),
+        .maxVertices = maxVertices,
+        .maxIndices = maxIndices,
         .material = new UnlitMaterial({ .baseColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f) }),
         .usage = GL_DYNAMIC_DRAW
     });
@@ -166,8 +165,8 @@ int main(int argc, char** argv) {
     scene.addChildNode(&node);
 
     Mesh meshDecompressed = Mesh({
-        .vertices = std::vector<Vertex>(numVertices),
-        .indices = std::vector<unsigned int>(indexBufferSize),
+        .maxVertices = maxVertices,
+        .maxIndices = maxIndices,
         .material = new UnlitMaterial({ .baseColor = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) }),
         .usage = GL_DYNAMIC_DRAW
     });

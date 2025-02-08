@@ -67,12 +67,12 @@ public:
     BufferSizes getBufferSizes();
 
 private:
-    Buffer<BufferSizes> meshSizesBuffer;
-    Buffer<unsigned int> prevNumProxiesBuffer;
-    Buffer<unsigned int> currNumProxiesBuffer;
+    Buffer meshSizesBuffer;
+    Buffer prevNumProxiesBuffer;
+    Buffer currNumProxiesBuffer;
 
-    Buffer<int> quadCreatedFlagsBuffer;
-    Buffer<unsigned int> quadIndicesBuffer;
+    Buffer quadCreatedFlagsBuffer;
+    Buffer quadIndicesBuffer;
 
     ComputeShader appendProxiesShader;
     ComputeShader fillQuadIndicesShader;

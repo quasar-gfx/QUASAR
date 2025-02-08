@@ -56,7 +56,7 @@ public:
             { {-1.0f, -1.0f, -1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} }   // Bottom Left
         };
 
-        setBuffers(vertices);
+        setBuffers(vertices.data(), vertices.size());
     }
 };
 

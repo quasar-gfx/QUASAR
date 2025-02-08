@@ -118,8 +118,10 @@ int main(int argc, char** argv) {
         std::memcpy(indices.data(), indexData.data(), indexData.size());
 
         mesh = new Mesh({
-            .vertices = vertices,
-            .indices = indices,
+            .verticesData = vertices.data(),
+            .verticesSize = vertices.size(),
+            .indicesData = indices.data(),
+            .indicesSize = indices.size(),
             .material = new QuadMaterial({ .baseColorTexture = &colorTexture }),
         });
 
@@ -142,8 +144,8 @@ int main(int argc, char** argv) {
         unsigned int numDepthOffsets = depthOffsets.loadFromFile(DATA_PATH + "depthOffsets.bin.zstd", &numBytesDepthOffsets);
 
         mesh = new Mesh({
-            .numVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
-            .numIndices = numProxies * NUM_SUB_QUADS * 2 * 3,
+            .maxVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
+            .maxIndices = numProxies * NUM_SUB_QUADS * 2 * 3,
             .material = new QuadMaterial({ .baseColorTexture = &colorTexture }),
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true
