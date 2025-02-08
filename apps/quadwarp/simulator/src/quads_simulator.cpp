@@ -157,14 +157,16 @@ int main(int argc, char** argv) {
     std::vector<Node> nodeMeshesLocal; nodeMeshesLocal.reserve(2);
     std::vector<Node> nodeWireframes; nodeWireframes.reserve(2);
 
+    MeshSizeCreateParams meshParams = {
+        .maxVertices = maxVertices,
+        .maxIndices = maxIndices,
+        .vertexSize = sizeof(QuadVertex),
+        .attributes = QuadVertex::getVertexInputAttributes(),
+        .material = new QuadMaterial({ .baseColorTexture = &gBufferRT.colorBuffer }),
+        .usage = GL_DYNAMIC_DRAW,
+        .indirectDraw = true
+    };
     for (int i = 0; i < 2; i++) {
-        MeshSizeCreateParams meshParams = {
-            .maxVertices = maxVertices,
-            .maxIndices = maxIndices,
-            .material = new QuadMaterial({ .baseColorTexture = &gBufferRT.colorBuffer }),
-            .usage = GL_DYNAMIC_DRAW,
-            .indirectDraw = true
-        };
         meshes.emplace_back(meshParams);
 
         nodeMeshes.emplace_back(&meshes[i]);
@@ -179,17 +181,12 @@ int main(int argc, char** argv) {
         nodeWireframes[i].frustumCulled = false;
         nodeWireframes[i].wireframe = true;
         nodeWireframes[i].visible = false;
-        nodeWireframes[i].overrideMaterial = new UnlitMaterial({ .baseColor = colors[0] });
+        nodeWireframes[i].overrideMaterial = new QuadMaterial({ .baseColor = colors[0] });
         localScene.addChildNode(&nodeWireframes[i]);
     }
 
-    Mesh meshMask({
-        .maxVertices = maxVertices,
-        .maxIndices = maxIndices,
-        .material = new QuadMaterial({ .baseColorTexture = &gBufferMaskRT.colorBuffer }),
-        .usage = GL_DYNAMIC_DRAW,
-        .indirectDraw = true
-    });
+    meshParams.material = new QuadMaterial({ .baseColorTexture = &gBufferMaskRT.colorBuffer });
+    Mesh meshMask(meshParams);
     Node nodeMask(&meshMask);
     nodeMask.frustumCulled = false;
 
@@ -491,12 +488,12 @@ int main(int argc, char** argv) {
 
                 // save vertexBuffer
                 meshes[currMeshIndex].vertexBuffer.bind();
-                std::vector<Vertex> vertices = meshes[currMeshIndex].vertexBuffer.getData<Vertex>();
+                std::vector<QuadVertex> vertices = meshes[currMeshIndex].vertexBuffer.getData<QuadVertex>();
                 std::ofstream verticesFile(dataPath + verticesFileName, std::ios::binary);
-                verticesFile.write((char*)vertices.data(), meshBufferSizes.numVertices * sizeof(Vertex));
+                verticesFile.write((char*)vertices.data(), meshBufferSizes.numVertices * sizeof(QuadVertex));
                 verticesFile.close();
                 spdlog::info("Saved {} vertices ({:.3f} MB)", meshBufferSizes.numVertices,
-                                        (float)meshBufferSizes.numVertices * sizeof(Vertex) / BYTES_IN_MB);
+                                        (float)meshBufferSizes.numVertices * sizeof(QuadVertex) / BYTES_IN_MB);
 
                 // save indexBuffer
                 meshes[currMeshIndex].indexBuffer.bind();

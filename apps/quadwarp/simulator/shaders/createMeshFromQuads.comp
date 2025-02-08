@@ -2,11 +2,7 @@ layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = THREADS_PER_LOCALGR
 
 struct Vertex {
     vec3 position;
-    vec3 color;
-    vec3 normal;
-    vec2 texCoords;
     vec3 texCoords3D;
-    vec3 bitangent;
 };
 
 struct QuadMapData {
@@ -283,27 +279,15 @@ void storeSurfel(in Quad quad, in Quad2D uvsSrc, in QuadMapData quadMapData) {
 
     uint vertexIdxTopLeft = vertexIdxBase + 0u;
     vertices[vertexIdxTopLeft].position = viewToWorld(viewInverse, quad.topLeft);
-    vertices[vertexIdxTopLeft].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIdxTopLeft].texCoords = uvsSrc.topLeft;
-    vertices[vertexIdxTopLeft].normal = quadMapData.normal;
 
     uint vertexIdxTopRight = vertexIdxBase + 1u;
     vertices[vertexIdxTopRight].position = viewToWorld(viewInverse, quad.topRight);
-    vertices[vertexIdxTopRight].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIdxTopRight].texCoords = uvsSrc.topRight;
-    vertices[vertexIdxTopRight].normal = quadMapData.normal;
 
     uint vertexIdxBottomLeft = vertexIdxBase + 2u;
     vertices[vertexIdxBottomLeft].position = viewToWorld(viewInverse, quad.bottomLeft);
-    vertices[vertexIdxBottomLeft].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIdxBottomLeft].texCoords = uvsSrc.bottomLeft;
-    vertices[vertexIdxBottomLeft].normal = quadMapData.normal;
 
     uint vertexIdxBottomRight = vertexIdxBase + 3u;
     vertices[vertexIdxBottomRight].position = viewToWorld(viewInverse, quad.bottomRight);
-    vertices[vertexIdxBottomRight].color = vec3(1.0, 1.0, 1.0);
-    vertices[vertexIdxBottomRight].texCoords = uvsSrc.bottomRight;
-    vertices[vertexIdxBottomRight].normal = quadMapData.normal;
 
     vec3 vertPositionsView[4];
     vertPositionsView[0] = quad.bottomLeft;
@@ -314,10 +298,10 @@ void storeSurfel(in Quad quad, in Quad2D uvsSrc, in QuadMapData quadMapData) {
     // uv coordinates have to be in 3D to properly interpolate them in the fragment shader.
     // to do this, add a q component to the uvs and the fragment shader will perform perspective-correct interpolation.
     vec3 uvqs[4];
-    uvqs[0] = vec3(vertices[vertexIdxBottomLeft].texCoords,  1.0);
-    uvqs[1] = vec3(vertices[vertexIdxBottomRight].texCoords, 1.0);
-    uvqs[2] = vec3(vertices[vertexIdxTopRight].texCoords,    1.0);
-    uvqs[3] = vec3(vertices[vertexIdxTopLeft].texCoords,     1.0);
+    uvqs[0] = vec3(uvsSrc.bottomLeft,  1.0);
+    uvqs[1] = vec3(uvsSrc.bottomRight, 1.0);
+    uvqs[2] = vec3(uvsSrc.topRight,    1.0);
+    uvqs[3] = vec3(uvsSrc.topLeft, 1.0);
 
     // adapted from:
     // https://www.roxlu.com/2014/026/mapping-a-texture-on-a-disc and

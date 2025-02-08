@@ -146,6 +146,8 @@ int main(int argc, char** argv) {
         mesh = new Mesh({
             .maxVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
             .maxIndices = numProxies * NUM_SUB_QUADS * 2 * 3,
+            .vertexSize = sizeof(QuadVertex),
+            .attributes = QuadVertex::getVertexInputAttributes(),
             .material = new QuadMaterial({ .baseColorTexture = &colorTexture }),
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true

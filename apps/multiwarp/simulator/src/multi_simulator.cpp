@@ -183,6 +183,8 @@ int main(int argc, char** argv) {
         MeshSizeCreateParams meshParams = {
             .maxVertices = maxVertices / (view == 0 || view == maxViews - 1 ? 1 : 2),
             .maxIndices = maxIndices / (view == 0 || view == maxViews - 1 ? 1 : 2),
+            .vertexSize = sizeof(QuadVertex),
+            .attributes = QuadVertex::getVertexInputAttributes(),
             .material = new QuadMaterial({ .baseColorTexture = &gBufferRTs[view].colorBuffer }),
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true
@@ -549,12 +551,12 @@ int main(int argc, char** argv) {
 
                     // save vertexBuffer
                     meshViews[view].vertexBuffer.bind();
-                    std::vector<Vertex> vertices = meshViews[view].vertexBuffer.getData<Vertex>();
+                    std::vector<QuadVertex> vertices = meshViews[view].vertexBuffer.getData<QuadVertex>();
                     std::ofstream verticesFile(dataPath + verticesFileName, std::ios::binary);
-                    verticesFile.write((char*)vertices.data(), numVertices[view] * sizeof(Vertex));
+                    verticesFile.write((char*)vertices.data(), numVertices[view] * sizeof(QuadVertex));
                     verticesFile.close();
                     spdlog::info("Saved {} vertices ({:.3f} MB) for view {}", numVertices[view],
-                                                (float)numVertices[view] * sizeof(Vertex) / BYTES_IN_MB, view);
+                                                (float)numVertices[view] * sizeof(QuadVertex) / BYTES_IN_MB, view);
 
                     // save indexBuffer
                     meshViews[view].indexBuffer.bind();
@@ -563,7 +565,7 @@ int main(int argc, char** argv) {
                     indicesFile.write((char*)indices.data(), numIndicies[view] * sizeof(unsigned int));
                     indicesFile.close();
                     spdlog::info("Saved {} indicies ({:.3f} MB) for view {}", numIndicies[view],
-                                                (float)numIndicies[view] * sizeof(Vertex) / BYTES_IN_MB, view);
+                                                (float)numIndicies[view] * sizeof(unsigned int) / BYTES_IN_MB, view);
 
                     // save color buffer
                     std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";

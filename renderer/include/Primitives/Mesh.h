@@ -51,6 +51,9 @@ public:
     Buffer indexBuffer;
     Buffer indirectBuffer;
 
+    unsigned int vertexSize;
+    VertexInputAttributes attributes;
+
     Material* material;
 
     float IBL = 1.0;
@@ -70,7 +73,9 @@ public:
             , vertexBuffer(GL_ARRAY_BUFFER, params.usage, sizeof(Vertex))
             , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, params.usage, sizeof(unsigned int))
             , indirectDraw(params.indirectDraw)
-            , indirectBuffer(GL_DRAW_INDIRECT_BUFFER, params.usage, sizeof(DrawElementsIndirectCommand)) {
+            , indirectBuffer(GL_DRAW_INDIRECT_BUFFER, params.usage, sizeof(DrawElementsIndirectCommand))
+            , vertexSize(params.vertexSize)
+            , attributes(params.attributes) {
         setArrayBufferAttributes(params.attributes, params.vertexSize);
         setBuffers(params.verticesData, params.verticesSize, params.indicesData, params.indicesSize);
 
@@ -88,7 +93,9 @@ public:
             , vertexBuffer(GL_ARRAY_BUFFER, params.usage, sizeof(Vertex))
             , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, params.usage, sizeof(unsigned int))
             , indirectDraw(params.indirectDraw)
-            , indirectBuffer(GL_DRAW_INDIRECT_BUFFER, params.usage, sizeof(DrawElementsIndirectCommand)) {
+            , indirectBuffer(GL_DRAW_INDIRECT_BUFFER, params.usage, sizeof(DrawElementsIndirectCommand))
+            , vertexSize(params.vertexSize)
+            , attributes(params.attributes) {
         setArrayBufferAttributes(params.attributes, params.vertexSize);
         setBuffers(params.maxVertices, params.maxIndices);
 

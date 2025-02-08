@@ -6,6 +6,7 @@
 #include <Cameras/PerspectiveCamera.h>
 #include <Shaders/ComputeShader.h>
 
+#include <Quads/QuadVertex.h>
 #include <Quads/QuadsBuffers.h>
 #include <Quads/DepthOffsets.h>
 

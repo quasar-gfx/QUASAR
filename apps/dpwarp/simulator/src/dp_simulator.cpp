@@ -188,6 +188,8 @@ int main(int argc, char** argv) {
     MeshSizeCreateParams meshParams = {
         .maxVertices = maxVertices,
         .maxIndices = maxIndices,
+        .vertexSize = sizeof(QuadVertex),
+        .attributes = QuadVertex::getVertexInputAttributes(),
         .material = new QuadMaterial({ .baseColorTexture = &gBufferCenterRT.colorBuffer }),
         .usage = GL_DYNAMIC_DRAW,
         .indirectDraw = true
@@ -207,17 +209,12 @@ int main(int argc, char** argv) {
         nodeWireframesCenter[i].frustumCulled = false;
         nodeWireframesCenter[i].wireframe = true;
         nodeWireframesCenter[i].visible = false;
-        nodeWireframesCenter[i].overrideMaterial = new UnlitMaterial({ .baseColor = colors[0] });
+        nodeWireframesCenter[i].overrideMaterial = new QuadMaterial({ .baseColor = colors[0] });
         localScene.addChildNode(&nodeWireframesCenter[i]);
     }
 
-    Mesh meshMask({
-        .maxVertices = maxVertices,
-        .maxIndices = maxIndices,
-        .material = new QuadMaterial({ .baseColorTexture = &gBufferCenterMaskRT.colorBuffer }),
-        .usage = GL_DYNAMIC_DRAW,
-        .indirectDraw = true
-    });
+    meshParams.material = new QuadMaterial({ .baseColorTexture = &gBufferCenterMaskRT.colorBuffer });
+    Mesh meshMask(meshParams);
     Node nodeMask(&meshMask);
     nodeMask.frustumCulled = false;
 
@@ -225,16 +222,17 @@ int main(int argc, char** argv) {
     nodeMaskWireframe.frustumCulled = false;
     nodeMaskWireframe.wireframe = true;
     nodeMaskWireframe.visible = false;
-    nodeMaskWireframe.overrideMaterial = new UnlitMaterial({ .baseColor = colors[colors.size()-1] });
+    nodeMaskWireframe.overrideMaterial = new QuadMaterial({ .baseColor = colors[colors.size()-1] });
 
     localScene.addChildNode(&nodeMask);
     localScene.addChildNode(&nodeMaskWireframe);
 
-    Mesh meshDepthCenter = Mesh({
+    MeshSizeCreateParams meshDepthParams = {
         .maxVertices = maxVerticesDepth,
-        .material = new UnlitMaterial({ .baseColor = colors[0] }),
         .usage = GL_DYNAMIC_DRAW
-    });
+    };
+    meshDepthParams.material = new UnlitMaterial({ .baseColor = colors[0] });
+    Mesh meshDepthCenter = Mesh(meshDepthParams);
     Node nodeDepth = Node(&meshDepthCenter);
     nodeDepth.frustumCulled = false;
     nodeDepth.visible = false;
@@ -250,13 +248,7 @@ int main(int argc, char** argv) {
     std::vector<Node> nodeDepths; nodeDepths.reserve(numViewsWithoutCenter);
 
     for (int view = 0; view < numViewsWithoutCenter; view++) {
-        MeshSizeCreateParams meshParams = {
-            .maxVertices = maxVertices,
-            .maxIndices = maxIndices,
-            .material = new QuadMaterial({ .baseColorTexture = &gBufferHiddenRTs[view].colorBuffer }),
-            .usage = GL_DYNAMIC_DRAW,
-            .indirectDraw = true
-        };
+        meshParams.material = new QuadMaterial({ .baseColorTexture = &gBufferHiddenRTs[view].colorBuffer });
         meshLayers.emplace_back(meshParams);
 
         nodeLayers.emplace_back(&meshLayers[view]);
@@ -268,14 +260,10 @@ int main(int argc, char** argv) {
         nodeWireframes.emplace_back(&meshLayers[view]);
         nodeWireframes[view].frustumCulled = false;
         nodeWireframes[view].wireframe = true;
-        nodeWireframes[view].overrideMaterial = new UnlitMaterial({ .baseColor = color });
+        nodeWireframes[view].overrideMaterial = new QuadMaterial({ .baseColor = color });
         localScene.addChildNode(&nodeWireframes[view]);
 
-        MeshSizeCreateParams meshDepthParams = {
-            .maxVertices = maxVerticesDepth,
-            .material = new UnlitMaterial({ .baseColor = color }),
-            .usage = GL_DYNAMIC_DRAW
-        };
+        meshDepthParams.material = new UnlitMaterial({ .baseColor = color });
         meshDepths.emplace_back(meshDepthParams);
 
         nodeDepths.emplace_back(&meshDepths[view]);
@@ -650,12 +638,12 @@ int main(int argc, char** argv) {
 
                     // save vertexBuffer
                     meshLayers[view].vertexBuffer.bind();
-                    std::vector<Vertex> vertices = meshLayers[view].vertexBuffer.getData<Vertex>();
+                    std::vector<QuadVertex> vertices = meshLayers[view].vertexBuffer.getData<QuadVertex>();
                     std::ofstream verticesFile(dataPath + verticesFileName, std::ios::binary);
-                    verticesFile.write((char*)vertices.data(), numVertices[view] * sizeof(Vertex));
+                    verticesFile.write((char*)vertices.data(), numVertices[view] * sizeof(QuadVertex));
                     verticesFile.close();
                     spdlog::info("Saved {} vertices ({:.3f} MB) for layer {}", numVertices[view],
-                                                (float)numVertices[view] * sizeof(Vertex) / BYTES_IN_MB, view);
+                                                (float)numVertices[view] * sizeof(QuadVertex) / BYTES_IN_MB, view);
 
                     // save indexBuffer
                     meshLayers[view].indexBuffer.bind();
@@ -664,7 +652,7 @@ int main(int argc, char** argv) {
                     indicesFile.write((char*)indices.data(), numIndicies[view] * sizeof(unsigned int));
                     indicesFile.close();
                     spdlog::info("Saved {} indicies ({:.3f} MB) for layer {}", numIndicies[view],
-                                                (float)numIndicies[view] * sizeof(Vertex) / BYTES_IN_MB, view);
+                                                (float)numIndicies[view] * sizeof(unsigned int) / BYTES_IN_MB, view);
 
                     // save color buffer
                     std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
