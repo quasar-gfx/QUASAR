@@ -1,3 +1,5 @@
+#include "cameraUtils.glsl"
+
 layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = THREADS_PER_LOCALGROUP, local_size_z = 1) in;
 
 layout(binding = 0) uniform sampler2D depthMap;
@@ -31,42 +33,6 @@ layout(std430, binding = 0) buffer VertexBufferDepth {
 layout(std430, binding = 1) buffer IndexBuffer {
     uint indices[];
 };
-
-vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
-    vec4 ndcPos;
-    ndcPos.xy = ndc;
-    ndcPos.z = depth * 2.0 - 1.0;
-    ndcPos.w = 1.0;
-
-    vec4 viewCoord = projectionInverse * ndcPos;
-    viewCoord = viewCoord / viewCoord.w;
-    return viewCoord.xyz;
-}
-
-vec3 viewToNDC(mat4 projection, vec3 viewCoord) {
-    vec4 ndcCoord = projection * vec4(viewCoord, 1.0);
-    ndcCoord = ndcCoord / ndcCoord.w;
-    ndcCoord.z = (ndcCoord.z + 1.0) / 2.0;
-    return ndcCoord.xyz;
-}
-
-vec3 viewToWorld(mat4 viewInverse, vec3 viewCoord) {
-    vec4 worldCoord = viewInverse * vec4(viewCoord, 1.0);
-    worldCoord = worldCoord / worldCoord.w;
-    return worldCoord.xyz;
-}
-
-vec3 worldToView(mat4 view, vec3 worldCoord) {
-    vec4 viewCoord = view * vec4(worldCoord, 1.0);
-    viewCoord = viewCoord / viewCoord.w;
-    return viewCoord.xyz;
-}
-
-vec2 viewToScreen(mat4 projection, vec3 viewCoord) {
-    vec2 ndc = viewToNDC(projection, viewCoord).xy;
-    vec2 uv = (ndc + 1.0) / 2.0;
-    return uv;
-}
 
 float sampleDepth(sampler2D depthMap, ivec2 sampleCoord) {
     float depth = texelFetch(depthMap, sampleCoord, 0).r;

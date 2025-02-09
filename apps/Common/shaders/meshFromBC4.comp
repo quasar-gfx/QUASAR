@@ -1,3 +1,5 @@
+#include "cameraUtils.glsl"
+
 layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = THREADS_PER_LOCALGROUP, local_size_z = 1) in;
 
 struct Vertex {
@@ -48,41 +50,6 @@ uniform bool unlinearizeDepth;
 
 #define VERTICES_IN_A_QUAD  4u
 #define INDICES_IN_A_QUAD   6u
-
-vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
-    vec4 ndcPos;
-    ndcPos.xy = ndc;
-    ndcPos.z = 2.0 * depth - 1.0;
-    ndcPos.w = 1.0;
-
-    vec4 viewCoord = projectionInverse * ndcPos;
-    viewCoord = viewCoord / viewCoord.w;
-    return viewCoord.xyz;
-}
-
-vec3 viewToWorld(mat4 viewInverse, vec3 viewCoord) {
-    vec4 worldCoord = viewInverse * vec4(viewCoord, 1.0);
-    worldCoord = worldCoord / worldCoord.w;
-    return worldCoord.xyz;
-}
-
-vec3 worldToView(mat4 view, vec3 worldCoord) {
-    vec4 viewCoord = view * vec4(worldCoord, 1.0);
-    viewCoord = viewCoord / viewCoord.w;
-    return viewCoord.xyz;
-}
-
-vec2 viewToNDC(mat4 projection, vec3 viewCoord) {
-    vec4 ndcCoord = projection * vec4(viewCoord, 1.0);
-    ndcCoord = ndcCoord / ndcCoord.w;
-    return ndcCoord.xy;
-}
-
-vec2 viewToScreen(mat4 projection, vec3 viewCoord) {
-    vec2 ndc = viewToNDC(projection, viewCoord).xy;
-    vec2 uv = (ndc + 1.0) / 2.0;
-    return uv;
-}
 
 float LinearizeDepth(float depth) {
     float z = depth * 2.0 - 1.0; // back to NDC
