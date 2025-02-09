@@ -62,18 +62,18 @@ public:
 
     bool indirectDraw = false;
 
-    Mesh() : vertexBuffer(GL_ARRAY_BUFFER, GL_STATIC_DRAW, sizeof(Vertex))
-            , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, sizeof(unsigned int)) {
+    Mesh() : vertexBuffer(GL_ARRAY_BUFFER, sizeof(Vertex))
+            , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)) {
         setArrayBufferAttributes(Vertex::getVertexInputAttributes(), sizeof(Vertex));
     }
     Mesh(const MeshDataCreateParams &params)
             : material(params.material)
             , IBL(params.IBL)
             , usage(params.usage)
-            , vertexBuffer(GL_ARRAY_BUFFER, params.usage, sizeof(Vertex))
-            , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, params.usage, sizeof(unsigned int))
+            , vertexBuffer(GL_ARRAY_BUFFER, sizeof(Vertex), params.usage)
+            , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int), params.usage)
             , indirectDraw(params.indirectDraw)
-            , indirectBuffer(GL_DRAW_INDIRECT_BUFFER, params.usage, sizeof(DrawElementsIndirectCommand))
+            , indirectBuffer(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawElementsIndirectCommand), params.usage)
             , vertexSize(params.vertexSize)
             , attributes(params.attributes) {
         setArrayBufferAttributes(params.attributes, params.vertexSize);
@@ -90,10 +90,10 @@ public:
             : material(params.material)
             , IBL(params.IBL)
             , usage(params.usage)
-            , vertexBuffer(GL_ARRAY_BUFFER, params.usage, sizeof(Vertex))
-            , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, params.usage, sizeof(unsigned int))
+            , vertexBuffer(GL_ARRAY_BUFFER, sizeof(Vertex), params.usage)
+            , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int), params.usage)
             , indirectDraw(params.indirectDraw)
-            , indirectBuffer(GL_DRAW_INDIRECT_BUFFER, params.usage, sizeof(DrawElementsIndirectCommand))
+            , indirectBuffer(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawElementsIndirectCommand), params.usage)
             , vertexSize(params.vertexSize)
             , attributes(params.attributes) {
         setArrayBufferAttributes(params.attributes, params.vertexSize);
