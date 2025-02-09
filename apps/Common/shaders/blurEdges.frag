@@ -1,3 +1,5 @@
+#include "toneMap.glsl"
+
 out vec4 FragColor;
 
 in vec2 TexCoords;
@@ -11,16 +13,11 @@ uniform usampler2D idBuffer;
 #define MAX_DEPTH 0.9999
 
 uniform bool toneMap = true;
-uniform bool gammaCorrect = true;
 uniform float exposure = 1.0;
 
 uniform float depthThreshold;
 
 uniform int searchRadius = 3;
-
-vec3 linearToSRGB(vec3 color) {
-    return mix(pow(color, vec3(1.0 / 2.4)) * 1.055 - 0.055, color * 12.92, lessThanEqual(color, vec3(0.0031308)));
-}
 
 void main() {
     vec3 color = texture(screenColor, TexCoords).rgb;
@@ -76,11 +73,8 @@ void main() {
     }
 
     if (toneMap) {
-        vec3 toneMappedResult = vec3(1.0) - exp(-color * exposure);
-        color = toneMappedResult;
-        if (gammaCorrect) {
-            color = linearToSRGB(color);
-        }
+        color = applyToneMapExponential(color, exposure);
+        color = linearToSRGB(color);
     }
 
     FragColor = vec4(color, 1.0);
