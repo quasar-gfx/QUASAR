@@ -28,16 +28,6 @@ enum class RenderState {
     POINTCLOUD
 };
 
-// Function to calculate MSE
-double calculateMSE(const std::vector<float>& original, const std::vector<float>& decompressed) {
-    double mse = 0.0;
-    for (size_t i = 0; i < original.size(); ++i) {
-        double diff = original[i] - decompressed[i];
-        mse += diff * diff;
-    }
-    return mse / original.size();
-}
-
 int main(int argc, char** argv) {
     Config config{};
     config.title = "BC4 Compression";
@@ -155,7 +145,7 @@ int main(int argc, char** argv) {
     Mesh mesh = Mesh({
         .maxVertices = maxVertices,
         .maxIndices = maxIndices,
-        .material = new UnlitMaterial({ .baseColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f) }),
+        .material = new UnlitMaterial({ .baseColor = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f) }),
         .usage = GL_DYNAMIC_DRAW
     });
     Node node = Node(&mesh);
@@ -167,7 +157,7 @@ int main(int argc, char** argv) {
     Mesh meshDecompressed = Mesh({
         .maxVertices = maxVertices,
         .maxIndices = maxIndices,
-        .material = new UnlitMaterial({ .baseColor = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) }),
+        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
         .usage = GL_DYNAMIC_DRAW
     });
     Node nodeDecompressed = Node(&meshDecompressed);
@@ -254,7 +244,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::TextColored(ImVec4(0,0,0,1), "Original Depth Buffer");
+            ImGui::TextColored(ImVec4(0,0,1,1), "Original Depth Buffer");
             ImGui::TextColored(ImVec4(1,1,0,1), "Decompressed Depth Buffer");
 
             ImGui::Separator();
@@ -368,8 +358,8 @@ int main(int argc, char** argv) {
             meshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
         }
         // dispatch compute shader to generate vertices for mesh
-        genMeshFromBC4Shader.dispatch((adjustedWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                      (adjustedWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+        meshFromDepthShader.dispatch((adjustedWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                     (adjustedWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
         meshFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
                                           GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 

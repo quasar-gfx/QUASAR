@@ -95,7 +95,7 @@ void main() {
     verticesDepth[shaderIndex].color = vec3(1.0, 1.0, 1.0);
     verticesDepth[shaderIndex].texCoords = viewToScreen(projection, pixelCoordsViewCenter);
 
-    if (pixelCoord.x < depthMapSize.x - surfelSize && pixelCoord.y < depthMapSize.y - surfelSize) {
+    if (pixelCoord.x < size.x - surfelSize && pixelCoord.y < size.y - surfelSize) {
         /************************
 
                 tl -- tr
