@@ -17,24 +17,22 @@ sudo apt-get install \
     libswresample-dev \
     libavfilter-dev
 ```
-NVIDIA GPUs are highly reccomended. Ensure you have CUDA.
+NVIDIA GPUs are highly reccomended. Ensure you have CUDA. Tested on CUDA 12 and up.
 
-Optional: Follow instructions [here](https://docs.nvidia.com/video-technologies/video-codec-sdk/12.0/ffmpeg-with-nvidia-gpu/index.html) for installing FFMPEG from source with CUDA.
+Optional: Follow instructions [here](https://docs.nvidia.com/video-technologies/video-codec-sdk/12.0/ffmpeg-with-nvidia-gpu/index.html) for installing FFMPEG from source with CUDA hardware acceleration.
 
 ```
-# Mac (not reccomended for streaming, but works)
+# Mac (works best as a client for receiving and viewing streams, and not reccomended for streaming)
 brew install cmake glew ffmpeg
 ```
 
 # Building
 ```
-mkdir build
-cd build
-cmake ..
-make -j
+mkdir build ; cd build
+cmake ..; make -j
 ```
 
-In the `build` directory, there will be a folder called `apps`,
+In the `build` directory, there will be a folder called `apps`.
 
 # Sample Apps
 
@@ -51,7 +49,16 @@ cd apps/scene_viewer
 
 ## Asynchronous Time Warp (ATW)
 
+The ATW app warps a previously rendered frame on a plane using a homography.
+
 Build ATW sample:
+
+To run the simulator:
+```
+# in build directory
+cd apps/atw/simulator
+./atw_simulator --size 1920x1080 --scene ../assets/scenes/sponza.json
+```
 
 To run streamer:
 ```
@@ -69,7 +76,14 @@ cd apps/atw/receiver
 
 ## MeshWarp
 
-To run MeshWarp sample:
+The MeshWarp app warps a previously rendered frame by using a depth map to create a texture-mapped mesh.
+
+To run the simulator:
+```
+# in build directory
+cd apps/meshwarp/simulator
+./meshwarp_simulator --size 1920x1080 --scene ../assets/scenes/sponza.json
+```
 
 To run streamer:
 ```
@@ -87,10 +101,33 @@ cd apps/meshwarp/receiver
 
 ## QuadWarp
 
-To run QuadWarp sample:
+The QuadWarp app warps a previously rendered frame by fitting a series of quads from a G-Buffer.
 
+To run the simulator:
 ```
 # in build directory
 cd apps/quadwarp/simulator
 ./quads_simulator --size 1920x1080 --scene ../assets/scenes/sponza.json
+```
+
+## Multi-Camera QuadWarp (QuadStream)
+
+The Multi app fits a series of quads from multiple G-Buffers from various camera views inside a headbox.
+
+To run the simulator:
+```
+# in build directory
+cd apps/multi/simulator
+./multi_simulator --size 1920x1080 --scene ../assets/scenes/sponza.json
+```
+
+## Depth Peeling QuadWarp with EDP
+
+The DP app fits a series of quads from multiple G-Buffers from various layers with fragment discarding determined by Effective Depth Peeling (EDP).
+
+To run the simulator:
+```
+# in build directory
+cd apps/dp/simulator
+./dp_simulator --size 1920x1080 --scene ../assets/scenes/sponza.json
 ```
