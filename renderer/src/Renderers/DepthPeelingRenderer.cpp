@@ -62,15 +62,18 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &ca
     RenderStats stats;
 
     if (edp) {
-        PBRMaterial::shader->bind();
-        PBRMaterial::shader->setInt("height", gBuffer.height);
-        PBRMaterial::shader->setFloat("E", viewSphereDiameter / 2.0f);
-        PBRMaterial::shader->setFloat("edpDelta", edpDelta);
-
-        UnlitMaterial::shader->bind();
-        UnlitMaterial::shader->setInt("height", gBuffer.height);
-        UnlitMaterial::shader->setFloat("E", viewSphereDiameter / 2.0f);
-        UnlitMaterial::shader->setFloat("edpDelta", edpDelta);
+        if (PBRMaterial::shader != nullptr) {
+            PBRMaterial::shader->bind();
+            PBRMaterial::shader->setInt("height", gBuffer.height);
+            PBRMaterial::shader->setFloat("E", viewSphereDiameter / 2.0f);
+            PBRMaterial::shader->setFloat("edpDelta", edpDelta);
+        }
+        if (UnlitMaterial::shader != nullptr) {
+            UnlitMaterial::shader->bind();
+            UnlitMaterial::shader->setInt("height", gBuffer.height);
+            UnlitMaterial::shader->setFloat("E", viewSphereDiameter / 2.0f);
+            UnlitMaterial::shader->setFloat("edpDelta", edpDelta);
+        }
     }
 
     for (int i = 0; i < maxLayers; i++) {
@@ -88,11 +91,14 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &ca
         }
 
         // set layer index in shaders
-        PBRMaterial::shader->bind();
-        PBRMaterial::shader->setInt("layerIndex", i);
-
-        UnlitMaterial::shader->bind();
-        UnlitMaterial::shader->setInt("layerIndex", i);
+        if (PBRMaterial::shader != nullptr) {
+            PBRMaterial::shader->bind();
+            PBRMaterial::shader->setInt("layerIndex", i);
+        }
+        if (UnlitMaterial::shader != nullptr) {
+            UnlitMaterial::shader->bind();
+            UnlitMaterial::shader->setInt("layerIndex", i);
+        }
 
         // render scene
         for (auto& child : scene.rootNode.children) {
