@@ -47,8 +47,11 @@ public:
     }
 
     void copyToArray(int width, int height, int pitch, void* data) {
-        cudaArray* array = getArray();
-        CHECK_CUDA_ERROR(cudaMemcpy2DToArray(array, 0, 0, data, pitch, width, height, cudaMemcpyHostToDevice));
+        cudaArray* array;
+        map();
+        CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&array, cudaResource, 0, 0));
+        CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(data, pitch, array, 0, 0, width, height, cudaMemcpyDeviceToHost));
+        unmap();
     }
 
 private:

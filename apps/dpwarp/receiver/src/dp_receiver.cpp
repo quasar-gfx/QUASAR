@@ -38,10 +38,10 @@ int main(int argc, char** argv) {
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
-    args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "800x600");
+    args::Flag verbose(parser, "verbose", "Enable verbose logging", {'v', "verbose"});
+    args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "1920x1080");
     args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'V', "vsync"}, true);
-    args::Flag verbose(parser, "verbose", "Enable verbose logging", {'v', "verbose"});
     args::ValueFlag<int> maxLayersIn(parser, "layers", "Max layers", {'n', "max-layers"}, 4);
     args::Flag loadProxies(parser, "load-proxies", "Load proxies from quads.bin.zstd", {'m', "load-proxies"});
     args::Flag disableWideFov(parser, "disable-wide-fov", "Disable wide fov view", {'W', "disable-wide-fov"});
@@ -63,8 +63,9 @@ int main(int argc, char** argv) {
     // parse size
     std::string sizeStr = args::get(sizeIn);
     size_t pos = sizeStr.find('x');
-    config.width = std::stoi(sizeStr.substr(0, pos));
-    config.height = std::stoi(sizeStr.substr(pos + 1));
+    glm::uvec2 windowSize = glm::uvec2(std::stoi(sizeStr.substr(0, pos)), std::stoi(sizeStr.substr(pos + 1)));
+    config.width = windowSize.x;
+    config.height = windowSize.y;
 
     config.enableVSync = args::get(vsyncIn);
 
@@ -81,8 +82,6 @@ int main(int argc, char** argv) {
 
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
-
-    glm::uvec2 windowSize = window->getSize();
     glm::uvec2 halfWindowSize = windowSize / 2u;
 
     Scene scene;
