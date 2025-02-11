@@ -23,8 +23,7 @@ extern "C" {
 #include <Renderers/OpenGLRenderer.h>
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-#include <cuda_gl_interop.h>
-#include <Utils/CudaUtils.h>
+#include <CudaGLInterop/CudaGLImage.h>
 #endif
 
 class Recorder {
@@ -51,14 +50,11 @@ public:
             })
             , targetFrameRate(targetFrameRate)
             , numThreads(numThreads)
-            , outputPath(outputPath) {
+            , outputPath(outputPath)
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-        cudautils::checkCudaDevice();
-        // register opengl texture with cuda
-        CHECK_CUDA_ERROR(cudaGraphicsGLRegisterImage(&cudaResource,
-                                                    renderTargetCopy.colorBuffer.ID, GL_TEXTURE_2D,
-                                                    cudaGraphicsRegisterFlagsReadOnly));
+            , cudaImage(renderTargetCopy.colorBuffer)
 #endif
+            {
     }
     Recorder(OpenGLRenderer &renderer, Shader &shader, int targetFrameRate = 30, unsigned int numThreads = 8)
         : Recorder(renderer, shader, ".", targetFrameRate) { }
@@ -109,7 +105,7 @@ private:
     int64_t recordingStartTime;
     int64_t lastCaptureTime;
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-    cudaGraphicsResource* cudaResource;
+    CudaGLImage cudaImage;
 #endif
 
     AVFormatContext* outputFormatCtx = nullptr;

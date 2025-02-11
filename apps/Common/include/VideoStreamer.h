@@ -9,9 +9,6 @@ extern "C" {
 #include <libavutil/opt.h>
 #include <libavutil/imgutils.h>
 #include <libavutil/avutil.h>
-#if !defined(__APPLE__) && !defined(__ANDROID__)
-#include <libavutil/hwcontext_cuda.h>
-#endif
 }
 
 #include <atomic>
@@ -25,8 +22,7 @@ extern "C" {
 #include <CameraPose.h>
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-#include <cuda_gl_interop.h>
-#include <Utils/CudaUtils.h>
+#include <CudaGLInterop/CudaGLImage.h>
 #endif
 
 class VideoStreamer : public RenderTarget {
@@ -96,7 +92,7 @@ private:
     void packPoseIDIntoVideoFrame(pose_id_t poseID);
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-    cudaGraphicsResource* cudaResource;
+    CudaGLImage cudaGLImage;
 
     struct CudaBuffer {
         pose_id_t poseID;
@@ -121,9 +117,6 @@ private:
     std::atomic_bool sendFrames = false;
     bool shouldTerminate = false;
 
-#if !defined(__APPLE__) && !defined(__ANDROID__)
-    int initCuda();
-#endif
     void encodeAndSendFrames();
 };
 

@@ -14,13 +14,11 @@
 #include <CameraPose.h>
 
 #include <Shaders/ComputeShader.h>
+#include <Compression/ZSTDCompressor.h>
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-#include <cuda_gl_interop.h>
-#include <Utils/CudaUtils.h>
+#include <CudaGLInterop/CudaGLBuffer.h>
 #endif
-
-#include <Compression/ZSTDCompressor.h>
 
 class BC4DepthStreamer : public RenderTarget {
 public:
@@ -33,6 +31,8 @@ public:
 
     std::string receiverURL;
     unsigned int compressedSize;
+
+    unsigned int width, height;
 
     struct Stats {
         float timeToCopyFrameMs = -1.0f;
@@ -69,7 +69,7 @@ private:
     void compressBC4();
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-    cudaGraphicsResource* cudaResource;
+    CudaGLBuffer cudaBufferBc4;
 
     struct CudaBuffer {
         pose_id_t poseID;

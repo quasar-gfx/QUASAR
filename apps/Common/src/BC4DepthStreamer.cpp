@@ -28,8 +28,7 @@ BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams &params, std::
     bc4CompressedBuffer = Buffer(GL_SHADER_STORAGE_BUFFER, compressedSize, sizeof(Block), nullptr, GL_DYNAMIC_DRAW);
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-    cudautils::checkCudaDevice();
-    CHECK_CUDA_ERROR(cudaGraphicsGLRegisterBuffer(&cudaResource, bc4CompressedBuffer, cudaGraphicsRegisterFlagsNone));
+    cudaBufferBc4.registerBuffer(bc4CompressedBuffer);
 
     running = true;
     dataSendingThread = std::thread(&BC4DepthStreamer::sendData, this);
@@ -51,9 +50,6 @@ void BC4DepthStreamer::close() {
     if (dataSendingThread.joinable()) {
         dataSendingThread.join();
     }
-
-    cudaDeviceSynchronize();
-    CHECK_CUDA_ERROR(cudaGraphicsUnregisterResource(cudaResource));
 #endif
 }
 
@@ -76,11 +72,7 @@ void BC4DepthStreamer::sendFrame(pose_id_t poseID) {
     compressBC4();
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-    void* cudaPtr;
-    size_t size;
-    CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
-    CHECK_CUDA_ERROR(cudaGraphicsResourceGetMappedPointer(&cudaPtr, &size, cudaResource));
-    CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
+    void* cudaPtr = cudaBufferBc4.getPtr();
 
     {
         std::lock_guard<std::mutex> lock(m);

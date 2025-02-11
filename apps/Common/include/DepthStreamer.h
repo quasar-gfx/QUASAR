@@ -10,8 +10,7 @@
 #include <CameraPose.h>
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-#include <cuda_gl_interop.h>
-#include <Utils/CudaUtils.h>
+#include <CudaGLInterop/CudaGLImage.h>
 #endif
 
 class DepthStreamer : public RenderTarget {
@@ -49,10 +48,10 @@ private:
     DataStreamerTCP streamer;
 
     std::vector<char> data;
-    RenderTarget* renderTargetCopy;
+    RenderTarget renderTargetCopy;
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-    cudaGraphicsResource* cudaResource;
+    CudaGLImage cudaImage;
 
     struct CudaBuffer {
         pose_id_t poseID;

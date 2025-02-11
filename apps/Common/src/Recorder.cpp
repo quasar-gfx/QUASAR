@@ -100,23 +100,16 @@ void Recorder::captureFrame(const Camera &camera) {
     std::vector<uint8_t> renderTargetData(renderTargetCopy.width * renderTargetCopy.height * 4);
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-    cudaArray* cudaBuffer;
-    CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
-    CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
-    CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(renderTargetData.data(),
-                                            renderTargetCopy.width * 4,
-                                            cudaBuffer,
-                                            0, 0,
-                                            renderTargetCopy.width * 4, renderTargetCopy.height,
-                                            cudaMemcpyDeviceToHost));
-    CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
+    cudaImage.copyToArray(
+        renderTargetCopy.width * 4, renderTargetCopy.height, renderTargetCopy.width * 4, renderTargetData.data());
 #else
     renderTargetCopy.readPixels(renderTargetData.data());
 #endif
 
     {
         std::lock_guard<std::mutex> lock(queueMutex);
-        frameQueue.push(FrameData{frameCount, camera.getPosition(), camera.getRotationEuler(), renderTargetData, elapsedTime});
+        frameQueue.push(
+            FrameData{frameCount, camera.getPosition(), camera.getRotationEuler(), renderTargetData, elapsedTime});
     }
     queueCV.notify_one();
 

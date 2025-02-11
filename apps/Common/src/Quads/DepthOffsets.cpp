@@ -13,32 +13,16 @@ DepthOffsets::DepthOffsets(const glm::uvec2 &size)
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST
     })
+#if !defined(__APPLE__) && !defined(__ANDROID__)
+    , cudaImage(buffer)
+#endif
     , data(size.x * size.y * 4 * sizeof(uint16_t)) {
-#if !defined(__APPLE__) && !defined(__ANDROID__)
-    cudautils::checkCudaDevice();
-    // register opengl texture with cuda
-    CHECK_CUDA_ERROR(cudaGraphicsGLRegisterImage(&cudaResource,
-                                                buffer, GL_TEXTURE_2D,
-                                                cudaGraphicsRegisterFlagsReadOnly));
-#endif
-}
 
-DepthOffsets::~DepthOffsets() {
-#if !defined(__APPLE__) && !defined(__ANDROID__)
-    CHECK_CUDA_ERROR(cudaGraphicsUnregisterResource(cudaResource));
-#endif
 }
 
 unsigned int DepthOffsets::loadFromMemory(const char* data) {
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-    cudaArray* cudaBuffer;
-    CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
-    CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
-    CHECK_CUDA_ERROR(cudaMemcpy2DToArray(cudaBuffer, 0, 0,
-                                         data, size.x * 4 * sizeof(uint16_t),
-                                         size.x * 4 * sizeof(uint16_t), size.y,
-                                         cudaMemcpyHostToDevice));
-    CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
+    cudaImage.copyToArray(size.x * 4 * sizeof(uint16_t), size.y, size.x * 4 * sizeof(uint16_t), (void*)data);
 #else
     buffer.setData(size.x, size.y, data);
 #endif
@@ -64,32 +48,13 @@ unsigned int DepthOffsets::loadFromFile(const std::string &filename, unsigned in
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
 unsigned int DepthOffsets::saveToMemory(std::vector<char> &compressedData) {
-    cudaArray* cudaBuffer;
-    CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
-    CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
-    CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
-    CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(data.data(),
-                                          size.x * 4 * sizeof(uint16_t),
-                                          cudaBuffer,
-                                          0, 0,
-                                          size.x * 4 * sizeof(uint16_t), size.y,
-                                          cudaMemcpyDeviceToHost));
-
+    cudaImage.copyToArray(size.x * 4 * sizeof(uint16_t), size.y, size.x * 4 * sizeof(uint16_t), data.data());
     compressedData.resize(data.size());
     return compressor.compress(data.data(), compressedData, data.size());
 }
 
 unsigned int DepthOffsets::saveToFile(const std::string &filename) {
-    cudaArray* cudaBuffer;
-    CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
-    CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
-    CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
-    CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(data.data(),
-                                            size.x * 4 * sizeof(uint16_t),
-                                            cudaBuffer,
-                                            0, 0,
-                                            size.x * 4 * sizeof(uint16_t), size.y,
-                                            cudaMemcpyDeviceToHost));
+    cudaImage.copyToArray(size.x * 4 * sizeof(uint16_t), size.y, size.x * 4 * sizeof(uint16_t), data.data());
 
     std::vector<char> compressedData;
     unsigned int outputSize = saveToMemory(compressedData);

@@ -6,30 +6,24 @@ DepthStreamer::DepthStreamer(const RenderTargetCreateParams &params, std::string
         : receiverURL(receiverURL)
         , imageSize(params.width * params.height * sizeof(GLushort))
         , streamer(receiverURL)
-        , RenderTarget(params) {
-    data = std::vector<char>(sizeof(pose_id_t) + imageSize);
-
-    renderTargetCopy = new RenderTarget({
-        .width = width,
-        .height = height,
-        .internalFormat = colorBuffer.internalFormat,
-        .format = colorBuffer.format,
-        .type = colorBuffer.type,
-        .wrapS = colorBuffer.wrapS,
-        .wrapT = colorBuffer.wrapT,
-        .minFilter = colorBuffer.minFilter,
-        .magFilter = colorBuffer.magFilter,
-        .multiSampled = colorBuffer.multiSampled
-    });
-
+        , data(std::vector<char>(sizeof(pose_id_t) + imageSize))
+        , RenderTarget(params)
+        , renderTargetCopy({
+            .width = width,
+            .height = height,
+            .internalFormat = colorBuffer.internalFormat,
+            .format = colorBuffer.format,
+            .type = colorBuffer.type,
+            .wrapS = colorBuffer.wrapS,
+            .wrapT = colorBuffer.wrapT,
+            .minFilter = colorBuffer.minFilter,
+            .magFilter = colorBuffer.magFilter,
+            .multiSampled = colorBuffer.multiSampled
+        }) {
     spdlog::info("Created DepthStreamer that sends to URL: {}", receiverURL);
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-    cudautils::checkCudaDevice();
-    // register opengl texture with cuda
-    CHECK_CUDA_ERROR(cudaGraphicsGLRegisterImage(&cudaResource,
-                                                 renderTargetCopy->colorBuffer.ID, GL_TEXTURE_2D,
-                                                 cudaGraphicsRegisterFlagsReadOnly));
+    cudaImage.registerTexture(renderTargetCopy.colorBuffer);
 
     // start data sending thread
     running = true;
@@ -48,24 +42,17 @@ void DepthStreamer::close() {
     if (dataSendingThread.joinable()) {
         dataSendingThread.join();
     }
-
-    cudaDeviceSynchronize();
-    CHECK_CUDA_ERROR(cudaGraphicsUnregisterResource(cudaResource));
 #endif
 }
 
 void DepthStreamer::sendFrame(pose_id_t poseID) {
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     bind();
-    blitToRenderTarget(*renderTargetCopy);
+    blitToRenderTarget(renderTargetCopy);
     unbind();
 
     // add cuda buffer
-    cudaArray* cudaBuffer;
-    CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
-    CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
-    CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
-
+    cudaArray* cudaBuffer = cudaImage.getArray();
     {
         // lock mutex
         std::lock_guard<std::mutex> lock(m);

@@ -13,21 +13,13 @@ QuadBuffers::QuadBuffers(unsigned int maxProxies)
         , normalSphericalsBuffer(GL_SHADER_STORAGE_BUFFER, maxProxies, sizeof(unsigned int), nullptr, GL_DYNAMIC_COPY)
         , depthsBuffer(GL_SHADER_STORAGE_BUFFER, maxProxies, sizeof(float), nullptr, GL_DYNAMIC_COPY)
         , offsetSizeFlattenedsBuffer(GL_SHADER_STORAGE_BUFFER, maxProxies, sizeof(unsigned int), nullptr, GL_DYNAMIC_COPY)
+#if !defined(__APPLE__) && !defined(__ANDROID__)
+        , cudaBufferNormalSphericals(normalSphericalsBuffer)
+        , cudaBufferDepths(depthsBuffer)
+        , cudaBufferOffsetSizeFlatteneds(offsetSizeFlattenedsBuffer)
+#endif
         , data(sizeof(unsigned int) + maxProxies * sizeof(QuadMapDataPacked)) {
-#if !defined(__APPLE__) && !defined(__ANDROID__)
-    cudautils::checkCudaDevice();
-    CHECK_CUDA_ERROR(cudaGraphicsGLRegisterBuffer(&cudaResourceNormalSphericals, normalSphericalsBuffer, cudaGraphicsRegisterFlagsNone));
-    CHECK_CUDA_ERROR(cudaGraphicsGLRegisterBuffer(&cudaResourceDepths, depthsBuffer, cudaGraphicsRegisterFlagsNone));
-    CHECK_CUDA_ERROR(cudaGraphicsGLRegisterBuffer(&cudaResourceOffsetSizeFlatteneds, offsetSizeFlattenedsBuffer, cudaGraphicsRegisterFlagsNone));
-#endif
-}
 
-QuadBuffers::~QuadBuffers() {
-#if !defined(__APPLE__) && !defined(__ANDROID__)
-    CHECK_CUDA_ERROR(cudaGraphicsUnregisterResource(cudaResourceNormalSphericals));
-    CHECK_CUDA_ERROR(cudaGraphicsUnregisterResource(cudaResourceDepths));
-    CHECK_CUDA_ERROR(cudaGraphicsUnregisterResource(cudaResourceOffsetSizeFlatteneds));
-#endif
 }
 
 void QuadBuffers::resize(unsigned int numProxies) {
@@ -112,26 +104,19 @@ unsigned int QuadBuffers::updateDataBuffer() {
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     void* cudaPtr;
-    size_t size;
 
     memcpy(data.data(), &numProxies, sizeof(unsigned int));
     bufferOffset += sizeof(unsigned int);
 
-    CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResourceNormalSphericals));
-    CHECK_CUDA_ERROR(cudaGraphicsResourceGetMappedPointer(&cudaPtr, &size, cudaResourceNormalSphericals));
-    CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResourceNormalSphericals));
+    cudaPtr = cudaBufferNormalSphericals.getPtr();
     CHECK_CUDA_ERROR(cudaMemcpy(data.data() + bufferOffset, cudaPtr, numProxies * sizeof(unsigned int), cudaMemcpyDeviceToHost));
     bufferOffset += numProxies * sizeof(unsigned int);
 
-    CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResourceDepths));
-    CHECK_CUDA_ERROR(cudaGraphicsResourceGetMappedPointer(&cudaPtr, &size, cudaResourceDepths));
-    CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResourceDepths));
+    cudaPtr = cudaBufferDepths.getPtr();
     CHECK_CUDA_ERROR(cudaMemcpy(data.data() + bufferOffset, cudaPtr, numProxies * sizeof(float), cudaMemcpyDeviceToHost));
     bufferOffset += numProxies * sizeof(float);
 
-    CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResourceOffsetSizeFlatteneds));
-    CHECK_CUDA_ERROR(cudaGraphicsResourceGetMappedPointer(&cudaPtr, &size, cudaResourceOffsetSizeFlatteneds));
-    CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResourceOffsetSizeFlatteneds));
+    cudaPtr = cudaBufferOffsetSizeFlatteneds.getPtr();
     CHECK_CUDA_ERROR(cudaMemcpy(data.data() + bufferOffset, cudaPtr, numProxies * sizeof(unsigned int), cudaMemcpyDeviceToHost));
     bufferOffset += numProxies * sizeof(unsigned int);
 #else

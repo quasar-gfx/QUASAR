@@ -22,7 +22,11 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params,
         : targetFrameRate(targetFrameRate)
         , targetBitRate(targetBitRateMbps * BYTES_IN_MB)
         , formatName(formatName)
-        , RenderTarget(params) {
+        , RenderTarget(params)
+#if !defined(__APPLE__) && !defined(__ANDROID__)
+        , cudaGLImage(colorBuffer)
+#endif
+        {
     this->videoURL = (formatName == "mpegts") ?
                         "udp://" + videoURL :
                             formatName + "://" + videoURL;
@@ -44,12 +48,6 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params,
 
     int ret;
 
-#if !defined(__APPLE__) && !defined(__ANDROID__)
-    ret = initCuda();
-    if (ret < 0) {
-        throw std::runtime_error("Error: Couldn't initialize CUDA");
-    }
-#endif
 
     /* Setup codec to encode output (video to URL) */
 #ifdef __APPLE__
@@ -171,17 +169,6 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params,
     videoStreamerThread = std::thread(&VideoStreamer::encodeAndSendFrames, this);
 }
 
-#if !defined(__APPLE__) && !defined(__ANDROID__)
-int VideoStreamer::initCuda() {
-    cudautils::checkCudaDevice();
-    // register opengl texture with cuda
-    CHECK_CUDA_ERROR(cudaGraphicsGLRegisterImage(&cudaResource,
-                                                 renderTargetCopy->colorBuffer.ID, GL_TEXTURE_2D,
-                                                 cudaGraphicsRegisterFlagsReadOnly));
-    return 0;
-}
-#endif
-
 void VideoStreamer::sendFrame(pose_id_t poseID) {
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     bind();
@@ -189,11 +176,7 @@ void VideoStreamer::sendFrame(pose_id_t poseID) {
     unbind();
 
     // add cuda buffer
-    cudaArray* cudaBuffer;
-    CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource));
-    CHECK_CUDA_ERROR(cudaGraphicsSubResourceGetMappedArray(&cudaBuffer, cudaResource, 0, 0));
-    CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource));
-
+    cudaArray* cudaBuffer = cudaGLImage.getArray();
     {
         // lock mutex
         std::lock_guard<std::mutex> lock(m);
@@ -371,11 +354,6 @@ VideoStreamer::~VideoStreamer() {
     avio_closep(&outputFormatCtx->pb);
     avformat_close_input(&outputFormatCtx);
     avformat_free_context(outputFormatCtx);
-
-#if !defined(__APPLE__) && !defined(__ANDROID__)
-    cudaDeviceSynchronize();
-    CHECK_CUDA_ERROR(cudaGraphicsUnregisterResource(cudaResource));
-#endif
 
     av_frame_free(&frame);
     av_packet_unref(packet);

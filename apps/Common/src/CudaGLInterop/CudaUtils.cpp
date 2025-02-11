@@ -2,7 +2,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include <Utils/CudaUtils.h>
+#include <CudaGLInterop/CudaUtils.h>
 
 CUdevice cudautils::gDevice = -1;
 

@@ -9,12 +9,10 @@
 
 #include <Texture.h>
 #include <Utils/FileIO.h>
-
 #include <Compression/ZSTDCompressor.h>
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-#include <cuda_gl_interop.h>
-#include <Utils/CudaUtils.h>
+#include <CudaGLInterop/CudaGLImage.h>
 #endif
 
 class DepthOffsets {
@@ -23,7 +21,7 @@ public:
     Texture buffer;
 
     DepthOffsets(const glm::uvec2 &size);
-    ~DepthOffsets();
+    ~DepthOffsets() = default;
 
     unsigned int loadFromMemory(const char* data);
     unsigned int loadFromFile(const std::string &filename, unsigned int* numBytesLoaded = nullptr);
@@ -39,7 +37,7 @@ private:
     std::vector<char> data;
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-    cudaGraphicsResource* cudaResource;
+    CudaGLImage cudaImage;
 #endif
 };
 

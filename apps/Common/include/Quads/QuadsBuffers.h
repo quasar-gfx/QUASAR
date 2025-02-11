@@ -5,12 +5,10 @@
 
 #include <Buffer.h>
 #include <Utils/FileIO.h>
-
 #include <Compression/ZSTDCompressor.h>
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-#include <cuda_gl_interop.h>
-#include <Utils/CudaUtils.h>
+#include <CudaGLInterop/CudaGLBuffer.h>
 #endif
 
 struct QuadMapData {
@@ -46,7 +44,7 @@ public:
     Buffer offsetSizeFlattenedsBuffer;
 
     QuadBuffers(unsigned int maxProxies);
-    ~QuadBuffers();
+    ~QuadBuffers() = default;
 
     void resize(unsigned int numProxies);
 
@@ -64,9 +62,9 @@ private:
     std::vector<char> data;
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-    cudaGraphicsResource* cudaResourceNormalSphericals;
-    cudaGraphicsResource* cudaResourceDepths;
-    cudaGraphicsResource* cudaResourceOffsetSizeFlatteneds;
+    CudaGLBuffer cudaBufferNormalSphericals;
+    CudaGLBuffer cudaBufferDepths;
+    CudaGLBuffer cudaBufferOffsetSizeFlatteneds;
 #endif
 };
 
