@@ -6,6 +6,7 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libswscale/swscale.h>
 #include <libavutil/time.h>
+#include <libavutil/opt.h>
 #include <libavutil/imgutils.h>
 }
 
@@ -18,6 +19,8 @@ extern "C" {
 #include <string>
 #include <vector>
 #include <filesystem>
+
+#include <BS_thread_pool/BS_thread_pool.hpp>
 
 #include <RenderTargets/RenderTarget.h>
 #include <Renderers/OpenGLRenderer.h>
@@ -34,7 +37,9 @@ public:
         JPG,
     };
 
-    Recorder(OpenGLRenderer &renderer, Shader &shader, const std::string& outputPath, int targetFrameRate = 30, unsigned int numThreads = 8)
+    int targetFrameRate;
+
+    Recorder(OpenGLRenderer &renderer, Shader &shader, const std::string& outputPath, int targetFrameRate = 60, unsigned int numThreads = 8)
             : renderer(renderer)
             , shader(shader)
             , renderTargetCopy({
@@ -50,13 +55,14 @@ public:
             })
             , targetFrameRate(targetFrameRate)
             , numThreads(numThreads)
+            , saveThreadPool(numThreads)
             , outputPath(outputPath)
 #if !defined(__APPLE__) && !defined(__ANDROID__)
             , cudaImage(renderTargetCopy.colorBuffer)
 #endif
             {
     }
-    Recorder(OpenGLRenderer &renderer, Shader &shader, int targetFrameRate = 30, unsigned int numThreads = 8)
+    Recorder(OpenGLRenderer &renderer, Shader &shader, int targetFrameRate = 60, unsigned int numThreads = 8)
         : Recorder(renderer, shader, ".", targetFrameRate) { }
     ~Recorder();
 
@@ -95,13 +101,12 @@ private:
 
     std::atomic<bool> running{false};
     std::atomic<int> frameCount{0};
-    std::vector<std::thread> saveThreadPool;
+    BS::thread_pool saveThreadPool;
     std::queue<FrameData> frameQueue;
     std::mutex queueMutex;
     std::mutex swsMutex;
     std::condition_variable queueCV;
 
-    int targetFrameRate;
     int64_t recordingStartTime;
     int64_t lastCaptureTime;
 #if !defined(__APPLE__) && !defined(__ANDROID__)

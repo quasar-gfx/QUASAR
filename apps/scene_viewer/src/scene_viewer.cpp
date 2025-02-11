@@ -132,7 +132,6 @@ int main(int argc, char** argv) {
         static bool showRecordWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
-        static int recordingFPS = 30;
         static int recordingFormatIndex = 0;
         static const char* formats[] = { "MP4", "PNG", "JPG" };
         static char recordingDirBase[256] = "recordings";
@@ -264,8 +263,8 @@ int main(int argc, char** argv) {
             ImGui::InputText("##output directory", recordingDirBase, IM_ARRAYSIZE(recordingDirBase));
 
             ImGui::Text("FPS:");
-            if (ImGui::InputInt("##fps", &recordingFPS)) {
-                recorder.setTargetFrameRate(recordingFPS);
+            if (ImGui::InputInt("##fps", &recorder.targetFrameRate)) {
+                recorder.setTargetFrameRate(recorder.targetFrameRate);
             }
 
             ImGui::Text("Format:");

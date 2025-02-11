@@ -61,7 +61,7 @@ void Recorder::start() {
     }
 
     for (int i = 0; i < numThreads; ++i) {
-        saveThreadPool.emplace_back(&Recorder::saveFrames, this);
+        saveThreadPool.push_task(&Recorder::saveFrames, this);
     }
 }
 
@@ -72,12 +72,7 @@ void Recorder::stop() {
 
     running = false;
     queueCV.notify_all();
-    for (auto& thread : saveThreadPool) {
-        if (thread.joinable()) {
-            thread.join();
-        }
-    }
-    saveThreadPool.clear();
+    saveThreadPool.wait_for_tasks();
 
     if (outputFormat == OutputFormat::MP4) {
         finalizeFFmpeg();
@@ -109,7 +104,8 @@ void Recorder::captureFrame(const Camera &camera) {
     {
         std::lock_guard<std::mutex> lock(queueMutex);
         frameQueue.push(
-            FrameData{frameCount, camera.getPosition(), camera.getRotationEuler(), renderTargetData, elapsedTime});
+            FrameData{
+                frameCount, camera.getPosition(), camera.getRotationEuler(), std::move(renderTargetData), elapsedTime});
     }
     queueCV.notify_one();
 
@@ -152,6 +148,7 @@ void Recorder::saveFrames() {
             if (!running && frameQueue.empty()) {
                 break;
             }
+
             frameData = std::move(frameQueue.front());
             frameQueue.pop();
         }
@@ -160,14 +157,12 @@ void Recorder::saveFrames() {
         auto &renderTargetData = frameData.data;
 
         if (outputFormat == OutputFormat::MP4) {
-#if !defined(__APPLE__) && !defined(__ANDROID__)
             for (int y = 0; y < renderTargetCopy.height / 2; ++y) {
                 for (int x = 0; x < renderTargetCopy.width * 4; ++x) {
                     std::swap(renderTargetData[y * renderTargetCopy.width * 4 + x],
                               renderTargetData[(renderTargetCopy.height - 1 - y) * renderTargetCopy.width * 4 + x]);
                 }
             }
-#endif
 
             {
                 std::unique_lock<std::mutex> lock(swsMutex);
@@ -258,9 +253,13 @@ void Recorder::initializeFFmpeg() {
     codecCtx->height = renderTargetCopy.height;
     codecCtx->time_base = (AVRational){1, targetFrameRate};
     codecCtx->framerate = (AVRational){targetFrameRate, 1};
-    codecCtx->bit_rate = 10 * BYTES_IN_MB;
-    codecCtx->gop_size = 12;
-    codecCtx->max_b_frames = 1;
+    codecCtx->bit_rate = 30 * BYTES_IN_MB;
+    codecCtx->max_b_frames = 2;
+    codecCtx->gop_size = 20;
+
+    av_opt_set(codecCtx->priv_data, "crf", "18", 0);
+    av_opt_set(codecCtx->priv_data, "preset", "slow", 0);
+    av_opt_set(codecCtx->priv_data, "profile", "high", 0);
 
     int ret = avcodec_open2(codecCtx, outputCodec, nullptr);
     if (ret < 0) {

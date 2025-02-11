@@ -92,7 +92,6 @@ int main(int argc, char** argv) {
     std::string rsizeStr = args::get(resIn);
     pos = rsizeStr.find('x');
     glm::uvec2 remoteWindowSize = glm::uvec2(std::stoi(rsizeStr.substr(0, pos)), std::stoi(rsizeStr.substr(pos + 1)));
-    glm::uvec2 halfRemoteWindowSize = remoteWindowSize / 2u;
 
     config.enableVSync = args::get(vsyncIn);
     config.showWindow = !args::get(saveImage);
