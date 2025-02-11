@@ -470,20 +470,19 @@ void main() {
     if (alpha < material.maskThreshold)
         discard;
 
-    // metallic and roughness
-    float metallic;
-    float roughness;
+    // roughness and metallic properties
+    float roughness, metallic;
     if (material.metalRoughnessCombined) {
-        vec2 mr = texture(material.metallicMap, fsIn.TexCoords).rg;
-        metallic = (!material.hasMetallicMap) ? material.metallic : mr.r;
-        roughness = (!material.hasRoughnessMap) ? material.roughness : mr.g;
+        vec4 mrSample = texture(material.metallicMap, fsIn.TexCoords);
+        roughness = (!material.hasRoughnessMap) ? material.roughness : mrSample.g;
+        metallic = (!material.hasMetallicMap) ? material.metallic : mrSample.b;
     }
     else {
-        metallic = (!material.hasMetallicMap) ? material.metallic : texture(material.metallicMap, fsIn.TexCoords).r;
         roughness = (!material.hasRoughnessMap) ? material.roughness : texture(material.roughnessMap, fsIn.TexCoords).r;
+        metallic = (!material.hasMetallicMap) ? material.metallic : texture(material.metallicMap, fsIn.TexCoords).r;
     }
-    metallic = material.metallicFactor * metallic;
     roughness = material.roughnessFactor * roughness;
+    metallic = material.metallicFactor * metallic;
 
     // input lighting data
     vec3 N = getNormal();

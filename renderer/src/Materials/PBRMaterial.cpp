@@ -136,7 +136,7 @@ void PBRMaterial::bind() const {
             break;
         case 3:
             name = "material.roughnessMap";
-            shader->setBool("material.hasRoughnessMap", textures[i] != nullptr);
+            shader->setBool("material.hasRoughnessMap", !metalRoughnessCombined ? textures[i] != nullptr : textures[i-1] != nullptr);
             break;
         case 4:
             name = "material.aoMap";

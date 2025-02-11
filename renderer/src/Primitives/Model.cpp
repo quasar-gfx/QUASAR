@@ -338,25 +338,24 @@ void Model::processMaterial(const aiMaterial* aiMat, PBRMaterialCreateParams &ma
         materialParams.normalTexture = normalMap;
     }
 
-    // load metallic and roughness textures
-    if (aiMat->GetTexture(aiTextureType_METALNESS, 0, &MPath, nullptr,
-                        nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
-        Texture* metallicMap = loadMaterialTexture(aiMat, MPath);
-        materialParams.metallicTexture = metallicMap;
+    // if model is GLTF, try to load combined metallic-roughness texture
+    if (isGLTF && aiMat->GetTexture(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLICROUGHNESS_TEXTURE, &MRPath, nullptr,
+                                    nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
+        Texture* metallicRoughnessMap = loadMaterialTexture(aiMat, MRPath);
+        materialParams.metallicTexture = metallicRoughnessMap;
+        materialParams.metalRoughnessCombined = true;
     }
-    if (aiMat->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &RPath, nullptr,
-                        nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
-        Texture* roughnessMap = loadMaterialTexture(aiMat, RPath);
-        materialParams.roughnessTexture = roughnessMap;
-    }
-    // if is GLTF and metallic and roughness textures are not set, try to load combined metallic-roughness texture
-    if (isGLTF &&
-        (materialParams.metallicTexture == nullptr || materialParams.roughnessTexture == nullptr)) {
-        if (aiMat->GetTexture(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLICROUGHNESS_TEXTURE, &MRPath, nullptr,
-                            nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
-            Texture* metallicRoughnessMap = loadMaterialTexture(aiMat, MRPath);
-            materialParams.metallicTexture = metallicRoughnessMap;
-            materialParams.metalRoughnessCombined = true;
+    // if not GLTF or there is no combined texture, load metallic and roughness textures separately
+    else {
+        if (aiMat->GetTexture(aiTextureType_METALNESS, 0, &MPath, nullptr,
+                              nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
+            Texture* metallicMap = loadMaterialTexture(aiMat, MPath);
+            materialParams.metallicTexture = metallicMap;
+        }
+        if (aiMat->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &RPath, nullptr,
+                              nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
+            Texture* roughnessMap = loadMaterialTexture(aiMat, RPath);
+            materialParams.roughnessTexture = roughnessMap;
         }
     }
 
