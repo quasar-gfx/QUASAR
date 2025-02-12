@@ -66,6 +66,8 @@ int main(int argc, char** argv) {
     args::ValueFlag<float> networkJitterIn(parser, "network-jitter", "Simulated network jitter in ms", {'J', "network-jitter"}, 10.0f);
     args::ValueFlag<float> viewBoxSizeIn(parser, "view-box-size", "Size of view box in m", {'B', "view-size"}, 0.5f);
     args::ValueFlag<int> maxAdditionalViewsIn(parser, "views", "Max views", {'n', "max-views"}, 8);
+    args::ValueFlag<float> remoteFOVIn(parser, "remote-fov", "Remote camera FOV in degrees", {'F', "remote-fov"}, 60.0f);
+    args::ValueFlag<float> remoteFOVWideIn(parser, "remote-fov-wide", "Remote camera FOV in degrees for wide fov", {'W', "remote-fov-wide"}, 120.0f);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -132,8 +134,12 @@ int main(int argc, char** argv) {
     SceneLoader loader;
     loader.loadScene(sceneFile, remoteScene, remoteCameraCenter);
 
-    // make last camera have a larger fov
-    remoteCameras[maxViews-1].setFovyDegrees(120.0f);
+    float remoteFOV = args::get(remoteFOVIn);
+    remoteCameraCenter.setFovyDegrees(remoteFOV);
+
+     // make last camera have a larger fov
+    float remoteFOVWide = args::get(remoteFOVWideIn);
+    remoteCameras[maxViews-1].setFovyDegrees(remoteFOVWide);
 
     // scene with all the meshViews
     Scene scene;

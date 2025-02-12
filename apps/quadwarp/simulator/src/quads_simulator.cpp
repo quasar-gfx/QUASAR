@@ -55,6 +55,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<float> networkLatencyIn(parser, "network-latency", "Simulated network latency in ms", {'N', "network-latency"}, 25.0f);
     args::ValueFlag<float> networkJitterIn(parser, "network-jitter", "Simulated network jitter in ms", {'J', "network-jitter"}, 10.0f);
     args::ValueFlag<float> viewBoxSizeIn(parser, "view-box-size", "Size of view box in m", {'B', "view-size"}, 0.5f);
+    args::ValueFlag<float> remoteFOVIn(parser, "remote-fov", "Remote camera FOV in degrees", {'F', "remote-fov"}, 60.0f);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -113,6 +114,10 @@ int main(int argc, char** argv) {
     PerspectiveCamera remoteCameraPrev(remoteRenderer.width, remoteRenderer.height);
     SceneLoader loader;
     loader.loadScene(sceneFile, remoteScene, remoteCamera);
+    remoteCameraPrev.setViewMatrix(remoteCamera.getViewMatrix());
+
+    float remoteFOV = args::get(remoteFOVIn);
+    remoteCamera.setFovyDegrees(remoteFOV);
     remoteCameraPrev.setViewMatrix(remoteCamera.getViewMatrix());
 
     // "local" scene

@@ -57,6 +57,8 @@ int main(int argc, char** argv) {
     args::ValueFlag<float> networkJitterIn(parser, "network-jitter", "Simulated network jitter in ms", {'J', "network-jitter"}, 10.0f);
     args::ValueFlag<float> viewSphereDiameterIn(parser, "view-sphere-diameter", "Size of view sphere in m", {'B', "view-size"}, 0.5f);
     args::ValueFlag<int> maxLayersIn(parser, "layers", "Max layers", {'n', "max-layers"}, 4);
+    args::ValueFlag<float> remoteFOVIn(parser, "remote-fov", "Remote camera FOV in degrees", {'F', "remote-fov"}, 60.0f);
+    args::ValueFlag<float> remoteFOVWideIn(parser, "remote-fov-wide", "Remote camera FOV in degrees for wide fov", {'W', "remote-fov-wide"}, 120.0f);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -119,12 +121,19 @@ int main(int argc, char** argv) {
     PerspectiveCamera remoteCameraCenter(dpRenderer.width, dpRenderer.height);
     PerspectiveCamera remoteCameraCenterPrev(dpRenderer.width, dpRenderer.height);
     PerspectiveCamera remoteCameraWideFov(wideFOVRenderer.width, wideFOVRenderer.height);
-    remoteCameraWideFov.setFovyDegrees(120.0f); // make last camera have a larger fov
 
     SceneLoader loader;
     loader.loadScene(sceneFile, remoteScene, remoteCameraCenter);
     remoteCameraWideFov.setViewMatrix(remoteCameraCenter.getViewMatrix());
     remoteCameraCenterPrev.setViewMatrix(remoteCameraCenter.getViewMatrix());
+
+    float remoteFOV = args::get(remoteFOVIn);
+    remoteCameraCenter.setFovyDegrees(remoteFOV);
+    remoteCameraCenterPrev.setViewMatrix(remoteCameraCenter.getViewMatrix());
+
+     // make last camera have a larger fov
+    float remoteFOVWide = args::get(remoteFOVWideIn);
+    remoteCameraWideFov.setFovyDegrees(remoteFOVWide);
 
     const unsigned int numViewsWithoutCenter = maxViews - 1;
 
