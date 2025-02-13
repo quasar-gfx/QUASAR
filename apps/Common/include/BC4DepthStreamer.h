@@ -1,7 +1,6 @@
 #ifndef BC4_DEPTH_STREAMER_H
 #define BC4_DEPTH_STREAMER_H
 
-#include <iostream>
 #include <iomanip>
 #include <thread>
 #include <queue>

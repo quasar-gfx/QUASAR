@@ -1,15 +1,14 @@
-#include <iostream>
 #include <filesystem>
 
 #include <args/args.hxx>
 #include <spdlog/spdlog.h>
 
 #include <OpenGLApp.h>
-#include <Renderers/DepthPeelingRenderer.h>
-#include <Renderers/ForwardRenderer.h>
 #include <SceneLoader.h>
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
+#include <Renderers/ForwardRenderer.h>
+#include <Renderers/DepthPeelingRenderer.h>
 
 #include <Shaders/ToneMapShader.h>
 

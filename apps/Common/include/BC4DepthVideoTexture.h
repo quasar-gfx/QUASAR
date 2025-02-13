@@ -1,7 +1,6 @@
 #ifndef BC4_DEPTH_VIDEO_TEXTURE_H
 #define BC4_DEPTH_VIDEO_TEXTURE_H
 
-#include <iostream>
 #include <iomanip>
 #include <deque>
 

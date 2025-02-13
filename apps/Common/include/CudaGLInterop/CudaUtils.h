@@ -3,7 +3,6 @@
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
 
-#include <iostream>
 
 #include <spdlog/spdlog.h>
 

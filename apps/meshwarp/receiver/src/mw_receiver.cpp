@@ -1,10 +1,9 @@
-#include <iostream>
 #include <args/args.hxx>
 #include <OpenGLApp.h>
-#include <Renderers/ForwardRenderer.h>
 #include <SceneLoader.h>
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
+#include <Renderers/ForwardRenderer.h>
 
 #include <Shaders/ToneMapShader.h>
 

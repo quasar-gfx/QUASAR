@@ -1,7 +1,6 @@
 #ifndef POSE_STREAMER_H
 #define POSE_STREAMER_H
 
-#include <iostream>
 #include <chrono>
 #include <thread>
 #include <cstring>
