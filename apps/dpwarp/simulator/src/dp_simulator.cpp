@@ -872,6 +872,7 @@ int main(int argc, char** argv) {
                 Generate I-frame
                 ============================
                 */
+                quadsGenerator.expandEdges = (generatePFrame || view == maxViews - 1);
                 unsigned int numProxies = 0, numDepthOffsets = 0;
                 unsigned int numBytesIFrame = frameGenerator.generateIFrame(
                     gBufferToUseLowRes, gBufferToUseHighRes, remoteCameraToUse,

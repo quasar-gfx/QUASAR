@@ -148,6 +148,7 @@ int main(int argc, char** argv) {
 
     FrameGenerator frameGenerator;
     QuadsGenerator quadsGenerator(remoteWindowSize);
+    quadsGenerator.expandEdges = true;
     quadsGenerator.depthThreshold = 1e-4f;
     quadsGenerator.flatThreshold = 1e-2f;
     quadsGenerator.proxySimilarityThreshold = 0.1f;

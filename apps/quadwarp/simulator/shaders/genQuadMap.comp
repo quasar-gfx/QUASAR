@@ -677,6 +677,10 @@ void main() {
     ivec2 outputPixelCoordsTopRight = outputPixelCoords + ivec2(1, 1);
 
     if (pixelDepths.center >= MAX_DEPTH) {
+        if (!expandEdges) {
+            return;
+        }
+
         float validDepth;
         vec3 validColor;
         bool highResHasDepth = false;

@@ -21,7 +21,7 @@ public:
         double timeToFillOutputQuadsMs = -1.0f;
     } stats;
 
-    bool expandEdges = true;
+    bool expandEdges = false;
     bool correctOrientation = true;
     float depthThreshold = 0.001f;
     float angleThreshold = 87.5f;
