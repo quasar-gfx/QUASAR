@@ -119,10 +119,10 @@ void main() {
 
     // put proxyIndex into quadIndices
     ivec2 baseCoord = proxyPlanePixelCoord;
-    for (uint i = 0u; i < halfSize; i++) {
-        for (uint j = 0u; j < halfSize; j++) {
-            ivec2 pixelCoords = baseCoord + ivec2(i, j);
-            storeQuadIndex(pixelCoords, proxyIndex);
-        }
+    for (uint idx = 0u; idx < halfSize * halfSize; idx++) {
+        uint i = idx % halfSize;
+        uint j = idx / halfSize;
+        ivec2 pixelCoords = baseCoord + ivec2(i, j);
+        storeQuadIndex(pixelCoords, proxyIndex);
     }
 }

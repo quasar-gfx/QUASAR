@@ -610,19 +610,16 @@ void main() {
     vec2 pixelCenterCoord = surfelCornerCoordBottomLeft + vec2(0.5, 0.5);
     vec2 surfelCenterCoord = pixelCenterCoord;
 
-    ivec2 minBounds = ivec2(0);
-    ivec2 maxBounds = ivec2(gBufferSize) - ivec2(1);
-
     MultiQuad2D pixelNeighborCoords;
-    pixelNeighborCoords.bottomLeft  = clamp(pixelCenterCoord + vec2(-1, -1), minBounds, maxBounds);
-    pixelNeighborCoords.bottom      = clamp(pixelCenterCoord + vec2(+0, -1), minBounds, maxBounds);
-    pixelNeighborCoords.bottomRight = clamp(pixelCenterCoord + vec2(+1, -1), minBounds, maxBounds);
-    pixelNeighborCoords.left        = clamp(pixelCenterCoord + vec2(-1, +0), minBounds, maxBounds);
-    pixelNeighborCoords.center      = clamp(pixelCenterCoord + vec2(+0, +0), minBounds, maxBounds);
-    pixelNeighborCoords.right       = clamp(pixelCenterCoord + vec2(+1, +0), minBounds, maxBounds);
-    pixelNeighborCoords.topLeft     = clamp(pixelCenterCoord + vec2(-1, +1), minBounds, maxBounds);
-    pixelNeighborCoords.top         = clamp(pixelCenterCoord + vec2(+0, +1), minBounds, maxBounds);
-    pixelNeighborCoords.topRight    = clamp(pixelCenterCoord + vec2(+1, +1), minBounds, maxBounds);
+    pixelNeighborCoords.bottomLeft  = pixelCenterCoord + vec2(-1, -1);
+    pixelNeighborCoords.bottom      = pixelCenterCoord + vec2(+0, -1);
+    pixelNeighborCoords.bottomRight = pixelCenterCoord + vec2(+1, -1);
+    pixelNeighborCoords.left        = pixelCenterCoord + vec2(-1, +0);
+    pixelNeighborCoords.center      = pixelCenterCoord + vec2(+0, +0);
+    pixelNeighborCoords.right       = pixelCenterCoord + vec2(+1, +0);
+    pixelNeighborCoords.topLeft     = pixelCenterCoord + vec2(-1, +1);
+    pixelNeighborCoords.top         = pixelCenterCoord + vec2(+0, +1);
+    pixelNeighborCoords.topRight    = pixelCenterCoord + vec2(+1, +1);
 
     MultiQuad2D surfelCornerCoords;
     surfelCornerCoords.bottomLeft  = surfelCenterCoord + vec2(-0.5, -0.5);
@@ -680,80 +677,34 @@ void main() {
     ivec2 outputPixelCoordsTopRight = outputPixelCoords + ivec2(1, 1);
 
     if (pixelDepths.center >= MAX_DEPTH) {
-        return;
+        float validDepth;
+        vec3 validColor;
+        bool highResHasDepth = false;
+        for (int idx = 0; idx < downsampleFactor * downsampleFactor; idx++) {
+            int i = idx % downsampleFactor;
+            int j = idx / downsampleFactor;
+            float depth = sampleDepth(depthMapHighRes, outputPixelCoords + ivec2(i, j));
+            if (depth < MAX_DEPTH) {
+                highResHasDepth = true;
+                validDepth = depth;
+                validColor = sampleColorDst(outputPixelCoords + ivec2(i, j));
+                break;
+            }
+        }
 
-        // // find a valid pixel
-        // int numValid = 0;
-        // float validDepth = 0.0;
-        // vec2 validPixelNDC = vec2(0.0);
-        // vec3 validNormal = vec3(0.0);
-        // vec3 validColor = vec3(0.0);
+        pixelDepths.center = validDepth;
 
-        // if (pixelDepths.left < MAX_DEPTH) {
-        //     numValid++;
-        //     validNormal = pixelNormalsView.left;
-        //     validColor = sampleColorSrc(ivec2(pixelNeighborCoords.left));
-        //     validDepth = pixelDepths.left;
-        //     validPixelNDC = pixelCenterNDCs.left;
-        // }
-        // if (pixelDepths.right < MAX_DEPTH) {
-        //     numValid++;
-        //     validNormal = pixelNormalsView.right;
-        //     validColor = sampleColorSrc(ivec2(pixelNeighborCoords.right));
-        //     validDepth = pixelDepths.right;
-        //     validPixelNDC = pixelCenterNDCs.right;
-        // }
-        // if (pixelDepths.bottom < MAX_DEPTH) {
-        //     numValid++;
-        //     validNormal = pixelNormalsView.bottom;
-        //     validColor = sampleColorSrc(ivec2(pixelNeighborCoords.bottom));
-        //     validDepth = pixelDepths.bottom;
-        //     validPixelNDC = pixelCenterNDCs.bottom;
-        // }
-        // if (pixelDepths.top < MAX_DEPTH) {
-        //     numValid++;
-        //     validNormal = pixelNormalsView.top;
-        //     validColor = sampleColorSrc(ivec2(pixelNeighborCoords.top));
-        //     validDepth = pixelDepths.top;
-        //     validPixelNDC = pixelCenterNDCs.top;
-        // }
-
-        // if (expandEdges) {
-        //     // if all of the neighboring pixels are empty, then return
-        //     if (numValid == 0) {
-        //         return;
-        //     }
-
-        //     vec3 validPixelCoordsView = ndcToView(projectionInverse, validPixelNDC, validDepth);
-        //     vec3 frustumNormalView = normalize(origin - validPixelCoordsView);
-        //     if (correctOrientation && quadHasExtremeOrientation(validNormal, frustumNormalView)) {
-        //         // if the quad has an extreme orientation, ignore it
-        //         return;
-        //     }
-
-        //     // make plane using validDepth and validPixelNDC
-        //     Plane proxyPlane;
-        //     proxyPlane.normal = validNormal;
-        //     proxyPlane.point = validPixelCoordsView;
-
-        //     // the resulting depth is the point where a ray from the center pixel intersects the proxy plane
-        //     vec3 pixelCenterView = ndcToView(projectionInverse, pixelCenterNDCs.center, 0.0);
-        //     vec3 surfelViewCenter = pointPlaneIntersection(pixelCenterView, proxyPlane);
-        //     vec3 resultingNDC = viewToNDC(projection, surfelViewCenter);
-        //     float resultingDepth = min(resultingNDC.z, MAX_DEPTH);
-
-        //     pixelDepths.center = resultingDepth;
-        //     pixelNormalsView.center = validNormal;
-
-        //     for (int i = 0; i < downsampleFactor; i++) {
-        //         for (int j = 0; j < downsampleFactor; j++) {
-        //             imageStore(colorMapDst, outputPixelCoords + ivec2(i, j), vec4(validColor, 1.0));
-        //         }
-        //     }
-        // }
-        // else {
-        //     return;
-        // }
+        vec3 color = vec3(1,0,1);
+        if (highResHasDepth) {
+            for (int idx = 0; idx < downsampleFactor * downsampleFactor; idx++) {
+                int i = idx % downsampleFactor;
+                int j = idx / downsampleFactor;
+                imageStore(colorMapDst, outputPixelCoords + ivec2(i, j), vec4(validColor, 1.0));
+            }
+        }
+        else {
+            return;
+        }
     }
 
     float depthBottomLeftHighRes = sampleDepth(depthMapHighRes, outputPixelCoordsBottomLeft);

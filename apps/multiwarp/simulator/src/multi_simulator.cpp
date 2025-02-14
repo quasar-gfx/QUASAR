@@ -151,7 +151,6 @@ int main(int argc, char** argv) {
     quadsGenerator.depthThreshold = 1e-4f;
     quadsGenerator.flatThreshold = 1e-2f;
     quadsGenerator.proxySimilarityThreshold = 0.1f;
-    quadsGenerator.expandEdges = true; // must expand edges to fill small holes in quad boundaries
     MeshFromQuads meshFromQuads(remoteWindowSize);
 
     std::vector<GBuffer> gBufferRTs; gBufferRTs.reserve(maxViews);

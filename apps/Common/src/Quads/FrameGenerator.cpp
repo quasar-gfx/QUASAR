@@ -125,9 +125,6 @@ unsigned int FrameGenerator::generatePFrame(
         stats.timeToCompress = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
     }
 
-    // bool oldExpandEdges = quadsGenerator.expandEdges;
-    // quadsGenerator.expandEdges = true; // must expand edges to fill small holes in quad boundaries when creating mask
-
     {
         startTime = timeutils::getTimeMicros();
         auto sizes = quadsGenerator.createProxiesFromGBuffer(gBufferMaskLowRes, gBufferMaskHighRes, currRemoteCamera);
@@ -153,9 +150,6 @@ unsigned int FrameGenerator::generatePFrame(
         outputSize += numDepthOffsets * sizeof(uint16_t) / 8;
         stats.timeToCompress += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
     }
-
-    // restore expand edges
-    // quadsGenerator.expandEdges = oldExpandEdges;
 
     return outputSize;
 }
