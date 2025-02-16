@@ -47,8 +47,8 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of local renderer", {'s', "size"}, "1920x1080");
     args::ValueFlag<std::string> resIn(parser, "rsize", "Resolution of remote renderer", {'r', "rsize"}, "1920x1080");
     args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
-    args::ValueFlag<bool> vsyncIn(parser, "vsync", "Enable VSync", {'V', "vsync"}, true);
-    args::Flag saveImage(parser, "save", "Save outputs to disk", {'I', "save-image"});
+    args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
+    args::Flag saveImages(parser, "save", "Save outputs to disk", {'I', "save-images"});
     args::ValueFlag<std::string> animationFileIn(parser, "anim-path", "Path to camera animation file", {'A', "animation-path"});
     args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'D', "data-path"}, ".");
     args::ValueFlag<float> networkLatencyIn(parser, "network-latency", "Simulated network latency in ms", {'N', "network-latency"}, 25.0f);
@@ -85,8 +85,8 @@ int main(int argc, char** argv) {
     glm::uvec2 remoteWindowSize = glm::uvec2(std::stoi(rsizeStr.substr(0, pos)), std::stoi(rsizeStr.substr(pos + 1)));
     glm::uvec2 halfRemoteWindowSize = remoteWindowSize / 2u;
 
-    config.enableVSync = args::get(vsyncIn);
-    config.showWindow = !args::get(saveImage);
+    config.enableVSync = !args::get(novsync);
+    config.showWindow = !args::get(saveImages);
 
     std::string sceneFile = args::get(sceneFileIn);
     std::string animationFile = args::get(animationFileIn);
@@ -311,7 +311,7 @@ int main(int argc, char** argv) {
     Recorder recorder(renderer, blurEdges, dataPath, config.targetFramerate);
     Animator animator(animationFile);
 
-    if (saveImage) {
+    if (saveImages) {
         recorder.setTargetFrameRate(-1 /* unlimited */);
         recorder.setFormat(Recorder::OutputFormat::PNG);
         recorder.start();

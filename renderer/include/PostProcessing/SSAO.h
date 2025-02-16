@@ -10,8 +10,9 @@
 
 class SSAO: public PostProcessingEffect {
 public:
-    SSAO(glm::uvec2 &windowSize, Camera &camera);
+    SSAO(glm::uvec2 &windowSize, PerspectiveCamera &camera)
             : windowSize(windowSize)
+            , camera(camera)
             , randomFloats(0.0, 1.0)
             , ssaoShader({
                 .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
@@ -83,7 +84,7 @@ public:
         ssaoFinalShader.setFloat("exposure", exposure);
     }
 
-    void drawToScreen(ForwardRenderer& renderer) override {
+    void drawToScreen(OpenGLRenderer& renderer) override {
         // render ssao
         ssaoShader.bind();
         ssaoShader.setMat4("view", camera.getViewMatrix());
@@ -129,7 +130,7 @@ public:
 
 private:
     glm::uvec2 &windowSize;
-    Camera &camera;
+    PerspectiveCamera &camera;
 
     Shader ssaoShader;
     Shader ssaoBlurShader;
