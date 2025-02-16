@@ -6,7 +6,7 @@
 #include <GUI/ImGuiManager.h>
 #include <Renderers/ForwardRenderer.h>
 
-#include <Shaders/ToneMapShader.h>
+#include <PostProcessing/ToneMapper.h>
 
 #include <Recorder.h>
 #include <Animator.h>
@@ -91,8 +91,6 @@ int main(int argc, char** argv) {
     camera.setViewMatrix(remoteCamera.getViewMatrix());
 
     // shaders
-    ToneMapShader toneMapShader;
-
     Shader videoShader({
         .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
         .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
@@ -123,6 +121,9 @@ int main(int argc, char** argv) {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
     });
+
+    // post processing
+    ToneMapper toneMapper;
 
     // original size of depth buffer
     unsigned int originalSize = windowSize.x * windowSize.y * sizeof(float);
@@ -413,9 +414,8 @@ int main(int argc, char** argv) {
         renderStats = renderer.drawObjects(scene, camera);
 
         // render to screen
-        toneMapShader.bind();
-        toneMapShader.setBool("toneMap", false);
-        renderer.drawToScreen(toneMapShader);
+        toneMapper.enableToneMapping(false);
+        toneMapper.drawToScreen(renderer);
     });
 
     // run app loop (blocking)

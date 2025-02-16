@@ -9,7 +9,7 @@
 #include <GUI/ImGuiManager.h>
 #include <Renderers/ForwardRenderer.h>
 
-#include <Shaders/ToneMapShader.h>
+#include <PostProcessing/ToneMapper.h>
 
 #include <Recorder.h>
 #include <Animator.h>
@@ -219,8 +219,6 @@ int main(int argc, char** argv) {
     localScene.addChildNode(&nodeDepth);
 
     // shaders
-    ToneMapShader toneMapShader;
-
     Shader screenShaderNormals({
         .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
         .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
@@ -236,7 +234,10 @@ int main(int argc, char** argv) {
         }
     });
 
-    Recorder recorder(renderer, toneMapShader, dataPath, config.targetFramerate);
+    // post processing
+    ToneMapper toneMapper;
+
+    Recorder recorder(renderer, toneMapper, dataPath, config.targetFramerate);
     Animator animator(animationFile);
 
     if (saveImage) {
@@ -824,9 +825,8 @@ int main(int argc, char** argv) {
         renderStats = renderer.drawObjects(localScene, camera);
 
         // render to screen
-        toneMapShader.bind();
-        toneMapShader.setBool("toneMap", !showNormals);
-        renderer.drawToScreen(toneMapShader);
+        toneMapper.enableToneMapping(!showNormals);
+        toneMapper.drawToScreen(renderer);
         if (animator.running) {
             spdlog::info("Client Render Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
         }

@@ -6,8 +6,8 @@ layout(location = 3) out uvec4 FragIDs;
 in VertexData {
     flat uint drawID;
     vec2 TexCoords;
-    vec3 FragPos;
     vec3 FragPosView;
+    vec3 FragPosWorld;
     vec3 Color;
     vec3 Normal;
     vec3 Tangent;
@@ -43,24 +43,29 @@ uniform struct Camera {
     float far;
 } camera;
 
+#define MAX_DEPTH 0.9999
+const float PI = 3.1415926535897932384626433832795;
+
 #ifdef DO_DEPTH_PEELING
 uniform bool peelDepth;
-uniform sampler2D prevDepthMap;
+uniform usampler2D prevDepthMap;
 
 uniform int height;
 uniform float E;
 uniform float edpDelta;
+uniform int layerIndex;
 
-const float PI = 3.1415926535897932384626433832795;
-
-#define MAX_DEPTH 0.9999
-
+// adapted from https://github.com/cgskku/pvhv/blob/main/shaders/edp.frag
+#define DP_EPSILON 0.0001
 #define EDP_SAMPLES 16
 
-float linearizeAndNormalizeDepth(float depth) {
-    float z = depth * 2.0 - 1.0; // back to NDC
-    float linearized = (2.0 * camera.near * camera.far) / (camera.far + camera.near - z * (camera.far - camera.near));
-    return (linearized - camera.near) / (camera.far - camera.near);
+bool cullUmbra(float fragmentDepth, float zf) {
+    float d = fragmentDepth; // fragment depth
+	float df = mix(camera.near, camera.far, zf); // blocker depth
+	float s  = tan(camera.fovy * 0.5) * 2.0 * df / height; // pixel geometry size
+	if (E < s) return true; // no more peeling, because the pixel geometry size > lens size
+	float x  = df * s / (E - s);
+	return d < df + x;
 }
 
 float LCOC(float d, float df) {
@@ -68,10 +73,15 @@ float LCOC(float d, float df) {
 	return K * E * abs(df-d) / d; // relative radius of COC against df (blocker depth)
 }
 
-bool inPVHV(ivec2 pixelCoords, vec3 fragViewPos, float blockerDepthNonLinear) {
+bool inPVHV(ivec2 pixelCoords, vec3 fragViewPos, uvec4 q) {
     float fragmentDepth = -fragViewPos.z;
-    float blockerDepthNormalized = linearizeAndNormalizeDepth(blockerDepthNonLinear);
 
+    if (layerIndex > 2) return cullUmbra(fragmentDepth, uintBitsToFloat(q.z));
+
+    uint q_item = q.r;
+    if (q_item < 0) return false;
+
+    float blockerDepthNormalized = uintBitsToFloat(q.z);
 	float df = mix(camera.near, camera.far, blockerDepthNormalized);
     float R = LCOC(fragmentDepth, df);
     for (int i = 0; i < EDP_SAMPLES; i++) {
@@ -80,14 +90,18 @@ bool inPVHV(ivec2 pixelCoords, vec3 fragViewPos, float blockerDepthNonLinear) {
         float y = R * sin(float(i) * 2*PI / EDP_SAMPLES);
         vec2 offset = vec2(x, y);
 
-        float sampleDepthNonLinear = texelFetch(prevDepthMap, ivec2(round(vec2(pixelCoords) + offset)), 0).r;
-        float sampleDepthNormalized = linearizeAndNormalizeDepth(sampleDepthNonLinear);
+        uvec4 w = texelFetch(prevDepthMap, ivec2(round(vec2(pixelCoords) + offset)), 0);
+        uint w_item = w.r;
+        if (w_item < 0) return false;
+
+        float sampleDepthNormalized = uintBitsToFloat(w.z);
         if (sampleDepthNormalized == 0) return true;
         if (sampleDepthNormalized >= MAX_DEPTH) continue;
 
-        if      (sampleDepthNormalized >= blockerDepthNormalized + edpDelta) return true;
+        if (sampleDepthNormalized >= blockerDepthNormalized + edpDelta) return true;
         else if (sampleDepthNormalized <= blockerDepthNormalized - edpDelta) return true;
     }
+
     return false;
 }
 #endif
@@ -96,13 +110,17 @@ void main() {
 #ifdef DO_DEPTH_PEELING
     if (peelDepth) {
         ivec2 pixelCoords = ivec2(gl_FragCoord.xy);
-        float currDepth = gl_FragCoord.z;
-        float prevDepth = texelFetch(prevDepthMap, pixelCoords, 0).r;
-        if (currDepth <= prevDepth)
+        uvec4 q = texelFetch(prevDepthMap, pixelCoords, 0);
+
+        float currDepth = -fsIn.FragPosView.z;
+        float prevDepthNormalized = uintBitsToFloat(q.z);
+        if (prevDepthNormalized == 0 || prevDepthNormalized >= MAX_DEPTH)
+            discard;
+        if (-fsIn.FragPosView.z <= mix(camera.near, camera.far, prevDepthNormalized + DP_EPSILON))
             discard;
 #ifdef EDP
         vec3 fragViewPos = fsIn.FragPosView;
-        if (!inPVHV(pixelCoords, fragViewPos, prevDepth))
+        if (!inPVHV(pixelCoords, fragViewPos, q))
             discard;
 #endif
     }
@@ -122,7 +140,7 @@ void main() {
         discard;
 
     FragColor = vec4(baseColor.rgb, alpha);
-    FragPosition = vec4(fsIn.FragPos, 1.0);
+    FragPosition = vec4(fsIn.FragPosView, 1.0);
     FragNormal = vec4(normalize(fsIn.Normal), 1.0);
     FragIDs = uvec4(fsIn.drawID, gl_PrimitiveID, 0.0, 1.0);
     FragIDs.z = floatBitsToUint((-fsIn.FragPosView.z - camera.near) / (camera.far - camera.near));

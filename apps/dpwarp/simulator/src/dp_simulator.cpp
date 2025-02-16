@@ -10,7 +10,8 @@
 #include <Renderers/ForwardRenderer.h>
 #include <Renderers/DepthPeelingRenderer.h>
 
-#include <Shaders/ToneMapShader.h>
+#include <BlurEdges.h>
+#include <PostProcessing/ShowNormalsEffect.h>
 
 #include <Recorder.h>
 #include <Animator.h>
@@ -21,8 +22,6 @@
 #include <Quads/FrameGenerator.h>
 
 #include <PoseSendRecvSimulator.h>
-
-#include <shaders_common.h>
 
 #define IFRAME_PERIOD 5
 
@@ -297,22 +296,6 @@ int main(int argc, char** argv) {
     meshScene.addChildNode(&nodeMask);
 
     // shaders
-    ToneMapShader toneMapShader;
-
-    Shader blurEdgesShader({
-        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_COMMON_BLUREDGES_FRAG,
-        .fragmentCodeSize = SHADER_COMMON_BLUREDGES_FRAG_len
-    });
-
-    Shader screenShaderNormals({
-        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_BUILTIN_DISPLAYNORMALS_FRAG,
-        .fragmentCodeSize = SHADER_BUILTIN_DISPLAYNORMALS_FRAG_len
-    });
-
     ComputeShader meshFromDepthShader({
         .computeCodeData = SHADER_COMMON_MESHFROMDEPTH_COMP,
         .computeCodeSize = SHADER_COMMON_MESHFROMDEPTH_COMP_len,
@@ -321,7 +304,11 @@ int main(int argc, char** argv) {
         }
     });
 
-    Recorder recorder(renderer, blurEdgesShader, dataPath, config.targetFramerate);
+    // post processing
+    BlurEdges blurEdges;
+    ShowNormalsEffect showNormalsEffect;
+
+    Recorder recorder(renderer, blurEdges, dataPath, config.targetFramerate);
     Animator animator(animationFile);
 
     if (saveImage) {
@@ -825,8 +812,8 @@ int main(int argc, char** argv) {
                         remoteRenderer.gBuffer.blitToGBuffer(gBufferToUseHighRes);
                     }
                     else {
-                        remoteRenderer.drawToRenderTarget(screenShaderNormals, gBufferToUseLowRes);
-                        remoteRenderer.drawToRenderTarget(screenShaderNormals, gBufferToUseHighRes);
+                        showNormalsEffect.drawToRenderTarget(remoteRenderer, gBufferToUseLowRes);
+                        showNormalsEffect.drawToRenderTarget(remoteRenderer, gBufferToUseHighRes);
                     }
                 }
                 else if (view != maxViews - 1) {
@@ -836,8 +823,8 @@ int main(int argc, char** argv) {
                         dpRenderer.peelingLayers[hiddenIndex+1].blitToGBuffer(gBufferToUseHighRes);
                     }
                     else {
-                        dpRenderer.drawToRenderTarget(screenShaderNormals, gBufferToUseLowRes);
-                        dpRenderer.drawToRenderTarget(screenShaderNormals, gBufferToUseHighRes);
+                        showNormalsEffect.drawToRenderTarget(remoteRenderer, gBufferToUseLowRes);
+                        showNormalsEffect.drawToRenderTarget(remoteRenderer, gBufferToUseHighRes);
                     }
                 }
                 // wide fov camera
@@ -862,8 +849,8 @@ int main(int argc, char** argv) {
                         wideFOVRenderer.gBuffer.blitToGBuffer(gBufferToUseHighRes);
                     }
                     else {
-                        wideFOVRenderer.drawToRenderTarget(screenShaderNormals, gBufferToUseLowRes);
-                        wideFOVRenderer.drawToRenderTarget(screenShaderNormals, gBufferToUseHighRes);
+                        showNormalsEffect.drawToRenderTarget(remoteRenderer, gBufferToUseLowRes);
+                        showNormalsEffect.drawToRenderTarget(remoteRenderer, gBufferToUseHighRes);
                     }
                 }
 
@@ -1059,10 +1046,9 @@ int main(int argc, char** argv) {
         renderStats = renderer.drawObjects(localScene, camera);
 
         // render to screen
-        blurEdgesShader.bind();
-        blurEdgesShader.setBool("toneMap", !showNormals);
-        blurEdgesShader.setFloat("depthThreshold", quadsGenerator.depthThreshold);
-        renderer.drawToScreen(blurEdgesShader);
+        blurEdges.enableToneMapping(!showNormals);
+        blurEdges.setDepthThreshold(quadsGenerator.depthThreshold);
+        blurEdges.drawToScreen(renderer);
         if (animator.running) {
             spdlog::info("Client Render Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
         }

@@ -8,7 +8,7 @@
 #include <GUI/ImGuiManager.h>
 #include <Renderers/ForwardRenderer.h>
 
-#include <Shaders/ToneMapShader.h>
+#include <PostProcessing/ToneMapper.h>
 
 #include <Recorder.h>
 #include <Animator.h>
@@ -88,8 +88,6 @@ int main(int argc, char** argv) {
     PoseStreamer poseStreamer(&camera, poseURL);
 
     // shaders
-    ToneMapShader toneMapShader;
-
     Shader atwShader({
         .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
         .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
@@ -97,7 +95,10 @@ int main(int argc, char** argv) {
         .fragmentCodeSize = SHADER_COMMON_ATW_FRAG_len
     });
 
-    Recorder recorder(renderer, toneMapShader, config.targetFramerate);
+    // post processing
+    ToneMapper toneMapper;
+
+    Recorder recorder(renderer, toneMapper, config.targetFramerate);
 
     bool atwEnabled = true;
     double elapsedTime = 0.0f;

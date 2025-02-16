@@ -8,7 +8,7 @@
 #include <GUI/ImGuiManager.h>
 #include <Renderers/ForwardRenderer.h>
 
-#include <Shaders/ToneMapShader.h>
+#include <PostProcessing/ToneMapper.h>
 
 #include <Recorder.h>
 #include <Animator.h>
@@ -107,10 +107,10 @@ int main(int argc, char** argv) {
 
     PoseReceiver poseReceiver = PoseReceiver(camera.get(), poseURL);
 
-    // shaders
-    ToneMapShader toneMapShader;
+    // post processing
+    ToneMapper toneMapper;
 
-    Recorder recorder(renderer, toneMapShader, config.targetFramerate);
+    Recorder recorder(renderer, toneMapper, config.targetFramerate);
 
     bool paused = false;
     RenderStats renderStats;
@@ -282,7 +282,7 @@ int main(int argc, char** argv) {
             }
 
             // copy rendered result to video render target
-            renderer.drawToRenderTarget(toneMapShader, videoStreamerRT);
+            toneMapper.drawToRenderTarget(renderer, videoStreamerRT);
 
             // send video frame
             currentFramePoseID = poseID;
@@ -290,7 +290,7 @@ int main(int argc, char** argv) {
         }
 
         if (config.showWindow) {
-            renderer.drawToScreen(toneMapShader);
+            toneMapper.drawToScreen(renderer);
         }
     });
 

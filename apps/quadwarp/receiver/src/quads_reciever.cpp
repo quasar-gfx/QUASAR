@@ -8,7 +8,7 @@
 #include <GUI/ImGuiManager.h>
 #include <Renderers/ForwardRenderer.h>
 
-#include <Shaders/ToneMapShader.h>
+#include <PostProcessing/ToneMapper.h>
 
 #include <Recorder.h>
 #include <Animator.h>
@@ -70,10 +70,10 @@ int main(int argc, char** argv) {
     remoteCamera.setPosition(glm::vec3(0.0f, 3.0f, 10.0f));
     remoteCamera.updateViewMatrix();
 
-    // shaders
-    ToneMapShader toneMapShader;
+    // post processing
+    ToneMapper toneMapper;
 
-    Recorder recorder(renderer, toneMapShader, config.targetFramerate);
+    Recorder recorder(renderer, toneMapper, config.targetFramerate);
 
     MeshFromQuads meshFromQuads(windowSize);
 
@@ -347,7 +347,7 @@ int main(int argc, char** argv) {
         renderStats = renderer.drawObjects(scene, camera);
 
         // render to screen
-        renderer.drawToScreen(toneMapShader);
+        toneMapper.drawToScreen(renderer);
     });
 
     // run app loop (blocking)

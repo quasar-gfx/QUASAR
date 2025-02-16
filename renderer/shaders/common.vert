@@ -12,8 +12,8 @@ layout(num_views = 2) in;
 out VertexData {
     flat uint drawID;
     vec2 TexCoords;
-    vec3 FragPos;
     vec3 FragPosView;
+    vec3 FragPosWorld;
     vec3 Color;
     vec3 Normal;
     vec3 Tangent;
@@ -42,21 +42,28 @@ uniform mat3 normalMatrix;
 uniform mat4 lightSpaceMatrix;
 
 void main() {
+    mat4 modelMatrix = model;
+#ifndef ANDROID
+    mat4 viewMatrix = camera.view;
+    mat4 projectionMatrix = camera.projection;
+#else
+    mat4 viewMatrix = camera.view[gl_ViewID_OVR];
+    mat4 projectionMatrix = camera.projection[gl_ViewID_OVR];
+#endif
+
+    vec4 worldPos = modelMatrix * vec4(aPos, 1.0);
+    vec4 viewPos = viewMatrix * worldPos;
+
     vsOut.drawID = drawID;
     vsOut.TexCoords = aTexCoords;
-    vsOut.FragPos = vec3(model * vec4(aPos, 1.0));
+    vsOut.FragPosView = viewPos.xyz;
+    vsOut.FragPosWorld = worldPos.xyz;
     vsOut.Color = aColor;
     vsOut.Normal = normalize(normalMatrix * aNormal);
     vsOut.Tangent = normalize(normalMatrix * aTangent);
     vsOut.BiTangent = normalize(normalMatrix * aBitangent);
 
-    vsOut.FragPosLightSpace = lightSpaceMatrix * vec4(vsOut.FragPos, 1.0);
+    vsOut.FragPosLightSpace = lightSpaceMatrix * vec4(vsOut.FragPosWorld, 1.0);
 
-#ifndef ANDROID
-    vsOut.FragPosView = vec3(camera.view * vec4(vsOut.FragPos, 1.0));
-    gl_Position = camera.projection * camera.view * vec4(vsOut.FragPos, 1.0);
-#else
-    vsOut.FragPosView = vec3(camera.view[gl_ViewID_OVR] * vec4(vsOut.FragPos, 1.0));
-    gl_Position = camera.projection[gl_ViewID_OVR] * camera.view[gl_ViewID_OVR] * vec4(vsOut.FragPos, 1.0);
-#endif
+    gl_Position = projectionMatrix * viewMatrix * vec4(vsOut.FragPosWorld, 1.0);
 }

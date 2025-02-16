@@ -41,13 +41,13 @@ public:
         double timeToCreateMeshMs = -1.0f;
     } stats;
 
-    glm::uvec2 remoteWindowSize;
+    glm::uvec2 &remoteWindowSize;
     glm::uvec2 depthBufferSize;
     unsigned int maxProxies;
 
     QuadBuffers currentQuadBuffers;
 
-    MeshFromQuads(const glm::uvec2 &remoteWindowSize, unsigned int maxNumProxies = MAX_NUM_PROXIES);
+    MeshFromQuads(glm::uvec2 &remoteWindowSize, unsigned int maxNumProxies = MAX_NUM_PROXIES);
     ~MeshFromQuads() = default;
 
     void appendProxies(

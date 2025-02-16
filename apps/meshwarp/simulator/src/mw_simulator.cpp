@@ -9,7 +9,7 @@
 #include <GUI/ImGuiManager.h>
 #include <Renderers/ForwardRenderer.h>
 
-#include <Shaders/ToneMapShader.h>
+#include <PostProcessing/ToneMapper.h>
 
 #include <Recorder.h>
 #include <Animator.h>
@@ -145,8 +145,6 @@ int main(int argc, char** argv) {
     scene.addChildNode(&nodePointCloud);
 
     // shaders
-    ToneMapShader toneMapShader;
-
     ComputeShader meshFromDepthShader({
         .computeCodeData = SHADER_COMMON_MESHFROMDEPTH_COMP,
         .computeCodeSize = SHADER_COMMON_MESHFROMDEPTH_COMP_len,
@@ -155,7 +153,10 @@ int main(int argc, char** argv) {
         }
     });
 
-    Recorder recorder(renderer, toneMapShader, dataPath, config.targetFramerate);
+    // post processing
+    ToneMapper toneMapper;
+
+    Recorder recorder(renderer, toneMapper, dataPath, config.targetFramerate);
     Animator animator(animationFile);
 
     if (saveImage) {
@@ -425,9 +426,8 @@ int main(int argc, char** argv) {
             remoteRenderer.drawObjects(remoteScene, remoteCamera);
 
             // copy rendered result to video render target
-            toneMapShader.bind();
-            toneMapShader.setBool("toneMap", false); // dont apply tone mapping
-            remoteRenderer.drawToRenderTarget(toneMapShader, renderTarget);
+            toneMapper.enableToneMapping(false);
+            toneMapper.drawToRenderTarget(remoteRenderer, renderTarget);
 
             totalRenderTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
 
@@ -481,9 +481,8 @@ int main(int argc, char** argv) {
         // render generated meshes
         renderStats = renderer.drawObjects(scene, camera);
 
-        toneMapShader.bind();
-        toneMapShader.setBool("toneMap", true);
-        renderer.drawToScreen(toneMapShader);
+        toneMapper.enableToneMapping(true);
+        toneMapper.drawToRenderTarget(remoteRenderer, renderTarget);
         if (animator.running) {
             spdlog::info("Client Render Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
         }

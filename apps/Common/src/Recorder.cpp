@@ -34,8 +34,7 @@ void Recorder::setTargetFrameRate(int targetFrameRate) {
 }
 
 void Recorder::saveScreenshotToFile(const std::string &fileName, bool saveAsHDR) {
-    shader.bind();
-    renderer.drawToRenderTarget(shader, renderTargetCopy);
+    effect.drawToRenderTarget(renderer, renderTargetCopy);
 
     if (saveAsHDR) {
         renderTargetCopy.saveColorAsHDR(fileName + ".hdr");
@@ -88,8 +87,7 @@ void Recorder::captureFrame(const Camera &camera) {
         return;
     }
 
-    shader.bind();
-    renderer.drawToRenderTarget(shader, renderTargetCopy);
+    effect.drawToRenderTarget(renderer, renderTargetCopy);
 
     std::vector<uint8_t> renderTargetData(renderTargetCopy.width * renderTargetCopy.height * 4);
 

@@ -9,7 +9,11 @@
 #include <GUI/ImGuiManager.h>
 #include <Renderers/ForwardRenderer.h>
 
-#include <Shaders/ToneMapShader.h>
+#include <PostProcessing/ToneMapper.h>
+#include <PostProcessing/ShowDepthEffect.h>
+#include <PostProcessing/ShowPositionsEffect.h>
+#include <PostProcessing/ShowNormalsEffect.h>
+#include <PostProcessing/ShowIDsEffect.h>
 
 #include <Recorder.h>
 #include <Animator.h>
@@ -77,38 +81,14 @@ int main(int argc, char** argv) {
     SceneLoader loader;
     loader.loadScene(sceneFile, scene, camera);
 
-    // shaders
-    ToneMapShader toneMapShader;
+    // post processing
+    ToneMapper toneMapper;
+    ShowDepthEffect ShowDepthEffect(camera);
+    ShowPositionsEffect showPositionsEffect;
+    ShowNormalsEffect showNormalsEffect;
+    ShowIDsEffect showIDsEffect;
 
-    Shader showDepthShader({
-        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_BUILTIN_DISPLAYDEPTH_FRAG,
-        .fragmentCodeSize = SHADER_BUILTIN_DISPLAYDEPTH_FRAG_len
-    });
-
-    Shader showPositionShader({
-        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_BUILTIN_DISPLAYPOSITIONS_FRAG,
-        .fragmentCodeSize = SHADER_BUILTIN_DISPLAYPOSITIONS_FRAG_len
-    });
-
-    Shader showNormalShader({
-        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_BUILTIN_DISPLAYNORMALS_FRAG,
-        .fragmentCodeSize = SHADER_BUILTIN_DISPLAYNORMALS_FRAG_len
-    });
-
-    Shader showIDShader({
-        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_BUILTIN_DISPLAYIDS_FRAG,
-        .fragmentCodeSize = SHADER_BUILTIN_DISPLAYIDS_FRAG_len
-    });
-
-    Recorder recorder(renderer, toneMapShader, dataPath, config.targetFramerate);
+    Recorder recorder(renderer, toneMapper, dataPath, config.targetFramerate);
     Animator animator(animationFile);
 
     if (saveImage) {
@@ -373,34 +353,26 @@ int main(int argc, char** argv) {
         renderStats = renderer.drawObjects(scene, camera);
 
         // render to screen
-        if (shaderIndex == 1) {
-            showDepthShader.bind();
-            showDepthShader.setFloat("near", camera.getNear());
-            showDepthShader.setFloat("far", camera.getFar());
-            renderer.drawToScreen(showDepthShader);
+        if (shaderIndex == 0) {
+            toneMapper.setExposure(exposure);
+            toneMapper.drawToScreen(renderer);
+        }
+        else if (shaderIndex == 1) {
+            ShowDepthEffect.drawToScreen(renderer);
         }
         else if (shaderIndex == 2) {
-            showPositionShader.bind();
-            renderer.drawToScreen(showPositionShader);
+            showPositionsEffect.drawToScreen(renderer);
         }
         else if (shaderIndex == 3) {
-            showNormalShader.bind();
-            renderer.drawToScreen(showNormalShader);
+            showNormalsEffect.drawToScreen(renderer);
         }
         else if (shaderIndex == 4) {
-            showIDShader.bind();
-            showIDShader.setBool("showObjectIDs", true);
-            renderer.drawToScreen(showIDShader);
+            showIDsEffect.showObjectIDs(true);
+            showIDsEffect.drawToScreen(renderer);
         }
         else if (shaderIndex == 5) {
-            showIDShader.bind();
-            showIDShader.setBool("showObjectIDs", false);
-            renderer.drawToScreen(showIDShader);
-        }
-        else {
-            toneMapShader.bind();
-            toneMapShader.setFloat("exposure", exposure);
-            renderer.drawToScreen(toneMapShader);
+            showIDsEffect.showObjectIDs(false);
+            showIDsEffect.drawToScreen(renderer);
         }
 
         if ((animationFileIn && animator.running) || recording) {

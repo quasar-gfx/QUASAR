@@ -1,6 +1,6 @@
 #include <Quads/MeshFromQuads.h>
 
-MeshFromQuads::MeshFromQuads(const glm::uvec2 &remoteWindowSize, unsigned int maxNumProxies)
+MeshFromQuads::MeshFromQuads(glm::uvec2 &remoteWindowSize, unsigned int maxNumProxies)
         : remoteWindowSize(remoteWindowSize)
         , depthBufferSize(2u * remoteWindowSize) // 4 offsets per pixel
         , maxProxies(maxNumProxies)

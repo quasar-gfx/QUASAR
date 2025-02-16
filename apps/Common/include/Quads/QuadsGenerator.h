@@ -28,7 +28,7 @@ public:
     float flatThreshold = 0.1f;
     float proxySimilarityThreshold = 0.1f;
 
-    glm::uvec2 remoteWindowSize;
+    glm::uvec2 &remoteWindowSize;
     glm::uvec2 depthBufferSize;
     std::vector<glm::uvec2> quadMapSizes;
 
@@ -38,7 +38,7 @@ public:
     QuadBuffers outputQuadBuffers;
     DepthOffsets depthOffsets;
 
-    QuadsGenerator(const glm::uvec2 &remoteWindowSize);
+    QuadsGenerator(glm::uvec2 &remoteWindowSize);
     ~QuadsGenerator() = default;
 
     BufferSizes getBufferSizes();

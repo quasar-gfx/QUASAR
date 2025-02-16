@@ -25,6 +25,8 @@ extern "C" {
 #include <RenderTargets/RenderTarget.h>
 #include <Renderers/OpenGLRenderer.h>
 
+#include <PostProcessing/PostProcessingEffect.h>
+
 #if !defined(__APPLE__) && !defined(__ANDROID__)
 #include <CudaGLInterop/CudaGLImage.h>
 #endif
@@ -39,9 +41,9 @@ public:
 
     int targetFrameRate;
 
-    Recorder(OpenGLRenderer &renderer, Shader &shader, const std::string& outputPath, int targetFrameRate = 60, unsigned int numThreads = 8)
+    Recorder(OpenGLRenderer &renderer, PostProcessingEffect &effect, const std::string& outputPath, int targetFrameRate = 60, unsigned int numThreads = 8)
             : renderer(renderer)
-            , shader(shader)
+            , effect(effect)
             , renderTargetCopy({
                 .width = renderer.width,
                 .height = renderer.height,
@@ -62,8 +64,8 @@ public:
 #endif
             {
     }
-    Recorder(OpenGLRenderer &renderer, Shader &shader, int targetFrameRate = 60, unsigned int numThreads = 8)
-        : Recorder(renderer, shader, ".", targetFrameRate) { }
+    Recorder(OpenGLRenderer &renderer, PostProcessingEffect &effect, int targetFrameRate = 60, unsigned int numThreads = 8)
+        : Recorder(renderer, effect, ".", targetFrameRate) { }
     ~Recorder();
 
     void saveScreenshotToFile(const std::string &filename, bool saveAsHDR = false);
@@ -83,7 +85,7 @@ private:
     std::string outputPath;
 
     OpenGLRenderer& renderer;
-    Shader& shader;
+    PostProcessingEffect& effect;
 
     RenderTarget renderTargetCopy;
 

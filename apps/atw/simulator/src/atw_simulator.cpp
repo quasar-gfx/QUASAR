@@ -9,7 +9,7 @@
 #include <GUI/ImGuiManager.h>
 #include <Renderers/ForwardRenderer.h>
 
-#include <Shaders/ToneMapShader.h>
+#include <PostProcessing/ToneMapper.h>
 
 #include <Recorder.h>
 #include <Animator.h>
@@ -101,10 +101,9 @@ int main(int argc, char** argv) {
         .magFilter = GL_LINEAR
     });
 
-    // shaders
-    ToneMapShader toneMapShader;
-    toneMapShader.bind();
-    toneMapShader.setBool("toneMap", false);
+    // post processing
+    ToneMapper toneMapper;
+    toneMapper.enableToneMapping(false);
 
     Shader atwShader({
         .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
@@ -113,7 +112,7 @@ int main(int argc, char** argv) {
         .fragmentCodeSize = SHADER_COMMON_ATW_FRAG_len
     });
 
-    Recorder recorder(renderer, toneMapShader, dataPath, config.targetFramerate);
+    Recorder recorder(renderer, toneMapper, dataPath, config.targetFramerate);
     Animator animator(animationFile);
 
     if (saveImage) {
@@ -352,7 +351,7 @@ int main(int argc, char** argv) {
             remoteRenderer.drawObjects(remoteScene, remoteCamera);
 
             // copy rendered result to video render target
-            remoteRenderer.drawToRenderTarget(toneMapShader, renderTarget);
+            toneMapper.drawToRenderTarget(remoteRenderer, renderTarget);
 
             spdlog::info("======================================================");
             spdlog::info("Rendering Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
@@ -379,7 +378,7 @@ int main(int argc, char** argv) {
         renderStats = remoteRenderer.drawToRenderTarget(atwShader, renderer.gBuffer);
 
         double startTime = window->getTime();
-        renderer.drawToScreen(toneMapShader);
+        toneMapper.drawToScreen(renderer);
         if (animator.running) {
             spdlog::info("Client Render Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
         }

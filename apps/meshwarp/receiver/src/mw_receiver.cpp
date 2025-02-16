@@ -5,7 +5,7 @@
 #include <GUI/ImGuiManager.h>
 #include <Renderers/ForwardRenderer.h>
 
-#include <Shaders/ToneMapShader.h>
+#include <PostProcessing/ToneMapper.h>
 
 #include <Recorder.h>
 #include <Animator.h>
@@ -140,8 +140,8 @@ int main(int argc, char** argv) {
     nodeWireframe.overrideMaterial = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
     scene.addChildNode(&nodeWireframe);
 
-    // shaders
-    ToneMapShader toneMapShader;
+    // post processing
+    ToneMapper toneMapper;
 
     Shader videoShader({
         .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
@@ -158,7 +158,7 @@ int main(int argc, char** argv) {
         }
     });
 
-    Recorder recorder(renderer, toneMapShader, config.targetFramerate);
+    Recorder recorder(renderer, toneMapper, config.targetFramerate);
 
     double elapsedTimeColor, elapsedTimeDepth;
     pose_id_t poseIdColor = -1, poseIdDepth = -1;
@@ -437,7 +437,7 @@ int main(int argc, char** argv) {
         renderStats = renderer.drawObjects(scene, camera);
 
         // render to screen
-        renderer.drawToScreen(toneMapShader);
+        toneMapper.drawToScreen(renderer);
     });
 
     // Run app loop (blocking)

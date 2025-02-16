@@ -5,7 +5,7 @@
 
 #define MAX_PROXY_SIZE 1024
 
-QuadsGenerator::QuadsGenerator(const glm::uvec2 &remoteWindowSize)
+QuadsGenerator::QuadsGenerator(glm::uvec2 &remoteWindowSize)
         : remoteWindowSize(remoteWindowSize)
         , depthBufferSize(2u * remoteWindowSize) // 4 offsets per pixel
         , maxProxies(remoteWindowSize.x * remoteWindowSize.y)

@@ -8,7 +8,7 @@
 #include <GUI/ImGuiManager.h>
 #include <Renderers/ForwardRenderer.h>
 
-#include <Shaders/ToneMapShader.h>
+#include <PostProcessing/ToneMapper.h>
 
 #include <Recorder.h>
 #include <Animator.h>
@@ -125,8 +125,6 @@ int main(int argc, char** argv) {
     PoseReceiver poseReceiver = PoseReceiver(&camera, poseURL);
 
     // shaders
-    ToneMapShader toneMapShader;
-
     Shader depthShader({
         .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
         .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
@@ -134,7 +132,10 @@ int main(int argc, char** argv) {
         .fragmentCodeSize = SHADER_BUILTIN_DISPLAYDEPTH_FRAG_len
     });
 
-    Recorder recorder(renderer, toneMapShader, config.targetFramerate);
+    // post processing
+    ToneMapper toneMapper;
+
+    Recorder recorder(renderer, toneMapper, config.targetFramerate);
 
     PauseState pauseState = PauseState::PLAY;
     RenderStats renderStats;
@@ -279,7 +280,8 @@ int main(int argc, char** argv) {
             camera.setPosition(camera.getPosition() - initialPosition);
             camera.updateViewMatrix();
 
-            renderer.drawToRenderTarget(toneMapShader, videoStreamerColorRT);
+            toneMapper.drawToRenderTarget(renderer, videoStreamerColorRT);
+
             depthShader.bind();
             depthShader.setFloat("near", camera.getNear());
             depthShader.setFloat("far", camera.getFar());
@@ -291,7 +293,7 @@ int main(int argc, char** argv) {
 
         // render to screen
         if (config.showWindow) {
-            renderer.drawToScreen(toneMapShader);
+            toneMapper.drawToScreen(renderer);
         }
     });
 

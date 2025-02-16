@@ -9,7 +9,8 @@
 #include <GUI/ImGuiManager.h>
 #include <Renderers/ForwardRenderer.h>
 
-#include <Shaders/ToneMapShader.h>
+#include <PostProcessing/ToneMapper.h>
+#include <PostProcessing/ShowNormalsEffect.h>
 
 #include <Recorder.h>
 #include <Animator.h>
@@ -229,15 +230,6 @@ int main(int argc, char** argv) {
     }
 
     // shaders
-    ToneMapShader toneMapShader;
-
-    Shader screenShaderNormals({
-        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_BUILTIN_DISPLAYNORMALS_FRAG,
-        .fragmentCodeSize = SHADER_BUILTIN_DISPLAYNORMALS_FRAG_len
-    });
-
     ComputeShader meshFromDepthShader({
         .computeCodeData = SHADER_COMMON_MESHFROMDEPTH_COMP,
         .computeCodeSize = SHADER_COMMON_MESHFROMDEPTH_COMP_len,
@@ -246,7 +238,11 @@ int main(int argc, char** argv) {
         }
     });
 
-    Recorder recorder(renderer, toneMapShader, dataPath, config.targetFramerate);
+    // post processing
+    ToneMapper toneMapper;
+    ShowNormalsEffect showNormalsEffect;
+
+    Recorder recorder(renderer, toneMapper, dataPath, config.targetFramerate);
     Animator animator(animationFile);
 
     if (saveImage) {
@@ -743,7 +739,7 @@ int main(int argc, char** argv) {
                     renderer.gBuffer.blitToGBuffer(gBufferRTs[view]);
                 }
                 else {
-                    renderer.drawToRenderTarget(screenShaderNormals, gBufferRTs[view]);
+                    showNormalsEffect.drawToRenderTarget(renderer, gBufferRTs[view]);
                 }
                 totalRenderTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
 
@@ -873,9 +869,8 @@ int main(int argc, char** argv) {
         renderStats = renderer.drawObjects(scene, camera);
 
         // render to screen
-        toneMapShader.bind();
-        toneMapShader.setBool("toneMap", !showNormals);
-        renderer.drawToScreen(toneMapShader);
+        toneMapper.enableToneMapping(!showNormals);
+        toneMapper.drawToScreen(renderer);
         if (animator.running) {
             spdlog::info("Client Render Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
         }
