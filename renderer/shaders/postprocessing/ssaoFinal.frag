@@ -17,11 +17,6 @@ uniform float exposure = 1.0;
 
 void main() {
     vec3 color = texture(screenColor, TexCoords).rgb;
-    if (toneMap) {
-        color = applyToneMapExponential(color, exposure);
-        color = linearToSRGB(color);
-    }
-
     float ambient = texture(ssao, TexCoords).r;
     color *= ambient;
 

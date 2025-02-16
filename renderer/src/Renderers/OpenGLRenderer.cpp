@@ -393,7 +393,6 @@ RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const Rende
     glClear(GL_COLOR_BUFFER_BIT);
 
     screenShader.bind();
-    setScreenShaderUniforms(screenShader);
     RenderStats stats = outputFsQuad.draw();
 
     if (overrideRenderTarget != nullptr) {

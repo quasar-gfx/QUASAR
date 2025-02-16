@@ -16,18 +16,19 @@ public:
             .fragmentCodeSize = SHADER_BUILTIN_DISPLAYDEPTH_FRAG_len
         }) {}
 
-    void drawToScreen(OpenGLRenderer& renderer) override {
+    RenderStats drawToScreen(OpenGLRenderer& renderer) override {
         shader.bind();
         shader.setFloat("near", camera.getNear());
         shader.setFloat("far", camera.getFar());
-        renderer.drawToScreen(shader);
+        return renderer.drawToScreen(shader);
     }
 
-    void drawToRenderTarget(OpenGLRenderer& renderer, RenderTargetBase &rt) override {
+    RenderStats drawToRenderTarget(OpenGLRenderer& renderer, RenderTargetBase &rt) override {
         shader.bind();
         shader.setFloat("near", camera.getNear());
         shader.setFloat("far", camera.getFar());
-        renderer.drawToRenderTarget(shader, rt);
+        renderer.setScreenShaderUniforms(shader);
+        return renderer.drawToRenderTarget(shader, rt);
     }
 
 private:

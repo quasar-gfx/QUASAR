@@ -16,6 +16,7 @@ ForwardRenderer::ForwardRenderer(const Config &config)
 
 void ForwardRenderer::setScreenShaderUniforms(const Shader &screenShader) {
     // set gbuffer texture uniforms
+    screenShader.bind();
     screenShader.setTexture("screenColor", gBuffer.colorBuffer, 0);
     screenShader.setTexture("screenDepth", gBuffer.depthStencilBuffer, 1);
     screenShader.setTexture("screenPositions", gBuffer.positionBuffer, 2);

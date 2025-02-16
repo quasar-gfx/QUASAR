@@ -20,12 +20,14 @@ public:
         shader.setBool("showObjectIDs", show);
     }
 
-    void drawToScreen(OpenGLRenderer& renderer) override {
-        renderer.drawToScreen(shader);
+    RenderStats drawToScreen(OpenGLRenderer& renderer) override {
+        renderer.setScreenShaderUniforms(shader);
+        return renderer.drawToScreen(shader);
     }
 
-    void drawToRenderTarget(OpenGLRenderer& renderer, RenderTargetBase &rt) override {
-        renderer.drawToRenderTarget(shader, rt);
+    RenderStats drawToRenderTarget(OpenGLRenderer& renderer, RenderTargetBase &rt) override {
+        renderer.setScreenShaderUniforms(shader);
+        return renderer.drawToRenderTarget(shader, rt);
     }
 
 private:

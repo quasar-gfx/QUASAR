@@ -10,9 +10,10 @@
 
 class SSAO: public PostProcessingEffect {
 public:
-    SSAO(glm::uvec2 &windowSize, PerspectiveCamera &camera)
+    SSAO(glm::uvec2 &windowSize, PerspectiveCamera &camera, unsigned int seed = 42)
             : windowSize(windowSize)
             , camera(camera)
+            , generator(seed)
             , randomFloats(0.0, 1.0)
             , ssaoShader({
                 .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
@@ -84,7 +85,9 @@ public:
         ssaoFinalShader.setFloat("exposure", exposure);
     }
 
-    void drawToScreen(OpenGLRenderer& renderer) override {
+    RenderStats drawToScreen(OpenGLRenderer& renderer) override {
+        RenderStats stats;
+
         // render ssao
         ssaoShader.bind();
         ssaoShader.setMat4("view", camera.getViewMatrix());
@@ -93,20 +96,24 @@ public:
             ssaoShader.setVec3("samples[" + std::to_string(i) + "]", ssaoKernel[i]);
         }
         ssaoShader.setTexture("noiseTexture", *noiseTexture, 5);
-        renderer.drawToRenderTarget(ssaoShader, ssaoRenderTarget);
+        stats += renderer.drawToRenderTarget(ssaoShader, ssaoRenderTarget);
 
         // blur ssao
         ssaoBlurShader.bind();
         ssaoBlurShader.setTexture("ssaoInput", ssaoRenderTarget.colorBuffer, 5);
-        renderer.drawToRenderTarget(ssaoBlurShader, ssaoBlurRenderTarget);
+        stats += renderer.drawToRenderTarget(ssaoBlurShader, ssaoBlurRenderTarget);
 
         // final ssao
         ssaoFinalShader.bind();
         ssaoFinalShader.setTexture("ssao", ssaoBlurRenderTarget.colorBuffer, 5);
-        renderer.drawToScreen(ssaoFinalShader);
+        stats += renderer.drawToScreen(ssaoFinalShader);
+
+        return stats;
     }
 
-    void drawToRenderTarget(OpenGLRenderer& renderer, RenderTargetBase &rt) override {
+    RenderStats drawToRenderTarget(OpenGLRenderer& renderer, RenderTargetBase &rt) override {
+        RenderStats stats;
+
         // render ssao
         ssaoShader.bind();
         ssaoShader.setMat4("view", camera.getViewMatrix());
@@ -115,17 +122,22 @@ public:
             ssaoShader.setVec3("samples[" + std::to_string(i) + "]", ssaoKernel[i]);
         }
         ssaoShader.setTexture("noiseTexture", *noiseTexture, 5);
-        renderer.drawToRenderTarget(ssaoShader, ssaoRenderTarget);
+        renderer.setScreenShaderUniforms(ssaoShader);
+        stats += renderer.drawToRenderTarget(ssaoShader, ssaoRenderTarget);
 
         // blur ssao
         ssaoBlurShader.bind();
         ssaoBlurShader.setTexture("ssaoInput", ssaoRenderTarget.colorBuffer, 5);
-        renderer.drawToRenderTarget(ssaoBlurShader, ssaoBlurRenderTarget);
+        renderer.setScreenShaderUniforms(ssaoBlurShader);
+        stats += renderer.drawToRenderTarget(ssaoBlurShader, ssaoBlurRenderTarget);
 
         // final ssao
         ssaoFinalShader.bind();
         ssaoFinalShader.setTexture("ssao", ssaoBlurRenderTarget.colorBuffer, 5);
-        renderer.drawToRenderTarget(ssaoFinalShader, rt);
+        renderer.setScreenShaderUniforms(ssaoFinalShader);
+        stats += renderer.drawToRenderTarget(ssaoFinalShader, rt);
+
+        return stats;
     }
 
 private:
