@@ -482,7 +482,7 @@ int main(int argc, char** argv) {
         renderStats = renderer.drawObjects(scene, camera);
 
         toneMapper.enableToneMapping(true);
-        toneMapper.drawToRenderTarget(remoteRenderer, renderTarget);
+        toneMapper.drawToScreen(renderer);
         if (animator.running) {
             spdlog::info("Client Render Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
         }
