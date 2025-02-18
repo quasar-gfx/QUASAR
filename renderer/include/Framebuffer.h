@@ -7,6 +7,8 @@
 
 class Framebuffer : public OpenGLObject {
 public:
+    unsigned int numAttachments = 0;
+
     Framebuffer() {
         glGenFramebuffers(1, &ID);
     }
@@ -61,10 +63,12 @@ public:
         else {
             glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D_MULTISAMPLE, texture.ID, 0);
         }
+        numAttachments++;
     }
 
     void attachCubeMap(const CubeMap &cubeMap, GLenum attachment) {
         glFramebufferTexture(GL_FRAMEBUFFER, attachment, cubeMap.ID, 0);
+        numAttachments++;
     }
 
     void blitToScreen(unsigned int width, unsigned int height) {

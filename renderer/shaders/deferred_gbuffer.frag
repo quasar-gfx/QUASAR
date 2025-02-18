@@ -1,8 +1,14 @@
+#include "constants.glsl"
 #include "camera.glsl"
 
-layout(location = 0) out vec4 FragColor;
-layout(location = 1) out vec4 FragNormal;
-layout(location = 2) out uvec4 FragIDs;
+layout(location = 0) out vec4 gAlbedo;
+layout(location = 1) out vec4 gPBR;
+layout(location = 2) out vec4 gEmissive;
+layout(location = 3) out vec4 gLightPositionXYZ;
+layout(location = 4) out vec4 gLightPositionWIBLAlpha;
+layout(location = 5) out vec4 gPosition;
+layout(location = 6) out vec4 gNormal;
+layout(location = 7) out uvec4 gIDs;
 
 in VertexData {
     flat uint drawID;
@@ -24,14 +30,37 @@ uniform struct Material {
     int alphaMode;
     float maskThreshold;
 
-    bool hasBaseColorMap; // use diffuse map
+    vec3 emissiveFactor;
+
+    float metallic;
+    float metallicFactor;
+    float roughness;
+    float roughnessFactor;
+
+    bool hasBaseColorMap; // use albedo map
+    bool hasNormalMap; // use normal map
+    bool hasMetallicMap; // use metallic map
+    bool hasRoughnessMap; // use roughness map
+    bool hasAOMap; // use ao map
+    bool hasEmissiveMap; // use emissive map
+    bool metalRoughnessCombined; // use combined metal/roughness map
 
     // material textures
     sampler2D baseColorMap; // 0
-} material;
+    sampler2D normalMap; // 1
+    sampler2D metallicMap; // 2
+    sampler2D roughnessMap; // 3
+    sampler2D aoMap; // 4
+    sampler2D emissiveMap; // 5
 
-#define MAX_DEPTH 0.9999
-const float PI = 3.1415926535897932384626433832795;
+    // IBL
+    float IBL; // IBL contribution
+#ifdef PLATFORM_CORE
+    samplerCube irradianceMap; // 6
+    samplerCube prefilterMap; // 7
+    sampler2D brdfLUT; // 8
+#endif
+} material;
 
 #ifdef DO_DEPTH_PEELING
 uniform bool peelDepth;
@@ -93,6 +122,29 @@ bool inPVHV(ivec2 pixelCoords, vec3 fragViewPos, uvec4 q) {
 }
 #endif
 
+vec3 getNormal() {
+	vec3 N = normalize(fsIn.Normal);
+	vec3 T = normalize(fsIn.Tangent);
+	vec3 B = normalize(fsIn.BiTangent);
+
+    if (!material.hasNormalMap)
+        return N;
+
+    if (any(isnan(B))) {
+        vec3 q1 = dFdx(fsIn.FragPosWorld);
+        vec3 q2 = dFdy(fsIn.FragPosWorld);
+        vec2 st1 = dFdx(fsIn.TexCoords);
+        vec2 st2 = dFdy(fsIn.TexCoords);
+
+        T = normalize(q1 * st2.t - q2 * st1.t);
+        B = -normalize(cross(N, T));
+    }
+
+	mat3 TBN = mat3(T, B, N);
+	vec3 tangentNormal = texture(material.normalMap, fsIn.TexCoords).xyz * 2.0 - 1.0;
+	return normalize(TBN * tangentNormal);
+}
+
 void main() {
 #ifdef DO_DEPTH_PEELING
     if (peelDepth) {
@@ -118,16 +170,53 @@ void main() {
         baseColor = texture(material.baseColorMap, fsIn.TexCoords) * material.baseColorFactor;
     }
     else {
-        baseColor = material.baseColor * material.baseColorFactor;
+        baseColor = material.baseColorFactor;
     }
     baseColor.rgb *= fsIn.Color;
 
+    // albedo
+    vec3 albedo = baseColor.rgb;
     float alpha = (material.alphaMode == ALPHA_OPAQUE) ? 1.0 : baseColor.a;
     if (alpha < material.maskThreshold)
         discard;
 
-    FragColor = vec4(baseColor.rgb, alpha);
-    FragNormal = vec4(normalize(fsIn.Normal), 1.0);
-    FragIDs = uvec4(fsIn.drawID, gl_PrimitiveID, 0, 1);
-    FragIDs.z = floatBitsToUint((-fsIn.FragPosView.z - camera.near) / (camera.far - camera.near));
+    // metallic and roughness properties
+    float metallic, roughness;
+    if (material.metalRoughnessCombined) {
+        vec4 mrSample = texture(material.metallicMap, fsIn.TexCoords);
+        metallic = (!material.hasMetallicMap) ? material.metallic : mrSample.b;
+        roughness = (!material.hasRoughnessMap) ? material.roughness : mrSample.g;
+    }
+    else {
+        metallic = (!material.hasMetallicMap) ? material.metallic : texture(material.metallicMap, fsIn.TexCoords).r;
+        roughness = (!material.hasRoughnessMap) ? material.roughness : texture(material.roughnessMap, fsIn.TexCoords).r;
+    }
+    metallic = material.metallicFactor * metallic;
+    roughness = material.roughnessFactor * roughness;
+
+    // input lighting data
+    vec3 N = getNormal();
+
+    // apply emissive component
+    vec3 emissive = vec3(0.0);
+    if (material.hasEmissiveMap) {
+        emissive = texture(material.emissiveMap, fsIn.TexCoords).rgb;
+    }
+
+    // apply ambient occlusion
+    float ambient = 1.0;
+    if (material.hasAOMap) {
+        float ao = texture(material.aoMap, fsIn.TexCoords).r;
+        ambient *= ao;
+    }
+
+    gAlbedo = vec4(albedo, 1.0);
+    gPBR = vec4(metallic, roughness, ambient, 1.0);
+    gEmissive = vec4(emissive, 1.0);
+    gLightPositionXYZ = vec4(fsIn.FragPosLightSpace.xyz, 1.0);
+    gLightPositionWIBLAlpha = vec4(fsIn.FragPosLightSpace.w, material.IBL, alpha, 1.0);
+    gPosition = vec4(fsIn.FragPosWorld, 1.0);
+    gNormal = vec4(N, 1.0);
+    gIDs = uvec4(fsIn.drawID, gl_PrimitiveID, 0, 1);
+    gIDs.z = floatBitsToUint((-fsIn.FragPosView.z - camera.near) / (camera.far - camera.near));
 }

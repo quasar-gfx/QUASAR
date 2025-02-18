@@ -1,5 +1,5 @@
 #include "toneMap.glsl"
-#include "cameraUtils.glsl"
+#include "camera_utils.glsl"
 
 out vec4 FragColor;
 

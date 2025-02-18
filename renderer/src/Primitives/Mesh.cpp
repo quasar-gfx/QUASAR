@@ -109,15 +109,15 @@ void Mesh::setMaterialCameraParams(const Camera &camera, const Material* materia
     material->getShader()->setFloat("camera.far", camera.getFar());
 }
 
-void Mesh::bindMaterial(const Scene &scene, const glm::mat4 &model, const Material* overrideMaterial, const Texture* prevDepthMap) {
+void Mesh::bindMaterial(const Scene &scene, const glm::mat4 &model, const Material* overrideMaterial, const Texture* prevIDMap) {
     auto* materialToUse = overrideMaterial != nullptr ? overrideMaterial : material;
     materialToUse->bind();
+
+    scene.bindMaterial(materialToUse);
 
     if (scene.ambientLight != nullptr) {
         scene.ambientLight->bindMaterial(materialToUse);
     }
-
-    scene.bindMaterial(materialToUse);
 
     int texIdx = materialToUse->getTextureCount() + Scene::numTextures;
     if (scene.directionalLight != nullptr) {
@@ -140,9 +140,9 @@ void Mesh::bindMaterial(const Scene &scene, const glm::mat4 &model, const Materi
     materialToUse->getShader()->setInt("numPointLights", static_cast<int>(scene.pointLights.size()));
     materialToUse->getShader()->setFloat("material.IBL", IBL);
 
-    materialToUse->getShader()->setBool("peelDepth", prevDepthMap != nullptr);
-    if (prevDepthMap != nullptr) {
-        materialToUse->getShader()->setTexture("prevDepthMap", *prevDepthMap, texIdx);
+    materialToUse->getShader()->setBool("peelDepth", prevIDMap != nullptr);
+    if (prevIDMap != nullptr) {
+        materialToUse->getShader()->setTexture("prevIDMap", *prevIDMap, texIdx);
         texIdx++;
     }
 

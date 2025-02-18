@@ -228,7 +228,7 @@ int SceneLoader::parseMaterial(jsmntok_t* tokens, int i, const char* json, Scene
     CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
     std::string type;
-    PBRMaterialCreateParams params{};
+    LitMaterialCreateParams params{};
 
     int size = tokens[i++].size;
     for (int j = 0; j < size; j++) {
@@ -275,7 +275,7 @@ int SceneLoader::parseMaterial(jsmntok_t* tokens, int i, const char* json, Scene
         }
     }
 
-    auto material = new PBRMaterial(params);
+    auto material = new LitMaterial(params);
     materials.push_back(material);
 
     return i;

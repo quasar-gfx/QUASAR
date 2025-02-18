@@ -15,10 +15,10 @@ DepthPeelingRenderer::DepthPeelingRenderer(const Config &config, unsigned int ma
         })
         , edp(edp) {
     // enable depth peeling in shaders
-    PBRMaterial::extraShaderDefines.push_back("#define DO_DEPTH_PEELING");
+    LitMaterial::extraShaderDefines.push_back("#define DO_DEPTH_PEELING");
     UnlitMaterial::extraShaderDefines.push_back("#define DO_DEPTH_PEELING");
     if (edp) {
-        PBRMaterial::extraShaderDefines.push_back("#define EDP");
+        LitMaterial::extraShaderDefines.push_back("#define EDP");
         UnlitMaterial::extraShaderDefines.push_back("#define EDP");
     }
 
@@ -46,9 +46,8 @@ void DepthPeelingRenderer::setScreenShaderUniforms(const Shader &screenShader) {
     screenShader.bind();
     screenShader.setTexture("screenColor", gBuffer.colorBuffer, 0);
     screenShader.setTexture("screenDepth", gBuffer.depthStencilBuffer, 1);
-    screenShader.setTexture("screenPositions", gBuffer.positionBuffer, 2);
-    screenShader.setTexture("screenNormals", gBuffer.normalsBuffer, 3);
-    screenShader.setTexture("idBuffer", gBuffer.idBuffer, 4);
+    screenShader.setTexture("screenNormals", gBuffer.normalsBuffer, 2);
+    screenShader.setTexture("idBuffer", gBuffer.idBuffer, 3);
 }
 
 void DepthPeelingRenderer::beginRendering() {
@@ -63,11 +62,11 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &ca
     RenderStats stats;
 
     if (edp) {
-        if (PBRMaterial::shader != nullptr) {
-            PBRMaterial::shader->bind();
-            PBRMaterial::shader->setInt("height", gBuffer.height);
-            PBRMaterial::shader->setFloat("E", viewSphereDiameter / 2.0f);
-            PBRMaterial::shader->setFloat("edpDelta", edpDelta);
+        if (LitMaterial::shader != nullptr) {
+            LitMaterial::shader->bind();
+            LitMaterial::shader->setInt("height", gBuffer.height);
+            LitMaterial::shader->setFloat("E", viewSphereDiameter / 2.0f);
+            LitMaterial::shader->setFloat("edpDelta", edpDelta);
         }
         if (UnlitMaterial::shader != nullptr) {
             UnlitMaterial::shader->bind();
@@ -86,15 +85,15 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &ca
             glClear(clearMask);
         }
 
-        Texture* prevDepthMap = nullptr;
+        Texture* prevIDMap = nullptr;
         if (i >= 1) {
-            prevDepthMap = &peelingLayers[i-1].idBuffer;
+            prevIDMap = &peelingLayers[i-1].idBuffer;
         }
 
         // set layer index in shaders
-        if (PBRMaterial::shader != nullptr) {
-            PBRMaterial::shader->bind();
-            PBRMaterial::shader->setInt("layerIndex", i);
+        if (LitMaterial::shader != nullptr) {
+            LitMaterial::shader->bind();
+            LitMaterial::shader->setInt("layerIndex", i);
         }
         if (UnlitMaterial::shader != nullptr) {
             UnlitMaterial::shader->bind();
@@ -103,7 +102,7 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &ca
 
         // render scene
         for (auto& child : scene.rootNode.children) {
-            stats += drawNode(scene, camera, child, glm::mat4(1.0f), true, nullptr, prevDepthMap);
+            stats += drawNode(scene, camera, child, glm::mat4(1.0f), true, nullptr, prevIDMap);
         }
 
         gBuffer.unbind();

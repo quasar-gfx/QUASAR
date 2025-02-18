@@ -19,9 +19,8 @@ void ForwardRenderer::setScreenShaderUniforms(const Shader &screenShader) {
     screenShader.bind();
     screenShader.setTexture("screenColor", gBuffer.colorBuffer, 0);
     screenShader.setTexture("screenDepth", gBuffer.depthStencilBuffer, 1);
-    screenShader.setTexture("screenPositions", gBuffer.positionBuffer, 2);
-    screenShader.setTexture("screenNormals", gBuffer.normalsBuffer, 3);
-    screenShader.setTexture("idBuffer", gBuffer.idBuffer, 4);
+    screenShader.setTexture("screenNormals", gBuffer.normalsBuffer, 2);
+    screenShader.setTexture("idBuffer", gBuffer.idBuffer, 3);
 }
 
 RenderStats ForwardRenderer::drawObjects(const Scene &scene, const Camera &camera, uint32_t clearMask) {

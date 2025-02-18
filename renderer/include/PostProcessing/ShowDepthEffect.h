@@ -20,6 +20,7 @@ public:
         shader.bind();
         shader.setFloat("near", camera.getNear());
         shader.setFloat("far", camera.getFar());
+        renderer.setScreenShaderUniforms(shader);
         return renderer.drawToScreen(shader);
     }
 

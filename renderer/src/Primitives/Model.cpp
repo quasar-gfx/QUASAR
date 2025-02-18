@@ -137,7 +137,7 @@ void Model::processAnimations(const aiScene* scene) {
     }
 }
 
-void Model::processNode(aiNode* aiNode, const aiScene* scene, Node* node, PBRMaterial* material) {
+void Model::processNode(aiNode* aiNode, const aiScene* scene, Node* node, LitMaterial* material) {
     const glm::mat4 &transform = glm::transpose(reinterpret_cast<glm::mat4&>(aiNode->mTransformation));
 
     node->setName(aiNode->mName.C_Str());
@@ -156,7 +156,7 @@ void Model::processNode(aiNode* aiNode, const aiScene* scene, Node* node, PBRMat
     }
 }
 
-Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* material) {
+Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, LitMaterial* material) {
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
 
@@ -245,9 +245,9 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
         this->material = material;
     }
     else {
-        PBRMaterialCreateParams materialParams{};
+        LitMaterialCreateParams materialParams{};
         processMaterial(aiMat, materialParams);
-        this->material = new PBRMaterial(materialParams);
+        this->material = new LitMaterial(materialParams);
     }
 
     meshParams.verticesData = vertices.data();
@@ -260,7 +260,7 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* materi
     return new Mesh(meshParams);
 }
 
-void Model::processMaterial(const aiMaterial* aiMat, PBRMaterialCreateParams &materialParams) {
+void Model::processMaterial(const aiMaterial* aiMat, LitMaterialCreateParams &materialParams) {
     aiString alphaMode;
     aiString baseColorPath;
     aiString normalPath;
@@ -476,9 +476,9 @@ Texture* Model::loadMaterialTexture(aiMaterial const* aiMat, aiString aiTextureP
     }
 }
 
-void Model::bindMaterial(const Scene &scene, const glm::mat4 &model, const Material* overrideMaterial, const Texture* prevDepthMap) {
+void Model::bindMaterial(const Scene &scene, const glm::mat4 &model, const Material* overrideMaterial, const Texture* prevIDMap) {
     for (auto& mesh : meshes) {
-        mesh->bindMaterial(scene, model, overrideMaterial, prevDepthMap);
+        mesh->bindMaterial(scene, model, overrideMaterial, prevIDMap);
     }
 }
 

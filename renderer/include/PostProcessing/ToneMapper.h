@@ -29,7 +29,7 @@ public:
         return renderer.drawToRenderTarget(shader, rt);
     }
 
-// private:
+private:
     ToneMapShader shader;
 };
 

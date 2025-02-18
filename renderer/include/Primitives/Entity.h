@@ -52,7 +52,7 @@ public:
 
     virtual void bindMaterial(const Scene &scene, const glm::mat4 &model,
                               const Material* overrideMaterial = nullptr,
-                              const Texture* prevDepthMap = nullptr) = 0;
+                              const Texture* prevIDMap = nullptr) = 0;
 
     virtual RenderStats draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model,
                              bool frustumCull = true,
