@@ -9,6 +9,7 @@
 #include <Renderers/ForwardRenderer.h>
 
 #include <PostProcessing/ToneMapper.h>
+#include <PostProcessing/ShowDepthEffect.h>
 
 #include <Recorder.h>
 #include <Animator.h>
@@ -124,16 +125,9 @@ int main(int argc, char** argv) {
 
     PoseReceiver poseReceiver = PoseReceiver(&camera, poseURL);
 
-    // shaders
-    Shader depthShader({
-        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_BUILTIN_DISPLAYDEPTH_FRAG,
-        .fragmentCodeSize = SHADER_BUILTIN_DISPLAYDEPTH_FRAG_len
-    });
-
     // post processing
     ToneMapper toneMapper;
+    ShowDepthEffect showDepthEffect(camera);
 
     Recorder recorder(renderer, toneMapper, config.targetFramerate);
 
@@ -280,12 +274,9 @@ int main(int argc, char** argv) {
             camera.setPosition(camera.getPosition() - initialPosition);
             camera.updateViewMatrix();
 
+            // copy color and depth to video frames
             toneMapper.drawToRenderTarget(renderer, videoStreamerColorRT);
-
-            depthShader.bind();
-            depthShader.setFloat("near", camera.getNear());
-            depthShader.setFloat("far", camera.getFar());
-            renderer.drawToRenderTarget(depthShader, BC4videoStreamerDepthRT);
+            showDepthEffect.drawToRenderTarget(renderer, BC4videoStreamerDepthRT);
 
             if (pauseState != PauseState::PAUSE_COLOR) videoStreamerColorRT.sendFrame(poseID);
             if (pauseState != PauseState::PAUSE_DEPTH) BC4videoStreamerDepthRT.sendFrame(poseID);

@@ -1,3 +1,4 @@
+#include "constants.glsl"
 #include "cameraUtils.glsl"
 
 layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = THREADS_PER_LOCALGROUP, local_size_z = 1) in;
@@ -46,15 +47,8 @@ uniform int surfelSize;
 
 uniform bool unlinearizeDepth;
 
-#define MAX_DEPTH 0.9999
-
 #define VERTICES_IN_A_QUAD  4u
 #define INDICES_IN_A_QUAD   6u
-
-float LinearizeDepth(float depth) {
-    float z = depth * 2.0 - 1.0; // back to NDC
-    return (2.0 * near * far) / (far + near - z * (far - near));
-}
 
 float UnLinearizeDepth(float depth) {
     depth *= far;

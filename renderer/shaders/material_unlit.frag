@@ -1,3 +1,5 @@
+#include "camera.glsl"
+
 layout(location = 0) out vec4 FragColor;
 layout(location = 1) out vec4 FragPosition;
 layout(location = 2) out vec4 FragNormal;
@@ -28,20 +30,6 @@ uniform struct Material {
     // material textures
     sampler2D baseColorMap; // 0
 } material;
-
-uniform struct Camera {
-#ifndef ANDROID
-    mat4 projection;
-    mat4 view;
-#else
-    mat4 projection[2];
-    mat4 view[2];
-#endif
-    vec3 position;
-    float fovy;
-    float near;
-    float far;
-} camera;
 
 #define MAX_DEPTH 0.9999
 const float PI = 3.1415926535897932384626433832795;

@@ -1,3 +1,5 @@
+#include "camera.glsl"
+
 layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 aColor;
 layout(location = 2) in vec3 aNormal;
@@ -20,20 +22,6 @@ out VertexData {
     vec3 BiTangent;
     vec4 FragPosLightSpace;
 } vsOut;
-
-uniform struct Camera {
-#ifndef ANDROID
-    mat4 projection;
-    mat4 view;
-#else
-    mat4 projection[2];
-    mat4 view[2];
-#endif
-    vec3 position;
-    float fovy;
-    float near;
-    float far;
-} camera;
 
 uniform uint drawID;
 

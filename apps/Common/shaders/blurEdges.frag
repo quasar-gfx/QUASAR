@@ -1,3 +1,4 @@
+#include "constants.glsl"
 #include "toneMap.glsl"
 
 out vec4 FragColor;
@@ -9,8 +10,6 @@ uniform sampler2D screenDepth;
 uniform sampler2D screenPositions;
 uniform sampler2D screenNormals;
 uniform usampler2D idBuffer;
-
-#define MAX_DEPTH 0.9999
 
 uniform bool toneMap = true;
 uniform float exposure = 1.0;

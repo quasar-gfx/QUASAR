@@ -425,7 +425,7 @@ int main(int argc, char** argv) {
                 1
             );
         meshFromBC4Shader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
-                                           GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+                                        GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
         poseStreamer.removePosesLessThan(std::min(poseIdColor, poseIdDepth));
 

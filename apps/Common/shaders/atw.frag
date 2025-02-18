@@ -37,8 +37,6 @@ uniform float exposure;
 
 uniform sampler2D videoTexture;
 
-const float epsilon = 1e-5;
-
 void main() {
     vec2 TexCoordsAdjusted = TexCoords;
 #ifdef ANDROID
