@@ -8,6 +8,7 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 #include <Renderers/ForwardRenderer.h>
+#include <Renderers/DeferredRenderer.h>
 
 #include <PostProcessing/ToneMapper.h>
 #include <PostProcessing/ShowNormalsEffect.h>
@@ -121,8 +122,7 @@ int main(int argc, char** argv) {
 
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
-    ForwardRenderer remoteRenderer(config);
-    ForwardRenderer wideFOVRenderer(config);
+    DeferredRenderer remoteRenderer(config);
 
     // "remote" scene
     Scene remoteScene;
@@ -208,12 +208,12 @@ int main(int argc, char** argv) {
         nodeWireframes.emplace_back(&meshViews[view]);
         nodeWireframes[view].frustumCulled = false;
         nodeWireframes[view].wireframe = true;
-        nodeWireframes[view].overrideMaterial = new UnlitMaterial({ .baseColor = color });
+        nodeWireframes[view].overrideMaterial = new QuadMaterial({ .baseColor = color });
         scene.addChildNode(&nodeWireframes[view]);
 
         MeshSizeCreateParams meshDepthParams = {
             .maxVertices = maxVerticesDepth,
-            .material = new UnlitMaterial({ .baseColor = color }),
+            .material = new QuadMaterial({ .baseColor = color }),
             .usage = GL_DYNAMIC_DRAW
         };
         meshDepths.emplace_back(meshDepthParams);
@@ -708,12 +708,10 @@ int main(int argc, char** argv) {
 
                 startTime = window->getTime();
 
-                auto &renderer = (view != maxViews - 1) ? remoteRenderer : wideFOVRenderer;
-
                 // center view
                 if (view == 0) {
                     // render all objects in remoteScene normally
-                    renderer.drawObjects(remoteScene, remoteCamera);
+                    remoteRenderer.drawObjects(remoteScene, remoteCamera);
                 }
                 // other views
                 else {
@@ -722,24 +720,24 @@ int main(int argc, char** argv) {
                         meshScene.rootNode.children[prevView]->visible = (prevView < view);
                     }
                     // draw old meshViews at new remoteCamera view, filling stencil buffer with 1
-                    renderer.pipeline.stencilState.enableRenderingIntoStencilBuffer(GL_KEEP, GL_KEEP, GL_REPLACE);
-                    renderer.pipeline.writeMaskState.disableColorWrites();
-                    renderer.drawObjectsNoLighting(meshScene, remoteCamera);
+                    remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer(GL_KEEP, GL_KEEP, GL_REPLACE);
+                    remoteRenderer.pipeline.writeMaskState.disableColorWrites();
+                    remoteRenderer.drawObjectsNoLighting(meshScene, remoteCamera);
 
                     // render remoteScene using stencil buffer as a mask
                     // at values where stencil buffer is not 1, remoteScene should render
-                    renderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_NOTEQUAL, 1);
-                    renderer.pipeline.rasterState.polygonOffsetEnabled = false;
-                    renderer.pipeline.writeMaskState.enableColorWrites();
-                    renderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                    remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_NOTEQUAL, 1);
+                    remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = false;
+                    remoteRenderer.pipeline.writeMaskState.enableColorWrites();
+                    remoteRenderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-                    renderer.pipeline.stencilState.restoreStencilState();
+                    remoteRenderer.pipeline.stencilState.restoreStencilState();
                 }
                 if (!showNormals) {
-                    renderer.gBuffer.blitToGBuffer(gBufferRTs[view]);
+                    remoteRenderer.copyToGBuffer(gBufferRTs[view]);
                 }
                 else {
-                    showNormalsEffect.drawToRenderTarget(renderer, gBufferRTs[view]);
+                    showNormalsEffect.drawToRenderTarget(remoteRenderer, gBufferRTs[view]);
                 }
                 totalRenderTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
 

@@ -216,7 +216,11 @@ void main() {
     gLightPositionXYZ = vec4(fsIn.FragPosLightSpace.xyz, 1.0);
     gLightPositionWIBLAlpha = vec4(fsIn.FragPosLightSpace.w, material.IBL, alpha, 1.0);
     gPosition = vec4(fsIn.FragPosWorld, 1.0);
+#ifdef VIEW_DEPENDENT_LIGHTING
     gNormal = vec4(N, 1.0);
+#else
+    gNormal = vec4(normalize(fsIn.Normal), 1.0);
+#endif
     gIDs = uvec4(fsIn.drawID, gl_PrimitiveID, 0, 1);
     gIDs.z = floatBitsToUint((-fsIn.FragPosView.z - camera.near) / (camera.far - camera.near));
 }

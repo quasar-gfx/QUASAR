@@ -1,16 +1,16 @@
 #ifndef DEPTH_PEELING_H
 #define DEPTH_PEELING_H
 
-#include <Renderers/OpenGLRenderer.h>
+#include <Renderers/DeferredRenderer.h>
+#include <RenderTargets/DeferredGBuffer.h>
 #include <RenderTargets/GBuffer.h>
 
-class DepthPeelingRenderer : public OpenGLRenderer {
+class DepthPeelingRenderer : public DeferredRenderer {
 public:
     unsigned int maxLayers;
     float viewSphereDiameter = 0.5f;
     float edpDelta = 0.001f;
 
-    GBuffer gBuffer;
     std::vector<GBuffer> peelingLayers;
 
     DepthPeelingRenderer(const Config &config, unsigned int maxLayers = 4, bool edp = false);

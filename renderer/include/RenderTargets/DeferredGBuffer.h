@@ -3,6 +3,7 @@
 
 #include <RenderTargets/RenderTargetBase.h>
 #include <RenderTargets/RenderTarget.h>
+#include <RenderTargets/GBuffer.h>
 
 class DeferredGBuffer : public RenderTargetBase {
 public:
@@ -60,52 +61,52 @@ public:
             , lightPositionXYZBuffer({
                 .width = width,
                 .height = height,
-                .internalFormat = GL_RGB32F,
+                .internalFormat = GL_RGB16F,
                 .format = GL_RGB,
-                .type = GL_FLOAT,
+                .type = GL_HALF_FLOAT,
                 .wrapS = GL_CLAMP_TO_EDGE,
                 .wrapT = GL_CLAMP_TO_EDGE,
-                .minFilter = params.minFilter,
-                .magFilter = params.magFilter,
+                .minFilter = GL_NEAREST,
+                .magFilter = GL_NEAREST,
                 .multiSampled = params.multiSampled,
                 .numSamples = params.numSamples
             })
             , lightPositionWIBLAlphaBuffer({
                 .width = width,
                 .height = height,
-                .internalFormat = GL_RGB32F,
+                .internalFormat = GL_RGB16F,
                 .format = GL_RGB,
-                .type = GL_FLOAT,
+                .type = GL_HALF_FLOAT,
                 .wrapS = GL_CLAMP_TO_EDGE,
                 .wrapT = GL_CLAMP_TO_EDGE,
-                .minFilter = params.minFilter,
-                .magFilter = params.magFilter,
+                .minFilter = GL_NEAREST,
+                .magFilter = GL_NEAREST,
                 .multiSampled = params.multiSampled,
                 .numSamples = params.numSamples
             })
             , positionBuffer({
                 .width = width,
                 .height = height,
-                .internalFormat = GL_RGB32F,
+                .internalFormat = GL_RGB16F,
                 .format = GL_RGB,
-                .type = GL_FLOAT,
+                .type = GL_HALF_FLOAT,
                 .wrapS = GL_CLAMP_TO_EDGE,
                 .wrapT = GL_CLAMP_TO_EDGE,
                 .minFilter = GL_NEAREST,
-                .magFilter = GL_NEAREST ,
+                .magFilter = GL_NEAREST,
                 .multiSampled = params.multiSampled,
                 .numSamples = params.numSamples
             })
             , normalsBuffer({
                 .width = width,
                 .height = height,
-                .internalFormat = GL_RGB32F,
+                .internalFormat = GL_RGB16F,
                 .format = GL_RGB,
-                .type = GL_FLOAT,
+                .type = GL_HALF_FLOAT,
                 .wrapS = GL_CLAMP_TO_EDGE,
                 .wrapT = GL_CLAMP_TO_EDGE,
                 .minFilter = GL_NEAREST,
-                .magFilter = GL_NEAREST ,
+                .magFilter = GL_NEAREST,
                 .multiSampled = params.multiSampled,
                 .numSamples = params.numSamples
             })
@@ -166,7 +167,36 @@ public:
     }
 
 #ifdef GL_CORE
-    void blitToGBuffer(DeferredGBuffer &gBuffer) {
+    void blitToRenderTarget(RenderTarget &renderTarget) {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, renderTarget.getFramebufferID());
+
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
+        glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        glBlitFramebuffer(0, 0, width, height, 0, 0, renderTarget.width, renderTarget.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    void blitToGBuffer(GBuffer &gBuffer) {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gBuffer.getFramebufferID());
+
+        // copy normals
+        glReadBuffer(GL_COLOR_ATTACHMENT6);
+        glDrawBuffer(GL_COLOR_ATTACHMENT1);
+        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+        // copy id buffer
+        glReadBuffer(GL_COLOR_ATTACHMENT7);
+        glDrawBuffer(GL_COLOR_ATTACHMENT2);
+        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+        // copy depth and stencil
+        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
+    }
+
+    void blitToDeferredGBuffer(DeferredGBuffer &gBuffer) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gBuffer.getFramebufferID());
 
@@ -203,17 +233,6 @@ public:
         glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
         glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
-
-    void blitToRenderTarget(RenderTarget &renderTarget) {
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, renderTarget.getFramebufferID());
-
-        glReadBuffer(GL_COLOR_ATTACHMENT0);
-        glDrawBuffer(GL_COLOR_ATTACHMENT0);
-        glBlitFramebuffer(0, 0, width, height, 0, 0, renderTarget.width, renderTarget.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }

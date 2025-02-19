@@ -1,7 +1,7 @@
 #ifndef FRAME_GENERATOR_H
 #define FRAME_GENERATOR_H
 
-#include <Renderers/ForwardRenderer.h>
+#include <Renderers/DeferredRenderer.h>
 #include <RenderTargets/GBuffer.h>
 
 #include <Quads/QuadsBuffers.h>
@@ -34,7 +34,7 @@ public:
         bool compress = true);
 
     unsigned int generatePFrame(
-        ForwardRenderer &remoteRenderer, const Scene &remoteScene, const Scene &currScene, const Scene &prevScene,
+        DeferredRenderer &remoteRenderer, const Scene &remoteScene, const Scene &currScene, const Scene &prevScene,
         GBuffer &gBufferHighRes, GBuffer &gBufferMaskHighRes,
         GBuffer &gBufferLowRes, GBuffer &gBufferMaskLowRes,
         const PerspectiveCamera &currRemoteCamera, const PerspectiveCamera &prevRemoteCamera,

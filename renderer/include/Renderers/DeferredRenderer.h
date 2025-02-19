@@ -3,6 +3,7 @@
 
 #include <Renderers/OpenGLRenderer.h>
 #include <RenderTargets/RenderTarget.h>
+#include <RenderTargets/DeferredGBuffer.h>
 #include <RenderTargets/GBuffer.h>
 
 #include <Materials/DeferredLightingMaterial.h>
@@ -30,7 +31,9 @@ public:
     virtual RenderStats drawSkyBox(const Scene &scene, const Camera &camera);
     virtual RenderStats drawObjects(const Scene &scene, const Camera &camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT) override;
 
-private:
+    void copyToGBuffer(GBuffer &gBufferDst);
+
+protected:
     DeferredLightingMaterial lightingMaterial;
 
     RenderStats lightingPass(const Scene &scene, const Camera &camera);

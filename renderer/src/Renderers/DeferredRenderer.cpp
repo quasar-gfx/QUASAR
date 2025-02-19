@@ -37,6 +37,7 @@ void DeferredRenderer::setScreenShaderUniforms(const Shader &screenShader) {
 
 void DeferredRenderer::resize(unsigned int width, unsigned int height) {
     OpenGLRenderer::resize(width, height);
+    outputRT.resize(width, height);
     gBuffer.resize(width, height);
 #ifndef __APPLE__
     gBufferMS.resize(width, height);
@@ -62,7 +63,7 @@ void DeferredRenderer::endRendering() {
         gBuffer.unbind();
     }
     else {
-        gBufferMS.blitToGBuffer(gBuffer);
+        gBufferMS.blitToDeferredGBuffer(gBuffer);
         gBufferMS.unbind();
     }
 #else
@@ -81,38 +82,22 @@ RenderStats DeferredRenderer::drawObjects(const Scene &scene, const Camera &came
     pipeline.apply();
 
     RenderStats stats;
-    if (camera.isVR()) {
-        auto* vrCamera = static_cast<const VRCamera*>(&camera);
 
-        pipeline.rasterState.scissorTestEnabled = true;
+    // update shadows
+    updateDirLightShadow(scene, camera);
+    updatePointLightShadows(scene, camera);
 
-        // left eye
-        gBuffer.setScissor(0, 0, width / 2, height);
-        gBuffer.setViewport(0, 0, width / 2, height);
-        stats = drawObjects(scene, vrCamera->left, clearMask);
+    // draw all objects in the scene
+    stats += drawScene(scene, camera, clearMask);
 
-        // right eye
-        gBuffer.setScissor(width / 2, 0, width / 2, height);
-        gBuffer.setViewport(width / 2, 0, width / 2, height);
-        stats = drawObjects(scene, vrCamera->right, clearMask);
-    }
-    else {
-        // update shadows
-        updateDirLightShadow(scene, camera);
-        updatePointLightShadows(scene, camera);
+    // draw lights for debugging
+    stats += drawLights(scene, camera);
 
-        // draw all objects in the scene
-        stats += drawScene(scene, camera, clearMask);
+    // draw lighting pass
+    stats += lightingPass(scene, camera);
 
-        // draw lights for debugging
-        stats += drawLights(scene, camera);
-
-        // draw lighting pass
-        stats += lightingPass(scene, camera);
-
-        // draw skybox
-        stats += drawSkyBox(scene, camera);
-    }
+    // draw skybox
+    stats += drawSkyBox(scene, camera);
 
     return stats;
 }
@@ -160,4 +145,9 @@ RenderStats DeferredRenderer::lightingPass(const Scene &scene, const Camera &cam
     glDepthFunc(GL_LESS);
 
     return stats;
+}
+
+void DeferredRenderer::copyToGBuffer(GBuffer &gBufferDst) {
+    outputRT.blitToRenderTarget(gBufferDst); // copy color
+    gBuffer.blitToGBuffer(gBufferDst); // copy normals, id, and depth
 }
