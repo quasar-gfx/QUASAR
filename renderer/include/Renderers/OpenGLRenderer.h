@@ -9,7 +9,7 @@
 #include <Cameras/Camera.h>
 #include <Shaders/Shader.h>
 #include <Shaders/ComputeShader.h>
-#include <Materials/PBRMaterial.h>
+#include <Materials/LitMaterial.h>
 #include <Materials/UnlitMaterial.h>
 #include <Lights/Lights.h>
 
@@ -56,10 +56,10 @@ protected:
     RenderStats drawLightsImpl(const Scene &scene, const Camera &camera);
     RenderStats drawSkyBoxImpl(const Scene &scene, const Camera &camera);
 
-    RenderStats drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,
-                         bool frustumCull = true, const Material* overrideMaterial = nullptr, const Texture* prevDepthMap = nullptr);
-    RenderStats drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,
-                         const PointLight* pointLight, const Material* overrideMaterial = nullptr);
+    virtual RenderStats drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,
+                                 bool frustumCull = true, const Material* overrideMaterial = nullptr, const Texture* prevIDMap = nullptr);
+    virtual RenderStats drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,
+                                 const PointLight* pointLight, const Material* overrideMaterial = nullptr);
 };
 
 #endif // OPENGL_RENDERER_H

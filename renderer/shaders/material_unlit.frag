@@ -1,9 +1,8 @@
 #include "camera.glsl"
 
 layout(location = 0) out vec4 FragColor;
-layout(location = 1) out vec4 FragPosition;
-layout(location = 2) out vec4 FragNormal;
-layout(location = 3) out uvec4 FragIDs;
+layout(location = 1) out vec4 FragNormal;
+layout(location = 2) out uvec4 FragIDs;
 
 in VertexData {
     flat uint drawID;
@@ -36,7 +35,7 @@ const float PI = 3.1415926535897932384626433832795;
 
 #ifdef DO_DEPTH_PEELING
 uniform bool peelDepth;
-uniform usampler2D prevDepthMap;
+uniform usampler2D prevIDMap;
 
 uniform int height;
 uniform float E;
@@ -78,7 +77,7 @@ bool inPVHV(ivec2 pixelCoords, vec3 fragViewPos, uvec4 q) {
         float y = R * sin(float(i) * 2*PI / EDP_SAMPLES);
         vec2 offset = vec2(x, y);
 
-        uvec4 w = texelFetch(prevDepthMap, ivec2(round(vec2(pixelCoords) + offset)), 0);
+        uvec4 w = texelFetch(prevIDMap, ivec2(round(vec2(pixelCoords) + offset)), 0);
         uint w_item = w.r;
         if (w_item < 0) return false;
 
@@ -98,7 +97,7 @@ void main() {
 #ifdef DO_DEPTH_PEELING
     if (peelDepth) {
         ivec2 pixelCoords = ivec2(gl_FragCoord.xy);
-        uvec4 q = texelFetch(prevDepthMap, pixelCoords, 0);
+        uvec4 q = texelFetch(prevIDMap, pixelCoords, 0);
 
         float currDepth = -fsIn.FragPosView.z;
         float prevDepthNormalized = uintBitsToFloat(q.z);
@@ -128,8 +127,7 @@ void main() {
         discard;
 
     FragColor = vec4(baseColor.rgb, alpha);
-    FragPosition = vec4(fsIn.FragPosView, 1.0);
     FragNormal = vec4(normalize(fsIn.Normal), 1.0);
-    FragIDs = uvec4(fsIn.drawID, gl_PrimitiveID, 0.0, 1.0);
+    FragIDs = uvec4(fsIn.drawID, gl_PrimitiveID, 0, 1);
     FragIDs.z = floatBitsToUint((-fsIn.FragPosView.z - camera.near) / (camera.far - camera.near));
 }

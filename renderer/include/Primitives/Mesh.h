@@ -108,7 +108,7 @@ public:
     }
 
     virtual void bindMaterial(const Scene &scene, const glm::mat4 &model,
-                              const Material* overrideMaterial = nullptr, const Texture* prevDepthMap = nullptr) override;
+                              const Material* overrideMaterial = nullptr, const Texture* prevIDMap = nullptr) override;
 
     virtual RenderStats draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model,
                              bool frustumCull = true, const Material* overrideMaterial = nullptr) override;

@@ -8,6 +8,7 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 #include <Renderers/ForwardRenderer.h>
+#include <Renderers/DeferredRenderer.h>
 #include <Renderers/DepthPeelingRenderer.h>
 
 #include <BlurEdges.h>
@@ -110,15 +111,14 @@ int main(int argc, char** argv) {
 
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
-    ForwardRenderer remoteRenderer(config);
     DepthPeelingRenderer dpRenderer(config, maxLayers, true);
-    ForwardRenderer wideFOVRenderer(config);
+    DeferredRenderer remoteRenderer(config);
 
     // "remote" scene
     Scene remoteScene;
     PerspectiveCamera remoteCameraCenter(dpRenderer.width, dpRenderer.height);
     PerspectiveCamera remoteCameraCenterPrev(dpRenderer.width, dpRenderer.height);
-    PerspectiveCamera remoteCameraWideFov(wideFOVRenderer.width, wideFOVRenderer.height);
+    PerspectiveCamera remoteCameraWideFov(remoteRenderer.width, remoteRenderer.height);
 
     SceneLoader loader;
     loader.loadScene(sceneFile, remoteScene, remoteCameraCenter);
@@ -808,8 +808,8 @@ int main(int argc, char** argv) {
                 if (view == 0) {
                     remoteRenderer.drawObjects(remoteScene, remoteCameraToUse);
                     if (!showNormals) {
-                        remoteRenderer.gBuffer.blitToGBuffer(gBufferToUseLowRes);
-                        remoteRenderer.gBuffer.blitToGBuffer(gBufferToUseHighRes);
+                        remoteRenderer.copyToGBuffer(gBufferToUseLowRes);
+                        remoteRenderer.copyToGBuffer(gBufferToUseHighRes);
                     }
                     else {
                         showNormalsEffect.drawToRenderTarget(remoteRenderer, gBufferToUseLowRes);
@@ -830,23 +830,23 @@ int main(int argc, char** argv) {
                 // wide fov camera
                 else {
                     // draw old center mesh at new remoteCamera view, filling stencil buffer with 1
-                    wideFOVRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer(GL_KEEP, GL_KEEP, GL_REPLACE);
-                    wideFOVRenderer.pipeline.writeMaskState.disableColorWrites();
+                    remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer(GL_KEEP, GL_KEEP, GL_REPLACE);
+                    remoteRenderer.pipeline.writeMaskState.disableColorWrites();
                     nodeMeshes[currMeshIndex].visible = false;
                     nodeMeshes[prevMeshIndex].visible = true;
-                    wideFOVRenderer.drawObjectsNoLighting(meshScene, remoteCameraToUse);
+                    remoteRenderer.drawObjectsNoLighting(meshScene, remoteCameraToUse);
 
                     // render remoteScene using stencil buffer as a mask
                     // at values where stencil buffer is not 1, remoteScene should render
-                    wideFOVRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_NOTEQUAL, 1);
-                    wideFOVRenderer.pipeline.writeMaskState.enableColorWrites();
-                    wideFOVRenderer.drawObjects(remoteScene, remoteCameraToUse, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                    remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_NOTEQUAL, 1);
+                    remoteRenderer.pipeline.writeMaskState.enableColorWrites();
+                    remoteRenderer.drawObjects(remoteScene, remoteCameraToUse, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-                    wideFOVRenderer.pipeline.stencilState.restoreStencilState();
+                    remoteRenderer.pipeline.stencilState.restoreStencilState();
 
                     if (!showNormals) {
-                        wideFOVRenderer.gBuffer.blitToGBuffer(gBufferToUseLowRes);
-                        wideFOVRenderer.gBuffer.blitToGBuffer(gBufferToUseHighRes);
+                        remoteRenderer.copyToGBuffer(gBufferToUseLowRes);
+                        remoteRenderer.copyToGBuffer(gBufferToUseHighRes);
                     }
                     else {
                         showNormalsEffect.drawToRenderTarget(remoteRenderer, gBufferToUseLowRes);

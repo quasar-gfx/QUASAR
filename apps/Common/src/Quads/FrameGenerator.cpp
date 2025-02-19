@@ -47,7 +47,7 @@ unsigned int FrameGenerator::generateIFrame(
 }
 
 unsigned int FrameGenerator::generatePFrame(
-        ForwardRenderer &remoteRenderer, const Scene &remoteScene, const Scene &currScene, const Scene &prevScene,
+        DeferredRenderer &remoteRenderer, const Scene &remoteScene, const Scene &currScene, const Scene &prevScene,
         GBuffer &gBufferHighRes, GBuffer &gBufferMaskHighRes,
         GBuffer &gBufferLowRes, GBuffer &gBufferMaskLowRes,
         const PerspectiveCamera &currRemoteCamera, const PerspectiveCamera &prevRemoteCamera,
@@ -77,8 +77,8 @@ unsigned int FrameGenerator::generatePFrame(
         remoteRenderer.drawObjects(remoteScene, prevRemoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         remoteRenderer.pipeline.stencilState.restoreStencilState();
-        remoteRenderer.gBuffer.blitToGBuffer(gBufferLowRes);
-        remoteRenderer.gBuffer.blitToGBuffer(gBufferHighRes);
+        remoteRenderer.copyToGBuffer(gBufferLowRes);
+        remoteRenderer.copyToGBuffer(gBufferHighRes);
     }
 
     // generate frame using current frame as a mask for movement
@@ -92,8 +92,8 @@ unsigned int FrameGenerator::generatePFrame(
         remoteRenderer.drawObjects(remoteScene, currRemoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         remoteRenderer.pipeline.stencilState.restoreStencilState();
-        remoteRenderer.gBuffer.blitToGBuffer(gBufferMaskLowRes);
-        remoteRenderer.gBuffer.blitToGBuffer(gBufferMaskHighRes);
+        remoteRenderer.copyToGBuffer(gBufferMaskLowRes);
+        remoteRenderer.copyToGBuffer(gBufferMaskHighRes);
     }
 
     stats.timeToRenderMasks = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);

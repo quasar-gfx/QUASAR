@@ -45,10 +45,19 @@ public:
         framebuffer.unbind();
     }
 
-    void blitToRenderTarget(RenderTarget &target) {
+    void blitToRenderTarget(RenderTargetBase &rt) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, target.framebuffer.ID);
-        glBlitFramebuffer(0, 0, width, height, 0, 0, target.width, target.height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, rt.getFramebufferID());
+
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
+        glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        glBlitFramebuffer(0, 0, width, height, 0, 0, rt.width, rt.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    }
+
+    void blitToRenderTarget(RenderTarget &rt) {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, rt.framebuffer.ID);
+        glBlitFramebuffer(0, 0, width, height, 0, 0, rt.width, rt.height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
     }
 
     void resize(unsigned int width, unsigned int height) override {

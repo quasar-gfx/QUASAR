@@ -3,7 +3,7 @@
 
 #include <Materials/Material.h>
 
-struct PBRMaterialCreateParams {
+struct LitMaterialCreateParams {
     glm::vec4 baseColor = glm::vec4(1.0f);
     glm::vec4 baseColorFactor = glm::vec4(1.0f);
     AlphaMode alphaMode = AlphaMode::OPAQUE;
@@ -29,7 +29,7 @@ struct PBRMaterialCreateParams {
     bool metalRoughnessCombined = false;
 };
 
-class PBRMaterial : public Material {
+class LitMaterial : public Material {
 public:
     glm::vec4 baseColor = glm::vec4(1.0f);
     glm::vec4 baseColorFactor = glm::vec4(1.0f);
@@ -43,9 +43,9 @@ public:
     float roughnessFactor = 1.0f;
     bool metalRoughnessCombined = false;
 
-    PBRMaterial() = default;
-    PBRMaterial(const PBRMaterialCreateParams &params);
-    ~PBRMaterial();
+    LitMaterial() = default;
+    LitMaterial(const LitMaterialCreateParams &params);
+    ~LitMaterial();
 
     void bind() const override;
 

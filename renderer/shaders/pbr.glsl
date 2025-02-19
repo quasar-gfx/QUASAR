@@ -1,5 +1,7 @@
 #include "lights.glsl"
 
+// #define VIEW_DEPENDENT_LIGHTING
+
 vec3 gridSamplingDisk[20] = vec3[]
 (
    vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1),

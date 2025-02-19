@@ -7,11 +7,10 @@
 #include <SceneLoader.h>
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
-#include <Renderers/ForwardRenderer.h>
+#include <Renderers/DeferredRenderer.h>
 
 #include <PostProcessing/ToneMapper.h>
 #include <PostProcessing/ShowDepthEffect.h>
-#include <PostProcessing/ShowPositionsEffect.h>
 #include <PostProcessing/ShowNormalsEffect.h>
 #include <PostProcessing/ShowIDsEffect.h>
 
@@ -74,7 +73,7 @@ int main(int argc, char** argv) {
     config.guiManager = guiManager;
 
     OpenGLApp app(config);
-    ForwardRenderer renderer(config);
+    DeferredRenderer renderer(config);
 
     Scene scene;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
@@ -84,7 +83,6 @@ int main(int argc, char** argv) {
     // post processing
     ToneMapper toneMapper;
     ShowDepthEffect showDepthEffect(camera);
-    ShowPositionsEffect showPositionsEffect;
     ShowNormalsEffect showNormalsEffect;
     ShowIDsEffect showIDsEffect;
 
@@ -203,10 +201,9 @@ int main(int argc, char** argv) {
                 ImGui::SliderFloat("Exposure", &exposure, 0.1f, 5.0f);
                 ImGui::RadioButton("Show Color", &shaderIndex, 0);
                 ImGui::RadioButton("Show Depth", &shaderIndex, 1);
-                ImGui::RadioButton("Show Positions", &shaderIndex, 2);
-                ImGui::RadioButton("Show Normals", &shaderIndex, 3);
-                ImGui::RadioButton("Show Object IDs", &shaderIndex, 4);
-                ImGui::RadioButton("Show Primative IDs", &shaderIndex, 5);
+                ImGui::RadioButton("Show Normals", &shaderIndex, 2);
+                ImGui::RadioButton("Show Object IDs", &shaderIndex, 3);
+                ImGui::RadioButton("Show Primative IDs", &shaderIndex, 4);
             }
 
             ImGui::End();
@@ -365,16 +362,13 @@ int main(int argc, char** argv) {
             showDepthEffect.drawToScreen(renderer);
         }
         else if (shaderIndex == 2) {
-            showPositionsEffect.drawToScreen(renderer);
-        }
-        else if (shaderIndex == 3) {
             showNormalsEffect.drawToScreen(renderer);
         }
-        else if (shaderIndex == 4) {
+        else if (shaderIndex == 3) {
             showIDsEffect.showObjectIDs(true);
             showIDsEffect.drawToScreen(renderer);
         }
-        else if (shaderIndex == 5) {
+        else if (shaderIndex == 4) {
             showIDsEffect.showObjectIDs(false);
             showIDsEffect.drawToScreen(renderer);
         }

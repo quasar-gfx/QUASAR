@@ -8,6 +8,7 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 #include <Renderers/ForwardRenderer.h>
+#include <Renderers/DeferredRenderer.h>
 
 #include <PostProcessing/ToneMapper.h>
 
@@ -106,7 +107,7 @@ int main(int argc, char** argv) {
 
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
-    ForwardRenderer remoteRenderer(config);
+    DeferredRenderer remoteRenderer(config);
 
     // "remote" scene
     Scene remoteScene;
@@ -648,8 +649,8 @@ int main(int argc, char** argv) {
             // render all objects in remoteScene normally
             remoteRenderer.drawObjects(remoteScene, remoteCameraToUse);
             if (!showNormals) {
-                remoteRenderer.gBuffer.blitToGBuffer(gBufferRTLowRes);
-                remoteRenderer.gBuffer.blitToGBuffer(gBufferRT);
+                remoteRenderer.copyToGBuffer(gBufferRTLowRes);
+                remoteRenderer.copyToGBuffer(gBufferRT);
             }
             else {
                 remoteRenderer.drawToRenderTarget(screenShaderNormals, gBufferRTLowRes);

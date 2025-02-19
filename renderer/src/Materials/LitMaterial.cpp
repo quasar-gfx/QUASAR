@@ -1,9 +1,9 @@
-#include <Materials/PBRMaterial.h>
+#include <Materials/LitMaterial.h>
 
-Shader* PBRMaterial::shader = nullptr;
-std::vector<std::string> PBRMaterial::extraShaderDefines;
+Shader* LitMaterial::shader = nullptr;
+std::vector<std::string> LitMaterial::extraShaderDefines;
 
-PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params)
+LitMaterial::LitMaterial(const LitMaterialCreateParams &params)
         : baseColor(params.baseColor)
         , baseColorFactor(params.baseColorFactor)
         , alphaMode(params.alphaMode)
@@ -92,8 +92,8 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params)
         ShaderDataCreateParams pbrShaderParams{
             .vertexCodeData = SHADER_BUILTIN_COMMON_VERT,
             .vertexCodeSize = SHADER_BUILTIN_COMMON_VERT_len,
-            .fragmentCodeData = SHADER_BUILTIN_MATERIAL_PBR_FRAG,
-            .fragmentCodeSize = SHADER_BUILTIN_MATERIAL_PBR_FRAG_len,
+            .fragmentCodeData = SHADER_BUILTIN_DEFERRED_GBUFFER_FRAG,
+            .fragmentCodeSize = SHADER_BUILTIN_DEFERRED_GBUFFER_FRAG_len,
 #ifdef GL_ES
             .extensions = {
                 "#extension GL_EXT_texture_cube_map_array : enable"
@@ -105,7 +105,7 @@ PBRMaterial::PBRMaterial(const PBRMaterialCreateParams &params)
     }
 }
 
-void PBRMaterial::bind() const {
+void LitMaterial::bind() const {
     shader->bind();
     shader->setVec4("material.baseColor", baseColor);
     shader->setVec4("material.baseColorFactor", baseColorFactor);
@@ -160,7 +160,7 @@ void PBRMaterial::bind() const {
     }
 }
 
-PBRMaterial::~PBRMaterial() {
+LitMaterial::~LitMaterial() {
     if (shader != nullptr) {
         delete shader;
         shader = nullptr;

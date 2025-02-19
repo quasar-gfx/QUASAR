@@ -23,7 +23,7 @@ public:
     std::vector<Model*> models;
     std::map<std::string, int> modelIndices;
 
-    std::vector<PBRMaterial*> materials;
+    std::vector<LitMaterial*> materials;
 
     SceneLoader() = default;
     ~SceneLoader();

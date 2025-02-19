@@ -6,10 +6,9 @@
 
 class GBuffer : public RenderTargetBase {
 public:
-    Texture positionBuffer;
+    Texture colorBuffer;
     Texture normalsBuffer;
     Texture idBuffer;
-    Texture colorBuffer;
     Texture depthStencilBuffer;
 
     GBuffer(const RenderTargetCreateParams &params)
@@ -27,38 +26,12 @@ public:
                 .multiSampled = params.multiSampled,
                 .numSamples = params.numSamples
             })
-            , depthStencilBuffer({
-                .width = width,
-                .height = height,
-                .internalFormat = GL_DEPTH24_STENCIL8,
-                .format = GL_DEPTH_STENCIL,
-                .type = GL_UNSIGNED_INT_24_8,
-                .wrapS = GL_CLAMP_TO_EDGE,
-                .wrapT = GL_CLAMP_TO_EDGE,
-                .minFilter = GL_NEAREST,
-                .magFilter = GL_NEAREST,
-                .multiSampled = params.multiSampled,
-                .numSamples = params.numSamples
-            })
-            , positionBuffer({
-                .width = width,
-                .height = height,
-                .internalFormat = GL_RGB16F,
-                .format = GL_RGB,
-                .type = GL_HALF_FLOAT,
-                .wrapS = GL_CLAMP_TO_EDGE,
-                .wrapT = GL_CLAMP_TO_EDGE,
-                .minFilter = GL_NEAREST,
-                .magFilter = GL_NEAREST ,
-                .multiSampled = params.multiSampled,
-                .numSamples = params.numSamples
-            })
             , normalsBuffer({
                 .width = width,
                 .height = height,
-                .internalFormat = GL_RGB16F,
+                .internalFormat = GL_RGB32F,
                 .format = GL_RGB,
-                .type = GL_HALF_FLOAT,
+                .type = GL_FLOAT,
                 .wrapS = GL_CLAMP_TO_EDGE,
                 .wrapT = GL_CLAMP_TO_EDGE,
                 .minFilter = GL_NEAREST,
@@ -78,16 +51,32 @@ public:
                 .magFilter = GL_NEAREST,
                 .multiSampled = params.multiSampled,
                 .numSamples = params.numSamples
+            })
+            , depthStencilBuffer({
+                .width = width,
+                .height = height,
+                .internalFormat = GL_DEPTH24_STENCIL8,
+                .format = GL_DEPTH_STENCIL,
+                .type = GL_UNSIGNED_INT_24_8,
+                .wrapS = GL_CLAMP_TO_EDGE,
+                .wrapT = GL_CLAMP_TO_EDGE,
+                .minFilter = GL_NEAREST,
+                .magFilter = GL_NEAREST,
+                .multiSampled = params.multiSampled,
+                .numSamples = params.numSamples
             }) {
         framebuffer.bind();
         framebuffer.attachTexture(colorBuffer, GL_COLOR_ATTACHMENT0);
-        framebuffer.attachTexture(positionBuffer, GL_COLOR_ATTACHMENT1);
-        framebuffer.attachTexture(normalsBuffer, GL_COLOR_ATTACHMENT2);
-        framebuffer.attachTexture(idBuffer, GL_COLOR_ATTACHMENT3);
+        framebuffer.attachTexture(normalsBuffer, GL_COLOR_ATTACHMENT1);
+        framebuffer.attachTexture(idBuffer, GL_COLOR_ATTACHMENT2);
         framebuffer.attachTexture(depthStencilBuffer, GL_DEPTH_STENCIL_ATTACHMENT);
 
-        unsigned int attachments[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
-        glDrawBuffers(4, attachments);
+        unsigned int attachments[3] = {
+            GL_COLOR_ATTACHMENT0,
+            GL_COLOR_ATTACHMENT1,
+            GL_COLOR_ATTACHMENT2
+        };
+        glDrawBuffers(3, attachments);
 
         if (!framebuffer.checkStatus()) {
             throw std::runtime_error("GBuffer Framebuffer is not complete!");
@@ -97,38 +86,34 @@ public:
     }
 
 #ifdef GL_CORE
+    void blitToRenderTarget(RenderTarget &rt) {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, rt.getFramebufferID());
+
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
+        glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        glBlitFramebuffer(0, 0, width, height, 0, 0, rt.width, rt.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
     void blitToGBuffer(GBuffer &gBuffer) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gBuffer.getFramebufferID());
 
         glReadBuffer(GL_COLOR_ATTACHMENT0);
         glDrawBuffer(GL_COLOR_ATTACHMENT0);
-        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
         glReadBuffer(GL_COLOR_ATTACHMENT1);
         glDrawBuffer(GL_COLOR_ATTACHMENT1);
-        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
         glReadBuffer(GL_COLOR_ATTACHMENT2);
         glDrawBuffer(GL_COLOR_ATTACHMENT2);
-        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
-        glReadBuffer(GL_COLOR_ATTACHMENT3);
-        glDrawBuffer(GL_COLOR_ATTACHMENT3);
         glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
         glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
-
-    void blitToRenderTarget(RenderTarget &renderTarget) {
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, renderTarget.getFramebufferID());
-
-        glReadBuffer(GL_COLOR_ATTACHMENT0);
-        glDrawBuffer(GL_COLOR_ATTACHMENT0);
-        glBlitFramebuffer(0, 0, width, height, 0, 0, renderTarget.width, renderTarget.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
@@ -141,10 +126,9 @@ public:
     void resize(unsigned int width, unsigned int height) override {
         RenderTargetBase::resize(width, height);
 
-        positionBuffer.resize(width, height);
+        colorBuffer.resize(width, height);
         normalsBuffer.resize(width, height);
         idBuffer.resize(width, height);
-        colorBuffer.resize(width, height);
         depthStencilBuffer.resize(width, height);
     }
 

@@ -13,14 +13,14 @@
 #include <Vertex.h>
 #include <Shaders/Shader.h>
 #include <Primitives/Mesh.h>
-#include <Materials/PBRMaterial.h>
+#include <Materials/LitMaterial.h>
 #include <Primitives/Entity.h>
 
 struct ModelCreateParams {
     bool flipTextures = false;
     bool gammaCorrected = false;
     float IBL = 1.0;
-    PBRMaterial* material;
+    LitMaterial* material;
     std::string path;
 };
 
@@ -35,7 +35,7 @@ public:
     bool gammaCorrected = false;
     float IBL = 1.0;
 
-    PBRMaterial* material;
+    LitMaterial* material;
 
     bool isGLTF = false;
 
@@ -48,7 +48,7 @@ public:
     ~Model();
 
     virtual void bindMaterial(const Scene &scene, const glm::mat4 &model,
-                              const Material* overrideMaterial = nullptr, const Texture* prevDepthMap = nullptr) override;
+                              const Material* overrideMaterial = nullptr, const Texture* prevIDMap = nullptr) override;
 
     virtual RenderStats draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model,
                              bool frustumCull = true, const Material* overrideMaterial = nullptr) override;
@@ -65,10 +65,10 @@ private:
     std::unordered_map<std::string, Texture*> texturesLoaded;
 
     void loadFromFile(const ModelCreateParams &params);
-    void processNode(aiNode* aiNode, const aiScene* scene, Node* node, PBRMaterial* material);
-    Mesh* processMesh(aiMesh* mesh, const aiScene* scene, PBRMaterial* material);
+    void processNode(aiNode* aiNode, const aiScene* scene, Node* node, LitMaterial* material);
+    Mesh* processMesh(aiMesh* mesh, const aiScene* scene, LitMaterial* material);
     void processAnimations(const aiScene* scene);
-    void processMaterial(aiMaterial const* aiMat, PBRMaterialCreateParams &materialParams);
+    void processMaterial(aiMaterial const* aiMat, LitMaterialCreateParams &materialParams);
     Texture* loadMaterialTexture(aiMaterial const* aiMat, aiString aiTexturePath, bool shouldGammaCorrect = false);
     int32_t getEmbeddedTextureId(const aiString &path);
 

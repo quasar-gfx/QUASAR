@@ -8,6 +8,7 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 #include <Renderers/ForwardRenderer.h>
+#include <Renderers/DeferredRenderer.h>
 
 #include <PostProcessing/ToneMapper.h>
 
@@ -75,7 +76,7 @@ int main(int argc, char** argv) {
     config.guiManager = guiManager;
 
     OpenGLApp app(config);
-    ForwardRenderer remoteRenderer(config);
+    DeferredRenderer remoteRenderer(config);
     ForwardRenderer renderer(config);
 
     // "remote" scene

@@ -6,7 +6,7 @@
 #include <SceneLoader.h>
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
-#include <Renderers/ForwardRenderer.h>
+#include <Renderers/DeferredRenderer.h>
 
 #include <PostProcessing/ToneMapper.h>
 
@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
     config.guiManager = guiManager;
 
     OpenGLApp app(config);
-    ForwardRenderer renderer(config);
+    DeferredRenderer renderer(config);
 
     Scene scene;
     std::unique_ptr<Camera> camera;
