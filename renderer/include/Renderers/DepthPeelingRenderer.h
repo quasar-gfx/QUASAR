@@ -26,6 +26,7 @@ public:
     virtual RenderStats drawScene(const Scene &scene, const Camera &camera, uint32_t clearMask) override;
     virtual RenderStats drawSkyBox(const Scene &scene, const Camera &camera) override;
     virtual RenderStats drawObjects(const Scene &scene, const Camera &camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT) override;
+    virtual RenderStats drawObjectsNoLighting(const Scene &scene, const Camera &camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT) override;
 
     RenderStats compositeLayers();
 

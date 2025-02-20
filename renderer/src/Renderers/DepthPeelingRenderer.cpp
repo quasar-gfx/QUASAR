@@ -149,6 +149,40 @@ RenderStats DepthPeelingRenderer::drawObjects(const Scene &scene, const Camera &
     return stats;
 }
 
+RenderStats DepthPeelingRenderer::drawObjectsNoLighting(const Scene &scene, const Camera &camera, uint32_t clearMask) {
+    pipeline.apply();
+
+    if (edp) {
+        if (LitMaterial::shader != nullptr) {
+            LitMaterial::shader->bind();
+            LitMaterial::shader->setInt("height", gBuffer.height);
+            LitMaterial::shader->setFloat("E", viewSphereDiameter / 2.0f);
+            LitMaterial::shader->setFloat("edpDelta", edpDelta);
+        }
+        if (UnlitMaterial::shader != nullptr) {
+            UnlitMaterial::shader->bind();
+            UnlitMaterial::shader->setInt("height", gBuffer.height);
+            UnlitMaterial::shader->setFloat("E", viewSphereDiameter / 2.0f);
+            UnlitMaterial::shader->setFloat("edpDelta", edpDelta);
+        }
+    }
+
+    RenderStats stats;
+
+    // draw all objects in the scene
+    stats += drawScene(scene, camera, clearMask);
+
+    // draw lighting pass
+    stats += lightingPass(scene, camera);
+
+    // dont draw skybox here, it's drawn in drawScene
+
+    // composite layers
+    stats += compositeLayers();
+
+    return stats;
+}
+
 RenderStats DepthPeelingRenderer::compositeLayers() {
     RenderStats stats;
 

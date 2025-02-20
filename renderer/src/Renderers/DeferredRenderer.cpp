@@ -102,6 +102,23 @@ RenderStats DeferredRenderer::drawObjects(const Scene &scene, const Camera &came
     return stats;
 }
 
+RenderStats DeferredRenderer::drawObjectsNoLighting(const Scene &scene, const Camera &camera, uint32_t clearMask) {
+    pipeline.apply();
+
+    RenderStats stats;
+
+    // draw all objects in the scene
+    stats += drawScene(scene, camera, clearMask);
+
+    // draw lighting pass
+    stats += lightingPass(scene, camera);
+
+    // draw skybox
+    stats += drawSkyBox(scene, camera);
+
+    return stats;
+}
+
 RenderStats DeferredRenderer::lightingPass(const Scene &scene, const Camera &camera) {
     RenderStats stats;
 

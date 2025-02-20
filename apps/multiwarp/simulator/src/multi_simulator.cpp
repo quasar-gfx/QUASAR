@@ -729,7 +729,7 @@ int main(int argc, char** argv) {
                     remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_NOTEQUAL, 1);
                     remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = false;
                     remoteRenderer.pipeline.writeMaskState.enableColorWrites();
-                    remoteRenderer.drawObjects(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                    remoteRenderer.drawObjectsNoLighting(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
                     remoteRenderer.pipeline.stencilState.restoreStencilState();
                 }

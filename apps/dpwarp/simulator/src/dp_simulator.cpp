@@ -791,7 +791,7 @@ int main(int argc, char** argv) {
 
             // render remote scene with multiple layers
             dpRenderer.drawObjects(remoteScene, remoteCameraCenter);
-            totalRenderTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
+            totalRenderTime += timeutils::secondsToMillis(window->getTime() - startTime);
             startTime = window->getTime();
 
             for (int view = 0; view < maxViews; view++) {
@@ -805,8 +805,9 @@ int main(int argc, char** argv) {
                 auto& meshToUse = (view == 0) ? meshesCenter[currMeshIndex] : meshLayers[hiddenIndex];
                 auto& currMeshDepth = (view == 0) ? meshDepthCenter : meshDepths[hiddenIndex];
 
+                startTime = window->getTime();
                 if (view == 0) {
-                    remoteRenderer.drawObjects(remoteScene, remoteCameraToUse);
+                    remoteRenderer.drawObjectsNoLighting(remoteScene, remoteCameraToUse);
                     if (!showNormals) {
                         remoteRenderer.copyToGBuffer(gBufferToUseLowRes);
                         remoteRenderer.copyToGBuffer(gBufferToUseHighRes);
@@ -823,8 +824,8 @@ int main(int argc, char** argv) {
                         dpRenderer.peelingLayers[hiddenIndex+1].blitToGBuffer(gBufferToUseHighRes);
                     }
                     else {
-                        showNormalsEffect.drawToRenderTarget(remoteRenderer, gBufferToUseLowRes);
-                        showNormalsEffect.drawToRenderTarget(remoteRenderer, gBufferToUseHighRes);
+                        showNormalsEffect.drawToRenderTarget(dpRenderer, gBufferToUseLowRes);
+                        showNormalsEffect.drawToRenderTarget(dpRenderer, gBufferToUseHighRes);
                     }
                 }
                 // wide fov camera
@@ -840,7 +841,7 @@ int main(int argc, char** argv) {
                     // at values where stencil buffer is not 1, remoteScene should render
                     remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_NOTEQUAL, 1);
                     remoteRenderer.pipeline.writeMaskState.enableColorWrites();
-                    remoteRenderer.drawObjects(remoteScene, remoteCameraToUse, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                    remoteRenderer.drawObjectsNoLighting(remoteScene, remoteCameraToUse, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
                     remoteRenderer.pipeline.stencilState.restoreStencilState();
 
@@ -853,6 +854,7 @@ int main(int argc, char** argv) {
                         showNormalsEffect.drawToRenderTarget(remoteRenderer, gBufferToUseHighRes);
                     }
                 }
+                totalRenderTime += timeutils::secondsToMillis(window->getTime() - startTime);
 
                 /*
                 ============================
@@ -937,14 +939,14 @@ int main(int argc, char** argv) {
                     savedBytes = quadsGenerator.saveToFile(quadsFileName);
                     spdlog::info("Saved {} quads ({:.3f} MB) in {:.3f}ms", numProxies,
                                                         (float)savedBytes / BYTES_IN_MB,
-                                                        (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
+                                                        timeutils::secondsToMillis(window->getTime() - startTime));
 
                     startTime = window->getTime();
                     std::string depthOffsetsFileName = dataPath + "depthOffsets" + std::to_string(view) + ".bin";
                     savedBytes = quadsGenerator.saveDepthOffsetsToFile(depthOffsetsFileName);
                     spdlog::info("Saved {} depth offsets ({:.3f} MB) in {:.3f}ms", numDepthOffsets,
                                                         (float)savedBytes / BYTES_IN_MB,
-                                                        (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
+                                                        timeutils::secondsToMillis(window->getTime() - startTime));
 
                     // save color buffer
                     std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
@@ -1050,7 +1052,7 @@ int main(int argc, char** argv) {
         blurEdges.setDepthThreshold(quadsGenerator.depthThreshold);
         blurEdges.drawToScreen(renderer);
         if (animator.running) {
-            spdlog::info("Client Render Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
+            spdlog::info("Client Render Time: {:.3f}ms", timeutils::secondsToMillis(window->getTime() - startTime));
         }
 
         if ((animationFileIn && animator.running) || recording) {

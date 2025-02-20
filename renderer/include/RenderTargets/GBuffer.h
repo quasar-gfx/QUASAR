@@ -29,9 +29,9 @@ public:
             , normalsBuffer({
                 .width = width,
                 .height = height,
-                .internalFormat = GL_RGB32F,
+                .internalFormat = GL_RGB16F,
                 .format = GL_RGB,
-                .type = GL_FLOAT,
+                .type = GL_HALF_FLOAT,
                 .wrapS = GL_CLAMP_TO_EDGE,
                 .wrapT = GL_CLAMP_TO_EDGE,
                 .minFilter = GL_NEAREST,

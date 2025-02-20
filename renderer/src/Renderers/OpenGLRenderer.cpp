@@ -274,6 +274,9 @@ RenderStats OpenGLRenderer::drawObjectsNoLighting(const Scene &scene, const Came
     // draw all objects in the scene
     stats += drawScene(scene, camera, clearMask);
 
+    // draw skybox
+    stats += drawSkyBox(scene, camera);
+
     return stats;
 }
 
