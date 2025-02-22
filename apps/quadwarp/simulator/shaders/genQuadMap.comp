@@ -549,7 +549,7 @@ void storeSurfelsInQuadMap(
                          int(absDepthOffsetsTopRight.z < flatThreshold) +
                          int(absDepthOffsetsTopRight.w < flatThreshold);
 
-    bool flattened = (numBelowThreshold >= total / 2);
+    bool flattened = (numBelowThreshold >= total);
 
     QuadMapData quadMapData;
     quadMapData.flattened = flattened;
@@ -610,16 +610,19 @@ void main() {
     vec2 pixelCenterCoord = surfelCornerCoordBottomLeft + vec2(0.5, 0.5);
     vec2 surfelCenterCoord = pixelCenterCoord;
 
+    ivec2 minBounds = ivec2(0);
+    ivec2 maxBounds = ivec2(gBufferSize) - ivec2(1);
+
     MultiQuad2D pixelNeighborCoords;
-    pixelNeighborCoords.bottomLeft  = pixelCenterCoord + vec2(-1, -1);
-    pixelNeighborCoords.bottom      = pixelCenterCoord + vec2(+0, -1);
-    pixelNeighborCoords.bottomRight = pixelCenterCoord + vec2(+1, -1);
-    pixelNeighborCoords.left        = pixelCenterCoord + vec2(-1, +0);
-    pixelNeighborCoords.center      = pixelCenterCoord + vec2(+0, +0);
-    pixelNeighborCoords.right       = pixelCenterCoord + vec2(+1, +0);
-    pixelNeighborCoords.topLeft     = pixelCenterCoord + vec2(-1, +1);
-    pixelNeighborCoords.top         = pixelCenterCoord + vec2(+0, +1);
-    pixelNeighborCoords.topRight    = pixelCenterCoord + vec2(+1, +1);
+    pixelNeighborCoords.bottomLeft  = clamp(pixelCenterCoord + vec2(-1, -1), minBounds, maxBounds);
+    pixelNeighborCoords.bottom      = clamp(pixelCenterCoord + vec2(+0, -1), minBounds, maxBounds);
+    pixelNeighborCoords.bottomRight = clamp(pixelCenterCoord + vec2(+1, -1), minBounds, maxBounds);
+    pixelNeighborCoords.left        = clamp(pixelCenterCoord + vec2(-1, +0), minBounds, maxBounds);
+    pixelNeighborCoords.center      = clamp(pixelCenterCoord + vec2(+0, +0), minBounds, maxBounds);
+    pixelNeighborCoords.right       = clamp(pixelCenterCoord + vec2(+1, +0), minBounds, maxBounds);
+    pixelNeighborCoords.topLeft     = clamp(pixelCenterCoord + vec2(-1, +1), minBounds, maxBounds);
+    pixelNeighborCoords.top         = clamp(pixelCenterCoord + vec2(+0, +1), minBounds, maxBounds);
+    pixelNeighborCoords.topRight    = clamp(pixelCenterCoord + vec2(+1, +1), minBounds, maxBounds);
 
     MultiQuad2D surfelCornerCoords;
     surfelCornerCoords.bottomLeft  = surfelCenterCoord + vec2(-0.5, -0.5);

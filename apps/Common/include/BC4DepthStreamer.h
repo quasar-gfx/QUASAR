@@ -13,7 +13,7 @@
 #include <CameraPose.h>
 
 #include <Shaders/ComputeShader.h>
-#include <Compression/ZSTDCompressor.h>
+#include <Codec/ZSTDCodec.h>
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
 #include <CudaGLInterop/CudaGLBuffer.h>
@@ -62,7 +62,7 @@ private:
 
     std::vector<char> data;
     std::vector<char> compressedData;
-    ZSTDCompressor compressor;
+    ZSTDCodec codec;
 
     ComputeShader bc4CompressionShader;
     void compressBC4();

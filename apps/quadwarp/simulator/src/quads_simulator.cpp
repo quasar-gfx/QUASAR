@@ -415,7 +415,7 @@ int main(int argc, char** argv) {
                 runAnimations = false;
             }
 
-            if (ImGui::SliderFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.0f, 1.0f)) {
+            if (ImGui::SliderFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.0f, 2.0f)) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
                 runAnimations = false;
@@ -629,6 +629,7 @@ int main(int argc, char** argv) {
             double totalFillQuadsIndiciesMsTime = 0.0;
             double totalCreateVertIndTime = 0.0;
             double totalGenDepthTime = 0.0;
+            double totalCompressTime = 0.0;
 
             unsigned int compressedSize = 0;
 
@@ -673,6 +674,8 @@ int main(int argc, char** argv) {
             if (!generatePFrame) {
                 totalProxies += numProxies;
                 totalDepthOffsets += numDepthOffsets;
+
+                totalCompressTime += frameGenerator.stats.timeToCompress;
             }
 
             totalCreateProxiesTime += frameGenerator.stats.timeToCreateProxies;
@@ -704,6 +707,8 @@ int main(int argc, char** argv) {
                 );
                 totalProxies += numProxies;
                 totalDepthOffsets += numDepthOffsets;
+
+                totalCompressTime += frameGenerator.stats.timeToCompress;
 
                 totalCreateProxiesTime += frameGenerator.stats.timeToCreateProxies;
                 totalCreateMeshTime += frameGenerator.stats.timeToCreateMesh;
@@ -791,6 +796,7 @@ int main(int argc, char** argv) {
             spdlog::info("  Append Quads Time: {:.3f}ms", totalAppendProxiesMsTime);
             spdlog::info("  Fill Output Quads Time: {:.3f}ms", totalFillQuadsIndiciesMsTime);
             spdlog::info("  Create Vert/Ind Time: {:.3f}ms", totalCreateVertIndTime);
+            spdlog::info("Compress Time ({}): {:.3f}ms", generatePFrame, totalCompressTime);
             if (showDepth) spdlog::info("Gen Depth Time: {:.3f}ms", totalGenDepthTime);
             spdlog::info("Frame Size: {:.3f}MB", (float)(compressedSize) / BYTES_IN_MB);
 

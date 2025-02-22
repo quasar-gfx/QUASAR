@@ -34,13 +34,10 @@ unsigned int QuadBuffers::loadFromFile(const std::string &filename, unsigned int
     }
 #endif
 
-    auto quadDataCompressed = FileIO::loadBinaryFile(filename);
-    if (numBytesLoaded != nullptr) {
-        *numBytesLoaded = quadDataCompressed.size();
-    }
+    auto quadDataCompressed = FileIO::loadBinaryFile(filename, numBytesLoaded);
 
     auto startTime = timeutils::getTimeMicros();
-    compressor.decompress(quadDataCompressed, data);
+    codec.decompress(quadDataCompressed, data);
     auto numBytes = loadFromMemory(reinterpret_cast<const char*>(data.data()));
     stats.timeToDecompressionMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
     return numBytes;
@@ -77,8 +74,8 @@ unsigned int QuadBuffers::saveToMemory(std::vector<char> &compressedData, bool c
         auto startTime = timeutils::getTimeMicros();
         size_t maxSizeBytes = maxProxies * sizeof(QuadMapDataPacked) + sizeof(unsigned int);
         compressedData.resize(maxSizeBytes);
-        unsigned int outputSize = compressor.compress(data.data(), compressedData, dataSize);
-        stats.timeToCompressionMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+        unsigned int outputSize = codec.compress(data.data(), compressedData, dataSize);
+        stats.timeToCompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
         return outputSize;
     }
     else {

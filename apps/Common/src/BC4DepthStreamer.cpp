@@ -103,7 +103,7 @@ void BC4DepthStreamer::sendFrame(pose_id_t poseID) {
     // compress
     size_t maxSizeBytes = data.size();
     compressedData.resize(maxSizeBytes);
-    compressor.compress(data.data(), compressedData, data.size());
+    codec.compress(data.data(), compressedData, data.size());
 
     stats.timeToCompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
     stats.compressionRatio = static_cast<float>(data.size()) / compressedSize;
@@ -150,7 +150,7 @@ void BC4DepthStreamer::sendData() {
         // compress
         size_t maxSizeBytes = data.size();
         compressedData.resize(maxSizeBytes);
-        compressor.compress(data.data(), compressedData, data.size());
+        codec.compress(data.data(), compressedData, data.size());
 
         stats.timeToCompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
         stats.compressionRatio = static_cast<float>(data.size()) / compressedData.size();

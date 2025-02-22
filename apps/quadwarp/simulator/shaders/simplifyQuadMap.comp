@@ -474,7 +474,7 @@ void mergeQuadMapData(
         recalcDepthOffsets(newProxyPlane, quadMapDataTopRight, proxyPlaneTopRight, numBelowThreshold, total);
 
         // if more than half the surfels are below the threshold, then the plane is considered flattened
-        flattened = (numBelowThreshold >= total / 2);
+        flattened = (numBelowThreshold >= total);
     }
 
     mergedQuadMapData.flattened = flattened;

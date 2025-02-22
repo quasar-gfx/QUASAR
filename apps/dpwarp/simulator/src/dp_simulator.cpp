@@ -504,7 +504,7 @@ int main(int argc, char** argv) {
                 runAnimations = false;
             }
 
-            if (ImGui::SliderFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.0f, 1.0f)) {
+            if (ImGui::SliderFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.0f, 2.0f)) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
                 runAnimations = false;
@@ -770,7 +770,7 @@ int main(int argc, char** argv) {
             double totalFillQuadsIndiciesMsTime = 0.0;
             double totalCreateVertIndTime = 0.0;
             double totalGenDepthTime = 0.0;
-            double totalTimeToCompress = 0.0;
+            double totalCompressTime = 0.0;
 
             unsigned int compressedSize = 0;
 
@@ -862,6 +862,10 @@ int main(int argc, char** argv) {
                 ============================
                 */
                 quadsGenerator.expandEdges = (generatePFrame || view == maxViews - 1);
+                if (view == maxViews - 1) {
+                    quadsGenerator.proxySimilarityThreshold *= 2.0f;
+                    quadsGenerator.flatThreshold *= 2.0f;
+                }
                 unsigned int numProxies = 0, numDepthOffsets = 0;
                 unsigned int numBytesIFrame = frameGenerator.generateIFrame(
                     gBufferToUseLowRes, gBufferToUseHighRes, remoteCameraToUse,
@@ -873,7 +877,11 @@ int main(int argc, char** argv) {
                     totalProxies += numProxies;
                     totalDepthOffsets += numDepthOffsets;
 
-                    totalTimeToCompress += frameGenerator.stats.timeToCompress;
+                    totalCompressTime += frameGenerator.stats.timeToCompress;
+                }
+                if (view == maxViews - 1) {
+                    quadsGenerator.proxySimilarityThreshold /= 2.0f;
+                    quadsGenerator.flatThreshold /= 2.0f;
                 }
 
                 totalCreateProxiesTime += frameGenerator.stats.timeToCreateProxies;
@@ -919,7 +927,7 @@ int main(int argc, char** argv) {
                         totalFillQuadsIndiciesMsTime += frameGenerator.stats.timeToFillOutputQuads;
                         totalCreateVertIndTime += frameGenerator.stats.timeToCreateVertInd;
 
-                        totalTimeToCompress += frameGenerator.stats.timeToCompress;
+                        totalCompressTime += frameGenerator.stats.timeToCompress;
                     }
                     nodeMask.visible = generatePFrame;
                     currMeshIndex = (currMeshIndex + 1) % 2;
@@ -998,7 +1006,7 @@ int main(int argc, char** argv) {
             spdlog::info("  Append Quads Time ({}): {:.3f}ms", generatePFrame, totalAppendProxiesMsTime);
             spdlog::info("  Fill Output Quads Time ({}): {:.3f}ms", generatePFrame, totalFillQuadsIndiciesMsTime);
             spdlog::info("  Create Vert/Ind Time ({}): {:.3f}ms", generatePFrame, totalCreateVertIndTime);
-            spdlog::info("Compress Time ({}): {:.3f}ms", generatePFrame, totalTimeToCompress);
+            spdlog::info("Compress Time ({}): {:.3f}ms", generatePFrame, totalCompressTime);
             if (showDepth) spdlog::info("Gen Depth Time ({}): {:.3f}ms", generatePFrame, totalGenDepthTime);
             spdlog::info("Frame Size: {:.3f}MB", (float)(compressedSize) / BYTES_IN_MB);
             spdlog::info("Num Proxies: {}Proxies", totalProxies);

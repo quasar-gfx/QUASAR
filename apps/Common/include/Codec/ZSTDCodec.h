@@ -1,28 +1,28 @@
-#ifndef ZSTD_COMPRESSOR_H
-#define ZSTD_COMPRESSOR_H
+#ifndef ZSTD_CODEC_H
+#define ZSTD_CODEC_H
 
 #include <vector>
 
 #include <zstd.h>
 
-#include <Compression/Compressor.h>
+#include <Codec/Codec.h>
 
-class ZSTDCompressor : public Compressor {
+class ZSTDCodec : public Codec {
 public:
-    ZSTDCompressor(
-            uint32_t compressionLevel = 3,
-            uint32_t compressionStrategy = ZSTD_fast,
-            uint32_t numWorkers = 4,
-            uint32_t overlapLog = 6) {
+    ZSTDCodec(
+            uint32_t compressionLevel = 9,
+            uint32_t compressionStrategy = ZSTD_lazy2,
+            uint32_t numWorkers = 0) {
         compressionCtx = ZSTD_createCCtx();
         decompressionCtx = ZSTD_createDCtx();
+
         ZSTD_CCtx_setParameter(compressionCtx, ZSTD_c_compressionLevel, compressionLevel);
         ZSTD_CCtx_setParameter(compressionCtx, ZSTD_c_strategy, compressionStrategy);
         ZSTD_CCtx_setParameter(compressionCtx, ZSTD_c_nbWorkers, numWorkers);
-        ZSTD_CCtx_setParameter(compressionCtx, ZSTD_c_overlapLog, overlapLog);
-        ZSTD_CCtx_setParameter(compressionCtx, ZSTD_c_enableLongDistanceMatching, 1);
+
+        ZSTD_CCtx_setParameter(compressionCtx, ZSTD_c_enableLongDistanceMatching, 0);
     }
-    ~ZSTDCompressor() override = default;
+    ~ZSTDCodec() override = default;
 
     unsigned int compress(const void* uncompressedData, std::vector<char> &compressedData, unsigned int numBytesUncompressed) override {
         uint32_t maxCompressedBytes = ZSTD_compressBound(numBytesUncompressed);
@@ -49,4 +49,4 @@ private:
     ZSTD_DCtx* decompressionCtx;
 };
 
-#endif // ZSTD_COMPRESSOR_H
+#endif // ZSTD_CODEC_H

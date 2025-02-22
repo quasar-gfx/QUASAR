@@ -11,7 +11,7 @@
 
 #include <CameraPose.h>
 
-#include <Compression/ZSTDCompressor.h>
+#include <Codec/ZSTDCodec.h>
 
 class BC4DepthVideoTexture : public Texture, public DataReceiverTCP {
 public:
@@ -62,7 +62,7 @@ private:
     std::deque<FrameData> depthFrames;
     size_t compressedSize;
 
-    ZSTDCompressor compressor;
+    ZSTDCodec codec;
 
     void onDataReceived(const std::vector<char>& data) override;
 };

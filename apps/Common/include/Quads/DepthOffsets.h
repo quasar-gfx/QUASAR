@@ -9,7 +9,7 @@
 
 #include <Texture.h>
 #include <Utils/FileIO.h>
-#include <Compression/ZSTDCompressor.h>
+#include <Codec/ZSTDCodec.h>
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
 #include <CudaGLInterop/CudaGLImage.h>
@@ -32,7 +32,7 @@ public:
 #endif
 
 private:
-    ZSTDCompressor compressor;
+    ZSTDCodec codec;
 
     std::vector<char> data;
 

@@ -1,16 +1,16 @@
-#ifndef LZ4_COMPRESSOR_H
-#define LZ4_COMPRESSOR_H
+#ifndef LZ4_CODEC_H
+#define LZ4_CODEC_H
 
 #include <vector>
 
 #include <lz4.h>
 
-#include <Compression/Compressor.h>
+#include <Codec/Codec.h>
 
-class LZ4Compressor : public Compressor {
+class LZ4Codec : public Codec {
 public:
-    LZ4Compressor() = default;
-    ~LZ4Compressor() override = default;
+    LZ4Codec() = default;
+    ~LZ4Codec() override = default;
 
     unsigned int compress(const void* uncompressedData, std::vector<char> &compressedData, unsigned int numBytesUncompressed) override {
         size_t maxCompressedBytes = LZ4_compressBound(numBytesUncompressed);
@@ -31,4 +31,4 @@ public:
     }
 };
 
-#endif // LZ4_COMPRESSOR_H
+#endif // LZ4_CODEC_H

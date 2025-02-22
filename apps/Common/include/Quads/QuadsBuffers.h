@@ -5,7 +5,7 @@
 
 #include <Buffer.h>
 #include <Utils/FileIO.h>
-#include <Compression/ZSTDCompressor.h>
+#include <Codec/ZSTDCodec.h>
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
 #include <CudaGLInterop/CudaGLBuffer.h>
@@ -32,7 +32,7 @@ struct QuadMapDataPacked {
 class QuadBuffers {
 public:
     struct Stats {
-        double timeToCompressionMs = 0.0f;
+        double timeToCompressMs = 0.0f;
         double timeToDecompressionMs = 0.0f;
     } stats;
 
@@ -57,7 +57,7 @@ public:
 #endif
 
 private:
-    ZSTDCompressor compressor;
+    ZSTDCodec codec;
 
     std::vector<char> data;
 

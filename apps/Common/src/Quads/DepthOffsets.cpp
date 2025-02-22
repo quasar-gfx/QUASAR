@@ -37,12 +37,9 @@ unsigned int DepthOffsets::loadFromFile(const std::string &filename, unsigned in
     }
 #endif
 
-    auto depthOffsetsCompressed = FileIO::loadBinaryFile(filename);
-    if (numBytesLoaded != nullptr) {
-        *numBytesLoaded = depthOffsetsCompressed.size();
-    }
+    auto depthOffsetsCompressed = FileIO::loadBinaryFile(filename, numBytesLoaded);
 
-    compressor.decompress(depthOffsetsCompressed, data);
+    codec.decompress(depthOffsetsCompressed, data);
     return loadFromMemory(reinterpret_cast<const char*>(data.data()));
 }
 
@@ -50,7 +47,7 @@ unsigned int DepthOffsets::loadFromFile(const std::string &filename, unsigned in
 unsigned int DepthOffsets::saveToMemory(std::vector<char> &compressedData) {
     cudaImage.copyToArray(size.x * 4 * sizeof(uint16_t), size.y, size.x * 4 * sizeof(uint16_t), data.data());
     compressedData.resize(data.size());
-    return compressor.compress(data.data(), compressedData, data.size());
+    return codec.compress(data.data(), compressedData, data.size());
 }
 
 unsigned int DepthOffsets::saveToFile(const std::string &filename) {
