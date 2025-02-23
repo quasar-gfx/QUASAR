@@ -111,13 +111,15 @@ int main(int argc, char** argv) {
 
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
-    DepthPeelingRenderer dpRenderer(config, maxLayers, true);
+    config.width = remoteWindowSize.x;
+    config.height = remoteWindowSize.y;
+    DepthPeelingRenderer remoteRendererDP(config, maxLayers, true);
     DeferredRenderer remoteRenderer(config);
 
     // "remote" scene
     Scene remoteScene;
-    PerspectiveCamera remoteCameraCenter(dpRenderer.width, dpRenderer.height);
-    PerspectiveCamera remoteCameraCenterPrev(dpRenderer.width, dpRenderer.height);
+    PerspectiveCamera remoteCameraCenter(remoteRendererDP.width, remoteRendererDP.height);
+    PerspectiveCamera remoteCameraCenterPrev(remoteRendererDP.width, remoteRendererDP.height);
     PerspectiveCamera remoteCameraWideFov(remoteRenderer.width, remoteRenderer.height);
 
     SceneLoader loader;
@@ -330,7 +332,7 @@ int main(int argc, char** argv) {
     bool runAnimations = animationFileIn;
     bool restrictMovementToViewBox = !animationFileIn;
     float viewSphereDiameter = args::get(viewSphereDiameterIn);
-    dpRenderer.setViewSphereDiameter(viewSphereDiameter);
+    remoteRendererDP.setViewSphereDiameter(viewSphereDiameter);
 
     float networkLatency = !animationFileIn ? 0.0f : args::get(networkLatencyIn);
     float networkJitter = !animationFileIn ? 0.0f : args::get(networkJitterIn);
@@ -546,7 +548,7 @@ int main(int argc, char** argv) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
                 runAnimations = false;
-                dpRenderer.setViewSphereDiameter(viewSphereDiameter);
+                remoteRendererDP.setViewSphereDiameter(viewSphereDiameter);
             }
 
             ImGui::Checkbox("Restrict Movement to View Sphere", &restrictMovementToViewBox);
@@ -682,7 +684,7 @@ int main(int argc, char** argv) {
 
     app.onResize([&](unsigned int width, unsigned int height) {
         windowSize = glm::uvec2(width, height);
-        dpRenderer.setWindowSize(width, height);
+        remoteRendererDP.setWindowSize(width, height);
         renderer.setWindowSize(width, height);
 
         camera.setAspect(windowSize.x, windowSize.y);
@@ -790,9 +792,8 @@ int main(int argc, char** argv) {
             }
 
             // render remote scene with multiple layers
-            dpRenderer.drawObjects(remoteScene, remoteCameraCenter);
+            remoteRendererDP.drawObjects(remoteScene, remoteCameraCenter);
             totalRenderTime += timeutils::secondsToMillis(window->getTime() - startTime);
-            startTime = window->getTime();
 
             for (int view = 0; view < maxViews; view++) {
                 int hiddenIndex = view - 1;
@@ -820,12 +821,12 @@ int main(int argc, char** argv) {
                 else if (view != maxViews - 1) {
                     // copy to render target
                     if (!showNormals) {
-                        dpRenderer.peelingLayers[hiddenIndex+1].blitToGBuffer(gBufferToUseLowRes);
-                        dpRenderer.peelingLayers[hiddenIndex+1].blitToGBuffer(gBufferToUseHighRes);
+                        remoteRendererDP.peelingLayers[hiddenIndex+1].blitToGBuffer(gBufferToUseLowRes);
+                        remoteRendererDP.peelingLayers[hiddenIndex+1].blitToGBuffer(gBufferToUseHighRes);
                     }
                     else {
-                        showNormalsEffect.drawToRenderTarget(dpRenderer, gBufferToUseLowRes);
-                        showNormalsEffect.drawToRenderTarget(dpRenderer, gBufferToUseHighRes);
+                        showNormalsEffect.drawToRenderTarget(remoteRendererDP, gBufferToUseLowRes);
+                        showNormalsEffect.drawToRenderTarget(remoteRendererDP, gBufferToUseHighRes);
                     }
                 }
                 // wide fov camera
@@ -861,12 +862,12 @@ int main(int argc, char** argv) {
                 Generate I-frame
                 ============================
                 */
+                unsigned int numProxies = 0, numDepthOffsets = 0;
                 quadsGenerator.expandEdges = (generatePFrame || view == maxViews - 1);
                 if (view == maxViews - 1) {
                     quadsGenerator.proxySimilarityThreshold *= 2.0f;
                     quadsGenerator.flatThreshold *= 2.0f;
                 }
-                unsigned int numProxies = 0, numDepthOffsets = 0;
                 unsigned int numBytesIFrame = frameGenerator.generateIFrame(
                     gBufferToUseLowRes, gBufferToUseHighRes, remoteCameraToUse,
                     quadsGenerator, meshFromQuads, meshToUse,
@@ -1008,7 +1009,7 @@ int main(int argc, char** argv) {
             spdlog::info("  Create Vert/Ind Time ({}): {:.3f}ms", generatePFrame, totalCreateVertIndTime);
             spdlog::info("Compress Time ({}): {:.3f}ms", generatePFrame, totalCompressTime);
             if (showDepth) spdlog::info("Gen Depth Time ({}): {:.3f}ms", generatePFrame, totalGenDepthTime);
-            spdlog::info("Frame Size: {:.3f}MB", (float)(compressedSize) / BYTES_IN_MB);
+            spdlog::info("Frame Size: {:.3f}MB", static_cast<float>(compressedSize) / BYTES_IN_MB);
             spdlog::info("Num Proxies: {}Proxies", totalProxies);
 
             preventCopyingLocalPose = false;

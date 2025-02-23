@@ -107,6 +107,8 @@ int main(int argc, char** argv) {
 
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
+    config.width = remoteWindowSize.x;
+    config.height = remoteWindowSize.y;
     DeferredRenderer remoteRenderer(config);
 
     // "remote" scene
@@ -665,6 +667,7 @@ int main(int argc, char** argv) {
             ============================
             */
             unsigned int numProxies = 0, numDepthOffsets = 0;
+            quadsGenerator.expandEdges = generatePFrame;
             compressedSize = frameGenerator.generateIFrame(
                 gBufferRTLowRes, gBufferRT,
                 remoteCameraToUse,
@@ -798,7 +801,7 @@ int main(int argc, char** argv) {
             spdlog::info("  Create Vert/Ind Time: {:.3f}ms", totalCreateVertIndTime);
             spdlog::info("Compress Time ({}): {:.3f}ms", generatePFrame, totalCompressTime);
             if (showDepth) spdlog::info("Gen Depth Time: {:.3f}ms", totalGenDepthTime);
-            spdlog::info("Frame Size: {:.3f}MB", (float)(compressedSize) / BYTES_IN_MB);
+            spdlog::info("Frame Size: {:.3f}MB", static_cast<float>(compressedSize) / BYTES_IN_MB);
 
             preventCopyingLocalPose = false;
             generateIFrame = false;

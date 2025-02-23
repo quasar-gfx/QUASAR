@@ -7,6 +7,7 @@
 #include <Renderers/ForwardRenderer.h>
 
 #include <PostProcessing/ToneMapper.h>
+#include <PostProcessing/ShowDepthEffect.h>
 
 #include <Recorder.h>
 #include <Animator.h>
@@ -90,25 +91,22 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera = PerspectiveCamera(windowSize.x, windowSize.y);
     camera.setViewMatrix(remoteCamera.getViewMatrix());
 
-    // shaders
-    Shader videoShader({
-        .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
-        .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_BUILTIN_DISPLAYTEXTURE_FRAG,
-        .fragmentCodeSize = SHADER_BUILTIN_DISPLAYTEXTURE_FRAG_len
+    BC4DepthStreamer bc4DepthStreamerRT = BC4DepthStreamer({
+        .width = windowSize.x,
+        .height = windowSize.y,
+        .internalFormat = GL_R32F,
+        .format = GL_RED,
+        .type = GL_FLOAT,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST
     });
 
+    // shaders
     ComputeShader meshFromDepthShader({
         .computeCodeData = SHADER_COMMON_MESHFROMDEPTH_COMP,
         .computeCodeSize = SHADER_COMMON_MESHFROMDEPTH_COMP_len,
-        .defines = {
-            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
-        }
-    });
-
-    ComputeShader bc4CompressionShader({
-        .computeCodeData = SHADER_COMMON_BC4COMPRESSION_COMP,
-        .computeCodeSize = SHADER_COMMON_BC4COMPRESSION_COMP_len,
         .defines = {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
@@ -124,14 +122,13 @@ int main(int argc, char** argv) {
 
     // post processing
     ToneMapper toneMapper;
+    ShowDepthEffect showDepthEffect(camera);
 
     // original size of depth buffer
     unsigned int originalSize = windowSize.x * windowSize.y * sizeof(float);
 
     // create buffer for compressed data
     unsigned int compressedSize = (windowSize.x / 8) * (windowSize.y / 8) * sizeof(BC4DepthStreamer::Block);
-    Buffer bc4Buffer(GL_SHADER_STORAGE_BUFFER, compressedSize / sizeof(BC4DepthStreamer::Block), sizeof(BC4DepthStreamer::Block), nullptr, GL_DYNAMIC_COPY);
-
     float compressionRatio = originalSize / compressedSize;
 
     // set up meshes for rendering
@@ -362,28 +359,16 @@ int main(int argc, char** argv) {
         meshFromDepthShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
                                           GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
-        // compress depth data using BC4
-        bc4CompressionShader.bind();
-        {
-            bc4CompressionShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
-        }
-        {
-            bc4CompressionShader.setVec2("depthMapSize", windowSize);
-            bc4CompressionShader.setVec2("bc4DepthSize", glm::vec2(windowSize.x / 8, windowSize.y / 8));
-        }
-        {
-            bc4CompressionShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, bc4Buffer);
-        }
-        bc4CompressionShader.dispatch((windowSize.x / 8) / THREADS_PER_LOCALGROUP, (windowSize.y / 8) / THREADS_PER_LOCALGROUP, 1);
-        bc4CompressionShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+        // compress with BC4
+        showDepthEffect.drawToRenderTarget(remoteRenderer, bc4DepthStreamerRT);
+        bc4DepthStreamerRT.compress();
 
         // generate mesh using compressed depth data
         meshFromBC4Shader.bind();
         {
+            meshFromBC4Shader.setBool("unlinearizeDepth", true);
             meshFromBC4Shader.setVec2("depthMapSize", windowSize);
             meshFromBC4Shader.setInt("surfelSize", surfelSize);
-
-            meshFromBC4Shader.setBool("unlinearizeDepth", false);
         }
         {
             meshFromBC4Shader.setMat4("projection", remoteCamera.getProjectionMatrix());
@@ -397,14 +382,13 @@ int main(int argc, char** argv) {
         {
             meshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, meshDecompressed.vertexBuffer);
             meshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, meshDecompressed.indexBuffer);
-            meshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, bc4Buffer);
-
+            meshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, bc4DepthStreamerRT.bc4CompressedBuffer);
         }
         // dispatch compute shader to generate vertices and indices for mesh
         meshFromBC4Shader.dispatch((adjustedWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                      (adjustedWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+                                   (adjustedWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
         meshFromBC4Shader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
-                                           GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+                                        GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
         // set render state
         node.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;

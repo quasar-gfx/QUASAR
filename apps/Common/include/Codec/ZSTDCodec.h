@@ -10,8 +10,8 @@
 class ZSTDCodec : public Codec {
 public:
     ZSTDCodec(
-            uint32_t compressionLevel = 9,
-            uint32_t compressionStrategy = ZSTD_lazy2,
+            uint32_t compressionLevel = 3,
+            uint32_t compressionStrategy = ZSTD_greedy,
             uint32_t numWorkers = 0) {
         compressionCtx = ZSTD_createCCtx();
         decompressionCtx = ZSTD_createDCtx();

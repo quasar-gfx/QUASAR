@@ -41,7 +41,7 @@ public:
         float compressionRatio = -1.0f;
     } stats;
 
-    BC4DepthStreamer(const RenderTargetCreateParams &params, std::string receiverURL);
+    BC4DepthStreamer(const RenderTargetCreateParams &params, const std::string &receiverURL = "");
     ~BC4DepthStreamer();
 
     void close();
@@ -54,6 +54,7 @@ public:
         this->targetFrameRate = targetFrameRate;
     }
 
+    unsigned int compress(bool compress = false);
     void sendFrame(pose_id_t poseID);
 
 private:
@@ -65,7 +66,8 @@ private:
     ZSTDCodec codec;
 
     ComputeShader bc4CompressionShader;
-    void compressBC4();
+
+    unsigned int applyCodec();
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     CudaGLBuffer cudaBufferBc4;
@@ -84,6 +86,7 @@ private:
     std::atomic_bool running{false};
 
     void sendData();
+    void copyFrameToCPU(pose_id_t poseID = -1, void* cudaPtr = nullptr);
 #else
     pose_id_t poseID;
 #endif

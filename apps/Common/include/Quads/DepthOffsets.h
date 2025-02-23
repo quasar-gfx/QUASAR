@@ -27,7 +27,7 @@ public:
     unsigned int loadFromFile(const std::string &filename, unsigned int* numBytesLoaded = nullptr);
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-    unsigned int saveToMemory(std::vector<char> &compressedData);
+    unsigned int saveToMemory(std::vector<char> &compressedData, bool compress = true);
     unsigned int saveToFile(const std::string &filename);
 #endif
 

@@ -7,7 +7,7 @@
 #define THREADS_PER_LOCALGROUP 16
 #define BLOCK_SIZE 8
 
-BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams &params, std::string receiverURL)
+BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams &params, const std::string &receiverURL)
         : RenderTarget(params)
         , receiverURL(receiverURL)
         , streamer(receiverURL)
@@ -16,8 +16,7 @@ BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams &params, std::
             .computeCodeSize = SHADER_COMMON_BC4COMPRESSION_COMP_len,
             .defines = {
                 "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
-            }
-        }) {
+            }}) {
     // round up to nearest multiple of BLOCK_SIZE
     width = (params.width + BLOCK_SIZE - 1) / BLOCK_SIZE * BLOCK_SIZE;
     height = (params.height + BLOCK_SIZE - 1) / BLOCK_SIZE * BLOCK_SIZE;
@@ -28,10 +27,12 @@ BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams &params, std::
     bc4CompressedBuffer = Buffer(GL_SHADER_STORAGE_BUFFER, compressedSize, sizeof(Block), nullptr, GL_DYNAMIC_DRAW);
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-    cudaBufferBc4.registerBuffer(bc4CompressedBuffer);
+        cudaBufferBc4.registerBuffer(bc4CompressedBuffer);
 
-    running = true;
-    dataSendingThread = std::thread(&BC4DepthStreamer::sendData, this);
+    if (!receiverURL.empty()) {
+        running = true;
+        dataSendingThread = std::thread(&BC4DepthStreamer::sendData, this);
+    }
 #endif
 
     spdlog::info("Created BC4DepthStreamer that sends to URL: {}", receiverURL);
@@ -53,7 +54,7 @@ void BC4DepthStreamer::close() {
 #endif
 }
 
-void BC4DepthStreamer::compressBC4() {
+unsigned int BC4DepthStreamer::compress(bool compress) {
     bc4CompressionShader.bind();
     bc4CompressionShader.setTexture(colorBuffer, 0);
 
@@ -66,10 +67,42 @@ void BC4DepthStreamer::compressBC4() {
     bc4CompressionShader.dispatch(((depthMapSize.x / BLOCK_SIZE) + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
                                   ((depthMapSize.y / BLOCK_SIZE) + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
     bc4CompressionShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+    if (compress) {
+        copyFrameToCPU();
+        return applyCodec();
+    }
+    return 0;
+}
+
+void BC4DepthStreamer::copyFrameToCPU(pose_id_t poseID, void* cudaPtr) {
+    // copy pose ID to the beginning of data
+    std::memcpy(data.data(), &poseID, sizeof(pose_id_t));
+
+    // copy compressed BC4 data from GPU to CPU
+#if !defined(__APPLE__) && !defined(__ANDROID__)
+    if (cudaPtr == nullptr) {
+        cudaPtr = cudaBufferBc4.getPtr();
+    }
+    CHECK_CUDA_ERROR(cudaMemcpy(data.data() + sizeof(pose_id_t),
+                                cudaPtr,
+                                compressedSize * sizeof(Block),
+                                cudaMemcpyDeviceToHost));
+#else
+    bc4CompressedBuffer.bind();
+    bc4CompressedBuffer.setData(data.data() + sizeof(pose_id_t));
+    bc4CompressedBuffer.unbind();
+#endif
+}
+
+unsigned int BC4DepthStreamer::applyCodec() {
+    size_t maxSizeBytes = data.size();
+    compressedData.resize(maxSizeBytes);
+    return codec.compress(data.data(), compressedData, data.size());
 }
 
 void BC4DepthStreamer::sendFrame(pose_id_t poseID) {
-    compressBC4();
+    compress();
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     void* cudaPtr = cudaBufferBc4.getPtr();
@@ -84,7 +117,7 @@ void BC4DepthStreamer::sendFrame(pose_id_t poseID) {
     }
     cv.notify_one();
 #else
-    float startTime = timeutils::getTimeMicros();
+    double startTime = timeutils::getTimeMicros();
 
     // Ensure data buffer has correct size
     size_t fullSize = sizeof(pose_id_t) + compressedSize * sizeof(Block);
@@ -101,23 +134,18 @@ void BC4DepthStreamer::sendFrame(pose_id_t poseID) {
     startTime = timeutils::getTimeMicros();
 
     // compress
-    size_t maxSizeBytes = data.size();
-    compressedData.resize(maxSizeBytes);
-    codec.compress(data.data(), compressedData, data.size());
+    applyCodec();
 
     stats.timeToCompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
     stats.compressionRatio = static_cast<float>(data.size()) / compressedSize;
 
     streamer.send(compressedData);
-
-    // spdlog::info("Frame Stats - Original: {} bytes, Compressed: {} bytes, Ratio: {}",
-    //              data.size(), compressedSize, stats.compressionRatio);
 #endif
 }
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
 void BC4DepthStreamer::sendData() {
-    float prevTime = timeutils::getTimeMicros();
+    double prevTime = timeutils::getTimeMicros();
 
     while (running) {
         std::unique_lock<std::mutex> lock(m);
@@ -132,30 +160,22 @@ void BC4DepthStreamer::sendData() {
 
         lock.unlock();
 
-        float startTime = timeutils::getTimeMicros();
-
-        // Copy pose ID to the beginning of data
-        std::memcpy(data.data(), &cudaBufferStruct.poseID, sizeof(pose_id_t));
-
-        // Copy compressed BC4 data from GPU to CPU
-        CHECK_CUDA_ERROR(cudaMemcpy(data.data() + sizeof(pose_id_t),
-                                    cudaPtr,
-                                    compressedSize * sizeof(Block),
-                                    cudaMemcpyDeviceToHost));
-
+        double startTime = timeutils::getTimeMicros();
+        {
+            // copy pose ID to the beginning of data
+            std::memcpy(data.data(), &cudaBufferStruct.poseID, sizeof(pose_id_t));
+            // copy compressed BC4 data from GPU to CPU
+            copyFrameToCPU(cudaBufferStruct.poseID, cudaPtr);
+        }
         stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
+        // compress even further
         startTime = timeutils::getTimeMicros();
-
-        // compress
-        size_t maxSizeBytes = data.size();
-        compressedData.resize(maxSizeBytes);
-        codec.compress(data.data(), compressedData, data.size());
-
+        unsigned int compressedSize = applyCodec();
         stats.timeToCompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
-        stats.compressionRatio = static_cast<float>(data.size()) / compressedData.size();
+        stats.compressionRatio = static_cast<float>(compressedSize) / (width * height * sizeof(float));
 
-        float elapsedTimeSec = timeutils::microsToSeconds(timeutils::getTimeMicros() - prevTime);
+        double elapsedTimeSec = timeutils::microsToSeconds(timeutils::getTimeMicros() - prevTime);
         if (elapsedTimeSec < (1.0f / targetFrameRate)) {
             std::this_thread::sleep_for(
                 std::chrono::microseconds(
@@ -164,7 +184,7 @@ void BC4DepthStreamer::sendData() {
             );
         }
 
-        // Send compressed data
+        // send compressed data
         streamer.send(compressedData);
 
         stats.timeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);

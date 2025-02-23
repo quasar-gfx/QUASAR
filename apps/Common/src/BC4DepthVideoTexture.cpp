@@ -31,7 +31,7 @@ pose_id_t BC4DepthVideoTexture::getLatestPoseID() {
 void BC4DepthVideoTexture::onDataReceived(const std::vector<char>& compressedData) {
     static float prevTime = timeutils::getTimeMicros();
 
-    float startTime = timeutils::getTimeMicros();
+    double startTime = timeutils::getTimeMicros();
 
     // calculate expected decompressed size
     size_t expectedSize = sizeof(pose_id_t) + compressedSize * sizeof(Block);

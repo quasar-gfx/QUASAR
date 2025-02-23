@@ -92,7 +92,7 @@ void DepthStreamer::sendData() {
             break;
         }
 
-        float startTime = timeutils::getTimeMicros();
+        double startTime = timeutils::getTimeMicros();
 
         // copy depth buffer to data
         CudaBuffer cudaBufferStruct = cudaBufferQueue.front();
@@ -112,7 +112,7 @@ void DepthStreamer::sendData() {
 
         stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
-        float elapsedTimeSec = timeutils::microsToSeconds(timeutils::getTimeMicros() - prevTime);
+        double elapsedTimeSec = timeutils::microsToSeconds(timeutils::getTimeMicros() - prevTime);
         if (elapsedTimeSec < (1.0f / targetFrameRate)) {
             std::this_thread::sleep_for(
                 std::chrono::microseconds(

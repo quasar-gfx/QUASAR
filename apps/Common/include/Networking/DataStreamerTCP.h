@@ -27,6 +27,10 @@ public:
             : url(url)
             , maxDataSize(maxDataSize)
             , socket(nonBlocking) {
+        if (url.empty()) {
+            return;
+        }
+
         socket.setReuseAddr();
         socket.setSendSize(maxDataSize);
 
@@ -34,10 +38,12 @@ public:
     }
 
     ~DataStreamerTCP() {
-        close();
-    }
+        ready = false;
 
-    void close();
+        if (dataSendingThread.joinable()) {
+            dataSendingThread.join();
+        }
+    }
 
     int send(std::vector<char> &data, bool copy = false);
 

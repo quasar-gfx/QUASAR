@@ -69,17 +69,15 @@ unsigned int QuadBuffers::loadFromMemory(const char* data) {
 #ifdef GL_CORE
 unsigned int QuadBuffers::saveToMemory(std::vector<char> &compressedData, bool compress) {
     unsigned int dataSize = updateDataBuffer();
+    compressedData.resize(dataSize);
 
     if (compress) {
         auto startTime = timeutils::getTimeMicros();
-        size_t maxSizeBytes = maxProxies * sizeof(QuadMapDataPacked) + sizeof(unsigned int);
-        compressedData.resize(maxSizeBytes);
         unsigned int outputSize = codec.compress(data.data(), compressedData, dataSize);
         stats.timeToCompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
         return outputSize;
     }
     else {
-        compressedData.resize(dataSize);
         memcpy(compressedData.data(), data.data(), dataSize);
         return dataSize;
     }

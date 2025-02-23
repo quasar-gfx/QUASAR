@@ -173,12 +173,6 @@ float signedDistance(vec3 p1, vec3 p2) {
     return (length(p1) > length(p2)) ? -dist : dist;
 }
 
-float normalizeDepth(float depth) {
-    depth = clamp(depth, near, far);
-    float z = (depth - near) / (far - near);
-    return (1.0 - (1.0 / (1.0 + z * (far - near) / near)));
-}
-
 vec3 rayPlaneIntersection(vec3 rayOrigin, vec3 rayDirection, Plane plane) {
     float denominator = dot(rayDirection, plane.normal);
     if (abs(denominator) < epsilon) {

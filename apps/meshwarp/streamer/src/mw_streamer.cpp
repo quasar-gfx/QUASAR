@@ -111,7 +111,7 @@ int main(int argc, char** argv) {
         .magFilter = GL_LINEAR
     }, videoURL, config.targetFramerate, targetBitrate, videoFormat);
 
-    BC4DepthStreamer BC4videoStreamerDepthRT = BC4DepthStreamer({
+    BC4DepthStreamer bc4DepthStreamerRT = BC4DepthStreamer({
         .width = windowSize.x / depthFactor,
         .height = windowSize.y / depthFactor,
         .internalFormat = GL_R32F,
@@ -197,14 +197,14 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: RGB (%.1f fps), BC4 D (%.1f fps)", videoStreamerColorRT.getFrameRate(), BC4videoStreamerDepthRT.getFrameRate());
+            ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: RGB (%.1f fps), BC4 D (%.1f fps)", videoStreamerColorRT.getFrameRate(), bc4DepthStreamerRT.getFrameRate());
 
             ImGui::Separator();
 
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: RGB (%.3f ms), BC4 D (%.3f ms)", videoStreamerColorRT.stats.timeToCopyFrameMs, BC4videoStreamerDepthRT.stats.timeToCopyFrameMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: RGB (%.3f ms), BC4 D (%.3f ms)", videoStreamerColorRT.stats.timeToEncodeMs, BC4videoStreamerDepthRT.stats.timeToCompressMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: RGB (%.3f ms), BC4 D (%.3f ms)", videoStreamerColorRT.stats.timeToSendMs, BC4videoStreamerDepthRT.stats.timeToSendMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: RGB (%.3f Mbps), BC4 D (%.3f Mbps)", videoStreamerColorRT.stats.bitrateMbps, BC4videoStreamerDepthRT.stats.bitrateMbps);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: RGB (%.3f ms), BC4 D (%.3f ms)", videoStreamerColorRT.stats.timeToCopyFrameMs, bc4DepthStreamerRT.stats.timeToCopyFrameMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: RGB (%.3f ms), BC4 D (%.3f ms)", videoStreamerColorRT.stats.timeToEncodeMs, bc4DepthStreamerRT.stats.timeToCompressMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: RGB (%.3f ms), BC4 D (%.3f ms)", videoStreamerColorRT.stats.timeToSendMs, bc4DepthStreamerRT.stats.timeToSendMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: RGB (%.3f Mbps), BC4 D (%.3f Mbps)", videoStreamerColorRT.stats.bitrateMbps, bc4DepthStreamerRT.stats.bitrateMbps);
 
             ImGui::Separator();
 
@@ -276,10 +276,10 @@ int main(int argc, char** argv) {
 
             // copy color and depth to video frames
             toneMapper.drawToRenderTarget(renderer, videoStreamerColorRT);
-            showDepthEffect.drawToRenderTarget(renderer, BC4videoStreamerDepthRT);
+            showDepthEffect.drawToRenderTarget(renderer, bc4DepthStreamerRT);
 
             if (pauseState != PauseState::PAUSE_COLOR) videoStreamerColorRT.sendFrame(poseID);
-            if (pauseState != PauseState::PAUSE_DEPTH) BC4videoStreamerDepthRT.sendFrame(poseID);
+            if (pauseState != PauseState::PAUSE_DEPTH) bc4DepthStreamerRT.sendFrame(poseID);
         }
 
         // render to screen

@@ -1,13 +1,5 @@
 #include <Networking/DataStreamerTCP.h>
 
-void DataStreamerTCP::close() {
-    ready = false;
-
-    if (dataSendingThread.joinable()) {
-        dataSendingThread.join();
-    }
-}
-
 int DataStreamerTCP::send(std::vector<char> &data, bool copy) {
     if (!ready) {
         return -1;

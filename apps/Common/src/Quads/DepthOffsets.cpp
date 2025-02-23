@@ -44,10 +44,14 @@ unsigned int DepthOffsets::loadFromFile(const std::string &filename, unsigned in
 }
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-unsigned int DepthOffsets::saveToMemory(std::vector<char> &compressedData) {
+unsigned int DepthOffsets::saveToMemory(std::vector<char> &compressedData, bool compress) {
     cudaImage.copyToArray(size.x * 4 * sizeof(uint16_t), size.y, size.x * 4 * sizeof(uint16_t), data.data());
     compressedData.resize(data.size());
-    return codec.compress(data.data(), compressedData, data.size());
+    if (!compress) {
+        return codec.compress(data.data(), compressedData, data.size());
+    }
+    memcpy(compressedData.data(), data.data(), data.size());
+    return data.size();
 }
 
 unsigned int DepthOffsets::saveToFile(const std::string &filename) {

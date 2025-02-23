@@ -122,6 +122,8 @@ int main(int argc, char** argv) {
 
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
+    config.width = remoteWindowSize.x;
+    config.height = remoteWindowSize.y;
     DeferredRenderer remoteRenderer(config);
 
     // "remote" scene
@@ -833,7 +835,7 @@ int main(int argc, char** argv) {
             spdlog::info("  Create Vert/Ind Time: {:.3f}ms", totalCreateVertIndTime);
             if (showDepth) spdlog::info("Gen Depth Time: {:.3f}ms", totalGenDepthTime);
             // QS has data structures that are 103 bits
-            spdlog::info("Frame Size: {:.3f}MB", (float)(compressedSize) / BYTES_IN_MB * (103.0) / (8*sizeof(QuadMapDataPacked)));
+            spdlog::info("Frame Size: {:.3f}MB", static_cast<float>(compressedSize) / BYTES_IN_MB * (103.0) / (8*sizeof(QuadMapDataPacked)));
             spdlog::info("Num Proxies: {}Proxies", totalProxies);
 
             preventCopyingLocalPose = false;
