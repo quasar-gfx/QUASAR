@@ -90,7 +90,7 @@ void BC4DepthStreamer::copyFrameToCPU(pose_id_t poseID, void* cudaPtr) {
                                 cudaMemcpyDeviceToHost));
 #else
     bc4CompressedBuffer.bind();
-    bc4CompressedBuffer.setData(data.data() + sizeof(pose_id_t));
+    bc4CompressedBuffer.setData(compressedSize * sizeof(Block), data.data() + sizeof(pose_id_t));
     bc4CompressedBuffer.unbind();
 #endif
 }

@@ -68,6 +68,7 @@ private:
     ComputeShader bc4CompressionShader;
 
     unsigned int applyCodec();
+    void copyFrameToCPU(pose_id_t poseID = -1, void* cudaPtr = nullptr);
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     CudaGLBuffer cudaBufferBc4;
@@ -86,7 +87,6 @@ private:
     std::atomic_bool running{false};
 
     void sendData();
-    void copyFrameToCPU(pose_id_t poseID = -1, void* cudaPtr = nullptr);
 #else
     pose_id_t poseID;
 #endif
