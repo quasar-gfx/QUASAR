@@ -88,9 +88,9 @@ void QuadsGenerator::generateInitialQuadMap(
     }
     {
         genQuadMapShader.setTexture(gBuffer.normalsBuffer, 0);
-        genQuadMapShader.setTexture(gBuffer.depthStencilBuffer, 1);
+        genQuadMapShader.setTexture(gBuffer.idBuffer, 1);
         genQuadMapShader.setTexture(gBufferHighRes.normalsBuffer, 2);
-        genQuadMapShader.setTexture(gBufferHighRes.depthStencilBuffer, 3);
+        genQuadMapShader.setTexture(gBufferHighRes.idBuffer, 3);
     }
     {
         genQuadMapShader.setMat4("view", remoteCamera.getViewMatrix());

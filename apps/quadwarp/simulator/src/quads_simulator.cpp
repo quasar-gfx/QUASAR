@@ -799,7 +799,7 @@ int main(int argc, char** argv) {
             spdlog::info("  Append Quads Time: {:.3f}ms", totalAppendProxiesMsTime);
             spdlog::info("  Fill Output Quads Time: {:.3f}ms", totalFillQuadsIndiciesMsTime);
             spdlog::info("  Create Vert/Ind Time: {:.3f}ms", totalCreateVertIndTime);
-            spdlog::info("Compress Time ({}): {:.3f}ms", generatePFrame, totalCompressTime);
+            spdlog::info("Compress Time: {:.3f}ms", totalCompressTime);
             if (showDepth) spdlog::info("Gen Depth Time: {:.3f}ms", totalGenDepthTime);
             spdlog::info("Frame Size: {:.3f}MB", static_cast<float>(compressedSize) / BYTES_IN_MB);
 

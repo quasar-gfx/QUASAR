@@ -54,7 +54,7 @@ float UnLinearizeDepth(float depth) {
     depth *= far;
     depth = max(depth, near);
     float z = (depth * (far + near) - 2.0 * near * far) / (depth * (far - near));
-    return (z + 1.0) / 2.0;
+    return z * 0.5 + 0.5;
 }
 
 float sampleBC4Buffer(vec2 pixelCoordNormalized) {

@@ -87,7 +87,7 @@ layout(std430, binding = 3) writeonly buffer NormalSphericalsBufferOutput {
     uint normalSphericalsOutput[];
 };
 
-layout(std430, binding = 4) writeonly buffer DepthBufferOutput {
+layout(std430, binding = 4) writeonly buffer DepthsBufferOutput {
     float depthsOutput[];
 };
 
@@ -400,36 +400,34 @@ void recalcDepthOffsets(
     uint size = 1 << quadMapData.size;
     float halfGridSize = float(size) * surfelSize / 2;
 
-    vec2 start = proxyPlanePixelCoords - vec2(halfGridSize);
-    vec2 stepSize = vec2(0.5);
-
     // calculate new depth offsets relative to new proxy plane
-    for (int i = 0; i < size; i++) {
-        vec2 rowStart = start + vec2(float(i) * stepSize.x, 0.0);
-        for (int j = 0; j < size; j++) {
-            vec2 surfelBaseCoord = rowStart + vec2(0.0, float(j) * stepSize.y);
+    vec2 baseCoord = proxyPlanePixelCoords - vec2(halfGridSize);
+    vec2 stepSize = vec2(surfelSize);
+    for (uint idx = 0u; idx < size * size; idx++) {
+        uint i = idx % size;
+        uint j = idx / size;
+        vec2 surfelBaseCoord = baseCoord + vec2(i, j) * stepSize;
 
-            Quad2D surfelPixelCoords;
-            surfelPixelCoords.bottomLeft  = surfelBaseCoord;
-            surfelPixelCoords.bottomRight = surfelBaseCoord + vec2(stepSize.x, 0.0);
-            surfelPixelCoords.topLeft     = surfelBaseCoord + vec2(0.0, stepSize.y);
-            surfelPixelCoords.topRight    = surfelBaseCoord + stepSize;
+        Quad2D surfelPixelCoords;
+        surfelPixelCoords.bottomLeft  = surfelBaseCoord;
+        surfelPixelCoords.bottomRight = surfelBaseCoord + vec2(stepSize.x, 0.0);
+        surfelPixelCoords.topLeft     = surfelBaseCoord + vec2(0.0, stepSize.y);
+        surfelPixelCoords.topRight    = surfelBaseCoord + stepSize;
 
-            ivec2 depthOffsetPixelCoords = 2 * ivec2(quadMapData.offset) + ivec2(i, j);
-            vec4 oldDepthOffsets = loadDepthOffsets(depthOffsetPixelCoords);
-            Quad surfel;
-            createSurfel(surfel, surfelPixelCoords, oldDepthOffsets, proxyPlane);
+        ivec2 depthOffsetPixelCoords = 2 * ivec2(quadMapData.offset) + ivec2(i, j);
+        vec4 oldDepthOffsets = loadDepthOffsets(depthOffsetPixelCoords);
+        Quad surfel;
+        createSurfel(surfel, surfelPixelCoords, oldDepthOffsets, proxyPlane);
 
-            vec4 newDepthOffsets = findDepthOffsets(surfel, newProxyPlane);
-            storeDepthOffsets(depthOffsetPixelCoords, newDepthOffsets);
+        vec4 newDepthOffsets = findDepthOffsets(surfel, newProxyPlane);
+        storeDepthOffsets(depthOffsetPixelCoords, newDepthOffsets);
 
-            vec4 absOffsets = abs(newDepthOffsets);
-            numBelowThreshold += int(absOffsets.x < flatThreshold) +
-                                 int(absOffsets.y < flatThreshold) +
-                                 int(absOffsets.z < flatThreshold) +
-                                 int(absOffsets.w < flatThreshold);
-            total += 4;
-        }
+        vec4 absOffsets = abs(newDepthOffsets);
+        numBelowThreshold += int(absOffsets.x < flatThreshold) +
+                             int(absOffsets.y < flatThreshold) +
+                             int(absOffsets.z < flatThreshold) +
+                             int(absOffsets.w < flatThreshold);
+        total += 4;
     }
 }
 
@@ -480,14 +478,15 @@ void mergeQuadMapData(
 
     // // zero out depth offsets
     // uint size = 1u << mergedQuadMapData.size;
-    // for (uint i = 0u; i < size; i++) {
-    //     for (uint j = 0u; j < size; j++) {
-    //         ivec2 depthOffsetPixelCoords = 2 * ivec2(mergedQuadMapData.offset) + ivec2(i, j);
-    //         imageStore(depthOffsetsBuffer, depthOffsetPixelCoords + ivec2(0, 0), vec4(0.0));
-    //         imageStore(depthOffsetsBuffer, depthOffsetPixelCoords + ivec2(1, 0), vec4(0.0));
-    //         imageStore(depthOffsetsBuffer, depthOffsetPixelCoords + ivec2(0, 1), vec4(0.0));
-    //         imageStore(depthOffsetsBuffer, depthOffsetPixelCoords + ivec2(1, 1), vec4(0.0));
-    //     }
+    // for (uint idx = 0u; idx < size * size; idx++) {
+    //     uint i = idx % size;
+    //     uint j = idx / size;
+
+    //     ivec2 depthOffsetPixelCoords = 2 * ivec2(mergedQuadMapData.offset) + ivec2(i, j);
+    //     imageStore(depthOffsetsBuffer, depthOffsetPixelCoords + ivec2(0, 0), vec4(0.0));
+    //     imageStore(depthOffsetsBuffer, depthOffsetPixelCoords + ivec2(1, 0), vec4(0.0));
+    //     imageStore(depthOffsetsBuffer, depthOffsetPixelCoords + ivec2(0, 1), vec4(0.0));
+    //     imageStore(depthOffsetsBuffer, depthOffsetPixelCoords + ivec2(1, 1), vec4(0.0));
     // }
 }
 
