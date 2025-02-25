@@ -105,6 +105,7 @@ const vec3 forward = vec3(0.0, 0.0, -1.0);
 const vec3 up = vec3(0.0, 1.0, 0.0);
 const vec3 left = vec3(-1.0, 0.0, 0.0);
 const vec3 right = vec3(1.0, 0.0, 0.0);
+const int downsampleFactor = int(gBufferHighResSize.x / gBufferSize.x);
 
 layout(std430, binding = 0) writeonly buffer QuadBufferSizes {
     uint numProxies;
@@ -171,10 +172,20 @@ vec3 sampleColorDst(ivec2 sampleCoord) {
     return imageLoad(colorMapDst, sampleCoord).rgb;
 }
 
+bool isValidDepth(float depth) {
+    return depth != 0.0 && depth < MAX_DEPTH;
+}
+
 float UnLinearizeDepth(float depth) {
     float zView = depth * (far - near) + near;
     float z = (zView * (far + near) - 2.0 * near * far) / (zView * (far - near));
     return z * 0.5 + 0.5;
+}
+
+float normalizeDepth(float depth) {
+    depth = clamp(depth, near, far);
+    float z = (depth - near) / (far - near);
+    return UnLinearizeDepth(z);
 }
 
 float sampleDepth(usampler2D idMap, ivec2 sampleCoord) {
@@ -182,16 +193,6 @@ float sampleDepth(usampler2D idMap, ivec2 sampleCoord) {
     float z = uintBitsToFloat(ids.z);
     float depth = UnLinearizeDepth(z);
     return depth;
-}
-
-float normalizeDepth(float depth) {
-    depth = clamp(depth, near, far);
-    float z = (depth - near) / (far - near);
-    return (1.0 - (1.0 / (1.0 + z * (far - near) / near)));
-}
-
-bool isValidDepth(float depth) {
-    return depth != 0.0 && depth < MAX_DEPTH;
 }
 
 vec3 sampleNormal(sampler2D normalsMap, ivec2 sampleCoord) {
@@ -677,14 +678,9 @@ void main() {
     pixelCenterNDCs.top         = (pixelNeighborCoords.top         / gBufferSize) * 2.0 - 1.0;
     pixelCenterNDCs.topRight    = (pixelNeighborCoords.topRight    / gBufferSize) * 2.0 - 1.0;
 
-    int downsampleFactor = int(gBufferHighResSize.x / gBufferSize.x);
-
     ivec2 outputPixelCoords = ivec2(pixelCoord * downsampleFactor);
-    ivec2 outputPixelCoordsBottomLeft = outputPixelCoords + ivec2(0, 0);
-    ivec2 outputPixelCoordsBottomRight = outputPixelCoords + ivec2(1, 0);
-    ivec2 outputPixelCoordsTopLeft = outputPixelCoords + ivec2(0, 1);
-    ivec2 outputPixelCoordsTopRight = outputPixelCoords + ivec2(1, 1);
 
+    // if there is an empty sample, check if we should expand the edges
     if (!isValidDepth(pixelDepths.center)) {
         if (!expandEdges) {
             return;
@@ -720,6 +716,11 @@ void main() {
         }
     }
 
+    ivec2 outputPixelCoordsBottomLeft = outputPixelCoords + ivec2(0, 0);
+    ivec2 outputPixelCoordsBottomRight = outputPixelCoords + ivec2(1, 0);
+    ivec2 outputPixelCoordsTopLeft = outputPixelCoords + ivec2(0, 1);
+    ivec2 outputPixelCoordsTopRight = outputPixelCoords + ivec2(1, 1);
+
     float depthBottomLeftHighRes = sampleDepth(idMapHighRes, outputPixelCoordsBottomLeft);
     float depthBottomRightHighRes = sampleDepth(idMapHighRes, outputPixelCoordsBottomRight);
     float depthTopLeftHighRes = sampleDepth(idMapHighRes, outputPixelCoordsTopLeft);
@@ -729,11 +730,6 @@ void main() {
     vec3 normalBottomRightHighRes = normalToView(view, sampleNormal(normalsMapHighRes, outputPixelCoordsBottomRight));
     vec3 normalTopLeftHighRes = normalToView(view, sampleNormal(normalsMapHighRes, outputPixelCoordsTopLeft));
     vec3 normalTopRightHighRes = normalToView(view, sampleNormal(normalsMapHighRes, outputPixelCoordsTopRight));
-
-    float diffBottomLeft = abs(pixelDepths.center - depthBottomLeftHighRes);
-    float diffBottomRight = abs(pixelDepths.center - depthBottomRightHighRes);
-    float diffTopLeft = abs(pixelDepths.center - depthTopLeftHighRes);
-    float diffTopRight = abs(pixelDepths.center - depthTopRightHighRes);
 
     if (downsampleFactor > 1 &&
             !isValidDepth(depthBottomLeftHighRes) &&
@@ -745,9 +741,14 @@ void main() {
 
     // recolor if there is a depth discontinuity within a pixel
     if (downsampleFactor > 1 &&
-            (abs(depthBottomLeftHighRes - depthBottomRightHighRes) > depthThreshold ||
-             abs(depthBottomLeftHighRes - depthTopLeftHighRes) > depthThreshold ||
-             abs(depthBottomLeftHighRes - depthTopRightHighRes) > depthThreshold)) {
+            (abs(depthBottomLeftHighRes - depthBottomRightHighRes) >= depthThreshold ||
+             abs(depthBottomLeftHighRes - depthTopLeftHighRes) >= depthThreshold ||
+             abs(depthBottomLeftHighRes - depthTopRightHighRes) >= depthThreshold)) {
+        float diffBottomLeft = abs(pixelDepths.center - depthBottomLeftHighRes);
+        float diffBottomRight = abs(pixelDepths.center - depthBottomRightHighRes);
+        float diffTopLeft = abs(pixelDepths.center - depthTopLeftHighRes);
+        float diffTopRight = abs(pixelDepths.center - depthTopRightHighRes);
+
         vec3 colorBottomLeft = sampleColorDst(outputPixelCoordsBottomLeft);
         vec3 colorBottomRight = sampleColorDst(outputPixelCoordsBottomRight);
         vec3 colorTopLeft = sampleColorDst(outputPixelCoordsTopLeft);
@@ -779,16 +780,16 @@ void main() {
             closestNormal = normalTopRightHighRes;
         }
 
-        if (diffBottomLeft > depthThreshold) {
+        if (diffBottomLeft >= depthThreshold) {
             colorBottomLeft = closestColor;
         }
-        if (diffBottomRight > depthThreshold) {
+        if (diffBottomRight >= depthThreshold) {
             colorBottomRight = closestColor;
         }
-        if (diffTopLeft > depthThreshold) {
+        if (diffTopLeft >= depthThreshold) {
             colorTopLeft = closestColor;
         }
-        if (diffTopRight > depthThreshold) {
+        if (diffTopRight >= depthThreshold) {
             colorTopRight = closestColor;
         }
 

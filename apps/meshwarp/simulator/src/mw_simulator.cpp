@@ -516,7 +516,7 @@ int main(int argc, char** argv) {
         toneMapper.enableToneMapping(true);
         toneMapper.drawToScreen(renderer);
         if (animator.running) {
-            spdlog::info("Client Render Time: {:.3f}ms", (window->getTime() - startTime));
+            spdlog::info("Client Render Time: {:.3f}ms", timeutils::secondsToMillis(window->getTime() - startTime));
         }
 
         if ((animationFileIn && animator.running) || recording) {
