@@ -885,16 +885,15 @@ int main(int argc, char** argv) {
                     quadsGenerator.flatThreshold /= 2.0f;
                 }
 
-                totalCreateProxiesTime += frameGenerator.stats.timeToCreateProxies;
-                totalCreateMeshTime += frameGenerator.stats.timeToCreateMesh;
+                totalGenQuadMapTime += frameGenerator.stats.timeToGenerateQuadsMs;
+                totalSimplifyTime += frameGenerator.stats.timeToSimplifyQuadsMs;
+                totalFillQuadsTime += frameGenerator.stats.timeToFillOutputQuadsMs;
+                totalCreateProxiesTime += frameGenerator.stats.timeToCreateProxiesMs;
 
-                totalGenQuadMapTime += frameGenerator.stats.timeToGenerateQuads;
-                totalSimplifyTime += frameGenerator.stats.timeToSimplifyQuads;
-                totalFillQuadsTime += frameGenerator.stats.timeToFillOutputQuads;
-
-                totalAppendProxiesMsTime += frameGenerator.stats.timeToAppendProxies;
-                totalFillQuadsIndiciesMsTime += frameGenerator.stats.timeToFillQuadIndices;
-                totalCreateVertIndTime += frameGenerator.stats.timeToCreateVertInd;
+                totalAppendProxiesMsTime += frameGenerator.stats.timeToAppendProxiesMs;
+                totalFillQuadsIndiciesMsTime += frameGenerator.stats.timeToFillQuadIndicesMs;
+                totalCreateVertIndTime += frameGenerator.stats.timeToCreateVertIndMs;
+                totalCreateMeshTime += frameGenerator.stats.timeToCreateMeshMs;
 
                 /*
                 ============================
@@ -917,16 +916,15 @@ int main(int argc, char** argv) {
                         totalProxies += numProxies;
                         totalDepthOffsets += numDepthOffsets;
 
-                        totalCreateProxiesTime += frameGenerator.stats.timeToCreateProxies;
-                        totalCreateMeshTime += frameGenerator.stats.timeToCreateMesh;
+                        totalGenQuadMapTime += frameGenerator.stats.timeToGenerateQuadsMs;
+                        totalSimplifyTime += frameGenerator.stats.timeToSimplifyQuadsMs;
+                        totalFillQuadsTime += frameGenerator.stats.timeToFillOutputQuadsMs;
+                        totalCreateProxiesTime += frameGenerator.stats.timeToCreateProxiesMs;
 
-                        totalGenQuadMapTime += frameGenerator.stats.timeToGenerateQuads;
-                        totalSimplifyTime += frameGenerator.stats.timeToSimplifyQuads;
-                        totalFillQuadsTime += frameGenerator.stats.timeToFillOutputQuads;
-
-                        totalAppendProxiesMsTime += frameGenerator.stats.timeToAppendProxies;
-                        totalFillQuadsIndiciesMsTime += frameGenerator.stats.timeToFillOutputQuads;
-                        totalCreateVertIndTime += frameGenerator.stats.timeToCreateVertInd;
+                        totalAppendProxiesMsTime += frameGenerator.stats.timeToAppendProxiesMs;
+                        totalFillQuadsIndiciesMsTime += frameGenerator.stats.timeToFillOutputQuadsMs;
+                        totalCreateVertIndTime += frameGenerator.stats.timeToCreateVertIndMs;
+                        totalCreateMeshTime += frameGenerator.stats.timeToCreateMeshMs;
 
                         totalCompressTime += frameGenerator.stats.timeToCompress;
                     }
@@ -964,9 +962,9 @@ int main(int argc, char** argv) {
 
                 // For debugging: Generate point cloud from depth map
                 if (showDepth) {
-                   const glm::vec2 gBufferSize = glm::vec2(gBufferToUseLowRes.width, gBufferToUseLowRes.height);
+                    const glm::vec2 gBufferSize = glm::vec2(gBufferToUseLowRes.width, gBufferToUseLowRes.height);
 
-                    meshFromDepthShader.startTiming();
+                    startTime = window->getTime();
 
                     meshFromDepthShader.bind();
                     {
@@ -992,8 +990,7 @@ int main(int argc, char** argv) {
                                                  (gBufferSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
                     meshFromDepthShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
-                    meshFromDepthShader.endTiming();
-                    totalGenDepthTime += meshFromDepthShader.getElapsedTime();
+                    totalGenDepthTime += timeutils::secondsToMillis(window->getTime() - startTime);
                 }
             }
 

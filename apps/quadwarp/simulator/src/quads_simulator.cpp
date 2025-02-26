@@ -681,16 +681,15 @@ int main(int argc, char** argv) {
                 totalCompressTime += frameGenerator.stats.timeToCompress;
             }
 
-            totalCreateProxiesTime += frameGenerator.stats.timeToCreateProxies;
-            totalCreateMeshTime += frameGenerator.stats.timeToCreateMesh;
+            totalGenQuadMapTime += frameGenerator.stats.timeToGenerateQuadsMs;
+            totalSimplifyTime += frameGenerator.stats.timeToSimplifyQuadsMs;
+            totalFillQuadsTime += frameGenerator.stats.timeToFillOutputQuadsMs;
+            totalCreateProxiesTime += frameGenerator.stats.timeToCreateProxiesMs;
 
-            totalGenQuadMapTime += frameGenerator.stats.timeToGenerateQuads;
-            totalSimplifyTime += frameGenerator.stats.timeToSimplifyQuads;
-            totalFillQuadsTime += frameGenerator.stats.timeToFillOutputQuads;
-
-            totalAppendProxiesMsTime += frameGenerator.stats.timeToAppendProxies;
-            totalFillQuadsIndiciesMsTime += frameGenerator.stats.timeToFillQuadIndices;
-            totalCreateVertIndTime += frameGenerator.stats.timeToCreateVertInd;
+            totalAppendProxiesMsTime += frameGenerator.stats.timeToAppendProxiesMs;
+            totalFillQuadsIndiciesMsTime += frameGenerator.stats.timeToFillQuadIndicesMs;
+            totalCreateVertIndTime += frameGenerator.stats.timeToCreateVertIndMs;
+            totalCreateMeshTime += frameGenerator.stats.timeToCreateMeshMs;
 
             /*
             ============================
@@ -713,16 +712,15 @@ int main(int argc, char** argv) {
 
                 totalCompressTime += frameGenerator.stats.timeToCompress;
 
-                totalCreateProxiesTime += frameGenerator.stats.timeToCreateProxies;
-                totalCreateMeshTime += frameGenerator.stats.timeToCreateMesh;
+                totalGenQuadMapTime += frameGenerator.stats.timeToGenerateQuadsMs;
+                totalSimplifyTime += frameGenerator.stats.timeToSimplifyQuadsMs;
+                totalFillQuadsTime += frameGenerator.stats.timeToFillOutputQuadsMs;
+                totalCreateProxiesTime += frameGenerator.stats.timeToCreateProxiesMs;
 
-                totalGenQuadMapTime += frameGenerator.stats.timeToGenerateQuads;
-                totalSimplifyTime += frameGenerator.stats.timeToSimplifyQuads;
-                totalFillQuadsTime += frameGenerator.stats.timeToFillOutputQuads;
-
-                totalAppendProxiesMsTime += frameGenerator.stats.timeToAppendProxies;
-                totalFillQuadsIndiciesMsTime += frameGenerator.stats.timeToFillOutputQuads;
-                totalCreateVertIndTime += frameGenerator.stats.timeToCreateVertInd;
+                totalAppendProxiesMsTime += frameGenerator.stats.timeToAppendProxiesMs;
+                totalFillQuadsIndiciesMsTime += frameGenerator.stats.timeToFillOutputQuadsMs;
+                totalCreateVertIndTime += frameGenerator.stats.timeToCreateVertIndMs;
+                totalCreateMeshTime += frameGenerator.stats.timeToCreateMeshMs;
             }
             nodeMask.visible = generatePFrame;
             currMeshIndex = (currMeshIndex + 1) % 2;

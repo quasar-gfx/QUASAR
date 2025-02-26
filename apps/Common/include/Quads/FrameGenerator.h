@@ -14,14 +14,14 @@ public:
     FrameGenerator() = default;
 
     struct Stats {
-        double timeToCreateProxies = 0.0f;
-        double timeToCreateMesh = 0.0f;
-        double timeToGenerateQuads = 0.0f;
-        double timeToSimplifyQuads = 0.0f;
-        double timeToFillOutputQuads = 0.0f;
-        double timeToAppendProxies = 0.0f;
-        double timeToFillQuadIndices = 0.0f;
-        double timeToCreateVertInd = 0.0f;
+        double timeToCreateProxiesMs = 0.0f;
+        double timeToCreateMeshMs = 0.0f;
+        double timeToGenerateQuadsMs = 0.0f;
+        double timeToSimplifyQuadsMs = 0.0f;
+        double timeToFillOutputQuadsMs = 0.0f;
+        double timeToAppendProxiesMs = 0.0f;
+        double timeToFillQuadIndicesMs = 0.0f;
+        double timeToCreateVertIndMs = 0.0f;
         double timeToRenderMasks = 0.0f;
         double timeToCompress = 0.0f;
     } stats;

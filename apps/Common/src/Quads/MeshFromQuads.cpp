@@ -43,7 +43,7 @@ void MeshFromQuads::appendProxies(
         unsigned int numProxies,
         const QuadBuffers &newQuadBuffers,
         bool iFrame) {
-    appendProxiesShader.startTiming();
+    double startTime = timeutils::getTimeMicros();
 
     appendProxiesShader.bind();
     {
@@ -65,14 +65,13 @@ void MeshFromQuads::appendProxies(
     appendProxiesShader.dispatch(((numProxies + 1) + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
     appendProxiesShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-    appendProxiesShader.endTiming();
-    stats.timeToAppendProxiesMs = appendProxiesShader.getElapsedTime();
+    stats.timeToAppendProxiesMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     fillQuadIndices(gBufferSize);
 }
 
 void MeshFromQuads::fillQuadIndices(const glm::uvec2 &gBufferSize) {
-    fillQuadIndicesShader.startTiming();
+    double startTime = timeutils::getTimeMicros();
 
     fillQuadIndicesShader.bind();
     {
@@ -92,8 +91,7 @@ void MeshFromQuads::fillQuadIndices(const glm::uvec2 &gBufferSize) {
     fillQuadIndicesShader.dispatch((MAX_NUM_PROXIES + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
     fillQuadIndicesShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-    fillQuadIndicesShader.endTiming();
-    stats.timeToFillOutputQuadsMs = fillQuadIndicesShader.getElapsedTime();
+    stats.timeToFillOutputQuadsMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 }
 
 void MeshFromQuads::createMeshFromProxies(
@@ -102,7 +100,7 @@ void MeshFromQuads::createMeshFromProxies(
         const DepthOffsets &depthOffsets,
         const PerspectiveCamera &remoteCamera,
         const Mesh &mesh) {
-    createMeshFromQuadsShader.startTiming();
+    double startTime = timeutils::getTimeMicros();
 
     createMeshFromQuadsShader.bind();
     {
@@ -139,6 +137,5 @@ void MeshFromQuads::createMeshFromProxies(
                                        (gBufferSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
     createMeshFromQuadsShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
-    createMeshFromQuadsShader.endTiming();
-    stats.timeToCreateMeshMs = createMeshFromQuadsShader.getElapsedTime();
+    stats.timeToCreateMeshMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 }

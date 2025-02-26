@@ -130,6 +130,9 @@ int main(int argc, char** argv) {
     Scene remoteScene;
     std::vector<PerspectiveCamera> remoteCameras; remoteCameras.reserve(maxViews);
     for (int view = 0; view < maxViews; view++) {
+        if (view == maxViews - 1) {
+            remoteCameras.emplace_back(1280, 720);
+        }
         remoteCameras.emplace_back(remoteRenderer.width, remoteRenderer.height);
     }
     PerspectiveCamera& remoteCameraCenter = remoteCameras[0];
@@ -137,11 +140,16 @@ int main(int argc, char** argv) {
     loader.loadScene(sceneFile, remoteScene, remoteCameraCenter);
 
     float remoteFOV = args::get(remoteFOVIn);
-    remoteCameraCenter.setFovyDegrees(remoteFOV);
-
-     // make last camera have a larger fov
+    // make last camera have a larger fov
     float remoteFOVWide = args::get(remoteFOVWideIn);
-    remoteCameras[maxViews-1].setFovyDegrees(remoteFOVWide);
+    for (int view = 0; view < maxViews; view++) {
+        if (view != maxViews - 1) {
+            remoteCameras[view].setFovyDegrees(remoteFOV);
+        }
+        else {
+            remoteCameras[view].setFovyDegrees(remoteFOVWide);
+        }
+    }
 
     // scene with all the meshViews
     Scene scene;
@@ -158,7 +166,7 @@ int main(int argc, char** argv) {
     MeshFromQuads meshFromQuads(remoteWindowSize);
 
     std::vector<GBuffer> gBufferRTs; gBufferRTs.reserve(maxViews);
-    RenderTargetCreateParams params = {
+    RenderTargetCreateParams rtParams = {
         .width = windowSize.x,
         .height = windowSize.y,
         .internalFormat = GL_RGBA16F,
@@ -171,9 +179,9 @@ int main(int argc, char** argv) {
     };
     for (int views = 0; views < maxViews; views++) {
         if (views == maxViews - 1) {
-            params.width = 1280; params.height = 720;
+            rtParams.width = 1280; rtParams.height = 720;
         }
-        gBufferRTs.emplace_back(params);
+        gBufferRTs.emplace_back(rtParams);
     }
 
     unsigned int maxVertices = MAX_NUM_PROXIES * VERTICES_IN_A_QUAD;
@@ -755,16 +763,15 @@ int main(int argc, char** argv) {
                     totalDepthOffsets += numDepthOffsets;
                 }
 
-                totalCreateProxiesTime += frameGenerator.stats.timeToCreateProxies;
-                totalCreateMeshTime += frameGenerator.stats.timeToCreateMesh;
+                totalGenQuadMapTime += frameGenerator.stats.timeToGenerateQuadsMs;
+                totalSimplifyTime += frameGenerator.stats.timeToSimplifyQuadsMs;
+                totalFillQuadsTime += frameGenerator.stats.timeToFillOutputQuadsMs;
+                totalCreateProxiesTime += frameGenerator.stats.timeToCreateProxiesMs;
 
-                totalGenQuadMapTime += frameGenerator.stats.timeToGenerateQuads;
-                totalSimplifyTime += frameGenerator.stats.timeToSimplifyQuads;
-                totalFillQuadsTime += frameGenerator.stats.timeToFillOutputQuads;
-
-                totalAppendProxiesMsTime += frameGenerator.stats.timeToAppendProxies;
-                totalFillQuadsIndiciesMsTime += frameGenerator.stats.timeToFillQuadIndices;
-                totalCreateVertIndTime += frameGenerator.stats.timeToCreateVertInd;
+                totalAppendProxiesMsTime += frameGenerator.stats.timeToAppendProxiesMs;
+                totalFillQuadsIndiciesMsTime += frameGenerator.stats.timeToFillQuadIndicesMs;
+                totalCreateVertIndTime += frameGenerator.stats.timeToCreateVertIndMs;
+                totalCreateMeshTime += frameGenerator.stats.timeToCreateMeshMs;
 
                 if (saveToFile) {
                     unsigned int savedBytes;

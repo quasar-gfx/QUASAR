@@ -16,10 +16,10 @@ unsigned int FrameGenerator::generateIFrame(
     auto sizes = quadsGenerator.createProxiesFromGBuffer(gBuffer, gBufferHighRes, remoteCamera);
     numProxies = sizes.numProxies;
     numDepthOffsets = sizes.numDepthOffsets;
-    stats.timeToCreateProxies = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
-    stats.timeToGenerateQuads = quadsGenerator.stats.timeToGenerateQuadsMs;
-    stats.timeToSimplifyQuads = quadsGenerator.stats.timeToSimplifyQuadsMs;
-    stats.timeToFillOutputQuads = quadsGenerator.stats.timeToFillOutputQuadsMs;
+    stats.timeToCreateProxiesMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+    stats.timeToGenerateQuadsMs = quadsGenerator.stats.timeToGenerateQuadsMs;
+    stats.timeToSimplifyQuadsMs = quadsGenerator.stats.timeToSimplifyQuadsMs;
+    stats.timeToFillOutputQuadsMs = quadsGenerator.stats.timeToFillOutputQuadsMs;
 
     // create mesh from the proxies
     startTime = timeutils::getTimeMicros();
@@ -33,10 +33,10 @@ unsigned int FrameGenerator::generateIFrame(
         remoteCamera,
         mesh
     );
-    stats.timeToAppendProxies = meshFromQuads.stats.timeToAppendProxiesMs;
-    stats.timeToFillQuadIndices = meshFromQuads.stats.timeToFillOutputQuadsMs;
-    stats.timeToCreateVertInd = meshFromQuads.stats.timeToCreateMeshMs;
-    stats.timeToCreateMesh = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+    stats.timeToAppendProxiesMs = meshFromQuads.stats.timeToAppendProxiesMs;
+    stats.timeToFillQuadIndicesMs = meshFromQuads.stats.timeToFillOutputQuadsMs;
+    stats.timeToCreateVertIndMs = meshFromQuads.stats.timeToCreateMeshMs;
+    stats.timeToCreateMeshMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     startTime = timeutils::getTimeMicros();
     unsigned int outputSize = quadsGenerator.saveQuadsToMemory(compressedQuads, compress) +
@@ -104,7 +104,7 @@ unsigned int FrameGenerator::generatePFrame(
         auto sizes = quadsGenerator.createProxiesFromGBuffer(gBufferLowRes, gBufferHighRes, prevRemoteCamera);
         numProxies = sizes.numProxies;
         numDepthOffsets = sizes.numDepthOffsets;
-        stats.timeToCreateProxies = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+        stats.timeToCreateProxiesMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
         meshFromQuads.appendProxies(
             gBufferSize,
@@ -117,8 +117,8 @@ unsigned int FrameGenerator::generatePFrame(
             prevRemoteCamera,
             currMesh
         );
-        stats.timeToAppendProxies = meshFromQuads.stats.timeToAppendProxiesMs;
-        stats.timeToCreateVertInd = meshFromQuads.stats.timeToCreateMeshMs;
+        stats.timeToAppendProxiesMs = meshFromQuads.stats.timeToAppendProxiesMs;
+        stats.timeToCreateVertIndMs = meshFromQuads.stats.timeToCreateMeshMs;
 
         startTime = timeutils::getTimeMicros();
         outputSize += quadsGenerator.saveQuadsToMemory(compressedQuads, compress);
@@ -130,7 +130,7 @@ unsigned int FrameGenerator::generatePFrame(
         auto sizes = quadsGenerator.createProxiesFromGBuffer(gBufferMaskLowRes, gBufferMaskHighRes, currRemoteCamera);
         numProxies += sizes.numProxies;
         numDepthOffsets += sizes.numDepthOffsets;
-        stats.timeToCreateProxies += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+        stats.timeToCreateProxiesMs += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
         meshFromQuadsMask.appendProxies(
             gBufferSize,
@@ -142,8 +142,8 @@ unsigned int FrameGenerator::generatePFrame(
             currRemoteCamera,
             maskMesh
         );
-        stats.timeToAppendProxies += meshFromQuadsMask.stats.timeToAppendProxiesMs;
-        stats.timeToCreateVertInd += meshFromQuadsMask.stats.timeToCreateMeshMs;
+        stats.timeToAppendProxiesMs += meshFromQuadsMask.stats.timeToAppendProxiesMs;
+        stats.timeToCreateVertIndMs += meshFromQuadsMask.stats.timeToCreateMeshMs;
 
         startTime = timeutils::getTimeMicros();
         outputSize += quadsGenerator.saveQuadsToMemory(compressedQuads, compress);
