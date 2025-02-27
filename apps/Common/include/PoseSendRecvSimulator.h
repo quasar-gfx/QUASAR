@@ -12,15 +12,17 @@
 
 class PoseSendRecvSimulator {
 public:
-    double networkLatencyS = 0.0;
-    double networkJitterS = 0.0;
+    double networkLatencyS;
+    double networkJitterS;
+    double renderTimeS;
 
     std::mt19937 generator;
     std::uniform_real_distribution<double> distribution;
 
-    PoseSendRecvSimulator(double networkLatencyMs, double networkJitterMs, unsigned int seed = 42)
+    PoseSendRecvSimulator(double networkLatencyMs, double networkJitterMs, double renderTimeMs, unsigned int seed = 42)
             : networkLatencyS(networkLatencyMs / MILLISECONDS_IN_SECOND)
             , networkJitterS(networkJitterMs / MILLISECONDS_IN_SECOND)
+            , renderTimeS(renderTimeMs / MILLISECONDS_IN_SECOND)
             , generator(seed)
             , distribution(-networkJitterS, networkJitterS) {
     }
@@ -36,11 +38,14 @@ public:
         clear();
     }
 
+    void setRenderTime(double renderTimeMs) {
+        this->renderTimeS = renderTimeMs / MILLISECONDS_IN_SECOND;
+        clear();
+    }
+
     void clear() {
         inPoses.clear();
-        inTimestamps.clear();
         outPoses.clear();
-        outTimestamps.clear();
 
         positionErrors.clear();
         rotationErrors.clear();
@@ -53,52 +58,54 @@ public:
     }
 
     void sendPose(const PerspectiveCamera &camera, double now) {
-        inPoses.push_back({camera.getViewMatrix(), camera.getProjectionMatrix(), 0});
-        inTimestamps.push_back(now);
+        inPoses.push_back({camera.getViewMatrix(), camera.getProjectionMatrix(), static_cast<uint64_t>(now * MICROSECONDS_IN_SECOND)});
+    }
+
+    void update(float now) {
+        // if there are incoming poses, "receive" them at a delay
+        if (!inPoses.empty()) {
+            // server waits networkLatencyS seconds before receiving the pose
+            double inJitterS = randomJitter();
+            double timestampS = static_cast<double>(inPoses.front().timestamp) / MICROSECONDS_IN_SECOND;
+            if (networkLatencyS != 0 && now - timestampS <= networkLatencyS + inJitterS) {
+                return;
+            }
+
+            Pose poseToSend = inPoses.front();
+            if (posePrediction && inPoses.size() > 2) {
+                // predict networkLatencyS seconds into the future, acconting for jitter and render time
+                if (!getPosePredicted(poseToSend, now + (networkLatencyS + renderTimeS + inJitterS))) {
+                    return;
+                }
+            }
+
+            poseToSend.timestamp = static_cast<uint64_t>(now * MICROSECONDS_IN_SECOND);
+            outPoses.push_back(poseToSend);
+
+            inPoses.pop_front();
+        }
     }
 
     bool recvPose(Pose& pose, double now) {
-        if (inPoses.empty() || inTimestamps.empty()) {
-            return false;
-        }
-
-        double jitterS = randomJitter();
-
-        // server waits networkLatencyS seconds before receiving the pose
-        if (networkLatencyS != 0 && now - inTimestamps.front() <= networkLatencyS + jitterS) {
-            return false;
-        }
-
-        Pose poseToSend = inPoses.front();
-
-        if (posePrediction && (inPoses.size() >= 2 && inTimestamps.size() >= 2)) {
-            // predict networkLatencyS + jitterS seconds into the future
-            if (!getPosePredicted(poseToSend, now + (networkLatencyS + jitterS))) {
+        // if there are poses to send, "send" them first at a delay
+        if (!outPoses.empty()) {
+            // client waits networkLatencyS + renderTimeS + outJitterS seconds before receiving the pose
+            double outJitterS = randomJitter();
+            double timestampS = static_cast<double>(outPoses.front().timestamp) / MICROSECONDS_IN_SECOND;
+            if (networkLatencyS != 0 && now - timestampS <= networkLatencyS + renderTimeS + outJitterS) {
                 return false;
             }
+
+            timeErrors.push_back(now - timestampS);
+
+            pose = outPoses.front();
+
+            outPoses.pop_front();
+
+            return true;
         }
 
-        outPoses.push_back(poseToSend);
-        outTimestamps.push_back(now);
-
-        inPoses.pop_front();
-        inTimestamps.pop_front();
-
-        jitterS = randomJitter();
-
-        // client waits networkLatencyS seconds before receiving the next pose
-        if (networkLatencyS != 0 && now - outTimestamps.front() <= networkLatencyS + jitterS) {
-            return false;
-        }
-
-        timeErrors.push_back(now - outTimestamps.front());
-
-        pose = outPoses.front();
-
-        outPoses.pop_front();
-        outTimestamps.pop_front();
-
-        return true;
+        return false;
     }
 
     void accumulateError(const PerspectiveCamera &camera, const PerspectiveCamera &remoteCamera) {
@@ -134,10 +141,7 @@ private:
     bool posePrediction = true;
 
     std::deque<Pose> inPoses;
-    std::deque<double> inTimestamps;
-
     std::deque<Pose> outPoses;
-    std::deque<double> outTimestamps;
 
     std::vector<double> positionErrors;
     std::vector<double> rotationErrors;
@@ -161,14 +165,14 @@ private:
         return std::sqrt(sumSquaredDiffs / (errors.size() - 1));
     }
 
-    bool getPosePredicted(Pose& predictedPose, double targetTime) {
+    bool getPosePredicted(Pose& predictedPose, double targetTimeS) {
         int poseCount = inPoses.size();
 
         auto secondLastPose = inPoses[poseCount - 2];
         auto lastPose       = inPoses[poseCount - 1];
 
-        double t1 = inTimestamps[poseCount - 2];
-        double t0 = inTimestamps[poseCount - 1];
+        double t1 = static_cast<double>(inPoses[poseCount - 2].timestamp) / MICROSECONDS_IN_SECOND;
+        double t0 = static_cast<double>(inPoses[poseCount - 1].timestamp) / MICROSECONDS_IN_SECOND;
 
         float dt = t0 - t1;
         if (dt <= 0) {
@@ -188,7 +192,7 @@ private:
             rotationSecondLast = -rotationSecondLast;
         }
 
-        float dtFuture = targetTime - t0;
+        float dtFuture = targetTimeS - t0;
 
         glm::vec3 velocity = (positionLast - positionSecondLast) / dt;
         glm::vec3 predictedPosition = positionLast + velocity * dtFuture;

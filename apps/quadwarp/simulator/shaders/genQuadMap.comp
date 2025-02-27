@@ -716,6 +716,14 @@ void main() {
         }
     }
 
+    if (downsampleFactor > 1 &&
+            !isValidDepth(pixelDepths.left) &&
+            !isValidDepth(pixelDepths.right) &&
+            !isValidDepth(pixelDepths.bottom) &&
+            !isValidDepth(pixelDepths.top)) {
+        return;
+    }
+
     ivec2 outputPixelCoordsBottomLeft = outputPixelCoords + ivec2(0, 0);
     ivec2 outputPixelCoordsBottomRight = outputPixelCoords + ivec2(1, 0);
     ivec2 outputPixelCoordsTopLeft = outputPixelCoords + ivec2(0, 1);
@@ -730,14 +738,6 @@ void main() {
     vec3 normalBottomRightHighRes = normalToView(view, sampleNormal(normalsMapHighRes, outputPixelCoordsBottomRight));
     vec3 normalTopLeftHighRes = normalToView(view, sampleNormal(normalsMapHighRes, outputPixelCoordsTopLeft));
     vec3 normalTopRightHighRes = normalToView(view, sampleNormal(normalsMapHighRes, outputPixelCoordsTopRight));
-
-    if (downsampleFactor > 1 &&
-            !isValidDepth(depthBottomLeftHighRes) &&
-            !isValidDepth(depthBottomRightHighRes) &&
-            !isValidDepth(depthTopLeftHighRes) &&
-            !isValidDepth(depthTopRightHighRes)) {
-        return;
-    }
 
     // recolor if there is a depth discontinuity within a pixel
     if (downsampleFactor > 1 &&

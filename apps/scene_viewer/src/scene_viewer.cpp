@@ -284,8 +284,8 @@ int main(int argc, char** argv) {
         camera.updateProjectionMatrix();
     });
 
-    double lastRenderTime = 0.0;
     double totalDT = 0.0;
+    double lastRenderTime = 0.0;
     app.onRender([&](double now, double dt) {
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
             auto mouseButtons = window->getMouseButtons();
@@ -344,7 +344,7 @@ int main(int argc, char** argv) {
         totalDT += dt;
 
         // update all animations
-        if (animationInterval == -1.0 || now - lastRenderTime >= animationInterval / MILLISECONDS_IN_SECOND) {
+        if (animationInterval == -1.0 || (now - lastRenderTime) >= (animationInterval - 1) / MILLISECONDS_IN_SECOND) {
             scene.updateAnimations(totalDT);
             lastRenderTime = now;
             totalDT = 0.0;

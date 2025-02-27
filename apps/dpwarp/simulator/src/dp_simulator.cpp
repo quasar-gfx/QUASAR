@@ -334,14 +334,14 @@ int main(int argc, char** argv) {
     float viewSphereDiameter = args::get(viewSphereDiameterIn);
     remoteRendererDP.setViewSphereDiameter(viewSphereDiameter);
 
-    float networkLatency = !animationFileIn ? 0.0f : args::get(networkLatencyIn);
-    float networkJitter = !animationFileIn ? 0.0f : args::get(networkJitterIn);
-    PoseSendRecvSimulator poseSendRecvSimulator(networkLatency, networkJitter);
-    bool posePrediction = true;
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};
     int serverFPSIndex = !animationFileIn ? 0 : 5; // default to 30fps
     double rerenderInterval = MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
+    float networkLatency = !animationFileIn ? 0.0f : args::get(networkLatencyIn);
+    float networkJitter = !animationFileIn ? 0.0f : args::get(networkJitterIn);
+    bool posePrediction = true;
+    PoseSendRecvSimulator poseSendRecvSimulator(networkLatency, networkJitter, rerenderInterval / MILLISECONDS_IN_SECOND);
 
     bool* showLayers = new bool[maxViews];
     for (int i = 0; i < maxViews; ++i) {
@@ -749,11 +749,14 @@ int main(int argc, char** argv) {
         }
 
         // update all animations
+        // we run this outside the rerender loop to ensure that animations are sync'ed with scene_viewer
         if (runAnimations) {
             remoteScene.updateAnimations(dt);
         }
 
-        if (rerenderInterval > 0.0 && now - lastRenderTime >= rerenderInterval / MILLISECONDS_IN_SECOND) {
+        poseSendRecvSimulator.update(now);
+
+        if (rerenderInterval > 0.0 && (now - lastRenderTime) >= (rerenderInterval - 1) / MILLISECONDS_IN_SECOND) {
             generateIFrame = (++frameCounter) % IFRAME_PERIOD == 0; // insert I-Frame every IFRAME_PERIOD frames
             generatePFrame = !generateIFrame;
             // generateIFrame = true;
