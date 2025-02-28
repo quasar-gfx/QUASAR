@@ -1,32 +1,26 @@
 # OpenGL Remote Rendering
 
-Install dependencies:
+## Install Dependencies
+
+### Ubuntu (reccomended)
+
+NVIDIA GPUs with CUDA are highly reccomended. For server, 16 GB or more of VRAM is reccomended, though 8 GB could work for some scenes. Tested on RTX 3070, RTX 3090, and RTX 4090 with CUDA 12 and up.
+
 ```
-# Linux (reccomended)
-sudo apt-get install \
-    cmake \
-    libglew-dev \
-    libao-dev \
-    libmpg123-dev \
-    ffmpeg \
-    libavdevice-dev \
-    libavcodec-dev \
-    libavformat-dev \
-    libavutil-dev \
-    libswscale-dev \
-    libswresample-dev \
-    libavfilter-dev
+sudo apt install cmake libglew-dev libao-dev libmpg123-dev ffmpeg libavdevice-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev libavfilter-dev
 ```
-NVIDIA GPUs are highly reccomended. Ensure you have CUDA. Tested on CUDA 12 and up.
 
 Optional: Follow instructions [here](https://docs.nvidia.com/video-technologies/video-codec-sdk/12.0/ffmpeg-with-nvidia-gpu/index.html) for installing FFMPEG from source with CUDA hardware acceleration.
 
+### Mac
+
+Mac works as a client for receiving and viewing streams (specifically ATW), but not reccomended for use as a streaming server.
+
 ```
-# Mac (works best as a client for receiving and viewing streams, and not reccomended for streaming)
 brew install cmake glew ffmpeg
 ```
 
-# Building
+## Building
 ```
 mkdir build ; cd build
 cmake ..; make -j
@@ -34,9 +28,9 @@ cmake ..; make -j
 
 In the `build` directory, there will be a folder called `apps`.
 
-# Sample Apps
+## Sample Apps
 
-## Scene Viewer
+### Scene Viewer
 
 The Scene Viewer app loads a scene and lets you to fly through it.
 
@@ -47,7 +41,7 @@ cd apps/scene_viewer
 ./scene_viewer --size 1920x1080 --scene ../assets/scenes/sponza.json
 ```
 
-## Asynchronous Time Warp (ATW)
+### Asynchronous Time Warp (ATW)
 
 The ATW app warps a previously rendered frame on a plane using a homography.
 
@@ -74,7 +68,7 @@ cd apps/atw/receiver
 ./atw_receiver --size 1920x1080
 ```
 
-## MeshWarp
+### MeshWarp
 
 The MeshWarp app warps a previously rendered frame by using a depth map to create a texture-mapped mesh.
 
@@ -99,7 +93,7 @@ cd apps/meshwarp/receiver
 ./mw_receiver --size 1920x1080
 ```
 
-## QuadWarp
+### QuadWarp
 
 The QuadWarp app warps a previously rendered frame by fitting a series of quads from a G-Buffer.
 
@@ -110,7 +104,7 @@ cd apps/quadwarp/simulator
 ./quads_simulator --size 1920x1080 --scene ../assets/scenes/sponza.json
 ```
 
-## Multi-Camera QuadWarp (QuadStream)
+### Multi-Camera QuadWarp (QuadStream)
 
 The Multi app fits a series of quads from multiple G-Buffers from various camera views inside a headbox.
 
@@ -121,7 +115,7 @@ cd apps/multi/simulator
 ./multi_simulator --size 1920x1080 --scene ../assets/scenes/sponza.json
 ```
 
-## Depth Peeling QuadWarp with EDP
+### Depth Peeling QuadWarp with EDP
 
 The DP app fits a series of quads from multiple G-Buffers from various layers with fragment discarding determined by Effective Depth Peeling (EDP).
 
