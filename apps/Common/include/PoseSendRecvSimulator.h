@@ -43,6 +43,11 @@ public:
         clear();
     }
 
+    void setPosePrediction(bool posePrediction) {
+        this->posePrediction = posePrediction;
+        clear();
+    }
+
     void clear() {
         inPoses.clear();
         outPoses.clear();
@@ -52,11 +57,6 @@ public:
         timeErrors.clear();
     }
 
-    void setPosePrediction(bool posePrediction) {
-        this->posePrediction = posePrediction;
-        clear();
-    }
-
     void sendPose(const PerspectiveCamera &camera, double now) {
         inPoses.push_back({camera.getViewMatrix(), camera.getProjectionMatrix(), static_cast<uint64_t>(now * MICROSECONDS_IN_SECOND)});
     }
@@ -64,23 +64,18 @@ public:
     void update(float now) {
         // if there are incoming poses, "receive" them at a delay
         if (!inPoses.empty()) {
-            // server waits networkLatencyS seconds before receiving the pose
             double inJitterS = randomJitter();
-            double timestampS = static_cast<double>(inPoses.front().timestamp) / MICROSECONDS_IN_SECOND;
-            if (networkLatencyS != 0 && now - timestampS <= networkLatencyS + inJitterS) {
+            double futureTimeDeltaS = networkLatencyS + inJitterS;
+
+            // server waits networkLatencyS seconds before receiving the pose
+            Pose poseToRecv = inPoses.front();
+            double timestampS = static_cast<double>(poseToRecv.timestamp) / MICROSECONDS_IN_SECOND;
+            if (networkLatencyS != 0 && now - timestampS <= futureTimeDeltaS) {
                 return;
             }
 
-            Pose poseToSend = inPoses.front();
-            if (posePrediction && inPoses.size() > 2) {
-                // predict networkLatencyS seconds into the future, acconting for jitter and render time
-                if (!getPosePredicted(poseToSend, now + (networkLatencyS + renderTimeS + inJitterS))) {
-                    return;
-                }
-            }
-
-            poseToSend.timestamp = static_cast<uint64_t>(now * MICROSECONDS_IN_SECOND);
-            outPoses.push_back(poseToSend);
+            poseToRecv.timestamp = static_cast<uint64_t>(now * MICROSECONDS_IN_SECOND);
+            outPoses.push_back(poseToRecv);
 
             inPoses.pop_front();
         }
@@ -89,17 +84,30 @@ public:
     bool recvPose(Pose& pose, double now) {
         // if there are poses to send, "send" them first at a delay
         if (!outPoses.empty()) {
-            // client waits networkLatencyS + renderTimeS + outJitterS seconds before receiving the pose
             double outJitterS = randomJitter();
+            double futureTimeDeltaS = networkLatencyS + renderTimeS + outJitterS;
+
+            Pose poseToSend = outPoses.front();
+            if (posePrediction && outPoses.size() >= 2) {
+                // get the last two poses
+                auto& secondLastPose = outPoses[outPoses.size() - 2];
+                auto& lastPose       = outPoses[outPoses.size() - 1];
+
+                // predict networkLatencyS seconds into the future, acconting for jitter and render time
+                if (!getPosePredicted(poseToSend, lastPose, secondLastPose, now + futureTimeDeltaS)) {
+                    return false;
+                }
+            }
+
+            // client wait for futureTimeDeltaS before receiving the pose
             double timestampS = static_cast<double>(outPoses.front().timestamp) / MICROSECONDS_IN_SECOND;
-            if (networkLatencyS != 0 && now - timestampS <= networkLatencyS + renderTimeS + outJitterS) {
+            if (networkLatencyS != 0 && now - timestampS <= futureTimeDeltaS) {
                 return false;
             }
 
             timeErrors.push_back(now - timestampS);
 
-            pose = outPoses.front();
-
+            pose = poseToSend;
             outPoses.pop_front();
 
             return true;
@@ -165,14 +173,9 @@ private:
         return std::sqrt(sumSquaredDiffs / (errors.size() - 1));
     }
 
-    bool getPosePredicted(Pose& predictedPose, double targetTimeS) {
-        int poseCount = inPoses.size();
-
-        auto secondLastPose = inPoses[poseCount - 2];
-        auto lastPose       = inPoses[poseCount - 1];
-
-        double t1 = static_cast<double>(inPoses[poseCount - 2].timestamp) / MICROSECONDS_IN_SECOND;
-        double t0 = static_cast<double>(inPoses[poseCount - 1].timestamp) / MICROSECONDS_IN_SECOND;
+    bool getPosePredicted(Pose& predictedPose, const Pose& lastPose, const Pose& secondLastPose, double targetFutureTimeS) {
+        double t1 = static_cast<double>(secondLastPose.timestamp) / MICROSECONDS_IN_SECOND;
+        double t0 = static_cast<double>(lastPose.timestamp) / MICROSECONDS_IN_SECOND;
 
         float dt = t0 - t1;
         if (dt <= 0) {
@@ -192,7 +195,7 @@ private:
             rotationSecondLast = -rotationSecondLast;
         }
 
-        float dtFuture = targetTimeS - t0;
+        float dtFuture = targetFutureTimeS - t0;
 
         glm::vec3 velocity = (positionLast - positionSecondLast) / dt;
         glm::vec3 predictedPosition = positionLast + velocity * dtFuture;

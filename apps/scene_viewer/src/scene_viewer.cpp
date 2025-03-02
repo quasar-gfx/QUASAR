@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::Flag saveImages(parser, "save", "Save outputs to disk", {'I', "save-images"});
-    args::ValueFlag<std::string> animationFileIn(parser, "anim-path", "Path to camera animation file", {'A', "animation-path"});
+    args::ValueFlag<std::string> cameraPathFileIn(parser, "camera-path", "Path to camera animation file", {'C', "camera-path"});
     args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'D', "data-path"}, ".");
     try {
         parser.ParseCLI(argc, argv);
@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
     config.showWindow = !args::get(saveImages);
 
     std::string sceneFile = args::get(sceneFileIn);
-    std::string animationFile = args::get(animationFileIn);
+    std::string cameraPathFile = args::get(cameraPathFileIn);
     std::string dataPath = args::get(dataPathIn);
     if (dataPath.back() != '/') {
         dataPath += "/";
@@ -87,7 +87,7 @@ int main(int argc, char** argv) {
     ShowIDsEffect showIDsEffect;
 
     Recorder recorder(renderer, toneMapper, dataPath, config.targetFramerate);
-    Animator animator(animationFile);
+    Animator animator(cameraPathFile);
 
     if (saveImages) {
         recorder.setTargetFrameRate(-1 /* unlimited */);
@@ -100,7 +100,7 @@ int main(int argc, char** argv) {
     float exposure = 1.0f;
     int shaderIndex = 0;
     bool recording = false;
-    float animationInterval = animationFileIn ? (MILLISECONDS_IN_SECOND / 30.0) : -1.0; // run at 30fps if animation file is provided
+    float animationInterval = cameraPathFileIn ? (MILLISECONDS_IN_SECOND / 30.0) : -1.0; // run at 30fps if animation file is provided
     RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
@@ -336,7 +336,7 @@ int main(int argc, char** argv) {
             camera.processKeyboard(keys, dt);
         }
 
-        if (animationFileIn) {
+        if (cameraPathFileIn) {
             now = animator.now;
             dt = animator.dt;
         }
@@ -373,10 +373,10 @@ int main(int argc, char** argv) {
             showIDsEffect.drawToScreen(renderer);
         }
 
-        if ((animationFileIn && animator.running) || recording) {
+        if ((cameraPathFileIn && animator.running) || recording) {
             recorder.captureFrame(camera);
         }
-        if (animationFileIn && !animator.running) {
+        if (cameraPathFileIn && !animator.running) {
             recorder.captureFrame(camera); // capture final frame
             recorder.stop();
             window->close();

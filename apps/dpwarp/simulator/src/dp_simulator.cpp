@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::Flag saveImages(parser, "save", "Save outputs to disk", {'I', "save-images"});
-    args::ValueFlag<std::string> animationFileIn(parser, "anim-path", "Path to camera animation file", {'A', "animation-path"});
+    args::ValueFlag<std::string> cameraPathFileIn(parser, "camera-path", "Path to camera animation file", {'C', "camera-path"});
     args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'D', "data-path"}, ".");
     args::ValueFlag<float> networkLatencyIn(parser, "network-latency", "Simulated network latency in ms", {'N', "network-latency"}, 25.0f);
     args::ValueFlag<float> networkJitterIn(parser, "network-jitter", "Simulated network jitter in ms", {'J', "network-jitter"}, 10.0f);
@@ -90,7 +90,7 @@ int main(int argc, char** argv) {
     config.showWindow = !args::get(saveImages);
 
     std::string sceneFile = args::get(sceneFileIn);
-    std::string animationFile = args::get(animationFileIn);
+    std::string cameraPathFile = args::get(cameraPathFileIn);
     std::string dataPath = args::get(dataPathIn);
     if (dataPath.back() != '/') {
         dataPath += "/";
@@ -311,7 +311,7 @@ int main(int argc, char** argv) {
     ShowNormalsEffect showNormalsEffect;
 
     Recorder recorder(renderer, blurEdges, dataPath, config.targetFramerate);
-    Animator animator(animationFile);
+    Animator animator(cameraPathFile);
 
     if (saveImages) {
         recorder.setTargetFrameRate(-1 /* unlimited */);
@@ -329,17 +329,17 @@ int main(int argc, char** argv) {
     bool showNormals = false;
     bool showWireframe = false;
     bool preventCopyingLocalPose = false;
-    bool runAnimations = animationFileIn;
-    bool restrictMovementToViewBox = !animationFileIn;
+    bool runAnimations = cameraPathFileIn;
+    bool restrictMovementToViewBox = !cameraPathFileIn;
     float viewSphereDiameter = args::get(viewSphereDiameterIn);
     remoteRendererDP.setViewSphereDiameter(viewSphereDiameter);
 
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};
-    int serverFPSIndex = !animationFileIn ? 0 : 5; // default to 30fps
+    int serverFPSIndex = !cameraPathFileIn ? 0 : 5; // default to 30fps
     double rerenderInterval = MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
-    float networkLatency = !animationFileIn ? 0.0f : args::get(networkLatencyIn);
-    float networkJitter = !animationFileIn ? 0.0f : args::get(networkJitterIn);
+    float networkLatency = !cameraPathFileIn ? 0.0f : args::get(networkLatencyIn);
+    float networkJitter = !cameraPathFileIn ? 0.0f : args::get(networkJitterIn);
     bool posePrediction = true;
     PoseSendRecvSimulator poseSendRecvSimulator(networkLatency, networkJitter, rerenderInterval / MILLISECONDS_IN_SECOND);
 
@@ -362,7 +362,7 @@ int main(int argc, char** argv) {
         static bool showGBufferPreviewWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
-        static int serverFPSIndex = !animationFileIn ? 0 : 5; // default to 30fps
+        static int serverFPSIndex = !cameraPathFileIn ? 0 : 5; // default to 30fps
 
         static bool showSkyBox = true;
 
@@ -743,7 +743,7 @@ int main(int argc, char** argv) {
             camera.processKeyboard(keys, dt);
         }
 
-        if (animationFileIn) {
+        if (cameraPathFileIn) {
             now = animator.now;
             dt = animator.dt;
         }
@@ -1064,10 +1064,10 @@ int main(int argc, char** argv) {
             spdlog::info("Client Render Time: {:.3f}ms", timeutils::secondsToMillis(window->getTime() - startTime));
         }
 
-        if ((animationFileIn && animator.running) || recording) {
+        if ((cameraPathFileIn && animator.running) || recording) {
             recorder.captureFrame(camera);
         }
-        if (animationFileIn && !animator.running) {
+        if (cameraPathFileIn && !animator.running) {
             recorder.captureFrame(camera); // capture final frame
             recorder.stop();
             window->close();
