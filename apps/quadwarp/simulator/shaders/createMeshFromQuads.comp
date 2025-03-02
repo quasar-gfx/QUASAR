@@ -240,10 +240,10 @@ void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in vec4 depthOff
     surfelNDCs.topLeft     = surfelUVs.topLeft     * 2.0 - 1.0;
     surfelNDCs.topRight    = surfelUVs.topRight    * 2.0 - 1.0;
 
-    surfelNDCs.bottomLeft  += vec2(-epsilon, -epsilon);
-    surfelNDCs.bottomRight += vec2(+epsilon, -epsilon);
-    surfelNDCs.topLeft     += vec2(-epsilon, +epsilon);
-    surfelNDCs.topRight    += vec2(+epsilon, +epsilon);
+    surfelNDCs.bottomLeft  += vec2(-0.05, -0.05) / remoteWindowSize;
+    surfelNDCs.bottomRight += vec2(+0.05, -0.05) / remoteWindowSize;
+    surfelNDCs.topLeft     += vec2(-0.05, +0.05) / remoteWindowSize;
+    surfelNDCs.topRight    += vec2(+0.05, +0.05) / remoteWindowSize;
 
     Quad surfelNearPlane;
     surfelNearPlane.bottomLeft  = ndcToView(projectionInverse, surfelNDCs.bottomLeft, 0.0);

@@ -51,6 +51,7 @@ public:
     void clear() {
         inPoses.clear();
         outPoses.clear();
+        outOrigTimestamps.clear();
 
         positionErrors.clear();
         rotationErrors.clear();
@@ -74,6 +75,7 @@ public:
                 return;
             }
 
+            outOrigTimestamps.push_back(timestampS);
             poseToRecv.timestamp = static_cast<uint64_t>(now * MICROSECONDS_IN_SECOND);
             outPoses.push_back(poseToRecv);
 
@@ -83,9 +85,9 @@ public:
 
     bool recvPose(Pose& pose, double now) {
         // if there are poses to send, "send" them first at a delay
-        if (!outPoses.empty()) {
-            double outJitterS = randomJitter();
-            double futureTimeDeltaS = networkLatencyS + renderTimeS + outJitterS;
+        if (!outPoses.empty() && !outOrigTimestamps.empty()) {
+            double precictedOutJitter = randomJitter();  // we don't know the actual jitter, so we can simulate a ping
+            double futureTimeDeltaS = networkLatencyS + renderTimeS;
 
             Pose poseToSend = outPoses.front();
             if (posePrediction && outPoses.size() >= 2) {
@@ -94,21 +96,24 @@ public:
                 auto& lastPose       = outPoses[outPoses.size() - 1];
 
                 // predict networkLatencyS seconds into the future, acconting for jitter and render time
-                if (!getPosePredicted(poseToSend, lastPose, secondLastPose, now + futureTimeDeltaS)) {
+                if (!getPosePredicted(poseToSend, lastPose, secondLastPose, now + futureTimeDeltaS + precictedOutJitter)) {
                     return false;
                 }
             }
 
-            // client wait for futureTimeDeltaS before receiving the pose
+            double actualOutJitterS = randomJitter();
+            // client wait for futureTimeDeltaS + outJitterS before receiving the pose
             double timestampS = static_cast<double>(outPoses.front().timestamp) / MICROSECONDS_IN_SECOND;
-            if (networkLatencyS != 0 && now - timestampS <= futureTimeDeltaS) {
+            if (networkLatencyS != 0 && now - timestampS <= futureTimeDeltaS + actualOutJitterS) {
                 return false;
             }
 
-            timeErrors.push_back(now - timestampS);
+            double oldTimestampS = outOrigTimestamps.front();
+            timeErrors.push_back((now - oldTimestampS) * MILLISECONDS_IN_SECOND);
 
             pose = poseToSend;
             outPoses.pop_front();
+            outOrigTimestamps.pop_front();
 
             return true;
         }
@@ -146,14 +151,22 @@ public:
     }
 
 private:
-    bool posePrediction = true;
-
     std::deque<Pose> inPoses;
     std::deque<Pose> outPoses;
+    std::deque<double> outOrigTimestamps;
 
     std::vector<double> positionErrors;
     std::vector<double> rotationErrors;
     std::vector<double> timeErrors;
+
+    bool posePrediction = true;
+
+    // filtering
+    float alpha = 0.6f;
+    glm::vec3 filteredPosition;
+    glm::quat filteredRotation;
+    bool filteredPositionInitialized = false;
+    bool filteredRotationInitialized = false;
 
     double randomJitter() {
         return distribution(generator);
@@ -200,6 +213,13 @@ private:
         glm::vec3 velocity = (positionLast - positionSecondLast) / dt;
         glm::vec3 predictedPosition = positionLast + velocity * dtFuture;
 
+        if (!filteredPositionInitialized) {
+            filteredPosition = predictedPosition;
+            filteredPositionInitialized = true;
+        } else {
+            filteredPosition = alpha * predictedPosition + (1.0f - alpha) * filteredPosition;
+        }
+
         glm::quat deltaRotation = glm::normalize(rotationLatest * glm::inverse(rotationSecondLast));
 
         float angle = glm::angle(deltaRotation);
@@ -215,7 +235,14 @@ private:
         float futureAngle = angularVelocity * dtFuture;
         glm::quat predictedRotation = glm::normalize(glm::angleAxis(futureAngle, axis) * rotationLatest);
 
-        glm::mat4 predictedTransform = glm::translate(glm::mat4(1.0f), predictedPosition) * glm::mat4_cast(predictedRotation);
+        if (!filteredRotationInitialized) {
+            filteredRotation = predictedRotation;
+            filteredRotationInitialized = true;
+        } else {
+            filteredRotation = glm::slerp(filteredRotation, predictedRotation, static_cast<float>(alpha));
+        }
+
+        glm::mat4 predictedTransform = glm::translate(glm::mat4(1.0f), filteredPosition) * glm::mat4_cast(filteredRotation);
         glm::mat4 predictedView = glm::inverse(predictedTransform);
 
         predictedPose.setViewMatrix(predictedView);
