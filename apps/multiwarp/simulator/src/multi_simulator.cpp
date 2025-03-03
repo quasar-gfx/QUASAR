@@ -259,7 +259,9 @@ int main(int argc, char** argv) {
         recorder.setTargetFrameRate(-1 /* unlimited */);
         recorder.setFormat(Recorder::OutputFormat::PNG);
         recorder.start();
+    }
 
+    if (cameraPathFileIn) {
         animator.copyPoseToCamera(camera);
         animator.copyPoseToCamera(remoteCameraCenter);
     }
@@ -667,8 +669,6 @@ int main(int argc, char** argv) {
             remoteScene.updateAnimations(dt);
         }
 
-        poseSendRecvSimulator.update(now);
-
         if (rerenderInterval > 0.0 && (now - lastRenderTime) >= (rerenderInterval - 1) / MILLISECONDS_IN_SECOND) {
             rerender = true;
             runAnimations = true;
@@ -698,7 +698,6 @@ int main(int argc, char** argv) {
                 if (poseSendRecvSimulator.recvPose(clientPose, now)) {
                     // update center camera
                     remoteCameraCenter.setViewMatrix(clientPose.mono.view);
-                    poseSendRecvSimulator.accumulateError(camera, remoteCameraCenter);
                 }
 
                 // update other cameras in view box corners
@@ -885,6 +884,8 @@ int main(int argc, char** argv) {
             spdlog::info("Client Render Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
         }
 
+        poseSendRecvSimulator.update(camera, remoteCameraCenter, now);
+
         if ((cameraPathFileIn && animator.running) || recording) {
             recorder.captureFrame(camera);
         }
@@ -893,10 +894,7 @@ int main(int argc, char** argv) {
             recorder.stop();
             window->close();
 
-            double avgPosError, avgRotError, avgTimeError, stdPosError, stdRotError, stdTimeError;
-            poseSendRecvSimulator.getAvgErrors(avgPosError, avgRotError, avgTimeError, stdPosError, stdRotError, stdTimeError);
-            spdlog::info("Pose Error: Pos ({:.2f}±{:.2f}), Rot ({:.2f}±{:.2f}), RTT ({:.2f}±{:.2f})",
-                        avgPosError, stdPosError, avgRotError, stdRotError, avgTimeError, stdTimeError);
+            poseSendRecvSimulator.printErrors();
         }
     });
 

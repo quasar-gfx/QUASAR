@@ -187,7 +187,9 @@ int main(int argc, char** argv) {
         recorder.setTargetFrameRate(-1 /* unlimited */);
         recorder.setFormat(Recorder::OutputFormat::PNG);
         recorder.start();
+    }
 
+    if (cameraPathFileIn) {
         animator.copyPoseToCamera(camera);
         animator.copyPoseToCamera(remoteCamera);
     }
@@ -427,8 +429,6 @@ int main(int argc, char** argv) {
             remoteScene.updateAnimations(dt);
         }
 
-        poseSendRecvSimulator.update(now);
-
         if (rerenderInterval > 0.0 && (now - lastRenderTime) >= (rerenderInterval - 1) / MILLISECONDS_IN_SECOND) {
             rerender = true;
             runAnimations = true;
@@ -448,7 +448,6 @@ int main(int argc, char** argv) {
                 Pose clientPose;
                 if (poseSendRecvSimulator.recvPose(clientPose, now)) {
                     remoteCamera.setViewMatrix(clientPose.mono.view);
-                    poseSendRecvSimulator.accumulateError(camera, remoteCamera);
                 }
             }
 
@@ -522,6 +521,8 @@ int main(int argc, char** argv) {
             spdlog::info("Client Render Time: {:.3f}ms", timeutils::secondsToMillis(window->getTime() - startTime));
         }
 
+        poseSendRecvSimulator.update(camera, remoteCamera, now);
+
         if ((cameraPathFileIn && animator.running) || recording) {
             recorder.captureFrame(camera);
         }
@@ -530,10 +531,7 @@ int main(int argc, char** argv) {
             recorder.stop();
             window->close();
 
-            double avgPosError, avgRotError, avgTimeError, stdPosError, stdRotError, stdTimeError;
-            poseSendRecvSimulator.getAvgErrors(avgPosError, avgRotError, avgTimeError, stdPosError, stdRotError, stdTimeError);
-            spdlog::info("Pose Error: Pos ({:.2f}±{:.2f}), Rot ({:.2f}±{:.2f}), RTT ({:.2f}±{:.2f})",
-                        avgPosError, stdPosError, avgRotError, stdRotError, avgTimeError, stdTimeError);
+            poseSendRecvSimulator.printErrors();
         }
     });
 
