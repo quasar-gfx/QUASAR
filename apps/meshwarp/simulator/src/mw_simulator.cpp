@@ -202,7 +202,7 @@ int main(int argc, char** argv) {
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};
     int serverFPSIndex = !cameraPathFileIn ? 0 : 5; // default to 30fps
-    double rerenderInterval = MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
+    double rerenderInterval = serverFPSIndex == 0 ? 0.0 : MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
     float networkLatency = !cameraPathFileIn ? 0.0f : args::get(networkLatencyIn);
     float networkJitter = !cameraPathFileIn ? 0.0f : args::get(networkJitterIn);
     bool posePrediction = true;
@@ -279,7 +279,7 @@ int main(int argc, char** argv) {
             if (ImGui::InputFloat3("Camera Rotation", (float*)&rotation)) {
                 camera.setRotationEuler(rotation);
             }
-            ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
+            ImGui::DragFloat("Movement Speed", &camera.movementSpeed, 0.05f, 0.1f, 20.0f);
 
             if (ImGui::Checkbox("Show Sky Box", &showSkyBox)) {
                 scene.envCubeMap = showSkyBox ? remoteScene.envCubeMap : nullptr;
@@ -300,7 +300,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::SliderFloat("FoV (degrees)", &fov, 60.0f, 120.0f)) {
+            if (ImGui::DragFloat("FoV (degrees)", &fov, 0.1f, 60.0f, 120.0f)) {
                 remoteCamera.setFovyDegrees(fov);
                 remoteCamera.updateProjectionMatrix();
 
@@ -311,11 +311,11 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::SliderFloat("Network Latency (ms)", &networkLatency, 0.0f, 500.0f)) {
+            if (ImGui::DragFloat("Network Latency (ms)", &networkLatency, 0.5f, 0.0f, 500.0f)) {
                 poseSendRecvSimulator.setNetworkLatency(networkLatency);
             }
 
-            if (ImGui::SliderFloat("Network Jitter (ms)", &networkJitter, 0.0f, 50.0f)) {
+            if (ImGui::DragFloat("Network Jitter (ms)", &networkJitter, 0.25f, 0.0f, 50.0f)) {
                 poseSendRecvSimulator.setNetworkJitter(networkJitter);
             }
 
@@ -324,7 +324,7 @@ int main(int argc, char** argv) {
             }
 
             if (ImGui::Combo("Server Framerate", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels))) {
-                rerenderInterval = MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
+                rerenderInterval = serverFPSIndex == 0 ? 0.0 : MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
             }
 
             if (ImGui::Button("Send Server Frame", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {

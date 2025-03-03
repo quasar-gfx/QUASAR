@@ -337,7 +337,7 @@ int main(int argc, char** argv) {
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};
     int serverFPSIndex = !cameraPathFileIn ? 0 : 5; // default to 30fps
-    double rerenderInterval = MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
+    double rerenderInterval = serverFPSIndex == 0 ? 0.0 : MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
     float networkLatency = !cameraPathFileIn ? 0.0f : args::get(networkLatencyIn);
     float networkJitter = !cameraPathFileIn ? 0.0f : args::get(networkJitterIn);
     bool posePrediction = true;
@@ -449,7 +449,7 @@ int main(int argc, char** argv) {
             if (ImGui::InputFloat3("Camera Rotation", (float*)&rotation)) {
                 camera.setRotationEuler(rotation);
             }
-            ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
+            ImGui::DragFloat("Movement Speed", &camera.movementSpeed, 0.05f, 0.1f, 20.0f);
 
             if (ImGui::Checkbox("Show Sky Box", &showSkyBox)) {
                 localScene.envCubeMap = showSkyBox ? remoteScene.envCubeMap : nullptr;
@@ -488,25 +488,25 @@ int main(int argc, char** argv) {
                 runAnimations = false;
             }
 
-            if (ImGui::SliderFloat("Depth Threshold", &quadsGenerator.depthThreshold, 0.0f, 1.0f, "%.4f")) {
+            if (ImGui::DragFloat("Depth Threshold", &quadsGenerator.depthThreshold, 0.0001f, 0.0f, 1.0f, "%.4f")) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
                 runAnimations = false;
             }
 
-            if (ImGui::SliderFloat("Angle Threshold", &quadsGenerator.angleThreshold, 0.0f, 180.0f)) {
+            if (ImGui::DragFloat("Angle Threshold", &quadsGenerator.angleThreshold, 0.1f, 0.0f, 180.0f)) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
                 runAnimations = false;
             }
 
-            if (ImGui::SliderFloat("Flat Threshold", &quadsGenerator.flatThreshold, 0.0f, 1.0f)) {
+            if (ImGui::DragFloat("Flat Threshold", &quadsGenerator.flatThreshold, 0.001f, 0.0f, 1.0f)) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
                 runAnimations = false;
             }
 
-            if (ImGui::SliderFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.0f, 2.0f)) {
+            if (ImGui::DragFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.001f, 0.0f, 2.0f)) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
                 runAnimations = false;
@@ -514,11 +514,11 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::SliderFloat("Network Latency (ms)", &networkLatency, 0.0f, 500.0f)) {
+            if (ImGui::DragFloat("Network Latency (ms)", &networkLatency, 0.5f, 0.0f, 500.0f)) {
                 poseSendRecvSimulator.setNetworkLatency(networkLatency);
             }
 
-            if (ImGui::SliderFloat("Network Jitter (ms)", &networkJitter, 0.0f, 50.0f)) {
+            if (ImGui::DragFloat("Network Jitter (ms)", &networkJitter, 0.25f, 0.0f, 50.0f)) {
                 poseSendRecvSimulator.setNetworkJitter(networkJitter);
             }
 
@@ -527,7 +527,7 @@ int main(int argc, char** argv) {
             }
 
             if (ImGui::Combo("Server Framerate", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels))) {
-                rerenderInterval = MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
+                rerenderInterval = serverFPSIndex == 0 ? 0.0 : MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
             }
 
             float windowWidth = ImGui::GetContentRegionAvail().x;
@@ -544,7 +544,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::SliderFloat("View Sphere Diameter", &viewSphereDiameter, 0.1f, 1.0f)) {
+            if (ImGui::DragFloat("View Sphere Diameter", &viewSphereDiameter, 0.05f, 0.1f, 1.0f)) {
                 preventCopyingLocalPose = true;
                 generateIFrame = true;
                 runAnimations = false;

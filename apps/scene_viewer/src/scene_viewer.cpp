@@ -173,20 +173,20 @@ int main(int argc, char** argv) {
             if (ImGui::InputFloat3("Camera Rotation", (float*)&rotation)) {
                 camera.setRotationEuler(rotation);
             }
-            ImGui::SliderFloat("Movement Speed", &camera.movementSpeed, 0.1f, 20.0f);
+            ImGui::DragFloat("Movement Speed", &camera.movementSpeed, 0.05f, 0.1f, 20.0f);
 
             ImGui::Separator();
 
             if (scene.ambientLight != nullptr && ImGui::CollapsingHeader("Ambient Light Settings")) {
                 ImGui::ColorEdit3("Color", (float*)&scene.ambientLight->color);
-                ImGui::SliderFloat("Strength", &scene.ambientLight->intensity, 0.1f, 1.0f);
+                ImGui::DragFloat("Strength", &scene.ambientLight->intensity, 0.1f, 0.1f, 1.0f);
             }
 
             if (scene.directionalLight != nullptr && ImGui::CollapsingHeader("Directional Light Settings")) {
                 ImGui::ColorEdit3("Color", (float*)&scene.directionalLight->color);
-                ImGui::SliderFloat("Strength", &scene.directionalLight->intensity, 0.1f, 100.0f);
-                ImGui::SliderFloat3("Direction", (float*)&scene.directionalLight->direction, -5.0f, 5.0f);
-                ImGui::SliderFloat("Distance", &scene.directionalLight->distance, 0.0f, 100.0f);
+                ImGui::DragFloat("Strength", &scene.directionalLight->intensity, 0.1f, 0.1f, 100.0f);
+                ImGui::DragFloat3("Direction", (float*)&scene.directionalLight->direction, 0.1f, -5.0f, 5.0f);
+                ImGui::DragFloat("Distance", &scene.directionalLight->distance, 0.1f, 0.0f, 100.0f);
 
                 ImGui::TextColored(ImVec4(1,1,1,1), "Shadow Map:");
                 int halfWindowWidth = ImGui::GetWindowWidth() / 2;
@@ -198,7 +198,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::CollapsingHeader("Post Processing Settings")) {
-                ImGui::SliderFloat("Exposure", &exposure, 0.1f, 5.0f);
+                ImGui::DragFloat("Exposure", &exposure, 0.1f, 0.1f, 5.0f);
                 ImGui::RadioButton("Show Color", &shaderIndex, 0);
                 ImGui::RadioButton("Show Depth", &shaderIndex, 1);
                 ImGui::RadioButton("Show Normals", &shaderIndex, 2);

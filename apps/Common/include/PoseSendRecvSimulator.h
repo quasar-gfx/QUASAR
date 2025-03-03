@@ -101,8 +101,8 @@ public:
                 }
             }
 
+            // client waits for futureTimeDeltaS + outJitterS before receiving the pose
             double actualOutJitterS = randomJitter();
-            // client wait for futureTimeDeltaS + outJitterS before receiving the pose
             double timestampS = static_cast<double>(outPoses.front().timestamp) / MICROSECONDS_IN_SECOND;
             if (networkLatencyS != 0 && now - timestampS <= futureTimeDeltaS + actualOutJitterS) {
                 return false;
