@@ -26,7 +26,7 @@ public:
     float depthThreshold = 0.001f;
     float angleThreshold = 87.5f;
     float flatThreshold = 0.1f;
-    float proxySimilarityThreshold = 0.1f;
+    float proxySimilarityThreshold = 0.5f;
 
     glm::uvec2 &remoteWindowSize;
     glm::uvec2 depthBufferSize;
