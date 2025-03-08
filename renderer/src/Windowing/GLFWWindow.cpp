@@ -1,4 +1,4 @@
-#include <iostream>
+#ifndef __ANDROID__
 
 #include <spdlog/spdlog.h>
 
@@ -113,3 +113,5 @@ bool GLFWWindow::tick() {
 void GLFWWindow::close() {
     glfwSetWindowShouldClose(window, true);
 }
+
+#endif

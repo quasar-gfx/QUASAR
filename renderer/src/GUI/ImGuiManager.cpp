@@ -1,3 +1,5 @@
+#ifndef __ANDROID__
+
 #include <GUI/ImGuiManager.h>
 
 ImGuiManager::ImGuiManager(std::shared_ptr<GLFWWindow> glfwWindow) {
@@ -35,3 +37,5 @@ void ImGuiManager::endDrawing() const {
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
+
+#endif

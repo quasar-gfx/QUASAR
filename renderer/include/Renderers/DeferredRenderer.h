@@ -14,7 +14,7 @@ public:
 
     RenderTarget outputRT;
     DeferredGBuffer gBuffer;
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__ANDROID__)
     DeferredGBuffer gBufferMS;
 #endif
 

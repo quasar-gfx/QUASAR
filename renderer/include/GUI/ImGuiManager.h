@@ -1,6 +1,8 @@
 #ifndef IMGUI_MANAGER_H
 #define IMGUI_MANAGER_H
 
+#ifndef __ANDROID__
+
 #include <memory>
 
 #include <imgui/imgui.h>
@@ -20,5 +22,7 @@ public:
     void beginDrawing() const override;
     void endDrawing() const override;
 };
+
+#endif
 
 #endif // IMGUI_MANAGER_H

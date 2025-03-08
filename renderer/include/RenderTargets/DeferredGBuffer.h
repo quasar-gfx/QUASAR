@@ -166,73 +166,67 @@ public:
         framebuffer.unbind();
     }
 
-#ifdef GL_CORE
     void blitToRenderTarget(RenderTarget &renderTarget) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, renderTarget.getFramebufferID());
 
         glReadBuffer(GL_COLOR_ATTACHMENT0);
-        glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0 };
+        glDrawBuffers(1, drawBuffers);
+
         glBlitFramebuffer(0, 0, width, height, 0, 0, renderTarget.width, renderTarget.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void blitToGBuffer(GBuffer &gBuffer) {
+    void blitToGBuffer(GBuffer &gBuffer, GLenum filter = GL_NEAREST) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gBuffer.getFramebufferID());
 
-        // copy normals
+        // normals
         glReadBuffer(GL_COLOR_ATTACHMENT6);
-        glDrawBuffer(GL_COLOR_ATTACHMENT1);
-        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        GLenum drawBuffers1[] = { GL_COLOR_ATTACHMENT1 };
+        glDrawBuffers(1, drawBuffers1);
+        glBlitFramebuffer(0, 0, width, height,
+                          0, 0, gBuffer.width, gBuffer.height,
+                          GL_COLOR_BUFFER_BIT, filter);
 
-        // copy id buffer
+        // id buffer
         glReadBuffer(GL_COLOR_ATTACHMENT7);
-        glDrawBuffer(GL_COLOR_ATTACHMENT2);
-        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        GLenum drawBuffers2[] = { GL_COLOR_ATTACHMENT2 };
+        glDrawBuffers(1, drawBuffers2);
+        glBlitFramebuffer(0, 0, width, height,
+                          0, 0, gBuffer.width, gBuffer.height,
+                          GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
-        // copy depth and stencil
-        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
+        // depth and stencil
+        glBlitFramebuffer(0, 0, width, height,
+                          0, 0, gBuffer.width, gBuffer.height,
+                          GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void blitToDeferredGBuffer(DeferredGBuffer &gBuffer) {
+    void blitToDeferredGBuffer(DeferredGBuffer &gBuffer, GLenum filter = GL_NEAREST) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gBuffer.getFramebufferID());
 
-        glReadBuffer(GL_COLOR_ATTACHMENT0);
-        glDrawBuffer(GL_COLOR_ATTACHMENT0);
-        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        // colors
+        GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3,
+                                 GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7 };
+        glDrawBuffers(8, drawBuffers);
 
-        glReadBuffer(GL_COLOR_ATTACHMENT1);
-        glDrawBuffer(GL_COLOR_ATTACHMENT1);
-        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        for (int i = 0; i < 8; ++i) {
+            glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
+            glBlitFramebuffer(0, 0, width, height,
+                              0, 0, gBuffer.width, gBuffer.height,
+                              GL_COLOR_BUFFER_BIT, filter);
+        }
 
-        glReadBuffer(GL_COLOR_ATTACHMENT2);
-        glDrawBuffer(GL_COLOR_ATTACHMENT2);
-        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-
-        glReadBuffer(GL_COLOR_ATTACHMENT3);
-        glDrawBuffer(GL_COLOR_ATTACHMENT3);
-        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-
-        glReadBuffer(GL_COLOR_ATTACHMENT4);
-        glDrawBuffer(GL_COLOR_ATTACHMENT4);
-        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-
-        glReadBuffer(GL_COLOR_ATTACHMENT5);
-        glDrawBuffer(GL_COLOR_ATTACHMENT5);
-        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-
-        glReadBuffer(GL_COLOR_ATTACHMENT6);
-        glDrawBuffer(GL_COLOR_ATTACHMENT6);
-        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-
-        glReadBuffer(GL_COLOR_ATTACHMENT7);
-        glDrawBuffer(GL_COLOR_ATTACHMENT7);
-        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-
-        glBlitFramebuffer(0, 0, width, height, 0, 0, gBuffer.width, gBuffer.height, GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
+        // depth and stencil
+        glBlitFramebuffer(0, 0, width, height,
+                          0, 0, gBuffer.width, gBuffer.height,
+                          GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
@@ -241,7 +235,9 @@ public:
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, renderTarget.getFramebufferID());
 
-        glBlitFramebuffer(0, 0, width, height, 0, 0, renderTarget.width, renderTarget.height, GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
+        glBlitFramebuffer(0, 0, width, height,
+                          0, 0, renderTarget.width, renderTarget.height,
+                          GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
@@ -249,7 +245,6 @@ public:
     void blitToScreen(unsigned int width, unsigned int height) {
         framebuffer.blitToScreen(width, height);
     }
-#endif
 
     void resize(unsigned int width, unsigned int height) override {
         RenderTargetBase::resize(width, height);

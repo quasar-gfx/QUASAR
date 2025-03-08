@@ -1,6 +1,8 @@
 #ifndef GLFW_WINDOW_H
 #define GLFW_WINDOW_H
 
+#ifndef __ANDROID__
+
 #include <Windowing/Window.h>
 #include <OpenGLAppConfig.h>
 
@@ -48,5 +50,6 @@ private:
     bool frameResized = true;
 };
 
-#endif // GLFW_WINDOW_H
+#endif
 
+#endif // GLFW_WINDOW_H

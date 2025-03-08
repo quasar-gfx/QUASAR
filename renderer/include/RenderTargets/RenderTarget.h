@@ -45,16 +45,15 @@ public:
         framebuffer.unbind();
     }
 
-#ifdef GL_CORE
     void blitToRenderTarget(RenderTargetBase &rt) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, rt.getFramebufferID());
 
         glReadBuffer(GL_COLOR_ATTACHMENT0);
-        glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0 };
+        glDrawBuffers(1, drawBuffers);
         glBlitFramebuffer(0, 0, width, height, 0, 0, rt.width, rt.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
     }
-#endif
 
     void blitToRenderTarget(RenderTarget &rt) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);

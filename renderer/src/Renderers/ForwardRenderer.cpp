@@ -3,7 +3,7 @@
 ForwardRenderer::ForwardRenderer(const Config &config)
         : multiSampled(config.pipeline.multiSampleState.multiSampleEnabled)
         , gBuffer({ .width = config.width, .height = config.height, .multiSampled = false })
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__ANDROID__)
         , gBufferMS({
             .width = config.width,
             .height = config.height,
@@ -50,13 +50,13 @@ RenderStats ForwardRenderer::drawObjects(const Scene &scene, const Camera &camer
 void ForwardRenderer::resize(unsigned int width, unsigned int height) {
     OpenGLRenderer::resize(width, height);
     gBuffer.resize(width, height);
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__ANDROID__)
     gBufferMS.resize(width, height);
 #endif
 }
 
 void ForwardRenderer::beginRendering() {
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__ANDROID__)
     if (!multiSampled) {
         gBuffer.bind();
     }
@@ -69,7 +69,7 @@ void ForwardRenderer::beginRendering() {
 }
 
 void ForwardRenderer::endRendering() {
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__ANDROID__)
     if (!multiSampled) {
         gBuffer.unbind();
     }

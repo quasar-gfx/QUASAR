@@ -73,6 +73,7 @@ public:
                 camera.getProjectionMatrix(),
                 static_cast<uint64_t>(now * MICROSECONDS_IN_SECOND)
             });
+        update(now);
     }
 
     bool recvPose(Pose& pose, double now) {
@@ -95,7 +96,7 @@ public:
 
             // client waits for dtFuture + outJitterS before receiving the pose
             double timestampS = static_cast<double>(outPoses.front().timestamp) / MICROSECONDS_IN_SECOND;
-            if (networkLatencyS != 0 && now - timestampS <= dtFuture + actualOutJitter) {
+            if (networkLatencyS > 0 && now - timestampS <= dtFuture + actualOutJitter) {
                 return false;
             }
 
@@ -115,7 +116,7 @@ public:
         return false;
     }
 
-    void update(const PerspectiveCamera &camera, const PerspectiveCamera &remoteCamera, float now) {
+    void update(float now) {
         // if there are incoming poses, "receive" them at a delay
         if (!incomingPoses.empty()) {
             double inJitterS = randomJitter();
@@ -124,7 +125,7 @@ public:
             // server waits networkLatencyS seconds before receiving the pose
             Pose poseToRecv = incomingPoses.front();
             double timestampS = static_cast<double>(poseToRecv.timestamp) / MICROSECONDS_IN_SECOND;
-            if (networkLatencyS != 0 && now - timestampS <= dtFuture) {
+            if (networkLatencyS > 0 && now - timestampS <= dtFuture) {
                 return;
             }
 
@@ -134,7 +135,10 @@ public:
 
             incomingPoses.pop_front();
         }
+    }
 
+    void update(const PerspectiveCamera &camera, const PerspectiveCamera &remoteCamera, float now) {
+        update(now);
         accumulateError(camera, remoteCamera);
     }
 

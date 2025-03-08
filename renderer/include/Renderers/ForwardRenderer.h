@@ -9,7 +9,7 @@ public:
     bool multiSampled = false;
 
     GBuffer gBuffer;
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__ANDROID__)
     GBuffer gBufferMS;
 #endif
 
