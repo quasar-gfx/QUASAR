@@ -13,6 +13,8 @@ file(GLOB_RECURSE SRCS
 
 add_library(${TARGET} STATIC ${PUBLIC_HDRS} ${SRCS})
 
+target_compile_options(${TARGET} PRIVATE -Wno-cast-calling-convention -Wunused-variable)
+
 add_subdirectory(${SHADERS_DIR})
 
 target_include_directories(${TARGET} PUBLIC ${PUBLIC_HDR_DIR} ${CMAKE_CURRENT_BINARY_DIR}/shaders)

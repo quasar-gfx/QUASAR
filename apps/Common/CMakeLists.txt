@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
-project(Common)
-
 set(TARGET common)
+project(${TARGET})
 
 set(PUBLIC_HDR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(SHADERS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
@@ -55,6 +54,8 @@ file(GLOB_RECURSE SRCS
 )
 
 add_library(${TARGET} STATIC ${PUBLIC_HDRS} ${SRCS})
+
+target_compile_options(${TARGET} PRIVATE -Wno-cast-calling-convention -Wunused-variable)
 
 target_include_directories(${TARGET} PUBLIC ${PUBLIC_HDR_DIR} ${CMAKE_CURRENT_BINARY_DIR}/shaders)
 

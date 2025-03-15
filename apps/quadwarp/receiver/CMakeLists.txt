@@ -22,5 +22,7 @@ target_include_directories(${TARGET} PUBLIC ${PUBLIC_HDR_DIR})
 
 target_link_libraries(${TARGET} PRIVATE ${LIBS})
 
+target_compile_options(${TARGET} PRIVATE -Wno-cast-calling-convention -Wunused-variable)
+
 # copy quadwarp shaders to the build directory
 file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}/../simulator/shaders ${CMAKE_CURRENT_BINARY_DIR}/shaders SYMBOLIC)

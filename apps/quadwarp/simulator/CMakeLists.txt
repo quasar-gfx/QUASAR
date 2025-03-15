@@ -21,3 +21,5 @@ add_executable(${TARGET} ${SRCS})
 target_include_directories(${TARGET} PUBLIC ${PUBLIC_HDR_DIR})
 
 target_link_libraries(${TARGET} PRIVATE ${LIBS})
+
+target_compile_options(${TARGET} PRIVATE -Wno-cast-calling-convention -Wunused-variable)
