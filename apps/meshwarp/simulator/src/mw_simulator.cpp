@@ -274,25 +274,29 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             glm::vec3 position = camera.getPosition();
-            if (ImGui::InputFloat3("Camera Position", (float*)&position)) {
+            if (ImGui::DragFloat3("Camera Position", (float*)&position, 0.01f)) {
                 camera.setPosition(position);
             }
             glm::vec3 rotation = camera.getRotationEuler();
-            if (ImGui::InputFloat3("Camera Rotation", (float*)&rotation)) {
+            if (ImGui::DragFloat3("Camera Rotation", (float*)&rotation, 0.1f)) {
                 camera.setRotationEuler(rotation);
             }
             ImGui::DragFloat("Movement Speed", &camera.movementSpeed, 0.05f, 0.1f, 20.0f);
 
-            if (ImGui::Checkbox("Show Sky Box", &showSkyBox)) {
-                scene.envCubeMap = showSkyBox ? remoteScene.envCubeMap : nullptr;
-            }
+            ImGui::Separator();
 
-            if (ImGui::Button("Change Background Color", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
-                ImGui::OpenPopup("Background Color Popup");
-            }
-            if (ImGui::BeginPopup("Background Color Popup")) {
-                ImGui::ColorPicker3("Background Color", (float*)&scene.backgroundColor);
-                ImGui::EndPopup();
+            if (ImGui::CollapsingHeader("Background Settings")) {
+                if (ImGui::Checkbox("Show Sky Box", &showSkyBox)) {
+                    scene.envCubeMap = showSkyBox ? remoteScene.envCubeMap : nullptr;
+                }
+
+                if (ImGui::Button("Change Background Color", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+                    ImGui::OpenPopup("Background Color Popup");
+                }
+                if (ImGui::BeginPopup("Background Color Popup")) {
+                    ImGui::ColorPicker3("Background Color", (float*)&scene.backgroundColor);
+                    ImGui::EndPopup();
+                }
             }
 
             ImGui::Separator();

@@ -1,13 +1,19 @@
-#ifndef TONE_MAP_EFFECT_H
-#define TONE_MAP_EFFECT_H
+#ifndef FXAA_H
+#define FXAA_H
 
 #include <Shaders/ToneMapShader.h>
 
 #include <PostProcessing/PostProcessingEffect.h>
 
-class ToneMapper : public PostProcessingEffect {
+class FXAA : public PostProcessingEffect {
 public:
-    ToneMapper() = default;
+    FXAA()
+        : shader({
+            .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
+            .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
+            .fragmentCodeData = SHADER_BUILTIN_FXAA_FRAG,
+            .fragmentCodeSize = SHADER_BUILTIN_FXAA_FRAG_len
+        }) {}
 
     void enableToneMapping(bool enable) {
         shader.bind();
@@ -20,17 +26,19 @@ public:
     }
 
     RenderStats drawToScreen(OpenGLRenderer& renderer) override {
+        shader.bind();
         renderer.setScreenShaderUniforms(shader);
         return renderer.drawToScreen(shader);
     }
 
     RenderStats drawToRenderTarget(OpenGLRenderer& renderer, RenderTargetBase &rt) override {
+        shader.bind();
         renderer.setScreenShaderUniforms(shader);
         return renderer.drawToRenderTarget(shader, rt);
     }
 
 private:
-    ToneMapShader shader;
+    Shader shader;
 };
 
-#endif // TONE_MAP_EFFECT_H
+#endif // FXAA_H

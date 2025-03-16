@@ -225,11 +225,11 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             glm::vec3 position = camera.getPosition();
-            if (ImGui::InputFloat3("Camera Position", (float*)&position)) {
+            if (ImGui::DragFloat3("Camera Position", (float*)&position, 0.01f)) {
                 camera.setPosition(position);
             }
             glm::vec3 rotation = camera.getRotationEuler();
-            if (ImGui::InputFloat3("Camera Rotation", (float*)&rotation)) {
+            if (ImGui::DragFloat3("Camera Rotation", (float*)&rotation, 0.1f)) {
                 camera.setRotationEuler(rotation);
             }
 
