@@ -24,8 +24,7 @@ public:
     ~DepthOffsets() = default;
 
     unsigned int loadFromMemory(std::vector<char> &compressedData, bool decompress = true);
-    unsigned int loadFromFile(const std::string &filename, unsigned int* numBytesLoaded = nullptr);
-
+    unsigned int loadFromFile(const std::string &filename, unsigned int* numBytesLoaded = nullptr, bool compressed = true);
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     unsigned int saveToMemory(std::vector<char> &compressedData, bool compress = true);
     unsigned int saveToFile(const std::string &filename);

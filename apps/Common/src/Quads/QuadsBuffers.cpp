@@ -26,28 +26,15 @@ void QuadBuffers::resize(unsigned int numProxies) {
     this->numProxies = numProxies;
 }
 
-unsigned int QuadBuffers::loadFromFile(const std::string &filename, unsigned int* numBytesLoaded) {
-#if !defined(__ANDROID__)
-    if (!std::filesystem::exists(filename)) {
-        spdlog::error("File {} does not exist", filename);
-        return 0;
-    }
-#endif
-
-    auto quadDataCompressed = FileIO::loadBinaryFile(filename, numBytesLoaded);
-
-    auto startTime = timeutils::getTimeMicros();
-    auto numBytes = loadFromMemory(quadDataCompressed, true);
-    stats.timeToDecompressionMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
-    return numBytes;
-}
-
 unsigned int QuadBuffers::loadFromMemory(const std::vector<char> &compressedData, bool decompress) {
+    auto startTime = timeutils::getTimeMicros();
     if (decompress) {
-        auto startTime = timeutils::getTimeMicros();
         codec.decompress(compressedData, data);
-        stats.timeToDecompressionMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
     }
+    else {
+        data = compressedData;
+    }
+    stats.timeToDecompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     unsigned int bufferOffset = 0;
 
@@ -69,6 +56,22 @@ unsigned int QuadBuffers::loadFromMemory(const std::vector<char> &compressedData
     offsetSizeFlattenedsBuffer.setData(numProxies, offsetSizeFlattenedsPtr);
 
     return numProxies;
+}
+
+unsigned int QuadBuffers::loadFromFile(const std::string &filename, unsigned int* numBytesLoaded, bool compressed) {
+#if !defined(__ANDROID__)
+    if (!std::filesystem::exists(filename)) {
+        spdlog::error("File {} does not exist", filename);
+        return 0;
+    }
+#endif
+
+    auto quadDataCompressed = FileIO::loadBinaryFile(filename, numBytesLoaded);
+
+    auto startTime = timeutils::getTimeMicros();
+    auto numBytes = loadFromMemory(quadDataCompressed, compressed);
+    stats.timeToDecompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+    return numBytes;
 }
 
 #ifdef GL_CORE

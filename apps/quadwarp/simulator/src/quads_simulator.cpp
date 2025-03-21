@@ -399,34 +399,36 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::Checkbox("Correct Normal Orientation", &quadsGenerator.correctOrientation)) {
-                preventCopyingLocalPose = true;
-                generateIFrame = true;
-                runAnimations = false;
-            }
+            if (ImGui::CollapsingHeader("Quad Generation Settings")) {
+                if (ImGui::Checkbox("Correct Normal Orientation", &quadsGenerator.correctOrientation)) {
+                    preventCopyingLocalPose = true;
+                    generateIFrame = true;
+                    runAnimations = false;
+                }
 
-            if (ImGui::DragFloat("Depth Threshold", &quadsGenerator.depthThreshold, 0.0001f, 0.0f, 1.0f, "%.4f")) {
-                preventCopyingLocalPose = true;
-                generateIFrame = true;
-                runAnimations = false;
-            }
+                if (ImGui::DragFloat("Depth Threshold", &quadsGenerator.depthThreshold, 0.0001f, 0.0f, 1.0f, "%.4f")) {
+                    preventCopyingLocalPose = true;
+                    generateIFrame = true;
+                    runAnimations = false;
+                }
 
-            if (ImGui::DragFloat("Angle Threshold", &quadsGenerator.angleThreshold, 0.1f, 0.0f, 180.0f)) {
-                preventCopyingLocalPose = true;
-                generateIFrame = true;
-                runAnimations = false;
-            }
+                if (ImGui::DragFloat("Angle Threshold", &quadsGenerator.angleThreshold, 0.1f, 0.0f, 180.0f)) {
+                    preventCopyingLocalPose = true;
+                    generateIFrame = true;
+                    runAnimations = false;
+                }
 
-            if (ImGui::DragFloat("Flat Threshold", &quadsGenerator.flatThreshold, 0.001f, 0.0f, 1.0f)) {
-                preventCopyingLocalPose = true;
-                generateIFrame = true;
-                runAnimations = false;
-            }
+                if (ImGui::DragFloat("Flat Threshold", &quadsGenerator.flatThreshold, 0.001f, 0.0f, 1.0f)) {
+                    preventCopyingLocalPose = true;
+                    generateIFrame = true;
+                    runAnimations = false;
+                }
 
-            if (ImGui::DragFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.001f, 0.0f, 2.0f)) {
-                preventCopyingLocalPose = true;
-                generateIFrame = true;
-                runAnimations = false;
+                if (ImGui::DragFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.001f, 0.0f, 2.0f)) {
+                    preventCopyingLocalPose = true;
+                    generateIFrame = true;
+                    runAnimations = false;
+                }
             }
 
             ImGui::Separator();

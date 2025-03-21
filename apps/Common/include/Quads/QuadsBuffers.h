@@ -33,7 +33,7 @@ class QuadBuffers {
 public:
     struct Stats {
         double timeToCompressMs = 0.0f;
-        double timeToDecompressionMs = 0.0f;
+        double timeToDecompressMs = 0.0f;
     } stats;
 
     unsigned int maxProxies;
@@ -49,7 +49,7 @@ public:
     void resize(unsigned int numProxies);
 
     unsigned int loadFromMemory(const std::vector<char> &compressedData, bool decompress = true);
-    unsigned int loadFromFile(const std::string &filename, unsigned int* numBytesLoaded = nullptr);
+    unsigned int loadFromFile(const std::string &filename, unsigned int* numBytesLoaded = nullptr, bool compressed = true);
 #ifdef GL_CORE
     unsigned int saveToMemory(std::vector<char> &compressedData, bool compress = true);
     unsigned int saveToFile(const std::string &filename);

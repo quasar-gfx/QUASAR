@@ -232,6 +232,7 @@ int main(int argc, char** argv) {
             if (ImGui::DragFloat3("Camera Rotation", (float*)&rotation, 0.1f)) {
                 camera.setRotationEuler(rotation);
             }
+            ImGui::DragFloat("Movement Speed", &camera.movementSpeed, 0.05f, 0.1f, 20.0f);
 
             ImGui::Separator();
 
