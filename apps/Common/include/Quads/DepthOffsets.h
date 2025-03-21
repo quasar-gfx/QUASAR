@@ -23,7 +23,7 @@ public:
     DepthOffsets(const glm::uvec2 &size);
     ~DepthOffsets() = default;
 
-    unsigned int loadFromMemory(const char* data);
+    unsigned int loadFromMemory(std::vector<char> &compressedData, bool decompress = true);
     unsigned int loadFromFile(const std::string &filename, unsigned int* numBytesLoaded = nullptr);
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)

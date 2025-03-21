@@ -48,7 +48,7 @@ public:
 
     void resize(unsigned int numProxies);
 
-    unsigned int loadFromMemory(const char* data);
+    unsigned int loadFromMemory(const std::vector<char> &compressedData, bool decompress = true);
     unsigned int loadFromFile(const std::string &filename, unsigned int* numBytesLoaded = nullptr);
 #ifdef GL_CORE
     unsigned int saveToMemory(std::vector<char> &compressedData, bool compress = true);

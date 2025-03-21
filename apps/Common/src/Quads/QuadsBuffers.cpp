@@ -37,29 +37,34 @@ unsigned int QuadBuffers::loadFromFile(const std::string &filename, unsigned int
     auto quadDataCompressed = FileIO::loadBinaryFile(filename, numBytesLoaded);
 
     auto startTime = timeutils::getTimeMicros();
-    codec.decompress(quadDataCompressed, data);
-    auto numBytes = loadFromMemory(reinterpret_cast<const char*>(data.data()));
+    auto numBytes = loadFromMemory(quadDataCompressed, true);
     stats.timeToDecompressionMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
     return numBytes;
 }
 
-unsigned int QuadBuffers::loadFromMemory(const char* data) {
+unsigned int QuadBuffers::loadFromMemory(const std::vector<char> &compressedData, bool decompress) {
+    if (decompress) {
+        auto startTime = timeutils::getTimeMicros();
+        codec.decompress(compressedData, data);
+        stats.timeToDecompressionMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+    }
+
     unsigned int bufferOffset = 0;
 
-    numProxies = *reinterpret_cast<const unsigned int*>(data);
+    numProxies = *reinterpret_cast<const unsigned int*>(data.data());
     bufferOffset += sizeof(unsigned int);
 
-    auto normalSphericalsPtr = reinterpret_cast<const unsigned int*>(data + bufferOffset);
+    auto normalSphericalsPtr = reinterpret_cast<const unsigned int*>(data.data() + bufferOffset);
     normalSphericalsBuffer.bind();
     normalSphericalsBuffer.setData(numProxies, normalSphericalsPtr);
     bufferOffset += numProxies * sizeof(unsigned int);
 
-    auto depthsPtr = reinterpret_cast<const float*>(data + bufferOffset);
+    auto depthsPtr = reinterpret_cast<const float*>(data.data() + bufferOffset);
     depthsBuffer.bind();
     depthsBuffer.setData(numProxies, depthsPtr);
     bufferOffset += numProxies * sizeof(float);
 
-    auto offsetSizeFlattenedsPtr = reinterpret_cast<const unsigned int*>(data + bufferOffset);
+    auto offsetSizeFlattenedsPtr = reinterpret_cast<const unsigned int*>(data.data() + bufferOffset);
     offsetSizeFlattenedsBuffer.bind();
     offsetSizeFlattenedsBuffer.setData(numProxies, offsetSizeFlattenedsPtr);
 
