@@ -9,11 +9,10 @@ class DeferredGBuffer : public RenderTargetBase {
 public:
     Texture albedoBuffer;
     Texture pbrBuffer;
-    Texture emissiveBuffer;
-    Texture lightPositionXYZBuffer;
-    Texture lightPositionWIBLAlphaBuffer;
+    Texture alphaBuffer;
     Texture positionBuffer;
     Texture normalsBuffer;
+    Texture lightPositionBuffer;
     Texture idBuffer;
     Texture depthStencilBuffer;
 
@@ -22,9 +21,9 @@ public:
             , albedoBuffer({
                 .width = width,
                 .height = height,
-                .internalFormat = GL_RGBA16F,
-                .format = GL_RGB,
-                .type = GL_HALF_FLOAT,
+                .internalFormat = GL_RGBA8,
+                .format = GL_RGBA,
+                .type = GL_UNSIGNED_BYTE,
                 .wrapS = GL_CLAMP_TO_EDGE,
                 .wrapT = GL_CLAMP_TO_EDGE,
                 .minFilter = params.minFilter,
@@ -35,9 +34,9 @@ public:
             , pbrBuffer({
                 .width = width,
                 .height = height,
-                .internalFormat = GL_RGBA16F,
-                .format = GL_RGB,
-                .type = GL_HALF_FLOAT,
+                .internalFormat = GL_RGBA8,
+                .format = GL_RGBA,
+                .type = GL_UNSIGNED_BYTE,
                 .wrapS = GL_CLAMP_TO_EDGE,
                 .wrapT = GL_CLAMP_TO_EDGE,
                 .minFilter = params.minFilter,
@@ -45,55 +44,16 @@ public:
                 .multiSampled = params.multiSampled,
                 .numSamples = params.numSamples
             })
-            , emissiveBuffer({
+            , alphaBuffer({
                 .width = width,
                 .height = height,
-                .internalFormat = GL_RGBA16F,
-                .format = GL_RGB,
-                .type = GL_HALF_FLOAT,
+                .internalFormat = GL_RG8,
+                .format = GL_RG,
+                .type = GL_UNSIGNED_BYTE,
                 .wrapS = GL_CLAMP_TO_EDGE,
                 .wrapT = GL_CLAMP_TO_EDGE,
                 .minFilter = params.minFilter,
                 .magFilter = params.magFilter,
-                .multiSampled = params.multiSampled,
-                .numSamples = params.numSamples
-            })
-            , lightPositionXYZBuffer({
-                .width = width,
-                .height = height,
-                .internalFormat = GL_RGB16F,
-                .format = GL_RGB,
-                .type = GL_HALF_FLOAT,
-                .wrapS = GL_CLAMP_TO_EDGE,
-                .wrapT = GL_CLAMP_TO_EDGE,
-                .minFilter = GL_NEAREST,
-                .magFilter = GL_NEAREST,
-                .multiSampled = params.multiSampled,
-                .numSamples = params.numSamples
-            })
-            , lightPositionWIBLAlphaBuffer({
-                .width = width,
-                .height = height,
-                .internalFormat = GL_RGB16F,
-                .format = GL_RGB,
-                .type = GL_HALF_FLOAT,
-                .wrapS = GL_CLAMP_TO_EDGE,
-                .wrapT = GL_CLAMP_TO_EDGE,
-                .minFilter = GL_NEAREST,
-                .magFilter = GL_NEAREST,
-                .multiSampled = params.multiSampled,
-                .numSamples = params.numSamples
-            })
-            , positionBuffer({
-                .width = width,
-                .height = height,
-                .internalFormat = GL_RGB16F,
-                .format = GL_RGB,
-                .type = GL_HALF_FLOAT,
-                .wrapS = GL_CLAMP_TO_EDGE,
-                .wrapT = GL_CLAMP_TO_EDGE,
-                .minFilter = GL_NEAREST,
-                .magFilter = GL_NEAREST,
                 .multiSampled = params.multiSampled,
                 .numSamples = params.numSamples
             })
@@ -102,6 +62,32 @@ public:
                 .height = height,
                 .internalFormat = GL_RGB16F,
                 .format = GL_RGB,
+                .type = GL_HALF_FLOAT,
+                .wrapS = GL_CLAMP_TO_EDGE,
+                .wrapT = GL_CLAMP_TO_EDGE,
+                .minFilter = params.minFilter,
+                .magFilter = params.magFilter,
+                .multiSampled = params.multiSampled,
+                .numSamples = params.numSamples
+            })
+            , positionBuffer({
+                .width = width,
+                .height = height,
+                .internalFormat = GL_RGBA16F,
+                .format = GL_RGBA,
+                .type = GL_HALF_FLOAT,
+                .wrapS = GL_CLAMP_TO_EDGE,
+                .wrapT = GL_CLAMP_TO_EDGE,
+                .minFilter = GL_NEAREST,
+                .magFilter = GL_NEAREST,
+                .multiSampled = params.multiSampled,
+                .numSamples = params.numSamples
+            })
+            , lightPositionBuffer({
+                .width = width,
+                .height = height,
+                .internalFormat = GL_RGBA16F,
+                .format = GL_RGBA,
                 .type = GL_HALF_FLOAT,
                 .wrapS = GL_CLAMP_TO_EDGE,
                 .wrapT = GL_CLAMP_TO_EDGE,
@@ -139,25 +125,23 @@ public:
         framebuffer.bind();
         framebuffer.attachTexture(albedoBuffer, GL_COLOR_ATTACHMENT0);
         framebuffer.attachTexture(pbrBuffer, GL_COLOR_ATTACHMENT1);
-        framebuffer.attachTexture(emissiveBuffer, GL_COLOR_ATTACHMENT2);
-        framebuffer.attachTexture(lightPositionXYZBuffer, GL_COLOR_ATTACHMENT3);
-        framebuffer.attachTexture(lightPositionWIBLAlphaBuffer, GL_COLOR_ATTACHMENT4);
-        framebuffer.attachTexture(positionBuffer, GL_COLOR_ATTACHMENT5);
-        framebuffer.attachTexture(normalsBuffer, GL_COLOR_ATTACHMENT6);
-        framebuffer.attachTexture(idBuffer, GL_COLOR_ATTACHMENT7);
+        framebuffer.attachTexture(alphaBuffer, GL_COLOR_ATTACHMENT2);
+        framebuffer.attachTexture(normalsBuffer, GL_COLOR_ATTACHMENT3);
+        framebuffer.attachTexture(positionBuffer, GL_COLOR_ATTACHMENT4);
+        framebuffer.attachTexture(lightPositionBuffer, GL_COLOR_ATTACHMENT5);
+        framebuffer.attachTexture(idBuffer, GL_COLOR_ATTACHMENT6);
         framebuffer.attachTexture(depthStencilBuffer, GL_DEPTH_STENCIL_ATTACHMENT);
 
-        unsigned int attachments[8] = {
+        unsigned int attachments[7] = {
             GL_COLOR_ATTACHMENT0,
             GL_COLOR_ATTACHMENT1,
             GL_COLOR_ATTACHMENT2,
             GL_COLOR_ATTACHMENT3,
             GL_COLOR_ATTACHMENT4,
             GL_COLOR_ATTACHMENT5,
-            GL_COLOR_ATTACHMENT6,
-            GL_COLOR_ATTACHMENT7
+            GL_COLOR_ATTACHMENT6
         };
-        glDrawBuffers(8, attachments);
+        glDrawBuffers(7, attachments);
 
         if (!framebuffer.checkStatus()) {
             throw std::runtime_error("GBuffer Framebuffer is not complete!");
@@ -166,25 +150,12 @@ public:
         framebuffer.unbind();
     }
 
-    void blitToRenderTarget(RenderTarget &renderTarget) {
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, renderTarget.getFramebufferID());
-
-        glReadBuffer(GL_COLOR_ATTACHMENT0);
-        GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0 };
-        glDrawBuffers(1, drawBuffers);
-
-        glBlitFramebuffer(0, 0, width, height, 0, 0, renderTarget.width, renderTarget.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
-
     void blitToGBuffer(GBuffer &gBuffer, GLenum filter = GL_NEAREST) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gBuffer.getFramebufferID());
 
         // normals
-        glReadBuffer(GL_COLOR_ATTACHMENT6);
+        glReadBuffer(GL_COLOR_ATTACHMENT3);
         GLenum drawBuffers1[] = { GL_COLOR_ATTACHMENT1 };
         glDrawBuffers(1, drawBuffers1);
         glBlitFramebuffer(0, 0, width, height,
@@ -192,7 +163,7 @@ public:
                           GL_COLOR_BUFFER_BIT, filter);
 
         // id buffer
-        glReadBuffer(GL_COLOR_ATTACHMENT7);
+        glReadBuffer(GL_COLOR_ATTACHMENT6);
         GLenum drawBuffers2[] = { GL_COLOR_ATTACHMENT2 };
         glDrawBuffers(1, drawBuffers2);
         glBlitFramebuffer(0, 0, width, height,
@@ -212,11 +183,12 @@ public:
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gBuffer.getFramebufferID());
 
         // colors
-        GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3,
-                                 GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7 };
-        glDrawBuffers(8, drawBuffers);
+        GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2,
+                                 GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5,
+                                 GL_COLOR_ATTACHMENT6 };
+        glDrawBuffers(7, drawBuffers);
 
-        for (int i = 0; i < 8; ++i) {
+        for (int i = 0; i < 7; ++i) {
             glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
             glBlitFramebuffer(0, 0, width, height,
                               0, 0, gBuffer.width, gBuffer.height,
@@ -251,11 +223,10 @@ public:
 
         albedoBuffer.resize(width, height);
         pbrBuffer.resize(width, height);
-        emissiveBuffer.resize(width, height);
-        lightPositionXYZBuffer.resize(width, height);
-        lightPositionWIBLAlphaBuffer.resize(width, height);
+        alphaBuffer.resize(width, height);
         positionBuffer.resize(width, height);
         normalsBuffer.resize(width, height);
+        lightPositionBuffer.resize(width, height);
         idBuffer.resize(width, height);
         depthStencilBuffer.resize(width, height);
     }

@@ -20,7 +20,7 @@ public:
         return shader;
     }
 
-    unsigned int getTextureCount() const override { return 7; }
+    unsigned int getTextureCount() const override { return 6; }
 
     static Shader* shader;
 };

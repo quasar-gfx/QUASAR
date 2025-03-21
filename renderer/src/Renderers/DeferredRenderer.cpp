@@ -71,6 +71,25 @@ void DeferredRenderer::endRendering() {
 #endif
 }
 
+RenderStats DeferredRenderer::drawScene(const Scene &scene, const Camera &camera, uint32_t clearMask) {
+    RenderStats stats;
+
+    beginRendering();
+
+    // disable blending
+    pipeline.blendState.blendEnabled = false; pipeline.apply();
+
+    // draw all objects in the scene
+    stats += drawSceneImpl(scene, camera, clearMask);
+
+    // reenable blending
+    pipeline.blendState.blendEnabled = true; pipeline.apply();
+
+    endRendering();
+
+    return stats;
+}
+
 RenderStats DeferredRenderer::drawSkyBox(const Scene &scene, const Camera &camera) {
     outputRT.bind();
     RenderStats stats = drawSkyBoxImpl(scene, camera);
@@ -165,6 +184,6 @@ RenderStats DeferredRenderer::lightingPass(const Scene &scene, const Camera &cam
 }
 
 void DeferredRenderer::copyToGBuffer(GBuffer &gBufferDst) {
-    outputRT.blitToRenderTarget(gBufferDst); // copy color
     gBuffer.blitToGBuffer(gBufferDst); // copy normals, id, and depth
+    outputRT.blitToRenderTarget(gBufferDst); // copy color
 }

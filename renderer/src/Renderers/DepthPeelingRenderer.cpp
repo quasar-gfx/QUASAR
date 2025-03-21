@@ -62,9 +62,12 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &ca
     for (int i = 0; i < maxLayers; i++) {
         beginRendering();
         if (clearMask != 0) {
-            glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
+            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
             glClear(clearMask);
         }
+
+        // disable blending
+        pipeline.blendState.blendEnabled = false; pipeline.apply();
 
         Texture* prevIDMap = (i >= 1) ? &peelingLayers[i-1].idBuffer : nullptr;
 
@@ -82,11 +85,15 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &ca
         for (auto& child : scene.rootNode.children) {
             stats += drawNode(scene, camera, child, glm::mat4(1.0f), true, nullptr, prevIDMap);
         }
+
+        // reenable blending
+        pipeline.blendState.blendEnabled = true; pipeline.apply();
+
         endRendering();
 
         // clear output render target
         outputRT.bind();
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
         glClear(GL_COLOR_BUFFER_BIT);
         outputRT.unbind();
 
@@ -192,7 +199,7 @@ RenderStats DepthPeelingRenderer::compositeLayers() {
     }
 
     outputRT.bind();
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     stats += outputFsQuad.draw();
     outputRT.unbind();

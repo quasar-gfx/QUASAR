@@ -8,18 +8,17 @@ in vec2 TexCoords;
 
 uniform sampler2D gAlbedo; // 0
 uniform sampler2D gPBR; // 1
-uniform sampler2D gEmissive; // 2
-uniform sampler2D gLightPositionXYZ; // 3
-uniform sampler2D gLightPositionWIBLAlpha; // 4
-uniform sampler2D gPosition; // 5
-uniform sampler2D gNormal; // 6
+uniform sampler2D gAlpha; // 2
+uniform sampler2D gNormal; // 3
+uniform sampler2D gPosition; // 4
+uniform sampler2D gLightPosition; // 5
 
 // material
 uniform struct Material {
 #ifdef PLATFORM_CORE
-    samplerCube irradianceMap; // 7
-    samplerCube prefilterMap; // 8
-    sampler2D brdfLUT; // 9
+    samplerCube irradianceMap; // 5
+    samplerCube prefilterMap; // 6
+    sampler2D brdfLUT; // 7
 #endif
 } material;
 
@@ -37,24 +36,24 @@ uniform samplerCube pointLightShadowMaps[MAX_POINT_LIGHTS]; // 10+
 #endif
 
 void main() {
-    vec3 albedo = texture(gAlbedo, TexCoords).rgb;
+    vec4 albedo_er = texture(gAlbedo, TexCoords);
+    vec4 mra_eg = texture(gPBR, TexCoords);
+    vec2 alpha_eb = texture(gAlpha, TexCoords).rg;
+    vec3 fragNormal = texture(gNormal, TexCoords).rgb;
+    vec4 fragPosWorld_ibl = texture(gPosition, TexCoords);
+    vec4 fragPosLightSpace = texture(gLightPosition, TexCoords);
 
-    vec3 mra = texture(gPBR, TexCoords).rgb;
+    vec3 albedo = albedo_er.rgb;
+    float alpha = alpha_eb.r;
+    vec3 mra = mra_eg.rgb;
     float metallic = mra.r;
     float roughness = mra.g;
     float ao = mra.b;
-    vec3 emissive = texture(gEmissive, TexCoords).rgb;
+    vec3 emissive = vec3(albedo_er.a, mra_eg.a, alpha_eb.g);
 
-    vec4 fragPosLightSpace;
-    fragPosLightSpace.xyz = texture(gLightPositionXYZ, TexCoords).rgb;
+    float IBL = fragPosWorld_ibl.a;
 
-    vec3 wia = texture(gLightPositionWIBLAlpha, TexCoords).rgb;
-    fragPosLightSpace.w = wia.r;
-    float IBL = wia.g;
-    float alpha = wia.b;
-
-    vec3 fragPosWorld = texture(gPosition, TexCoords).rgb;
-    vec3 fragNormal = texture(gNormal, TexCoords).rgb;
+    vec3 fragPosWorld = fragPosWorld_ibl.xyz;
 
     // input lighting data
     vec3 N = fragNormal;
@@ -93,6 +92,5 @@ void main() {
 
     radianceOut = radianceOut + ambient;
 
-    alpha = 1.0; // set alpha to 1.0 for now
-    FragColor = vec4(radianceOut, alpha);
+    FragColor = vec4(radianceOut, 1.0); // set alpha to 1.0 for now
 }

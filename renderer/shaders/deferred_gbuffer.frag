@@ -3,12 +3,11 @@
 
 layout(location = 0) out vec4 gAlbedo;
 layout(location = 1) out vec4 gPBR;
-layout(location = 2) out vec4 gEmissive;
-layout(location = 3) out vec4 gLightPositionXYZ;
-layout(location = 4) out vec4 gLightPositionWIBLAlpha;
-layout(location = 5) out vec4 gPosition;
-layout(location = 6) out vec4 gNormal;
-layout(location = 7) out uvec4 gIDs;
+layout(location = 2) out vec2 gAlpha;
+layout(location = 3) out vec3 gNormal;
+layout(location = 4) out vec4 gPosition;
+layout(location = 5) out vec4 gLightPosition;
+layout(location = 6) out uvec3 gIDs;
 
 in VertexData {
     flat uint drawID;
@@ -210,17 +209,16 @@ void main() {
         ambient *= ao;
     }
 
-    gAlbedo = vec4(albedo, 1.0);
-    gPBR = vec4(metallic, roughness, ambient, 1.0);
-    gEmissive = vec4(emissive, 1.0);
-    gLightPositionXYZ = vec4(fsIn.FragPosLightSpace.xyz, 1.0);
-    gLightPositionWIBLAlpha = vec4(fsIn.FragPosLightSpace.w, material.IBL, alpha, 1.0);
-    gPosition = vec4(fsIn.FragPosWorld, 1.0);
+    gAlbedo = vec4(albedo, emissive.r);
+    gPBR = vec4(metallic, roughness, ambient, emissive.g);
+    gAlpha = vec2(alpha, emissive.b);
 #ifdef VIEW_DEPENDENT_LIGHTING
-    gNormal = vec4(N, 1.0);
+    gNormal = vec3(N);
 #else
-    gNormal = vec4(normalize(fsIn.Normal), 1.0);
+    gNormal = vec3(normalize(fsIn.Normal));
 #endif
-    gIDs = uvec4(fsIn.drawID, gl_PrimitiveID, 0, 1);
+    gPosition = vec4(fsIn.FragPosWorld, material.IBL);
+    gLightPosition = fsIn.FragPosLightSpace;
+    gIDs = uvec3(fsIn.drawID, gl_PrimitiveID, 0);
     gIDs.z = floatBitsToUint((-fsIn.FragPosView.z - camera.near) / (camera.far - camera.near));
 }
