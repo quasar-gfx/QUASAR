@@ -143,10 +143,9 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera(windowSize.x, windowSize.y);
     camera.setViewMatrix(remoteCameraCenter.getViewMatrix());
 
-    FrameGenerator frameGenerator;
     QuadsGenerator quadsGenerator(halfRemoteWindowSize);
     MeshFromQuads meshFromQuads(halfRemoteWindowSize);
-    MeshFromQuads meshFromQuadsMask(halfRemoteWindowSize, MAX_NUM_PROXIES / 4);
+    FrameGenerator frameGenerator(remoteRenderer, remoteScene, quadsGenerator, meshFromQuads);
 
     // center RTs
     RenderTargetCreateParams rtParams = {
@@ -355,6 +354,8 @@ int main(int argc, char** argv) {
 
     RenderStats renderStats;
     bool recording = false;
+    std::vector<unsigned int> numVertices(maxViews);
+    std::vector<unsigned int> numIndicies(maxViews);
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = true;
@@ -368,14 +369,12 @@ int main(int argc, char** argv) {
 
         static bool showSkyBox = true;
 
-        std::vector<unsigned int> numVertices(maxViews);
-        std::vector<unsigned int> numIndicies(maxViews);
         for (int view = 0; view < maxViews; view++) {
             if (!showLayers[view]) {
                 continue;
             }
 
-            auto meshBufferSizes = meshFromQuads.getBufferSizes();
+            auto meshBufferSizes = frameGenerator.meshFromQuads.getBufferSizes();
             numVertices[view] = meshBufferSizes.numVertices;
             numIndicies[view] = meshBufferSizes.numIndices;
         }
@@ -489,7 +488,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::CollapsingHeader("Quad Generation Settings")) {
-                if (ImGui::Checkbox("Correct Normal Orientation", &quadsGenerator.correctOrientation)) {
+                if (ImGui::Checkbox("Correct Extreme Normals", &quadsGenerator.correctOrientation)) {
                     preventCopyingLocalPose = true;
                     generateIFrame = true;
                     runAnimations = false;
@@ -878,7 +877,7 @@ int main(int argc, char** argv) {
                 }
                 unsigned int numBytesIFrame = frameGenerator.generateIFrame(
                     gBufferToUseLowRes, gBufferToUseHighRes, remoteCameraToUse,
-                    quadsGenerator, meshFromQuads, meshToUse,
+                    meshToUse,
                     numProxies, numDepthOffsets
                 );
                 compressedSize += numBytesIFrame;
@@ -912,12 +911,10 @@ int main(int argc, char** argv) {
                     if (generatePFrame) {
                         compressedSize -= numBytesIFrame;
                         compressedSize += frameGenerator.generatePFrame(
-                            remoteRenderer, remoteScene,
                             meshScenesCenter[currMeshIndex], meshScenesCenter[prevMeshIndex],
                             gBufferCenterTempRT, gBufferCenterMaskRT,
                             gBufferCenterTempRTLowRes, gBufferCenterMaskRTLowRes,
                             remoteCameraCenter, remoteCameraCenterPrev,
-                            quadsGenerator, meshFromQuads, meshFromQuadsMask,
                             meshesCenter[currMeshIndex], meshMask,
                             numProxies, numDepthOffsets
                         );

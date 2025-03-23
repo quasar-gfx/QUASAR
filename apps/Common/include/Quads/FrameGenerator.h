@@ -11,7 +11,16 @@
 
 class FrameGenerator {
 public:
-    FrameGenerator() = default;
+    QuadsGenerator &quadsGenerator;
+    MeshFromQuads &meshFromQuads;
+    MeshFromQuads meshFromQuadsMask;
+
+    FrameGenerator(DeferredRenderer &remoteRenderer, const Scene &remoteScene, QuadsGenerator &quadsGenerator, MeshFromQuads &meshFromQuads)
+        : remoteRenderer(remoteRenderer)
+        , remoteScene(remoteScene)
+        , quadsGenerator(quadsGenerator)
+        , meshFromQuads(meshFromQuads)
+        , meshFromQuadsMask(meshFromQuads.remoteWindowSize, meshFromQuads.maxProxies / 4) {}
 
     struct Stats {
         double timeToCreateProxiesMs = 0.0f;
@@ -29,16 +38,15 @@ public:
     unsigned int generateIFrame(
         const GBuffer &gBuffer, const GBuffer &gBufferHighRes,
         const PerspectiveCamera &remoteCamera,
-        QuadsGenerator &quadsGenerator, MeshFromQuads &meshFromQuads, const Mesh &mesh,
+        const Mesh &mesh,
         unsigned int &numProxies, unsigned int &numDepthOffsets,
         bool compress = true);
 
     unsigned int generatePFrame(
-        DeferredRenderer &remoteRenderer, const Scene &remoteScene, const Scene &currScene, const Scene &prevScene,
+        const Scene &currScene, const Scene &prevScene,
         GBuffer &gBufferHighRes, GBuffer &gBufferMaskHighRes,
         GBuffer &gBufferLowRes, GBuffer &gBufferMaskLowRes,
         const PerspectiveCamera &currRemoteCamera, const PerspectiveCamera &prevRemoteCamera,
-        QuadsGenerator &quadsGenerator, MeshFromQuads &meshFromQuads, MeshFromQuads &meshFromQuadsMask,
         const Mesh &currMesh, const Mesh &maskMesh,
         unsigned int &numProxies, unsigned int &numDepthOffsets,
         bool compress = true);
@@ -46,6 +54,9 @@ public:
 private:
     std::vector<char> compressedQuads;
     std::vector<char> compressedDepthOffsets;
+
+    DeferredRenderer &remoteRenderer;
+    const Scene &remoteScene;
 };
 
 #endif // FRAME_GENERATOR_H

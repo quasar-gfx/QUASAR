@@ -157,13 +157,14 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera(windowSize.x, windowSize.y);
     camera.setViewMatrix(remoteCameraCenter.getViewMatrix());
 
-    FrameGenerator frameGenerator;
     QuadsGenerator quadsGenerator(remoteWindowSize);
+    // match QuadStream's parameters:
     quadsGenerator.expandEdges = true;
     quadsGenerator.depthThreshold = 1e-4f;
     quadsGenerator.flatThreshold = 1e-2f;
     quadsGenerator.proxySimilarityThreshold = 0.1f;
     MeshFromQuads meshFromQuads(remoteWindowSize);
+    FrameGenerator frameGenerator(remoteRenderer, remoteScene, quadsGenerator, meshFromQuads);
 
     std::vector<GBuffer> gBufferRTs; gBufferRTs.reserve(maxViews);
     RenderTargetCreateParams rtParams = {
@@ -296,6 +297,8 @@ int main(int argc, char** argv) {
 
     RenderStats renderStats;
     bool recording = false;
+    std::vector<unsigned int> numVertices(maxViews);
+    std::vector<unsigned int> numIndicies(maxViews);
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = true;
@@ -308,14 +311,12 @@ int main(int argc, char** argv) {
 
         static bool showSkyBox = true;
 
-        std::vector<unsigned int> numVertices(maxViews);
-        std::vector<unsigned int> numIndicies(maxViews);
         for (int view = 0; view < maxViews; view++) {
             if (!showViews[view]) {
                 continue;
             }
 
-            auto meshBufferSizes = meshFromQuads.getBufferSizes();
+            auto meshBufferSizes = frameGenerator.meshFromQuads.getBufferSizes();
             numVertices[view] = meshBufferSizes.numVertices;
             numIndicies[view] = meshBufferSizes.numIndices;
         }
@@ -428,7 +429,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::CollapsingHeader("Quad Generation Settings")) {
-                if (ImGui::Checkbox("Correct Normal Orientation", &quadsGenerator.correctOrientation)) {
+                if (ImGui::Checkbox("Correct Extreme Normals", &quadsGenerator.correctOrientation)) {
                     preventCopyingLocalPose = true;
                     rerender = true;
                     runAnimations = false;
@@ -757,12 +758,12 @@ int main(int argc, char** argv) {
                 else {
                     showNormalsEffect.drawToRenderTarget(remoteRenderer, gBufferRTs[view]);
                 }
-                totalRenderTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
+                totalRenderTime += timeutils::secondsToMillis(window->getTime() - startTime);
 
                 unsigned int numProxies = 0, numDepthOffsets = 0;
                 compressedSize += frameGenerator.generateIFrame(
                     gBufferRTs[view], gBufferRTs[view], remoteCamera,
-                    quadsGenerator, meshFromQuads, currMesh,
+                    currMesh,
                     numProxies, numDepthOffsets,
                     false
                 );
@@ -789,14 +790,14 @@ int main(int argc, char** argv) {
                     savedBytes = quadsGenerator.saveToFile(quadsFileName);
                     spdlog::info("Saved {} quads ({:.3f} MB) in {:.3f}ms", numProxies,
                                                         (float)savedBytes / BYTES_IN_MB,
-                                                        (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
+                                                        timeutils::secondsToMillis(window->getTime() - startTime));
 
                     startTime = window->getTime();
                     std::string depthOffsetsFileName = dataPath + "depthOffsets" + std::to_string(view) + ".bin";
                     savedBytes = quadsGenerator.saveDepthOffsetsToFile(depthOffsetsFileName);
                     spdlog::info("Saved {} depth offsets ({:.3f} MB) in {:.3f}ms", numDepthOffsets,
                                                         (float)savedBytes / BYTES_IN_MB,
-                                                        (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
+                                                        timeutils::secondsToMillis(window->getTime() - startTime));
 
                     // save color buffer
                     std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
@@ -887,7 +888,7 @@ int main(int argc, char** argv) {
         toneMapper.enableToneMapping(!showNormals);
         toneMapper.drawToScreen(renderer);
         if (animator.running) {
-            spdlog::info("Client Render Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
+            spdlog::info("Client Render Time: {:.3f}ms", timeutils::secondsToMillis(window->getTime() - startTime));
         }
 
         poseSendRecvSimulator.update(camera, remoteCameraCenter, now);

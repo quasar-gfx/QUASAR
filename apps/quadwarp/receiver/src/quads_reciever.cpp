@@ -125,7 +125,7 @@ int main(int argc, char** argv) {
 
         totalTriangles = indices.size() / 3;
 
-        createMeshTime = (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
+        createMeshTime = timeutils::secondsToMillis(window->getTime() - startTime);
     }
     else {
         const glm::uvec2 halfWindowSize = windowSize / 2u;
@@ -150,7 +150,7 @@ int main(int argc, char** argv) {
             .usage = GL_DYNAMIC_DRAW,
             .indirectDraw = true
         });
-        loadFromFilesTime = (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
+        loadFromFilesTime = timeutils::secondsToMillis(window->getTime() - startTime);
 
         startTime = window->getTime();
         meshFromQuads.appendProxies(

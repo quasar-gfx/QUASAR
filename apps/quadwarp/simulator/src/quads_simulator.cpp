@@ -133,10 +133,9 @@ int main(int argc, char** argv) {
     std::vector<Scene> meshScenes(2);
     int currMeshIndex = 0, prevMeshIndex = 1;
 
-    FrameGenerator frameGenerator;
     QuadsGenerator quadsGenerator(halfRemoteWindowSize);
     MeshFromQuads meshFromQuads(halfRemoteWindowSize);
-    MeshFromQuads meshFromQuadsMask(halfRemoteWindowSize, MAX_NUM_PROXIES / 4);
+    FrameGenerator frameGenerator(remoteRenderer, remoteScene, quadsGenerator, meshFromQuads);
 
     unsigned int maxVertices = MAX_NUM_PROXIES * VERTICES_IN_A_QUAD;
     unsigned int maxIndices = MAX_NUM_PROXIES * INDICES_IN_A_QUAD;
@@ -292,8 +291,8 @@ int main(int argc, char** argv) {
 
         static bool showSkyBox = true;
 
-        auto meshBufferSizes = meshFromQuads.getBufferSizes();
-        auto meshBufferSizesMask = meshFromQuadsMask.getBufferSizes();
+        auto meshBufferSizes = frameGenerator.meshFromQuads.getBufferSizes();
+        auto meshBufferSizesMask = frameGenerator.meshFromQuadsMask.getBufferSizes();
 
         ImGui::NewFrame();
 
@@ -400,7 +399,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::CollapsingHeader("Quad Generation Settings")) {
-                if (ImGui::Checkbox("Correct Normal Orientation", &quadsGenerator.correctOrientation)) {
+                if (ImGui::Checkbox("Correct Extreme Normals", &quadsGenerator.correctOrientation)) {
                     preventCopyingLocalPose = true;
                     generateIFrame = true;
                     runAnimations = false;
@@ -667,7 +666,7 @@ int main(int argc, char** argv) {
                 remoteRenderer.drawToRenderTarget(screenShaderNormals, gBufferRTLowRes);
                 remoteRenderer.drawToRenderTarget(screenShaderNormals, gBufferRT);
             }
-            totalRenderTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
+            totalRenderTime += timeutils::secondsToMillis(window->getTime() - startTime);
 
             /*
             ============================
@@ -679,7 +678,7 @@ int main(int argc, char** argv) {
             compressedSize = frameGenerator.generateIFrame(
                 gBufferRTLowRes, gBufferRT,
                 remoteCameraToUse,
-                quadsGenerator, meshFromQuads, meshes[currMeshIndex],
+                meshes[currMeshIndex],
                 numProxies, numDepthOffsets
             );
             if (!generatePFrame) {
@@ -706,12 +705,10 @@ int main(int argc, char** argv) {
             */
             if (generatePFrame) {
                 compressedSize = frameGenerator.generatePFrame(
-                    remoteRenderer, remoteScene,
                     meshScenes[currMeshIndex], meshScenes[prevMeshIndex],
                     gBufferTemp, gBufferMaskRT,
                     gBufferTempRTLowRes, gBufferMaskRTLowRes,
                     remoteCamera, remoteCameraPrev,
-                    quadsGenerator, meshFromQuads, meshFromQuadsMask,
                     meshes[currMeshIndex], meshMask,
                     numProxies, numDepthOffsets
                 );
@@ -747,13 +744,13 @@ int main(int argc, char** argv) {
                 savedBytes = quadsGenerator.saveToFile(dataPath + "quads.bin");
                 spdlog::info("Saved {} quads ({:.3f} MB) in {:.3f}ms", numProxies,
                                                     (float)savedBytes / BYTES_IN_MB,
-                                                    (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
+                                                    timeutils::secondsToMillis(window->getTime() - startTime));
 
                 startTime = window->getTime();
                 savedBytes = quadsGenerator.saveDepthOffsetsToFile(dataPath + "depthOffsets.bin");
                 spdlog::info("Saved {} depth offsets ({:.3f} MB) in {:.3f}ms", numDepthOffsets,
                                                     (float)savedBytes / BYTES_IN_MB,
-                                                    (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
+                                                    timeutils::secondsToMillis(window->getTime() - startTime));
 
                 // save color buffer
                 std::string colorFileName = dataPath + "color.png";
@@ -844,7 +841,7 @@ int main(int argc, char** argv) {
         toneMapper.enableToneMapping(!showNormals);
         toneMapper.drawToScreen(renderer);
         if (animator.running) {
-            spdlog::info("Client Render Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
+            spdlog::info("Client Render Time: {:.3f}ms", timeutils::secondsToMillis(window->getTime() - startTime));
         }
 
         poseSendRecvSimulator.update(camera, remoteCamera, now);

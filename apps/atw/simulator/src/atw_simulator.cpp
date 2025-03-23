@@ -357,7 +357,7 @@ int main(int argc, char** argv) {
             toneMapper.drawToRenderTarget(remoteRenderer, renderTarget);
 
             spdlog::info("======================================================");
-            spdlog::info("Rendering Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
+            spdlog::info("Rendering Time: {:.3f}ms", timeutils::secondsToMillis(window->getTime() - startTime));
 
             preventCopyingLocalPose = false;
             rerender = false;
@@ -383,7 +383,7 @@ int main(int argc, char** argv) {
         double startTime = window->getTime();
         toneMapper.drawToScreen(renderer);
         if (animator.running) {
-            spdlog::info("Client Render Time: {:.3f}ms", (window->getTime() - startTime) * MILLISECONDS_IN_SECOND);
+            spdlog::info("Client Render Time: {:.3f}ms", timeutils::secondsToMillis(window->getTime() - startTime));
         }
 
         poseSendRecvSimulator.update(camera, remoteCamera, now);

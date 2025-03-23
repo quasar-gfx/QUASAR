@@ -166,7 +166,7 @@ int main(int argc, char** argv) {
 
             totalTriangles += indices.size() / 3;
 
-            createMeshTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
+            createMeshTime += timeutils::secondsToMillis(window->getTime() - startTime);
             startTime = window->getTime();
         }
     }
@@ -199,7 +199,7 @@ int main(int argc, char** argv) {
                 .usage = GL_DYNAMIC_DRAW,
                 .indirectDraw = true
             });
-            loadFromFilesTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
+            loadFromFilesTime += timeutils::secondsToMillis(window->getTime() - startTime);
 
            const  glm::vec2 gBufferSize = glm::vec2(colorTextures[view].width, colorTextures[view].height);
 

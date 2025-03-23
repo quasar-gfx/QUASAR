@@ -137,7 +137,7 @@ int main(int argc, char** argv) {
             auto vertexData = FileIO::loadBinaryFile(verticesFileName);
             auto indexData = FileIO::loadBinaryFile(indicesFileName);
 
-            loadFromFilesTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
+            loadFromFilesTime += timeutils::secondsToMillis(window->getTime() - startTime);
             startTime = window->getTime();
 
             std::vector<Vertex> vertices(vertexData.size() / sizeof(Vertex));
@@ -156,7 +156,7 @@ int main(int argc, char** argv) {
 
             totalTriangles += indices.size() / 3;
 
-            createMeshTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
+            createMeshTime += timeutils::secondsToMillis(window->getTime() - startTime);
         }
     }
     else {
@@ -188,7 +188,7 @@ int main(int argc, char** argv) {
                 .usage = GL_DYNAMIC_DRAW,
                 .indirectDraw = true
             });
-            loadFromFilesTime += (window->getTime() - startTime) * MILLISECONDS_IN_SECOND;
+            loadFromFilesTime += timeutils::secondsToMillis(window->getTime() - startTime);
 
             glm::uvec2 gBufferSize = glm::uvec2(colorTextures[view].width, colorTextures[view].height) / 2u;
             if (view == maxViews - 1) {

@@ -3,11 +3,12 @@
 unsigned int FrameGenerator::generateIFrame(
         const GBuffer &gBuffer, const GBuffer &gBufferHighRes,
         const PerspectiveCamera &remoteCamera,
-        QuadsGenerator &quadsGenerator, MeshFromQuads &meshFromQuads, const Mesh &mesh,
+        const Mesh &mesh,
         unsigned int &numProxies, unsigned int &numDepthOffsets,
         bool compress
     ) {
     const glm::vec2 gBufferSize = glm::vec2(gBuffer.width, gBuffer.height);
+    unsigned int outputSize = 0;
 
     double startTimeTotal = timeutils::getTimeMicros();
     double startTime = startTimeTotal;
@@ -39,19 +40,18 @@ unsigned int FrameGenerator::generateIFrame(
     stats.timeToCreateMeshMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     startTime = timeutils::getTimeMicros();
-    unsigned int outputSize = quadsGenerator.saveQuadsToMemory(compressedQuads, compress) +
-                                            numDepthOffsets * sizeof(uint16_t) / 8;
+    outputSize += quadsGenerator.saveQuadsToMemory(compressedQuads, compress);
+    outputSize += numDepthOffsets * sizeof(uint16_t) / 8;
     stats.timeToCompress = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     return outputSize;
 }
 
 unsigned int FrameGenerator::generatePFrame(
-        DeferredRenderer &remoteRenderer, const Scene &remoteScene, const Scene &currScene, const Scene &prevScene,
+        const Scene &currScene, const Scene &prevScene,
         GBuffer &gBufferHighRes, GBuffer &gBufferMaskHighRes,
         GBuffer &gBufferLowRes, GBuffer &gBufferMaskLowRes,
         const PerspectiveCamera &currRemoteCamera, const PerspectiveCamera &prevRemoteCamera,
-        QuadsGenerator &quadsGenerator, MeshFromQuads &meshFromQuads, MeshFromQuads &meshFromQuadsMask,
         const Mesh &currMesh, const Mesh &maskMesh,
         unsigned int &numProxies, unsigned int &numDepthOffsets,
         bool compress
