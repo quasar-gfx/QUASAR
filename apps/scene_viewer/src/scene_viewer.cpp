@@ -15,7 +15,7 @@
 #include <PostProcessing/ShowIDsEffect.h>
 
 #include <Recorder.h>
-#include <Animator.h>
+#include <CameraAnimator.h>
 
 int main(int argc, char** argv) {
     Config config{};
@@ -87,14 +87,14 @@ int main(int argc, char** argv) {
     ShowIDsEffect showIDsEffect;
 
     Recorder recorder(renderer, toneMapper, dataPath, config.targetFramerate);
-    Animator animator(cameraPathFile);
+    CameraAnimator cameraAnimator(cameraPathFile);
 
     if (saveImages) {
         recorder.setTargetFrameRate(-1 /* unlimited */);
         recorder.setFormat(Recorder::OutputFormat::PNG);
         recorder.start();
 
-        animator.copyPoseToCamera(camera);
+        cameraAnimator.copyPoseToCamera(camera);
     }
 
     float exposure = 1.0f;
@@ -345,18 +345,15 @@ int main(int argc, char** argv) {
         auto scroll = window->getScrollOffset();
         camera.processScroll(scroll.y);
 
-        if (animator.running) {
-            animator.copyPoseToCamera(camera);
-            animator.update(dt);
+        if (cameraAnimator.running) {
+            cameraAnimator.copyPoseToCamera(camera);
+            cameraAnimator.update(dt);
+            now = cameraAnimator.now;
+            dt = cameraAnimator.dt;
         }
         else {
             // handle keyboard input
             camera.processKeyboard(keys, dt);
-        }
-
-        if (cameraPathFileIn) {
-            now = animator.now;
-            dt = animator.dt;
         }
 
         totalDT += dt;
@@ -391,10 +388,10 @@ int main(int argc, char** argv) {
             showIDsEffect.drawToScreen(renderer);
         }
 
-        if ((cameraPathFileIn && animator.running) || recording) {
+        if ((cameraPathFileIn && cameraAnimator.running) || recording) {
             recorder.captureFrame(camera);
         }
-        if (cameraPathFileIn && !animator.running) {
+        if (cameraPathFileIn && !cameraAnimator.running) {
             recorder.captureFrame(camera); // capture final frame
             recorder.stop();
             window->close();

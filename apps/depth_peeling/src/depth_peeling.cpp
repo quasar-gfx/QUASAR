@@ -14,7 +14,7 @@
 #include <PostProcessing/ShowIDsEffect.h>
 
 #include <Recorder.h>
-#include <Animator.h>
+#include <CameraAnimator.h>
 
 int main(int argc, char** argv) {
     Config config{};

@@ -12,7 +12,7 @@
 #include <PostProcessing/ShowDepthEffect.h>
 
 #include <Recorder.h>
-#include <Animator.h>
+#include <CameraAnimator.h>
 
 #include <Shaders/ComputeShader.h>
 #include <VideoStreamer.h>

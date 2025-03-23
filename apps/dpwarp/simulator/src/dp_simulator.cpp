@@ -15,7 +15,7 @@
 #include <PostProcessing/ShowNormalsEffect.h>
 
 #include <Recorder.h>
-#include <Animator.h>
+#include <CameraAnimator.h>
 
 #include <Quads/QuadsGenerator.h>
 #include <Quads/MeshFromQuads.h>
@@ -310,7 +310,7 @@ int main(int argc, char** argv) {
     ShowNormalsEffect showNormalsEffect;
 
     Recorder recorder(renderer, blurEdges, dataPath, config.targetFramerate);
-    Animator animator(cameraPathFile);
+    CameraAnimator cameraAnimator(cameraPathFile);
 
     if (saveImages) {
         recorder.setTargetFrameRate(-1 /* unlimited */);
@@ -319,8 +319,8 @@ int main(int argc, char** argv) {
     }
 
     if (cameraPathFileIn) {
-        animator.copyPoseToCamera(camera);
-        animator.copyPoseToCamera(remoteCameraCenter);
+        cameraAnimator.copyPoseToCamera(camera);
+        cameraAnimator.copyPoseToCamera(remoteCameraCenter);
     }
 
     bool generateIFrame = true;
@@ -740,19 +740,16 @@ int main(int argc, char** argv) {
             window->close();
         }
 
-        if (animator.running) {
-            animator.copyPoseToCamera(camera);
-            animator.update(dt);
+        if (cameraAnimator.running) {
+            cameraAnimator.copyPoseToCamera(camera);
+            cameraAnimator.update(dt);
+            now = cameraAnimator.now;
+            dt = cameraAnimator.dt;
         }
         else {
             auto scroll = window->getScrollOffset();
             camera.processScroll(scroll.y);
             camera.processKeyboard(keys, dt);
-        }
-
-        if (cameraPathFileIn) {
-            now = animator.now;
-            dt = animator.dt;
         }
 
         // update all animations
@@ -761,6 +758,7 @@ int main(int argc, char** argv) {
             remoteScene.updateAnimations(dt);
         }
 
+        poseSendRecvSimulator.update(now);
         if (rerenderInterval > 0.0 && (now - lastRenderTime) >= (rerenderInterval - 1) / MILLISECONDS_IN_SECOND) {
             generateIFrame = (++frameCounter) % IFRAME_PERIOD == 0; // insert I-Frame every IFRAME_PERIOD frames
             generatePFrame = !generateIFrame;
@@ -1062,16 +1060,16 @@ int main(int argc, char** argv) {
         blurEdges.enableToneMapping(!showNormals);
         blurEdges.setDepthThreshold(quadsGenerator.depthThreshold);
         blurEdges.drawToScreen(renderer);
-        if (animator.running) {
+        if (cameraAnimator.running) {
             spdlog::info("Client Render Time: {:.3f}ms", timeutils::secondsToMillis(window->getTime() - startTime));
         }
 
-        poseSendRecvSimulator.update(camera, remoteCameraCenter, now);
+        poseSendRecvSimulator.accumulateErrors(camera, remoteCameraCenter);
 
-        if ((cameraPathFileIn && animator.running) || recording) {
+        if ((cameraPathFileIn && cameraAnimator.running) || recording) {
             recorder.captureFrame(camera);
         }
-        if (cameraPathFileIn && !animator.running) {
+        if (cameraPathFileIn && !cameraAnimator.running) {
             recorder.captureFrame(camera); // capture final frame
             recorder.stop();
             window->close();

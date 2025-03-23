@@ -8,7 +8,7 @@
 #include <PostProcessing/ToneMapper.h>
 
 #include <Recorder.h>
-#include <Animator.h>
+#include <CameraAnimator.h>
 #include <VideoTexture.h>
 #include <BC4DepthVideoTexture.h>
 #include <PoseStreamer.h>

@@ -10,7 +10,7 @@
 #include <PostProcessing/ShowDepthEffect.h>
 
 #include <Recorder.h>
-#include <Animator.h>
+#include <CameraAnimator.h>
 
 #include <BC4DepthStreamer.h>
 #include <PoseStreamer.h>

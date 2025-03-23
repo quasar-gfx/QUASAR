@@ -10,7 +10,7 @@
 
 #include <Cameras/PerspectiveCamera.h>
 
-class Animator {
+class CameraAnimator {
 public:
     struct CameraPose {
         glm::vec3 position;
@@ -23,10 +23,10 @@ public:
     double now = 0.0;
     double dt = 0.0;
 
-    Animator(const std::string &pathFile, bool tween = false);
+    CameraAnimator(const std::string &pathFile, bool tween = false);
 
     void loadAnimation(const std::string &pathFile);
-    void update(double dt);
+    bool update(double dt);
 
     void copyPoseToCamera(PerspectiveCamera &camera) const;
 

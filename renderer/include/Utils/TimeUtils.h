@@ -3,17 +3,25 @@
 
 #include <chrono>
 
-#define MILLISECONDS_IN_SECOND 1e3f
-#define MICROSECONDS_IN_SECOND 1e6f
-#define MICROSECONDS_IN_MILLISECOND 1e3f
-#define NANOSECONDS_IN_SECOND 1e9f
-#define NANOSECONDS_IN_MILLISECOND 1e6f
+#define MILLISECONDS_IN_SECOND (1e3f)
+#define MICROSECONDS_IN_SECOND (1e6f)
+#define MICROSECONDS_IN_MILLISECOND (1e3f)
+#define NANOSECONDS_IN_SECOND (1e9f)
+#define NANOSECONDS_IN_MILLISECOND (1e6f)
 
 #define BYTES_IN_MB (1024 * 1024)
 
 namespace timeutils {
 
-inline int getTimeMillis() {
+inline uint64_t getTimeSeconds() {
+    // get unix timestamp in seconds
+    std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::system_clock::now().time_since_epoch()
+    );
+    return s.count();
+}
+
+inline uint64_t getTimeMillis() {
     // get unix timestamp in ms
     std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()
@@ -21,7 +29,7 @@ inline int getTimeMillis() {
     return ms.count();
 }
 
-inline int getTimeMicros() {
+inline uint64_t getTimeMicros() {
     // get unix timestamp in us
     std::chrono::microseconds us = std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::system_clock::now().time_since_epoch()
@@ -29,7 +37,7 @@ inline int getTimeMicros() {
     return us.count();
 }
 
-inline int getTimeNanos() {
+inline uint64_t getTimeNanos() {
     // get unix timestamp in ns
     std::chrono::nanoseconds ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::system_clock::now().time_since_epoch()

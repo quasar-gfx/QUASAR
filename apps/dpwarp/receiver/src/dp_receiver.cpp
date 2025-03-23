@@ -11,7 +11,7 @@
 #include <PostProcessing/ToneMapper.h>
 
 #include <Recorder.h>
-#include <Animator.h>
+#include <CameraAnimator.h>
 
 #include <Quads/MeshFromQuads.h>
 #include <Quads/QuadMaterial.h>

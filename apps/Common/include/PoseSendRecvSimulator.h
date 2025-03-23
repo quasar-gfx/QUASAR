@@ -6,7 +6,11 @@
 #include <vector>
 #include <numeric>
 #include <cmath>
+#include <thread>
+#include <mutex>
+#include <atomic>
 
+#include <Windowing/Window.h>
 #include <Cameras/PerspectiveCamera.h>
 #include <CameraPose.h>
 
@@ -24,7 +28,7 @@ public:
         glm::vec2 positionErrMinMax;
         glm::vec2 rotationErrMeanStd;
         glm::vec2 rotationErrMinMax;
-        glm::vec2 timeErrMeanStd;
+        glm::vec2 rttMeanStd;
     };
 
     PoseSendRecvSimulator(double networkLatencyMs, double networkJitterMs, double renderTimeMs, unsigned int seed = 42)
@@ -32,8 +36,7 @@ public:
             , networkJitterS(networkJitterMs / MILLISECONDS_IN_SECOND)
             , renderTimeS(renderTimeMs / MILLISECONDS_IN_SECOND)
             , generator(seed)
-            , distribution(-networkJitterS, networkJitterS)
-            , actualOutJitter(randomJitter()) {
+            , distribution(-networkJitterS, networkJitterS) {
     }
 
     void setNetworkLatency(double networkLatencyMs) {
@@ -59,87 +62,103 @@ public:
 
     void clear() {
         incomingPoses.clear();
+        incomingOrigTimestamps.clear();
+        storedPoses.clear();
+        storedOrigTimestamps.clear();
         outPoses.clear();
         outOrigTimestamps.clear();
 
         positionErrors.clear();
         rotationErrors.clear();
-        timeErrors.clear();
+        rttErrors.clear();
     }
 
     void sendPose(const PerspectiveCamera &camera, double now) {
+        // client "sends" the pose here!
         incomingPoses.push_back({
                 camera.getViewMatrix(),
                 camera.getProjectionMatrix(),
                 static_cast<uint64_t>(now * MICROSECONDS_IN_SECOND)
             });
+        incomingOrigTimestamps.push_back(now);
+
         update(now);
     }
 
-    bool recvPose(Pose& pose, double now) {
-        // if there are poses to send, "send" them first at a delay
-        if (!outPoses.empty() && !outOrigTimestamps.empty()) {
-            double precictedOutJitter = randomJitter();  // we don't know the actual jitter, so we can simulate a ping
-            double dtFuture = networkLatencyS + renderTimeS;
+    void update(double now) {
+        // if there are incoming poses, "receive" them at a delay
+        while (!incomingPoses.empty()) {
+            double dtFuture = networkLatencyS + actualInJitter;
 
-            Pose poseToSend = outPoses.front();
-            if (posePrediction && outPoses.size() >= 2) {
-                // get the last two poses
-                auto& lastPose       = outPoses[outPoses.size() - 1];
-                auto& secondLastPose = outPoses[outPoses.size() - 2];
+            Pose poseToRecv = incomingPoses.front();
+            double timestampS = timeutils::microsToSeconds(poseToRecv.timestamp);
 
-                // predict networkLatencyS seconds into the future, acconting for jitter and render time
-                if (!getPosePredicted(poseToSend, lastPose, secondLastPose, now + dtFuture + precictedOutJitter)) {
-                    return false;
+            // server waits networkLatencyS seconds before receiving the pose
+            if (networkLatencyS > 0 && now - timestampS < dtFuture) {
+                break;
+            }
+            poseToRecv.timestamp = static_cast<uint64_t>(timeutils::secondsToMicros(now));
+
+            // update actual jitter
+            actualInJitter = randomJitter();
+
+            // server "recieves" the pose here! do pose prediction if needed
+            Pose poseToSend = poseToRecv;
+            if (posePrediction && incomingPoses.size() >= 2) {
+                double jitterPredicted = randomJitter(); // we don't know the actual jitter, so we can simulate a ping
+                double dtFuturePredicted = networkLatencyS + renderTimeS + jitterPredicted;
+
+                if (!getPosePredicted(poseToSend, poseToRecv, incomingPoses.front(), now + dtFuturePredicted)) {
+                    break;
                 }
             }
 
-            // client waits for dtFuture + outJitterS before receiving the pose
-            double timestampS = static_cast<double>(outPoses.front().timestamp) / MICROSECONDS_IN_SECOND;
-            if (networkLatencyS > 0 && now - timestampS <= dtFuture + actualOutJitter) {
-                return false;
+            storedPoses.push_back(poseToSend);
+            storedOrigTimestamps.push_back(timestampS);
+
+            incomingPoses.pop_front();
+            incomingOrigTimestamps.pop_front();
+        }
+
+        while (!storedPoses.empty()) {
+            double dtFuture = networkLatencyS + renderTimeS + actualOutJitter;
+
+            Pose poseToSend = storedPoses.front();
+            double timestampS = timeutils::microsToSeconds(poseToSend.timestamp);
+
+            // server "sends" the pose here!
+            // client waits networkLatencyS + renderTimeS + actualOutJitter before receiving the pose
+            if (networkLatencyS > 0 && now - timestampS < dtFuture) {
+                break;
             }
+            poseToSend.timestamp = static_cast<uint64_t>(timeutils::secondsToMicros(now));
 
             // update actual jitter
             actualOutJitter = randomJitter();
 
-            double oldTimestampS = outOrigTimestamps.front();
-            timeErrors.push_back((now - oldTimestampS) * MILLISECONDS_IN_SECOND);
+            outPoses.push_back(poseToSend);
+            outOrigTimestamps.push_back(storedOrigTimestamps.front());
 
-            pose = poseToSend;
-            outPoses.pop_front();
-            outOrigTimestamps.pop_front();
-
-            return true;
-        }
-
-        return false;
-    }
-
-    void update(float now) {
-        // if there are incoming poses, "receive" them at a delay
-        if (!incomingPoses.empty()) {
-            double inJitterS = randomJitter();
-            double dtFuture = networkLatencyS + inJitterS;
-
-            // server waits networkLatencyS seconds before receiving the pose
-            Pose poseToRecv = incomingPoses.front();
-            double timestampS = static_cast<double>(poseToRecv.timestamp) / MICROSECONDS_IN_SECOND;
-            if (networkLatencyS > 0 && now - timestampS <= dtFuture) {
-                return;
-            }
-
-            poseToRecv.timestamp = static_cast<uint64_t>(now * MICROSECONDS_IN_SECOND);
-            outPoses.push_back(poseToRecv);
-            outOrigTimestamps.push_back(timestampS);
-
-            incomingPoses.pop_front();
+            storedPoses.pop_front();
+            storedOrigTimestamps.pop_front();
         }
     }
 
-    void update(const PerspectiveCamera &camera, const PerspectiveCamera &remoteCamera, float now) {
-        update(now);
-        accumulateError(camera, remoteCamera);
+    bool recvPose(Pose& poseToRecv, double now) {
+        if (outPoses.empty()) {
+            return false;
+        }
+
+        // client "receives" the pose here! just return the latest one and clear the rest
+        poseToRecv = outPoses.back();
+
+        double origTimestampS = outOrigTimestamps.back();
+        rttErrors.push_back(timeutils::secondsToMillis(now - origTimestampS));
+
+        outPoses.clear();
+        outOrigTimestamps.clear();
+
+        return true;
     }
 
     ErrorStats getAvgErrors() {
@@ -155,10 +174,28 @@ public:
         stats.rotationErrMinMax.x = *std::min_element(rotationErrors.begin(), rotationErrors.end());
         stats.rotationErrMinMax.y = *std::max_element(rotationErrors.begin(), rotationErrors.end());
 
-        stats.timeErrMeanStd.x = calculateMean(timeErrors);
-        stats.timeErrMeanStd.y = calculateStdDev(timeErrors, stats.timeErrMeanStd.x);
+        stats.rttMeanStd.x = calculateMean(rttErrors);
+        stats.rttMeanStd.y = calculateStdDev(rttErrors, stats.rttMeanStd.x);
 
         return stats;
+    }
+
+    void accumulateErrors(const PerspectiveCamera &camera, const PerspectiveCamera &remoteCamera) {
+        float positionDiff = glm::distance(camera.getPosition(), remoteCamera.getPosition());
+
+        glm::quat q1 = glm::normalize(camera.getRotationQuat());
+        glm::quat q2 = glm::normalize(remoteCamera.getRotationQuat());
+
+        // ensure the shortest path for quaternion interpolation
+        if (glm::dot(q1, q2) < 0.0f) {
+            q2 = -q2;
+        }
+
+        float angleDiffRadians = 2.0f * glm::acos(glm::clamp(glm::dot(q1, q2), -1.0f, 1.0f));
+        float angleDiffDegrees = glm::degrees(angleDiffRadians);
+
+        positionErrors.push_back(positionDiff);
+        rotationErrors.push_back(std::abs(angleDiffDegrees));
     }
 
     void printErrors() {
@@ -167,28 +204,25 @@ public:
         spdlog::info("Pose Error:");
         spdlog::info("  Pos ({:.2f}±{:.2f},[{:.1f},{:.2f}])m", stats.positionErrMeanStd.x, stats.positionErrMeanStd.y, stats.positionErrMinMax.x, stats.positionErrMinMax.y);
         spdlog::info("  Rot ({:.2f}±{:.2f},[{:.1f},{:.2f}])°", stats.rotationErrMeanStd.x, stats.rotationErrMeanStd.y, stats.rotationErrMinMax.x, stats.rotationErrMinMax.y);
-        spdlog::info("  Time ({:.2f}±{:.2f})ms", stats.timeErrMeanStd.x, stats.timeErrMeanStd.y);
+        spdlog::info("  RTT ({:.2f}±{:.2f})ms", stats.rttMeanStd.x, stats.rttMeanStd.y);
     }
 
 private:
     std::deque<Pose> incomingPoses;
+    std::deque<double> incomingOrigTimestamps;
+    std::deque<Pose> storedPoses;
+    std::deque<double> storedOrigTimestamps;
     std::deque<Pose> outPoses;
     std::deque<double> outOrigTimestamps;
 
     std::vector<double> positionErrors;
     std::vector<double> rotationErrors;
-    std::vector<double> timeErrors;
+    std::vector<double> rttErrors;
 
-    double actualOutJitter;
+    double actualInJitter = randomJitter();
+    double actualOutJitter = randomJitter();
 
     bool posePrediction = true;
-
-    // filtering
-    float alpha = 0.7f;
-    glm::vec3 filteredPosition;
-    glm::quat filteredRotation;
-    bool filteredPositionInitialized = false;
-    bool filteredRotationInitialized = false;
 
     double randomJitter() {
         return distribution(generator);
@@ -208,31 +242,13 @@ private:
         return std::sqrt(sumSquaredDiffs / (errors.size() - 1));
     }
 
-    void accumulateError(const PerspectiveCamera &camera, const PerspectiveCamera &remoteCamera) {
-        float positionDiff = glm::distance(camera.getPosition(), remoteCamera.getPosition());
-
-        glm::quat q1 = glm::normalize(camera.getRotationQuat());
-        glm::quat q2 = glm::normalize(remoteCamera.getRotationQuat());
-
-        // ensure the shortest path for quaternion interpolation
-        if (glm::dot(q1, q2) < 0.0f) {
-            q2 = -q2;
-        }
-
-        float angleDiffRadians = 2.0f * glm::acos(glm::clamp(glm::dot(q1, q2), -1.0f, 1.0f));
-        float angleDiffDegrees = glm::degrees(angleDiffRadians);
-
-        positionErrors.push_back(positionDiff);
-        rotationErrors.push_back(std::abs(angleDiffDegrees));
-    }
-
     bool getPosePredicted(Pose& predictedPose, const Pose& lastPose, const Pose& secondLastPose, double targetFutureTimeS) {
         double t1 = static_cast<double>(secondLastPose.timestamp) / MICROSECONDS_IN_SECOND;
         double t0 = static_cast<double>(lastPose.timestamp) / MICROSECONDS_IN_SECOND;
 
         float dt = t0 - t1;
         if (dt <= 0) {
-            spdlog::error("Invalid timestamps for pose prediction!");
+            spdlog::error("Invalid timestamps for pose prediction (t0: {}, t1: {})", t0, t1);
             return false;
         }
 
@@ -253,14 +269,6 @@ private:
         glm::vec3 velocity = (positionLast - positionSecondLast) / dt;
         glm::vec3 predictedPosition = positionLast + velocity * dtFuture;
 
-        if (!filteredPositionInitialized) {
-            filteredPosition = predictedPosition;
-            filteredPositionInitialized = true;
-        }
-        else {
-            filteredPosition = alpha * predictedPosition + (1.0f - alpha) * filteredPosition;
-        }
-
         glm::quat deltaRotation = glm::normalize(rotationLatest * glm::inverse(rotationSecondLast));
 
         float angle = glm::angle(deltaRotation);
@@ -276,15 +284,7 @@ private:
         float futureAngle = angularVelocity * dtFuture;
         glm::quat predictedRotation = glm::normalize(glm::angleAxis(futureAngle, axis) * rotationLatest);
 
-        if (!filteredRotationInitialized) {
-            filteredRotation = predictedRotation;
-            filteredRotationInitialized = true;
-        }
-        else {
-            filteredRotation = glm::slerp(filteredRotation, predictedRotation, static_cast<float>(alpha));
-        }
-
-        glm::mat4 predictedTransform = glm::translate(glm::mat4(1.0f), filteredPosition) * glm::mat4_cast(filteredRotation);
+        glm::mat4 predictedTransform = glm::translate(glm::mat4(1.0f), predictedPosition) * glm::mat4_cast(predictedRotation);
         glm::mat4 predictedView = glm::inverse(predictedTransform);
 
         predictedPose.setViewMatrix(predictedView);

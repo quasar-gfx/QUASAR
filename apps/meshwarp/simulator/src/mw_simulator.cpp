@@ -14,7 +14,7 @@
 #include <PostProcessing/ShowDepthEffect.h>
 
 #include <Recorder.h>
-#include <Animator.h>
+#include <CameraAnimator.h>
 
 #include <BC4DepthStreamer.h>
 #include <PoseSendRecvSimulator.h>
@@ -181,7 +181,7 @@ int main(int argc, char** argv) {
     ShowDepthEffect showDepthEffect(camera);
 
     Recorder recorder(renderer, toneMapper, dataPath, config.targetFramerate);
-    Animator animator(cameraPathFile);
+    CameraAnimator cameraAnimator(cameraPathFile);
 
     if (saveImages) {
         recorder.setTargetFrameRate(-1 /* unlimited */);
@@ -190,8 +190,8 @@ int main(int argc, char** argv) {
     }
 
     if (cameraPathFileIn) {
-        animator.copyPoseToCamera(camera);
-        animator.copyPoseToCamera(remoteCamera);
+        cameraAnimator.copyPoseToCamera(camera);
+        cameraAnimator.copyPoseToCamera(remoteCamera);
     }
 
     bool showWireframe = false;
@@ -412,19 +412,16 @@ int main(int argc, char** argv) {
             window->close();
         }
 
-        if (animator.running) {
-            animator.copyPoseToCamera(camera);
-            animator.update(dt);
+        if (cameraAnimator.running) {
+            cameraAnimator.copyPoseToCamera(camera);
+            cameraAnimator.update(dt);
+            now = cameraAnimator.now;
+            dt = cameraAnimator.dt;
         }
         else {
             auto scroll = window->getScrollOffset();
             camera.processScroll(scroll.y);
             camera.processKeyboard(keys, dt);
-        }
-
-        if (cameraPathFileIn) {
-            now = animator.now;
-            dt = animator.dt;
         }
 
         // update all animations
@@ -433,6 +430,7 @@ int main(int argc, char** argv) {
             remoteScene.updateAnimations(dt);
         }
 
+        poseSendRecvSimulator.update(now);
         if (rerenderInterval > 0.0 && (now - lastRenderTime) >= (rerenderInterval - 1) / MILLISECONDS_IN_SECOND) {
             rerender = true;
             runAnimations = true;
@@ -521,16 +519,16 @@ int main(int argc, char** argv) {
 
         toneMapper.enableToneMapping(true);
         toneMapper.drawToScreen(renderer);
-        if (animator.running) {
+        if (cameraAnimator.running) {
             spdlog::info("Client Render Time: {:.3f}ms", timeutils::secondsToMillis(window->getTime() - startTime));
         }
 
-        poseSendRecvSimulator.update(camera, remoteCamera, now);
+        poseSendRecvSimulator.accumulateErrors(camera, remoteCamera);
 
-        if ((cameraPathFileIn && animator.running) || recording) {
+        if ((cameraPathFileIn && cameraAnimator.running) || recording) {
             recorder.captureFrame(camera);
         }
-        if (cameraPathFileIn && !animator.running) {
+        if (cameraPathFileIn && !cameraAnimator.running) {
             recorder.captureFrame(camera); // capture final frame
             recorder.stop();
             window->close();

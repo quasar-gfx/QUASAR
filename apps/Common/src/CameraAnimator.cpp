@@ -3,16 +3,16 @@
 
 #include <spdlog/spdlog.h>
 
-#include <Animator.h>
+#include <CameraAnimator.h>
 #include <Utils/TimeUtils.h>
 
-Animator::Animator(const std::string &pathFile, bool tween) : tween(tween) {
+CameraAnimator::CameraAnimator(const std::string &pathFile, bool tween) : tween(tween) {
     if (!pathFile.empty()) {
         loadAnimation(pathFile);
     }
 }
 
-void Animator::loadAnimation(const std::string &pathFile) {
+void CameraAnimator::loadAnimation(const std::string &pathFile) {
     running = true;
     currentIndex = 0;
 
@@ -39,45 +39,41 @@ void Animator::loadAnimation(const std::string &pathFile) {
     file.close();
 }
 
-void Animator::update(double dt) {
-    if (!running || waypoints.size() < 2)
-        return;
+bool CameraAnimator::update(double dt) {
+    static bool firstUpdate = true;
 
+    if (!running || waypoints.size() < 2)
+        return false;
+
+    bool res = firstUpdate; firstUpdate = false;
     if (tween) {
-        now += dt;
-        while (currentIndex < waypoints.size() - 1 && now >= waypoints[currentIndex + 1].timestamp) {
+        this->dt = dt;
+        now += this->dt;
+        while (currentIndex < waypoints.size() && now >= waypoints[currentIndex + 1].timestamp) {
             currentIndex++;
+            res = true;
         }
     }
     else {
-        now = waypoints[currentIndex].timestamp;
         currentIndex++;
-    }
+        if (currentIndex > 0) {
+            auto deltaSeconds = waypoints[currentIndex].timestamp - waypoints[currentIndex - 1].timestamp;
+            this->dt = glm::max(deltaSeconds, 0.0);
+        }
+        now = waypoints[currentIndex].timestamp;
 
-    if (currentIndex > 0) {
-        auto deltaSeconds = waypoints[currentIndex].timestamp - waypoints[currentIndex - 1].timestamp;
-        this->dt = glm::max(deltaSeconds, 0.0);
+        res = true;
     }
 
     if (currentIndex >= waypoints.size()) {
         currentIndex = waypoints.size() - 1;
         running = false;
     }
+
+    return res;
 }
 
-void Animator::copyPoseToCamera(PerspectiveCamera &camera) const {
-    if (waypoints.empty())
-        return;
-
-    if (!running || currentIndex >= waypoints.size())
-        return;
-
-    camera.setPosition(getCurrentPosition());
-    camera.setRotationQuat(getCurrentRotation());
-    camera.updateViewMatrix();
-}
-
-const glm::vec3 Animator::getCurrentPosition() const {
+const glm::vec3 CameraAnimator::getCurrentPosition() const {
     if (!running || currentIndex >= waypoints.size())
         return waypoints.back().position;
 
@@ -96,7 +92,7 @@ const glm::vec3 Animator::getCurrentPosition() const {
     }
 }
 
-const glm::quat Animator::getCurrentRotation() const {
+const glm::quat CameraAnimator::getCurrentRotation() const {
     if (waypoints.empty())
         return glm::quat();
 
@@ -116,4 +112,16 @@ const glm::quat Animator::getCurrentRotation() const {
     else {
         return waypoints[currentIndex].rotation;
     }
+}
+
+void CameraAnimator::copyPoseToCamera(PerspectiveCamera &camera) const {
+    if (waypoints.empty())
+        return;
+
+    if (!running || currentIndex >= waypoints.size())
+        return;
+
+    camera.setPosition(getCurrentPosition());
+    camera.setRotationQuat(getCurrentRotation());
+    camera.updateViewMatrix();
 }
