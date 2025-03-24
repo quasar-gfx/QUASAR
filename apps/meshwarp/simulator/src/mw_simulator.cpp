@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
     pos = rsizeStr.find('x');
     glm::uvec2 remoteWindowSize = glm::uvec2(std::stoi(rsizeStr.substr(0, pos)), std::stoi(rsizeStr.substr(pos + 1)));
 
-    config.enableVSync = !args::get(novsync);
+    config.enableVSync = !args::get(novsync) && !saveImages;
     config.showWindow = !args::get(saveImages);
 
     std::string sceneFile = args::get(sceneFileIn);
@@ -214,7 +214,7 @@ int main(int argc, char** argv) {
     bool recording = false;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
-        static bool showUI = true;
+        static bool showUI = !saveImages;
         static bool showCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
@@ -372,6 +372,7 @@ int main(int argc, char** argv) {
     });
 
     double lastRenderTime = 0.0;
+    bool updateClient = !saveImages;
     app.onRender([&](double now, double dt) {
         // handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
@@ -413,10 +414,12 @@ int main(int argc, char** argv) {
         }
 
         if (cameraAnimator.running) {
-            cameraAnimator.copyPoseToCamera(camera);
-            cameraAnimator.update(dt);
+            updateClient = cameraAnimator.update(!cameraPathFileIn ? dt : 1.0 / MILLISECONDS_IN_SECOND);
             now = cameraAnimator.now;
             dt = cameraAnimator.dt;
+            if (updateClient) {
+                cameraAnimator.copyPoseToCamera(camera);
+            }
         }
         else {
             auto scroll = window->getScrollOffset();
@@ -510,6 +513,12 @@ int main(int argc, char** argv) {
             renderRemoteFrame = false;
         }
 
+        poseSendRecvSimulator.update(now);
+
+        if (!updateClient) {
+            return;
+        }
+
         nodeWireframe.visible = showWireframe;
         nodePointCloud.visible = showDepth;
 
@@ -524,17 +533,17 @@ int main(int argc, char** argv) {
             spdlog::info("Client Render Time: {:.3f}ms", timeutils::secondsToMillis(window->getTime() - startTime));
         }
 
-        poseSendRecvSimulator.update(camera, remoteCamera, now);
+        poseSendRecvSimulator.accumulateError(camera, remoteCamera);
 
         if ((cameraPathFileIn && cameraAnimator.running) || recording) {
             recorder.captureFrame(camera);
         }
         if (cameraPathFileIn && !cameraAnimator.running) {
+            poseSendRecvSimulator.printErrors();
+
             recorder.captureFrame(camera); // capture final frame
             recorder.stop();
             window->close();
-
-            poseSendRecvSimulator.printErrors();
         }
     });
 

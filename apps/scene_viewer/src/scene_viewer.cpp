@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
     config.width = windowSize.x;
     config.height = windowSize.y;
 
-    config.enableVSync = !args::get(novsync);
+    config.enableVSync = !args::get(novsync) && !saveImages;
     config.showWindow = !args::get(saveImages);
 
     std::string sceneFile = args::get(sceneFileIn);
@@ -104,7 +104,7 @@ int main(int argc, char** argv) {
     RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
-        static bool showUI = true;
+        static bool showUI = !saveImages;
         static bool showCaptureWindow = false;
         static bool showRecordWindow = false;
         static bool saveAsHDR = false;
@@ -304,6 +304,7 @@ int main(int argc, char** argv) {
 
     double totalDT = 0.0;
     double lastRenderTime = 0.0;
+    bool updateClient = !saveImages;
     app.onRender([&](double now, double dt) {
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
             auto mouseButtons = window->getMouseButtons();
@@ -346,10 +347,12 @@ int main(int argc, char** argv) {
         camera.processScroll(scroll.y);
 
         if (cameraAnimator.running) {
-            cameraAnimator.copyPoseToCamera(camera);
-            cameraAnimator.update(dt);
+            updateClient = cameraAnimator.update(!cameraPathFileIn ? dt : 1.0 / MILLISECONDS_IN_SECOND);
             now = cameraAnimator.now;
             dt = cameraAnimator.dt;
+            if (updateClient) {
+                cameraAnimator.copyPoseToCamera(camera);
+            }
         }
         else {
             // handle keyboard input
@@ -363,6 +366,10 @@ int main(int argc, char** argv) {
             scene.updateAnimations(totalDT);
             lastRenderTime = now;
             totalDT = 0.0;
+        }
+
+        if (!updateClient) {
+            return;
         }
 
         // render all objects in scene

@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
     glm::uvec2 remoteWindowSize = glm::uvec2(std::stoi(rsizeStr.substr(0, pos)), std::stoi(rsizeStr.substr(pos + 1)));
     glm::uvec2 halfRemoteWindowSize = remoteWindowSize / 2u;
 
-    config.enableVSync = !args::get(novsync);
+    config.enableVSync = !args::get(novsync) && !saveImages;
     config.showWindow = !args::get(saveImages);
 
     std::string sceneFile = args::get(sceneFileIn);
@@ -358,7 +358,7 @@ int main(int argc, char** argv) {
     std::vector<unsigned int> numIndicies(maxViews);
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
-        static bool showUI = true;
+        static bool showUI = !saveImages;
         static bool showLayerPreviews = false;
         static bool showCaptureWindow = false;
         static bool showMeshCaptureWindow = false;
@@ -699,6 +699,7 @@ int main(int argc, char** argv) {
     });
 
     double lastRenderTime = 0.0;
+    bool updateClient = !saveImages;
     int frameCounter = 0;
     app.onRender([&](double now, double dt) {
         // handle mouse input
@@ -741,10 +742,12 @@ int main(int argc, char** argv) {
         }
 
         if (cameraAnimator.running) {
-            cameraAnimator.copyPoseToCamera(camera);
-            cameraAnimator.update(dt);
+            updateClient = cameraAnimator.update(!cameraPathFileIn ? dt : 1.0 / MILLISECONDS_IN_SECOND);
             now = cameraAnimator.now;
             dt = cameraAnimator.dt;
+            if (updateClient) {
+                cameraAnimator.copyPoseToCamera(camera);
+            }
         }
         else {
             auto scroll = window->getScrollOffset();
@@ -1021,7 +1024,13 @@ int main(int argc, char** argv) {
             saveToFile = false;
         }
 
-        // hide/show nodeLayers based on user input
+        poseSendRecvSimulator.update(now);
+
+        if (!updateClient) {
+            return;
+        }
+
+        // hide/show nodes based on user input
         for (int view = 0; view < maxViews; view++) {
             bool showLayer = showLayers[view];
 
@@ -1067,17 +1076,17 @@ int main(int argc, char** argv) {
             spdlog::info("Client Render Time: {:.3f}ms", timeutils::secondsToMillis(window->getTime() - startTime));
         }
 
-        poseSendRecvSimulator.update(camera, remoteCameraCenter, now);
+        poseSendRecvSimulator.accumulateError(camera, remoteCameraCenter);
 
         if ((cameraPathFileIn && cameraAnimator.running) || recording) {
             recorder.captureFrame(camera);
         }
         if (cameraPathFileIn && !cameraAnimator.running) {
+            poseSendRecvSimulator.printErrors();
+
             recorder.captureFrame(camera); // capture final frame
             recorder.stop();
             window->close();
-
-            poseSendRecvSimulator.printErrors();
         }
     });
 

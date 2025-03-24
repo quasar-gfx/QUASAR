@@ -28,26 +28,26 @@ public:
     };
 
     PoseSendRecvSimulator(double networkLatencyMs, double networkJitterMs, double renderTimeMs, unsigned int seed = 42)
-            : networkLatencyS(networkLatencyMs / MILLISECONDS_IN_SECOND)
-            , networkJitterS(networkJitterMs / MILLISECONDS_IN_SECOND)
-            , renderTimeS(renderTimeMs / MILLISECONDS_IN_SECOND)
+            : networkLatencyS(timeutils::millisToSeconds(networkLatencyMs))
+            , networkJitterS(timeutils::millisToSeconds(networkJitterMs))
+            , renderTimeS(timeutils::millisToSeconds(renderTimeMs))
             , generator(seed)
             , distribution(-networkJitterS, networkJitterS) {
     }
 
     void setNetworkLatency(double networkLatencyMs) {
-        this->networkLatencyS = networkLatencyMs / MILLISECONDS_IN_SECOND;
+        networkLatencyS = timeutils::millisToSeconds(networkLatencyMs);
         clear();
     }
 
     void setNetworkJitter(double networkJitterMs) {
-        this->networkJitterS = networkJitterMs / MILLISECONDS_IN_SECOND;
+        networkJitterS = timeutils::millisToSeconds(networkJitterMs);
         distribution = std::uniform_real_distribution<double>(-networkJitterS, networkJitterS);
         clear();
     }
 
     void setRenderTime(double renderTimeMs) {
-        this->renderTimeS = renderTimeMs / MILLISECONDS_IN_SECOND;
+        renderTimeS = timeutils::millisToSeconds(renderTimeMs);
         clear();
     }
 
@@ -104,7 +104,6 @@ public:
             return false;
         }
 
-        // if there are poses to send, "send" them first at a delay
         double dtFuture = networkLatencyS + renderTimeS;
         double jitterPredicted = randomJitter(); // we don't know the actual jitter, so we can simulate a ping
 
@@ -120,7 +119,7 @@ public:
             }
         }
 
-        // client waits for dtFuture + outJitterS before receiving the pose
+        // client waits for dtFuture + outJitterS before receiving the server frame and pred pose
         double timestampS = timeutils::microsToSeconds(outPoses.front().timestamp);
         if (networkLatencyS > 0 && now - timestampS < dtFuture + actualOutJitter) {
             return false;
@@ -139,9 +138,22 @@ public:
         return true;
     }
 
-    void update(const PerspectiveCamera &camera, const PerspectiveCamera &remoteCamera, float now) {
-        update(now);
-        accumulateError(camera, remoteCamera);
+    void accumulateError(const PerspectiveCamera &camera, const PerspectiveCamera &remoteCamera) {
+        float positionDiff = glm::distance(camera.getPosition(), remoteCamera.getPosition());
+
+        glm::quat q1 = glm::normalize(camera.getRotationQuat());
+        glm::quat q2 = glm::normalize(remoteCamera.getRotationQuat());
+
+        // ensure the shortest path for quaternion interpolation
+        if (glm::dot(q1, q2) < 0.0f) {
+            q2 = -q2;
+        }
+
+        float angleDiffRadians = 2.0f * glm::acos(glm::clamp(glm::dot(q1, q2), -1.0f, 1.0f));
+        float angleDiffDegrees = glm::degrees(angleDiffRadians);
+
+        positionErrors.push_back(positionDiff);
+        rotationErrors.push_back(std::abs(angleDiffDegrees));
     }
 
     ErrorStats getAvgErrors() {
@@ -209,24 +221,6 @@ private:
             sumSquaredDiffs += (err - mean) * (err - mean);
         }
         return std::sqrt(sumSquaredDiffs / (errors.size() - 1));
-    }
-
-    void accumulateError(const PerspectiveCamera &camera, const PerspectiveCamera &remoteCamera) {
-        float positionDiff = glm::distance(camera.getPosition(), remoteCamera.getPosition());
-
-        glm::quat q1 = glm::normalize(camera.getRotationQuat());
-        glm::quat q2 = glm::normalize(remoteCamera.getRotationQuat());
-
-        // ensure the shortest path for quaternion interpolation
-        if (glm::dot(q1, q2) < 0.0f) {
-            q2 = -q2;
-        }
-
-        float angleDiffRadians = 2.0f * glm::acos(glm::clamp(glm::dot(q1, q2), -1.0f, 1.0f));
-        float angleDiffDegrees = glm::degrees(angleDiffRadians);
-
-        positionErrors.push_back(positionDiff);
-        rotationErrors.push_back(std::abs(angleDiffDegrees));
     }
 
     bool getPosePredicted(Pose& predictedPose, const Pose& lastPose, const Pose& secondLastPose, double targetFutureTimeS) {

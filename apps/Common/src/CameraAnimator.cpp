@@ -45,13 +45,13 @@ bool CameraAnimator::update(double dt) {
     if (!running || waypoints.size() < 2)
         return false;
 
-    bool res = firstUpdate; firstUpdate = false;
+    bool waypointUpdated = firstUpdate; firstUpdate = false;
     if (tween) {
         this->dt = dt;
         now += this->dt;
         while (currentIndex < waypoints.size() && now >= waypoints[currentIndex + 1].timestamp) {
             currentIndex++;
-            res = true;
+            waypointUpdated = true;
         }
     }
     else {
@@ -62,7 +62,7 @@ bool CameraAnimator::update(double dt) {
         }
         now = waypoints[currentIndex].timestamp;
 
-        res = true;
+        waypointUpdated = true;
     }
 
     if (currentIndex >= waypoints.size()) {
@@ -70,7 +70,7 @@ bool CameraAnimator::update(double dt) {
         running = false;
     }
 
-    return res;
+    return waypointUpdated;
 }
 
 const glm::vec3 CameraAnimator::getCurrentPosition() const {

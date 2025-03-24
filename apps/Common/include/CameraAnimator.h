@@ -23,7 +23,7 @@ public:
     double now = 0.0;
     double dt = 0.0;
 
-    CameraAnimator(const std::string &pathFile, bool tween = false);
+    CameraAnimator(const std::string &pathFile, bool tween = true);
 
     void loadAnimation(const std::string &pathFile);
     bool update(double dt);
