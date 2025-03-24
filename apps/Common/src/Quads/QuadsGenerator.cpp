@@ -3,7 +3,7 @@
 
 #define THREADS_PER_LOCALGROUP 2
 
-#define MAX_PROXY_SIZE 1024
+#define MAX_PROXY_SIZE (2048)
 
 QuadsGenerator::QuadsGenerator(glm::uvec2 &remoteWindowSize)
         : remoteWindowSize(remoteWindowSize)

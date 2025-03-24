@@ -340,16 +340,17 @@ vec4 planeToPlaneEq(in Plane plane) {
 Plane planeEqToPlane(in vec4 planeEq) {
     Plane plane;
     plane.normal = planeEq.xyz;
+    float D = planeEq.w;
     if (planeEq.z != 0.0) {
-        float z = -planeEq.w / planeEq.z;
+        float z = -D / planeEq.z;
         plane.point = vec3(0.0, 0.0, z);
     }
     else if (planeEq.y != 0.0) {
-        float y = -planeEq.w / planeEq.y;
+        float y = -D / planeEq.y;
         plane.point = vec3(0.0, y, 0.0);
     }
     else if (planeEq.x != 0.0) {
-        float x = -planeEq.w / planeEq.x;
+        float x = -D / planeEq.x;
         plane.point = vec3(x, 0.0, 0.0);
     }
     return plane;

@@ -512,7 +512,7 @@ int main(int argc, char** argv) {
                     runAnimations = false;
                 }
 
-                if (ImGui::DragFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.001f, 0.0f, 2.0f)) {
+                if (ImGui::DragFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.001f, 0.0f, 1.0f)) {
                     preventCopyingLocalPose = true;
                     generateIFrame = true;
                     runAnimations = false;
@@ -753,12 +753,11 @@ int main(int argc, char** argv) {
         }
 
         // update all animations
-        // we run this outside the rerender loop to ensure that animations are sync'ed with scene_viewer
+        // we run this outside the remote loop to ensure that animations are sync'ed with scene_viewer
         if (runAnimations) {
             remoteScene.updateAnimations(dt);
         }
 
-        poseSendRecvSimulator.update(now);
         if (rerenderInterval > 0.0 && (now - lastRenderTime) >= (rerenderInterval - 1) / MILLISECONDS_IN_SECOND) {
             generateIFrame = (++frameCounter) % IFRAME_PERIOD == 0; // insert I-Frame every IFRAME_PERIOD frames
             generatePFrame = !generateIFrame;
@@ -785,15 +784,18 @@ int main(int argc, char** argv) {
             totalProxies = 0;
             totalDepthOffsets = 0;
 
+            // "send" pose to the server. this will wait until latency+/-jitter ms have passed
             poseSendRecvSimulator.sendPose(camera, now);
             if (!preventCopyingLocalPose) {
-                Pose clientPose;
-                if (poseSendRecvSimulator.recvPose(clientPose, now)) {
-                    // update center camera
-                    remoteCameraCenter.setViewMatrix(clientPose.mono.view);
+                // "receive" a predicted pose to render a new frame. this will wait until latency+/-jitter ms have passed
+                Pose clientPosePred;
+                if (poseSendRecvSimulator.recvPoseToRender(clientPosePred, now)) {
+                    remoteCameraCenter.setViewMatrix(clientPosePred.mono.view);
+
+                    // update wide fov camera
+                    remoteCameraWideFov.setViewMatrix(remoteCameraCenter.getViewMatrix());
                 }
-                // update wide fov camera
-                remoteCameraWideFov.setViewMatrix(remoteCameraCenter.getViewMatrix());
+                // if we do not have a new pose, just send a new frame with the old pose
             }
 
             // render remote scene with multiple layers
@@ -868,10 +870,10 @@ int main(int argc, char** argv) {
                 ============================
                 */
                 unsigned int numProxies = 0, numDepthOffsets = 0;
-                quadsGenerator.expandEdges = (generatePFrame || view == maxViews - 1);
+                quadsGenerator.expandEdges = (view == maxViews - 1);
                 if (view == maxViews - 1) {
-                    quadsGenerator.proxySimilarityThreshold *= 2.0f;
-                    quadsGenerator.flatThreshold *= 2.0f;
+                    quadsGenerator.proxySimilarityThreshold *= 5.0f;
+                    quadsGenerator.flatThreshold *= 5.0f;
                 }
                 unsigned int numBytesIFrame = frameGenerator.generateIFrame(
                     gBufferToUseLowRes, gBufferToUseHighRes, remoteCameraToUse,
@@ -886,8 +888,8 @@ int main(int argc, char** argv) {
                     totalCompressTime += frameGenerator.stats.timeToCompress;
                 }
                 if (view == maxViews - 1) {
-                    quadsGenerator.proxySimilarityThreshold /= 2.0f;
-                    quadsGenerator.flatThreshold /= 2.0f;
+                    quadsGenerator.proxySimilarityThreshold /= 5.0f;
+                    quadsGenerator.flatThreshold /= 5.0f;
                 }
 
                 totalGenQuadMapTime += frameGenerator.stats.timeToGenerateQuadsMs;
@@ -907,6 +909,7 @@ int main(int argc, char** argv) {
                 */
                 if (view == 0) {
                     if (generatePFrame) {
+                        quadsGenerator.expandEdges = true;
                         compressedSize -= numBytesIFrame;
                         compressedSize += frameGenerator.generatePFrame(
                             meshScenesCenter[currMeshIndex], meshScenesCenter[prevMeshIndex],
@@ -1064,7 +1067,7 @@ int main(int argc, char** argv) {
             spdlog::info("Client Render Time: {:.3f}ms", timeutils::secondsToMillis(window->getTime() - startTime));
         }
 
-        poseSendRecvSimulator.accumulateErrors(camera, remoteCameraCenter);
+        poseSendRecvSimulator.update(camera, remoteCameraCenter, now);
 
         if ((cameraPathFileIn && cameraAnimator.running) || recording) {
             recorder.captureFrame(camera);

@@ -25,7 +25,7 @@ struct QuadMapDataPacked {
     unsigned int normalSpherical;
     // full resolution depth (32 bits)
     float depth;
-    // offset.x << 20 | offset.y << 8 (12 bits each) | size << 1 (5 bits) | flattened (1 bit). 30 bits used
+    // offset.x << 20 | offset.y << 8 (12 bits each) | size << 1 (6 bits) | flattened (1 bit). 31 bits used
     unsigned int offsetSizeFlattened;
 }; // 96 bits total
 

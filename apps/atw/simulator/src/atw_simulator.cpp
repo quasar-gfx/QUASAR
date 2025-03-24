@@ -131,7 +131,7 @@ int main(int argc, char** argv) {
     bool preventCopyingLocalPose = false;
     bool runAnimations = cameraPathFileIn;
 
-    bool rerender = true;
+    bool renderRemoteFrame = true;
 
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};
@@ -235,7 +235,7 @@ int main(int argc, char** argv) {
             }
 
             if (ImGui::Button("Send Server Frame", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
-                rerender = true;
+                renderRemoteFrame = true;
                 runAnimations = true;
             }
 
@@ -326,26 +326,27 @@ int main(int argc, char** argv) {
         }
 
         // update all animations
-        // we run this outside the rerender loop to ensure that animations are sync'ed with scene_viewer
+        // we run this outside the remote loop to ensure that animations are sync'ed with scene_viewer
         if (runAnimations) {
             remoteScene.updateAnimations(dt);
         }
 
-        poseSendRecvSimulator.update(now);
         if (rerenderInterval > 0.0 && (now - lastRenderTime) >= (rerenderInterval - 1) / MILLISECONDS_IN_SECOND) {
-            rerender = true;
-            runAnimations = true;
+            renderRemoteFrame = true;
             lastRenderTime = now;
         }
-        if (rerender) {
+        if (renderRemoteFrame) {
             double startTime = window->getTime();
 
+            // "send" pose to the server. this will wait until latency+/-jitter ms have passed
             poseSendRecvSimulator.sendPose(camera, now);
             if (!preventCopyingLocalPose) {
-                Pose clientPose;
-                if (poseSendRecvSimulator.recvPose(clientPose, now)) {
-                    remoteCamera.setViewMatrix(clientPose.mono.view);
+                // "receive" a predicted pose to render a new frame. this will wait until latency+/-jitter ms have passed
+                Pose clientPosePred;
+                if (poseSendRecvSimulator.recvPoseToRender(clientPosePred, now)) {
+                    remoteCamera.setViewMatrix(clientPosePred.mono.view);
                 }
+                // if we do not have a new pose, just send a new frame with the old pose
             }
 
             // render remoteScene
@@ -358,7 +359,7 @@ int main(int argc, char** argv) {
             spdlog::info("Rendering Time: {:.3f}ms", timeutils::secondsToMillis(window->getTime() - startTime));
 
             preventCopyingLocalPose = false;
-            rerender = false;
+            renderRemoteFrame = false;
         }
 
         atwShader.bind();
@@ -384,7 +385,7 @@ int main(int argc, char** argv) {
             spdlog::info("Client Render Time: {:.3f}ms", timeutils::secondsToMillis(window->getTime() - startTime));
         }
 
-        poseSendRecvSimulator.accumulateErrors(camera, remoteCamera);
+        poseSendRecvSimulator.update(camera, remoteCamera, now);
 
         if ((cameraPathFileIn && cameraAnimator.running) || recording) {
             recorder.captureFrame(camera);

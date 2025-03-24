@@ -276,7 +276,7 @@ int main(int argc, char** argv) {
     bool restrictMovementToViewBox = !cameraPathFileIn;
     float viewBoxSize = args::get(viewBoxSizeIn);
 
-    bool rerender = true;
+    bool renderRemoteFrame = true;
 
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};
@@ -413,7 +413,7 @@ int main(int argc, char** argv) {
 
             if (ImGui::Checkbox("Show Normals Instead of Color", &showNormals)) {
                 preventCopyingLocalPose = true;
-                rerender = true;
+                renderRemoteFrame = true;
                 runAnimations = false;
             }
 
@@ -422,7 +422,7 @@ int main(int argc, char** argv) {
             ImGui::Checkbox("Show Wireframe", &showWireframe);
             if (ImGui::Checkbox("Show Depth Map as Point Cloud", &showDepth)) {
                 preventCopyingLocalPose = true;
-                rerender = true;
+                renderRemoteFrame = true;
                 runAnimations = false;
             }
 
@@ -431,31 +431,31 @@ int main(int argc, char** argv) {
             if (ImGui::CollapsingHeader("Quad Generation Settings")) {
                 if (ImGui::Checkbox("Correct Extreme Normals", &quadsGenerator.correctOrientation)) {
                     preventCopyingLocalPose = true;
-                    rerender = true;
+                    renderRemoteFrame = true;
                     runAnimations = false;
                 }
 
                 if (ImGui::DragFloat("Depth Threshold", &quadsGenerator.depthThreshold, 0.0001f, 0.0f, 1.0f, "%.4f")) {
                     preventCopyingLocalPose = true;
-                    rerender = true;
+                    renderRemoteFrame = true;
                     runAnimations = false;
                 }
 
                 if (ImGui::DragFloat("Angle Threshold", &quadsGenerator.angleThreshold, 0.1f, 0.0f, 180.0f)) {
                     preventCopyingLocalPose = true;
-                    rerender = true;
+                    renderRemoteFrame = true;
                     runAnimations = false;
                 }
 
                 if (ImGui::DragFloat("Flat Threshold", &quadsGenerator.flatThreshold, 0.001f, 0.0f, 1.0f)) {
                     preventCopyingLocalPose = true;
-                    rerender = true;
+                    renderRemoteFrame = true;
                     runAnimations = false;
                 }
 
-                if (ImGui::DragFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.001f, 0.0f, 2.0f)) {
+                if (ImGui::DragFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.001f, 0.0f, 1.0f)) {
                     preventCopyingLocalPose = true;
-                    rerender = true;
+                    renderRemoteFrame = true;
                     runAnimations = false;
                 }
             }
@@ -479,7 +479,7 @@ int main(int argc, char** argv) {
             }
 
             if (ImGui::Button("Send Server Frame", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
-                rerender = true;
+                renderRemoteFrame = true;
                 runAnimations = true;
             }
 
@@ -487,7 +487,7 @@ int main(int argc, char** argv) {
 
             if (ImGui::DragFloat("View Box Size", &viewBoxSize, 0.05f, 0.1f, 1.0f)) {
                 preventCopyingLocalPose = true;
-                rerender = true;
+                renderRemoteFrame = true;
                 runAnimations = false;
             }
 
@@ -597,7 +597,7 @@ int main(int argc, char** argv) {
 
             if (ImGui::Button("Save Proxies")) {
                 preventCopyingLocalPose = true;
-                rerender = true;
+                renderRemoteFrame = true;
                 runAnimations = false;
                 saveToFile = true;
             }
@@ -668,18 +668,16 @@ int main(int argc, char** argv) {
         }
 
         // update all animations
-        // we run this outside the rerender loop to ensure that animations are sync'ed with scene_viewer
+        // we run this outside the remote loop to ensure that animations are sync'ed with scene_viewer
         if (runAnimations) {
             remoteScene.updateAnimations(dt);
         }
 
-        poseSendRecvSimulator.update(now);
         if (rerenderInterval > 0.0 && (now - lastRenderTime) >= (rerenderInterval - 1) / MILLISECONDS_IN_SECOND) {
-            rerender = true;
-            runAnimations = true;
+            renderRemoteFrame = true;
             lastRenderTime = now;
         }
-        if (rerender) {
+        if (renderRemoteFrame) {
             double startTime = window->getTime();
             double totalRenderTime = 0.0;
             double totalCreateProxiesTime = 0.0;
@@ -697,24 +695,26 @@ int main(int argc, char** argv) {
             totalProxies = 0;
             totalDepthOffsets = 0;
 
+            // "send" pose to the server. this will wait until latency+/-jitter ms have passed
             poseSendRecvSimulator.sendPose(camera, now);
             if (!preventCopyingLocalPose) {
-                Pose clientPose;
-                if (poseSendRecvSimulator.recvPose(clientPose, now)) {
-                    // update center camera
-                    remoteCameraCenter.setViewMatrix(clientPose.mono.view);
-                }
+                // "receive" a predicted pose to render a new frame. this will wait until latency+/-jitter ms have passed
+                Pose clientPosePred;
+                if (poseSendRecvSimulator.recvPoseToRender(clientPosePred, now)) {
+                    remoteCameraCenter.setViewMatrix(clientPosePred.mono.view);
 
-                // update other cameras in view box corners
-                for (int view = 1; view < maxViews - 1; view++) {
-                    const glm::vec3 &offset = offsets[view - 1];
-                    remoteCameras[view].setViewMatrix(remoteCameraCenter.getViewMatrix());
-                    remoteCameras[view].setPosition(remoteCameraCenter.getPosition() + viewBoxSize/2 * offset);
-                    remoteCameras[view].updateViewMatrix();
-                }
+                    // update other cameras in view box corners
+                    for (int view = 1; view < maxViews - 1; view++) {
+                        const glm::vec3 &offset = offsets[view - 1];
+                        remoteCameras[view].setViewMatrix(remoteCameraCenter.getViewMatrix());
+                        remoteCameras[view].setPosition(remoteCameraCenter.getPosition() + viewBoxSize/2 * offset);
+                        remoteCameras[view].updateViewMatrix();
+                    }
 
-                // update wide fov camera
-                remoteCameras[maxViews-1].setViewMatrix(remoteCameraCenter.getViewMatrix());
+                    // update wide fov camera
+                    remoteCameras[maxViews-1].setViewMatrix(remoteCameraCenter.getViewMatrix());
+                }
+                // if we do not have a new pose, just send a new frame with the old pose
             }
 
             for (int view = 0; view < maxViews; view++) {
@@ -853,7 +853,7 @@ int main(int argc, char** argv) {
             spdlog::info("Num Proxies: {}Proxies", totalProxies);
 
             preventCopyingLocalPose = false;
-            rerender = false;
+            renderRemoteFrame = false;
             saveToFile = false;
         }
 
@@ -889,7 +889,7 @@ int main(int argc, char** argv) {
             spdlog::info("Client Render Time: {:.3f}ms", timeutils::secondsToMillis(window->getTime() - startTime));
         }
 
-        poseSendRecvSimulator.accumulateErrors(camera, remoteCameraCenter);
+        poseSendRecvSimulator.update(camera, remoteCameraCenter, now);
 
         if ((cameraPathFileIn && cameraAnimator.running) || recording) {
             recorder.captureFrame(camera);
