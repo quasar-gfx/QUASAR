@@ -73,10 +73,15 @@ public:
                 camera.getProjectionMatrix(),
                 static_cast<uint64_t>(timeutils::secondsToMicros(now))
             });
-        update(now);
+        update(now); // update to process the incoming poses
     }
 
     void update(float now) {
+        if (now <= lastUpdateTimeS) {
+            return; // prevent multiple updates with the same or earlier time
+        }
+        lastUpdateTimeS = now;
+
         // server "receives" pose here
         if (!incomingPoses.empty()) {
             double dtFuture = networkLatencyS;
@@ -185,6 +190,8 @@ public:
     }
 
 private:
+    double lastUpdateTimeS = -1.0;
+
     std::deque<Pose> incomingPoses;
     std::deque<Pose> outPoses;
     std::deque<double> outOrigTimestamps;

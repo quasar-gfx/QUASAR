@@ -160,7 +160,7 @@ int main(int argc, char** argv) {
     QuadsGenerator quadsGenerator(remoteWindowSize);
     // match QuadStream's parameters:
     quadsGenerator.expandEdges = true;
-    quadsGenerator.depthThreshold = 1e-4f;
+    quadsGenerator.depthThreshold = 1e-3f;
     quadsGenerator.flatThreshold = 1e-2f;
     quadsGenerator.proxySimilarityThreshold = 0.1f;
     MeshFromQuads meshFromQuads(remoteWindowSize);
@@ -168,8 +168,8 @@ int main(int argc, char** argv) {
 
     std::vector<GBuffer> gBufferRTs; gBufferRTs.reserve(maxViews);
     RenderTargetCreateParams rtParams = {
-        .width = windowSize.x,
-        .height = windowSize.y,
+        .width = remoteWindowSize.x,
+        .height = remoteWindowSize.y,
         .internalFormat = GL_RGBA16F,
         .format = GL_RGBA,
         .type = GL_HALF_FLOAT,
@@ -453,7 +453,7 @@ int main(int argc, char** argv) {
                     runAnimations = false;
                 }
 
-                if (ImGui::DragFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.001f, 0.0f, 1.0f)) {
+                if (ImGui::DragFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.001f, 0.0f, 10.0f)) {
                     preventCopyingLocalPose = true;
                     renderRemoteFrame = true;
                     runAnimations = false;
@@ -577,8 +577,8 @@ int main(int argc, char** argv) {
                     std::ofstream verticesFile(dataPath + verticesFileName, std::ios::binary);
                     verticesFile.write((char*)vertices.data(), numVertices[view] * sizeof(QuadVertex));
                     verticesFile.close();
-                    spdlog::info("Saved {} vertices ({:.3f} MB) for view {}", numVertices[view],
-                                                (float)numVertices[view] * sizeof(QuadVertex) / BYTES_IN_MB, view);
+                    spdlog::info("Saved {} vertices ({:.3f} MB) for view {}",
+                                 numVertices[view], static_cast<float>(numVertices[view] * sizeof(QuadVertex)) / BYTES_IN_MB, view);
 
                     // save indexBuffer
                     meshViews[view].indexBuffer.bind();
@@ -586,8 +586,8 @@ int main(int argc, char** argv) {
                     std::ofstream indicesFile(dataPath + indicesFileName, std::ios::binary);
                     indicesFile.write((char*)indices.data(), numIndicies[view] * sizeof(unsigned int));
                     indicesFile.close();
-                    spdlog::info("Saved {} indicies ({:.3f} MB) for view {}", numIndicies[view],
-                                                (float)numIndicies[view] * sizeof(unsigned int) / BYTES_IN_MB, view);
+                    spdlog::info("Saved {} indicies ({:.3f} MB) for view {}",
+                                 numIndicies[view], static_cast<float>(numIndicies[view] * sizeof(unsigned int)) / BYTES_IN_MB, view);
 
                     // save color buffer
                     std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
@@ -709,11 +709,19 @@ int main(int argc, char** argv) {
                     // update other cameras in view box corners
                     for (int view = 1; view < maxViews - 1; view++) {
                         const glm::vec3 &offset = offsets[view - 1];
+                        const glm::vec3 &right = remoteCameraCenter.getRightVector();
+                        const glm::vec3 &up = remoteCameraCenter.getUpVector();
+                        const glm::vec3 &forward = remoteCameraCenter.getForwardVector();
+
+                        glm::vec3 worldOffset =
+                            right   * offset.x * viewBoxSize / 2.0f +
+                            up      * offset.y * viewBoxSize / 2.0f +
+                            forward * offset.z * viewBoxSize / 2.0f;
+
                         remoteCameras[view].setViewMatrix(remoteCameraCenter.getViewMatrix());
-                        remoteCameras[view].setPosition(remoteCameraCenter.getPosition() + viewBoxSize/2 * offset);
+                        remoteCameras[view].setPosition(remoteCameraCenter.getPosition() + worldOffset);
                         remoteCameras[view].updateViewMatrix();
                     }
-
                     // update wide fov camera
                     remoteCameras[maxViews-1].setViewMatrix(remoteCameraCenter.getViewMatrix());
                 }
@@ -721,17 +729,19 @@ int main(int argc, char** argv) {
             }
 
             for (int view = 0; view < maxViews; view++) {
-                auto& remoteCamera = remoteCameras[view];
+                auto& remoteCameraToUse = remoteCameras[view];
 
-                auto& currMesh = meshViews[view];
-                auto& currMeshDepth = meshDepths[view];
+                auto& gBufferToUse = gBufferRTs[view];
+
+                auto& meshToUse = meshViews[view];
+                auto& meshToUseDepth = meshDepths[view];
 
                 startTime = window->getTime();
 
                 // center view
                 if (view == 0) {
                     // render all objects in remoteScene normally
-                    remoteRenderer.drawObjects(remoteScene, remoteCamera);
+                    remoteRenderer.drawObjects(remoteScene, remoteCameraToUse);
                 }
                 // other views
                 else {
@@ -742,29 +752,29 @@ int main(int argc, char** argv) {
                     // draw old meshViews at new remoteCamera view, filling stencil buffer with 1
                     remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer(GL_KEEP, GL_KEEP, GL_REPLACE);
                     remoteRenderer.pipeline.writeMaskState.disableColorWrites();
-                    remoteRenderer.drawObjectsNoLighting(meshScene, remoteCamera);
+                    remoteRenderer.drawObjectsNoLighting(meshScene, remoteCameraToUse);
 
                     // render remoteScene using stencil buffer as a mask
                     // at values where stencil buffer is not 1, remoteScene should render
                     remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_NOTEQUAL, 1);
                     remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = false;
                     remoteRenderer.pipeline.writeMaskState.enableColorWrites();
-                    remoteRenderer.drawObjectsNoLighting(remoteScene, remoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                    remoteRenderer.drawObjectsNoLighting(remoteScene, remoteCameraToUse, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
                     remoteRenderer.pipeline.stencilState.restoreStencilState();
                 }
                 if (!showNormals) {
-                    remoteRenderer.copyToGBuffer(gBufferRTs[view]);
+                    remoteRenderer.copyToGBuffer(gBufferToUse);
                 }
                 else {
-                    showNormalsEffect.drawToRenderTarget(remoteRenderer, gBufferRTs[view]);
+                    showNormalsEffect.drawToRenderTarget(remoteRenderer, gBufferToUse);
                 }
                 totalRenderTime += timeutils::secondsToMillis(window->getTime() - startTime);
 
                 unsigned int numProxies = 0, numDepthOffsets = 0;
                 compressedSize += frameGenerator.generateIFrame(
-                    gBufferRTs[view], gBufferRTs[view], remoteCamera,
-                    currMesh,
+                    gBufferToUse, remoteCameraToUse,
+                    meshToUse,
                     numProxies, numDepthOffsets,
                     false
                 );
@@ -789,46 +799,46 @@ int main(int argc, char** argv) {
                     startTime = window->getTime();
                     std::string quadsFileName = dataPath + "quads" + std::to_string(view) + ".bin";
                     savedBytes = quadsGenerator.saveToFile(quadsFileName);
-                    spdlog::info("Saved {} quads ({:.3f} MB) in {:.3f}ms", numProxies,
-                                                        (float)savedBytes / BYTES_IN_MB,
-                                                        timeutils::secondsToMillis(window->getTime() - startTime));
+                    spdlog::info("Saved {} quads ({:.3f} MB) in {:.3f}ms",
+                                 numProxies, static_cast<float>(savedBytes) / BYTES_IN_MB,
+                                    timeutils::secondsToMillis(window->getTime() - startTime));
 
                     startTime = window->getTime();
                     std::string depthOffsetsFileName = dataPath + "depthOffsets" + std::to_string(view) + ".bin";
                     savedBytes = quadsGenerator.saveDepthOffsetsToFile(depthOffsetsFileName);
-                    spdlog::info("Saved {} depth offsets ({:.3f} MB) in {:.3f}ms", numDepthOffsets,
-                                                        (float)savedBytes / BYTES_IN_MB,
-                                                        timeutils::secondsToMillis(window->getTime() - startTime));
+                    spdlog::info("Saved {} depth offsets ({:.3f} MB) in {:.3f}ms",
+                                 numDepthOffsets, static_cast<float>(savedBytes) / BYTES_IN_MB,
+                                    timeutils::secondsToMillis(window->getTime() - startTime));
 
                     // save color buffer
                     std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
-                    gBufferRTs[view].saveColorAsPNG(colorFileName);
+                    gBufferToUse.saveColorAsPNG(colorFileName);
                 }
 
                 // For debugging: Generate point cloud from depth map
                 if (showDepth) {
-                    const glm::vec2 gBufferSize = glm::vec2(gBufferRTs[view].width, gBufferRTs[view].height);
+                    const glm::vec2 gBufferSize = glm::vec2(gBufferToUse.width, gBufferToUse.height);
 
                     meshFromDepthShader.startTiming();
 
                     meshFromDepthShader.bind();
                     {
-                        meshFromDepthShader.setTexture(gBufferRTs[view].depthStencilBuffer, 0);
+                        meshFromDepthShader.setTexture(gBufferToUse.depthStencilBuffer, 0);
                     }
                     {
                         meshFromDepthShader.setVec2("depthMapSize", gBufferSize);
                     }
                     {
-                        meshFromDepthShader.setMat4("view", remoteCamera.getViewMatrix());
-                        meshFromDepthShader.setMat4("projection", remoteCamera.getProjectionMatrix());
-                        meshFromDepthShader.setMat4("viewInverse", remoteCamera.getViewMatrixInverse());
-                        meshFromDepthShader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
+                        meshFromDepthShader.setMat4("view", remoteCameraToUse.getViewMatrix());
+                        meshFromDepthShader.setMat4("projection", remoteCameraToUse.getProjectionMatrix());
+                        meshFromDepthShader.setMat4("viewInverse", remoteCameraToUse.getViewMatrixInverse());
+                        meshFromDepthShader.setMat4("projectionInverse", remoteCameraToUse.getProjectionMatrixInverse());
 
-                        meshFromDepthShader.setFloat("near", remoteCamera.getNear());
-                        meshFromDepthShader.setFloat("far", remoteCamera.getFar());
+                        meshFromDepthShader.setFloat("near", remoteCameraToUse.getNear());
+                        meshFromDepthShader.setFloat("far", remoteCameraToUse.getFar());
                     }
                     {
-                        meshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currMeshDepth.vertexBuffer);
+                        meshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, meshToUseDepth.vertexBuffer);
                         meshFromDepthShader.clearBuffer(GL_SHADER_STORAGE_BUFFER, 1);
                     }
                     meshFromDepthShader.dispatch((gBufferSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
@@ -862,10 +872,6 @@ int main(int argc, char** argv) {
 
         poseSendRecvSimulator.update(now);
 
-        if (!updateClient) {
-            return;
-        }
-
         // hide/show nodes based on user input
         for (int view = 0; view < maxViews; view++) {
             bool showView = showViews[view];
@@ -894,6 +900,9 @@ int main(int argc, char** argv) {
         // render to screen
         toneMapper.enableToneMapping(!showNormals);
         toneMapper.drawToScreen(renderer);
+        if (!updateClient) {
+            return;
+        }
         if (cameraAnimator.running) {
             spdlog::info("Client Render Time: {:.3f}ms", timeutils::secondsToMillis(window->getTime() - startTime));
         }
@@ -905,8 +914,7 @@ int main(int argc, char** argv) {
         }
         if (cameraPathFileIn && !cameraAnimator.running) {
             poseSendRecvSimulator.printErrors();
-
-            recorder.captureFrame(camera); // capture final frame
+            recorder.captureFrame(camera);
             recorder.stop();
             window->close();
         }

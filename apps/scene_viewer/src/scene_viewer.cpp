@@ -399,7 +399,7 @@ int main(int argc, char** argv) {
             recorder.captureFrame(camera);
         }
         if (cameraPathFileIn && !cameraAnimator.running) {
-            recorder.captureFrame(camera); // capture final frame
+            recorder.captureFrame(camera);
             recorder.stop();
             window->close();
         }

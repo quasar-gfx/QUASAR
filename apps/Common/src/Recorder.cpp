@@ -83,9 +83,6 @@ void Recorder::stop() {
 void Recorder::captureFrame(const Camera &camera) {
     int64_t currentTime = timeutils::getTimeMillis();
     int64_t elapsedTime = currentTime - recordingStartTime;
-    if (targetFrameRate > 0 && elapsedTime < 1.0f / targetFrameRate) {
-        return;
-    }
 
     effect.drawToRenderTarget(renderer, renderTargetCopy);
 
@@ -162,7 +159,7 @@ void Recorder::saveFrames() {
             }
 
             {
-                std::unique_lock<std::mutex> lock(swsMutex);
+                std::lock_guard<std::mutex> lock(swsMutex);
 
                 const uint8_t* srcData[] = { renderTargetData.data() };
                 int srcStride[] = { static_cast<int>(renderTargetCopy.width * 4) }; // RGBA has 4 bytes per pixel

@@ -36,7 +36,7 @@ public:
     } stats;
 
     unsigned int generateIFrame(
-        const GBuffer &gBuffer, const GBuffer &gBufferHighRes,
+        const GBuffer &gBuffer,
         const PerspectiveCamera &remoteCamera,
         const Mesh &mesh,
         unsigned int &numProxies, unsigned int &numDepthOffsets,
@@ -44,8 +44,7 @@ public:
 
     unsigned int generatePFrame(
         const Scene &currScene, const Scene &prevScene,
-        GBuffer &gBufferHighRes, GBuffer &gBufferMaskHighRes,
-        GBuffer &gBufferLowRes, GBuffer &gBufferMaskLowRes,
+        GBuffer &gBuffer, GBuffer &gBufferMask,
         const PerspectiveCamera &currRemoteCamera, const PerspectiveCamera &prevRemoteCamera,
         const Mesh &currMesh, const Mesh &maskMesh,
         unsigned int &numProxies, unsigned int &numDepthOffsets,

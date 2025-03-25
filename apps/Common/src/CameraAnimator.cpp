@@ -45,29 +45,33 @@ bool CameraAnimator::update(double dt) {
     if (!running || waypoints.size() < 2)
         return false;
 
-    bool waypointUpdated = firstUpdate; firstUpdate = false;
+    bool waypointUpdated = firstUpdate;
+    firstUpdate = false;
+
     if (tween) {
         this->dt = dt;
         now += this->dt;
-        while (currentIndex < waypoints.size() && now >= waypoints[currentIndex + 1].timestamp) {
+
+        while (currentIndex + 1 < waypoints.size() && now >= waypoints[currentIndex + 1].timestamp) {
             currentIndex++;
             waypointUpdated = true;
+        }
+
+        if (currentIndex >= waypoints.size() - 1) {
+            running = false;
         }
     }
     else {
         currentIndex++;
-        if (currentIndex > 0) {
+        if (currentIndex < waypoints.size()) {
             auto deltaSeconds = waypoints[currentIndex].timestamp - waypoints[currentIndex - 1].timestamp;
             this->dt = glm::max(deltaSeconds, 0.0);
+            now = waypoints[currentIndex].timestamp;
+            waypointUpdated = true;
         }
-        now = waypoints[currentIndex].timestamp;
-
-        waypointUpdated = true;
-    }
-
-    if (currentIndex >= waypoints.size()) {
-        currentIndex = waypoints.size() - 1;
-        running = false;
+        else {
+            running = false;
+        }
     }
 
     return waypointUpdated;

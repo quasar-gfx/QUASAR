@@ -367,10 +367,6 @@ int main(int argc, char** argv) {
 
         poseSendRecvSimulator.update(now);
 
-        if (!updateClient) {
-            return;
-        }
-
         atwShader.bind();
         {
             atwShader.setBool("atwEnabled", atwEnabled);
@@ -390,6 +386,9 @@ int main(int argc, char** argv) {
 
         double startTime = window->getTime();
         toneMapper.drawToScreen(renderer);
+        if (!updateClient) {
+            return;
+        }
         if (cameraAnimator.running) {
             spdlog::info("Client Render Time: {:.3f}ms", timeutils::secondsToMillis(window->getTime() - startTime));
         }
@@ -401,8 +400,7 @@ int main(int argc, char** argv) {
         }
         if (cameraPathFileIn && !cameraAnimator.running) {
             poseSendRecvSimulator.printErrors();
-
-            recorder.captureFrame(camera); // capture final frame
+            recorder.captureFrame(camera);
             recorder.stop();
             window->close();
         }

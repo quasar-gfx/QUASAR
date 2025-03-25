@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::Flag verbose(parser, "verbose", "Enable verbose logging", {'v', "verbose"});
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "1920x1080");
-    args::ValueFlag<std::string> resIn(parser, "rsize", "Resolution of remote renderer", {'r', "rsize"}, "3840x2160");
+    args::ValueFlag<std::string> resIn(parser, "rsize", "Resolution of remote renderer", {'r', "rsize"}, "1920x1080");
     args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::Flag saveImages(parser, "save", "Save outputs to disk", {'I', "save-images"});
@@ -503,9 +503,9 @@ int main(int argc, char** argv) {
             totalCreateVertIndTime += meshFromBC4Shader.getElapsedTime();
 
             spdlog::info("======================================================");
-            spdlog::info("Rendering Time: {:.2f}ms", totalRenderTime);
-            spdlog::info("Create Mesh Time: {:.2f}ms", totalGenMeshTime);
-            spdlog::info("  Create Vert/Ind Time: {:.2f}ms", totalCreateVertIndTime);
+            spdlog::info("Rendering Time: {:.3f}ms", totalRenderTime);
+            spdlog::info("Create Mesh Time: {:.3f}ms", totalGenMeshTime);
+            spdlog::info("  Create Vert/Ind Time: {:.3f}ms", totalCreateVertIndTime);
             spdlog::info("Compress Time: {:.3f}ms", totalCompressTime);
             spdlog::info("Frame Size: {:.3f}MB", static_cast<float>(compressedSize) / BYTES_IN_MB);
 
@@ -514,10 +514,6 @@ int main(int argc, char** argv) {
         }
 
         poseSendRecvSimulator.update(now);
-
-        if (!updateClient) {
-            return;
-        }
 
         nodeWireframe.visible = showWireframe;
         nodePointCloud.visible = showDepth;
@@ -529,6 +525,9 @@ int main(int argc, char** argv) {
 
         toneMapper.enableToneMapping(true);
         toneMapper.drawToScreen(renderer);
+        if (!updateClient) {
+            return;
+        }
         if (cameraAnimator.running) {
             spdlog::info("Client Render Time: {:.3f}ms", timeutils::secondsToMillis(window->getTime() - startTime));
         }
@@ -540,8 +539,7 @@ int main(int argc, char** argv) {
         }
         if (cameraPathFileIn && !cameraAnimator.running) {
             poseSendRecvSimulator.printErrors();
-
-            recorder.captureFrame(camera); // capture final frame
+            recorder.captureFrame(camera);
             recorder.stop();
             window->close();
         }

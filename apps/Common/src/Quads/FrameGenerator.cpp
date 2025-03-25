@@ -1,7 +1,7 @@
 #include <Quads/FrameGenerator.h>
 
 unsigned int FrameGenerator::generateIFrame(
-        const GBuffer &gBuffer, const GBuffer &gBufferHighRes,
+        const GBuffer &gBuffer,
         const PerspectiveCamera &remoteCamera,
         const Mesh &mesh,
         unsigned int &numProxies, unsigned int &numDepthOffsets,
@@ -14,7 +14,7 @@ unsigned int FrameGenerator::generateIFrame(
     double startTime = startTimeTotal;
 
     // create proxies from the current gBuffer
-    auto sizes = quadsGenerator.createProxiesFromGBuffer(gBuffer, gBufferHighRes, remoteCamera);
+    auto sizes = quadsGenerator.createProxiesFromGBuffer(gBuffer, remoteCamera);
     numProxies = sizes.numProxies;
     numDepthOffsets = sizes.numDepthOffsets;
     stats.timeToCreateProxiesMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
@@ -49,14 +49,13 @@ unsigned int FrameGenerator::generateIFrame(
 
 unsigned int FrameGenerator::generatePFrame(
         const Scene &currScene, const Scene &prevScene,
-        GBuffer &gBufferHighRes, GBuffer &gBufferMaskHighRes,
-        GBuffer &gBufferLowRes, GBuffer &gBufferMaskLowRes,
+        GBuffer &gBuffer, GBuffer &gBufferMask,
         const PerspectiveCamera &currRemoteCamera, const PerspectiveCamera &prevRemoteCamera,
         const Mesh &currMesh, const Mesh &maskMesh,
         unsigned int &numProxies, unsigned int &numDepthOffsets,
         bool compress
     ) {
-    const glm::vec2 gBufferSize = glm::vec2(gBufferLowRes.width, gBufferLowRes.height);
+    const glm::vec2 gBufferSize = glm::vec2(gBuffer.width, gBuffer.height);
     unsigned int outputSize = 0;
 
     double startTimeTotal = timeutils::getTimeMicros();
@@ -77,8 +76,7 @@ unsigned int FrameGenerator::generatePFrame(
         remoteRenderer.drawObjects(remoteScene, prevRemoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         remoteRenderer.pipeline.stencilState.restoreStencilState();
-        remoteRenderer.copyToGBuffer(gBufferLowRes);
-        remoteRenderer.copyToGBuffer(gBufferHighRes);
+        remoteRenderer.copyToGBuffer(gBuffer);
     }
 
     // generate frame using current frame as a mask for movement
@@ -92,8 +90,7 @@ unsigned int FrameGenerator::generatePFrame(
         remoteRenderer.drawObjects(remoteScene, currRemoteCamera, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         remoteRenderer.pipeline.stencilState.restoreStencilState();
-        remoteRenderer.copyToGBuffer(gBufferMaskLowRes);
-        remoteRenderer.copyToGBuffer(gBufferMaskHighRes);
+        remoteRenderer.copyToGBuffer(gBufferMask);
     }
 
     stats.timeToRenderMasks = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
@@ -101,7 +98,7 @@ unsigned int FrameGenerator::generatePFrame(
     // create proxies and meshes
     {
         startTime = timeutils::getTimeMicros();
-        auto sizes = quadsGenerator.createProxiesFromGBuffer(gBufferLowRes, gBufferHighRes, prevRemoteCamera);
+        auto sizes = quadsGenerator.createProxiesFromGBuffer(gBuffer, prevRemoteCamera);
         numProxies = sizes.numProxies;
         numDepthOffsets = sizes.numDepthOffsets;
         stats.timeToCreateProxiesMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
@@ -127,7 +124,7 @@ unsigned int FrameGenerator::generatePFrame(
 
     {
         startTime = timeutils::getTimeMicros();
-        auto sizes = quadsGenerator.createProxiesFromGBuffer(gBufferMaskLowRes, gBufferMaskHighRes, currRemoteCamera);
+        auto sizes = quadsGenerator.createProxiesFromGBuffer(gBufferMask, currRemoteCamera);
         numProxies += sizes.numProxies;
         numDepthOffsets += sizes.numDepthOffsets;
         stats.timeToCreateProxiesMs += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
