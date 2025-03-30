@@ -705,28 +705,28 @@ int main(int argc, char** argv) {
                 Pose clientPosePred;
                 if (poseSendRecvSimulator.recvPoseToRender(clientPosePred, now)) {
                     remoteCameraCenter.setViewMatrix(clientPosePred.mono.view);
-
-                    // update other cameras in view box corners
-                    for (int view = 1; view < maxViews - 1; view++) {
-                        const glm::vec3 &offset = offsets[view - 1];
-                        const glm::vec3 &right = remoteCameraCenter.getRightVector();
-                        const glm::vec3 &up = remoteCameraCenter.getUpVector();
-                        const glm::vec3 &forward = remoteCameraCenter.getForwardVector();
-
-                        glm::vec3 worldOffset =
-                            right   * offset.x * viewBoxSize / 2.0f +
-                            up      * offset.y * viewBoxSize / 2.0f +
-                            forward * offset.z * viewBoxSize / 2.0f;
-
-                        remoteCameras[view].setViewMatrix(remoteCameraCenter.getViewMatrix());
-                        remoteCameras[view].setPosition(remoteCameraCenter.getPosition() + worldOffset);
-                        remoteCameras[view].updateViewMatrix();
-                    }
-                    // update wide fov camera
-                    remoteCameras[maxViews-1].setViewMatrix(remoteCameraCenter.getViewMatrix());
                 }
                 // if we do not have a new pose, just send a new frame with the old pose
             }
+
+            // update other cameras in view box corners
+            for (int view = 1; view < maxViews - 1; view++) {
+                const glm::vec3 &offset = offsets[view - 1];
+                const glm::vec3 &right = remoteCameraCenter.getRightVector();
+                const glm::vec3 &up = remoteCameraCenter.getUpVector();
+                const glm::vec3 &forward = remoteCameraCenter.getForwardVector();
+
+                glm::vec3 worldOffset =
+                    right   * offset.x * viewBoxSize / 2.0f +
+                    up      * offset.y * viewBoxSize / 2.0f +
+                    forward * offset.z * viewBoxSize / 2.0f;
+
+                remoteCameras[view].setViewMatrix(remoteCameraCenter.getViewMatrix());
+                remoteCameras[view].setPosition(remoteCameraCenter.getPosition() + worldOffset);
+                remoteCameras[view].updateViewMatrix();
+            }
+            // update wide fov camera
+            remoteCameras[maxViews-1].setViewMatrix(remoteCameraCenter.getViewMatrix());
 
             for (int view = 0; view < maxViews; view++) {
                 auto& remoteCameraToUse = remoteCameras[view];

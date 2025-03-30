@@ -789,12 +789,12 @@ int main(int argc, char** argv) {
                 Pose clientPosePred;
                 if (poseSendRecvSimulator.recvPoseToRender(clientPosePred, now)) {
                     remoteCameraCenter.setViewMatrix(clientPosePred.mono.view);
-
-                    // update wide fov camera
-                    remoteCameraWideFov.setViewMatrix(remoteCameraCenter.getViewMatrix());
                 }
                 // if we do not have a new pose, just send a new frame with the old pose
             }
+
+            // update wide fov camera
+            remoteCameraWideFov.setViewMatrix(remoteCameraCenter.getViewMatrix());
 
             // render remote scene with multiple layers
             remoteRendererDP.drawObjects(remoteScene, remoteCameraCenter);
