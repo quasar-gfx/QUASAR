@@ -82,6 +82,7 @@ add_subdirectory(${EXTERNAL_DIR}/lz4_stream/tnt)
 set(RENDERER_LIBS ${RENDERER_LIBS} lz4_stream)
 
 # zstd
+set(ZSTD_LEGACY_SUPPORT OFF)
 set(ZSTD_BUILD_PROGRAMS OFF)
 set(ZSTD_BUILD_SHARED OFF)
 set(ZSTD_BUILD_TESTS OFF)
