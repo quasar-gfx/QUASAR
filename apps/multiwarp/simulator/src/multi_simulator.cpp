@@ -1,5 +1,3 @@
-#include <filesystem>
-
 #include <args/args.hxx>
 #include <spdlog/spdlog.h>
 
@@ -62,9 +60,11 @@ int main(int argc, char** argv) {
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::Flag saveImages(parser, "save", "Save outputs to disk", {'I', "save-images"});
     args::ValueFlag<std::string> cameraPathFileIn(parser, "camera-path", "Path to camera animation file", {'C', "camera-path"});
-    args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'D', "data-path"}, ".");
+    args::ValueFlag<std::string> outputPathIn(parser, "output-path", "Directory to save outputs", {'o', "output-path"}, ".");
     args::ValueFlag<float> networkLatencyIn(parser, "network-latency", "Simulated network latency in ms", {'N', "network-latency"}, 25.0f);
     args::ValueFlag<float> networkJitterIn(parser, "network-jitter", "Simulated network jitter in ms", {'J', "network-jitter"}, 10.0f);
+    args::Flag posePredictionIn(parser, "pose-prediction", "Enable pose prediction", {'P', "pose-prediction"}, false);
+    args::Flag poseSmoothingIn(parser, "pose-smoothing", "Enable pose smoothing", {'T', "pose-smoothing"}, false);
     args::ValueFlag<float> viewBoxSizeIn(parser, "view-box-size", "Size of view box in m", {'B', "view-size"}, 0.5f);
     args::ValueFlag<int> maxAdditionalViewsIn(parser, "views", "Max views", {'n', "max-views"}, 8);
     args::ValueFlag<float> remoteFOVIn(parser, "remote-fov", "Remote camera FOV in degrees", {'F', "remote-fov"}, 60.0f);
@@ -101,13 +101,13 @@ int main(int argc, char** argv) {
 
     std::string sceneFile = args::get(sceneFileIn);
     std::string cameraPathFile = args::get(cameraPathFileIn);
-    std::string dataPath = args::get(dataPathIn);
-    if (dataPath.back() != '/') {
-        dataPath += "/";
+    std::string outputPath = args::get(outputPathIn);
+    if (outputPath.back() != '/') {
+        outputPath += "/";
     }
     // create data path if it doesn't exist
-    if (!std::filesystem::exists(dataPath)) {
-        std::filesystem::create_directories(dataPath);
+    if (!std::filesystem::exists(outputPath)) {
+        std::filesystem::create_directories(outputPath);
     }
 
     // 0th is standard view, maxViews-1 is large fov view
@@ -160,7 +160,7 @@ int main(int argc, char** argv) {
     QuadsGenerator quadsGenerator(remoteWindowSize);
     // match QuadStream's parameters:
     quadsGenerator.expandEdges = true;
-    quadsGenerator.depthThreshold = 1e-3f;
+    quadsGenerator.depthThreshold = 1e-4f;
     quadsGenerator.flatThreshold = 1e-2f;
     quadsGenerator.proxySimilarityThreshold = 0.1f;
     MeshFromQuads meshFromQuads(remoteWindowSize);
@@ -253,7 +253,7 @@ int main(int argc, char** argv) {
     ToneMapper toneMapper;
     ShowNormalsEffect showNormalsEffect;
 
-    Recorder recorder(renderer, toneMapper, dataPath, config.targetFramerate);
+    Recorder recorder(renderer, toneMapper, outputPath, config.targetFramerate);
     CameraAnimator cameraAnimator(cameraPathFile);
 
     if (saveImages) {
@@ -276,7 +276,7 @@ int main(int argc, char** argv) {
     bool restrictMovementToViewBox = !cameraPathFileIn;
     float viewBoxSize = args::get(viewBoxSizeIn);
 
-    bool renderRemoteFrame = true;
+    bool generateRemoteFrame = true;
 
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};
@@ -284,8 +284,15 @@ int main(int argc, char** argv) {
     double rerenderInterval = serverFPSIndex == 0 ? 0.0 : MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
     float networkLatency = !cameraPathFileIn ? 0.0f : args::get(networkLatencyIn);
     float networkJitter = !cameraPathFileIn ? 0.0f : args::get(networkJitterIn);
-    bool posePrediction = true;
-    PoseSendRecvSimulator poseSendRecvSimulator(networkLatency, networkJitter, rerenderInterval / MILLISECONDS_IN_SECOND);
+    bool posePrediction = posePredictionIn;
+    bool poseSmoothing = poseSmoothingIn;
+    PoseSendRecvSimulator poseSendRecvSimulator({
+        .networkLatencyMs = networkLatency,
+        .networkJitterMs = networkJitter,
+        .renderTimeMs = rerenderInterval / MILLISECONDS_IN_SECOND,
+        .posePrediction = posePrediction,
+        .poseSmoothing = poseSmoothing
+    });
 
     bool* showViews = new bool[maxViews];
     for (int view = 0; view < maxViews; ++view) {
@@ -413,7 +420,7 @@ int main(int argc, char** argv) {
 
             if (ImGui::Checkbox("Show Normals Instead of Color", &showNormals)) {
                 preventCopyingLocalPose = true;
-                renderRemoteFrame = true;
+                generateRemoteFrame = true;
                 runAnimations = false;
             }
 
@@ -422,7 +429,7 @@ int main(int argc, char** argv) {
             ImGui::Checkbox("Show Wireframe", &showWireframe);
             if (ImGui::Checkbox("Show Depth Map as Point Cloud", &showDepth)) {
                 preventCopyingLocalPose = true;
-                renderRemoteFrame = true;
+                generateRemoteFrame = true;
                 runAnimations = false;
             }
 
@@ -431,31 +438,31 @@ int main(int argc, char** argv) {
             if (ImGui::CollapsingHeader("Quad Generation Settings")) {
                 if (ImGui::Checkbox("Correct Extreme Normals", &quadsGenerator.correctOrientation)) {
                     preventCopyingLocalPose = true;
-                    renderRemoteFrame = true;
+                    generateRemoteFrame = true;
                     runAnimations = false;
                 }
 
                 if (ImGui::DragFloat("Depth Threshold", &quadsGenerator.depthThreshold, 0.0001f, 0.0f, 1.0f, "%.4f")) {
                     preventCopyingLocalPose = true;
-                    renderRemoteFrame = true;
+                    generateRemoteFrame = true;
                     runAnimations = false;
                 }
 
                 if (ImGui::DragFloat("Angle Threshold", &quadsGenerator.angleThreshold, 0.1f, 0.0f, 180.0f)) {
                     preventCopyingLocalPose = true;
-                    renderRemoteFrame = true;
+                    generateRemoteFrame = true;
                     runAnimations = false;
                 }
 
                 if (ImGui::DragFloat("Flat Threshold", &quadsGenerator.flatThreshold, 0.001f, 0.0f, 1.0f)) {
                     preventCopyingLocalPose = true;
-                    renderRemoteFrame = true;
+                    generateRemoteFrame = true;
                     runAnimations = false;
                 }
 
                 if (ImGui::DragFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.001f, 0.0f, 10.0f)) {
                     preventCopyingLocalPose = true;
-                    renderRemoteFrame = true;
+                    generateRemoteFrame = true;
                     runAnimations = false;
                 }
             }
@@ -470,16 +477,14 @@ int main(int argc, char** argv) {
                 poseSendRecvSimulator.setNetworkJitter(networkJitter);
             }
 
-            if (ImGui::Checkbox("Pose Prediction Enabled", &posePrediction)) {
-                poseSendRecvSimulator.setPosePrediction(posePrediction);
-            }
+            ImGui::Checkbox("Pose Prediction Enabled", &poseSendRecvSimulator.posePrediction);
 
             if (ImGui::Combo("Server Framerate", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels))) {
                 rerenderInterval = serverFPSIndex == 0 ? 0.0 : MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
             }
 
             if (ImGui::Button("Send Server Frame", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
-                renderRemoteFrame = true;
+                generateRemoteFrame = true;
                 runAnimations = true;
             }
 
@@ -487,7 +492,7 @@ int main(int argc, char** argv) {
 
             if (ImGui::DragFloat("View Box Size", &viewBoxSize, 0.05f, 0.1f, 1.0f)) {
                 preventCopyingLocalPose = true;
-                renderRemoteFrame = true;
+                generateRemoteFrame = true;
                 runAnimations = false;
             }
 
@@ -538,7 +543,7 @@ int main(int argc, char** argv) {
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
             std::string time = std::to_string(static_cast<int>(window->getTime() * 1000.0f));
-            std::string fileName = dataPath + std::string(fileNameBase) + "." + time;
+            std::string fileName = outputPath + std::string(fileNameBase) + "." + time;
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
@@ -548,7 +553,7 @@ int main(int argc, char** argv) {
                 recorder.saveScreenshotToFile(fileName, saveAsHDR);
 
                 for (int view = 1; view < maxViews; view++) {
-                    fileName = dataPath + std::string(fileNameBase) + ".view" + std::to_string(view) + "." + time;
+                    fileName = outputPath + std::string(fileNameBase) + ".view" + std::to_string(view) + "." + time;
                     if (saveAsHDR) {
                         gBufferRTs[view].saveColorAsHDR(fileName + ".hdr");
                     }
@@ -568,13 +573,13 @@ int main(int argc, char** argv) {
 
             if (ImGui::Button("Save Mesh")) {
                 for (int view = 0; view < maxViews; view++) {
-                    std::string verticesFileName = dataPath + "vertices" + std::to_string(view) + ".bin";
-                    std::string indicesFileName = dataPath + "indices" + std::to_string(view) + ".bin";
+                    std::string verticesFileName = outputPath + "vertices" + std::to_string(view) + ".bin";
+                    std::string indicesFileName = outputPath + "indices" + std::to_string(view) + ".bin";
 
                     // save vertexBuffer
                     meshViews[view].vertexBuffer.bind();
                     std::vector<QuadVertex> vertices = meshViews[view].vertexBuffer.getData<QuadVertex>();
-                    std::ofstream verticesFile(dataPath + verticesFileName, std::ios::binary);
+                    std::ofstream verticesFile(outputPath + verticesFileName, std::ios::binary);
                     verticesFile.write((char*)vertices.data(), numVertices[view] * sizeof(QuadVertex));
                     verticesFile.close();
                     spdlog::info("Saved {} vertices ({:.3f} MB) for view {}",
@@ -583,21 +588,21 @@ int main(int argc, char** argv) {
                     // save indexBuffer
                     meshViews[view].indexBuffer.bind();
                     std::vector<unsigned int> indices = meshViews[view].indexBuffer.getData<unsigned int>();
-                    std::ofstream indicesFile(dataPath + indicesFileName, std::ios::binary);
+                    std::ofstream indicesFile(outputPath + indicesFileName, std::ios::binary);
                     indicesFile.write((char*)indices.data(), numIndicies[view] * sizeof(unsigned int));
                     indicesFile.close();
                     spdlog::info("Saved {} indicies ({:.3f} MB) for view {}",
                                  numIndicies[view], static_cast<float>(numIndicies[view] * sizeof(unsigned int)) / BYTES_IN_MB, view);
 
                     // save color buffer
-                    std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
+                    std::string colorFileName = outputPath + "color" + std::to_string(view) + ".png";
                     gBufferRTs[view].saveColorAsPNG(colorFileName);
                 }
             }
 
             if (ImGui::Button("Save Proxies")) {
                 preventCopyingLocalPose = true;
-                renderRemoteFrame = true;
+                generateRemoteFrame = true;
                 runAnimations = false;
                 saveToFile = true;
             }
@@ -676,11 +681,11 @@ int main(int argc, char** argv) {
             remoteScene.updateAnimations(dt);
         }
 
-        if (rerenderInterval > 0.0 && (now - lastRenderTime) >= (rerenderInterval - 1) / MILLISECONDS_IN_SECOND) {
-            renderRemoteFrame = true;
+        if (rerenderInterval > 0.0 && (now - lastRenderTime) >= (rerenderInterval - 1.0) / MILLISECONDS_IN_SECOND) {
+            generateRemoteFrame = true;
             lastRenderTime = now;
         }
-        if (renderRemoteFrame) {
+        if (generateRemoteFrame) {
             double startTime = window->getTime();
             double totalRenderTime = 0.0;
             double totalCreateProxiesTime = 0.0;
@@ -797,21 +802,21 @@ int main(int argc, char** argv) {
                     unsigned int savedBytes;
 
                     startTime = window->getTime();
-                    std::string quadsFileName = dataPath + "quads" + std::to_string(view) + ".bin";
+                    std::string quadsFileName = outputPath + "quads" + std::to_string(view) + ".bin";
                     savedBytes = quadsGenerator.saveToFile(quadsFileName);
                     spdlog::info("Saved {} quads ({:.3f} MB) in {:.3f}ms",
                                  numProxies, static_cast<float>(savedBytes) / BYTES_IN_MB,
                                     timeutils::secondsToMillis(window->getTime() - startTime));
 
                     startTime = window->getTime();
-                    std::string depthOffsetsFileName = dataPath + "depthOffsets" + std::to_string(view) + ".bin";
+                    std::string depthOffsetsFileName = outputPath + "depthOffsets" + std::to_string(view) + ".bin";
                     savedBytes = quadsGenerator.saveDepthOffsetsToFile(depthOffsetsFileName);
                     spdlog::info("Saved {} depth offsets ({:.3f} MB) in {:.3f}ms",
                                  numDepthOffsets, static_cast<float>(savedBytes) / BYTES_IN_MB,
                                     timeutils::secondsToMillis(window->getTime() - startTime));
 
                     // save color buffer
-                    std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
+                    std::string colorFileName = outputPath + "color" + std::to_string(view) + ".png";
                     gBufferToUse.saveColorAsPNG(colorFileName);
                 }
 
@@ -866,7 +871,7 @@ int main(int argc, char** argv) {
             spdlog::info("Num Proxies: {}Proxies", totalProxies);
 
             preventCopyingLocalPose = false;
-            renderRemoteFrame = false;
+            generateRemoteFrame = false;
             saveToFile = false;
         }
 

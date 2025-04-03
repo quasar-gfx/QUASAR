@@ -6,15 +6,28 @@
 #include <vector>
 #include <numeric>
 #include <cmath>
+#include <array>
 
 #include <Cameras/PerspectiveCamera.h>
 #include <CameraPose.h>
+
+struct PoseSendRecvSimulatorCreateParams {
+    double networkLatencyMs;
+    double networkJitterMs;
+    double renderTimeMs;
+    bool posePrediction = false;
+    bool poseSmoothing = false;
+    unsigned int seed = 42;
+};
 
 class PoseSendRecvSimulator {
 public:
     double networkLatencyS;
     double networkJitterS;
     double renderTimeS;
+
+    bool posePrediction;
+    bool poseSmoothing;
 
     std::mt19937 generator;
     std::uniform_real_distribution<double> distribution;
@@ -27,13 +40,14 @@ public:
         glm::vec2 rttMeanStd;
     };
 
-    PoseSendRecvSimulator(double networkLatencyMs, double networkJitterMs, double renderTimeMs, unsigned int seed = 42)
-            : networkLatencyS(timeutils::millisToSeconds(networkLatencyMs))
-            , networkJitterS(timeutils::millisToSeconds(networkJitterMs))
-            , renderTimeS(timeutils::millisToSeconds(renderTimeMs))
-            , generator(seed)
-            , distribution(-networkJitterS, networkJitterS) {
-    }
+    PoseSendRecvSimulator(PoseSendRecvSimulatorCreateParams params)
+        : networkLatencyS(timeutils::millisToSeconds(params.networkLatencyMs))
+        , networkJitterS(timeutils::millisToSeconds(params.networkJitterMs))
+        , renderTimeS(timeutils::millisToSeconds(params.renderTimeMs))
+        , posePrediction(params.posePrediction)
+        , poseSmoothing(params.poseSmoothing)
+        , generator(params.seed)
+        , distribution(-networkJitterS, networkJitterS) { }
 
     void setNetworkLatency(double networkLatencyMs) {
         networkLatencyS = timeutils::millisToSeconds(networkLatencyMs);
@@ -51,108 +65,84 @@ public:
         clear();
     }
 
-    void setPosePrediction(bool posePrediction) {
-        this->posePrediction = posePrediction;
-        clear();
-    }
-
     void clear() {
         incomingPoses.clear();
         outPoses.clear();
         outOrigTimestamps.clear();
-
         positionErrors.clear();
         rotationErrors.clear();
         rtts.clear();
+        positionHistory.clear();
+        rotationHistory.clear();
     }
 
     void sendPose(const PerspectiveCamera &camera, double now) {
-        // client "sends" pose here
         incomingPoses.push_back({
-                camera.getViewMatrix(),
-                camera.getProjectionMatrix(),
-                static_cast<uint64_t>(timeutils::secondsToMicros(now))
-            });
-        update(now); // update to process the incoming poses
+            camera.getViewMatrix(),
+            camera.getProjectionMatrix(),
+            static_cast<uint64_t>(timeutils::secondsToMicros(now))
+        });
+        update(now);
     }
 
     void update(float now) {
-        if (now <= lastUpdateTimeS) {
-            return; // prevent multiple updates with the same or earlier time
-        }
+        if (now <= lastUpdateTimeS) return;
         lastUpdateTimeS = now;
 
-        // server "receives" pose here
         if (!incomingPoses.empty()) {
             double dtFuture = networkLatencyS;
-
-            // server waits networkLatencyS seconds before receiving the pose
             Pose poseToRecv = incomingPoses.front();
             double timestampS = timeutils::microsToSeconds(poseToRecv.timestamp);
-            if (networkLatencyS > 0 && now - timestampS < dtFuture + actualInJitter) {
-                return;
-            }
-            poseToRecv.timestamp = static_cast<uint64_t>(timeutils::secondsToMicros(now));
+            if (networkLatencyS > 0 && now - timestampS < dtFuture + actualInJitter) return;
 
-            // update actual jitter
+            poseToRecv.timestamp = static_cast<uint64_t>(timeutils::secondsToMicros(now));
             actualInJitter = randomJitter();
 
             outPoses.push_back(poseToRecv);
             outOrigTimestamps.push_back(timestampS);
-
             incomingPoses.pop_front();
         }
     }
 
     bool recvPoseToRender(Pose& pose, double now) {
-        if (outPoses.empty() && outOrigTimestamps.empty()) {
-            return false;
-        }
+        if (outPoses.empty() && outOrigTimestamps.empty()) return false;
 
         double dtFuture = networkLatencyS + renderTimeS;
-        double jitterPredicted = randomJitter(); // we don't know the actual jitter, so we can simulate a ping
+        double jitterPredicted = randomJitter();
 
         Pose poseToSend = outPoses.front();
-        if (posePrediction && outPoses.size() >= 2) {
-            // get the last two poses
+        if (posePrediction && outPoses.size() >= 3) {
             auto& lastPose       = outPoses[outPoses.size() - 1];
-            auto& secondLastPose = outPoses[outPoses.size() - 2];
+            auto& prevPose       = outPoses[outPoses.size() - 2];
+            auto& secondPrevPose = outPoses[outPoses.size() - 3];
 
-            // predict networkLatencyS seconds into the future, accounting for jitter and render time
-            if (!getPosePredicted(poseToSend, lastPose, secondLastPose, now + dtFuture + jitterPredicted)) {
+            if (!getPosePredicted(poseToSend, lastPose, prevPose, secondPrevPose, now + dtFuture + jitterPredicted)) {
                 return false;
             }
         }
 
-        // client waits for dtFuture + outJitterS before receiving the server frame and pred pose
         double timestampS = timeutils::microsToSeconds(outPoses.front().timestamp);
-        if (networkLatencyS > 0 && now - timestampS < dtFuture + actualOutJitter) {
-            return false;
-        }
+        if (networkLatencyS > 0 && now - timestampS < dtFuture + actualOutJitter) return false;
 
-        // update actual jitter
         actualOutJitter = randomJitter();
 
         double oldTimestampS = outOrigTimestamps.front();
         rtts.push_back(timeutils::secondsToMillis(now - oldTimestampS));
 
         pose = poseToSend;
-        outPoses.pop_front();
-        outOrigTimestamps.pop_front();
+        if (!posePrediction || outPoses.size() >= 3) {
+            outPoses.pop_front();
+            outOrigTimestamps.pop_front();
+        }
 
         return true;
     }
 
     void accumulateError(const PerspectiveCamera &camera, const PerspectiveCamera &remoteCamera) {
         float positionDiff = glm::distance(camera.getPosition(), remoteCamera.getPosition());
-
         glm::quat q1 = glm::normalize(camera.getRotationQuat());
         glm::quat q2 = glm::normalize(remoteCamera.getRotationQuat());
-
-        // ensure the shortest path for quaternion interpolation
-        if (glm::dot(q1, q2) < 0.0f) {
-            q2 = -q2;
-        }
+        if (glm::dot(q1, q2) < 0.0f) q2 = -q2;
 
         float angleDiffRadians = 2.0f * glm::acos(glm::clamp(glm::dot(q1, q2), -1.0f, 1.0f));
         float angleDiffDegrees = glm::degrees(angleDiffRadians);
@@ -163,7 +153,6 @@ public:
 
     ErrorStats getAvgErrors() {
         ErrorStats stats;
-
         stats.positionErrMeanStd.x = calculateMean(positionErrors);
         stats.positionErrMeanStd.y = calculateStdDev(positionErrors, stats.positionErrMeanStd.x);
         stats.positionErrMinMax.x = *std::min_element(positionErrors.begin(), positionErrors.end());
@@ -182,7 +171,6 @@ public:
 
     void printErrors() {
         ErrorStats stats = getAvgErrors();
-
         spdlog::info("Pose Error:");
         spdlog::info("  Pos ({:.2f}±{:.2f},[{:.1f},{:.2f}])m", stats.positionErrMeanStd.x, stats.positionErrMeanStd.y, stats.positionErrMinMax.x, stats.positionErrMinMax.y);
         spdlog::info("  Rot ({:.2f}±{:.2f},[{:.1f},{:.2f}])°", stats.rotationErrMeanStd.x, stats.rotationErrMeanStd.y, stats.rotationErrMinMax.x, stats.rotationErrMinMax.y);
@@ -191,7 +179,6 @@ public:
 
 private:
     double lastUpdateTimeS = -1.0;
-
     std::deque<Pose> incomingPoses;
     std::deque<Pose> outPoses;
     std::deque<double> outOrigTimestamps;
@@ -203,14 +190,35 @@ private:
     double actualInJitter = randomJitter();
     double actualOutJitter = randomJitter();
 
-    bool posePrediction = true;
+    std::deque<glm::vec3> positionHistory;
+    static constexpr size_t maxPositionHistorySize = 10;
 
-    // filtering
-    float alpha = 0.7f;
-    glm::vec3 filteredPosition;
-    glm::quat filteredRotation;
-    bool filteredPositionInitialized = false;
-    bool filteredRotationInitialized = false;
+    std::deque<glm::quat> rotationHistory;
+    static constexpr size_t maxRotationHistorySize = 5;
+
+    glm::vec3 savitzkyGolayFilter(const std::deque<glm::vec3>& buffer) {
+        if (buffer.size() < 5) return buffer.back();
+        static const std::array<float, 5> coeffs = {
+            -3.0f / 35.0f, 12.0f / 35.0f, 17.0f / 35.0f, 12.0f / 35.0f, -3.0f / 35.0f
+        };
+        glm::vec3 result(0.0f);
+        for (int i = 0; i < 5; ++i) {
+            result += coeffs[i] * buffer[buffer.size() - 5 + i];
+        }
+        return result;
+    }
+
+    glm::quat averageQuaternions(const std::deque<glm::quat>& quats) {
+        if (quats.empty()) return glm::quat(1, 0, 0, 0);
+        glm::quat avg = quats[0];
+        for (size_t i = 1; i < quats.size(); ++i) {
+            if (glm::dot(avg, quats[i]) < 0.0f)
+                avg = glm::slerp(avg, -quats[i], 1.0f / (i + 1));
+            else
+                avg = glm::slerp(avg, quats[i], 1.0f / (i + 1));
+        }
+        return glm::normalize(avg);
+    }
 
     double randomJitter() {
         return distribution(generator);
@@ -230,69 +238,106 @@ private:
         return std::sqrt(sumSquaredDiffs / (errors.size() - 1));
     }
 
-    bool getPosePredicted(Pose& predictedPose, const Pose& lastPose, const Pose& secondLastPose, double targetFutureTimeS) {
-        double t1 = timeutils::microsToSeconds(secondLastPose.timestamp);
-        double t0 = timeutils::microsToSeconds(lastPose.timestamp);
+    bool getPosePredicted(
+        Pose& predictedPose,
+        const Pose& latest, const Pose& previous, const Pose& secondPrevious,
+        double targetFutureTimeS
+    ) {
+        double t2 = timeutils::microsToSeconds(secondPrevious.timestamp);
+        double t1 = timeutils::microsToSeconds(previous.timestamp);
+        double t0 = timeutils::microsToSeconds(latest.timestamp);
 
-        float dt = t0 - t1;
-        if (dt <= 0) {
-            spdlog::error("Invalid timestamps for pose prediction! t0: {}, t1: {}", t0, t1);
-            return false;
-        }
+        float dt1 = t1 - t2;
+        float dt2 = t0 - t1;
+
+        if (dt1 <= 0.0f || dt2 <= 0.0f) return false;
+
+        float dtFuture = targetFutureTimeS - t0;
+        const float maxPredictTime = 0.1f;
+        dtFuture = glm::clamp(dtFuture, 0.0f, maxPredictTime);
 
         glm::vec3 scale, skew;
         glm::vec4 perspective;
-        glm::vec3 positionSecondLast, positionLast;
-        glm::quat rotationSecondLast, rotationLatest;
 
-        glm::decompose(glm::inverse(secondLastPose.mono.view), scale, rotationSecondLast, positionSecondLast, skew, perspective);
-        glm::decompose(glm::inverse(lastPose.mono.view), scale, rotationLatest, positionLast, skew, perspective);
+        glm::vec3 p2, p1, p0;
+        glm::quat r2, r1, r0;
 
-        if (glm::dot(rotationSecondLast, rotationLatest) < 0.0f) {
-            rotationSecondLast = -rotationSecondLast;
-        }
+        glm::decompose(glm::inverse(secondPrevious.mono.view), scale, r2, p2, skew, perspective);
+        glm::decompose(glm::inverse(previous.mono.view), scale, r1, p1, skew, perspective);
+        glm::decompose(glm::inverse(latest.mono.view), scale, r0, p0, skew, perspective);
 
-        float dtFuture = targetFutureTimeS - t0;
+        if (glm::dot(r1, r0) < 0.0f) r1 = -r1;
+        if (glm::dot(r2, r1) < 0.0f) r2 = -r2;
 
-        glm::vec3 velocity = (positionLast - positionSecondLast) / dt;
-        glm::vec3 predictedPosition = positionLast + velocity * dtFuture;
+        /*
+        ============================
+        Translational Prediction
+        ============================
+        */
 
-        if (!filteredPositionInitialized) {
-            filteredPosition = predictedPosition;
-            filteredPositionInitialized = true;
-        }
-        else {
-            filteredPosition = alpha * predictedPosition + (1.0f - alpha) * filteredPosition;
-        }
+        // filter position using Savitzky-Golay filter
+        glm::vec3 filteredP0 = poseSmoothing ? savitzkyGolayFilter([&] {
+            positionHistory.push_back(p0);
+            if (positionHistory.size() > maxPositionHistorySize) positionHistory.pop_front();
+            return positionHistory;
+        }()) : p0;
 
-        glm::quat deltaRotation = glm::normalize(rotationLatest * glm::inverse(rotationSecondLast));
+        // calculate velocity and acceleration
+        glm::vec3 v1 = (p1 - p2) / dt1;
+        glm::vec3 v2 = (p0 - p1) / dt2;
+        glm::vec3 v = 0.5f * (v1 + v2);
+        glm::vec3 a = (v2 - v1) / dt2;
+        a = glm::clamp(a, -3.0f, 3.0f);
 
-        float angle = glm::angle(deltaRotation);
-        glm::vec3 axis = glm::axis(deltaRotation);
-        if (glm::length(axis) < 1e-6f || glm::isnan(glm::length(axis))) {
-            axis = glm::vec3(0.0f, 1.0f, 0.0f);
-        }
+        // predict future position using kinematic equations
+        glm::vec3 rawPrediction = filteredP0 + v * dtFuture + 0.5f * a * dtFuture * dtFuture;
 
-        float angularVelocity = angle / dt;
-        const float maxAngularVelocity = glm::radians(180.0f);
-        angularVelocity = glm::clamp(angularVelocity, -maxAngularVelocity, maxAngularVelocity);
+        // smooth the predicted position
+        float confidence = 1.0f - glm::smoothstep(0.02f, 0.06f, dtFuture);
+        glm::vec3 finalPrediction = poseSmoothing ? glm::mix(filteredP0, rawPrediction, confidence) : rawPrediction;
 
-        float futureAngle = angularVelocity * dtFuture;
-        glm::quat predictedRotation = glm::normalize(glm::angleAxis(futureAngle, axis) * rotationLatest);
+        /*
+        ============================
+        Angular Prediction
+        ============================
+        */
+        glm::quat deltaRot1 = glm::normalize(r1 * glm::inverse(r2));
+        glm::quat deltaRot2 = glm::normalize(r0 * glm::inverse(r1));
 
-        if (!filteredRotationInitialized) {
-            filteredRotation = predictedRotation;
-            filteredRotationInitialized = true;
-        }
-        else {
-            filteredRotation = glm::slerp(filteredRotation, predictedRotation, static_cast<float>(alpha));
-        }
+        float angle1 = glm::angle(deltaRot1);
+        float angle2 = glm::angle(deltaRot2);
 
-        glm::mat4 predictedTransform = glm::translate(glm::mat4(1.0f), filteredPosition) * glm::mat4_cast(filteredRotation);
+        glm::vec3 axis2 = glm::axis(deltaRot2);
+        if (glm::length(axis2) < 1e-5f || glm::any(glm::isnan(axis2))) axis2 = glm::vec3(0, 1, 0);
+
+        // calculate angular velocity and acceleration
+        float w1 = angle1 / dt1;
+        float w2 = angle2 / dt2;
+        float angularAccel = (w2 - w1) / dt2;
+        angularAccel = glm::clamp(angularAccel, -glm::radians(30.0f), glm::radians(30.0f));
+
+        // predict future angle using kinematic equations
+        float futureAngle = w2 * dtFuture + 0.5f * angularAccel * dtFuture * dtFuture;
+        // clamp the angle to prevent gimbal lock
+        futureAngle = glm::clamp(futureAngle, -glm::radians(90.0f), glm::radians(90.0f));
+        // if the angle is small, set it to zero to prevent jitter
+        if (std::abs(futureAngle) < glm::radians(0.3f)) futureAngle = 0.0f;
+
+        // predict future rotation using quaternion multiplication
+        glm::quat predictedRotation = glm::normalize(glm::angleAxis(futureAngle, axis2) * r0);
+
+        // smooth the predicted rotation
+        glm::quat finalRotation = poseSmoothing ? averageQuaternions([&] {
+            rotationHistory.push_back(predictedRotation);
+            if (rotationHistory.size() > maxRotationHistorySize) rotationHistory.pop_front();
+            return rotationHistory;
+        }()) : predictedRotation;
+
+        glm::mat4 predictedTransform = glm::translate(glm::mat4(1.0f), finalPrediction) * glm::mat4_cast(finalRotation);
         glm::mat4 predictedView = glm::inverse(predictedTransform);
 
         predictedPose.setViewMatrix(predictedView);
-        predictedPose.setProjectionMatrix(lastPose.mono.proj);
+        predictedPose.setProjectionMatrix(latest.mono.proj);
 
         return true;
     }

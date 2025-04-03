@@ -1,5 +1,3 @@
-#include <filesystem>
-
 #include <args/args.hxx>
 #include <spdlog/spdlog.h>
 
@@ -36,9 +34,11 @@ int main(int argc, char** argv) {
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::Flag saveImages(parser, "save", "Save outputs to disk", {'I', "save-images"});
     args::ValueFlag<std::string> cameraPathFileIn(parser, "camera-path", "Path to camera animation file", {'C', "camera-path"});
-    args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'D', "data-path"}, ".");
+    args::ValueFlag<std::string> outputPathIn(parser, "output-path", "Directory to save outputs", {'o', "output-path"}, ".");
     args::ValueFlag<float> networkLatencyIn(parser, "network-latency", "Simulated network latency in ms", {'N', "network-latency"}, 25.0f);
     args::ValueFlag<float> networkJitterIn(parser, "network-jitter", "Simulated network jitter in ms", {'J', "network-jitter"}, 10.0f);
+    args::Flag posePredictionIn(parser, "pose-prediction", "Enable pose prediction", {'P', "pose-prediction"}, false);
+    args::Flag poseSmoothingIn(parser, "pose-smoothing", "Enable pose smoothing", {'T', "pose-smoothing"}, false);
     args::ValueFlag<unsigned int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
     args::ValueFlag<float> fovIn(parser, "fov", "Field of view", {'f', "fov"}, 60.0f);
     try {
@@ -73,13 +73,13 @@ int main(int argc, char** argv) {
 
     std::string sceneFile = args::get(sceneFileIn);
     std::string cameraPathFile = args::get(cameraPathFileIn);
-    std::string dataPath = args::get(dataPathIn);
-    if (dataPath.back() != '/') {
-        dataPath += "/";
+    std::string outputPath = args::get(outputPathIn);
+    if (outputPath.back() != '/') {
+        outputPath += "/";
     }
     // create data path if it doesn't exist
-    if (!std::filesystem::exists(dataPath)) {
-        std::filesystem::create_directories(dataPath);
+    if (!std::filesystem::exists(outputPath)) {
+        std::filesystem::create_directories(outputPath);
     }
 
     unsigned int surfelSize = args::get(surfelSizeIn);
@@ -180,7 +180,7 @@ int main(int argc, char** argv) {
     ToneMapper toneMapper;
     ShowDepthEffect showDepthEffect(camera);
 
-    Recorder recorder(renderer, toneMapper, dataPath, config.targetFramerate);
+    Recorder recorder(renderer, toneMapper, outputPath, config.targetFramerate);
     CameraAnimator cameraAnimator(cameraPathFile);
 
     if (saveImages) {
@@ -199,7 +199,7 @@ int main(int argc, char** argv) {
     bool preventCopyingLocalPose = false;
     bool runAnimations = cameraPathFileIn;
 
-    bool renderRemoteFrame = true;
+    bool generateRemoteFrame = true;
 
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};
@@ -207,8 +207,15 @@ int main(int argc, char** argv) {
     double rerenderInterval = serverFPSIndex == 0 ? 0.0 : MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
     float networkLatency = !cameraPathFileIn ? 0.0f : args::get(networkLatencyIn);
     float networkJitter = !cameraPathFileIn ? 0.0f : args::get(networkJitterIn);
-    bool posePrediction = true;
-    PoseSendRecvSimulator poseSendRecvSimulator(networkLatency, networkJitter, rerenderInterval / MILLISECONDS_IN_SECOND);
+    bool posePrediction = posePredictionIn;
+    bool poseSmoothing = poseSmoothingIn;
+    PoseSendRecvSimulator poseSendRecvSimulator({
+        .networkLatencyMs = networkLatency,
+        .networkJitterMs = networkJitter,
+        .renderTimeMs = rerenderInterval / MILLISECONDS_IN_SECOND,
+        .posePrediction = posePrediction,
+        .poseSmoothing = poseSmoothing
+    });
 
     RenderStats renderStats;
     bool recording = false;
@@ -311,7 +318,7 @@ int main(int argc, char** argv) {
                 remoteCamera.updateProjectionMatrix();
 
                 preventCopyingLocalPose = true;
-                renderRemoteFrame = true;
+                generateRemoteFrame = true;
                 runAnimations = false;
             }
 
@@ -325,16 +332,14 @@ int main(int argc, char** argv) {
                 poseSendRecvSimulator.setNetworkJitter(networkJitter);
             }
 
-            if (ImGui::Checkbox("Pose Prediction Enabled", &posePrediction)) {
-                poseSendRecvSimulator.setPosePrediction(posePrediction);
-            }
+            ImGui::Checkbox("Pose Prediction Enabled", &poseSendRecvSimulator.posePrediction);
 
             if (ImGui::Combo("Server Framerate", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels))) {
                 rerenderInterval = serverFPSIndex == 0 ? 0.0 : MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
             }
 
             if (ImGui::Button("Send Server Frame", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
-                renderRemoteFrame = true;
+                generateRemoteFrame = true;
                 runAnimations = true;
             }
 
@@ -348,7 +353,7 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = dataPath + std::string(fileNameBase) + "." +
+            std::string fileName = outputPath + std::string(fileNameBase) + "." +
                                               std::to_string(static_cast<int>(window->getTime() * 1000.0f));
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
@@ -433,11 +438,11 @@ int main(int argc, char** argv) {
             remoteScene.updateAnimations(dt);
         }
 
-        if (rerenderInterval > 0.0 && (now - lastRenderTime) >= (rerenderInterval - 1) / MILLISECONDS_IN_SECOND) {
-            renderRemoteFrame = true;
+        if (rerenderInterval > 0.0 && (now - lastRenderTime) >= (rerenderInterval - 1.0) / MILLISECONDS_IN_SECOND) {
+            generateRemoteFrame = true;
             lastRenderTime = now;
         }
-        if (renderRemoteFrame) {
+        if (generateRemoteFrame) {
             double startTime = window->getTime();
             double totalRenderTime = 0.0;
             double totalGenMeshTime = 0.0;
@@ -510,7 +515,7 @@ int main(int argc, char** argv) {
             spdlog::info("Frame Size: {:.3f}MB", static_cast<float>(compressedSize) / BYTES_IN_MB);
 
             preventCopyingLocalPose = false;
-            renderRemoteFrame = false;
+            generateRemoteFrame = false;
         }
 
         poseSendRecvSimulator.update(now);

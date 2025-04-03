@@ -1,6 +1,5 @@
 #include <iomanip>
 #include <sstream>
-#include <filesystem>
 
 #include <Recorder.h>
 #include <Utils/FileIO.h>

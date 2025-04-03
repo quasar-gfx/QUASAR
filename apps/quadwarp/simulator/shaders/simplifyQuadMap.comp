@@ -603,11 +603,7 @@ void main() {
         float depthTopRight = quadMapDataTopRight.depth;
 
         // dont merge the quads if theres a depth discontinuity
-        if (hasDepthDiscontinuity(depthBottomLeft, depthBottomRight, depthTopLeft, depthTopRight)) {
-            storeOutputQuadMap(pixelCoord, mergedQuadMapData);
-            return;
-        }
-        else {
+        if (!hasDepthDiscontinuity(depthBottomLeft, depthBottomRight, depthTopLeft, depthTopRight)) {
             merge = true;
         }
     }
@@ -619,7 +615,7 @@ void main() {
             mergedQuadMapData,
             proxyPlaneBottomLeft, proxyPlaneBottomRight, proxyPlaneTopLeft, proxyPlaneTopRight,
             quadMapDataBottomLeft, quadMapDataBottomRight, quadMapDataTopLeft, quadMapDataTopRight,
-            iter != 0
+            !(iter == 0)
         );
 
         // ignore the previous proxy planes that have been merged

@@ -1,5 +1,3 @@
-#include <filesystem>
-
 #include <args/args.hxx>
 #include <spdlog/spdlog.h>
 
@@ -29,7 +27,7 @@ int main(int argc, char** argv) {
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::Flag saveImages(parser, "save", "Save outputs to disk", {'I', "save-images"});
     args::ValueFlag<std::string> cameraPathFileIn(parser, "camera-path", "Path to camera animation file", {'C', "camera-path"});
-    args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'D', "data-path"}, ".");
+    args::ValueFlag<std::string> outputPathIn(parser, "output-path", "Directory to save outputs", {'o', "output-path"}, ".");
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -57,13 +55,13 @@ int main(int argc, char** argv) {
 
     std::string sceneFile = args::get(sceneFileIn);
     std::string cameraPathFile = args::get(cameraPathFileIn);
-    std::string dataPath = args::get(dataPathIn);
-    if (dataPath.back() != '/') {
-        dataPath += "/";
+    std::string outputPath = args::get(outputPathIn);
+    if (outputPath.back() != '/') {
+        outputPath += "/";
     }
     // create data path if it doesn't exist
-    if (!std::filesystem::exists(dataPath)) {
-        std::filesystem::create_directories(dataPath);
+    if (!std::filesystem::exists(outputPath)) {
+        std::filesystem::create_directories(outputPath);
     }
 
     auto window = std::make_shared<GLFWWindow>(config);
@@ -86,7 +84,7 @@ int main(int argc, char** argv) {
     ShowNormalsEffect showNormalsEffect;
     ShowIDsEffect showIDsEffect;
 
-    Recorder recorder(renderer, toneMapper, dataPath, config.targetFramerate);
+    Recorder recorder(renderer, toneMapper, outputPath, config.targetFramerate);
     CameraAnimator cameraAnimator(cameraPathFile);
 
     if (saveImages) {
@@ -234,7 +232,7 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = dataPath + std::string(fileNameBase) + "." +
+            std::string fileName = outputPath + std::string(fileNameBase) + "." +
                                               std::to_string(static_cast<int>(window->getTime() * 1000.0f));
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
@@ -279,7 +277,7 @@ int main(int argc, char** argv) {
 
             if (ImGui::Button("Start")) {
                 recording = true;
-                std::string recordingDir = dataPath + std::string(recordingDirBase) + "." +
+                std::string recordingDir = outputPath + std::string(recordingDirBase) + "." +
                                                       std::to_string(static_cast<int>(window->getTime() * 1000.0f));
                 recorder.setOutputPath(recordingDir);
                 recorder.start();
@@ -362,7 +360,7 @@ int main(int argc, char** argv) {
         totalDT += dt;
 
         // update all animations
-        if (animationInterval == -1.0 || (now - lastRenderTime) >= (animationInterval - 1) / MILLISECONDS_IN_SECOND) {
+        if (animationInterval == -1.0 || (now - lastRenderTime) >= (animationInterval - 1.0) / MILLISECONDS_IN_SECOND) {
             scene.updateAnimations(totalDT);
             lastRenderTime = now;
             totalDT = 0.0;

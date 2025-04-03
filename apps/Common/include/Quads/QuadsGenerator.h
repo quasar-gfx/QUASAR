@@ -23,7 +23,7 @@ public:
 
     bool expandEdges = false;
     bool correctOrientation = true;
-    float depthThreshold = 1e-3f;
+    float depthThreshold = 1e-4f;
     float angleThreshold = 87.5f;
     float flatThreshold = 0.25f;
     float proxySimilarityThreshold = 1.0f;

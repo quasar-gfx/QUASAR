@@ -1,5 +1,3 @@
-#include <filesystem>
-
 #include <args/args.hxx>
 #include <spdlog/spdlog.h>
 
@@ -52,9 +50,11 @@ int main(int argc, char** argv) {
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::Flag saveImages(parser, "save", "Save outputs to disk", {'I', "save-images"});
     args::ValueFlag<std::string> cameraPathFileIn(parser, "camera-path", "Path to camera animation file", {'C', "camera-path"});
-    args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Directory to save data", {'D', "data-path"}, ".");
+    args::ValueFlag<std::string> outputPathIn(parser, "output-path", "Directory to save outputs", {'o', "output-path"}, ".");
     args::ValueFlag<float> networkLatencyIn(parser, "network-latency", "Simulated network latency in ms", {'N', "network-latency"}, 25.0f);
     args::ValueFlag<float> networkJitterIn(parser, "network-jitter", "Simulated network jitter in ms", {'J', "network-jitter"}, 10.0f);
+    args::Flag posePredictionIn(parser, "pose-prediction", "Enable pose prediction", {'P', "pose-prediction"}, false);
+    args::Flag poseSmoothingIn(parser, "pose-smoothing", "Enable pose smoothing", {'T', "pose-smoothing"}, false);
     args::ValueFlag<float> viewBoxSizeIn(parser, "view-box-size", "Size of view box in m", {'B', "view-size"}, 0.5f);
     args::ValueFlag<float> remoteFOVIn(parser, "remote-fov", "Remote camera FOV in degrees", {'F', "remote-fov"}, 60.0f);
     try {
@@ -89,13 +89,13 @@ int main(int argc, char** argv) {
 
     std::string sceneFile = args::get(sceneFileIn);
     std::string cameraPathFile = args::get(cameraPathFileIn);
-    std::string dataPath = args::get(dataPathIn);
-    if (dataPath.back() != '/') {
-        dataPath += "/";
+    std::string outputPath = args::get(outputPathIn);
+    if (outputPath.back() != '/') {
+        outputPath += "/";
     }
     // create data path if it doesn't exist
-    if (!std::filesystem::exists(dataPath)) {
-        std::filesystem::create_directories(dataPath);
+    if (!std::filesystem::exists(outputPath)) {
+        std::filesystem::create_directories(outputPath);
     }
 
     auto window = std::make_shared<GLFWWindow>(config);
@@ -232,7 +232,7 @@ int main(int argc, char** argv) {
     // post processing
     ToneMapper toneMapper;
 
-    Recorder recorder(renderer, toneMapper, dataPath, config.targetFramerate);
+    Recorder recorder(renderer, toneMapper, outputPath, config.targetFramerate);
     CameraAnimator cameraAnimator(cameraPathFile);
 
     if (saveImages) {
@@ -264,8 +264,15 @@ int main(int argc, char** argv) {
     double rerenderInterval = serverFPSIndex == 0 ? 0.0 : MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
     float networkLatency = !cameraPathFileIn ? 0.0f : args::get(networkLatencyIn);
     float networkJitter = !cameraPathFileIn ? 0.0f : args::get(networkJitterIn);
-    bool posePrediction = true;
-    PoseSendRecvSimulator poseSendRecvSimulator(networkLatency, networkJitter, rerenderInterval / MILLISECONDS_IN_SECOND);
+    bool posePrediction = posePredictionIn;
+    bool poseSmoothing = poseSmoothingIn;
+    PoseSendRecvSimulator poseSendRecvSimulator({
+        .networkLatencyMs = networkLatency,
+        .networkJitterMs = networkJitter,
+        .renderTimeMs = rerenderInterval / MILLISECONDS_IN_SECOND,
+        .posePrediction = posePrediction,
+        .poseSmoothing = poseSmoothing
+    });
 
     unsigned int totalProxies = 0;
     unsigned int totalDepthOffsets = 0;
@@ -433,9 +440,7 @@ int main(int argc, char** argv) {
                 poseSendRecvSimulator.setNetworkJitter(networkJitter);
             }
 
-            if (ImGui::Checkbox("Pose Prediction Enabled", &posePrediction)) {
-                poseSendRecvSimulator.setPosePrediction(posePrediction);
-            }
+            ImGui::Checkbox("Pose Prediction Enabled", &poseSendRecvSimulator.posePrediction);
 
             if (ImGui::Combo("Server Framerate", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels))) {
                 rerenderInterval = serverFPSIndex == 0 ? 0.0 : MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
@@ -473,7 +478,7 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = dataPath + std::string(fileNameBase) + "." +
+            std::string fileName = outputPath + std::string(fileNameBase) + "." +
                                               std::to_string(static_cast<int>(window->getTime() * 1000.0f));
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
@@ -492,16 +497,16 @@ int main(int argc, char** argv) {
             ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 300), ImGuiCond_FirstUseEver);
             ImGui::Begin("Mesh Capture", &showMeshCaptureWindow);
 
-            std::string colorFileName = dataPath + "color.png";
+            std::string colorFileName = outputPath + "color.png";
 
             if (ImGui::Button("Save Mesh")) {
-                std::string verticesFileName = dataPath + "vertices.bin";
-                std::string indicesFileName = dataPath + "indices.bin";
+                std::string verticesFileName = outputPath + "vertices.bin";
+                std::string indicesFileName = outputPath + "indices.bin";
 
                 // save vertexBuffer
                 meshes[currMeshIndex].vertexBuffer.bind();
                 std::vector<QuadVertex> vertices = meshes[currMeshIndex].vertexBuffer.getData<QuadVertex>();
-                std::ofstream verticesFile(dataPath + verticesFileName, std::ios::binary);
+                std::ofstream verticesFile(outputPath + verticesFileName, std::ios::binary);
                 verticesFile.write((char*)vertices.data(), meshBufferSizes.numVertices * sizeof(QuadVertex));
                 verticesFile.close();
                 spdlog::info("Saved {} vertices ({:.3f} MB)",
@@ -511,7 +516,7 @@ int main(int argc, char** argv) {
                 // save indexBuffer
                 meshes[currMeshIndex].indexBuffer.bind();
                 std::vector<unsigned int> indices = meshes[currMeshIndex].indexBuffer.getData<unsigned int>();
-                std::ofstream indicesFile(dataPath + indicesFileName, std::ios::binary);
+                std::ofstream indicesFile(outputPath + indicesFileName, std::ios::binary);
                 indicesFile.write((char*)indices.data(), meshBufferSizes.numIndices * sizeof(unsigned int));
                 indicesFile.close();
                 spdlog::info("Saved {} indices ({:.3f} MB)",
@@ -615,7 +620,7 @@ int main(int argc, char** argv) {
             remoteScene.updateAnimations(dt);
         }
 
-        if (rerenderInterval > 0.0 && (now - lastRenderTime) >= (rerenderInterval - 1) / MILLISECONDS_IN_SECOND) {
+        if (rerenderInterval > 0.0 && (now - lastRenderTime) >= (rerenderInterval - 1.0) / MILLISECONDS_IN_SECOND) {
             generateIFrame = (++frameCounter) % IFRAME_PERIOD == 0; // insert I-Frame every IFRAME_PERIOD frames
             generatePFrame = !generateIFrame;
             // generateIFrame = true;
@@ -737,19 +742,19 @@ int main(int argc, char** argv) {
                 unsigned int savedBytes;
 
                 startTime = window->getTime();
-                savedBytes = quadsGenerator.saveToFile(dataPath + "quads.bin");
+                savedBytes = quadsGenerator.saveToFile(outputPath + "quads.bin");
                 spdlog::info("Saved {} quads ({:.3f} MB) in {:.3f}ms",
                               numProxies, static_cast<float>(savedBytes) / BYTES_IN_MB,
                                 timeutils::secondsToMillis(window->getTime() - startTime));
 
                 startTime = window->getTime();
-                savedBytes = quadsGenerator.saveDepthOffsetsToFile(dataPath + "depthOffsets.bin");
+                savedBytes = quadsGenerator.saveDepthOffsetsToFile(outputPath + "depthOffsets.bin");
                 spdlog::info("Saved {} depth offsets ({:.3f} MB) in {:.3f}ms",
                              numDepthOffsets, static_cast<float>(savedBytes) / BYTES_IN_MB,
                                 timeutils::secondsToMillis(window->getTime() - startTime));
 
                 // save color buffer
-                std::string colorFileName = dataPath + "color.png";
+                std::string colorFileName = outputPath + "color.png";
                 gBufferRT.saveColorAsPNG(colorFileName);
             }
 
