@@ -274,25 +274,21 @@ private:
         Translational Prediction
         ============================
         */
-
-        // filter position using Savitzky-Golay filter
         glm::vec3 filteredP0 = poseSmoothing ? savitzkyGolayFilter([&] {
             positionHistory.push_back(p0);
             if (positionHistory.size() > maxPositionHistorySize) positionHistory.pop_front();
             return positionHistory;
         }()) : p0;
 
-        // calculate velocity and acceleration
         glm::vec3 v1 = (p1 - p2) / dt1;
         glm::vec3 v2 = (p0 - p1) / dt2;
         glm::vec3 v = 0.5f * (v1 + v2);
         glm::vec3 a = (v2 - v1) / dt2;
         a = glm::clamp(a, -3.0f, 3.0f);
 
-        // predict future position using kinematic equations
         glm::vec3 rawPrediction = filteredP0 + v * dtFuture + 0.5f * a * dtFuture * dtFuture;
 
-        // smooth the predicted position
+        // smoothstep to avoid jitter
         float confidence = 1.0f - glm::smoothstep(0.02f, 0.06f, dtFuture);
         glm::vec3 finalPrediction = poseSmoothing ? glm::mix(filteredP0, rawPrediction, confidence) : rawPrediction;
 
@@ -301,38 +297,33 @@ private:
         Angular Prediction
         ============================
         */
-        glm::quat deltaRot1 = glm::normalize(r1 * glm::inverse(r2));
-        glm::quat deltaRot2 = glm::normalize(r0 * glm::inverse(r1));
+        glm::quat dq = glm::normalize(r0 * glm::inverse(r1));
 
-        float angle1 = glm::angle(deltaRot1);
-        float angle2 = glm::angle(deltaRot2);
+        float angle = glm::angle(dq);
+        glm::vec3 axis = glm::axis(dq);
+        if (glm::length(axis) < 1e-5f || glm::any(glm::isnan(axis))) axis = glm::vec3(0, 1, 0);
+        float angularSpeed = angle / dt2;
 
-        glm::vec3 axis2 = glm::axis(deltaRot2);
-        if (glm::length(axis2) < 1e-5f || glm::any(glm::isnan(axis2))) axis2 = glm::vec3(0, 1, 0);
+        // clamp angular speed to avoid overshooting
+        angularSpeed = glm::clamp(angularSpeed, 0.0f, glm::radians(200.0f)); // limit to 200°/s
 
-        // calculate angular velocity and acceleration
-        float w1 = angle1 / dt1;
-        float w2 = angle2 / dt2;
-        float angularAccel = (w2 - w1) / dt2;
-        angularAccel = glm::clamp(angularAccel, -glm::radians(30.0f), glm::radians(30.0f));
+        float futureAngle = angularSpeed * dtFuture;
+        futureAngle = glm::clamp(futureAngle, 0.0f, glm::radians(45.0f)); // cap prediction angle
 
-        // predict future angle using kinematic equations
-        float futureAngle = w2 * dtFuture + 0.5f * angularAccel * dtFuture * dtFuture;
-        // clamp the angle to prevent gimbal lock
-        futureAngle = glm::clamp(futureAngle, -glm::radians(90.0f), glm::radians(90.0f));
-        // if the angle is small, set it to zero to prevent jitter
-        if (std::abs(futureAngle) < glm::radians(0.3f)) futureAngle = 0.0f;
+        glm::quat deltaFuture = glm::angleAxis(futureAngle, axis);
+        glm::quat predictedRotation = glm::normalize(deltaFuture * r0);
 
-        // predict future rotation using quaternion multiplication
-        glm::quat predictedRotation = glm::normalize(glm::angleAxis(futureAngle, axis2) * r0);
-
-        // smooth the predicted rotation
         glm::quat finalRotation = poseSmoothing ? averageQuaternions([&] {
             rotationHistory.push_back(predictedRotation);
             if (rotationHistory.size() > maxRotationHistorySize) rotationHistory.pop_front();
             return rotationHistory;
         }()) : predictedRotation;
 
+        /*
+        ============================
+        Create Predicted View Matrix
+        ============================
+        */
         glm::mat4 predictedTransform = glm::translate(glm::mat4(1.0f), finalPrediction) * glm::mat4_cast(finalRotation);
         glm::mat4 predictedView = glm::inverse(predictedTransform);
 

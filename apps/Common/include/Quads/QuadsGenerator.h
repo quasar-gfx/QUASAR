@@ -25,7 +25,7 @@ public:
     bool correctOrientation = true;
     float depthThreshold = 1e-4f;
     float angleThreshold = 87.5f;
-    float flatThreshold = 0.25f;
+    float flatThreshold = 0.1f;
     float proxySimilarityThreshold = 1.0f;
 
     glm::uvec2 &remoteWindowSize;
