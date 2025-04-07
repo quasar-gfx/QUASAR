@@ -57,7 +57,6 @@ public:
             })
             , targetFrameRate(targetFrameRate)
             , numThreads(numThreads)
-            , saveThreadPool(numThreads)
             , outputPath(outputPath)
 #if !defined(__APPLE__) && !defined(__ANDROID__)
             , cudaImage(renderTargetCopy.colorBuffer)
@@ -103,9 +102,10 @@ private:
 
     std::atomic<bool> running{false};
     std::atomic<int> frameCount{0};
-    BS::thread_pool saveThreadPool;
+    std::unique_ptr<BS::thread_pool> saveThreadPool;
     std::queue<FrameData> frameQueue;
     std::mutex queueMutex;
+    std::mutex cameraPathMutex;
     std::mutex swsMutex;
     std::condition_variable queueCV;
 
@@ -122,7 +122,7 @@ private:
 
     void initializeFFmpeg();
     void finalizeFFmpeg();
-    void saveFrames();
+    void saveFrames(int threadID);
 };
 
 #endif // RECORDER_H

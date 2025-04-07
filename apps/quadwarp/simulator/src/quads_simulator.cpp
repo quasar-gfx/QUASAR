@@ -499,6 +499,13 @@ int main(int argc, char** argv) {
 
             std::string colorFileName = outputPath + "color.png";
 
+            if (ImGui::Button("Save Proxies")) {
+                preventCopyingLocalPose = true;
+                generateIFrame = true;
+                runAnimations = false;
+                saveToFile = true;
+            }
+            ImGui::SameLine();
             if (ImGui::Button("Save Mesh")) {
                 std::string verticesFileName = outputPath + "vertices.bin";
                 std::string indicesFileName = outputPath + "indices.bin";
@@ -525,13 +532,6 @@ int main(int argc, char** argv) {
 
                 // save color buffer
                 gBufferRT.saveColorAsPNG(colorFileName);
-            }
-
-            if (ImGui::Button("Save Proxies")) {
-                preventCopyingLocalPose = true;
-                generateIFrame = true;
-                runAnimations = false;
-                saveToFile = true;
             }
 
             ImGui::End();

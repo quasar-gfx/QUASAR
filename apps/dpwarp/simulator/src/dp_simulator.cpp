@@ -638,6 +638,13 @@ int main(int argc, char** argv) {
             ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 300), ImGuiCond_FirstUseEver);
             ImGui::Begin("Mesh Capture", &showMeshCaptureWindow);
 
+            if (ImGui::Button("Save Proxies")) {
+                preventCopyingLocalPose = true;
+                generateIFrame = true;
+                runAnimations = false;
+                saveToFile = true;
+            }
+            ImGui::SameLine();
             if (ImGui::Button("Save Mesh")) {
                 for (int view = 0; view < maxViews; view++) {
                     std::string verticesFileName = outputPath + "vertices" + std::to_string(view) + ".bin";
@@ -665,13 +672,6 @@ int main(int argc, char** argv) {
                     std::string colorFileName = outputPath + "color" + std::to_string(view) + ".png";
                     gBufferHiddenRTs[view].saveColorAsPNG(colorFileName);
                 }
-            }
-
-            if (ImGui::Button("Save Proxies")) {
-                preventCopyingLocalPose = true;
-                generateIFrame = true;
-                runAnimations = false;
-                saveToFile = true;
             }
 
             ImGui::End();

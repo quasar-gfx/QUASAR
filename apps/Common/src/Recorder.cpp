@@ -57,8 +57,12 @@ void Recorder::start() {
         initializeFFmpeg();
     }
 
-    for (int i = 0; i < numThreads; ++i) {
-        saveThreadPool.push_task(&Recorder::saveFrames, this);
+    saveThreadPool = std::make_unique<BS::thread_pool>(numThreads);
+    for (int i = 0; i < numThreads; i++) {
+        auto future = saveThreadPool->submit([this, i]() {
+            saveFrames(i);
+        });
+        (void)future;
     }
 }
 
@@ -66,10 +70,11 @@ void Recorder::stop() {
     if (!running) {
         return;
     }
-
     running = false;
+
     queueCV.notify_all();
-    saveThreadPool.wait_for_tasks();
+    saveThreadPool->wait_for_tasks();
+    saveThreadPool.reset();
 
     if (outputFormat == OutputFormat::MP4) {
         finalizeFFmpeg();
@@ -106,7 +111,7 @@ void Recorder::captureFrame(const Camera &camera) {
     lastCaptureTime = currentTime;
 }
 
-void Recorder::saveFrames() {
+void Recorder::saveFrames(int threadID) {
     /* setup frame */
     AVFrame* frame = av_frame_alloc();
 
@@ -203,7 +208,7 @@ void Recorder::saveFrames() {
         }
 
         {
-            std::lock_guard<std::mutex> lock(queueMutex);
+            std::lock_guard<std::mutex> lock(cameraPathMutex);
             std::ofstream pathFile(outputPath + "camera_path.txt", std::ios::app);
             pathFile << std::fixed << std::setprecision(4)
                      << frameData.position.x << " "
