@@ -186,7 +186,7 @@ std::string FileIO::copyFileToCache(std::string filename) {
         return "";
     }
 
-    std::string internalAppPath = activity->internaloutputPath;
+    std::string internalAppPath = activity->internalDataPath;
     // remove "files/" from end of path
     internalAppPath = internalAppPath.substr(0, internalAppPath.find_last_of('/'));
     internalAppPath += "/cache/";

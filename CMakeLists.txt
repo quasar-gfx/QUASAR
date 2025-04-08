@@ -22,9 +22,6 @@ set(ASSETS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/assets)
 
 # include directories
 include_directories(
-    # renderer-related includes
-    ${RENDERER_DIR}/include
-
     # for all external includes
     ${EXTERNAL_DIR}
 

@@ -1,10 +1,10 @@
-# OpenGL Remote Rendering
+# QUASAR
 
 ## Install Dependencies
 
 ### Ubuntu (reccomended)
 
-NVIDIA GPUs with CUDA are highly reccomended. For server, 16 GB or more of VRAM is reccomended, though 8 GB could work for some scenes. Tested on RTX 3070, RTX 3090, and RTX 4090 with CUDA 12 and up.
+NVIDIA GPUs with CUDA are highly reccomended. For the server, 16 GB or more of VRAM is reccomended, though 8 GB could work for some scenes. Tested on RTX 3070, RTX 3090, and RTX 4090 with CUDA 12 and up.
 
 ```
 sudo apt install cmake libglew-dev libao-dev libmpg123-dev ffmpeg libavdevice-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev libavfilter-dev
