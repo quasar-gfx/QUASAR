@@ -3,7 +3,7 @@ project(ShadersCommon)
 
 set(TARGET shaders_common)
 
-set(EMBEDFILE_SCRIPT ${CMAKE_SOURCE_DIR}/cmake/embedfile.py)
+set(EMBEDFILE_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/../../../cmake/embedfile.py)
 
 file(GLOB_RECURSE SRCS
     "${CMAKE_CURRENT_SOURCE_DIR}/*.frag"
