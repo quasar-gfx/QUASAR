@@ -1,5 +1,7 @@
 #include <Renderers/DepthPeelingRenderer.h>
 
+using namespace quasar;
+
 DepthPeelingRenderer::DepthPeelingRenderer(const Config &config, unsigned int maxLayers, bool edp)
         : maxLayers(maxLayers)
         , DeferredRenderer(config)

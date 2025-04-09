@@ -8,6 +8,8 @@
 
 #include <Materials/DeferredLightingMaterial.h>
 
+namespace quasar {
+
 class DeferredRenderer : public OpenGLRenderer {
 public:
     bool multiSampled = false;
@@ -40,5 +42,7 @@ protected:
 
     RenderStats lightingPass(const Scene &scene, const Camera &camera);
 };
+
+} // namespace quasar
 
 #endif // DEFERRED_RENDERER_H

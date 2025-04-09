@@ -21,6 +21,8 @@
 
 #define TEXTURE_PREVIEW_SIZE 250
 
+using namespace quasar;
+
 const std::string DATA_PATH = "./";
 
 enum class RenderState {

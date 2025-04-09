@@ -1,5 +1,7 @@
 #include <Cameras/PerspectiveCamera.h>
 
+using namespace quasar;
+
 #define DEFAULT_FOV_DEG 60.0f
 #define DEFAULT_ASPECT 16.0f / 9.0f
 #define DEFAULT_NEAR 0.1f

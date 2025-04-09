@@ -3,6 +3,8 @@
 
 #include <Primitives/Mesh.h>
 
+namespace quasar {
+
 class Sphere : public Mesh {
 public:
     float radius = 1.0f;
@@ -66,5 +68,7 @@ public:
         setBuffers(vertices.data(), vertices.size(), indices.data(), indices.size());
     }
 };
+
+} // namespace quasar
 
 #endif // SPHERE_H

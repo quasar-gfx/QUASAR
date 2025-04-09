@@ -3,6 +3,8 @@
 
 #include <Materials/Material.h>
 
+namespace quasar {
+
 struct UnlitMaterialCreateParams {
     glm::vec4 baseColor = glm::vec4(1.0f);
     glm::vec4 baseColorFactor = glm::vec4(1.0f);
@@ -35,5 +37,7 @@ public:
 
     static std::vector<std::string> extraShaderDefines;
 };
+
+} // namespace quasar
 
 #endif // UNLIT_MATERIAL_H

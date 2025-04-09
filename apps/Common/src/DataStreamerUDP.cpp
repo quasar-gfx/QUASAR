@@ -1,5 +1,7 @@
 #include <Networking/DataStreamerUDP.h>
 
+using namespace quasar;
+
 void DataStreamerUDP::close() {
     running = false;
 

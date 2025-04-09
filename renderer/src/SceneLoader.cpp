@@ -3,6 +3,8 @@
 #include <Utils/FileIO.h>
 #include <SceneLoader.h>
 
+using namespace quasar;
+
 class JsonParser {
 public:
     JsonParser() = default;

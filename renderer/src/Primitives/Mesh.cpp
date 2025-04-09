@@ -2,6 +2,8 @@
 
 #include <glm/gtx/string_cast.hpp>
 
+using namespace quasar;
+
 void Mesh::setArrayBufferAttributes(const VertexInputAttributes &attributes, unsigned int vertexSize) {
     glGenVertexArrays(1, &vertexArrayBuffer);
     glBindVertexArray(vertexArrayBuffer);

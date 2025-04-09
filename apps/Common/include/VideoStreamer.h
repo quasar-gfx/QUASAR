@@ -25,6 +25,8 @@ extern "C" {
 #include <CudaGLInterop/CudaGLImage.h>
 #endif
 
+namespace quasar {
+
 class VideoStreamer : public RenderTarget {
 public:
     std::string videoURL = "0.0.0.0:12345";
@@ -119,5 +121,7 @@ private:
 
     void encodeAndSendFrames();
 };
+
+} // namespace quasar
 
 #endif // VIDEOSTREAMER_H

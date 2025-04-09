@@ -20,6 +20,8 @@
 #include <BC4DepthStreamer.h>
 #include <PoseReceiver.h>
 
+using namespace quasar;
+
 enum class PauseState {
     PLAY,
     PAUSE_COLOR,

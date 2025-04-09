@@ -2,6 +2,8 @@
 #include <Primitives/Sphere.h>
 #include <Materials/UnlitMaterial.h>
 
+using namespace quasar;
+
 #ifndef __APPLE__
 void glDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam) {
     std::cout << "OpenGL Debug message (" << id << "): " << message << std::endl;

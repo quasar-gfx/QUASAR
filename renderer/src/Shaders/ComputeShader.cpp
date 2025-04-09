@@ -3,6 +3,8 @@
 
 #include <Shaders/ComputeShader.h>
 
+using namespace quasar;
+
 void ComputeShader::startTiming() {
 #ifdef GL_CORE
     if (!startQueryID) {

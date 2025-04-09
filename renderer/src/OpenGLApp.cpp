@@ -10,6 +10,8 @@
 #include <Primitives/Entity.h>
 #include <OpenGLApp.h>
 
+using namespace quasar;
+
 OpenGLApp::OpenGLApp(const Config &config)
         : window(config.window)
         , guiManager(config.guiManager)

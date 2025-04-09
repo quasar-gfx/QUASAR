@@ -5,6 +5,8 @@
 
 #include <PostProcessing/PostProcessingEffect.h>
 
+namespace quasar {
+
 class FXAA : public PostProcessingEffect {
 public:
     FXAA()
@@ -40,5 +42,7 @@ public:
 private:
     Shader shader;
 };
+
+} // namespace quasar
 
 #endif // FXAA_H

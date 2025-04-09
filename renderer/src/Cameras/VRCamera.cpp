@@ -1,5 +1,7 @@
 #include <Cameras/VRCamera.h>
 
+using namespace quasar;
+
 VRCamera::VRCamera()
     : left()
     , right() {

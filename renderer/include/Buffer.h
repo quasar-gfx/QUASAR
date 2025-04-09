@@ -9,6 +9,8 @@
 
 #include <OpenGLObject.h>
 
+namespace quasar {
+
 class Buffer : public OpenGLObject {
 public:
     Buffer() {
@@ -192,5 +194,7 @@ private:
     unsigned int numElems;
     size_t dataSize;
 };
+
+} // namespace quasar
 
 #endif // BUFFER_H

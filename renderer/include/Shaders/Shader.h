@@ -8,6 +8,8 @@
 // pre-stored shaders
 #include <shaders_builtin.h>
 
+namespace quasar {
+
 struct ShaderDataCreateParams {
 #ifdef GL_CORE
     std::string version = "410 core";
@@ -67,5 +69,7 @@ private:
                                  const char* fragmentCodeData, const GLint fragmentCodeSize,
                                  const char* geometryData = nullptr, const GLint geometryDataSize = 0);
 };
+
+} // namespace quasar
 
 #endif // SHADER_H

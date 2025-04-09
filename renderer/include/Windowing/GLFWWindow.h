@@ -8,6 +8,8 @@
 
 #include <GLFW/glfw3.h>
 
+namespace quasar {
+
 class GLFWWindow final : public Window {
 public:
     GLFWwindow* window;
@@ -51,5 +53,7 @@ private:
 };
 
 #endif
+
+} // namespace quasar
 
 #endif // GLFW_WINDOW_H

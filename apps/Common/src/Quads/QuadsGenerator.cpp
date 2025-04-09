@@ -5,6 +5,8 @@
 
 #define MAX_PROXY_SIZE (2048)
 
+using namespace quasar;
+
 QuadsGenerator::QuadsGenerator(glm::uvec2 &remoteWindowSize)
         : remoteWindowSize(remoteWindowSize)
         , depthBufferSize(2u * remoteWindowSize) // 4 offsets per pixel

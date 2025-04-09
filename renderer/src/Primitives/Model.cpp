@@ -16,6 +16,8 @@
 #include <assimp/port/AndroidJNI/AndroidJNIIOSystem.h>
 #endif
 
+using namespace quasar;
+
 Model::~Model() {
     for (auto mesh : meshes) {
         delete mesh;

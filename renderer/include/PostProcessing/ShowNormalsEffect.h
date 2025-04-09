@@ -5,6 +5,8 @@
 
 #include <PostProcessing/PostProcessingEffect.h>
 
+namespace quasar {
+
 class ShowNormalsEffect : public PostProcessingEffect {
 public:
     ShowNormalsEffect()
@@ -28,5 +30,7 @@ public:
 private:
     Shader shader;
 };
+
+} // namespace quasar
 
 #endif // SHOW_NORMALS_H

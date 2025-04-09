@@ -5,6 +5,8 @@
 
 #include <Utils/Platform.h>
 
+namespace quasar {
+
 struct DepthState {
     bool depthTestEnabled = true;
     GLenum depthFunc = GL_LESS; // GL_NEVER, GL_LESS, GL_EQUAL, GL_LEQUAL, GL_GREATER, GL_NOTEQUAL, GL_GEQUAL, GL_ALWAYS
@@ -229,5 +231,7 @@ struct GraphicsPipeline {
         glDepthMask(writeMaskState.depth);
     }
 };
+
+} // namespace quasar
 
 #endif // GRAPHICS_PIPELINE_H

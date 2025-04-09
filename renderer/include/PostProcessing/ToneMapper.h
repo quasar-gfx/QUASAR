@@ -5,6 +5,8 @@
 
 #include <PostProcessing/PostProcessingEffect.h>
 
+namespace quasar {
+
 class ToneMapper : public PostProcessingEffect {
 public:
     ToneMapper() = default;
@@ -32,5 +34,7 @@ public:
 private:
     ToneMapShader shader;
 };
+
+} // namespace quasar
 
 #endif // TONE_MAP_EFFECT_H

@@ -7,6 +7,8 @@
 #include <Culling/AABB.h>
 #include <Culling/BoundingSphere.h>
 
+namespace quasar {
+
 class Node;
 class Scene;
 class Camera;
@@ -70,5 +72,7 @@ protected:
 
     static uint32_t nextID;
 };
+
+} // namespace quasar
 
 #endif // ENTITY_H

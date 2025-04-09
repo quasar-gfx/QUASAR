@@ -3,6 +3,8 @@
 
 #include <cstdint>
 
+namespace quasar {
+
 #define PACKET_DATA_SIZE_UDP 1024
 
 typedef uint32_t packet_id_t;
@@ -14,5 +16,7 @@ struct DataPacketUDP {
     unsigned int size;
     uint8_t data[PACKET_DATA_SIZE_UDP];
 };
+
+} // namespace quasar
 
 #endif // DATA_PACKET_UDP_H

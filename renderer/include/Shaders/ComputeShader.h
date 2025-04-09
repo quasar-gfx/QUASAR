@@ -7,6 +7,8 @@
 #include <Texture.h>
 #include <Shaders/ShaderBase.h>
 
+namespace quasar {
+
 struct ComputeShaderDataCreateParams {
 #ifdef GL_CORE
     std::string version = "430 core";
@@ -83,5 +85,7 @@ private:
 #endif
     mutable GLuint64 lastElapsedTime = 0;
 };
+
+} // namespace quasar
 
 #endif // COMPUTE_SHADER_H

@@ -4,6 +4,8 @@
 
 #include <CudaGLInterop/CudaUtils.h>
 
+using namespace quasar;
+
 CUdevice cudautils::gDevice = -1;
 
 CUdevice cudautils::checkCudaDevice() {

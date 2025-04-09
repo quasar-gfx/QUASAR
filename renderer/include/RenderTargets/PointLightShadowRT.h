@@ -3,6 +3,8 @@
 
 #include <RenderTargets/RenderTargetBase.h>
 
+namespace quasar {
+
 class PointLightShadowRT : public RenderTargetBase {
 public:
     CubeMap depthCubeMap;
@@ -31,5 +33,7 @@ public:
         framebuffer.unbind();
     }
 };
+
+} // namespace quasar
 
 #endif // POINT_LIGHT_SHADOW_BUFFER_H

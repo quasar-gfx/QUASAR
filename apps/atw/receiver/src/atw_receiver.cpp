@@ -19,6 +19,8 @@
 
 #define TEXTURE_PREVIEW_SIZE 500
 
+using namespace quasar;
+
 int main(int argc, char** argv) {
     Config config{};
     config.title = "ATW Receiver";

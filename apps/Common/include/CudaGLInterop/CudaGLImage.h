@@ -8,6 +8,8 @@
 #include <cuda_gl_interop.h>
 #include <CudaGLInterop/CudaUtils.h>
 
+namespace quasar {
+
 class CudaGLImage {
 public:
     CudaGLImage() = default;
@@ -60,5 +62,7 @@ private:
     cudaGraphicsResource* cudaResource;
 };
 #endif
+
+} // namespace quasar
 
 #endif // CUDA_IMAGE_H

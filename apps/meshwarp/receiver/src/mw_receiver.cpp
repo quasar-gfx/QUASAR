@@ -16,6 +16,8 @@
 
 #define THREADS_PER_LOCALGROUP 16
 
+using namespace quasar;
+
 enum class RenderState {
     MESH,
     POINTCLOUD,

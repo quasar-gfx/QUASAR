@@ -2,6 +2,8 @@
 
 #include <DepthVideoTexture.h>
 
+using namespace quasar;
+
 pose_id_t DepthVideoTexture::getLatestPoseID() {
     if (depthFrames.empty()) {
         return -1;

@@ -18,6 +18,8 @@
 #define THREADS_PER_LOCALGROUP 32
 #endif
 
+namespace quasar {
+
 #ifndef __ANDROID__
 #define MAX_NUM_PROXIES (2 * 1024 * 1024)
 #else
@@ -79,5 +81,7 @@ private:
     ComputeShader fillQuadIndicesShader;
     ComputeShader createMeshFromQuadsShader;
 };
+
+} // namespace quasar
 
 #endif // MESH_FROM_QUADS_H

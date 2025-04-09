@@ -5,6 +5,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+namespace quasar {
+
 class Animation {
 public:
     struct Keyframe {
@@ -60,5 +62,7 @@ private:
 
     void updateTransformation();
 };
+
+} // namespace quasar
 
 #endif // ANIMATION_H

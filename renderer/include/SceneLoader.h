@@ -11,6 +11,8 @@
 #include <Cameras/PerspectiveCamera.h>
 #include <Primitives/Primitives.h>
 
+namespace quasar {
+
 #define CHECK_TOKTYPE(tok_, type_) if ((tok_).type != (type_)) { return -1; }
 #define CHECK_KEY(tok_) if ((tok_).type != JSMN_STRING || (tok_).size == 0) { return -1; }
 #define STR(tok, json) std::string(json + tok.start, tok.end - tok.start)
@@ -62,5 +64,7 @@ private:
     int parseAnimations(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
     int parse(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
 };
+
+} // namespace quasar
 
 #endif // SCENE_LOADER_H

@@ -23,16 +23,7 @@
 
 #include <shaders_common.h>
 
-const std::vector<glm::vec3> offsets = {
-    glm::vec3(-1.0f, +1.0f, -1.0f), // Top-left
-    glm::vec3(+1.0f, +1.0f, -1.0f), // Top-right
-    glm::vec3(+1.0f, -1.0f, -1.0f), // Bottom-right
-    glm::vec3(-1.0f, -1.0f, -1.0f), // Bottom-left
-    glm::vec3(-1.0f, +1.0f, +1.0f), // Top-left
-    glm::vec3(+1.0f, +1.0f, +1.0f), // Top-right
-    glm::vec3(+1.0f, -1.0f, +1.0f), // Bottom-right
-    glm::vec3(-1.0f, -1.0f, +1.0f), // Bottom-left
-};
+using namespace quasar;
 
 const std::vector<glm::vec4> colors = {
     glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), // primary view color is yellow
@@ -45,6 +36,17 @@ const std::vector<glm::vec4> colors = {
     glm::vec4(0.0f, 0.5f, 0.0f, 1.0f),
     glm::vec4(0.0f, 0.0f, 0.5f, 1.0f),
     glm::vec4(0.5f, 0.0f, 0.5f, 1.0f),
+};
+
+const std::vector<glm::vec3> offsets = {
+    glm::vec3(-1.0f, +1.0f, -1.0f), // Top-left
+    glm::vec3(+1.0f, +1.0f, -1.0f), // Top-right
+    glm::vec3(+1.0f, -1.0f, -1.0f), // Bottom-right
+    glm::vec3(-1.0f, -1.0f, -1.0f), // Bottom-left
+    glm::vec3(-1.0f, +1.0f, +1.0f), // Top-left
+    glm::vec3(+1.0f, +1.0f, +1.0f), // Top-right
+    glm::vec3(+1.0f, -1.0f, +1.0f), // Bottom-right
+    glm::vec3(-1.0f, -1.0f, +1.0f), // Bottom-left
 };
 
 int main(int argc, char** argv) {

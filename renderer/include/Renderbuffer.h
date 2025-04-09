@@ -3,6 +3,8 @@
 
 #include <OpenGLObject.h>
 
+namespace quasar {
+
 struct RenderbufferCreateParams {
     unsigned int width = 0;
     unsigned int height = 0;
@@ -43,5 +45,7 @@ public:
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
     }
 };
+
+} // namespace quasar
 
 #endif // RENDERBUFFER_H

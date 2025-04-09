@@ -5,6 +5,8 @@
 
 #include <shaders_common.h>
 
+namespace quasar {
+
 class BlurEdges : public PostProcessingEffect {
 public:
     BlurEdges()
@@ -38,5 +40,7 @@ public:
 private:
     Shader shader;
 };
+
+} // namespace quasar
 
 #endif // BLUR_EDGES_H

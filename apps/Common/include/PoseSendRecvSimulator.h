@@ -11,6 +11,8 @@
 #include <Cameras/PerspectiveCamera.h>
 #include <CameraPose.h>
 
+namespace quasar {
+
 struct PoseSendRecvSimulatorCreateParams {
     double networkLatencyMs;
     double networkJitterMs;
@@ -333,5 +335,7 @@ private:
         return true;
     }
 };
+
+} // namespace quasar
 
 #endif // POSE_SIM_H

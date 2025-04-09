@@ -6,6 +6,8 @@
 
 #include <Culling/AABB.h>
 
+namespace quasar {
+
 class Frustum {
 public:
     struct FPlane {
@@ -131,5 +133,7 @@ private:
 
 	std::vector<FPlane> planes = std::vector<FPlane>(COUNT);
 };
+
+} // namespace quasar
 
 #endif // FRUSTUM_H

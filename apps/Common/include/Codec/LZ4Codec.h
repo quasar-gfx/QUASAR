@@ -4,8 +4,9 @@
 #include <vector>
 
 #include <lz4.h>
-
 #include <Codec/Codec.h>
+
+namespace quasar {
 
 class LZ4Codec : public Codec {
 public:
@@ -30,5 +31,7 @@ public:
             decompressedData.size());
     }
 };
+
+} // namespace quasar
 
 #endif // LZ4_CODEC_H

@@ -15,6 +15,8 @@
 #include <Recorder.h>
 #include <CameraAnimator.h>
 
+using namespace quasar;
+
 int main(int argc, char** argv) {
     Config config{};
     config.title = "Scene Viewer";

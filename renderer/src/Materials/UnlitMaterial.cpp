@@ -1,5 +1,7 @@
 #include <Materials/UnlitMaterial.h>
 
+using namespace quasar;
+
 Shader* UnlitMaterial::shader = nullptr;
 std::vector<std::string> UnlitMaterial::extraShaderDefines;
 

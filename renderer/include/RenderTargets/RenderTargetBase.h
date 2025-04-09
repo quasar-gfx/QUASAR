@@ -5,6 +5,8 @@
 #include <CubeMap.h>
 #include <Framebuffer.h>
 
+namespace quasar {
+
 struct RenderTargetCreateParams {
     unsigned int width = 0;
     unsigned int height = 0;
@@ -87,5 +89,7 @@ public:
 protected:
     Framebuffer framebuffer;
 };
+
+} // namespace quasar
 
 #endif // RENDER_TARGET_BASE_H

@@ -6,6 +6,8 @@
 
 #include <Culling/AABB.h>
 
+namespace quasar {
+
 class BoundingSphere {
 public:
     BoundingSphere() = default;
@@ -44,5 +46,7 @@ private:
     glm::vec3 center = glm::vec3(0.0f);
     float radius = 0.0f;
 };
+
+} // namespace quasar
 
 #endif // BOUNDING_SPHERE_H

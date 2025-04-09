@@ -3,6 +3,8 @@
 
 #include <functional>
 
+namespace quasar {
+
 class GUIManager {
 public:
     using GuiCallback = std::function<void(double now, double dt)>;
@@ -25,5 +27,7 @@ public:
 private:
     GuiCallback guiCallback;
 };
+
+} // namespace quasar
 
 #endif // GUI_MANAGER_H

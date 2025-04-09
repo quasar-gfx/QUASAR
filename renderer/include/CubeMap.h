@@ -12,6 +12,8 @@
 #include <Renderbuffer.h>
 #include <Cameras/Camera.h>
 
+namespace quasar {
+
 #define NUM_CUBEMAP_FACES 6
 
 enum class CubeMapType {
@@ -128,5 +130,7 @@ private:
 
     RenderStats drawCube() const;
 };
+
+} // namespace quasar
 
 #endif // CUBE_MAP_H

@@ -11,6 +11,8 @@
 
 #include <Networking/Socket.h>
 
+namespace quasar {
+
 class DataReceiverTCP {
 public:
     struct Stats {
@@ -37,5 +39,7 @@ private:
 
     void recvData();
 };
+
+} // namespace quasar
 
 #endif // DATA_RECEIVER_TCP_H

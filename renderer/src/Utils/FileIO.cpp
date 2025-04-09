@@ -6,6 +6,8 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
 
+using namespace quasar;
+
 #ifdef __ANDROID__
 #define CHECK_ANDROID_ACTIVITY() if (activity == nullptr) { throw std::runtime_error("Android App Activity not set!"); }
 #endif

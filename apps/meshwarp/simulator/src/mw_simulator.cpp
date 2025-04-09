@@ -21,6 +21,8 @@
 
 #define THREADS_PER_LOCALGROUP 16
 
+using namespace quasar;
+
 int main(int argc, char** argv) {
     Config config{};
     config.title = "MeshWarp Simulator";

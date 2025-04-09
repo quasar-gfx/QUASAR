@@ -1,5 +1,7 @@
 #include <Materials/PointShadowMapMaterial.h>
 
+using namespace quasar;
+
 Shader* PointShadowMapMaterial::shader = nullptr;
 
 PointShadowMapMaterial::PointShadowMapMaterial() {

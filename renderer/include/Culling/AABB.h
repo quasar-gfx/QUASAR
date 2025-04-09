@@ -9,6 +9,8 @@
 
 #include <Vertex.h>
 
+namespace quasar {
+
 class AABB {
 public:
     AABB() = default;
@@ -38,5 +40,7 @@ private:
     glm::vec3 center = glm::vec3(0.0f);
     glm::vec3 extents = glm::vec3(0.0f);
 };
+
+} // namespace quasar
 
 #endif // AABB_H

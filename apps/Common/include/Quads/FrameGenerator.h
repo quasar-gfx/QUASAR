@@ -9,6 +9,8 @@
 #include <Quads/QuadsGenerator.h>
 #include <Quads/MeshFromQuads.h>
 
+namespace quasar {
+
 class FrameGenerator {
 public:
     QuadsGenerator &quadsGenerator;
@@ -57,5 +59,7 @@ private:
     DeferredRenderer &remoteRenderer;
     const Scene &remoteScene;
 };
+
+} // namespace quasar
 
 #endif // FRAME_GENERATOR_H

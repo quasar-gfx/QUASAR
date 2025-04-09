@@ -1,5 +1,7 @@
 #include <Scene.h>
 
+using namespace quasar;
+
 Scene::Scene()
         : irradianceCubeMap({ .width = 32, .height = 32, .type = CubeMapType::STANDARD })
         , prefilterCubeMap({ .width = 128, .height = 128, .type = CubeMapType::PREFILTER })

@@ -9,6 +9,8 @@
 
 #include <Primitives/Node.h>
 
+namespace quasar {
+
 class Camera : public Node {
 public:
     Camera() = default;
@@ -22,5 +24,7 @@ public:
 
     virtual bool isVR() const = 0;
 };
+
+} // namespace quasar
 
 #endif // CAMERA_H

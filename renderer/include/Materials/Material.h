@@ -7,6 +7,8 @@
 #include <Shaders/Shader.h>
 #include <Texture.h>
 
+namespace quasar {
+
 enum class AlphaMode : uint8_t {
     OPAQUE = 0,
     MASKED,
@@ -33,5 +35,7 @@ public:
 
     virtual unsigned int getTextureCount() const = 0;
 };
+
+} // namespace quasar
 
 #endif // MATERIAL_H

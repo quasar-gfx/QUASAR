@@ -5,6 +5,8 @@
 #include <RenderTargets/DirLightShadowRT.h>
 #include <Materials/DirShadowMapMaterial.h>
 
+namespace quasar {
+
 struct DirectionalLightCreateParams {
     glm::vec3 color = glm::vec3(1.0f);
     glm::vec3 direction = glm::vec3(0.0f, -5.0f, 1.333f);
@@ -62,5 +64,7 @@ private:
         lightSpaceMatrix = shadowProjectionMat * lightView;
     }
 };
+
+} // namespace quasar
 
 #endif // DIRECTIONAL_LIGHT_H

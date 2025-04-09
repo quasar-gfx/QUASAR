@@ -1,5 +1,7 @@
 #include <Materials/DeferredLightingMaterial.h>
 
+using namespace quasar;
+
 Shader* DeferredLightingMaterial::shader = nullptr;
 
 DeferredLightingMaterial::DeferredLightingMaterial() {

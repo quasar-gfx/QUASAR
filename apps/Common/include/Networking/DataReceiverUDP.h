@@ -13,6 +13,8 @@
 #include <Networking/DataPacketUDP.h>
 #include <Networking/Socket.h>
 
+namespace quasar {
+
 class DataReceiverUDP {
 public:
     std::string url;
@@ -50,5 +52,7 @@ private:
     int recvPacket(DataPacketUDP* packet);
     void recvData();
 };
+
+} // namespace quasar
 
 #endif // DATA_RECEIVER_UDP_H

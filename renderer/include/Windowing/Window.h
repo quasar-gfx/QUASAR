@@ -3,6 +3,8 @@
 
 #include <glm/glm.hpp>
 
+namespace quasar {
+
 struct Mouse {
     bool LEFT_PRESSED = false;
     bool MIDDLE_PRESSED = false;
@@ -47,5 +49,7 @@ public:
     virtual bool tick() = 0;
     virtual void close() = 0;
 };
+
+} // namespace quasar
 
 #endif // WINDOW_H

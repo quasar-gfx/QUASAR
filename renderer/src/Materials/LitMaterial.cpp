@@ -1,5 +1,7 @@
 #include <Materials/LitMaterial.h>
 
+using namespace quasar;
+
 Shader* LitMaterial::shader = nullptr;
 std::vector<std::string> LitMaterial::extraShaderDefines;
 

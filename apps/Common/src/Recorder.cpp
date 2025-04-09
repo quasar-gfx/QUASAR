@@ -8,6 +8,8 @@
 #undef av_err2str
 #define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
 
+using namespace quasar;
+
 Recorder::~Recorder() {
     if (running) {
         stop();
@@ -234,6 +236,7 @@ void Recorder::initializeFFmpeg() {
 #else
     std::string encoderName = "libx264";
 #endif
+
     auto outputCodec = avcodec_find_encoder_by_name(encoderName.c_str());
     if (!outputCodec) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate encoder.\n");

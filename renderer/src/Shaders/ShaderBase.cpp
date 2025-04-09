@@ -2,6 +2,8 @@
 
 #include <Shaders/ShaderBase.h>
 
+using namespace quasar;
+
 GLuint ShaderBase::bindedShaderID = 0;
 
 ShaderBase::ShaderBase() = default;

@@ -13,6 +13,8 @@
 #include <Cameras/PerspectiveCamera.h>
 #include <Cameras/VRCamera.h>
 
+namespace quasar {
+
 struct MeshDataCreateParams {
     const void* verticesData;
     size_t verticesSize;
@@ -131,5 +133,7 @@ protected:
 
     void setMaterialCameraParams(const Camera &camera, const Material* material);
 };
+
+} // namespace quasar
 
 #endif // MESH_H

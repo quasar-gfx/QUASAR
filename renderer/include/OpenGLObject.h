@@ -3,6 +3,8 @@
 
 #include <Utils/Platform.h>
 
+namespace quasar {
+
 class OpenGLObject {
 public:
     GLuint ID;
@@ -15,5 +17,7 @@ public:
     virtual void bind() const = 0;
     virtual void unbind() const = 0;
 };
+
+} // namespace quasar
 
 #endif // OPENGL_OBJECT_H

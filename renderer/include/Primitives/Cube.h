@@ -3,6 +3,8 @@
 
 #include <Primitives/Mesh.h>
 
+namespace quasar {
+
 class Cube : public Mesh {
 public:
     Cube(const MeshDataCreateParams &params) : Mesh(params) {
@@ -59,5 +61,7 @@ public:
         setBuffers(vertices.data(), vertices.size());
     }
 };
+
+} // namespace quasar
 
 #endif // CUBE_H

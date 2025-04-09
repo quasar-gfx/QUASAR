@@ -3,6 +3,8 @@
 
 #include <RenderTargets/RenderTargetBase.h>
 
+namespace quasar {
+
 class DirLightShadowRT : public RenderTargetBase {
 public:
     Texture colorBuffer;
@@ -42,5 +44,7 @@ public:
         framebuffer.unbind();
     }
 };
+
+} // namespace quasar
 
 #endif // DIR_LIGHT_SHADOW_BUFFER_H

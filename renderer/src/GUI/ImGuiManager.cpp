@@ -2,6 +2,8 @@
 
 #include <GUI/ImGuiManager.h>
 
+using namespace quasar;
+
 ImGuiManager::ImGuiManager(std::shared_ptr<GLFWWindow> glfwWindow) {
     ImGui::CreateContext();
     ImGui::StyleColorsDark();

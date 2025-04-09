@@ -11,6 +11,8 @@
 #include <CudaGLInterop/CudaGLBuffer.h>
 #endif
 
+namespace quasar {
+
 struct QuadMapData {
     glm::vec3 normal;
     float depth;
@@ -67,5 +69,7 @@ private:
     CudaGLBuffer cudaBufferOffsetSizeFlatteneds;
 #endif
 };
+
+} // namespace quasar
 
 #endif // QUAD_BUFFERS_H

@@ -1,5 +1,7 @@
 #include <Primitives/Node.h>
 
+using namespace quasar;
+
 unsigned int Node::nextID = 0;
 
 Node::Node() {

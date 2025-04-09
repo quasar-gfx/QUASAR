@@ -1,5 +1,7 @@
 #include <Networking/DataReceiverUDP.h>
 
+using namespace quasar;
+
 void DataReceiverUDP::close() {
     running = false;
 

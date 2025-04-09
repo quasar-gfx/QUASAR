@@ -4,6 +4,8 @@
 #include <Renderers/OpenGLRenderer.h>
 #include <RenderTargets/GBuffer.h>
 
+namespace quasar {
+
 class ForwardRenderer : public OpenGLRenderer {
 public:
     bool multiSampled = false;
@@ -25,5 +27,7 @@ public:
 
     virtual RenderStats drawObjects(const Scene &scene, const Camera &camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT) override;
 };
+
+} // namespace quasar
 
 #endif // FORWARD_RENDERER_H

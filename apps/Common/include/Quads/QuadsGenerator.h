@@ -8,6 +8,8 @@
 #include <Quads/QuadsBuffers.h>
 #include <Quads/DepthOffsets.h>
 
+namespace quasar {
+
 class QuadsGenerator {
 public:
     struct BufferSizes {
@@ -63,5 +65,7 @@ private:
     void simplifyQuadMaps(const PerspectiveCamera &remoteCamera, const glm::vec2 &gBufferSize);
     void fillOutputQuads(const glm::vec2 &gBufferSize);
 };
+
+} // namespace quasar
 
 #endif // QUADS_GENERATOR_H

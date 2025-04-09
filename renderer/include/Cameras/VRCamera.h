@@ -5,6 +5,8 @@
 #include <Cameras/PerspectiveCamera.h>
 #include <Culling/Frustum.h>
 
+namespace quasar {
+
 class VRCamera : public Camera {
 public:
     PerspectiveCamera left;
@@ -37,5 +39,7 @@ public:
 
     bool isVR() const override { return true; }
 };
+
+} // namespace quasar
 
 #endif // VR_CAMERA_H

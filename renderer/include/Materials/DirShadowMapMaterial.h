@@ -3,6 +3,8 @@
 
 #include <Materials/ShadowMapMaterial.h>
 
+namespace quasar {
+
 class DirShadowMapMaterial : public ShadowMapMaterial {
 public:
     DirShadowMapMaterial();
@@ -18,5 +20,7 @@ public:
 
     static Shader* shader;
 };
+
+} // namespace quasar
 
 #endif // DIR_SHADOW_MAP_MATERIAL_H

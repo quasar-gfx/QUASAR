@@ -7,6 +7,8 @@
 
 #include <Codec/Codec.h>
 
+namespace quasar {
+
 class ZSTDCodec : public Codec {
 public:
     ZSTDCodec(
@@ -48,5 +50,7 @@ private:
     ZSTD_CCtx* compressionCtx;
     ZSTD_DCtx* decompressionCtx;
 };
+
+} // namespace quasar
 
 #endif // ZSTD_CODEC_H

@@ -5,6 +5,8 @@
 
 #include <Animation.h>
 
+using namespace quasar;
+
 Animation::AnimationProperty::AnimationProperty(const glm::vec3& initialState, bool isRotation)
     : initialState(initialState), currentState(initialState), isRotation(isRotation) {}
 

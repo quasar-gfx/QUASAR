@@ -9,6 +9,8 @@
 #include <Materials/PointShadowMapMaterial.h>
 #include <Culling/BoundingSphere.h>
 
+namespace quasar {
+
 struct PointLightCreateParams {
     glm::vec3 color = glm::vec3(1.0f);
     glm::vec3 position = glm::vec3(0.0f);
@@ -135,5 +137,7 @@ private:
         lookAtPerFace[5] = glm::lookAt(position, position + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
     }
 };
+
+} // namespace quasar
 
 #endif // POINT_LIGHT_H

@@ -17,6 +17,8 @@
 
 #include <CameraPose.h>
 
+namespace quasar {
+
 class PoseReceiver : public DataReceiverUDP {
 public:
     std::string streamerURL;
@@ -80,5 +82,7 @@ private:
     bool currPoseDirty = false;
     Pose currPose;
 };
+
+} // namespace quasar
 
 #endif // POSE_RECEIVER_H

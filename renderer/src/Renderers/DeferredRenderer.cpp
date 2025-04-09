@@ -1,5 +1,7 @@
 #include <Renderers/DeferredRenderer.h>
 
+using namespace quasar;
+
 DeferredRenderer::DeferredRenderer(const Config &config)
         : multiSampled(config.pipeline.multiSampleState.multiSampleEnabled)
         , outputRT({

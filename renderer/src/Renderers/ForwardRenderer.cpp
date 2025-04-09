@@ -1,5 +1,7 @@
 #include <Renderers/ForwardRenderer.h>
 
+using namespace quasar;
+
 ForwardRenderer::ForwardRenderer(const Config &config)
         : multiSampled(config.pipeline.multiSampleState.multiSampleEnabled)
         , gBuffer({ .width = config.width, .height = config.height, .multiSampled = false })

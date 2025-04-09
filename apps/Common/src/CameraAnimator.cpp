@@ -6,6 +6,8 @@
 #include <CameraAnimator.h>
 #include <Utils/TimeUtils.h>
 
+using namespace quasar;
+
 CameraAnimator::CameraAnimator(const std::string &pathFile, bool tween) : tween(tween) {
     if (!pathFile.empty()) {
         loadAnimation(pathFile);

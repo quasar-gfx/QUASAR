@@ -10,6 +10,8 @@
 
 #include <OpenGLObject.h>
 
+namespace quasar {
+
 struct VertexInputAttribute {
     GLuint index;
     GLint size;
@@ -65,9 +67,11 @@ struct Vertex {
     }
 };
 
+} // namespace quasar
+
 namespace std {
-    template<> struct hash<Vertex> {
-        size_t operator()(Vertex const& vertex) const {
+    template<> struct hash<quasar::Vertex> {
+        size_t operator()(quasar::Vertex const& vertex) const {
             return ((hash<glm::vec3>()(vertex.position) ^
                    (hash<glm::vec3>()(vertex.normal) << 1)) >> 1) ^
                    (hash<glm::vec2>()(vertex.texCoords) << 1 ^

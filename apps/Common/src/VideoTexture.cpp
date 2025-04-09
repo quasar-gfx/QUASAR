@@ -8,6 +8,8 @@
 #undef av_err2str
 #define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
 
+using namespace quasar;
+
 static int interrupt_callback(void* ctx) {
     bool* shouldTerminatePtr = (bool*)ctx;
     bool shouldTerminate = (shouldTerminatePtr != nullptr) ? *shouldTerminatePtr : false;
@@ -114,6 +116,7 @@ int VideoTexture::initFFMpeg() {
 #else
     auto codec = avcodec_find_decoder(inputVideoStream->codecpar->codec_id);
 #endif
+
     if (!codec) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Couldn't allocate decoder.\n");
         return -1;

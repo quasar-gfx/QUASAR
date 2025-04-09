@@ -5,4 +5,8 @@
 #include <Lights/DirectionalLight.h>
 #include <Lights/PointLight.h>
 
+namespace quasar {
+
+} // namespace quasar
+
 #endif // LIGHTS_H

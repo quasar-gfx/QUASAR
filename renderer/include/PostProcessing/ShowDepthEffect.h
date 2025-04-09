@@ -5,6 +5,8 @@
 
 #include <PostProcessing/PostProcessingEffect.h>
 
+namespace quasar {
+
 class ShowDepthEffect : public PostProcessingEffect {
 public:
     ShowDepthEffect(Camera &camera)
@@ -37,5 +39,7 @@ private:
 
     Camera &camera;
 };
+
+} // namespace quasar
 
 #endif // SHOW_DEPTH_H

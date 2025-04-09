@@ -5,6 +5,8 @@
 #include <Texture.h>
 #include <CubeMap.h>
 
+namespace quasar {
+
 class Framebuffer : public OpenGLObject {
 public:
     unsigned int numAttachments = 0;
@@ -85,5 +87,7 @@ public:
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 };
+
+} // namespace quasar
 
 #endif // FRAMEBUFFER_H

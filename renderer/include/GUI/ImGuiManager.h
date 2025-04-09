@@ -12,6 +12,8 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/GUIManager.h>
 
+namespace quasar {
+
 class ImGuiManager : public GUIManager {
 public:
     ImGuiManager(std::shared_ptr<GLFWWindow> glfwWindow);
@@ -24,5 +26,7 @@ public:
 };
 
 #endif
+
+} // namespace quasar
 
 #endif // IMGUI_MANAGER_H

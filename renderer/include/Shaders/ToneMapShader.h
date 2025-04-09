@@ -3,6 +3,8 @@
 
 #include <Shaders/Shader.h>
 
+namespace quasar {
+
 class ToneMapShader : public Shader {
 public:
     ToneMapShader()
@@ -13,5 +15,7 @@ public:
                 .fragmentCodeSize = SHADER_BUILTIN_TONEMAP_FRAG_len
             }) {}
 };
+
+} // namespace quasar
 
 #endif // TONE_MAP_SHADER_H

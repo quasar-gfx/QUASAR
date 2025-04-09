@@ -1,6 +1,8 @@
 #include <Utils/FileIO.h>
 #include <Shaders/Shader.h>
 
+using namespace quasar;
+
 void Shader::loadFromFiles(const std::string vertexPath, const std::string fragmentPath, const std::string geometryPath) {
     std::string vertexCode = FileIO::loadTextFile(vertexPath);
     std::string fragmentCode = FileIO::loadTextFile(fragmentPath);

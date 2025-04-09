@@ -3,6 +3,8 @@
 
 #include <RenderTargets/RenderTargetBase.h>
 
+namespace quasar {
+
 class RenderTarget : public RenderTargetBase {
 public:
     Texture colorBuffer;
@@ -93,5 +95,7 @@ public:
         unbind();
     }
 };
+
+} // namespace quasar
 
 #endif // RENDER_TARGET_H

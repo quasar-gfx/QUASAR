@@ -7,6 +7,8 @@
 #include <Primitives/Entity.h>
 #include <Materials/Material.h>
 
+namespace quasar {
+
 struct LightCreateParams {
     glm::vec3 color = glm::vec3(1.0f);
     float intensity = 1.0f;
@@ -36,5 +38,7 @@ public:
 
     virtual void bindMaterial(const Material* material) = 0;
 };
+
+} // namespace quasar
 
 #endif // LIGHT_H

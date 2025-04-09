@@ -5,6 +5,8 @@
 #include <RenderTargets/RenderTarget.h>
 #include <RenderTargets/GBuffer.h>
 
+namespace quasar {
+
 class DeferredGBuffer : public RenderTargetBase {
 public:
     Texture albedoBuffer;
@@ -249,5 +251,7 @@ public:
         unbind();
     }
 };
+
+} // namespace quasar
 
 #endif // DEFERRED_GBUFFER_H

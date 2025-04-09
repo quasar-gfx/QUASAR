@@ -6,6 +6,8 @@
 #include <OpenGLAppConfig.h>
 #include <Windowing/Window.h>
 
+namespace quasar {
+
 class OpenGLApp {
 public:
     using RenderCallback = std::function<void(double now, double dt)>;
@@ -28,5 +30,7 @@ private:
     std::shared_ptr<Window> window;
     std::shared_ptr<GUIManager> guiManager;
 };
+
+} // namespace quasar
 
 #endif // OPENGL_APP_H

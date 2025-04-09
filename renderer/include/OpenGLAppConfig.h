@@ -8,6 +8,8 @@
 #include <Windowing/Window.h>
 #include <GUI/GUIManager.h>
 
+namespace quasar {
+
 struct Config {
     bool enableVSync = true;
     bool showWindow = true;
@@ -25,5 +27,7 @@ struct Config {
     std::shared_ptr<Window> window = nullptr;
     std::shared_ptr<GUIManager> guiManager = nullptr;
 };
+
+} // namespace quasar
 
 #endif // OPENGL_APP_CONFIG_H

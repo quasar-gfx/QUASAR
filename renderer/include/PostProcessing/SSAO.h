@@ -8,6 +8,8 @@
 
 #include <PostProcessing/PostProcessingEffect.h>
 
+namespace quasar {
+
 class SSAO: public PostProcessingEffect {
 public:
     SSAO(glm::uvec2 &windowSize, PerspectiveCamera &camera, unsigned int seed = 42)
@@ -163,5 +165,7 @@ private:
         return a + f * (b - a);
     }
 };
+
+} // namespace quasar
 
 #endif // SSAO_H

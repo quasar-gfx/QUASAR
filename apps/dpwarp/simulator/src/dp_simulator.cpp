@@ -24,6 +24,8 @@
 
 #define IFRAME_PERIOD 5
 
+using namespace quasar;
+
 const std::vector<glm::vec4> colors = {
     glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), // primary view color is yellow
     glm::vec4(0.0f, 0.0f, 1.0f, 1.0f),

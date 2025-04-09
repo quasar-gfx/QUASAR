@@ -1,5 +1,7 @@
 #include <Materials/DirShadowMapMaterial.h>
 
+using namespace quasar;
+
 Shader* DirShadowMapMaterial::shader = nullptr;
 
 DirShadowMapMaterial::DirShadowMapMaterial() {

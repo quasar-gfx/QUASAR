@@ -3,6 +3,8 @@
 
 #include <chrono>
 
+namespace quasar {
+
 #define MILLISECONDS_IN_SECOND (1e3f)
 #define MICROSECONDS_IN_SECOND (1e6f)
 #define MICROSECONDS_IN_MILLISECOND (1e3f)
@@ -74,5 +76,7 @@ inline double secondsToMillis(double seconds) {
 }
 
 }
+
+} // namespace quasar
 
 #endif // TIME_UTILS_H

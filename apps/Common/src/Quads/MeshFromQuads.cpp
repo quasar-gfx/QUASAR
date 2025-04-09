@@ -1,5 +1,7 @@
 #include <Quads/MeshFromQuads.h>
 
+using namespace quasar;
+
 MeshFromQuads::MeshFromQuads(glm::uvec2 &remoteWindowSize, unsigned int maxNumProxies)
         : remoteWindowSize(remoteWindowSize)
         , depthBufferSize(2u * remoteWindowSize) // 4 offsets per pixel

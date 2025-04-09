@@ -7,6 +7,8 @@
 
 #include <Quads/QuadsBuffers.h>
 
+using namespace quasar;
+
 QuadBuffers::QuadBuffers(unsigned int maxProxies)
         : maxProxies(maxProxies)
         , numProxies(maxProxies)

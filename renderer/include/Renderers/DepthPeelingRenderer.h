@@ -5,6 +5,8 @@
 #include <RenderTargets/DeferredGBuffer.h>
 #include <RenderTargets/GBuffer.h>
 
+namespace quasar {
+
 class DepthPeelingRenderer : public DeferredRenderer {
 public:
     unsigned int maxLayers;
@@ -38,5 +40,7 @@ private:
     bool edp;
     Shader compositeLayersShader;
 };
+
+} // namespace quasar
 
 #endif // DEPTH_PEELING_H

@@ -20,6 +20,8 @@ extern "C" {
 
 #include <CameraPose.h>
 
+namespace quasar {
+
 class VideoTexture : public Texture {
 public:
     std::string videoURL = "127.0.0.1:12345";
@@ -100,5 +102,7 @@ private:
 
     int initFFMpeg();
 };
+
+} // namespace quasar
 
 #endif // VIDEO_TEXTURE_H

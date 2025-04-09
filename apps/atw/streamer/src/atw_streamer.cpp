@@ -16,6 +16,8 @@
 #include <VideoStreamer.h>
 #include <PoseReceiver.h>
 
+using namespace quasar;
+
 int main(int argc, char** argv) {
     Config config{};
     config.title = "ATW Streamer";

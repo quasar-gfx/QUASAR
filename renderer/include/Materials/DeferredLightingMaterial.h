@@ -4,6 +4,8 @@
 #include <RenderTargets/DeferredGBuffer.h>
 #include <Materials/Material.h>
 
+namespace quasar {
+
 class DeferredLightingMaterial : public Material {
 public:
     DeferredLightingMaterial();
@@ -24,5 +26,7 @@ public:
 
     static Shader* shader;
 };
+
+} // namespace quasar
 
 #endif // DEFERRED_LIGHTING_MATERIAL_H

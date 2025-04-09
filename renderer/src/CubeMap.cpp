@@ -3,6 +3,8 @@
 #include <Cameras/VRCamera.h>
 #include <Utils/FileIO.h>
 
+using namespace quasar;
+
 const glm::mat4 CubeMap::captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
 const glm::mat4 CubeMap::captureViews[] = {
     glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),

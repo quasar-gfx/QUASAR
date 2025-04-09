@@ -12,6 +12,8 @@
 #include <string>
 #include <cerrno>
 
+namespace quasar {
+
 class Socket {
 public:
     int socketID;
@@ -188,5 +190,7 @@ public:
         return ::recvfrom(socketID, buf, len, flags, (struct sockaddr*)&addr, &addrLen);
     }
 };
+
+} // namespace quasar
 
 #endif // SOCKET_H

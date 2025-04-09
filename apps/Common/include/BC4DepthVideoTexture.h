@@ -13,6 +13,8 @@
 
 #include <Codec/ZSTDCodec.h>
 
+namespace quasar {
+
 class BC4DepthVideoTexture : public Texture, public DataReceiverTCP {
 public:
     struct Block {
@@ -66,5 +68,7 @@ private:
 
     void onDataReceived(const std::vector<char>& data) override;
 };
+
+} // namespace quasar
 
 #endif // BC4_DEPTH_VIDEO_TEXTURE_H

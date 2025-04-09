@@ -9,4 +9,8 @@
 
 #include <Primitives/Model.h>
 
+namespace quasar {
+
+} // namespace quasar
+
 #endif // PRIMATIVE_H

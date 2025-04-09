@@ -2,6 +2,8 @@
 
 #include <DepthStreamer.h>
 
+using namespace quasar;
+
 DepthStreamer::DepthStreamer(const RenderTargetCreateParams &params, std::string receiverURL)
         : receiverURL(receiverURL)
         , imageSize(params.width * params.height * sizeof(GLushort))

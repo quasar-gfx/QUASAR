@@ -12,6 +12,8 @@
 #include <Networking/DataPacketUDP.h>
 #include <Networking/Socket.h>
 
+namespace quasar {
+
 class DataStreamerUDP {
 public:
     std::string url;
@@ -52,5 +54,7 @@ private:
     int sendPacket(DataPacketUDP* packet);
     void sendData();
 };
+
+} // namespace quasar
 
 #endif // DATA_STREAMER_UDP_H

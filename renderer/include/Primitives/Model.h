@@ -16,6 +16,8 @@
 #include <Materials/LitMaterial.h>
 #include <Primitives/Entity.h>
 
+namespace quasar {
+
 struct ModelCreateParams {
     bool flipTextures = false;
     bool gammaCorrected = false;
@@ -81,5 +83,7 @@ private:
                          const glm::mat4& parentTransform, const glm::mat4 &model,
                          const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr);
 };
+
+} // namespace quasar
 
 #endif // MODEL_H

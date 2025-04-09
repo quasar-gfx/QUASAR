@@ -5,6 +5,8 @@
 #include <Cameras/Camera.h>
 #include <Culling/Frustum.h>
 
+namespace quasar {
+
 class PerspectiveCamera : public Camera {
 public:
     float scrollSensitivity = 0.1f;
@@ -81,5 +83,7 @@ private:
     // calculates the front vector from the PerspectiveCamera's (updated) Euler Angles
     void setOrientationFromYawPitch();
 };
+
+} // namespace quasar
 
 #endif // PERSPECTIVE_CAMERA_H

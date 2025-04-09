@@ -13,6 +13,8 @@
 #include <CudaGLInterop/CudaGLImage.h>
 #endif
 
+namespace quasar {
+
 class DepthStreamer : public RenderTarget {
 public:
     std::string receiverURL;
@@ -71,5 +73,7 @@ private:
     pose_id_t poseID;
 #endif
 };
+
+} // namespace quasar
 
 #endif // DEPTH_STREAMER_H

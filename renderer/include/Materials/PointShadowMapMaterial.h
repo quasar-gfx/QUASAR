@@ -3,6 +3,8 @@
 
 #include <Materials/ShadowMapMaterial.h>
 
+namespace quasar {
+
 class PointShadowMapMaterial : public ShadowMapMaterial {
 public:
     PointShadowMapMaterial();
@@ -18,5 +20,7 @@ public:
 
     static Shader* shader;
 };
+
+} // namespace quasar
 
 #endif // POINT_SHADOW_MAP_MATERIAL_H

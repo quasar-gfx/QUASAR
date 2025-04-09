@@ -10,6 +10,8 @@
 
 #include <Cameras/PerspectiveCamera.h>
 
+namespace quasar {
+
 class CameraAnimator {
 public:
     struct CameraPose {
@@ -39,5 +41,7 @@ private:
     const glm::vec3 getCurrentPosition() const;
     const glm::quat getCurrentRotation() const;
 };
+
+} // namespace quasar
 
 #endif // ANIMATOR_H

@@ -7,6 +7,8 @@
 #define THREADS_PER_LOCALGROUP 16
 #define BLOCK_SIZE 8
 
+using namespace quasar;
+
 BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams &params, const std::string &receiverURL)
         : RenderTarget(params)
         , receiverURL(receiverURL)
@@ -194,3 +196,5 @@ void BC4DepthStreamer::sendData() {
     }
 }
 #endif
+
+using namespace quasar;

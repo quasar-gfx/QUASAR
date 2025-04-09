@@ -12,6 +12,8 @@
 #include <android/native_activity.h>
 #endif
 
+namespace quasar {
+
 class FileIO {
 public:
     static std::string loadTextFile(const std::string &filename, unsigned int* sizePtr = nullptr);
@@ -48,5 +50,7 @@ private:
     static ANativeActivity* activity;
 #endif
 };
+
+} // namespace quasar
 
 #endif // FILE_IO_H

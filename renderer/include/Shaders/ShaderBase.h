@@ -9,6 +9,8 @@
 #include <OpenGLObject.h>
 #include <Texture.h>
 
+namespace quasar {
+
 enum class ShaderType {
     PROGRAM,
     VERTEX,
@@ -51,5 +53,7 @@ protected:
     mutable std::unordered_map<std::string, std::any> uniformCache;
     static GLuint bindedShaderID;
 };
+
+} // namespace quasar
 
 #endif // SHADER_BASE_H

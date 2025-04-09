@@ -15,6 +15,8 @@
 #include <CudaGLInterop/CudaGLImage.h>
 #endif
 
+namespace quasar {
+
 class DepthOffsets {
 public:
     glm::uvec2 size;
@@ -39,5 +41,7 @@ private:
     CudaGLImage cudaImage;
 #endif
 };
+
+} // namespace quasar
 
 #endif // DEPTH_OFFSETS_H

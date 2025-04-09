@@ -31,6 +31,8 @@ extern "C" {
 #include <CudaGLInterop/CudaGLImage.h>
 #endif
 
+namespace quasar {
+
 class Recorder {
 public:
     enum class OutputFormat {
@@ -124,5 +126,7 @@ private:
     void finalizeFFmpeg();
     void saveFrames(int threadID);
 };
+
+} // namespace quasar
 
 #endif // RECORDER_H

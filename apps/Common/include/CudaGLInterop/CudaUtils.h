@@ -3,11 +3,12 @@
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
 
-
 #include <spdlog/spdlog.h>
 
 #include <cuda.h>
 #include <cuda_runtime.h>
+
+namespace quasar {
 
 #define CHECK_CUDA_ERROR(call) do {                                 \
     cudaError_t err = call;                                         \
@@ -25,6 +26,8 @@ CUdevice checkCudaDevice();
 
 }
 
-#endif // __APPLE__
+} // namespace quasar
+
+#endif // !defined(__APPLE__) && !defined(__ANDROID__)
 
 #endif // CUDA_UTILS_H

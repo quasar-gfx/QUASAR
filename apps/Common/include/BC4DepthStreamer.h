@@ -19,6 +19,8 @@
 #include <CudaGLInterop/CudaGLBuffer.h>
 #endif
 
+namespace quasar {
+
 class BC4DepthStreamer : public RenderTarget {
 public:
     struct Block {
@@ -91,5 +93,7 @@ private:
     pose_id_t poseID;
 #endif
 };
+
+} // namespace quasar
 
 #endif // BC4_DEPTH_STREAMER_H

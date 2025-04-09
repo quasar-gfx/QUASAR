@@ -10,6 +10,8 @@
 #include <RenderTargets/RenderTarget.h>
 #include <Primitives/FullScreenQuad.h>
 
+namespace quasar {
+
 class Scene {
 public:
     CubeMap* envCubeMap = nullptr;
@@ -72,5 +74,7 @@ private:
     RenderTarget captureRenderTarget;
     Renderbuffer captureRenderBuffer;
 };
+
+} // namespace quasar
 
 #endif // SCENE_H

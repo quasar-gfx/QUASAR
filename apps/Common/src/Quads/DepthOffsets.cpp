@@ -1,5 +1,7 @@
 #include <Quads/DepthOffsets.h>
 
+using namespace quasar;
+
 DepthOffsets::DepthOffsets(const glm::uvec2 &size)
     : size(size)
     , buffer({

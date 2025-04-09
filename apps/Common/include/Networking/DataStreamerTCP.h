@@ -12,6 +12,8 @@
 #include <Networking/DataPacketUDP.h>
 #include <Networking/Socket.h>
 
+namespace quasar {
+
 class DataStreamerTCP {
 public:
     std::string url;
@@ -63,5 +65,7 @@ private:
 
     int clientSocketID = -1;
 };
+
+} // namespace quasar
 
 #endif // DATA_STREAMER_TCP_H

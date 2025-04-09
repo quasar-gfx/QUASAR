@@ -1,6 +1,8 @@
 #include <Quads/QuadMaterial.h>
 #include <shaders_common.h>
 
+using namespace quasar;
+
 Shader* QuadMaterial::shader = nullptr;
 
 QuadMaterial::QuadMaterial(const QuadMaterialCreateParams &params)

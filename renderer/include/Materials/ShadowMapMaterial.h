@@ -3,6 +3,8 @@
 
 #include <Materials/Material.h>
 
+namespace quasar {
+
 class ShadowMapMaterial : public Material {
 public:
     ShadowMapMaterial() = default;
@@ -10,5 +12,7 @@ public:
 
     unsigned int getTextureCount() const override { return 0; }
 };
+
+} // namespace quasar
 
 #endif // SHADOW_MAP_MATERIAL_H

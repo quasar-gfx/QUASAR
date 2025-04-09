@@ -17,6 +17,8 @@
 #include <Quads/QuadMaterial.h>
 #include <shaders_common.h>
 
+using namespace quasar;
+
 const std::string DATA_PATH = "../simulator/";
 
 int main(int argc, char** argv) {

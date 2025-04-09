@@ -5,6 +5,8 @@
 
 #include <PostProcessing/PostProcessingEffect.h>
 
+namespace quasar {
+
 class ShowIDsEffect : public PostProcessingEffect {
 public:
     ShowIDsEffect()
@@ -33,5 +35,7 @@ public:
 private:
     Shader shader;
 };
+
+} // namespace quasar
 
 #endif // SHOW_IDS_H

@@ -8,6 +8,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+namespace quasar {
+
 class FullScreenQuad {
 private:
     struct FSQuadVertex {
@@ -73,5 +75,7 @@ public:
 private:
     GLuint vertexArrayBuffer;
 };
+
+} // namespace quasar
 
 #endif // FULL_SCREEN_QUAD_H

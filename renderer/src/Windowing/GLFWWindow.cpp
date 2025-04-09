@@ -4,6 +4,8 @@
 
 #include <Windowing/GLFWWindow.h>
 
+using namespace quasar;
+
 GLFWWindow::GLFWWindow(const Config &config) {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, config.openglMajorVersion);

@@ -3,6 +3,8 @@
 
 #include <Primitives/Mesh.h>
 
+namespace quasar {
+
 class Plane : public Mesh {
 public:
     Plane(const MeshDataCreateParams &params, bool twoSided = true) : Mesh(params) {
@@ -45,5 +47,7 @@ public:
         }
     }
 };
+
+} // namespace quasar
 
 #endif // PLANE_H

@@ -3,6 +3,8 @@
 
 #include <glm/glm.hpp>
 
+namespace quasar {
+
 typedef uint32_t pose_id_t;
 
 struct Pose {
@@ -45,5 +47,7 @@ struct Pose {
         stereo.projR = projs[1];
     }
 };
+
+} // namespace quasar
 
 #endif // CAMERA_POSE_H

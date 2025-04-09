@@ -15,6 +15,8 @@
 
 #include <OpenGLAppConfig.h>
 
+namespace quasar {
+
 class OpenGLRenderer {
 public:
     unsigned int width, height;
@@ -61,5 +63,7 @@ protected:
     virtual RenderStats drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,
                                  const PointLight* pointLight, const Material* overrideMaterial = nullptr);
 };
+
+} // namespace quasar
 
 #endif // OPENGL_RENDERER_H

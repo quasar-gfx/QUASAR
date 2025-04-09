@@ -1,5 +1,7 @@
 #include <Quads/FrameGenerator.h>
 
+using namespace quasar;
+
 unsigned int FrameGenerator::generateIFrame(
         const GBuffer &gBuffer,
         const PerspectiveCamera &remoteCamera,

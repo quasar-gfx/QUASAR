@@ -1,6 +1,8 @@
 #include <Utils/FileIO.h>
 #include <Texture.h>
 
+using namespace quasar;
+
 void Texture::loadFromData(const unsigned char* data) {
     glGenTextures(1, &ID);
 

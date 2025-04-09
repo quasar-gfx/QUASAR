@@ -7,6 +7,8 @@
 
 #include <OpenGLObject.h>
 
+namespace quasar {
+
 struct TextureDataCreateParams {
     unsigned int width = 0;
     unsigned int height = 0;
@@ -139,5 +141,7 @@ protected:
     void loadFromData(const unsigned char* data);
     void loadFromFile(const TextureFileCreateParams &params);
 };
+
+} // namespace quasar
 
 #endif // TEXTURE_H

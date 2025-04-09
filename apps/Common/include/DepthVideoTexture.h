@@ -9,6 +9,8 @@
 #include <Utils/TimeUtils.h>
 #include <CameraPose.h>
 
+namespace quasar {
+
 class DepthVideoTexture : public Texture, public DataReceiverTCP {
 public:
     std::string streamerURL;
@@ -49,5 +51,7 @@ private:
 
     void onDataReceived(const std::vector<char>& data) override;
 };
+
+} // namespace quasar
 
 #endif // DEPTH_VIDEO_TEXTURE_H

@@ -9,6 +9,8 @@
 
 #include <Animation.h>
 
+namespace quasar {
+
 class Node {
 public:
     std::string name;
@@ -73,5 +75,7 @@ protected:
 
     static uint32_t nextID;
 };
+
+} // namespace quasar
 
 #endif // NODE_H

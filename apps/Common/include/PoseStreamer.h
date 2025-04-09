@@ -19,6 +19,8 @@
 
 #include <CameraPose.h>
 
+namespace quasar {
+
 class PoseStreamer {
 public:
     std::string receiverURL;
@@ -117,5 +119,7 @@ private:
 
     std::map<pose_id_t, Pose> prevPoses;
 };
+
+} // namespace quasar
 
 #endif // POSE_STREAMER_H
