@@ -11,7 +11,7 @@
     "models": [
         {
             "name": "Sponza",
-            "path": "~/Desktop/Models/NewSponza.glb",
+            "path": "../assets/models/Scenes/NewSponza.glb",
             "IBL": 0.05,
             "gammaCorrected": true
         }

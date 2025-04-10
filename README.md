@@ -20,13 +20,19 @@ Mac works as a client for receiving and viewing streams (specifically ATW), but 
 brew install cmake glew ffmpeg
 ```
 
+In the `build` directory, there will be a folder called `apps`.
+
+## Download 3D Assets
+
+Sponza is cloned with the repo, but additional scenes can be downloaded at https://drive.google.com/file/d/1zL_hsmtjyOcAbNbud92aNCxjO1kwEqlK/view?usp=drive_link.
+
+Download and unzip into `assets/models/Scenes` (this will be gitignored).
+
 ## Building
 ```
 mkdir build ; cd build
 cmake ..; make -j
 ```
-
-In the `build` directory, there will be a folder called `apps`.
 
 ## Sample Apps
 
@@ -44,8 +50,6 @@ cd apps/scene_viewer
 ### Asynchronous Time Warp (ATW)
 
 The ATW app warps a previously rendered frame on a plane using a homography.
-
-Build ATW sample:
 
 To run the simulator:
 ```
@@ -125,3 +129,29 @@ To run the simulator:
 cd apps/dp/simulator
 ./dp_simulator --size 1920x1080 --scene ../assets/scenes/sponza.json
 ```
+
+## Credits for 3D Assets
+
+- **[Sponza](https://github.com/KhronosGroup/glTF-Sample-Models/tree/main/2.0/Sponza)**
+- **[Damaged Helmet](https://github.com/KhronosGroup/glTF-Sample-Models/tree/main/2.0/DamagedHelmet)**
+- **[Cerberus](https://sketchfab.com/3d-models/cerberusffvii-gun-model-by-andrew-maximov-d08c461f8217491892ad5dd29b436c90)**
+- **[Robot Lab](https://assetstore.unity.com/packages/essentials/tutorial-projects/robot-lab-unity-4x-7006)** *(converted to .glb format from [here](https://github.com/dmitry1100/Robot-Lab))*
+- **[Viking Village](https://assetstore.unity.com/packages/essentials/tutorial-projects/viking-village-urp-29140)** *(converted to .glb format from [here](https://github.com/nvjob/viking-village-nvjob-sky-water-stc))*
+- **[UE4 Sun Temple](https://developer.nvidia.com/ue4-sun-temple)**
+- **[San Miguel](https://casual-effects.com/data/)**
+- **[Bistro](https://developer.nvidia.com/orca/amazon-lumberyard-bistro)**
+
+## Credits for Third Party Libraries
+
+- **[args.hxx](https://github.com/Taywee/args)**
+- **[BS_thread_pool](https://github.com/bshoshany/thread-pool)**
+- **[glfw](https://github.com/glfw/glfw)**
+- **[glm](https://github.com/g-truc/glm)**
+- **[imgui](https://github.com/ocornut/imgui)**
+- **[jsmn](https://github.com/zserge/jsmn)**
+- **[assimp](https://github.com/assimp/assimp)**
+- **[lz4_stream](https://github.com/laudrup/lz4_stream)**
+- **[lz4](https://github.com/lz4/lz4)**
+- **[spdlog](https://github.com/gabime/spdlog)**
+- **[stb](https://github.com/nothings/stb)**
+- **[ZSTD](https://github.com/facebook/zstd)**

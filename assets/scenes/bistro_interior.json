@@ -9,7 +9,7 @@
     "models": [
         {
             "name": "BistroInterior",
-            "path": "~/Desktop/Models/BistroInterior.glb",
+            "path": "../assets/models/Scenes/BistroInterior.glb",
             "IBL": 0.1,
             "gammaCorrected": true
         }

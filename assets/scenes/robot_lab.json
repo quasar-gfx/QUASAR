@@ -9,7 +9,7 @@
     "models": [
         {
             "name": "RobotLab",
-            "path": "~/Desktop/Models/RobotLab.glb",
+            "path": "../assets/models/Scenes/RobotLab.glb",
             "IBL": 0.01,
             "gammaCorrected": true
         }

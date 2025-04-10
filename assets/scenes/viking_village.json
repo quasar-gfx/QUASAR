@@ -9,13 +9,13 @@
     "models": [
         {
             "name": "VikingVillage",
-            "path": "~/Desktop/Models/VikingVillage.glb",
+            "path": "../assets/models/Scenes/VikingVillage.glb",
             "IBL": 1.0,
             "gammaCorrected": true
         },
         {
             "name": "VikingVillageWater",
-            "path": "~/Desktop/Models/VikingVillageWater.glb",
+            "path": "../assets/models/Scenes/VikingVillageWater.glb",
             "IBL": 0.1,
             "gammaCorrected": true
         }

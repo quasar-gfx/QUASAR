@@ -22,21 +22,12 @@
             "metallicTexturePath": "../assets/textures/pbr/rusted_iron/metallic.png",
             "roughnessTexturePath": "../assets/textures/pbr/rusted_iron/roughness.png",
             "aoTexturePath": "../assets/textures/pbr/rusted_iron/ao.png"
-        },
-        {
-            "type": "PBR",
-            "albedoTexturePath": "../assets/models/cerberus/Textures/Cerberus_A.tga",
-            "normalTexturePath": "../assets/models/cerberus/Textures/Cerberus_N.tga",
-            "metallicTexturePath": "../assets/models/cerberus/Textures/Cerberus_M.tga",
-            "roughnessTexturePath": "../assets/models/cerberus/Textures/Cerberus_R.tga",
-            "aoTexturePath": "../assets/models/cerberus/Textures/Cerberus_AO.tga"
         }
     ],
     "models": [
         {
             "name": "Cerberus",
-            "path": "../assets/models/cerberus/cerberus.fbx",
-            "material": 2,
+            "path": "../assets/models/Cerberus.glb",
             "IBL": 1.0,
             "flipTextures": true,
             "gammaCorrected": true
