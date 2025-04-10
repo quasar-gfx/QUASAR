@@ -154,4 +154,4 @@ cd apps/dp/simulator
 - **[lz4](https://github.com/lz4/lz4)**
 - **[spdlog](https://github.com/gabime/spdlog)**
 - **[stb](https://github.com/nothings/stb)**
-- **[ZSTD](https://github.com/facebook/zstd)**
+- **[zstd](https://github.com/facebook/zstd)**

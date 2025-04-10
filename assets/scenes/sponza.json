@@ -11,7 +11,7 @@
     "models": [
         {
             "name": "Sponza",
-            "path": "../assets/models/Sponza/Sponza.gltf",
+            "path": "../assets/models/scenes/Sponza/Sponza.gltf",
             "IBL": 0.05,
             "flipTextures": true,
             "gammaCorrected": true

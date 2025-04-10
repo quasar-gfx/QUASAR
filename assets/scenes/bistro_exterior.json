@@ -9,7 +9,7 @@
     "models": [
         {
             "name": "BistroExterior",
-            "path": "../assets/models/Scenes/BistroExterior.glb",
+            "path": "../assets/models/scenes/BistroExterior.glb",
             "IBL": 0.0,
             "gammaCorrected": true
         }

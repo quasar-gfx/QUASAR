@@ -8,7 +8,7 @@
     },
     "models": [
         {
-            "path": "../assets/models/Scenes/SanMiguel.glb",
+            "path": "../assets/models/scenes/SanMiguel.glb",
             "IBL": 0.25,
             "gammaCorrected": true
         }

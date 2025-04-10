@@ -74,7 +74,6 @@ public:
     }
 
     bool sendPose() {
-        static float lastSendTime = timeutils::getTimeMicros();
         if (timeutils::getTimeMicros() - lastSendTime < MICROSECONDS_IN_SECOND / rate) {
             return false;
         }
@@ -118,6 +117,8 @@ private:
     pose_id_t currPoseID = 0;
 
     std::map<pose_id_t, Pose> prevPoses;
+
+    double lastSendTime = timeutils::getTimeMicros();
 };
 
 } // namespace quasar

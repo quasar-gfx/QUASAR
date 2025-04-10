@@ -395,13 +395,16 @@ int main(int argc, char** argv) {
             showIDsEffect.drawToScreen(renderer);
         }
 
-        if ((cameraPathFileIn && cameraAnimator.running) || recording) {
+        if (cameraPathFileIn) {
             recorder.captureFrame(camera);
+
+            if (!cameraAnimator.running) {
+                recorder.stop();
+                window->close();
+            }
         }
-        if (cameraPathFileIn && !cameraAnimator.running) {
+        else if (recording) {
             recorder.captureFrame(camera);
-            recorder.stop();
-            window->close();
         }
     });
 

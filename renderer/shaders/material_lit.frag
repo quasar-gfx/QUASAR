@@ -230,7 +230,7 @@ void main() {
     vec3 ambient = ambientLight.intensity * ambientLight.color * albedo;
 #ifdef PLATFORM_CORE
     // apply IBL
-    ambient += material.IBL * getIBLContribution(pbrInputs, material.irradianceMap, material.prefilterMap, material.brdfLUT);
+    ambient += material.IBL * calcIBLContribution(pbrInputs, material.irradianceMap, material.prefilterMap, material.brdfLUT);
 #endif
 
     // apply emissive component

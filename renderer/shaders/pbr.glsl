@@ -148,11 +148,8 @@ vec3 calcPointLight(PointLight light, samplerCube pointLightShadowMap, PBRInfo p
 }
 
 #ifdef PLATFORM_CORE
-// IBL Contribution (Split-sum approximation remains similar)
-vec3 getIBLContribution(PBRInfo pbrInputs, samplerCube irradianceMap, samplerCube prefilterMap, sampler2D brdfLUT) {
-#ifndef VIEW_DEPENDENT_LIGHTING
-    return vec3(0.0);
-#else
+vec3 calcIBLContribution(PBRInfo pbrInputs, samplerCube irradianceMap, samplerCube prefilterMap, sampler2D brdfLUT) {
+#ifdef VIEW_DEPENDENT_LIGHTING
     vec3 N = pbrInputs.N;
     vec3 V = pbrInputs.V;
     vec3 R = pbrInputs.R;
@@ -173,10 +170,14 @@ vec3 getIBLContribution(PBRInfo pbrInputs, samplerCube irradianceMap, samplerCub
     vec3 specular = prefilteredColor * (kS * brdf.x + brdf.y);
 
     return kD * diffuse + specular;
+#else
+    vec3 irradiance = texture(irradianceMap, pbrInputs.N).rgb;
+    vec3 diffuse = irradiance * pbrInputs.albedo * (1.0 - pbrInputs.metallic);
+    return diffuse;
 #endif
 }
 #else
-vec3 getIBLContribution(PBRInfo pbrInputs) {
+vec3 calcIBLContribution(PBRInfo pbrInputs) {
     return vec3(0.0);
 }
 #endif

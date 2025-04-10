@@ -1,6 +1,6 @@
 {
     "skybox": {
-        "path": "../assets/models/Scenes/SunTemple/SunTemple_Skybox.hdr",
+        "path": "../assets/textures/ibr/st_skybox.hdr",
         "HDR": true,
         "flipVertically": true,
         "width": 1024,
@@ -9,7 +9,7 @@
     "models": [
         {
             "name": "SunTemple",
-            "path": "../assets/models/Scenes/SunTemple.glb",
+            "path": "../assets/models/scenes/SunTemple.glb",
             "IBL": 1.0,
             "gammaCorrected": true
         }

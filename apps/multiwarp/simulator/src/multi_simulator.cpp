@@ -916,14 +916,17 @@ int main(int argc, char** argv) {
 
         poseSendRecvSimulator.accumulateError(camera, remoteCameraCenter);
 
-        if ((cameraPathFileIn && cameraAnimator.running) || recording) {
-            recorder.captureFrame(camera);
-        }
-        if (cameraPathFileIn && !cameraAnimator.running) {
+        if (cameraPathFileIn) {
             poseSendRecvSimulator.printErrors();
             recorder.captureFrame(camera);
-            recorder.stop();
-            window->close();
+
+            if (!cameraAnimator.running) {
+                recorder.stop();
+                window->close();
+            }
+        }
+        else if (recording) {
+            recorder.captureFrame(camera);
         }
     });
 
