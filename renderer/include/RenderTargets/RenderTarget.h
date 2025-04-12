@@ -27,14 +27,15 @@ public:
             , depthStencilBuffer({
                 .width = width,
                 .height = height,
-                .internalFormat = GL_DEPTH24_STENCIL8,
+                .internalFormat = GL_DEPTH32F_STENCIL8,
                 .format = GL_DEPTH_STENCIL,
-                .type = GL_UNSIGNED_INT_24_8,
+                .type = GL_FLOAT_32_UNSIGNED_INT_24_8_REV,
                 .wrapS = GL_CLAMP_TO_EDGE,
                 .wrapT = GL_CLAMP_TO_EDGE,
                 .minFilter = GL_NEAREST,
                 .magFilter = GL_NEAREST,
-                .multiSampled = params.multiSampled
+                .multiSampled = params.multiSampled,
+                .numSamples = params.numSamples
             }) {
         framebuffer.bind();
         framebuffer.attachTexture(colorBuffer, GL_COLOR_ATTACHMENT0);

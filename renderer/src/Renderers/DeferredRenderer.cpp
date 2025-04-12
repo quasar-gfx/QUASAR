@@ -16,9 +16,9 @@ DeferredRenderer::DeferredRenderer(const Config &config)
             .magFilter = GL_LINEAR,
             .multiSampled = false
         })
-        , gBuffer({ .width = config.width, .height = config.height, .multiSampled = false })
+        , frameRT({ .width = config.width, .height = config.height, .multiSampled = false })
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-        , gBufferMS({
+        , frameRT_MS({
             .width = config.width,
             .height = config.height,
             .multiSampled = true,
@@ -29,47 +29,47 @@ DeferredRenderer::DeferredRenderer(const Config &config)
 }
 
 void DeferredRenderer::setScreenShaderUniforms(const Shader &screenShader) {
-    // set gbuffer texture uniforms
+    // set FrameRenderTarget texture uniforms
     screenShader.bind();
     screenShader.setTexture("screenColor", outputRT.colorBuffer, 0);
     screenShader.setTexture("screenDepth", outputRT.depthStencilBuffer, 1);
-    screenShader.setTexture("screenNormals", gBuffer.normalsBuffer, 2);
-    screenShader.setTexture("idBuffer", gBuffer.idBuffer, 3);
+    screenShader.setTexture("screenNormals", frameRT.normalsBuffer, 2);
+    screenShader.setTexture("idBuffer", frameRT.idBuffer, 3);
 }
 
 void DeferredRenderer::resize(unsigned int width, unsigned int height) {
     OpenGLRenderer::resize(width, height);
     outputRT.resize(width, height);
-    gBuffer.resize(width, height);
+    frameRT.resize(width, height);
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-    gBufferMS.resize(width, height);
+    frameRT_MS.resize(width, height);
 #endif
 }
 
 void DeferredRenderer::beginRendering() {
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     if (!multiSampled) {
-        gBuffer.bind();
+        frameRT.bind();
     }
     else {
-        gBufferMS.bind();
+        frameRT_MS.bind();
     }
 #else
-    gBuffer.bind();
+    frameRT.bind();
 #endif
 }
 
 void DeferredRenderer::endRendering() {
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     if (!multiSampled) {
-        gBuffer.unbind();
+        frameRT.unbind();
     }
     else {
-        gBufferMS.blitToDeferredGBuffer(gBuffer);
-        gBufferMS.unbind();
+        frameRT_MS.blitToFrameRT(frameRT);
+        frameRT_MS.unbind();
     }
 #else
-    gBuffer.unbind();
+    frameRT.unbind();
 #endif
 }
 
@@ -144,7 +144,7 @@ RenderStats DeferredRenderer::lightingPass(const Scene &scene, const Camera &cam
     RenderStats stats;
 
     lightingMaterial.bind();
-    lightingMaterial.bindGBuffer(gBuffer);
+    lightingMaterial.bindGBuffer(frameRT);
     lightingMaterial.bindCamera(camera);
 
     scene.bindMaterial(&lightingMaterial);
@@ -171,8 +171,8 @@ RenderStats DeferredRenderer::lightingPass(const Scene &scene, const Camera &cam
 
     lightingMaterial.getShader()->setInt("numPointLights", static_cast<int>(scene.pointLights.size()));
 
-    // copy depth from gBuffer to outputRT
-    gBuffer.blitDepthToRenderTarget(outputRT);
+    // copy depth from FrameRenderTarget to outputRT
+    frameRT.blitDepthToRenderTarget(outputRT);
 
     glDepthFunc(GL_LEQUAL);
 
@@ -185,7 +185,7 @@ RenderStats DeferredRenderer::lightingPass(const Scene &scene, const Camera &cam
     return stats;
 }
 
-void DeferredRenderer::copyToGBuffer(GBuffer &gBufferDst) {
-    gBuffer.blitToGBuffer(gBufferDst); // copy normals, id, and depth
+void DeferredRenderer::copyToFrameRT(FrameRenderTarget &gBufferDst) {
+    frameRT.blitToFrameRT(gBufferDst); // copy normals, id, and depth
     outputRT.blitToRenderTarget(gBufferDst); // copy color
 }

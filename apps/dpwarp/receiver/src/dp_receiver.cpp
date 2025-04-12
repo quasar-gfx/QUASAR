@@ -83,7 +83,6 @@ int main(int argc, char** argv) {
 
     OpenGLApp app(config);
     ForwardRenderer renderer(config);
-    glm::uvec2 halfWindowSize = windowSize / 2u;
 
     Scene scene;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
@@ -100,7 +99,7 @@ int main(int argc, char** argv) {
 
     Recorder recorder(renderer, toneMapper, config.targetFramerate);
 
-    MeshFromQuads meshFromQuads(halfWindowSize);
+    MeshFromQuads meshFromQuads(windowSize);
 
     std::vector<Texture> colorTextures; colorTextures.reserve(maxViews);
     TextureFileCreateParams params = {
@@ -183,7 +182,7 @@ int main(int argc, char** argv) {
 
             meshes[view] = new Mesh({
                 .maxVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
-                .maxIndices = numProxies * NUM_SUB_QUADS * 2 * 3,
+                .maxIndices = numProxies * NUM_SUB_QUADS * INDICES_IN_A_QUAD,
                 .vertexSize = sizeof(QuadVertex),
                 .attributes = QuadVertex::getVertexInputAttributes(),
                 .material = new QuadMaterial({ .baseColorTexture = &colorTextures[view] }),
@@ -192,10 +191,7 @@ int main(int argc, char** argv) {
             });
             loadFromFilesTime += timeutils::secondsToMillis(window->getTime() - startTime);
 
-            glm::uvec2 gBufferSize = glm::uvec2(colorTextures[view].width, colorTextures[view].height) / 2u;
-            if (view == maxViews - 1) {
-                gBufferSize /= 2u;
-            }
+            const glm::uvec2 gBufferSize = glm::uvec2(colorTextures[view].width, colorTextures[view].height);
 
             startTime = window->getTime();
             auto& cameraToUse = (!disableWideFov && view == maxViews - 1) ? remoteCameraWideFov : remoteCamera;

@@ -160,23 +160,23 @@ int main(int argc, char** argv) {
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST
     };
-    GBuffer gBufferCenterRT(rtParams);
-    GBuffer gBufferCenterMaskRT(rtParams);
-    GBuffer gBufferCenterTempRT(rtParams);
+    FrameRenderTarget frameRTCenter(rtParams);
+    FrameRenderTarget frameRTCenterMask(rtParams);
+    FrameRenderTarget frameRTCenterTemp(rtParams);
 
-    GBuffer gBufferWideFovRT(rtParams);
+    FrameRenderTarget frameRTWideFov(rtParams);
 
     // hidden layers and wide fov RTs
-    std::vector<GBuffer> gBufferHiddenRTs; gBufferHiddenRTs.reserve(numViewsWithoutCenter);
+    std::vector<FrameRenderTarget> frameHiddenRTs; frameHiddenRTs.reserve(numViewsWithoutCenter);
     for (int views = 0; views < numViewsWithoutCenter; views++) {
         if (views == numViewsWithoutCenter - 1) {
             rtParams.width /= 2; rtParams.height /= 2;
         }
-        gBufferHiddenRTs.emplace_back(rtParams);
+        frameHiddenRTs.emplace_back(rtParams);
     }
 
-    unsigned int maxVertices = MAX_NUM_PROXIES * VERTICES_IN_A_QUAD;
-    unsigned int maxIndices = MAX_NUM_PROXIES * INDICES_IN_A_QUAD;
+    unsigned int maxVertices = MAX_NUM_PROXIES * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
+    unsigned int maxIndices = MAX_NUM_PROXIES * NUM_SUB_QUADS * INDICES_IN_A_QUAD;
     unsigned int maxVerticesDepth = remoteWindowSize.x * remoteWindowSize.y;
 
     // main view scenes and meshes
@@ -193,7 +193,7 @@ int main(int argc, char** argv) {
         .maxIndices = maxIndices,
         .vertexSize = sizeof(QuadVertex),
         .attributes = QuadVertex::getVertexInputAttributes(),
-        .material = new QuadMaterial({ .baseColorTexture = &gBufferCenterRT.colorBuffer }),
+        .material = new QuadMaterial({ .baseColorTexture = &frameRTCenter.colorBuffer }),
         .usage = GL_DYNAMIC_DRAW,
         .indirectDraw = true
     };
@@ -216,7 +216,7 @@ int main(int argc, char** argv) {
         localScene.addChildNode(&nodeWireframesCenter[i]);
     }
 
-    meshParams.material = new QuadMaterial({ .baseColorTexture = &gBufferCenterMaskRT.colorBuffer });
+    meshParams.material = new QuadMaterial({ .baseColorTexture = &frameRTCenterMask.colorBuffer });
     Mesh meshMask(meshParams);
     Node nodeMask(&meshMask);
     nodeMask.frustumCulled = false;
@@ -252,11 +252,13 @@ int main(int argc, char** argv) {
 
     for (int view = 0; view < numViewsWithoutCenter; view++) {
         if (view == numViewsWithoutCenter - 1) {
-            meshParams.material = new QuadMaterial({ .baseColorTexture = &gBufferWideFovRT.colorBuffer });
+            meshParams.material = new QuadMaterial({ .baseColorTexture = &frameRTWideFov.colorBuffer });
         }
         else {
-            meshParams.material = new QuadMaterial({ .baseColorTexture = &gBufferHiddenRTs[view].colorBuffer });
+            meshParams.material = new QuadMaterial({ .baseColorTexture = &frameHiddenRTs[view].colorBuffer });
         }
+        meshParams.maxVertices = maxVertices / (view == 0 ? 1 : 2);
+        meshParams.maxIndices = maxIndices / (view == 0 ? 1 : 2);
         meshLayers.emplace_back(meshParams);
 
         nodeLayers.emplace_back(&meshLayers[view]);
@@ -366,7 +368,7 @@ int main(int argc, char** argv) {
         static bool showLayerPreviews = false;
         static bool showCaptureWindow = false;
         static bool showMeshCaptureWindow = false;
-        static bool showGBufferPreviewWindow = false;
+        static bool showframePreviewWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
         static int serverFPSIndex = !cameraPathFileIn ? 0 : 5; // default to 30fps
@@ -399,7 +401,7 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("Frame Capture", 0, &showCaptureWindow);
             ImGui::MenuItem("Mesh Capture", 0, &showMeshCaptureWindow);
             ImGui::MenuItem("Layer Previews", 0, &showLayerPreviews);
-            ImGui::MenuItem("GBuffer Preview", 0, &showGBufferPreviewWindow);
+            ImGui::MenuItem("FrameRenderTarget Preview", 0, &showframePreviewWindow);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -594,10 +596,10 @@ int main(int argc, char** argv) {
 
                     ImGui::Begin(("View " + std::to_string(viewIdx)).c_str(), 0, flags);
                     if (viewIdx == 0) {
-                        ImGui::Image((void*)(intptr_t)(gBufferCenterRT.colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
+                        ImGui::Image((void*)(intptr_t)(frameRTCenter.colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
                     }
                     else {
-                        ImGui::Image((void*)(intptr_t)(gBufferHiddenRTs[viewIdx-1].colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
+                        ImGui::Image((void*)(intptr_t)(frameHiddenRTs[viewIdx-1].colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
                     }
                     ImGui::End();
                 }
@@ -624,10 +626,10 @@ int main(int argc, char** argv) {
                 for (int view = 0; view < numViewsWithoutCenter; view++) {
                     fileName = outputPath + std::string(fileNameBase) + ".view" + std::to_string(view+1) + "." + time;
                     if (saveAsHDR) {
-                        gBufferHiddenRTs[view].saveColorAsHDR(fileName + ".hdr");
+                        frameHiddenRTs[view].saveColorAsHDR(fileName + ".hdr");
                     }
                     else {
-                        gBufferHiddenRTs[view].saveColorAsPNG(fileName + ".png");
+                        frameHiddenRTs[view].saveColorAsPNG(fileName + ".png");
                     }
                 }
             }
@@ -672,21 +674,21 @@ int main(int argc, char** argv) {
 
                     // save color buffer
                     std::string colorFileName = outputPath + "color" + std::to_string(view) + ".png";
-                    gBufferHiddenRTs[view].saveColorAsPNG(colorFileName);
+                    frameHiddenRTs[view].saveColorAsPNG(colorFileName);
                 }
             }
 
             ImGui::End();
         }
 
-        if (showGBufferPreviewWindow) {
+        if (showframePreviewWindow) {
             flags = 0;
-            ImGui::Begin("GBuffer Color", 0, flags);
-            ImGui::Image((void*)(intptr_t)(gBufferCenterRT.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::Begin("FrameRenderTarget Color", 0, flags);
+            ImGui::Image((void*)(intptr_t)(frameRTCenter.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
 
-            ImGui::Begin("GBuffer Mask Color", 0, flags);
-            ImGui::Image((void*)(intptr_t)(gBufferCenterMaskRT.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::Begin("FrameRenderTarget Mask Color", 0, flags);
+            ImGui::Image((void*)(intptr_t)(frameRTCenterMask.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
         }
     });
@@ -812,7 +814,7 @@ int main(int argc, char** argv) {
                 auto& remoteCameraToUse = (view == 0 && generatePFrame) ? remoteCameraCenterPrev :
                                             ((view != maxViews - 1) ? remoteCameraCenter : remoteCameraWideFov);
 
-                auto& gBufferToUse = (view == 0) ? gBufferCenterRT : gBufferHiddenRTs[hiddenIndex];
+                auto& frameToUse = (view == 0) ? frameRTCenter : frameHiddenRTs[hiddenIndex];
 
                 auto& meshToUse = (view == 0) ? meshesCenter[currMeshIndex] : meshLayers[hiddenIndex];
                 auto& meshToUseDepth = (view == 0) ? meshDepthCenter : meshDepths[hiddenIndex];
@@ -821,19 +823,19 @@ int main(int argc, char** argv) {
                 if (view == 0) {
                     remoteRenderer.drawObjectsNoLighting(remoteScene, remoteCameraToUse);
                     if (!showNormals) {
-                        remoteRenderer.copyToGBuffer(gBufferToUse);
+                        remoteRenderer.copyToFrameRT(frameToUse);
                     }
                     else {
-                        showNormalsEffect.drawToRenderTarget(remoteRenderer, gBufferToUse);
+                        showNormalsEffect.drawToRenderTarget(remoteRenderer, frameToUse);
                     }
                 }
                 else if (view != maxViews - 1) {
                     // copy to render target
                     if (!showNormals) {
-                        remoteRendererDP.peelingLayers[hiddenIndex+1].blitToGBuffer(gBufferToUse);
+                        remoteRendererDP.peelingLayers[hiddenIndex+1].blitToFrameRT(frameToUse);
                     }
                     else {
-                        showNormalsEffect.drawToRenderTarget(remoteRendererDP, gBufferToUse);
+                        showNormalsEffect.drawToRenderTarget(remoteRendererDP, frameToUse);
                     }
                 }
                 // wide fov camera
@@ -854,12 +856,12 @@ int main(int argc, char** argv) {
                     remoteRenderer.pipeline.stencilState.restoreStencilState();
 
                     if (!showNormals) {
-                        remoteRenderer.copyToGBuffer(gBufferToUse);
-                        remoteRenderer.copyToGBuffer(gBufferWideFovRT);
+                        remoteRenderer.copyToFrameRT(frameToUse);
+                        remoteRenderer.copyToFrameRT(frameRTWideFov);
                     }
                     else {
-                        showNormalsEffect.drawToRenderTarget(remoteRenderer, gBufferToUse);
-                        showNormalsEffect.drawToRenderTarget(remoteRenderer, gBufferWideFovRT);
+                        showNormalsEffect.drawToRenderTarget(remoteRenderer, frameToUse);
+                        showNormalsEffect.drawToRenderTarget(remoteRenderer, frameRTWideFov);
                     }
                 }
                 totalRenderTime += timeutils::secondsToMillis(window->getTime() - startTime);
@@ -877,7 +879,7 @@ int main(int argc, char** argv) {
                     quadsGenerator.proxySimilarityThreshold *= 10.0f;
                 }
                 unsigned int numBytesIFrame = frameGenerator.generateIFrame(
-                    gBufferToUse, remoteCameraToUse,
+                    frameToUse, remoteCameraToUse,
                     meshToUse,
                     numProxies, numDepthOffsets
                 );
@@ -916,7 +918,7 @@ int main(int argc, char** argv) {
                         quadsGenerator.expandEdges = true;
                         compressedSize += frameGenerator.generatePFrame(
                             meshScenesCenter[currMeshIndex], meshScenesCenter[prevMeshIndex],
-                            gBufferCenterTempRT, gBufferCenterMaskRT,
+                            frameRTCenterTemp, frameRTCenterMask,
                             remoteCameraCenter, remoteCameraCenterPrev,
                             meshesCenter[currMeshIndex], meshMask,
                             numProxies, numDepthOffsets
@@ -965,21 +967,21 @@ int main(int argc, char** argv) {
 
                     // save color buffer
                     std::string colorFileName = outputPath + "color" + std::to_string(view) + ".png";
-                    gBufferToUse.saveColorAsPNG(colorFileName);
+                    frameToUse.saveColorAsPNG(colorFileName);
                 }
 
-                // For debugging: Generate point cloud from depth map
+                // for debugging: Generate point cloud from depth map
                 if (showDepth) {
-                    const glm::vec2 gBufferSize = glm::vec2(gBufferToUse.width, gBufferToUse.height);
+                    const glm::vec2 frameSize = glm::vec2(frameToUse.width, frameToUse.height);
 
                     startTime = window->getTime();
 
                     meshFromDepthShader.bind();
                     {
-                        meshFromDepthShader.setTexture(gBufferToUse.depthStencilBuffer, 0);
+                        meshFromDepthShader.setTexture(frameToUse.depthStencilBuffer, 0);
                     }
                     {
-                        meshFromDepthShader.setVec2("depthMapSize", gBufferSize);
+                        meshFromDepthShader.setVec2("depthMapSize", frameSize);
                     }
                     {
                         meshFromDepthShader.setMat4("view", remoteCameraToUse.getViewMatrix());
@@ -994,8 +996,8 @@ int main(int argc, char** argv) {
                         meshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, meshToUseDepth.vertexBuffer);
                         meshFromDepthShader.clearBuffer(GL_SHADER_STORAGE_BUFFER, 1);
                     }
-                    meshFromDepthShader.dispatch((gBufferSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                                 (gBufferSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+                    meshFromDepthShader.dispatch((frameSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                                 (frameSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
                     meshFromDepthShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
                     totalGenDepthTime += timeutils::secondsToMillis(window->getTime() - startTime);

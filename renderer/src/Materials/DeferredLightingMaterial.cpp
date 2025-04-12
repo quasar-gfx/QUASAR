@@ -23,7 +23,7 @@ DeferredLightingMaterial::~DeferredLightingMaterial() {
     }
 }
 
-void DeferredLightingMaterial::bindGBuffer(const DeferredGBuffer &gBuffer) const {
+void DeferredLightingMaterial::bindGBuffer(const GBuffer& gBuffer) const {
     shader->setTexture("gAlbedo", gBuffer.albedoBuffer, 0);
     shader->setTexture("gPBR", gBuffer.pbrBuffer, 1);
     shader->setTexture("gAlpha", gBuffer.alphaBuffer, 2);

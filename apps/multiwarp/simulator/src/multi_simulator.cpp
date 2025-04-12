@@ -168,7 +168,7 @@ int main(int argc, char** argv) {
     MeshFromQuads meshFromQuads(remoteWindowSize);
     FrameGenerator frameGenerator(remoteRenderer, remoteScene, quadsGenerator, meshFromQuads);
 
-    std::vector<GBuffer> gBufferRTs; gBufferRTs.reserve(maxViews);
+    std::vector<FrameRenderTarget> gBufferRTs; gBufferRTs.reserve(maxViews);
     RenderTargetCreateParams rtParams = {
         .width = remoteWindowSize.x,
         .height = remoteWindowSize.y,
@@ -187,8 +187,8 @@ int main(int argc, char** argv) {
         gBufferRTs.emplace_back(rtParams);
     }
 
-    unsigned int maxVertices = MAX_NUM_PROXIES * VERTICES_IN_A_QUAD;
-    unsigned int maxIndices = MAX_NUM_PROXIES * INDICES_IN_A_QUAD;
+    unsigned int maxVertices = MAX_NUM_PROXIES * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
+    unsigned int maxIndices = MAX_NUM_PROXIES * NUM_SUB_QUADS * INDICES_IN_A_QUAD;
     unsigned int maxVerticesDepth = remoteWindowSize.x * remoteWindowSize.y;
 
     Scene meshScene;
@@ -200,16 +200,18 @@ int main(int argc, char** argv) {
     std::vector<Node> nodeWireframes; nodeWireframes.reserve(maxViews);
     std::vector<Node> nodeDepths; nodeDepths.reserve(maxViews);
 
+    MeshSizeCreateParams meshParams = {
+        .maxVertices = maxVertices,
+        .maxIndices = maxIndices,
+        .vertexSize = sizeof(QuadVertex),
+        .attributes = QuadVertex::getVertexInputAttributes(),
+        .usage = GL_DYNAMIC_DRAW,
+        .indirectDraw = true
+    };
     for (int view = 0; view < maxViews; view++) {
-        MeshSizeCreateParams meshParams = {
-            .maxVertices = maxVertices / (view == 0 || view == maxViews - 1 ? 1 : 2),
-            .maxIndices = maxIndices / (view == 0 || view == maxViews - 1 ? 1 : 2),
-            .vertexSize = sizeof(QuadVertex),
-            .attributes = QuadVertex::getVertexInputAttributes(),
-            .material = new QuadMaterial({ .baseColorTexture = &gBufferRTs[view].colorBuffer }),
-            .usage = GL_DYNAMIC_DRAW,
-            .indirectDraw = true
-        };
+        meshParams.material = new QuadMaterial({ .baseColorTexture = &gBufferRTs[view].colorBuffer });
+        meshParams.maxVertices = maxVertices / (view == 0 ? 1 : 2);
+        meshParams.maxIndices = maxIndices / (view == 0 ? 1 : 2);
         meshViews.emplace_back(meshParams);
 
         nodes.emplace_back(&meshViews[view]);
@@ -771,7 +773,7 @@ int main(int argc, char** argv) {
                     remoteRenderer.pipeline.stencilState.restoreStencilState();
                 }
                 if (!showNormals) {
-                    remoteRenderer.copyToGBuffer(gBufferToUse);
+                    remoteRenderer.copyToFrameRT(gBufferToUse);
                 }
                 else {
                     showNormalsEffect.drawToRenderTarget(remoteRenderer, gBufferToUse);
@@ -822,7 +824,7 @@ int main(int argc, char** argv) {
                     gBufferToUse.saveColorAsPNG(colorFileName);
                 }
 
-                // For debugging: Generate point cloud from depth map
+                // for debugging: Generate point cloud from depth map
                 if (showDepth) {
                     const glm::vec2 gBufferSize = glm::vec2(gBufferToUse.width, gBufferToUse.height);
 

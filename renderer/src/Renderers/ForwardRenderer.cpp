@@ -4,9 +4,9 @@ using namespace quasar;
 
 ForwardRenderer::ForwardRenderer(const Config &config)
         : multiSampled(config.pipeline.multiSampleState.multiSampleEnabled)
-        , gBuffer({ .width = config.width, .height = config.height, .multiSampled = false })
+        , frameRT({ .width = config.width, .height = config.height, .multiSampled = false })
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-        , gBufferMS({
+        , frameRT_MS({
             .width = config.width,
             .height = config.height,
             .multiSampled = true,
@@ -17,12 +17,12 @@ ForwardRenderer::ForwardRenderer(const Config &config)
 }
 
 void ForwardRenderer::setScreenShaderUniforms(const Shader &screenShader) {
-    // set gbuffer texture uniforms
+    // set FrameRenderTarget texture uniforms
     screenShader.bind();
-    screenShader.setTexture("screenColor", gBuffer.colorBuffer, 0);
-    screenShader.setTexture("screenDepth", gBuffer.depthStencilBuffer, 1);
-    screenShader.setTexture("screenNormals", gBuffer.normalsBuffer, 2);
-    screenShader.setTexture("idBuffer", gBuffer.idBuffer, 3);
+    screenShader.setTexture("screenColor", frameRT.colorBuffer, 0);
+    screenShader.setTexture("screenDepth", frameRT.depthStencilBuffer, 1);
+    screenShader.setTexture("screenNormals", frameRT.normalsBuffer, 2);
+    screenShader.setTexture("idBuffer", frameRT.idBuffer, 3);
 }
 
 RenderStats ForwardRenderer::drawObjects(const Scene &scene, const Camera &camera, uint32_t clearMask) {
@@ -33,13 +33,13 @@ RenderStats ForwardRenderer::drawObjects(const Scene &scene, const Camera &camer
         pipeline.rasterState.scissorTestEnabled = true;
 
         // left eye
-        gBuffer.setScissor(0, 0, width / 2, height);
-        gBuffer.setViewport(0, 0, width / 2, height);
+        frameRT.setScissor(0, 0, width / 2, height);
+        frameRT.setViewport(0, 0, width / 2, height);
         stats = drawObjects(scene, vrCamera->left, clearMask);
 
         // right eye
-        gBuffer.setScissor(width / 2, 0, width / 2, height);
-        gBuffer.setViewport(width / 2, 0, width / 2, height);
+        frameRT.setScissor(width / 2, 0, width / 2, height);
+        frameRT.setViewport(width / 2, 0, width / 2, height);
         stats = drawObjects(scene, vrCamera->right, clearMask);
     }
     else {
@@ -51,35 +51,35 @@ RenderStats ForwardRenderer::drawObjects(const Scene &scene, const Camera &camer
 
 void ForwardRenderer::resize(unsigned int width, unsigned int height) {
     OpenGLRenderer::resize(width, height);
-    gBuffer.resize(width, height);
+    frameRT.resize(width, height);
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-    gBufferMS.resize(width, height);
+    frameRT_MS.resize(width, height);
 #endif
 }
 
 void ForwardRenderer::beginRendering() {
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     if (!multiSampled) {
-        gBuffer.bind();
+        frameRT.bind();
     }
     else {
-        gBufferMS.bind();
+        frameRT_MS.bind();
     }
 #else
-    gBuffer.bind();
+    frameRT.bind();
 #endif
 }
 
 void ForwardRenderer::endRendering() {
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     if (!multiSampled) {
-        gBuffer.unbind();
+        frameRT.unbind();
     }
     else {
-        gBufferMS.blitToGBuffer(gBuffer);
-        gBufferMS.unbind();
+        frameRT_MS.blitToFrameRT(frameRT);
+        frameRT_MS.unbind();
     }
 #else
-    gBuffer.unbind();
+    frameRT.unbind();
 #endif
 }

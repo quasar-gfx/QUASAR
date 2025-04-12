@@ -138,10 +138,6 @@ int main(int argc, char** argv) {
     MeshFromQuads meshFromQuads(remoteWindowSize);
     FrameGenerator frameGenerator(remoteRenderer, remoteScene, quadsGenerator, meshFromQuads);
 
-    unsigned int maxVertices = MAX_NUM_PROXIES * VERTICES_IN_A_QUAD;
-    unsigned int maxIndices = MAX_NUM_PROXIES * INDICES_IN_A_QUAD;
-    unsigned int maxVerticesDepth = remoteWindowSize.x * remoteWindowSize.y;
-
     RenderTargetCreateParams rtParams = {
         .width = remoteWindowSize.x,
         .height = remoteWindowSize.y,
@@ -153,21 +149,25 @@ int main(int argc, char** argv) {
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST
     };
-    GBuffer gBufferRT(rtParams);
-    GBuffer gBufferMaskRT(rtParams);
-    GBuffer gBufferTemp(rtParams);
+    FrameRenderTarget frameRT(rtParams);
+    FrameRenderTarget frameRTMask(rtParams);
+    FrameRenderTarget frameRTTemp(rtParams);
 
     std::vector<Mesh> meshes; meshes.reserve(2);
     std::vector<Node> nodeMeshes; nodeMeshes.reserve(2);
     std::vector<Node> nodeMeshesLocal; nodeMeshesLocal.reserve(2);
     std::vector<Node> nodeWireframes; nodeWireframes.reserve(2);
 
+    unsigned int maxVertices = MAX_NUM_PROXIES * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
+    unsigned int maxIndices = MAX_NUM_PROXIES * NUM_SUB_QUADS * INDICES_IN_A_QUAD;
+    unsigned int maxVerticesDepth = remoteWindowSize.x * remoteWindowSize.y;
+
     MeshSizeCreateParams meshParams = {
         .maxVertices = maxVertices,
         .maxIndices = maxIndices,
         .vertexSize = sizeof(QuadVertex),
         .attributes = QuadVertex::getVertexInputAttributes(),
-        .material = new QuadMaterial({ .baseColorTexture = &gBufferRT.colorBuffer }),
+        .material = new QuadMaterial({ .baseColorTexture = &frameRT.colorBuffer }),
         .usage = GL_DYNAMIC_DRAW,
         .indirectDraw = true
     };
@@ -190,7 +190,7 @@ int main(int argc, char** argv) {
         localScene.addChildNode(&nodeWireframes[i]);
     }
 
-    meshParams.material = new QuadMaterial({ .baseColorTexture = &gBufferMaskRT.colorBuffer });
+    meshParams.material = new QuadMaterial({ .baseColorTexture = &frameRTMask.colorBuffer });
     Mesh meshMask(meshParams);
     Node nodeMask(&meshMask);
     nodeMask.frustumCulled = false;
@@ -286,7 +286,7 @@ int main(int argc, char** argv) {
         static bool showUI = !saveImages;
         static bool showCaptureWindow = false;
         static bool showMeshCaptureWindow = false;
-        static bool showGBufferPreviewWindow = false;
+        static bool showframePreviewWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
         static int serverFPSIndex = !cameraPathFileIn ? 0 : 5; // default to 30fps
@@ -311,7 +311,7 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("UI", 0, &showUI);
             ImGui::MenuItem("Frame Capture", 0, &showCaptureWindow);
             ImGui::MenuItem("Mesh Capture", 0, &showMeshCaptureWindow);
-            ImGui::MenuItem("GBuffer Preview", 0, &showGBufferPreviewWindow);
+            ImGui::MenuItem("FrameRenderTarget Preview", 0, &showframePreviewWindow);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -533,20 +533,20 @@ int main(int argc, char** argv) {
                                 static_cast<float>(meshBufferSizes.numIndices * sizeof(unsigned int)) / BYTES_IN_MB);
 
                 // save color buffer
-                gBufferRT.saveColorAsPNG(colorFileName);
+                frameRT.saveColorAsPNG(colorFileName);
             }
 
             ImGui::End();
         }
 
-        if (showGBufferPreviewWindow) {
+        if (showframePreviewWindow) {
             flags = 0;
-            ImGui::Begin("GBuffer Color", 0, flags);
-            ImGui::Image((void*)(intptr_t)(gBufferRT.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::Begin("FrameRenderTarget Color", 0, flags);
+            ImGui::Image((void*)(intptr_t)(frameRT.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
 
-            ImGui::Begin("GBuffer Mask Color", 0, flags);
-            ImGui::Image((void*)(intptr_t)(gBufferMaskRT.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::Begin("FrameRenderTarget Mask Color", 0, flags);
+            ImGui::Image((void*)(intptr_t)(frameRTMask.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
         }
     });
@@ -664,10 +664,10 @@ int main(int argc, char** argv) {
             // render all objects in remoteScene normally
             remoteRenderer.drawObjects(remoteScene, remoteCameraToUse);
             if (!showNormals) {
-                remoteRenderer.copyToGBuffer(gBufferRT);
+                remoteRenderer.copyToFrameRT(frameRT);
             }
             else {
-                remoteRenderer.drawToRenderTarget(screenShaderNormals, gBufferRT);
+                remoteRenderer.drawToRenderTarget(screenShaderNormals, frameRT);
             }
             totalRenderTime += timeutils::secondsToMillis(window->getTime() - startTime);
 
@@ -679,7 +679,7 @@ int main(int argc, char** argv) {
             unsigned int numProxies = 0, numDepthOffsets = 0;
             quadsGenerator.expandEdges = false;
             compressedSize = frameGenerator.generateIFrame(
-                gBufferRT,
+                frameRT,
                 remoteCameraToUse,
                 meshes[currMeshIndex],
                 numProxies, numDepthOffsets
@@ -710,7 +710,7 @@ int main(int argc, char** argv) {
                 quadsGenerator.expandEdges = true;
                 compressedSize = frameGenerator.generatePFrame(
                     meshScenes[currMeshIndex], meshScenes[prevMeshIndex],
-                    gBufferTemp, gBufferMaskRT,
+                    frameRTTemp, frameRTMask,
                     remoteCamera, remoteCameraPrev,
                     meshes[currMeshIndex], meshMask,
                     numProxies, numDepthOffsets
@@ -757,21 +757,21 @@ int main(int argc, char** argv) {
 
                 // save color buffer
                 std::string colorFileName = outputPath + "color.png";
-                gBufferRT.saveColorAsPNG(colorFileName);
+                frameRT.saveColorAsPNG(colorFileName);
             }
 
-            // For debugging: Generate point cloud from depth map
+            // for debugging: Generate point cloud from depth map
             if (showDepth) {
-                const glm::vec2 gBufferSize = glm::vec2(gBufferRT.width, gBufferRT.height);
+                const glm::vec2 frameSize = glm::vec2(frameRT.width, frameRT.height);
 
                 meshFromDepthShader.startTiming();
 
                 meshFromDepthShader.bind();
                 {
-                    meshFromDepthShader.setTexture(gBufferRT.depthStencilBuffer, 0);
+                    meshFromDepthShader.setTexture(frameRT.depthStencilBuffer, 0);
                 }
                 {
-                    meshFromDepthShader.setVec2("depthMapSize", gBufferSize);
+                    meshFromDepthShader.setVec2("depthMapSize", frameSize);
                 }
                 {
                     meshFromDepthShader.setMat4("view", remoteCamera.getViewMatrix());
@@ -786,8 +786,8 @@ int main(int argc, char** argv) {
                     meshFromDepthShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, meshDepth.vertexBuffer);
                     meshFromDepthShader.clearBuffer(GL_SHADER_STORAGE_BUFFER, 1);
                 }
-                meshFromDepthShader.dispatch((gBufferSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                             (gBufferSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+                meshFromDepthShader.dispatch((frameSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                             (frameSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
                 meshFromDepthShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
                 meshFromDepthShader.endTiming();

@@ -62,7 +62,7 @@ QuadsGenerator::BufferSizes QuadsGenerator::getBufferSizes() {
 }
 
 void QuadsGenerator::generateInitialQuadMap(
-        const GBuffer& gBuffer,
+        const FrameRenderTarget& frameRT,
         const glm::vec2 &gBufferSize,
         const PerspectiveCamera &remoteCamera
     ) {
@@ -85,8 +85,8 @@ void QuadsGenerator::generateInitialQuadMap(
         genQuadMapShader.setVec2("quadMapSize", quadMapSizes[closestQuadMapIdx]);
     }
     {
-        genQuadMapShader.setTexture(gBuffer.normalsBuffer, 0);
-        genQuadMapShader.setTexture(gBuffer.idBuffer, 1);
+        genQuadMapShader.setTexture(frameRT.normalsBuffer, 0);
+        genQuadMapShader.setTexture(frameRT.depthStencilBuffer, 1);
     }
     {
         genQuadMapShader.setMat4("view", remoteCamera.getViewMatrix());
@@ -111,7 +111,7 @@ void QuadsGenerator::generateInitialQuadMap(
         genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, quadBuffers[closestQuadMapIdx].offsetSizeFlattenedsBuffer);
 
         genQuadMapShader.setImageTexture(0, depthOffsets.buffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsets.buffer.internalFormat);
-        genQuadMapShader.setImageTexture(1, gBuffer.colorBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, gBuffer.colorBuffer.internalFormat);
+        genQuadMapShader.setImageTexture(1, frameRT.colorBuffer, 0, GL_FALSE, 0, GL_READ_WRITE, frameRT.colorBuffer.internalFormat);
     }
     genQuadMapShader.dispatch((gBufferSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
                               (gBufferSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
@@ -228,13 +228,13 @@ void QuadsGenerator::fillOutputQuads(const glm::vec2 &gBufferSize) {
 }
 
 QuadsGenerator::BufferSizes QuadsGenerator::createProxiesFromGBuffer(
-        const GBuffer& gBuffer,
+        const FrameRenderTarget& frameRT,
         const PerspectiveCamera &remoteCamera
     ) {
-    const glm::vec2 gBufferSize = glm::vec2(gBuffer.width, gBuffer.height);
+    const glm::vec2 gBufferSize = glm::vec2(frameRT.width, frameRT.height);
 
     double startTime = timeutils::getTimeMicros();
-    generateInitialQuadMap(gBuffer, gBufferSize, remoteCamera);
+    generateInitialQuadMap(frameRT, gBufferSize, remoteCamera);
     stats.timeToGenerateQuadsMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     startTime = timeutils::getTimeMicros();

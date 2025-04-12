@@ -3,7 +3,7 @@
 
 #include <Cameras/PerspectiveCamera.h>
 #include <Shaders/ComputeShader.h>
-#include <RenderTargets/GBuffer.h>
+#include <RenderTargets/FrameRenderTarget.h>
 
 #include <Quads/QuadsBuffers.h>
 #include <Quads/DepthOffsets.h>
@@ -44,7 +44,7 @@ public:
     ~QuadsGenerator() = default;
 
     BufferSizes getBufferSizes();
-    BufferSizes createProxiesFromGBuffer(const GBuffer& gBuffer, const PerspectiveCamera &remoteCamera);
+    BufferSizes createProxiesFromGBuffer(const FrameRenderTarget& frameRT, const PerspectiveCamera &remoteCamera);
 #ifdef GL_CORE
     unsigned int saveQuadsToMemory(std::vector<char> &compressedData, bool compress = true);
     unsigned int saveDepthOffsetsToMemory(std::vector<char> &compressedData, bool compress = true);
@@ -61,7 +61,7 @@ private:
     ComputeShader simplifyQuadMapShader;
     ComputeShader fillOutputQuadsShader;
 
-    void generateInitialQuadMap(const GBuffer& gBuffer, const glm::vec2 &gBufferSize, const PerspectiveCamera &remoteCamera);
+    void generateInitialQuadMap(const FrameRenderTarget& frameRT, const glm::vec2 &gBufferSize, const PerspectiveCamera &remoteCamera);
     void simplifyQuadMaps(const PerspectiveCamera &remoteCamera, const glm::vec2 &gBufferSize);
     void fillOutputQuads(const glm::vec2 &gBufferSize);
 };

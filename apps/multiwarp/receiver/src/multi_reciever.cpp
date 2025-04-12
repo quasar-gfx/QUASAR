@@ -194,7 +194,7 @@ int main(int argc, char** argv) {
 
             meshes[view] = new Mesh({
                 .maxVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
-                .maxIndices = numProxies * NUM_SUB_QUADS * 2 * 3,
+                .maxIndices = numProxies * NUM_SUB_QUADS * INDICES_IN_A_QUAD,
                 .vertexSize = sizeof(QuadVertex),
                 .attributes = QuadVertex::getVertexInputAttributes(),
                 .material = new QuadMaterial({ .baseColorTexture = &colorTextures[view] }),
@@ -203,7 +203,7 @@ int main(int argc, char** argv) {
             });
             loadFromFilesTime += timeutils::secondsToMillis(window->getTime() - startTime);
 
-           const  glm::vec2 gBufferSize = glm::vec2(colorTextures[view].width, colorTextures[view].height);
+           const glm::vec2 gBufferSize = glm::vec2(colorTextures[view].width, colorTextures[view].height);
 
             startTime = window->getTime();
             meshFromQuads.appendProxies(

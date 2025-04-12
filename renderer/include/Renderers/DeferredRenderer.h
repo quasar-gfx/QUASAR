@@ -3,8 +3,8 @@
 
 #include <Renderers/OpenGLRenderer.h>
 #include <RenderTargets/RenderTarget.h>
-#include <RenderTargets/DeferredGBuffer.h>
 #include <RenderTargets/GBuffer.h>
+#include <RenderTargets/FrameRenderTarget.h>
 
 #include <Materials/DeferredLightingMaterial.h>
 
@@ -15,9 +15,9 @@ public:
     bool multiSampled = false;
 
     RenderTarget outputRT;
-    DeferredGBuffer gBuffer;
+    GBuffer frameRT;
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-    DeferredGBuffer gBufferMS;
+    GBuffer frameRT_MS;
 #endif
 
     DeferredRenderer(const Config &config);
@@ -35,7 +35,7 @@ public:
     virtual RenderStats drawObjects(const Scene &scene, const Camera &camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT) override;
     virtual RenderStats drawObjectsNoLighting(const Scene &scene, const Camera &camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT) override;
 
-    virtual void copyToGBuffer(GBuffer &gBufferDst);
+    virtual void copyToFrameRT(FrameRenderTarget &gBufferDst);
 
 protected:
     DeferredLightingMaterial lightingMaterial;

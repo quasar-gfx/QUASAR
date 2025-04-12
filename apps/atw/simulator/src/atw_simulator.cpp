@@ -389,7 +389,7 @@ int main(int argc, char** argv) {
         {
             atwShader.setTexture("videoTexture", renderTarget.colorBuffer, 5);
         }
-        renderStats = remoteRenderer.drawToRenderTarget(atwShader, renderer.gBuffer);
+        renderStats = remoteRenderer.drawToRenderTarget(atwShader, renderer.frameRT);
 
         double startTime = window->getTime();
         toneMapper.drawToScreen(renderer);

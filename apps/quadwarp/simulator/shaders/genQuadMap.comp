@@ -119,7 +119,7 @@ layout(std430, binding = 3) writeonly buffer OffsetsBufferOutput {
 };
 
 layout(binding = 0) uniform sampler2D normalsMap;
-layout(binding = 1) uniform usampler2D idMap;
+layout(binding = 1) uniform sampler2D depthMap;
 
 layout(rgba16f, binding = 0) uniform image2D depthOffsetsBuffer;
 layout(rgba16f, binding = 1) uniform image2D colorMap;
@@ -164,7 +164,7 @@ bool isValidDepth(float depth) {
     return depth != 0.0 && depth < MAX_DEPTH;
 }
 
-float UnLinearizeDepth(float depth) {
+float unLinearizeDepth(float depth) {
     float zView = depth * (far - near) + near;
     float z = (zView * (far + near) - 2.0 * near * far) / (zView * (far - near));
     return z * 0.5 + 0.5;
@@ -173,14 +173,11 @@ float UnLinearizeDepth(float depth) {
 float normalizeDepth(float depth) {
     depth = clamp(depth, near, far);
     float z = (depth - near) / (far - near);
-    return UnLinearizeDepth(z);
+    return unLinearizeDepth(z);
 }
 
-float sampleDepth(usampler2D idMap, ivec2 sampleCoord) {
-    uvec4 ids = texelFetch(idMap, sampleCoord, 0);
-    float z = uintBitsToFloat(ids.z);
-    float depth = UnLinearizeDepth(z);
-    return depth;
+float sampleDepth(sampler2D depthMap, ivec2 sampleCoord) {
+    return texelFetch(depthMap, sampleCoord, 0).r;
 }
 
 vec3 sampleNormal(sampler2D normalsMap, ivec2 sampleCoord) {
@@ -632,15 +629,15 @@ void main() {
 
     // sample texture maps
     MultiQuad1D pixelDepths;
-    pixelDepths.bottomLeft  = sampleDepth(idMap, ivec2(pixelNeighborCoords.bottomLeft));
-    pixelDepths.bottom      = sampleDepth(idMap, ivec2(pixelNeighborCoords.bottom));
-    pixelDepths.bottomRight = sampleDepth(idMap, ivec2(pixelNeighborCoords.bottomRight));
-    pixelDepths.left        = sampleDepth(idMap, ivec2(pixelNeighborCoords.left));
-    pixelDepths.center      = sampleDepth(idMap, ivec2(pixelNeighborCoords.center));
-    pixelDepths.right       = sampleDepth(idMap, ivec2(pixelNeighborCoords.right));
-    pixelDepths.topLeft     = sampleDepth(idMap, ivec2(pixelNeighborCoords.topLeft));
-    pixelDepths.top         = sampleDepth(idMap, ivec2(pixelNeighborCoords.top));
-    pixelDepths.topRight    = sampleDepth(idMap, ivec2(pixelNeighborCoords.topRight));
+    pixelDepths.bottomLeft  = sampleDepth(depthMap, ivec2(pixelNeighborCoords.bottomLeft));
+    pixelDepths.bottom      = sampleDepth(depthMap, ivec2(pixelNeighborCoords.bottom));
+    pixelDepths.bottomRight = sampleDepth(depthMap, ivec2(pixelNeighborCoords.bottomRight));
+    pixelDepths.left        = sampleDepth(depthMap, ivec2(pixelNeighborCoords.left));
+    pixelDepths.center      = sampleDepth(depthMap, ivec2(pixelNeighborCoords.center));
+    pixelDepths.right       = sampleDepth(depthMap, ivec2(pixelNeighborCoords.right));
+    pixelDepths.topLeft     = sampleDepth(depthMap, ivec2(pixelNeighborCoords.topLeft));
+    pixelDepths.top         = sampleDepth(depthMap, ivec2(pixelNeighborCoords.top));
+    pixelDepths.topRight    = sampleDepth(depthMap, ivec2(pixelNeighborCoords.topRight));
 
     // transform normals to view space
     MultiQuad pixelNormalsView;
@@ -681,7 +678,7 @@ void main() {
                     continue;
                 }
 
-                float depth = sampleDepth(idMap, ivec2(pixelCoord) + ivec2(i, j));
+                float depth = sampleDepth(depthMap, ivec2(pixelCoord) + ivec2(i, j));
                 if (isValidDepth(depth) && depth > furthestDepth) {
                     hasValidNeighbor = true;
 

@@ -1,7 +1,7 @@
 #ifndef DEFERRED_LIGHTING_MATERIAL_H
 #define DEFERRED_LIGHTING_MATERIAL_H
 
-#include <RenderTargets/DeferredGBuffer.h>
+#include <RenderTargets/GBuffer.h>
 #include <Materials/Material.h>
 
 namespace quasar {
@@ -11,7 +11,7 @@ public:
     DeferredLightingMaterial();
     ~DeferredLightingMaterial();
 
-    void bindGBuffer(const DeferredGBuffer &gBuffer) const;
+    void bindGBuffer(const GBuffer &FrameRenderTarget) const;
     void bindCamera(const Camera &camera) const;
 
     void bind() const override {

@@ -2,7 +2,7 @@
 #define FORWARD_RENDERER_H
 
 #include <Renderers/OpenGLRenderer.h>
-#include <RenderTargets/GBuffer.h>
+#include <RenderTargets/FrameRenderTarget.h>
 
 namespace quasar {
 
@@ -10,9 +10,9 @@ class ForwardRenderer : public OpenGLRenderer {
 public:
     bool multiSampled = false;
 
-    GBuffer gBuffer;
+    FrameRenderTarget frameRT;
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-    GBuffer gBufferMS;
+    FrameRenderTarget frameRT_MS;
 #endif
 
     ForwardRenderer(const Config &config);

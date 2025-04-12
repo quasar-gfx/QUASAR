@@ -2,8 +2,8 @@
 #define DEPTH_PEELING_H
 
 #include <Renderers/DeferredRenderer.h>
-#include <RenderTargets/DeferredGBuffer.h>
 #include <RenderTargets/GBuffer.h>
+#include <RenderTargets/FrameRenderTarget.h>
 
 namespace quasar {
 
@@ -13,7 +13,7 @@ public:
     float viewSphereDiameter = 0.5f;
     float edpDelta = 0.001f;
 
-    std::vector<GBuffer> peelingLayers;
+    std::vector<FrameRenderTarget> peelingLayers;
 
     DepthPeelingRenderer(const Config &config, unsigned int maxLayers = 4, bool edp = false);
     ~DepthPeelingRenderer() = default;

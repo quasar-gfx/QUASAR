@@ -2,7 +2,7 @@
 #define FRAME_GENERATOR_H
 
 #include <Renderers/DeferredRenderer.h>
-#include <RenderTargets/GBuffer.h>
+#include <RenderTargets/FrameRenderTarget.h>
 
 #include <Quads/QuadsBuffers.h>
 #include <Quads/DepthOffsets.h>
@@ -15,6 +15,7 @@ class FrameGenerator {
 public:
     QuadsGenerator &quadsGenerator;
     MeshFromQuads &meshFromQuads;
+
     MeshFromQuads meshFromQuadsMask;
 
     FrameGenerator(DeferredRenderer &remoteRenderer, const Scene &remoteScene, QuadsGenerator &quadsGenerator, MeshFromQuads &meshFromQuads)
@@ -38,7 +39,7 @@ public:
     } stats;
 
     unsigned int generateIFrame(
-        const GBuffer &gBuffer,
+        const FrameRenderTarget &frameRT,
         const PerspectiveCamera &remoteCamera,
         const Mesh &mesh,
         unsigned int &numProxies, unsigned int &numDepthOffsets,
@@ -46,7 +47,7 @@ public:
 
     unsigned int generatePFrame(
         const Scene &currScene, const Scene &prevScene,
-        GBuffer &gBuffer, GBuffer &gBufferMask,
+        FrameRenderTarget &frameRT, FrameRenderTarget &frameRTMask,
         const PerspectiveCamera &currRemoteCamera, const PerspectiveCamera &prevRemoteCamera,
         const Mesh &currMesh, const Mesh &maskMesh,
         unsigned int &numProxies, unsigned int &numDepthOffsets,

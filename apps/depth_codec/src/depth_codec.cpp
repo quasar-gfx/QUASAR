@@ -264,7 +264,7 @@ int main(int argc, char** argv) {
             flags = ImGuiWindowFlags_AlwaysAutoResize;
             ImGui::SetNextWindowPos(ImVec2(windowSize.x - TEXTURE_PREVIEW_SIZE - 30, 40), ImGuiCond_FirstUseEver);
             ImGui::Begin("Original Depth", &showDepthPreview, flags);
-            ImGui::Image((void*)(intptr_t)remoteRenderer.gBuffer.depthStencilBuffer, ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::Image((void*)(intptr_t)remoteRenderer.frameRT.depthStencilBuffer, ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
         }
     });
@@ -337,7 +337,7 @@ int main(int argc, char** argv) {
         // generate mesh for original depth data
         meshFromDepthShader.bind();
         {
-            meshFromDepthShader.setTexture(remoteRenderer.gBuffer.depthStencilBuffer, 0);
+            meshFromDepthShader.setTexture(remoteRenderer.frameRT.depthStencilBuffer, 0);
         }
         {
             meshFromDepthShader.setVec2("depthMapSize", windowSize);

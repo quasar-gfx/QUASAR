@@ -130,11 +130,10 @@ int main(int argc, char** argv) {
         createMeshTime = timeutils::secondsToMillis(window->getTime() - startTime);
     }
     else {
-        const glm::uvec2 halfWindowSize = windowSize / 2u;
-        unsigned int maxProxies = halfWindowSize.x * halfWindowSize.y * NUM_SUB_QUADS;
+        unsigned int maxProxies = windowSize.x * windowSize.y * NUM_SUB_QUADS;
         QuadBuffers quadBuffers(maxProxies);
 
-        const glm::uvec2 depthBufferSize = 2u * halfWindowSize;
+        const glm::uvec2 depthBufferSize = 2u * windowSize;
         DepthOffsets depthOffsets(depthBufferSize);
 
         startTime = window->getTime();
@@ -145,7 +144,7 @@ int main(int argc, char** argv) {
 
         mesh = new Mesh({
             .maxVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
-            .maxIndices = numProxies * NUM_SUB_QUADS * 2 * 3,
+            .maxIndices = numProxies * NUM_SUB_QUADS * INDICES_IN_A_QUAD,
             .vertexSize = sizeof(QuadVertex),
             .attributes = QuadVertex::getVertexInputAttributes(),
             .material = new QuadMaterial({ .baseColorTexture = &colorTexture }),
@@ -154,14 +153,16 @@ int main(int argc, char** argv) {
         });
         loadFromFilesTime = timeutils::secondsToMillis(window->getTime() - startTime);
 
+        const glm::vec2 gBufferSize = glm::vec2(colorTexture.width, colorTexture.height);
+
         startTime = window->getTime();
         meshFromQuads.appendProxies(
-            glm::vec2(halfWindowSize.x, halfWindowSize.y),
+            gBufferSize,
             numProxies,
             quadBuffers
         );
         meshFromQuads.createMeshFromProxies(
-            glm::vec2(halfWindowSize.x, halfWindowSize.y),
+            gBufferSize,
             numProxies, depthOffsets,
             remoteCamera,
             *mesh

@@ -54,7 +54,7 @@ unsigned int DepthOffsets::loadFromFile(const std::string &filename, unsigned in
 unsigned int DepthOffsets::saveToMemory(std::vector<char> &compressedData, bool compress) {
     cudaImage.copyToArray(size.x * 4 * sizeof(uint16_t), size.y, size.x * 4 * sizeof(uint16_t), data.data());
     compressedData.resize(data.size());
-    if (!compress) {
+    if (compress) {
         return codec.compress(data.data(), compressedData, data.size());
     }
     memcpy(compressedData.data(), data.data(), data.size());
@@ -67,9 +67,9 @@ unsigned int DepthOffsets::saveToFile(const std::string &filename) {
     std::vector<char> compressedData;
     unsigned int outputSize = saveToMemory(compressedData);
 
-    std::ofstream quadsFile(filename + ".zstd", std::ios::binary);
-    quadsFile.write(compressedData.data(), outputSize);
-    quadsFile.close();
+    std::ofstream depthOffsetsFile(filename + ".zstd", std::ios::binary);
+    depthOffsetsFile.write(compressedData.data(), outputSize);
+    depthOffsetsFile.close();
 
     return outputSize;
 }
