@@ -59,9 +59,9 @@ void Recorder::start() {
         initializeFFmpeg();
     }
 
-    saveThreadPool = std::make_unique<BS::thread_pool>(numThreads);
+    saveThreadPool = std::make_unique<BS::thread_pool<>>(numThreads);
     for (int i = 0; i < numThreads; i++) {
-        auto future = saveThreadPool->submit([this, i]() {
+        auto future = saveThreadPool->submit_task([this, i]() {
             saveFrames(i);
         });
         (void)future;
@@ -75,7 +75,7 @@ void Recorder::stop() {
     running = false;
 
     queueCV.notify_all();
-    saveThreadPool->wait_for_tasks();
+    saveThreadPool->wait();
     saveThreadPool.reset();
 
     if (outputFormat == OutputFormat::MP4) {

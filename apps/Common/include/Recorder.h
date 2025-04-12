@@ -104,7 +104,7 @@ private:
 
     std::atomic<bool> running{false};
     std::atomic<int> frameCount{0};
-    std::unique_ptr<BS::thread_pool> saveThreadPool;
+    std::unique_ptr<BS::thread_pool<>> saveThreadPool;
     std::queue<FrameData> frameQueue;
     std::mutex queueMutex;
     std::mutex cameraPathMutex;
