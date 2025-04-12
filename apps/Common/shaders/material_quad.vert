@@ -8,12 +8,12 @@ layout(num_views = 2) in;
 #endif
 
 out VertexData {
-    flat uint drawID;
+    flat unsigned int drawID;
     vec3 TexCoords3D;
     vec3 FragPos;
 } vsOut;
 
-uniform uint drawID;
+uniform unsigned int drawID;
 
 uniform mat4 model;
 uniform mat3 normalMatrix;

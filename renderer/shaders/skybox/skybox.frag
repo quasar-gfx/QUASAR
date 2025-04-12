@@ -3,7 +3,7 @@ layout(location = 1) out vec4 FragNormal;
 layout(location = 2) out uvec4 FragIDs;
 
 in VertexData {
-    flat uint drawID;
+    flat unsigned int drawID;
     vec3 WorldPos;
 } fsIn;
 

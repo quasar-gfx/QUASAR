@@ -1,4 +1,11 @@
+#if !defined(__ANDROID__)
+#include <filesystem>
+#endif
+
+#include <spdlog/spdlog.h>
+
 #include <Quads/DepthOffsets.h>
+#include <Utils/TimeUtils.h>
 
 using namespace quasar;
 
@@ -18,20 +25,22 @@ DepthOffsets::DepthOffsets(const glm::uvec2 &size)
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     , cudaImage(buffer)
 #endif
-    , data(size.x * size.y * 4 * sizeof(uint16_t)) {
+    , data(size.x * size.y * 4 * sizeof(unsigned int16_t)) {
 
 }
 
 unsigned int DepthOffsets::loadFromMemory(std::vector<char> &compressedData, bool decompress) {
+    double startTime = timeutils::getTimeMicros();
     if (decompress) {
         codec.decompress(compressedData, data);
     }
     else {
         data = compressedData;
     }
+    stats.timeToDecompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-    cudaImage.copyToArray(size.x * 4 * sizeof(uint16_t), size.y, size.x * 4 * sizeof(uint16_t), data.data());
+    cudaImage.copyToArray(size.x * 4 * sizeof(unsigned int16_t), size.y, size.x * 4 * sizeof(unsigned int16_t), data.data());
 #else
     buffer.setData(size.x, size.y, data.data());
 #endif
@@ -52,17 +61,25 @@ unsigned int DepthOffsets::loadFromFile(const std::string &filename, unsigned in
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
 unsigned int DepthOffsets::saveToMemory(std::vector<char> &compressedData, bool compress) {
-    cudaImage.copyToArray(size.x * 4 * sizeof(uint16_t), size.y, size.x * 4 * sizeof(uint16_t), data.data());
+    cudaImage.copyToArray(size.x * 4 * sizeof(unsigned int16_t), size.y, size.x * 4 * sizeof(unsigned int16_t), data.data());
     compressedData.resize(data.size());
+
+    double startTime = timeutils::getTimeMicros();
+    unsigned int outputSize = data.size();
     if (compress) {
-        return codec.compress(data.data(), compressedData, data.size());
+        outputSize = codec.compress(data.data(), compressedData, data.size());
+        compressedData.resize(outputSize);
     }
-    memcpy(compressedData.data(), data.data(), data.size());
-    return data.size();
+    else {
+        memcpy(compressedData.data(), data.data(), data.size());
+    }
+    stats.timeToCompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+
+    return outputSize;
 }
 
 unsigned int DepthOffsets::saveToFile(const std::string &filename) {
-    cudaImage.copyToArray(size.x * 4 * sizeof(uint16_t), size.y, size.x * 4 * sizeof(uint16_t), data.data());
+    cudaImage.copyToArray(size.x * 4 * sizeof(unsigned int16_t), size.y, size.x * 4 * sizeof(unsigned int16_t), data.data());
 
     std::vector<char> compressedData;
     unsigned int outputSize = saveToMemory(compressedData);

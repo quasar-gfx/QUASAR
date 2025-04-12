@@ -5,23 +5,23 @@ struct QuadMapData {
     float depth;
     vec2 uv;
     uvec2 offset;
-    uint size;
+    unsigned int size;
     bool flattened;
 };
 
 struct QuadMapDataPacked {
-    uint normalSpherical;
+    unsigned int normalSpherical;
     float depth;
-    uint offsetSizeFlattened;
+    unsigned int offsetSizeFlattened;
 };
 
 layout(std430, binding = 0) buffer QuadBufferSizes {
-    uint numProxies;
-    uint numDepthOffsets;
+    unsigned int numProxies;
+    unsigned int numDepthOffsets;
 };
 
 layout(std430, binding = 1) readonly buffer NormalSphericalsBufferInput {
-    uint normalSphericalsInput[];
+    unsigned int normalSphericalsInput[];
 };
 
 layout(std430, binding = 2) readonly buffer DepthBufferInput {
@@ -29,11 +29,11 @@ layout(std430, binding = 2) readonly buffer DepthBufferInput {
 };
 
 layout(std430, binding = 3) readonly buffer OffsetsBufferInput {
-    uint offsetSizeFlattenedsInput[];
+    unsigned int offsetSizeFlattenedsInput[];
 };
 
 layout(std430, binding = 4) writeonly buffer NormalSphericalsBufferOutput {
-    uint normalSphericalsOutput[];
+    unsigned int normalSphericalsOutput[];
 };
 
 layout(std430, binding = 5) writeonly buffer DepthsBufferOutput {
@@ -41,7 +41,7 @@ layout(std430, binding = 5) writeonly buffer DepthsBufferOutput {
 };
 
 layout(std430, binding = 6) writeonly buffer OffsetsBufferOutput {
-    uint offsetSizeFlattenedsOutput[];
+    unsigned int offsetSizeFlattenedsOutput[];
 };
 
 const float PI = 3.1415926535897932384626433832795;
@@ -49,7 +49,7 @@ const float PI = 3.1415926535897932384626433832795;
 uniform vec2 gBufferSize;
 uniform vec2 quadMapSize;
 
-uint packNormalToSphericalHalf(vec3 normal) {
+unsigned int packNormalToSphericalHalf(vec3 normal) {
     float theta = atan(normal.z, normal.x);
     float phi = acos(normal.y);
 
@@ -59,7 +59,7 @@ uint packNormalToSphericalHalf(vec3 normal) {
     return packHalf2x16(vec2(theta01, phi01));
 }
 
-vec3 unpackSphericalToNormalHalf(uint packedNormal) {
+vec3 unpackSphericalToNormalHalf(unsigned int packedNormal) {
     vec2 spherical01 = unpackHalf2x16(packedNormal);
 
     float theta = spherical01.x * (2.0 * PI) - PI;
@@ -73,7 +73,7 @@ vec3 unpackSphericalToNormalHalf(uint packedNormal) {
 }
 
 QuadMapData loadInputQuadMap(ivec2 pixelCoord) {
-    uint index = uint(pixelCoord.y) * uint(quadMapSize.x) + uint(pixelCoord.x);
+    unsigned int index = unsigned int(pixelCoord.y) * unsigned int(quadMapSize.x) + unsigned int(pixelCoord.x);
 
     QuadMapDataPacked quadMapDataPacked;
     quadMapDataPacked.normalSpherical = normalSphericalsInput[index];
@@ -87,22 +87,22 @@ QuadMapData loadInputQuadMap(ivec2 pixelCoord) {
     quadMapData.offset.x = (quadMapDataPacked.offsetSizeFlattened >> 20) & 0xFFFu;
     quadMapData.offset.y = (quadMapDataPacked.offsetSizeFlattened >> 8) & 0xFFFu;
 
-    uint flattenedAndSize = quadMapDataPacked.offsetSizeFlattened & 0xFFu;
+    unsigned int flattenedAndSize = quadMapDataPacked.offsetSizeFlattened & 0xFFu;
     quadMapData.size = (flattenedAndSize >> 1) & 0x7Fu;
     quadMapData.flattened = (flattenedAndSize & 1u) != 0;
 
-    uint halfSize = 1u << (quadMapData.size - 1u); // 2^size / 2
+    unsigned int halfSize = 1u << (quadMapData.size - 1u); // 2^size / 2
     quadMapData.uv = (vec2(quadMapData.offset) + float(halfSize) * vec2(0.5)) / gBufferSize;
 
     return quadMapData;
 }
 
-void storeOutputQuadMap(in uint index, in QuadMapData quadMapData) {
+void storeOutputQuadMap(in unsigned int index, in QuadMapData quadMapData) {
     QuadMapDataPacked quadMapDataPacked;
     quadMapDataPacked.normalSpherical = packNormalToSphericalHalf(quadMapData.normal);
     quadMapDataPacked.depth = quadMapData.depth;
 
-    uint flattenedAndSize = ((quadMapData.size & 0x7Fu) << 1) | (quadMapData.flattened ? 1u : 0u);
+    unsigned int flattenedAndSize = ((quadMapData.size & 0x7Fu) << 1) | (quadMapData.flattened ? 1u : 0u);
     quadMapDataPacked.offsetSizeFlattened = ((quadMapData.offset.x & 0xFFFu) << 20) |
                                                     ((quadMapData.offset.y & 0xFFFu) << 8) |
                                                         (flattenedAndSize & 0xFFu);
@@ -122,7 +122,7 @@ void main() {
         return;
     }
 
-    uint size = 1 << quadMapData.size;
+    unsigned int size = 1 << quadMapData.size;
     bool flattened = quadMapData.flattened;
     if (!flattened) {
         // for (int i = 0; i < size; i++) {
@@ -133,6 +133,6 @@ void main() {
         atomicAdd(numDepthOffsets, size * size * 4);
     }
 
-    uint index = atomicAdd(numProxies, 1);
+    unsigned int index = atomicAdd(numProxies, 1);
     storeOutputQuadMap(index, quadMapData);
 }

@@ -1,15 +1,9 @@
 #ifndef DEPTH_OFFSETS_H
 #define DEPTH_OFFSETS_H
 
-#if !defined(__ANDROID__)
-#include <filesystem>
-#endif
-
-#include <spdlog/spdlog.h>
-
 #include <Texture.h>
 #include <Utils/FileIO.h>
-#include <Codec/ZSTDCodec.h>
+#include <Codec/LZ4Codec.h>
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
 #include <CudaGLInterop/CudaGLImage.h>
@@ -19,6 +13,11 @@ namespace quasar {
 
 class DepthOffsets {
 public:
+    struct Stats {
+        double timeToCompressMs = 0.0f;
+        double timeToDecompressMs = 0.0f;
+    } stats;
+
     glm::uvec2 size;
     Texture buffer;
 
@@ -33,7 +32,7 @@ public:
 #endif
 
 private:
-    ZSTDCodec codec;
+    LZ4Codec codec;
 
     std::vector<char> data;
 

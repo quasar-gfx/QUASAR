@@ -19,8 +19,6 @@
 
 using namespace quasar;
 
-const std::string DATA_PATH = "../simulator/";
-
 const std::vector<glm::vec4> colors = {
     glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), // primary view color is yellow
     glm::vec4(0.0f, 0.0f, 1.0f, 1.0f),
@@ -41,11 +39,10 @@ int main(int argc, char** argv) {
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::Flag verbose(parser, "verbose", "Enable verbose logging", {'v', "verbose"});
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "1920x1080");
-    args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::ValueFlag<int> maxLayersIn(parser, "layers", "Max layers", {'n', "max-layers"}, 4);
-    args::Flag loadProxies(parser, "load-proxies", "Load proxies from quads.bin.zstd", {'m', "load-proxies"});
     args::Flag disableWideFov(parser, "disable-wide-fov", "Disable wide fov view", {'W', "disable-wide-fov"});
+    args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Path to data files", {'D', "data-path"}, "../simulator/");
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -70,7 +67,10 @@ int main(int argc, char** argv) {
 
     config.enableVSync = !args::get(novsync);
 
-    std::string sceneFile = args::get(sceneFileIn);
+    std::string dataPath = args::get(dataPathIn);
+    if (dataPath.back() != '/') {
+        dataPath += "/";
+    }
 
     int maxLayers = args::get(maxLayersIn);
     int maxViews = !disableWideFov ? maxLayers + 1 : maxLayers;
@@ -110,7 +110,7 @@ int main(int argc, char** argv) {
         .flipVertically = true
     };
     for (int view = 0; view < maxViews; view++) {
-        std::string colorFileName = DATA_PATH + "color" + std::to_string(view) + ".png";
+        std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
         params.path = colorFileName;
         colorTextures.emplace_back(params);
     }
@@ -129,90 +129,58 @@ int main(int argc, char** argv) {
     double startTime = window->getTime();
     double loadFromFilesTime = 0.0;
     double createMeshTime = 0.0;
-    if (!args::get(loadProxies)) {
-        for (int view = 0; view < maxViews; view++) {
-            startTime = window->getTime();
-            std::string verticesFileName = DATA_PATH + "vertices" + std::to_string(view) + ".bin.zstd";
-            std::string indicesFileName = DATA_PATH + "indices" + std::to_string(view) + ".bin.zstd";
 
-            auto vertexData = FileIO::loadBinaryFile(verticesFileName);
-            auto indexData = FileIO::loadBinaryFile(indicesFileName);
+    unsigned int maxProxies = windowSize.x * windowSize.y * NUM_SUB_QUADS;
+    QuadBuffers quadBuffers(maxProxies);
 
-            loadFromFilesTime += timeutils::secondsToMillis(window->getTime() - startTime);
-            startTime = window->getTime();
+    const glm::uvec2 depthBufferSize = 2u * windowSize;
+    DepthOffsets depthOffsets(depthBufferSize);
 
-            std::vector<Vertex> vertices(vertexData.size() / sizeof(Vertex));
-            std::memcpy(vertices.data(), vertexData.data(), vertexData.size());
+    unsigned int numBytes;
+    for (int view = 0; view < maxViews; view++) {
+        startTime = window->getTime();
 
-            std::vector<unsigned int> indices(indexData.size() / sizeof(unsigned int));
-            std::memcpy(indices.data(), indexData.data(), indexData.size());
+        // load proxies
+        std::string quadProxiesFileName = dataPath + "quads" + std::to_string(view) + ".bin.zstd";
+        unsigned int numProxies = quadBuffers.loadFromFile(quadProxiesFileName, &numBytes);
+        numBytesProxies += numBytes;
+        // load depth offsets
+        std::string depthOffsetsFileName = dataPath + "depthOffsets" + std::to_string(view) + ".bin.zstd";
+        unsigned int numDepthOffsets = depthOffsets.loadFromFile(depthOffsetsFileName, &numBytes);
+        numBytesDepthOffsets += numBytes;
 
-            meshes[view] = new Mesh({
-                .verticesData = vertices.data(),
-                .verticesSize = vertices.size(),
-                .indicesData = indices.data(),
-                .indicesSize = indices.size(),
-                .material = new QuadMaterial({ .baseColorTexture = &colorTextures[view] }),
-            });
+        meshes[view] = new Mesh({
+            .maxVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
+            .maxIndices = numProxies * NUM_SUB_QUADS * INDICES_IN_A_QUAD,
+            .vertexSize = sizeof(QuadVertex),
+            .attributes = QuadVertex::getVertexInputAttributes(),
+            .material = new QuadMaterial({ .baseColorTexture = &colorTextures[view] }),
+            .usage = GL_DYNAMIC_DRAW,
+            .indirectDraw = true
+        });
+        loadFromFilesTime += timeutils::secondsToMillis(window->getTime() - startTime);
 
-            totalTriangles += indices.size() / 3;
+        const glm::uvec2 gBufferSize = glm::uvec2(colorTextures[view].width, colorTextures[view].height);
 
-            createMeshTime += timeutils::secondsToMillis(window->getTime() - startTime);
-        }
-    }
-    else {
-        unsigned int maxProxies = windowSize.x * windowSize.y * NUM_SUB_QUADS;
-        QuadBuffers quadBuffers(maxProxies);
+        startTime = window->getTime();
+        auto& cameraToUse = (!disableWideFov && view == maxViews - 1) ? remoteCameraWideFov : remoteCamera;
+        meshFromQuads.appendProxies(
+            gBufferSize,
+            numProxies, quadBuffers
+        );
+        meshFromQuads.createMeshFromProxies(
+            gBufferSize,
+            numProxies, depthOffsets,
+            cameraToUse,
+            *meshes[view]
+        );
+        createMeshTime += meshFromQuads.stats.timeToCreateMeshMs;
 
-        const glm::uvec2 depthBufferSize = 2u * windowSize;
-        DepthOffsets depthOffsets(depthBufferSize);
+        auto meshBufferSizes = meshFromQuads.getBufferSizes();
 
-        unsigned int numBytes;
-        for (int view = 0; view < maxViews; view++) {
-            startTime = window->getTime();
-
-            // load proxies
-            std::string quadProxiesFileName = DATA_PATH + "quads" + std::to_string(view) + ".bin.zstd";
-            unsigned int numProxies = quadBuffers.loadFromFile(quadProxiesFileName, &numBytes);
-            numBytesProxies += numBytes;
-            // load depth offsets
-            std::string depthOffsetsFileName = DATA_PATH + "depthOffsets" + std::to_string(view) + ".bin.zstd";
-            unsigned int numDepthOffsets = depthOffsets.loadFromFile(depthOffsetsFileName, &numBytes);
-            numBytesDepthOffsets += numBytes;
-
-            meshes[view] = new Mesh({
-                .maxVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
-                .maxIndices = numProxies * NUM_SUB_QUADS * INDICES_IN_A_QUAD,
-                .vertexSize = sizeof(QuadVertex),
-                .attributes = QuadVertex::getVertexInputAttributes(),
-                .material = new QuadMaterial({ .baseColorTexture = &colorTextures[view] }),
-                .usage = GL_DYNAMIC_DRAW,
-                .indirectDraw = true
-            });
-            loadFromFilesTime += timeutils::secondsToMillis(window->getTime() - startTime);
-
-            const glm::uvec2 gBufferSize = glm::uvec2(colorTextures[view].width, colorTextures[view].height);
-
-            startTime = window->getTime();
-            auto& cameraToUse = (!disableWideFov && view == maxViews - 1) ? remoteCameraWideFov : remoteCamera;
-            meshFromQuads.appendProxies(
-                gBufferSize,
-                numProxies, quadBuffers
-            );
-            meshFromQuads.createMeshFromProxies(
-                gBufferSize,
-                numProxies, depthOffsets,
-                cameraToUse,
-                *meshes[view]
-            );
-            createMeshTime += meshFromQuads.stats.timeToCreateMeshMs;
-
-            auto meshBufferSizes = meshFromQuads.getBufferSizes();
-
-            totalTriangles += meshBufferSizes.numIndices / 3;
-            totalProxies += numProxies;
-            totalDepthOffsets = numDepthOffsets;
-        }
+        totalTriangles += meshBufferSizes.numIndices / 3;
+        totalProxies += numProxies;
+        totalDepthOffsets = numDepthOffsets;
     }
 
     for (int view = 0; view < maxViews; view++) {
@@ -290,10 +258,10 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
-            float proxySizeMb = static_cast<float>(numBytesProxies) / BYTES_IN_MB;
-            float depthOffsetSizeMb = static_cast<float>(numBytesDepthOffsets) / BYTES_IN_MB;
-            ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%.3f MB)", totalProxies, proxySizeMb);
-            ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%.3f MB)", totalDepthOffsets, depthOffsetSizeMb);
+            float proxySizeMB = static_cast<float>(numBytesProxies) / BYTES_IN_MB;
+            float depthOffsetSizeMB = static_cast<float>(numBytesDepthOffsets) / BYTES_IN_MB;
+            ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%.3f MB)", totalProxies, proxySizeMB);
+            ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%.3f MB)", totalDepthOffsets, depthOffsetSizeMB);
 
             ImGui::Separator();
 

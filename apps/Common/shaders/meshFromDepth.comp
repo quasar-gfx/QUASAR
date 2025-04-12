@@ -30,7 +30,7 @@ layout(std430, binding = 0) buffer VertexBufferDepth {
 };
 
 layout(std430, binding = 1) buffer IndexBuffer {
-    uint indices[];
+    unsigned int indices[];
 };
 
 float sampleDepth(sampler2D depthMap, ivec2 sampleCoord) {
@@ -55,7 +55,7 @@ void main() {
     vec3 pixelCoordsViewCenter       = ndcToView(projectionInverse, pixelCoordsNDC, pixelDepth);
 
     // store depth
-    uint shaderIndex = uint(gl_GlobalInvocationID.y * size.x + gl_GlobalInvocationID.x);
+    unsigned int shaderIndex = unsigned int(gl_GlobalInvocationID.y * size.x + gl_GlobalInvocationID.x);
     verticesDepth[shaderIndex].position = viewToWorld(viewInverse, pixelCoordsViewCenter);
     verticesDepth[shaderIndex].color = vec3(1.0, 1.0, 1.0);
     verticesDepth[shaderIndex].texCoords = viewToScreen(projection, pixelCoordsViewCenter);
@@ -70,10 +70,10 @@ void main() {
                 bl -- br
 
         ************************/
-        uint bottomLeftIdx = shaderIndex;
-        uint bottomRightIdx = shaderIndex + 1;
-        uint topLeftIdx = shaderIndex + uint(size.x);
-        uint topRightIdx = shaderIndex + uint(size.x) + 1;
+        unsigned int bottomLeftIdx = shaderIndex;
+        unsigned int bottomRightIdx = shaderIndex + 1;
+        unsigned int topLeftIdx = shaderIndex + unsigned int(size.x);
+        unsigned int topRightIdx = shaderIndex + unsigned int(size.x) + 1;
 
         indices[shaderIndex * 6 + 0] = topLeftIdx;
         indices[shaderIndex * 6 + 1] = bottomLeftIdx;

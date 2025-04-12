@@ -11,7 +11,7 @@ uniform bool showObjectIDs = true;
 
 void main() {
     uvec3 ids = texture(idBuffer, TexCoords).rgb;
-    uint id = showObjectIDs ? ids.r : ids.g;
+    unsigned int id = showObjectIDs ? ids.r : ids.g;
 
     vec3 col = vec3( (id % 256) / 255.0,
                     ((id / 256) % 256) / 255.0,

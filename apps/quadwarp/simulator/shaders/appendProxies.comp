@@ -1,15 +1,15 @@
 layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = 1, local_size_z = 1) in;
 
 layout(std430, binding = 0) writeonly buffer CurrNumProxiesBuffer {
-    uint currNumProxies;
+    unsigned int currNumProxies;
 };
 
 layout(std430, binding = 1) readonly buffer PrevNumProxiesBuffer {
-    uint prevNumProxies;
+    unsigned int prevNumProxies;
 };
 
 layout(std430, binding = 2) readonly buffer NormalSphericalsBufferInput {
-    uint normalSphericalsInput[];
+    unsigned int normalSphericalsInput[];
 };
 
 layout(std430, binding = 3) readonly buffer DepthBufferInput {
@@ -17,11 +17,11 @@ layout(std430, binding = 3) readonly buffer DepthBufferInput {
 };
 
 layout(std430, binding = 4) readonly buffer OffsetsBufferInput {
-    uint offsetSizeFlattenedsInput[];
+    unsigned int offsetSizeFlattenedsInput[];
 };
 
 layout(std430, binding = 5) writeonly buffer NormalSphericalsBufferOutput {
-    uint normalSphericalsOutput[];
+    unsigned int normalSphericalsOutput[];
 };
 
 layout(std430, binding = 6) writeonly buffer DepthsBufferOutput {
@@ -29,18 +29,18 @@ layout(std430, binding = 6) writeonly buffer DepthsBufferOutput {
 };
 
 layout(std430, binding = 7) writeonly buffer OffsetsBufferOutput {
-    uint offsetSizeFlattenedsOutput[];
+    unsigned int offsetSizeFlattenedsOutput[];
 };
 
 uniform bool iFrame;
-uniform uint newNumProxies;
+uniform unsigned int newNumProxies;
 
-shared uint localNumProxies;
+shared unsigned int localNumProxies;
 
 void main() {
-    uint proxyIndex = gl_GlobalInvocationID.x;
+    unsigned int proxyIndex = gl_GlobalInvocationID.x;
 
-    // if i-frame, start from the beginning
+    // if RefFrame, start from the beginning
     if (iFrame && proxyIndex == 0u) {
         currNumProxies = 0u;
     }
@@ -49,7 +49,7 @@ void main() {
         return;
     }
 
-    uint startIndex = iFrame ? 0u : prevNumProxies;
+    unsigned int startIndex = iFrame ? 0u : prevNumProxies;
     if (gl_LocalInvocationID.x == 0u) {
         localNumProxies = 0u;
     }
@@ -57,7 +57,7 @@ void main() {
 
     atomicAdd(localNumProxies, 1u);
 
-    uint globalIndex = startIndex + proxyIndex;
+    unsigned int globalIndex = startIndex + proxyIndex;
     normalSphericalsOutput[globalIndex] = normalSphericalsInput[proxyIndex];
     depthsOutput[globalIndex] = depthsInput[proxyIndex];
     offsetSizeFlattenedsOutput[globalIndex] = offsetSizeFlattenedsInput[proxyIndex];

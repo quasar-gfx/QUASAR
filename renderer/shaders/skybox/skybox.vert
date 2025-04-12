@@ -1,12 +1,12 @@
 layout(location = 0) in vec3 aPos;
 
-uniform uint drawID;
+uniform unsigned int drawID;
 
 uniform mat4 projection;
 uniform mat4 view;
 
 out VertexData {
-	flat uint drawID;
+	flat unsigned int drawID;
 	vec3 WorldPos;
 } vsOut;
 

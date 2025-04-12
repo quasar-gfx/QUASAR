@@ -7,7 +7,7 @@ layout(location = 1) out vec4 FragNormal;
 layout(location = 2) out uvec4 FragIDs;
 
 in VertexData {
-    flat uint drawID;
+    flat unsigned int drawID;
     vec2 TexCoords;
     vec3 FragPosView;
     vec3 FragPosWorld;
@@ -125,12 +125,12 @@ float LCOC(float d, float df) {
 bool inPVHV(ivec2 pixelCoords, vec3 fragViewPos, uvec4 q) {
     float fragmentDepth = -fragViewPos.z;
 
-    if (layerIndex > 2) return cullUmbra(fragmentDepth, uintBitsToFloat(q.z));
+    if (layerIndex > 2) return cullUmbra(fragmentDepth, unsigned intBitsToFloat(q.z));
 
-    uint q_item = q.r;
+    unsigned int q_item = q.r;
     if (q_item < 0) return false;
 
-    float blockerDepthNormalized = uintBitsToFloat(q.z);
+    float blockerDepthNormalized = unsigned intBitsToFloat(q.z);
 	float df = mix(camera.near, camera.far, blockerDepthNormalized);
     float R = LCOC(fragmentDepth, df);
     for (int i = 0; i < EDP_SAMPLES; i++) {
@@ -140,10 +140,10 @@ bool inPVHV(ivec2 pixelCoords, vec3 fragViewPos, uvec4 q) {
         vec2 offset = vec2(x, y);
 
         uvec4 w = texelFetch(prevIDMap, ivec2(round(vec2(pixelCoords) + offset)), 0);
-        uint w_item = w.r;
+        unsigned int w_item = w.r;
         if (w_item < 0) return false;
 
-        float sampleDepthNormalized = uintBitsToFloat(w.z);
+        float sampleDepthNormalized = unsigned intBitsToFloat(w.z);
         if (sampleDepthNormalized == 0) return true;
         if (sampleDepthNormalized >= MAX_DEPTH) continue;
 
@@ -162,7 +162,7 @@ void main() {
         uvec4 q = texelFetch(prevIDMap, pixelCoords, 0);
 
         float currDepth = -fsIn.FragPosView.z;
-        float prevDepthNormalized = uintBitsToFloat(q.z);
+        float prevDepthNormalized = unsigned intBitsToFloat(q.z);
         if (prevDepthNormalized == 0 || prevDepthNormalized >= MAX_DEPTH)
             discard;
         if (-fsIn.FragPosView.z <= mix(camera.near, camera.far, prevDepthNormalized + DP_EPSILON))
@@ -250,5 +250,5 @@ void main() {
     FragColor = vec4(radianceOut, alpha);
     FragNormal = vec4(normalize(fsIn.Normal), 1.0);
     FragIDs = uvec4(fsIn.drawID, gl_PrimitiveID, 0, 1);
-    FragIDs.z = floatBitsToUint((-fsIn.FragPosView.z - camera.near) / (camera.far - camera.near));
+    FragIDs.z = floatBitsTounsigned int((-fsIn.FragPosView.z - camera.near) / (camera.far - camera.near));
 }

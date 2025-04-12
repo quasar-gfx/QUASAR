@@ -38,25 +38,24 @@ public:
         double timeToCompress = 0.0f;
     } stats;
 
-    unsigned int generateIFrame(
+    unsigned int generateRefFrame(
         const FrameRenderTarget &frameRT,
         const PerspectiveCamera &remoteCamera,
         const Mesh &mesh,
+        std::vector<char> &quads, std::vector<char> &depthOffsets,
         unsigned int &numProxies, unsigned int &numDepthOffsets,
         bool compress = true);
 
-    unsigned int generatePFrame(
+    unsigned int generateMaskFrame(
         const Scene &currScene, const Scene &prevScene,
-        FrameRenderTarget &frameRT, FrameRenderTarget &frameRTMask,
+        FrameRenderTarget &frameRT, FrameRenderTarget &maskFrameRT,
         const PerspectiveCamera &currRemoteCamera, const PerspectiveCamera &prevRemoteCamera,
         const Mesh &currMesh, const Mesh &maskMesh,
+        std::vector<char> &quads, std::vector<char> &depthOffsets,
         unsigned int &numProxies, unsigned int &numDepthOffsets,
         bool compress = true);
 
 private:
-    std::vector<char> compressedQuads;
-    std::vector<char> compressedDepthOffsets;
-
     DeferredRenderer &remoteRenderer;
     const Scene &remoteScene;
 };
