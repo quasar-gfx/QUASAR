@@ -104,7 +104,7 @@ int main(int argc, char** argv) {
         glm::vec3 worldOffset =
             right   * offset.x * viewBoxSize / 2.0f +
             up      * offset.y * viewBoxSize / 2.0f +
-            forward * offset.z * viewBoxSize / 2.0f;
+            forward * -offset.z * viewBoxSize / 2.0f;
 
         remoteCameras[view].setViewMatrix(remoteCameraCenter.getViewMatrix());
         remoteCameras[view].setPosition(remoteCameraCenter.getPosition() + worldOffset);

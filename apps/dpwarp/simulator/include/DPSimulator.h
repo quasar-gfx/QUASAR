@@ -381,7 +381,7 @@ public:
             quadsGenerator.expandEdges = false;
             if (view != 0) {
                 quadsGenerator.depthThreshold *= 10.0f;
-                quadsGenerator.flatThreshold *= 10.0f;
+                quadsGenerator.flattenThreshold *= 10.0f;
                 quadsGenerator.proxySimilarityThreshold *= 10.0f;
             }
             unsigned int numBytesIFrame = frameGenerator.generateRefFrame(
@@ -395,7 +395,7 @@ public:
             }
             if (view != 0) {
                 quadsGenerator.depthThreshold /= 10.0f;
-                quadsGenerator.flatThreshold /= 10.0f;
+                quadsGenerator.flattenThreshold /= 10.0f;
                 quadsGenerator.proxySimilarityThreshold /= 10.0f;
             }
 

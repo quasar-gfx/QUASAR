@@ -1,15 +1,15 @@
 layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = 1, local_size_z = 1) in;
 
 layout(std430, binding = 0) writeonly buffer CurrNumProxiesBuffer {
-    unsigned int currNumProxies;
+    uint currNumProxies;
 };
 
 layout(std430, binding = 1) readonly buffer PrevNumProxiesBuffer {
-    unsigned int prevNumProxies;
+    uint prevNumProxies;
 };
 
 layout(std430, binding = 2) readonly buffer NormalSphericalsBufferInput {
-    unsigned int normalSphericalsInput[];
+    uint normalSphericalsInput[];
 };
 
 layout(std430, binding = 3) readonly buffer DepthBufferInput {
@@ -17,11 +17,11 @@ layout(std430, binding = 3) readonly buffer DepthBufferInput {
 };
 
 layout(std430, binding = 4) readonly buffer OffsetsBufferInput {
-    unsigned int offsetSizeFlattenedsInput[];
+    uint offsetSizeFlattenedsInput[];
 };
 
 layout(std430, binding = 5) writeonly buffer NormalSphericalsBufferOutput {
-    unsigned int normalSphericalsOutput[];
+    uint normalSphericalsOutput[];
 };
 
 layout(std430, binding = 6) writeonly buffer DepthsBufferOutput {
@@ -29,16 +29,16 @@ layout(std430, binding = 6) writeonly buffer DepthsBufferOutput {
 };
 
 layout(std430, binding = 7) writeonly buffer OffsetsBufferOutput {
-    unsigned int offsetSizeFlattenedsOutput[];
+    uint offsetSizeFlattenedsOutput[];
 };
 
 uniform bool iFrame;
-uniform unsigned int newNumProxies;
+uniform uint newNumProxies;
 
-shared unsigned int localNumProxies;
+shared uint localNumProxies;
 
 void main() {
-    unsigned int proxyIndex = gl_GlobalInvocationID.x;
+    uint proxyIndex = gl_GlobalInvocationID.x;
 
     // if RefFrame, start from the beginning
     if (iFrame && proxyIndex == 0u) {
@@ -49,7 +49,7 @@ void main() {
         return;
     }
 
-    unsigned int startIndex = iFrame ? 0u : prevNumProxies;
+    uint startIndex = iFrame ? 0u : prevNumProxies;
     if (gl_LocalInvocationID.x == 0u) {
         localNumProxies = 0u;
     }
@@ -57,7 +57,7 @@ void main() {
 
     atomicAdd(localNumProxies, 1u);
 
-    unsigned int globalIndex = startIndex + proxyIndex;
+    uint globalIndex = startIndex + proxyIndex;
     normalSphericalsOutput[globalIndex] = normalSphericalsInput[proxyIndex];
     depthsOutput[globalIndex] = depthsInput[proxyIndex];
     offsetSizeFlattenedsOutput[globalIndex] = offsetSizeFlattenedsInput[proxyIndex];

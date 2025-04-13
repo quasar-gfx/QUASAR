@@ -15,7 +15,7 @@ struct Vertex {
 struct Block{
     float max;
     float min;
-    unsigned int data[6];
+    uint data[6];
 };
 
 layout(std430, binding = 0) buffer VertexBuffer {
@@ -23,7 +23,7 @@ layout(std430, binding = 0) buffer VertexBuffer {
 };
 
 layout(std430, binding = 1) buffer IndexBuffer {
-    unsigned int indices[];
+    uint indices[];
 };
 
 layout(std430, binding = 2) buffer BC4Buffer {
@@ -62,35 +62,35 @@ float sampleBC4Buffer(vec2 pixelCoordNormalized) {
     uvec2 blockCoord = pixelCoord / blockSize;
     uvec2 pixelInBlock = pixelCoord % blockSize;
 
-    unsigned int blockIndex = blockCoord.y * (unsigned int(depthMapSize.x) / blockSize.x) + blockCoord.x; //index of this block in the BC4 buffer
+    uint blockIndex = blockCoord.y * (uint(depthMapSize.x) / blockSize.x) + blockCoord.x; //index of this block in the BC4 buffer
     Block compressedBlock = bc4buffer[blockIndex];
 
     float maxVal = compressedBlock.max;
     float minVal = compressedBlock.min;
 
-    unsigned int pixelIndex = pixelInBlock.y * blockSize.x + pixelInBlock.x;
-    unsigned int globalBitIndex = pixelIndex * 3u;
-    unsigned int unsigned intIndex = globalBitIndex / 32u; // 0-5
-    unsigned int bitOffset = globalBitIndex % 32u; // 0-31
+    uint pixelIndex = pixelInBlock.y * blockSize.x + pixelInBlock.x;
+    uint globalBitIndex = pixelIndex * 3u;
+    uint uintIndex = globalBitIndex / 32u; // 0-5
+    uint bitOffset = globalBitIndex % 32u; // 0-31
 
-    unsigned int index;
+    uint index;
     if (bitOffset <= 29u) {
-        // Normal case: all 3 bits are in the current unsigned int
-        index = (compressedBlock.data[unsigned intIndex] >> (29u - bitOffset)) & 0x7u;
+        // Normal case: all 3 bits are in the current uint
+        index = (compressedBlock.data[uintIndex] >> (29u - bitOffset)) & 0x7u;
     }
     else {
-        // Split case: the 3 bits are split across two unsigned ints
-        unsigned int bitsInCurrent = 32u - bitOffset;
-        unsigned int bitsInNext = 3u - bitsInCurrent;
+        // Split case: the 3 bits are split across two uints
+        uint bitsInCurrent = 32u - bitOffset;
+        uint bitsInNext = 3u - bitsInCurrent;
 
-        // Get the bits from the current unsigned int
-        unsigned int mask = 0u;
+        // Get the bits from the current uint
+        uint mask = 0u;
         if (bitsInCurrent == 1u) mask = 1u; // 0b01
         if (bitsInCurrent == 2u) mask = 3u; // 0b11
-        unsigned int upperBits = compressedBlock.data[unsigned intIndex] & (mask);
+        uint upperBits = compressedBlock.data[uintIndex] & (mask);
 
-        // Get the bits from the next unsigned int (with wraparound)
-        unsigned int lowerBits = compressedBlock.data[(unsigned intIndex + 1u) % 6u] >> (32u - bitsInNext);
+        // Get the bits from the next uint (with wraparound)
+        uint lowerBits = compressedBlock.data[(uintIndex + 1u) % 6u] >> (32u - bitsInNext);
 
         // Combine the bits
         index = (upperBits << bitsInNext) | lowerBits;
@@ -123,7 +123,7 @@ void main() {
     vec3 viewCoord = ndcToView(projectionInverse, ndc, depth);
     vec3 worldCoord = viewToWorld(viewInverseDepth, viewCoord);
 
-    unsigned int shaderIndex = unsigned int(gl_GlobalInvocationID.y * unsigned int(size.x) + gl_GlobalInvocationID.x);
+    uint shaderIndex = uint(gl_GlobalInvocationID.y * uint(size.x) + gl_GlobalInvocationID.x);
     vertices[shaderIndex].position = worldCoord;
     vertices[shaderIndex].color = vec3(1.0, 1.0, 1.0);
     vertices[shaderIndex].texCoords = viewToScreen(projection, viewCoord);
@@ -138,10 +138,10 @@ void main() {
                 bl -- br
 
         ************************/
-        unsigned int bottomLeftIdx = shaderIndex;
-        unsigned int bottomRightIdx = shaderIndex + 1u;
-        unsigned int topLeftIdx = shaderIndex + unsigned int(size.x);
-        unsigned int topRightIdx = shaderIndex + unsigned int(size.x) + 1u;
+        uint bottomLeftIdx = shaderIndex;
+        uint bottomRightIdx = shaderIndex + 1u;
+        uint topLeftIdx = shaderIndex + uint(size.x);
+        uint topRightIdx = shaderIndex + uint(size.x) + 1u;
 
         indices[shaderIndex * INDICES_IN_A_QUAD + 0u] = topLeftIdx;
         indices[shaderIndex * INDICES_IN_A_QUAD + 1u] = bottomLeftIdx;

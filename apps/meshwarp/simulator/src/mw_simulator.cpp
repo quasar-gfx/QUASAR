@@ -329,7 +329,6 @@ int main(int argc, char** argv) {
             if (ImGui::DragFloat("Network Latency (ms)", &networkLatency, 0.5f, 0.0f, 500.0f)) {
                 poseSendRecvSimulator.setNetworkLatency(networkLatency);
             }
-
             if (ImGui::DragFloat("Network Jitter (ms)", &networkJitter, 0.25f, 0.0f, 50.0f)) {
                 poseSendRecvSimulator.setNetworkJitter(networkJitter);
             }

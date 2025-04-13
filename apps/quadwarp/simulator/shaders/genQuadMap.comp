@@ -5,14 +5,14 @@ struct QuadMapData {
     float depth;
     vec2 uv;
     uvec2 offset;
-    unsigned int size;
+    uint size;
     bool flattened;
 };
 
 struct QuadMapDataPacked {
-    unsigned int normalSpherical;
+    uint normalSpherical;
     float depth;
-    unsigned int offsetSizeFlattened;
+    uint offsetSizeFlattened;
 };
 
 struct Quad {
@@ -87,7 +87,7 @@ uniform bool expandEdges;
 uniform bool correctOrientation;
 uniform float depthThreshold;
 uniform float angleThreshold;
-uniform float flatThreshold;
+uniform float flattenThreshold;
 
 #define MAX_DEPTH 0.9999
 
@@ -102,12 +102,12 @@ const vec3 left = vec3(-1.0, 0.0, 0.0);
 const vec3 right = vec3(1.0, 0.0, 0.0);
 
 layout(std430, binding = 0) writeonly buffer QuadBufferSizes {
-    unsigned int numProxies;
-    unsigned int numDepthOffsets;
+    uint numProxies;
+    uint numDepthOffsets;
 };
 
 layout(std430, binding = 1) writeonly buffer NormalSphericalsBufferOutput {
-    unsigned int normalSphericalsOutput[];
+    uint normalSphericalsOutput[];
 };
 
 layout(std430, binding = 2) writeonly buffer DepthsBufferOutput {
@@ -115,7 +115,7 @@ layout(std430, binding = 2) writeonly buffer DepthsBufferOutput {
 };
 
 layout(std430, binding = 3) writeonly buffer OffsetsBufferOutput {
-    unsigned int offsetSizeFlattenedsOutput[];
+    uint offsetSizeFlattenedsOutput[];
 };
 
 layout(binding = 0) uniform sampler2D normalsMap;
@@ -451,7 +451,7 @@ void createSurfels(
     surfelView.topRight    = surfelViewTopRight;
 }
 
-unsigned int packNormalToSphericalHalf(vec3 normal) {
+uint packNormalToSphericalHalf(vec3 normal) {
     float theta = atan(normal.z, normal.x);
     float phi = acos(normal.y);
 
@@ -466,12 +466,12 @@ void storeInQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
     quadMapDataPacked.normalSpherical = packNormalToSphericalHalf(quadMapData.normal);
     quadMapDataPacked.depth = quadMapData.depth;
 
-    unsigned int flattenedAndSize = ((quadMapData.size & 0x7Fu) << 1) | (quadMapData.flattened ? 1u : 0u);
+    uint flattenedAndSize = ((quadMapData.size & 0x7Fu) << 1) | (quadMapData.flattened ? 1u : 0u);
     quadMapDataPacked.offsetSizeFlattened = ((quadMapData.offset.x & 0xFFFu) << 20) |
                                                     ((quadMapData.offset.y & 0xFFFu) << 8) |
                                                         (flattenedAndSize & 0xFFu);
 
-    unsigned int index = unsigned int(pixelCoord.y) * unsigned int(quadMapSize.x) + unsigned int(pixelCoord.x);
+    uint index = uint(pixelCoord.y) * uint(quadMapSize.x) + uint(pixelCoord.x);
     normalSphericalsOutput[index] = quadMapDataPacked.normalSpherical;
     depthsOutput[index] = quadMapDataPacked.depth;
     offsetSizeFlattenedsOutput[index] = quadMapDataPacked.offsetSizeFlattened;
@@ -521,25 +521,25 @@ void storeSurfelsInQuadMap(
     vec4 absDepthOffsetsTopRight    = abs(depthOffsetsTopRight);
 
     int numBelowThreshold = 0, total = 16;
-    numBelowThreshold += int(absDepthOffsetsBottomLeft.x < flatThreshold) +
-                         int(absDepthOffsetsBottomLeft.y < flatThreshold) +
-                         int(absDepthOffsetsBottomLeft.z < flatThreshold) +
-                         int(absDepthOffsetsBottomLeft.w < flatThreshold) +
+    numBelowThreshold += int(absDepthOffsetsBottomLeft.x < flattenThreshold) +
+                         int(absDepthOffsetsBottomLeft.y < flattenThreshold) +
+                         int(absDepthOffsetsBottomLeft.z < flattenThreshold) +
+                         int(absDepthOffsetsBottomLeft.w < flattenThreshold) +
 
-                         int(absDepthOffsetsBottomRight.x < flatThreshold) +
-                         int(absDepthOffsetsBottomRight.y < flatThreshold) +
-                         int(absDepthOffsetsBottomRight.z < flatThreshold) +
-                         int(absDepthOffsetsBottomRight.w < flatThreshold) +
+                         int(absDepthOffsetsBottomRight.x < flattenThreshold) +
+                         int(absDepthOffsetsBottomRight.y < flattenThreshold) +
+                         int(absDepthOffsetsBottomRight.z < flattenThreshold) +
+                         int(absDepthOffsetsBottomRight.w < flattenThreshold) +
 
-                         int(absDepthOffsetsTopLeft.x < flatThreshold) +
-                         int(absDepthOffsetsTopLeft.y < flatThreshold) +
-                         int(absDepthOffsetsTopLeft.z < flatThreshold) +
-                         int(absDepthOffsetsTopLeft.w < flatThreshold) +
+                         int(absDepthOffsetsTopLeft.x < flattenThreshold) +
+                         int(absDepthOffsetsTopLeft.y < flattenThreshold) +
+                         int(absDepthOffsetsTopLeft.z < flattenThreshold) +
+                         int(absDepthOffsetsTopLeft.w < flattenThreshold) +
 
-                         int(absDepthOffsetsTopRight.x < flatThreshold) +
-                         int(absDepthOffsetsTopRight.y < flatThreshold) +
-                         int(absDepthOffsetsTopRight.z < flatThreshold) +
-                         int(absDepthOffsetsTopRight.w < flatThreshold);
+                         int(absDepthOffsetsTopRight.x < flattenThreshold) +
+                         int(absDepthOffsetsTopRight.y < flattenThreshold) +
+                         int(absDepthOffsetsTopRight.z < flattenThreshold) +
+                         int(absDepthOffsetsTopRight.w < flattenThreshold);
 
     bool flattened = (numBelowThreshold >= total);
 

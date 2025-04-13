@@ -289,25 +289,21 @@ int main(int argc, char** argv) {
                     generateRefFrame = true;
                     runAnimations = false;
                 }
-
                 if (ImGui::DragFloat("Depth Threshold", &quadsGenerator.depthThreshold, 0.0001f, 0.0f, 1.0f, "%.4f")) {
                     preventCopyingLocalPose = true;
                     generateRefFrame = true;
                     runAnimations = false;
                 }
-
                 if (ImGui::DragFloat("Angle Threshold", &quadsGenerator.angleThreshold, 0.1f, 0.0f, 180.0f)) {
                     preventCopyingLocalPose = true;
                     generateRefFrame = true;
                     runAnimations = false;
                 }
-
-                if (ImGui::DragFloat("Flat Threshold", &quadsGenerator.flatThreshold, 0.001f, 0.0f, 1.0f)) {
+                if (ImGui::DragFloat("Flatten Threshold", &quadsGenerator.flattenThreshold, 0.001f, 0.0f, 1.0f)) {
                     preventCopyingLocalPose = true;
                     generateRefFrame = true;
                     runAnimations = false;
                 }
-
                 if (ImGui::DragFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.001f, 0.0f, 10.0f)) {
                     preventCopyingLocalPose = true;
                     generateRefFrame = true;
@@ -320,7 +316,6 @@ int main(int argc, char** argv) {
             if (ImGui::DragFloat("Network Latency (ms)", &networkLatency, 0.5f, 0.0f, 500.0f)) {
                 poseSendRecvSimulator.setNetworkLatency(networkLatency);
             }
-
             if (ImGui::DragFloat("Network Jitter (ms)", &networkJitter, 0.25f, 0.0f, 50.0f)) {
                 poseSendRecvSimulator.setNetworkJitter(networkJitter);
             }
@@ -345,7 +340,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::DragFloat("View Box Size", &viewBoxSize, 0.01f, 0.1f, 1.5f)) {
+            if (ImGui::DragFloat("View Box Size", &viewBoxSize, 0.025f, 0.1f, 1.5f)) {
                 preventCopyingLocalPose = true;
                 generateRefFrame = true;
                 runAnimations = false;

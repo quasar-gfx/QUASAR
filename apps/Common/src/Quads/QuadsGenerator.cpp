@@ -100,7 +100,7 @@ void QuadsGenerator::generateInitialQuadMap(
         genQuadMapShader.setBool("correctOrientation", correctOrientation);
         genQuadMapShader.setFloat("depthThreshold", depthThreshold);
         genQuadMapShader.setFloat("angleThreshold", glm::radians(angleThreshold));
-        genQuadMapShader.setFloat("flatThreshold", flatThreshold);
+        genQuadMapShader.setFloat("flattenThreshold", flattenThreshold);
     }
     {
         genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, sizesBuffer);
@@ -147,7 +147,7 @@ void QuadsGenerator::simplifyQuadMaps(const PerspectiveCamera &remoteCamera, con
         simplifyQuadMapShader.setBool("correctOrientation", correctOrientation);
         simplifyQuadMapShader.setFloat("depthThreshold", depthThreshold);
         simplifyQuadMapShader.setFloat("angleThreshold", glm::radians(angleThreshold));
-        simplifyQuadMapShader.setFloat("flatThreshold", flatThreshold);
+        simplifyQuadMapShader.setFloat("flattenThreshold", flattenThreshold);
         simplifyQuadMapShader.setFloat("proxySimilarityThreshold", proxySimilarityThreshold);
     }
     {

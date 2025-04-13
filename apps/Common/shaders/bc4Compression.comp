@@ -5,7 +5,7 @@ layout(binding = 0) uniform sampler2D depthMap;
 struct Block {
     float max;
     float min;
-    unsigned int data[6];
+    uint data[6];
 };
 
 layout(std430, binding = 0) buffer BC4Buffer {
@@ -56,9 +56,9 @@ void main() {
     block.max = maxDepth;
     block.min = minDepth;
 
-    unsigned int bits[6] = unsigned int[](0u, 0u, 0u, 0u, 0u, 0u);
+    uint bits[6] = uint[](0u, 0u, 0u, 0u, 0u, 0u);
     int bitIndex = 0;
-    unsigned int mask = 0;
+    uint mask = 0;
 
     for (int i = 0; i < 64; i++) {
         float pixelValue = blockData[i];
@@ -75,25 +75,25 @@ void main() {
         }
 
         // Pack 3-bit index
-        unsigned int unsigned intIndex = bitIndex / 32;
-        unsigned int bitOffset = bitIndex % 32;
+        uint uintIndex = bitIndex / 32;
+        uint bitOffset = bitIndex % 32;
 
         if (bitOffset <= 29) {
-            // Normal case: all 3 bits fit in the current unsigned int
-            bits[unsigned intIndex] |= unsigned int(bestIndex) << (29 - bitOffset);
+            // Normal case: all 3 bits fit in the current uint
+            bits[uintIndex] |= uint(bestIndex) << (29 - bitOffset);
         }
         else {
-            // Split case: the 3 bits are split across two unsigned ints
-            unsigned int bitsInCurrent = 32 - bitOffset;
-            unsigned int bitsInNext = 3 - bitsInCurrent;
+            // Split case: the 3 bits are split across two uints
+            uint bitsInCurrent = 32 - bitOffset;
+            uint bitsInNext = 3 - bitsInCurrent;
 
-            // Pack the bits that fit in the current unsigned int
-            bits[unsigned intIndex] |= unsigned int(bestIndex >> bitsInNext);
+            // Pack the bits that fit in the current uint
+            bits[uintIndex] |= uint(bestIndex >> bitsInNext);
 
-            // Pack the remaining bits in the next unsigned int
+            // Pack the remaining bits in the next uint
             if(bitsInNext == 1) mask = 1; // 0b01
             if(bitsInNext == 2) mask = 3; //0b11
-            bits[unsigned intIndex + 1] |= unsigned int(bestIndex & mask) << (32 - bitsInNext);
+            bits[uintIndex + 1] |= uint(bestIndex & mask) << (32 - bitsInNext);
         }
 
         bitIndex += 3;
@@ -105,6 +105,6 @@ void main() {
     }
 
     // Write compressed block to output buffer
-    unsigned int blockIndex = unsigned int(blockPixelCoord.y) * unsigned int(bc4DepthSize.x) + unsigned int(blockPixelCoord.x);
+    uint blockIndex = uint(blockPixelCoord.y) * uint(bc4DepthSize.x) + uint(blockPixelCoord.x);
     bc4buffer[blockIndex] = block;
 }
