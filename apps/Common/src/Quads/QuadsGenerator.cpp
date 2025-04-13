@@ -226,7 +226,7 @@ void QuadsGenerator::fillOutputQuads(const glm::vec2 &gBufferSize) {
     fillOutputQuadsShader.memoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 }
 
-QuadsGenerator::BufferSizes QuadsGenerator::createProxiesFromGBuffer(
+void QuadsGenerator::createProxiesFromGBuffer(
         const FrameRenderTarget& frameRT,
         const PerspectiveCamera &remoteCamera
     ) {
@@ -243,16 +243,13 @@ QuadsGenerator::BufferSizes QuadsGenerator::createProxiesFromGBuffer(
     startTime = timeutils::getTimeMicros();
     fillOutputQuads(gBufferSize);
     stats.timeToFillOutputQuadsMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
-
-    QuadsGenerator::BufferSizes bufferSizes = getBufferSizes();
-    unsigned int numProxies = bufferSizes.numProxies;
-    outputQuadBuffers.resize(numProxies);
-
-    return bufferSizes;
 }
 
 #ifdef GL_CORE
 unsigned int QuadsGenerator::saveQuadsToMemory(std::vector<char> &compressedData, bool compress) {
+    QuadsGenerator::BufferSizes bufferSizes = getBufferSizes();
+    unsigned int numProxies = bufferSizes.numProxies;
+    outputQuadBuffers.resize(numProxies);
     return outputQuadBuffers.saveToMemory(compressedData, compress);
 }
 
@@ -265,6 +262,9 @@ unsigned int QuadsGenerator::saveDepthOffsetsToMemory(std::vector<char> &compres
 }
 
 unsigned int QuadsGenerator::saveToFile(const std::string &filename) {
+    QuadsGenerator::BufferSizes bufferSizes = getBufferSizes();
+    unsigned int numProxies = bufferSizes.numProxies;
+    outputQuadBuffers.resize(numProxies);
     return outputQuadBuffers.saveToFile(filename);
 }
 

@@ -34,7 +34,7 @@ public:
         double timeToAppendProxiesMs = 0.0f;
         double timeToFillQuadIndicesMs = 0.0f;
         double timeToCreateVertIndMs = 0.0f;
-        double timeToRenderMasks = 0.0f;
+        double timeToRenderMaskMs = 0.0f;
         double timeToCompress = 0.0f;
     } stats;
 

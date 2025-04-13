@@ -44,7 +44,7 @@ public:
     ~QuadsGenerator() = default;
 
     BufferSizes getBufferSizes();
-    BufferSizes createProxiesFromGBuffer(const FrameRenderTarget& frameRT, const PerspectiveCamera &remoteCamera);
+    void createProxiesFromGBuffer(const FrameRenderTarget& frameRT, const PerspectiveCamera &remoteCamera);
 #ifdef GL_CORE
     unsigned int saveQuadsToMemory(std::vector<char> &compressedData, bool compress = true);
     unsigned int saveDepthOffsetsToMemory(std::vector<char> &compressedData, bool compress = true);

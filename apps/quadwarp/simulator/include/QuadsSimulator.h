@@ -256,6 +256,8 @@ public:
                 numProxies, numDepthOffsets
             );
 
+            stats.totalRenderTime += frameGenerator.stats.timeToRenderMaskMs;
+
             stats.totalGenQuadMapTime += frameGenerator.stats.timeToGenerateQuadsMs;
             stats.totalSimplifyTime += frameGenerator.stats.timeToSimplifyQuadsMs;
             stats.totalFillQuadsTime += frameGenerator.stats.timeToFillOutputQuadsMs;

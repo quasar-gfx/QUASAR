@@ -494,7 +494,6 @@ int main(int argc, char** argv) {
 
             spdlog::info("======================================================");
             spdlog::info("Rendering Time: {:.3f}ms", quadsSimulator.stats.totalRenderTime);
-            if (generateMaskFrame) spdlog::info("Time To Render Masks Time: {:.3f}ms", frameGenerator.stats.timeToRenderMasks);
             spdlog::info("Create Proxies Time: {:.3f}ms", quadsSimulator.stats.totalCreateProxiesTime);
             spdlog::info("  Gen Quad Map Time: {:.3f}ms", quadsSimulator.stats.totalGenQuadMapTime);
             spdlog::info("  Simplify Time: {:.3f}ms", quadsSimulator.stats.totalSimplifyTime);
