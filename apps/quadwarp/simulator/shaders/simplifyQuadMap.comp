@@ -5,14 +5,14 @@ struct QuadMapData {
     float depth;
     vec2 uv;
     uvec2 offset;
-    uint size;
+    unsigned int size;
     bool flattened;
 };
 
 struct QuadMapDataPacked {
-    uint normalSpherical;
+    unsigned int normalSpherical;
     float depth;
-    uint offsetSizeFlattened;
+    unsigned int offsetSizeFlattened;
 };
 
 struct Quad {
@@ -72,7 +72,7 @@ struct Plane {
 };
 
 layout(std430, binding = 0) readonly buffer NormalSphericalsBufferInput {
-    uint normalSphericalsInput[];
+    unsigned int normalSphericalsInput[];
 };
 
 layout(std430, binding = 1) readonly buffer DepthBufferInput {
@@ -80,11 +80,11 @@ layout(std430, binding = 1) readonly buffer DepthBufferInput {
 };
 
 layout(std430, binding = 2) buffer OffsetsBufferInput {
-    uint offsetSizeFlattenedsInput[];
+    unsigned int offsetSizeFlattenedsInput[];
 };
 
 layout(std430, binding = 3) writeonly buffer NormalSphericalsBufferOutput {
-    uint normalSphericalsOutput[];
+    unsigned int normalSphericalsOutput[];
 };
 
 layout(std430, binding = 4) writeonly buffer DepthsBufferOutput {
@@ -92,7 +92,7 @@ layout(std430, binding = 4) writeonly buffer DepthsBufferOutput {
 };
 
 layout(std430, binding = 5) writeonly buffer OffsetsBufferOutput {
-    uint offsetSizeFlattenedsOutput[];
+    unsigned int offsetSizeFlattenedsOutput[];
 };
 
 layout(rgba16f, binding = 0) uniform image2D depthOffsetsBuffer;
@@ -228,7 +228,7 @@ vec3 constrainToMaxAngle(in vec3 centerNormal, in vec3 frustumNormalView) {
     return normalize(constrainedNormal);
 }
 
-uint packNormalToSphericalHalf(vec3 normal) {
+unsigned int packNormalToSphericalHalf(vec3 normal) {
     float theta = atan(normal.z, normal.x);
     float phi = acos(normal.y);
 
@@ -238,7 +238,7 @@ uint packNormalToSphericalHalf(vec3 normal) {
     return packHalf2x16(vec2(theta01, phi01));
 }
 
-vec3 unpackSphericalToNormalHalf(uint packedNormal) {
+vec3 unpackSphericalToNormalHalf(unsigned int packedNormal) {
     vec2 spherical01 = unpackHalf2x16(packedNormal);
 
     float theta = spherical01.x * (2.0 * PI) - PI;
@@ -252,7 +252,7 @@ vec3 unpackSphericalToNormalHalf(uint packedNormal) {
 }
 
 QuadMapData loadInputQuadMap(ivec2 pixelCoord) {
-    uint index = uint(pixelCoord.y) * uint(inputQuadMapSize.x) + uint(pixelCoord.x);
+    unsigned int index = unsigned int(pixelCoord.y) * unsigned int(inputQuadMapSize.x) + unsigned int(pixelCoord.x);
 
     QuadMapDataPacked quadMapDataPacked;
     quadMapDataPacked.normalSpherical = normalSphericalsInput[index];
@@ -266,11 +266,11 @@ QuadMapData loadInputQuadMap(ivec2 pixelCoord) {
     quadMapData.offset.x = (quadMapDataPacked.offsetSizeFlattened >> 20) & 0xFFFu;
     quadMapData.offset.y = (quadMapDataPacked.offsetSizeFlattened >> 8) & 0xFFFu;
 
-    uint flattenedAndSize = quadMapDataPacked.offsetSizeFlattened & 0xFFu;
+    unsigned int flattenedAndSize = quadMapDataPacked.offsetSizeFlattened & 0xFFu;
     quadMapData.size = (flattenedAndSize >> 1) & 0x7Fu;
     quadMapData.flattened = (flattenedAndSize & 1u) != 0;
 
-    uint halfSize = 1u << (quadMapData.size - 1u); // 2^size / 2
+    unsigned int halfSize = 1u << (quadMapData.size - 1u); // 2^size / 2
     quadMapData.uv = (vec2(quadMapData.offset) + float(halfSize) * vec2(0.5)) / gBufferSize;
 
     return quadMapData;
@@ -281,19 +281,19 @@ void storeOutputQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
     quadMapDataPacked.normalSpherical = packNormalToSphericalHalf(quadMapData.normal);
     quadMapDataPacked.depth = quadMapData.depth;
 
-    uint flattenedAndSize = ((quadMapData.size & 0x7Fu) << 1) | (quadMapData.flattened ? 1u : 0u);
+    unsigned int flattenedAndSize = ((quadMapData.size & 0x7Fu) << 1) | (quadMapData.flattened ? 1u : 0u);
     quadMapDataPacked.offsetSizeFlattened = ((quadMapData.offset.x & 0xFFFu) << 20) |
                                                     ((quadMapData.offset.y & 0xFFFu) << 8) |
                                                         (flattenedAndSize & 0xFFu);
 
-    uint index = uint(pixelCoord.y) * uint(outputQuadMapSize.x) + uint(pixelCoord.x);
+    unsigned int index = unsigned int(pixelCoord.y) * unsigned int(outputQuadMapSize.x) + unsigned int(pixelCoord.x);
     normalSphericalsOutput[index] = quadMapDataPacked.normalSpherical;
     depthsOutput[index] = quadMapDataPacked.depth;
     offsetSizeFlattenedsOutput[index] = quadMapDataPacked.offsetSizeFlattened;
 }
 
 void ignoreInputQuadMapData(in ivec2 pixelCoord) {
-    uint index = uint(pixelCoord.y) * uint(inputQuadMapSize.x) + uint(pixelCoord.x);
+    unsigned int index = unsigned int(pixelCoord.y) * unsigned int(inputQuadMapSize.x) + unsigned int(pixelCoord.x);
     offsetSizeFlattenedsInput[index] = 0;
 }
 
@@ -433,15 +433,15 @@ void recalcDepthOffsets(
     vec2 proxyPlaneUV = quadMapData.uv;
     vec2 proxyPlanePixelCoords = vec2(proxyPlaneUV * gBufferSize);
 
-    uint size = 1 << quadMapData.size;
+    unsigned int size = 1 << quadMapData.size;
     float halfGridSize = float(size) * surfelSize / 2;
 
     // calculate new depth offsets relative to new proxy plane
     vec2 baseCoord = proxyPlanePixelCoords - vec2(halfGridSize);
     vec2 stepSize = vec2(surfelSize);
-    for (uint idx = 0u; idx < size * size; idx++) {
-        uint i = idx % size;
-        uint j = idx / size;
+    for (unsigned int idx = 0u; idx < size * size; idx++) {
+        unsigned int i = idx % size;
+        unsigned int j = idx / size;
         vec2 surfelBaseCoord = baseCoord + vec2(i, j) * stepSize;
 
         Quad2D surfelPixelCoords;
@@ -544,10 +544,10 @@ void mergeQuadMapData(
     mergedQuadMapData.size = quadMapDataBottomLeft.size + 1;
 
     // // zero out depth offsets
-    // uint size = 1u << mergedQuadMapData.size;
-    // for (uint idx = 0u; idx < size * size; idx++) {
-    //     uint i = idx % size;
-    //     uint j = idx / size;
+    // unsigned int size = 1u << mergedQuadMapData.size;
+    // for (unsigned int idx = 0u; idx < size * size; idx++) {
+    //     unsigned int i = idx % size;
+    //     unsigned int j = idx / size;
 
     //     ivec2 depthOffsetPixelCoords = 2 * ivec2(mergedQuadMapData.offset) + ivec2(i, j);
     //     imageStore(depthOffsetsBuffer, depthOffsetPixelCoords + ivec2(0, 0), vec4(0.0));

@@ -542,10 +542,10 @@ int main(int argc, char** argv) {
         poseSendRecvSimulator.accumulateError(camera, remoteCamera);
 
         if (cameraPathFileIn) {
-            poseSendRecvSimulator.printErrors();
             recorder.captureFrame(camera);
 
             if (!cameraAnimator.running) {
+                poseSendRecvSimulator.printErrors();
                 recorder.stop();
                 window->close();
             }

@@ -175,12 +175,12 @@ public:
     /// @return The unsigned int8 value.
     uint8 getUnsignedInt8() const;
 
-    ///	@brief  Assigns a unsigned int16 to the value.
+    ///	@brief  Assigns a uint16 to the value.
     /// @param  value       [in] The value.
     void setUnsignedInt16( uint16 value );
 
-    ///	@brief  Returns the unsigned int16 value.
-    /// @return The unsigned int16 value.
+    ///	@brief  Returns the uint16 value.
+    /// @return The uint16 value.
     uint16 getUnsignedInt16() const;
 
     ///	@brief  Assigns a unsigned int32 to the value.

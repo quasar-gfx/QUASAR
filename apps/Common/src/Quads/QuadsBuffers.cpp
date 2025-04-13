@@ -3,9 +3,9 @@
 #endif
 
 #include <spdlog/spdlog.h>
-#include <Utils/TimeUtils.h>
 
 #include <Quads/QuadsBuffers.h>
+#include <Utils/TimeUtils.h>
 
 using namespace quasar;
 
@@ -29,7 +29,7 @@ void QuadBuffers::resize(unsigned int numProxies) {
 }
 
 unsigned int QuadBuffers::loadFromMemory(const std::vector<char> &compressedData, bool decompress) {
-    auto startTime = timeutils::getTimeMicros();
+    double startTime = timeutils::getTimeMicros();
     if (decompress) {
         codec.decompress(compressedData, data);
     }
@@ -69,11 +69,7 @@ unsigned int QuadBuffers::loadFromFile(const std::string &filename, unsigned int
 #endif
 
     auto quadDataCompressed = FileIO::loadBinaryFile(filename, numBytesLoaded);
-
-    auto startTime = timeutils::getTimeMicros();
-    auto numBytes = loadFromMemory(quadDataCompressed, compressed);
-    stats.timeToDecompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
-    return numBytes;
+    return loadFromMemory(quadDataCompressed, compressed);
 }
 
 #ifdef GL_CORE
@@ -81,16 +77,18 @@ unsigned int QuadBuffers::saveToMemory(std::vector<char> &compressedData, bool c
     unsigned int dataSize = updateDataBuffer();
     compressedData.resize(dataSize);
 
+    double startTime = timeutils::getTimeMicros();
+    unsigned int outputSize = dataSize;
     if (compress) {
-        auto startTime = timeutils::getTimeMicros();
-        unsigned int outputSize = codec.compress(data.data(), compressedData, dataSize);
-        stats.timeToCompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
-        return outputSize;
+        outputSize = codec.compress(data.data(), compressedData, dataSize);
+        compressedData.resize(outputSize);
     }
     else {
         memcpy(compressedData.data(), data.data(), dataSize);
-        return dataSize;
     }
+    stats.timeToCompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+
+    return outputSize;
 }
 
 unsigned int QuadBuffers::saveToFile(const std::string &filename) {

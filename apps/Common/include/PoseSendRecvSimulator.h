@@ -112,7 +112,7 @@ public:
         double dtFuture = networkLatencyS + renderTimeS;
         double jitterPredicted = randomJitter();
 
-        Pose poseToSend = outPoses.front();
+        Pose poseToSend = (networkLatencyS != 0) ? outPoses.front() : outPoses.back();
         if (posePrediction && outPoses.size() >= 3) {
             auto& lastPose       = outPoses[outPoses.size() - 1];
             auto& prevPose       = outPoses[outPoses.size() - 2];

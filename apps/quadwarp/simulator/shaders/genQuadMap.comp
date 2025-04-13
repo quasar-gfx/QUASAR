@@ -5,14 +5,14 @@ struct QuadMapData {
     float depth;
     vec2 uv;
     uvec2 offset;
-    uint size;
+    unsigned int size;
     bool flattened;
 };
 
 struct QuadMapDataPacked {
-    uint normalSpherical;
+    unsigned int normalSpherical;
     float depth;
-    uint offsetSizeFlattened;
+    unsigned int offsetSizeFlattened;
 };
 
 struct Quad {
@@ -102,12 +102,12 @@ const vec3 left = vec3(-1.0, 0.0, 0.0);
 const vec3 right = vec3(1.0, 0.0, 0.0);
 
 layout(std430, binding = 0) writeonly buffer QuadBufferSizes {
-    uint numProxies;
-    uint numDepthOffsets;
+    unsigned int numProxies;
+    unsigned int numDepthOffsets;
 };
 
 layout(std430, binding = 1) writeonly buffer NormalSphericalsBufferOutput {
-    uint normalSphericalsOutput[];
+    unsigned int normalSphericalsOutput[];
 };
 
 layout(std430, binding = 2) writeonly buffer DepthsBufferOutput {
@@ -115,7 +115,7 @@ layout(std430, binding = 2) writeonly buffer DepthsBufferOutput {
 };
 
 layout(std430, binding = 3) writeonly buffer OffsetsBufferOutput {
-    uint offsetSizeFlattenedsOutput[];
+    unsigned int offsetSizeFlattenedsOutput[];
 };
 
 layout(binding = 0) uniform sampler2D normalsMap;
@@ -451,7 +451,7 @@ void createSurfels(
     surfelView.topRight    = surfelViewTopRight;
 }
 
-uint packNormalToSphericalHalf(vec3 normal) {
+unsigned int packNormalToSphericalHalf(vec3 normal) {
     float theta = atan(normal.z, normal.x);
     float phi = acos(normal.y);
 
@@ -466,12 +466,12 @@ void storeInQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
     quadMapDataPacked.normalSpherical = packNormalToSphericalHalf(quadMapData.normal);
     quadMapDataPacked.depth = quadMapData.depth;
 
-    uint flattenedAndSize = ((quadMapData.size & 0x7Fu) << 1) | (quadMapData.flattened ? 1u : 0u);
+    unsigned int flattenedAndSize = ((quadMapData.size & 0x7Fu) << 1) | (quadMapData.flattened ? 1u : 0u);
     quadMapDataPacked.offsetSizeFlattened = ((quadMapData.offset.x & 0xFFFu) << 20) |
                                                     ((quadMapData.offset.y & 0xFFFu) << 8) |
                                                         (flattenedAndSize & 0xFFu);
 
-    uint index = uint(pixelCoord.y) * uint(quadMapSize.x) + uint(pixelCoord.x);
+    unsigned int index = unsigned int(pixelCoord.y) * unsigned int(quadMapSize.x) + unsigned int(pixelCoord.x);
     normalSphericalsOutput[index] = quadMapDataPacked.normalSpherical;
     depthsOutput[index] = quadMapDataPacked.depth;
     offsetSizeFlattenedsOutput[index] = quadMapDataPacked.offsetSizeFlattened;

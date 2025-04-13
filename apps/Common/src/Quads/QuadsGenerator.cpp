@@ -55,7 +55,6 @@ QuadsGenerator::QuadsGenerator(glm::uvec2 &remoteWindowSize)
 
 QuadsGenerator::BufferSizes QuadsGenerator::getBufferSizes() {
     BufferSizes bufferSizes;
-
     sizesBuffer.bind();
     sizesBuffer.getData(&bufferSizes);
     return bufferSizes;
@@ -254,9 +253,6 @@ QuadsGenerator::BufferSizes QuadsGenerator::createProxiesFromGBuffer(
 
 #ifdef GL_CORE
 unsigned int QuadsGenerator::saveQuadsToMemory(std::vector<char> &compressedData, bool compress) {
-    auto bufferSizes = getBufferSizes();
-    unsigned int numProxies = bufferSizes.numProxies;
-    outputQuadBuffers.resize(numProxies);
     return outputQuadBuffers.saveToMemory(compressedData, compress);
 }
 
@@ -269,9 +265,6 @@ unsigned int QuadsGenerator::saveDepthOffsetsToMemory(std::vector<char> &compres
 }
 
 unsigned int QuadsGenerator::saveToFile(const std::string &filename) {
-    auto bufferSizes = getBufferSizes();
-    unsigned int numProxies = bufferSizes.numProxies;
-    outputQuadBuffers.resize(numProxies);
     return outputQuadBuffers.saveToFile(filename);
 }
 
