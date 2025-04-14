@@ -1,6 +1,7 @@
 #ifndef EDP_SIMULATOR_H
 #define EDP_SIMULATOR_H
 
+#include <PostProcessing/ToneMapper.h>
 #include <PostProcessing/ShowNormalsEffect.h>
 
 #include <Quads/QuadsGenerator.h>
@@ -13,7 +14,7 @@ namespace quasar {
 class DPSimulator {
 public:
     const std::vector<glm::vec4> colors = {
-        glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), // primary view color is yellow
+        glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), // primary layer color is yellow
         glm::vec4(0.0f, 0.0f, 1.0f, 1.0f),
         glm::vec4(0.0f, 1.0f, 0.0f, 1.0f),
         glm::vec4(1.0f, 0.5f, 0.5f, 1.0f),
@@ -57,6 +58,8 @@ public:
     // wide fov
     FrameRenderTarget wideFovRT;
     std::vector<Node> wideFovNode;
+
+    std::vector<FrameRenderTarget> copyRTs;
 
     Mesh depthMesh;
     Node depthNode;
@@ -162,6 +165,8 @@ public:
         refFrameNodesLocal.reserve(2);
         refFrameWireframesLocal.reserve(2);
 
+        copyRTs.reserve(maxLayers);
+
         unsigned int numHidLayers = maxLayers - 1;
 
         frameRTsHidLayer.reserve(numHidLayers);
@@ -236,41 +241,43 @@ public:
             .minFilter = GL_NEAREST,
             .magFilter = GL_NEAREST
         };
+        copyRTs.emplace_back(rtParams);
         for (int layer = 0; layer < numHidLayers; layer++) {
+            copyRTs.emplace_back(rtParams);
             if (layer == numHidLayers - 1) {
                 rtParams.width /= 2; rtParams.height /= 2;
             }
             frameRTsHidLayer.emplace_back(rtParams);
         }
 
-        for (int view = 0; view < numHidLayers; view++) {
-            if (view == numHidLayers - 1) {
+        for (int layer = 0; layer < numHidLayers; layer++) {
+            if (layer == numHidLayers - 1) {
                 meshParams.material = new QuadMaterial({ .baseColorTexture = &wideFovRT.colorBuffer });
             }
             else {
-                meshParams.material = new QuadMaterial({ .baseColorTexture = &frameRTsHidLayer[view].colorBuffer });
+                meshParams.material = new QuadMaterial({ .baseColorTexture = &frameRTsHidLayer[layer].colorBuffer });
             }
             // we can use less vertices and indicies for the hidden layers since they will be sparse
             meshParams.maxVertices = maxVertices / 4;
             meshParams.maxIndices = maxIndices / 4;
             meshesHidLayer.emplace_back(meshParams);
 
-            nodesHidLayer.emplace_back(&meshesHidLayer[view]);
-            nodesHidLayer[view].frustumCulled = false;
+            nodesHidLayer.emplace_back(&meshesHidLayer[layer]);
+            nodesHidLayer[layer].frustumCulled = false;
 
-            const glm::vec4 &color = colors[(view + 1) % colors.size()];
+            const glm::vec4 &color = colors[(layer + 1) % colors.size()];
 
-            wireframesHidLayer.emplace_back(&meshesHidLayer[view]);
-            wireframesHidLayer[view].frustumCulled = false;
-            wireframesHidLayer[view].wireframe = true;
-            wireframesHidLayer[view].overrideMaterial = new QuadMaterial({ .baseColor = color });
+            wireframesHidLayer.emplace_back(&meshesHidLayer[layer]);
+            wireframesHidLayer[layer].frustumCulled = false;
+            wireframesHidLayer[layer].wireframe = true;
+            wireframesHidLayer[layer].overrideMaterial = new QuadMaterial({ .baseColor = color });
 
             depthMeshParams.material = new UnlitMaterial({ .baseColor = color });
             depthMeshsHidLayer.emplace_back(depthMeshParams);
 
-            depthNodesHidLayer.emplace_back(&depthMeshsHidLayer[view]);
-            depthNodesHidLayer[view].frustumCulled = false;
-            depthNodesHidLayer[view].primativeType = GL_POINTS;
+            depthNodesHidLayer.emplace_back(&depthMeshsHidLayer[layer]);
+            depthNodesHidLayer[layer].frustumCulled = false;
+            depthNodesHidLayer[layer].primativeType = GL_POINTS;
         }
 
         // setup scene to use as mask for wide fov camera
@@ -295,10 +302,10 @@ public:
         localScene.addChildNode(&maskFrameWireframeNodesLocal);
         localScene.addChildNode(&depthNode);
 
-        for (int view = 0; view < maxLayers - 1; view++) {
-            localScene.addChildNode(&nodesHidLayer[view]);
-            localScene.addChildNode(&wireframesHidLayer[view]);
-            localScene.addChildNode(&depthNodesHidLayer[view]);
+        for (int layer = 0; layer < maxLayers - 1; layer++) {
+            localScene.addChildNode(&nodesHidLayer[layer]);
+            localScene.addChildNode(&wireframesHidLayer[layer]);
+            localScene.addChildNode(&depthNodesHidLayer[layer]);
         }
     }
 
@@ -315,30 +322,33 @@ public:
         remoteRendererDP.drawObjects(remoteScene, remoteCameraCenter);
         stats.totalRenderTime += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
-        for (int view = 0; view < maxLayers; view++) {
-            int hiddenIndex = view - 1;
-            auto& remoteCameraToUse = (view == 0 && generateMaskFrame) ? remoteCameraPrev :
-                                        ((view != maxLayers - 1) ? remoteCameraCenter : remoteCameraWideFov);
+        for (int layer = 0; layer < maxLayers; layer++) {
+            int hiddenIndex = layer - 1;
+            auto& remoteCameraToUse = (layer == 0 && generateMaskFrame) ? remoteCameraPrev :
+                                        ((layer != maxLayers - 1) ? remoteCameraCenter : remoteCameraWideFov);
 
-            auto& frameToUse = (view == 0) ? refFrameRT : frameRTsHidLayer[hiddenIndex];
+            auto& frameToUse = (layer == 0) ? refFrameRT : frameRTsHidLayer[hiddenIndex];
 
-            auto& meshToUse = (view == 0) ? refFrameMeshes[currMeshIndex] : meshesHidLayer[hiddenIndex];
-            auto& meshToUseDepth = (view == 0) ? depthMesh : depthMeshsHidLayer[hiddenIndex];
+            auto& meshToUse = (layer == 0) ? refFrameMeshes[currMeshIndex] : meshesHidLayer[hiddenIndex];
+            auto& meshToUseDepth = (layer == 0) ? depthMesh : depthMeshsHidLayer[hiddenIndex];
 
             startTime = timeutils::getTimeMicros();
-            if (view == 0) {
+            if (layer == 0) {
                 remoteRenderer.drawObjectsNoLighting(remoteScene, remoteCameraToUse);
                 if (!showNormals) {
                     remoteRenderer.copyToFrameRT(frameToUse);
+                    toneMapper.drawToRenderTarget(remoteRenderer, copyRTs[layer]);
                 }
                 else {
                     showNormalsEffect.drawToRenderTarget(remoteRenderer, frameToUse);
                 }
             }
-            else if (view != maxLayers - 1) {
+            else if (layer != maxLayers - 1) {
                 // copy to render target
                 if (!showNormals) {
                     remoteRendererDP.peelingLayers[hiddenIndex+1].blitToFrameRT(frameToUse);
+                    toneMapper.setUniforms(remoteRendererDP.peelingLayers[hiddenIndex+1]);
+                    toneMapper.drawToRenderTarget(remoteRendererDP, copyRTs[layer], false);
                 }
                 else {
                     showNormalsEffect.drawToRenderTarget(remoteRendererDP, frameToUse);
@@ -346,7 +356,7 @@ public:
             }
             // wide fov camera
             else {
-                // draw old center mesh at new remoteCamera view, filling stencil buffer with 1
+                // draw old center mesh at new remoteCamera layer, filling stencil buffer with 1
                 remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer(GL_KEEP, GL_KEEP, GL_REPLACE);
                 remoteRenderer.pipeline.writeMaskState.disableColorWrites();
                 wideFovNode[currMeshIndex].visible = false;
@@ -364,6 +374,8 @@ public:
                 if (!showNormals) {
                     remoteRenderer.copyToFrameRT(frameToUse);
                     remoteRenderer.copyToFrameRT(wideFovRT);
+                    toneMapper.setUniforms(wideFovRT);
+                    toneMapper.drawToRenderTarget(remoteRenderer, copyRTs[layer], false);
                 }
                 else {
                     showNormalsEffect.drawToRenderTarget(remoteRenderer, frameToUse);
@@ -379,7 +391,7 @@ public:
             */
             unsigned int numProxies = 0, numDepthOffsets = 0;
             quadsGenerator.expandEdges = false;
-            if (view != 0) {
+            if (layer != 0) {
                 quadsGenerator.depthThreshold *= 10.0f;
                 quadsGenerator.flattenThreshold *= 10.0f;
                 quadsGenerator.proxySimilarityThreshold *= 10.0f;
@@ -387,13 +399,13 @@ public:
             unsigned int numBytesIFrame = frameGenerator.generateRefFrame(
                 frameToUse, remoteCameraToUse,
                 meshToUse,
-                quads[view], depthOffsets[view],
+                quads[layer], depthOffsets[layer],
                 numProxies, numDepthOffsets
             );
             if (!generateMaskFrame) {
                 stats.compressedSizeBytes += numBytesIFrame;
             }
-            if (view != 0) {
+            if (layer != 0) {
                 quadsGenerator.depthThreshold /= 10.0f;
                 quadsGenerator.flattenThreshold /= 10.0f;
                 quadsGenerator.proxySimilarityThreshold /= 10.0f;
@@ -409,7 +421,7 @@ public:
             stats.totalCreateVertIndTime += frameGenerator.stats.timeToCreateVertIndMs;
             stats.totalCreateMeshTime += frameGenerator.stats.timeToCreateMeshMs;
 
-            if (view != 0 || !generateMaskFrame) {
+            if (layer != 0 || !generateMaskFrame) {
                 stats.totalCompressTime += frameGenerator.stats.timeToCompress;
             }
 
@@ -418,7 +430,7 @@ public:
             Generate P-frame
             ============================
             */
-            if (view == 0) {
+            if (layer == 0) {
                 if (generateMaskFrame) {
                     quadsGenerator.expandEdges = true;
                     stats.compressedSizeBytes += frameGenerator.generateMaskFrame(
@@ -426,7 +438,7 @@ public:
                         maskTempRT, maskFrameRT,
                         remoteCameraCenter, remoteCameraPrev,
                         refFrameMeshes[currMeshIndex], maskFrameMesh,
-                        quads[view], depthOffsets[view],
+                        quads[layer], depthOffsets[layer],
                         numProxies, numDepthOffsets
                     );
 
@@ -471,7 +483,7 @@ public:
                     meshFromDepthShader.setVec2("depthMapSize", frameSize);
                 }
                 {
-                    meshFromDepthShader.setMat4("view", remoteCameraToUse.getViewMatrix());
+                    meshFromDepthShader.setMat4("layer", remoteCameraToUse.getViewMatrix());
                     meshFromDepthShader.setMat4("projection", remoteCameraToUse.getProjectionMatrix());
                     meshFromDepthShader.setMat4("viewInverse", remoteCameraToUse.getViewMatrixInverse());
                     meshFromDepthShader.setMat4("projectionInverse", remoteCameraToUse.getProjectionMatrixInverse());
@@ -494,33 +506,32 @@ public:
 
     unsigned int saveToFile(const std::string &outputPath) {
         unsigned int totalOutputSize = 0;
-        for (int view = 0; view < maxLayers; view++) {
+        for (int layer = 0; layer < maxLayers; layer++) {
             // save quads
             double startTime = timeutils::getTimeMicros();
-            std::string filename = outputPath + "quads" + std::to_string(view) + ".bin";
+            std::string filename = outputPath + "quads" + std::to_string(layer) + ".bin";
             std::ofstream quadsFile = std::ofstream(filename + ".zstd", std::ios::binary);
-            quadsFile.write(quads[view].data(), quads[view].size());
+            quadsFile.write(quads[layer].data(), quads[layer].size());
             quadsFile.close();
             spdlog::info("Saved {} quads ({:.3f}MB) in {:.3f}ms",
-                        stats.totalProxies, static_cast<double>(quads[view].size()) / BYTES_IN_MB,
+                        stats.totalProxies, static_cast<double>(quads[layer].size()) / BYTES_IN_MB,
                             timeutils::microsToMillis(timeutils::getTimeMicros() - startTime));
 
             // save depth offsets
             startTime = timeutils::getTimeMicros();
-            std::string depthOffsetsFileName = outputPath + "depthOffsets" + std::to_string(view) + ".bin";
+            std::string depthOffsetsFileName = outputPath + "depthOffsets" + std::to_string(layer) + ".bin";
             std::ofstream depthOffsetsFile = std::ofstream(depthOffsetsFileName + ".zstd", std::ios::binary);
-            depthOffsetsFile.write(depthOffsets[view].data(), depthOffsets[view].size());
+            depthOffsetsFile.write(depthOffsets[layer].data(), depthOffsets[layer].size());
             depthOffsetsFile.close();
             spdlog::info("Saved {} depth offsets ({:.3f}MB) in {:.3f}ms",
-                        stats.totalDepthOffsets, static_cast<double>(depthOffsets[view].size()) / BYTES_IN_MB,
+                        stats.totalDepthOffsets, static_cast<double>(depthOffsets[layer].size()) / BYTES_IN_MB,
                             timeutils::microsToMillis(timeutils::getTimeMicros() - startTime));
 
             // save color buffer
-            std::string colorFileName = outputPath + "color" + std::to_string(view) + ".png";
-            auto& frameRTToUse = (view == 0) ? refFrameRT : frameRTsHidLayer[view-1];
-            frameRTToUse.saveColorAsPNG(colorFileName);
+            std::string colorFileName = outputPath + "color" + std::to_string(layer) + ".jpg";
+            copyRTs[layer].saveColorAsPNG(colorFileName);
 
-            totalOutputSize += quads[view].size() + depthOffsets[view].size();
+            totalOutputSize += quads[layer].size() + depthOffsets[layer].size();
         }
 
         return totalOutputSize;
@@ -528,6 +539,7 @@ public:
 
 private:
     // shaders
+    ToneMapper toneMapper;
     ShowNormalsEffect showNormalsEffect;
     ComputeShader meshFromDepthShader;
 

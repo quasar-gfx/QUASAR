@@ -194,7 +194,7 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("UI", 0, &showUI);
             ImGui::MenuItem("Frame Capture", 0, &showCaptureWindow);
             ImGui::MenuItem("Mesh Capture", 0, &showMeshCaptureWindow);
-            ImGui::MenuItem("FrameRenderTarget Preview", 0, &showFramePreviewWindow);
+            ImGui::MenuItem("Intermediate RT Previews", 0, &showFramePreviewWindow);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();

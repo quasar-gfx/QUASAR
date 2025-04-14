@@ -75,7 +75,7 @@ int main(int argc, char** argv) {
     VideoTexture videoTexture({
         .width = windowSize.x,
         .height = windowSize.y,
-        .internalFormat = GL_SRGB8,
+        .internalFormat = GL_RGB8,
         .format = GL_RGB,
         .type = GL_UNSIGNED_BYTE,
         .wrapS = GL_CLAMP_TO_BORDER,
@@ -305,7 +305,7 @@ int main(int argc, char** argv) {
 
         atwShader.bind();
         atwShader.setBool("atwEnabled", atwEnabled);
-        atwShader.setBool("toneMap", true);
+        atwShader.setBool("toneMap", false);
         atwShader.setMat4("projectionInverse", camera.getProjectionMatrixInverse());
         atwShader.setMat4("viewInverse", camera.getViewMatrixInverse());
         if (currPoseID != prevPoseID && poseStreamer.getPose(currPoseID, &currentFramePose, &elapsedTime)) {

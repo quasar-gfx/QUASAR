@@ -96,6 +96,7 @@ int main(int argc, char** argv) {
 
     // post processing
     ToneMapper toneMapper;
+    toneMapper.enableToneMapping(false);
 
     Recorder recorder(renderer, toneMapper, config.targetFramerate);
 
@@ -110,7 +111,7 @@ int main(int argc, char** argv) {
         .flipVertically = true
     };
     for (int view = 0; view < maxViews; view++) {
-        std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
+        std::string colorFileName = dataPath + "color" + std::to_string(view) + ".jpg";
         params.path = colorFileName;
         colorTextures.emplace_back(params);
     }
@@ -160,7 +161,8 @@ int main(int argc, char** argv) {
         });
         loadFromFilesTime += timeutils::secondsToMillis(window->getTime() - startTime);
 
-        const glm::uvec2 gBufferSize = glm::uvec2(colorTextures[view].width, colorTextures[view].height);
+        const glm::uvec2 gBufferSize =
+                glm::uvec2(colorTextures[view].width, colorTextures[view].height) / (view == maxViews - 1 ? 2u : 1u);
 
         startTime = window->getTime();
         auto& cameraToUse = (!disableWideFov && view == maxViews - 1) ? remoteCameraWideFov : remoteCamera;

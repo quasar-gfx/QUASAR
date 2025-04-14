@@ -87,7 +87,7 @@ int main(int argc, char** argv) {
     VideoTexture videoTextureColor({
         .width = windowSize.x,
         .height = windowSize.y,
-        .internalFormat = GL_SRGB8,
+        .internalFormat = GL_RGB8,
         .format = GL_RGB,
         .type = GL_UNSIGNED_BYTE,
         .wrapS = GL_CLAMP_TO_EDGE,
@@ -144,6 +144,7 @@ int main(int argc, char** argv) {
 
     // post processing
     ToneMapper toneMapper;
+    toneMapper.enableToneMapping(false);
 
     Shader videoShader({
         .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,

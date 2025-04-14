@@ -84,7 +84,7 @@ public:
         unbind();
     }
 
-    void saveColorAsJPG(const std::string &path, int quality = 90) {
+    void saveColorAsJPG(const std::string &path, int quality = 95) {
         bind();
         colorBuffer.saveAsJPG(path, quality);
         unbind();

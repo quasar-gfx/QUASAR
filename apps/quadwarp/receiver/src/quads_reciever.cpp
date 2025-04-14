@@ -75,12 +75,13 @@ int main(int argc, char** argv) {
 
     // post processing
     ToneMapper toneMapper;
+    toneMapper.enableToneMapping(false);
 
     Recorder recorder(renderer, toneMapper, config.targetFramerate);
 
     MeshFromQuads meshFromQuads(windowSize);
 
-    std::string colorFileName = dataPath + "color.png";
+    std::string colorFileName = dataPath + "color.jpg";
     Texture colorTexture = Texture({
         .wrapS = GL_REPEAT,
         .wrapT = GL_REPEAT,

@@ -30,7 +30,7 @@ public:
     static void freeImage(void* imageData);
 
     static void saveAsPNG(const std::string &filename, int width, int height, int channels, const void *data);
-    static void saveAsJPG(const std::string &filename, int width, int height, int channels, const void *data, int quality = 90);
+    static void saveAsJPG(const std::string &filename, int width, int height, int channels, const void *data, int quality = 95);
     static void saveAsHDR(const std::string &filename, int width, int height, int channels, const float *data);
 
 #ifdef __ANDROID__

@@ -1,6 +1,7 @@
 #ifndef MULTI_SIMULATOR_H
 #define MULTI_SIMULATOR_H
 
+#include <PostProcessing/ToneMapper.h>
 #include <PostProcessing/ShowNormalsEffect.h>
 
 #include <Quads/QuadsGenerator.h>
@@ -41,6 +42,8 @@ public:
 
     std::vector<Mesh> depthMeshes;
     std::vector<Node> depthNodesHidLayer;
+
+    std::vector<FrameRenderTarget> copyRTs;
 
     unsigned int maxViews;
 
@@ -84,6 +87,7 @@ public:
                 }
             }) {
         serverFrameRTs.reserve(maxViews);
+        copyRTs.reserve(maxViews);
         serverFrameMeshes.reserve(maxViews);
         depthMeshes.reserve(maxViews);
         serverFrameNodesLocal.reserve(maxViews);
@@ -115,6 +119,7 @@ public:
                 rtParams.width = 1280; rtParams.height = 720;
             }
             serverFrameRTs.emplace_back(rtParams);
+            copyRTs.emplace_back(rtParams);
 
             meshParams.material = new QuadMaterial({ .baseColorTexture = &serverFrameRTs[view].colorBuffer });
             // we can use less vertices and indicies for the additional views since they will be sparse
@@ -203,6 +208,7 @@ public:
             }
             if (!showNormals) {
                 remoteRenderer.copyToFrameRT(gBufferToUse);
+                toneMapper.drawToRenderTarget(remoteRenderer, copyRTs[view]);
             }
             else {
                 showNormalsEffect.drawToRenderTarget(remoteRenderer, gBufferToUse);
@@ -261,7 +267,7 @@ public:
                     meshFromDepthShader.clearBuffer(GL_SHADER_STORAGE_BUFFER, 1);
                 }
                 meshFromDepthShader.dispatch((frameSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                                (frameSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+                                             (frameSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
                 meshFromDepthShader.memoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
                 meshFromDepthShader.endTiming();
@@ -294,8 +300,8 @@ public:
                             timeutils::microsToMillis(timeutils::getTimeMicros() - startTime));
 
             // save color buffer
-            std::string colorFileName = outputPath + "color" + std::to_string(view) + ".png";
-            serverFrameRTs[view].saveColorAsPNG(colorFileName);
+            std::string colorFileName = outputPath + "color" + std::to_string(view) + ".jpg";
+            copyRTs[view].saveColorAsJPG(colorFileName);
 
             totalOutputSize += quads[view].size() + depthOffsets[view].size();
         }
@@ -305,6 +311,7 @@ public:
 
 private:
     // shaders
+    ToneMapper toneMapper;
     ShowNormalsEffect showNormalsEffect;
     ComputeShader meshFromDepthShader;
 

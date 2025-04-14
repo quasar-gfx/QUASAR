@@ -1,6 +1,7 @@
 #ifndef QUADS_SIMULATOR_H
 #define QUADS_SIMULATOR_H
 
+#include <PostProcessing/ToneMapper.h>
 #include <PostProcessing/ShowNormalsEffect.h>
 
 #include <Quads/QuadsGenerator.h>
@@ -48,6 +49,8 @@ public:
 
     Mesh depthMesh;
     Node depthNode;
+
+    FrameRenderTarget copyRT;
 
     int currMeshIndex = 0, prevMeshIndex = 1;
 
@@ -110,6 +113,17 @@ public:
                 .magFilter = GL_NEAREST
             })
             , maskTempRT({
+                .width = quadsGenerator.remoteWindowSize.x,
+                .height = quadsGenerator.remoteWindowSize.y,
+                .internalFormat = GL_RGBA16F,
+                .format = GL_RGBA,
+                .type = GL_HALF_FLOAT,
+                .wrapS = GL_CLAMP_TO_EDGE,
+                .wrapT = GL_CLAMP_TO_EDGE,
+                .minFilter = GL_NEAREST,
+                .magFilter = GL_NEAREST
+            })
+            , copyRT({
                 .width = quadsGenerator.remoteWindowSize.x,
                 .height = quadsGenerator.remoteWindowSize.y,
                 .internalFormat = GL_RGBA16F,
@@ -206,6 +220,7 @@ public:
         remoteRenderer.drawObjects(remoteScene, remoteCameraToUse);
         if (!showNormals) {
             remoteRenderer.copyToFrameRT(refFrameRT);
+            toneMapper.drawToRenderTarget(remoteRenderer, copyRT);
         }
         else {
             showNormalsEffect.drawToRenderTarget(remoteRenderer, refFrameRT);
@@ -339,14 +354,15 @@ public:
                         timeutils::microsToMillis(timeutils::getTimeMicros() - startTime));
 
         // save color buffer
-        std::string colorFileName = outputPath + "color.png";
-        refFrameRT.saveColorAsPNG(colorFileName);
+        std::string colorFileName = outputPath + "color.jpg";
+        copyRT.saveColorAsJPG(colorFileName);
 
         return quads.size() + depthOffsets.size();
     }
 
 private:
     // shaders
+    ToneMapper toneMapper;
     ShowNormalsEffect showNormalsEffect;
     ComputeShader meshFromDepthShader;
 

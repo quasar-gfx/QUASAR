@@ -31,6 +31,16 @@ public:
         return renderer.drawToRenderTarget(shader, rt);
     }
 
+    void setUniforms(FrameRenderTarget &rt) {
+        shader.bind();
+        shader.setTexture("screenColor", rt.colorBuffer, 0);
+    }
+
+    RenderStats drawToRenderTarget(OpenGLRenderer& renderer, RenderTargetBase &rt, bool setUniforms) {
+        if (setUniforms) renderer.setScreenShaderUniforms(shader);
+        return renderer.drawToRenderTarget(shader, rt);
+    }
+
 private:
     ToneMapShader shader;
 };

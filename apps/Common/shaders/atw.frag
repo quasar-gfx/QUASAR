@@ -1,4 +1,3 @@
-#include "toneMap.glsl"
 #include "camera_utils.glsl"
 
 out vec4 FragColor;
@@ -26,14 +25,6 @@ uniform mat4 remoteView;
 #endif
 
 uniform bool atwEnabled;
-
-#ifndef ANDROID
-uniform bool toneMap = true;
-uniform float exposure = 1.0;
-#else
-uniform bool toneMap;
-uniform float exposure;
-#endif
 
 uniform sampler2D videoTexture;
 
@@ -80,9 +71,5 @@ void main() {
         color = texture(videoTexture, TexCoordsRemote).rgb;
     }
 
-    if (toneMap) {
-        color = applyToneMapExponential(color, exposure);
-        color = linearToSRGB(color);
-    }
     FragColor = vec4(color, 1.0);
 }

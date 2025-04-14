@@ -117,6 +117,7 @@ int main(int argc, char** argv) {
 
     // post processing
     ToneMapper toneMapper;
+    toneMapper.enableToneMapping(false);
 
     Recorder recorder(renderer, toneMapper, config.targetFramerate);
 
@@ -131,7 +132,7 @@ int main(int argc, char** argv) {
         .flipVertically = true
     };
     for (int view = 0; view < maxViews; view++) {
-        std::string colorFileName = dataPath + "color" + std::to_string(view) + ".png";
+        std::string colorFileName = dataPath + "color" + std::to_string(view) + ".jpg";
         params.path = colorFileName;
         colorTextures.emplace_back(params);
     }
