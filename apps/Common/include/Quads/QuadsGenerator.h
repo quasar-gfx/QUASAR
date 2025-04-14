@@ -18,9 +18,9 @@ public:
     };
 
     struct Stats {
-        double timeToGenerateQuadsMs = -1.0f;
-        double timeToSimplifyQuadsMs = -1.0f;
-        double timeToFillOutputQuadsMs = -1.0f;
+        double timeToGenerateQuadsMs = 0.0f;
+        double timeToSimplifyQuadsMs = 0.0f;
+        double timeToFillOutputQuadsMs = 0.0f;
     } stats;
 
     bool expandEdges = false;

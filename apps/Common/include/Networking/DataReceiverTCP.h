@@ -17,7 +17,7 @@ class DataReceiverTCP {
 public:
     struct Stats {
         float timeToReceiveMs = -1.0f;
-        float bitrateMbps = -1.0f;
+        float bitrateMbps = 0.0f;
     };
 
     DataReceiverTCP(const std::string& url, bool nonBlocking = false);

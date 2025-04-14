@@ -12,9 +12,9 @@ namespace quasar {
 class ZSTDCodec : public Codec {
 public:
     ZSTDCodec(
-            uint32_t compressionLevel = 3,
-            uint32_t compressionStrategy = ZSTD_greedy,
-            uint32_t numWorkers = 0) {
+            uint32_t compressionLevel = ZSTD_CLEVEL_DEFAULT,
+            uint32_t compressionStrategy = ZSTD_dfast,
+            uint32_t numWorkers = 4) {
         compressionCtx = ZSTD_createCCtx();
         decompressionCtx = ZSTD_createDCtx();
 

@@ -3,7 +3,7 @@
 
 #include <Texture.h>
 #include <Utils/FileIO.h>
-#include <Codec/LZ4Codec.h>
+#include <Codec/ZSTDCodec.h>
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
 #include <CudaGLInterop/CudaGLImage.h>
@@ -32,7 +32,7 @@ public:
 #endif
 
 private:
-    LZ4Codec codec;
+    ZSTDCodec codec;
 
     std::vector<char> data;
 

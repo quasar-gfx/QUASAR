@@ -40,7 +40,7 @@ public:
         float timeToCopyFrameMs = -1.0f;
         float timeToSendMs = -1.0f;
         float totalTimeToSendMs = -1.0f;
-        float bitrateMbps = -1.0f;
+        float bitrateMbps = 0.0f;
     } stats;
 
     VideoStreamer(const RenderTargetCreateParams &params,

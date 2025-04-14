@@ -385,12 +385,12 @@ int main(int argc, char** argv) {
 
             float windowWidth = ImGui::GetContentRegionAvail().x;
             float buttonWidth = (windowWidth - ImGui::GetStyle().ItemSpacing.x) / 2.0f;
-            if (ImGui::Button("Send I-Frame", ImVec2(buttonWidth, 0))) {
+            if (ImGui::Button("Send Reference Frame", ImVec2(buttonWidth, 0))) {
                 generateRefFrame = true;
                 runAnimations = true;
             }
             ImGui::SameLine();
-            if (ImGui::Button("Send P-Frame", ImVec2(buttonWidth, 0))) {
+            if (ImGui::Button("Send Residual Frame", ImVec2(buttonWidth, 0))) {
                 generateMaskFrame = true;
                 runAnimations = true;
             }
@@ -579,7 +579,7 @@ int main(int argc, char** argv) {
         }
 
         if (rerenderInterval > 0.0 && (now - lastRenderTime) >= (rerenderInterval - 1.0) / MILLISECONDS_IN_SECOND) {
-            generateRefFrame = (++frameCounter) % IFRAME_PERIOD == 0; // insert I-Frame every IFRAME_PERIOD frames
+            generateRefFrame = (++frameCounter) % IFRAME_PERIOD == 0; // insert Reference Frame every IFRAME_PERIOD frames
             generateMaskFrame = !generateRefFrame;
             runAnimations = true;
             lastRenderTime = now;

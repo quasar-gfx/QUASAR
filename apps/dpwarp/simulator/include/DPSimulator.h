@@ -386,7 +386,7 @@ public:
 
             /*
             ============================
-            Generate I-frame
+            Generate Reference Frame
             ============================
             */
             unsigned int numProxies = 0, numDepthOffsets = 0;
@@ -427,7 +427,7 @@ public:
 
             /*
             ============================
-            Generate P-frame
+            Generate Residual Frame
             ============================
             */
             if (layer == 0) {
@@ -463,7 +463,7 @@ public:
                 currMeshIndex = (currMeshIndex + 1) % 2;
                 prevMeshIndex = (prevMeshIndex + 1) % 2;
 
-                // only update the previous camera pose if we are not generating a P-Frame
+                // only update the previous camera pose if we are not generating a Residual Frame
                 if (!generateMaskFrame) {
                     remoteCameraPrev.setViewMatrix(remoteCameraCenter.getViewMatrix());
                 }

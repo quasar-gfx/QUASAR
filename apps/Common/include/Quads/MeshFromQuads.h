@@ -38,9 +38,9 @@ public:
     };
 
     struct Stats {
-        double timeToAppendProxiesMs = -1.0f;
-        double timeToFillOutputQuadsMs = -1.0f;
-        double timeToCreateMeshMs = -1.0f;
+        double timeToAppendProxiesMs = 0.0f;
+        double timeToFillOutputQuadsMs = 0.0f;
+        double timeToCreateMeshMs = 0.0f;
     } stats;
 
     glm::uvec2 &remoteWindowSize;

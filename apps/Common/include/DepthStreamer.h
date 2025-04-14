@@ -24,7 +24,7 @@ public:
     struct Stats {
         float timeToCopyFrameMs = -1.0f;
         float timeToSendMs = -1.0f;
-        float bitrateMbps = -1.0f;
+        float bitrateMbps = 0.0f;
     } stats;
 
     DepthStreamer(const RenderTargetCreateParams &params, std::string receiverURL);

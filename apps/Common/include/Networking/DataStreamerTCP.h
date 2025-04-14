@@ -22,7 +22,7 @@ public:
 
     struct Stats {
         float timeToSendMs = -1.0f;
-        float bitrateMbps = -1.0f;
+        float bitrateMbps = 0.0f;
     } stats;
 
     DataStreamerTCP(std::string url, int maxDataSize = 65535, bool nonBlocking = false)

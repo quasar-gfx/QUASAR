@@ -39,7 +39,7 @@ public:
         float timeToCopyFrameMs = -1.0f;
         float timeToCompressMs = -1.0f;
         float timeToSendMs = -1.0f;
-        float bitrateMbps = -1.0f;
+        float bitrateMbps = 0.0f;
         float compressionRatio = -1.0f;
     } stats;
 

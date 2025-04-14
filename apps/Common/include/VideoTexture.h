@@ -33,7 +33,7 @@ public:
         float timeToDecodeMs = -1.0f;
         float timeToResizeMs = -1.0f;
         float totalTimeToReceiveMs = -1.0f;
-        float bitrateMbps = -1.0f;
+        float bitrateMbps = 0.0f;
     } stats;
 
     unsigned int videoWidth, videoHeight;

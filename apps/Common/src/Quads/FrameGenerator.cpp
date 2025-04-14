@@ -22,7 +22,6 @@ unsigned int FrameGenerator::generateRefFrame(
     stats.timeToSimplifyQuadsMs = quadsGenerator.stats.timeToSimplifyQuadsMs;
     stats.timeToFillOutputQuadsMs = quadsGenerator.stats.timeToFillOutputQuadsMs;
 
-    startTime = timeutils::getTimeMicros();
     outputSize += quadsGenerator.saveQuadsToMemory(quads, compress);
     outputSize += quadsGenerator.saveDepthOffsetsToMemory(depthOffsets, compress) / 8;
     stats.timeToCompress = quadsGenerator.outputQuadBuffers.stats.timeToCompressMs +
@@ -105,7 +104,6 @@ unsigned int FrameGenerator::generateMaskFrame(
         quadsGenerator.createProxiesFromGBuffer(frameRT, prevRemoteCamera);
         stats.timeToCreateProxiesMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
-        startTime = timeutils::getTimeMicros();
         outputSize += quadsGenerator.saveQuadsToMemory(quads, compress);
         outputSize += quadsGenerator.saveDepthOffsetsToMemory(depthOffsets, compress) / 8;
         stats.timeToCompress = quadsGenerator.outputQuadBuffers.stats.timeToCompressMs +
@@ -138,7 +136,6 @@ unsigned int FrameGenerator::generateMaskFrame(
         quadsGenerator.createProxiesFromGBuffer(maskFrameRT, currRemoteCamera);
         stats.timeToCreateProxiesMs += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
-        startTime = timeutils::getTimeMicros();
         outputSize += quadsGenerator.saveQuadsToMemory(quads, compress);
         outputSize += quadsGenerator.saveDepthOffsetsToMemory(depthOffsets, compress) / 8;
         stats.timeToCompress += quadsGenerator.outputQuadBuffers.stats.timeToCompressMs +

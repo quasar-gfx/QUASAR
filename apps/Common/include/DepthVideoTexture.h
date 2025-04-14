@@ -16,8 +16,8 @@ public:
     std::string streamerURL;
 
     struct Stats {
-        float timeToReceiveMs = -1.0f;
-        float bitrateMbps = -1.0f;
+        float timeToReceiveMs = 0.0f;
+        float bitrateMbps = 0.0f;
     } stats;
 
     DepthVideoTexture(const TextureDataCreateParams &params, std::string streamerURL)

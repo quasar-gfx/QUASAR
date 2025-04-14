@@ -28,13 +28,13 @@ public:
 
     // struct Stats {
     //     float timeToReceiveMs = -1.0f;
-    //     float bitrateMbps = -1.0f;
+    //     float bitrateMbps = 0.0f;
     // } stats;
 
     struct ReceiverStats {
         float timeToReceiveMs = -1.0f;
         float timeToDecompressMs = -1.0f;
-        float bitrateMbps = -1.0f;
+        float bitrateMbps = 0.0f;
         float compressionRatio = -1.0f;
     };
 
