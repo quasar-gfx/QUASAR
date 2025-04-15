@@ -44,12 +44,12 @@ void MeshFromQuads::appendProxies(
         const glm::uvec2 &gBufferSize,
         unsigned int numProxies,
         const QuadBuffers &newQuadBuffers,
-        bool iFrame) {
+        bool refFrame) {
     double startTime = timeutils::getTimeMicros();
 
     appendProxiesShader.bind();
     {
-        appendProxiesShader.setBool("iFrame", iFrame);
+        appendProxiesShader.setBool("refFrame", refFrame);
         appendProxiesShader.setUint("newNumProxies", numProxies);
     }
     {

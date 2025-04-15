@@ -47,7 +47,6 @@ QuadsGenerator::QuadsGenerator(glm::uvec2 &remoteWindowSize)
     glm::uvec2 currQuadMapSize = remoteWindowSize;
     for (int i = 0; i < numQuadMaps; i++) {
         quadBuffers.emplace_back(currQuadMapSize.x * currQuadMapSize.y);
-
         quadMapSizes.emplace_back(currQuadMapSize);
         currQuadMapSize = glm::max(currQuadMapSize / 2u, glm::uvec2(1u));
     }

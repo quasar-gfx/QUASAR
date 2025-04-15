@@ -50,7 +50,7 @@ unsigned int FrameGenerator::generateRefFrame(
     return outputSize;
 }
 
-unsigned int FrameGenerator::generateMaskFrame(
+unsigned int FrameGenerator::generateResFrame(
         const Scene &currScene, const Scene &prevScene,
         FrameRenderTarget &frameRT, FrameRenderTarget &maskFrameRT,
         const PerspectiveCamera &currRemoteCamera, const PerspectiveCamera &prevRemoteCamera,

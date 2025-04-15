@@ -56,7 +56,7 @@ public:
             const glm::uvec2 &gBufferSize,
             unsigned int numProxies,
             const QuadBuffers &newQuadBuffers,
-            bool iFrame = true);
+            bool refFrame = true);
 
     void fillQuadIndices(const glm::uvec2 &gBufferSize);
 

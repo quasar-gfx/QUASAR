@@ -30,7 +30,7 @@ public:
     MeshFromQuads& meshFromQuads;
     FrameGenerator& frameGenerator;
 
-    // reference frame (key frame)
+    // reference frame
     FrameRenderTarget refFrameRT;
     std::vector<Mesh> refFrameMeshes;
     std::vector<Node> refFrameNodes;
@@ -313,7 +313,7 @@ public:
             const PerspectiveCamera& remoteCameraCenter, const PerspectiveCamera& remoteCameraWideFov, const Scene& remoteScene,
             DeferredRenderer& remoteRenderer,
             DepthPeelingRenderer& remoteRendererDP,
-            bool generateMaskFrame = false, bool showNormals = false, bool showDepth = false) {
+            bool generateResFrame = false, bool showNormals = false, bool showDepth = false) {
         // reset stats
         stats = { 0 };
 
@@ -324,7 +324,7 @@ public:
 
         for (int layer = 0; layer < maxLayers; layer++) {
             int hiddenIndex = layer - 1;
-            auto& remoteCameraToUse = (layer == 0 && generateMaskFrame) ? remoteCameraPrev :
+            auto& remoteCameraToUse = (layer == 0 && generateResFrame) ? remoteCameraPrev :
                                         ((layer != maxLayers - 1) ? remoteCameraCenter : remoteCameraWideFov);
 
             auto& frameToUse = (layer == 0) ? refFrameRT : frameRTsHidLayer[hiddenIndex];
@@ -402,7 +402,7 @@ public:
                 quads[layer], depthOffsets[layer],
                 numProxies, numDepthOffsets
             );
-            if (!generateMaskFrame) {
+            if (!generateResFrame) {
                 stats.compressedSizeBytes += numBytesIFrame;
             }
             if (layer != 0) {
@@ -421,7 +421,7 @@ public:
             stats.totalCreateVertIndTime += frameGenerator.stats.timeToCreateVertIndMs;
             stats.totalCreateMeshTime += frameGenerator.stats.timeToCreateMeshMs;
 
-            if (layer != 0 || !generateMaskFrame) {
+            if (layer != 0 || !generateResFrame) {
                 stats.totalCompressTime += frameGenerator.stats.timeToCompress;
             }
 
@@ -431,9 +431,9 @@ public:
             ============================
             */
             if (layer == 0) {
-                if (generateMaskFrame) {
+                if (generateResFrame) {
                     quadsGenerator.expandEdges = true;
-                    stats.compressedSizeBytes += frameGenerator.generateMaskFrame(
+                    stats.compressedSizeBytes += frameGenerator.generateResFrame(
                         meshScenes[currMeshIndex], meshScenes[prevMeshIndex],
                         maskTempRT, maskFrameRT,
                         remoteCameraCenter, remoteCameraPrev,
@@ -459,12 +459,12 @@ public:
                 stats.totalProxies += numProxies;
                 stats.totalDepthOffsets += numDepthOffsets;
 
-                maskFrameNode.visible = generateMaskFrame;
+                maskFrameNode.visible = generateResFrame;
                 currMeshIndex = (currMeshIndex + 1) % 2;
                 prevMeshIndex = (prevMeshIndex + 1) % 2;
 
                 // only update the previous camera pose if we are not generating a Residual Frame
-                if (!generateMaskFrame) {
+                if (!generateResFrame) {
                     remoteCameraPrev.setViewMatrix(remoteCameraCenter.getViewMatrix());
                 }
             }
@@ -529,7 +529,7 @@ public:
 
             // save color buffer
             std::string colorFileName = outputPath + "color" + std::to_string(layer) + ".jpg";
-            copyRTs[layer].saveColorAsPNG(colorFileName);
+            copyRTs[layer].saveColorAsJPG(colorFileName);
 
             totalOutputSize += quads[layer].size() + depthOffsets[layer].size();
         }

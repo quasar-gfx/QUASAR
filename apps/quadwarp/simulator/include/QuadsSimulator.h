@@ -31,7 +31,7 @@ public:
     QuadsGenerator& quadsGenerator;
     FrameGenerator& frameGenerator;
 
-    // reference frame (key frame)
+    // reference frame
     FrameRenderTarget refFrameRT;
     std::vector<Mesh> refFrameMeshes;
     std::vector<Node> refFrameNodes;
@@ -208,10 +208,10 @@ public:
     void generateFrame(
             const PerspectiveCamera& remoteCamera, const Scene& remoteScene,
             DeferredRenderer& remoteRenderer,
-            bool generateMaskFrame = false, bool showNormals = false, bool showDepth = false) {
+            bool generateResFrame = false, bool showNormals = false, bool showDepth = false) {
         double startTime = timeutils::getTimeMicros();
 
-        auto& remoteCameraToUse = generateMaskFrame ? remoteCameraPrev : remoteCamera;
+        auto& remoteCameraToUse = generateResFrame ? remoteCameraPrev : remoteCamera;
 
         // reset stats
         stats = { 0 };
@@ -251,7 +251,7 @@ public:
         stats.totalCreateVertIndTime += frameGenerator.stats.timeToCreateVertIndMs;
         stats.totalCreateMeshTime += frameGenerator.stats.timeToCreateMeshMs;
 
-        if (!generateMaskFrame) {
+        if (!generateResFrame) {
             stats.totalCompressTime += frameGenerator.stats.timeToCompress;
         }
 
@@ -260,9 +260,9 @@ public:
         Generate Residual Frame
         ============================
         */
-        if (generateMaskFrame) {
+        if (generateResFrame) {
             quadsGenerator.expandEdges = true;
-            stats.compressedSizeBytes = frameGenerator.generateMaskFrame(
+            stats.compressedSizeBytes = frameGenerator.generateResFrame(
                 meshScenes[currMeshIndex], meshScenes[prevMeshIndex],
                 maskTempRT, maskFrameRT,
                 remoteCamera, remoteCameraPrev,
@@ -288,12 +288,12 @@ public:
         stats.totalProxies += numProxies;
         stats.totalDepthOffsets += numDepthOffsets;
 
-        maskFrameNode.visible = generateMaskFrame;
+        maskFrameNode.visible = generateResFrame;
         currMeshIndex = (currMeshIndex + 1) % 2;
         prevMeshIndex = (prevMeshIndex + 1) % 2;
 
         // only update the previous camera pose if we are not generating a Residual Frame
-        if (!generateMaskFrame) {
+        if (!generateResFrame) {
             remoteCameraPrev.setViewMatrix(remoteCamera.getViewMatrix());
         }
 

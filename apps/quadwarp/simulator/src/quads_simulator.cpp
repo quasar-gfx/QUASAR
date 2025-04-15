@@ -17,7 +17,7 @@
 
 #include <PoseSendRecvSimulator.h>
 
-#define IFRAME_PERIOD 5
+#define REF_FRAME_PERIOD 5
 
 using namespace quasar;
 
@@ -144,7 +144,7 @@ int main(int argc, char** argv) {
     float viewBoxSize = args::get(viewBoxSizeIn);
 
     bool generateRefFrame = true;
-    bool generateMaskFrame = false;
+    bool generateResFrame = false;
 
     const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "5 FPS", "10 FPS", "15 FPS", "30 FPS"};
@@ -334,7 +334,7 @@ int main(int argc, char** argv) {
             }
             ImGui::SameLine();
             if (ImGui::Button("Send Residual Frame", ImVec2(buttonWidth, 0))) {
-                generateMaskFrame = true;
+                generateResFrame = true;
                 runAnimations = true;
             }
 
@@ -473,12 +473,12 @@ int main(int argc, char** argv) {
         }
 
         if (rerenderInterval > 0.0 && (now - lastRenderTime) >= (rerenderInterval - 1.0) / MILLISECONDS_IN_SECOND) {
-            generateRefFrame = (++frameCounter) % IFRAME_PERIOD == 0; // insert Reference Frame every IFRAME_PERIOD frames
-            generateMaskFrame = !generateRefFrame;
+            generateRefFrame = (++frameCounter) % REF_FRAME_PERIOD == 0; // insert Reference Frame every REF_FRAME_PERIOD frames
+            generateResFrame = !generateRefFrame;
             runAnimations = true;
             lastRenderTime = now;
         }
-        if (generateRefFrame || generateMaskFrame) {
+        if (generateRefFrame || generateResFrame) {
             // "send" pose to the server. this will wait until latency+/-jitter ms have passed
             poseSendRecvSimulator.sendPose(camera, now);
             if (!preventCopyingLocalPose) {
@@ -490,7 +490,7 @@ int main(int argc, char** argv) {
                 // if we do not have a new pose, just send a new frame with the old pose
             }
 
-            quadsSimulator.generateFrame(remoteCamera, remoteScene, remoteRenderer, generateMaskFrame, showNormals, showDepth);
+            quadsSimulator.generateFrame(remoteCamera, remoteScene, remoteRenderer, generateResFrame, showNormals, showDepth);
 
             spdlog::info("======================================================");
             spdlog::info("Rendering Time: {:.3f}ms", quadsSimulator.stats.totalRenderTime);
@@ -514,7 +514,7 @@ int main(int argc, char** argv) {
 
             preventCopyingLocalPose = false;
             generateRefFrame = false;
-            generateMaskFrame = false;
+            generateResFrame = false;
             saveToFile = false;
         }
 

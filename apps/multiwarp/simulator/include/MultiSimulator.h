@@ -31,7 +31,7 @@ public:
     QuadsGenerator& quadsGenerator;
     FrameGenerator& frameGenerator;
 
-    // reference frame (key frame) -- QS only has one frame
+    // reference frame -- QS only has one frame
     std::vector<FrameRenderTarget> serverFrameRTs;
     std::vector<Mesh> serverFrameMeshes;
     std::vector<Node> serverFrameNodesRemote;
@@ -213,7 +213,7 @@ public:
             else {
                 showNormalsEffect.drawToRenderTarget(remoteRenderer, gBufferToUse);
             }
-            stats.totalRenderTime += timeutils::microsToSeconds(timeutils::getTimeMicros() - startTime);
+            stats.totalRenderTime += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
             unsigned int numProxies = 0, numDepthOffsets = 0;
             stats.compressedSizeBytes += frameGenerator.generateRefFrame(

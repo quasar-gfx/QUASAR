@@ -23,7 +23,7 @@
 
 #include <PoseSendRecvSimulator.h>
 
-#define IFRAME_PERIOD 5
+#define REF_FRAME_PERIOD 5
 
 using namespace quasar;
 
@@ -173,7 +173,7 @@ int main(int argc, char** argv) {
     }
 
     bool generateRefFrame = true;
-    bool generateMaskFrame = false;
+    bool generateResFrame = false;
     bool saveToFile = false;
     bool showDepth = false;
     bool showNormals = false;
@@ -391,7 +391,7 @@ int main(int argc, char** argv) {
             }
             ImGui::SameLine();
             if (ImGui::Button("Send Residual Frame", ImVec2(buttonWidth, 0))) {
-                generateMaskFrame = true;
+                generateResFrame = true;
                 runAnimations = true;
             }
 
@@ -579,12 +579,12 @@ int main(int argc, char** argv) {
         }
 
         if (rerenderInterval > 0.0 && (now - lastRenderTime) >= (rerenderInterval - 1.0) / MILLISECONDS_IN_SECOND) {
-            generateRefFrame = (++frameCounter) % IFRAME_PERIOD == 0; // insert Reference Frame every IFRAME_PERIOD frames
-            generateMaskFrame = !generateRefFrame;
+            generateRefFrame = (++frameCounter) % REF_FRAME_PERIOD == 0; // insert Reference Frame every REF_FRAME_PERIOD frames
+            generateResFrame = !generateRefFrame;
             runAnimations = true;
             lastRenderTime = now;
         }
-        if (generateRefFrame || generateMaskFrame) {
+        if (generateRefFrame || generateResFrame) {
             // "send" pose to the server. this will wait until latency+/-jitter ms have passed
             poseSendRecvSimulator.sendPose(camera, now);
             if (!preventCopyingLocalPose) {
@@ -601,10 +601,10 @@ int main(int argc, char** argv) {
 
             dpSimulator.generateFrame(
                 remoteCameraCenter, remoteCameraWideFov, remoteScene,
-                remoteRenderer, remoteRendererDP, generateMaskFrame,
+                remoteRenderer, remoteRendererDP, generateResFrame,
                 showNormals, showDepth);
 
-            std::string frameType = generateRefFrame ? "RefFrame" : "MaskFrame";
+            std::string frameType = generateRefFrame ? "RefFrame" : "ResFrame";
             spdlog::info("======================================================");
             spdlog::info("Rendering Time ({}): {:.3f}ms", frameType, dpSimulator.stats.totalRenderTime);
             spdlog::info("Create Proxies Time ({}): {:.3f}ms", frameType, dpSimulator.stats.totalCreateProxiesTime);
@@ -627,7 +627,7 @@ int main(int argc, char** argv) {
 
             preventCopyingLocalPose = false;
             generateRefFrame = false;
-            generateMaskFrame = false;
+            generateResFrame = false;
             saveToFile = false;
         }
 

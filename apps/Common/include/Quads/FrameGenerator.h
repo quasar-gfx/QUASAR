@@ -46,7 +46,7 @@ public:
         unsigned int &numProxies, unsigned int &numDepthOffsets,
         bool compress = true);
 
-    unsigned int generateMaskFrame(
+    unsigned int generateResFrame(
         const Scene &currScene, const Scene &prevScene,
         FrameRenderTarget &frameRT, FrameRenderTarget &maskFrameRT,
         const PerspectiveCamera &currRemoteCamera, const PerspectiveCamera &prevRemoteCamera,
