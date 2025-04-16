@@ -514,7 +514,7 @@ void storeSurfelsInQuadMap(
 
     float proxyPlaneDepth = min(proxyPlaneNDC.z, MAX_DEPTH);
 
-    // if more than half the surfels are below the threshold, then the plane is considered flattened
+    // if all surfels are below the threshold, then the plane is considered flattened
     vec4 absDepthOffsetsBottomLeft  = abs(depthOffsetsBottomLeft);
     vec4 absDepthOffsetsBottomRight = abs(depthOffsetsBottomRight);
     vec4 absDepthOffsetsTopLeft     = abs(depthOffsetsTopLeft);
@@ -727,6 +727,7 @@ void main() {
     pixelCoordsView.top         = ndcToView(projectionInverse, pixelCenterNDCs.top, pixelDepths.top);
     pixelCoordsView.topRight    = ndcToView(projectionInverse, pixelCenterNDCs.topRight, pixelDepths.topRight);
 
+    // fix extreme orientations
     vec3 frustumNormalView = normalize(origin - pixelCoordsView.center);
     if (correctOrientation && quadHasExtremeOrientation(pixelNormalsView.center, frustumNormalView)) {
         // if the quad has an extreme orientation, constrain the center normal
