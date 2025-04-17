@@ -391,7 +391,7 @@ public:
             */
             unsigned int numProxies = 0, numDepthOffsets = 0;
             quadsGenerator.expandEdges = false;
-            if (layer != 0) {
+            if (layer > 0) {
                 quadsGenerator.depthThreshold *= 10.0f;
                 quadsGenerator.flattenThreshold *= 10.0f;
                 quadsGenerator.proxySimilarityThreshold *= 10.0f;
@@ -405,7 +405,7 @@ public:
             if (!generateResFrame) {
                 stats.compressedSizeBytes += numBytesIFrame;
             }
-            if (layer != 0) {
+            if (layer > 0) {
                 quadsGenerator.depthThreshold /= 10.0f;
                 quadsGenerator.flattenThreshold /= 10.0f;
                 quadsGenerator.proxySimilarityThreshold /= 10.0f;

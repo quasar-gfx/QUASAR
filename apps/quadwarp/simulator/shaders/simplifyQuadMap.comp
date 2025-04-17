@@ -162,6 +162,10 @@ vec2 viewToScreen(mat4 projection, vec3 viewCoord) {
     return uv;
 }
 
+bool isValidDepth(float depth) {
+    return depth != 0.0 && depth < MAX_DEPTH;
+}
+
 vec3 normalToView(mat4 view, vec3 normalWorld) {
     // skybox normals might be NaN, just set normal to face the camera
     if (any(isnan(normalWorld))) {
@@ -392,8 +396,13 @@ Plane planeEqToPlane(in vec4 planeEq) {
 }
 
 bool planeEquationsSimilar(in vec4 planeEq1, in vec4 planeEq2) {
-    float similarity = distance(planeEq1, planeEq2);
-    return similarity < proxySimilarityThreshold;
+    float len1 = length(planeEq1.xyz);
+    float len2 = length(planeEq2.xyz);
+    if (len1 == 0.0 || len2 == 0.0) return false;
+
+    vec4 norm1 = planeEq1 / len1;
+    vec4 norm2 = planeEq2 / len2;
+    return distance(norm1, norm2) < proxySimilarityThreshold;
 }
 
 bool shouldMerge(
@@ -561,36 +570,38 @@ void main() {
     QuadMapData quadMapDataTopLeft     = loadInputQuadMap(pixelCoordsTopLeft);
     QuadMapData quadMapDataTopRight    = loadInputQuadMap(pixelCoordsTopRight);
 
+    float depthBottomLeft = quadMapDataBottomLeft.depth;
+    float depthBottomRight = quadMapDataBottomRight.depth;
+    float depthTopLeft = quadMapDataTopLeft.depth;
+    float depthTopRight = quadMapDataTopRight.depth;
+
     // create proxy planes
     Plane proxyPlaneBottomLeft  = quadMapDataToPlane(quadMapDataBottomLeft);
     Plane proxyPlaneBottomRight = quadMapDataToPlane(quadMapDataBottomRight);
     Plane proxyPlaneTopLeft     = quadMapDataToPlane(quadMapDataTopLeft);
     Plane proxyPlaneTopRight    = quadMapDataToPlane(quadMapDataTopRight);
 
+    // resulting merged quad
     QuadMapData mergedQuadMapData;
     mergedQuadMapData.size = 0; // by default, ignore the quad
 
     // if any of the loaded proxy planes are empty, ignore the quad
-    if (quadMapDataBottomLeft.size == 0 && quadMapDataBottomRight.size == 0 &&
-           quadMapDataTopLeft.size == 0 &&    quadMapDataTopRight.size == 0) {
+    if (quadMapDataBottomLeft.size == 0 || quadMapDataBottomRight.size == 0 ||
+           quadMapDataTopLeft.size == 0 ||    quadMapDataTopRight.size == 0) {
         storeOutputQuadMap(pixelCoord, mergedQuadMapData);
         return;
     }
 
-    if (quadMapDataBottomLeft.depth == 0.0 || quadMapDataBottomRight.depth == 0.0 ||
-           quadMapDataTopLeft.depth == 0.0 ||    quadMapDataTopRight.depth == 0.0) {
+    // if any of the loaded depths are invalid, ignore the quad
+    if (!isValidDepth(depthBottomLeft) || !isValidDepth(depthBottomRight) ||
+           !isValidDepth(depthTopLeft) ||    !isValidDepth(depthTopRight)) {
         storeOutputQuadMap(pixelCoord, mergedQuadMapData);
         return;
     }
 
     bool merge = false;
     if (iter == 0) {
-        float depthBottomLeft = quadMapDataBottomLeft.depth;
-        float depthBottomRight = quadMapDataBottomRight.depth;
-        float depthTopLeft = quadMapDataTopLeft.depth;
-        float depthTopRight = quadMapDataTopRight.depth;
-
-        // dont merge the quads if theres a depth discontinuity
+        // force merge the quads if theres a depth discontinuity
         if (!hasDepthDiscontinuity(depthBottomLeft, depthBottomRight, depthTopLeft, depthTopRight)) {
             merge = true;
         }

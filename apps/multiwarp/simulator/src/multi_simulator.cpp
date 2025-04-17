@@ -146,11 +146,6 @@ int main(int argc, char** argv) {
     camera.setViewMatrix(remoteCameraCenter.getViewMatrix());
 
     QuadsGenerator quadsGenerator(remoteWindowSize);
-    // match QuadStream's parameters:
-    quadsGenerator.expandEdges = true;
-    quadsGenerator.depthThreshold = 1e-4f;
-    quadsGenerator.flattenThreshold = 0.05f;
-    quadsGenerator.proxySimilarityThreshold = 0.1f;
     MeshFromQuads meshFromQuads(remoteWindowSize);
     FrameGenerator frameGenerator(remoteRenderer, remoteScene, quadsGenerator, meshFromQuads);
     MultiSimulator multiSimulator(maxViews, frameGenerator);
@@ -360,7 +355,7 @@ int main(int argc, char** argv) {
                     generateRemoteFrame = true;
                     runAnimations = false;
                 }
-                if (ImGui::DragFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.001f, 0.0f, 10.0f)) {
+                if (ImGui::DragFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.001f, 0.0f, 2.0f)) {
                     preventCopyingLocalPose = true;
                     generateRemoteFrame = true;
                     runAnimations = false;

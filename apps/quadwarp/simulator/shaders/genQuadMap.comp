@@ -223,7 +223,7 @@ vec3 findQuadPointCorner(
     vec3 surfelViewPlanePixelNeighbor3,
     float pixelDepthCenter, float pixelDepthNeighbor1, float pixelDepthNeighbor2, float pixelDepthNeighbor3)
 {
-    if (!isValidDepth(pixelDepthCenter) || !isValidDepth(pixelDepthNeighbor1) || !isValidDepth(pixelDepthNeighbor2) || !isValidDepth(pixelDepthNeighbor3)) {
+    if (!isValidDepth(pixelDepthNeighbor1) || !isValidDepth(pixelDepthNeighbor2) || !isValidDepth(pixelDepthNeighbor3)) {
         return surfelViewPlane;
     }
 
@@ -251,7 +251,7 @@ vec3 findQuadPointCorner(
 
     // only return the interpolated point if all neighboring pixels are within depthThreshold
     vec3 surfelViewBottomLeftInterp = ndcToView(projectionInverse, surfelNDC, depth);
-    if (n >= 3) {
+    if (n == 4) {
         return surfelViewBottomLeftInterp;
     }
     return surfelViewPlane;
@@ -263,7 +263,7 @@ vec3 findQuadPointEdge(
     vec3 surfelViewPlanePixelNeighbor,
     float pixelDepthCenter, float pixelDepthNeighbor)
 {
-    if (!isValidDepth(pixelDepthCenter) || !isValidDepth(pixelDepthNeighbor)) {
+    if (!isValidDepth(pixelDepthNeighbor)) {
         return surfelViewPlane;
     }
 

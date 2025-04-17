@@ -95,6 +95,12 @@ public:
         serverFrameWireframesLocal.reserve(maxViews);
         depthNodesHidLayer.reserve(maxViews);
 
+        // match QuadStream's parameters:
+        quadsGenerator.expandEdges = true;
+        quadsGenerator.depthThreshold = 1e-4f;
+        quadsGenerator.flattenThreshold = 0.05f;
+        quadsGenerator.proxySimilarityThreshold = 0.1f;
+
         RenderTargetCreateParams rtParams = {
             .width = quadsGenerator.remoteWindowSize.x,
             .height = quadsGenerator.remoteWindowSize.y,
