@@ -115,6 +115,7 @@ uniform float depthThreshold;
 uniform float angleThreshold;
 uniform float flattenThreshold;
 uniform float proxySimilarityThreshold;
+uniform int maxIterForceMerge;
 
 #define MAX_DEPTH 0.9999
 
@@ -611,8 +612,8 @@ void main() {
     }
 
     bool merge = false;
-    if (iter == 0) {
-        // force merge the quads if theres a depth discontinuity
+    if (iter < maxIterForceMerge) {
+        // force merge the quads if theres no depth discontinuity
         if (!hasDepthDiscontinuity(depthBottomLeft, depthBottomRight, depthTopLeft, depthTopRight)) {
             merge = true;
         }

@@ -29,6 +29,7 @@ public:
     float angleThreshold = 87.5f;
     float flattenThreshold = 0.1f;
     float proxySimilarityThreshold = 1.0f;
+    int maxIterForceMerge = 2;
 
     glm::uvec2 &remoteWindowSize;
     glm::uvec2 depthBufferSize;

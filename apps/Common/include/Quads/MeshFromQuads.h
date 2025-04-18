@@ -38,7 +38,7 @@ public:
     };
 
     struct Stats {
-        double timeToappendQuadsMs = 0.0f;
+        double timeToAppendQuadsMs = 0.0f;
         double timeToGatherQuadsMs = 0.0f;
         double timeToCreateMeshMs = 0.0f;
     } stats;

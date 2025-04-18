@@ -67,7 +67,7 @@ void MeshFromQuads::appendQuads(
     appendQuadsShader.dispatch(((numProxies + 1) + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
     appendQuadsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-    stats.timeToappendQuadsMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+    stats.timeToAppendQuadsMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     fillQuadIndices(gBufferSize);
 }

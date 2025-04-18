@@ -309,6 +309,11 @@ int main(int argc, char** argv) {
                     generateRefFrame = true;
                     runAnimations = false;
                 }
+                if (ImGui::DragInt("Force Merge Iterations", &quadsGenerator.maxIterForceMerge, 1, 0, quadsGenerator.numQuadMaps/2)) {
+                    preventCopyingLocalPose = true;
+                    generateRefFrame = true;
+                    runAnimations = false;
+                }
             }
 
             ImGui::Separator();

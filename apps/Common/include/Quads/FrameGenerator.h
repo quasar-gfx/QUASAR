@@ -31,7 +31,7 @@ public:
         double timeToGenerateQuadsMs = 0.0f;
         double timeToSimplifyQuadsMs = 0.0f;
         double timeToGatherQuadsMs = 0.0f;
-        double timeToappendQuadsMs = 0.0f;
+        double timeToAppendQuadsMs = 0.0f;
         double timeToFillQuadIndicesMs = 0.0f;
         double timeToCreateVertIndMs = 0.0f;
         double timeToRenderMaskMs = 0.0f;

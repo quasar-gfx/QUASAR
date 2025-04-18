@@ -42,7 +42,7 @@ unsigned int FrameGenerator::generateRefFrame(
         remoteCamera,
         mesh
     );
-    stats.timeToappendQuadsMs = meshFromQuads.stats.timeToappendQuadsMs;
+    stats.timeToAppendQuadsMs = meshFromQuads.stats.timeToAppendQuadsMs;
     stats.timeToFillQuadIndicesMs = meshFromQuads.stats.timeToGatherQuadsMs;
     stats.timeToCreateVertIndMs = meshFromQuads.stats.timeToCreateMeshMs;
     stats.timeToCreateMeshMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
@@ -124,7 +124,7 @@ unsigned int FrameGenerator::generateResFrame(
             prevRemoteCamera,
             currMesh
         );
-        stats.timeToappendQuadsMs = meshFromQuads.stats.timeToappendQuadsMs;
+        stats.timeToAppendQuadsMs = meshFromQuads.stats.timeToAppendQuadsMs;
         stats.timeToFillQuadIndicesMs = meshFromQuads.stats.timeToGatherQuadsMs;
         stats.timeToCreateVertIndMs = meshFromQuads.stats.timeToCreateMeshMs;
         stats.timeToCreateMeshMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
@@ -155,7 +155,7 @@ unsigned int FrameGenerator::generateResFrame(
             currRemoteCamera,
             maskMesh
         );
-        stats.timeToappendQuadsMs += meshFromQuads.stats.timeToappendQuadsMs;
+        stats.timeToAppendQuadsMs += meshFromQuads.stats.timeToAppendQuadsMs;
         stats.timeToFillQuadIndicesMs += meshFromQuads.stats.timeToGatherQuadsMs;
         stats.timeToCreateVertIndMs += meshFromQuads.stats.timeToCreateMeshMs;
         stats.timeToCreateMeshMs += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);

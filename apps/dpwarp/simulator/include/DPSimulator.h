@@ -416,7 +416,7 @@ public:
             stats.totalGatherQuadsTime += frameGenerator.stats.timeToGatherQuadsMs;
             stats.totalCreateProxiesTime += frameGenerator.stats.timeToCreateProxiesMs;
 
-            stats.totalAppendQuadsTime += frameGenerator.stats.timeToappendQuadsMs;
+            stats.totalAppendQuadsTime += frameGenerator.stats.timeToAppendQuadsMs;
             stats.totalFillQuadsIndiciesTime += frameGenerator.stats.timeToFillQuadIndicesMs;
             stats.totalCreateVertIndTime += frameGenerator.stats.timeToCreateVertIndMs;
             stats.totalCreateMeshTime += frameGenerator.stats.timeToCreateMeshMs;
@@ -449,7 +449,7 @@ public:
                     stats.totalGatherQuadsTime += frameGenerator.stats.timeToGatherQuadsMs;
                     stats.totalCreateProxiesTime += frameGenerator.stats.timeToCreateProxiesMs;
 
-                    stats.totalAppendQuadsTime += frameGenerator.stats.timeToappendQuadsMs;
+                    stats.totalAppendQuadsTime += frameGenerator.stats.timeToAppendQuadsMs;
                     stats.totalFillQuadsIndiciesTime += frameGenerator.stats.timeToGatherQuadsMs;
                     stats.totalCreateVertIndTime += frameGenerator.stats.timeToCreateVertIndMs;
                     stats.totalCreateMeshTime += frameGenerator.stats.timeToCreateMeshMs;

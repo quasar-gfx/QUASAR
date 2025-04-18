@@ -148,6 +148,7 @@ void QuadsGenerator::simplifyQuadMaps(const PerspectiveCamera &remoteCamera, con
         simplifyQuadMapShader.setFloat("angleThreshold", glm::radians(angleThreshold));
         simplifyQuadMapShader.setFloat("flattenThreshold", flattenThreshold);
         simplifyQuadMapShader.setFloat("proxySimilarityThreshold", proxySimilarityThreshold);
+        simplifyQuadMapShader.setInt("maxIterForceMerge", maxIterForceMerge);
     }
     {
         simplifyQuadMapShader.setImageTexture(0, depthOffsets.buffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsets.buffer.internalFormat);

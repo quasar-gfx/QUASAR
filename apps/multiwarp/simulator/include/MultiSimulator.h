@@ -100,6 +100,7 @@ public:
         quadsGenerator.depthThreshold = 1e-4f;
         quadsGenerator.flattenThreshold = 0.05f;
         quadsGenerator.proxySimilarityThreshold = 0.1f;
+        quadsGenerator.maxIterForceMerge = 1; // only merge once
 
         RenderTargetCreateParams rtParams = {
             .width = quadsGenerator.remoteWindowSize.x,
@@ -236,7 +237,7 @@ public:
             stats.totalGatherQuadsTime += frameGenerator.stats.timeToGatherQuadsMs;
             stats.totalCreateProxiesTime += frameGenerator.stats.timeToCreateProxiesMs;
 
-            stats.totalAppendQuadsTime += frameGenerator.stats.timeToappendQuadsMs;
+            stats.totalAppendQuadsTime += frameGenerator.stats.timeToAppendQuadsMs;
             stats.totalFillQuadsIndiciesTime += frameGenerator.stats.timeToFillQuadIndicesMs;
             stats.totalCreateVertIndTime += frameGenerator.stats.timeToCreateVertIndMs;
             stats.totalCreateMeshTime += frameGenerator.stats.timeToCreateMeshMs;

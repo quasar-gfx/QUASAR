@@ -360,6 +360,11 @@ int main(int argc, char** argv) {
                     generateRemoteFrame = true;
                     runAnimations = false;
                 }
+                if (ImGui::DragInt("Force Merge Iterations", &quadsGenerator.maxIterForceMerge, 1, 0, quadsGenerator.numQuadMaps/2)) {
+                    preventCopyingLocalPose = true;
+                    generateRemoteFrame = true;
+                    runAnimations = false;
+                }
             }
 
             ImGui::Separator();
