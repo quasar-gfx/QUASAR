@@ -588,9 +588,9 @@ int main(int argc, char** argv) {
             spdlog::info("Create Proxies Time: {:.3f}ms", multiSimulator.stats.totalCreateProxiesTime);
             spdlog::info("  Gen Quad Map Time: {:.3f}ms", multiSimulator.stats.totalGenQuadMapTime);
             spdlog::info("  Simplify Time: {:.3f}ms", multiSimulator.stats.totalSimplifyTime);
-            spdlog::info("  Fill Quads Time: {:.3f}ms", multiSimulator.stats.totalFillQuadsTime);
+            spdlog::info("  Gather Quads Time: {:.3f}ms", multiSimulator.stats.totalGatherQuadsTime);
             spdlog::info("Create Mesh Time: {:.3f}ms", multiSimulator.stats.totalCreateMeshTime);
-            spdlog::info("  Append Quads Time: {:.3f}ms", multiSimulator.stats.totalAppendProxiesTime);
+            spdlog::info("  Append Quads Time: {:.3f}ms", multiSimulator.stats.totalAppendQuadsTime);
             spdlog::info("  Fill Output Quads Time: {:.3f}ms", multiSimulator.stats.totalFillQuadsIndiciesTime);
             spdlog::info("  Create Vert/Ind Time: {:.3f}ms", multiSimulator.stats.totalCreateVertIndTime);
             spdlog::info("Compress Time: {:.3f}ms", multiSimulator.stats.totalCompressTime);

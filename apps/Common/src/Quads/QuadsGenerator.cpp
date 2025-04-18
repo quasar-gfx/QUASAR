@@ -23,8 +23,8 @@ QuadsGenerator::QuadsGenerator(glm::uvec2 &remoteWindowSize)
                 "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
             }
         })
-        , fillOutputQuadsShader({
-            .computeCodePath = "shaders/fillOutputQuads.comp",
+        , gatherQuadsShader({
+            .computeCodePath = "shaders/gatherQuads.comp",
             .defines = {
                 "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
             }
@@ -184,7 +184,7 @@ void QuadsGenerator::simplifyQuadMaps(const PerspectiveCamera &remoteCamera, con
     simplifyQuadMapShader.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
-void QuadsGenerator::fillOutputQuads(const glm::vec2 &gBufferSize) {
+void QuadsGenerator::gatherOutputQuads(const glm::vec2 &gBufferSize) {
     /*
     ============================
     THIRD PASS: Fill output quads buffer
@@ -197,32 +197,32 @@ void QuadsGenerator::fillOutputQuads(const glm::vec2 &gBufferSize) {
         }
     }
 
-    fillOutputQuadsShader.bind();
+    gatherQuadsShader.bind();
     {
-        fillOutputQuadsShader.setVec2("gBufferSize", gBufferSize);
+        gatherQuadsShader.setVec2("gBufferSize", gBufferSize);
     }
     for (int i = closestQuadMapIdx; i < numQuadMaps; i++) {
         auto& currQuadBuffers = quadBuffers[i];
         auto& currQuadMapSize = quadMapSizes[i];
 
         {
-            fillOutputQuadsShader.setVec2("quadMapSize", currQuadMapSize);
+            gatherQuadsShader.setVec2("quadMapSize", currQuadMapSize);
         }
         {
-            fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, sizesBuffer);
+            gatherQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, sizesBuffer);
 
-            fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, currQuadBuffers.normalSphericalsBuffer);
-            fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, currQuadBuffers.depthsBuffer);
-            fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, currQuadBuffers.offsetSizeFlattenedsBuffer);
+            gatherQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, currQuadBuffers.normalSphericalsBuffer);
+            gatherQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, currQuadBuffers.depthsBuffer);
+            gatherQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, currQuadBuffers.offsetSizeFlattenedsBuffer);
 
-            fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, outputQuadBuffers.normalSphericalsBuffer);
-            fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, outputQuadBuffers.depthsBuffer);
-            fillOutputQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, outputQuadBuffers.offsetSizeFlattenedsBuffer);
+            gatherQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, outputQuadBuffers.normalSphericalsBuffer);
+            gatherQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, outputQuadBuffers.depthsBuffer);
+            gatherQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, outputQuadBuffers.offsetSizeFlattenedsBuffer);
         }
-        fillOutputQuadsShader.dispatch((currQuadMapSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+        gatherQuadsShader.dispatch((currQuadMapSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
                                        (currQuadMapSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
     }
-    fillOutputQuadsShader.memoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
+    gatherQuadsShader.memoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 }
 
 void QuadsGenerator::createProxiesFromGBuffer(
@@ -240,8 +240,8 @@ void QuadsGenerator::createProxiesFromGBuffer(
     stats.timeToSimplifyQuadsMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     startTime = timeutils::getTimeMicros();
-    fillOutputQuads(gBufferSize);
-    stats.timeToFillOutputQuadsMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+    gatherOutputQuads(gBufferSize);
+    stats.timeToGatherQuadsMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 }
 
 #ifdef GL_CORE

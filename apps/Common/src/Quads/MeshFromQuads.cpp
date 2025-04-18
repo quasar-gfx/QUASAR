@@ -12,8 +12,8 @@ MeshFromQuads::MeshFromQuads(glm::uvec2 &remoteWindowSize, unsigned int maxNumPr
         , currentQuadBuffers(maxProxies)
         , quadIndicesBuffer(GL_SHADER_STORAGE_BUFFER, remoteWindowSize.x * remoteWindowSize.y, sizeof(unsigned int), nullptr, GL_DYNAMIC_DRAW)
         , quadCreatedFlagsBuffer(GL_SHADER_STORAGE_BUFFER, maxProxies, sizeof(int), nullptr, GL_DYNAMIC_DRAW)
-        , appendProxiesShader({
-            .computeCodePath = "shaders/appendProxies.comp",
+        , appendQuadsShader({
+            .computeCodePath = "shaders/appendQuads.comp",
             .defines = {
                 "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
             }
@@ -40,34 +40,34 @@ MeshFromQuads::BufferSizes MeshFromQuads::getBufferSizes() {
     return bufferSizes;
 }
 
-void MeshFromQuads::appendProxies(
+void MeshFromQuads::appendQuads(
         const glm::uvec2 &gBufferSize,
         unsigned int numProxies,
         const QuadBuffers &newQuadBuffers,
         bool refFrame) {
     double startTime = timeutils::getTimeMicros();
 
-    appendProxiesShader.bind();
+    appendQuadsShader.bind();
     {
-        appendProxiesShader.setBool("refFrame", refFrame);
-        appendProxiesShader.setUint("newNumProxies", numProxies);
+        appendQuadsShader.setBool("refFrame", refFrame);
+        appendQuadsShader.setUint("newNumProxies", numProxies);
     }
     {
-        appendProxiesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currNumProxiesBuffer);
-        appendProxiesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, prevNumProxiesBuffer);
+        appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currNumProxiesBuffer);
+        appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, prevNumProxiesBuffer);
 
-        appendProxiesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, newQuadBuffers.normalSphericalsBuffer);
-        appendProxiesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, newQuadBuffers.depthsBuffer);
-        appendProxiesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, newQuadBuffers.offsetSizeFlattenedsBuffer);
+        appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, newQuadBuffers.normalSphericalsBuffer);
+        appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, newQuadBuffers.depthsBuffer);
+        appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, newQuadBuffers.offsetSizeFlattenedsBuffer);
 
-        appendProxiesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, currentQuadBuffers.normalSphericalsBuffer);
-        appendProxiesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, currentQuadBuffers.depthsBuffer);
-        appendProxiesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, currentQuadBuffers.offsetSizeFlattenedsBuffer);
+        appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, currentQuadBuffers.normalSphericalsBuffer);
+        appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, currentQuadBuffers.depthsBuffer);
+        appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, currentQuadBuffers.offsetSizeFlattenedsBuffer);
     }
-    appendProxiesShader.dispatch(((numProxies + 1) + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
-    appendProxiesShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    appendQuadsShader.dispatch(((numProxies + 1) + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
+    appendQuadsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-    stats.timeToAppendProxiesMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+    stats.timeToappendQuadsMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     fillQuadIndices(gBufferSize);
 }
@@ -93,7 +93,7 @@ void MeshFromQuads::fillQuadIndices(const glm::uvec2 &gBufferSize) {
     fillQuadIndicesShader.dispatch((MAX_NUM_PROXIES + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
     fillQuadIndicesShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-    stats.timeToFillOutputQuadsMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+    stats.timeToGatherQuadsMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 }
 
 void MeshFromQuads::createMeshFromProxies(

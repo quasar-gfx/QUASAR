@@ -36,10 +36,10 @@ public:
     uint64_t framesSent = 0;
 
     struct Stats {
-        float timeToEncodeMs = -1.0f;
-        float timeToCopyFrameMs = -1.0f;
-        float timeToSendMs = -1.0f;
-        float totalTimeToSendMs = -1.0f;
+        float timeToEncodeMs = 0.0f;
+        float timeToCopyFrameMs = 0.0f;
+        float timeToSendMs = 0.0f;
+        float totalTimeToSendMs = 0.0f;
         float bitrateMbps = 0.0f;
     } stats;
 

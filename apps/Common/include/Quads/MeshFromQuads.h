@@ -38,8 +38,8 @@ public:
     };
 
     struct Stats {
-        double timeToAppendProxiesMs = 0.0f;
-        double timeToFillOutputQuadsMs = 0.0f;
+        double timeToappendQuadsMs = 0.0f;
+        double timeToGatherQuadsMs = 0.0f;
         double timeToCreateMeshMs = 0.0f;
     } stats;
 
@@ -52,7 +52,7 @@ public:
     MeshFromQuads(glm::uvec2 &remoteWindowSize, unsigned int maxNumProxies = MAX_NUM_PROXIES);
     ~MeshFromQuads() = default;
 
-    void appendProxies(
+    void appendQuads(
             const glm::uvec2 &gBufferSize,
             unsigned int numProxies,
             const QuadBuffers &newQuadBuffers,
@@ -77,7 +77,7 @@ private:
     Buffer quadCreatedFlagsBuffer;
     Buffer quadIndicesBuffer;
 
-    ComputeShader appendProxiesShader;
+    ComputeShader appendQuadsShader;
     ComputeShader fillQuadIndicesShader;
     ComputeShader createMeshFromQuadsShader;
 };

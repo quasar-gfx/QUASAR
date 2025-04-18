@@ -20,7 +20,7 @@ public:
     struct Stats {
         double timeToGenerateQuadsMs = 0.0f;
         double timeToSimplifyQuadsMs = 0.0f;
-        double timeToFillOutputQuadsMs = 0.0f;
+        double timeToGatherQuadsMs = 0.0f;
     } stats;
 
     bool expandEdges = false;
@@ -59,11 +59,11 @@ private:
 
     ComputeShader genQuadMapShader;
     ComputeShader simplifyQuadMapShader;
-    ComputeShader fillOutputQuadsShader;
+    ComputeShader gatherQuadsShader;
 
     void generateInitialQuadMap(const FrameRenderTarget& frameRT, const glm::vec2 &gBufferSize, const PerspectiveCamera &remoteCamera);
     void simplifyQuadMaps(const PerspectiveCamera &remoteCamera, const glm::vec2 &gBufferSize);
-    void fillOutputQuads(const glm::vec2 &gBufferSize);
+    void gatherOutputQuads(const glm::vec2 &gBufferSize);
 };
 
 } // namespace quasar

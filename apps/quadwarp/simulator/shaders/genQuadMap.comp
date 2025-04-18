@@ -3,7 +3,6 @@ layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = THREADS_PER_LOCALGR
 struct QuadMapData {
     vec3 normal;
     float depth;
-    vec2 uv;
     uvec2 offset;
     uint size;
     bool flattened;
@@ -451,19 +450,21 @@ void createSurfels(
     surfelView.topRight    = surfelViewTopRight;
 }
 
-uint packNormalToSphericalHalf(vec3 normal) {
-    float theta = atan(normal.z, normal.x);
-    float phi = acos(normal.y);
+uint packNormalToSpherical(vec3 normal) {
+    // convert to spherical coordinates
+    float theta = acos(clamp(normal.y, -1.0, 1.0)); // elevation
+    float phi = atan(normal.z, normal.x);           // azimuth
 
-    float theta01 = (theta + PI) / (2.0 * PI);
-    float phi01 = phi / PI;
+    float thetaSnorm = (theta / PI) * 2.0 - 1.0;
+    float phiSnorm = phi / PI;
 
-    return packHalf2x16(vec2(theta01, phi01));
+    // pack into lower two components, pad upper two with 0
+    return packSnorm4x8(vec4(thetaSnorm, phiSnorm, 0.0, 0.0));
 }
 
-void storeInQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
+void storeQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
     QuadMapDataPacked quadMapDataPacked;
-    quadMapDataPacked.normalSpherical = packNormalToSphericalHalf(quadMapData.normal);
+    quadMapDataPacked.normalSpherical = packNormalToSpherical(quadMapData.normal);
     quadMapDataPacked.depth = quadMapData.depth;
 
     uint flattenedAndSize = ((quadMapData.size & 0x7Fu) << 1) | (quadMapData.flattened ? 1u : 0u);
@@ -510,8 +511,6 @@ void storeSurfelsInQuadMap(
     // project the center of the quad onto the proxy plane to find uv for proxy plane
     vec3 planeCenterPt = pointPlaneIntersection(quadCenterNearPlane, proxyPlane);
     vec3 proxyPlaneNDC = viewToNDC(projection, planeCenterPt);
-    vec2 proxyPlaneUV = (proxyPlaneNDC.xy + 1.0) / 2.0;
-
     float proxyPlaneDepth = min(proxyPlaneNDC.z, MAX_DEPTH);
 
     // if all surfels are below the threshold, then the plane is considered flattened
@@ -545,14 +544,13 @@ void storeSurfelsInQuadMap(
 
     QuadMapData quadMapData;
     quadMapData.flattened = flattened;
-    quadMapData.uv = proxyPlaneUV;
     quadMapData.depth = proxyPlaneDepth;
     quadMapData.normal = proxyPlaneNormal;
     quadMapData.offset = uvec2(pixelCoord);
     quadMapData.size = 1; // 2x2 surfels, store as a power of 2
-    storeInQuadMap(pixelCoord, quadMapData);
+    storeQuadMap(pixelCoord, quadMapData);
 
-    // store empty depth offsets if the proxy plane is flat
+    // store empty depth offsets if the proxy plane is flattened
     if (quadMapData.flattened) {
         depthOffsetsBottomLeft  = vec4(0.0);
         depthOffsetsBottomRight = vec4(0.0);
@@ -595,7 +593,7 @@ void main() {
     // store an empty plane to clear the output quad map
     QuadMapData ignoredQuadMapData;
     ignoredQuadMapData.size = 0;
-    storeInQuadMap(pixelCoord, ignoredQuadMapData);
+    storeQuadMap(pixelCoord, ignoredQuadMapData);
 
     // calculate coords (see above)
     vec2 surfelCornerCoordBottomLeft = vec2(pixelCoord);

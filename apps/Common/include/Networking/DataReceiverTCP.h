@@ -16,7 +16,7 @@ namespace quasar {
 class DataReceiverTCP {
 public:
     struct Stats {
-        float timeToReceiveMs = -1.0f;
+        float timeToReceiveMs = 0.0f;
         float bitrateMbps = 0.0f;
     };
 

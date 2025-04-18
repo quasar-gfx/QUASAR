@@ -187,7 +187,7 @@ int main(int argc, char** argv) {
         const glm::vec2 gBufferSize = glm::vec2(colorTextures[view].width, colorTextures[view].height);
 
         startTime = window->getTime();
-        meshFromQuads.appendProxies(
+        meshFromQuads.appendQuads(
             gBufferSize,
             numProxies, quadBuffers
         );

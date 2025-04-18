@@ -80,9 +80,9 @@ public:
         double totalCreateProxiesTime = 0.0;
         double totalGenQuadMapTime = 0.0;
         double totalSimplifyTime = 0.0;
-        double totalFillQuadsTime = 0.0;
+        double totalGatherQuadsTime = 0.0;
         double totalCreateMeshTime = 0.0;
-        double totalAppendProxiesTime = 0.0;
+        double totalAppendQuadsTime = 0.0;
         double totalFillQuadsIndiciesTime = 0.0;
         double totalCreateVertIndTime = 0.0;
         double totalGenDepthTime = 0.0;
@@ -413,10 +413,10 @@ public:
 
             stats.totalGenQuadMapTime += frameGenerator.stats.timeToGenerateQuadsMs;
             stats.totalSimplifyTime += frameGenerator.stats.timeToSimplifyQuadsMs;
-            stats.totalFillQuadsTime += frameGenerator.stats.timeToFillOutputQuadsMs;
+            stats.totalGatherQuadsTime += frameGenerator.stats.timeToGatherQuadsMs;
             stats.totalCreateProxiesTime += frameGenerator.stats.timeToCreateProxiesMs;
 
-            stats.totalAppendProxiesTime += frameGenerator.stats.timeToAppendProxiesMs;
+            stats.totalAppendQuadsTime += frameGenerator.stats.timeToappendQuadsMs;
             stats.totalFillQuadsIndiciesTime += frameGenerator.stats.timeToFillQuadIndicesMs;
             stats.totalCreateVertIndTime += frameGenerator.stats.timeToCreateVertIndMs;
             stats.totalCreateMeshTime += frameGenerator.stats.timeToCreateMeshMs;
@@ -446,11 +446,11 @@ public:
 
                     stats.totalGenQuadMapTime += frameGenerator.stats.timeToGenerateQuadsMs;
                     stats.totalSimplifyTime += frameGenerator.stats.timeToSimplifyQuadsMs;
-                    stats.totalFillQuadsTime += frameGenerator.stats.timeToFillOutputQuadsMs;
+                    stats.totalGatherQuadsTime += frameGenerator.stats.timeToGatherQuadsMs;
                     stats.totalCreateProxiesTime += frameGenerator.stats.timeToCreateProxiesMs;
 
-                    stats.totalAppendProxiesTime += frameGenerator.stats.timeToAppendProxiesMs;
-                    stats.totalFillQuadsIndiciesTime += frameGenerator.stats.timeToFillOutputQuadsMs;
+                    stats.totalAppendQuadsTime += frameGenerator.stats.timeToappendQuadsMs;
+                    stats.totalFillQuadsIndiciesTime += frameGenerator.stats.timeToGatherQuadsMs;
                     stats.totalCreateVertIndTime += frameGenerator.stats.timeToCreateVertIndMs;
                     stats.totalCreateMeshTime += frameGenerator.stats.timeToCreateMeshMs;
 

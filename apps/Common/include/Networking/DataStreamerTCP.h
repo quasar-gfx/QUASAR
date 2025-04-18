@@ -21,7 +21,7 @@ public:
     int maxDataSize;
 
     struct Stats {
-        float timeToSendMs = -1.0f;
+        float timeToSendMs = 0.0f;
         float bitrateMbps = 0.0f;
     } stats;
 

@@ -29,10 +29,10 @@ public:
     std::string formatName;
 
     struct Stats {
-        float timeToReceiveMs = -1.0f;
-        float timeToDecodeMs = -1.0f;
-        float timeToResizeMs = -1.0f;
-        float totalTimeToReceiveMs = -1.0f;
+        float timeToReceiveMs = 0.0f;
+        float timeToDecodeMs = 0.0f;
+        float timeToResizeMs = 0.0f;
+        float totalTimeToReceiveMs = 0.0f;
         float bitrateMbps = 0.0f;
     } stats;
 

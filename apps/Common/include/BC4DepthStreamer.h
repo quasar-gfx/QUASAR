@@ -36,11 +36,11 @@ public:
     unsigned int width, height;
 
     struct Stats {
-        float timeToCopyFrameMs = -1.0f;
-        float timeToCompressMs = -1.0f;
-        float timeToSendMs = -1.0f;
+        float timeToCopyFrameMs = 0.0f;
+        float timeToCompressMs = 0.0f;
+        float timeToSendMs = 0.0f;
         float bitrateMbps = 0.0f;
-        float compressionRatio = -1.0f;
+        float compressionRatio = 0.0f;
     } stats;
 
     BC4DepthStreamer(const RenderTargetCreateParams &params, const std::string &receiverURL = "");

@@ -8,7 +8,6 @@ struct Vertex {
 struct QuadMapData {
     vec3 normal;
     float depth;
-    vec2 uv;
     uvec2 offset;
     uint size;
     bool flattened;
@@ -169,17 +168,22 @@ vec3 lineLineIntersection(vec3 p0, vec3 p1, vec3 p2, vec3 p3) {
     return intersectionPoint;
 }
 
-vec3 unpackSphericalToNormalHalf(uint packedNormal) {
-    vec2 spherical01 = unpackHalf2x16(packedNormal);
+vec3 unpackSphericalToNormal(uint packedNormal) {
+    vec4 unpacked = unpackSnorm4x8(packedNormal);
 
-    float theta = spherical01.x * (2.0 * PI) - PI;
-    float phi = spherical01.y * PI;
+    float thetaSnorm = unpacked.x;
+    float phiSnorm = unpacked.y;
 
-    return vec3(
-        sin(phi) * cos(theta),
-        cos(phi),
-        sin(phi) * sin(theta)
-    );
+    float theta = (thetaSnorm + 1.0) * 0.5 * PI;
+    float phi = phiSnorm * PI;
+
+    // ceconstruct normal from spherical coords
+    float y = cos(theta);
+    float r = sin(theta);
+    float x = r * cos(phi);
+    float z = r * sin(phi);
+
+    return normalize(vec3(x, y, z));
 }
 
 QuadMapData loadQuadMap(uint index) {
@@ -189,7 +193,7 @@ QuadMapData loadQuadMap(uint index) {
     quadMapDataPacked.offsetSizeFlattened = offsetSizeFlattenedsInput[index];
 
     QuadMapData quadMapData;
-    quadMapData.normal = unpackSphericalToNormalHalf(quadMapDataPacked.normalSpherical);
+    quadMapData.normal = unpackSphericalToNormal(quadMapDataPacked.normalSpherical);
     quadMapData.depth = quadMapDataPacked.depth;
 
     quadMapData.offset.x = (quadMapDataPacked.offsetSizeFlattened >> 20) & 0xFFFu;
@@ -198,9 +202,6 @@ QuadMapData loadQuadMap(uint index) {
     uint flattenedAndSize = quadMapDataPacked.offsetSizeFlattened & 0xFFu;
     quadMapData.size = (flattenedAndSize >> 1) & 0x7Fu;
     quadMapData.flattened = (flattenedAndSize & 1u) != 0u;
-
-    uint halfSize = 1u << (quadMapData.size - 1u); // 2^size / 2
-    quadMapData.uv = (vec2(quadMapData.offset) + float(halfSize) * vec2(0.5)) / remoteWindowSize;
 
     return quadMapData;
 }
@@ -217,7 +218,8 @@ uint loadQuadMapIndex(ivec2 pixelCoords) {
 Plane quadMapDataToPlane(in QuadMapData quadMapData) {
     Plane proxyPlane;
 
-    vec2 proxyPlaneUV = quadMapData.uv;
+    uint halfSize = 1u << (quadMapData.size - 1u); // 2^size / 2
+    vec2 proxyPlaneUV =(vec2(quadMapData.offset) + float(halfSize) * vec2(0.5)) / remoteWindowSize;
     float proxyPlaneDepth = quadMapData.depth;
     proxyPlane.normal = quadMapData.normal;
 
@@ -362,7 +364,8 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
     // extract the plane normal and point from the quad map
     Plane proxyPlane = quadMapDataToPlane(quadMapData);
 
-    vec2 proxyPlaneUV = quadMapData.uv;
+    uint halfSize = 1u << (quadMapData.size - 1u); // 2^size / 2
+    vec2 proxyPlaneUV = (vec2(quadMapData.offset) + float(halfSize) * vec2(0.5)) / remoteWindowSize;
     vec2 proxyPlanePixelCoords = vec2(proxyPlaneUV * remoteWindowSize);
 
     uint size = 1u << quadMapData.size;

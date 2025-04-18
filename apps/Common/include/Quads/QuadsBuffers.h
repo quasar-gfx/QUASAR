@@ -16,18 +16,17 @@ namespace quasar {
 struct QuadMapData {
     glm::vec3 normal;
     float depth;
-    glm::vec2 uv;
     glm::ivec2 offset;
     unsigned int size;
     bool flattened;
 };
 
 struct QuadMapDataPacked {
-    // normal converted into spherical coordinates. theta, phi (16 bits each) packed into 32 bits
+    // normal converted into spherical coordinates. 16 bits of padding + theta, phi (8 bits each) packed into 16 bits.
     unsigned int normalSpherical;
-    // full resolution depth (32 bits)
+    // full resolution depth. 32 bits used.
     float depth;
-    // offset.x << 20 | offset.y << 8 (12 bits each) | size << 1 (6 bits) | flattened (1 bit). 31 bits used
+    // offset.x << 20 | offset.y << 8 (12 bits each) | size << 1 (6 bits) | flattened (1 bit). 31 bits used.
     unsigned int offsetSizeFlattened;
 }; // 96 bits total
 

@@ -610,9 +610,9 @@ int main(int argc, char** argv) {
             spdlog::info("Create Proxies Time ({}): {:.3f}ms", frameType, dpSimulator.stats.totalCreateProxiesTime);
             spdlog::info("  Gen Quad Map Time ({}): {:.3f}ms", frameType, dpSimulator.stats.totalGenQuadMapTime);
             spdlog::info("  Simplify Time ({}): {:.3f}ms", frameType, dpSimulator.stats.totalSimplifyTime);
-            spdlog::info("  Fill Quads Time ({}): {:.3f}ms", frameType, dpSimulator.stats.totalFillQuadsTime);
+            spdlog::info("  Gather Quads Time ({}): {:.3f}ms", frameType, dpSimulator.stats.totalGatherQuadsTime);
             spdlog::info("Create Mesh Time ({}): {:.3f}ms", frameType, dpSimulator.stats.totalCreateMeshTime);
-            spdlog::info("  Append Quads Time ({}): {:.3f}ms", frameType, dpSimulator.stats.totalAppendProxiesTime);
+            spdlog::info("  Append Quads Time ({}): {:.3f}ms", frameType, dpSimulator.stats.totalAppendQuadsTime);
             spdlog::info("  Fill Output Quads Time ({}): {:.3f}ms", frameType, dpSimulator.stats.totalFillQuadsIndiciesTime);
             spdlog::info("  Create Vert/Ind Time ({}): {:.3f}ms", frameType, dpSimulator.stats.totalCreateVertIndTime);
             spdlog::info("Compress Time ({}): {:.3f}ms", frameType, dpSimulator.stats.totalCompressTime);
