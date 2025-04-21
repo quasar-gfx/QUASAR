@@ -97,11 +97,11 @@ void QuadsGenerator::generateInitialQuadMap(
         genQuadMapShader.setFloat("far", remoteCamera.getFar());
     }
     {
-        genQuadMapShader.setBool("expandEdges", expandEdges);
-        genQuadMapShader.setBool("correctOrientation", correctOrientation);
-        genQuadMapShader.setFloat("depthThreshold", depthThreshold);
-        genQuadMapShader.setFloat("angleThreshold", glm::radians(angleThreshold));
-        genQuadMapShader.setFloat("flattenThreshold", flattenThreshold);
+        genQuadMapShader.setBool("expandEdges", params.expandEdges);
+        genQuadMapShader.setBool("correctOrientation", params.correctOrientation);
+        genQuadMapShader.setFloat("depthThreshold", params.depthThreshold);
+        genQuadMapShader.setFloat("angleThreshold", glm::radians(params.angleThreshold));
+        genQuadMapShader.setFloat("flattenThreshold", params.flattenThreshold);
     }
     {
         genQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, sizesBuffer);
@@ -150,12 +150,12 @@ void QuadsGenerator::simplifyQuadMaps(const PerspectiveCamera &remoteCamera, con
         simplifyQuadMapShader.setFloat("far", remoteCamera.getFar());
     }
     {
-        simplifyQuadMapShader.setBool("correctOrientation", correctOrientation);
-        simplifyQuadMapShader.setFloat("depthThreshold", depthThreshold);
-        simplifyQuadMapShader.setFloat("angleThreshold", glm::radians(angleThreshold));
-        simplifyQuadMapShader.setFloat("flattenThreshold", flattenThreshold);
-        simplifyQuadMapShader.setFloat("proxySimilarityThreshold", proxySimilarityThreshold);
-        simplifyQuadMapShader.setInt("maxIterForceMerge", maxIterForceMerge);
+        simplifyQuadMapShader.setBool("correctOrientation", params.correctOrientation);
+        simplifyQuadMapShader.setFloat("depthThreshold", params.depthThreshold);
+        simplifyQuadMapShader.setFloat("angleThreshold", glm::radians(params.angleThreshold));
+        simplifyQuadMapShader.setFloat("flattenThreshold", params.flattenThreshold);
+        simplifyQuadMapShader.setFloat("proxySimilarityThreshold", params.proxySimilarityThreshold);
+        simplifyQuadMapShader.setInt("maxIterForceMerge", params.maxIterForceMerge);
     }
     {
         simplifyQuadMapShader.setImageTexture(0, depthOffsets.buffer, 0, GL_FALSE, 0, GL_READ_WRITE, depthOffsets.buffer.internalFormat);

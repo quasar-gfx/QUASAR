@@ -341,32 +341,32 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::CollapsingHeader("Quad Generation Settings")) {
-                if (ImGui::Checkbox("Correct Extreme Normals", &quadsGenerator.correctOrientation)) {
+                if (ImGui::Checkbox("Correct Extreme Normals", &quadsGenerator.params.correctOrientation)) {
                     preventCopyingLocalPose = true;
                     generateRefFrame = true;
                     runAnimations = false;
                 }
-                if (ImGui::DragFloat("Depth Threshold", &quadsGenerator.depthThreshold, 0.0001f, 0.0f, 1.0f, "%.4f")) {
+                if (ImGui::DragFloat("Depth Threshold", &quadsGenerator.params.depthThreshold, 0.0001f, 0.0f, 1.0f, "%.4f")) {
                     preventCopyingLocalPose = true;
                     generateRefFrame = true;
                     runAnimations = false;
                 }
-                if (ImGui::DragFloat("Angle Threshold", &quadsGenerator.angleThreshold, 0.1f, 0.0f, 180.0f)) {
+                if (ImGui::DragFloat("Angle Threshold", &quadsGenerator.params.angleThreshold, 0.1f, 0.0f, 180.0f)) {
                     preventCopyingLocalPose = true;
                     generateRefFrame = true;
                     runAnimations = false;
                 }
-                if (ImGui::DragFloat("Flatten Threshold", &quadsGenerator.flattenThreshold, 0.001f, 0.0f, 1.0f)) {
+                if (ImGui::DragFloat("Flatten Threshold", &quadsGenerator.params.flattenThreshold, 0.001f, 0.0f, 1.0f)) {
                     preventCopyingLocalPose = true;
                     generateRefFrame = true;
                     runAnimations = false;
                 }
-                if (ImGui::DragFloat("Similarity Threshold", &quadsGenerator.proxySimilarityThreshold, 0.001f, 0.0f, 2.0f)) {
+                if (ImGui::DragFloat("Similarity Threshold", &quadsGenerator.params.proxySimilarityThreshold, 0.001f, 0.0f, 2.0f)) {
                     preventCopyingLocalPose = true;
                     generateRefFrame = true;
                     runAnimations = false;
                 }
-                if (ImGui::DragInt("Force Merge Iterations", &quadsGenerator.maxIterForceMerge, 1, 0, quadsGenerator.numQuadMaps/2)) {
+                if (ImGui::DragInt("Force Merge Iterations", &quadsGenerator.params.maxIterForceMerge, 1, 0, quadsGenerator.numQuadMaps/2)) {
                     preventCopyingLocalPose = true;
                     generateRefFrame = true;
                     runAnimations = false;
@@ -678,7 +678,7 @@ int main(int argc, char** argv) {
 
         // render to screen
         blurEdges.enableToneMapping(!showNormals);
-        blurEdges.setDepthThreshold(quadsGenerator.depthThreshold);
+        blurEdges.setDepthThreshold(quadsGenerator.params.depthThreshold);
         blurEdges.drawToScreen(renderer);
         if (!updateClient) {
             return;

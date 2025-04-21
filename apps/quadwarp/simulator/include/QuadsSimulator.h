@@ -233,7 +233,7 @@ public:
         ============================
         */
         unsigned int numProxies = 0, numDepthOffsets = 0;
-        quadsGenerator.expandEdges = false;
+        quadsGenerator.params.expandEdges = false;
         stats.compressedSizeBytes = frameGenerator.generateRefFrame(
             refFrameRT,
             remoteCameraToUse,
@@ -261,7 +261,7 @@ public:
         ============================
         */
         if (generateResFrame) {
-            quadsGenerator.expandEdges = true;
+            quadsGenerator.params.expandEdges = true;
             stats.compressedSizeBytes = frameGenerator.generateResFrame(
                 meshScenes[currMeshIndex], meshScenes[prevMeshIndex],
                 maskTempRT, maskFrameRT,

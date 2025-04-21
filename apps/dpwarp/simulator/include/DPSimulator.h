@@ -56,8 +56,7 @@ public:
     std::vector<Node> depthNodesHidLayer;
 
     // wide fov
-    FrameRenderTarget wideFovRT;
-    std::vector<Node> wideFovNode;
+    std::vector<Node> wideFovNodes;
 
     std::vector<FrameRenderTarget> copyRTs;
 
@@ -144,24 +143,13 @@ public:
                 .minFilter = GL_NEAREST,
                 .magFilter = GL_NEAREST
             })
-            , wideFovRT({
-                .width = quadsGenerator.remoteWindowSize.x,
-                .height = quadsGenerator.remoteWindowSize.y,
-                .internalFormat = GL_RGBA16F,
-                .format = GL_RGBA,
-                .type = GL_HALF_FLOAT,
-                .wrapS = GL_CLAMP_TO_EDGE,
-                .wrapT = GL_CLAMP_TO_EDGE,
-                .minFilter = GL_NEAREST,
-                .magFilter = GL_NEAREST
-            })
             , meshScenes(2) {
         remoteCameraPrev.setViewMatrix(remoteCamera.getViewMatrix());
         remoteCameraPrev.setViewMatrix(remoteCamera.getViewMatrix());
 
         refFrameMeshes.reserve(2);
         refFrameNodes.reserve(2);
-        wideFovNode.reserve(2);
+        wideFovNodes.reserve(2);
         refFrameNodesLocal.reserve(2);
         refFrameWireframesLocal.reserve(2);
 
@@ -244,19 +232,11 @@ public:
         copyRTs.emplace_back(rtParams);
         for (int layer = 0; layer < numHidLayers; layer++) {
             copyRTs.emplace_back(rtParams);
-            if (layer == numHidLayers - 1) {
-                rtParams.width /= 2; rtParams.height /= 2;
-            }
             frameRTsHidLayer.emplace_back(rtParams);
         }
 
         for (int layer = 0; layer < numHidLayers; layer++) {
-            if (layer == numHidLayers - 1) {
-                meshParams.material = new QuadMaterial({ .baseColorTexture = &wideFovRT.colorBuffer });
-            }
-            else {
-                meshParams.material = new QuadMaterial({ .baseColorTexture = &frameRTsHidLayer[layer].colorBuffer });
-            }
+            meshParams.material = new QuadMaterial({ .baseColorTexture = &frameRTsHidLayer[layer].colorBuffer });
             // we can use less vertices and indicies for the hidden layers since they will be sparse
             meshParams.maxVertices = maxVertices / 4;
             meshParams.maxIndices = maxIndices / 4;
@@ -282,9 +262,9 @@ public:
 
         // setup scene to use as mask for wide fov camera
         for (int i = 0; i < 2; i++) {
-            wideFovNode.emplace_back(&refFrameMeshes[i]);
-            wideFovNode[i].frustumCulled = false;
-            sceneWideFov.addChildNode(&wideFovNode[i]);
+            wideFovNodes.emplace_back(&refFrameMeshes[i]);
+            wideFovNodes[i].frustumCulled = false;
+            sceneWideFov.addChildNode(&wideFovNodes[i]);
         }
         for (int i = 0; i < numHidLayers - 1; i++) {
             sceneWideFov.addChildNode(&nodesHidLayer[i]);
@@ -359,8 +339,8 @@ public:
                 // draw old center mesh at new remoteCamera layer, filling stencil buffer with 1
                 remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer(GL_KEEP, GL_KEEP, GL_REPLACE);
                 remoteRenderer.pipeline.writeMaskState.disableColorWrites();
-                wideFovNode[currMeshIndex].visible = false;
-                wideFovNode[prevMeshIndex].visible = true;
+                wideFovNodes[currMeshIndex].visible = false;
+                wideFovNodes[prevMeshIndex].visible = true;
                 remoteRenderer.drawObjectsNoLighting(sceneWideFov, remoteCameraToUse);
 
                 // render remoteScene using stencil buffer as a mask
@@ -373,13 +353,11 @@ public:
 
                 if (!showNormals) {
                     remoteRenderer.copyToFrameRT(frameToUse);
-                    remoteRenderer.copyToFrameRT(wideFovRT);
-                    toneMapper.setUniforms(wideFovRT);
+                    toneMapper.setUniforms(frameToUse);
                     toneMapper.drawToRenderTarget(remoteRenderer, copyRTs[layer], false);
                 }
                 else {
                     showNormalsEffect.drawToRenderTarget(remoteRenderer, frameToUse);
-                    showNormalsEffect.drawToRenderTarget(remoteRenderer, wideFovRT);
                 }
             }
             stats.totalRenderTime += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
@@ -390,12 +368,20 @@ public:
             ============================
             */
             unsigned int numProxies = 0, numDepthOffsets = 0;
-            quadsGenerator.expandEdges = false;
-            if (layer > 0) {
-                quadsGenerator.depthThreshold *= 10.0f;
-                quadsGenerator.flattenThreshold *= 10.0f;
-                quadsGenerator.proxySimilarityThreshold *= 10.0f;
+            auto oldParams = quadsGenerator.params;
+            if (layer == maxLayers - 1) {
+                quadsGenerator.params.maxIterForceMerge = 4;
+                quadsGenerator.params.depthThreshold = 1e-3f;
+                quadsGenerator.params.flattenThreshold = 0.5f;
+                quadsGenerator.params.proxySimilarityThreshold = 5.0f;
             }
+            else if (layer > 0) {
+                quadsGenerator.params.maxIterForceMerge = 4;
+                quadsGenerator.params.depthThreshold = 1e-3f;
+                quadsGenerator.params.flattenThreshold = 0.5f;
+                quadsGenerator.params.proxySimilarityThreshold = 10.0f;
+            }
+            quadsGenerator.params.expandEdges = false;
             unsigned int numBytesIFrame = frameGenerator.generateRefFrame(
                 frameToUse, remoteCameraToUse,
                 meshToUse,
@@ -405,11 +391,7 @@ public:
             if (!generateResFrame) {
                 stats.compressedSizeBytes += numBytesIFrame;
             }
-            if (layer > 0) {
-                quadsGenerator.depthThreshold /= 10.0f;
-                quadsGenerator.flattenThreshold /= 10.0f;
-                quadsGenerator.proxySimilarityThreshold /= 10.0f;
-            }
+            quadsGenerator.params = oldParams;
 
             stats.totalGenQuadMapTime += frameGenerator.stats.timeToGenerateQuadsMs;
             stats.totalSimplifyTime += frameGenerator.stats.timeToSimplifyQuadsMs;
@@ -432,7 +414,7 @@ public:
             */
             if (layer == 0) {
                 if (generateResFrame) {
-                    quadsGenerator.expandEdges = true;
+                    quadsGenerator.params.expandEdges = true;
                     stats.compressedSizeBytes += frameGenerator.generateResFrame(
                         meshScenes[currMeshIndex], meshScenes[prevMeshIndex],
                         maskTempRT, maskFrameRT,

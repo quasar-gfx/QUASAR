@@ -23,13 +23,15 @@ public:
         double timeToGatherQuadsMs = 0.0f;
     } stats;
 
-    bool expandEdges = false;
-    bool correctOrientation = true;
-    float depthThreshold = 1e-4f;
-    float angleThreshold = 87.5f;
-    float flattenThreshold = 0.1f;
-    float proxySimilarityThreshold = 1.0f;
-    int maxIterForceMerge = 2;
+    struct Parameters {
+        bool expandEdges = false;
+        bool correctOrientation = true;
+        float depthThreshold = 1e-4f;
+        float angleThreshold = 87.5f;
+        float flattenThreshold = 0.15f;
+        float proxySimilarityThreshold = 1.0f;
+        int maxIterForceMerge = 2;
+    } params;
 
     glm::uvec2 &remoteWindowSize;
     glm::uvec2 depthBufferSize;
