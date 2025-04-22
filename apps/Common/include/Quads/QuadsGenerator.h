@@ -28,9 +28,9 @@ public:
         bool correctOrientation = true;
         float depthThreshold = 1e-4f;
         float angleThreshold = 87.5f;
-        float flattenThreshold = 0.15f;
-        float proxySimilarityThreshold = 1.0f;
-        int maxIterForceMerge = 2;
+        float flattenThreshold = 0.2f;
+        float proxySimilarityThreshold = 0.5f;
+        int maxIterForceMerge = 3;
     } params;
 
     glm::uvec2 &remoteWindowSize;

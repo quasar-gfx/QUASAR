@@ -667,23 +667,30 @@ void main() {
             return;
         }
 
+        float neighborDepths[8] = float[](
+            pixelDepths.topLeft, pixelDepths.top, pixelDepths.topRight,
+            pixelDepths.left,                     pixelDepths.right,
+            pixelDepths.bottomLeft, pixelDepths.bottom, pixelDepths.bottomRight
+        );
+
+        vec2 neighborCoords[8] = vec2[](
+            pixelNeighborCoords.topLeft, pixelNeighborCoords.top, pixelNeighborCoords.topRight,
+            pixelNeighborCoords.left,                             pixelNeighborCoords.right,
+            pixelNeighborCoords.bottomLeft, pixelNeighborCoords.bottom, pixelNeighborCoords.bottomRight
+        );
+
         bool hasValidNeighbor = false;
-        float furthestDepth = 0.0; vec3 furthestColor, furthestNormal;
-        // sample around the center pixel to find a the best neighbor
-        for (int i = -1; i <= 1; i++) {
-            for (int j = -1; j <= 1; j++) {
-                if (i == 0 && j == 0) {
-                    continue;
-                }
+        float closestDepth = 0.0;
+        vec3 closestColor = vec3(0.0);
+        vec3 closestNormal = vec3(0.0);
 
-                float depth = sampleDepth(depthMap, ivec2(pixelCoord) + ivec2(i, j));
-                if (isValidDepth(depth) && depth > furthestDepth) {
-                    hasValidNeighbor = true;
-
-                    furthestDepth = depth;
-                    furthestNormal = normalToView(view, sampleNormal(normalsMap, ivec2(pixelCoord) + ivec2(i, j)));
-                    furthestColor = imageLoad(colorMap, ivec2(pixelCoord) + ivec2(i, j)).rgb;
-                }
+        for (int i = 0; i < 8; i++) {
+            float depth = neighborDepths[i];
+            if (isValidDepth(depth) && depth > closestDepth) {
+                hasValidNeighbor = true;
+                closestDepth = depth;
+                closestColor = imageLoad(colorMap, ivec2(neighborCoords[i])).rgb;
+                closestNormal = normalToView(view, sampleNormal(normalsMap, ivec2(neighborCoords[i])));
             }
         }
 
@@ -691,15 +698,11 @@ void main() {
             return;
         }
 
-        pixelDepths.center = furthestDepth;
-        pixelNormalsView.center = furthestNormal;
-        for (int i = -1; i <= 1; i++) {
-            for (int j = -1; j <= 1; j++) {
-                if (i == 0 && j == 0) {
-                    continue;
-                }
-                imageStore(colorMap, ivec2(pixelCoord) + ivec2(i, j), vec4(furthestColor, 1.0));
-            }
+        pixelDepths.center = closestDepth;
+        pixelNormalsView.center = closestNormal;
+
+        for (int i = 0; i < 8; i++) {
+            imageStore(colorMap, ivec2(neighborCoords[i]), vec4(closestColor, 1.0));
         }
     }
 
