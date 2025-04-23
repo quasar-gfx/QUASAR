@@ -134,7 +134,7 @@ int main(int argc, char** argv) {
     // Create material with the color texture
     QuadMaterial* quadMaterial = new QuadMaterial({ 
         .baseColor = glm::vec4(1.0f), 
-        .baseColorTexture = &colorTexture 
+        .baseColorTexture = &videoTexture 
     });
     
     // Create mesh with the material
@@ -380,20 +380,20 @@ int main(int argc, char** argv) {
                 
                 // Clear previous data and update with new data
                 spdlog::info("Appending {} proxies to mesh...", totalProxies);
-                // meshFromQuads.appendQuads(
-                //     gBufferSize,
-                //     totalProxies,
-                //     quadBuffers
-                // );
+                meshFromQuads.appendQuads(
+                    gBufferSize,
+                    totalProxies,
+                    quadBuffers
+                );
                 
-                // spdlog::info("Creating mesh from proxies...");
-                // meshFromQuads.createMeshFromProxies(
-                //     gBufferSize,
-                //     totalProxies, 
-                //     depthOffsets,
-                //     remoteCamera,
-                //     *mesh
-                // );
+                spdlog::info("Creating mesh from proxies...");
+                meshFromQuads.createMeshFromProxies(
+                    gBufferSize,
+                    totalProxies, 
+                    depthOffsets,
+                    remoteCamera,
+                    *mesh
+                );
                 
                 createMeshTime = timeutils::secondsToMillis(window->getTime() - startTime);
                 

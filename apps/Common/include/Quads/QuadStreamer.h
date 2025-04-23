@@ -129,6 +129,7 @@ public:
         double startTime = timeutils::getTimeMicros();
     
         startTime = timeutils::getTimeMicros();
+        copyRT.blitToRenderTarget(videoStreamerRT);
         videoStreamerRT.sendFrame(poseID); // from constructor
         stats.videoSendTimeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
@@ -163,10 +164,11 @@ private:
     std::string videoFormat;
     int targetBitrate;
     
+    VideoStreamer videoStreamerRT;
+    
     SocketTCP* quadSocket;
     bool quadSocketConnected;
     
-    VideoStreamer videoStreamerRT;
     uint64_t poseID;
     
     bool setupQuadSocket() {
