@@ -362,7 +362,9 @@ int main(int argc, char** argv) {
             remoteRenderer.drawObjects(remoteScene, remoteCamera);
 
             // copy rendered result to video render target
+            toneMapper.enableToneMapping(true);
             toneMapper.drawToRenderTarget(remoteRenderer, renderTarget);
+            toneMapper.enableToneMapping(false);
 
             spdlog::info("======================================================");
             spdlog::info("Rendering Time: {:.3f}ms", timeutils::secondsToMillis(window->getTime() - startTime));

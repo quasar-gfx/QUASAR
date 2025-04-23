@@ -378,8 +378,6 @@ public:
             else if (layer > 0) {
                 quadsGenerator.params.maxIterForceMerge = 4;
                 quadsGenerator.params.depthThreshold = 1e-3f;
-                quadsGenerator.params.flattenThreshold = 0.5f;
-                quadsGenerator.params.proxySimilarityThreshold = 10.0f;
             }
             quadsGenerator.params.expandEdges = false;
             unsigned int numBytesIFrame = frameGenerator.generateRefFrame(
