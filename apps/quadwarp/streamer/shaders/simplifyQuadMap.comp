@@ -1,0 +1,639 @@
+layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = THREADS_PER_LOCALGROUP, local_size_z = 1) in;
+
+struct QuadMapData {
+    vec3 normal;
+    float depth;
+    uvec2 offset;
+    uint size;
+    bool flattened;
+};
+
+struct QuadMapDataPacked {
+    uint normalSpherical;
+    float depth;
+    uint offsetSizeFlattened;
+};
+
+struct Quad {
+    vec3 bottomLeft;
+    vec3 bottomRight;
+    vec3 topLeft;
+    vec3 topRight;
+};
+
+struct Quad2D {
+    vec2 bottomLeft;
+    vec2 bottomRight;
+    vec2 topLeft;
+    vec2 topRight;
+};
+
+// a Quad subdivided into 4 smaller Quads
+struct MultiQuad {
+    vec3 bottomLeft;
+    vec3 bottom;
+    vec3 bottomRight;
+    vec3 left;
+    vec3 center;
+    vec3 right;
+    vec3 topLeft;
+    vec3 top;
+    vec3 topRight;
+};
+
+struct Multivec4 {
+    float bottomLeft;
+    float bottom;
+    float bottomRight;
+    float left;
+    float center;
+    float right;
+    float topLeft;
+    float top;
+    float topRight;
+};
+
+struct MultiQuad2D {
+    vec2 bottomLeft;
+    vec2 bottom;
+    vec2 bottomRight;
+    vec2 left;
+    vec2 center;
+    vec2 right;
+    vec2 topLeft;
+    vec2 top;
+    vec2 topRight;
+};
+
+struct Plane {
+    vec3 normal;
+    vec3 point;
+};
+
+layout(std430, binding = 0) readonly buffer NormalSphericalsBufferInput {
+    uint normalSphericalsInput[];
+};
+
+layout(std430, binding = 1) readonly buffer DepthBufferInput {
+    float depthsInput[];
+};
+
+layout(std430, binding = 2) buffer OffsetsBufferInput {
+    uint offsetSizeFlattenedsInput[];
+};
+
+layout(std430, binding = 3) writeonly buffer NormalSphericalsBufferOutput {
+    uint normalSphericalsOutput[];
+};
+
+layout(std430, binding = 4) writeonly buffer DepthsBufferOutput {
+    float depthsOutput[];
+};
+
+layout(std430, binding = 5) writeonly buffer OffsetsBufferOutput {
+    uint offsetSizeFlattenedsOutput[];
+};
+
+layout(rgba16f, binding = 0) uniform image2D depthOffsetsBuffer;
+
+uniform vec2 gBufferSize;
+uniform vec2 depthBufferSize;
+uniform vec2 inputQuadMapSize;
+uniform vec2 outputQuadMapSize;
+
+uniform mat4 view;
+uniform mat4 projection;
+uniform mat4 viewInverse;
+uniform mat4 projectionInverse;
+uniform float near;
+uniform float far;
+
+uniform int iter;
+
+uniform bool correctOrientation;
+uniform float depthThreshold;
+uniform float angleThreshold;
+uniform float flattenThreshold;
+uniform float proxySimilarityThreshold;
+uniform int maxIterForceMerge;
+
+#define MAX_DEPTH 0.9999
+
+const float epsilon = 1e-5;
+const float surfelSize = 0.5;
+const float PI = 3.1415926535897932384626433832795;
+
+const vec3 origin = vec3(0.0, 0.0, 0.0);
+const vec3 forward = vec3(0.0, 0.0, -1.0);
+
+vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
+    vec4 ndcPos;
+    ndcPos.xy = ndc;
+    ndcPos.z = depth * 2.0 - 1.0;
+    ndcPos.w = 1.0;
+
+    vec4 viewCoord = projectionInverse * ndcPos;
+    viewCoord = viewCoord / viewCoord.w;
+    return viewCoord.xyz;
+}
+
+vec3 viewToNDC(mat4 projection, vec3 viewCoord) {
+    vec4 ndcCoord = projection * vec4(viewCoord, 1.0);
+    ndcCoord = ndcCoord / ndcCoord.w;
+    ndcCoord.z = (ndcCoord.z + 1.0) / 2.0;
+    return ndcCoord.xyz;
+}
+
+vec3 viewToWorld(mat4 viewInverse, vec3 viewCoord) {
+    vec4 worldCoord = viewInverse * vec4(viewCoord, 1.0);
+    worldCoord = worldCoord / worldCoord.w;
+    return worldCoord.xyz;
+}
+
+vec3 worldToView(mat4 view, vec3 worldCoord) {
+    vec4 viewCoord = view * vec4(worldCoord, 1.0);
+    viewCoord = viewCoord / viewCoord.w;
+    return viewCoord.xyz;
+}
+
+vec2 viewToScreen(mat4 projection, vec3 viewCoord) {
+    vec2 ndc = viewToNDC(projection, viewCoord).xy;
+    vec2 uv = (ndc + 1.0) / 2.0;
+    return uv;
+}
+
+bool isValidDepth(float depth) {
+    return depth != 0.0 && depth < MAX_DEPTH;
+}
+
+vec3 normalToView(mat4 view, vec3 normalWorld) {
+    // skybox normals might be NaN, just set normal to face the camera
+    if (any(isnan(normalWorld))) {
+        return -forward;
+    }
+
+    // extract the rotation part of the view matrix
+    mat3 rotationMatrix = mat3(view);
+    return normalize(rotationMatrix * normalWorld);
+}
+
+bool hasDepthDiscontinuity(float depth1, float depth2, float depth3, float depth4) {
+    return abs(depth1 - depth2) >= depthThreshold ||
+           abs(depth1 - depth3) >= depthThreshold ||
+           abs(depth1 - depth4) >= depthThreshold ||
+           abs(depth2 - depth3) >= depthThreshold ||
+           abs(depth2 - depth4) >= depthThreshold ||
+           abs(depth3 - depth4) >= depthThreshold;
+}
+
+float signedDistance(vec3 p1, vec3 p2) {
+    float dist = distance(p1, p2);
+    return (length(p1) > length(p2)) ? -dist : dist;
+}
+
+vec3 rayPlaneIntersection(vec3 rayOrigin, vec3 rayDirection, Plane plane) {
+    float denominator = dot(rayDirection, plane.normal);
+    if (abs(denominator) < epsilon) {
+        return vec3(1.0/0.0);
+    }
+
+    float t = dot(plane.point - rayOrigin, plane.normal) / denominator;
+    if (t < 0.0) {
+        return vec3(1.0/0.0);
+    }
+
+    vec3 intersection = rayOrigin + t * rayDirection;
+    return intersection;
+}
+
+vec3 pointPlaneIntersection(vec3 pt, Plane plane) {
+    vec3 rayDirection = normalize(pt);
+    return rayPlaneIntersection(origin, rayDirection, plane);
+}
+
+bool quadHasExtremeOrientation(in vec3 centerNormal, in vec3 frustumNormalView) {
+    float dotProduct = dot(centerNormal, frustumNormalView);
+    return abs(dotProduct) <= cos(angleThreshold);
+}
+
+vec3 constrainToMaxAngle(in vec3 centerNormal, in vec3 frustumNormalView) {
+    float maxCos = cos(angleThreshold);
+    float dotProduct = dot(centerNormal, frustumNormalView);
+
+    // project the centerNormal onto the plane orthogonal to frustumNormalView
+    vec3 frustumNormalUnit = normalize(frustumNormalView);
+    vec3 projectedNormal = centerNormal - dot(centerNormal, frustumNormalUnit) * frustumNormalUnit;
+
+    // normalize the projected normal and scale it to the cone surface
+    vec3 constrainedNormal = normalize(projectedNormal) * sqrt(1.0 - maxCos * maxCos);
+
+    // add the component along the frustumNormalView to make the vector within the cone
+    constrainedNormal += frustumNormalUnit * maxCos;
+    return normalize(constrainedNormal);
+}
+
+uint packNormalToSpherical(vec3 normal) {
+    // convert to spherical coordinates
+    float theta = acos(clamp(normal.y, -1.0, 1.0)); // elevation
+    float phi = atan(normal.z, normal.x);           // azimuth
+
+    float thetaSnorm = (theta / PI) * 2.0 - 1.0;
+    float phiSnorm = phi / PI;
+
+    // pack into lower two components, pad upper two with 0
+    return packSnorm4x8(vec4(thetaSnorm, phiSnorm, 0.0, 0.0));
+}
+
+vec3 unpackSphericalToNormal(uint packedNormal) {
+    vec4 unpacked = unpackSnorm4x8(packedNormal);
+
+    float thetaSnorm = unpacked.x;
+    float phiSnorm = unpacked.y;
+
+    float theta = (thetaSnorm + 1.0) * 0.5 * PI;
+    float phi = phiSnorm * PI;
+
+    // ceconstruct normal from spherical coords
+    float y = cos(theta);
+    float r = sin(theta);
+    float x = r * cos(phi);
+    float z = r * sin(phi);
+
+    return normalize(vec3(x, y, z));
+}
+
+QuadMapData loadInputQuadMap(ivec2 pixelCoord) {
+    uint index = uint(pixelCoord.y) * uint(inputQuadMapSize.x) + uint(pixelCoord.x);
+
+    QuadMapDataPacked quadMapDataPacked;
+    quadMapDataPacked.normalSpherical = normalSphericalsInput[index];
+    quadMapDataPacked.depth = depthsInput[index];
+    quadMapDataPacked.offsetSizeFlattened = offsetSizeFlattenedsInput[index];
+
+    QuadMapData quadMapData;
+    quadMapData.normal = unpackSphericalToNormal(quadMapDataPacked.normalSpherical);
+    quadMapData.depth = quadMapDataPacked.depth;
+
+    quadMapData.offset.x = (quadMapDataPacked.offsetSizeFlattened >> 20) & 0xFFFu;
+    quadMapData.offset.y = (quadMapDataPacked.offsetSizeFlattened >> 8) & 0xFFFu;
+
+    uint flattenedAndSize = quadMapDataPacked.offsetSizeFlattened & 0xFFu;
+    quadMapData.size = (flattenedAndSize >> 1) & 0x7Fu;
+    quadMapData.flattened = (flattenedAndSize & 1u) != 0;
+
+    return quadMapData;
+}
+
+void storeQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
+    QuadMapDataPacked quadMapDataPacked;
+    quadMapDataPacked.normalSpherical = packNormalToSpherical(quadMapData.normal);
+    quadMapDataPacked.depth = quadMapData.depth;
+
+    uint flattenedAndSize = ((quadMapData.size & 0x7Fu) << 1) | (quadMapData.flattened ? 1u : 0u);
+    quadMapDataPacked.offsetSizeFlattened = ((quadMapData.offset.x & 0xFFFu) << 20) |
+                                                    ((quadMapData.offset.y & 0xFFFu) << 8) |
+                                                        (flattenedAndSize & 0xFFu);
+
+    uint index = uint(pixelCoord.y) * uint(outputQuadMapSize.x) + uint(pixelCoord.x);
+    normalSphericalsOutput[index] = quadMapDataPacked.normalSpherical;
+    depthsOutput[index] = quadMapDataPacked.depth;
+    offsetSizeFlattenedsOutput[index] = quadMapDataPacked.offsetSizeFlattened;
+}
+
+void ignoreInputQuadMapData(in ivec2 pixelCoord) {
+    uint index = uint(pixelCoord.y) * uint(inputQuadMapSize.x) + uint(pixelCoord.x);
+    offsetSizeFlattenedsInput[index] = 0;
+}
+
+vec4 loadDepthOffsets(in ivec2 pixelCoord) {
+    return imageLoad(depthOffsetsBuffer, pixelCoord);
+}
+
+Plane quadMapDataToPlane(in QuadMapData quadMapData) {
+    Plane proxyPlane;
+
+    uint halfSize = 1u << (quadMapData.size - 1u); // 2^size / 2
+    vec2 proxyPlaneUV =(vec2(quadMapData.offset) + float(halfSize) * vec2(0.5)) / gBufferSize;
+    float proxyPlaneDepth = quadMapData.depth;
+    proxyPlane.normal = quadMapData.normal;
+
+    vec2 proxyPlaneNDC = proxyPlaneUV * 2.0 - 1.0;
+    proxyPlane.point = ndcToView(projectionInverse, proxyPlaneNDC, proxyPlaneDepth);
+
+    return proxyPlane;
+}
+
+vec4 findDepthOffsets(in Quad quadView, in Plane proxyPlane) {
+    Quad quadPtsOnPlane;
+    quadPtsOnPlane.bottomLeft  = pointPlaneIntersection(quadView.bottomLeft,  proxyPlane);
+    quadPtsOnPlane.bottomRight = pointPlaneIntersection(quadView.bottomRight, proxyPlane);
+    quadPtsOnPlane.topLeft     = pointPlaneIntersection(quadView.topLeft,     proxyPlane);
+    quadPtsOnPlane.topRight    = pointPlaneIntersection(quadView.topRight,    proxyPlane);
+
+    vec4 depthOffsets;
+    depthOffsets.x = signedDistance(quadPtsOnPlane.bottomLeft,  quadView.bottomLeft);
+    depthOffsets.y = signedDistance(quadPtsOnPlane.bottomRight, quadView.bottomRight);
+    depthOffsets.z = signedDistance(quadPtsOnPlane.topLeft,     quadView.topLeft);
+    depthOffsets.w = signedDistance(quadPtsOnPlane.topRight,    quadView.topRight);
+
+    return depthOffsets;
+}
+
+void storeDepthOffsets(in ivec2 pixelCoord, in vec4 depthOffsets) {
+    imageStore(depthOffsetsBuffer, pixelCoord, depthOffsets);
+}
+
+void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in vec4 depthOffsets, in Plane proxyPlane) {
+    Quad2D surfelUVs;
+    surfelUVs.bottomLeft  = surfelPixelCoords.bottomLeft  / gBufferSize;
+    surfelUVs.bottomRight = surfelPixelCoords.bottomRight / gBufferSize;
+    surfelUVs.topLeft     = surfelPixelCoords.topLeft     / gBufferSize;
+    surfelUVs.topRight    = surfelPixelCoords.topRight    / gBufferSize;
+
+    Quad2D surfelNDCs;
+    surfelNDCs.bottomLeft  = surfelUVs.bottomLeft  * 2.0 - 1.0;
+    surfelNDCs.bottomRight = surfelUVs.bottomRight * 2.0 - 1.0;
+    surfelNDCs.topLeft     = surfelUVs.topLeft     * 2.0 - 1.0;
+    surfelNDCs.topRight    = surfelUVs.topRight    * 2.0 - 1.0;
+
+    Quad surfelNearPlane;
+    surfelNearPlane.bottomLeft  = ndcToView(projectionInverse, surfelNDCs.bottomLeft, 0.0);
+    surfelNearPlane.bottomRight = ndcToView(projectionInverse, surfelNDCs.bottomRight, 0.0);
+    surfelNearPlane.topLeft     = ndcToView(projectionInverse, surfelNDCs.topLeft, 0.0);
+    surfelNearPlane.topRight    = ndcToView(projectionInverse, surfelNDCs.topRight, 0.0);
+
+    // shoot rays from corners of the surfel to the plane to find the 3D intersection points
+    Quad quadPtsOnPlane;
+    quadPtsOnPlane.bottomLeft  = pointPlaneIntersection(surfelNearPlane.bottomLeft,  proxyPlane);
+    quadPtsOnPlane.bottomRight = pointPlaneIntersection(surfelNearPlane.bottomRight, proxyPlane);
+    quadPtsOnPlane.topLeft     = pointPlaneIntersection(surfelNearPlane.topLeft,     proxyPlane);
+    quadPtsOnPlane.topRight    = pointPlaneIntersection(surfelNearPlane.topRight,    proxyPlane);
+
+    // apply depth offsets to the quad points
+    surfel.bottomLeft  = quadPtsOnPlane.bottomLeft  + depthOffsets.x * normalize(quadPtsOnPlane.bottomLeft);
+    surfel.bottomRight = quadPtsOnPlane.bottomRight + depthOffsets.y * normalize(quadPtsOnPlane.bottomRight);
+    surfel.topLeft     = quadPtsOnPlane.topLeft     + depthOffsets.z * normalize(quadPtsOnPlane.topLeft);
+    surfel.topRight    = quadPtsOnPlane.topRight    + depthOffsets.w * normalize(quadPtsOnPlane.topRight);
+}
+
+vec4 planeToPlaneEq(in Plane plane) {
+    vec4 planeEq = vec4(plane.normal, -dot(plane.normal, plane.point));
+    return planeEq;
+}
+
+Plane planeEqToPlane(in vec4 planeEq) {
+    Plane plane;
+    plane.normal = planeEq.xyz;
+    float D = planeEq.w;
+    if (planeEq.z != 0.0) {
+        float z = -D / planeEq.z;
+        plane.point = vec3(0.0, 0.0, z);
+    }
+    else if (planeEq.y != 0.0) {
+        float y = -D / planeEq.y;
+        plane.point = vec3(0.0, y, 0.0);
+    }
+    else if (planeEq.x != 0.0) {
+        float x = -D / planeEq.x;
+        plane.point = vec3(x, 0.0, 0.0);
+    }
+    return plane;
+}
+
+bool planeEquationsSimilar(in vec4 planeEq1, in vec4 planeEq2) {
+    float len1 = length(planeEq1.xyz);
+    float len2 = length(planeEq2.xyz);
+    if (len1 == 0.0 || len2 == 0.0) return false;
+
+    vec4 norm1 = planeEq1 / len1;
+    vec4 norm2 = planeEq2 / len2;
+    return distance(norm1, norm2) < proxySimilarityThreshold;
+}
+
+bool shouldMerge(
+    in Plane proxyPlaneBottomLeft, in Plane proxyPlaneBottomRight,
+    in Plane proxyPlaneTopLeft, in Plane proxyPlaneTopRight
+) {
+    vec4 proxyPlaneEqBottomLeft  = planeToPlaneEq(proxyPlaneBottomLeft);
+    vec4 proxyPlaneEqBottomRight = planeToPlaneEq(proxyPlaneBottomRight);
+    vec4 proxyPlaneEqTopLeft     = planeToPlaneEq(proxyPlaneTopLeft);
+    vec4 proxyPlaneEqTopRight    = planeToPlaneEq(proxyPlaneTopRight);
+
+    // we merge the quad if all the proxy planes are similar
+    return planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight) &&
+           planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft) &&
+           planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight) &&
+           planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopLeft) &&
+           planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopRight) &&
+           planeEquationsSimilar(proxyPlaneEqTopLeft, proxyPlaneEqTopRight);
+}
+
+Plane averagePlanes(in Plane plane1, in Plane plane2, in Plane plane3, in Plane plane4) {
+    vec4 proxyPlaneEq1 = planeToPlaneEq(plane1);
+    vec4 proxyPlaneEq2 = planeToPlaneEq(plane2);
+    vec4 proxyPlaneEq3 = planeToPlaneEq(plane3);
+    vec4 proxyPlaneEq4 = planeToPlaneEq(plane4);
+
+    vec4 newProxyPlaneEq = (proxyPlaneEq1 + proxyPlaneEq2 + proxyPlaneEq3 + proxyPlaneEq4) / 4.0;
+    Plane newProxyPlane = planeEqToPlane(newProxyPlaneEq);
+    return newProxyPlane;
+}
+
+void recalcDepthOffsets(
+    in Plane newProxyPlane,
+    in QuadMapData quadMapData, in Plane proxyPlane,
+    inout int numBelowThreshold, inout int total
+) {
+    uint halfSize = 1u << (quadMapData.size - 1u); // 2^size / 2
+    vec2 proxyPlaneUV =(vec2(quadMapData.offset) + float(halfSize) * vec2(0.5)) / gBufferSize;
+    vec2 proxyPlanePixelCoords = vec2(proxyPlaneUV * gBufferSize);
+
+    uint size = 1 << quadMapData.size;
+    float halfGridSize = float(size) * surfelSize / 2;
+
+    // calculate new depth offsets relative to new proxy plane
+    vec2 baseCoord = proxyPlanePixelCoords - vec2(halfGridSize);
+    vec2 stepSize = vec2(surfelSize);
+    for (uint idx = 0u; idx < size * size; idx++) {
+        uint i = idx % size;
+        uint j = idx / size;
+        vec2 surfelBaseCoord = baseCoord + vec2(i, j) * stepSize;
+
+        Quad2D surfelPixelCoords;
+        surfelPixelCoords.bottomLeft  = surfelBaseCoord;
+        surfelPixelCoords.bottomRight = surfelBaseCoord + vec2(stepSize.x, 0.0);
+        surfelPixelCoords.topLeft     = surfelBaseCoord + vec2(0.0, stepSize.y);
+        surfelPixelCoords.topRight    = surfelBaseCoord + stepSize;
+
+        ivec2 depthOffsetPixelCoords = 2 * ivec2(quadMapData.offset) + ivec2(i, j);
+        vec4 oldDepthOffsets = loadDepthOffsets(depthOffsetPixelCoords);
+        Quad surfel;
+        createSurfel(surfel, surfelPixelCoords, oldDepthOffsets, proxyPlane);
+
+        vec4 newDepthOffsets = findDepthOffsets(surfel, newProxyPlane);
+        storeDepthOffsets(depthOffsetPixelCoords, newDepthOffsets);
+
+        vec4 absOffsets = abs(newDepthOffsets);
+        numBelowThreshold += int(absOffsets.x < flattenThreshold) +
+                             int(absOffsets.y < flattenThreshold) +
+                             int(absOffsets.z < flattenThreshold) +
+                             int(absOffsets.w < flattenThreshold);
+        total += 4;
+    }
+}
+
+void mergeQuadMapData(
+    out QuadMapData mergedQuadMapData,
+    in Plane proxyPlaneBottomLeft, in Plane proxyPlaneBottomRight, in Plane proxyPlaneTopLeft, in Plane proxyPlaneTopRight,
+    in QuadMapData quadMapDataBottomLeft, in QuadMapData quadMapDataBottomRight, in QuadMapData quadMapDataTopLeft, in QuadMapData quadMapDataTopRight
+) {
+    // Plane newProxyPlane = averagePlanes(proxyPlaneBottomLeft, proxyPlaneBottomRight,
+    //                                     proxyPlaneTopLeft, proxyPlaneTopRight);
+
+    // // find what depth the average uv maps to on the new plane
+    // vec2 averageUV = (quadMapDataBottomLeft.uv + quadMapDataBottomRight.uv +
+    //                   quadMapDataTopLeft.uv + quadMapDataTopRight.uv) / 4.0;
+    // vec2 averageNDC = averageUV * 2.0 - 1.0;
+    // vec3 averageNearPlane = ndcToView(projectionInverse, averageNDC, 0.0);
+
+    // vec3 planeCenterPt = pointPlaneIntersection(averageNearPlane, newProxyPlane);
+    // vec3 newProxyPlaneNDC = viewToNDC(projection, planeCenterPt);
+    // newProxyPlaneUV = (newProxyPlaneNDC.xy + 1.0) / 2.0;
+
+    // newProxyPlaneDepth = min(newProxyPlaneNDC.z, MAX_DEPTH);
+
+    // calculate the average plane
+    Plane newProxyPlane;
+
+    uint halfSize = 1u << (quadMapDataBottomLeft.size - 1u); // 2^size / 2
+    vec2 proxyPlaneUVBottomLeft = (vec2(quadMapDataBottomLeft.offset) + float(halfSize) * vec2(0.5)) / gBufferSize;
+    vec2 proxyPlaneUVBottomRight = (vec2(quadMapDataBottomRight.offset) + float(halfSize) * vec2(0.5)) / gBufferSize;
+    vec2 proxyPlaneUVTopLeft = (vec2(quadMapDataTopLeft.offset) + float(halfSize) * vec2(0.5)) / gBufferSize;
+    vec2 proxyPlaneUVTopRight = (vec2(quadMapDataTopRight.offset) + float(halfSize) * vec2(0.5)) / gBufferSize;
+
+    vec2 newProxyPlaneUV = (proxyPlaneUVBottomLeft + proxyPlaneUVBottomRight +
+                            proxyPlaneUVTopLeft + proxyPlaneUVTopRight) / 4.0;
+    float newProxyPlaneDepth = (quadMapDataBottomLeft.depth + quadMapDataBottomRight.depth +
+                                quadMapDataTopLeft.depth + quadMapDataTopRight.depth) / 4.0;
+
+    newProxyPlane.normal = normalize((quadMapDataBottomLeft.normal + quadMapDataBottomRight.normal +
+                                      quadMapDataTopLeft.normal + quadMapDataTopRight.normal) / 4.0);
+    vec2 newProxyPlaneNDC = newProxyPlaneUV * 2.0 - 1.0;
+    newProxyPlane.point = ndcToView(projectionInverse, newProxyPlaneNDC, newProxyPlaneDepth);
+
+    // fix extreme orientations
+    vec3 frustumNormalView = normalize(origin - newProxyPlane.point);
+    if (correctOrientation && quadHasExtremeOrientation(newProxyPlane.normal, frustumNormalView)) {
+        // if the quad has an extreme orientation, constrain the center normal
+        newProxyPlane.normal = constrainToMaxAngle(newProxyPlane.normal, frustumNormalView);
+    }
+
+    bool prevFlattened = (quadMapDataBottomLeft.flattened && quadMapDataBottomRight.flattened &&
+                          quadMapDataTopLeft.flattened && quadMapDataTopRight.flattened);
+    bool flattened = prevFlattened;
+    if (!prevFlattened) {
+        // recalculate the new merged proxy plane's surfel's depth offsets
+        int numBelowThreshold = 0, total = 0;
+        recalcDepthOffsets(newProxyPlane, quadMapDataBottomLeft, proxyPlaneBottomLeft, numBelowThreshold, total);
+        recalcDepthOffsets(newProxyPlane, quadMapDataBottomRight, proxyPlaneBottomRight, numBelowThreshold, total);
+        recalcDepthOffsets(newProxyPlane, quadMapDataTopLeft, proxyPlaneTopLeft, numBelowThreshold, total);
+        recalcDepthOffsets(newProxyPlane, quadMapDataTopRight, proxyPlaneTopRight, numBelowThreshold, total);
+
+        // if all surfels are below the threshold, then the plane is considered flattened
+        flattened = (numBelowThreshold >= total);
+    }
+
+    // if the merged quad was not already flattened, and the new merged quad is flattened,
+    // clear the depth offsets for the merged quad
+    if (!prevFlattened && flattened) {
+        uint size = 1u << mergedQuadMapData.size;
+        for (uint idx = 0u; idx < size * size; idx++) {
+            uint i = idx % size;
+            uint j = idx / size;
+
+            ivec2 depthOffsetPixelCoords = 2 * ivec2(mergedQuadMapData.offset) + ivec2(i, j);
+            imageStore(depthOffsetsBuffer, depthOffsetPixelCoords + ivec2(0, 0), vec4(0.0));
+            imageStore(depthOffsetsBuffer, depthOffsetPixelCoords + ivec2(1, 0), vec4(0.0));
+            imageStore(depthOffsetsBuffer, depthOffsetPixelCoords + ivec2(0, 1), vec4(0.0));
+            imageStore(depthOffsetsBuffer, depthOffsetPixelCoords + ivec2(1, 1), vec4(0.0));
+        }
+    }
+
+    mergedQuadMapData.flattened = flattened;
+    mergedQuadMapData.normal = newProxyPlane.normal;
+    mergedQuadMapData.depth = newProxyPlaneDepth;
+    mergedQuadMapData.offset = quadMapDataBottomLeft.offset;
+    mergedQuadMapData.size = quadMapDataBottomLeft.size + 1;
+}
+
+void main() {
+    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
+    if (pixelCoord.x >= int(outputQuadMapSize.x) || pixelCoord.y >= int(outputQuadMapSize.y)) {
+        return;
+    }
+
+    ivec2 pixelCoordsBottomLeft  = 2 * pixelCoord + ivec2(0, 0);
+    ivec2 pixelCoordsBottomRight = 2 * pixelCoord + ivec2(1, 0);
+    ivec2 pixelCoordsTopLeft     = 2 * pixelCoord + ivec2(0, 1);
+    ivec2 pixelCoordsTopRight    = 2 * pixelCoord + ivec2(1, 1);
+
+    QuadMapData quadMapDataBottomLeft  = loadInputQuadMap(pixelCoordsBottomLeft);
+    QuadMapData quadMapDataBottomRight = loadInputQuadMap(pixelCoordsBottomRight);
+    QuadMapData quadMapDataTopLeft     = loadInputQuadMap(pixelCoordsTopLeft);
+    QuadMapData quadMapDataTopRight    = loadInputQuadMap(pixelCoordsTopRight);
+
+    float depthBottomLeft = quadMapDataBottomLeft.depth;
+    float depthBottomRight = quadMapDataBottomRight.depth;
+    float depthTopLeft = quadMapDataTopLeft.depth;
+    float depthTopRight = quadMapDataTopRight.depth;
+
+    // create proxy planes
+    Plane proxyPlaneBottomLeft  = quadMapDataToPlane(quadMapDataBottomLeft);
+    Plane proxyPlaneBottomRight = quadMapDataToPlane(quadMapDataBottomRight);
+    Plane proxyPlaneTopLeft     = quadMapDataToPlane(quadMapDataTopLeft);
+    Plane proxyPlaneTopRight    = quadMapDataToPlane(quadMapDataTopRight);
+
+    // resulting merged quad
+    QuadMapData mergedQuadMapData;
+    mergedQuadMapData.size = 0; // by default, ignore the quad
+
+    // if any of the loaded proxy planes are empty, ignore the quad
+    if (quadMapDataBottomLeft.size == 0 || quadMapDataBottomRight.size == 0 ||
+           quadMapDataTopLeft.size == 0 ||    quadMapDataTopRight.size == 0) {
+        storeQuadMap(pixelCoord, mergedQuadMapData);
+        return;
+    }
+
+    // if any of the loaded depths are invalid, ignore the quad
+    if (!isValidDepth(depthBottomLeft) || !isValidDepth(depthBottomRight) ||
+           !isValidDepth(depthTopLeft) ||    !isValidDepth(depthTopRight)) {
+        storeQuadMap(pixelCoord, mergedQuadMapData);
+        return;
+    }
+
+    bool merge = false;
+    if (iter < maxIterForceMerge) {
+        // force merge the quads if theres no depth discontinuity
+        if (!hasDepthDiscontinuity(depthBottomLeft, depthBottomRight, depthTopLeft, depthTopRight)) {
+            merge = true;
+        }
+    }
+
+    merge = merge || shouldMerge(proxyPlaneBottomLeft, proxyPlaneBottomRight, proxyPlaneTopLeft, proxyPlaneTopRight);
+    if (merge) {
+        // merge the proxy planes
+        mergeQuadMapData(
+            mergedQuadMapData,
+            proxyPlaneBottomLeft, proxyPlaneBottomRight, proxyPlaneTopLeft, proxyPlaneTopRight,
+            quadMapDataBottomLeft, quadMapDataBottomRight, quadMapDataTopLeft, quadMapDataTopRight
+        );
+
+        // ignore the previous proxy planes that have been merged
+        ignoreInputQuadMapData(pixelCoordsBottomLeft);
+        ignoreInputQuadMapData(pixelCoordsBottomRight);
+        ignoreInputQuadMapData(pixelCoordsTopLeft);
+        ignoreInputQuadMapData(pixelCoordsTopRight);
+    }
+
+    storeQuadMap(pixelCoord, mergedQuadMapData);
+}

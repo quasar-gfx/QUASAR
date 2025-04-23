@@ -1,4 +1,3 @@
-
 #include <args/args.hxx>
 #include <spdlog/spdlog.h>
 
@@ -9,13 +8,17 @@
 #include <Renderers/ForwardRenderer.h>
 
 #include <PostProcessing/ToneMapper.h>
-
 #include <Recorder.h>
 #include <CameraAnimator.h>
-
 #include <Quads/MeshFromQuads.h>
 #include <Quads/QuadMaterial.h>
 #include <shaders_common.h>
+#include <Networking/Socket.h>
+
+#include <VideoTexture.h>
+#include <Quads/QuadReceiver.h>
+
+#define TEXTURE_PREVIEW_SIZE 500
 
 using namespace quasar;
 
@@ -28,7 +31,12 @@ int main(int argc, char** argv) {
     args::Flag verbose(parser, "verbose", "Enable verbose logging", {'v', "verbose"});
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "1920x1080");
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
-    args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Path to data files", {'D', "data-path"}, "../simulator/");
+    args::ValueFlag<std::string> quadServerAddressIn(parser, "quad-server", "Quad server address", {'q', "quad-address"}, "127.0.0.1");
+    args::ValueFlag<int> quadServerPortIn(parser, "quad-port", "Quad server port", {'p', "quad-port"}, 9000);
+    args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "0.0.0.0:12345");
+    args::ValueFlag<std::string> videoFormatIn(parser, "video-format", "Video format", {'g', "video-format"}, "mpegts");
+    args::ValueFlag<std::string> colorFilePathIn(parser, "color-file", "Path to color texture file", {'f', "color-file"}, "../streamer/color.jpg");
+
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -53,10 +61,11 @@ int main(int argc, char** argv) {
 
     config.enableVSync = !args::get(novsync);
 
-    std::string dataPath = args::get(dataPathIn);
-    if (dataPath.back() != '/') {
-        dataPath += "/";
-    }
+    std::string quadServerAddress = args::get(quadServerAddressIn);
+    int quadServerPort = args::get(quadServerPortIn);
+    std::string videoURL = args::get(videoURLIn);
+    std::string videoFormat = args::get(videoFormatIn);
+    std::string colorFilePath = args::get(colorFilePathIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -73,93 +82,129 @@ int main(int argc, char** argv) {
     remoteCamera.setPosition(glm::vec3(0.0f, 3.0f, 10.0f));
     remoteCamera.updateViewMatrix();
 
+    // Video texture for the received video frames
+    VideoTexture videoTexture({
+        .width = windowSize.x,
+        .height = windowSize.y,
+        .internalFormat = GL_RGB8,
+        .format = GL_RGB,
+        .type = GL_UNSIGNED_BYTE,
+        .wrapS = GL_CLAMP_TO_BORDER,
+        .wrapT = GL_CLAMP_TO_BORDER,
+        .minFilter = GL_LINEAR,
+        .magFilter = GL_LINEAR,
+        .hasBorder = true,
+        .borderColor = glm::vec4(0.0f),
+    }, videoURL, videoFormat);
+
     // post processing
     ToneMapper toneMapper;
     toneMapper.enableToneMapping(false);
 
     Recorder recorder(renderer, toneMapper, config.targetFramerate);
 
+    // Setup for quad mesh generation
+    const glm::uvec2 halfWindowSize = windowSize / 2u;
     MeshFromQuads meshFromQuads(windowSize);
 
-    std::string colorFileName = dataPath + "color.jpg";
-    Texture colorTexture = Texture({
+    // Initialize color texture
+    Texture colorTexture({
         .wrapS = GL_REPEAT,
         .wrapT = GL_REPEAT,
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST,
         .flipVertically = true,
-        .path = colorFileName
+        .path = colorFilePath
     });
 
-    Mesh* mesh;
+    // Initialize quad receiver
+    QuadReceiver quadReceiver(quadServerAddress, quadServerPort);
 
-    unsigned int totalTriangles = -1;
-    unsigned int totalProxies = -1;
-    unsigned int totalDepthOffsets = -1;
-
-    unsigned int numBytesProxies = 0;
-    unsigned int numBytesDepthOffsets = 0;
-
-    double startTime = window->getTime();
-    double loadFromFilesTime = 0.0;
-    double createMeshTime = 0.0;
-
+    // Initialize buffers for quad data and depth offsets
     unsigned int maxProxies = windowSize.x * windowSize.y * NUM_SUB_QUADS;
     QuadBuffers quadBuffers(maxProxies);
-
+    
     const glm::uvec2 depthBufferSize = 2u * windowSize;
     DepthOffsets depthOffsets(depthBufferSize);
-
-    startTime = window->getTime();
-    // load proxies
-    unsigned int numProxies = quadBuffers.loadFromFile(dataPath + "quads.bin.zstd", &numBytesProxies);
-    // load depth offsets
-    unsigned int numDepthOffsets = depthOffsets.loadFromFile(dataPath + "depthOffsets.bin.zstd", &numBytesDepthOffsets);
-
-    mesh = new Mesh({
-        .maxVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
-        .maxIndices = numProxies * NUM_SUB_QUADS * INDICES_IN_A_QUAD,
+    
+    // Network received data buffers
+    std::vector<char> quadsData;
+    std::vector<char> depthOffsetsData;
+    
+    // Create material with the color texture
+    QuadMaterial* quadMaterial = new QuadMaterial({ 
+        .baseColor = glm::vec4(1.0f), 
+        .baseColorTexture = &colorTexture 
+    });
+    
+    // Create mesh with the material
+    Mesh* mesh = new Mesh({
+        .maxVertices = maxProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
+        .maxIndices = maxProxies * NUM_SUB_QUADS * INDICES_IN_A_QUAD,
         .vertexSize = sizeof(QuadVertex),
         .attributes = QuadVertex::getVertexInputAttributes(),
-        .material = new QuadMaterial({ .baseColorTexture = &colorTexture }),
+        .material = quadMaterial,
         .usage = GL_DYNAMIC_DRAW,
         .indirectDraw = true
     });
-    loadFromFilesTime = timeutils::secondsToMillis(window->getTime() - startTime);
+    
+    // Create nodes for the mesh
+    Node* node = new Node(mesh);
+    node->frustumCulled = false;
+    scene.addChildNode(node);
 
-    const glm::vec2 gBufferSize = glm::vec2(colorTexture.width, colorTexture.height);
+    // Create wireframe node with yellow color
+    QuadMaterial* wireframeMaterial = new QuadMaterial({ 
+        .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) 
+    });
 
-    startTime = window->getTime();
-    meshFromQuads.appendQuads(
-        gBufferSize,
-        numProxies,
-        quadBuffers
-    );
-    meshFromQuads.createMeshFromProxies(
-        gBufferSize,
-        numProxies, depthOffsets,
-        remoteCamera,
-        *mesh
-    );
+    // add a screen for the video. 
 
-    createMeshTime = meshFromQuads.stats.timeToCreateMeshMs;
+        Cube* videoScreen = new Cube({ 
 
-    auto meshBufferSizes = meshFromQuads.getBufferSizes();
+        .material = new UnlitMaterial({ .baseColorTexture = &videoTexture }), 
 
-    totalTriangles = meshBufferSizes.numIndices / 3;
-    totalProxies = numProxies;
-    totalDepthOffsets = numDepthOffsets;
+        }); 
 
-    Node node(mesh);
-    node.frustumCulled = false;
-    scene.addChildNode(&node);
+        Node* screen = new Node(videoScreen); 
 
-    Node nodeWireframe(mesh);
-    nodeWireframe.frustumCulled = false;
-    nodeWireframe.wireframe = true;
-    nodeWireframe.visible = false;
-    nodeWireframe.overrideMaterial = new QuadMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
-    scene.addChildNode(&nodeWireframe);
+        screen->setPosition(glm::vec3(0.0f, 0.0f, -2.0f)); 
+
+        screen->setScale(glm::vec3(1.0f, 0.5f, 0.05f)); 
+
+        screen->frustumCulled = false; 
+
+        scene.addChildNode(screen); 
+        
+        scene.backgroundColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
+
+ 
+    
+    Node* nodeWireframe = new Node(mesh);
+    nodeWireframe->frustumCulled = false;
+    nodeWireframe->wireframe = true;
+    nodeWireframe->visible = false;
+    nodeWireframe->overrideMaterial = wireframeMaterial;
+    scene.addChildNode(nodeWireframe);
+    
+    // Statistics tracking
+    unsigned int totalTriangles = 0;
+    unsigned int totalProxies = 0;
+    unsigned int totalDepthOffsets = 0;
+    unsigned int numBytesProxies = 0;
+    unsigned int numBytesDepthOffsets = 0;
+    double loadDataTime = 0.0;
+    double createMeshTime = 0.0;
+    
+    // UI state variables
+    bool showWireframe = false;
+    
+    app.onResize([&](unsigned int width, unsigned int height) {
+        windowSize = glm::uvec2(width, height);
+        renderer.setWindowSize(windowSize.x, windowSize.y);
+        camera.setAspect(windowSize.x, windowSize.y);
+        camera.updateProjectionMatrix();
+    });
 
     RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
@@ -168,6 +213,7 @@ int main(int argc, char** argv) {
         static bool showCaptureWindow = false;
         static bool saveAsHDR = false;
         static char fileNameBase[256] = "screenshot";
+        static bool showVideoPreview = false;
 
         ImGui::NewFrame();
 
@@ -183,6 +229,7 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("FPS", 0, &showFPS);
             ImGui::MenuItem("UI", 0, &showUI);
             ImGui::MenuItem("Frame Capture", 0, &showCaptureWindow);
+            ImGui::MenuItem("Video Preview", 0, &showVideoPreview);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -218,14 +265,14 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
-            float proxySizeMB = static_cast<float>(numBytesProxies) / BYTES_IN_MB;
-            float depthOffsetSizeMB = static_cast<float>(numBytesDepthOffsets) / BYTES_IN_MB;
+            float proxySizeMB = static_cast<float>(numBytesProxies) / (1024.0f * 1024.0f);
+            float depthOffsetSizeMB = static_cast<float>(numBytesDepthOffsets) / (1024.0f * 1024.0f);
             ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%.3f MB)", totalProxies, proxySizeMB);
             ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%.3f MB)", totalDepthOffsets, depthOffsetSizeMB);
 
             ImGui::Separator();
 
-            glm::vec3 position = camera.getPosition();
+            glm::vec3 position = glm::vec3(0.0f, 3.0f, 10.0f);//camera.getPosition();
             if (ImGui::DragFloat3("Camera Position", (float*)&position, 0.01f)) {
                 camera.setPosition(position);
             }
@@ -237,13 +284,34 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to load data: %.3f ms", loadFromFilesTime);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to load data: %.3f ms", loadDataTime);
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to create mesh: %.3f ms", createMeshTime);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Quad packets received: %d", quadReceiver.stats.quadPacketsReceived);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Avg network time: %.3f ms", 
+                quadReceiver.stats.totalQuadNetworkTimeMs / std::max(1u, quadReceiver.stats.quadPacketsReceived));
+            
+            ImGui::Separator();
+
+            ImGui::Text("Remote Pose ID: %lu", quadReceiver.getCurrentPoseID());
+            ImGui::Text("Video URL: %s (%s)", videoURL.c_str(), videoFormat.c_str());
+            ImGui::Text("Quad Server: %s:%d", quadServerAddress.c_str(), quadServerPort);
 
             ImGui::Separator();
 
-            ImGui::Checkbox("Show Wireframe", &nodeWireframe.visible);
+            if (ImGui::Checkbox("Show Wireframe", &showWireframe)) {
+                if (nodeWireframe) {
+                    nodeWireframe->visible = showWireframe;
+                }
+            }
 
+            ImGui::End();
+        }
+
+        if (showVideoPreview) {
+            ImGui::SetNextWindowPos(ImVec2(windowSize.x - TEXTURE_PREVIEW_SIZE - 30, 40), ImGuiCond_FirstUseEver);
+            flags = ImGuiWindowFlags_AlwaysAutoResize;
+            ImGui::Begin("Raw Video Texture", &showVideoPreview, flags);
+            ImGui::Image((void*)(intptr_t)videoTexture.ID, ImVec2(TEXTURE_PREVIEW_SIZE, TEXTURE_PREVIEW_SIZE), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
         }
 
@@ -266,18 +334,80 @@ int main(int argc, char** argv) {
 
             ImGui::End();
         }
-    });
+        if (showCaptureWindow) {
 
-    app.onResize([&](unsigned int width, unsigned int height) {
-        windowSize = glm::uvec2(width, height);
-        renderer.setWindowSize(windowSize.x, windowSize.y);
-
-        camera.setAspect(windowSize.x, windowSize.y);
-        camera.updateProjectionMatrix();
+        }
     });
 
     app.onRender([&](double now, double dt) {
-        // handle mouse input
+
+        videoTexture.bind();
+        spdlog::info("videotexture {}", videoTexture.draw());
+
+
+        // Try to receive new quad data
+        if (quadReceiver.receiveQuadData(quadsData, depthOffsetsData)) {
+            double startTime = window->getTime();
+            
+            // Process received data
+            numBytesProxies = quadsData.size();
+            numBytesDepthOffsets = depthOffsetsData.size();
+            
+            // Load quad data into QuadBuffers using loadFromMemory
+            // Using compressed parameter as false since we're receiving raw data over the network
+            spdlog::info("Loading quad data ({} bytes) into QuadBuffers...", numBytesProxies);
+            totalProxies = quadBuffers.loadFromMemory(quadsData, true);
+            spdlog::info("Loaded {} proxies from quad data", totalProxies);
+            
+            // Load depth offsets data into DepthOffsets using loadFromMemory
+            if (!depthOffsetsData.empty()) {
+                spdlog::info("Loading depth offsets data ({} bytes)...", numBytesDepthOffsets);
+                totalDepthOffsets = depthOffsets.loadFromMemory(depthOffsetsData, true);
+                spdlog::info("Loaded {} depth offsets", totalDepthOffsets);
+            }
+            
+            loadDataTime = timeutils::secondsToMillis(window->getTime() - startTime);
+            
+            // Update the mesh with the new data
+            if (totalProxies > 0) {
+                startTime = window->getTime();
+                
+                // Get texture dimensions - use colorTexture's dimensions
+                const glm::vec2 gBufferSize = glm::vec2(colorTexture.width, colorTexture.height);
+
+
+                mesh->material = quadMaterial;
+                
+                // Clear previous data and update with new data
+                spdlog::info("Appending {} proxies to mesh...", totalProxies);
+                // meshFromQuads.appendQuads(
+                //     gBufferSize,
+                //     totalProxies,
+                //     quadBuffers
+                // );
+                
+                // spdlog::info("Creating mesh from proxies...");
+                // meshFromQuads.createMeshFromProxies(
+                //     gBufferSize,
+                //     totalProxies, 
+                //     depthOffsets,
+                //     remoteCamera,
+                //     *mesh
+                // );
+                
+                createMeshTime = timeutils::secondsToMillis(window->getTime() - startTime);
+                
+                // Update statistics
+                auto meshBufferSizes = meshFromQuads.getBufferSizes();
+                totalTriangles = meshBufferSizes.numIndices / 3;
+                spdlog::info("Mesh created with {} triangles", totalTriangles);
+
+            }
+        }
+
+
+        
+        // Handle input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
             auto mouseButtons = window->getMouseButtons();
             window->setMouseCursor(!mouseButtons.LEFT_PRESSED);
@@ -285,32 +415,32 @@ int main(int argc, char** argv) {
             static bool prevMouseLeftPressed = false;
             static float lastX = windowSize.x / 2.0;
             static float lastY = windowSize.y / 2.0;
+            
             if (!prevMouseLeftPressed && mouseButtons.LEFT_PRESSED) {
                 dragging = true;
                 prevMouseLeftPressed = true;
-
                 auto cursorPos = window->getCursorPos();
                 lastX = static_cast<float>(cursorPos.x);
                 lastY = static_cast<float>(cursorPos.y);
             }
+            
             if (prevMouseLeftPressed && !mouseButtons.LEFT_PRESSED) {
                 dragging = false;
                 prevMouseLeftPressed = false;
             }
+            
             if (dragging) {
                 auto cursorPos = window->getCursorPos();
                 float xpos = static_cast<float>(cursorPos.x);
                 float ypos = static_cast<float>(cursorPos.y);
-
                 float xoffset = xpos - lastX;
                 float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-
                 lastX = xpos;
                 lastY = ypos;
-
                 camera.processMouseMovement(xoffset, yoffset, true);
             }
         }
+        
         auto keys = window->getKeys();
         camera.processKeyboard(keys, dt);
         if (keys.ESC_PRESSED) {
@@ -326,8 +456,13 @@ int main(int argc, char** argv) {
         toneMapper.drawToScreen(renderer);
     });
 
-    // run app loop (blocking)
+    // Run app loop (blocking)
     app.run();
 
+    // Clean up
+    delete mesh;
+    delete quadMaterial;
+    delete wireframeMaterial;
+    
     return 0;
 }

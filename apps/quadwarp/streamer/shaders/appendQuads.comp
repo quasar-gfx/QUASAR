@@ -1,0 +1,70 @@
+layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, binding = 0) writeonly buffer CurrNumProxiesBuffer {
+    uint currNumProxies;
+};
+
+layout(std430, binding = 1) readonly buffer PrevNumProxiesBuffer {
+    uint prevNumProxies;
+};
+
+layout(std430, binding = 2) readonly buffer NormalSphericalsBufferInput {
+    uint normalSphericalsInput[];
+};
+
+layout(std430, binding = 3) readonly buffer DepthBufferInput {
+    float depthsInput[];
+};
+
+layout(std430, binding = 4) readonly buffer OffsetsBufferInput {
+    uint offsetSizeFlattenedsInput[];
+};
+
+layout(std430, binding = 5) writeonly buffer NormalSphericalsBufferOutput {
+    uint normalSphericalsOutput[];
+};
+
+layout(std430, binding = 6) writeonly buffer DepthsBufferOutput {
+    float depthsOutput[];
+};
+
+layout(std430, binding = 7) writeonly buffer OffsetsBufferOutput {
+    uint offsetSizeFlattenedsOutput[];
+};
+
+uniform bool refFrame;
+uniform uint newNumProxies;
+
+shared uint localNumProxies;
+
+void main() {
+    uint proxyIndex = gl_GlobalInvocationID.x;
+
+    // if RefFrame, start from the beginning
+    if (refFrame && proxyIndex == 0u) {
+        currNumProxies = 0u;
+    }
+
+    if (proxyIndex >= newNumProxies) {
+        return;
+    }
+
+    uint startIndex = refFrame ? 0u : prevNumProxies;
+    if (gl_LocalInvocationID.x == 0u) {
+        localNumProxies = 0u;
+    }
+    barrier();
+
+    atomicAdd(localNumProxies, 1u);
+
+    uint globalIndex = startIndex + proxyIndex;
+    normalSphericalsOutput[globalIndex] = normalSphericalsInput[proxyIndex];
+    depthsOutput[globalIndex] = depthsInput[proxyIndex];
+    offsetSizeFlattenedsOutput[globalIndex] = offsetSizeFlattenedsInput[proxyIndex];
+
+    barrier();
+
+    if (gl_LocalInvocationID.x == 0u) {
+        atomicAdd(currNumProxies, localNumProxies);
+    }
+}

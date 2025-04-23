@@ -13,7 +13,7 @@
 #include <Recorder.h>
 #include <CameraAnimator.h>
 
-#include <Quads/QuadsSimulator.h>
+#include <Quads/QuadStreamer.h>
 
 #include <PoseSendRecvSimulator.h>
 
@@ -41,6 +41,14 @@ int main(int argc, char** argv) {
     args::Flag poseSmoothingIn(parser, "pose-smoothing", "Enable pose smoothing", {'T', "pose-smoothing"}, false);
     args::ValueFlag<float> viewBoxSizeIn(parser, "view-box-size", "Size of view box in m", {'B', "view-size"}, 0.5f);
     args::ValueFlag<float> remoteFOVIn(parser, "remote-fov", "Remote camera FOV in degrees", {'F', "remote-fov"}, 60.0f);
+     args::ValueFlag<std::string> quadAddressIn(parser, "quad-address", "Quad server address", {'q', "quad-address"}, "0.0.0.0");
+    args::ValueFlag<int> quadPortIn(parser, "quad-port", "Quad server port", {'p', "quad-port"}, 9000);
+    args::ValueFlag<std::string> videoURLIn(parser, "video-url", "Video URL", {'c', "video-url"}, "127.0.0.1:12345");
+    args::ValueFlag<std::string> videoFormatIn(parser, "video-format", "Video format", {'g', "video-format"}, "mpegts");
+    args::ValueFlag<int> keyframeIntervalIn(parser, "keyframe-interval", "Keyframe interval", {'k', "keyframe-interval"}, 30);
+    args::ValueFlag<int> targetBitrateIn(parser, "target-bitrate", "Target video bitrate (Mbps)", {'b', "target-bitrate"}, 50);
+
+
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -72,8 +80,15 @@ int main(int argc, char** argv) {
     config.showWindow = !args::get(saveImages);
 
     std::string sceneFile = args::get(sceneFileIn);
+    std::string quadAddress = args::get(quadAddressIn);
+    int quadPort = args::get(quadPortIn);
+    std::string videoURL = args::get(videoURLIn);
+    std::string videoFormat = args::get(videoFormatIn);
+    int keyframeInterval = args::get(keyframeIntervalIn);
+    int targetBitrate = args::get(targetBitrateIn);
     std::string cameraPathFile = args::get(cameraPathFileIn);
     std::string outputPath = args::get(outputPathIn);
+
     if (outputPath.back() != '/') {
         outputPath += "/";
     }
@@ -106,8 +121,7 @@ int main(int argc, char** argv) {
     QuadsGenerator quadsGenerator(remoteWindowSize);
     MeshFromQuads meshFromQuads(remoteWindowSize);
     FrameGenerator frameGenerator(remoteRenderer, remoteScene, quadsGenerator, meshFromQuads);
-    QuadsSimulator quadsSimulator(remoteCamera, frameGenerator);
-
+    QuadStreamer quadsSimulator(remoteCamera, frameGenerator, quadAddress, quadPort,videoURL );
     // "local" scene
     Scene localScene;
     localScene.envCubeMap = remoteScene.envCubeMap;
@@ -134,7 +148,7 @@ int main(int argc, char** argv) {
         cameraAnimator.copyPoseToCamera(remoteCamera);
     }
 
-    bool saveToFile = false;
+    bool saveToFile = true;
     bool showDepth = false;
     bool showNormals = false;
     bool showWireframe = false;
@@ -282,6 +296,63 @@ int main(int argc, char** argv) {
             }
 
             ImGui::Separator();
+
+            ImGui::Separator();
+
+            ImGui::Text("Streaming Configuration:");
+            ImGui::Text("Quad Server: %s:%d", quadAddress.c_str(), quadPort);
+            ImGui::Text("Video URL: %s (%s)", videoURL.c_str(), videoFormat.c_str());
+            
+            // if (ImGui::SliderInt("Keyframe Interval", &keyframeInt, 1, 120)) {
+            //     keyframeInterval = keyframeInt;
+            // }
+            
+            // if (ImGui::SliderInt("Target FPS", &serverFPS, 5, 60)) {
+            //     config.targetFramerate = serverFPS;
+            // }
+
+            ImGui::Separator();
+
+            // ImGui::TextColored(ImVec4(1,0.5,0,1), "Streaming Stats:");
+            // ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS", streamer.stats.videoFrameRate);
+            
+            // ImGui::TextColored(ImVec4(0,0.5,0,1), "Quad Frames Sent: %d", streamer.stats.quadFramesSent);
+            // ImGui::TextColored(ImVec4(0,0.5,0,1), "Key Frames Sent: %d", streamer.stats.keyFramesSent);
+            // ImGui::TextColored(ImVec4(0,0.5,0,1), "Quad Packets Sent: %d", streamer.stats.quadPacketsSent);
+            
+            // ImGui::TextColored(ImVec4(0,0.5,0,1), "Quad Compress Time: %.3f ms", 
+            //                  streamer.stats.totalQuadCompressTimeMs / std::max(1u, streamer.stats.quadPacketsSent));
+            // ImGui::TextColored(ImVec4(0,0.5,0,1), "Quad Network Time: %.3f ms", 
+            //                  streamer.stats.totalQuadNetworkTimeMs / std::max(1u, streamer.stats.quadPacketsSent));
+            
+            // ImGui::TextColored(ImVec4(0,0.5,0,1), "Video Copy Time: %.3f ms", streamer.stats.videoCopyTimeMs);
+            // ImGui::TextColored(ImVec4(0,0.5,0,1), "Video Encode Time: %.3f ms", streamer.stats.videoEncodeTimeMs);
+            // ImGui::TextColored(ImVec4(0,0.5,0,1), "Video Send Time: %.3f ms", streamer.stats.videoSendTimeMs);
+            
+            // float quadsSizeMB = static_cast<float>(streamer.stats.totalQuadsSizeBytes) / BYTES_IN_MB;
+            // float depthOffsetsSizeMB = static_cast<float>(streamer.stats.totalDepthOffsetsSizeBytes) / BYTES_IN_MB;
+            
+            // ImGui::TextColored(ImVec4(0,0.5,0,1), "Quads Size: %.3f MB", quadsSizeMB);
+            // ImGui::TextColored(ImVec4(0,0.5,0,1), "Depth Offsets Size: %.3f MB", depthOffsetsSizeMB);
+            // ImGui::TextColored(ImVec4(0,0.5,0,1), "Video Bitrate: %.3f Mbps", streamer.stats.videoBitrateMbps);
+
+            ImGui::Separator();
+            ImGui::Separator();
+
+            ImGui::Checkbox("Show Wireframe", &showWireframe);
+
+            ImGui::Separator();
+
+            // ImGui::Checkbox("Pause Streaming", &paused);
+
+            ImGui::Separator();
+                    // streamer.start();
+                    // streamingStarted = true;
+                    // sendNextKeyFrame = true;
+
+
+            
+
 
             if (ImGui::CollapsingHeader("Quad Generation Settings")) {
                 if (ImGui::Checkbox("Correct Extreme Normals", &quadsGenerator.params.correctOrientation)) {
@@ -515,6 +586,7 @@ int main(int argc, char** argv) {
             // save to file if requested
             if (saveToFile) {
                 quadsSimulator.saveToFile(outputPath);
+        
             }
 
             preventCopyingLocalPose = false;
