@@ -441,6 +441,7 @@ int main(int argc, char** argv) {
 
         if (rerenderInterval > 0.0 && (now - lastRenderTime) >= (rerenderInterval - 1.0) / MILLISECONDS_IN_SECOND) {
             generateRemoteFrame = true;
+            runAnimations = true;
             lastRenderTime = now;
         }
         if (generateRemoteFrame) {
