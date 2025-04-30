@@ -289,12 +289,12 @@ int main(int argc, char** argv) {
             }
         }
         auto keys = window->getKeys();
-        camera.processKeyboard(keys, dt);
         if (keys.ESC_PRESSED) {
             window->close();
         }
         auto scroll = window->getScrollOffset();
         camera.processScroll(scroll.y);
+        camera.processKeyboard(keys, dt);
 
         // update all animations
         scene.updateAnimations(dt);

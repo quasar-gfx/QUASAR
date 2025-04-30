@@ -100,7 +100,7 @@ int main(int argc, char** argv) {
     float exposure = 1.0f;
     int shaderIndex = 0;
     bool recording = false;
-    float animationInterval = cameraPathFileIn ? (MILLISECONDS_IN_SECOND / 30.0) : -1.0; // run at 30fps if animation file is provided
+    float animationInterval = cameraPathFileIn ? (MILLISECONDS_IN_SECOND / 30.0f) : -1.0; // run at 30fps if camera path is provided
     RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
@@ -343,8 +343,6 @@ int main(int argc, char** argv) {
         if (keys.ESC_PRESSED) {
             window->close();
         }
-        auto scroll = window->getScrollOffset();
-        camera.processScroll(scroll.y);
 
         if (cameraAnimator.running) {
             updateClient = cameraAnimator.update(!cameraPathFileIn ? dt : 1.0 / MILLISECONDS_IN_SECOND);
@@ -355,10 +353,10 @@ int main(int argc, char** argv) {
             }
         }
         else {
-            // handle keyboard input
+            auto scroll = window->getScrollOffset();
+            camera.processScroll(scroll.y);
             camera.processKeyboard(keys, dt);
         }
-
         totalDT += dt;
 
         // update all animations
@@ -366,10 +364,6 @@ int main(int argc, char** argv) {
             scene.updateAnimations(totalDT);
             lastRenderTime = now;
             totalDT = 0.0;
-        }
-
-        if (!updateClient) {
-            return;
         }
 
         // render all objects in scene
@@ -393,6 +387,9 @@ int main(int argc, char** argv) {
         else if (shaderIndex == 4) {
             showIDsEffect.showObjectIDs(false);
             showIDsEffect.drawToScreen(renderer);
+        }
+        if (!updateClient) {
+            return;
         }
 
         if (cameraPathFileIn) {

@@ -414,6 +414,7 @@ int main(int argc, char** argv) {
         camera.updateProjectionMatrix();
     });
 
+    double totalDT = 0.0;
     double lastRenderTime = 0.0;
     bool updateClient = !saveImages;
     int frameCounter = 0;
@@ -470,17 +471,17 @@ int main(int argc, char** argv) {
             camera.processScroll(scroll.y);
             camera.processKeyboard(keys, dt);
         }
-
-        // update all animations
-        // we run this outside the remote loop to ensure that animations are sync'ed with scene_viewer
-        if (runAnimations) {
-            remoteScene.updateAnimations(dt);
-        }
+        totalDT += dt;
 
         if (rerenderInterval > 0.0 && (now - lastRenderTime) >= (rerenderInterval - 1.0) / MILLISECONDS_IN_SECOND) {
             generateRefFrame = (++frameCounter) % REF_FRAME_PERIOD == 0; // insert Reference Frame every REF_FRAME_PERIOD frames
             generateResFrame = !generateRefFrame;
-            runAnimations = true;
+
+            // update all animations
+            if (runAnimations) {
+                remoteScene.updateAnimations(totalDT);
+                totalDT = 0.0;
+            }
             lastRenderTime = now;
         }
         if (generateRefFrame || generateResFrame) {
