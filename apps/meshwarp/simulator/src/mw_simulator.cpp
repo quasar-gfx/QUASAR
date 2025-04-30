@@ -224,10 +224,12 @@ int main(int argc, char** argv) {
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = !saveImages;
-        static bool showCaptureWindow = false;
-        static bool saveAsHDR = false;
+        static bool showFrameCaptureWindow = false;
         static char fileNameBase[256] = "screenshot";
-        static int serverFPSIndex = !cameraPathFileIn ? 0 : 5; // default to 30fps
+        static bool saveAsHDR = false;
+        static bool showRecordWindow = false;
+        static int recordingFormatIndex = 0;
+        static char recordingDirBase[256] = "recordings";
 
         static bool showSkyBox = true;
 
@@ -244,7 +246,8 @@ int main(int argc, char** argv) {
         if (ImGui::BeginMenu("View")) {
             ImGui::MenuItem("FPS", 0, &showFPS);
             ImGui::MenuItem("UI", 0, &showUI);
-            ImGui::MenuItem("Frame Capture", 0, &showCaptureWindow);
+            ImGui::MenuItem("Frame Capture", 0, &showFrameCaptureWindow);
+            ImGui::MenuItem("Record", 0, &showRecordWindow);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -347,10 +350,10 @@ int main(int argc, char** argv) {
             ImGui::End();
         }
 
-        if (showCaptureWindow) {
+        if (showFrameCaptureWindow) {
             ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
-            ImGui::Begin("Frame Capture", &showCaptureWindow);
+            ImGui::Begin("Frame Capture", &showFrameCaptureWindow);
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
@@ -363,6 +366,51 @@ int main(int argc, char** argv) {
 
             if (ImGui::Button("Capture Current Frame")) {
                 recorder.saveScreenshotToFile(fileName, saveAsHDR);
+            }
+
+            ImGui::End();
+        }
+
+        if (showRecordWindow) {
+            ImGui::SetNextWindowSize(ImVec2(300, 300), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 300), ImGuiCond_FirstUseEver);
+            ImGui::Begin("Record", &showRecordWindow);
+
+            if (recording) {
+                ImGui::TextColored(ImVec4(1,0,0,1), "Recording in progress...");
+            }
+
+            ImGui::Text("Output Directory:");
+            ImGui::InputText("##output directory", recordingDirBase, IM_ARRAYSIZE(recordingDirBase));
+
+            ImGui::Text("FPS:");
+            if (ImGui::InputInt("##fps", &recorder.targetFrameRate)) {
+                recorder.setTargetFrameRate(recorder.targetFrameRate);
+            }
+
+            ImGui::Text("Format:");
+            if (ImGui::Combo("##format", &recordingFormatIndex, recorder.getFormatCStrArray(), recorder.getFormatCount())) {
+                Recorder::OutputFormat selectedFormat = Recorder::OutputFormat::MP4;
+                switch (recordingFormatIndex) {
+                    case 0: selectedFormat = Recorder::OutputFormat::MP4; break;
+                    case 1: selectedFormat = Recorder::OutputFormat::PNG; break;
+                    case 2: selectedFormat = Recorder::OutputFormat::JPG; break;
+                    default: break;
+                }
+                recorder.setFormat(selectedFormat);
+            }
+
+            if (ImGui::Button("Start")) {
+                recording = true;
+                std::string recordingDir = outputPath + std::string(recordingDirBase) + "." +
+                                                      std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+                recorder.setOutputPath(recordingDir);
+                recorder.start();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Stop")) {
+                recorder.stop();
+                recording = false;
             }
 
             ImGui::End();

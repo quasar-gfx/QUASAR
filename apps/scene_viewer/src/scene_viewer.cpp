@@ -105,12 +105,11 @@ int main(int argc, char** argv) {
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = !saveImages;
-        static bool showCaptureWindow = false;
-        static bool showRecordWindow = false;
-        static bool saveAsHDR = false;
+        static bool showFrameCaptureWindow = false;
         static char fileNameBase[256] = "screenshot";
+        static bool saveAsHDR = false;
+        static bool showRecordWindow = false;
         static int recordingFormatIndex = 0;
-        static const char* formats[] = { "MP4", "PNG", "JPG" };
         static char recordingDirBase[256] = "recordings";
 
         static bool showSkyBox = true;
@@ -128,7 +127,7 @@ int main(int argc, char** argv) {
         if (ImGui::BeginMenu("View")) {
             ImGui::MenuItem("FPS", 0, &showFPS);
             ImGui::MenuItem("UI", 0, &showUI);
-            ImGui::MenuItem("Frame Capture", 0, &showCaptureWindow);
+            ImGui::MenuItem("Frame Capture", 0, &showFrameCaptureWindow);
             ImGui::MenuItem("Record", 0, &showRecordWindow);
             ImGui::EndMenu();
         }
@@ -227,10 +226,10 @@ int main(int argc, char** argv) {
             ImGui::End();
         }
 
-        if (showCaptureWindow) {
+        if (showFrameCaptureWindow) {
             ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
-            ImGui::Begin("Frame Capture", &showCaptureWindow);
+            ImGui::Begin("Frame Capture", &showFrameCaptureWindow);
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
@@ -266,7 +265,7 @@ int main(int argc, char** argv) {
             }
 
             ImGui::Text("Format:");
-            if (ImGui::Combo("##format", &recordingFormatIndex, formats, IM_ARRAYSIZE(formats))) {
+            if (ImGui::Combo("##format", &recordingFormatIndex, recorder.getFormatCStrArray(), recorder.getFormatCount())) {
                 Recorder::OutputFormat selectedFormat = Recorder::OutputFormat::MP4;
                 switch (recordingFormatIndex) {
                     case 0: selectedFormat = Recorder::OutputFormat::MP4; break;

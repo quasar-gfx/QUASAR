@@ -41,6 +41,8 @@ public:
         JPG,
     };
 
+    std::vector<std::string> outputFormats;
+
     int targetFrameRate;
 
     Recorder(OpenGLRenderer &renderer, PostProcessingEffect &effect, const std::string& outputPath, int targetFrameRate = 60, unsigned int numThreads = 8)
@@ -60,11 +62,11 @@ public:
             , targetFrameRate(targetFrameRate)
             , numThreads(numThreads)
             , outputPath(outputPath)
+            , outputFormats({"MP4", "PNG", "JPG"})
 #if !defined(__APPLE__) && !defined(__ANDROID__)
             , cudaImage(renderTargetCopy.colorBuffer)
 #endif
-            {
-    }
+        { }
     Recorder(OpenGLRenderer &renderer, PostProcessingEffect &effect, int targetFrameRate = 60, unsigned int numThreads = 8)
         : Recorder(renderer, effect, ".", targetFrameRate) { }
     ~Recorder();
@@ -78,6 +80,19 @@ public:
     void start();
     void stop();
     void captureFrame(const Camera &camera);
+
+    const char* const* getFormatCStrArray() const {
+        static std::vector<const char*> cstrs;
+        cstrs.clear();
+        for (const auto& fmt : outputFormats) {
+            cstrs.push_back(fmt.c_str());
+        }
+        return cstrs.data();
+    }
+
+    int getFormatCount() const {
+        return static_cast<int>(outputFormats.size());
+    }
 
 private:
     unsigned int numThreads;

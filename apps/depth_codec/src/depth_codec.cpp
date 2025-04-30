@@ -169,7 +169,7 @@ int main(int argc, char** argv) {
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = true;
-        static bool showCaptureWindow = false;
+        static bool showFrameCaptureWindow = false;
         static bool showDepthPreview = true;
 
         ImGui::NewFrame();
@@ -185,7 +185,7 @@ int main(int argc, char** argv) {
         if (ImGui::BeginMenu("View")) {
             ImGui::MenuItem("FPS", 0, &showFPS);
             ImGui::MenuItem("UI", 0, &showUI);
-            ImGui::MenuItem("Frame Capture", 0, &showCaptureWindow);
+            ImGui::MenuItem("Frame Capture", 0, &showFrameCaptureWindow);
             ImGui::MenuItem("Depth Preview", 0, &showDepthPreview);
             ImGui::EndMenu();
         }
