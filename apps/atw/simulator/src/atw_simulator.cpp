@@ -387,15 +387,15 @@ int main(int argc, char** argv) {
 
         if (rerenderInterval > 0.0 && (now - lastRenderTime) >= (rerenderInterval - 1.0) / MILLISECONDS_IN_SECOND) {
             generateRemoteFrame = true;
-
+        }
+        if (generateRemoteFrame) {
             // update all animations
             if (runAnimations) {
                 remoteScene.updateAnimations(totalDT);
                 totalDT = 0.0;
             }
             lastRenderTime = now;
-        }
-        if (generateRemoteFrame) {
+
             double startTime = window->getTime();
 
             // "send" pose to the server. this will wait until latency+/-jitter ms have passed

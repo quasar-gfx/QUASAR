@@ -524,15 +524,15 @@ int main(int argc, char** argv) {
         if (rerenderInterval > 0.0 && (now - lastRenderTime) >= (rerenderInterval - 1.0) / MILLISECONDS_IN_SECOND) {
             generateRefFrame = (++frameCounter) % REF_FRAME_PERIOD == 0; // insert Reference Frame every REF_FRAME_PERIOD frames
             generateResFrame = !generateRefFrame;
-
+        }
+        if (generateRefFrame || generateResFrame) {
             // update all animations
             if (runAnimations) {
                 remoteScene.updateAnimations(totalDT);
                 totalDT = 0.0;
             }
             lastRenderTime = now;
-        }
-        if (generateRefFrame || generateResFrame) {
+
             // "send" pose to the server. this will wait until latency+/-jitter ms have passed
             poseSendRecvSimulator.sendPose(camera, now);
             if (!preventCopyingLocalPose) {

@@ -597,7 +597,8 @@ int main(int argc, char** argv) {
 
         if (rerenderInterval > 0.0 && (now - lastRenderTime) >= (rerenderInterval - 1.0) / MILLISECONDS_IN_SECOND) {
             generateRemoteFrame = true;
-            lastRenderTime = now;
+        }
+        if (generateRemoteFrame) {
 
             // update all animations
             if (runAnimations) {
@@ -605,8 +606,7 @@ int main(int argc, char** argv) {
                 totalDT = 0.0;
             }
             lastRenderTime = now;
-        }
-        if (generateRemoteFrame) {
+
             // "send" pose to the server. this will wait until latency+/-jitter ms have passed
             poseSendRecvSimulator.sendPose(camera, now);
             if (!preventCopyingLocalPose) {
