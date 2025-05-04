@@ -60,8 +60,6 @@ VideoTexture::~VideoTexture() {
     // av_free(buffer);
 
     while (!frames.empty()) {
-        FrameData frameData = frames.front();
-        frameData.free();
         frames.pop_front();
     }
 }
@@ -182,12 +180,11 @@ void VideoTexture::receiveVideo() {
 
     videoReady = true;
 
-    float prevTime = timeutils::getTimeMicros();
+    uint64_t prevTime = timeutils::getTimeMicros();
 
     size_t bytesReceived = 0;
-    pose_id_t poseID = -1;
     while (videoReady) {
-        int receiveFrameStartTime = timeutils::getTimeMicros();
+        time_t startRecvTime = timeutils::getTimeMicros();
 
         // read frame from URL
         int ret = av_read_frame(inputFormatCtx, packet);
@@ -196,7 +193,7 @@ void VideoTexture::receiveVideo() {
             return;
         }
 
-        stats.timeToReceiveMs = timeutils::microsToMillis(timeutils::getTimeMicros() - receiveFrameStartTime);
+        stats.timeToReceiveMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startRecvTime);
 
         if (packet->stream_index != videoStreamIndex) {
             continue;
@@ -206,7 +203,7 @@ void VideoTexture::receiveVideo() {
 
         /* Decode received frame */
         {
-            int decodeStartTime = timeutils::getTimeMicros();
+            time_t startDecodeTime = timeutils::getTimeMicros();
 
             // send packet to decoder
             ret = avcodec_send_packet(codecCtx, packet);
@@ -228,36 +225,42 @@ void VideoTexture::receiveVideo() {
                 return;
             }
 
-            stats.timeToDecodeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - decodeStartTime);
+            stats.timeToDecodeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startDecodeTime);
         }
 
         /* Resize video frame to fit output texture size */
         {
-            int resizeStartTime = timeutils::getTimeMicros();
+            time_t startResizeTime = timeutils::getTimeMicros();
 
             AVFrame* frameRGB = av_frame_alloc();
 
             int numBytes = av_image_get_buffer_size(openglPixelFormat, internalWidth, internalHeight, 1);
-            uint8_t* buffer = (uint8_t*)av_malloc(numBytes * sizeof(uint8_t));
-            av_image_fill_arrays(frameRGB->data, frameRGB->linesize, buffer, openglPixelFormat, internalWidth, internalHeight, 1);
+            uint8_t* imageBuffer = (uint8_t*)av_malloc(numBytes);
+            av_image_fill_arrays(frameRGB->data, frameRGB->linesize, imageBuffer,
+                                 openglPixelFormat, internalWidth, internalHeight, 1);
 
-            sws_scale(swsCtx, (uint8_t const* const*)frame->data, frame->linesize, 0, videoHeight, frameRGB->data, frameRGB->linesize);
+            sws_scale(swsCtx, (uint8_t const* const*)frame->data, frame->linesize,
+                      0, videoHeight, frameRGB->data, frameRGB->linesize);
 
-            poseID = unpackPoseIDFromFrame(frameRGB);
+            pose_id_t poseID = unpackPoseIDFromFrame(frameRGB);
 
-            FrameData frameData = {poseID, frameRGB, buffer};
+            // copy buffer
+            std::vector<char> bufferCopy((char*)imageBuffer, (char*)imageBuffer + numBytes);
+            FrameData frameData = {poseID, std::move(bufferCopy)};
             {
                 std::unique_lock<std::mutex> lock(m);
 
-                frames.push_back(frameData);
+                frames.push_back(std::move(frameData));
                 if (frames.size() > maxQueueSize) {
-                    FrameData frameToFree = frames.front();
-                    frameToFree.free();
                     frames.pop_front();
                 }
             }
 
-            stats.timeToResizeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - resizeStartTime);
+            // clean up temporary AVFrame and raw buffer
+            av_free(imageBuffer);
+            av_frame_free(&frameRGB);
+
+            stats.timeToResizeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startResizeTime);
         }
 
         stats.totalTimeToReceiveMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
@@ -292,7 +295,7 @@ pose_id_t VideoTexture::draw(pose_id_t poseID) {
 
     int stride = internalWidth;
     glPixelStorei(GL_UNPACK_ROW_LENGTH, stride);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, resFrameData.frame->data[0]);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, resFrameData.buffer.data());
 
     prevPoseID = resFrameData.poseID;
 

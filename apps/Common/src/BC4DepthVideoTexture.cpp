@@ -31,27 +31,24 @@ pose_id_t BC4DepthVideoTexture::getLatestPoseID() {
 }
 
 void BC4DepthVideoTexture::onDataReceived(const std::vector<char>& compressedData) {
-    static float prevTime = timeutils::getTimeMicros();
-
-    double startTime = timeutils::getTimeMicros();
+    time_t startTime = timeutils::getTimeMicros();
 
     // calculate expected decompressed size
-    size_t expectedSize = sizeof(pose_id_t) + compressedSize * sizeof(Block);
+    size_t expectedSize = compressedSize * sizeof(Block);
     std::vector<char> decompressedData(expectedSize);
 
     // decompress in one shot
-    size_t dstSize = codec.decompress(compressedData, decompressedData);
+    size_t decompressedSize = codec.decompress(compressedData, decompressedData);
 
     stats.timeToDecompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
-    stats.compressionRatio = static_cast<float>(dstSize) / compressedData.size();
+    stats.compressionRatio = static_cast<float>(decompressedSize) / compressedData.size();
 
     // extract pose ID
     pose_id_t poseID;
     std::memcpy(&poseID, decompressedData.data(), sizeof(pose_id_t));
 
     // create frame data with the rest of the buffer
-    std::vector<char> frameBuffer(decompressedData.begin() + sizeof(pose_id_t),
-                                     decompressedData.end());
+    std::vector<char> frameBuffer(decompressedData.begin() + sizeof(pose_id_t), decompressedData.end());
 
     std::lock_guard<std::mutex> lock(m);
 
@@ -63,7 +60,7 @@ void BC4DepthVideoTexture::onDataReceived(const std::vector<char>& compressedDat
     }
 
     stats.timeToReceiveMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
-    stats.bitrateMbps = ((sizeof(pose_id_t) + compressedData.size()) * 8 / timeutils::millisToSeconds(stats.timeToReceiveMs)) / BYTES_IN_MB;
+    stats.bitrateMbps = ((compressedData.size() * 8) / timeutils::millisToSeconds(stats.timeToReceiveMs)) / BYTES_IN_MB;
 
     prevTime = timeutils::getTimeMicros();
 }

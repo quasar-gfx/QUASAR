@@ -26,16 +26,11 @@ public:
 
     std::string streamerURL;
 
-    // struct Stats {
-    //     float timeToReceiveMs = 0.0f;
-    //     float bitrateMbps = 0.0f;
-    // } stats;
-
     struct ReceiverStats {
-        float timeToReceiveMs = 0.0f;
-        float timeToDecompressMs = 0.0f;
-        float bitrateMbps = 0.0f;
-        float compressionRatio = 0.0f;
+        double timeToReceiveMs = 0.0f;
+        double timeToDecompressMs = 0.0f;
+        double bitrateMbps = 0.0f;
+        double compressionRatio = 0.0f;
     };
 
     ReceiverStats stats;
@@ -54,9 +49,12 @@ public:
     pose_id_t getLatestPoseID();
 
 private:
+    time_t prevTime = timeutils::getTimeMicros();
     pose_id_t prevPoseID = -1;
+
     unsigned int maxQueueSize = 10;
     std::mutex m;
+
     struct FrameData {
         pose_id_t poseID;
         std::vector<char> buffer;

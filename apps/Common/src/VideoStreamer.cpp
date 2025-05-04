@@ -219,7 +219,7 @@ void VideoStreamer::packPoseIDIntoVideoFrame(pose_id_t poseID) {
 void VideoStreamer::encodeAndSendFrames() {
     sendFrames = true;
 
-    int prevTime = timeutils::getTimeMicros();
+    time_t prevTime = timeutils::getTimeMicros();
 
     size_t bytesSent = 0;
     int ret;
@@ -237,7 +237,7 @@ void VideoStreamer::encodeAndSendFrames() {
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
         /* Copy frame from OpenGL texture to AVFrame */
-        int startCopyTime = timeutils::getTimeMicros();
+        time_t startCopyTime = timeutils::getTimeMicros();
 
         // copy opengl texture data to frame
         CudaBuffer cudaBufferStruct = cudaBufferQueue.front();
@@ -280,7 +280,7 @@ void VideoStreamer::encodeAndSendFrames() {
 
         /* Encode frame */
         {
-            int startEncodeTime = timeutils::getTimeMicros();
+            time_t startEncodeTime = timeutils::getTimeMicros();
 
             // send frame to encoder
             ret = avcodec_send_frame(codecCtx, frame);
@@ -308,7 +308,7 @@ void VideoStreamer::encodeAndSendFrames() {
 
         /* Send frame to output URL */
         {
-            int startWriteTime = timeutils::getTimeMicros();
+            time_t startWriteTime = timeutils::getTimeMicros();
 
             bytesSent = packet->size;
 
@@ -334,7 +334,6 @@ void VideoStreamer::encodeAndSendFrames() {
             );
         }
         stats.totalTimeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
-
         stats.bitrateMbps = ((bytesSent * 8) / timeutils::millisToSeconds(stats.totalTimeToSendMs)) / BYTES_IN_MB;
 
         prevTime = timeutils::getTimeMicros();

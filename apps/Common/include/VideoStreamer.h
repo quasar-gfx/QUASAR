@@ -36,11 +36,11 @@ public:
     uint64_t framesSent = 0;
 
     struct Stats {
-        float timeToEncodeMs = 0.0f;
-        float timeToCopyFrameMs = 0.0f;
-        float timeToSendMs = 0.0f;
-        float totalTimeToSendMs = 0.0f;
-        float bitrateMbps = 0.0f;
+        double timeToEncodeMs = 0.0f;
+        double timeToCopyFrameMs = 0.0f;
+        double timeToSendMs = 0.0f;
+        double totalTimeToSendMs = 0.0f;
+        double bitrateMbps = 0.0f;
     } stats;
 
     VideoStreamer(const RenderTargetCreateParams &params,

@@ -29,11 +29,11 @@ public:
     std::string formatName;
 
     struct Stats {
-        float timeToReceiveMs = 0.0f;
-        float timeToDecodeMs = 0.0f;
-        float timeToResizeMs = 0.0f;
-        float totalTimeToReceiveMs = 0.0f;
-        float bitrateMbps = 0.0f;
+        double timeToReceiveMs = 0.0f;
+        double timeToDecodeMs = 0.0f;
+        double timeToResizeMs = 0.0f;
+        double totalTimeToReceiveMs = 0.0f;
+        double bitrateMbps = 0.0f;
     } stats;
 
     unsigned int videoWidth, videoHeight;
@@ -85,15 +85,8 @@ private:
 
     struct FrameData {
         pose_id_t poseID;
-        AVFrame* frame;
-        uint8_t* buffer;
-
-        void free() {
-            av_frame_free(&frame);
-            delete[] buffer;
-        }
+        std::vector<char> buffer;
     };
-
     std::deque<FrameData> frames;
 
     pose_id_t unpackPoseIDFromFrame(AVFrame* frame);

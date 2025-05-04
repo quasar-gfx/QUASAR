@@ -82,7 +82,7 @@ public:
         incomingPoses.push_back({
             camera.getViewMatrix(),
             camera.getProjectionMatrix(),
-            static_cast<uint64_t>(timeutils::secondsToMicros(now))
+            static_cast<time_t>(timeutils::secondsToMicros(now))
         });
         update(now);
     }
@@ -97,7 +97,7 @@ public:
             double timestampS = timeutils::microsToSeconds(poseToRecv.timestamp);
             if (networkLatencyS > 0 && now - timestampS < dtFuture + actualInJitter) return;
 
-            poseToRecv.timestamp = static_cast<uint64_t>(timeutils::secondsToMicros(now));
+            poseToRecv.timestamp = static_cast<time_t>(timeutils::secondsToMicros(now));
             actualInJitter = randomJitter();
 
             outPoses.push_back(poseToRecv);

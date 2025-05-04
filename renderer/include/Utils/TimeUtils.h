@@ -5,17 +5,17 @@
 
 namespace quasar {
 
-#define MILLISECONDS_IN_SECOND (1e3f)
-#define MICROSECONDS_IN_SECOND (1e6f)
-#define MICROSECONDS_IN_MILLISECOND (1e3f)
-#define NANOSECONDS_IN_SECOND (1e9f)
-#define NANOSECONDS_IN_MILLISECOND (1e6f)
+constexpr double MILLISECONDS_IN_SECOND = 1e3;
+constexpr double MICROSECONDS_IN_SECOND = 1e6;
+constexpr double MICROSECONDS_IN_MILLISECOND = 1e3;
+constexpr double NANOSECONDS_IN_SECOND = 1e9;
+constexpr double NANOSECONDS_IN_MILLISECOND = 1e6;
 
 #define BYTES_IN_MB (1024 * 1024)
 
 namespace timeutils {
 
-inline uint64_t getTimeSeconds() {
+inline time_t getTimeSeconds() {
     // get unix timestamp in seconds
     std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(
             std::chrono::system_clock::now().time_since_epoch()
@@ -23,7 +23,7 @@ inline uint64_t getTimeSeconds() {
     return s.count();
 }
 
-inline uint64_t getTimeMillis() {
+inline time_t getTimeMillis() {
     // get unix timestamp in ms
     std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()
@@ -31,7 +31,7 @@ inline uint64_t getTimeMillis() {
     return ms.count();
 }
 
-inline uint64_t getTimeMicros() {
+inline time_t getTimeMicros() {
     // get unix timestamp in us
     std::chrono::microseconds us = std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::system_clock::now().time_since_epoch()
@@ -39,7 +39,7 @@ inline uint64_t getTimeMicros() {
     return us.count();
 }
 
-inline uint64_t getTimeNanos() {
+inline time_t getTimeNanos() {
     // get unix timestamp in ns
     std::chrono::nanoseconds ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::system_clock::now().time_since_epoch()

@@ -94,8 +94,6 @@ void DepthStreamer::sendData() {
             break;
         }
 
-        double startTime = timeutils::getTimeMicros();
-
         // copy depth buffer to data
         CudaBuffer cudaBufferStruct = cudaBufferQueue.front();
         cudaArray* cudaBuffer = cudaBufferStruct.buffer;
@@ -105,14 +103,15 @@ void DepthStreamer::sendData() {
 
         lock.unlock();
 
-        std::memcpy(data.data(), &poseIDToSend, sizeof(pose_id_t));
-
-        CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(data.data() + sizeof(pose_id_t), width * sizeof(GLushort),
-                                               cudaBuffer,
-                                               0, 0, width * sizeof(GLushort), height,
-                                               cudaMemcpyDeviceToHost));
-
-        stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+        time_t startCopyTime = timeutils::getTimeMicros();
+        {
+            std::memcpy(data.data(), &poseIDToSend, sizeof(pose_id_t));
+            CHECK_CUDA_ERROR(cudaMemcpy2DFromArray(data.data() + sizeof(pose_id_t), width * sizeof(GLushort),
+                                                   cudaBuffer,
+                                                   0, 0, width * sizeof(GLushort), height,
+                                                   cudaMemcpyDeviceToHost));
+        }
+        stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startCopyTime);
 
         double elapsedTimeSec = timeutils::microsToSeconds(timeutils::getTimeMicros() - prevTime);
         if (elapsedTimeSec < (1.0f / targetFrameRate)) {

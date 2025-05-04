@@ -100,7 +100,9 @@ void BC4DepthStreamer::copyFrameToCPU(pose_id_t poseID, void* cudaPtr) {
 unsigned int BC4DepthStreamer::applyCodec() {
     size_t maxSizeBytes = data.size();
     compressedData.resize(maxSizeBytes);
-    return codec.compress(data.data(), compressedData, data.size());
+    unsigned int compressedSize = codec.compress(data.data(), compressedData, data.size());
+    compressedData.resize(compressedSize);
+    return compressedSize;
 }
 
 void BC4DepthStreamer::sendFrame(pose_id_t poseID) {
@@ -147,7 +149,7 @@ void BC4DepthStreamer::sendFrame(pose_id_t poseID) {
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
 void BC4DepthStreamer::sendData() {
-    double prevTime = timeutils::getTimeMicros();
+    time_t prevTime = timeutils::getTimeMicros();
 
     while (running) {
         std::unique_lock<std::mutex> lock(m);
@@ -162,19 +164,19 @@ void BC4DepthStreamer::sendData() {
 
         lock.unlock();
 
-        double startTime = timeutils::getTimeMicros();
+        time_t startCopyTime = timeutils::getTimeMicros();
         {
             // copy pose ID to the beginning of data
             std::memcpy(data.data(), &cudaBufferStruct.poseID, sizeof(pose_id_t));
             // copy compressed BC4 data from GPU to CPU
             copyFrameToCPU(cudaBufferStruct.poseID, cudaPtr);
         }
-        stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+        stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startCopyTime);
 
         // compress even further
-        startTime = timeutils::getTimeMicros();
+        time_t startCompressTime = timeutils::getTimeMicros();
         unsigned int compressedSize = applyCodec();
-        stats.timeToCompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+        stats.timeToCompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startCompressTime);
         stats.compressionRatio = static_cast<float>(compressedSize) / (width * height * sizeof(float));
 
         double elapsedTimeSec = timeutils::microsToSeconds(timeutils::getTimeMicros() - prevTime);
@@ -190,7 +192,7 @@ void BC4DepthStreamer::sendData() {
         streamer.send(compressedData);
 
         stats.timeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
-        stats.bitrateMbps = (compressedData.size() * 8 / timeutils::millisToSeconds(stats.timeToSendMs)) / BYTES_IN_MB;
+        stats.bitrateMbps = ((compressedSize * 8) / timeutils::millisToSeconds(stats.timeToSendMs)) / BYTES_IN_MB;
 
         prevTime = timeutils::getTimeMicros();
     }

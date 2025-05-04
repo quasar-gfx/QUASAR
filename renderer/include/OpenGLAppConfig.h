@@ -22,7 +22,7 @@ struct Config {
     GraphicsPipeline pipeline;
     unsigned int width = 800;
     unsigned int height = 600;
-    unsigned int targetFramerate = 60;
+    int targetFramerate = 60;
     std::string title = "OpenGL App";
     std::shared_ptr<Window> window = nullptr;
     std::shared_ptr<GUIManager> guiManager = nullptr;
