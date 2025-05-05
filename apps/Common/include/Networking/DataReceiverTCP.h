@@ -16,8 +16,8 @@ namespace quasar {
 class DataReceiverTCP {
 public:
     struct Stats {
-        float timeToReceiveMs = 0.0f;
-        float bitrateMbps = 0.0f;
+        double timeToReceiveMs = 0.0;
+        double bitrateMbps = 0.0;
     };
 
     DataReceiverTCP(const std::string& url, bool nonBlocking = false);

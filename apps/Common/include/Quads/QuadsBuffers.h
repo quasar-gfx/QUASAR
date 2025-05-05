@@ -33,8 +33,8 @@ struct QuadMapDataPacked {
 class QuadBuffers {
 public:
     struct Stats {
-        double timeToCompressMs = 0.0f;
-        double timeToDecompressMs = 0.0f;
+        double timeToCompressMs = 0.0;
+        double timeToDecompressMs = 0.0;
     } stats;
 
     uint maxProxies;

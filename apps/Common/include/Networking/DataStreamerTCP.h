@@ -21,8 +21,8 @@ public:
     int maxDataSize;
 
     struct Stats {
-        float timeToSendMs = 0.0f;
-        float bitrateMbps = 0.0f;
+        double timeToSendMs = 0.0;
+        double bitrateMbps = 0.0;
     } stats;
 
     DataStreamerTCP(std::string url, int maxDataSize = 65535, bool nonBlocking = false)

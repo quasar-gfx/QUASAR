@@ -26,15 +26,15 @@ public:
         , meshFromQuadsMask(meshFromQuads.remoteWindowSize, meshFromQuads.maxProxies / 4) {}
 
     struct Stats {
-        double timeToCreateProxiesMs = 0.0f;
-        double timeToCreateMeshMs = 0.0f;
-        double timeToGenerateQuadsMs = 0.0f;
-        double timeToSimplifyQuadsMs = 0.0f;
-        double timeToGatherQuadsMs = 0.0f;
-        double timeToAppendQuadsMs = 0.0f;
-        double timeToFillQuadIndicesMs = 0.0f;
-        double timeToCreateVertIndMs = 0.0f;
-        double timeToRenderMaskMs = 0.0f;
+        double timeToCreateProxiesMs = 0.0;
+        double timeToCreateMeshMs = 0.0;
+        double timeToGenerateQuadsMs = 0.0;
+        double timeToSimplifyQuadsMs = 0.0;
+        double timeToGatherQuadsMs = 0.0;
+        double timeToAppendQuadsMs = 0.0;
+        double timeToFillQuadIndicesMs = 0.0;
+        double timeToCreateVertIndMs = 0.0;
+        double timeToRenderMaskMs = 0.0;
         double timeToCompress = 0.0f;
     } stats;
 

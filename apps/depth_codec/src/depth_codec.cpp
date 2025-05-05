@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
     uint originalSize = windowSize.x * windowSize.y * sizeof(float);
 
     // create buffer for compressed data
-    uint compressedSize = (windowSize.x / 8) * (windowSize.y / 8) * sizeof(BC4DepthStreamer::Block);
+    uint compressedSize = (windowSize.x / 8) * (windowSize.y / 8) * sizeof(BC4Block);
     float compressionRatio = originalSize / compressedSize;
 
     // set up meshes for rendering

@@ -11,26 +11,20 @@
 
 #include <CameraPose.h>
 
+#include <Codec/BC4.h>
 #include <Codec/ZSTDCodec.h>
 
 namespace quasar {
 
 class BC4DepthVideoTexture : public Texture, public DataReceiverTCP {
 public:
-    struct Block {
-        float max;
-        float min;
-        uint32_t data[6];
-    };
     Buffer bc4CompressedBuffer;
 
-    std::string streamerURL;
-
     struct ReceiverStats {
-        double timeToReceiveMs = 0.0f;
-        double timeToDecompressMs = 0.0f;
-        double bitrateMbps = 0.0f;
-        double compressionRatio = 0.0f;
+        double timeToReceiveMs = 0.0;
+        double timeToDecompressMs = 0.0;
+        double bitrateMbps = 0.0;
+        double compressionRatio = 0.0;
     };
 
     ReceiverStats stats;

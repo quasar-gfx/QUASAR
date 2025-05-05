@@ -2,6 +2,7 @@
 #define DATA_PACKET_UDP_H
 
 #include <cstdint>
+#include <Utils/Platform.h>
 
 namespace quasar {
 

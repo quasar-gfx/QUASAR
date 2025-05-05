@@ -14,8 +14,8 @@ namespace quasar {
 class DepthOffsets {
 public:
     struct Stats {
-        double timeToCompressMs = 0.0f;
-        double timeToDecompressMs = 0.0f;
+        double timeToCompressMs = 0.0;
+        double timeToDecompressMs = 0.0;
     } stats;
 
     glm::uvec2 size;

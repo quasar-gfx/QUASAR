@@ -5,7 +5,6 @@
 #include <shaders_common.h>
 
 #define THREADS_PER_LOCALGROUP 16
-#define BLOCK_SIZE 8
 
 using namespace quasar;
 
@@ -19,14 +18,14 @@ BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams &params, const
             .defines = {
                 "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
             }}) {
-    // round up to nearest multiple of BLOCK_SIZE
-    width = (params.width + BLOCK_SIZE - 1) / BLOCK_SIZE * BLOCK_SIZE;
-    height = (params.height + BLOCK_SIZE - 1) / BLOCK_SIZE * BLOCK_SIZE;
+    // round up to nearest multiple of BC4_BLOCK_SIZE
+    width = (params.width + BC4_BLOCK_SIZE - 1) / BC4_BLOCK_SIZE * BC4_BLOCK_SIZE;
+    height = (params.height + BC4_BLOCK_SIZE - 1) / BC4_BLOCK_SIZE * BC4_BLOCK_SIZE;
     resize(width, height);
 
-    compressedSize = (width / BLOCK_SIZE) * (height / BLOCK_SIZE);
-    data = std::vector<char>(sizeof(pose_id_t) + compressedSize * sizeof(Block));
-    bc4CompressedBuffer = Buffer(GL_SHADER_STORAGE_BUFFER, compressedSize, sizeof(Block), nullptr, GL_DYNAMIC_DRAW);
+    compressedSize = (width / BC4_BLOCK_SIZE) * (height / BC4_BLOCK_SIZE);
+    data = std::vector<char>(sizeof(pose_id_t) + compressedSize * sizeof(BC4Block));
+    bc4CompressedBuffer = Buffer(GL_SHADER_STORAGE_BUFFER, compressedSize, sizeof(BC4Block), nullptr, GL_DYNAMIC_DRAW);
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
         cudaBufferBc4.registerBuffer(bc4CompressedBuffer);
@@ -63,11 +62,11 @@ uint BC4DepthStreamer::compress(bool compress) {
     glm::uvec2 depthMapSize = glm::uvec2(width, height);
 
     bc4CompressionShader.setVec2("depthMapSize", depthMapSize);
-    bc4CompressionShader.setVec2("bc4DepthSize", glm::uvec2(depthMapSize.x / BLOCK_SIZE, depthMapSize.y / BLOCK_SIZE));
+    bc4CompressionShader.setVec2("bc4DepthSize", glm::uvec2(depthMapSize.x / BC4_BLOCK_SIZE, depthMapSize.y / BC4_BLOCK_SIZE));
     bc4CompressionShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, bc4CompressedBuffer);
 
-    bc4CompressionShader.dispatch(((depthMapSize.x / BLOCK_SIZE) + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                  ((depthMapSize.y / BLOCK_SIZE) + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+    bc4CompressionShader.dispatch(((depthMapSize.x / BC4_BLOCK_SIZE) + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                                  ((depthMapSize.y / BC4_BLOCK_SIZE) + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
     bc4CompressionShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
     if (compress) {
@@ -88,11 +87,11 @@ void BC4DepthStreamer::copyFrameToCPU(pose_id_t poseID, void* cudaPtr) {
     }
     CHECK_CUDA_ERROR(cudaMemcpy(data.data() + sizeof(pose_id_t),
                                 cudaPtr,
-                                compressedSize * sizeof(Block),
+                                compressedSize * sizeof(BC4Block),
                                 cudaMemcpyDeviceToHost));
 #else
     bc4CompressedBuffer.bind();
-    bc4CompressedBuffer.setData(compressedSize * sizeof(Block), data.data() + sizeof(pose_id_t));
+    bc4CompressedBuffer.setData(compressedSize * sizeof(BC4Block), data.data() + sizeof(pose_id_t));
     bc4CompressedBuffer.unbind();
 #endif
 }
@@ -124,7 +123,7 @@ void BC4DepthStreamer::sendFrame(pose_id_t poseID) {
     double startTime = timeutils::getTimeMicros();
 
     // Ensure data buffer has correct size
-    size_t fullSize = sizeof(pose_id_t) + compressedSize * sizeof(Block);
+    size_t fullSize = sizeof(pose_id_t) + compressedSize * sizeof(BC4Block);
     data.resize(fullSize);
 
     // Copy data

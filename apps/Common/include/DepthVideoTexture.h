@@ -13,16 +13,13 @@ namespace quasar {
 
 class DepthVideoTexture : public Texture, public DataReceiverTCP {
 public:
-    std::string streamerURL;
-
     struct Stats {
-        float timeToReceiveMs = 0.0f;
-        float bitrateMbps = 0.0f;
+        double timeToReceiveMs = 0.0;
+        double bitrateMbps = 0.0;
     } stats;
 
     DepthVideoTexture(const TextureDataCreateParams &params, std::string streamerURL)
-            : streamerURL(streamerURL)
-            , DataReceiverTCP(streamerURL, false)
+            : DataReceiverTCP(streamerURL, false)
             , Texture(params) { }
 
     void setMaxQueueSize(uint maxQueueSize) {

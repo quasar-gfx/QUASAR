@@ -29,11 +29,11 @@ public:
     std::string formatName;
 
     struct Stats {
-        double timeToReceiveMs = 0.0f;
-        double timeToDecodeMs = 0.0f;
-        double timeToResizeMs = 0.0f;
-        double totalTimeToReceiveMs = 0.0f;
-        double bitrateMbps = 0.0f;
+        double timeToReceiveMs = 0.0;
+        double timeToDecodeMs = 0.0;
+        double timeToResizeMs = 0.0;
+        double totalTimeToReceiveMs = 0.0;
+        double bitrateMbps = 0.0;
     } stats;
 
     uint videoWidth, videoHeight;

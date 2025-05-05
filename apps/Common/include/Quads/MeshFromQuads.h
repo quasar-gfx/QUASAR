@@ -38,9 +38,9 @@ public:
     };
 
     struct Stats {
-        double timeToAppendQuadsMs = 0.0f;
-        double timeToGatherQuadsMs = 0.0f;
-        double timeToCreateMeshMs = 0.0f;
+        double timeToAppendQuadsMs = 0.0;
+        double timeToGatherQuadsMs = 0.0;
+        double timeToCreateMeshMs = 0.0;
     } stats;
 
     glm::uvec2 &remoteWindowSize;

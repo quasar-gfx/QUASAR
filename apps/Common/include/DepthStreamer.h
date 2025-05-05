@@ -22,9 +22,9 @@ public:
     int imageSize;
 
     struct Stats {
-        double timeToCopyFrameMs = 0.0f;
-        double timeToSendMs = 0.0f;
-        double bitrateMbps = 0.0f;
+        double timeToCopyFrameMs = 0.0;
+        double timeToSendMs = 0.0;
+        double bitrateMbps = 0.0;
     } stats;
 
     DepthStreamer(const RenderTargetCreateParams &params, std::string receiverURL);

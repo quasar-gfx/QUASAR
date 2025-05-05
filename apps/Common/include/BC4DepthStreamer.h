@@ -6,13 +6,13 @@
 #include <queue>
 #include <atomic>
 
-#include <glm/glm.hpp>
-
 #include <RenderTargets/RenderTarget.h>
 #include <Networking/DataStreamerTCP.h>
+#include <Shaders/ComputeShader.h>
+
 #include <CameraPose.h>
 
-#include <Shaders/ComputeShader.h>
+#include <Codec/BC4.h>
 #include <Codec/ZSTDCodec.h>
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
@@ -23,22 +23,17 @@ namespace quasar {
 
 class BC4DepthStreamer : public RenderTarget {
 public:
-    struct Block {
-        float max;
-        float min;
-        uint32_t data[6];
-    };
     Buffer bc4CompressedBuffer;
 
     std::string receiverURL;
     uint compressedSize;
 
     struct Stats {
-        double timeToCopyFrameMs = 0.0f;
-        double timeToCompressMs = 0.0f;
-        double timeToSendMs = 0.0f;
-        double bitrateMbps = 0.0f;
-        double compressionRatio = 0.0f;
+        double timeToCopyFrameMs = 0.0;
+        double timeToCompressMs = 0.0;
+        double timeToSendMs = 0.0;
+        double bitrateMbps = 0.0;
+        double compressionRatio = 0.0;
     } stats;
 
     BC4DepthStreamer(const RenderTargetCreateParams &params, const std::string &receiverURL = "");

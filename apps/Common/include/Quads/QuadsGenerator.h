@@ -18,9 +18,9 @@ public:
     };
 
     struct Stats {
-        double timeToGenerateQuadsMs = 0.0f;
-        double timeToSimplifyQuadsMs = 0.0f;
-        double timeToGatherQuadsMs = 0.0f;
+        double timeToGenerateQuadsMs = 0.0;
+        double timeToSimplifyQuadsMs = 0.0;
+        double timeToGatherQuadsMs = 0.0;
     } stats;
 
     struct Parameters {

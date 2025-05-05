@@ -3,21 +3,18 @@
 #include <Utils/TimeUtils.h>
 #include <BC4DepthVideoTexture.h>
 
-#define BLOCK_SIZE 8
-
 using namespace quasar;
 
 BC4DepthVideoTexture::BC4DepthVideoTexture(const TextureDataCreateParams &params, std::string streamerURL)
-        : streamerURL(streamerURL)
-        , DataReceiverTCP(streamerURL, false)
+        : DataReceiverTCP(streamerURL, false)
         , Texture(params) {
-    // round up to nearest multiple of BLOCK_SIZE
-    width = (params.width + BLOCK_SIZE - 1) / BLOCK_SIZE * BLOCK_SIZE;
-    height = (params.height + BLOCK_SIZE - 1) / BLOCK_SIZE * BLOCK_SIZE;
+    // round up to nearest multiple of BC4_BLOCK_SIZE
+    width = (params.width + BC4_BLOCK_SIZE - 1) / BC4_BLOCK_SIZE * BC4_BLOCK_SIZE;
+    height = (params.height + BC4_BLOCK_SIZE - 1) / BC4_BLOCK_SIZE * BC4_BLOCK_SIZE;
     resize(width, height);
 
-    compressedSize = (width / BLOCK_SIZE) * (height / BLOCK_SIZE);
-    bc4CompressedBuffer = Buffer(GL_SHADER_STORAGE_BUFFER, compressedSize, sizeof(Block), nullptr, GL_DYNAMIC_DRAW);
+    compressedSize = (width / BC4_BLOCK_SIZE) * (height / BC4_BLOCK_SIZE);
+    bc4CompressedBuffer = Buffer(GL_SHADER_STORAGE_BUFFER, compressedSize, sizeof(BC4Block), nullptr, GL_DYNAMIC_DRAW);
 }
 
 pose_id_t BC4DepthVideoTexture::getLatestPoseID() {
@@ -34,7 +31,7 @@ void BC4DepthVideoTexture::onDataReceived(const std::vector<char>& compressedDat
     time_t startTime = timeutils::getTimeMicros();
 
     // calculate expected decompressed size
-    size_t expectedSize = compressedSize * sizeof(Block);
+    size_t expectedSize = compressedSize * sizeof(BC4Block);
     std::vector<char> decompressedData(expectedSize);
 
     // decompress in one shot
