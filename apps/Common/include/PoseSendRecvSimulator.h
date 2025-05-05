@@ -19,7 +19,7 @@ struct PoseSendRecvSimulatorCreateParams {
     double renderTimeMs;
     bool posePrediction = false;
     bool poseSmoothing = false;
-    unsigned int seed = 42;
+    uint seed = 42;
 };
 
 class PoseSendRecvSimulator {

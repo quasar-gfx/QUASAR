@@ -56,7 +56,7 @@ void BC4DepthStreamer::close() {
 #endif
 }
 
-unsigned int BC4DepthStreamer::compress(bool compress) {
+uint BC4DepthStreamer::compress(bool compress) {
     bc4CompressionShader.bind();
     bc4CompressionShader.setTexture(colorBuffer, 0);
 
@@ -97,10 +97,10 @@ void BC4DepthStreamer::copyFrameToCPU(pose_id_t poseID, void* cudaPtr) {
 #endif
 }
 
-unsigned int BC4DepthStreamer::applyCodec() {
+uint BC4DepthStreamer::applyCodec() {
     size_t maxSizeBytes = data.size();
     compressedData.resize(maxSizeBytes);
-    unsigned int compressedSize = codec.compress(data.data(), compressedData, data.size());
+    uint compressedSize = codec.compress(data.data(), compressedData, data.size());
     compressedData.resize(compressedSize);
     return compressedSize;
 }
@@ -175,7 +175,7 @@ void BC4DepthStreamer::sendData() {
 
         // compress even further
         time_t startCompressTime = timeutils::getTimeMicros();
-        unsigned int compressedSize = applyCodec();
+        uint compressedSize = applyCodec();
         stats.timeToCompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startCompressTime);
         stats.compressionRatio = static_cast<float>(compressedSize) / (width * height * sizeof(float));
 

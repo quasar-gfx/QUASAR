@@ -33,7 +33,7 @@ public:
 
     virtual Shader* getShader() const = 0;
 
-    virtual unsigned int getTextureCount() const = 0;
+    virtual uint getTextureCount() const = 0;
 };
 
 } // namespace quasar

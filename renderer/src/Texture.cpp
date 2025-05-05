@@ -90,11 +90,11 @@ void Texture::loadFromFile(const TextureFileCreateParams &params) {
     }
 }
 
-void Texture::resize(unsigned int width, unsigned int height) {
+void Texture::resize(uint width, uint height) {
     setData(width, height, nullptr, true);
 }
 
-void Texture::setData(unsigned int width, unsigned int height, const void* data, bool resize) {
+void Texture::setData(uint width, uint height, const void* data, bool resize) {
     this->width = width;
     this->height = height;
 

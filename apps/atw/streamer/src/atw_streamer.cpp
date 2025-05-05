@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
     std::string videoFormat = args::get(videoFormatIn);
     std::string poseURL = args::get(poseURLIn);
 
-    unsigned int targetBitrate = args::get(targetBitrateIn);
+    uint targetBitrate = args::get(targetBitrateIn);
     bool vrMode = args::get(vrModeIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
@@ -126,7 +126,7 @@ int main(int argc, char** argv) {
 
         ImGui::NewFrame();
 
-        unsigned int flags = 0;
+        uint flags = 0;
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Exit", "ESC")) {
@@ -219,7 +219,7 @@ int main(int argc, char** argv) {
         }
     });
 
-    app.onResize([&](unsigned int width, unsigned int height) {
+    app.onResize([&](uint width, uint height) {
         windowSize = glm::uvec2(width, height);
         renderer.setWindowSize(windowSize.x, windowSize.y);
 

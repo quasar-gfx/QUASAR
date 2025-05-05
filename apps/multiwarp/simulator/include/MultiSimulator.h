@@ -45,11 +45,11 @@ public:
 
     std::vector<FrameRenderTarget> copyRTs;
 
-    unsigned int maxViews;
+    uint maxViews;
 
-    unsigned int maxVertices = MAX_NUM_PROXIES * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
-    unsigned int maxIndices = MAX_NUM_PROXIES * NUM_SUB_QUADS * INDICES_IN_A_QUAD;
-    unsigned int maxVerticesDepth;
+    uint maxVertices = MAX_NUM_PROXIES * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
+    uint maxIndices = MAX_NUM_PROXIES * NUM_SUB_QUADS * INDICES_IN_A_QUAD;
+    uint maxVerticesDepth;
 
     std::vector<std::vector<char>> quads;
     std::vector<std::vector<char>> depthOffsets;
@@ -67,12 +67,12 @@ public:
         double totalGenDepthTime = 0.0;
         double totalCompressTime = 0.0;
 
-        unsigned int totalProxies = 0;
-        unsigned int totalDepthOffsets = 0;
+        uint totalProxies = 0;
+        uint totalDepthOffsets = 0;
         double compressedSizeBytes = 0;
     } stats;
 
-    MultiSimulator(unsigned int maxViews, FrameGenerator &frameGenerator)
+    MultiSimulator(uint maxViews, FrameGenerator &frameGenerator)
             : quadsGenerator(frameGenerator.quadsGenerator)
             , frameGenerator(frameGenerator)
             , maxViews(maxViews)
@@ -222,7 +222,7 @@ public:
             }
             stats.totalRenderTime += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
-            unsigned int numProxies = 0, numDepthOffsets = 0;
+            uint numProxies = 0, numDepthOffsets = 0;
             stats.compressedSizeBytes += frameGenerator.generateRefFrame(
                 gBufferToUse, remoteCameraToUse,
                 meshToUse,
@@ -283,8 +283,8 @@ public:
         }
     }
 
-    unsigned int saveToFile(const std::string &outputPath) {
-        unsigned int totalOutputSize = 0;
+    uint saveToFile(const std::string &outputPath) {
+        uint totalOutputSize = 0;
         for (int view = 0; view < maxViews; view++) {
             // save quads
             double startTime = timeutils::getTimeMicros();

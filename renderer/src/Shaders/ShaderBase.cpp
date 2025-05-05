@@ -36,7 +36,7 @@ void ShaderBase::setBool(const std::string &name, bool value) const {
     }
 }
 
-void ShaderBase::setUint(const std::string &name, unsigned int value) const {
+void ShaderBase::setUint(const std::string &name, uint value) const {
     if (!isUniformCached(name, value)) {
         glUniform1ui(glGetUniformLocation(ID, name.c_str()), value);
     }

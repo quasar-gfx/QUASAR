@@ -13,7 +13,7 @@ typedef uint32_t data_id_t;
 struct DataPacketUDP {
     packet_id_t ID;
     data_id_t dataID;
-    unsigned int size;
+    uint size;
     uint8_t data[PACKET_DATA_SIZE_UDP];
 };
 

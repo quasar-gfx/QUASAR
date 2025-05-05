@@ -21,8 +21,8 @@ enum class EntityType {
 };
 
 struct RenderStats {
-    unsigned int trianglesDrawn = 0;
-    unsigned int drawCalls = 0;
+    uint trianglesDrawn = 0;
+    uint drawCalls = 0;
 
     RenderStats operator+ (const RenderStats &other) {
         RenderStats stats;

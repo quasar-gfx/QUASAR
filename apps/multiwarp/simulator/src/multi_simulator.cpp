@@ -203,8 +203,8 @@ int main(int argc, char** argv) {
 
     RenderStats renderStats;
     bool recording = false;
-    std::vector<unsigned int> numVertices(maxViews);
-    std::vector<unsigned int> numIndicies(maxViews);
+    std::vector<uint> numVertices(maxViews);
+    std::vector<uint> numIndicies(maxViews);
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = !saveImages;
@@ -231,7 +231,7 @@ int main(int argc, char** argv) {
 
         ImGui::NewFrame();
 
-        unsigned int flags = 0;
+        uint flags = 0;
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Exit", "ESC")) {
@@ -267,7 +267,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            unsigned int totalTriangles = 0;
+            uint totalTriangles = 0;
             for (int view = 0; view < maxViews; view++) {
                 totalTriangles += numIndicies[view] / 3;
             }
@@ -529,7 +529,7 @@ int main(int argc, char** argv) {
         }
     });
 
-    app.onResize([&](unsigned int width, unsigned int height) {
+    app.onResize([&](uint width, uint height) {
         windowSize = glm::uvec2(width, height);
         renderer.setWindowSize(windowSize.x, windowSize.y);
 

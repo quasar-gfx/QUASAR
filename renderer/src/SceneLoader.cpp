@@ -61,7 +61,7 @@ Node* SceneLoader::findNodeByName(const std::string &name) {
 }
 
 void SceneLoader::loadScene(const std::string &filename, Scene &scene, PerspectiveCamera &camera) {
-    unsigned int size;
+    uint size;
     std::string sceneJSON = FileIO::loadTextFile(filename, &size);
     if (size == 0) {
         throw std::runtime_error("Scene file is empty: " + filename);
@@ -193,12 +193,12 @@ int SceneLoader::parseSkybox(jsmntok_t* tokens, int i, const char* json, Scene &
         else if (compare(tok, json, "width") == 0) {
             float width;
             i = parseFloat(tokens, i + 1, json, &width);
-            skyBoxParams.width = static_cast<unsigned int>(width);
+            skyBoxParams.width = static_cast<uint>(width);
         }
         else if (compare(tok, json, "height") == 0) {
             float height;
             i = parseFloat(tokens, i + 1, json, &height);
-            skyBoxParams.height = static_cast<unsigned int>(height);
+            skyBoxParams.height = static_cast<uint>(height);
         }
         else if (compare(tok, json, "HDR") == 0) {
             bool hdr;
@@ -601,7 +601,7 @@ int SceneLoader::parseDirectionalLight(jsmntok_t* tokens, int i, const char* jso
         else if (compare(tok, json, "shadowMapRes") == 0) {
             float shadowMapRes;
             i = parseFloat(tokens, i + 1, json, &shadowMapRes);
-            params.shadowMapRes = static_cast<unsigned int>(shadowMapRes);
+            params.shadowMapRes = static_cast<uint>(shadowMapRes);
         }
         else {
             i = parse(tokens, i + 1);
@@ -655,7 +655,7 @@ int SceneLoader::parsePointLight(jsmntok_t* tokens, int i, const char* json, Sce
         else if (compare(tok, json, "shadowMapRes") == 0) {
             float shadowMapRes;
             i = parseFloat(tokens, i + 1, json, &shadowMapRes);
-            params.shadowMapRes = static_cast<unsigned int>(shadowMapRes);
+            params.shadowMapRes = static_cast<uint>(shadowMapRes);
         }
         else if (compare(tok, json, "debug") == 0) {
             i = parseBool(tokens, i + 1, json, &params.debug);

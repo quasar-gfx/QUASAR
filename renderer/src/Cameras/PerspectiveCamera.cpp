@@ -12,7 +12,7 @@ PerspectiveCamera::PerspectiveCamera() {
     updateCameraOrientation();
 }
 
-PerspectiveCamera::PerspectiveCamera(unsigned int width, unsigned int height) {
+PerspectiveCamera::PerspectiveCamera(uint width, uint height) {
     setProjectionMatrix(glm::radians(DEFAULT_FOV_DEG), (float)width / (float)height, DEFAULT_NEAR, DEFAULT_FAR);
     updateCameraOrientation();
 }

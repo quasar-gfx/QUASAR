@@ -73,7 +73,7 @@ public:
         framebuffer.attachTexture(idBuffer, GL_COLOR_ATTACHMENT2);
         framebuffer.attachTexture(depthStencilBuffer, GL_DEPTH_STENCIL_ATTACHMENT);
 
-        unsigned int attachments[3] = {
+        uint attachments[3] = {
             GL_COLOR_ATTACHMENT0,
             GL_COLOR_ATTACHMENT1,
             GL_COLOR_ATTACHMENT2
@@ -143,11 +143,11 @@ public:
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void blitToScreen(unsigned int width, unsigned int height) {
+    void blitToScreen(uint width, uint height) {
         framebuffer.blitToScreen(width, height);
     }
 
-    void resize(unsigned int width, unsigned int height) override {
+    void resize(uint width, uint height) override {
         RenderTargetBase::resize(width, height);
 
         colorBuffer.resize(width, height);

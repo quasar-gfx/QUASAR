@@ -8,8 +8,8 @@
 namespace quasar {
 
 struct RenderTargetCreateParams {
-    unsigned int width = 0;
-    unsigned int height = 0;
+    uint width = 0;
+    uint height = 0;
     GLint internalFormat = GL_RGB;
     GLenum format = GL_RGB;
     GLenum type = GL_UNSIGNED_BYTE;
@@ -18,15 +18,15 @@ struct RenderTargetCreateParams {
     GLint minFilter = GL_LINEAR;
     GLint magFilter = GL_LINEAR;
     bool multiSampled = false;
-    unsigned int numSamples = 4;
+    uint numSamples = 4;
 };
 
 class RenderTargetBase {
 public:
-    unsigned int width, height;
+    uint width, height;
 
     struct Scissor {
-        unsigned int x, y, width, height;
+        uint x, y, width, height;
 
         void apply() const {
             glScissor(x, y, width, height);
@@ -34,7 +34,7 @@ public:
     } scissor;
 
     struct Viewport {
-        unsigned int x, y, width, height;
+        uint x, y, width, height;
 
         void apply() const {
             glViewport(x, y, width, height);
@@ -50,7 +50,7 @@ public:
     }
     ~RenderTargetBase() = default;
 
-    virtual void resize(unsigned int width, unsigned int height) {
+    virtual void resize(uint width, uint height) {
         this->width = width;
         this->height = height;
 
@@ -58,16 +58,16 @@ public:
         setScissor(0, 0, width, height);
     }
 
-    void blitToScreen(unsigned int width, unsigned int height) {
+    void blitToScreen(uint width, uint height) {
         framebuffer.blitToScreen(width, height);
     }
 
-    void setScissor(unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
+    void setScissor(uint x, uint y, uint width, uint height) {
         scissor = { x, y, width, height };
         scissor.apply();
     }
 
-    void setViewport(unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
+    void setViewport(uint x, uint y, uint width, uint height) {
         viewport = { x, y, width, height };
         viewport.apply();
     }

@@ -15,7 +15,7 @@ struct DirectionalLightCreateParams {
     float orthoBoxSize = 75.0f;
     float shadowNear = 1.0f;
     float shadowFar = 750.0f;
-    unsigned int shadowMapRes = 2048;
+    uint shadowMapRes = 2048;
 };
 
 class DirectionalLight : public Light {

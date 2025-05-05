@@ -54,9 +54,9 @@ public:
 
     int currMeshIndex = 0, prevMeshIndex = 1;
 
-    unsigned int maxVertices = MAX_NUM_PROXIES * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
-    unsigned int maxIndices = MAX_NUM_PROXIES * NUM_SUB_QUADS * INDICES_IN_A_QUAD;
-    unsigned int maxVerticesDepth;
+    uint maxVertices = MAX_NUM_PROXIES * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
+    uint maxIndices = MAX_NUM_PROXIES * NUM_SUB_QUADS * INDICES_IN_A_QUAD;
+    uint maxVerticesDepth;
 
     std::vector<char> quads;
     std::vector<char> depthOffsets;
@@ -74,8 +74,8 @@ public:
         double totalGenDepthTime = 0.0;
         double totalCompressTime = 0.0;
 
-        unsigned int totalProxies = 0;
-        unsigned int totalDepthOffsets = 0;
+        uint totalProxies = 0;
+        uint totalDepthOffsets = 0;
         double compressedSizeBytes = 0;
     } stats;
 
@@ -232,7 +232,7 @@ public:
         Generate Reference Frame
         ============================
         */
-        unsigned int numProxies = 0, numDepthOffsets = 0;
+        uint numProxies = 0, numDepthOffsets = 0;
         quadsGenerator.params.expandEdges = false;
         stats.compressedSizeBytes = frameGenerator.generateRefFrame(
             refFrameRT,
@@ -332,7 +332,7 @@ public:
         }
     }
 
-    unsigned int saveToFile(const std::string &outputPath) {
+    uint saveToFile(const std::string &outputPath) {
         // save quads
         double startTime = timeutils::getTimeMicros();
         std::string filename = outputPath + "quads.bin";

@@ -16,7 +16,7 @@ struct ComputeShaderDataCreateParams {
     std::string version = "320 es";
 #endif
     const char* computeCodeData = nullptr;
-    unsigned int computeCodeSize = 0;
+    uint computeCodeSize = 0;
     std::vector<std::string> extensions;
     std::vector<std::string> defines;
 };

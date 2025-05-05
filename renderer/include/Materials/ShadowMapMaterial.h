@@ -10,7 +10,7 @@ public:
     ShadowMapMaterial() = default;
     ~ShadowMapMaterial() = default;
 
-    unsigned int getTextureCount() const override { return 0; }
+    uint getTextureCount() const override { return 0; }
 };
 
 } // namespace quasar

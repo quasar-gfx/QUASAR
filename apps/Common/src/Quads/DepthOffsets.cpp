@@ -29,7 +29,7 @@ DepthOffsets::DepthOffsets(const glm::uvec2 &size)
 
 }
 
-unsigned int DepthOffsets::loadFromMemory(std::vector<char> &compressedData, bool decompress) {
+uint DepthOffsets::loadFromMemory(std::vector<char> &compressedData, bool decompress) {
     double startTime = timeutils::getTimeMicros();
     if (decompress) {
         codec.decompress(compressedData, data);
@@ -47,7 +47,7 @@ unsigned int DepthOffsets::loadFromMemory(std::vector<char> &compressedData, boo
     return data.size();
 }
 
-unsigned int DepthOffsets::loadFromFile(const std::string &filename, unsigned int* numBytesLoaded, bool compressed) {
+uint DepthOffsets::loadFromFile(const std::string &filename, uint* numBytesLoaded, bool compressed) {
 #if !defined(__ANDROID__)
     if (!std::filesystem::exists(filename)) {
         spdlog::error("File {} does not exist", filename);
@@ -60,12 +60,12 @@ unsigned int DepthOffsets::loadFromFile(const std::string &filename, unsigned in
 }
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-unsigned int DepthOffsets::saveToMemory(std::vector<char> &compressedData, bool compress) {
+uint DepthOffsets::saveToMemory(std::vector<char> &compressedData, bool compress) {
     cudaImage.copyToArray(size.x * 4 * sizeof(uint16_t), size.y, size.x * 4 * sizeof(uint16_t), data.data());
     compressedData.resize(data.size());
 
     double startTime = timeutils::getTimeMicros();
-    unsigned int outputSize = data.size();
+    uint outputSize = data.size();
     if (compress) {
         outputSize = codec.compress(data.data(), compressedData, data.size());
         compressedData.resize(outputSize);
@@ -78,11 +78,11 @@ unsigned int DepthOffsets::saveToMemory(std::vector<char> &compressedData, bool 
     return outputSize;
 }
 
-unsigned int DepthOffsets::saveToFile(const std::string &filename) {
+uint DepthOffsets::saveToFile(const std::string &filename) {
     cudaImage.copyToArray(size.x * 4 * sizeof(uint16_t), size.y, size.x * 4 * sizeof(uint16_t), data.data());
 
     std::vector<char> compressedData;
-    unsigned int outputSize = saveToMemory(compressedData);
+    uint outputSize = saveToMemory(compressedData);
 
     std::ofstream depthOffsetsFile(filename + ".zstd", std::ios::binary);
     depthOffsetsFile.write(compressedData.data(), outputSize);

@@ -17,17 +17,17 @@ struct QuadMapData {
     glm::vec3 normal;
     float depth;
     glm::ivec2 offset;
-    unsigned int size;
+    uint size;
     bool flattened;
 };
 
 struct QuadMapDataPacked {
     // normal converted into spherical coordinates. 16 bits of padding + theta, phi (8 bits each) packed into 16 bits.
-    unsigned int normalSpherical;
+    uint normalSpherical;
     // full resolution depth. 32 bits used.
     float depth;
     // offset.x << 20 | offset.y << 8 (12 bits each) | size << 1 (6 bits) | flattened (1 bit). 31 bits used.
-    unsigned int offsetSizeFlattened;
+    uint offsetSizeFlattened;
 }; // 96 bits total
 
 class QuadBuffers {
@@ -37,24 +37,24 @@ public:
         double timeToDecompressMs = 0.0f;
     } stats;
 
-    unsigned int maxProxies;
-    unsigned int numProxies;
+    uint maxProxies;
+    uint numProxies;
 
     Buffer normalSphericalsBuffer;
     Buffer depthsBuffer;
     Buffer offsetSizeFlattenedsBuffer;
 
-    QuadBuffers(unsigned int maxProxies);
+    QuadBuffers(uint maxProxies);
     ~QuadBuffers() = default;
 
-    void resize(unsigned int numProxies);
+    void resize(uint numProxies);
 
-    unsigned int loadFromMemory(const std::vector<char> &compressedData, bool decompress = true);
-    unsigned int loadFromFile(const std::string &filename, unsigned int* numBytesLoaded = nullptr, bool compressed = true);
+    uint loadFromMemory(const std::vector<char> &compressedData, bool decompress = true);
+    uint loadFromFile(const std::string &filename, uint* numBytesLoaded = nullptr, bool compressed = true);
 #ifdef GL_CORE
-    unsigned int saveToMemory(std::vector<char> &compressedData, bool compress = true);
-    unsigned int saveToFile(const std::string &filename);
-    unsigned int updateDataBuffer();
+    uint saveToMemory(std::vector<char> &compressedData, bool compress = true);
+    uint saveToFile(const std::string &filename);
+    uint updateDataBuffer();
 #endif
 
 private:

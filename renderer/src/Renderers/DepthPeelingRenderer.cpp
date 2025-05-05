@@ -2,7 +2,7 @@
 
 using namespace quasar;
 
-DepthPeelingRenderer::DepthPeelingRenderer(const Config &config, unsigned int maxLayers, bool edp)
+DepthPeelingRenderer::DepthPeelingRenderer(const Config &config, uint maxLayers, bool edp)
         : maxLayers(maxLayers)
         , DeferredRenderer(config)
         , compositeLayersShader({
@@ -34,7 +34,7 @@ DepthPeelingRenderer::DepthPeelingRenderer(const Config &config, unsigned int ma
     }
 }
 
-void DepthPeelingRenderer::resize(unsigned int width, unsigned int height) {
+void DepthPeelingRenderer::resize(uint width, uint height) {
     DeferredRenderer::resize(width, height);
     for (auto layer : peelingLayers) {
         layer.resize(width, height);

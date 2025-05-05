@@ -60,7 +60,7 @@ public:
         codecCtx->framerate = {targetFrameRate, 1};
     }
 
-    void setTargetBitRate(unsigned int targetBitRate) {
+    void setTargetBitRate(uint targetBitRate) {
         this->targetBitRate = targetBitRate;
         outputFormatCtx->bit_rate = targetBitRate;
     }
@@ -76,7 +76,7 @@ private:
 
     int poseIDOffset = sizeof(pose_id_t) * 8;
 
-    unsigned int videoWidth, videoHeight;
+    uint videoWidth, videoHeight;
 
     RenderTarget* renderTargetCopy;
 

@@ -25,7 +25,7 @@ public:
             , DataReceiverTCP(streamerURL, false)
             , Texture(params) { }
 
-    void setMaxQueueSize(unsigned int maxQueueSize) {
+    void setMaxQueueSize(uint maxQueueSize) {
         this->maxQueueSize = maxQueueSize;
     }
 
@@ -38,7 +38,7 @@ public:
 
 private:
     pose_id_t prevPoseID = -1;
-    unsigned int maxQueueSize = 10;
+    uint maxQueueSize = 10;
 
     std::mutex m;
 

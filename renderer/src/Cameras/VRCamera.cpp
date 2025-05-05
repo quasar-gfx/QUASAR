@@ -12,7 +12,7 @@ VRCamera::VRCamera()
     addChildNode(&right);
 }
 
-VRCamera::VRCamera(unsigned int width, unsigned int height)
+VRCamera::VRCamera(uint width, uint height)
     : left(PerspectiveCamera(width, height))
     , right(PerspectiveCamera(width, height)) {
     left.setPosition(glm::vec3(-0.032f, 0.0f, 0.0f));

@@ -24,9 +24,9 @@ namespace quasar {
 class PoseStreamer {
 public:
     std::string receiverURL;
-    unsigned int rate;
+    uint rate;
 
-    PoseStreamer(Camera* camera, std::string receiverURL, unsigned int rate = 30)
+    PoseStreamer(Camera* camera, std::string receiverURL, uint rate = 30)
             : camera(camera)
             , receiverURL(receiverURL)
             , rate(rate)

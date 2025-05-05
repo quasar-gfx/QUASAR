@@ -33,8 +33,8 @@ namespace quasar {
 class MeshFromQuads {
 public:
     struct BufferSizes {
-        unsigned int numVertices;
-        unsigned int numIndices;
+        uint numVertices;
+        uint numIndices;
     };
 
     struct Stats {
@@ -45,16 +45,16 @@ public:
 
     glm::uvec2 &remoteWindowSize;
     glm::uvec2 depthBufferSize;
-    unsigned int maxProxies;
+    uint maxProxies;
 
     QuadBuffers currentQuadBuffers;
 
-    MeshFromQuads(glm::uvec2 &remoteWindowSize, unsigned int maxNumProxies = MAX_NUM_PROXIES);
+    MeshFromQuads(glm::uvec2 &remoteWindowSize, uint maxNumProxies = MAX_NUM_PROXIES);
     ~MeshFromQuads() = default;
 
     void appendQuads(
             const glm::uvec2 &gBufferSize,
-            unsigned int numProxies,
+            uint numProxies,
             const QuadBuffers &newQuadBuffers,
             bool refFrame = true);
 
@@ -62,7 +62,7 @@ public:
 
     void createMeshFromProxies(
             const glm::uvec2 &gBufferSize,
-            unsigned int numProxies,
+            uint numProxies,
             const DepthOffsets &depthOffsets,
             const PerspectiveCamera &remoteCamera,
             const Mesh &mesh);

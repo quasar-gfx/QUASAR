@@ -25,7 +25,7 @@ public:
 
     virtual void setScreenShaderUniforms(const Shader &screenShader) override;
 
-    virtual void resize(unsigned int width, unsigned int height) override;
+    virtual void resize(uint width, uint height) override;
 
     virtual void beginRendering() override;
     virtual void endRendering() override;

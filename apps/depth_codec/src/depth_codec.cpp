@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "1920x1080");
     args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
-    args::ValueFlag<unsigned int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
+    args::ValueFlag<uint> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
 
     std::string sceneFile = args::get(sceneFileIn);
 
-    unsigned int surfelSize = args::get(surfelSizeIn);
+    uint surfelSize = args::get(surfelSizeIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -127,18 +127,18 @@ int main(int argc, char** argv) {
     ShowDepthEffect showDepthEffect(camera);
 
     // original size of depth buffer
-    unsigned int originalSize = windowSize.x * windowSize.y * sizeof(float);
+    uint originalSize = windowSize.x * windowSize.y * sizeof(float);
 
     // create buffer for compressed data
-    unsigned int compressedSize = (windowSize.x / 8) * (windowSize.y / 8) * sizeof(BC4DepthStreamer::Block);
+    uint compressedSize = (windowSize.x / 8) * (windowSize.y / 8) * sizeof(BC4DepthStreamer::Block);
     float compressionRatio = originalSize / compressedSize;
 
     // set up meshes for rendering
     glm::uvec2 adjustedWindowSize = windowSize / surfelSize;
 
-    unsigned int maxVertices = adjustedWindowSize.x * adjustedWindowSize.y;
-    unsigned int numTriangles = (adjustedWindowSize.x-1) * (adjustedWindowSize.y-1) * 2;
-    unsigned int maxIndices = numTriangles * 3;
+    uint maxVertices = adjustedWindowSize.x * adjustedWindowSize.y;
+    uint numTriangles = (adjustedWindowSize.x-1) * (adjustedWindowSize.y-1) * 2;
+    uint maxIndices = numTriangles * 3;
 
     Mesh mesh = Mesh({
         .maxVertices = maxVertices,
@@ -174,7 +174,7 @@ int main(int argc, char** argv) {
 
         ImGui::NewFrame();
 
-        unsigned int flags = 0;
+        uint flags = 0;
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Exit", "ESC")) {
@@ -270,7 +270,7 @@ int main(int argc, char** argv) {
     });
 
     // Window resize callback
-    app.onResize([&](unsigned int width, unsigned int height) {
+    app.onResize([&](uint width, uint height) {
         windowSize.x = width;
         windowSize.y = height;
 

@@ -20,8 +20,8 @@ struct Config {
     unsigned char openglMinorVersion = 1;
 #endif
     GraphicsPipeline pipeline;
-    unsigned int width = 800;
-    unsigned int height = 600;
+    uint width = 800;
+    uint height = 600;
     int targetFramerate = 60;
     std::string title = "OpenGL App";
     std::shared_ptr<Window> window = nullptr;

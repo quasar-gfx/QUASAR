@@ -37,7 +37,7 @@ public:
 
     BC4DepthVideoTexture(const TextureDataCreateParams &params, std::string streamerURL);
 
-    void setMaxQueueSize(unsigned int maxQueueSize) {
+    void setMaxQueueSize(uint maxQueueSize) {
         this->maxQueueSize = maxQueueSize;
     }
 
@@ -52,7 +52,7 @@ private:
     time_t prevTime = timeutils::getTimeMicros();
     pose_id_t prevPoseID = -1;
 
-    unsigned int maxQueueSize = 10;
+    uint maxQueueSize = 10;
     std::mutex m;
 
     struct FrameData {

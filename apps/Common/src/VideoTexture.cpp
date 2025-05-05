@@ -313,7 +313,7 @@ pose_id_t VideoTexture::getLatestPoseID() {
     return poseID;
 }
 
-void VideoTexture::resize(unsigned int width, unsigned int height) {
+void VideoTexture::resize(uint width, uint height) {
     internalWidth = width + poseIDOffset;
     internalHeight = height;
     Texture::resize(width, height);

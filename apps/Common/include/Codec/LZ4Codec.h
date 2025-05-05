@@ -13,7 +13,7 @@ public:
     LZ4Codec() = default;
     ~LZ4Codec() override = default;
 
-    unsigned int compress(const void* uncompressedData, std::vector<char> &compressedData, unsigned int numBytesUncompressed) override {
+    uint compress(const void* uncompressedData, std::vector<char> &compressedData, uint numBytesUncompressed) override {
         size_t maxCompressedBytes = LZ4_compressBound(numBytesUncompressed);
         compressedData.resize(maxCompressedBytes);
         return LZ4_compress_default(
@@ -23,7 +23,7 @@ public:
             maxCompressedBytes);
     }
 
-    unsigned int decompress(const std::vector<char> &compressedData, std::vector<char> &decompressedData) override {
+    uint decompress(const std::vector<char> &compressedData, std::vector<char> &decompressedData) override {
         return LZ4_decompress_safe(
             (const char*)compressedData.data(),
             decompressedData.data(),

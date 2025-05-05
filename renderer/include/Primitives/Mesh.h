@@ -18,9 +18,9 @@ namespace quasar {
 struct MeshDataCreateParams {
     const void* verticesData;
     size_t verticesSize;
-    const unsigned int* indicesData = nullptr;
+    const uint* indicesData = nullptr;
     size_t indicesSize = 0;
-    unsigned int vertexSize = sizeof(Vertex);
+    uint vertexSize = sizeof(Vertex);
     VertexInputAttributes attributes = Vertex::getVertexInputAttributes();
     Material* material;
     float IBL = 1.0;
@@ -29,9 +29,9 @@ struct MeshDataCreateParams {
 };
 
 struct MeshSizeCreateParams {
-    unsigned int maxVertices;
-    unsigned int maxIndices = 0;
-    unsigned int vertexSize = sizeof(Vertex);
+    uint maxVertices;
+    uint maxIndices = 0;
+    uint vertexSize = sizeof(Vertex);
     VertexInputAttributes attributes = Vertex::getVertexInputAttributes();
     Material* material;
     float IBL = 1.0;
@@ -53,7 +53,7 @@ public:
     Buffer indexBuffer;
     Buffer indirectBuffer;
 
-    unsigned int vertexSize;
+    uint vertexSize;
     VertexInputAttributes attributes;
 
     Material* material;
@@ -65,7 +65,7 @@ public:
     bool indirectDraw = false;
 
     Mesh() : vertexBuffer(GL_ARRAY_BUFFER, sizeof(Vertex))
-            , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)) {
+            , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint)) {
         setArrayBufferAttributes(Vertex::getVertexInputAttributes(), sizeof(Vertex));
     }
     Mesh(const MeshDataCreateParams &params)
@@ -73,7 +73,7 @@ public:
             , IBL(params.IBL)
             , usage(params.usage)
             , vertexBuffer(GL_ARRAY_BUFFER, sizeof(Vertex), params.usage)
-            , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int), params.usage)
+            , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint), params.usage)
             , indirectDraw(params.indirectDraw)
             , indirectBuffer(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawElementsIndirectCommand), params.usage)
             , vertexSize(params.vertexSize)
@@ -93,7 +93,7 @@ public:
             , IBL(params.IBL)
             , usage(params.usage)
             , vertexBuffer(GL_ARRAY_BUFFER, sizeof(Vertex), params.usage)
-            , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int), params.usage)
+            , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint), params.usage)
             , indirectDraw(params.indirectDraw)
             , indirectBuffer(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawElementsIndirectCommand), params.usage)
             , vertexSize(params.vertexSize)
@@ -118,18 +118,18 @@ public:
                              const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) override;
     virtual RenderStats draw(GLenum primativeType);
 
-    void setBuffers(const void* vertices, unsigned int verticesSize, const unsigned int* indices = nullptr, unsigned int indicesSize = 0);
-    void setBuffers(unsigned int verticesSize, unsigned int indicesSize);
+    void setBuffers(const void* vertices, uint verticesSize, const uint* indices = nullptr, uint indicesSize = 0);
+    void setBuffers(uint verticesSize, uint indicesSize);
 
-    void resizeBuffers(unsigned int verticesSize, unsigned int indicesSize);
-    void updateAABB(const void* vertices, unsigned int verticesSize);
+    void resizeBuffers(uint verticesSize, uint indicesSize);
+    void updateAABB(const void* vertices, uint verticesSize);
 
     EntityType getType() const override { return EntityType::MESH; }
 
 protected:
     GLuint vertexArrayBuffer;
 
-    void setArrayBufferAttributes(const VertexInputAttributes &attributes, unsigned int vertexSize);
+    void setArrayBufferAttributes(const VertexInputAttributes &attributes, uint vertexSize);
 
     void setMaterialCameraParams(const Camera &camera, const Material* material);
 };

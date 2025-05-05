@@ -2,16 +2,16 @@
 
 using namespace quasar;
 
-unsigned int FrameGenerator::generateRefFrame(
+uint FrameGenerator::generateRefFrame(
         const FrameRenderTarget &frameRT,
         const PerspectiveCamera &remoteCamera,
         const Mesh &mesh,
         std::vector<char> &quads, std::vector<char> &depthOffsets,
-        unsigned int &numProxies, unsigned int &numDepthOffsets,
+        uint &numProxies, uint &numDepthOffsets,
         bool compress
     ) {
     const glm::vec2 gBufferSize = glm::vec2(frameRT.width, frameRT.height);
-    unsigned int outputSize = 0;
+    uint outputSize = 0;
 
     double startTime = timeutils::getTimeMicros();
 
@@ -50,17 +50,17 @@ unsigned int FrameGenerator::generateRefFrame(
     return outputSize;
 }
 
-unsigned int FrameGenerator::generateResFrame(
+uint FrameGenerator::generateResFrame(
         const Scene &currScene, const Scene &prevScene,
         FrameRenderTarget &frameRT, FrameRenderTarget &maskFrameRT,
         const PerspectiveCamera &currRemoteCamera, const PerspectiveCamera &prevRemoteCamera,
         const Mesh &currMesh, const Mesh &maskMesh,
         std::vector<char> &quads, std::vector<char> &depthOffsets,
-        unsigned int &numProxies, unsigned int &numDepthOffsets,
+        uint &numProxies, uint &numDepthOffsets,
         bool compress
     ) {
     const glm::vec2 gBufferSize = glm::vec2(frameRT.width, frameRT.height);
-    unsigned int outputSize = 0;
+    uint outputSize = 0;
 
     double startTime = timeutils::getTimeMicros();
 

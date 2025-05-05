@@ -9,26 +9,26 @@
 
 using namespace quasar;
 
-QuadBuffers::QuadBuffers(unsigned int maxProxies)
+QuadBuffers::QuadBuffers(uint maxProxies)
         : maxProxies(maxProxies)
         , numProxies(maxProxies)
-        , normalSphericalsBuffer(GL_SHADER_STORAGE_BUFFER, maxProxies, sizeof(unsigned int), nullptr, GL_DYNAMIC_COPY)
+        , normalSphericalsBuffer(GL_SHADER_STORAGE_BUFFER, maxProxies, sizeof(uint), nullptr, GL_DYNAMIC_COPY)
         , depthsBuffer(GL_SHADER_STORAGE_BUFFER, maxProxies, sizeof(float), nullptr, GL_DYNAMIC_COPY)
-        , offsetSizeFlattenedsBuffer(GL_SHADER_STORAGE_BUFFER, maxProxies, sizeof(unsigned int), nullptr, GL_DYNAMIC_COPY)
+        , offsetSizeFlattenedsBuffer(GL_SHADER_STORAGE_BUFFER, maxProxies, sizeof(uint), nullptr, GL_DYNAMIC_COPY)
 #if !defined(__APPLE__) && !defined(__ANDROID__)
         , cudaBufferNormalSphericals(normalSphericalsBuffer)
         , cudaBufferDepths(depthsBuffer)
         , cudaBufferOffsetSizeFlatteneds(offsetSizeFlattenedsBuffer)
 #endif
-        , data(sizeof(unsigned int) + maxProxies * sizeof(QuadMapDataPacked)) {
+        , data(sizeof(uint) + maxProxies * sizeof(QuadMapDataPacked)) {
 
 }
 
-void QuadBuffers::resize(unsigned int numProxies) {
+void QuadBuffers::resize(uint numProxies) {
     this->numProxies = numProxies;
 }
 
-unsigned int QuadBuffers::loadFromMemory(const std::vector<char> &compressedData, bool decompress) {
+uint QuadBuffers::loadFromMemory(const std::vector<char> &compressedData, bool decompress) {
     double startTime = timeutils::getTimeMicros();
     if (decompress) {
         codec.decompress(compressedData, data);
@@ -38,29 +38,29 @@ unsigned int QuadBuffers::loadFromMemory(const std::vector<char> &compressedData
     }
     stats.timeToDecompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
-    unsigned int bufferOffset = 0;
+    uint bufferOffset = 0;
 
-    numProxies = *reinterpret_cast<const unsigned int*>(data.data());
-    bufferOffset += sizeof(unsigned int);
+    numProxies = *reinterpret_cast<const uint*>(data.data());
+    bufferOffset += sizeof(uint);
 
-    auto normalSphericalsPtr = reinterpret_cast<const unsigned int*>(data.data() + bufferOffset);
+    auto normalSphericalsPtr = reinterpret_cast<const uint*>(data.data() + bufferOffset);
     normalSphericalsBuffer.bind();
     normalSphericalsBuffer.setData(numProxies, normalSphericalsPtr);
-    bufferOffset += numProxies * sizeof(unsigned int);
+    bufferOffset += numProxies * sizeof(uint);
 
     auto depthsPtr = reinterpret_cast<const float*>(data.data() + bufferOffset);
     depthsBuffer.bind();
     depthsBuffer.setData(numProxies, depthsPtr);
     bufferOffset += numProxies * sizeof(float);
 
-    auto offsetSizeFlattenedsPtr = reinterpret_cast<const unsigned int*>(data.data() + bufferOffset);
+    auto offsetSizeFlattenedsPtr = reinterpret_cast<const uint*>(data.data() + bufferOffset);
     offsetSizeFlattenedsBuffer.bind();
     offsetSizeFlattenedsBuffer.setData(numProxies, offsetSizeFlattenedsPtr);
 
     return numProxies;
 }
 
-unsigned int QuadBuffers::loadFromFile(const std::string &filename, unsigned int* numBytesLoaded, bool compressed) {
+uint QuadBuffers::loadFromFile(const std::string &filename, uint* numBytesLoaded, bool compressed) {
 #if !defined(__ANDROID__)
     if (!std::filesystem::exists(filename)) {
         spdlog::error("File {} does not exist", filename);
@@ -73,12 +73,12 @@ unsigned int QuadBuffers::loadFromFile(const std::string &filename, unsigned int
 }
 
 #ifdef GL_CORE
-unsigned int QuadBuffers::saveToMemory(std::vector<char> &compressedData, bool compress) {
-    unsigned int dataSize = updateDataBuffer();
+uint QuadBuffers::saveToMemory(std::vector<char> &compressedData, bool compress) {
+    uint dataSize = updateDataBuffer();
     compressedData.resize(dataSize);
 
     double startTime = timeutils::getTimeMicros();
-    unsigned int outputSize = dataSize;
+    uint outputSize = dataSize;
     if (compress) {
         outputSize = codec.compress(data.data(), compressedData, dataSize);
         compressedData.resize(outputSize);
@@ -91,9 +91,9 @@ unsigned int QuadBuffers::saveToMemory(std::vector<char> &compressedData, bool c
     return outputSize;
 }
 
-unsigned int QuadBuffers::saveToFile(const std::string &filename) {
+uint QuadBuffers::saveToFile(const std::string &filename) {
     std::vector<char> compressedData;
-    unsigned int outputSize = saveToMemory(compressedData, true);
+    uint outputSize = saveToMemory(compressedData, true);
 
     std::ofstream quadsFile = std::ofstream(filename + ".zstd", std::ios::binary);
     quadsFile.write(compressedData.data(), outputSize);
@@ -102,33 +102,33 @@ unsigned int QuadBuffers::saveToFile(const std::string &filename) {
     return outputSize;
 }
 
-unsigned int QuadBuffers::updateDataBuffer() {
-    unsigned int bufferOffset = 0;
+uint QuadBuffers::updateDataBuffer() {
+    uint bufferOffset = 0;
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     void* cudaPtr;
 
-    memcpy(data.data(), &numProxies, sizeof(unsigned int));
-    bufferOffset += sizeof(unsigned int);
+    memcpy(data.data(), &numProxies, sizeof(uint));
+    bufferOffset += sizeof(uint);
 
     cudaPtr = cudaBufferNormalSphericals.getPtr();
-    CHECK_CUDA_ERROR(cudaMemcpy(data.data() + bufferOffset, cudaPtr, numProxies * sizeof(unsigned int), cudaMemcpyDeviceToHost));
-    bufferOffset += numProxies * sizeof(unsigned int);
+    CHECK_CUDA_ERROR(cudaMemcpy(data.data() + bufferOffset, cudaPtr, numProxies * sizeof(uint), cudaMemcpyDeviceToHost));
+    bufferOffset += numProxies * sizeof(uint);
 
     cudaPtr = cudaBufferDepths.getPtr();
     CHECK_CUDA_ERROR(cudaMemcpy(data.data() + bufferOffset, cudaPtr, numProxies * sizeof(float), cudaMemcpyDeviceToHost));
     bufferOffset += numProxies * sizeof(float);
 
     cudaPtr = cudaBufferOffsetSizeFlatteneds.getPtr();
-    CHECK_CUDA_ERROR(cudaMemcpy(data.data() + bufferOffset, cudaPtr, numProxies * sizeof(unsigned int), cudaMemcpyDeviceToHost));
-    bufferOffset += numProxies * sizeof(unsigned int);
+    CHECK_CUDA_ERROR(cudaMemcpy(data.data() + bufferOffset, cudaPtr, numProxies * sizeof(uint), cudaMemcpyDeviceToHost));
+    bufferOffset += numProxies * sizeof(uint);
 #else
-    memcpy(data.data(), &numProxies, sizeof(unsigned int));
-    bufferOffset += sizeof(unsigned int);
+    memcpy(data.data(), &numProxies, sizeof(uint));
+    bufferOffset += sizeof(uint);
 
     normalSphericalsBuffer.bind();
     normalSphericalsBuffer.getSubData(0, numProxies, data.data() + bufferOffset);
-    bufferOffset += numProxies * sizeof(unsigned int);
+    bufferOffset += numProxies * sizeof(uint);
 
     depthsBuffer.bind();
     depthsBuffer.getSubData(0, numProxies, data.data() + bufferOffset);
@@ -136,7 +136,7 @@ unsigned int QuadBuffers::updateDataBuffer() {
 
     offsetSizeFlattenedsBuffer.bind();
     offsetSizeFlattenedsBuffer.getSubData(0, numProxies, data.data() + bufferOffset);
-    bufferOffset += numProxies * sizeof(unsigned int);
+    bufferOffset += numProxies * sizeof(uint);
 #endif
     return bufferOffset;
 }

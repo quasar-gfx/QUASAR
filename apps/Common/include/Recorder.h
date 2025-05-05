@@ -45,7 +45,7 @@ public:
 
     int targetFrameRate;
 
-    Recorder(OpenGLRenderer &renderer, PostProcessingEffect &effect, const std::string& outputPath, int targetFrameRate = 60, unsigned int numThreads = 8)
+    Recorder(OpenGLRenderer &renderer, PostProcessingEffect &effect, const std::string& outputPath, int targetFrameRate = 60, uint numThreads = 8)
             : renderer(renderer)
             , effect(effect)
             , renderTargetCopy({
@@ -67,7 +67,7 @@ public:
             , cudaImage(renderTargetCopy.colorBuffer)
 #endif
         { }
-    Recorder(OpenGLRenderer &renderer, PostProcessingEffect &effect, int targetFrameRate = 60, unsigned int numThreads = 8)
+    Recorder(OpenGLRenderer &renderer, PostProcessingEffect &effect, int targetFrameRate = 60, uint numThreads = 8)
         : Recorder(renderer, effect, ".", targetFrameRate) { }
     ~Recorder();
 
@@ -95,7 +95,7 @@ public:
     }
 
 private:
-    unsigned int numThreads;
+    uint numThreads;
 
     OutputFormat outputFormat = OutputFormat::MP4;
     std::string outputPath;

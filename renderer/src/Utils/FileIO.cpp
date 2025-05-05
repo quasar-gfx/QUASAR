@@ -12,7 +12,7 @@ using namespace quasar;
 #define CHECK_ANDROID_ACTIVITY() if (activity == nullptr) { throw std::runtime_error("Android App Activity not set!"); }
 #endif
 
-std::string FileIO::loadTextFile(const std::string &filename, unsigned int* sizePtr) {
+std::string FileIO::loadTextFile(const std::string &filename, uint* sizePtr) {
 #ifndef __ANDROID__
     std::ifstream file(filename);
     if (!file.is_open()) {
@@ -42,7 +42,7 @@ std::string FileIO::loadTextFile(const std::string &filename, unsigned int* size
 #endif
 }
 
-std::vector<char> FileIO::loadBinaryFile(const std::string &filename, unsigned int* sizePtr) {
+std::vector<char> FileIO::loadBinaryFile(const std::string &filename, uint* sizePtr) {
 #ifndef __ANDROID__
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {

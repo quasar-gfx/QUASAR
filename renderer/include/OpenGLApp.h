@@ -11,7 +11,7 @@ namespace quasar {
 class OpenGLApp {
 public:
     using RenderCallback = std::function<void(double now, double dt)>;
-    using ResizeCallback = std::function<void(unsigned int width, unsigned int height)>;
+    using ResizeCallback = std::function<void(uint width, uint height)>;
 
     OpenGLApp(const Config &config);
     ~OpenGLApp() = default;

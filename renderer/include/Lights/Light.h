@@ -14,7 +14,7 @@ struct LightCreateParams {
     float intensity = 1.0f;
     float shadowNear = 1.0f;
     float shadowFar = 25.0f;
-    unsigned int shadowMapRes = 2048;
+    uint shadowMapRes = 2048;
 };
 
 class Light {
@@ -27,7 +27,7 @@ public:
 
     glm::mat4 shadowProjectionMat = glm::mat4(0.0);
 
-    unsigned int shadowMapRes = 2048;
+    uint shadowMapRes = 2048;
 
     Light(const LightCreateParams &params)
             : color(params.color)

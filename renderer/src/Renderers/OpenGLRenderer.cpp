@@ -110,12 +110,12 @@ OpenGLRenderer::OpenGLRenderer(const Config &config)
     pipeline.apply();
 }
 
-void OpenGLRenderer::resize(unsigned int width, unsigned int height) {
+void OpenGLRenderer::resize(uint width, uint height) {
     this->width = width;
     this->height = height;
 }
 
-void OpenGLRenderer::setWindowSize(unsigned int width, unsigned int height) {
+void OpenGLRenderer::setWindowSize(uint width, uint height) {
     windowWidth = width;
     windowHeight = height;
 }

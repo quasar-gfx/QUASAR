@@ -37,7 +37,7 @@ void DeferredRenderer::setScreenShaderUniforms(const Shader &screenShader) {
     screenShader.setTexture("idBuffer", frameRT.idBuffer, 3);
 }
 
-void DeferredRenderer::resize(unsigned int width, unsigned int height) {
+void DeferredRenderer::resize(uint width, uint height) {
     OpenGLRenderer::resize(width, height);
     outputRT.resize(width, height);
     frameRT.resize(width, height);

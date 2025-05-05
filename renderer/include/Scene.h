@@ -68,7 +68,7 @@ public:
 
     Node* findNodeByName(const std::string &name);
 
-    static const unsigned int numTextures = 3;
+    static const uint numTextures = 3;
 
 private:
     RenderTarget captureRenderTarget;

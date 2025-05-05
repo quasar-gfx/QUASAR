@@ -2,15 +2,15 @@
 
 using namespace quasar;
 
-MeshFromQuads::MeshFromQuads(glm::uvec2 &remoteWindowSize, unsigned int maxNumProxies)
+MeshFromQuads::MeshFromQuads(glm::uvec2 &remoteWindowSize, uint maxNumProxies)
         : remoteWindowSize(remoteWindowSize)
         , depthBufferSize(2u * remoteWindowSize) // 4 offsets per pixel
         , maxProxies(maxNumProxies)
         , meshSizesBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizeof(BufferSizes), nullptr, GL_DYNAMIC_COPY)
-        , prevNumProxiesBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizeof(unsigned int), nullptr, GL_DYNAMIC_DRAW)
-        , currNumProxiesBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizeof(unsigned int), nullptr, GL_DYNAMIC_DRAW)
+        , prevNumProxiesBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizeof(uint), nullptr, GL_DYNAMIC_DRAW)
+        , currNumProxiesBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizeof(uint), nullptr, GL_DYNAMIC_DRAW)
         , currentQuadBuffers(maxProxies)
-        , quadIndicesBuffer(GL_SHADER_STORAGE_BUFFER, remoteWindowSize.x * remoteWindowSize.y, sizeof(unsigned int), nullptr, GL_DYNAMIC_DRAW)
+        , quadIndicesBuffer(GL_SHADER_STORAGE_BUFFER, remoteWindowSize.x * remoteWindowSize.y, sizeof(uint), nullptr, GL_DYNAMIC_DRAW)
         , quadCreatedFlagsBuffer(GL_SHADER_STORAGE_BUFFER, maxProxies, sizeof(int), nullptr, GL_DYNAMIC_DRAW)
         , appendQuadsShader({
             .computeCodePath = "shaders/appendQuads.comp",
@@ -42,7 +42,7 @@ MeshFromQuads::BufferSizes MeshFromQuads::getBufferSizes() {
 
 void MeshFromQuads::appendQuads(
         const glm::uvec2 &gBufferSize,
-        unsigned int numProxies,
+        uint numProxies,
         const QuadBuffers &newQuadBuffers,
         bool refFrame) {
     appendQuadsShader.startTiming();
@@ -100,7 +100,7 @@ void MeshFromQuads::fillQuadIndices(const glm::uvec2 &gBufferSize) {
 
 void MeshFromQuads::createMeshFromProxies(
         const glm::uvec2 &gBufferSize,
-        unsigned int numProxies,
+        uint numProxies,
         const DepthOffsets &depthOffsets,
         const PerspectiveCamera &remoteCamera,
         const Mesh &mesh) {

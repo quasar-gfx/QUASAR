@@ -93,18 +93,18 @@ int main(int argc, char** argv) {
 
     Mesh* mesh;
 
-    unsigned int totalTriangles = -1;
-    unsigned int totalProxies = -1;
-    unsigned int totalDepthOffsets = -1;
+    uint totalTriangles = -1;
+    uint totalProxies = -1;
+    uint totalDepthOffsets = -1;
 
-    unsigned int numBytesProxies = 0;
-    unsigned int numBytesDepthOffsets = 0;
+    uint numBytesProxies = 0;
+    uint numBytesDepthOffsets = 0;
 
     double startTime = window->getTime();
     double loadFromFilesTime = 0.0;
     double createMeshTime = 0.0;
 
-    unsigned int maxProxies = windowSize.x * windowSize.y * NUM_SUB_QUADS;
+    uint maxProxies = windowSize.x * windowSize.y * NUM_SUB_QUADS;
     QuadBuffers quadBuffers(maxProxies);
 
     const glm::uvec2 depthBufferSize = 2u * windowSize;
@@ -112,9 +112,9 @@ int main(int argc, char** argv) {
 
     startTime = window->getTime();
     // load proxies
-    unsigned int numProxies = quadBuffers.loadFromFile(dataPath + "quads.bin.zstd", &numBytesProxies);
+    uint numProxies = quadBuffers.loadFromFile(dataPath + "quads.bin.zstd", &numBytesProxies);
     // load depth offsets
-    unsigned int numDepthOffsets = depthOffsets.loadFromFile(dataPath + "depthOffsets.bin.zstd", &numBytesDepthOffsets);
+    uint numDepthOffsets = depthOffsets.loadFromFile(dataPath + "depthOffsets.bin.zstd", &numBytesDepthOffsets);
 
     mesh = new Mesh({
         .maxVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
@@ -171,7 +171,7 @@ int main(int argc, char** argv) {
 
         ImGui::NewFrame();
 
-        unsigned int flags = 0;
+        uint flags = 0;
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Exit", "ESC")) {
@@ -268,7 +268,7 @@ int main(int argc, char** argv) {
         }
     });
 
-    app.onResize([&](unsigned int width, unsigned int height) {
+    app.onResize([&](uint width, uint height) {
         windowSize = glm::uvec2(width, height);
         renderer.setWindowSize(windowSize.x, windowSize.y);
 

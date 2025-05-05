@@ -6,14 +6,14 @@
 namespace quasar {
 
 struct RenderbufferCreateParams {
-    unsigned int width = 0;
-    unsigned int height = 0;
+    uint width = 0;
+    uint height = 0;
     GLenum internalFormat = GL_DEPTH_COMPONENT24;
 };
 
 class Renderbuffer : public OpenGLObject {
 public:
-    unsigned int width, height;
+    uint width, height;
 
     GLint internalFormat = GL_RGB;
 
@@ -30,7 +30,7 @@ public:
         glDeleteRenderbuffers(1, &ID);
     }
 
-    void resize(unsigned int width, unsigned int height, GLenum internalFormat = GL_DEPTH_COMPONENT24) {
+    void resize(uint width, uint height, GLenum internalFormat = GL_DEPTH_COMPONENT24) {
         this->width = width;
         this->height = height;
         glBindRenderbuffer(GL_RENDERBUFFER, ID);

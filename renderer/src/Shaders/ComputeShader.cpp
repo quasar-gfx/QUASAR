@@ -55,7 +55,7 @@ void ComputeShader::loadFromFile(const std::string &computePath) {
     std::string computeCode = FileIO::loadTextFile(computePath);
 
     const char* cShaderCode = computeCode.c_str();
-    unsigned int computeCodeSize = computeCode.size();
+    uint computeCodeSize = computeCode.size();
 
     loadFromData(cShaderCode, computeCodeSize);
 }

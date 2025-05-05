@@ -49,7 +49,7 @@ RenderStats ForwardRenderer::drawObjects(const Scene &scene, const Camera &camer
     return stats;
 }
 
-void ForwardRenderer::resize(unsigned int width, unsigned int height) {
+void ForwardRenderer::resize(uint width, uint height) {
     OpenGLRenderer::resize(width, height);
     frameRT.resize(width, height);
 #if !defined(__APPLE__) && !defined(__ANDROID__)

@@ -24,7 +24,7 @@ enum class CubeMapType {
 };
 
 struct CubeMapCreateParams {
-    unsigned int width, height;
+    uint width, height;
     std::string rightFaceTexturePath = "";
     std::string leftFaceTexturePath = "";
     std::string topFaceTexturePath = "";
@@ -51,7 +51,7 @@ public:
 
     CubeMapType type;
 
-    unsigned int maxMipLevels = 1;
+    uint maxMipLevels = 1;
 
     GLint wrapR = GL_CLAMP_TO_EDGE;
 
@@ -95,7 +95,7 @@ public:
         glDeleteTextures(1, &ID);
     }
 
-    void init(unsigned int width, unsigned int height, CubeMapType type);
+    void init(uint width, uint height, CubeMapType type);
 
     void loadFromEquirectTexture(const Shader &equirectToCubeMapShader, const Texture &equirectTexture) const;
     void convolve(const Shader &convolutionShader, const CubeMap &envCubeMap) const;
@@ -107,7 +107,7 @@ public:
         bind(0);
     }
 
-    void bind(unsigned int slot) const override {
+    void bind(uint slot) const override {
         glActiveTexture(GL_TEXTURE0 + slot);
         glBindTexture(target, ID);
     }

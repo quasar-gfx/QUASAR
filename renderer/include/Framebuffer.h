@@ -9,7 +9,7 @@ namespace quasar {
 
 class Framebuffer : public OpenGLObject {
 public:
-    unsigned int numAttachments = 0;
+    uint numAttachments = 0;
 
     Framebuffer() {
         glGenFramebuffers(1, &ID);
@@ -73,7 +73,7 @@ public:
         numAttachments++;
     }
 
-    void blitToScreen(unsigned int width, unsigned int height) {
+    void blitToScreen(uint width, uint height) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);

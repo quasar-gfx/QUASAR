@@ -15,7 +15,7 @@ const glm::mat4 CubeMap::captureViews[] = {
     glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
 };
 
-void CubeMap::init(unsigned int width, unsigned int height, CubeMapType type) {
+void CubeMap::init(uint width, uint height, CubeMapType type) {
     initBuffers();
 
     glGenTextures(1, &ID);
@@ -145,7 +145,7 @@ void CubeMap::loadFromFiles(std::vector<std::string> faceFilePaths,
     glBindTexture(GL_TEXTURE_CUBE_MAP, ID);
 
     int textureWidth, textureHeight, nrChannels;
-    for (unsigned int i = 0; i < faceFilePaths.size(); i++) {
+    for (uint i = 0; i < faceFilePaths.size(); i++) {
         void* data = FileIO::loadImage(faceFilePaths[i], &textureWidth, &textureHeight, &nrChannels, 0);
         if (data) {
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, format, textureWidth, textureHeight, 0, format, GL_UNSIGNED_BYTE, data);
@@ -207,8 +207,8 @@ void CubeMap::prefilter(const Shader &prefilterShader, const CubeMap &envCubeMap
     prefilterShader.setMat4("projection", captureProjection);
 
     for (int mip = 0; mip < maxMipLevels; mip++) {
-        unsigned int mipWidth = static_cast<unsigned int>(width * std::pow(0.5f, mip));
-        unsigned int mipHeight = static_cast<unsigned int>(height * std::pow(0.5f, mip));
+        uint mipWidth = static_cast<uint>(width * std::pow(0.5f, mip));
+        uint mipHeight = static_cast<uint>(height * std::pow(0.5f, mip));
 
         captureRBO.bind();
         captureRBO.resize(mipWidth, mipHeight);

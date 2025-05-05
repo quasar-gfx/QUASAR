@@ -12,4 +12,6 @@
 #include <glad/glad.h>
 #endif
 
+typedef unsigned int uint;
+
 #endif // PLATFORM_H

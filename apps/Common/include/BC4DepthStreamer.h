@@ -31,7 +31,7 @@ public:
     Buffer bc4CompressedBuffer;
 
     std::string receiverURL;
-    unsigned int compressedSize;
+    uint compressedSize;
 
     struct Stats {
         double timeToCopyFrameMs = 0.0f;
@@ -54,7 +54,7 @@ public:
         this->targetFrameRate = targetFrameRate;
     }
 
-    unsigned int compress(bool compress = false);
+    uint compress(bool compress = false);
     void sendFrame(pose_id_t poseID);
 
 private:
@@ -67,7 +67,7 @@ private:
 
     ComputeShader bc4CompressionShader;
 
-    unsigned int applyCodec();
+    uint applyCodec();
     void copyFrameToCPU(pose_id_t poseID = -1, void* cudaPtr = nullptr);
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)

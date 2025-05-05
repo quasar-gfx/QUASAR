@@ -255,14 +255,14 @@ void QuadsGenerator::createProxiesFromGBuffer(
 }
 
 #ifdef GL_CORE
-unsigned int QuadsGenerator::saveQuadsToMemory(std::vector<char> &compressedData, bool compress) {
+uint QuadsGenerator::saveQuadsToMemory(std::vector<char> &compressedData, bool compress) {
     QuadsGenerator::BufferSizes bufferSizes = getBufferSizes();
-    unsigned int numProxies = bufferSizes.numProxies;
+    uint numProxies = bufferSizes.numProxies;
     outputQuadBuffers.resize(numProxies);
     return outputQuadBuffers.saveToMemory(compressedData, compress);
 }
 
-unsigned int QuadsGenerator::saveDepthOffsetsToMemory(std::vector<char> &compressedData, bool compress) {
+uint QuadsGenerator::saveDepthOffsetsToMemory(std::vector<char> &compressedData, bool compress) {
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     return depthOffsets.saveToMemory(compressedData, compress);
 #else
@@ -270,14 +270,14 @@ unsigned int QuadsGenerator::saveDepthOffsetsToMemory(std::vector<char> &compres
 #endif
 }
 
-unsigned int QuadsGenerator::saveToFile(const std::string &filename) {
+uint QuadsGenerator::saveToFile(const std::string &filename) {
     QuadsGenerator::BufferSizes bufferSizes = getBufferSizes();
-    unsigned int numProxies = bufferSizes.numProxies;
+    uint numProxies = bufferSizes.numProxies;
     outputQuadBuffers.resize(numProxies);
     return outputQuadBuffers.saveToFile(filename);
 }
 
-unsigned int QuadsGenerator::saveDepthOffsetsToFile(const std::string &filename) {
+uint QuadsGenerator::saveDepthOffsetsToFile(const std::string &filename) {
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     return depthOffsets.saveToFile(filename);
 #else

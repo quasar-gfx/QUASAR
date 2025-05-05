@@ -12,7 +12,7 @@ namespace quasar {
 
 class SSAO: public PostProcessingEffect {
 public:
-    SSAO(glm::uvec2 &windowSize, PerspectiveCamera &camera, unsigned int seed = 42)
+    SSAO(glm::uvec2 &windowSize, PerspectiveCamera &camera, uint seed = 42)
             : windowSize(windowSize)
             , camera(camera)
             , generator(seed)
@@ -53,7 +53,7 @@ public:
                 .minFilter = GL_NEAREST,
                 .magFilter = GL_NEAREST
             }) {
-        for (unsigned int i = 0; i < 64; ++i) {
+        for (uint i = 0; i < 64; ++i) {
             glm::vec3 sample(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0, randomFloats(generator));
             sample = glm::normalize(sample);
             sample *= randomFloats(generator);
@@ -64,7 +64,7 @@ public:
             ssaoKernel.push_back(sample);
         }
 
-        for (unsigned int i = 0; i < 16; i++) {
+        for (uint i = 0; i < 16; i++) {
             glm::vec3 noise(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0, 0.0f);
             ssaoNoise.push_back(noise);
         }
@@ -94,7 +94,7 @@ public:
         ssaoShader.bind();
         ssaoShader.setMat4("view", camera.getViewMatrix());
         ssaoShader.setMat4("projection", camera.getProjectionMatrix());
-        for (unsigned int i = 0; i < 64; ++i) {
+        for (uint i = 0; i < 64; ++i) {
             ssaoShader.setVec3("samples[" + std::to_string(i) + "]", ssaoKernel[i]);
         }
         ssaoShader.setTexture("noiseTexture", *noiseTexture, 5);
@@ -120,7 +120,7 @@ public:
         ssaoShader.bind();
         ssaoShader.setMat4("view", camera.getViewMatrix());
         ssaoShader.setMat4("projection", camera.getProjectionMatrix());
-        for (unsigned int i = 0; i < 64; ++i) {
+        for (uint i = 0; i < 64; ++i) {
             ssaoShader.setVec3("samples[" + std::to_string(i) + "]", ssaoKernel[i]);
         }
         ssaoShader.setTexture("noiseTexture", *noiseTexture, 5);

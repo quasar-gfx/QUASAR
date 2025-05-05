@@ -20,7 +20,7 @@ public:
             : target(target), numElems(0), dataSize(dataSize), usage(usage) {
         glGenBuffers(1, &ID);
     }
-    Buffer(GLenum target, unsigned int numElems, size_t dataSize, const void* data, GLenum usage = GL_STATIC_DRAW)
+    Buffer(GLenum target, uint numElems, size_t dataSize, const void* data, GLenum usage = GL_STATIC_DRAW)
             : target(target), numElems(numElems), dataSize(dataSize), usage(usage) {
         glGenBuffers(1, &ID);
         bind();
@@ -102,11 +102,11 @@ public:
         glBindBuffer(target, 0);
     }
 
-    unsigned int getSize() const {
+    uint getSize() const {
         return numElems;
     }
 
-    void resize(unsigned int newNumElems, bool copy = false) {
+    void resize(uint newNumElems, bool copy = false) {
         if (numElems == newNumElems) return;
 
         std::vector<char> data;
@@ -118,14 +118,14 @@ public:
         glBufferData(target, newNumElems * dataSize, nullptr, usage);
 
         if (copy) {
-            unsigned int elemsToCopy = std::min(numElems, newNumElems);
+            uint elemsToCopy = std::min(numElems, newNumElems);
             glBufferSubData(target, 0, elemsToCopy * dataSize, data.data());
         }
 
         numElems = newNumElems;
     }
 
-    void smartResize(unsigned int newNumElems, bool copy = false) {
+    void smartResize(uint newNumElems, bool copy = false) {
         if (newNumElems > numElems) {
             resize(numElems * 2, copy);
         }
@@ -135,7 +135,7 @@ public:
     }
 
 #ifdef GL_CORE
-    void getSubData(unsigned int offset, unsigned int numElems, void* data) const {
+    void getSubData(uint offset, uint numElems, void* data) const {
         glGetBufferSubData(target, offset * dataSize, numElems * dataSize, data);
     }
 #endif
@@ -169,7 +169,7 @@ public:
         return data;
     }
 
-    void setData(unsigned int numElems, const void* data) {
+    void setData(uint numElems, const void* data) {
         resize(numElems);
         glBufferData(target, numElems * dataSize, data, usage);
     }
@@ -179,11 +179,11 @@ public:
     }
 
 #ifdef GL_CORE
-    void setSubData(unsigned int offset, unsigned int numElems, const void* data) {
+    void setSubData(uint offset, uint numElems, const void* data) {
         glBufferSubData(target, offset * dataSize, numElems * dataSize, data);
     }
 
-    void setSubData(unsigned int offset, const std::vector<char>& data) {
+    void setSubData(uint offset, const std::vector<char>& data) {
         setSubData(offset, data.size() / dataSize, data.data());
     }
 #endif
@@ -191,7 +191,7 @@ public:
 private:
     GLenum target = GL_ARRAY_BUFFER;
     GLenum usage = GL_STATIC_DRAW;
-    unsigned int numElems;
+    uint numElems;
     size_t dataSize;
 };
 

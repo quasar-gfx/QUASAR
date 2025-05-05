@@ -141,36 +141,36 @@ int main(int argc, char** argv) {
     std::vector<Node*> nodes(maxViews);
     std::vector<Node*> nodeWireframes(maxViews);
 
-    unsigned int totalTriangles = -1;
-    unsigned int totalProxies = -1;
-    unsigned int totalDepthOffsets = -1;
+    uint totalTriangles = -1;
+    uint totalProxies = -1;
+    uint totalDepthOffsets = -1;
 
-    unsigned int numBytesProxies = 0;
-    unsigned int numBytesDepthOffsets = 0;
+    uint numBytesProxies = 0;
+    uint numBytesDepthOffsets = 0;
 
     double startTime = window->getTime();
     double loadFromFilesTime = 0.0;
     double createMeshTime = 0.0;
 
-    unsigned int maxProxies = windowSize.x * windowSize.y * NUM_SUB_QUADS;
+    uint maxProxies = windowSize.x * windowSize.y * NUM_SUB_QUADS;
     QuadBuffers quadBuffers(maxProxies);
 
     const glm::uvec2 depthBufferSize = 2u * windowSize;
     DepthOffsets depthOffsets(depthBufferSize);
 
-    unsigned int maxVertices = MAX_NUM_PROXIES * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
-    unsigned int maxIndices = MAX_NUM_PROXIES * NUM_SUB_QUADS * INDICES_IN_A_QUAD;
-    unsigned int numBytes;
+    uint maxVertices = MAX_NUM_PROXIES * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
+    uint maxIndices = MAX_NUM_PROXIES * NUM_SUB_QUADS * INDICES_IN_A_QUAD;
+    uint numBytes;
     for (int view = 0; view < maxViews; view++) {
         startTime = window->getTime();
 
         // load proxies
         std::string quadProxiesFileName = dataPath + "quads" + std::to_string(view) + ".bin.zstd";
-        unsigned int numProxies = quadBuffers.loadFromFile(quadProxiesFileName, &numBytes);
+        uint numProxies = quadBuffers.loadFromFile(quadProxiesFileName, &numBytes);
         numBytesProxies += numBytes;
         // load depth offsets
         std::string depthOffsetsFileName = dataPath + "depthOffsets" + std::to_string(view) + ".bin.zstd";
-        unsigned int numDepthOffsets = depthOffsets.loadFromFile(depthOffsetsFileName, &numBytes);
+        uint numDepthOffsets = depthOffsets.loadFromFile(depthOffsetsFileName, &numBytes);
         numBytesDepthOffsets += numBytes;
 
         meshes[view] = new Mesh({
@@ -241,7 +241,7 @@ int main(int argc, char** argv) {
 
         ImGui::NewFrame();
 
-        unsigned int flags = 0;
+        uint flags = 0;
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Exit", "ESC")) {
@@ -352,7 +352,7 @@ int main(int argc, char** argv) {
         }
     });
 
-    app.onResize([&](unsigned int width, unsigned int height) {
+    app.onResize([&](uint width, uint height) {
         windowSize = glm::uvec2(width, height);
         renderer.setWindowSize(windowSize.x, windowSize.y);
 

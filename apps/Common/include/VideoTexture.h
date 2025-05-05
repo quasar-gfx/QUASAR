@@ -36,7 +36,7 @@ public:
         double bitrateMbps = 0.0f;
     } stats;
 
-    unsigned int videoWidth, videoHeight;
+    uint videoWidth, videoHeight;
 
     VideoTexture(const TextureDataCreateParams &params,
                  const std::string &videoURL,
@@ -46,7 +46,7 @@ public:
     pose_id_t draw(pose_id_t poseID = -1);
     pose_id_t getLatestPoseID();
 
-    void setMaxQueueSize(unsigned int maxQueueSize) {
+    void setMaxQueueSize(uint maxQueueSize) {
         this->maxQueueSize = maxQueueSize;
     }
 
@@ -54,14 +54,14 @@ public:
         return 1.0f / timeutils::millisToSeconds(stats.totalTimeToReceiveMs);
     }
 
-    void resize(unsigned int width, unsigned int height);
+    void resize(uint width, uint height);
 
 private:
     pose_id_t prevPoseID = -1;
     uint64_t framesReceived = 0;
-    unsigned int maxQueueSize = 10;
+    uint maxQueueSize = 10;
 
-    unsigned int internalWidth, internalHeight;
+    uint internalWidth, internalHeight;
 
     int poseIDOffset = sizeof(pose_id_t) * 8;
 

@@ -4,7 +4,7 @@
 
 using namespace quasar;
 
-void Mesh::setArrayBufferAttributes(const VertexInputAttributes &attributes, unsigned int vertexSize) {
+void Mesh::setArrayBufferAttributes(const VertexInputAttributes &attributes, uint vertexSize) {
     glGenVertexArrays(1, &vertexArrayBuffer);
     glBindVertexArray(vertexArrayBuffer);
 
@@ -21,7 +21,7 @@ void Mesh::setArrayBufferAttributes(const VertexInputAttributes &attributes, uns
     glBindVertexArray(0);
 }
 
-void Mesh::setBuffers(const void* verticesData, unsigned int verticesSize, const unsigned int* indicesData, unsigned int indicesSize) {
+void Mesh::setBuffers(const void* verticesData, uint verticesSize, const uint* indicesData, uint indicesSize) {
     // if no vertices, dont bind buffers
     if (verticesData == nullptr || verticesSize == 0) {
         return;
@@ -45,7 +45,7 @@ void Mesh::setBuffers(const void* verticesData, unsigned int verticesSize, const
     glBindVertexArray(0);
 }
 
-void Mesh::setBuffers(unsigned int verticesSize, unsigned int indicesSize) {
+void Mesh::setBuffers(uint verticesSize, uint indicesSize) {
     // if no vertices or indices, dont bind buffers
     if (verticesSize == 0) {
         return;
@@ -67,12 +67,12 @@ void Mesh::setBuffers(unsigned int verticesSize, unsigned int indicesSize) {
     glBindVertexArray(0);
 }
 
-void Mesh::resizeBuffers(unsigned int verticesSize, unsigned int indicesSize) {
+void Mesh::resizeBuffers(uint verticesSize, uint indicesSize) {
     vertexBuffer.resize(verticesSize);
     indexBuffer.resize(indicesSize);
 }
 
-void Mesh::updateAABB(const void* verticesData, unsigned int verticesSize) {
+void Mesh::updateAABB(const void* verticesData, uint verticesSize) {
     // if no vertices, return
     if (verticesData == nullptr || verticesSize == 0) {
         return;
@@ -82,7 +82,7 @@ void Mesh::updateAABB(const void* verticesData, unsigned int verticesSize) {
     glm::vec3 min = verticesVec[0].position;
     glm::vec3 max = verticesVec[0].position;
 
-    for (unsigned int i = 1; i < verticesSize; i++) {
+    for (uint i = 1; i < verticesSize; i++) {
         auto &vertex = verticesVec[i];
         min = glm::min(min, vertex.position);
         max = glm::max(max, vertex.position);
@@ -226,10 +226,10 @@ RenderStats Mesh::draw(GLenum primativeType) {
     glBindVertexArray(0);
 
     if (indexBuffer.getSize() > 0) {
-        stats.trianglesDrawn = static_cast<unsigned int>(indexBuffer.getSize() / 3);
+        stats.trianglesDrawn = static_cast<uint>(indexBuffer.getSize() / 3);
     }
     else {
-        stats.trianglesDrawn = static_cast<unsigned int>(vertexBuffer.getSize() / 3);
+        stats.trianglesDrawn = static_cast<uint>(vertexBuffer.getSize() / 3);
     }
     stats.drawCalls = 1;
 

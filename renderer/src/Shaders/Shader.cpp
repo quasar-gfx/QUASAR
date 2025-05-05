@@ -17,9 +17,9 @@ void Shader::loadFromFiles(const std::string vertexPath, const std::string fragm
     const char* fShaderCode = fragmentCode.c_str();
     const char* gShaderCode = geometryPath != "" ? geometryCode.c_str() : nullptr;
 
-    unsigned int vertexCodeSize = vertexCode.size();
-    unsigned int fragmentCodeSize = fragmentCode.size();
-    unsigned int geometryDataSize = geometryPath != "" ? geometryCode.size() : 0;
+    uint vertexCodeSize = vertexCode.size();
+    uint fragmentCodeSize = fragmentCode.size();
+    uint geometryDataSize = geometryPath != "" ? geometryCode.size() : 0;
 
     loadFromData(vShaderCode, vertexCodeSize, fShaderCode, fragmentCodeSize, gShaderCode, geometryDataSize);
 }

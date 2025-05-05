@@ -16,8 +16,8 @@ namespace quasar {
 
 class FileIO {
 public:
-    static std::string loadTextFile(const std::string &filename, unsigned int* sizePtr = nullptr);
-    static std::vector<char> loadBinaryFile(const std::string &filename, unsigned int* sizePtr = nullptr);
+    static std::string loadTextFile(const std::string &filename, uint* sizePtr = nullptr);
+    static std::vector<char> loadBinaryFile(const std::string &filename, uint* sizePtr = nullptr);
 
     static std::ifstream::pos_type getFileSize(const std::string &filename);
 

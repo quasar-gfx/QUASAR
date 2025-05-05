@@ -22,7 +22,7 @@ struct PointLightCreateParams {
     float shadowNear = 0.1f;
     float shadowFar = 100.0f;
     float shadowFov = 90.0f;
-    unsigned int shadowMapRes = 1024;
+    uint shadowMapRes = 1024;
     bool debug = false;
 };
 
@@ -125,7 +125,7 @@ public:
         }
     }
 
-    static const unsigned int maxPointLights = 4;
+    static const uint maxPointLights = 4;
 
 private:
     void updateLookAtFace() {

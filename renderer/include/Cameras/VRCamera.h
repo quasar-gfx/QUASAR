@@ -13,7 +13,7 @@ public:
     PerspectiveCamera right;
 
     VRCamera();
-    VRCamera(unsigned int width, unsigned int height);
+    VRCamera(uint width, uint height);
     VRCamera(float fovy, float aspect, float near, float far);
 
     float getFovyRadians() const override { return left.getFovyRadians(); }

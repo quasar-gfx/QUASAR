@@ -9,18 +9,18 @@ namespace quasar {
 
 class DepthPeelingRenderer : public DeferredRenderer {
 public:
-    unsigned int maxLayers;
+    uint maxLayers;
     float viewSphereDiameter = 0.5f;
     float edpDelta = 0.001f;
 
     std::vector<FrameRenderTarget> peelingLayers;
 
-    DepthPeelingRenderer(const Config &config, unsigned int maxLayers = 4, bool edp = false);
+    DepthPeelingRenderer(const Config &config, uint maxLayers = 4, bool edp = false);
     ~DepthPeelingRenderer() = default;
 
     virtual void setScreenShaderUniforms(const Shader &screenShader) override;
 
-    virtual void resize(unsigned int width, unsigned int height) override;
+    virtual void resize(uint width, uint height) override;
 
     virtual void beginRendering() override;
     virtual void endRendering() override;

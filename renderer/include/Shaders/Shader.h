@@ -17,11 +17,11 @@ struct ShaderDataCreateParams {
     std::string version = "310 es";
 #endif
     const char* vertexCodeData = nullptr;
-    unsigned int vertexCodeSize = 0;
+    uint vertexCodeSize = 0;
     const char* fragmentCodeData = nullptr;
-    unsigned int fragmentCodeSize = 0;
+    uint fragmentCodeSize = 0;
     const char* geometryData = nullptr;
-    unsigned int geometryDataSize = 0;
+    uint geometryDataSize = 0;
     std::vector<std::string> extensions;
     std::vector<std::string> defines;
 };

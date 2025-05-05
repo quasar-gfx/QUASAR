@@ -16,7 +16,7 @@ public:
     Frustum frustum;
 
     PerspectiveCamera();
-    PerspectiveCamera(unsigned int width, unsigned int height);
+    PerspectiveCamera(uint width, uint height);
     PerspectiveCamera(float fovy, float aspect, float near, float far);
 
     float getFovyRadians() const override { return fovyRad; }
@@ -31,7 +31,7 @@ public:
 
     float getAspect() const override { return aspect; }
     void setAspect(float aspect) { this->aspect = aspect; updateProjectionMatrix(); }
-    void setAspect(unsigned int width, unsigned int height) { setAspect((float)width / (float)height); }
+    void setAspect(uint width, uint height) { setAspect((float)width / (float)height); }
 
     float getNear() const override { return near; }
     void setNear(float near) { this->near = near; updateProjectionMatrix(); }

@@ -2,4 +2,4 @@
 
 using namespace quasar;
 
-unsigned int Entity::nextID = 0;
+uint Entity::nextID = 0;

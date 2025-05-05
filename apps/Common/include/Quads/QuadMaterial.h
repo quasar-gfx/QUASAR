@@ -31,7 +31,7 @@ public:
         return shader;
     }
 
-    unsigned int getTextureCount() const override { return 1; }
+    uint getTextureCount() const override { return 1; }
 
     static Shader* shader;
 };

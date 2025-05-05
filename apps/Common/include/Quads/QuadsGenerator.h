@@ -13,8 +13,8 @@ namespace quasar {
 class QuadsGenerator {
 public:
     struct BufferSizes {
-        unsigned int numProxies;
-        unsigned int numDepthOffsets;
+        uint numProxies;
+        uint numDepthOffsets;
     };
 
     struct Stats {
@@ -37,8 +37,8 @@ public:
     glm::uvec2 depthBufferSize;
     std::vector<glm::uvec2> quadMapSizes;
 
-    unsigned int numQuadMaps;
-    unsigned int maxProxies;
+    uint numQuadMaps;
+    uint maxProxies;
 
     QuadBuffers outputQuadBuffers;
     DepthOffsets depthOffsets;
@@ -49,10 +49,10 @@ public:
     BufferSizes getBufferSizes();
     void createProxiesFromGBuffer(const FrameRenderTarget& frameRT, const PerspectiveCamera &remoteCamera);
 #ifdef GL_CORE
-    unsigned int saveQuadsToMemory(std::vector<char> &compressedData, bool compress = true);
-    unsigned int saveDepthOffsetsToMemory(std::vector<char> &compressedData, bool compress = true);
-    unsigned int saveToFile(const std::string &filename);
-    unsigned int saveDepthOffsetsToFile(const std::string &filename);
+    uint saveQuadsToMemory(std::vector<char> &compressedData, bool compress = true);
+    uint saveDepthOffsetsToMemory(std::vector<char> &compressedData, bool compress = true);
+    uint saveToFile(const std::string &filename);
+    uint saveDepthOffsetsToFile(const std::string &filename);
 #endif
 
 private:

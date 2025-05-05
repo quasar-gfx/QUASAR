@@ -59,7 +59,7 @@ void Model::loadFromFile(const ModelCreateParams &params) {
     }
 #endif
 
-    unsigned int flags = \
+    uint flags = \
             // normals and tangents
             aiProcess_GenSmoothNormals |
             aiProcess_CalcTangentSpace |
@@ -96,10 +96,10 @@ void Model::loadFromFile(const ModelCreateParams &params) {
 }
 
 void Model::processAnimations(const aiScene* scene) {
-    for (unsigned int i = 0; i < scene->mNumAnimations; ++i) {
+    for (uint i = 0; i < scene->mNumAnimations; ++i) {
         aiAnimation* animation = scene->mAnimations[i];
 
-        for (unsigned int j = 0; j < animation->mNumChannels; ++j) {
+        for (uint j = 0; j < animation->mNumChannels; ++j) {
             aiNodeAnim* channel = animation->mChannels[j];
 
             Node* node = rootNode.findNodeByName(channel->mNodeName.C_Str());
@@ -112,21 +112,21 @@ void Model::processAnimations(const aiScene* scene) {
 
             const glm::mat4 &transformInv = node->getTransformLocalFromParent();
 
-            for (unsigned int k = 0; k < channel->mNumPositionKeys; k++) {
+            for (uint k = 0; k < channel->mNumPositionKeys; k++) {
                 aiVectorKey positionKey = channel->mPositionKeys[k];
                 const glm::vec3 pos = glm::vec3(positionKey.mValue.x, positionKey.mValue.y, positionKey.mValue.z);
                 const glm::vec3 adjustedPos = glm::vec3(transformInv * glm::vec4(pos, 1.0f));
                 anim->addPositionKey(adjustedPos, positionKey.mTime / animation->mTicksPerSecond);
             }
 
-            for (unsigned int k = 0; k < channel->mNumRotationKeys; k++) {
+            for (uint k = 0; k < channel->mNumRotationKeys; k++) {
                 aiQuatKey rotationKey = channel->mRotationKeys[k];
                 const glm::quat rot = glm::quat(rotationKey.mValue.w, rotationKey.mValue.x, rotationKey.mValue.y, rotationKey.mValue.z);
                 const glm::quat adjustedRot = glm::quat(transformInv) * rot;
                 anim->addRotationKey(glm::degrees(glm::eulerAngles(adjustedRot)), rotationKey.mTime / animation->mTicksPerSecond);
             }
 
-            for (unsigned int k = 0; k < channel->mNumScalingKeys; k++) {
+            for (uint k = 0; k < channel->mNumScalingKeys; k++) {
                 aiVectorKey scalingKey = channel->mScalingKeys[k];
                 const glm::vec3 scale = glm::vec3(scalingKey.mValue.x, scalingKey.mValue.y, scalingKey.mValue.z);
                 anim->addScaleKey(scale, scalingKey.mTime / animation->mTicksPerSecond);
@@ -160,7 +160,7 @@ void Model::processNode(aiNode* aiNode, const aiScene* scene, Node* node, LitMat
 
 Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, LitMaterial* material) {
     std::vector<Vertex> vertices;
-    std::vector<unsigned int> indices;
+    std::vector<uint> indices;
 
     std::vector<aiVector3D> normals(mesh->mNumVertices, aiVector3D(0, 0, 0));
 
@@ -444,8 +444,8 @@ Texture* Model::loadMaterialTexture(aiMaterial const* aiMat, aiString aiTextureP
             }
 
             Texture* texture = new Texture({
-                .width = static_cast<unsigned int>(texWidth),
-                .height = static_cast<unsigned int>(texHeight),
+                .width = static_cast<uint>(texWidth),
+                .height = static_cast<uint>(texHeight),
                 .internalFormat = internalFormat,
                 .format = format,
                 .wrapS = GL_REPEAT,

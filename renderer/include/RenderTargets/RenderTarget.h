@@ -64,7 +64,7 @@ public:
         glBlitFramebuffer(0, 0, width, height, 0, 0, rt.width, rt.height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
     }
 
-    void resize(unsigned int width, unsigned int height) override {
+    void resize(uint width, uint height) override {
         this->width = width;
         this->height = height;
 

@@ -10,8 +10,8 @@
 namespace quasar {
 
 struct TextureDataCreateParams {
-    unsigned int width = 0;
-    unsigned int height = 0;
+    uint width = 0;
+    uint height = 0;
     GLint internalFormat = GL_RGB;
     GLenum format = GL_RGB;
     GLenum type = GL_UNSIGNED_BYTE;
@@ -24,7 +24,7 @@ struct TextureDataCreateParams {
     bool gammaCorrected = false;
     GLint alignment = 4;
     bool multiSampled = false;
-    unsigned int numSamples = 4;
+    uint numSamples = 4;
     unsigned char* data = nullptr;
 };
 
@@ -38,13 +38,13 @@ struct TextureFileCreateParams {
     bool gammaCorrected = false;
     GLint alignment = 1;
     bool multiSampled = false;
-    unsigned int numSamples = 4;
+    uint numSamples = 4;
     std::string path = "";
 };
 
 class Texture : public OpenGLObject {
 public:
-    unsigned int width, height;
+    uint width, height;
 
     GLint internalFormat = GL_RGB;
     GLenum format = GL_RGB;
@@ -59,7 +59,7 @@ public:
     GLint alignment = 4;
 
     bool multiSampled = false;
-    unsigned int numSamples = 4;
+    uint numSamples = 4;
 
     Texture() {
         target = GL_TEXTURE_2D;
@@ -105,7 +105,7 @@ public:
         bind(0);
     }
 
-    virtual void bind(unsigned int slot) const {
+    virtual void bind(uint slot) const {
         glActiveTexture(GL_TEXTURE0 + slot);
         glBindTexture(target, ID);
     }
@@ -114,14 +114,14 @@ public:
         unbind(0);
     }
 
-    virtual void unbind(unsigned int slot) const {
+    virtual void unbind(uint slot) const {
         glActiveTexture(GL_TEXTURE0 + slot);
         glBindTexture(target, 0);
         glActiveTexture(GL_TEXTURE0);
     }
 
-    void resize(unsigned int width, unsigned int height);
-    void setData(unsigned int width, unsigned int height, const void* data, bool resize = false);
+    void resize(uint width, uint height);
+    void setData(uint width, uint height, const void* data, bool resize = false);
 
     void cleanup() {
         glDeleteTextures(1, &ID);

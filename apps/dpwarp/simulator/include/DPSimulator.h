@@ -63,13 +63,13 @@ public:
     Mesh depthMesh;
     Node depthNode;
 
-    unsigned int maxLayers;
+    uint maxLayers;
 
     int currMeshIndex = 0, prevMeshIndex = 1;
 
-    unsigned int maxVertices = MAX_NUM_PROXIES * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
-    unsigned int maxIndices = MAX_NUM_PROXIES * NUM_SUB_QUADS * INDICES_IN_A_QUAD;
-    unsigned int maxVerticesDepth;
+    uint maxVertices = MAX_NUM_PROXIES * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
+    uint maxIndices = MAX_NUM_PROXIES * NUM_SUB_QUADS * INDICES_IN_A_QUAD;
+    uint maxVerticesDepth;
 
     std::vector<std::vector<char>> quads;
     std::vector<std::vector<char>> depthOffsets;
@@ -87,14 +87,14 @@ public:
         double totalGenDepthTime = 0.0;
         double totalCompressTime = 0.0;
 
-        unsigned int totalProxies = 0;
-        unsigned int totalDepthOffsets = 0;
+        uint totalProxies = 0;
+        uint totalDepthOffsets = 0;
         double compressedSizeBytes = 0;
     } stats;
 
     DPSimulator(
                 const PerspectiveCamera &remoteCamera,
-                unsigned int maxLayers,
+                uint maxLayers,
                 QuadsGenerator &quadsGenerator, MeshFromQuads &meshFromQuads, FrameGenerator &frameGenerator)
             : quadsGenerator(quadsGenerator)
             , meshFromQuads(meshFromQuads)
@@ -155,7 +155,7 @@ public:
 
         copyRTs.reserve(maxLayers);
 
-        unsigned int numHidLayers = maxLayers - 1;
+        uint numHidLayers = maxLayers - 1;
 
         frameRTsHidLayer.reserve(numHidLayers);
         meshesHidLayer.reserve(numHidLayers);
@@ -367,7 +367,7 @@ public:
             Generate Reference Frame
             ============================
             */
-            unsigned int numProxies = 0, numDepthOffsets = 0;
+            uint numProxies = 0, numDepthOffsets = 0;
             auto oldParams = quadsGenerator.params;
             if (layer == maxLayers - 1) {
                 quadsGenerator.params.maxIterForceMerge = 4;
@@ -380,7 +380,7 @@ public:
                 quadsGenerator.params.depthThreshold = 1e-3f;
             }
             quadsGenerator.params.expandEdges = false;
-            unsigned int numBytesIFrame = frameGenerator.generateRefFrame(
+            uint numBytesIFrame = frameGenerator.generateRefFrame(
                 frameToUse, remoteCameraToUse,
                 meshToUse,
                 quads[layer], depthOffsets[layer],
@@ -484,8 +484,8 @@ public:
         }
     }
 
-    unsigned int saveToFile(const std::string &outputPath) {
-        unsigned int totalOutputSize = 0;
+    uint saveToFile(const std::string &outputPath) {
+        uint totalOutputSize = 0;
         for (int layer = 0; layer < maxLayers; layer++) {
             // save quads
             double startTime = timeutils::getTimeMicros();

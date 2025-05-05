@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<float> networkJitterIn(parser, "network-jitter", "Simulated network jitter in ms", {'J', "network-jitter"}, 10.0f);
     args::Flag posePredictionIn(parser, "pose-prediction", "Enable pose prediction", {'P', "pose-prediction"}, false);
     args::Flag poseSmoothingIn(parser, "pose-smoothing", "Enable pose smoothing", {'T', "pose-smoothing"}, false);
-    args::ValueFlag<unsigned int> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
+    args::ValueFlag<uint> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
     args::ValueFlag<float> fovIn(parser, "fov", "Field of view", {'f', "fov"}, 60.0f);
     try {
         parser.ParseCLI(argc, argv);
@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
         std::filesystem::create_directories(outputPath);
     }
 
-    unsigned int surfelSize = args::get(surfelSizeIn);
+    uint surfelSize = args::get(surfelSizeIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -140,9 +140,9 @@ int main(int argc, char** argv) {
     glm::uvec2 depthMapSize = remoteWindowSize;
     glm::uvec2 adjustedWindowSize = depthMapSize / surfelSize;
 
-    unsigned int maxVertices = adjustedWindowSize.x * adjustedWindowSize.y;
-    unsigned int numTriangles = (adjustedWindowSize.x-1) * (adjustedWindowSize.y-1) * 2;
-    unsigned int maxIndices = numTriangles * 3;
+    uint maxVertices = adjustedWindowSize.x * adjustedWindowSize.y;
+    uint numTriangles = (adjustedWindowSize.x-1) * (adjustedWindowSize.y-1) * 2;
+    uint maxIndices = numTriangles * 3;
 
     Mesh mesh = Mesh({
         .maxVertices = maxVertices,
@@ -235,7 +235,7 @@ int main(int argc, char** argv) {
 
         ImGui::NewFrame();
 
-        unsigned int flags = 0;
+        uint flags = 0;
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Exit", "ESC")) {
@@ -417,7 +417,7 @@ int main(int argc, char** argv) {
         }
     });
 
-    app.onResize([&](unsigned int width, unsigned int height) {
+    app.onResize([&](uint width, uint height) {
         windowSize = glm::uvec2(width, height);
         renderer.setWindowSize(windowSize.x, windowSize.y);
 
@@ -500,7 +500,7 @@ int main(int argc, char** argv) {
             double totalCreateVertIndTime = 0.0;
             double totalCompressTime = 0.0;
 
-            unsigned int compressedSize = 0;
+            uint compressedSize = 0;
 
             // "send" pose to the server. this will wait until latency+/-jitter ms have passed
             poseSendRecvSimulator.sendPose(camera, now);

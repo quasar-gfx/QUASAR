@@ -38,21 +38,21 @@ public:
         double timeToCompress = 0.0f;
     } stats;
 
-    unsigned int generateRefFrame(
+    uint generateRefFrame(
         const FrameRenderTarget &frameRT,
         const PerspectiveCamera &remoteCamera,
         const Mesh &mesh,
         std::vector<char> &quads, std::vector<char> &depthOffsets,
-        unsigned int &numProxies, unsigned int &numDepthOffsets,
+        uint &numProxies, uint &numDepthOffsets,
         bool compress = true);
 
-    unsigned int generateResFrame(
+    uint generateResFrame(
         const Scene &currScene, const Scene &prevScene,
         FrameRenderTarget &frameRT, FrameRenderTarget &maskFrameRT,
         const PerspectiveCamera &currRemoteCamera, const PerspectiveCamera &prevRemoteCamera,
         const Mesh &currMesh, const Mesh &maskMesh,
         std::vector<char> &quads, std::vector<char> &depthOffsets,
-        unsigned int &numProxies, unsigned int &numDepthOffsets,
+        uint &numProxies, uint &numDepthOffsets,
         bool compress = true);
 
 private:
