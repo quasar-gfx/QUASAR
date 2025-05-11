@@ -13,16 +13,9 @@ Recorder::~Recorder() {
     }
 }
 
-void Recorder::setOutputPath(const std::string& path) {
-    // add / if not present
+void Recorder::setOutputPath(const Path& path) {
+    path.mkdir();
     outputPath = path;
-    if (outputPath.back() != '/') {
-        outputPath += "/";
-    }
-    // create output path if it doesn't exist
-    if (!std::filesystem::exists(outputPath)) {
-        std::filesystem::create_directories(outputPath);
-    }
 }
 
 void Recorder::setTargetFrameRate(int targetFrameRate) {
@@ -31,14 +24,14 @@ void Recorder::setTargetFrameRate(int targetFrameRate) {
     frameCount = 0;
 }
 
-void Recorder::saveScreenshotToFile(const std::string &fileName, bool saveAsHDR) {
+void Recorder::saveScreenshotToFile(const Path &filename, bool saveAsHDR) {
     effect.drawToRenderTarget(renderer, *this);
 
     if (saveAsHDR) {
-        saveColorAsHDR(outputPath + fileName + ".hdr");
+        saveColorAsHDR(filename.withExtension(".hdr"));
     }
     else {
-        saveColorAsPNG(outputPath + fileName + ".png");
+        saveColorAsPNG(filename.withExtension(".png"));
     }
 }
 
@@ -49,7 +42,7 @@ void Recorder::start() {
     recordingStartTime = timeutils::getTimeMillis();
     lastCaptureTime = recordingStartTime;
 
-    std::ofstream pathFile(outputPath + "camera_path.txt");
+    std::ofstream pathFile(outputPath / "camera_path.txt");
     pathFile.close();
 
     if (outputFormat == OutputFormat::MP4) {
@@ -194,21 +187,21 @@ void Recorder::saveFrames(int threadID) {
         }
         else {
             std::stringstream ss;
-            ss << outputPath << "frame_" << std::setw(6) << std::setfill('0') << frameID;
-            std::string fileName = ss.str();
+            ss << "frame_" << std::setw(6) << std::setfill('0') << frameID;
+            Path fileNameBase = outputPath / ss.str();
 
             FileIO::flipVerticallyOnWrite(true);
             if (outputFormat == OutputFormat::PNG) {
-                FileIO::saveAsPNG(fileName + ".png", width, height, 4, renderTargetData.data());
+                FileIO::saveAsPNG(fileNameBase.withExtension(".png"), width, height, 4, renderTargetData.data());
             }
             else {
-                FileIO::saveAsJPG(fileName + ".jpg", width, height, 4, renderTargetData.data());
+                FileIO::saveAsJPG(fileNameBase.withExtension(".jpg"), width, height, 4, renderTargetData.data());
             }
         }
 
         {
             std::lock_guard<std::mutex> lock(cameraPathMutex);
-            std::ofstream pathFile(outputPath + "camera_path.txt", std::ios::app);
+            std::ofstream pathFile(outputPath / "camera_path.txt", std::ios::app);
             pathFile << std::fixed << std::setprecision(4)
                      << frameData.position.x << " "
                      << frameData.position.y << " "
@@ -264,7 +257,7 @@ void Recorder::initializeFFmpeg() {
         throw std::runtime_error("Failed to open codec");
     }
 
-    ret = avformat_alloc_output_context2(&outputFormatCtx, nullptr, nullptr, (outputPath + "output.mp4").c_str());
+    ret = avformat_alloc_output_context2(&outputFormatCtx, nullptr, nullptr, (outputPath / "output.mp4").c_str());
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not allocate output context: %s\n", av_err2str(ret));
         throw std::runtime_error("Recorder could not be created.");
@@ -280,16 +273,17 @@ void Recorder::initializeFFmpeg() {
     avcodec_parameters_from_context(outputVideoStream->codecpar, codecCtx);
 
     if (!(outputFormatCtx->oformat->flags & AVFMT_NOFILE)) {
-        ret = avio_open(&outputFormatCtx->pb, (outputPath + "output.mp4").c_str(), AVIO_FLAG_WRITE);
+        ret = avio_open(&outputFormatCtx->pb, (outputPath / "output.mp4").c_str(), AVIO_FLAG_WRITE);
         if (ret < 0) {
-            av_log(nullptr, AV_LOG_ERROR, "Cannot open output file\n");
+            av_log(nullptr, AV_LOG_ERROR, "Cannot open output file '%s': %s\n",
+                   (outputPath / "output.mp4").c_str(), av_err2str(ret));
             throw std::runtime_error("Recorder could not be created.");
         }
     }
 
     ret = avformat_write_header(outputFormatCtx, nullptr);
     if (ret < 0) {
-        av_log(nullptr, AV_LOG_ERROR, "Error writing header\n");
+        av_log(nullptr, AV_LOG_ERROR, "Error writing header to output file: %s\n", av_err2str(ret));
         throw std::runtime_error("Recorder could not be created.");
     }
 

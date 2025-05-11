@@ -332,11 +332,11 @@ public:
         }
     }
 
-    uint saveToFile(const std::string &outputPath) {
+    uint saveToFile(const Path &outputPath) {
         // save quads
         double startTime = timeutils::getTimeMicros();
-        std::string filename = outputPath + "quads.bin";
-        std::ofstream quadsFile = std::ofstream(filename + ".zstd", std::ios::binary);
+        Path filename = outputPath / "quads";
+        std::ofstream quadsFile = std::ofstream(filename.withExtension(".bin.zstd"), std::ios::binary);
         quadsFile.write(quads.data(), quads.size());
         quadsFile.close();
         spdlog::info("Saved {} quads ({:.3f}MB) in {:.3f}ms",
@@ -345,8 +345,8 @@ public:
 
         // save depth offsets
         startTime = timeutils::getTimeMicros();
-        std::string depthOffsetsFileName = outputPath + "depthOffsets.bin";
-        std::ofstream depthOffsetsFile = std::ofstream(depthOffsetsFileName + ".zstd", std::ios::binary);
+        Path depthOffsetsFileName = outputPath / "depthOffsets";
+        std::ofstream depthOffsetsFile = std::ofstream(depthOffsetsFileName.withExtension(".bin.zstd"), std::ios::binary);
         depthOffsetsFile.write(depthOffsets.data(), depthOffsets.size());
         depthOffsetsFile.close();
         spdlog::info("Saved {} depth offsets ({:.3f}MB) in {:.3f}ms",
@@ -354,8 +354,8 @@ public:
                         timeutils::microsToMillis(timeutils::getTimeMicros() - startTime));
 
         // save color buffer
-        std::string colorFileName = outputPath + "color.jpg";
-        copyRT.saveColorAsJPG(colorFileName);
+        Path colorFileName = outputPath / "color";
+        copyRT.saveColorAsJPG(colorFileName.withExtension(".jpg"));
 
         return quads.size() + depthOffsets.size();
     }

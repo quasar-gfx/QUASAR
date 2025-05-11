@@ -9,6 +9,7 @@
 #include <PostProcessing/ToneMapper.h>
 #include <PostProcessing/ShowDepthEffect.h>
 
+#include <Path.h>
 #include <Recorder.h>
 #include <CameraAnimator.h>
 

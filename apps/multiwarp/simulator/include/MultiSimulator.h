@@ -283,13 +283,13 @@ public:
         }
     }
 
-    uint saveToFile(const std::string &outputPath) {
+    uint saveToFile(const Path &outputPath) {
         uint totalOutputSize = 0;
         for (int view = 0; view < maxViews; view++) {
             // save quads
             double startTime = timeutils::getTimeMicros();
-            std::string filename = outputPath + "quads" + std::to_string(view) + ".bin";
-            std::ofstream quadsFile = std::ofstream(filename + ".zstd", std::ios::binary);
+            Path filename = (outputPath / "quads").appendToName(std::to_string(view));
+            std::ofstream quadsFile = std::ofstream(filename.withExtension(".bin.zstd"), std::ios::binary);
             quadsFile.write(quads[view].data(), quads[view].size());
             quadsFile.close();
             spdlog::info("Saved {} quads ({:.3f}MB) in {:.3f}ms",
@@ -298,8 +298,8 @@ public:
 
             // save depth offsets
             startTime = timeutils::getTimeMicros();
-            std::string depthOffsetsFileName = outputPath + "depthOffsets" + std::to_string(view) + ".bin";
-            std::ofstream depthOffsetsFile = std::ofstream(depthOffsetsFileName + ".zstd", std::ios::binary);
+            Path depthOffsetsFileName = (outputPath / "depthOffsets").appendToName(std::to_string(view));
+            std::ofstream depthOffsetsFile = std::ofstream(depthOffsetsFileName.withExtension(".bin.zstd"), std::ios::binary);
             depthOffsetsFile.write(depthOffsets[view].data(), depthOffsets[view].size());
             depthOffsetsFile.close();
             spdlog::info("Saved {} depth offsets ({:.3f}MB) in {:.3f}ms",
@@ -307,8 +307,8 @@ public:
                             timeutils::microsToMillis(timeutils::getTimeMicros() - startTime));
 
             // save color buffer
-            std::string colorFileName = outputPath + "color" + std::to_string(view) + ".jpg";
-            copyRTs[view].saveColorAsJPG(colorFileName);
+            Path colorFileName = outputPath / ("color" + std::to_string(view));
+            copyRTs[view].saveColorAsJPG(colorFileName.withExtension(".jpg"));
 
             totalOutputSize += quads[view].size() + depthOffsets[view].size();
         }

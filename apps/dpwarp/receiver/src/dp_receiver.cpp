@@ -10,6 +10,7 @@
 
 #include <PostProcessing/ToneMapper.h>
 
+#include <Path.h>
 #include <Recorder.h>
 #include <CameraAnimator.h>
 
@@ -67,10 +68,7 @@ int main(int argc, char** argv) {
 
     config.enableVSync = !args::get(novsync);
 
-    std::string outputPath = args::get(outputPathIn);
-    if (outputPath.back() != '/') {
-        outputPath += "/";
-    }
+    Path outputPath = Path(args::get(outputPathIn)); outputPath.mkdirRecursive();
 
     int maxLayers = args::get(maxLayersIn);
     int maxViews = !disableWideFov ? maxLayers + 1 : maxLayers;
@@ -121,8 +119,8 @@ int main(int argc, char** argv) {
         .flipVertically = true
     };
     for (int view = 0; view < maxViews; view++) {
-        std::string colorFileName = outputPath + "color" + std::to_string(view) + ".jpg";
-        params.path = colorFileName;
+        Path colorFileName = outputPath.appendToName("color" + std::to_string(view));
+        params.path = colorFileName.withExtension(".jpg");
         colorTextures.emplace_back(params);
     }
 
@@ -152,11 +150,11 @@ int main(int argc, char** argv) {
         startTime = window->getTime();
 
         // load proxies
-        std::string quadProxiesFileName = outputPath + "quads" + std::to_string(view) + ".bin.zstd";
+        Path quadProxiesFileName = (outputPath / "quads").appendToName(std::to_string(view)).withExtension(".bin.zstd");
         uint numProxies = quadBuffers.loadFromFile(quadProxiesFileName, &numBytes);
         numBytesProxies += numBytes;
         // load depth offsets
-        std::string depthOffsetsFileName = outputPath + "depthOffsets" + std::to_string(view) + ".bin.zstd";
+        Path depthOffsetsFileName = (outputPath / "depthOffsets").appendToName(std::to_string(view)).withExtension(".bin.zstd");
         uint numDepthOffsets = depthOffsets.loadFromFile(depthOffsetsFileName, &numBytes);
         numBytesDepthOffsets += numBytes;
 
@@ -320,14 +318,15 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string time = std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            Path filename = (outputPath / fileNameBase).appendToName("." + time);
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                recorder.saveScreenshotToFile(fileName, saveAsHDR);
+                recorder.saveScreenshotToFile(filename, saveAsHDR);
             }
 
             ImGui::End();

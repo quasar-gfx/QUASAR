@@ -10,6 +10,7 @@
 
 #include <PostProcessing/ToneMapper.h>
 
+#include <Path.h>
 #include <Recorder.h>
 #include <CameraAnimator.h>
 
@@ -53,10 +54,7 @@ int main(int argc, char** argv) {
 
     config.enableVSync = !args::get(novsync);
 
-    std::string outputPath = args::get(outputPathIn);
-    if (outputPath.back() != '/') {
-        outputPath += "/";
-    }
+    Path outputPath = Path(args::get(outputPathIn)); outputPath.mkdirRecursive();
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -91,7 +89,7 @@ int main(int argc, char** argv) {
 
     MeshFromQuads meshFromQuads(windowSize);
 
-    std::string colorFileName = outputPath + "color.jpg";
+    std::string colorFileName = outputPath / "color.jpg";
     Texture colorTexture = Texture({
         .wrapS = GL_REPEAT,
         .wrapT = GL_REPEAT,
@@ -122,9 +120,9 @@ int main(int argc, char** argv) {
 
     startTime = window->getTime();
     // load proxies
-    uint numProxies = quadBuffers.loadFromFile(outputPath + "quads.bin.zstd", &numBytesProxies);
+    uint numProxies = quadBuffers.loadFromFile(outputPath / "quads.bin.zstd", &numBytesProxies);
     // load depth offsets
-    uint numDepthOffsets = depthOffsets.loadFromFile(outputPath + "depthOffsets.bin.zstd", &numBytesDepthOffsets);
+    uint numDepthOffsets = depthOffsets.loadFromFile(outputPath / "depthOffsets.bin.zstd", &numBytesDepthOffsets);
 
     mesh = new Mesh({
         .maxVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
@@ -264,14 +262,15 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string time = std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            Path filename = (outputPath / fileNameBase).appendToName("." + time);
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                recorder.saveScreenshotToFile(fileName, saveAsHDR);
+                recorder.saveScreenshotToFile(filename, saveAsHDR);
             }
 
             ImGui::End();

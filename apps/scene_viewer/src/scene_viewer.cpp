@@ -12,6 +12,7 @@
 #include <PostProcessing/ShowNormalsEffect.h>
 #include <PostProcessing/ShowIDsEffect.h>
 
+#include <Path.h>
 #include <Recorder.h>
 #include <CameraAnimator.h>
 
@@ -55,16 +56,9 @@ int main(int argc, char** argv) {
     config.enableVSync = !args::get(novsync) && !saveImages;
     config.showWindow = !args::get(saveImages);
 
-    std::string sceneFile = args::get(sceneFileIn);
-    std::string cameraPathFile = args::get(cameraPathFileIn);
-    std::string outputPath = args::get(outputPathIn);
-    if (outputPath.back() != '/') {
-        outputPath += "/";
-    }
-    // create output path if it doesn't exist
-    if (!std::filesystem::exists(outputPath)) {
-        std::filesystem::create_directories(outputPath);
-    }
+    Path sceneFile = args::get(sceneFileIn);
+    Path cameraPathFile = args::get(cameraPathFileIn);
+    Path outputPath = Path(args::get(outputPathIn)); outputPath.mkdirRecursive();
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -243,15 +237,15 @@ int main(int argc, char** argv) {
 
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = outputPath + std::string(fileNameBase) + "." +
-                                              std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            std::string time = std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+            Path filename = (outputPath / fileNameBase).appendToName("." + time);
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
             ImGui::Separator();
 
             if (ImGui::Button("Capture Current Frame")) {
-                recorder.saveScreenshotToFile(fileName, saveAsHDR);
+                recorder.saveScreenshotToFile(filename, saveAsHDR);
             }
 
             ImGui::End();
@@ -288,8 +282,9 @@ int main(int argc, char** argv) {
 
             if (ImGui::Button("Start")) {
                 recording = true;
-                std::string recordingDir = outputPath + std::string(recordingDirBase) + "." +
-                                                      std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+                std::string time = std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+                Path recordingDir = (outputPath / recordingDirBase).appendToName("." + time);
+                spdlog::info("Recording to: {}", recordingDir.str());
                 recorder.setOutputPath(recordingDir);
                 recorder.start();
             }

@@ -22,6 +22,7 @@ extern "C" {
 
 #include <BS_thread_pool/BS_thread_pool.hpp>
 
+#include <Path.h>
 #include <RenderTargets/RenderTarget.h>
 #include <Renderers/OpenGLRenderer.h>
 
@@ -45,7 +46,13 @@ public:
 
     int targetFrameRate;
 
-    Recorder(const RenderTargetCreateParams &params, OpenGLRenderer& renderer, PostProcessingEffect& effect, const std::string& outputPath = ".", int targetFrameRate = 60, uint numThreads = 8)
+    Recorder(
+        const RenderTargetCreateParams &params,
+        OpenGLRenderer& renderer,
+        PostProcessingEffect& effect,
+        const Path& outputPath,
+        int targetFrameRate = 60,
+        uint numThreads = 8)
             : RenderTarget(params)
             , renderer(renderer)
             , effect(effect)
@@ -56,12 +63,14 @@ public:
 #if !defined(__APPLE__) && !defined(__ANDROID__)
             , cudaImage(colorBuffer)
 #endif
-        { }
+    {
+        setOutputPath(outputPath);
+    }
     ~Recorder();
 
-    void saveScreenshotToFile(const std::string &filename, bool saveAsHDR = false);
+    void saveScreenshotToFile(const Path &filename, bool saveAsHDR = false);
 
-    void setOutputPath(const std::string& path);
+    void setOutputPath(const Path& path);
     void setFormat(OutputFormat format);
     void setTargetFrameRate(int targetFrameRate);
 
@@ -86,7 +95,7 @@ private:
     uint numThreads;
 
     OutputFormat outputFormat = OutputFormat::MP4;
-    std::string outputPath;
+    Path outputPath;
 
     OpenGLRenderer& renderer;
     PostProcessingEffect& effect;
