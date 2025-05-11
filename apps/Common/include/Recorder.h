@@ -33,7 +33,7 @@ extern "C" {
 
 namespace quasar {
 
-class Recorder {
+class Recorder : public RenderTarget {
 public:
     enum class OutputFormat {
         MP4,
@@ -45,30 +45,18 @@ public:
 
     int targetFrameRate;
 
-    Recorder(OpenGLRenderer &renderer, PostProcessingEffect &effect, const std::string& outputPath, int targetFrameRate = 60, uint numThreads = 8)
-            : renderer(renderer)
+    Recorder(const RenderTargetCreateParams &params, OpenGLRenderer& renderer, PostProcessingEffect& effect, const std::string& outputPath = ".", int targetFrameRate = 60, uint numThreads = 8)
+            : RenderTarget(params)
+            , renderer(renderer)
             , effect(effect)
-            , renderTargetCopy({
-                .width = renderer.width,
-                .height = renderer.height,
-                .internalFormat = GL_RGBA,
-                .format = GL_RGBA,
-                .type = GL_UNSIGNED_BYTE,
-                .wrapS = GL_CLAMP_TO_EDGE,
-                .wrapT = GL_CLAMP_TO_EDGE,
-                .minFilter = GL_LINEAR,
-                .magFilter = GL_LINEAR
-            })
             , targetFrameRate(targetFrameRate)
             , numThreads(numThreads)
             , outputPath(outputPath)
             , outputFormats({"MP4", "PNG", "JPG"})
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-            , cudaImage(renderTargetCopy.colorBuffer)
+            , cudaImage(colorBuffer)
 #endif
         { }
-    Recorder(OpenGLRenderer &renderer, PostProcessingEffect &effect, int targetFrameRate = 60, uint numThreads = 8)
-        : Recorder(renderer, effect, ".", targetFrameRate) { }
     ~Recorder();
 
     void saveScreenshotToFile(const std::string &filename, bool saveAsHDR = false);
@@ -102,8 +90,6 @@ private:
 
     OpenGLRenderer& renderer;
     PostProcessingEffect& effect;
-
-    RenderTarget renderTargetCopy;
 
     AVCodecID codecID = AV_CODEC_ID_H264;
     AVPixelFormat rgbaPixelFormat = AV_PIX_FMT_RGBA;

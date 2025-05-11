@@ -33,6 +33,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "0.0.0.0:12345");
     args::ValueFlag<std::string> videoFormatIn(parser, "video-format", "Video format", {'g', "video-format"}, "mpegts");
     args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "127.0.0.1:54321");
+    args::ValueFlag<std::string> outputPathIn(parser, "output-path", "Directory to save outputs", {'o', "output-path"}, ".");
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -60,6 +61,15 @@ int main(int argc, char** argv) {
     std::string videoURL = args::get(videoURLIn);
     std::string videoFormat = args::get(videoFormatIn);
     std::string poseURL = args::get(poseURLIn);
+
+    std::string outputPath = args::get(outputPathIn);
+    if (outputPath.back() != '/') {
+        outputPath += "/";
+    }
+    // create output path if it doesn't exist
+    if (!std::filesystem::exists(outputPath)) {
+        std::filesystem::create_directories(outputPath);
+    }
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -100,7 +110,17 @@ int main(int argc, char** argv) {
     // post processing
     ToneMapper toneMapper;
 
-    Recorder recorder(renderer, toneMapper, config.targetFramerate);
+    Recorder recorder({
+        .width = windowSize.x,
+        .height = windowSize.y,
+        .internalFormat = GL_RGBA,
+        .format = GL_RGBA,
+        .type = GL_UNSIGNED_BYTE,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_LINEAR,
+        .magFilter = GL_LINEAR
+    }, renderer, toneMapper, outputPath, config.targetFramerate);
 
     bool atwEnabled = true;
     double elapsedTime = 0.0f;

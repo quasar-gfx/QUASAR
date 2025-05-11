@@ -10,7 +10,6 @@
 
 #include <PostProcessing/ToneMapper.h>
 
-#include <Recorder.h>
 #include <CameraAnimator.h>
 
 #include <VideoStreamer.h>
@@ -112,17 +111,12 @@ int main(int argc, char** argv) {
     // post processing
     ToneMapper toneMapper;
 
-    Recorder recorder(renderer, toneMapper, config.targetFramerate);
-
     bool paused = false;
     RenderStats renderStats;
     pose_id_t currentFramePoseID;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = true;
-        static bool showFrameCaptureWindow = false;
-        static bool saveAsHDR = false;
-        static char fileNameBase[256] = "screenshot";
 
         ImGui::NewFrame();
 
@@ -137,7 +131,6 @@ int main(int argc, char** argv) {
         if (ImGui::BeginMenu("View")) {
             ImGui::MenuItem("FPS", 0, &showFPS);
             ImGui::MenuItem("UI", 0, &showUI);
-            ImGui::MenuItem("Frame Capture", 0, &showFrameCaptureWindow);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -194,26 +187,6 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             ImGui::Checkbox("Pause", &paused);
-
-            ImGui::End();
-        }
-
-        if (showFrameCaptureWindow) {
-            ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
-            ImGui::Begin("Frame Capture", &showFrameCaptureWindow);
-
-            ImGui::Text("Base File Name:");
-            ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string fileName = std::string(fileNameBase) + "." + std::to_string(static_cast<int>(window->getTime() * 1000.0f));
-
-            ImGui::Checkbox("Save as HDR", &saveAsHDR);
-
-            ImGui::Separator();
-
-            if (ImGui::Button("Capture Current Frame")) {
-                recorder.saveScreenshotToFile(fileName, saveAsHDR);
-            }
 
             ImGui::End();
         }

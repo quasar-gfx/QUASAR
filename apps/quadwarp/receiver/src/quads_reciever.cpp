@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
     args::Flag verbose(parser, "verbose", "Enable verbose logging", {'v', "verbose"});
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "1920x1080");
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
-    args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Path to data files", {'D', "data-path"}, "../simulator/");
+    args::ValueFlag<std::string> outputPathIn(parser, "data-path", "Path to data files", {'D', "data-path"}, "../simulator/");
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -53,9 +53,9 @@ int main(int argc, char** argv) {
 
     config.enableVSync = !args::get(novsync);
 
-    std::string dataPath = args::get(dataPathIn);
-    if (dataPath.back() != '/') {
-        dataPath += "/";
+    std::string outputPath = args::get(outputPathIn);
+    if (outputPath.back() != '/') {
+        outputPath += "/";
     }
 
     auto window = std::make_shared<GLFWWindow>(config);
@@ -77,11 +77,21 @@ int main(int argc, char** argv) {
     ToneMapper toneMapper;
     toneMapper.enableToneMapping(false);
 
-    Recorder recorder(renderer, toneMapper, config.targetFramerate);
+    Recorder recorder({
+        .width = windowSize.x,
+        .height = windowSize.y,
+        .internalFormat = GL_RGBA,
+        .format = GL_RGBA,
+        .type = GL_UNSIGNED_BYTE,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_LINEAR,
+        .magFilter = GL_LINEAR
+    }, renderer, toneMapper, outputPath, config.targetFramerate);
 
     MeshFromQuads meshFromQuads(windowSize);
 
-    std::string colorFileName = dataPath + "color.jpg";
+    std::string colorFileName = outputPath + "color.jpg";
     Texture colorTexture = Texture({
         .wrapS = GL_REPEAT,
         .wrapT = GL_REPEAT,
@@ -112,9 +122,9 @@ int main(int argc, char** argv) {
 
     startTime = window->getTime();
     // load proxies
-    uint numProxies = quadBuffers.loadFromFile(dataPath + "quads.bin.zstd", &numBytesProxies);
+    uint numProxies = quadBuffers.loadFromFile(outputPath + "quads.bin.zstd", &numBytesProxies);
     // load depth offsets
-    uint numDepthOffsets = depthOffsets.loadFromFile(dataPath + "depthOffsets.bin.zstd", &numBytesDepthOffsets);
+    uint numDepthOffsets = depthOffsets.loadFromFile(outputPath + "depthOffsets.bin.zstd", &numBytesDepthOffsets);
 
     mesh = new Mesh({
         .maxVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,

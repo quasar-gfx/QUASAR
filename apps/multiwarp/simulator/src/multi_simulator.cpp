@@ -93,7 +93,7 @@ int main(int argc, char** argv) {
     if (outputPath.back() != '/') {
         outputPath += "/";
     }
-    // create data path if it doesn't exist
+    // create output path if it doesn't exist
     if (!std::filesystem::exists(outputPath)) {
         std::filesystem::create_directories(outputPath);
     }
@@ -155,7 +155,17 @@ int main(int argc, char** argv) {
     // post processing
     ToneMapper toneMapper;
 
-    Recorder recorder(renderer, toneMapper, outputPath, config.targetFramerate);
+    Recorder recorder({
+        .width = windowSize.x,
+        .height = windowSize.y,
+        .internalFormat = GL_RGBA,
+        .format = GL_RGBA,
+        .type = GL_UNSIGNED_BYTE,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_LINEAR,
+        .magFilter = GL_LINEAR
+    }, renderer, toneMapper, outputPath, config.targetFramerate);
     CameraAnimator cameraAnimator(cameraPathFile);
 
     if (saveImages) {

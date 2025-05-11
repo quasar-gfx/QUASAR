@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::ValueFlag<int> maxLayersIn(parser, "layers", "Max layers", {'n', "max-layers"}, 4);
     args::Flag disableWideFov(parser, "disable-wide-fov", "Disable wide fov view", {'W', "disable-wide-fov"});
-    args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Path to data files", {'D', "data-path"}, "../simulator/");
+    args::ValueFlag<std::string> outputPathIn(parser, "data-path", "Path to data files", {'D', "data-path"}, "../simulator/");
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -67,9 +67,9 @@ int main(int argc, char** argv) {
 
     config.enableVSync = !args::get(novsync);
 
-    std::string dataPath = args::get(dataPathIn);
-    if (dataPath.back() != '/') {
-        dataPath += "/";
+    std::string outputPath = args::get(outputPathIn);
+    if (outputPath.back() != '/') {
+        outputPath += "/";
     }
 
     int maxLayers = args::get(maxLayersIn);
@@ -98,7 +98,17 @@ int main(int argc, char** argv) {
     ToneMapper toneMapper;
     toneMapper.enableToneMapping(false);
 
-    Recorder recorder(renderer, toneMapper, config.targetFramerate);
+    Recorder recorder({
+        .width = windowSize.x,
+        .height = windowSize.y,
+        .internalFormat = GL_RGBA,
+        .format = GL_RGBA,
+        .type = GL_UNSIGNED_BYTE,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_LINEAR,
+        .magFilter = GL_LINEAR
+    }, renderer, toneMapper, outputPath, config.targetFramerate);
 
     MeshFromQuads meshFromQuads(windowSize);
 
@@ -111,7 +121,7 @@ int main(int argc, char** argv) {
         .flipVertically = true
     };
     for (int view = 0; view < maxViews; view++) {
-        std::string colorFileName = dataPath + "color" + std::to_string(view) + ".jpg";
+        std::string colorFileName = outputPath + "color" + std::to_string(view) + ".jpg";
         params.path = colorFileName;
         colorTextures.emplace_back(params);
     }
@@ -142,11 +152,11 @@ int main(int argc, char** argv) {
         startTime = window->getTime();
 
         // load proxies
-        std::string quadProxiesFileName = dataPath + "quads" + std::to_string(view) + ".bin.zstd";
+        std::string quadProxiesFileName = outputPath + "quads" + std::to_string(view) + ".bin.zstd";
         uint numProxies = quadBuffers.loadFromFile(quadProxiesFileName, &numBytes);
         numBytesProxies += numBytes;
         // load depth offsets
-        std::string depthOffsetsFileName = dataPath + "depthOffsets" + std::to_string(view) + ".bin.zstd";
+        std::string depthOffsetsFileName = outputPath + "depthOffsets" + std::to_string(view) + ".bin.zstd";
         uint numDepthOffsets = depthOffsets.loadFromFile(depthOffsetsFileName, &numBytes);
         numBytesDepthOffsets += numBytes;
 
