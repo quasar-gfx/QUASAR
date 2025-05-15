@@ -24,13 +24,13 @@ struct RenderStats {
     uint trianglesDrawn = 0;
     uint drawCalls = 0;
 
-    RenderStats operator+ (const RenderStats &other) {
+    RenderStats operator+ (const RenderStats& other) {
         RenderStats stats;
         stats.trianglesDrawn = trianglesDrawn + other.trianglesDrawn;
         stats.drawCalls = drawCalls + other.drawCalls;
         return stats;
     }
-    RenderStats operator+= (const RenderStats &other) {
+    RenderStats operator+= (const RenderStats& other) {
         trianglesDrawn += other.trianglesDrawn;
         drawCalls += other.drawCalls;
         return *this;
@@ -52,15 +52,15 @@ public:
 
     int getID() const { return ID; }
 
-    virtual void bindMaterial(const Scene &scene, const glm::mat4 &model,
+    virtual void bindMaterial(const Scene& scene, const glm::mat4& model,
                               const Material* overrideMaterial = nullptr,
                               const Texture* prevIDMap = nullptr) = 0;
 
-    virtual RenderStats draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model,
+    virtual RenderStats draw(GLenum primativeType, const Camera& camera, const glm::mat4& model,
                              bool frustumCull = true,
                              const Material* overrideMaterial = nullptr) = 0;
-    virtual RenderStats draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model,
-                             const BoundingSphere &boundingSphere,
+    virtual RenderStats draw(GLenum primativeType, const Camera& camera, const glm::mat4& model,
+                             const BoundingSphere& boundingSphere,
                              const Material* overrideMaterial = nullptr) = 0;
 
     virtual void updateAnimations(float dt) {}

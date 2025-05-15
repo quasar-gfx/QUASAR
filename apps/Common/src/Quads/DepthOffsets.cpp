@@ -9,7 +9,7 @@
 
 using namespace quasar;
 
-DepthOffsets::DepthOffsets(const glm::uvec2 &size)
+DepthOffsets::DepthOffsets(const glm::uvec2& size)
     : size(size)
     , buffer({
         .width = size.x,
@@ -29,7 +29,7 @@ DepthOffsets::DepthOffsets(const glm::uvec2 &size)
 
 }
 
-uint DepthOffsets::loadFromMemory(std::vector<char> &compressedData, bool decompress) {
+uint DepthOffsets::loadFromMemory(std::vector<char>& compressedData, bool decompress) {
     double startTime = timeutils::getTimeMicros();
     if (decompress) {
         codec.decompress(compressedData, data);
@@ -47,7 +47,7 @@ uint DepthOffsets::loadFromMemory(std::vector<char> &compressedData, bool decomp
     return data.size();
 }
 
-uint DepthOffsets::loadFromFile(const std::string &filename, uint* numBytesLoaded, bool compressed) {
+uint DepthOffsets::loadFromFile(const std::string& filename, uint* numBytesLoaded, bool compressed) {
 #if !defined(__ANDROID__)
     if (!std::filesystem::exists(filename)) {
         spdlog::error("File {} does not exist", filename);
@@ -60,7 +60,7 @@ uint DepthOffsets::loadFromFile(const std::string &filename, uint* numBytesLoade
 }
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-uint DepthOffsets::saveToMemory(std::vector<char> &compressedData, bool compress) {
+uint DepthOffsets::saveToMemory(std::vector<char>& compressedData, bool compress) {
     cudaImage.copyToArray(size.x * 4 * sizeof(uint16_t), size.y, size.x * 4 * sizeof(uint16_t), data.data());
     compressedData.resize(data.size());
 
@@ -78,7 +78,7 @@ uint DepthOffsets::saveToMemory(std::vector<char> &compressedData, bool compress
     return outputSize;
 }
 
-uint DepthOffsets::saveToFile(const std::string &filename) {
+uint DepthOffsets::saveToFile(const std::string& filename) {
     cudaImage.copyToArray(size.x * 4 * sizeof(uint16_t), size.y, size.x * 4 * sizeof(uint16_t), data.data());
 
     std::vector<char> compressedData;

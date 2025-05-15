@@ -11,7 +11,7 @@ namespace quasar {
 class BoundingSphere {
 public:
     BoundingSphere() = default;
-    BoundingSphere(const glm::vec3 &center, float radius) : center(center), radius(radius) {}
+    BoundingSphere(const glm::vec3& center, float radius) : center(center), radius(radius) {}
 
     glm::vec3 getCenter() const {
         return center;
@@ -21,16 +21,16 @@ public:
         return radius;
     }
 
-    void update(const glm::vec3 &center, float radius) {
+    void update(const glm::vec3& center, float radius) {
         this->center = center;
         this->radius = radius;
     }
 
-    bool intersects(const BoundingSphere &other) const {
+    bool intersects(const BoundingSphere& other) const {
         return glm::distance(center, other.center) < (radius + other.radius);
     }
 
-    bool intersects(const glm::mat4 &transform, const AABB &aabb) const {
+    bool intersects(const glm::mat4& transform, const AABB& aabb) const {
         auto aabbCenter = glm::vec3(transform * glm::vec4(aabb.getCenter(), 1.0f));
         auto aabbExtents = glm::vec3(transform * glm::vec4(aabb.getExtents(), 0.0f));
 

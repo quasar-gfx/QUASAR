@@ -72,7 +72,7 @@ public:
         double compressedSizeBytes = 0;
     } stats;
 
-    MultiSimulator(uint maxViews, FrameGenerator &frameGenerator)
+    MultiSimulator(uint maxViews, FrameGenerator& frameGenerator)
             : quadsGenerator(frameGenerator.quadsGenerator)
             , frameGenerator(frameGenerator)
             , maxViews(maxViews)
@@ -137,7 +137,7 @@ public:
             serverFrameNodesLocal.emplace_back(&serverFrameMeshes[view]);
             serverFrameNodesLocal[view].frustumCulled = false;
 
-            const glm::vec4 &color = colors[view % colors.size()];
+            const glm::vec4& color = colors[view % colors.size()];
 
             serverFrameWireframesLocal.emplace_back(&serverFrameMeshes[view]);
             serverFrameWireframesLocal[view].frustumCulled = false;
@@ -283,7 +283,7 @@ public:
         }
     }
 
-    uint saveToFile(const Path &outputPath) {
+    uint saveToFile(const Path& outputPath) {
         uint totalOutputSize = 0;
         for (int view = 0; view < maxViews; view++) {
             // save quads

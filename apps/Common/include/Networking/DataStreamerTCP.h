@@ -47,7 +47,7 @@ public:
         }
     }
 
-    int send(std::vector<char> &data, bool copy = false);
+    int send(std::vector<char>& data, bool copy = false);
 
 private:
     SocketTCP socket;

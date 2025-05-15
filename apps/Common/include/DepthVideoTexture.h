@@ -18,7 +18,7 @@ public:
         double bitrateMbps = 0.0;
     } stats;
 
-    DepthVideoTexture(const TextureDataCreateParams &params, std::string streamerURL)
+    DepthVideoTexture(const TextureDataCreateParams& params, std::string streamerURL)
             : DataReceiverTCP(streamerURL, false)
             , Texture(params) { }
 

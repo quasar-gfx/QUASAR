@@ -2,9 +2,9 @@
 
 using namespace quasar;
 
-MeshFromQuads::MeshFromQuads(glm::uvec2 &remoteWindowSize, uint maxNumProxies)
+MeshFromQuads::MeshFromQuads(glm::uvec2& remoteWindowSize, uint maxNumProxies)
         : remoteWindowSize(remoteWindowSize)
-        , depthBufferSize(2u * remoteWindowSize) // 4 offsets per pixel
+        , depthOffsetBufferSize(2u * remoteWindowSize) // 4 offsets per pixel
         , maxProxies(maxNumProxies)
         , meshSizesBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizeof(BufferSizes), nullptr, GL_DYNAMIC_COPY)
         , prevNumProxiesBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizeof(uint), nullptr, GL_DYNAMIC_DRAW)
@@ -41,9 +41,9 @@ MeshFromQuads::BufferSizes MeshFromQuads::getBufferSizes() {
 }
 
 void MeshFromQuads::appendQuads(
-        const glm::uvec2 &gBufferSize,
+        const glm::uvec2& gBufferSize,
         uint numProxies,
-        const QuadBuffers &newQuadBuffers,
+        const QuadBuffers& newQuadBuffers,
         bool refFrame) {
     appendQuadsShader.startTiming();
 
@@ -73,7 +73,7 @@ void MeshFromQuads::appendQuads(
     fillQuadIndices(gBufferSize);
 }
 
-void MeshFromQuads::fillQuadIndices(const glm::uvec2 &gBufferSize) {
+void MeshFromQuads::fillQuadIndices(const glm::uvec2& gBufferSize) {
     fillQuadIndicesShader.startTiming();
 
     fillQuadIndicesShader.bind();
@@ -99,17 +99,16 @@ void MeshFromQuads::fillQuadIndices(const glm::uvec2 &gBufferSize) {
 }
 
 void MeshFromQuads::createMeshFromProxies(
-        const glm::uvec2 &gBufferSize,
+        const glm::uvec2& gBufferSize,
         uint numProxies,
-        const DepthOffsets &depthOffsets,
-        const PerspectiveCamera &remoteCamera,
-        const Mesh &mesh) {
+        const DepthOffsets& depthOffsets,
+        const PerspectiveCamera& remoteCamera,
+        const Mesh& mesh) {
     createMeshFromQuadsShader.startTiming();
 
     createMeshFromQuadsShader.bind();
     {
         createMeshFromQuadsShader.setVec2("remoteWindowSize", gBufferSize);
-        createMeshFromQuadsShader.setVec2("depthBufferSize", depthBufferSize);
     }
     {
         createMeshFromQuadsShader.setMat4("view", remoteCamera.getViewMatrix());

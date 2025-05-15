@@ -2,7 +2,7 @@
 
 using namespace quasar;
 
-ForwardRenderer::ForwardRenderer(const Config &config)
+ForwardRenderer::ForwardRenderer(const Config& config)
         : multiSampled(config.pipeline.multiSampleState.multiSampleEnabled)
         , frameRT({ .width = config.width, .height = config.height, .multiSampled = false })
 #if !defined(__APPLE__) && !defined(__ANDROID__)
@@ -16,7 +16,7 @@ ForwardRenderer::ForwardRenderer(const Config &config)
         , OpenGLRenderer(config) {
 }
 
-void ForwardRenderer::setScreenShaderUniforms(const Shader &screenShader) {
+void ForwardRenderer::setScreenShaderUniforms(const Shader& screenShader) {
     // set FrameRenderTarget texture uniforms
     screenShader.bind();
     screenShader.setTexture("screenColor", frameRT.colorBuffer, 0);
@@ -25,7 +25,7 @@ void ForwardRenderer::setScreenShaderUniforms(const Shader &screenShader) {
     screenShader.setTexture("idBuffer", frameRT.idBuffer, 3);
 }
 
-RenderStats ForwardRenderer::drawObjects(const Scene &scene, const Camera &camera, uint32_t clearMask) {
+RenderStats ForwardRenderer::drawObjects(const Scene& scene, const Camera& camera, uint32_t clearMask) {
     RenderStats stats;
     if (camera.isVR()) {
         auto* vrCamera = static_cast<const VRCamera*>(&camera);

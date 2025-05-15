@@ -44,7 +44,7 @@ public:
 
     BoundingSphere boundingSphere;
 
-    PointLight(const PointLightCreateParams &params)
+    PointLight(const PointLightCreateParams& params)
             : position(params.position)
             , constant(params.constant)
             , linear(params.linear)
@@ -85,7 +85,7 @@ public:
         material->getShader()->setFloat("pointLights["+idxStr+"].farPlane", shadowFar);
     }
 
-    void setPosition(const glm::vec3 &position) {
+    void setPosition(const glm::vec3& position) {
         this->position = position;
         updateLookAtFace();
         updateBoundingSphere();

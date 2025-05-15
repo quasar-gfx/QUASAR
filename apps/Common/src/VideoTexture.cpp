@@ -16,9 +16,9 @@ static int interrupt_callback(void* ctx) {
     return shouldTerminate;
 }
 
-VideoTexture::VideoTexture(const TextureDataCreateParams &params,
-                           const std::string &videoURL,
-                           const std::string &formatName)
+VideoTexture::VideoTexture(const TextureDataCreateParams& params,
+                           const std::string& videoURL,
+                           const std::string& formatName)
         : formatName(formatName)
         , Texture(params) {
     std::string sdpFileName = "stream.sdp";

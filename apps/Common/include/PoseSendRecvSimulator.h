@@ -78,7 +78,7 @@ public:
         rotationHistory.clear();
     }
 
-    void sendPose(const PerspectiveCamera &camera, double now) {
+    void sendPose(const PerspectiveCamera& camera, double now) {
         incomingPoses.push_back({
             camera.getViewMatrix(),
             camera.getProjectionMatrix(),
@@ -140,7 +140,7 @@ public:
         return true;
     }
 
-    void accumulateError(const PerspectiveCamera &camera, const PerspectiveCamera &remoteCamera) {
+    void accumulateError(const PerspectiveCamera& camera, const PerspectiveCamera& remoteCamera) {
         float positionDiff = glm::distance(camera.getPosition(), remoteCamera.getPosition());
         glm::quat q1 = glm::normalize(camera.getRotationQuat());
         glm::quat q2 = glm::normalize(remoteCamera.getRotationQuat());

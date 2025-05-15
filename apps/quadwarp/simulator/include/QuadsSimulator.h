@@ -79,7 +79,7 @@ public:
         double compressedSizeBytes = 0;
     } stats;
 
-    QuadsSimulator(const PerspectiveCamera &remoteCamera, FrameGenerator &frameGenerator)
+    QuadsSimulator(const PerspectiveCamera& remoteCamera, FrameGenerator& frameGenerator)
             : quadsGenerator(frameGenerator.quadsGenerator)
             , frameGenerator(frameGenerator)
             , maxVerticesDepth(quadsGenerator.remoteWindowSize.x * quadsGenerator.remoteWindowSize.y)
@@ -332,7 +332,7 @@ public:
         }
     }
 
-    uint saveToFile(const Path &outputPath) {
+    uint saveToFile(const Path& outputPath) {
         // save quads
         double startTime = timeutils::getTimeMicros();
         Path filename = outputPath / "quads";

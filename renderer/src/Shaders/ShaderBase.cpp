@@ -30,79 +30,79 @@ void ShaderBase::unbind() const {
     bindedShaderID = 0;
 }
 
-void ShaderBase::setBool(const std::string &name, bool value) const {
+void ShaderBase::setBool(const std::string& name, bool value) const {
     if (!isUniformCached(name, value)) {
         glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value);
     }
 }
 
-void ShaderBase::setUint(const std::string &name, uint value) const {
+void ShaderBase::setUint(const std::string& name, uint value) const {
     if (!isUniformCached(name, value)) {
         glUniform1ui(glGetUniformLocation(ID, name.c_str()), value);
     }
 }
 
-void ShaderBase::setInt(const std::string &name, int value) const {
+void ShaderBase::setInt(const std::string& name, int value) const {
     if (!isUniformCached(name, value)) {
         glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
         uniformCache[name] = value;
     }
 }
 
-void ShaderBase::setFloat(const std::string &name, float value) const {
+void ShaderBase::setFloat(const std::string& name, float value) const {
     if (!isUniformCached(name, value)) {
         glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
         uniformCache[name] = value;
     }
 }
 
-void ShaderBase::setVec2(const std::string &name, const glm::vec2 &value) const {
+void ShaderBase::setVec2(const std::string& name, const glm::vec2& value) const {
     if (!isUniformCached(name, value)) {
         glUniform2fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
         uniformCache[name] = value;
     }
 }
 
-void ShaderBase::setVec3(const std::string &name, const glm::vec3 &value) const {
+void ShaderBase::setVec3(const std::string& name, const glm::vec3& value) const {
     if (!isUniformCached(name, value)) {
         glUniform3fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
         uniformCache[name] = value;
     }
 }
 
-void ShaderBase::setVec4(const std::string &name, const glm::vec4 &value) const {
+void ShaderBase::setVec4(const std::string& name, const glm::vec4& value) const {
     if (!isUniformCached(name, value)) {
         glUniform4fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
         uniformCache[name] = value;
     }
 }
 
-void ShaderBase::setMat2(const std::string &name, const glm::mat2 &mat) const {
+void ShaderBase::setMat2(const std::string& name, const glm::mat2& mat) const {
     if (!isUniformCached(name, mat)) {
         glUniformMatrix2fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
         uniformCache[name] = mat;
     }
 }
 
-void ShaderBase::setMat3(const std::string &name, const glm::mat3 &mat) const {
+void ShaderBase::setMat3(const std::string& name, const glm::mat3& mat) const {
     if (!isUniformCached(name, mat)) {
         glUniformMatrix3fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
         uniformCache[name] = mat;
     }
 }
 
-void ShaderBase::setMat4(const std::string &name, const glm::mat4 &mat) const {
+void ShaderBase::setMat4(const std::string& name, const glm::mat4& mat) const {
     if (!isUniformCached(name, mat)) {
         glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
         uniformCache[name] = mat;
     }
 }
 
-void ShaderBase::setTexture(const Texture &texture, int slot) const {
+void ShaderBase::setTexture(const Texture& texture, int slot) const {
     texture.bind(slot);
 }
 
-void ShaderBase::setTexture(const std::string &name, const Texture &texture, int slot) const {
+void ShaderBase::setTexture(const std::string& name, const Texture& texture, int slot) const {
     texture.bind(slot);
     if (!isUniformCached(name, slot)) {
         setInt(name, slot);
@@ -110,7 +110,7 @@ void ShaderBase::setTexture(const std::string &name, const Texture &texture, int
     }
 }
 
-void ShaderBase::clearTexture(const std::string &name, int slot) const {
+void ShaderBase::clearTexture(const std::string& name, int slot) const {
     glBindTexture(GL_TEXTURE_2D, 0);
     if (!isUniformCached(name, slot)) {
         setInt(name, slot);
@@ -136,12 +136,12 @@ GLuint ShaderBase::createShader(std::string version, std::vector<std::string> ex
     extensionsWithNewline.push_back("#extension GL_OVR_multiview : enable\n");
 #endif
     // User extensions
-    for (const auto &extension : extensions) {
+    for (const auto& extension : extensions) {
         extensionsWithNewline.push_back(extension + "\n");
     }
 
     // Add extensions
-    for (const auto &extension : extensionsWithNewline) {
+    for (const auto& extension : extensionsWithNewline) {
         shaderSrcs.push_back(extension.c_str());
         shaderSrcsSizes.push_back(extension.size());
     }
@@ -169,12 +169,12 @@ GLuint ShaderBase::createShader(std::string version, std::vector<std::string> ex
     definesWithNewline.push_back("precision highp sampler2D;\n");
 
     // User defines
-    for (const auto &define : defines) {
+    for (const auto& define : defines) {
         definesWithNewline.push_back(define + "\n");
     }
 
     // Add defines
-    for (const auto &define : definesWithNewline) {
+    for (const auto& define : definesWithNewline) {
         shaderSrcs.push_back(define.c_str());
         shaderSrcsSizes.push_back(define.size());
     }
@@ -247,7 +247,7 @@ void ShaderBase::checkCompileErrors(GLuint shader, ShaderType type) {
 }
 
 template <typename T>
-bool ShaderBase::isUniformCached(const std::string &name, const T &value) const {
+bool ShaderBase::isUniformCached(const std::string& name, const T& value) const {
     auto it = uniformCache.find(name);
     if (it != uniformCache.end()) {
         try {

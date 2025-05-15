@@ -115,8 +115,8 @@ int main(int argc, char** argv) {
     uint maxProxies = windowSize.x * windowSize.y * NUM_SUB_QUADS;
     QuadBuffers quadBuffers(maxProxies);
 
-    const glm::uvec2 depthBufferSize = 2u * windowSize;
-    DepthOffsets depthOffsets(depthBufferSize);
+    const glm::uvec2 depthOffsetBufferSize = 2u * windowSize;
+    DepthOffsets depthOffsets(depthOffsetBufferSize);
 
     startTime = window->getTime();
     // load proxies

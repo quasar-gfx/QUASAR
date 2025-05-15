@@ -5,7 +5,7 @@ using namespace quasar;
 
 Shader* QuadMaterial::shader = nullptr;
 
-QuadMaterial::QuadMaterial(const QuadMaterialCreateParams &params)
+QuadMaterial::QuadMaterial(const QuadMaterialCreateParams& params)
         : baseColor(params.baseColor)
         , baseColorFactor(params.baseColorFactor)
         , alphaMode(params.alphaMode)

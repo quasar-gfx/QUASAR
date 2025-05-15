@@ -36,7 +36,7 @@ public:
         double compressionRatio = 0.0;
     } stats;
 
-    BC4DepthStreamer(const RenderTargetCreateParams &params, const std::string &receiverURL = "");
+    BC4DepthStreamer(const RenderTargetCreateParams& params, const std::string& receiverURL = "");
     ~BC4DepthStreamer();
 
     void close();

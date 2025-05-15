@@ -5,7 +5,7 @@ using namespace quasar;
 Shader* UnlitMaterial::shader = nullptr;
 std::vector<std::string> UnlitMaterial::extraShaderDefines;
 
-UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams &params)
+UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams& params)
         : baseColor(params.baseColor)
         , baseColorFactor(params.baseColorFactor)
         , alphaMode(params.alphaMode)
@@ -32,7 +32,7 @@ UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams &params)
             "#define ALPHA_MASK " + std::to_string(static_cast<uint8_t>(AlphaMode::MASKED)),
             "#define ALPHA_BLEND " + std::to_string(static_cast<uint8_t>(AlphaMode::TRANSPARENT))
         };
-        for (const auto &define : extraShaderDefines) {
+        for (const auto& define : extraShaderDefines) {
             defines.push_back(define);
         }
 

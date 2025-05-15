@@ -94,10 +94,10 @@ int main(int argc, char** argv) {
     remoteCameraCenter.updateViewMatrix();
 
     for (int view = 1; view < maxViews - 1; view++) {
-        const glm::vec3 &offset = offsets[view - 1];
-        const glm::vec3 &right = remoteCameraCenter.getRightVector();
-        const glm::vec3 &up = remoteCameraCenter.getUpVector();
-        const glm::vec3 &forward = remoteCameraCenter.getForwardVector();
+        const glm::vec3& offset = offsets[view - 1];
+        const glm::vec3& right = remoteCameraCenter.getRightVector();
+        const glm::vec3& up = remoteCameraCenter.getUpVector();
+        const glm::vec3& forward = remoteCameraCenter.getForwardVector();
 
         glm::vec3 worldOffset =
             right   * offset.x * viewBoxSize / 2.0f +
@@ -163,8 +163,8 @@ int main(int argc, char** argv) {
     uint maxProxies = windowSize.x * windowSize.y * NUM_SUB_QUADS;
     QuadBuffers quadBuffers(maxProxies);
 
-    const glm::uvec2 depthBufferSize = 2u * windowSize;
-    DepthOffsets depthOffsets(depthBufferSize);
+    const glm::uvec2 depthOffsetBufferSize = 2u * windowSize;
+    DepthOffsets depthOffsets(depthOffsetBufferSize);
 
     uint numBytes;
     for (int view = 0; view < maxViews; view++) {

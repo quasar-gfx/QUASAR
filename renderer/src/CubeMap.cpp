@@ -166,7 +166,7 @@ void CubeMap::loadFromFiles(std::vector<std::string> faceFilePaths,
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, magFilter);
 }
 
-void CubeMap::loadFromEquirectTexture(const Shader &equirectToCubeMapShader, const Texture &equirectTexture) const {
+void CubeMap::loadFromEquirectTexture(const Shader& equirectToCubeMapShader, const Texture& equirectTexture) const {
     equirectToCubeMapShader.bind();
 
     equirectToCubeMapShader.setTexture("equirectangularMap", equirectTexture, 0);
@@ -184,7 +184,7 @@ void CubeMap::loadFromEquirectTexture(const Shader &equirectToCubeMapShader, con
     equirectTexture.unbind();
 }
 
-void CubeMap::convolve(const Shader &convolutionShader, const CubeMap &envCubeMap) const {
+void CubeMap::convolve(const Shader& convolutionShader, const CubeMap& envCubeMap) const {
     convolutionShader.bind();
 
     convolutionShader.setTexture("environmentMap", envCubeMap, 0);
@@ -200,7 +200,7 @@ void CubeMap::convolve(const Shader &convolutionShader, const CubeMap &envCubeMa
     }
 }
 
-void CubeMap::prefilter(const Shader &prefilterShader, const CubeMap &envCubeMap, Renderbuffer &captureRBO) const {
+void CubeMap::prefilter(const Shader& prefilterShader, const CubeMap& envCubeMap, Renderbuffer& captureRBO) const {
     prefilterShader.bind();
 
     prefilterShader.setTexture("environmentMap", envCubeMap, 0);
@@ -226,7 +226,7 @@ void CubeMap::prefilter(const Shader &prefilterShader, const CubeMap &envCubeMap
     }
 }
 
-RenderStats CubeMap::draw(const Shader &shader, const Camera &camera) const {
+RenderStats CubeMap::draw(const Shader& shader, const Camera& camera) const {
     RenderStats stats;
 
     shader.bind();

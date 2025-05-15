@@ -29,7 +29,7 @@ public:
 
     ReceiverStats stats;
 
-    BC4DepthVideoTexture(const TextureDataCreateParams &params, std::string streamerURL);
+    BC4DepthVideoTexture(const TextureDataCreateParams& params, std::string streamerURL);
 
     void setMaxQueueSize(uint maxQueueSize) {
         this->maxQueueSize = maxQueueSize;

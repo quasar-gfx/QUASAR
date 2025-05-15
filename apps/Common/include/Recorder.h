@@ -47,7 +47,7 @@ public:
     int targetFrameRate;
 
     Recorder(
-        const RenderTargetCreateParams &params,
+        const RenderTargetCreateParams& params,
         OpenGLRenderer& renderer,
         PostProcessingEffect& effect,
         const Path& outputPath,
@@ -68,7 +68,7 @@ public:
     }
     ~Recorder();
 
-    void saveScreenshotToFile(const Path &filename, bool saveAsHDR = false);
+    void saveScreenshotToFile(const Path& filename, bool saveAsHDR = false);
 
     void setOutputPath(const Path& path);
     void setFormat(OutputFormat format);
@@ -76,7 +76,7 @@ public:
 
     void start();
     void stop();
-    void captureFrame(const Camera &camera);
+    void captureFrame(const Camera& camera);
 
     const char* const* getFormatCStrArray() const {
         static std::vector<const char*> cstrs;

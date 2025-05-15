@@ -11,8 +11,8 @@ public:
     DeferredLightingMaterial();
     ~DeferredLightingMaterial();
 
-    void bindGBuffer(const GBuffer &FrameRenderTarget) const;
-    void bindCamera(const Camera &camera) const;
+    void bindGBuffer(const GBuffer& FrameRenderTarget) const;
+    void bindCamera(const Camera& camera) const;
 
     void bind() const override {
         shader->bind();

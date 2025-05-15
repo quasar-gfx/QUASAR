@@ -9,7 +9,7 @@ namespace quasar {
 
 class ShowDepthEffect : public PostProcessingEffect {
 public:
-    ShowDepthEffect(Camera &camera)
+    ShowDepthEffect(Camera& camera)
         : camera(camera)
         , shader({
             .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
@@ -26,7 +26,7 @@ public:
         return renderer.drawToScreen(shader);
     }
 
-    RenderStats drawToRenderTarget(OpenGLRenderer& renderer, RenderTargetBase &rt) override {
+    RenderStats drawToRenderTarget(OpenGLRenderer& renderer, RenderTargetBase& rt) override {
         shader.bind();
         shader.setFloat("near", camera.getNear());
         shader.setFloat("far", camera.getFar());
@@ -37,7 +37,7 @@ public:
 private:
     Shader shader;
 
-    Camera &camera;
+    Camera& camera;
 };
 
 } // namespace quasar

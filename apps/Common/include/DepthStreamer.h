@@ -27,7 +27,7 @@ public:
         double bitrateMbps = 0.0;
     } stats;
 
-    DepthStreamer(const RenderTargetCreateParams &params, std::string receiverURL);
+    DepthStreamer(const RenderTargetCreateParams& params, std::string receiverURL);
     ~DepthStreamer() {
         close();
     }

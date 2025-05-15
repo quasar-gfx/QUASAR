@@ -33,7 +33,7 @@ public:
         return renderer.drawToScreen(shader);
     }
 
-    RenderStats drawToRenderTarget(OpenGLRenderer& renderer, RenderTargetBase &rt) override {
+    RenderStats drawToRenderTarget(OpenGLRenderer& renderer, RenderTargetBase& rt) override {
         shader.bind();
         renderer.setScreenShaderUniforms(shader);
         return renderer.drawToRenderTarget(shader, rt);

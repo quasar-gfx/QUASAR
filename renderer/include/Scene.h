@@ -59,14 +59,14 @@ public:
     void setDirectionalLight(DirectionalLight* directionalLight);
     void addPointLight(PointLight* pointLight);
 
-    void equirectToCubeMap(const CubeMap &envCubeMap, const Texture &hdrTexture);
-    void setupIBL(const CubeMap &envCubeMap);
+    void equirectToCubeMap(const CubeMap& envCubeMap, const Texture& hdrTexture);
+    void setupIBL(const CubeMap& envCubeMap);
 
     void bindMaterial(const Material* material) const;
 
     void clear();
 
-    Node* findNodeByName(const std::string &name);
+    Node* findNodeByName(const std::string& name);
 
     static const uint numTextures = 3;
 

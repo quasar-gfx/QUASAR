@@ -26,17 +26,17 @@ public:
         return renderer.drawToScreen(shader);
     }
 
-    RenderStats drawToRenderTarget(OpenGLRenderer& renderer, RenderTargetBase &rt) override {
+    RenderStats drawToRenderTarget(OpenGLRenderer& renderer, RenderTargetBase& rt) override {
         renderer.setScreenShaderUniforms(shader);
         return renderer.drawToRenderTarget(shader, rt);
     }
 
-    void setUniforms(FrameRenderTarget &rt) {
+    void setUniforms(FrameRenderTarget& rt) {
         shader.bind();
         shader.setTexture("screenColor", rt.colorBuffer, 0);
     }
 
-    RenderStats drawToRenderTarget(OpenGLRenderer& renderer, RenderTargetBase &rt, bool setUniforms) {
+    RenderStats drawToRenderTarget(OpenGLRenderer& renderer, RenderTargetBase& rt, bool setUniforms) {
         if (setUniforms) renderer.setScreenShaderUniforms(shader);
         return renderer.drawToRenderTarget(shader, rt);
     }

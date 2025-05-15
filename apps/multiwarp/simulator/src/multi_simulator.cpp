@@ -625,10 +625,10 @@ int main(int argc, char** argv) {
 
             // update other cameras in view box corners
             for (int view = 1; view < maxViews - 1; view++) {
-                const glm::vec3 &offset = offsets[view - 1];
-                const glm::vec3 &right = remoteCameraCenter.getRightVector();
-                const glm::vec3 &up = remoteCameraCenter.getUpVector();
-                const glm::vec3 &forward = remoteCameraCenter.getForwardVector();
+                const glm::vec3& offset = offsets[view - 1];
+                const glm::vec3& right = remoteCameraCenter.getRightVector();
+                const glm::vec3& up = remoteCameraCenter.getUpVector();
+                const glm::vec3& forward = remoteCameraCenter.getForwardVector();
 
                 glm::vec3 worldOffset =
                     right   * offset.x * viewBoxSize / 2.0f +

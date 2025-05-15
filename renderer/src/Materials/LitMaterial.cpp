@@ -5,7 +5,7 @@ using namespace quasar;
 Shader* LitMaterial::shader = nullptr;
 std::vector<std::string> LitMaterial::extraShaderDefines;
 
-LitMaterial::LitMaterial(const LitMaterialCreateParams &params)
+LitMaterial::LitMaterial(const LitMaterialCreateParams& params)
         : baseColor(params.baseColor)
         , baseColorFactor(params.baseColorFactor)
         , alphaMode(params.alphaMode)
@@ -87,7 +87,7 @@ LitMaterial::LitMaterial(const LitMaterialCreateParams &params)
             "#define ALPHA_MASK " + std::to_string(static_cast<uint8_t>(AlphaMode::MASKED)),
             "#define ALPHA_BLEND " + std::to_string(static_cast<uint8_t>(AlphaMode::TRANSPARENT))
         };
-        for (const auto &define : extraShaderDefines) {
+        for (const auto& define : extraShaderDefines) {
             defines.push_back(define);
         }
 

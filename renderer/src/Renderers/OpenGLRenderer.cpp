@@ -83,7 +83,7 @@ void glDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLs
 }
 #endif
 
-OpenGLRenderer::OpenGLRenderer(const Config &config)
+OpenGLRenderer::OpenGLRenderer(const Config& config)
         : width(config.width), height(config.height)
         , windowWidth(config.width), windowHeight(config.height)
         , skyboxShader({
@@ -120,7 +120,7 @@ void OpenGLRenderer::setWindowSize(uint width, uint height) {
     windowHeight = height;
 }
 
-RenderStats OpenGLRenderer::updateDirLightShadow(const Scene &scene, const Camera &camera) {
+RenderStats OpenGLRenderer::updateDirLightShadow(const Scene& scene, const Camera& camera) {
     RenderStats stats;
     if (scene.directionalLight == nullptr) {
         return stats;
@@ -141,7 +141,7 @@ RenderStats OpenGLRenderer::updateDirLightShadow(const Scene &scene, const Camer
     return stats;
 }
 
-RenderStats OpenGLRenderer::updatePointLightShadows(const Scene &scene, const Camera &camera) {
+RenderStats OpenGLRenderer::updatePointLightShadows(const Scene& scene, const Camera& camera) {
     RenderStats stats;
 
     for (int i = 0; i < scene.pointLights.size(); i++) {
@@ -174,7 +174,7 @@ RenderStats OpenGLRenderer::updatePointLightShadows(const Scene &scene, const Ca
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawSceneImpl(const Scene &scene, const Camera &camera, uint32_t clearMask) {
+RenderStats OpenGLRenderer::drawSceneImpl(const Scene& scene, const Camera& camera, uint32_t clearMask) {
     if (clearMask != 0) {
         glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
         glClear(clearMask);
@@ -188,14 +188,14 @@ RenderStats OpenGLRenderer::drawSceneImpl(const Scene &scene, const Camera &came
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawScene(const Scene &scene, const Camera &camera, uint32_t clearMask) {
+RenderStats OpenGLRenderer::drawScene(const Scene& scene, const Camera& camera, uint32_t clearMask) {
     beginRendering();
     RenderStats stats = drawSceneImpl(scene, camera, clearMask);
     endRendering();
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawLightsImpl(const Scene &scene, const Camera &camera) {
+RenderStats OpenGLRenderer::drawLightsImpl(const Scene& scene, const Camera& camera) {
     // dont clear color or depth bit here, since we want this to draw over
 
     RenderStats stats;
@@ -225,14 +225,14 @@ RenderStats OpenGLRenderer::drawLightsImpl(const Scene &scene, const Camera &cam
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawLights(const Scene &scene, const Camera &camera) {
+RenderStats OpenGLRenderer::drawLights(const Scene& scene, const Camera& camera) {
     beginRendering();
     RenderStats stats = drawLightsImpl(scene, camera);
     endRendering();
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawSkyBoxImpl(const Scene &scene, const Camera &camera) {
+RenderStats OpenGLRenderer::drawSkyBoxImpl(const Scene& scene, const Camera& camera) {
     // dont clear color or depth bit here, since we want this to draw over
 
     RenderStats stats;
@@ -241,7 +241,7 @@ RenderStats OpenGLRenderer::drawSkyBoxImpl(const Scene &scene, const Camera &cam
         return stats;
     }
 
-    auto &skybox = *scene.envCubeMap;
+    auto& skybox = *scene.envCubeMap;
 
     skyboxShader.bind();
     skyboxShader.setTexture("environmentMap", skybox, 0);
@@ -261,14 +261,14 @@ RenderStats OpenGLRenderer::drawSkyBoxImpl(const Scene &scene, const Camera &cam
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawSkyBox(const Scene &scene, const Camera &camera) {
+RenderStats OpenGLRenderer::drawSkyBox(const Scene& scene, const Camera& camera) {
     beginRendering();
     RenderStats stats = drawSkyBoxImpl(scene, camera);
     endRendering();
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawObjectsNoLighting(const Scene &scene, const Camera &camera, uint32_t clearMask) {
+RenderStats OpenGLRenderer::drawObjectsNoLighting(const Scene& scene, const Camera& camera, uint32_t clearMask) {
     pipeline.apply();
 
     RenderStats stats;
@@ -282,7 +282,7 @@ RenderStats OpenGLRenderer::drawObjectsNoLighting(const Scene &scene, const Came
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawObjects(const Scene &scene, const Camera &camera, uint32_t clearMask) {
+RenderStats OpenGLRenderer::drawObjects(const Scene& scene, const Camera& camera, uint32_t clearMask) {
     pipeline.apply();
 
     RenderStats stats;
@@ -303,9 +303,9 @@ RenderStats OpenGLRenderer::drawObjects(const Scene &scene, const Camera &camera
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,
+RenderStats OpenGLRenderer::drawNode(const Scene& scene, const Camera& camera, Node* node, const glm::mat4& parentTransform,
                                      bool frustumCull, const Material* overrideMaterial, const Texture* prevIDMap) {
-    const glm::mat4 &model = parentTransform * node->getTransformParentFromLocal() * node->getTransformAnimation();
+    const glm::mat4& model = parentTransform * node->getTransformParentFromLocal() * node->getTransformAnimation();
 
     auto* materialToUse = overrideMaterial != nullptr ? overrideMaterial : node->overrideMaterial;
 
@@ -363,9 +363,9 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, N
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, Node* node, const glm::mat4 &parentTransform,
+RenderStats OpenGLRenderer::drawNode(const Scene& scene, const Camera& camera, Node* node, const glm::mat4& parentTransform,
                                      const PointLight* pointLight, const Material* overrideMaterial) {
-    const glm::mat4 &model = parentTransform * node->getTransformParentFromLocal() * node->getTransformAnimation();
+    const glm::mat4& model = parentTransform * node->getTransformParentFromLocal() * node->getTransformAnimation();
 
     RenderStats stats;
     if (node->entity != nullptr) {
@@ -382,7 +382,7 @@ RenderStats OpenGLRenderer::drawNode(const Scene &scene, const Camera &camera, N
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const RenderTargetBase* overrideRenderTarget) {
+RenderStats OpenGLRenderer::drawToScreen(const Shader& screenShader, const RenderTargetBase* overrideRenderTarget) {
     pipeline.apply();
 
     if (overrideRenderTarget != nullptr) {
@@ -407,6 +407,6 @@ RenderStats OpenGLRenderer::drawToScreen(const Shader &screenShader, const Rende
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawToRenderTarget(const Shader &screenShader, const RenderTargetBase &renderTarget) {
+RenderStats OpenGLRenderer::drawToRenderTarget(const Shader& screenShader, const RenderTargetBase& renderTarget) {
     return drawToScreen(screenShader, &renderTarget);
 }

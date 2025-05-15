@@ -41,7 +41,7 @@ public:
         }
     } viewport;
 
-    RenderTargetBase(const RenderTargetCreateParams &params) : framebuffer() {
+    RenderTargetBase(const RenderTargetCreateParams& params) : framebuffer() {
         width = params.width;
         height = params.height;
 

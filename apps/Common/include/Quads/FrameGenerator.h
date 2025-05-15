@@ -13,12 +13,12 @@ namespace quasar {
 
 class FrameGenerator {
 public:
-    QuadsGenerator &quadsGenerator;
-    MeshFromQuads &meshFromQuads;
+    QuadsGenerator& quadsGenerator;
+    MeshFromQuads& meshFromQuads;
 
     MeshFromQuads meshFromQuadsMask;
 
-    FrameGenerator(DeferredRenderer &remoteRenderer, const Scene &remoteScene, QuadsGenerator &quadsGenerator, MeshFromQuads &meshFromQuads)
+    FrameGenerator(DeferredRenderer& remoteRenderer, const Scene& remoteScene, QuadsGenerator& quadsGenerator, MeshFromQuads& meshFromQuads)
         : remoteRenderer(remoteRenderer)
         , remoteScene(remoteScene)
         , quadsGenerator(quadsGenerator)
@@ -39,25 +39,25 @@ public:
     } stats;
 
     uint generateRefFrame(
-        const FrameRenderTarget &frameRT,
-        const PerspectiveCamera &remoteCamera,
-        const Mesh &mesh,
-        std::vector<char> &quads, std::vector<char> &depthOffsets,
-        uint &numProxies, uint &numDepthOffsets,
+        const FrameRenderTarget& frameRT,
+        const PerspectiveCamera& remoteCamera,
+        const Mesh& mesh,
+        std::vector<char>& quads, std::vector<char>& depthOffsets,
+        uint& numProxies, uint& numDepthOffsets,
         bool compress = true);
 
     uint generateResFrame(
-        const Scene &currScene, const Scene &prevScene,
-        FrameRenderTarget &frameRT, FrameRenderTarget &maskFrameRT,
-        const PerspectiveCamera &currRemoteCamera, const PerspectiveCamera &prevRemoteCamera,
-        const Mesh &currMesh, const Mesh &maskMesh,
-        std::vector<char> &quads, std::vector<char> &depthOffsets,
-        uint &numProxies, uint &numDepthOffsets,
+        const Scene& currScene, const Scene& prevScene,
+        FrameRenderTarget& frameRT, FrameRenderTarget& maskFrameRT,
+        const PerspectiveCamera& currRemoteCamera, const PerspectiveCamera& prevRemoteCamera,
+        const Mesh& currMesh, const Mesh& maskMesh,
+        std::vector<char>& quads, std::vector<char>& depthOffsets,
+        uint& numProxies, uint& numDepthOffsets,
         bool compress = true);
 
 private:
-    DeferredRenderer &remoteRenderer;
-    const Scene &remoteScene;
+    DeferredRenderer& remoteRenderer;
+    const Scene& remoteScene;
 };
 
 } // namespace quasar

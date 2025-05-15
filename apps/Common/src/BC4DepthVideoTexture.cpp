@@ -5,7 +5,7 @@
 
 using namespace quasar;
 
-BC4DepthVideoTexture::BC4DepthVideoTexture(const TextureDataCreateParams &params, std::string streamerURL)
+BC4DepthVideoTexture::BC4DepthVideoTexture(const TextureDataCreateParams& params, std::string streamerURL)
         : DataReceiverTCP(streamerURL, false)
         , Texture(params) {
     // round up to nearest multiple of BC4_BLOCK_SIZE

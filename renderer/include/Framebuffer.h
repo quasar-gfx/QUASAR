@@ -18,7 +18,7 @@ public:
         glDeleteFramebuffers(1, &ID);
     }
 
-    bool checkStatus(const std::string &name = "") {
+    bool checkStatus(const std::string& name = "") {
         GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         if (status != GL_FRAMEBUFFER_COMPLETE) {
             std::cerr << "Framebuffer is not complete: ";
@@ -58,7 +58,7 @@ public:
         return true;
     }
 
-    void attachTexture(const Texture &texture, GLenum attachment) {
+    void attachTexture(const Texture& texture, GLenum attachment) {
         if (!texture.multiSampled) {
             glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D, texture.ID, 0);
         }
@@ -68,7 +68,7 @@ public:
         numAttachments++;
     }
 
-    void attachCubeMap(const CubeMap &cubeMap, GLenum attachment) {
+    void attachCubeMap(const CubeMap& cubeMap, GLenum attachment) {
         glFramebufferTexture(GL_FRAMEBUFFER, attachment, cubeMap.ID, 0);
         numAttachments++;
     }

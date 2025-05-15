@@ -28,7 +28,7 @@ void QuadBuffers::resize(uint numProxies) {
     this->numProxies = numProxies;
 }
 
-uint QuadBuffers::loadFromMemory(const std::vector<char> &compressedData, bool decompress) {
+uint QuadBuffers::loadFromMemory(const std::vector<char>& compressedData, bool decompress) {
     double startTime = timeutils::getTimeMicros();
     if (decompress) {
         codec.decompress(compressedData, data);
@@ -60,7 +60,7 @@ uint QuadBuffers::loadFromMemory(const std::vector<char> &compressedData, bool d
     return numProxies;
 }
 
-uint QuadBuffers::loadFromFile(const std::string &filename, uint* numBytesLoaded, bool compressed) {
+uint QuadBuffers::loadFromFile(const std::string& filename, uint* numBytesLoaded, bool compressed) {
 #if !defined(__ANDROID__)
     if (!std::filesystem::exists(filename)) {
         spdlog::error("File {} does not exist", filename);
@@ -73,7 +73,7 @@ uint QuadBuffers::loadFromFile(const std::string &filename, uint* numBytesLoaded
 }
 
 #ifdef GL_CORE
-uint QuadBuffers::saveToMemory(std::vector<char> &compressedData, bool compress) {
+uint QuadBuffers::saveToMemory(std::vector<char>& compressedData, bool compress) {
     uint dataSize = updateDataBuffer();
     compressedData.resize(dataSize);
 
@@ -91,7 +91,7 @@ uint QuadBuffers::saveToMemory(std::vector<char> &compressedData, bool compress)
     return outputSize;
 }
 
-uint QuadBuffers::saveToFile(const std::string &filename) {
+uint QuadBuffers::saveToFile(const std::string& filename) {
     std::vector<char> compressedData;
     uint outputSize = saveToMemory(compressedData, true);
 

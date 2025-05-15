@@ -9,7 +9,7 @@ class PointLightShadowRT : public RenderTargetBase {
 public:
     CubeMap depthCubeMap;
 
-    PointLightShadowRT(const RenderTargetCreateParams &params)
+    PointLightShadowRT(const RenderTargetCreateParams& params)
             : RenderTargetBase(params)
             ,  depthCubeMap({
                 .width = params.width,

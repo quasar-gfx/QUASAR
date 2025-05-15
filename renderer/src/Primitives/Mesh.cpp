@@ -4,7 +4,7 @@
 
 using namespace quasar;
 
-void Mesh::setArrayBufferAttributes(const VertexInputAttributes &attributes, uint vertexSize) {
+void Mesh::setArrayBufferAttributes(const VertexInputAttributes& attributes, uint vertexSize) {
     glGenVertexArrays(1, &vertexArrayBuffer);
     glBindVertexArray(vertexArrayBuffer);
 
@@ -83,7 +83,7 @@ void Mesh::updateAABB(const void* verticesData, uint verticesSize) {
     glm::vec3 max = verticesVec[0].position;
 
     for (uint i = 1; i < verticesSize; i++) {
-        auto &vertex = verticesVec[i];
+        auto& vertex = verticesVec[i];
         min = glm::min(min, vertex.position);
         max = glm::max(max, vertex.position);
     }
@@ -92,7 +92,7 @@ void Mesh::updateAABB(const void* verticesData, uint verticesSize) {
     aabb.update(min, max);
 }
 
-void Mesh::setMaterialCameraParams(const Camera &camera, const Material* material) {
+void Mesh::setMaterialCameraParams(const Camera& camera, const Material* material) {
     if (camera.isVR()) {
         auto& vrCamera = static_cast<const VRCamera&>(camera);
         material->getShader()->setMat4("camera.view[0]", vrCamera.left.getViewMatrix());
@@ -111,7 +111,7 @@ void Mesh::setMaterialCameraParams(const Camera &camera, const Material* materia
     material->getShader()->setFloat("camera.far", camera.getFar());
 }
 
-void Mesh::bindMaterial(const Scene &scene, const glm::mat4 &model, const Material* overrideMaterial, const Texture* prevIDMap) {
+void Mesh::bindMaterial(const Scene& scene, const glm::mat4& model, const Material* overrideMaterial, const Texture* prevIDMap) {
     auto* materialToUse = overrideMaterial != nullptr ? overrideMaterial : material;
     materialToUse->bind();
 
@@ -151,7 +151,7 @@ void Mesh::bindMaterial(const Scene &scene, const glm::mat4 &model, const Materi
     materialToUse->unbind();
 }
 
-RenderStats Mesh::draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model, bool frustumCull, const Material* overrideMaterial) {
+RenderStats Mesh::draw(GLenum primativeType, const Camera& camera, const glm::mat4& model, bool frustumCull, const Material* overrideMaterial) {
     RenderStats stats;
 
     if (camera.isVR()) {
@@ -190,7 +190,7 @@ RenderStats Mesh::draw(GLenum primativeType, const Camera &camera, const glm::ma
     return stats;
 }
 
-RenderStats Mesh::draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model, const BoundingSphere &boundingSphere, const Material* overrideMaterial) {
+RenderStats Mesh::draw(GLenum primativeType, const Camera& camera, const glm::mat4& model, const BoundingSphere& boundingSphere, const Material* overrideMaterial) {
     RenderStats stats;
     if (!boundingSphere.intersects(model, aabb)) {
         return stats;

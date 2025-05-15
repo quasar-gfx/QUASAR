@@ -33,40 +33,42 @@ public:
         int maxIterForceMerge = 3;
     } params;
 
-    glm::uvec2 &remoteWindowSize;
-    glm::uvec2 depthBufferSize;
+    glm::uvec2& remoteWindowSize;
+    glm::uvec2 depthOffsetBufferSize;
     std::vector<glm::uvec2> quadMapSizes;
 
     uint numQuadMaps;
     uint maxProxies;
 
-    QuadBuffers outputQuadBuffers;
+    QuadBuffers quadBuffers;
     DepthOffsets depthOffsets;
 
-    QuadsGenerator(glm::uvec2 &remoteWindowSize);
+    QuadsGenerator(glm::uvec2& remoteWindowSize);
     ~QuadsGenerator() = default;
 
     BufferSizes getBufferSizes();
-    void createProxiesFromGBuffer(const FrameRenderTarget& frameRT, const PerspectiveCamera &remoteCamera);
+    void createProxiesFromRT(const FrameRenderTarget& frameRT, const PerspectiveCamera& remoteCamera);
+    void createProxiesFromTextures(const Texture& colorBuffer, const Texture& normalsBuffer, const Texture& depthBuffer, const PerspectiveCamera& remoteCamera);
 #ifdef GL_CORE
-    uint saveQuadsToMemory(std::vector<char> &compressedData, bool compress = true);
-    uint saveDepthOffsetsToMemory(std::vector<char> &compressedData, bool compress = true);
-    uint saveToFile(const std::string &filename);
-    uint saveDepthOffsetsToFile(const std::string &filename);
+    uint saveQuadsToMemory(std::vector<char>& compressedData, bool compress = true);
+    uint saveDepthOffsetsToMemory(std::vector<char>& compressedData, bool compress = true);
+    uint saveToFile(const std::string& filename);
+    uint saveDepthOffsetsToFile(const std::string& filename);
 #endif
 
 private:
     Buffer sizesBuffer;
 
-    std::vector<QuadBuffers> quadBuffers;
+    std::vector<QuadBuffers> quadMaps;
 
     ComputeShader genQuadMapShader;
     ComputeShader simplifyQuadMapShader;
     ComputeShader gatherQuadsShader;
 
-    void generateInitialQuadMap(const FrameRenderTarget& frameRT, const glm::vec2 &gBufferSize, const PerspectiveCamera &remoteCamera);
-    void simplifyQuadMaps(const PerspectiveCamera &remoteCamera, const glm::vec2 &gBufferSize);
-    void gatherOutputQuads(const glm::vec2 &gBufferSize);
+    void generateInitialQuadMap(const Texture& colorBuffer, const Texture& normalsBuffer, const Texture& depthBuffer, const glm::vec2& gBufferSize, const PerspectiveCamera& remoteCamera);
+    void simplifyQuadMaps(const PerspectiveCamera& remoteCamera, const glm::vec2& gBufferSize);
+    void gatherOutputQuads(const glm::vec2& gBufferSize);
+    void createProxies(const Texture& colorBuffer, const Texture& normalsBuffer, const Texture& depthBuffer, const PerspectiveCamera& remoteCamera);
 };
 
 } // namespace quasar

@@ -9,7 +9,7 @@ Node::Node() {
     this->name = "Node" + std::to_string(ID);
 }
 
-Node::Node(const std::string &name) {
+Node::Node(const std::string& name) {
     ID = nextID++;
     this->name = name;
 }
@@ -20,13 +20,13 @@ Node::Node(Entity* entity) {
     setEntity(entity);
 }
 
-Node::Node(const std::string &name, Entity* entity) {
+Node::Node(const std::string& name, Entity* entity) {
     ID = nextID++;
     this->name = name;
     setEntity(entity);
 }
 
-Node* Node::findNodeByName(const std::string &name) {
+Node* Node::findNodeByName(const std::string& name) {
     if (this->name == name) {
         return this;
     }
@@ -50,7 +50,7 @@ void Node::setEntity(Entity* entity) {
     entity->parentNode = this;
 }
 
-void Node::setName(const std::string &name) {
+void Node::setName(const std::string& name) {
     this->name = name;
 }
 
@@ -59,15 +59,15 @@ void Node::addChildNode(Node* node) {
     node->parent = this;
 }
 
-void Node::setPosition(const glm::vec3 &position) {
+void Node::setPosition(const glm::vec3& position) {
     this->position = position;
 }
 
-void Node::setRotationQuat(const glm::quat &quat) {
+void Node::setRotationQuat(const glm::quat& quat) {
     this->rotationQuat = quat;
 }
 
-void Node::setRotationEuler(const glm::vec3 &euler, bool radians) {
+void Node::setRotationEuler(const glm::vec3& euler, bool radians) {
     glm::vec3 eulerCopy = euler;
     if (!radians) {
         eulerCopy = glm::radians(eulerCopy);
@@ -75,7 +75,7 @@ void Node::setRotationEuler(const glm::vec3 &euler, bool radians) {
     this->rotationQuat = glm::quat(eulerCopy);
 }
 
-void Node::setScale(const glm::vec3 &scale) {
+void Node::setScale(const glm::vec3& scale) {
     this->scale = scale;
 }
 
@@ -99,13 +99,13 @@ glm::vec3 Node::getScale() const {
     return scale;
 }
 
-void Node::setTransformParentFromLocal(const glm::mat4 &pose) {
+void Node::setTransformParentFromLocal(const glm::mat4& pose) {
     glm::vec3 skew;
     glm::vec4 perspective;
     glm::decompose(pose, scale, rotationQuat, position, skew, perspective);
 }
 
-void Node::setTransformLocalFromParent(const glm::mat4 &view) {
+void Node::setTransformLocalFromParent(const glm::mat4& view) {
     glm::mat3 rotScaleMat = glm::mat3(view);
 
     glm::mat3 rotationMatrix = glm::transpose(rotScaleMat);

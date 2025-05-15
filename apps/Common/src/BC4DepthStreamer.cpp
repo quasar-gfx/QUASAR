@@ -8,7 +8,7 @@
 
 using namespace quasar;
 
-BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams &params, const std::string &receiverURL)
+BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams& params, const std::string& receiverURL)
         : RenderTarget(params)
         , receiverURL(receiverURL)
         , streamer(receiverURL)

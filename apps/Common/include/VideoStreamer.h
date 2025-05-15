@@ -43,11 +43,11 @@ public:
         double bitrateMbps = 0.0;
     } stats;
 
-    VideoStreamer(const RenderTargetCreateParams &params,
-                  const std::string &videoURL,
+    VideoStreamer(const RenderTargetCreateParams& params,
+                  const std::string& videoURL,
                   int targetFrameRate = 30,
                   int targetBitRateMbps = 10,
-                  const std::string &formatName = "mpegts");
+                  const std::string& formatName = "mpegts");
     ~VideoStreamer();
 
     float getFrameRate() {

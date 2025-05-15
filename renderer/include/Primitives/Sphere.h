@@ -9,7 +9,7 @@ class Sphere : public Mesh {
 public:
     float radius = 1.0f;
 
-    Sphere(const MeshDataCreateParams &params, uint xSegments = 64, uint ySegments = 64, float radius = 1.0f) : Mesh(params), radius(radius) {
+    Sphere(const MeshDataCreateParams& params, uint xSegments = 64, uint ySegments = 64, float radius = 1.0f) : Mesh(params), radius(radius) {
         std::vector<Vertex> vertices;
         std::vector<uint> indices;
 

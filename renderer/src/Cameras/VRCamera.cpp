@@ -29,7 +29,7 @@ VRCamera::VRCamera(float fovy, float aspect, float near, float far)
     right.setPosition(glm::vec3(0.032f, 0.0f, 0.0f));
 }
 
-void VRCamera::setProjectionMatrix(const glm::mat4 &proj) {
+void VRCamera::setProjectionMatrix(const glm::mat4& proj) {
     left.setProjectionMatrix(proj);
     right.setProjectionMatrix(proj);
 }

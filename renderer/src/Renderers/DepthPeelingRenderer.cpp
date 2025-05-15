@@ -2,7 +2,7 @@
 
 using namespace quasar;
 
-DepthPeelingRenderer::DepthPeelingRenderer(const Config &config, uint maxLayers, bool edp)
+DepthPeelingRenderer::DepthPeelingRenderer(const Config& config, uint maxLayers, bool edp)
         : maxLayers(maxLayers)
         , DeferredRenderer(config)
         , compositeLayersShader({
@@ -49,7 +49,7 @@ void DepthPeelingRenderer::endRendering() {
     frameRT.unbind();
 }
 
-void DepthPeelingRenderer::setScreenShaderUniforms(const Shader &screenShader) {
+void DepthPeelingRenderer::setScreenShaderUniforms(const Shader& screenShader) {
     // set FrameRenderTarget texture uniforms
     screenShader.bind();
     screenShader.setTexture("screenColor", outputRT.colorBuffer, 0);
@@ -58,7 +58,7 @@ void DepthPeelingRenderer::setScreenShaderUniforms(const Shader &screenShader) {
     screenShader.setTexture("idBuffer", frameRT.idBuffer, 3);
 }
 
-RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &camera, uint32_t clearMask) {
+RenderStats DepthPeelingRenderer::drawScene(const Scene& scene, const Camera& camera, uint32_t clearMask) {
     RenderStats stats;
 
     for (int i = 0; i < maxLayers; i++) {
@@ -113,14 +113,14 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene &scene, const Camera &ca
     return stats;
 }
 
-RenderStats DepthPeelingRenderer::drawSkyBox(const Scene &scene, const Camera &camera) {
+RenderStats DepthPeelingRenderer::drawSkyBox(const Scene& scene, const Camera& camera) {
     outputRT.bind();
     RenderStats stats = drawSkyBoxImpl(scene, camera);
     outputRT.unbind();
     return stats;
 }
 
-RenderStats DepthPeelingRenderer::drawObjects(const Scene &scene, const Camera &camera, uint32_t clearMask) {
+RenderStats DepthPeelingRenderer::drawObjects(const Scene& scene, const Camera& camera, uint32_t clearMask) {
     pipeline.apply();
 
     if (edp) {
@@ -158,7 +158,7 @@ RenderStats DepthPeelingRenderer::drawObjects(const Scene &scene, const Camera &
     return stats;
 }
 
-RenderStats DepthPeelingRenderer::drawObjectsNoLighting(const Scene &scene, const Camera &camera, uint32_t clearMask) {
+RenderStats DepthPeelingRenderer::drawObjectsNoLighting(const Scene& scene, const Camera& camera, uint32_t clearMask) {
     pipeline.apply();
 
     if (edp) {

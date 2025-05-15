@@ -58,7 +58,7 @@ public:
     CubeMap() : vertexBuffer(GL_ARRAY_BUFFER, sizeof(CubeMapVertex)) {
         target = GL_TEXTURE_CUBE_MAP;
     }
-    CubeMap(const CubeMapCreateParams &params)
+    CubeMap(const CubeMapCreateParams& params)
             : type(params.type)
             , wrapR(params.wrapR)
             , Texture({
@@ -97,11 +97,11 @@ public:
 
     void init(uint width, uint height, CubeMapType type);
 
-    void loadFromEquirectTexture(const Shader &equirectToCubeMapShader, const Texture &equirectTexture) const;
-    void convolve(const Shader &convolutionShader, const CubeMap &envCubeMap) const;
-    void prefilter(const Shader &prefilterShader, const CubeMap &envCubeMap, Renderbuffer &captureRBO) const;
+    void loadFromEquirectTexture(const Shader& equirectToCubeMapShader, const Texture& equirectTexture) const;
+    void convolve(const Shader& convolutionShader, const CubeMap& envCubeMap) const;
+    void prefilter(const Shader& prefilterShader, const CubeMap& envCubeMap, Renderbuffer& captureRBO) const;
 
-    RenderStats draw(const Shader &shader, const Camera &camera) const;
+    RenderStats draw(const Shader& shader, const Camera& camera) const;
 
     void bind() const override {
         bind(0);

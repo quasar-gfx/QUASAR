@@ -30,12 +30,12 @@ public:
     SceneLoader() = default;
     ~SceneLoader();
 
-    Mesh* findMeshByName(const std::string &name);
-    Model* findModelByName(const std::string &name);
-    Node* findNodeByName(const std::string &name);
+    Mesh* findMeshByName(const std::string& name);
+    Model* findModelByName(const std::string& name);
+    Node* findNodeByName(const std::string& name);
 
-    void loadScene(const std::string &filename, Scene &scene, PerspectiveCamera &camera);
-    void clearScene(Scene &scene, PerspectiveCamera &camera);
+    void loadScene(const std::string& filename, Scene& scene, PerspectiveCamera& camera);
+    void clearScene(Scene& scene, PerspectiveCamera& camera);
 
 private:
     int compare(jsmntok_t tok, const char* jsonChunk, const char* str);
@@ -46,23 +46,23 @@ private:
     int parseFloat(jsmntok_t* tokens, int i, const char* json, float* num);
     int parseVec3(jsmntok_t* tokens, int i, const char* json, glm::vec3* vec);
     int parseVec4(jsmntok_t* tokens, int i, const char* json, glm::vec4* vec);
-    int parseSkybox(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
-    int parseMaterial(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
-    int parseMaterials(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
-    int parseModel(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
-    int parseModels(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
-    int parseMesh(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
-    int parseMeshes(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
-    int parseNode(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
-    int parseNodes(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
-    int parseCamera(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
-    int parseAmbientLight(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
-    int parseDirectionalLight(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
-    int parsePointLight(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
-    int parsePointLights(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
-    int parseAnimation(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
-    int parseAnimations(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
-    int parse(jsmntok_t* tokens, int i, const char* json, Scene &scene, PerspectiveCamera &camera);
+    int parseSkybox(jsmntok_t* tokens, int i, const char* json, Scene& scene, PerspectiveCamera& camera);
+    int parseMaterial(jsmntok_t* tokens, int i, const char* json, Scene& scene, PerspectiveCamera& camera);
+    int parseMaterials(jsmntok_t* tokens, int i, const char* json, Scene& scene, PerspectiveCamera& camera);
+    int parseModel(jsmntok_t* tokens, int i, const char* json, Scene& scene, PerspectiveCamera& camera);
+    int parseModels(jsmntok_t* tokens, int i, const char* json, Scene& scene, PerspectiveCamera& camera);
+    int parseMesh(jsmntok_t* tokens, int i, const char* json, Scene& scene, PerspectiveCamera& camera);
+    int parseMeshes(jsmntok_t* tokens, int i, const char* json, Scene& scene, PerspectiveCamera& camera);
+    int parseNode(jsmntok_t* tokens, int i, const char* json, Scene& scene, PerspectiveCamera& camera);
+    int parseNodes(jsmntok_t* tokens, int i, const char* json, Scene& scene, PerspectiveCamera& camera);
+    int parseCamera(jsmntok_t* tokens, int i, const char* json, Scene& scene, PerspectiveCamera& camera);
+    int parseAmbientLight(jsmntok_t* tokens, int i, const char* json, Scene& scene, PerspectiveCamera& camera);
+    int parseDirectionalLight(jsmntok_t* tokens, int i, const char* json, Scene& scene, PerspectiveCamera& camera);
+    int parsePointLight(jsmntok_t* tokens, int i, const char* json, Scene& scene, PerspectiveCamera& camera);
+    int parsePointLights(jsmntok_t* tokens, int i, const char* json, Scene& scene, PerspectiveCamera& camera);
+    int parseAnimation(jsmntok_t* tokens, int i, const char* json, Scene& scene, PerspectiveCamera& camera);
+    int parseAnimations(jsmntok_t* tokens, int i, const char* json, Scene& scene, PerspectiveCamera& camera);
+    int parse(jsmntok_t* tokens, int i, const char* json, Scene& scene, PerspectiveCamera& camera);
 };
 
 } // namespace quasar

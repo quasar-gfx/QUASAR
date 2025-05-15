@@ -18,7 +18,7 @@ public:
     Texture idBuffer;
     Texture depthStencilBuffer;
 
-    GBuffer(const RenderTargetCreateParams &params)
+    GBuffer(const RenderTargetCreateParams& params)
             : RenderTargetBase(params)
             , albedoBuffer({
                 .width = width,
@@ -205,7 +205,7 @@ public:
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void blitDepthToRenderTarget(RenderTarget &renderTarget) {
+    void blitDepthToRenderTarget(RenderTarget& renderTarget) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, renderTarget.getFramebufferID());
 
@@ -239,13 +239,13 @@ public:
         unbind();
     }
 
-    void saveColorAsPNG(const std::string &path) {
+    void saveColorAsPNG(const std::string& path) {
         bind();
         albedoBuffer.saveAsPNG(path);
         unbind();
     }
 
-    void saveColorAsHDR(const std::string &path) {
+    void saveColorAsHDR(const std::string& path) {
         bind();
         albedoBuffer.saveAsHDR(path);
         unbind();

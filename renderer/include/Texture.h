@@ -64,7 +64,7 @@ public:
     Texture() {
         target = GL_TEXTURE_2D;
     }
-    Texture(const TextureDataCreateParams &params)
+    Texture(const TextureDataCreateParams& params)
             : width(params.width)
             , height(params.height)
             , internalFormat(params.internalFormat)
@@ -84,7 +84,7 @@ public:
             glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(params.borderColor));
         }
     }
-    Texture(const TextureFileCreateParams &params)
+    Texture(const TextureFileCreateParams& params)
             : type(params.type)
             , wrapS(params.wrapS)
             , wrapT(params.wrapT)
@@ -128,18 +128,18 @@ public:
     }
 
     void readPixels(unsigned char* data, bool readAsFloat = false);
-    void saveAsPNG(const std::string &filename);
-    void saveAsJPG(const std::string &filename, int quality = 95);
-    void saveAsHDR(const std::string &filename);
+    void saveAsPNG(const std::string& filename);
+    void saveAsJPG(const std::string& filename, int quality = 95);
+    void saveAsHDR(const std::string& filename);
 #ifdef GL_CORE
-    void saveDepthToFile(const std::string &filename);
+    void saveDepthToFile(const std::string& filename);
 #endif
 
 protected:
     GLenum target;
 
     void loadFromData(const unsigned char* data);
-    void loadFromFile(const TextureFileCreateParams &params);
+    void loadFromFile(const TextureFileCreateParams& params);
 };
 
 } // namespace quasar

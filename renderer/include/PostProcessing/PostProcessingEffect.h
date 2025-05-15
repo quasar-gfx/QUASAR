@@ -9,7 +9,7 @@ namespace quasar {
 class PostProcessingEffect {
 public:
     virtual RenderStats drawToScreen(OpenGLRenderer& renderer) = 0;
-    virtual RenderStats drawToRenderTarget(OpenGLRenderer& renderer, RenderTargetBase &rt) = 0;
+    virtual RenderStats drawToRenderTarget(OpenGLRenderer& renderer, RenderTargetBase& rt) = 0;
 };
 
 } // namespace quasar

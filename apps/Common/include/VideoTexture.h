@@ -38,9 +38,9 @@ public:
 
     uint videoWidth, videoHeight;
 
-    VideoTexture(const TextureDataCreateParams &params,
-                 const std::string &videoURL,
-                 const std::string &formatName = "mpegts");
+    VideoTexture(const TextureDataCreateParams& params,
+                 const std::string& videoURL,
+                 const std::string& formatName = "mpegts");
     ~VideoTexture();
 
     pose_id_t draw(pose_id_t poseID = -1);

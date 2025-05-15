@@ -10,7 +10,7 @@ public:
     Texture colorBuffer;
     Texture depthStencilBuffer;
 
-    RenderTarget(const RenderTargetCreateParams &params)
+    RenderTarget(const RenderTargetCreateParams& params)
             : RenderTargetBase(params)
             , colorBuffer({
                 .width = width,
@@ -48,7 +48,7 @@ public:
         framebuffer.unbind();
     }
 
-    void blitToRenderTarget(RenderTargetBase &rt) {
+    void blitToRenderTarget(RenderTargetBase& rt) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, rt.getFramebufferID());
 
@@ -58,7 +58,7 @@ public:
         glBlitFramebuffer(0, 0, width, height, 0, 0, rt.width, rt.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
     }
 
-    void blitToRenderTarget(RenderTarget &rt) {
+    void blitToRenderTarget(RenderTarget& rt) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, rt.framebuffer.ID);
         glBlitFramebuffer(0, 0, width, height, 0, 0, rt.width, rt.height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
@@ -78,19 +78,19 @@ public:
         unbind();
     }
 
-    void saveColorAsPNG(const std::string &path) {
+    void saveColorAsPNG(const std::string& path) {
         bind();
         colorBuffer.saveAsPNG(path);
         unbind();
     }
 
-    void saveColorAsJPG(const std::string &path, int quality = 95) {
+    void saveColorAsJPG(const std::string& path, int quality = 95) {
         bind();
         colorBuffer.saveAsJPG(path, quality);
         unbind();
     }
 
-    void saveColorAsHDR(const std::string &path) {
+    void saveColorAsHDR(const std::string& path) {
         bind();
         colorBuffer.saveAsHDR(path);
         unbind();

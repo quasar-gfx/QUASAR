@@ -32,6 +32,6 @@ void DeferredLightingMaterial::bindGBuffer(const GBuffer& gBuffer) const {
     shader->setTexture("gLightPosition", gBuffer.lightPositionBuffer, 5);
 }
 
-void DeferredLightingMaterial::bindCamera(const Camera &camera) const {
+void DeferredLightingMaterial::bindCamera(const Camera& camera) const {
     shader->setVec3("camera.position", camera.getPosition());
 }

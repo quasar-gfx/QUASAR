@@ -25,12 +25,12 @@ public:
     double now = 0.0;
     double dt = 0.0;
 
-    CameraAnimator(const std::string &pathFile, bool tween = true);
+    CameraAnimator(const std::string& pathFile, bool tween = true);
 
-    void loadAnimation(const std::string &pathFile);
+    void loadAnimation(const std::string& pathFile);
     bool update(double dt);
 
-    void copyPoseToCamera(PerspectiveCamera &camera) const;
+    void copyPoseToCamera(PerspectiveCamera& camera) const;
 
 private:
     bool tween = false;

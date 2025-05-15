@@ -27,7 +27,7 @@ void Texture::loadFromData(const unsigned char* data) {
     }
 }
 
-void Texture::loadFromFile(const TextureFileCreateParams &params) {
+void Texture::loadFromFile(const TextureFileCreateParams& params) {
     std::string path = params.path;
 
     // use absolute path if path starts with ~/
@@ -124,7 +124,7 @@ void Texture::readPixels(unsigned char* data, bool readAsFloat) {
     unbind();
 }
 
-void Texture::saveAsPNG(const std::string &filename) {
+void Texture::saveAsPNG(const std::string& filename) {
     std::vector<unsigned char> data(width * height * 4);
     readPixels(data.data());
 
@@ -132,7 +132,7 @@ void Texture::saveAsPNG(const std::string &filename) {
     FileIO::saveAsPNG(filename, width, height, 4, data.data());
 }
 
-void Texture::saveAsJPG(const std::string &filename, int quality) {
+void Texture::saveAsJPG(const std::string& filename, int quality) {
     std::vector<unsigned char> data(width * height * 4);
     readPixels(data.data());
 
@@ -140,7 +140,7 @@ void Texture::saveAsJPG(const std::string &filename, int quality) {
     FileIO::saveAsJPG(filename, width, height, 4, data.data(), quality);
 }
 
-void Texture::saveAsHDR(const std::string &filename) {
+void Texture::saveAsHDR(const std::string& filename) {
     std::vector<float> data(width * height * 4);
     readPixels(reinterpret_cast<unsigned char*>(data.data()), true);
 
@@ -149,7 +149,7 @@ void Texture::saveAsHDR(const std::string &filename) {
 }
 
 #ifdef GL_CORE
-void Texture::saveDepthToFile(const std::string &filename) {
+void Texture::saveDepthToFile(const std::string& filename) {
     std::ofstream depthFile;
     depthFile.open(filename, std::ios::out | std::ios::binary);
 

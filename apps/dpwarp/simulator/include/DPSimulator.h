@@ -93,9 +93,9 @@ public:
     } stats;
 
     DPSimulator(
-                const PerspectiveCamera &remoteCamera,
+                const PerspectiveCamera& remoteCamera,
                 uint maxLayers,
-                QuadsGenerator &quadsGenerator, MeshFromQuads &meshFromQuads, FrameGenerator &frameGenerator)
+                QuadsGenerator& quadsGenerator, MeshFromQuads& meshFromQuads, FrameGenerator& frameGenerator)
             : quadsGenerator(quadsGenerator)
             , meshFromQuads(meshFromQuads)
             , frameGenerator(frameGenerator)
@@ -245,7 +245,7 @@ public:
             nodesHidLayer.emplace_back(&meshesHidLayer[layer]);
             nodesHidLayer[layer].frustumCulled = false;
 
-            const glm::vec4 &color = colors[(layer + 1) % colors.size()];
+            const glm::vec4& color = colors[(layer + 1) % colors.size()];
 
             wireframesHidLayer.emplace_back(&meshesHidLayer[layer]);
             wireframesHidLayer[layer].frustumCulled = false;
@@ -484,7 +484,7 @@ public:
         }
     }
 
-    uint saveToFile(const Path &outputPath) {
+    uint saveToFile(const Path& outputPath) {
         uint totalOutputSize = 0;
         for (int layer = 0; layer < maxLayers; layer++) {
             // save quads

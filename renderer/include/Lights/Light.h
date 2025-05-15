@@ -29,7 +29,7 @@ public:
 
     uint shadowMapRes = 2048;
 
-    Light(const LightCreateParams &params)
+    Light(const LightCreateParams& params)
             : color(params.color)
             , intensity(params.intensity)
             , shadowNear(params.shadowNear)

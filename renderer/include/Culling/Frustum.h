@@ -16,21 +16,21 @@ public:
         float constant = 0.0f;
 
         FPlane() = default;
-        FPlane(const glm::vec3 &p1, const glm::vec3 &norm) : normal(glm::normalize(norm)), constant(-glm::dot(normal, p1)) {}
-        FPlane(const glm::vec3 &norm, float constant) : normal(norm), constant(constant) {
+        FPlane(const glm::vec3& p1, const glm::vec3& norm) : normal(glm::normalize(norm)), constant(-glm::dot(normal, p1)) {}
+        FPlane(const glm::vec3& norm, float constant) : normal(norm), constant(constant) {
             float length = glm::length(normal);
             normal /= length;
             constant /= length;
         }
 
-        float signedDistance(const glm::vec3 &point) const {
+        float signedDistance(const glm::vec3& point) const {
             return glm::dot(normal, point) + constant;
         }
     };
 
     Frustum() = default;
 
-    void setFromCameraMatrices(const glm::mat4 &view, const glm::mat4 &projection) {
+    void setFromCameraMatrices(const glm::mat4& view, const glm::mat4& projection) {
         glm::mat4 viewProjectionMatrix = projection * view;
 
         planes[LEFT].normal.x = viewProjectionMatrix[0][3] + viewProjectionMatrix[0][0];
@@ -63,14 +63,14 @@ public:
         planes[FAR].normal.z = viewProjectionMatrix[2][3] - viewProjectionMatrix[2][2];
         planes[FAR].constant = viewProjectionMatrix[3][3] - viewProjectionMatrix[3][2];
 
-        for (auto &plane : planes) {
+        for (auto& plane : planes) {
             float length = glm::length(plane.normal);
             plane.normal /= length;
             plane.constant /= length;
         }
     }
 
-    void setFromCameraParams(const glm::vec3 &position, const glm::vec3 &front, const glm::vec3 &right, const glm::vec3 &up, float zNear, float zFar, float aspect, float fovY) {
+    void setFromCameraParams(const glm::vec3& position, const glm::vec3& front, const glm::vec3& right, const glm::vec3& up, float zNear, float zFar, float aspect, float fovY) {
         float halfVSide = zFar * tanf(fovY * 0.5f);
         float halfHSide = halfVSide * aspect;
         glm::vec3 frontMultFar = zFar * front;
@@ -83,7 +83,7 @@ public:
         planes[FAR]    = FPlane(position + frontMultFar, -front);
     }
 
-    bool aabbIsVisible(const AABB &aabb, const glm::mat4 &model) const {
+    bool aabbIsVisible(const AABB& aabb, const glm::mat4& model) const {
 		glm::vec3 center = glm::vec3(model * glm::vec4(aabb.getCenter(), 1.0f));
 
 		glm::vec3 right = glm::vec3(model[0]) * aabb.getExtents().x;
@@ -104,7 +104,7 @@ public:
 
 		AABB globalAABB = AABB(center, newIi, newIj, newIk);
 
-		for (auto &plane : planes) {
+		for (auto& plane : planes) {
             if (!aabbIsOnOrForwardPlane(globalAABB, plane)) {
                 return false;
             }
@@ -112,7 +112,7 @@ public:
         return true;
     };
 
-    bool aabbIsOnOrForwardPlane(const AABB &aabb, const FPlane &plane) const {
+    bool aabbIsOnOrForwardPlane(const AABB& aabb, const FPlane& plane) const {
         auto extents = aabb.getExtents();
         auto center = aabb.getCenter();
 

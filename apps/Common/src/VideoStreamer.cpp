@@ -16,11 +16,11 @@ static int interrupt_callback(void* ctx) {
     return shouldTerminate;
 }
 
-VideoStreamer::VideoStreamer(const RenderTargetCreateParams &params,
-                             const std::string &videoURL,
+VideoStreamer::VideoStreamer(const RenderTargetCreateParams& params,
+                             const std::string& videoURL,
                              int targetFrameRate,
                              int targetBitRateMbps,
-                             const std::string &formatName)
+                             const std::string& formatName)
         : targetFrameRate(targetFrameRate)
         , targetBitRate(targetBitRateMbps * BYTES_IN_MB)
         , formatName(formatName)

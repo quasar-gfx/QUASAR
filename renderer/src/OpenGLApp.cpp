@@ -12,7 +12,7 @@
 
 using namespace quasar;
 
-OpenGLApp::OpenGLApp(const Config &config)
+OpenGLApp::OpenGLApp(const Config& config)
         : window(config.window)
         , guiManager(config.guiManager)
         , targetFramerate(config.enableVSync ? config.targetFramerate : 0) {

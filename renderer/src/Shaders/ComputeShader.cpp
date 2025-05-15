@@ -51,7 +51,7 @@ double ComputeShader::getElapsedTime() const {
     return timeutils::nanoToMillis(lastElapsedTime);
 }
 
-void ComputeShader::loadFromFile(const std::string &computePath) {
+void ComputeShader::loadFromFile(const std::string& computePath) {
     std::string computeCode = FileIO::loadTextFile(computePath);
 
     const char* cShaderCode = computeCode.c_str();

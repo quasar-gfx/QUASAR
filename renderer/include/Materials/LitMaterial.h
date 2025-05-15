@@ -46,7 +46,7 @@ public:
     bool metalRoughnessCombined = false;
 
     LitMaterial() = default;
-    LitMaterial(const LitMaterialCreateParams &params);
+    LitMaterial(const LitMaterialCreateParams& params);
     ~LitMaterial();
 
     void bind() const override;

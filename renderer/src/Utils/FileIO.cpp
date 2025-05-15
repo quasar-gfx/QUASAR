@@ -12,7 +12,7 @@ using namespace quasar;
 #define CHECK_ANDROID_ACTIVITY() if (activity == nullptr) { throw std::runtime_error("Android App Activity not set!"); }
 #endif
 
-std::string FileIO::loadTextFile(const std::string &filename, uint* sizePtr) {
+std::string FileIO::loadTextFile(const std::string& filename, uint* sizePtr) {
 #ifndef __ANDROID__
     std::ifstream file(filename);
     if (!file.is_open()) {
@@ -42,7 +42,7 @@ std::string FileIO::loadTextFile(const std::string &filename, uint* sizePtr) {
 #endif
 }
 
-std::vector<char> FileIO::loadBinaryFile(const std::string &filename, uint* sizePtr) {
+std::vector<char> FileIO::loadBinaryFile(const std::string& filename, uint* sizePtr) {
 #ifndef __ANDROID__
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
@@ -74,7 +74,7 @@ std::vector<char> FileIO::loadBinaryFile(const std::string &filename, uint* size
 #endif
 }
 
-std::ifstream::pos_type FileIO::getFileSize(const std::string &filename) {
+std::ifstream::pos_type FileIO::getFileSize(const std::string& filename) {
 #ifndef __ANDROID__
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
@@ -102,7 +102,7 @@ void FileIO::flipVerticallyOnWrite(bool flip) {
     stbi_flip_vertically_on_write(flip);
 }
 
-unsigned char* FileIO::loadImage(const std::string &filename, int* width, int* height, int* channels, int desiredChannels) {
+unsigned char* FileIO::loadImage(const std::string& filename, int* width, int* height, int* channels, int desiredChannels) {
 #ifndef __ANDROID__
     unsigned char* data = stbi_load(filename.c_str(), width, height, channels, desiredChannels);
     if (!data) {
@@ -131,7 +131,7 @@ unsigned char* FileIO::loadImageFromMemory(const unsigned char* data, int size, 
     return imageData;
 }
 
-float* FileIO::loadImageHDR(const std::string &filename, int* width, int* height, int* channels, int desiredChannels) {
+float* FileIO::loadImageHDR(const std::string& filename, int* width, int* height, int* channels, int desiredChannels) {
 #ifndef __ANDROID__
     float* data = stbi_loadf(filename.c_str(), width, height, channels, desiredChannels);
     if (!data) {
@@ -156,19 +156,19 @@ void FileIO::freeImage(void* imageData) {
     stbi_image_free(imageData);
 }
 
-void FileIO::saveAsPNG(const std::string &filename, int width, int height, int channels, const void *data) {
+void FileIO::saveAsPNG(const std::string& filename, int width, int height, int channels, const void *data) {
     if (!stbi_write_png(filename.c_str(), width, height, channels, data, width * channels)) {
         throw std::runtime_error("Failed to save PNG image: " + filename);
     }
 }
 
-void FileIO::saveAsJPG(const std::string &filename, int width, int height, int channels, const void *data, int quality) {
+void FileIO::saveAsJPG(const std::string& filename, int width, int height, int channels, const void *data, int quality) {
     if (!stbi_write_jpg(filename.c_str(), width, height, channels, data, quality)) {
         throw std::runtime_error("Failed to save JPG image: " + filename);
     }
 }
 
-void FileIO::saveAsHDR(const std::string &filename, int width, int height, int channels, const float *data) {
+void FileIO::saveAsHDR(const std::string& filename, int width, int height, int channels, const float *data) {
     if (!stbi_write_hdr(filename.c_str(), width, height, channels, data)) {
         throw std::runtime_error("Failed to save HDR image: " + filename);
     }

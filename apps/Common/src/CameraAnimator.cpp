@@ -8,13 +8,13 @@
 
 using namespace quasar;
 
-CameraAnimator::CameraAnimator(const std::string &pathFile, bool tween) : tween(tween) {
+CameraAnimator::CameraAnimator(const std::string& pathFile, bool tween) : tween(tween) {
     if (!pathFile.empty()) {
         loadAnimation(pathFile);
     }
 }
 
-void CameraAnimator::loadAnimation(const std::string &pathFile) {
+void CameraAnimator::loadAnimation(const std::string& pathFile) {
     running = true;
     currentIndex = 0;
 
@@ -120,7 +120,7 @@ const glm::quat CameraAnimator::getCurrentRotation() const {
     }
 }
 
-void CameraAnimator::copyPoseToCamera(PerspectiveCamera &camera) const {
+void CameraAnimator::copyPoseToCamera(PerspectiveCamera& camera) const {
     if (waypoints.empty())
         return;
 

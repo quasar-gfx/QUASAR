@@ -6,7 +6,7 @@
 
 using namespace quasar;
 
-GLFWWindow::GLFWWindow(const Config &config) {
+GLFWWindow::GLFWWindow(const Config& config) {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, config.openglMajorVersion);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, config.openglMinorVersion);

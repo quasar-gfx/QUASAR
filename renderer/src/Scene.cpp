@@ -55,7 +55,7 @@ void Scene::updateAnimations(float dt) {
     rootNode.updateAnimations(dt);
 }
 
-Node* Scene::findNodeByName(const std::string &name) {
+Node* Scene::findNodeByName(const std::string& name) {
     return rootNode.findNodeByName(name);
 }
 
@@ -89,14 +89,14 @@ void Scene::bindMaterial(const Material* material) const {
     }
 }
 
-void Scene::equirectToCubeMap(const CubeMap &envCubeMap, const Texture &hdrTexture) {
+void Scene::equirectToCubeMap(const CubeMap& envCubeMap, const Texture& hdrTexture) {
     captureRenderTarget.bind();
     captureRenderTarget.resize(envCubeMap.width, envCubeMap.height);
     envCubeMap.loadFromEquirectTexture(equirectToCubeMapShader, hdrTexture);
     captureRenderTarget.unbind();
 }
 
-void Scene::setupIBL(const CubeMap &envCubeMap) {
+void Scene::setupIBL(const CubeMap& envCubeMap) {
     hasPBREnvMap = true;
 
     captureRenderTarget.resize(envCubeMap.width, envCubeMap.height);

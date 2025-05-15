@@ -35,29 +35,29 @@ public:
     std::vector<int> meshIndices;
 
     Node();
-    Node(const std::string &name);
+    Node(const std::string& name);
     Node(Entity* entity);
-    Node(const std::string &name, Entity* entity);
+    Node(const std::string& name, Entity* entity);
 
-    Node* findNodeByName(const std::string &name);
+    Node* findNodeByName(const std::string& name);
 
     int getID() const;
     void setEntity(Entity* entity);
-    void setName(const std::string &name);
+    void setName(const std::string& name);
     void addChildNode(Node* node);
 
-    void setPosition(const glm::vec3 &position);
-    void setRotationQuat(const glm::quat &quat);
-    void setRotationEuler(const glm::vec3 &euler, bool radians = false);
-    void setScale(const glm::vec3 &scale);
+    void setPosition(const glm::vec3& position);
+    void setRotationQuat(const glm::quat& quat);
+    void setRotationEuler(const glm::vec3& euler, bool radians = false);
+    void setScale(const glm::vec3& scale);
 
     virtual glm::vec3 getPosition() const;
     glm::quat getRotationQuat() const;
     glm::vec3 getRotationEuler(bool radians = false) const;
     glm::vec3 getScale() const;
 
-    void setTransformParentFromLocal(const glm::mat4 &pose);
-    void setTransformLocalFromParent(const glm::mat4 &view);
+    void setTransformParentFromLocal(const glm::mat4& pose);
+    void setTransformLocalFromParent(const glm::mat4& view);
 
     const glm::mat4 getTransformParentFromLocal() const;
     const glm::mat4 getTransformLocalFromParent() const;

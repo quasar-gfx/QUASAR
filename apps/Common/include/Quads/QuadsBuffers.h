@@ -23,11 +23,11 @@ struct QuadMapData {
 
 struct QuadMapDataPacked {
     // normal converted into spherical coordinates. 16 bits of padding + theta, phi (8 bits each) packed into 16 bits.
-    uint normalSpherical;
+    uint32_t normalSpherical;
     // full resolution depth. 32 bits used.
     float depth;
     // offset.x << 20 | offset.y << 8 (12 bits each) | size << 1 (6 bits) | flattened (1 bit). 31 bits used.
-    uint offsetSizeFlattened;
+    uint32_t offsetSizeFlattened;
 }; // 96 bits total
 
 class QuadBuffers {
@@ -49,11 +49,11 @@ public:
 
     void resize(uint numProxies);
 
-    uint loadFromMemory(const std::vector<char> &compressedData, bool decompress = true);
-    uint loadFromFile(const std::string &filename, uint* numBytesLoaded = nullptr, bool compressed = true);
+    uint loadFromMemory(const std::vector<char>& compressedData, bool decompress = true);
+    uint loadFromFile(const std::string& filename, uint* numBytesLoaded = nullptr, bool compressed = true);
 #ifdef GL_CORE
-    uint saveToMemory(std::vector<char> &compressedData, bool compress = true);
-    uint saveToFile(const std::string &filename);
+    uint saveToMemory(std::vector<char>& compressedData, bool compress = true);
+    uint saveToFile(const std::string& filename);
     uint updateDataBuffer();
 #endif
 

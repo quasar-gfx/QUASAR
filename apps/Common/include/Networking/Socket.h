@@ -66,14 +66,14 @@ public:
         }
     }
 
-    void setAddress(const std::string &ipAddress, int port) {
+    void setAddress(const std::string& ipAddress, int port) {
         addrLen = sizeof(addr);
         addr.sin_family = AF_INET;
         addr.sin_addr.s_addr = inet_addr(ipAddress.c_str());
         addr.sin_port = htons(port);
     }
 
-    void setAddress(const std::string &ipAddressAndPort) {
+    void setAddress(const std::string& ipAddressAndPort) {
         size_t pos = ipAddressAndPort.find(':');
         if (pos == std::string::npos) {
             throw std::invalid_argument("Invalid address format, expected ip:port");
@@ -82,7 +82,7 @@ public:
         int port;
         try {
             port = std::stoi(ipAddressAndPort.substr(pos + 1));
-        } catch (const std::exception &e) {
+        } catch (const std::exception& e) {
             throw std::invalid_argument("Invalid port number");
         }
         setAddress(ipAddress, port);
@@ -94,12 +94,12 @@ public:
         }
     }
 
-    void bind(const std::string &ipAddress, int port) {
+    void bind(const std::string& ipAddress, int port) {
         setAddress(ipAddress, port);
         bind((struct sockaddr*)&addr, addrLen);
     }
 
-    void bind(const std::string &ipAddressAndPort) {
+    void bind(const std::string& ipAddressAndPort) {
         setAddress(ipAddressAndPort);
         bind((struct sockaddr*)&addr, addrLen);
     }
@@ -152,12 +152,12 @@ public:
         return ::connect(socketID, addr, addrLen);
     }
 
-    int connect(const std::string &ipAddress, int port) {
+    int connect(const std::string& ipAddress, int port) {
         setAddress(ipAddress, port);
         return connect((struct sockaddr*)&addr, addrLen);
     }
 
-    int connect(const std::string &ipAddressAndPort) {
+    int connect(const std::string& ipAddressAndPort) {
         setAddress(ipAddressAndPort);
         return connect((struct sockaddr*)&addr, addrLen);
     }

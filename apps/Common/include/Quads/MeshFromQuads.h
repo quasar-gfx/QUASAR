@@ -43,29 +43,29 @@ public:
         double timeToCreateMeshMs = 0.0;
     } stats;
 
-    glm::uvec2 &remoteWindowSize;
-    glm::uvec2 depthBufferSize;
+    glm::uvec2& remoteWindowSize;
+    glm::uvec2 depthOffsetBufferSize;
     uint maxProxies;
 
     QuadBuffers currentQuadBuffers;
 
-    MeshFromQuads(glm::uvec2 &remoteWindowSize, uint maxNumProxies = MAX_NUM_PROXIES);
+    MeshFromQuads(glm::uvec2& remoteWindowSize, uint maxNumProxies = MAX_NUM_PROXIES);
     ~MeshFromQuads() = default;
 
     void appendQuads(
-            const glm::uvec2 &gBufferSize,
+            const glm::uvec2& gBufferSize,
             uint numProxies,
-            const QuadBuffers &newQuadBuffers,
+            const QuadBuffers& newQuadBuffers,
             bool refFrame = true);
 
-    void fillQuadIndices(const glm::uvec2 &gBufferSize);
+    void fillQuadIndices(const glm::uvec2& gBufferSize);
 
     void createMeshFromProxies(
-            const glm::uvec2 &gBufferSize,
+            const glm::uvec2& gBufferSize,
             uint numProxies,
-            const DepthOffsets &depthOffsets,
-            const PerspectiveCamera &remoteCamera,
-            const Mesh &mesh);
+            const DepthOffsets& depthOffsets,
+            const PerspectiveCamera& remoteCamera,
+            const Mesh& mesh);
 
     BufferSizes getBufferSizes();
 

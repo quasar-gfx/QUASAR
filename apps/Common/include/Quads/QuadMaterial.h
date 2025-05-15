@@ -22,7 +22,7 @@ public:
     float maskThreshold = 0.5f;
 
     QuadMaterial() = default;
-    QuadMaterial(const QuadMaterialCreateParams &params);
+    QuadMaterial(const QuadMaterialCreateParams& params);
     ~QuadMaterial();
 
     void bind() const override;

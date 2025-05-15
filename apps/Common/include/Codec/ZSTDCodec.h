@@ -26,7 +26,7 @@ public:
     }
     ~ZSTDCodec() override = default;
 
-    uint compress(const void* uncompressedData, std::vector<char> &compressedData, uint numBytesUncompressed) override {
+    uint compress(const void* uncompressedData, std::vector<char>& compressedData, uint numBytesUncompressed) override {
         uint32_t maxCompressedBytes = ZSTD_compressBound(numBytesUncompressed);
         compressedData.resize(maxCompressedBytes);
 
@@ -38,7 +38,7 @@ public:
             numBytesUncompressed);
     }
 
-    uint decompress(const std::vector<char> &compressedData, std::vector<char> &decompressedData) override {
+    uint decompress(const std::vector<char>& compressedData, std::vector<char>& decompressedData) override {
         return ZSTD_decompressDCtx(decompressionCtx,
             decompressedData.data(),
             decompressedData.size(),

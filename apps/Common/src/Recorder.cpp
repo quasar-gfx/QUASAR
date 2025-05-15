@@ -24,7 +24,7 @@ void Recorder::setTargetFrameRate(int targetFrameRate) {
     frameCount = 0;
 }
 
-void Recorder::saveScreenshotToFile(const Path &filename, bool saveAsHDR) {
+void Recorder::saveScreenshotToFile(const Path& filename, bool saveAsHDR) {
     effect.drawToRenderTarget(renderer, *this);
 
     if (saveAsHDR) {
@@ -76,7 +76,7 @@ void Recorder::stop() {
     frameCount = 0;
 }
 
-void Recorder::captureFrame(const Camera &camera) {
+void Recorder::captureFrame(const Camera& camera) {
     int64_t currentTime = timeutils::getTimeMillis();
     int64_t elapsedTime = currentTime - recordingStartTime;
 
@@ -144,7 +144,7 @@ void Recorder::saveFrames(int threadID) {
         }
 
         int frameID = frameData.ID;
-        auto &renderTargetData = frameData.data;
+        auto& renderTargetData = frameData.data;
 
         if (outputFormat == OutputFormat::MP4) {
             for (int y = 0; y < height / 2; ++y) {

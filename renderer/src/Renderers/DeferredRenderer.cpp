@@ -2,7 +2,7 @@
 
 using namespace quasar;
 
-DeferredRenderer::DeferredRenderer(const Config &config)
+DeferredRenderer::DeferredRenderer(const Config& config)
         : multiSampled(config.pipeline.multiSampleState.multiSampleEnabled)
         , outputRT({
             .width = config.width,
@@ -28,7 +28,7 @@ DeferredRenderer::DeferredRenderer(const Config &config)
         , OpenGLRenderer(config) {
 }
 
-void DeferredRenderer::setScreenShaderUniforms(const Shader &screenShader) {
+void DeferredRenderer::setScreenShaderUniforms(const Shader& screenShader) {
     // set FrameRenderTarget texture uniforms
     screenShader.bind();
     screenShader.setTexture("screenColor", outputRT.colorBuffer, 0);
@@ -73,7 +73,7 @@ void DeferredRenderer::endRendering() {
 #endif
 }
 
-RenderStats DeferredRenderer::drawScene(const Scene &scene, const Camera &camera, uint32_t clearMask) {
+RenderStats DeferredRenderer::drawScene(const Scene& scene, const Camera& camera, uint32_t clearMask) {
     RenderStats stats;
 
     beginRendering();
@@ -92,14 +92,14 @@ RenderStats DeferredRenderer::drawScene(const Scene &scene, const Camera &camera
     return stats;
 }
 
-RenderStats DeferredRenderer::drawSkyBox(const Scene &scene, const Camera &camera) {
+RenderStats DeferredRenderer::drawSkyBox(const Scene& scene, const Camera& camera) {
     outputRT.bind();
     RenderStats stats = drawSkyBoxImpl(scene, camera);
     outputRT.unbind();
     return stats;
 }
 
-RenderStats DeferredRenderer::drawObjects(const Scene &scene, const Camera &camera, uint32_t clearMask) {
+RenderStats DeferredRenderer::drawObjects(const Scene& scene, const Camera& camera, uint32_t clearMask) {
     pipeline.apply();
 
     RenderStats stats;
@@ -123,7 +123,7 @@ RenderStats DeferredRenderer::drawObjects(const Scene &scene, const Camera &came
     return stats;
 }
 
-RenderStats DeferredRenderer::drawObjectsNoLighting(const Scene &scene, const Camera &camera, uint32_t clearMask) {
+RenderStats DeferredRenderer::drawObjectsNoLighting(const Scene& scene, const Camera& camera, uint32_t clearMask) {
     pipeline.apply();
 
     RenderStats stats;
@@ -140,7 +140,7 @@ RenderStats DeferredRenderer::drawObjectsNoLighting(const Scene &scene, const Ca
     return stats;
 }
 
-RenderStats DeferredRenderer::lightingPass(const Scene &scene, const Camera &camera) {
+RenderStats DeferredRenderer::lightingPass(const Scene& scene, const Camera& camera) {
     RenderStats stats;
 
     lightingMaterial.bind();
@@ -190,7 +190,7 @@ RenderStats DeferredRenderer::lightingPass(const Scene &scene, const Camera &cam
     return stats;
 }
 
-void DeferredRenderer::copyToFrameRT(FrameRenderTarget &gBufferDst) {
+void DeferredRenderer::copyToFrameRT(FrameRenderTarget& gBufferDst) {
     frameRT.blitToFrameRT(gBufferDst); // copy normals, id, and depth
     outputRT.blitToRenderTarget(gBufferDst); // copy color
 }

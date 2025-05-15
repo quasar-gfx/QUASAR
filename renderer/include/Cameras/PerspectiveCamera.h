@@ -41,13 +41,13 @@ public:
 
     const glm::mat4& getProjectionMatrix() const { return proj; }
     const glm::mat4& getProjectionMatrixInverse() const { return projInverse; }
-    void setProjectionMatrix(const glm::mat4 &proj);
+    void setProjectionMatrix(const glm::mat4& proj);
     void setProjectionMatrix(float fovyDeg, float aspect, float near, float far);
     void updateProjectionMatrix();
 
     const glm::mat4& getViewMatrix() const { return view; }
     const glm::mat4& getViewMatrixInverse() const { return viewInverse; }
-    void setViewMatrix(const glm::mat4 &view);
+    void setViewMatrix(const glm::mat4& view);
     void updateViewMatrix();
 
     glm::vec3 getForwardVector() const { return front; }

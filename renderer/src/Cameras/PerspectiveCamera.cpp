@@ -22,7 +22,7 @@ PerspectiveCamera::PerspectiveCamera(float fovyDeg, float aspect, float near, fl
     updateCameraOrientation();
 }
 
-void PerspectiveCamera::setProjectionMatrix(const glm::mat4 &proj) {
+void PerspectiveCamera::setProjectionMatrix(const glm::mat4& proj) {
     this->proj = proj;
     this->projInverse = glm::inverse(proj);
 
@@ -47,7 +47,7 @@ void PerspectiveCamera::updateProjectionMatrix() {
     frustum.setFromCameraMatrices(view, proj);
 }
 
-void PerspectiveCamera::setViewMatrix(const glm::mat4 &view) {
+void PerspectiveCamera::setViewMatrix(const glm::mat4& view) {
     this->view = view;
     viewInverse = glm::inverse(view);
 

@@ -68,7 +68,7 @@ public:
             , indexBuffer(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint)) {
         setArrayBufferAttributes(Vertex::getVertexInputAttributes(), sizeof(Vertex));
     }
-    Mesh(const MeshDataCreateParams &params)
+    Mesh(const MeshDataCreateParams& params)
             : material(params.material)
             , IBL(params.IBL)
             , usage(params.usage)
@@ -88,7 +88,7 @@ public:
             indirectBuffer.unbind();
         }
     }
-    Mesh(const MeshSizeCreateParams &params)
+    Mesh(const MeshSizeCreateParams& params)
             : material(params.material)
             , IBL(params.IBL)
             , usage(params.usage)
@@ -109,13 +109,13 @@ public:
         }
     }
 
-    virtual void bindMaterial(const Scene &scene, const glm::mat4 &model,
+    virtual void bindMaterial(const Scene& scene, const glm::mat4& model,
                               const Material* overrideMaterial = nullptr, const Texture* prevIDMap = nullptr) override;
 
-    virtual RenderStats draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model,
+    virtual RenderStats draw(GLenum primativeType, const Camera& camera, const glm::mat4& model,
                              bool frustumCull = true, const Material* overrideMaterial = nullptr) override;
-    virtual RenderStats draw(GLenum primativeType, const Camera &camera, const glm::mat4 &model,
-                             const BoundingSphere &boundingSphere, const Material* overrideMaterial = nullptr) override;
+    virtual RenderStats draw(GLenum primativeType, const Camera& camera, const glm::mat4& model,
+                             const BoundingSphere& boundingSphere, const Material* overrideMaterial = nullptr) override;
     virtual RenderStats draw(GLenum primativeType);
 
     void setBuffers(const void* vertices, uint verticesSize, const uint* indices = nullptr, uint indicesSize = 0);
@@ -129,9 +129,9 @@ public:
 protected:
     GLuint vertexArrayBuffer;
 
-    void setArrayBufferAttributes(const VertexInputAttributes &attributes, uint vertexSize);
+    void setArrayBufferAttributes(const VertexInputAttributes& attributes, uint vertexSize);
 
-    void setMaterialCameraParams(const Camera &camera, const Material* material);
+    void setMaterialCameraParams(const Camera& camera, const Material* material);
 };
 
 } // namespace quasar

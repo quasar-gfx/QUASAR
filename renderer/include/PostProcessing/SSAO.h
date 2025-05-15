@@ -12,7 +12,7 @@ namespace quasar {
 
 class SSAO: public PostProcessingEffect {
 public:
-    SSAO(glm::uvec2 &windowSize, PerspectiveCamera &camera, uint seed = 42)
+    SSAO(glm::uvec2& windowSize, PerspectiveCamera& camera, uint seed = 42)
             : windowSize(windowSize)
             , camera(camera)
             , generator(seed)
@@ -113,7 +113,7 @@ public:
         return stats;
     }
 
-    RenderStats drawToRenderTarget(OpenGLRenderer& renderer, RenderTargetBase &rt) override {
+    RenderStats drawToRenderTarget(OpenGLRenderer& renderer, RenderTargetBase& rt) override {
         RenderStats stats;
 
         // render ssao
@@ -143,8 +143,8 @@ public:
     }
 
 private:
-    glm::uvec2 &windowSize;
-    PerspectiveCamera &camera;
+    glm::uvec2& windowSize;
+    PerspectiveCamera& camera;
 
     Shader ssaoShader;
     Shader ssaoBlurShader;

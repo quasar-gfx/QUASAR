@@ -31,7 +31,7 @@ public:
     DirLightShadowRT shadowMapRenderTarget;
     DirShadowMapMaterial shadowMapMaterial;
 
-    DirectionalLight(const DirectionalLightCreateParams &params)
+    DirectionalLight(const DirectionalLightCreateParams& params)
             : direction(params.direction)
             , distance(params.distance)
             , orthoBoxSize(params.orthoBoxSize)

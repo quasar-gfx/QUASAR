@@ -22,7 +22,7 @@ public:
     float getFar() const override { return left.getFar(); }
     float getNear() const override { return left.getNear(); }
 
-    void setProjectionMatrix(const glm::mat4 &proj);
+    void setProjectionMatrix(const glm::mat4& proj);
     void setProjectionMatrix(float fovy, float aspect, float near, float far);
     void setProjectionMatrices(const glm::mat4 (&projs)[2]);
     glm::mat4 getProjectionMatrix() const;

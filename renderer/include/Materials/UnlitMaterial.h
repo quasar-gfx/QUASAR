@@ -22,7 +22,7 @@ public:
     float maskThreshold = 0.5f;
 
     UnlitMaterial() = default;
-    UnlitMaterial(const UnlitMaterialCreateParams &params);
+    UnlitMaterial(const UnlitMaterialCreateParams& params);
     ~UnlitMaterial();
 
     void bind() const override;

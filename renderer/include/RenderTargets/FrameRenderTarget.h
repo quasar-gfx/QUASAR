@@ -13,7 +13,7 @@ public:
     Texture idBuffer;
     Texture depthStencilBuffer;
 
-    FrameRenderTarget(const RenderTargetCreateParams &params)
+    FrameRenderTarget(const RenderTargetCreateParams& params)
             : RenderTargetBase(params)
             , colorBuffer({
                 .width = width,
@@ -87,7 +87,7 @@ public:
         framebuffer.unbind();
     }
 
-    void blitToRenderTarget(RenderTarget &rt, GLenum filter = GL_NEAREST) {
+    void blitToRenderTarget(RenderTarget& rt, GLenum filter = GL_NEAREST) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, rt.getFramebufferID());
 
@@ -162,19 +162,19 @@ public:
         unbind();
     }
 
-    void saveColorAsPNG(const std::string &path) {
+    void saveColorAsPNG(const std::string& path) {
         bind();
         colorBuffer.saveAsPNG(path);
         unbind();
     }
 
-    void saveColorAsJPG(const std::string &path, int quality = 95) {
+    void saveColorAsJPG(const std::string& path, int quality = 95) {
         bind();
         colorBuffer.saveAsJPG(path, quality);
         unbind();
     }
 
-    void saveColorAsHDR(const std::string &path) {
+    void saveColorAsHDR(const std::string& path) {
         bind();
         colorBuffer.saveAsHDR(path);
         unbind();

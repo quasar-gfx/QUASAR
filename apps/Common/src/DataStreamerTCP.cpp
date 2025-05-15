@@ -2,7 +2,7 @@
 
 using namespace quasar;
 
-int DataStreamerTCP::send(std::vector<char> &data, bool copy) {
+int DataStreamerTCP::send(std::vector<char>& data, bool copy) {
     if (!ready) {
         return -1;
     }
