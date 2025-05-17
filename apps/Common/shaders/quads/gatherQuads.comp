@@ -1,18 +1,6 @@
+#include "quads_utils.glsl"
+
 layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = THREADS_PER_LOCALGROUP, local_size_z = 1) in;
-
-struct QuadMapData {
-    vec3 normal;
-    float depth;
-    uvec2 offset;
-    uint size;
-    bool flattened;
-};
-
-struct QuadMapDataPacked {
-    uint normalSpherical;
-    float depth;
-    uint offsetSizeFlattened;
-};
 
 layout(std430, binding = 0) buffer QuadBufferSizes {
     uint numProxies;
@@ -43,40 +31,8 @@ layout(std430, binding = 6) writeonly buffer OffsetsBufferOutput {
     uint offsetSizeFlattenedsOutput[];
 };
 
-const float PI = 3.1415926535897932384626433832795;
-
 uniform vec2 gBufferSize;
 uniform vec2 quadMapSize;
-
-uint packNormalToSpherical(vec3 normal) {
-    // convert to spherical coordinates
-    float theta = acos(clamp(normal.y, -1.0, 1.0)); // elevation
-    float phi = atan(normal.z, normal.x);           // azimuth
-
-    float thetaSnorm = (theta / PI) * 2.0 - 1.0;
-    float phiSnorm = phi / PI;
-
-    // pack into lower two components, pad upper two with 0
-    return packSnorm4x8(vec4(thetaSnorm, phiSnorm, 0.0, 0.0));
-}
-
-vec3 unpackSphericalToNormal(uint packedNormal) {
-    vec4 unpacked = unpackSnorm4x8(packedNormal);
-
-    float thetaSnorm = unpacked.x;
-    float phiSnorm = unpacked.y;
-
-    float theta = (thetaSnorm + 1.0) * 0.5 * PI;
-    float phi = phiSnorm * PI;
-
-    // ceconstruct normal from spherical coords
-    float y = cos(theta);
-    float r = sin(theta);
-    float x = r * cos(phi);
-    float z = r * sin(phi);
-
-    return normalize(vec3(x, y, z));
-}
 
 QuadMapData loadInputQuadMap(ivec2 pixelCoord) {
     uint index = uint(pixelCoord.y) * uint(quadMapSize.x) + uint(pixelCoord.x);

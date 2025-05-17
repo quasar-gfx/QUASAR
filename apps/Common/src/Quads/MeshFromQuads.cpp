@@ -1,5 +1,7 @@
 #include <Quads/MeshFromQuads.h>
 
+#include <shaders_common.h>
+
 using namespace quasar;
 
 MeshFromQuads::MeshFromQuads(glm::uvec2& remoteWindowSize, uint maxNumProxies)
@@ -13,19 +15,22 @@ MeshFromQuads::MeshFromQuads(glm::uvec2& remoteWindowSize, uint maxNumProxies)
         , quadIndicesBuffer(GL_SHADER_STORAGE_BUFFER, remoteWindowSize.x * remoteWindowSize.y, sizeof(uint), nullptr, GL_DYNAMIC_DRAW)
         , quadCreatedFlagsBuffer(GL_SHADER_STORAGE_BUFFER, maxProxies, sizeof(int), nullptr, GL_DYNAMIC_DRAW)
         , appendQuadsShader({
-            .computeCodePath = "shaders/appendQuads.comp",
+            .computeCodeData = SHADER_COMMON_APPENDQUADS_COMP,
+            .computeCodeSize = SHADER_COMMON_APPENDQUADS_COMP_len,
             .defines = {
                 "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
             }
         })
         , fillQuadIndicesShader({
-            .computeCodePath = "shaders/fillQuadIndices.comp",
+            .computeCodeData = SHADER_COMMON_FILLQUADINDICES_COMP,
+            .computeCodeSize = SHADER_COMMON_FILLQUADINDICES_COMP_len,
             .defines = {
                 "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
             }
         })
         , createMeshFromQuadsShader({
-            .computeCodePath = "shaders/createMeshFromQuads.comp",
+            .computeCodeData = SHADER_COMMON_CREATEMESHFROMQUADS_COMP,
+            .computeCodeSize = SHADER_COMMON_CREATEMESHFROMQUADS_COMP_len,
             .defines = {
                 "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
             }
@@ -78,7 +83,7 @@ void MeshFromQuads::fillQuadIndices(const glm::uvec2& gBufferSize) {
 
     fillQuadIndicesShader.bind();
     {
-        fillQuadIndicesShader.setVec2("remoteWindowSize", gBufferSize);
+        fillQuadIndicesShader.setVec2("gBufferSize", gBufferSize);
     }
     {
         fillQuadIndicesShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, currNumProxiesBuffer);
@@ -108,7 +113,7 @@ void MeshFromQuads::createMeshFromProxies(
 
     createMeshFromQuadsShader.bind();
     {
-        createMeshFromQuadsShader.setVec2("remoteWindowSize", gBufferSize);
+        createMeshFromQuadsShader.setVec2("gBufferSize", gBufferSize);
     }
     {
         createMeshFromQuadsShader.setMat4("view", remoteCamera.getViewMatrix());

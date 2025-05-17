@@ -10,6 +10,7 @@ file(GLOB_RECURSE SRCS
     "${CMAKE_CURRENT_SOURCE_DIR}/*.vert"
     "${CMAKE_CURRENT_SOURCE_DIR}/*.geom"
     "${CMAKE_CURRENT_SOURCE_DIR}/*.comp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.glsl"
 )
 
 set(SHADERS_HEADER "${CMAKE_CURRENT_BINARY_DIR}/shaders_builtin.h")
@@ -21,6 +22,11 @@ add_custom_command(
     DEPENDS ${SRCS})
 
 foreach(GLSL_SRC ${SRCS})
+    # ignore glsl files
+    if (GLSL_SRC MATCHES ".*\\.glsl$")
+        continue()
+    endif()
+
     get_filename_component(FILE_NAME ${GLSL_SRC} NAME_WE)
     get_filename_component(FILE_EXT ${GLSL_SRC} LAST_EXT)
     string(SUBSTRING ${FILE_EXT} 1 -1 FILE_EXT)

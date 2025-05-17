@@ -9,7 +9,7 @@
 #include <Renderers/DeferredRenderer.h>
 #include <Renderers/DepthPeelingRenderer.h>
 
-#include <BlurEdges.h>
+#include <HoleFiller.h>
 
 #include <Path.h>
 #include <Recorder.h>
@@ -150,7 +150,7 @@ int main(int argc, char** argv) {
     });
 
     // post processing
-    BlurEdges blurEdges;
+    HoleFiller holeFiller;
 
     Recorder recorder({
         .width = windowSize.x,
@@ -162,7 +162,7 @@ int main(int argc, char** argv) {
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR
-    }, renderer, blurEdges, outputPath, config.targetFramerate);
+    }, renderer, holeFiller, outputPath, config.targetFramerate);
     CameraAnimator cameraAnimator(cameraPathFile);
 
     if (saveImages) {
@@ -732,9 +732,9 @@ int main(int argc, char** argv) {
         renderStats = renderer.drawObjects(localScene, camera);
 
         // render to screen
-        blurEdges.enableToneMapping(!showNormals);
-        blurEdges.setDepthThreshold(quadsGenerator.params.depthThreshold);
-        blurEdges.drawToScreen(renderer);
+        holeFiller.enableToneMapping(!showNormals);
+        holeFiller.setDepthThreshold(quadsGenerator.params.depthThreshold);
+        holeFiller.drawToScreen(renderer);
         if (!updateClient) {
             return;
         }

@@ -1,5 +1,5 @@
-#ifndef BLUR_EDGES_H
-#define BLUR_EDGES_H
+#ifndef HOLE_FILLER_H
+#define HOLE_FILLER_H
 
 #include <PostProcessing/PostProcessingEffect.h>
 
@@ -7,14 +7,14 @@
 
 namespace quasar {
 
-class BlurEdges : public PostProcessingEffect {
+class HoleFiller : public PostProcessingEffect {
 public:
-    BlurEdges()
+    HoleFiller()
         : shader({
             .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
             .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
-            .fragmentCodeData = SHADER_COMMON_BLUREDGES_FRAG,
-            .fragmentCodeSize = SHADER_COMMON_BLUREDGES_FRAG_len
+            .fragmentCodeData = SHADER_COMMON_HOLEFILLER_FRAG,
+            .fragmentCodeSize = SHADER_COMMON_HOLEFILLER_FRAG_len
         }) {}
 
     void setDepthThreshold(float depthThreshold) {
@@ -43,4 +43,4 @@ private:
 
 } // namespace quasar
 
-#endif // BLUR_EDGES_H
+#endif // HOLE_FILLER_H

@@ -1,74 +1,7 @@
+#include "../camera_utils.glsl"
+#include "quads_utils.glsl"
+
 layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = THREADS_PER_LOCALGROUP, local_size_z = 1) in;
-
-struct QuadMapData {
-    vec3 normal;
-    float depth;
-    uvec2 offset;
-    uint size;
-    bool flattened;
-};
-
-struct QuadMapDataPacked {
-    uint normalSpherical;
-    float depth;
-    uint offsetSizeFlattened;
-};
-
-struct Quad {
-    vec3 bottomLeft;
-    vec3 bottomRight;
-    vec3 topLeft;
-    vec3 topRight;
-};
-
-struct Quad2D {
-    vec2 bottomLeft;
-    vec2 bottomRight;
-    vec2 topLeft;
-    vec2 topRight;
-};
-
-// a Quad subdivided into 4 smaller Quads
-struct MultiQuad {
-    vec3 bottomLeft;
-    vec3 bottom;
-    vec3 bottomRight;
-    vec3 left;
-    vec3 center;
-    vec3 right;
-    vec3 topLeft;
-    vec3 top;
-    vec3 topRight;
-};
-
-struct MultiQuad1D {
-    float bottomLeft;
-    float bottom;
-    float bottomRight;
-    float left;
-    float center;
-    float right;
-    float topLeft;
-    float top;
-    float topRight;
-};
-
-struct MultiQuad2D {
-    vec2 bottomLeft;
-    vec2 bottom;
-    vec2 bottomRight;
-    vec2 left;
-    vec2 center;
-    vec2 right;
-    vec2 topLeft;
-    vec2 top;
-    vec2 topRight;
-};
-
-struct Plane {
-    vec3 normal;
-    vec3 point;
-};
 
 uniform vec2 gBufferSize;
 uniform vec2 quadMapSize;
@@ -86,18 +19,6 @@ uniform bool correctOrientation;
 uniform float depthThreshold;
 uniform float angleThreshold;
 uniform float flattenThreshold;
-
-#define MAX_DEPTH 0.9999
-
-const float epsilon = 1e-5;
-const float PI = 3.1415926535897932384626433832795;
-
-const float surfelSize = 0.5;
-const vec3 origin = vec3(0.0, 0.0, 0.0);
-const vec3 forward = vec3(0.0, 0.0, -1.0);
-const vec3 up = vec3(0.0, 1.0, 0.0);
-const vec3 left = vec3(-1.0, 0.0, 0.0);
-const vec3 right = vec3(1.0, 0.0, 0.0);
 
 layout(std430, binding = 0) writeonly buffer QuadBufferSizes {
     uint numProxies;
@@ -122,47 +43,7 @@ layout(binding = 1) uniform sampler2D depthMap;
 layout(rgba16f, binding = 0) uniform image2D depthOffsetsBuffer;
 layout(rgba16f, binding = 1) uniform image2D colorMap;
 
-vec3 ndcToView(mat4 projectionInverse, vec2 ndc, float depth) {
-    vec4 ndcPos;
-    ndcPos.xy = ndc;
-    ndcPos.z = depth * 2.0 - 1.0;
-    ndcPos.w = 1.0;
-
-    vec4 viewCoord = projectionInverse * ndcPos;
-    viewCoord = viewCoord / viewCoord.w;
-    return viewCoord.xyz;
-}
-
-vec3 viewToNDC(mat4 projection, vec3 viewCoord) {
-    vec4 ndcCoord = projection * vec4(viewCoord, 1.0);
-    ndcCoord = ndcCoord / ndcCoord.w;
-    ndcCoord.z = (ndcCoord.z + 1.0) / 2.0;
-    return ndcCoord.xyz;
-}
-
-vec3 viewToWorld(mat4 viewInverse, vec3 viewCoord) {
-    vec4 worldCoord = viewInverse * vec4(viewCoord, 1.0);
-    worldCoord = worldCoord / worldCoord.w;
-    return worldCoord.xyz;
-}
-
-vec3 worldToView(mat4 view, vec3 worldCoord) {
-    vec4 viewCoord = view * vec4(worldCoord, 1.0);
-    viewCoord = viewCoord / viewCoord.w;
-    return viewCoord.xyz;
-}
-
-vec2 viewToScreen(mat4 projection, vec3 viewCoord) {
-    vec2 ndc = viewToNDC(projection, viewCoord).xy;
-    vec2 uv = (ndc + 1.0) / 2.0;
-    return uv;
-}
-
-bool isValidDepth(float depth) {
-    return depth != 0.0 && depth < MAX_DEPTH;
-}
-
-float unLinearizeDepth(float depth) {
+float UnLinearizeDepth(float depth) {
     float zView = depth * (far - near) + near;
     float z = (zView * (far + near) - 2.0 * near * far) / (zView * (far - near));
     return z * 0.5 + 0.5;
@@ -171,7 +52,7 @@ float unLinearizeDepth(float depth) {
 float normalizeDepth(float depth) {
     depth = clamp(depth, near, far);
     float z = (depth - near) / (far - near);
-    return unLinearizeDepth(z);
+    return UnLinearizeDepth(z);
 }
 
 float sampleDepth(sampler2D depthMap, ivec2 sampleCoord) {
@@ -191,26 +72,6 @@ vec3 normalToView(mat4 view, vec3 normalWorld) {
     // extract the rotation part of the view matrix
     mat3 rotationMatrix = mat3(view);
     return normalize(rotationMatrix * normalWorld);
-}
-
-vec3 rayPlaneIntersection(vec3 rayOrigin, vec3 rayDirection, Plane plane) {
-    float denominator = dot(rayDirection, plane.normal);
-    if (abs(denominator) < epsilon) {
-        return vec3(1.0/0.0);
-    }
-
-    float t = dot(plane.point - rayOrigin, plane.normal) / denominator;
-    if (t < 0.0) {
-        return vec3(1.0/0.0);
-    }
-
-    vec3 intersection = rayOrigin + t * rayDirection;
-    return intersection;
-}
-
-vec3 pointPlaneIntersection(vec3 pt, Plane plane) {
-    vec3 rayDirection = normalize(pt);
-    return rayPlaneIntersection(origin, rayDirection, plane);
 }
 
 vec3 findQuadPointCorner(
@@ -449,18 +310,6 @@ void createSurfels(
     surfelView.topRight    = surfelViewTopRight;
 }
 
-uint packNormalToSpherical(vec3 normal) {
-    // convert to spherical coordinates
-    float theta = acos(clamp(normal.y, -1.0, 1.0)); // elevation
-    float phi = atan(normal.z, normal.x);           // azimuth
-
-    float thetaSnorm = (theta / PI) * 2.0 - 1.0;
-    float phiSnorm = phi / PI;
-
-    // pack into lower two components, pad upper two with 0
-    return packSnorm4x8(vec4(thetaSnorm, phiSnorm, 0.0, 0.0));
-}
-
 void storeQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
     QuadMapDataPacked quadMapDataPacked;
     quadMapDataPacked.normalSpherical = packNormalToSpherical(quadMapData.normal);
@@ -509,7 +358,7 @@ void storeSurfelsInQuadMap(
 
     // project the center of the quad onto the proxy plane to find uv for proxy plane
     vec3 planeCenterPt = pointPlaneIntersection(quadCenterNearPlane, proxyPlane);
-    vec3 proxyPlaneNDC = viewToNDC(projection, planeCenterPt);
+    vec3 proxyPlaneNDC = viewToNDC3(projection, planeCenterPt);
     float proxyPlaneDepth = min(proxyPlaneNDC.z, MAX_DEPTH);
 
     // if all surfels are below the threshold, then the plane is considered flattened

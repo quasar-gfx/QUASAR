@@ -1,6 +1,8 @@
 #include <Quads/QuadsGenerator.h>
 #include <Utils/TimeUtils.h>
 
+#include <shaders_common.h>
+
 #define THREADS_PER_LOCALGROUP 2 // 2x2 = 4 threads per pixel
 
 #define MAX_PROXY_SIZE (2048)
@@ -13,19 +15,22 @@ QuadsGenerator::QuadsGenerator(glm::uvec2& remoteWindowSize)
         , maxProxies(remoteWindowSize.x * remoteWindowSize.y)
         , sizesBuffer(GL_SHADER_STORAGE_BUFFER, 1, sizeof(BufferSizes), nullptr, GL_DYNAMIC_COPY)
         , genQuadMapShader({
-            .computeCodePath = "shaders/genQuadMap.comp",
+            .computeCodeData = SHADER_COMMON_GENQUADMAP_COMP,
+            .computeCodeSize = SHADER_COMMON_GENQUADMAP_COMP_len,
             .defines = {
                 "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
             }
         })
         , simplifyQuadMapShader({
-            .computeCodePath = "shaders/simplifyQuadMap.comp",
+            .computeCodeData = SHADER_COMMON_SIMPLIFYQUADMAP_COMP,
+            .computeCodeSize = SHADER_COMMON_SIMPLIFYQUADMAP_COMP_len,
             .defines = {
                 "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
             }
         })
         , gatherQuadsShader({
-            .computeCodePath = "shaders/gatherQuads.comp",
+            .computeCodeData = SHADER_COMMON_GATHERQUADS_COMP,
+            .computeCodeSize = SHADER_COMMON_GATHERQUADS_COMP_len,
             .defines = {
                 "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
             }
