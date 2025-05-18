@@ -1,4 +1,4 @@
-# QUASAR
+# ![logo](docs/images/quasar_logo.png)
 
 ## Install Dependencies
 

@@ -268,9 +268,6 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
 
             ivec2 depthOffsetPixelCoords = 2 * ivec2(quadMapData.offset) + ivec2(i, j);
             vec4 depthOffsets = loadDepthOffsets(depthOffsetPixelCoords);
-            // ivec4 depthOffsetsQuantized;
-            // quantizeDepthOffsets(depthOffsets, depthOffsetsQuantized); // quantize depth offsets
-            // unQuantizeDepthOffsets(depthOffsetsQuantized, depthOffsets); // recover depth offsets
             Quad surfel;
             createSurfel(surfel, surfelPixelCoords, depthOffsets, proxyPlane);
 
