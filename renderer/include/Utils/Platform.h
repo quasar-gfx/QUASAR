@@ -19,7 +19,7 @@
     #include <glad/glad.h>
 #endif
 
-// type aliases for convenience
+// Type aliases for convenience
 #ifndef uint
     typedef unsigned int uint;
 #endif

@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
         spdlog::set_level(spdlog::level::debug);
     }
 
-    // parse size
+    // Parse size
     std::string sizeStr = args::get(sizeIn);
     size_t pos = sizeStr.find('x');
     glm::uvec2 windowSize = glm::uvec2(std::stoi(sizeStr.substr(0, pos)), std::stoi(sizeStr.substr(pos + 1)));
@@ -109,11 +109,11 @@ int main(int argc, char** argv) {
         remoteCameras[view].updateViewMatrix();
     }
 
-    // make last camera have a larger fov
+    // Make last camera have a larger fov
     remoteCameras[maxViews-1].setFovyDegrees(120.0f);
     remoteCameras[maxViews-1].setViewMatrix(remoteCameraCenter.getViewMatrix());
 
-    // post processing
+    // Post processing
     ToneMapper toneMapper;
     toneMapper.enableToneMapping(false);
 
@@ -170,11 +170,11 @@ int main(int argc, char** argv) {
     for (int view = 0; view < maxViews; view++) {
         startTime = window->getTime();
 
-        // load proxies
+        // Load proxies
         Path quadProxiesFileName = (outputPath / "quads").appendToName(std::to_string(view)).withExtension(".bin.zstd");
         uint numProxies = quadBuffers.loadFromFile(quadProxiesFileName, &numBytes);
         numBytesProxies += numBytes;
-        // load depth offsets
+        // Load depth offsets
         Path depthOffsetsFileName = (outputPath / "depthOffsets").appendToName(std::to_string(view)).withExtension(".bin.zstd");
         uint numDepthOffsets = depthOffsets.loadFromFile(depthOffsetsFileName, &numBytes);
         numBytesDepthOffsets += numBytes;
@@ -217,7 +217,7 @@ int main(int argc, char** argv) {
         nodes[view]->frustumCulled = false;
         scene.addChildNode(nodes[view]);
 
-        // primary view color is yellow
+        // Primary view color is yellow
         glm::vec4 color = (view == 0) ? glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) :
                 glm::vec4(fmod(view * 0.6180339887f, 1.0f),
                             fmod(view * 0.9f, 1.0f),
@@ -368,7 +368,7 @@ int main(int argc, char** argv) {
     });
 
     app.onRender([&](double now, double dt) {
-        // handle mouse input
+        // Handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
             auto mouseButtons = window->getMouseButtons();
             window->setMouseCursor(!mouseButtons.LEFT_PRESSED);
@@ -416,14 +416,14 @@ int main(int argc, char** argv) {
             nodes[i]->visible = showLayer;
         }
 
-        // render all objects in scene
+        // Render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);
 
-        // render to screen
+        // Render to screen
         toneMapper.drawToScreen(renderer);
     });
 
-    // run app loop (blocking)
+    // Run app loop (blocking)
     app.run();
 
     return 0;

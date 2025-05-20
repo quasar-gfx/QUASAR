@@ -64,12 +64,12 @@ vec3 sampleNormal(sampler2D normalsMap, ivec2 sampleCoord) {
 }
 
 vec3 normalToView(mat4 view, vec3 normalWorld) {
-    // skybox normals might be NaN, just set normal to face the camera
+    // Skybox normals might be NaN, just set normal to face the camera
     if (any(isnan(normalWorld))) {
         return -forward;
     }
 
-    // extract the rotation part of the view matrix
+    // Extract the rotation part of the view matrix
     mat3 rotationMatrix = mat3(view);
     return normalize(rotationMatrix * normalWorld);
 }
@@ -86,12 +86,12 @@ vec3 findQuadPointCorner(
         return surfelViewPlane;
     }
 
-    // find distance of depth of point on this pixel's plane to the same point on neighboring pixels' planes
+    // Find distance of depth of point on this pixel's plane to the same point on neighboring pixels' planes
     float dist1 = normalizeDepth(distance(surfelViewPlane, surfelViewPlanePixelNeighbor1));
     float dist2 = normalizeDepth(distance(surfelViewPlane, surfelViewPlanePixelNeighbor2));
     float dist3 = normalizeDepth(distance(surfelViewPlane, surfelViewPlanePixelNeighbor3));
 
-    // add the contribution of each neighboring pixel to interpolated depth, if it is within depthThreshold
+    // Add the contribution of each neighboring pixel to interpolated depth, if it is within depthThreshold
     float depth = pixelDepthCenter;
     float n = 1;
     if (dist1 < depthThreshold) {
@@ -108,7 +108,7 @@ vec3 findQuadPointCorner(
     }
     depth /= n;
 
-    // only return the interpolated point if all neighboring pixels are within depthThreshold
+    // Only return the interpolated point if all neighboring pixels are within depthThreshold
     vec3 surfelViewBottomLeftInterp = ndcToView(projectionInverse, surfelNDC, depth);
     if (n == 4) {
         return surfelViewBottomLeftInterp;
@@ -126,7 +126,7 @@ vec3 findQuadPointEdge(
         return surfelViewPlane;
     }
 
-    // return interpolated point if neighboring pixel's depth is within depthThreshold
+    // Return interpolated point if neighboring pixel's depth is within depthThreshold
     if (normalizeDepth(distance(surfelViewPlane, surfelViewPlanePixelNeighbor)) < depthThreshold) {
         float depth = (pixelDepthCenter + pixelDepthNeighbor) / 2.0;
         return ndcToView(projectionInverse, surfelNDC, depth);
@@ -143,14 +143,14 @@ vec3 constrainToMaxAngle(in vec3 centerNormal, in vec3 frustumNormalView) {
     float maxCos = cos(angleThreshold);
     float dotProduct = dot(centerNormal, frustumNormalView);
 
-    // project the centerNormal onto the plane orthogonal to frustumNormalView
+    // Project the centerNormal onto the plane orthogonal to frustumNormalView
     vec3 frustumNormalUnit = normalize(frustumNormalView);
     vec3 projectedNormal = centerNormal - dot(centerNormal, frustumNormalUnit) * frustumNormalUnit;
 
-    // normalize the projected normal and scale it to the cone surface
+    // Normalize the projected normal and scale it to the cone surface
     vec3 constrainedNormal = normalize(projectedNormal) * sqrt(1.0 - maxCos * maxCos);
 
-    // add the component along the frustumNormalView to make the vector within the cone
+    // Add the component along the frustumNormalView to make the vector within the cone
     constrainedNormal += frustumNormalUnit * maxCos;
     return normalize(constrainedNormal);
 }
@@ -182,7 +182,7 @@ void createSurfels(
     in MultiQuad surfelViewNearPlane, in MultiQuad pixelCoordsView,
     in MultiQuad pixelNormalsView, in MultiQuad1D pixelDepths
 ) {
-    // create planes for each pixel
+    // Create planes for each pixel
     Plane planeBottomLeft  = Plane(pixelNormalsView.bottomLeft, pixelCoordsView.bottomLeft);
     Plane planeBottom      = Plane(pixelNormalsView.bottom, pixelCoordsView.bottom);
     Plane planeBottomRight = Plane(pixelNormalsView.bottomRight, pixelCoordsView.bottomRight);
@@ -193,7 +193,7 @@ void createSurfels(
     Plane planeTop         = Plane(pixelNormalsView.top, pixelCoordsView.top);
     Plane planeTopRight    = Plane(pixelNormalsView.topRight, pixelCoordsView.topRight);
 
-    // find all points on a ray going through each coordinate intersecting a plane defined by neighboring pixels
+    // Find all points on a ray going through each coordinate intersecting a plane defined by neighboring pixels
     vec3 surfelViewBottomLeftPlane                = pointPlaneIntersection(surfelViewNearPlane.bottomLeft, planeCenter);
     vec3 surfelViewBottomLeftPlanePixelBottomLeft = pointPlaneIntersection(surfelViewNearPlane.bottomLeft, planeBottomLeft);
     vec3 surfelViewBottomLeftPlanePixelBottom     = pointPlaneIntersection(surfelViewNearPlane.bottomLeft, planeBottom);
@@ -240,7 +240,7 @@ void createSurfels(
 
     **********************************/
 
-    // adjust points
+    // Adjust points
     vec3 surfelViewBottomLeft = findQuadPointCorner(
         surfelNDCs.bottomLeft,
         surfelViewBottomLeftPlane,
@@ -345,23 +345,23 @@ void storeSurfelsInQuadMap(
     proxyPlane.normal = proxyPlaneNormal;
     proxyPlane.point = proxyPlanePt;
 
-    // find depth offsets for each corner of the quad
+    // Find depth offsets for each corner of the quad
     vec4 depthOffsetsBottomLeft  = findDepthOffsets(surfelBottomLeft, proxyPlane);
     vec4 depthOffsetsBottomRight = findDepthOffsets(surfelBottomRight, proxyPlane);
     vec4 depthOffsetsTopLeft     = findDepthOffsets(surfelTopLeft, proxyPlane);
     vec4 depthOffsetsTopRight    = findDepthOffsets(surfelTopRight, proxyPlane);
 
-    // find 3d point of center of proxy
+    // Find 3d point of center of proxy
     vec2 quadCenterUV = quadCenterPixelCoord / gBufferSize;
     vec2 quadCenterNDC = quadCenterUV * 2.0 - 1.0;
     vec3 quadCenterNearPlane = ndcToView(projectionInverse, quadCenterNDC, 0.0);
 
-    // project the center of the quad onto the proxy plane to find uv for proxy plane
+    // Project the center of the quad onto the proxy plane to find uv for proxy plane
     vec3 planeCenterPt = pointPlaneIntersection(quadCenterNearPlane, proxyPlane);
     vec3 proxyPlaneNDC = viewToNDC3(projection, planeCenterPt);
     float proxyPlaneDepth = min(proxyPlaneNDC.z, MAX_DEPTH);
 
-    // if all surfels are below the threshold, then the plane is considered flattened
+    // If all surfels are below the threshold, then the plane is considered flattened
     vec4 absDepthOffsetsBottomLeft  = abs(depthOffsetsBottomLeft);
     vec4 absDepthOffsetsBottomRight = abs(depthOffsetsBottomRight);
     vec4 absDepthOffsetsTopLeft     = abs(depthOffsetsTopLeft);
@@ -398,7 +398,7 @@ void storeSurfelsInQuadMap(
     quadMapData.size = 1; // 2x2 surfels, store as a power of 2
     storeQuadMap(pixelCoord, quadMapData);
 
-    // store empty depth offsets if the proxy plane is flattened
+    // Store empty depth offsets if the proxy plane is flattened
     if (quadMapData.flattened) {
         depthOffsetsBottomLeft  = vec4(0.0);
         depthOffsetsBottomRight = vec4(0.0);
@@ -432,18 +432,18 @@ void main() {
         return;
     }
 
-    // reset buffers on first invocation
+    // Reset buffers on first invocation
     if (pixelCoord == ivec2(0)) {
         atomicExchange(numProxies, 0u);
         atomicExchange(numDepthOffsets, 0u);
     }
 
-    // store an empty plane to clear the output quad map
+    // Store an empty plane to clear the output quad map
     QuadMapData ignoredQuadMapData;
     ignoredQuadMapData.size = 0;
     storeQuadMap(pixelCoord, ignoredQuadMapData);
 
-    // calculate coords (see above)
+    // Calculate coords (see above)
     vec2 surfelCornerCoordBottomLeft = vec2(pixelCoord);
     vec2 pixelCenterCoord = surfelCornerCoordBottomLeft + vec2(0.5, 0.5);
     vec2 surfelCenterCoord = pixelCenterCoord;
@@ -473,7 +473,7 @@ void main() {
     surfelCornerCoords.top         = surfelCenterCoord + vec2(+0.0, +0.5);
     surfelCornerCoords.topRight    = surfelCenterCoord + vec2(+0.5, +0.5);
 
-    // sample texture maps
+    // Sample texture maps
     MultiQuad1D pixelDepths;
     pixelDepths.bottomLeft  = sampleDepth(depthMap, ivec2(pixelNeighborCoords.bottomLeft));
     pixelDepths.bottom      = sampleDepth(depthMap, ivec2(pixelNeighborCoords.bottom));
@@ -485,7 +485,7 @@ void main() {
     pixelDepths.top         = sampleDepth(depthMap, ivec2(pixelNeighborCoords.top));
     pixelDepths.topRight    = sampleDepth(depthMap, ivec2(pixelNeighborCoords.topRight));
 
-    // transform normals to view space
+    // Transform normals to view space
     MultiQuad pixelNormalsView;
     pixelNormalsView.bottomLeft  = normalToView(view, sampleNormal(normalsMap, ivec2(pixelNeighborCoords.bottomLeft)));
     pixelNormalsView.bottom      = normalToView(view, sampleNormal(normalsMap, ivec2(pixelNeighborCoords.bottom)));
@@ -497,7 +497,7 @@ void main() {
     pixelNormalsView.top         = normalToView(view, sampleNormal(normalsMap, ivec2(pixelNeighborCoords.top)));
     pixelNormalsView.topRight    = normalToView(view, sampleNormal(normalsMap, ivec2(pixelNeighborCoords.topRight)));
 
-    // project 2D points to 3D view space
+    // Project 2D points to 3D view space
     MultiQuad2D pixelCenterNDCs;
     pixelCenterNDCs.bottomLeft  = (pixelNeighborCoords.bottomLeft  / gBufferSize) * 2.0 - 1.0;
     pixelCenterNDCs.bottom      = (pixelNeighborCoords.bottom      / gBufferSize) * 2.0 - 1.0;
@@ -509,7 +509,7 @@ void main() {
     pixelCenterNDCs.top         = (pixelNeighborCoords.top         / gBufferSize) * 2.0 - 1.0;
     pixelCenterNDCs.topRight    = (pixelNeighborCoords.topRight    / gBufferSize) * 2.0 - 1.0;
 
-    // if there is an empty sample, check if we should expand the edges
+    // If there is an empty sample, check if we should expand the edges
     if (!isValidDepth(pixelDepths.center)) {
         if (!expandEdges) {
             return;
@@ -576,14 +576,14 @@ void main() {
     pixelCoordsView.top         = ndcToView(projectionInverse, pixelCenterNDCs.top, pixelDepths.top);
     pixelCoordsView.topRight    = ndcToView(projectionInverse, pixelCenterNDCs.topRight, pixelDepths.topRight);
 
-    // fix extreme orientations
+    // Fix extreme orientations
     vec3 frustumNormalView = normalize(origin - pixelCoordsView.center);
     if (correctOrientation && quadHasExtremeOrientation(pixelNormalsView.center, frustumNormalView)) {
-        // if the quad has an extreme orientation, constrain the center normal
+        // If the quad has an extreme orientation, constrain the center normal
         pixelNormalsView.center = constrainToMaxAngle(pixelNormalsView.center, frustumNormalView);
     }
 
-    // project all points to near plane
+    // Project all points to near plane
     MultiQuad surfelViewNearPlane;
     surfelViewNearPlane.bottomLeft  = ndcToView(projectionInverse, surfelNDCs.bottomLeft, 0.0);
     surfelViewNearPlane.bottom      = ndcToView(projectionInverse, surfelNDCs.bottom, 0.0);
@@ -595,7 +595,7 @@ void main() {
     surfelViewNearPlane.top         = ndcToView(projectionInverse, surfelNDCs.top, 0.0);
     surfelViewNearPlane.topRight    = ndcToView(projectionInverse, surfelNDCs.topRight, 0.0);
 
-    // create surfels
+    // Create surfels
     MultiQuad surfelView;
     createSurfels(surfelView, surfelNDCs, surfelViewNearPlane, pixelCoordsView, pixelNormalsView, pixelDepths);
 
@@ -659,7 +659,7 @@ void main() {
     subQuadTopRight.bottomLeft = surfelView.center;
     subQuadTopRight.bottomRight = surfelView.right;
 
-    // save quads in quad map
+    // Save quads in quad map
     storeSurfelsInQuadMap(
         pixelCoord,
         pixelNeighborCoords.center,

@@ -217,7 +217,7 @@ struct GraphicsPipeline {
         }
 
 #ifdef GL_CORE
-        // sRGB Framebuffer Configuration
+        // SRGB Framebuffer Configuration
         if (rasterState.sRGB) {
             glEnable(GL_FRAMEBUFFER_SRGB);
         }

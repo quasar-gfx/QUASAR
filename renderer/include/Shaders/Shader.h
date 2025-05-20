@@ -5,7 +5,7 @@
 
 #include <Shaders/ShaderBase.h>
 
-// pre-stored shaders
+// Pre-stored shaders
 #include <shaders_builtin.h>
 
 namespace quasar {

@@ -64,16 +64,16 @@ void main() {
         prevNumProxies = currNumProxies;
     }
 
-    // reset quadCreatedFlags
+    // Reset quadCreatedFlags
     quadCreatedFlags[quadIndex] = 0;
 
     if (quadIndex >= currNumProxies) {
         return;
     }
 
-    // uncomment for debugging:
-    // ivec2 pixelCoords = ivec2(quadIndex % uint(gBufferSize.x), quadIndex / uint(gBufferSize.x));
-    // storeQuadIndex(pixelCoords, quadIndex);
+    // Uncomment for debugging:
+    // Ivec2 pixelCoords = ivec2(quadIndex % uint(gBufferSize.x), quadIndex / uint(gBufferSize.x));
+    // StoreQuadIndex(pixelCoords, quadIndex);
 
     QuadMapData quadMapData = loadQuadMap(quadIndex);
     if (quadMapData.size == 0u) {
@@ -83,7 +83,7 @@ void main() {
     uint halfSize = 1u << (quadMapData.size - 1u); // 2^size / 2
     ivec2 proxyPlanePixelCoord = ivec2(quadMapData.offset);
 
-    // put quadIndex into quadIndices
+    // Put quadIndex into quadIndices
     ivec2 baseCoord = proxyPlanePixelCoord;
     for (uint idx = 0u; idx < halfSize * halfSize; idx++) {
         uint i = idx % halfSize;

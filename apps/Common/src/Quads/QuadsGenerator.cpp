@@ -37,7 +37,7 @@ QuadsGenerator::QuadsGenerator(glm::uvec2& remoteWindowSize)
         })
         , quadBuffers(maxProxies)
         , depthOffsets(depthOffsetBufferSize) {
-    // make sure maxProxySize is a power of 2
+    // Make sure maxProxySize is a power of 2
     glm::uvec2 maxProxySize = remoteWindowSize;
     maxProxySize.x = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize.x))));
     maxProxySize.y = 1 << static_cast<int>(glm::ceil(glm::log2(static_cast<float>(maxProxySize.y))));
@@ -45,7 +45,7 @@ QuadsGenerator::QuadsGenerator(glm::uvec2& remoteWindowSize)
 
     numQuadMaps = glm::log2(static_cast<float>(glm::min(maxProxySize.x, maxProxySize.y)));
 
-    // create quad buffers
+    // Create quad buffers
     quadMaps.reserve(numQuadMaps);
     quadMapSizes.reserve(numQuadMaps);
 

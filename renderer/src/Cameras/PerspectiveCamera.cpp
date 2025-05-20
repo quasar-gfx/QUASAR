@@ -91,7 +91,7 @@ void PerspectiveCamera::processMouseMovement(float xoffset, float yoffset, bool 
     yaw   += xoffset * mouseSensitivity;
     pitch += yoffset * mouseSensitivity;
 
-    // make sure that when pitch is out of bounds, screen doesn't get flipped
+    // Make sure that when pitch is out of bounds, screen doesn't get flipped
     if (constrainPitch) {
         if (pitch > 89.0f)
             pitch = 89.0f;
@@ -112,14 +112,14 @@ void PerspectiveCamera::updateCameraOrientation() {
 }
 
 void PerspectiveCamera::setOrientationFromYawPitch() {
-    // calculate the new front vector
+    // Calculate the new front vector
     glm::vec3 newFront;
     newFront.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
     newFront.y = sin(glm::radians(pitch));
     newFront.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
     front = glm::normalize(newFront);
 
-    // also re-calculate the right and up vector
+    // Also re-calculate the right and up vector
     right = glm::normalize(glm::cross(front, worldUp));
     up = glm::normalize(glm::cross(right, front));
 

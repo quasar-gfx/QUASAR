@@ -54,12 +54,12 @@ void DataStreamerTCP::sendData() {
 
         int startSendTime = timeutils::getTimeMicros();
 
-        // add header
+        // Add header
         int dataSize = data.size();
         std::vector<char> header(sizeof(dataSize));
         std::memcpy(header.data(), &dataSize, sizeof(dataSize));
 
-        // send header
+        // Send header
         int totalSent = 0;
         while (totalSent < header.size()) {
             int sent = socket.sendToClient(clientSocketID, header.data() + totalSent, header.size() - totalSent, 0);
@@ -73,7 +73,7 @@ void DataStreamerTCP::sendData() {
             }
         }
 
-        // send data
+        // Send data
         totalSent = 0;
         while (totalSent < data.size()) {
             int sent = socket.sendToClient(clientSocketID, data.data() + totalSent, data.size() - totalSent, 0);

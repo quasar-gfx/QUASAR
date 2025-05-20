@@ -3,8 +3,8 @@ in vec2 TexCoords;
 
 const float PI = 3.14159265359;
 
-// http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
-// efficient VanDerCorpus calculation.
+// Http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
+// Efficient VanDerCorpus calculation.
 float RadicalInverse_VdC(uint bits) {
      bits = (bits << 16u) | (bits >> 16u);
      bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
@@ -25,13 +25,13 @@ vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness) {
 	float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (a*a - 1.0) * Xi.y));
 	float sinTheta = sqrt(1.0 - cosTheta*cosTheta);
 
-	// from spherical coordinates to cartesian coordinates - halfway vector
+	// From spherical coordinates to cartesian coordinates - halfway vector
 	vec3 H;
 	H.x = cos(phi) * sinTheta;
 	H.y = sin(phi) * sinTheta;
 	H.z = cosTheta;
 
-	// from tangent-space H vector to world-space sample vector
+	// From tangent-space H vector to world-space sample vector
 	vec3 up          = abs(N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
 	vec3 tangent   = normalize(cross(up, N));
 	vec3 bitangent = cross(N, tangent);
@@ -41,7 +41,7 @@ vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness) {
 }
 
 float GeometrySchlickGGX(float NdotV, float roughness) {
-    // note that we use a different k for IBL
+    // Note that we use a different k for IBL
     float a = roughness;
     float k = (a * a) / 2.0;
 
@@ -73,8 +73,8 @@ vec2 IntegrateBRDF(float NdotV, float roughness) {
 
     const uint SAMPLE_COUNT = 1024u;
     for (uint i = 0u; i < SAMPLE_COUNT; i++) {
-        // generates a sample vector that's biased towards the
-        // preferred alignment direction (importance sampling).
+        // Generates a sample vector that's biased towards the
+        // Preferred alignment direction (importance sampling).
         vec2 Xi = Hammersley(i, SAMPLE_COUNT);
         vec3 H = ImportanceSampleGGX(Xi, N, roughness);
         vec3 L = normalize(2.0 * dot(V, H) * H - V);

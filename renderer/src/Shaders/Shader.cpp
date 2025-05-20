@@ -7,7 +7,7 @@ void Shader::loadFromFiles(const std::string vertexPath, const std::string fragm
     std::string vertexCode = FileIO::loadTextFile(vertexPath);
     std::string fragmentCode = FileIO::loadTextFile(fragmentPath);
 
-    // if geometry shader path is present, also load a geometry shader
+    // If geometry shader path is present, also load a geometry shader
     std::string geometryCode;
     if (geometryPath != "") {
         geometryCode = FileIO::loadTextFile(geometryPath);
@@ -33,19 +33,19 @@ void Shader::loadFromData(const char* vertexCodeData, const GLint vertexCodeSize
 void Shader::createAndCompileProgram(const char* vertexCodeData, const GLint vertexCodeSize,
                                      const char* fragmentCodeData, const GLint fragmentCodeSize,
                                      const char* geometryData, const GLint geometryDataSize) {
-    // compile vertex shader
+    // Compile vertex shader
     GLuint vertex = createShader(version, extensions, defines, vertexCodeData, vertexCodeSize, ShaderType::VERTEX);
 
-    // compile fragment shader
+    // Compile fragment shader
     GLuint fragment = createShader(version, extensions, defines, fragmentCodeData, fragmentCodeSize, ShaderType::FRAGMENT);
 
-    // if geometry shader is given, compile geometry shader
+    // If geometry shader is given, compile geometry shader
     GLuint geometry;
     if (geometryData != nullptr) {
         geometry = createShader(version, extensions, defines, geometryData, geometryDataSize, ShaderType::GEOMETRY);
     }
 
-    // shader Program
+    // Shader Program
     ID = glCreateProgram();
     glAttachShader(ID, vertex);
     glAttachShader(ID, fragment);
@@ -56,7 +56,7 @@ void Shader::createAndCompileProgram(const char* vertexCodeData, const GLint ver
     glLinkProgram(ID);
     checkCompileErrors(ID, ShaderType::PROGRAM);
 
-    // delete the shaders as they're linked into our program now and no longer necessary
+    // Delete the shaders as they're linked into our program now and no longer necessary
     glDeleteShader(vertex);
     glDeleteShader(fragment);
     if (geometryData != nullptr) {

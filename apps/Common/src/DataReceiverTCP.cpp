@@ -31,7 +31,7 @@ void DataReceiverTCP::close() {
 }
 
 void DataReceiverTCP::recvData() {
-    // attempt to connect to the server
+    // Attempt to connect to the server
     while (true) {
         if (socket.connect(url) < 0) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -51,7 +51,7 @@ void DataReceiverTCP::recvData() {
 
         int receiveStartTime = timeutils::getTimeMicros();
 
-        // read header first to determine the size of the incoming data packet
+        // Read header first to determine the size of the incoming data packet
         while (ready && expectedSize == 0) {
             received = socket.recv(buffer, sizeof(expectedSize), 0);
             if (received < 0) {
@@ -72,7 +72,7 @@ void DataReceiverTCP::recvData() {
             continue;
         }
 
-        // read the actual data based on the expected size
+        // Read the actual data based on the expected size
         int totalReceived = 0;
         while (ready && totalReceived < expectedSize) {
             received = socket.recv(buffer, std::min(MAX_RECV_SIZE, expectedSize - totalReceived), 0);
@@ -87,7 +87,7 @@ void DataReceiverTCP::recvData() {
             totalReceived += received;
 
             if (received == 0) {
-                // connection closed
+                // Connection closed
                 ready = false;
                 break;
             }

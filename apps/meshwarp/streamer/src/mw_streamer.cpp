@@ -62,7 +62,7 @@ int main(int argc, char** argv) {
         spdlog::set_level(spdlog::level::debug);
     }
 
-    // parse size
+    // Parse size
     std::string sizeStr = args::get(sizeIn);
     size_t pos = sizeStr.find('x');
     glm::uvec2 windowSize = glm::uvec2(std::stoi(sizeStr.substr(0, pos)), std::stoi(sizeStr.substr(pos + 1)));
@@ -95,7 +95,7 @@ int main(int argc, char** argv) {
     SceneLoader loader;
     loader.loadScene(sceneFile, scene, camera);
 
-    // set fov
+    // Set fov
     camera.setFovyDegrees(args::get(fovIn));
 
     glm::vec3 initialPosition = camera.getPosition();
@@ -126,7 +126,7 @@ int main(int argc, char** argv) {
 
     PoseReceiver poseReceiver = PoseReceiver(&camera, poseURL);
 
-    // post processing
+    // Post processing
     ToneMapper toneMapper;
     ShowDepthEffect showDepthEffect(camera);
 
@@ -221,7 +221,7 @@ int main(int argc, char** argv) {
     });
 
     app.onRender([&](double now, double dt) {
-        // handle keyboard input
+        // Handle keyboard input
         auto keys = window->getKeys();
         if (keys.ESC_PRESSED) {
             window->close();
@@ -231,25 +231,25 @@ int main(int argc, char** argv) {
             return;
         }
 
-        // update all animations
+        // Update all animations
         scene.updateAnimations(dt);
 
-        // receive pose
+        // Receive pose
         pose_id_t poseID = poseReceiver.receivePose(false);
         if (poseID != -1) {
 
-            // offset camera
+            // Offset camera
             camera.setPosition(camera.getPosition() + initialPosition);
             camera.updateViewMatrix();
 
-            // render all objects in scene
+            // Render all objects in scene
             renderStats = renderer.drawObjects(scene, camera);
 
-            // restore camera position
+            // Restore camera position
             camera.setPosition(camera.getPosition() - initialPosition);
             camera.updateViewMatrix();
 
-            // copy color and depth to video frames
+            // Copy color and depth to video frames
             toneMapper.drawToRenderTarget(renderer, videoStreamerColorRT);
             showDepthEffect.drawToRenderTarget(renderer, bc4DepthStreamerRT);
 
@@ -257,13 +257,13 @@ int main(int argc, char** argv) {
             if (pauseState != PauseState::PAUSE_DEPTH) bc4DepthStreamerRT.sendFrame(poseID);
         }
 
-        // render to screen
+        // Render to screen
         if (config.showWindow) {
             toneMapper.drawToScreen(renderer);
         }
     });
 
-    // run app loop (blocking)
+    // Run app loop (blocking)
     app.run();
 
     spdlog::info("Please do CTRL-C to exit!");

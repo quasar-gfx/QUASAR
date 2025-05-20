@@ -29,7 +29,7 @@ vec3 performToneMapping(vec3 color) {
     return color;
 }
 
-// adapted from: https://github.com/KTStephano/StratusGFX/blob/master/Source/Shaders/fxaa_smoothing.fs
+// Adapted from: https://github.com/KTStephano/StratusGFX/blob/master/Source/Shaders/fxaa_smoothing.fs
 void main() {
     vec3 color = texture(screenColor, TexCoords).rgb;
     float lumaCenter = computeLuminance(color);

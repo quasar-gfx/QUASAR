@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
         spdlog::set_level(spdlog::level::debug);
     }
 
-    // parse size
+    // Parse size
     std::string sizeStr = args::get(sizeIn);
     size_t pos = sizeStr.find('x');
     glm::uvec2 windowSize = glm::uvec2(std::stoi(sizeStr.substr(0, pos)), std::stoi(sizeStr.substr(pos + 1)));
@@ -112,11 +112,11 @@ int main(int argc, char** argv) {
         .magFilter = GL_NEAREST
     }, depthURL);
 
-    // "remote" camera
+    // "Remote" camera
     PerspectiveCamera remoteCamera(videoTextureColor.width, videoTextureColor.height);
     remoteCamera.setFovyDegrees(args::get(fovIn));
 
-    // "local" scene
+    // "Local" scene
     Scene scene;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
 
@@ -146,7 +146,7 @@ int main(int argc, char** argv) {
     nodeWireframe.overrideMaterial = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
     scene.addChildNode(&nodeWireframe);
 
-    // post processing
+    // Post processing
     ToneMapper toneMapper;
     toneMapper.enableToneMapping(false);
 
@@ -342,7 +342,7 @@ int main(int argc, char** argv) {
     });
 
     app.onRender([&](double now, double dt) {
-        // handle mouse input
+        // Handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
             auto mouseButtons = window->getMouseButtons();
             window->setMouseCursor(!mouseButtons.LEFT_PRESSED);
@@ -384,15 +384,15 @@ int main(int argc, char** argv) {
         auto scroll = window->getScrollOffset();
         camera.processScroll(scroll.y);
 
-        // send pose to streamer
+        // Send pose to streamer
         poseStreamer.sendPose();
 
-        // render color video frame
+        // Render color video frame
         videoTextureColor.bind();
         poseIdColor = videoTextureColor.draw();
         videoTextureColor.unbind();
 
-        // render depth video frame
+        // Render depth video frame
         if (sync) {
             poseIdDepth = videoTextureDepth.draw(poseIdColor);
         }
@@ -410,7 +410,7 @@ int main(int argc, char** argv) {
             return;
         }
 
-        // set shader uniforms
+        // Set shader uniforms
         meshFromBC4Shader.bind();
         {
             meshFromBC4Shader.setBool("unlinearizeDepth", true);
@@ -436,7 +436,7 @@ int main(int argc, char** argv) {
             meshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, videoTextureDepth.bc4CompressedBuffer);
         }
 
-        // dispatch compute shader to generate vertices and indices for both main and wireframe meshes
+        // Dispatch compute shader to generate vertices and indices for both main and wireframe meshes
         meshFromBC4Shader.dispatch(
                 ((videoTextureDepth.width / surfelSize)  + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
                 ((videoTextureDepth.height / surfelSize) + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
@@ -447,14 +447,14 @@ int main(int argc, char** argv) {
 
         poseStreamer.removePosesLessThan(std::min(poseIdColor, poseIdDepth));
 
-        // set render state
+        // Set render state
         node.primativeType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
         nodeWireframe.visible = renderState == RenderState::WIREFRAME;
 
-        // render all objects in scene
+        // Render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);
 
-        // render to screen
+        // Render to screen
         toneMapper.drawToScreen(renderer);
     });
 

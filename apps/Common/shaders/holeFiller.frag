@@ -47,7 +47,7 @@ void main() {
             }
         }
 
-        // fill hole
+        // Fill hole
         if (!isSkyBox) {
             vec3 sumColor = vec3(0.0);
             float sumWeight = 0.0;

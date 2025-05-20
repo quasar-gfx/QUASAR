@@ -156,7 +156,7 @@ public:
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frameRT.getFramebufferID());
 
-        // normals
+        // Normals
         glReadBuffer(GL_COLOR_ATTACHMENT3);
         GLenum drawBuffers1[] = { GL_COLOR_ATTACHMENT1 };
         glDrawBuffers(1, drawBuffers1);
@@ -164,7 +164,7 @@ public:
                           0, 0, frameRT.width, frameRT.height,
                           GL_COLOR_BUFFER_BIT, filter);
 
-        // id buffer
+        // Id buffer
         glReadBuffer(GL_COLOR_ATTACHMENT6);
         GLenum drawBuffers2[] = { GL_COLOR_ATTACHMENT2 };
         glDrawBuffers(1, drawBuffers2);
@@ -172,7 +172,7 @@ public:
                           0, 0, frameRT.width, frameRT.height,
                           GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
-        // depth and stencil
+        // Depth and stencil
         glBlitFramebuffer(0, 0, width, height,
                           0, 0, frameRT.width, frameRT.height,
                           GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
@@ -184,7 +184,7 @@ public:
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gBuffer.getFramebufferID());
 
-        // colors
+        // Colors
         GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2,
                                  GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5,
                                  GL_COLOR_ATTACHMENT6 };
@@ -197,7 +197,7 @@ public:
                               GL_COLOR_BUFFER_BIT, filter);
         }
 
-        // depth and stencil
+        // Depth and stencil
         glBlitFramebuffer(0, 0, width, height,
                           0, 0, gBuffer.width, gBuffer.height,
                           GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);

@@ -16,7 +16,7 @@ constexpr double NANOSECONDS_IN_MILLISECOND = 1e6;
 namespace timeutils {
 
 inline time_t getTimeSeconds() {
-    // get unix timestamp in seconds
+    // Get unix timestamp in seconds
     std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(
             std::chrono::system_clock::now().time_since_epoch()
     );
@@ -24,7 +24,7 @@ inline time_t getTimeSeconds() {
 }
 
 inline time_t getTimeMillis() {
-    // get unix timestamp in ms
+    // Get unix timestamp in ms
     std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()
     );
@@ -32,7 +32,7 @@ inline time_t getTimeMillis() {
 }
 
 inline time_t getTimeMicros() {
-    // get unix timestamp in us
+    // Get unix timestamp in us
     std::chrono::microseconds us = std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::system_clock::now().time_since_epoch()
     );
@@ -40,7 +40,7 @@ inline time_t getTimeMicros() {
 }
 
 inline time_t getTimeNanos() {
-    // get unix timestamp in ns
+    // Get unix timestamp in ns
     std::chrono::nanoseconds ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::system_clock::now().time_since_epoch()
     );

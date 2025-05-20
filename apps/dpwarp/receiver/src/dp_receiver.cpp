@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
         spdlog::set_level(spdlog::level::debug);
     }
 
-    // parse size
+    // Parse size
     std::string sizeStr = args::get(sizeIn);
     size_t pos = sizeStr.find('x');
     glm::uvec2 windowSize = glm::uvec2(std::stoi(sizeStr.substr(0, pos)), std::stoi(sizeStr.substr(pos + 1)));
@@ -92,7 +92,7 @@ int main(int argc, char** argv) {
     remoteCameraWideFov.setFovyDegrees(120.0f);
     remoteCameraWideFov.setViewMatrix(remoteCamera.getViewMatrix());
 
-    // post processing
+    // Post processing
     ToneMapper toneMapper;
     toneMapper.enableToneMapping(false);
 
@@ -149,11 +149,11 @@ int main(int argc, char** argv) {
     for (int view = 0; view < maxViews; view++) {
         startTime = window->getTime();
 
-        // load proxies
+        // Load proxies
         Path quadProxiesFileName = (outputPath / "quads").appendToName(std::to_string(view)).withExtension(".bin.zstd");
         uint numProxies = quadBuffers.loadFromFile(quadProxiesFileName, &numBytes);
         numBytesProxies += numBytes;
-        // load depth offsets
+        // Load depth offsets
         Path depthOffsetsFileName = (outputPath / "depthOffsets").appendToName(std::to_string(view)).withExtension(".bin.zstd");
         uint numDepthOffsets = depthOffsets.loadFromFile(depthOffsetsFileName, &numBytes);
         numBytesDepthOffsets += numBytes;
@@ -342,7 +342,7 @@ int main(int argc, char** argv) {
     });
 
     app.onRender([&](double now, double dt) {
-        // handle mouse input
+        // Handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
             auto mouseButtons = window->getMouseButtons();
             window->setMouseCursor(!mouseButtons.LEFT_PRESSED);
@@ -388,14 +388,14 @@ int main(int argc, char** argv) {
             nodes[i]->visible = showLayers[i];
         }
 
-        // render all objects in scene
+        // Render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);
 
-        // render to screen
+        // Render to screen
         toneMapper.drawToScreen(renderer);
     });
 
-    // run app loop (blocking)
+    // Run app loop (blocking)
     app.run();
 
     return 0;

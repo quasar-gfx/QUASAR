@@ -30,7 +30,7 @@ void Texture::loadFromData(const unsigned char* data) {
 void Texture::loadFromFile(const TextureFileCreateParams& params) {
     std::string path = params.path;
 
-    // use absolute path if path starts with ~/
+    // Use absolute path if path starts with ~/
     if (path[0] == '~') {
         char* home = getenv("HOME");
         if (home != nullptr) {

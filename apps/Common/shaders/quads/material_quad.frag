@@ -8,7 +8,7 @@ in VertexData {
     vec3 FragPos;
 } fsIn;
 
-// material
+// Material
 uniform struct Material {
     vec4 baseColor;
     vec4 baseColorFactor;
@@ -18,7 +18,7 @@ uniform struct Material {
 
     bool hasBaseColorMap; // use diffuse map
 
-    // material textures
+    // Material textures
     sampler2D baseColorMap; // 0
 } material;
 

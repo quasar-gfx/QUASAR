@@ -213,10 +213,10 @@ int SceneLoader::parseSkybox(jsmntok_t* tokens, int i, const char* json, Scene& 
         }
     }
 
-    // load the HDR environment map
+    // Load the HDR environment map
     Texture hdrTexture = Texture(hdrTextureParams);
 
-    // skybox
+    // Skybox
     CubeMap* envCubeMap = new CubeMap(skyBoxParams);
 
     scene.equirectToCubeMap(*envCubeMap, hdrTexture);
@@ -745,7 +745,7 @@ int SceneLoader::parseAnimation(jsmntok_t* tokens, int i, const char* json, Scen
         }
     }
 
-    // add animation to node
+    // Add animation to node
     Node* node = findNodeByName(nodeName);
     if (node != nullptr) {
         Animation* anim = (node->animation != nullptr) ? node->animation : new Animation();

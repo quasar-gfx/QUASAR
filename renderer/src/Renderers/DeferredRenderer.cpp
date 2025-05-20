@@ -29,7 +29,7 @@ DeferredRenderer::DeferredRenderer(const Config& config)
 }
 
 void DeferredRenderer::setScreenShaderUniforms(const Shader& screenShader) {
-    // set FrameRenderTarget texture uniforms
+    // Set FrameRenderTarget texture uniforms
     screenShader.bind();
     screenShader.setTexture("screenColor", outputRT.colorBuffer, 0);
     screenShader.setTexture("screenDepth", outputRT.depthStencilBuffer, 1);
@@ -78,13 +78,13 @@ RenderStats DeferredRenderer::drawScene(const Scene& scene, const Camera& camera
 
     beginRendering();
 
-    // disable blending
+    // Disable blending
     pipeline.blendState.blendEnabled = false; pipeline.apply();
 
-    // draw all objects in the scene
+    // Draw all objects in the scene
     stats += drawSceneImpl(scene, camera, clearMask);
 
-    // reenable blending
+    // Reenable blending
     pipeline.blendState.blendEnabled = true; pipeline.apply();
 
     endRendering();
@@ -104,20 +104,20 @@ RenderStats DeferredRenderer::drawObjects(const Scene& scene, const Camera& came
 
     RenderStats stats;
 
-    // update shadows
+    // Update shadows
     updateDirLightShadow(scene, camera);
     updatePointLightShadows(scene, camera);
 
-    // draw all objects in the scene
+    // Draw all objects in the scene
     stats += drawScene(scene, camera, clearMask);
 
-    // draw lights for debugging
+    // Draw lights for debugging
     stats += drawLights(scene, camera);
 
-    // draw lighting pass
+    // Draw lighting pass
     stats += lightingPass(scene, camera);
 
-    // draw skybox
+    // Draw skybox
     stats += drawSkyBox(scene, camera);
 
     return stats;
@@ -128,13 +128,13 @@ RenderStats DeferredRenderer::drawObjectsNoLighting(const Scene& scene, const Ca
 
     RenderStats stats;
 
-    // draw all objects in the scene
+    // Draw all objects in the scene
     stats += drawScene(scene, camera, clearMask);
 
-    // draw lighting pass
+    // Draw lighting pass
     stats += lightingPass(scene, camera);
 
-    // draw skybox
+    // Draw skybox
     stats += drawSkyBox(scene, camera);
 
     return stats;
@@ -171,7 +171,7 @@ RenderStats DeferredRenderer::lightingPass(const Scene& scene, const Camera& cam
 
     lightingMaterial.getShader()->setInt("numPointLights", static_cast<int>(scene.pointLights.size()));
 
-    // copy depth from FrameRenderTarget to outputRT
+    // Copy depth from FrameRenderTarget to outputRT
     frameRT.blitDepthToRenderTarget(outputRT);
 
     glDepthFunc(GL_LEQUAL);

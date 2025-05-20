@@ -155,14 +155,14 @@ void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in vec4 depthOff
     surfelNearPlane.topLeft     = ndcToView(projectionInverse, surfelNDCs.topLeft, 0.0);
     surfelNearPlane.topRight    = ndcToView(projectionInverse, surfelNDCs.topRight, 0.0);
 
-    // shoot rays from corners of the surfel to the plane to find the 3D intersection points
+    // Shoot rays from corners of the surfel to the plane to find the 3D intersection points
     Quad quadPtsOnPlane;
     quadPtsOnPlane.bottomLeft  = pointPlaneIntersection(surfelNearPlane.bottomLeft,  proxyPlane);
     quadPtsOnPlane.bottomRight = pointPlaneIntersection(surfelNearPlane.bottomRight, proxyPlane);
     quadPtsOnPlane.topLeft     = pointPlaneIntersection(surfelNearPlane.topLeft,     proxyPlane);
     quadPtsOnPlane.topRight    = pointPlaneIntersection(surfelNearPlane.topRight,    proxyPlane);
 
-    // apply depth offsets to the quad points
+    // Apply depth offsets to the quad points
     surfel.bottomLeft  = quadPtsOnPlane.bottomLeft  + depthOffsets.x * normalize(quadPtsOnPlane.bottomLeft);
     surfel.bottomRight = quadPtsOnPlane.bottomRight + depthOffsets.y * normalize(quadPtsOnPlane.bottomRight);
     surfel.topLeft     = quadPtsOnPlane.topLeft     + depthOffsets.z * normalize(quadPtsOnPlane.topLeft);
@@ -199,16 +199,17 @@ void storeSurfel(in Quad quad, in Quad2D uvsSrc, in QuadMapData quadMapData) {
     vertPositionsView[2] = quad.topRight;
     vertPositionsView[3] = quad.topLeft;
 
-    // uv coordinates have to be in 3D to properly interpolate them in the fragment shader.
-    // to do this, add a q component to the uvs and the fragment shader will perform perspective-correct interpolation.
+    // UV coordinates have to be in 3D to properly interpolate them in the fragment shader.
+    // To do this, add a q component to the uvs and the fragment shader will perform perspective-correct interpolation.
     vec3 uvqs[4];
     uvqs[0] = vec3(uvsSrc.bottomLeft,  1.0);
     uvqs[1] = vec3(uvsSrc.bottomRight, 1.0);
     uvqs[2] = vec3(uvsSrc.topRight,    1.0);
     uvqs[3] = vec3(uvsSrc.topLeft, 1.0);
 
-    // adapted from:
-    // https://www.roxlu.com/2014/026/mapping-a-texture-on-a-disc and
+    // Adapted from:
+    // https://www.roxlu.com/2014/026/mapping-a-texture-on-a-disc
+    // and
     // https://www.reedbeta.com/blog/quadrilateral-interpolation-part-1/
     float vertDistanceToCenter[4];
     vec3 intersectPointView = lineLineIntersection(
@@ -240,7 +241,7 @@ void storeSurfel(in Quad quad, in Quad2D uvsSrc, in QuadMapData quadMapData) {
 }
 
 void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
-    // extract the plane normal and point from the quad map
+    // Extract the plane normal and point from the quad map
     Plane proxyPlane = quadMapDataToPlane(quadMapData);
 
     uint halfSize = 1u << (quadMapData.size - 1u); // 2^size / 2
@@ -252,7 +253,7 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
 
     bool flattened = quadMapData.flattened;
     if (!flattened) {
-        // create surfels for each subpixel in the quad map
+        // Create surfels for each subpixel in the quad map
         vec2 baseCoord = proxyPlanePixelCoords - vec2(halfGridSize);
         vec2 stepSize = vec2(surfelSize);
         for (uint idx = 0u; idx < size * size; idx++) {
@@ -280,7 +281,7 @@ void storeSurfelsFromQuadMap(in QuadMapData quadMapData) {
         }
     }
     else {
-        // create a single surfel for the quad map
+        // Create a single surfel for the quad map
         Quad2D surfelPixelCoords;
         surfelPixelCoords.bottomLeft  = proxyPlanePixelCoords + vec2(-halfGridSize, -halfGridSize);
         surfelPixelCoords.bottomRight = proxyPlanePixelCoords + vec2(+halfGridSize, -halfGridSize);
@@ -306,21 +307,21 @@ void main() {
         return;
     }
 
-    // reset buffers on first invocation
+    // Reset buffers on first invocation
     if (quadIndicesPixelCoord == uvec2(0u)) {
-        // reset mesh buffers
+        // Reset mesh buffers
         atomicExchange(numVertices, 0u);
         atomicExchange(numIndices, 0u);
         atomicExchange(meshIndirectCommandBuffer.count, 0u);
     }
 
-    // uint quadMapIndex = quadIndicesPixelCoord.y * uint(gBufferSize.x) + quadIndicesPixelCoord.x;
+    // Uint quadMapIndex = quadIndicesPixelCoord.y * uint(gBufferSize.x) + quadIndicesPixelCoord.x;
     uint quadMapIndex = loadQuadMapIndex(ivec2(quadIndicesPixelCoord));
     if (quadMapIndex >= currNumProxies) {
         return;
     }
 
-    // if the quad has already been created, skip it
+    // If the quad has already been created, skip it
     bool quadCreated = bool(atomicExchange(quadCreatedFlags[quadMapIndex], 1));
     if (quadCreated) {
         return;

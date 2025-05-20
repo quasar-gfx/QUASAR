@@ -8,7 +8,7 @@ using namespace quasar;
 BC4DepthVideoTexture::BC4DepthVideoTexture(const TextureDataCreateParams& params, std::string streamerURL)
         : DataReceiverTCP(streamerURL, false)
         , Texture(params) {
-    // round up to nearest multiple of BC4_BLOCK_SIZE
+    // Round up to nearest multiple of BC4_BLOCK_SIZE
     width = (params.width + BC4_BLOCK_SIZE - 1) / BC4_BLOCK_SIZE * BC4_BLOCK_SIZE;
     height = (params.height + BC4_BLOCK_SIZE - 1) / BC4_BLOCK_SIZE * BC4_BLOCK_SIZE;
     resize(width, height);
@@ -30,21 +30,21 @@ pose_id_t BC4DepthVideoTexture::getLatestPoseID() {
 void BC4DepthVideoTexture::onDataReceived(const std::vector<char>& compressedData) {
     time_t startTime = timeutils::getTimeMicros();
 
-    // calculate expected decompressed size
+    // Calculate expected decompressed size
     size_t expectedSize = compressedSize * sizeof(BC4Block);
     std::vector<char> decompressedData(expectedSize);
 
-    // decompress in one shot
+    // Decompress in one shot
     size_t decompressedSize = codec.decompress(compressedData, decompressedData);
 
     stats.timeToDecompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
     stats.compressionRatio = static_cast<float>(decompressedSize) / compressedData.size();
 
-    // extract pose ID
+    // Extract pose ID
     pose_id_t poseID;
     std::memcpy(&poseID, decompressedData.data(), sizeof(pose_id_t));
 
-    // create frame data with the rest of the buffer
+    // Create frame data with the rest of the buffer
     std::vector<char> frameBuffer(decompressedData.begin() + sizeof(pose_id_t), decompressedData.end());
 
     std::lock_guard<std::mutex> lock(m);
@@ -91,7 +91,7 @@ pose_id_t BC4DepthVideoTexture::draw(pose_id_t poseID) {
         }
     }
 
-    // update the BC4 compressed buffer
+    // Update the BC4 compressed buffer
     bc4CompressedBuffer.setData(compressedSize, res.data());
 
     prevPoseID = resPoseID;

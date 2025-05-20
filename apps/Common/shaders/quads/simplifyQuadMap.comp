@@ -50,12 +50,12 @@ uniform float proxySimilarityThreshold;
 uniform int maxIterForceMerge;
 
 vec3 normalToView(mat4 view, vec3 normalWorld) {
-    // skybox normals might be NaN, just set normal to face the camera
+    // Skybox normals might be NaN, just set normal to face the camera
     if (any(isnan(normalWorld))) {
         return -forward;
     }
 
-    // extract the rotation part of the view matrix
+    // Extract the rotation part of the view matrix
     mat3 rotationMatrix = mat3(view);
     return normalize(rotationMatrix * normalWorld);
 }
@@ -83,14 +83,14 @@ vec3 constrainToMaxAngle(in vec3 centerNormal, in vec3 frustumNormalView) {
     float maxCos = cos(angleThreshold);
     float dotProduct = dot(centerNormal, frustumNormalView);
 
-    // project the centerNormal onto the plane orthogonal to frustumNormalView
+    // Project the centerNormal onto the plane orthogonal to frustumNormalView
     vec3 frustumNormalUnit = normalize(frustumNormalView);
     vec3 projectedNormal = centerNormal - dot(centerNormal, frustumNormalUnit) * frustumNormalUnit;
 
-    // normalize the projected normal and scale it to the cone surface
+    // Normalize the projected normal and scale it to the cone surface
     vec3 constrainedNormal = normalize(projectedNormal) * sqrt(1.0 - maxCos * maxCos);
 
-    // add the component along the frustumNormalView to make the vector within the cone
+    // Add the component along the frustumNormalView to make the vector within the cone
     constrainedNormal += frustumNormalUnit * maxCos;
     return normalize(constrainedNormal);
 }
@@ -195,14 +195,14 @@ void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in vec4 depthOff
     surfelNearPlane.topLeft     = ndcToView(projectionInverse, surfelNDCs.topLeft, 0.0);
     surfelNearPlane.topRight    = ndcToView(projectionInverse, surfelNDCs.topRight, 0.0);
 
-    // shoot rays from corners of the surfel to the plane to find the 3D intersection points
+    // Shoot rays from corners of the surfel to the plane to find the 3D intersection points
     Quad quadPtsOnPlane;
     quadPtsOnPlane.bottomLeft  = pointPlaneIntersection(surfelNearPlane.bottomLeft,  proxyPlane);
     quadPtsOnPlane.bottomRight = pointPlaneIntersection(surfelNearPlane.bottomRight, proxyPlane);
     quadPtsOnPlane.topLeft     = pointPlaneIntersection(surfelNearPlane.topLeft,     proxyPlane);
     quadPtsOnPlane.topRight    = pointPlaneIntersection(surfelNearPlane.topRight,    proxyPlane);
 
-    // apply depth offsets to the quad points
+    // Apply depth offsets to the quad points
     surfel.bottomLeft  = quadPtsOnPlane.bottomLeft  + depthOffsets.x * normalize(quadPtsOnPlane.bottomLeft);
     surfel.bottomRight = quadPtsOnPlane.bottomRight + depthOffsets.y * normalize(quadPtsOnPlane.bottomRight);
     surfel.topLeft     = quadPtsOnPlane.topLeft     + depthOffsets.z * normalize(quadPtsOnPlane.topLeft);
@@ -252,7 +252,7 @@ bool shouldMerge(
     vec4 proxyPlaneEqTopLeft     = planeToPlaneEq(proxyPlaneTopLeft);
     vec4 proxyPlaneEqTopRight    = planeToPlaneEq(proxyPlaneTopRight);
 
-    // we merge the quad if all the proxy planes are similar
+    // We merge the quad if all the proxy planes are similar
     return planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight) &&
            planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft) &&
            planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight) &&
@@ -284,7 +284,7 @@ void recalcDepthOffsets(
     uint size = 1 << quadMapData.size;
     float halfGridSize = float(size) * surfelSize / 2;
 
-    // calculate new depth offsets relative to new proxy plane
+    // Calculate new depth offsets relative to new proxy plane
     vec2 baseCoord = proxyPlanePixelCoords - vec2(halfGridSize);
     vec2 stepSize = vec2(surfelSize);
     for (uint idx = 0u; idx < size * size; idx++) {
@@ -321,21 +321,21 @@ void mergeQuadMapData(
     in QuadMapData quadMapDataBottomLeft, in QuadMapData quadMapDataBottomRight, in QuadMapData quadMapDataTopLeft, in QuadMapData quadMapDataTopRight
 ) {
     // Plane newProxyPlane = averagePlanes(proxyPlaneBottomLeft, proxyPlaneBottomRight,
-    //                                     proxyPlaneTopLeft, proxyPlaneTopRight);
+    //                                     ProxyPlaneTopLeft, proxyPlaneTopRight);
 
     // // find what depth the average uv maps to on the new plane
-    // vec2 averageUV = (quadMapDataBottomLeft.uv + quadMapDataBottomRight.uv +
-    //                   quadMapDataTopLeft.uv + quadMapDataTopRight.uv) / 4.0;
-    // vec2 averageNDC = averageUV * 2.0 - 1.0;
-    // vec3 averageNearPlane = ndcToView(projectionInverse, averageNDC, 0.0);
+    // Vec2 averageUV = (quadMapDataBottomLeft.uv + quadMapDataBottomRight.uv +
+    //                   QuadMapDataTopLeft.uv + quadMapDataTopRight.uv) / 4.0;
+    // Vec2 averageNDC = averageUV * 2.0 - 1.0;
+    // Vec3 averageNearPlane = ndcToView(projectionInverse, averageNDC, 0.0);
 
-    // vec3 planeCenterPt = pointPlaneIntersection(averageNearPlane, newProxyPlane);
-    // vec3 newProxyPlaneNDC = viewToNDC3(projection, planeCenterPt);
-    // newProxyPlaneUV = (newProxyPlaneNDC.xy + 1.0) / 2.0;
+    // Vec3 planeCenterPt = pointPlaneIntersection(averageNearPlane, newProxyPlane);
+    // Vec3 newProxyPlaneNDC = viewToNDC3(projection, planeCenterPt);
+    // NewProxyPlaneUV = (newProxyPlaneNDC.xy + 1.0) / 2.0;
 
-    // newProxyPlaneDepth = min(newProxyPlaneNDC.z, MAX_DEPTH);
+    // NewProxyPlaneDepth = min(newProxyPlaneNDC.z, MAX_DEPTH);
 
-    // calculate the average plane
+    // Calculate the average plane
     Plane newProxyPlane;
 
     uint halfSize = 1u << (quadMapDataBottomLeft.size - 1u); // 2^size / 2
@@ -354,10 +354,10 @@ void mergeQuadMapData(
     vec2 newProxyPlaneNDC = newProxyPlaneUV * 2.0 - 1.0;
     newProxyPlane.point = ndcToView(projectionInverse, newProxyPlaneNDC, newProxyPlaneDepth);
 
-    // fix extreme orientations
+    // Fix extreme orientations
     vec3 frustumNormalView = normalize(origin - newProxyPlane.point);
     if (correctOrientation && quadHasExtremeOrientation(newProxyPlane.normal, frustumNormalView)) {
-        // if the quad has an extreme orientation, constrain the center normal
+        // If the quad has an extreme orientation, constrain the center normal
         newProxyPlane.normal = constrainToMaxAngle(newProxyPlane.normal, frustumNormalView);
     }
 
@@ -365,19 +365,19 @@ void mergeQuadMapData(
                           quadMapDataTopLeft.flattened && quadMapDataTopRight.flattened);
     bool flattened = prevFlattened;
     if (!prevFlattened) {
-        // recalculate the new merged proxy plane's surfel's depth offsets
+        // Recalculate the new merged proxy plane's surfel's depth offsets
         int numBelowThreshold = 0, total = 0;
         recalcDepthOffsets(newProxyPlane, quadMapDataBottomLeft, proxyPlaneBottomLeft, numBelowThreshold, total);
         recalcDepthOffsets(newProxyPlane, quadMapDataBottomRight, proxyPlaneBottomRight, numBelowThreshold, total);
         recalcDepthOffsets(newProxyPlane, quadMapDataTopLeft, proxyPlaneTopLeft, numBelowThreshold, total);
         recalcDepthOffsets(newProxyPlane, quadMapDataTopRight, proxyPlaneTopRight, numBelowThreshold, total);
 
-        // if all surfels are below the threshold, then the plane is considered flattened
+        // If all surfels are below the threshold, then the plane is considered flattened
         flattened = (numBelowThreshold >= total);
     }
 
-    // if the merged quad was not already flattened, and the new merged quad is flattened,
-    // clear the depth offsets for the merged quad
+    // If the merged quad was not already flattened, and the new merged quad is flattened,
+    // Clear the depth offsets for the merged quad
     if (!prevFlattened && flattened) {
         uint size = 1u << mergedQuadMapData.size;
         for (uint idx = 0u; idx < size * size; idx++) {
@@ -420,24 +420,24 @@ void main() {
     float depthTopLeft = quadMapDataTopLeft.depth;
     float depthTopRight = quadMapDataTopRight.depth;
 
-    // create proxy planes
+    // Create proxy planes
     Plane proxyPlaneBottomLeft  = quadMapDataToPlane(quadMapDataBottomLeft);
     Plane proxyPlaneBottomRight = quadMapDataToPlane(quadMapDataBottomRight);
     Plane proxyPlaneTopLeft     = quadMapDataToPlane(quadMapDataTopLeft);
     Plane proxyPlaneTopRight    = quadMapDataToPlane(quadMapDataTopRight);
 
-    // resulting merged quad
+    // Resulting merged quad
     QuadMapData mergedQuadMapData;
     mergedQuadMapData.size = 0; // by default, ignore the quad
 
-    // if any of the loaded proxy planes are empty, ignore the quad
+    // If any of the loaded proxy planes are empty, ignore the quad
     if (quadMapDataBottomLeft.size == 0 || quadMapDataBottomRight.size == 0 ||
            quadMapDataTopLeft.size == 0 ||    quadMapDataTopRight.size == 0) {
         storeQuadMap(pixelCoord, mergedQuadMapData);
         return;
     }
 
-    // if any of the loaded depths are invalid, ignore the quad
+    // If any of the loaded depths are invalid, ignore the quad
     if (!isValidDepth(depthBottomLeft) || !isValidDepth(depthBottomRight) ||
            !isValidDepth(depthTopLeft) ||    !isValidDepth(depthTopRight)) {
         storeQuadMap(pixelCoord, mergedQuadMapData);
@@ -446,7 +446,7 @@ void main() {
 
     bool merge = false;
     if (iter < maxIterForceMerge) {
-        // force merge the quads if theres no depth discontinuity
+        // Force merge the quads if theres no depth discontinuity
         if (!hasDepthDiscontinuity(depthBottomLeft, depthBottomRight, depthTopLeft, depthTopRight)) {
             merge = true;
         }
@@ -454,14 +454,14 @@ void main() {
 
     merge = merge || shouldMerge(proxyPlaneBottomLeft, proxyPlaneBottomRight, proxyPlaneTopLeft, proxyPlaneTopRight);
     if (merge) {
-        // merge the proxy planes
+        // Merge the proxy planes
         mergeQuadMapData(
             mergedQuadMapData,
             proxyPlaneBottomLeft, proxyPlaneBottomRight, proxyPlaneTopLeft, proxyPlaneTopRight,
             quadMapDataBottomLeft, quadMapDataBottomRight, quadMapDataTopLeft, quadMapDataTopRight
         );
 
-        // ignore the previous proxy planes that have been merged
+        // Ignore the previous proxy planes that have been merged
         ignoreInputQuadMapData(pixelCoordsBottomLeft);
         ignoreInputQuadMapData(pixelCoordsBottomRight);
         ignoreInputQuadMapData(pixelCoordsTopLeft);

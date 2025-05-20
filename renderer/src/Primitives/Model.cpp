@@ -1,4 +1,4 @@
-// adpated from: https://github.com/google/filament/blob/main/libs/filamentapp/src/MeshAssimp.cpp
+// Adpated from: https://github.com/google/filament/blob/main/libs/filamentapp/src/MeshAssimp.cpp
 #include <iostream>
 #include <unistd.h>
 
@@ -40,7 +40,7 @@ void Model::loadFromFile(const ModelCreateParams& params) {
     std::string path = params.path;
     spdlog::info("Loading model: {}", path);
 
-    // use absolute path if path starts with ~/
+    // Use absolute path if path starts with ~/
     if (path[0] == '~') {
         char* home = getenv("HOME");
         if (home != nullptr) {
@@ -60,19 +60,19 @@ void Model::loadFromFile(const ModelCreateParams& params) {
 #endif
 
     uint flags = \
-            // normals and tangents
+            // Normals and tangents
             aiProcess_GenSmoothNormals |
             aiProcess_CalcTangentSpace |
-            // UV Coordinates
+            // UV coordinates
             aiProcess_GenUVCoords |
-            // topology optimization
+            // Topology optimization
             aiProcess_FindInstances |
             aiProcess_OptimizeMeshes |
             aiProcess_JoinIdenticalVertices |
-            // misc optimization
+            // Misc optimization
             aiProcess_ImproveCacheLocality |
             aiProcess_SortByPType |
-            // we only support triangles
+            // We only support triangles
             aiProcess_Triangulate;
     scene = importer.ReadFile(path, flags);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
@@ -164,7 +164,7 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, LitMaterial* materi
 
     std::vector<aiVector3D> normals(mesh->mNumVertices, aiVector3D(0, 0, 0));
 
-    // set up indices and manually calculate normals
+    // Set up indices and manually calculate normals
     for (int i = 0; i < mesh->mNumFaces; i++) {
         const aiFace& face = mesh->mFaces[i];
         const aiVector3D& v0 = mesh->mVertices[face.mIndices[0]];
@@ -180,7 +180,7 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, LitMaterial* materi
         }
     }
 
-    // set up vertices
+    // Set up vertices
     glm::vec3 min = glm::vec3(FLT_MAX);
     glm::vec3 max = glm::vec3(-FLT_MAX);
     for (int i = 0; i < mesh->mNumVertices; i++) {
@@ -235,10 +235,10 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, LitMaterial* materi
         vertices.push_back(vertex);
     }
 
-    // set up AABB
+    // Set up AABB
     aabb.update(min, max);
 
-    // set up material
+    // Set up material
     uint32_t materialId = mesh->mMaterialIndex;
     aiMaterial const* aiMat = scene->mMaterials[materialId];
 
@@ -294,13 +294,13 @@ void Model::processMaterial(const aiMaterial* aiMat, LitMaterialCreateParams& ma
         shininess = 0.0f;
     }
 
-    // convert shininess to roughness
+    // Convert shininess to roughness
     float roughness = sqrt(2.0f / (shininess + 2.0f));
     materialParams.roughness = roughness;
 
     materialParams.metallic = 0.0f;
     if (aiMat->Get(AI_MATKEY_COLOR_SPECULAR, color) == AI_SUCCESS) {
-        // if there's a non-grey specular color, assume a metallic surface
+        // If there's a non-grey specular color, assume a metallic surface
         if (color.r != color.g && color.r != color.b) {
             materialParams.metallic = 1.0f;
             baseColor = glm::vec4(color.r, color.g, color.b, baseColor.a);
@@ -326,28 +326,28 @@ void Model::processMaterial(const aiMaterial* aiMat, LitMaterialCreateParams& ma
         }
     }
 
-    // load base color texture
+    // Load base color texture
     if (aiMat->GetTexture(aiTextureType_DIFFUSE, 0, &baseColorPath,
                           nullptr, nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
         Texture* baseColorMap = loadMaterialTexture(aiMat, baseColorPath, true);
         materialParams.albedoTexture = baseColorMap;
     }
 
-    // load normal map
+    // Load normal map
     if (aiMat->GetTexture(aiTextureType_NORMALS, 0, &normalPath, nullptr,
                           nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
         Texture* normalMap = loadMaterialTexture(aiMat, normalPath);
         materialParams.normalTexture = normalMap;
     }
 
-    // if model is GLTF, try to load combined metallic-roughness texture
+    // If model is GLTF, try to load combined metallic-roughness texture
     if (isGLTF && aiMat->GetTexture(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLICROUGHNESS_TEXTURE, &MRPath, nullptr,
                                     nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
         Texture* metallicRoughnessMap = loadMaterialTexture(aiMat, MRPath);
         materialParams.metallicTexture = metallicRoughnessMap;
         materialParams.metalRoughnessCombined = true;
     }
-    // if not GLTF or there is no combined texture, load metallic and roughness textures separately
+    // If not GLTF or there is no combined texture, load metallic and roughness textures separately
     else {
         if (aiMat->GetTexture(aiTextureType_METALNESS, 0, &MPath, nullptr,
                               nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
@@ -361,21 +361,21 @@ void Model::processMaterial(const aiMaterial* aiMat, LitMaterialCreateParams& ma
         }
     }
 
-    // load ambient occlusion map
+    // Load ambient occlusion map
     if (aiMat->GetTexture(aiTextureType_LIGHTMAP, 0, &AOPath, nullptr,
                           nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
         Texture* aoMap = loadMaterialTexture(aiMat, AOPath);
         materialParams.aoTexture = aoMap;
     }
 
-    // load emissive map
+    // Load emissive map
     if (aiMat->GetTexture(aiTextureType_EMISSIVE, 0, &emissivePath, nullptr,
                           nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
         Texture* emissiveMap = loadMaterialTexture(aiMat, emissivePath);
         materialParams.emissiveTexture = emissiveMap;
     }
 
-    // load factors
+    // Load factors
     if (aiMat->Get(AI_MATKEY_BASE_COLOR, baseColorFactor) == AI_SUCCESS) {
         materialParams.baseColorFactor = glm::vec4(baseColorFactor.r, baseColorFactor.g, baseColorFactor.b, baseColorFactor.a);
     }
@@ -411,14 +411,14 @@ Texture* Model::loadMaterialTexture(aiMaterial const* aiMat, aiString aiTextureP
     texturePath = texturePath.append(aiTexturePath.C_Str());
     std::replace(texturePath.begin(), texturePath.end(), '\\', '/');
 
-    // if we've loaded this texture already, return the already loaded texture
+    // If we've loaded this texture already, return the already loaded texture
     if (texturesLoaded.count(texturePath) > 0) {
         return texturesLoaded[texturePath];
     }
 
     shouldGammaCorrect &= gammaCorrected;
 
-    // if texture is embedded into the file, read it from memory
+    // If texture is embedded into the file, read it from memory
     int32_t embeddedId = getEmbeddedTextureId(aiTexturePath);
     if (embeddedId != -1) {
         const aiTexture* aiEmbeddedTexture = scene->mTextures[embeddedId];
@@ -463,7 +463,7 @@ Texture* Model::loadMaterialTexture(aiMaterial const* aiMat, aiString aiTextureP
 
         return nullptr;
     }
-    // else load the texture from external file
+    // Else load the texture from external file
     else {
         Texture* texture = new Texture({
             .wrapS = GL_REPEAT,

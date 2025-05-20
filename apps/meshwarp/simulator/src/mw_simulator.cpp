@@ -59,14 +59,14 @@ int main(int argc, char** argv) {
         spdlog::set_level(spdlog::level::debug);
     }
 
-    // parse size
+    // Parse size
     std::string sizeStr = args::get(sizeIn);
     size_t pos = sizeStr.find('x');
     glm::uvec2 windowSize = glm::uvec2(std::stoi(sizeStr.substr(0, pos)), std::stoi(sizeStr.substr(pos + 1)));
     config.width = windowSize.x;
     config.height = windowSize.y;
 
-    // parse remote size
+    // Parse remote size
     std::string rsizeStr = args::get(resIn);
     pos = rsizeStr.find('x');
     glm::uvec2 remoteWindowSize = glm::uvec2(std::stoi(rsizeStr.substr(0, pos)), std::stoi(rsizeStr.substr(pos + 1)));
@@ -92,7 +92,7 @@ int main(int argc, char** argv) {
     config.height = remoteWindowSize.y;
     DeferredRenderer remoteRenderer(config);
 
-    // "remote" scene
+    // "Remote" scene
     Scene remoteScene;
     PerspectiveCamera remoteCamera(remoteWindowSize.x, remoteWindowSize.y);
     SceneLoader loader;
@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
     float fov = args::get(fovIn);
     remoteCamera.setFovyDegrees(fov);
 
-    // "local" scene
+    // "Local" scene
     Scene scene;
     scene.envCubeMap = remoteScene.envCubeMap;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
@@ -163,7 +163,7 @@ int main(int argc, char** argv) {
     nodePointCloud.overrideMaterial = new UnlitMaterial({ .baseColor = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) });
     scene.addChildNode(&nodePointCloud);
 
-    // shaders
+    // Shaders
     ComputeShader meshFromBC4Shader({
         .computeCodeData = SHADER_COMMON_MESHFROMBC4_COMP,
         .computeCodeSize = SHADER_COMMON_MESHFROMBC4_COMP_len,
@@ -172,7 +172,7 @@ int main(int argc, char** argv) {
         }
     });
 
-    // post processing
+    // Post processing
     ToneMapper toneMapper;
     ShowDepthEffect showDepthEffect(camera);
 
@@ -433,7 +433,7 @@ int main(int argc, char** argv) {
     double lastRenderTime = 0.0;
     bool updateClient = !saveImages;
     app.onRender([&](double now, double dt) {
-        // handle mouse input
+        // Handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
             auto mouseButtons = window->getMouseButtons();
             window->setMouseCursor(!mouseButtons.LEFT_PRESSED);
@@ -491,7 +491,7 @@ int main(int argc, char** argv) {
             generateRemoteFrame = true;
         }
         if (generateRemoteFrame) {
-            // update all animations
+            // Update all animations
             if (runAnimations) {
                 remoteScene.updateAnimations(totalDT);
                 totalDT = 0.0;
@@ -506,21 +506,21 @@ int main(int argc, char** argv) {
 
             uint compressedSize = 0;
 
-            // "send" pose to the server. this will wait until latency+/-jitter ms have passed
+            // "Send" pose to the server. this will wait until latency+/-jitter ms have passed
             poseSendRecvSimulator.sendPose(camera, now);
             if (!preventCopyingLocalPose) {
-                // "receive" a predicted pose to render a new frame. this will wait until latency+/-jitter ms have passed
+                // "Receive" a predicted pose to render a new frame. this will wait until latency+/-jitter ms have passed
                 Pose clientPosePred;
                 if (poseSendRecvSimulator.recvPoseToRender(clientPosePred, now)) {
                     remoteCamera.setViewMatrix(clientPosePred.mono.view);
                 }
-                // if we do not have a new pose, just send a new frame with the old pose
+                // If we do not have a new pose, just send a new frame with the old pose
             }
 
-            // render remoteScene
+            // Render remoteScene
             remoteRenderer.drawObjects(remoteScene, remoteCamera);
 
-            // copy rendered result to video render target
+            // Copy rendered result to video render target
             toneMapper.enableToneMapping(false);
             toneMapper.drawToRenderTarget(remoteRenderer, renderTarget);
             showDepthEffect.drawToRenderTarget(remoteRenderer, bc4DepthStreamerRT);
@@ -553,7 +553,7 @@ int main(int argc, char** argv) {
                 meshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
                 meshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, bc4DepthStreamerRT.bc4CompressedBuffer);
             }
-            // dispatch compute shader to generate vertices and indices for mesh
+            // Dispatch compute shader to generate vertices and indices for mesh
             meshFromBC4Shader.dispatch((adjustedWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
                                        (adjustedWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
             meshFromBC4Shader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
@@ -580,7 +580,7 @@ int main(int argc, char** argv) {
 
         double startTime = window->getTime();
 
-        // render generated meshes
+        // Render generated meshes
         renderStats = renderer.drawObjects(scene, camera);
 
         toneMapper.enableToneMapping(true);
@@ -608,7 +608,7 @@ int main(int argc, char** argv) {
         }
     });
 
-    // run app loop (blocking)
+    // Run app loop (blocking)
     app.run();
 
     return 0;

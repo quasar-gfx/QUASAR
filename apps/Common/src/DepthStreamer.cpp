@@ -27,7 +27,7 @@ DepthStreamer::DepthStreamer(const RenderTargetCreateParams& params, std::string
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     cudaImage.registerTexture(renderTargetCopy.colorBuffer);
 
-    // start data sending thread
+    // Start data sending thread
     running = true;
     dataSendingThread = std::thread(&DepthStreamer::sendData, this);
 #endif
@@ -37,7 +37,7 @@ void DepthStreamer::close() {
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     running = false;
 
-    // send dummy to unblock thread
+    // Send dummy to unblock thread
     dataReady = true;
     cv.notify_one();
 
@@ -53,16 +53,16 @@ void DepthStreamer::sendFrame(pose_id_t poseID) {
     blitToRenderTarget(renderTargetCopy);
     unbind();
 
-    // add cuda buffer
+    // Add cuda buffer
     cudaArray* cudaBuffer = cudaImage.getArray();
     {
-        // lock mutex
+        // Lock mutex
         std::lock_guard<std::mutex> lock(m);
 
         CudaBuffer cudaBufferStruct = { poseID, cudaBuffer };
         cudaBufferQueue.push(cudaBufferStruct);
 
-        // tell thread to send data
+        // Tell thread to send data
         dataReady = true;
     }
     cv.notify_one();
@@ -94,7 +94,7 @@ void DepthStreamer::sendData() {
             break;
         }
 
-        // copy depth buffer to data
+        // Copy depth buffer to data
         CudaBuffer cudaBufferStruct = cudaBufferQueue.front();
         cudaArray* cudaBuffer = cudaBufferStruct.buffer;
         pose_id_t poseIDToSend = cudaBufferStruct.poseID;

@@ -129,7 +129,7 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams& params,
         throw std::runtime_error("Video Streamer could not be created.");
     }
 
-    // rgba to yuv conversion
+    // Rgba to yuv conversion
     swsCtx = sws_getContext(videoWidth, videoHeight, rgbaPixelFormat,
                             videoWidth, videoHeight, videoPixelFormat,
                             SWS_BICUBIC, nullptr, nullptr, nullptr);
@@ -143,7 +143,7 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams& params,
     openglFrameData = std::vector<uint8_t>(width * height * 4);
 #endif
 
-    /* setup frame */
+    /* Setup frame */
     frame->width = videoWidth;
     frame->height = videoHeight;
     frame->format = videoPixelFormat;
@@ -159,7 +159,7 @@ VideoStreamer::VideoStreamer(const RenderTargetCreateParams& params,
         return;
     }
 
-    /* setup packet */
+    /* Setup packet */
     ret = av_packet_make_writable(packet);
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Error: Could not make packet writable: %s\n", av_err2str(ret));
@@ -177,17 +177,17 @@ void VideoStreamer::sendFrame(pose_id_t poseID) {
     blitToRenderTarget(*renderTargetCopy);
     unbind();
 
-    // add cuda buffer
+    // Add cuda buffer
     cudaArray* cudaBuffer = cudaGLImage.getArray();
     {
-        // lock mutex
+        // Lock mutex
         std::lock_guard<std::mutex> lock(m);
 
         CudaBuffer cudaBufferStruct = { poseID, cudaBuffer };
         cudaBufferQueue.push(cudaBufferStruct);
 #else
     {
-        // lock mutex
+        // Lock mutex
         std::lock_guard<std::mutex> lock(m);
 
         this->poseID = poseID;
@@ -197,7 +197,7 @@ void VideoStreamer::sendFrame(pose_id_t poseID) {
         unbind();
 #endif
 
-        // tell thread to send frame
+        // Tell thread to send frame
         frameReady = true;
     }
     cv.notify_one();
@@ -224,7 +224,7 @@ void VideoStreamer::encodeAndSendFrames() {
     size_t bytesSent = 0;
     int ret;
     while (true) {
-        // wait for frame to be ready
+        // Wait for frame to be ready
         std::unique_lock<std::mutex> lock(m);
         cv.wait(lock, [this] { return frameReady; });
 
@@ -239,7 +239,7 @@ void VideoStreamer::encodeAndSendFrames() {
         /* Copy frame from OpenGL texture to AVFrame */
         time_t startCopyTime = timeutils::getTimeMicros();
 
-        // copy opengl texture data to frame
+        // Copy opengl texture data to frame
         CudaBuffer cudaBufferStruct = cudaBufferQueue.front();
         cudaArray* cudaBuffer = cudaBufferStruct.buffer;
         pose_id_t poseIDToSend = cudaBufferStruct.poseID;
@@ -270,7 +270,7 @@ void VideoStreamer::encodeAndSendFrames() {
 
         packPoseIDIntoVideoFrame(poseIDToSend);
 
-        /* convert RGBA to YUV */
+        /* Convert RGBA to YUV */
         {
             const uint8_t* srcData[] = { rgbaVideoFrameData.data() };
             int srcStride[] = { static_cast<int>(videoWidth * 4) }; // RGBA has 4 bytes per pixel
@@ -282,14 +282,14 @@ void VideoStreamer::encodeAndSendFrames() {
         {
             time_t startEncodeTime = timeutils::getTimeMicros();
 
-            // send frame to encoder
+            // Send frame to encoder
             ret = avcodec_send_frame(codecCtx, frame);
             if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                 av_log(nullptr, AV_LOG_ERROR, "Error: Could not send frame to output encoder: %s\n", av_err2str(ret));
                 continue;
             }
 
-            // get packet from encoder
+            // Get packet from encoder
             ret = avcodec_receive_packet(codecCtx, packet);
             if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                 continue;
@@ -312,7 +312,7 @@ void VideoStreamer::encodeAndSendFrames() {
 
             bytesSent = packet->size;
 
-            // send packet to output URL
+            // Send packet to output URL
             ret = av_interleaved_write_frame(outputFormatCtx, packet);
             av_packet_unref(packet);
             if (ret < 0) {
@@ -344,7 +344,7 @@ VideoStreamer::~VideoStreamer() {
     shouldTerminate = true;
     sendFrames = false;
 
-    // send dummy frame to unblock thread
+    // Send dummy frame to unblock thread
     frameReady = true;
     cv.notify_one();
 

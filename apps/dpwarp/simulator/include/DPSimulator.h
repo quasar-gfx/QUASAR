@@ -30,23 +30,23 @@ public:
     MeshFromQuads& meshFromQuads;
     FrameGenerator& frameGenerator;
 
-    // reference frame
+    // Reference frame
     FrameRenderTarget refFrameRT;
     std::vector<Mesh> refFrameMeshes;
     std::vector<Node> refFrameNodes;
     std::vector<Node> refFrameWireframesLocal;
 
-    // mask frame (residual frame) -- we only apply the mask to the visible layer
+    // Mask frame (residual frame) -- we only apply the mask to the visible layer
     FrameRenderTarget maskFrameRT;
     FrameRenderTarget maskTempRT;
     Mesh maskFrameMesh;
     Node maskFrameNode;
 
-    // local objects
+    // Local objects
     std::vector<Node> refFrameNodesLocal;
     Node maskFrameWireframeNodesLocal;
 
-    // hidden layers
+    // Hidden layers
     std::vector<FrameRenderTarget> frameRTsHidLayer;
     std::vector<Mesh> meshesHidLayer;
     std::vector<Node> nodesHidLayer;
@@ -55,7 +55,7 @@ public:
     std::vector<Mesh> depthMeshsHidLayer;
     std::vector<Node> depthNodesHidLayer;
 
-    // wide fov
+    // Wide fov
     std::vector<Node> wideFovNodes;
 
     std::vector<FrameRenderTarget> copyRTs;
@@ -164,7 +164,7 @@ public:
         wireframesHidLayer.reserve(numHidLayers);
         depthNodesHidLayer.reserve(numHidLayers);
 
-        // setup visible layer for reference frame
+        // Setup visible layer for reference frame
         MeshSizeCreateParams meshParams({
             .maxVertices = maxVertices,
             .maxIndices = maxIndices,
@@ -191,8 +191,8 @@ public:
             refFrameWireframesLocal[i].overrideMaterial = &wireframeMaterial;
         }
 
-        // setup masks for residual frame
-        // we can use less vertices and indicies for the mask since it will be sparse
+        // Setup masks for residual frame
+        // We can use less vertices and indicies for the mask since it will be sparse
         meshParams.maxVertices /= 4;
         meshParams.maxIndices /= 4;
         meshParams.material = new QuadMaterial({ .baseColorTexture = &maskFrameRT.colorBuffer });
@@ -206,7 +206,7 @@ public:
         maskFrameWireframeNodesLocal.visible = false;
         maskFrameWireframeNodesLocal.overrideMaterial = &maskWireframeMaterial;
 
-        // setup depth mesh
+        // Setup depth mesh
         MeshSizeCreateParams depthMeshParams = {
             .maxVertices = maxVerticesDepth,
             .usage = GL_DYNAMIC_DRAW
@@ -217,7 +217,7 @@ public:
         depthNode.visible = false;
         depthNode.primativeType = GL_POINTS;
 
-        // setup hidden layers and wide fov RTs
+        // Setup hidden layers and wide fov RTs
         RenderTargetCreateParams rtParams = {
             .width = quadsGenerator.remoteWindowSize.x,
             .height = quadsGenerator.remoteWindowSize.y,
@@ -237,7 +237,7 @@ public:
 
         for (int layer = 0; layer < numHidLayers; layer++) {
             meshParams.material = new QuadMaterial({ .baseColorTexture = &frameRTsHidLayer[layer].colorBuffer });
-            // we can use less vertices and indicies for the hidden layers since they will be sparse
+            // We can use less vertices and indicies for the hidden layers since they will be sparse
             meshParams.maxVertices = maxVertices / 4;
             meshParams.maxIndices = maxIndices / 4;
             meshesHidLayer.emplace_back(meshParams);
@@ -260,7 +260,7 @@ public:
             depthNodesHidLayer[layer].primativeType = GL_POINTS;
         }
 
-        // setup scene to use as mask for wide fov camera
+        // Setup scene to use as mask for wide fov camera
         for (int i = 0; i < 2; i++) {
             wideFovNodes.emplace_back(&refFrameMeshes[i]);
             wideFovNodes[i].frustumCulled = false;
@@ -294,11 +294,11 @@ public:
             DeferredRenderer& remoteRenderer,
             DepthPeelingRenderer& remoteRendererDP,
             bool generateResFrame = false, bool showNormals = false, bool showDepth = false) {
-        // reset stats
+        // Reset stats
         stats = { 0 };
 
         double startTime = timeutils::getTimeMicros();
-        // render remote scene with multiple layers
+        // Render remote scene with multiple layers
         remoteRendererDP.drawObjects(remoteScene, remoteCameraCenter);
         stats.totalRenderTime += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
@@ -324,7 +324,7 @@ public:
                 }
             }
             else if (layer != maxLayers - 1) {
-                // copy to render target
+                // Copy to render target
                 if (!showNormals) {
                     remoteRendererDP.peelingLayers[hiddenIndex+1].blitToFrameRT(frameToUse);
                     toneMapper.setUniforms(remoteRendererDP.peelingLayers[hiddenIndex+1]);
@@ -334,17 +334,17 @@ public:
                     showNormalsEffect.drawToRenderTarget(remoteRendererDP, frameToUse);
                 }
             }
-            // wide fov camera
+            // Wide fov camera
             else {
-                // draw old center mesh at new remoteCamera layer, filling stencil buffer with 1
+                // Draw old center mesh at new remoteCamera layer, filling stencil buffer with 1
                 remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer(GL_KEEP, GL_KEEP, GL_REPLACE);
                 remoteRenderer.pipeline.writeMaskState.disableColorWrites();
                 wideFovNodes[currMeshIndex].visible = false;
                 wideFovNodes[prevMeshIndex].visible = true;
                 remoteRenderer.drawObjectsNoLighting(sceneWideFov, remoteCameraToUse);
 
-                // render remoteScene using stencil buffer as a mask
-                // at values where stencil buffer is not 1, remoteScene should render
+                // Render remoteScene using stencil buffer as a mask
+                // At values where stencil buffer is not 1, remoteScene should render
                 remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_NOTEQUAL, 1);
                 remoteRenderer.pipeline.writeMaskState.enableColorWrites();
                 remoteRenderer.drawObjectsNoLighting(remoteScene, remoteCameraToUse, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -443,13 +443,13 @@ public:
                 currMeshIndex = (currMeshIndex + 1) % 2;
                 prevMeshIndex = (prevMeshIndex + 1) % 2;
 
-                // only update the previous camera pose if we are not generating a Residual Frame
+                // Only update the previous camera pose if we are not generating a Residual Frame
                 if (!generateResFrame) {
                     remoteCameraPrev.setViewMatrix(remoteCameraCenter.getViewMatrix());
                 }
             }
 
-            // for debugging: Generate point cloud from depth map
+            // For debugging: Generate point cloud from depth map
             if (showDepth) {
                 const glm::vec2 frameSize = glm::vec2(frameToUse.width, frameToUse.height);
 
@@ -487,7 +487,7 @@ public:
     uint saveToFile(const Path& outputPath) {
         uint totalOutputSize = 0;
         for (int layer = 0; layer < maxLayers; layer++) {
-            // save quads
+            // Save quads
             double startTime = timeutils::getTimeMicros();
             Path filename = (outputPath / "quads").appendToName(std::to_string(layer));
             std::ofstream quadsFile = std::ofstream(filename.withExtension(".bin.zstd"), std::ios::binary);
@@ -497,7 +497,7 @@ public:
                         stats.totalProxies, static_cast<double>(quads[layer].size()) / BYTES_IN_MB,
                             timeutils::microsToMillis(timeutils::getTimeMicros() - startTime));
 
-            // save depth offsets
+            // Save depth offsets
             startTime = timeutils::getTimeMicros();
             Path depthOffsetsFileName = (outputPath / "depthOffsets").appendToName(std::to_string(layer));
             std::ofstream depthOffsetsFile = std::ofstream(depthOffsetsFileName.withExtension(".bin.zstd"), std::ios::binary);
@@ -507,7 +507,7 @@ public:
                         stats.totalDepthOffsets, static_cast<double>(depthOffsets[layer].size()) / BYTES_IN_MB,
                             timeutils::microsToMillis(timeutils::getTimeMicros() - startTime));
 
-            // save color buffer
+            // Save color buffer
             Path colorFileName = outputPath / ("color" + std::to_string(layer));
             copyRTs[layer].saveColorAsJPG(colorFileName.withExtension(".jpg"));
 
@@ -518,14 +518,14 @@ public:
     }
 
 private:
-    // shaders
+    // Shaders
     ToneMapper toneMapper;
     ShowNormalsEffect showNormalsEffect;
     ComputeShader meshFromDepthShader;
 
     PerspectiveCamera remoteCameraPrev;
 
-    // scenes with resulting mesh
+    // Scenes with resulting mesh
     std::vector<Scene> meshScenes;
     Scene sceneWideFov;
 

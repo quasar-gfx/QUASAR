@@ -90,7 +90,7 @@ public:
     RenderStats drawToScreen(OpenGLRenderer& renderer) override {
         RenderStats stats;
 
-        // render ssao
+        // Render ssao
         ssaoShader.bind();
         ssaoShader.setMat4("view", camera.getViewMatrix());
         ssaoShader.setMat4("projection", camera.getProjectionMatrix());
@@ -100,12 +100,12 @@ public:
         ssaoShader.setTexture("noiseTexture", *noiseTexture, 5);
         stats += renderer.drawToRenderTarget(ssaoShader, ssaoRenderTarget);
 
-        // blur ssao
+        // Blur ssao
         ssaoBlurShader.bind();
         ssaoBlurShader.setTexture("ssaoInput", ssaoRenderTarget.colorBuffer, 5);
         stats += renderer.drawToRenderTarget(ssaoBlurShader, ssaoBlurRenderTarget);
 
-        // final ssao
+        // Final ssao
         ssaoFinalShader.bind();
         ssaoFinalShader.setTexture("ssao", ssaoBlurRenderTarget.colorBuffer, 5);
         stats += renderer.drawToScreen(ssaoFinalShader);
@@ -116,7 +116,7 @@ public:
     RenderStats drawToRenderTarget(OpenGLRenderer& renderer, RenderTargetBase& rt) override {
         RenderStats stats;
 
-        // render ssao
+        // Render ssao
         ssaoShader.bind();
         ssaoShader.setMat4("view", camera.getViewMatrix());
         ssaoShader.setMat4("projection", camera.getProjectionMatrix());
@@ -127,13 +127,13 @@ public:
         renderer.setScreenShaderUniforms(ssaoShader);
         stats += renderer.drawToRenderTarget(ssaoShader, ssaoRenderTarget);
 
-        // blur ssao
+        // Blur ssao
         ssaoBlurShader.bind();
         ssaoBlurShader.setTexture("ssaoInput", ssaoRenderTarget.colorBuffer, 5);
         renderer.setScreenShaderUniforms(ssaoBlurShader);
         stats += renderer.drawToRenderTarget(ssaoBlurShader, ssaoBlurRenderTarget);
 
-        // final ssao
+        // Final ssao
         ssaoFinalShader.bind();
         ssaoFinalShader.setTexture("ssao", ssaoBlurRenderTarget.colorBuffer, 5);
         renderer.setScreenShaderUniforms(ssaoFinalShader);

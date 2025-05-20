@@ -31,18 +31,18 @@ public:
     QuadsGenerator& quadsGenerator;
     FrameGenerator& frameGenerator;
 
-    // reference frame
+    // Reference frame
     FrameRenderTarget refFrameRT;
     std::vector<Mesh> refFrameMeshes;
     std::vector<Node> refFrameNodes;
 
-    // mask frame (residual frame)
+    // Mask frame (residual frame)
     FrameRenderTarget maskFrameRT;
     FrameRenderTarget maskTempRT;
     Mesh maskFrameMesh;
     Node maskFrameNode;
 
-    // local objects
+    // Local objects
     std::vector<Node> refFrameNodesLocal;
     std::vector<Node> refFrameWireframesLocal;
     Node maskFrameWireframeNodesLocal;
@@ -169,7 +169,7 @@ public:
             refFrameWireframesLocal[i].overrideMaterial = &wireframeMaterial;
         }
 
-        // we can use less vertices and indicies for the mask since it will be sparse
+        // We can use less vertices and indicies for the mask since it will be sparse
         meshParams.maxVertices /= 4;
         meshParams.maxIndices /= 4;
         meshParams.material = new QuadMaterial({ .baseColorTexture = &maskFrameRT.colorBuffer });
@@ -213,10 +213,10 @@ public:
 
         auto& remoteCameraToUse = generateResFrame ? remoteCameraPrev : remoteCamera;
 
-        // reset stats
+        // Reset stats
         stats = { 0 };
 
-        // render all objects in remoteScene normally
+        // Render all objects in remoteScene normally
         remoteRenderer.drawObjects(remoteScene, remoteCameraToUse);
         if (!showNormals) {
             remoteRenderer.copyToFrameRT(refFrameRT);
@@ -292,12 +292,12 @@ public:
         currMeshIndex = (currMeshIndex + 1) % 2;
         prevMeshIndex = (prevMeshIndex + 1) % 2;
 
-        // only update the previous camera pose if we are not generating a Residual Frame
+        // Only update the previous camera pose if we are not generating a Residual Frame
         if (!generateResFrame) {
             remoteCameraPrev.setViewMatrix(remoteCamera.getViewMatrix());
         }
 
-        // for debugging: Generate point cloud from depth map
+        // For debugging: Generate point cloud from depth map
         if (showDepth) {
             const glm::vec2 frameSize = glm::vec2(refFrameRT.width, refFrameRT.height);
 
@@ -333,7 +333,7 @@ public:
     }
 
     uint saveToFile(const Path& outputPath) {
-        // save quads
+        // Save quads
         double startTime = timeutils::getTimeMicros();
         Path filename = outputPath / "quads";
         std::ofstream quadsFile = std::ofstream(filename.withExtension(".bin.zstd"), std::ios::binary);
@@ -343,7 +343,7 @@ public:
                       stats.totalProxies, static_cast<double>(quads.size()) / BYTES_IN_MB,
                         timeutils::microsToMillis(timeutils::getTimeMicros() - startTime));
 
-        // save depth offsets
+        // Save depth offsets
         startTime = timeutils::getTimeMicros();
         Path depthOffsetsFileName = outputPath / "depthOffsets";
         std::ofstream depthOffsetsFile = std::ofstream(depthOffsetsFileName.withExtension(".bin.zstd"), std::ios::binary);
@@ -353,7 +353,7 @@ public:
                      stats.totalDepthOffsets, static_cast<double>(depthOffsets.size()) / BYTES_IN_MB,
                         timeutils::microsToMillis(timeutils::getTimeMicros() - startTime));
 
-        // save color buffer
+        // Save color buffer
         Path colorFileName = outputPath / "color";
         copyRT.saveColorAsJPG(colorFileName.withExtension(".jpg"));
 
@@ -361,14 +361,14 @@ public:
     }
 
 private:
-    // shaders
+    // Shaders
     ToneMapper toneMapper;
     ShowNormalsEffect showNormalsEffect;
     ComputeShader meshFromDepthShader;
 
     PerspectiveCamera remoteCameraPrev;
 
-    // scenes with resulting mesh
+    // Scenes with resulting mesh
     std::vector<Scene> meshScenes;
 
     QuadMaterial wireframeMaterial = QuadMaterial({.baseColor = colors[0]});

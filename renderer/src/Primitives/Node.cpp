@@ -133,7 +133,7 @@ const glm::mat4 Node::getTransformLocalFromWorld() const {
 
     Node* parent = this->parent;
     while (parent != nullptr) {
-        // have to multiply in reverse order, since parents goes from child to root
+        // Have to multiply in reverse order, since parents goes from child to root
         transformLocalFromWorld = transformLocalFromWorld * parent->getTransformLocalFromParent();
         parent = parent->parent;
     }

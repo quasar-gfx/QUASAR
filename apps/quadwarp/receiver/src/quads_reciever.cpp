@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
         spdlog::set_level(spdlog::level::debug);
     }
 
-    // parse size
+    // Parse size
     std::string sizeStr = args::get(sizeIn);
     size_t pos = sizeStr.find('x');
     glm::uvec2 windowSize = glm::uvec2(std::stoi(sizeStr.substr(0, pos)), std::stoi(sizeStr.substr(pos + 1)));
@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
     remoteCamera.setPosition(glm::vec3(0.0f, 3.0f, 10.0f));
     remoteCamera.updateViewMatrix();
 
-    // post processing
+    // Post processing
     ToneMapper toneMapper;
     toneMapper.enableToneMapping(false);
 
@@ -119,9 +119,9 @@ int main(int argc, char** argv) {
     DepthOffsets depthOffsets(depthOffsetBufferSize);
 
     startTime = window->getTime();
-    // load proxies
+    // Load proxies
     uint numProxies = quadBuffers.loadFromFile(outputPath / "quads.bin.zstd", &numBytesProxies);
-    // load depth offsets
+    // Load depth offsets
     uint numDepthOffsets = depthOffsets.loadFromFile(outputPath / "depthOffsets.bin.zstd", &numBytesDepthOffsets);
 
     mesh = new Mesh({
@@ -286,7 +286,7 @@ int main(int argc, char** argv) {
     });
 
     app.onRender([&](double now, double dt) {
-        // handle mouse input
+        // Handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
             auto mouseButtons = window->getMouseButtons();
             window->setMouseCursor(!mouseButtons.LEFT_PRESSED);
@@ -328,14 +328,14 @@ int main(int argc, char** argv) {
         auto scroll = window->getScrollOffset();
         camera.processScroll(scroll.y);
 
-        // render all objects in scene
+        // Render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);
 
-        // render to screen
+        // Render to screen
         toneMapper.drawToScreen(renderer);
     });
 
-    // run app loop (blocking)
+    // Run app loop (blocking)
     app.run();
 
     return 0;

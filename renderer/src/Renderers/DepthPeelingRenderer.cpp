@@ -15,7 +15,7 @@ DepthPeelingRenderer::DepthPeelingRenderer(const Config& config, uint maxLayers,
             }
         })
         , edp(edp) {
-    // enable depth peeling in shaders
+    // Enable depth peeling in shaders
     LitMaterial::extraShaderDefines.push_back("#define DO_DEPTH_PEELING");
     UnlitMaterial::extraShaderDefines.push_back("#define DO_DEPTH_PEELING");
     if (edp) {
@@ -50,7 +50,7 @@ void DepthPeelingRenderer::endRendering() {
 }
 
 void DepthPeelingRenderer::setScreenShaderUniforms(const Shader& screenShader) {
-    // set FrameRenderTarget texture uniforms
+    // Set FrameRenderTarget texture uniforms
     screenShader.bind();
     screenShader.setTexture("screenColor", outputRT.colorBuffer, 0);
     screenShader.setTexture("screenDepth", outputRT.depthStencilBuffer, 1);
@@ -68,12 +68,12 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene& scene, const Camera& ca
             glClear(clearMask);
         }
 
-        // disable blending
+        // Disable blending
         pipeline.blendState.blendEnabled = false; pipeline.apply();
 
         Texture* prevIDMap = (i >= 1) ? &peelingLayers[i-1].idBuffer : nullptr;
 
-        // set layer index in shaders
+        // Set layer index in shaders
         if (LitMaterial::shader != nullptr) {
             LitMaterial::shader->bind();
             LitMaterial::shader->setInt("layerIndex", i);
@@ -83,27 +83,27 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene& scene, const Camera& ca
             UnlitMaterial::shader->setInt("layerIndex", i);
         }
 
-        // render scene
+        // Render scene
         for (auto& child : scene.rootNode.children) {
             stats += drawNode(scene, camera, child, glm::mat4(1.0f), true, nullptr, prevIDMap);
         }
 
-        // reenable blending
+        // Reenable blending
         pipeline.blendState.blendEnabled = true; pipeline.apply();
 
         endRendering();
 
-        // clear output render target
+        // Clear output render target
         outputRT.bind();
         glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
         glClear(GL_COLOR_BUFFER_BIT);
         outputRT.unbind();
 
-        // draw lighting pass
+        // Draw lighting pass
         stats += lightingPass(scene, camera);
 
         if (i == 0) {
-            // draw skybox only on first layer
+            // Draw skybox only on first layer
             stats += drawSkyBox(scene, camera);
         }
 
@@ -140,19 +140,19 @@ RenderStats DepthPeelingRenderer::drawObjects(const Scene& scene, const Camera& 
 
     RenderStats stats;
 
-    // update shadows
+    // Update shadows
     updateDirLightShadow(scene, camera);
     updatePointLightShadows(scene, camera);
 
-    // draw all objects in the scene
+    // Draw all objects in the scene
     stats += drawScene(scene, camera, clearMask);
 
-    // draw lights for debugging
+    // Draw lights for debugging
     stats += drawLights(scene, camera);
 
-    // dont draw skybox here, it's drawn in drawScene
+    // Dont draw skybox here, it's drawn in drawScene
 
-    // composite layers
+    // Composite layers
     stats += compositeLayers();
 
     return stats;
@@ -178,15 +178,15 @@ RenderStats DepthPeelingRenderer::drawObjectsNoLighting(const Scene& scene, cons
 
     RenderStats stats;
 
-    // draw all objects in the scene
+    // Draw all objects in the scene
     stats += drawScene(scene, camera, clearMask);
 
-    // draw lighting pass
+    // Draw lighting pass
     stats += lightingPass(scene, camera);
 
-    // dont draw skybox here, it's drawn in drawScene
+    // Dont draw skybox here, it's drawn in drawScene
 
-    // composite layers
+    // Composite layers
     stats += compositeLayers();
 
     return stats;

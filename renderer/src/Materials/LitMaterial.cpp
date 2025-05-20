@@ -32,7 +32,7 @@ LitMaterial::LitMaterial(const LitMaterialCreateParams& params)
         textures.push_back(params.albedoTexture);
     }
 
-    // only gamma correct color textures
+    // Only gamma correct color textures
     textureParams.gammaCorrected = false;
 
     if (params.normalTexturePath != "") {

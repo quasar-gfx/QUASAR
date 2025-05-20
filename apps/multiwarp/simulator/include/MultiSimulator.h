@@ -31,12 +31,12 @@ public:
     QuadsGenerator& quadsGenerator;
     FrameGenerator& frameGenerator;
 
-    // reference frame -- QS only has one frame
+    // Reference frame -- QS only has one frame
     std::vector<FrameRenderTarget> serverFrameRTs;
     std::vector<Mesh> serverFrameMeshes;
     std::vector<Node> serverFrameNodesRemote;
 
-    // local objects
+    // Local objects
     std::vector<Node> serverFrameNodesLocal;
     std::vector<Node> serverFrameWireframesLocal;
 
@@ -95,7 +95,7 @@ public:
         serverFrameWireframesLocal.reserve(maxViews);
         depthNodesHidLayer.reserve(maxViews);
 
-        // match QuadStream's params:
+        // Match QuadStream's params:
         quadsGenerator.params.expandEdges = true;
         quadsGenerator.params.depthThreshold = 1e-4f;
         quadsGenerator.params.flattenThreshold = 0.05f;
@@ -129,7 +129,7 @@ public:
             copyRTs.emplace_back(rtParams);
 
             meshParams.material = new QuadMaterial({ .baseColorTexture = &serverFrameRTs[view].colorBuffer });
-            // we can use less vertices and indicies for the additional views since they will be sparse
+            // We can use less vertices and indicies for the additional views since they will be sparse
             meshParams.maxVertices = maxVertices / (view == 0 || view != maxViews - 1 ? 1 : 4);
             meshParams.maxIndices = maxIndices / (view == 0 || view != maxViews - 1 ? 1 : 4);
             serverFrameMeshes.emplace_back(meshParams);
@@ -175,7 +175,7 @@ public:
             const std::vector<PerspectiveCamera> remoteCameras, const Scene& remoteScene,
             DeferredRenderer& remoteRenderer,
             bool showNormals = false, bool showDepth = false) {
-        // reset stats
+        // Reset stats
         stats = { 0 };
 
         for (int view = 0; view < maxViews; view++) {
@@ -188,24 +188,24 @@ public:
 
             double startTime = timeutils::getTimeMicros();
 
-            // center view
+            // Center view
             if (view == 0) {
-                // render all objects in remoteScene normally
+                // Render all objects in remoteScene normally
                 remoteRenderer.drawObjects(remoteScene, remoteCameraToUse);
             }
-            // other view
+            // Other view
             else {
-                // make all previous serverFrameMeshes visible and everything else invisible
+                // Make all previous serverFrameMeshes visible and everything else invisible
                 for (int prevView = 1; prevView < maxViews; prevView++) {
                     meshScene.rootNode.children[prevView]->visible = (prevView < view);
                 }
-                // draw old serverFrameMeshes at new remoteCamera view, filling stencil buffer with 1
+                // Draw old serverFrameMeshes at new remoteCamera view, filling stencil buffer with 1
                 remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer(GL_KEEP, GL_KEEP, GL_REPLACE);
                 remoteRenderer.pipeline.writeMaskState.disableColorWrites();
                 remoteRenderer.drawObjectsNoLighting(meshScene, remoteCameraToUse);
 
-                // render remoteScene using stencil buffer as a mask
-                // at values where stencil buffer is not 1, remoteScene should render
+                // Render remoteScene using stencil buffer as a mask
+                // At values where stencil buffer is not 1, remoteScene should render
                 remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_NOTEQUAL, 1);
                 remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = false;
                 remoteRenderer.pipeline.writeMaskState.enableColorWrites();
@@ -247,7 +247,7 @@ public:
             stats.totalProxies += numProxies;
             stats.totalDepthOffsets += numDepthOffsets;
 
-            // for debugging: Generate point cloud from depth map
+            // For debugging: Generate point cloud from depth map
             if (showDepth) {
                 const glm::vec2 frameSize = glm::vec2(gBufferToUse.width, gBufferToUse.height);
 
@@ -286,7 +286,7 @@ public:
     uint saveToFile(const Path& outputPath) {
         uint totalOutputSize = 0;
         for (int view = 0; view < maxViews; view++) {
-            // save quads
+            // Save quads
             double startTime = timeutils::getTimeMicros();
             Path filename = (outputPath / "quads").appendToName(std::to_string(view));
             std::ofstream quadsFile = std::ofstream(filename.withExtension(".bin.zstd"), std::ios::binary);
@@ -296,7 +296,7 @@ public:
                         stats.totalProxies, static_cast<double>(quads[view].size()) / BYTES_IN_MB,
                             timeutils::microsToMillis(timeutils::getTimeMicros() - startTime));
 
-            // save depth offsets
+            // Save depth offsets
             startTime = timeutils::getTimeMicros();
             Path depthOffsetsFileName = (outputPath / "depthOffsets").appendToName(std::to_string(view));
             std::ofstream depthOffsetsFile = std::ofstream(depthOffsetsFileName.withExtension(".bin.zstd"), std::ios::binary);
@@ -306,7 +306,7 @@ public:
                         stats.totalDepthOffsets, static_cast<double>(depthOffsets[view].size()) / BYTES_IN_MB,
                             timeutils::microsToMillis(timeutils::getTimeMicros() - startTime));
 
-            // save color buffer
+            // Save color buffer
             Path colorFileName = outputPath / ("color" + std::to_string(view));
             copyRTs[view].saveColorAsJPG(colorFileName.withExtension(".jpg"));
 
@@ -317,7 +317,7 @@ public:
     }
 
 private:
-    // shaders
+    // Shaders
     ToneMapper toneMapper;
     ShowNormalsEffect showNormalsEffect;
     ComputeShader meshFromDepthShader;

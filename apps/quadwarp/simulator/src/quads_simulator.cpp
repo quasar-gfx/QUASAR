@@ -57,14 +57,14 @@ int main(int argc, char** argv) {
         spdlog::set_level(spdlog::level::debug);
     }
 
-    // parse size
+    // Parse size
     std::string sizeStr = args::get(sizeIn);
     size_t pos = sizeStr.find('x');
     glm::uvec2 windowSize = glm::uvec2(std::stoi(sizeStr.substr(0, pos)), std::stoi(sizeStr.substr(pos + 1)));
     config.width = windowSize.x;
     config.height = windowSize.y;
 
-    // parse remote size
+    // Parse remote size
     std::string rsizeStr = args::get(resIn);
     pos = rsizeStr.find('x');
     glm::uvec2 remoteWindowSize = glm::uvec2(std::stoi(rsizeStr.substr(0, pos)), std::stoi(rsizeStr.substr(pos + 1)));
@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
     config.height = remoteWindowSize.y;
     DeferredRenderer remoteRenderer(config);
 
-    // "remote" scene
+    // "Remote" scene
     Scene remoteScene;
     PerspectiveCamera remoteCamera(remoteRenderer.width, remoteRenderer.height);
     SceneLoader loader;
@@ -102,16 +102,16 @@ int main(int argc, char** argv) {
     FrameGenerator frameGenerator(remoteRenderer, remoteScene, quadsGenerator, meshFromQuads);
     QuadsSimulator quadsSimulator(remoteCamera, frameGenerator);
 
-    // "local" scene
+    // "Local" scene
     Scene localScene;
     localScene.envCubeMap = remoteScene.envCubeMap;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
     camera.setViewMatrix(remoteCamera.getViewMatrix());
 
-    // add meshes to local scene
+    // Add meshes to local scene
     quadsSimulator.addMeshesToScene(localScene);
 
-    // post processing
+    // Post processing
     ToneMapper toneMapper;
 
     Recorder recorder({
@@ -471,7 +471,7 @@ int main(int argc, char** argv) {
     bool updateClient = !saveImages;
     int frameCounter = 0;
     app.onRender([&](double now, double dt) {
-        // handle mouse input
+        // Handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
             auto mouseButtons = window->getMouseButtons();
             window->setMouseCursor(!mouseButtons.LEFT_PRESSED);
@@ -530,22 +530,22 @@ int main(int argc, char** argv) {
             generateResFrame = !generateRefFrame;
         }
         if (generateRefFrame || generateResFrame) {
-            // update all animations
+            // Update all animations
             if (runAnimations) {
                 remoteScene.updateAnimations(totalDT);
                 totalDT = 0.0;
             }
             lastRenderTime = now;
 
-            // "send" pose to the server. this will wait until latency+/-jitter ms have passed
+            // "Send" pose to the server. this will wait until latency+/-jitter ms have passed
             poseSendRecvSimulator.sendPose(camera, now);
             if (!preventCopyingLocalPose) {
-                // "receive" a predicted pose to render a new frame. this will wait until latency+/-jitter ms have passed
+                // "Receive" a predicted pose to render a new frame. this will wait until latency+/-jitter ms have passed
                 Pose clientPosePred;
                 if (poseSendRecvSimulator.recvPoseToRender(clientPosePred, now)) {
                     remoteCamera.setViewMatrix(clientPosePred.mono.view);
                 }
-                // if we do not have a new pose, just send a new frame with the old pose
+                // If we do not have a new pose, just send a new frame with the old pose
             }
 
             quadsSimulator.generateFrame(remoteCamera, remoteScene, remoteRenderer, generateResFrame, showNormals, showDepth);
@@ -565,7 +565,7 @@ int main(int argc, char** argv) {
             spdlog::info("Frame Size: {:.3f}MB", quadsSimulator.stats.compressedSizeBytes / BYTES_IN_MB);
             spdlog::info("Num Proxies: {}Proxies", quadsSimulator.stats.totalProxies);
 
-            // save to file if requested
+            // Save to file if requested
             if (saveToFile) {
                 quadsSimulator.saveToFile(outputPath);
             }
@@ -578,7 +578,7 @@ int main(int argc, char** argv) {
 
         poseSendRecvSimulator.update(now);
 
-        // show previous mesh
+        // Show previous mesh
         quadsSimulator.refFrameNodesLocal[quadsSimulator.currMeshIndex].visible = false;
         quadsSimulator.refFrameNodesLocal[quadsSimulator.prevMeshIndex].visible = true;
         quadsSimulator.refFrameWireframesLocal[quadsSimulator.currMeshIndex].visible = false;
@@ -589,7 +589,7 @@ int main(int argc, char** argv) {
         if (restrictMovementToViewBox) {
             glm::vec3 remotePosition = remoteCamera.getPosition();
             glm::vec3 position = camera.getPosition();
-            // restrict camera position to be inside position±viewBoxSize
+            // Restrict camera position to be inside position±viewBoxSize
             position.x = glm::clamp(position.x, remotePosition.x - viewBoxSize/2, remotePosition.x + viewBoxSize/2);
             position.y = glm::clamp(position.y, remotePosition.y - viewBoxSize/2, remotePosition.y + viewBoxSize/2);
             position.z = glm::clamp(position.z, remotePosition.z - viewBoxSize/2, remotePosition.z + viewBoxSize/2);
@@ -599,10 +599,10 @@ int main(int argc, char** argv) {
 
         double startTime = window->getTime();
 
-        // render generated meshes
+        // Render generated meshes
         renderStats = renderer.drawObjects(localScene, camera);
 
-        // render to screen
+        // Render to screen
         toneMapper.enableToneMapping(!showNormals);
         toneMapper.drawToScreen(renderer);
         if (!updateClient) {
@@ -628,7 +628,7 @@ int main(int argc, char** argv) {
         }
     });
 
-    // run app loop (blocking)
+    // Run app loop (blocking)
     app.run();
 
     return 0;

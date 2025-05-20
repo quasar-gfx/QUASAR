@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
         spdlog::set_level(spdlog::level::debug);
     }
 
-    // parse size
+    // Parse size
     std::string sizeStr = args::get(sizeIn);
     size_t pos = sizeStr.find('x');
     glm::uvec2 windowSize = glm::uvec2(std::stoi(sizeStr.substr(0, pos)), std::stoi(sizeStr.substr(pos + 1)));
@@ -74,7 +74,7 @@ int main(int argc, char** argv) {
     SceneLoader loader;
     loader.loadScene(sceneFile, scene, camera);
 
-    // post processing
+    // Post processing
     ToneMapper toneMapper;
     ShowDepthEffect showDepthEffect(camera);
     ShowNormalsEffect showNormalsEffect;
@@ -322,7 +322,7 @@ int main(int argc, char** argv) {
     });
 
     app.onRender([&](double now, double dt) {
-        // handle mouse input
+        // Handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
             auto mouseButtons = window->getMouseButtons();
             window->setMouseCursor(!mouseButtons.LEFT_PRESSED);
@@ -364,13 +364,13 @@ int main(int argc, char** argv) {
         camera.processScroll(scroll.y);
         camera.processKeyboard(keys, dt);
 
-        // update all animations
+        // Update all animations
         scene.updateAnimations(dt);
 
-        // render all objects in scene
+        // Render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);
 
-        // render to screen
+        // Render to screen
         if (shaderIndex == 0) {
             toneMapper.setExposure(exposure);
             toneMapper.drawToScreen(renderer);
@@ -391,7 +391,7 @@ int main(int argc, char** argv) {
         }
     });
 
-    // run app loop (blocking)
+    // Run app loop (blocking)
     app.run();
 
     return 0;

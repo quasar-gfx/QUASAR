@@ -94,7 +94,7 @@ OpenGLRenderer::OpenGLRenderer(const Config& config)
         })
         , outputFsQuad() {
 #ifdef GL_CORE
-    // enable setting vertex size for point clouds
+    // Enable setting vertex size for point clouds
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 #endif
 
@@ -196,11 +196,11 @@ RenderStats OpenGLRenderer::drawScene(const Scene& scene, const Camera& camera, 
 }
 
 RenderStats OpenGLRenderer::drawLightsImpl(const Scene& scene, const Camera& camera) {
-    // dont clear color or depth bit here, since we want this to draw over
+    // Dont clear color or depth bit here, since we want this to draw over
 
     RenderStats stats;
     for (auto& pointLight : scene.pointLights) {
-        // only draw if debug is set
+        // Only draw if debug is set
         if (pointLight->debug) {
             auto material = new UnlitMaterial({ .baseColor = glm::vec4(pointLight->color, 1.0) });
             Sphere light = Sphere({
@@ -233,7 +233,7 @@ RenderStats OpenGLRenderer::drawLights(const Scene& scene, const Camera& camera)
 }
 
 RenderStats OpenGLRenderer::drawSkyBoxImpl(const Scene& scene, const Camera& camera) {
-    // dont clear color or depth bit here, since we want this to draw over
+    // Dont clear color or depth bit here, since we want this to draw over
 
     RenderStats stats;
 
@@ -246,7 +246,7 @@ RenderStats OpenGLRenderer::drawSkyBoxImpl(const Scene& scene, const Camera& cam
     skyboxShader.bind();
     skyboxShader.setTexture("environmentMap", skybox, 0);
 
-    // disable writing to the depth buffer
+    // Disable writing to the depth buffer
     glDepthFunc(GL_LEQUAL);
     glDepthMask(GL_FALSE);
 
@@ -254,7 +254,7 @@ RenderStats OpenGLRenderer::drawSkyBoxImpl(const Scene& scene, const Camera& cam
         stats = scene.envCubeMap->draw(skyboxShader, camera);
     }
 
-    // restore depth func
+    // Restore depth func
     glDepthFunc(GL_LESS);
     glDepthMask(GL_TRUE);
 
@@ -273,10 +273,10 @@ RenderStats OpenGLRenderer::drawObjectsNoLighting(const Scene& scene, const Came
 
     RenderStats stats;
 
-    // draw all objects in the scene
+    // Draw all objects in the scene
     stats += drawScene(scene, camera, clearMask);
 
-    // draw skybox
+    // Draw skybox
     stats += drawSkyBox(scene, camera);
 
     return stats;
@@ -287,17 +287,17 @@ RenderStats OpenGLRenderer::drawObjects(const Scene& scene, const Camera& camera
 
     RenderStats stats;
 
-    // update shadows
+    // Update shadows
     updateDirLightShadow(scene, camera);
     updatePointLightShadows(scene, camera);
 
-    // draw all objects in the scene
+    // Draw all objects in the scene
     stats += drawScene(scene, camera, clearMask);
 
-    // draw lights for debugging
+    // Draw lights for debugging
     stats += drawLights(scene, camera);
 
-    // draw skybox
+    // Draw skybox
     stats += drawSkyBox(scene, camera);
 
     return stats;
@@ -316,7 +316,7 @@ RenderStats OpenGLRenderer::drawNode(const Scene& scene, const Camera& camera, N
             bool doFrustumCull = frustumCull && node->frustumCulled;
 
 #ifdef GL_CORE
-            // set polygon mode to wireframe if needed
+            // Set polygon mode to wireframe if needed
             if (node->wireframe || node->primativeType == GL_LINES) {
                 glEnable(GL_POLYGON_OFFSET_LINE); // to avoid z-fighting
                 glPolygonOffset(-1.0, -1.0); // adjust depth
@@ -339,7 +339,7 @@ RenderStats OpenGLRenderer::drawNode(const Scene& scene, const Camera& camera, N
             stats += node->entity->draw(node->primativeType, camera, model, doFrustumCull, materialToUse);
 
 #ifdef GL_CORE
-            // restore polygon mode
+            // Restore polygon mode
             if (node->wireframe) {
                 glDisable(GL_POLYGON_OFFSET_LINE);
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -370,7 +370,7 @@ RenderStats OpenGLRenderer::drawNode(const Scene& scene, const Camera& camera, N
     RenderStats stats;
     if (node->entity != nullptr) {
         if (node->visible) {
-            // don't have to bind to scene and camera here, since we are only drawing shadows
+            // Don't have to bind to scene and camera here, since we are only drawing shadows
             stats += node->entity->draw(node->primativeType, camera, model, pointLight->boundingSphere, overrideMaterial);
         }
     }
@@ -389,7 +389,7 @@ RenderStats OpenGLRenderer::drawToScreen(const Shader& screenShader, const Rende
         overrideRenderTarget->bind();
     }
     else {
-        // screen buffer
+        // Screen buffer
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glViewport(0, 0, windowWidth, windowHeight);
     }

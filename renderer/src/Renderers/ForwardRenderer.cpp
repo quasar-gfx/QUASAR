@@ -17,7 +17,7 @@ ForwardRenderer::ForwardRenderer(const Config& config)
 }
 
 void ForwardRenderer::setScreenShaderUniforms(const Shader& screenShader) {
-    // set FrameRenderTarget texture uniforms
+    // Set FrameRenderTarget texture uniforms
     screenShader.bind();
     screenShader.setTexture("screenColor", frameRT.colorBuffer, 0);
     screenShader.setTexture("screenDepth", frameRT.depthStencilBuffer, 1);
@@ -32,12 +32,12 @@ RenderStats ForwardRenderer::drawObjects(const Scene& scene, const Camera& camer
 
         pipeline.rasterState.scissorTestEnabled = true;
 
-        // left eye
+        // Left eye
         frameRT.setScissor(0, 0, width / 2, height);
         frameRT.setViewport(0, 0, width / 2, height);
         stats = drawObjects(scene, vrCamera->left, clearMask);
 
-        // right eye
+        // Right eye
         frameRT.setScissor(width / 2, 0, width / 2, height);
         frameRT.setViewport(width / 2, 0, width / 2, height);
         stats = drawObjects(scene, vrCamera->right, clearMask);

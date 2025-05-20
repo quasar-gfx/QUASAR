@@ -85,17 +85,17 @@ public:
             auto* vrCamera = static_cast<VRCamera*>(camera);
             currPose.setProjectionMatrices({vrCamera->left.getProjectionMatrix(), vrCamera->right.getProjectionMatrix()});
             currPose.setViewMatrices({vrCamera->left.getViewMatrix(), vrCamera->right.getViewMatrix()});
-            // if (epsilonEqual(currPose.stereo.viewL, prevPose.stereo.viewL) &&
-            //     epsilonEqual(currPose.stereo.viewR, prevPose.stereo.viewR)) {
-            //     return false;
+            // If (epsilonEqual(currPose.stereo.viewL, prevPose.stereo.viewL) &&
+            //     EpsilonEqual(currPose.stereo.viewR, prevPose.stereo.viewR)) {
+            //     Return false;
             // }
         }
         else {
             auto* perspectiveCamera = static_cast<PerspectiveCamera*>(camera);
             currPose.setProjectionMatrices({perspectiveCamera->getProjectionMatrix(), perspectiveCamera->getProjectionMatrix()});
             currPose.setViewMatrices({perspectiveCamera->getViewMatrix(), perspectiveCamera->getViewMatrix()});
-            // if (epsilonEqual(currPose.mono.view, prevPose.mono.view)) {
-            //     return false;
+            // If (epsilonEqual(currPose.mono.view, prevPose.mono.view)) {
+            //     Return false;
             // }
         }
         currPose.timestamp = timeutils::getTimeMicros();

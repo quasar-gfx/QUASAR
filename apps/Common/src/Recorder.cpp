@@ -104,7 +104,7 @@ void Recorder::captureFrame(const Camera& camera) {
 }
 
 void Recorder::saveFrames(int threadID) {
-    /* setup frame */
+    /* Setup frame */
     AVFrame* frame = av_frame_alloc();
 
     frame->width = width;
@@ -122,7 +122,7 @@ void Recorder::saveFrames(int threadID) {
         return;
     }
 
-    /* setup packet */
+    /* Setup packet */
     AVPacket* packet = av_packet_alloc();
     ret = av_packet_make_writable(packet);
     if (ret < 0) {
@@ -297,7 +297,7 @@ void Recorder::initializeFFmpeg() {
 }
 
 void Recorder::finalizeFFmpeg() {
-    /* setup packet */
+    /* Setup packet */
     AVPacket* packet = av_packet_alloc();
     int ret = av_packet_make_writable(packet);
     if (ret < 0) {
@@ -305,7 +305,7 @@ void Recorder::finalizeFFmpeg() {
         return;
     }
 
-    // flush encoder
+    // Flush encoder
     avcodec_send_frame(codecCtx, nullptr);
     while (true) {
         ret = avcodec_receive_packet(codecCtx, packet);

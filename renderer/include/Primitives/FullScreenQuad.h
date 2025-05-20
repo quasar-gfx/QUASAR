@@ -21,14 +21,14 @@ public:
     Buffer vertexBuffer;
 
     FullScreenQuad() : vertexBuffer(GL_ARRAY_BUFFER, sizeof(FSQuadVertex), GL_STATIC_DRAW) {
-        // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
+        // Vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
         std::vector<FSQuadVertex> quadVertices = {
-            // bottom triangle
+            // Bottom triangle
             { {-1.0f,  1.0f}, {0.0f, 1.0f} },
             { { 1.0f, -1.0f}, {1.0f, 0.0f} },
             { { 1.0f,  1.0f}, {1.0f, 1.0f} },
 
-            // top triangle
+            // Top triangle
             { {-1.0f,  1.0f}, {0.0f, 1.0f} },
             { {-1.0f, -1.0f}, {0.0f, 0.0f} },
             { { 1.0f, -1.0f}, {1.0f, 0.0f} }
@@ -57,14 +57,14 @@ public:
         RenderStats stats;
         stats.trianglesDrawn = 2;
 
-        // disable depth test so screen-space quad isn't discarded due to depth test.
+        // Disable depth test so screen-space quad isn't discarded due to depth test.
         glDisable(GL_DEPTH_TEST);
 
         glBindVertexArray(vertexArrayBuffer);
         glDrawArrays(GL_TRIANGLES, 0, stats.trianglesDrawn * 3);
         glBindVertexArray(0);
 
-        // reenable depth test
+        // Reenable depth test
         glEnable(GL_DEPTH_TEST);
 
         stats.drawCalls = 1;

@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
         spdlog::set_level(spdlog::level::debug);
     }
 
-    // parse size
+    // Parse size
     std::string sizeStr = args::get(sizeIn);
     size_t pos = sizeStr.find('x');
     glm::uvec2 windowSize = glm::uvec2(std::stoi(sizeStr.substr(0, pos)), std::stoi(sizeStr.substr(pos + 1)));
@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
 
     PoseReceiver poseReceiver = PoseReceiver(camera.get(), poseURL);
 
-    // post processing
+    // Post processing
     ToneMapper toneMapper;
 
     bool paused = false;
@@ -210,7 +210,7 @@ int main(int argc, char** argv) {
     });
 
     app.onRender([&](double now, double dt) {
-        // handle keyboard input
+        // Handle keyboard input
         auto keys = window->getKeys();
         if (keys.ESC_PRESSED) {
             window->close();
@@ -220,13 +220,13 @@ int main(int argc, char** argv) {
             return;
         }
 
-        // update all animations
+        // Update all animations
         scene.updateAnimations(dt);
 
-        // receive pose
+        // Receive pose
         pose_id_t poseID = poseReceiver.receivePose();
         if (poseID != -1) {
-            // offset camera
+            // Offset camera
             if (camera->isVR()) {
                 auto* vrCamera = static_cast<VRCamera*>(camera.get());
                 vrCamera->left.setPosition(vrCamera->left.getPosition() + initialPosition);
@@ -242,7 +242,7 @@ int main(int argc, char** argv) {
 
             renderer.drawObjects(scene, *camera);
 
-            // restore camera position
+            // Restore camera position
             if (camera->isVR()) {
                 auto* vrCamera = static_cast<VRCamera*>(camera.get());
                 vrCamera->left.setPosition(vrCamera->left.getPosition() - initialPosition);
@@ -256,10 +256,10 @@ int main(int argc, char** argv) {
                 perspectiveCamera->updateViewMatrix();
             }
 
-            // copy rendered result to video render target
+            // Copy rendered result to video render target
             toneMapper.drawToRenderTarget(renderer, videoStreamerRT);
 
-            // send video frame
+            // Send video frame
             currentFramePoseID = poseID;
             videoStreamerRT.sendFrame(poseID);
         }
@@ -269,7 +269,7 @@ int main(int argc, char** argv) {
         }
     });
 
-    // run app loop (blocking)
+    // Run app loop (blocking)
     app.run();
 
     spdlog::info("Please do CTRL-C to exit!");

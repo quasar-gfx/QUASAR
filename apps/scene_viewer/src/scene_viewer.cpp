@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
         spdlog::set_level(spdlog::level::debug);
     }
 
-    // parse size
+    // Parse size
     std::string sizeStr = args::get(sizeIn);
     size_t pos = sizeStr.find('x');
     glm::uvec2 windowSize = glm::uvec2(std::stoi(sizeStr.substr(0, pos)), std::stoi(sizeStr.substr(pos + 1)));
@@ -74,7 +74,7 @@ int main(int argc, char** argv) {
     SceneLoader loader;
     loader.loadScene(sceneFile, scene, camera);
 
-    // post processing
+    // Post processing
     ToneMapper toneMapper;
     ShowDepthEffect showDepthEffect(camera);
     ShowNormalsEffect showNormalsEffect;
@@ -363,17 +363,17 @@ int main(int argc, char** argv) {
         }
         totalDT += dt;
 
-        // update all animations
+        // Update all animations
         if (animationInterval == -1.0 || (now - lastRenderTime) >= (animationInterval - 1.0) / MILLISECONDS_IN_SECOND) {
             scene.updateAnimations(totalDT);
             lastRenderTime = now;
             totalDT = 0.0;
         }
 
-        // render all objects in scene
+        // Render all objects in scene
         renderStats = renderer.drawObjects(scene, camera);
 
-        // render to screen
+        // Render to screen
         if (shaderIndex == 0) {
             toneMapper.setExposure(exposure);
             toneMapper.drawToScreen(renderer);
@@ -409,7 +409,7 @@ int main(int argc, char** argv) {
         }
     });
 
-    // run app loop (blocking)
+    // Run app loop (blocking)
     app.run();
 
     return 0;

@@ -15,7 +15,7 @@ uint FrameGenerator::generateRefFrame(
 
     double startTime = timeutils::getTimeMicros();
 
-    // create proxies from the current FrameRenderTarget
+    // Create proxies from the current FrameRenderTarget
     quadsGenerator.createProxiesFromRT(frameRT, remoteCamera);
     stats.timeToCreateProxiesMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
     stats.timeToGenerateQuadsMs = quadsGenerator.stats.timeToGenerateQuadsMs;
@@ -27,7 +27,7 @@ uint FrameGenerator::generateRefFrame(
     stats.timeToCompress = quadsGenerator.quadBuffers.stats.timeToCompressMs +
                            quadsGenerator.depthOffsets.stats.timeToCompressMs;
 
-    // create mesh from the proxies
+    // Create mesh from the proxies
     startTime = timeutils::getTimeMicros();
     auto sizes = quadsGenerator.getBufferSizes();
     numProxies = sizes.numProxies;
@@ -64,7 +64,7 @@ uint FrameGenerator::generateResFrame(
 
     double startTime = timeutils::getTimeMicros();
 
-    // generate frame using previous frame as a mask for animations
+    // Generate frame using previous frame as a mask for animations
     {
         remoteRenderer.pipeline.writeMaskState.disableColorWrites();
         remoteRenderer.drawObjectsNoLighting(prevScene, prevRemoteCamera);
@@ -82,7 +82,7 @@ uint FrameGenerator::generateResFrame(
         remoteRenderer.copyToFrameRT(frameRT);
     }
 
-    // generate frame using current frame as a mask for movement
+    // Generate frame using current frame as a mask for movement
     {
         remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer(GL_KEEP, GL_KEEP, GL_REPLACE);
         remoteRenderer.pipeline.writeMaskState.disableColorWrites();
@@ -98,7 +98,7 @@ uint FrameGenerator::generateResFrame(
 
     stats.timeToRenderMaskMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
-    // create proxies and meshes for the updated keyframe
+    // Create proxies and meshes for the updated keyframe
     {
         startTime = timeutils::getTimeMicros();
         quadsGenerator.createProxiesFromRT(frameRT, prevRemoteCamera);
@@ -130,7 +130,7 @@ uint FrameGenerator::generateResFrame(
         stats.timeToCreateMeshMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
     }
 
-    // create proxies and meshes for the updated mask
+    // Create proxies and meshes for the updated mask
     {
         startTime = timeutils::getTimeMicros();
         quadsGenerator.createProxiesFromRT(maskFrameRT, currRemoteCamera);

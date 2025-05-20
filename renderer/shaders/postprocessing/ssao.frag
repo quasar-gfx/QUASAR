@@ -23,7 +23,7 @@ void main() {
     vec2 noiseScale = texSize / 4.0;
 
     vec3 fragPos = texture(screenPositions, TexCoords).xyz;
-    // extract the rotation part of the view matrix
+    // Extract the rotation part of the view matrix
     mat3 rotationMatrix = mat3(view);
     vec3 normal = normalize(rotationMatrix * texture(screenNormals, TexCoords).rgb);
 

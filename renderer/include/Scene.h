@@ -25,23 +25,23 @@ public:
 
     glm::vec4 backgroundColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
-    // create an irradiance cubemap, and rescale capture FBO to irradiance scale
+    // Create an irradiance cubemap, and rescale capture FBO to irradiance scale
     CubeMap irradianceCubeMap;
 
-    // create a prefilter cubemap, and rescale capture FBO to prefilter scale
+    // Create a prefilter cubemap, and rescale capture FBO to prefilter scale
     CubeMap prefilterCubeMap;
 
-    // generate a 2D LUT from the BRDF equations used
+    // Generate a 2D LUT from the BRDF equations used
     Texture brdfLUT;
     FullScreenQuad brdfFsQuad;
 
-    // converts HDR equirectangular environment map to cubemap equivalent
+    // Converts HDR equirectangular environment map to cubemap equivalent
     Shader equirectToCubeMapShader;
 
-    // solves diffuse integral by convolution to create an irradiance cubemap
+    // Solves diffuse integral by convolution to create an irradiance cubemap
     Shader convolutionShader;
 
-    // runs a quasi monte-carlo simulation on the environment lighting to create a prefilter cubemap
+    // Runs a quasi monte-carlo simulation on the environment lighting to create a prefilter cubemap
     Shader prefilterShader;
 
     // BRDF shader

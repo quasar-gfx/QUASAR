@@ -80,7 +80,7 @@ private:
     glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
     void updateCameraOrientation();
-    // calculates the front vector from the PerspectiveCamera's (updated) Euler Angles
+    // Calculates the front vector from the PerspectiveCamera's (updated) Euler Angles
     void setOrientationFromYawPitch();
 };
 

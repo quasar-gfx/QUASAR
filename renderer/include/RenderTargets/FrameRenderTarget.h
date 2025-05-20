@@ -91,7 +91,7 @@ public:
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, rt.getFramebufferID());
 
-        // color
+        // Color
         glReadBuffer(GL_COLOR_ATTACHMENT0);
         GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0 };
         glDrawBuffers(1, drawBuffers);
@@ -99,7 +99,7 @@ public:
                           0, 0, rt.width, rt.height,
                           GL_COLOR_BUFFER_BIT, filter);
 
-        // depth and stencil
+        // Depth and stencil
         glBlitFramebuffer(0, 0, width, height,
                           0, 0, rt.width, rt.height,
                           GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
@@ -111,7 +111,7 @@ public:
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frameRT.getFramebufferID());
 
-        // color
+        // Color
         glReadBuffer(GL_COLOR_ATTACHMENT0);
         GLenum drawBuffers0[] = { GL_COLOR_ATTACHMENT0 };
         glDrawBuffers(1, drawBuffers0);
@@ -119,7 +119,7 @@ public:
                           0, 0, frameRT.width, frameRT.height,
                           GL_COLOR_BUFFER_BIT, filter);
 
-        // normals
+        // Normals
         glReadBuffer(GL_COLOR_ATTACHMENT1);
         GLenum drawBuffers1[] = { GL_COLOR_ATTACHMENT1 };
         glDrawBuffers(1, drawBuffers1);
@@ -127,7 +127,7 @@ public:
                           0, 0, frameRT.width, frameRT.height,
                           GL_COLOR_BUFFER_BIT, filter);
 
-        // ids
+        // Ids
         glReadBuffer(GL_COLOR_ATTACHMENT2);
         GLenum drawBuffers2[] = { GL_COLOR_ATTACHMENT2 };
         glDrawBuffers(1, drawBuffers2);
@@ -135,7 +135,7 @@ public:
                           0, 0, frameRT.width, frameRT.height,
                           GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
-        // depth and stencil
+        // Depth and stencil
         glBlitFramebuffer(0, 0, width, height,
                           0, 0, frameRT.width, frameRT.height,
                           GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);

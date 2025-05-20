@@ -16,7 +16,7 @@ in VertexData {
     vec4 FragPosLightSpace;
 } fsIn;
 
-// material
+// Material
 uniform struct Material {
     vec4 baseColor;
     vec4 baseColorFactor;
@@ -26,7 +26,7 @@ uniform struct Material {
 
     bool hasBaseColorMap; // use diffuse map
 
-    // material textures
+    // Material textures
     sampler2D baseColorMap; // 0
 } material;
 
@@ -42,7 +42,7 @@ uniform float E;
 uniform float edpDelta;
 uniform int layerIndex;
 
-// adapted from https://github.com/cgskku/pvhv/blob/main/shaders/edp.frag
+// Adapted from https://github.com/cgskku/pvhv/blob/main/shaders/edp.frag
 #define DP_EPSILON 0.0001
 #define EDP_SAMPLES 16
 
@@ -72,7 +72,7 @@ bool inPVHV(ivec2 pixelCoords, vec3 fragViewPos, uvec4 q) {
 	float df = mix(camera.near, camera.far, blockerDepthNormalized);
     float R = LCOC(fragmentDepth, df);
     for (int i = 0; i < EDP_SAMPLES; i++) {
-        // sample around a circle with radius R
+        // Sample around a circle with radius R
         float x = R * cos(float(i) * 2*PI / EDP_SAMPLES);
         float y = R * sin(float(i) * 2*PI / EDP_SAMPLES);
         vec2 offset = vec2(x, y);

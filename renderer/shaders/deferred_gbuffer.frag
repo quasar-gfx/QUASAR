@@ -21,7 +21,7 @@ in VertexData {
     vec4 FragPosLightSpace;
 } fsIn;
 
-// material
+// Material
 uniform struct Material {
     vec4 baseColor;
     vec4 baseColorFactor;
@@ -44,7 +44,7 @@ uniform struct Material {
     bool hasEmissiveMap; // use emissive map
     bool metalRoughnessCombined; // use combined metal/roughness map
 
-    // material textures
+    // Material textures
     sampler2D baseColorMap; // 0
     sampler2D normalMap; // 1
     sampler2D metallicMap; // 2
@@ -70,7 +70,7 @@ uniform float E;
 uniform float edpDelta;
 uniform int layerIndex;
 
-// adapted from https://github.com/cgskku/pvhv/blob/main/shaders/edp.frag
+// Adapted from https://github.com/cgskku/pvhv/blob/main/shaders/edp.frag
 #define DP_EPSILON 0.0001
 #define EDP_SAMPLES 16
 
@@ -100,7 +100,7 @@ bool inPVHV(ivec2 pixelCoords, vec3 fragViewPos, uvec4 q) {
 	float df = mix(camera.near, camera.far, blockerDepthNormalized);
     float R = LCOC(fragmentDepth, df);
     for (int i = 0; i < EDP_SAMPLES; i++) {
-        // sample around a circle with radius R
+        // Sample around a circle with radius R
         float x = R * cos(float(i) * 2*PI / EDP_SAMPLES);
         float y = R * sin(float(i) * 2*PI / EDP_SAMPLES);
         vec2 offset = vec2(x, y);
@@ -173,13 +173,13 @@ void main() {
     }
     baseColor.rgb *= fsIn.Color;
 
-    // albedo
+    // Albedo
     vec3 albedo = baseColor.rgb;
     float alpha = (material.alphaMode == ALPHA_OPAQUE) ? 1.0 : baseColor.a;
     if (alpha < material.maskThreshold)
         discard;
 
-    // metallic and roughness properties
+    // Metallic and roughness properties
     float metallic, roughness;
     if (material.metalRoughnessCombined) {
         vec4 mrSample = texture(material.metallicMap, fsIn.TexCoords);
@@ -193,16 +193,16 @@ void main() {
     metallic = material.metallicFactor * metallic;
     roughness = material.roughnessFactor * roughness;
 
-    // input lighting data
+    // Input lighting data
     vec3 N = getNormal();
 
-    // apply emissive component
+    // Apply emissive component
     vec3 emissive = vec3(0.0);
     if (material.hasEmissiveMap) {
         emissive = texture(material.emissiveMap, fsIn.TexCoords).rgb;
     }
 
-    // apply ambient occlusion
+    // Apply ambient occlusion
     float ambient = 1.0;
     if (material.hasAOMap) {
         float ao = texture(material.aoMap, fsIn.TexCoords).r;

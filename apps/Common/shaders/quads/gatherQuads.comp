@@ -84,9 +84,9 @@ void main() {
     uint size = 1 << quadMapData.size;
     bool flattened = quadMapData.flattened;
     if (!flattened) {
-        // for (int i = 0; i < size; i++) {
-        //     for (int j = 0; j < size; j++) {
-        //         atomicAdd(numDepthOffsets, 4);
+        // For (int i = 0; i < size; i++) {
+        //     For (int j = 0; j < size; j++) {
+        //         AtomicAdd(numDepthOffsets, 4);
         //     }
         // }
         atomicAdd(numDepthOffsets, size * size * 4);

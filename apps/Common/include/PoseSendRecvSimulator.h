@@ -290,7 +290,7 @@ private:
 
         glm::vec3 rawPrediction = filteredP0 + v * dtFuture + 0.5f * a * dtFuture * dtFuture;
 
-        // smoothstep to avoid jitter
+        // Smoothstep to avoid jitter
         float confidence = 1.0f - glm::smoothstep(0.02f, 0.06f, dtFuture);
         glm::vec3 finalPrediction = poseSmoothing ? glm::mix(filteredP0, rawPrediction, confidence) : rawPrediction;
 
@@ -306,7 +306,7 @@ private:
         if (glm::length(axis) < 1e-5f || glm::any(glm::isnan(axis))) axis = glm::vec3(0, 1, 0);
         float angularSpeed = angle / dt2;
 
-        // clamp angular speed to avoid overshooting
+        // Clamp angular speed to avoid overshooting
         angularSpeed = glm::clamp(angularSpeed, 0.0f, glm::radians(200.0f)); // limit to 200°/s
 
         float futureAngle = angularSpeed * dtFuture;

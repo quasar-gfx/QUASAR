@@ -13,7 +13,7 @@ uniform sampler2D gNormal; // 3
 uniform sampler2D gPosition; // 4
 uniform sampler2D gLightPosition; // 5
 
-// material
+// Material
 uniform struct Material {
 #ifdef PLATFORM_CORE
     samplerCube irradianceMap; // 5
@@ -29,7 +29,7 @@ uniform DirectionalLight directionalLight;
 uniform PointLight pointLights[MAX_POINT_LIGHTS];
 uniform int numPointLights;
 
-// shadow maps
+// Shadow maps
 uniform sampler2D dirLightShadowMap; // 9
 #ifdef PLATFORM_CORE
 uniform samplerCube pointLightShadowMaps[MAX_POINT_LIGHTS]; // 10+
@@ -55,19 +55,19 @@ void main() {
 
     vec3 fragPosWorld = fragPosWorld_ibl.xyz;
 
-    // input lighting data
+    // Input lighting data
     vec3 N = fragNormal;
     vec3 V = normalize(camera.position - fragPosWorld);
     vec3 R = reflect(-V, N);
 
-    // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0
-    // of 0.04 and if it's a metal, use the albedo baseColor as F0 (metallic workflow)
+    // Calculate reflectance at normal incidence; if dia-electric (like plastic) use F0
+    // Of 0.04 and if it's a metal, use the albedo baseColor as F0 (metallic workflow)
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo, metallic);
 
     PBRInfo pbrInputs = PBRInfo(N, V, R, albedo, metallic, roughness, F0);
 
-    // apply reflectance equation for lights
+    // Apply reflectance equation for lights
     vec3 radianceOut = vec3(0.0);
     radianceOut += calcDirLight(directionalLight, pbrInputs, dirLightShadowMap, fragPosLightSpace, N);
     for (int i = 0; i < numPointLights; i++) {
@@ -80,14 +80,14 @@ void main() {
 
     vec3 ambient = ambientLight.intensity * ambientLight.color * albedo;
 #ifdef PLATFORM_CORE
-    // apply IBL
+    // Apply IBL
     ambient += IBL * calcIBLContribution(pbrInputs, material.irradianceMap, material.prefilterMap, material.brdfLUT);
 #endif
 
-    // apply emissive component
+    // Apply emissive component
     radianceOut += emissive;
 
-    // apply ambient occlusion
+    // Apply ambient occlusion
     ambient *= ao;
 
     radianceOut = radianceOut + ambient;

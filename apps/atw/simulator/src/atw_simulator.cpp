@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
         spdlog::set_level(spdlog::level::debug);
     }
 
-    // parse size
+    // Parse size
     std::string sizeStr = args::get(sizeIn);
     size_t pos = sizeStr.find('x');
     glm::uvec2 windowSize = glm::uvec2(std::stoi(sizeStr.substr(0, pos)), std::stoi(sizeStr.substr(pos + 1)));
@@ -75,13 +75,13 @@ int main(int argc, char** argv) {
     DeferredRenderer remoteRenderer(config);
     ForwardRenderer renderer(config);
 
-    // "remote" scene
+    // "Remote" scene
     Scene remoteScene;
     PerspectiveCamera remoteCamera(windowSize.x, windowSize.y);
     SceneLoader loader;
     loader.loadScene(sceneFile, remoteScene, remoteCamera);
 
-    // scene with all the meshes
+    // Scene with all the meshes
     Scene scene;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
     camera.setViewMatrix(remoteCamera.getViewMatrix());
@@ -98,7 +98,7 @@ int main(int argc, char** argv) {
         .magFilter = GL_LINEAR
     });
 
-    // post processing
+    // Post processing
     ToneMapper toneMapper;
     toneMapper.enableToneMapping(false);
 
@@ -335,7 +335,7 @@ int main(int argc, char** argv) {
     double lastRenderTime = 0.0;
     bool updateClient = !saveImages;
     app.onRender([&](double now, double dt) {
-        // handle mouse input
+        // Handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
             auto mouseButtons = window->getMouseButtons();
             window->setMouseCursor(!mouseButtons.LEFT_PRESSED);
@@ -393,7 +393,7 @@ int main(int argc, char** argv) {
             generateRemoteFrame = true;
         }
         if (generateRemoteFrame) {
-            // update all animations
+            // Update all animations
             if (runAnimations) {
                 remoteScene.updateAnimations(totalDT);
                 totalDT = 0.0;
@@ -402,21 +402,21 @@ int main(int argc, char** argv) {
 
             double startTime = window->getTime();
 
-            // "send" pose to the server. this will wait until latency+/-jitter ms have passed
+            // "Send" pose to the server. this will wait until latency+/-jitter ms have passed
             poseSendRecvSimulator.sendPose(camera, now);
             if (!preventCopyingLocalPose) {
-                // "receive" a predicted pose to render a new frame. this will wait until latency+/-jitter ms have passed
+                // "Receive" a predicted pose to render a new frame. this will wait until latency+/-jitter ms have passed
                 Pose clientPosePred;
                 if (poseSendRecvSimulator.recvPoseToRender(clientPosePred, now)) {
                     remoteCamera.setViewMatrix(clientPosePred.mono.view);
                 }
-                // if we do not have a new pose, just send a new frame with the old pose
+                // If we do not have a new pose, just send a new frame with the old pose
             }
 
-            // render remoteScene
+            // Render remoteScene
             remoteRenderer.drawObjects(remoteScene, remoteCamera);
 
-            // copy rendered result to video render target
+            // Copy rendered result to video render target
             toneMapper.enableToneMapping(true);
             toneMapper.drawToRenderTarget(remoteRenderer, renderTarget);
             toneMapper.enableToneMapping(false);
@@ -472,7 +472,7 @@ int main(int argc, char** argv) {
         }
     });
 
-    // run app loop (blocking)
+    // Run app loop (blocking)
     app.run();
 
     return 0;

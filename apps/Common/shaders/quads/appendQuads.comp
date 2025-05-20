@@ -40,7 +40,7 @@ shared uint localNumProxies;
 void main() {
     uint proxyIndex = gl_GlobalInvocationID.x;
 
-    // if RefFrame, start from the beginning
+    // If RefFrame, start from the beginning
     if (refFrame && proxyIndex == 0u) {
         currNumProxies = 0u;
     }

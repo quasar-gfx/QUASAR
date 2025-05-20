@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
         spdlog::set_level(spdlog::level::debug);
     }
 
-    // parse size
+    // Parse size
     std::string sizeStr = args::get(sizeIn);
     size_t pos = sizeStr.find('x');
     glm::uvec2 windowSize = glm::uvec2(std::stoi(sizeStr.substr(0, pos)), std::stoi(sizeStr.substr(pos + 1)));
@@ -86,14 +86,14 @@ int main(int argc, char** argv) {
         .wrapT = GL_CLAMP_TO_BORDER,
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR,
-        // make out of frame regions black
+        // Make out of frame regions black
         .hasBorder = true,
         .borderColor = glm::vec4(0.0f),
     }, videoURL, videoFormat);
 
     PoseStreamer poseStreamer(&camera, poseURL);
 
-    // shaders
+    // Shaders
     Shader atwShader({
         .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
         .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
         .fragmentCodeSize = SHADER_COMMON_ATW_FRAG_len
     });
 
-    // post processing
+    // Post processing
     ToneMapper toneMapper;
 
     Recorder recorder({
@@ -269,7 +269,7 @@ int main(int argc, char** argv) {
     });
 
     app.onRender([&](double now, double dt) {
-        // handle mouse input
+        // Handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
             auto mouseButtons = window->getMouseButtons();
             window->setMouseCursor(!mouseButtons.LEFT_PRESSED);
@@ -311,10 +311,10 @@ int main(int argc, char** argv) {
         auto scroll = window->getScrollOffset();
         camera.processScroll(scroll.y);
 
-        // send pose to streamer
+        // Send pose to streamer
         poseStreamer.sendPose();
 
-        // render video frame
+        // Render video frame
         videoTexture.bind();
         pose_id_t currPoseID = videoTexture.draw();
 
@@ -331,13 +331,13 @@ int main(int argc, char** argv) {
         }
         atwShader.setTexture("videoTexture", videoTexture, 5);
 
-        // render to screen
+        // Render to screen
         renderStats = renderer.drawToScreen(atwShader);
 
         prevPoseID = currPoseID;
     });
 
-    // run app loop (blocking)
+    // Run app loop (blocking)
     app.run();
 
     spdlog::info("Exiting...");

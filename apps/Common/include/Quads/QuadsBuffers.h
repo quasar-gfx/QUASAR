@@ -22,9 +22,9 @@ struct QuadMapData {
 };
 
 struct QuadMapDataPacked {
-    // normal converted into spherical coordinates. 16 bits of padding + theta, phi (8 bits each) packed into 16 bits.
+    // Normal converted into spherical coordinates. 16 bits of padding + theta, phi (8 bits each) packed into 16 bits.
     uint32_t normalSpherical;
-    // full resolution depth. 32 bits used.
+    // Full resolution depth. 32 bits used.
     float depth;
     // offset.x << 20 | offset.y << 8 (12 bits each) | size << 1 (6 bits) | flattened (1 bit). 31 bits used.
     uint32_t offsetSizeFlattened;

@@ -28,7 +28,7 @@ struct Quad2D {
     vec2 topRight;
 };
 
-// a Quad subdivided into 4 smaller Quads
+// A Quad subdivided into 4 smaller Quads
 struct MultiQuad {
     vec3 bottomLeft;
     vec3 bottom;
@@ -103,14 +103,14 @@ vec3 pointPlaneIntersection(vec3 pt, Plane plane) {
 }
 
 uint packNormalToSpherical(vec3 normal) {
-    // convert to spherical coordinates
+    // Convert to spherical coordinates
     float theta = acos(clamp(normal.y, -1.0, 1.0)); // elevation
     float phi = atan(normal.z, normal.x);           // azimuth
 
     float thetaSnorm = (theta / PI) * 2.0 - 1.0;
     float phiSnorm = phi / PI;
 
-    // pack into lower two components, pad upper two with 0
+    // Pack into lower two components, pad upper two with 0
     return packSnorm4x8(vec4(thetaSnorm, phiSnorm, 0.0, 0.0));
 }
 
@@ -123,7 +123,7 @@ vec3 unpackSphericalToNormal(uint packedNormal) {
     float theta = (thetaSnorm + 1.0) * 0.5 * PI;
     float phi = phiSnorm * PI;
 
-    // ceconstruct normal from spherical coords
+    // Ceconstruct normal from spherical coords
     float y = cos(theta);
     float r = sin(theta);
     float x = r * cos(phi);

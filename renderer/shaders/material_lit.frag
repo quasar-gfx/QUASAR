@@ -18,7 +18,7 @@ in VertexData {
     vec4 FragPosLightSpace;
 } fsIn;
 
-// material
+// Material
 uniform struct Material {
     vec4 baseColor;
     vec4 baseColorFactor;
@@ -41,7 +41,7 @@ uniform struct Material {
     bool hasEmissiveMap; // use emissive map
     bool metalRoughnessCombined; // use combined metal/roughness map
 
-    // material textures
+    // Material textures
     sampler2D baseColorMap; // 0
     sampler2D normalMap; // 1
     sampler2D metallicMap; // 2
@@ -63,7 +63,7 @@ uniform DirectionalLight directionalLight;
 uniform PointLight pointLights[MAX_POINT_LIGHTS];
 uniform int numPointLights;
 
-// shadow maps
+// Shadow maps
 uniform sampler2D dirLightShadowMap; // 9
 #ifdef PLATFORM_CORE
 uniform samplerCube pointLightShadowMaps[MAX_POINT_LIGHTS]; // 10+
@@ -104,7 +104,7 @@ vec3 getNormal() {
 
 #ifdef DO_DEPTH_PEELING
 
-// adapted from https://github.com/cgskku/pvhv/blob/main/shaders/edp.frag
+// Adapted from https://github.com/cgskku/pvhv/blob/main/shaders/edp.frag
 #define DP_EPSILON 0.0001
 #define EDP_SAMPLES 16
 
@@ -134,7 +134,7 @@ bool inPVHV(ivec2 pixelCoords, vec3 fragViewPos, uvec4 q) {
 	float df = mix(camera.near, camera.far, blockerDepthNormalized);
     float R = LCOC(fragmentDepth, df);
     for (int i = 0; i < EDP_SAMPLES; i++) {
-        // sample around a circle with radius R
+        // Sample around a circle with radius R
         float x = R * cos(float(i) * 2*PI / EDP_SAMPLES);
         float y = R * sin(float(i) * 2*PI / EDP_SAMPLES);
         vec2 offset = vec2(x, y);
@@ -184,13 +184,13 @@ void main() {
     }
     baseColor.rgb *= fsIn.Color;
 
-    // albedo
+    // Albedo
     vec3 albedo = baseColor.rgb;
     float alpha = (material.alphaMode == ALPHA_OPAQUE) ? 1.0 : baseColor.a;
     if (alpha < material.maskThreshold)
         discard;
 
-    // metallic and roughness properties
+    // Metallic and roughness properties
     float metallic, roughness;
     if (material.metalRoughnessCombined) {
         vec4 mrSample = texture(material.metallicMap, fsIn.TexCoords);
@@ -204,19 +204,19 @@ void main() {
     metallic = material.metallicFactor * metallic;
     roughness = material.roughnessFactor * roughness;
 
-    // input lighting data
+    // Input lighting data
     vec3 N = getNormal();
     vec3 V = normalize(camera.position - fsIn.FragPosWorld);
     vec3 R = reflect(-V, N);
 
-    // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0
-    // of 0.04 and if it's a metal, use the albedo baseColor as F0 (metallic workflow)
+    // Calculate reflectance at normal incidence; if dia-electric (like plastic) use F0
+    // Of 0.04 and if it's a metal, use the albedo baseColor as F0 (metallic workflow)
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo, metallic);
 
     PBRInfo pbrInputs = PBRInfo(N, V, R, albedo, metallic, roughness, F0);
 
-    // apply reflectance equation for lights
+    // Apply reflectance equation for lights
     vec3 radianceOut = vec3(0.0);
     radianceOut += calcDirLight(directionalLight, pbrInputs, dirLightShadowMap, fsIn.FragPosLightSpace, fsIn.Normal);
     for (int i = 0; i < numPointLights; i++) {
@@ -229,17 +229,17 @@ void main() {
 
     vec3 ambient = ambientLight.intensity * ambientLight.color * albedo;
 #ifdef PLATFORM_CORE
-    // apply IBL
+    // Apply IBL
     ambient += material.IBL * calcIBLContribution(pbrInputs, material.irradianceMap, material.prefilterMap, material.brdfLUT);
 #endif
 
-    // apply emissive component
+    // Apply emissive component
     if (material.hasEmissiveMap) {
         vec3 emissive = texture(material.emissiveMap, fsIn.TexCoords).rgb;
         radianceOut += material.emissiveFactor * emissive;
     }
 
-    // apply ambient occlusion
+    // Apply ambient occlusion
     if (material.hasAOMap) {
         float ao = texture(material.aoMap, fsIn.TexCoords).r;
         ambient *= ao;

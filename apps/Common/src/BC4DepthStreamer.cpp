@@ -18,7 +18,7 @@ BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams& params, const
             .defines = {
                 "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
             }}) {
-    // round up to nearest multiple of BC4_BLOCK_SIZE
+    // Round up to nearest multiple of BC4_BLOCK_SIZE
     width = (params.width + BC4_BLOCK_SIZE - 1) / BC4_BLOCK_SIZE * BC4_BLOCK_SIZE;
     height = (params.height + BC4_BLOCK_SIZE - 1) / BC4_BLOCK_SIZE * BC4_BLOCK_SIZE;
     resize(width, height);
@@ -77,10 +77,10 @@ uint BC4DepthStreamer::compress(bool compress) {
 }
 
 void BC4DepthStreamer::copyFrameToCPU(pose_id_t poseID, void* cudaPtr) {
-    // copy pose ID to the beginning of data
+    // Copy pose ID to the beginning of data
     std::memcpy(data.data(), &poseID, sizeof(pose_id_t));
 
-    // copy compressed BC4 data from GPU to CPU
+    // Copy compressed BC4 data from GPU to CPU
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     if (cudaPtr == nullptr) {
         cudaPtr = cudaBufferBc4.getPtr();
@@ -136,7 +136,7 @@ void BC4DepthStreamer::sendFrame(pose_id_t poseID) {
 
     startTime = timeutils::getTimeMicros();
 
-    // compress
+    // Compress
     applyCodec();
 
     stats.timeToCompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
@@ -165,14 +165,14 @@ void BC4DepthStreamer::sendData() {
 
         time_t startCopyTime = timeutils::getTimeMicros();
         {
-            // copy pose ID to the beginning of data
+            // Copy pose ID to the beginning of data
             std::memcpy(data.data(), &cudaBufferStruct.poseID, sizeof(pose_id_t));
-            // copy compressed BC4 data from GPU to CPU
+            // Copy compressed BC4 data from GPU to CPU
             copyFrameToCPU(cudaBufferStruct.poseID, cudaPtr);
         }
         stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startCopyTime);
 
-        // compress even further
+        // Compress even further
         time_t startCompressTime = timeutils::getTimeMicros();
         uint compressedSize = applyCodec();
         stats.timeToCompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startCompressTime);
@@ -187,7 +187,7 @@ void BC4DepthStreamer::sendData() {
             );
         }
 
-        // send compressed data
+        // Send compressed data
         streamer.send(compressedData);
 
         stats.timeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);

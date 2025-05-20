@@ -18,7 +18,7 @@ OpenGLApp::OpenGLApp(const Config& config)
         , targetFramerate(config.enableVSync ? config.targetFramerate : 0) {
     spdlog::set_pattern("[%H:%M:%S] [%^%L%$] %v");
 
-    // check opengl version
+    // Check opengl version
     if (config.openglMajorVersion < 3 || (config.openglMajorVersion == 3 && config.openglMinorVersion < 3)) {
         throw std::runtime_error("OpenGL version must be 3.3 or higher");
     }
@@ -38,7 +38,7 @@ void OpenGLApp::run() {
         double deltaTime = currTime - prevTime;
 
         if (deltaTime < targetDeltaTime) {
-            // sleep for the remaining time to meet target framerate
+            // Sleep for the remaining time to meet target framerate
             std::this_thread::sleep_for(std::chrono::duration<double>(targetDeltaTime - deltaTime));
             currTime = window->getTime();
             deltaTime = currTime - prevTime;

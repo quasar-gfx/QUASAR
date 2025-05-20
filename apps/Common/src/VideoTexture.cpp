@@ -57,7 +57,7 @@ VideoTexture::~VideoTexture() {
     av_packet_unref(packet);
     av_packet_free(&packet);
 
-    // av_free(buffer);
+    // Av_free(buffer);
 
     while (!frames.empty()) {
         frames.pop_front();
@@ -75,8 +75,8 @@ int VideoTexture::initFFMpeg() {
     AVDictionary* options = nullptr;
     av_dict_set(&options, "protocol_whitelist", "file,udp,rtp", 0);
     av_dict_set(&options, "fflags", "nobuffer", 0);
-    // av_dict_set(&options, "buffer_size", "1000000", 0);
-    // av_dict_set(&options, "max_delay", "500000", 0);
+    // Av_dict_set(&options, "buffer_size", "1000000", 0);
+    // Av_dict_set(&options, "max_delay", "500000", 0);
 
     /* Setup input (to read video from url) */
     int ret = avformat_open_input(&inputFormatCtx, videoURL.c_str(), nullptr, &options); // blocking
@@ -91,7 +91,7 @@ int VideoTexture::initFFMpeg() {
         return ret;
     }
 
-    // find the video stream index
+    // Find the video stream index
     for (int i = 0; i < inputFormatCtx->nb_streams; i++) {
         AVStream *stream = inputFormatCtx->streams[i];
         AVCodecParameters *codec_params = stream->codecpar;
@@ -154,7 +154,7 @@ int VideoTexture::initFFMpeg() {
 }
 
 pose_id_t VideoTexture::unpackPoseIDFromFrame(AVFrame* frame) {
-    // extract poseID from frame
+    // Extract poseID from frame
     const int numVotes = 32;
     pose_id_t poseID = 0;
     for (int i = 0; i < poseIDOffset; i++) {
@@ -186,7 +186,7 @@ void VideoTexture::receiveVideo() {
     while (videoReady) {
         time_t startRecvTime = timeutils::getTimeMicros();
 
-        // read frame from URL
+        // Read frame from URL
         int ret = av_read_frame(inputFormatCtx, packet);
         if (ret < 0) {
             av_log(nullptr, AV_LOG_ERROR, "Error reading frame: %s\n", av_err2str(ret));
@@ -205,7 +205,7 @@ void VideoTexture::receiveVideo() {
         {
             time_t startDecodeTime = timeutils::getTimeMicros();
 
-            // send packet to decoder
+            // Send packet to decoder
             ret = avcodec_send_packet(codecCtx, packet);
             if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                 av_packet_unref(packet);
@@ -215,7 +215,7 @@ void VideoTexture::receiveVideo() {
 
             av_packet_unref(packet);
 
-            // get frame from decoder
+            // Get frame from decoder
             ret = avcodec_receive_frame(codecCtx, frame);
             if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                 continue;
@@ -244,7 +244,7 @@ void VideoTexture::receiveVideo() {
 
             pose_id_t poseID = unpackPoseIDFromFrame(frameRGB);
 
-            // copy buffer
+            // Copy buffer
             std::vector<char> bufferCopy((char*)imageBuffer, (char*)imageBuffer + numBytes);
             FrameData frameData = {poseID, std::move(bufferCopy)};
             {
@@ -256,7 +256,7 @@ void VideoTexture::receiveVideo() {
                 }
             }
 
-            // clean up temporary AVFrame and raw buffer
+            // Clean up temporary AVFrame and raw buffer
             av_free(imageBuffer);
             av_frame_free(&frameRGB);
 
@@ -284,8 +284,7 @@ pose_id_t VideoTexture::draw(pose_id_t poseID) {
 
     FrameData& resFrameData = frames.back();
     if (poseID != -1) { // search for frame with poseID
-        for (auto it = frames.begin(); it != frames.end(); it++) {
-            FrameData frameData = *it;
+        for (auto& frameData : frames) {
             if (frameData.poseID == poseID) {
                 resFrameData = frameData;
                 break;

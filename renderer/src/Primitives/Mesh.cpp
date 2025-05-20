@@ -22,7 +22,7 @@ void Mesh::setArrayBufferAttributes(const VertexInputAttributes& attributes, uin
 }
 
 void Mesh::setBuffers(const void* verticesData, uint verticesSize, const uint* indicesData, uint indicesSize) {
-    // if no vertices, dont bind buffers
+    // If no vertices, dont bind buffers
     if (verticesData == nullptr || verticesSize == 0) {
         return;
     }
@@ -46,7 +46,7 @@ void Mesh::setBuffers(const void* verticesData, uint verticesSize, const uint* i
 }
 
 void Mesh::setBuffers(uint verticesSize, uint indicesSize) {
-    // if no vertices or indices, dont bind buffers
+    // If no vertices or indices, dont bind buffers
     if (verticesSize == 0) {
         return;
     }
@@ -73,7 +73,7 @@ void Mesh::resizeBuffers(uint verticesSize, uint indicesSize) {
 }
 
 void Mesh::updateAABB(const void* verticesData, uint verticesSize) {
-    // if no vertices, return
+    // If no vertices, return
     if (verticesData == nullptr || verticesSize == 0) {
         return;
     }
@@ -88,7 +88,7 @@ void Mesh::updateAABB(const void* verticesData, uint verticesSize) {
         max = glm::max(max, vertex.position);
     }
 
-    // set up AABB
+    // Set up AABB
     aabb.update(min, max);
 }
 
@@ -173,13 +173,13 @@ RenderStats Mesh::draw(GLenum primativeType, const Camera& camera, const glm::ma
     auto materialToUse = overrideMaterial != nullptr ? overrideMaterial : material;
     materialToUse->bind();
 
-    // set draw ID/object ID
+    // Set draw ID/object ID
     materialToUse->getShader()->setUint("drawID", ID);
 
-    // set camera params
+    // Set camera params
     setMaterialCameraParams(camera, materialToUse);
 
-    // set model and normal matrix
+    // Set model and normal matrix
     materialToUse->getShader()->setMat4("model", model);
     materialToUse->getShader()->setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
 

@@ -1,4 +1,4 @@
 
 void main() {
-    // gl_FragDepth = gl_FragCoord.z;
+    // Gl_FragDepth = gl_FragCoord.z;
 }

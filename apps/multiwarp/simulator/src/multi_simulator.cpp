@@ -73,14 +73,14 @@ int main(int argc, char** argv) {
         spdlog::set_level(spdlog::level::debug);
     }
 
-    // parse size
+    // Parse size
     std::string sizeStr = args::get(sizeIn);
     size_t pos = sizeStr.find('x');
     glm::uvec2 windowSize = glm::uvec2(std::stoi(sizeStr.substr(0, pos)), std::stoi(sizeStr.substr(pos + 1)));
     config.width = windowSize.x;
     config.height = windowSize.y;
 
-    // parse remote size
+    // Parse remote size
     std::string rsizeStr = args::get(resIn);
     pos = rsizeStr.find('x');
     glm::uvec2 remoteWindowSize = glm::uvec2(std::stoi(rsizeStr.substr(0, pos)), std::stoi(rsizeStr.substr(pos + 1)));
@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
     config.height = remoteWindowSize.y;
     DeferredRenderer remoteRenderer(config);
 
-    // "remote" scene
+    // "Remote" scene
     Scene remoteScene;
     std::vector<PerspectiveCamera> remoteCameras; remoteCameras.reserve(maxViews);
     for (int view = 0; view < maxViews; view++) {
@@ -122,7 +122,7 @@ int main(int argc, char** argv) {
     loader.loadScene(sceneFile, remoteScene, remoteCameraCenter);
 
     float remoteFOV = args::get(remoteFOVIn);
-    // make last camera have a larger fov
+    // Make last camera have a larger fov
     float remoteFOVWide = args::get(remoteFOVWideIn);
     for (int view = 0; view < maxViews; view++) {
         if (view != maxViews - 1) {
@@ -133,7 +133,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    // "local" scene with all the meshLayers
+    // "Local" scene with all the meshLayers
     Scene localScene;
     localScene.envCubeMap = remoteScene.envCubeMap;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
@@ -146,7 +146,7 @@ int main(int argc, char** argv) {
 
     multiSimulator.addMeshesToScene(localScene);
 
-    // post processing
+    // Post processing
     ToneMapper toneMapper;
 
     Recorder recorder({
@@ -546,7 +546,7 @@ int main(int argc, char** argv) {
     double lastRenderTime = 0.0;
     bool updateClient = !saveImages;
     app.onRender([&](double now, double dt) {
-        // handle mouse input
+        // Handle mouse input
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
             auto mouseButtons = window->getMouseButtons();
             window->setMouseCursor(!mouseButtons.LEFT_PRESSED);
@@ -605,25 +605,25 @@ int main(int argc, char** argv) {
         }
         if (generateRemoteFrame) {
 
-            // update all animations
+            // Update all animations
             if (runAnimations) {
                 remoteScene.updateAnimations(totalDT);
                 totalDT = 0.0;
             }
             lastRenderTime = now;
 
-            // "send" pose to the server. this will wait until latency+/-jitter ms have passed
+            // "Send" pose to the server. this will wait until latency+/-jitter ms have passed
             poseSendRecvSimulator.sendPose(camera, now);
             if (!preventCopyingLocalPose) {
-                // "receive" a predicted pose to render a new frame. this will wait until latency+/-jitter ms have passed
+                // "Receive" a predicted pose to render a new frame. this will wait until latency+/-jitter ms have passed
                 Pose clientPosePred;
                 if (poseSendRecvSimulator.recvPoseToRender(clientPosePred, now)) {
                     remoteCameraCenter.setViewMatrix(clientPosePred.mono.view);
                 }
-                // if we do not have a new pose, just send a new frame with the old pose
+                // If we do not have a new pose, just send a new frame with the old pose
             }
 
-            // update other cameras in view box corners
+            // Update other cameras in view box corners
             for (int view = 1; view < maxViews - 1; view++) {
                 const glm::vec3& offset = offsets[view - 1];
                 const glm::vec3& right = remoteCameraCenter.getRightVector();
@@ -639,7 +639,7 @@ int main(int argc, char** argv) {
                 remoteCameras[view].setPosition(remoteCameraCenter.getPosition() + worldOffset);
                 remoteCameras[view].updateViewMatrix();
             }
-            // update wide fov camera
+            // Update wide fov camera
             remoteCameras[maxViews-1].setViewMatrix(remoteCameraCenter.getViewMatrix());
 
             multiSimulator.generateFrame(remoteCameras, remoteScene, remoteRenderer, showNormals, showDepth);
@@ -659,7 +659,7 @@ int main(int argc, char** argv) {
             spdlog::info("Frame Size: {:.3f}MB", multiSimulator.stats.compressedSizeBytes / BYTES_IN_MB);
             spdlog::info("Num Proxies: {}Proxies", multiSimulator.stats.totalProxies);
 
-            // save to file if requested
+            // Save to file if requested
             if (saveToFile) {
                 multiSimulator.saveToFile(outputPath);
             }
@@ -671,7 +671,7 @@ int main(int argc, char** argv) {
 
         poseSendRecvSimulator.update(now);
 
-        // hide/show nodes based on user input
+        // Hide/show nodes based on user input
         for (int view = 0; view < maxViews; view++) {
             bool showView = showViews[view];
 
@@ -683,7 +683,7 @@ int main(int argc, char** argv) {
         if (restrictMovementToViewBox) {
             glm::vec3 remotePosition = remoteCameraCenter.getPosition();
             glm::vec3 position = camera.getPosition();
-            // restrict camera position to be inside position±viewBoxSize
+            // Restrict camera position to be inside position±viewBoxSize
             position.x = glm::clamp(position.x, remotePosition.x - viewBoxSize/2, remotePosition.x + viewBoxSize/2);
             position.y = glm::clamp(position.y, remotePosition.y - viewBoxSize/2, remotePosition.y + viewBoxSize/2);
             position.z = glm::clamp(position.z, remotePosition.z - viewBoxSize/2, remotePosition.z + viewBoxSize/2);
@@ -693,10 +693,10 @@ int main(int argc, char** argv) {
 
         double startTime = window->getTime();
 
-        // render all objects in scene
+        // Render all objects in scene
         renderStats = renderer.drawObjects(localScene, camera);
 
-        // render to screen
+        // Render to screen
         toneMapper.enableToneMapping(!showNormals);
         toneMapper.drawToScreen(renderer);
         if (!updateClient) {
@@ -722,7 +722,7 @@ int main(int argc, char** argv) {
         }
     });
 
-    // run app loop (blocking)
+    // Run app loop (blocking)
     app.run();
 
     return 0;

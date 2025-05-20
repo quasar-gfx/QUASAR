@@ -54,7 +54,7 @@ void main() {
     float pixelDepth                 = sampleDepth(depthMap, ivec2(pixelCenterCoord));
     vec3 pixelCoordsViewCenter       = ndcToView(projectionInverse, pixelCoordsNDC, pixelDepth);
 
-    // store depth
+    // Store depth
     uint shaderIndex = uint(gl_GlobalInvocationID.y * size.x + gl_GlobalInvocationID.x);
     verticesDepth[shaderIndex].position = viewToWorld(viewInverse, pixelCoordsViewCenter);
     verticesDepth[shaderIndex].color = vec3(1.0, 1.0, 1.0);

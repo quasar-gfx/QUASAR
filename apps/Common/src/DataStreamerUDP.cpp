@@ -5,7 +5,7 @@ using namespace quasar;
 void DataStreamerUDP::close() {
     running = false;
 
-    // send dummy packet to unblock thread
+    // Send dummy packet to unblock thread
     dataReady = true;
     cv.notify_one();
 
