@@ -1,4 +1,4 @@
-#include "toneMap.glsl"
+#include "tone_map.glsl"
 
 out vec4 FragColor;
 
@@ -7,6 +7,7 @@ in vec2 TexCoords;
 uniform sampler2D screenColor;
 uniform sampler2D screenDepth;
 uniform sampler2D screenNormals;
+uniform sampler2D screenPositions;
 uniform usampler2D idBuffer;
 
 uniform bool toneMap = true;

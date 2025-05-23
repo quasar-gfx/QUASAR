@@ -13,13 +13,13 @@ public:
         : shader({
             .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
             .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
-            .fragmentCodeData = SHADER_BUILTIN_DISPLAYIDS_FRAG,
-            .fragmentCodeSize = SHADER_BUILTIN_DISPLAYIDS_FRAG_len
+            .fragmentCodeData = SHADER_BUILTIN_SHOW_IDS_FRAG,
+            .fragmentCodeSize = SHADER_BUILTIN_SHOW_IDS_FRAG_len
         }) {}
 
-    void showObjectIDs(bool show) {
+    void showObjectIDs(bool showObjectID) {
         shader.bind();
-        shader.setBool("showObjectIDs", show);
+        shader.setBool("showObjectIDs", showObjectID);
     }
 
     RenderStats drawToScreen(OpenGLRenderer& renderer) override {

@@ -34,7 +34,8 @@ void DeferredRenderer::setScreenShaderUniforms(const Shader& screenShader) {
     screenShader.setTexture("screenColor", outputRT.colorBuffer, 0);
     screenShader.setTexture("screenDepth", outputRT.depthStencilBuffer, 1);
     screenShader.setTexture("screenNormals", frameRT.normalsBuffer, 2);
-    screenShader.setTexture("idBuffer", frameRT.idBuffer, 3);
+    screenShader.setTexture("screenPositions", frameRT.positionBuffer, 3);
+    screenShader.setTexture("idBuffer", frameRT.idBuffer, 4);
 }
 
 void DeferredRenderer::resize(uint width, uint height) {

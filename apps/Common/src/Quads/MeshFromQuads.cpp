@@ -15,22 +15,22 @@ MeshFromQuads::MeshFromQuads(glm::uvec2& remoteWindowSize, uint maxNumProxies)
         , quadIndicesBuffer(GL_SHADER_STORAGE_BUFFER, remoteWindowSize.x * remoteWindowSize.y, sizeof(uint), nullptr, GL_DYNAMIC_DRAW)
         , quadCreatedFlagsBuffer(GL_SHADER_STORAGE_BUFFER, maxProxies, sizeof(int), nullptr, GL_DYNAMIC_DRAW)
         , appendQuadsShader({
-            .computeCodeData = SHADER_COMMON_APPENDQUADS_COMP,
-            .computeCodeSize = SHADER_COMMON_APPENDQUADS_COMP_len,
+            .computeCodeData = SHADER_COMMON_APPEND_QUADS_COMP,
+            .computeCodeSize = SHADER_COMMON_APPEND_QUADS_COMP_len,
             .defines = {
                 "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
             }
         })
         , fillQuadIndicesShader({
-            .computeCodeData = SHADER_COMMON_FILLQUADINDICES_COMP,
-            .computeCodeSize = SHADER_COMMON_FILLQUADINDICES_COMP_len,
+            .computeCodeData = SHADER_COMMON_FILL_QUAD_INDICES_COMP,
+            .computeCodeSize = SHADER_COMMON_FILL_QUAD_INDICES_COMP_len,
             .defines = {
                 "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
             }
         })
         , createMeshFromQuadsShader({
-            .computeCodeData = SHADER_COMMON_CREATEMESHFROMQUADS_COMP,
-            .computeCodeSize = SHADER_COMMON_CREATEMESHFROMQUADS_COMP_len,
+            .computeCodeData = SHADER_COMMON_MESH_FROM_QUADS_COMP,
+            .computeCodeSize = SHADER_COMMON_MESH_FROM_QUADS_COMP_len,
             .defines = {
                 "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
             }

@@ -15,7 +15,6 @@ layout(std430, binding = 0) buffer BC4Buffer {
 uniform vec2 depthMapSize;
 uniform vec2 bc4DepthSize;
 
-// Sample depth value from the depth map
 float sampleDepth(sampler2D depthMap, ivec2 sampleCoord) {
     float depth = texelFetch(depthMap, sampleCoord, 0).r;
     return depth;

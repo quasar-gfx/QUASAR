@@ -1,4 +1,4 @@
-#include "toneMap.glsl"
+#include "tone_map.glsl"
 
 out vec4 FragColor;
 in vec2 TexCoords;

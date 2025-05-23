@@ -26,14 +26,14 @@ public:
             , ssaoBlurShader({
                 .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
                 .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
-                .fragmentCodeData = SHADER_BUILTIN_SSAOBLUR_FRAG,
-                .fragmentCodeSize = SHADER_BUILTIN_SSAOBLUR_FRAG_len
+                .fragmentCodeData = SHADER_BUILTIN_SSAO_BLUR_FRAG,
+                .fragmentCodeSize = SHADER_BUILTIN_SSAO_BLUR_FRAG_len
             })
             , ssaoFinalShader({
                 .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
                 .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
-                .fragmentCodeData = SHADER_BUILTIN_SSAOFINAL_FRAG,
-                .fragmentCodeSize = SHADER_BUILTIN_SSAOFINAL_FRAG_len
+                .fragmentCodeData = SHADER_BUILTIN_SSAO_FINAL_FRAG,
+                .fragmentCodeSize = SHADER_BUILTIN_SSAO_FINAL_FRAG_len
             })
             , ssaoRenderTarget({
                 .width = windowSize.x,

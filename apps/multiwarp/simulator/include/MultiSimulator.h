@@ -80,8 +80,8 @@ public:
             , depthOffsets(maxViews)
             , maxVerticesDepth(quadsGenerator.remoteWindowSize.x * quadsGenerator.remoteWindowSize.y)
             , meshFromDepthShader({
-                .computeCodeData = SHADER_COMMON_MESHFROMDEPTH_COMP,
-                .computeCodeSize = SHADER_COMMON_MESHFROMDEPTH_COMP_len,
+                .computeCodeData = SHADER_COMMON_MESH_FROM_DEPTH_COMP,
+                .computeCodeSize = SHADER_COMMON_MESH_FROM_DEPTH_COMP_len,
                 .defines = {
                     "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
                 }

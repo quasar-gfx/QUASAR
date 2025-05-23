@@ -10,6 +10,7 @@
 #include <PostProcessing/ToneMapper.h>
 #include <PostProcessing/ShowDepthEffect.h>
 #include <PostProcessing/ShowNormalsEffect.h>
+#include <PostProcessing/ShowPositionsEffect.h>
 #include <PostProcessing/ShowIDsEffect.h>
 
 #include <Path.h>
@@ -78,6 +79,7 @@ int main(int argc, char** argv) {
     ToneMapper toneMapper;
     ShowDepthEffect showDepthEffect(camera);
     ShowNormalsEffect showNormalsEffect;
+    ShowPositionsEffect showPositionsEffect;
     ShowIDsEffect showIDsEffect;
 
     Recorder recorder({
@@ -223,8 +225,9 @@ int main(int argc, char** argv) {
                 ImGui::RadioButton("Show Color", &shaderIndex, 0);
                 ImGui::RadioButton("Show Depth", &shaderIndex, 1);
                 ImGui::RadioButton("Show Normals", &shaderIndex, 2);
-                ImGui::RadioButton("Show Object IDs", &shaderIndex, 3);
-                ImGui::RadioButton("Show Primative IDs", &shaderIndex, 4);
+                ImGui::RadioButton("Show Positions", &shaderIndex, 3);
+                ImGui::RadioButton("Show Object IDs", &shaderIndex, 4);
+                ImGui::RadioButton("Show Primative IDs", &shaderIndex, 5);
             }
 
             ImGui::End();
@@ -385,10 +388,13 @@ int main(int argc, char** argv) {
             showNormalsEffect.drawToScreen(renderer);
         }
         else if (shaderIndex == 3) {
+            showPositionsEffect.drawToScreen(renderer);
+        }
+        else if (shaderIndex == 4) {
             showIDsEffect.showObjectIDs(true);
             showIDsEffect.drawToScreen(renderer);
         }
-        else if (shaderIndex == 4) {
+        else if (shaderIndex == 5) {
             showIDsEffect.showObjectIDs(false);
             showIDsEffect.drawToScreen(renderer);
         }

@@ -13,8 +13,8 @@ BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams& params, const
         , receiverURL(receiverURL)
         , streamer(receiverURL)
         , bc4CompressionShader({
-            .computeCodeData = SHADER_COMMON_BC4COMPRESSION_COMP,
-            .computeCodeSize = SHADER_COMMON_BC4COMPRESSION_COMP_len,
+            .computeCodeData = SHADER_COMMON_BC4_COMPRESS_COMP,
+            .computeCodeSize = SHADER_COMMON_BC4_COMPRESS_COMP_len,
             .defines = {
                 "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
             }}) {

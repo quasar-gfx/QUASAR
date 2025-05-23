@@ -108,16 +108,16 @@ int main(int argc, char** argv) {
 
     // Shaders
     ComputeShader meshFromDepthShader({
-        .computeCodeData = SHADER_COMMON_MESHFROMDEPTH_COMP,
-        .computeCodeSize = SHADER_COMMON_MESHFROMDEPTH_COMP_len,
+        .computeCodeData = SHADER_COMMON_MESH_FROM_DEPTH_COMP,
+        .computeCodeSize = SHADER_COMMON_MESH_FROM_DEPTH_COMP_len,
         .defines = {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
     });
 
     ComputeShader meshFromBC4Shader({
-        .computeCodeData = SHADER_COMMON_MESHFROMBC4_COMP,
-        .computeCodeSize = SHADER_COMMON_MESHFROMBC4_COMP_len,
+        .computeCodeData = SHADER_COMMON_MESH_FROM_BC4_COMP,
+        .computeCodeSize = SHADER_COMMON_MESH_FROM_BC4_COMP_len,
         .defines = {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }

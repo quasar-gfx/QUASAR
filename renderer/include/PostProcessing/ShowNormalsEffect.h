@@ -13,8 +13,8 @@ public:
         : shader({
             .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
             .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
-            .fragmentCodeData = SHADER_BUILTIN_DISPLAYNORMALS_FRAG,
-            .fragmentCodeSize = SHADER_BUILTIN_DISPLAYNORMALS_FRAG_len
+            .fragmentCodeData = SHADER_BUILTIN_SHOW_NORMALS_FRAG,
+            .fragmentCodeSize = SHADER_BUILTIN_SHOW_NORMALS_FRAG_len
         }) {}
 
     RenderStats drawToScreen(OpenGLRenderer& renderer) override {

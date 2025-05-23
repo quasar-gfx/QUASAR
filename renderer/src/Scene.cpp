@@ -34,8 +34,8 @@ Scene::Scene()
         , convolutionShader({
             .vertexCodeData = SHADER_BUILTIN_CUBEMAP_VERT,
             .vertexCodeSize = SHADER_BUILTIN_CUBEMAP_VERT_len,
-            .fragmentCodeData = SHADER_BUILTIN_IRRADIANCECONVOLUTION_FRAG,
-            .fragmentCodeSize = SHADER_BUILTIN_IRRADIANCECONVOLUTION_FRAG_len })
+            .fragmentCodeData = SHADER_BUILTIN_IRRADIANCE_CONVOLUTION_FRAG,
+            .fragmentCodeSize = SHADER_BUILTIN_IRRADIANCE_CONVOLUTION_FRAG_len })
         , prefilterShader({
             .vertexCodeData = SHADER_BUILTIN_CUBEMAP_VERT,
             .vertexCodeSize = SHADER_BUILTIN_CUBEMAP_VERT_len,

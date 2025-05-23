@@ -8,8 +8,8 @@ DepthPeelingRenderer::DepthPeelingRenderer(const Config& config, uint maxLayers,
         , compositeLayersShader({
             .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
             .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
-            .fragmentCodeData = SHADER_BUILTIN_COMPOSITELAYERS_FRAG,
-            .fragmentCodeSize = SHADER_BUILTIN_COMPOSITELAYERS_FRAG_len,
+            .fragmentCodeData = SHADER_BUILTIN_COMPOSITE_LAYERS_FRAG,
+            .fragmentCodeSize = SHADER_BUILTIN_COMPOSITE_LAYERS_FRAG_len,
             .defines = {
                 "#define MAX_LAYERS " + std::to_string(maxLayers)
             }
@@ -55,7 +55,8 @@ void DepthPeelingRenderer::setScreenShaderUniforms(const Shader& screenShader) {
     screenShader.setTexture("screenColor", outputRT.colorBuffer, 0);
     screenShader.setTexture("screenDepth", outputRT.depthStencilBuffer, 1);
     screenShader.setTexture("screenNormals", frameRT.normalsBuffer, 2);
-    screenShader.setTexture("idBuffer", frameRT.idBuffer, 3);
+    screenShader.setTexture("screenPositions", frameRT.positionBuffer, 3);
+    screenShader.setTexture("idBuffer", frameRT.idBuffer, 4);
 }
 
 RenderStats DepthPeelingRenderer::drawScene(const Scene& scene, const Camera& camera, uint32_t clearMask) {

@@ -153,13 +153,13 @@ int main(int argc, char** argv) {
     Shader videoShader({
         .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
         .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
-        .fragmentCodeData = SHADER_BUILTIN_DISPLAYTEXTURE_FRAG,
-        .fragmentCodeSize = SHADER_BUILTIN_DISPLAYTEXTURE_FRAG_len
+        .fragmentCodeData = SHADER_BUILTIN_SHOW_TEXTURE_FRAG,
+        .fragmentCodeSize = SHADER_BUILTIN_SHOW_TEXTURE_FRAG_len
     });
 
     ComputeShader meshFromBC4Shader({
-        .computeCodeData = SHADER_COMMON_MESHFROMBC4_COMP,
-        .computeCodeSize = SHADER_COMMON_MESHFROMBC4_COMP_len,
+        .computeCodeData = SHADER_COMMON_MESH_FROM_BC4_COMP,
+        .computeCodeSize = SHADER_COMMON_MESH_FROM_BC4_COMP_len,
         .defines = {
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }

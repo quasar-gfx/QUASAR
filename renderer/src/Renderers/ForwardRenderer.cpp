@@ -22,7 +22,8 @@ void ForwardRenderer::setScreenShaderUniforms(const Shader& screenShader) {
     screenShader.setTexture("screenColor", frameRT.colorBuffer, 0);
     screenShader.setTexture("screenDepth", frameRT.depthStencilBuffer, 1);
     screenShader.setTexture("screenNormals", frameRT.normalsBuffer, 2);
-    screenShader.setTexture("idBuffer", frameRT.idBuffer, 3);
+    screenShader.setTexture("screenPositions", frameRT.normalsBuffer, 3); // RenderTarget has no position buffer
+    screenShader.setTexture("idBuffer", frameRT.idBuffer, 4);
 }
 
 RenderStats ForwardRenderer::drawObjects(const Scene& scene, const Camera& camera, uint32_t clearMask) {
