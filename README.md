@@ -1,10 +1,24 @@
 # ![logo](docs/images/quasar_logo.png)
 
+## What is QUASAR?
+
+`QUASAR` is a remote rendering system that represents scenes as compressed quads, enabling temporally consistent and bandwidth-adaptive streaming for high-quality, real-time visualization.
+
+This repository provides baseline implementations of remote rendering systems designed to support and accelerate research in the field.
+
+It includes a custom deferred rendering system with support for PBR materials, dynamic lighting, and shadows, a scene loader compatible with GLTF, OBJ, and FBX formats, and multiple reprojection techniques including [ATW](https://developers.meta.com/horizon/blog/asynchronous-timewarp-examined/), [MeshWarp](https://dl.acm.org/doi/10.1145/253284.253292), [QuadStream](https://jozef.hladky.de/projects/QS/), and [QUASAR](https://github.com/EdwardLu2018/QUASAR).
+
+We also include an OpenXR client that runs the same renderer, which can be found [here](https://github.com/EdwardLu2018/QUASAR-client).
+
 ## Install Dependencies
+
+Note that any simulator or server code assumes at least OpenGL 4.3. Scene viewing and client code assumes at least OpenGL 4.1 or OpenGL ES 3.2.
 
 ### Ubuntu (reccomended)
 
-NVIDIA GPUs with CUDA are highly reccomended. For the server, 16 GB or more of VRAM is reccomended, though 8 GB could work for some scenes. Tested on RTX 3070, RTX 3090, and RTX 4090 with CUDA 12 and up.
+NVIDIA GPUs with CUDA are *highly* reccomended, especially for streaming servers. Ubuntu machines with NVIDIA GPUs can run the scene viewer, simulators, streaming servers, and clients.
+
+For any simulator or server code, at least 16 GB of VRAM is reccomended, though 8 GB can work for some scenes and techniques. Tested on machines with RTX 3070, RTX 3090, and RTX 4090 with CUDA 12 and up.
 
 ```
 sudo apt install cmake libglew-dev libao-dev libmpg123-dev ffmpeg libavdevice-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev libavfilter-dev
@@ -12,21 +26,23 @@ sudo apt install cmake libglew-dev libao-dev libmpg123-dev ffmpeg libavdevice-de
 
 Optional: Follow instructions [here](https://docs.nvidia.com/video-technologies/video-codec-sdk/12.0/ffmpeg-with-nvidia-gpu/index.html) for installing FFMPEG from source with CUDA hardware acceleration.
 
-### Mac
+### MacOS
 
-Mac works as a client for receiving and viewing streams (specifically ATW), but not reccomended for use as a streaming server.
+MacOS devices can run the scene viewer and the ATW client *only*. They are *not* recommended to run the servers or simulators, and cannot run any other clients.
 
 ```
 brew install cmake glew ffmpeg
 ```
 
-In the `build` directory, there will be a folder called `apps`.
+### OpenXR
+
+We have implementations for scene viewing and streaming clients for Meta Quest VR headsets, which can be found [here](https://github.com/EdwardLu2018/QUASAR-client).
 
 ## Download 3D Assets
 
 Sponza is cloned with the repo, but additional scenes can be downloaded at https://drive.google.com/file/d/1zL_hsmtjyOcAbNbud92aNCxjO1kwEqlK/view?usp=drive_link.
 
-Download and unzip into `assets/models/Scenes` (this will be gitignored).
+Download and unzip into `assets/models/Scenes/` (this will be gitignored).
 
 ## Building
 ```
@@ -34,38 +50,40 @@ mkdir build ; cd build
 cmake ..; make -j
 ```
 
+In the `build/` directory, there will be a folder called `apps/`, which follows the same directory layout as `<repo root>/apps/`.
+
 ## Sample Apps
 
 ### Scene Viewer
 
-The Scene Viewer app loads a scene and lets you to fly through it.
+The Scene Viewer app loads a scene and lets you to fly through it using `wasd+qe`.
 
-Run Scene Viewer app:
+Run the Scene Viewer app:
 ```
 # in build directory
 cd apps/scene_viewer
-./scene_viewer --size 1920x1080 --scene ../assets/scenes/sponza.json
+./scene_viewer --size 1920x1080 --scene ../assets/scenes/robot_lab.json
 ```
 
 ### Asynchronous Time Warp (ATW)
 
 The ATW app warps a previously rendered frame on a plane using a homography.
 
-To run the simulator:
+To run the simulator (simulates streaming over a configurable network):
 ```
 # in build directory
 cd apps/atw/simulator
-./atw_simulator --size 1920x1080 --scene ../assets/scenes/sponza.json
+./atw_simulator --size 1920x1080 --scene ../assets/scenes/robot_lab.json
 ```
 
-To run streamer:
+To run streamer (actually streams over a network):
 ```
 # in build directory
 cd apps/atw/streamer
-./atw_streamer --size 1920x1080 --scene ../assets/scenes/sponza.json
+./atw_streamer --size 1920x1080 --scene ../assets/scenes/robot_lab.json
 ```
 
-In a new terminal, to run receiver:
+In a new terminal, to run receiver (streaming client):
 ```
 # in build directory
 cd apps/atw/receiver
@@ -80,14 +98,14 @@ To run the simulator:
 ```
 # in build directory
 cd apps/meshwarp/simulator
-./meshwarp_simulator --size 1920x1080 --scene ../assets/scenes/sponza.json
+./meshwarp_simulator --size 1920x1080 --scene ../assets/scenes/robot_lab.json
 ```
 
 To run streamer:
 ```
 # in build directory
 cd apps/meshwarp/streamer
-./mw_streamer --size 1920x1080 --scene ../assets/scenes/sponza.json
+./mw_streamer --size 1920x1080 --scene ../assets/scenes/robot_lab.json
 ```
 
 In a new terminal, to run receiver:
@@ -105,7 +123,7 @@ To run the simulator:
 ```
 # in build directory
 cd apps/quadwarp/simulator
-./quads_simulator --size 1920x1080 --scene ../assets/scenes/sponza.json
+./quads_simulator --size 1920x1080 --scene ../assets/scenes/robot_lab.json
 ```
 
 ### Multi-Camera QuadWarp (QuadStream)
@@ -116,19 +134,23 @@ To run the simulator:
 ```
 # in build directory
 cd apps/multi/simulator
-./multi_simulator --size 1920x1080 --scene ../assets/scenes/sponza.json
+./multi_simulator --size 1920x1080 --scene ../assets/scenes/robot_lab.json
 ```
 
-### Depth Peeling QuadWarp with EDP
+### Depth Peeling QuadWarp with EDP (QUASAR)
 
-The DP app fits a series of quads from multiple G-Buffers from various layers with fragment discarding determined by Effective Depth Peeling (EDP).
+The DP app fits a series of quads from multiple G-Buffers from various depth peeling layers with fragment discarding determined by Effective Depth Peeling (EDP).
 
 To run the simulator:
 ```
 # in build directory
 cd apps/dp/simulator
-./dp_simulator --size 1920x1080 --scene ../assets/scenes/sponza.json
+./dp_simulator --size 1920x1080 --scene ../assets/scenes/robot_lab.json
 ```
+
+## Evaluation
+
+To run the evaluation descrobed in the paper, please see [scripts/](scripts).
 
 ## Credits for 3D Assets
 
@@ -155,3 +177,19 @@ cd apps/dp/simulator
 - **[spdlog](https://github.com/gabime/spdlog)**
 - **[stb](https://github.com/nothings/stb)**
 - **[zstd](https://github.com/facebook/zstd)**
+
+## Citation
+If you find this project helpful for any research-related purposes, please consider citing our paper:
+```
+@article{quasar,
+    title={QUASAR: Quad-based Adaptive Streaming And Rendering},
+    author={Lu, Edward and Rowe, Anthony},
+    journal={ACM Transactions on Graphics (TOG)},
+    volume={44},
+    number={4},
+    year={2025},
+    publisher={ACM New York, NY, USA},
+    url={https://doi.org/10.1145/3731213},
+    doi={10.1145/3731213},
+}
+```
