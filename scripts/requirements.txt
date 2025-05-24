@@ -1,5 +1,7 @@
-tqdm
+tqdm==4.67.1
 numpy==1.26.4
-opencv-python
-scikit-image
-flip-evaluator
+opencv-python==4.11.0.86
+scikit-image==0.19.3
+flip-evaluator==1.6.0.1
+imageio==2.34.0
+imageio-ffmpeg==0.4.8

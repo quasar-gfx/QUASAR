@@ -1,11 +1,10 @@
 import os
-import random
-import subprocess
-import argparse
 import shutil
-import tempfile
+import argparse
 
+import imageio.v2 as iio
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from logger import logger
 
 def find_files(base_dir, extension=".png"):
@@ -16,36 +15,29 @@ def find_files(base_dir, extension=".png"):
                 files.append(os.path.join(root, filename))
     return files
 
-def run_ffmpeg(image_names, output_file, fps=60):
-    abs_image_paths = [os.path.abspath(img) for img in image_names]
-    output_file = os.path.abspath(output_file)
-
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        frames_file = os.path.join(tmp_dir, f"frames_{random.randint(0, 100000)}.txt")
-
-        try:
-            with open(frames_file, "w") as f:
-                for img_path in abs_image_paths:
-                    f.write(f"file '{img_path}'\n")
-                    f.write(f"duration {1.0 / fps}\n")
-
-            command = [
-                "ffmpeg",
-                "-loglevel", "quiet",
-                "-y",
-                "-r", str(fps),
-                "-f", "concat",
-                "-safe", "0",
-                "-i", frames_file,
-                "-c:v", "libx264",
-                "-preset", "slow",
-                "-crf", "18",
-                output_file
+def make_video(image_names, output_file, codec="libx264", fps=60, quality=10):
+    try:
+        writer = iio.get_writer(
+            output_file,
+            fps=fps,
+            codec=codec,
+            quality=quality,
+            macro_block_size=None, # avoid resizing
+            ffmpeg_params=[
+                # encode with high quality
+                '-preset', 'slow',
+                '-crf', '18',
+                '-pix_fmt', 'yuv420p'
             ]
-            logger.info(f"Running ffmpeg command: {' '.join(command)}")
-            subprocess.run(command, check=True)
-        except subprocess.CalledProcessError as e:
-            logger.error(f"ffmpeg command failed: {e}")
+        )
+        logger.info(f"Writing video to {output_file} with {len(image_names)} frames.")
+        for img_path in sorted(image_names):
+            frame = iio.imread(img_path)
+            writer.append_data(frame)
+        writer.close()
+        logger.info(f"Video written successfully to {output_file}.")
+    except Exception as e:
+        logger.error(f"Failed to write video with imageio: {e}")
 
 def create_video(output_dir, scene_name, video_type, simulator_name, simulator_dir):
     simulator_video_output_dir = os.path.join(output_dir, scene_name, video_type)
@@ -60,7 +52,7 @@ def create_video(output_dir, scene_name, video_type, simulator_name, simulator_d
 
     try:
         images = sorted(images, key=lambda x: int(os.path.basename(x).split("_")[1].split(".")[0]))
-        run_ffmpeg(images, output_file)
+        make_video(images, output_file)
     except Exception as e:
         logger.error(f"Failed to create video for {simulator_name}: {e}")
 
