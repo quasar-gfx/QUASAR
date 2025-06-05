@@ -181,7 +181,7 @@ To run the evaluation descrobed in the paper, please see [scripts/](scripts).
 ## Citation
 If you find this project helpful for any research-related purposes, please consider citing our paper:
 ```
-@article{quasar,
+@article{lu2025quasar,
     title={QUASAR: Quad-based Adaptive Streaming And Rendering},
     author={Lu, Edward and Rowe, Anthony},
     journal={ACM Transactions on Graphics (TOG)},
