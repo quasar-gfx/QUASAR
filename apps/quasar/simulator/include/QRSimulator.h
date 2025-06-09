@@ -1,5 +1,5 @@
-#ifndef EDP_SIMULATOR_H
-#define EDP_SIMULATOR_H
+#ifndef QUASAR_SIMULATOR_H
+#define QUASAR_SIMULATOR_H
 
 #include <PostProcessing/ToneMapper.h>
 #include <PostProcessing/ShowNormalsEffect.h>
@@ -11,7 +11,7 @@
 
 namespace quasar {
 
-class DPSimulator {
+class QRSimulator {
 public:
     const std::vector<glm::vec4> colors = {
         glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), // primary layer color is yellow
@@ -92,7 +92,7 @@ public:
         double compressedSizeBytes = 0;
     } stats;
 
-    DPSimulator(
+    QRSimulator(
                 const PerspectiveCamera& remoteCamera,
                 uint maxLayers,
                 QuadsGenerator& quadsGenerator, MeshFromQuads& meshFromQuads, FrameGenerator& frameGenerator)
@@ -271,7 +271,7 @@ public:
         }
         sceneWideFov.addChildNode(&maskFrameNode);
     }
-    ~DPSimulator() = default;
+    ~QRSimulator() = default;
 
     void addMeshesToScene(Scene& localScene) {
         for (int i = 0; i < 2; i++) {
@@ -537,4 +537,4 @@ private:
 } // namespace quasar
 
 
-#endif // EDP_SIMULATOR_H
+#endif // QUASAR_SIMULATOR_H

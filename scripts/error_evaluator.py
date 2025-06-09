@@ -40,14 +40,14 @@ def format_camera_pose(filename):
 
 def clean_simulator_name(name):
     name = name.replace("_simulator", "")
-    if name.startswith("dp"):
-        return "Depth Peeling"
-    elif name.startswith("mw"):
-        return f"Mesh Warp FOV {name.split('_')[1]}"
-    elif name == "atw":
+    if name == "atw":
         return "ATW"
-    elif name == "multi":
-        return "Multi-Camera"
+    elif name.startswith("mw"):
+        return f"MeshWarp FOV {name.split('_')[1]}"
+    elif name == "qs":
+        return "QuadStream"
+    elif name.startswith("qr"):
+        return "QUASAR"
     return name
 
 def load_image(path):

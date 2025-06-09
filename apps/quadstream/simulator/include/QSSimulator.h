@@ -1,5 +1,5 @@
-#ifndef MULTI_SIMULATOR_H
-#define MULTI_SIMULATOR_H
+#ifndef QS_SIMULATOR_H
+#define QS_SIMULATOR_H
 
 #include <PostProcessing/ToneMapper.h>
 #include <PostProcessing/ShowNormalsEffect.h>
@@ -13,7 +13,7 @@
 
 namespace quasar {
 
-class MultiSimulator {
+class QSSimulator {
 public:
     const std::vector<glm::vec4> colors = {
         glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), // primary view color is yellow
@@ -72,7 +72,7 @@ public:
         double compressedSizeBytes = 0;
     } stats;
 
-    MultiSimulator(uint maxViews, FrameGenerator& frameGenerator)
+    QSSimulator(uint maxViews, FrameGenerator& frameGenerator)
             : quadsGenerator(frameGenerator.quadsGenerator)
             , frameGenerator(frameGenerator)
             , maxViews(maxViews)
@@ -161,7 +161,7 @@ public:
             meshScene.addChildNode(&serverFrameNodesRemote[view]);
         }
     }
-    ~MultiSimulator() = default;
+    ~QSSimulator() = default;
 
     void addMeshesToScene(Scene& localScene) {
         for (int view = 0; view < maxViews; view++) {
@@ -332,4 +332,4 @@ private:
 } // namespace quasar
 
 
-#endif // MULTI_SIMULATOR_H
+#endif // QS_SIMULATOR_H

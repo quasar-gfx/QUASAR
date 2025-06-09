@@ -2,7 +2,7 @@
 
 ## What is QUASAR?
 
-`QUASAR` is a remote rendering system that represents scenes as compressed quads, enabling temporally consistent and bandwidth-adaptive streaming for high-quality, real-time visualization.
+`QUASAR` is a remote rendering system that represents scene views using pixel-aligned quads, enabling temporally consistent and bandwidth-adaptive streaming for high-quality, real-time visualization for thin clients.
 
 This repository provides baseline implementations of remote rendering systems designed to support and accelerate research in the field.
 
@@ -126,26 +126,26 @@ cd apps/quadwarp/simulator
 ./quads_simulator --size 1920x1080 --scene ../assets/scenes/robot_lab.json
 ```
 
-### Multi-Camera QuadWarp (QuadStream)
+### QuadStream
 
-The Multi app fits a series of quads from multiple G-Buffers from various camera views inside a headbox.
-
-To run the simulator:
-```
-# in build directory
-cd apps/multi/simulator
-./multi_simulator --size 1920x1080 --scene ../assets/scenes/robot_lab.json
-```
-
-### Depth Peeling QuadWarp with EDP (QUASAR)
-
-The DP app fits a series of quads from multiple G-Buffers from various depth peeling layers with fragment discarding determined by Effective Depth Peeling (EDP).
+The QuadStream app fits a series of quads from multiple G-Buffers from various camera views inside a headbox.
 
 To run the simulator:
 ```
 # in build directory
-cd apps/dp/simulator
-./dp_simulator --size 1920x1080 --scene ../assets/scenes/robot_lab.json
+cd apps/quadstream/simulator
+./qs_simulator --size 1920x1080 --scene ../assets/scenes/robot_lab.json
+```
+
+### QUASAR
+
+The QUASAR app fits a series of quads from multiple G-Buffers from various depth peeling layers with fragment discarding determined by [Effective Depth Peeling (EDP)](https://cg.skku.edu/pub/2023-kim-siggraph-pvhv).
+
+To run the simulator:
+```
+# in build directory
+cd apps/quasar/simulator
+./qr_simulator --size 1920x1080 --scene ../assets/scenes/robot_lab.json
 ```
 
 ## Evaluation

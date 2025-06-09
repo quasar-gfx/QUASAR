@@ -19,7 +19,7 @@
 #include <Quads/QuadMaterial.h>
 #include <Quads/FrameGenerator.h>
 
-#include <MultiSimulator.h>
+#include <QSSimulator.h>
 
 #include <PoseSendRecvSimulator.h>
 
@@ -38,7 +38,7 @@ const std::vector<glm::vec3> offsets = {
 
 int main(int argc, char** argv) {
     Config config{};
-    config.title = "Multi-Camera Simulator";
+    config.title = "QuadStream Simulator";
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
@@ -142,9 +142,9 @@ int main(int argc, char** argv) {
     QuadsGenerator quadsGenerator(remoteWindowSize);
     MeshFromQuads meshFromQuads(remoteWindowSize);
     FrameGenerator frameGenerator(remoteRenderer, remoteScene, quadsGenerator, meshFromQuads);
-    MultiSimulator multiSimulator(maxViews, frameGenerator);
+    QSSimulator QSSimulator(maxViews, frameGenerator);
 
-    multiSimulator.addMeshesToScene(localScene);
+    QSSimulator.addMeshesToScene(localScene);
 
     // Post processing
     ToneMapper toneMapper;
@@ -289,10 +289,10 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
-            float proxySizeMB = static_cast<float>(multiSimulator.stats.totalProxies * sizeof(QuadMapDataPacked)) / BYTES_IN_MB;
-            float depthOffsetSizeMB = static_cast<float>(multiSimulator.stats.totalDepthOffsets * sizeof(uint16_t)) / BYTES_IN_MB;
-            ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%.3f MB)", multiSimulator.stats.totalProxies, proxySizeMB);
-            ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%.3f MB)", multiSimulator.stats.totalDepthOffsets, depthOffsetSizeMB);
+            float proxySizeMB = static_cast<float>(QSSimulator.stats.totalProxies * sizeof(QuadMapDataPacked)) / BYTES_IN_MB;
+            float depthOffsetSizeMB = static_cast<float>(QSSimulator.stats.totalDepthOffsets * sizeof(uint16_t)) / BYTES_IN_MB;
+            ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%.3f MB)", QSSimulator.stats.totalProxies, proxySizeMB);
+            ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%.3f MB)", QSSimulator.stats.totalDepthOffsets, depthOffsetSizeMB);
 
             ImGui::Separator();
 
@@ -435,7 +435,7 @@ int main(int argc, char** argv) {
                     );
 
                     ImGui::Begin(("View " + std::to_string(viewIdx)).c_str(), 0, flags);
-                    ImGui::Image((void*)(intptr_t)(multiSimulator.serverFrameRTs[viewIdx].colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
+                    ImGui::Image((void*)(intptr_t)(QSSimulator.serverFrameRTs[viewIdx].colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
                     ImGui::End();
                 }
             }
@@ -462,10 +462,10 @@ int main(int argc, char** argv) {
                 for (int view = 1; view < maxViews; view++) {
                     Path viewPath = basePath.appendToName(".view" + std::to_string(view + 1) + "." + time);
                     if (saveAsHDR) {
-                        multiSimulator.serverFrameRTs[view].saveColorAsHDR(viewPath.withExtension(".hdr"));
+                        QSSimulator.serverFrameRTs[view].saveColorAsHDR(viewPath.withExtension(".hdr"));
                     }
                     else {
-                        multiSimulator.serverFrameRTs[view].saveColorAsPNG(viewPath.withExtension(".png"));
+                        QSSimulator.serverFrameRTs[view].saveColorAsPNG(viewPath.withExtension(".png"));
                     }
                 }
             }
@@ -642,26 +642,26 @@ int main(int argc, char** argv) {
             // Update wide fov camera
             remoteCameras[maxViews-1].setViewMatrix(remoteCameraCenter.getViewMatrix());
 
-            multiSimulator.generateFrame(remoteCameras, remoteScene, remoteRenderer, showNormals, showDepth);
+            QSSimulator.generateFrame(remoteCameras, remoteScene, remoteRenderer, showNormals, showDepth);
 
             spdlog::info("======================================================");
-            spdlog::info("Rendering Time: {:.3f}ms", multiSimulator.stats.totalRenderTime);
-            spdlog::info("Create Proxies Time: {:.3f}ms", multiSimulator.stats.totalCreateProxiesTime);
-            spdlog::info("  Gen Quad Map Time: {:.3f}ms", multiSimulator.stats.totalGenQuadMapTime);
-            spdlog::info("  Simplify Time: {:.3f}ms", multiSimulator.stats.totalSimplifyTime);
-            spdlog::info("  Gather Quads Time: {:.3f}ms", multiSimulator.stats.totalGatherQuadsTime);
-            spdlog::info("Create Mesh Time: {:.3f}ms", multiSimulator.stats.totalCreateMeshTime);
-            spdlog::info("  Append Quads Time: {:.3f}ms", multiSimulator.stats.totalAppendQuadsTime);
-            spdlog::info("  Fill Output Quads Time: {:.3f}ms", multiSimulator.stats.totalFillQuadsIndiciesTime);
-            spdlog::info("  Create Vert/Ind Time: {:.3f}ms", multiSimulator.stats.totalCreateVertIndTime);
-            spdlog::info("Compress Time: {:.3f}ms", multiSimulator.stats.totalCompressTime);
-            if (showDepth) spdlog::info("Gen Depth Time: {:.3f}ms", multiSimulator.stats.totalGenDepthTime);
-            spdlog::info("Frame Size: {:.3f}MB", multiSimulator.stats.compressedSizeBytes / BYTES_IN_MB);
-            spdlog::info("Num Proxies: {}Proxies", multiSimulator.stats.totalProxies);
+            spdlog::info("Rendering Time: {:.3f}ms", QSSimulator.stats.totalRenderTime);
+            spdlog::info("Create Proxies Time: {:.3f}ms", QSSimulator.stats.totalCreateProxiesTime);
+            spdlog::info("  Gen Quad Map Time: {:.3f}ms", QSSimulator.stats.totalGenQuadMapTime);
+            spdlog::info("  Simplify Time: {:.3f}ms", QSSimulator.stats.totalSimplifyTime);
+            spdlog::info("  Gather Quads Time: {:.3f}ms", QSSimulator.stats.totalGatherQuadsTime);
+            spdlog::info("Create Mesh Time: {:.3f}ms", QSSimulator.stats.totalCreateMeshTime);
+            spdlog::info("  Append Quads Time: {:.3f}ms", QSSimulator.stats.totalAppendQuadsTime);
+            spdlog::info("  Fill Output Quads Time: {:.3f}ms", QSSimulator.stats.totalFillQuadsIndiciesTime);
+            spdlog::info("  Create Vert/Ind Time: {:.3f}ms", QSSimulator.stats.totalCreateVertIndTime);
+            spdlog::info("Compress Time: {:.3f}ms", QSSimulator.stats.totalCompressTime);
+            if (showDepth) spdlog::info("Gen Depth Time: {:.3f}ms", QSSimulator.stats.totalGenDepthTime);
+            spdlog::info("Frame Size: {:.3f}MB", QSSimulator.stats.compressedSizeBytes / BYTES_IN_MB);
+            spdlog::info("Num Proxies: {}Proxies", QSSimulator.stats.totalProxies);
 
             // Save to file if requested
             if (saveToFile) {
-                multiSimulator.saveToFile(outputPath);
+                QSSimulator.saveToFile(outputPath);
             }
 
             preventCopyingLocalPose = false;
@@ -675,9 +675,9 @@ int main(int argc, char** argv) {
         for (int view = 0; view < maxViews; view++) {
             bool showView = showViews[view];
 
-            multiSimulator.serverFrameNodesLocal[view].visible = showView;
-            multiSimulator.serverFrameWireframesLocal[view].visible = showView && showWireframe;
-            multiSimulator.depthNodesHidLayer[view].visible = showView && showDepth;
+            QSSimulator.serverFrameNodesLocal[view].visible = showView;
+            QSSimulator.serverFrameWireframesLocal[view].visible = showView && showWireframe;
+            QSSimulator.depthNodesHidLayer[view].visible = showView && showDepth;
         }
 
         if (restrictMovementToViewBox) {

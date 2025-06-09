@@ -44,7 +44,7 @@ def main():
                 pose_prediction=args.pose_prediction,
                 pose_smoothing=args.pose_smoothing,
                 view_size=view_size,
-                dp_qs_only=(view_size != 0.25)
+                qr_qs_only=(view_size != 0.25)
             )
             logger.info("*****************************************")
             logger.info(f"Total execution time: {(time.time() - start_time) / 60:.2f} minutes")

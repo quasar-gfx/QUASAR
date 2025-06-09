@@ -84,7 +84,7 @@ def run_from_config(
     pose_prediction=False,
     pose_smoothing=False,
     view_size=0.5,
-    dp_qs_only=False
+    qr_qs_only=False
 ):
     # Scene Viewer
     run_simulator(
@@ -97,7 +97,7 @@ def run_from_config(
         camera_path=camera_path
     )
 
-    if not dp_qs_only:
+    if not qr_qs_only:
         # ATW Simulator
         run_simulator(
             simulator_name="atw_simulator",
@@ -137,8 +137,8 @@ def run_from_config(
 
     # QuadStream Simulator
     run_simulator(
-        simulator_name="multi_simulator",
-        executable="multiwarp/simulator/multi_simulator",
+        simulator_name="qs_simulator",
+        executable="quadstream/simulator/qs_simulator",
         output_path=output_path,
         exec_dir=exec_dir,
         size=size,
@@ -153,10 +153,10 @@ def run_from_config(
         ]
     )
 
-    # Depth Peeling Simulator
+    # QUASAR Simulator
     run_simulator(
-        simulator_name="dp_simulator",
-        executable="dpwarp/simulator/dp_simulator",
+        simulator_name="qr_simulator",
+        executable="quasar/simulator/qr_simulator",
         output_path=output_path,
         exec_dir=exec_dir,
         size=size,
@@ -199,5 +199,5 @@ if __name__ == "__main__":
         pose_prediction=args.pose_prediction,
         pose_smoothing=args.pose_smoothing,
         view_size=args.view_size,
-        dp_qs_only=args.dp_qs_only
+        qr_qs_only=args.qr_qs_only
     )

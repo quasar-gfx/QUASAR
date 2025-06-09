@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
-project(DepthPeelingSimulator)
+project(QUASARReceiver)
 
-set(TARGET dp_simulator)
+set(TARGET qr_receiver)
 
 set(PUBLIC_HDR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 

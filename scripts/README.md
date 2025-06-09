@@ -57,8 +57,8 @@ results_20.0_10.0ms_0.25m/
 └── results/
     ├── stats/
     │   └── robot_lab/
-    │       ├── dp_simulator.log
-    │       ├── multi_simulator.log
+    │       ├── qr_simulator.log
+    │       ├── qs_simulator.log
     │       ├── ...
     │       ├── scene_viewer.log
     │       └── stats.json            # json file containing performance timings and data payload statistics
