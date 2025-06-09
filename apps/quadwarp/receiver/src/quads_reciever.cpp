@@ -28,8 +28,8 @@ int main(int argc, char** argv) {
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::Flag verbose(parser, "verbose", "Enable verbose logging", {'v', "verbose"});
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "1920x1080");
-    args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
-    args::ValueFlag<std::string> outputPathIn(parser, "data-path", "Path to data files", {'D', "data-path"}, "../simulator/");
+    args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Path to data files", {'D', "data-path"}, "../simulator/");
+    args::ValueFlag<float> remoteFOVIn(parser, "remote-fov", "Remote camera FOV in degrees", {'F', "remote-fov"}, 60.0f);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
 
     config.enableVSync = !args::get(novsync);
 
-    Path outputPath = Path(args::get(outputPathIn)); outputPath.mkdirRecursive();
+    Path dataPath = Path(args::get(dataPathIn));
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -71,6 +71,9 @@ int main(int argc, char** argv) {
     remoteCamera.setPosition(glm::vec3(0.0f, 3.0f, 10.0f));
     remoteCamera.updateViewMatrix();
 
+    float remoteFOV = args::get(remoteFOVIn);
+    remoteCamera.setFovyDegrees(remoteFOV);
+
     // Post processing
     ToneMapper toneMapper;
     toneMapper.enableToneMapping(false);
@@ -85,11 +88,11 @@ int main(int argc, char** argv) {
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR
-    }, renderer, toneMapper, outputPath, config.targetFramerate);
+    }, renderer, toneMapper, dataPath, config.targetFramerate);
 
     MeshFromQuads meshFromQuads(windowSize);
 
-    std::string colorFileName = outputPath / "color.jpg";
+    std::string colorFileName = dataPath / "color.jpg";
     Texture colorTexture = Texture({
         .wrapS = GL_REPEAT,
         .wrapT = GL_REPEAT,
@@ -105,8 +108,8 @@ int main(int argc, char** argv) {
     uint totalProxies = -1;
     uint totalDepthOffsets = -1;
 
-    uint numBytesProxies = 0;
-    uint numBytesDepthOffsets = 0;
+    uint totalBytesProxies = 0;
+    uint totalBytesDepthOffsets = 0;
 
     double startTime = window->getTime();
     double loadFromFilesTime = 0.0;
@@ -120,9 +123,9 @@ int main(int argc, char** argv) {
 
     startTime = window->getTime();
     // Load proxies
-    uint numProxies = quadBuffers.loadFromFile(outputPath / "quads.bin.zstd", &numBytesProxies);
+    uint numProxies = quadBuffers.loadFromFile(dataPath / "quads.bin.zstd", &totalBytesProxies);
     // Load depth offsets
-    uint numDepthOffsets = depthOffsets.loadFromFile(outputPath / "depthOffsets.bin.zstd", &numBytesDepthOffsets);
+    uint numDepthOffsets = depthOffsets.loadFromFile(dataPath / "depthOffsets.bin.zstd", &totalBytesDepthOffsets);
 
     mesh = new Mesh({
         .maxVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
@@ -226,8 +229,8 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
-            float proxySizeMB = static_cast<float>(numBytesProxies) / BYTES_IN_MB;
-            float depthOffsetSizeMB = static_cast<float>(numBytesDepthOffsets) / BYTES_IN_MB;
+            float proxySizeMB = static_cast<float>(totalBytesProxies) / BYTES_IN_MB;
+            float depthOffsetSizeMB = static_cast<float>(totalBytesDepthOffsets) / BYTES_IN_MB;
             ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%.3f MB)", totalProxies, proxySizeMB);
             ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%.3f MB)", totalDepthOffsets, depthOffsetSizeMB);
 
@@ -263,7 +266,7 @@ int main(int argc, char** argv) {
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
             std::string time = std::to_string(static_cast<int>(window->getTime() * 1000.0f));
-            Path filename = (outputPath / fileNameBase).appendToName("." + time);
+            Path filename = (dataPath / fileNameBase).appendToName("." + time);
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 

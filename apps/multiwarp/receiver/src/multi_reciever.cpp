@@ -41,8 +41,9 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "1920x1080");
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::ValueFlag<int> maxAdditionalViewsIn(parser, "maxViews", "Max views", {'l', "num-views"}, 8);
-    args::Flag disableWideFov(parser, "disable-wide-fov", "Disable wide fov view", {'W', "disable-wide-fov"});
-    args::ValueFlag<std::string> outputPathIn(parser, "data-path", "Path to data files", {'D', "data-path"}, "../simulator/");
+    args::Flag disableWideFov(parser, "disable-wide-fov", "Disable wide fov view", {'W', "disable-wide-fov"});args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Path to data files", {'D', "data-path"}, "../simulator/");
+    args::ValueFlag<float> remoteFOVIn(parser, "remote-fov", "Remote camera FOV in degrees", {'F', "remote-fov"}, 60.0f);
+    args::ValueFlag<float> remoteFOVWideIn(parser, "remote-fov-wide", "Remote camera FOV in degrees for wide fov", {'W', "remote-fov-wide"}, 120.0f);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -70,7 +71,7 @@ int main(int argc, char** argv) {
 
     config.enableVSync = !args::get(novsync);
 
-    Path outputPath = Path(args::get(outputPathIn)); outputPath.mkdirRecursive();
+    Path dataPath = Path(args::get(dataPathIn)); dataPath.mkdirRecursive();
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -85,9 +86,11 @@ int main(int argc, char** argv) {
     Scene scene;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
 
+    float remoteFOV = args::get(remoteFOVIn);
     std::vector<PerspectiveCamera> remoteCameras; remoteCameras.reserve(maxViews);
     for (int view = 0; view < maxViews; view++) {
         remoteCameras.emplace_back(windowSize.x, windowSize.y);
+        remoteCameras[view].setFovyDegrees(remoteFOV);
     }
     PerspectiveCamera& remoteCameraCenter = remoteCameras[0];
     remoteCameraCenter.setPosition(glm::vec3(0.0f, 3.0f, 10.0f));
@@ -110,7 +113,8 @@ int main(int argc, char** argv) {
     }
 
     // Make last camera have a larger fov
-    remoteCameras[maxViews-1].setFovyDegrees(120.0f);
+    float remoteFOVWide = args::get(remoteFOVWideIn);
+    remoteCameras[maxViews-1].setFovyDegrees(remoteFOVWide);
     remoteCameras[maxViews-1].setViewMatrix(remoteCameraCenter.getViewMatrix());
 
     // Post processing
@@ -127,7 +131,7 @@ int main(int argc, char** argv) {
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR
-    }, renderer, toneMapper, outputPath, config.targetFramerate);
+    }, renderer, toneMapper, dataPath, config.targetFramerate);
 
     MeshFromQuads meshFromQuads(windowSize);
 
@@ -140,7 +144,7 @@ int main(int argc, char** argv) {
         .flipVertically = true
     };
     for (int view = 0; view < maxViews; view++) {
-        Path colorFileName = outputPath.appendToName("color" + std::to_string(view));
+        Path colorFileName = dataPath.appendToName("color" + std::to_string(view));
         params.path = colorFileName.withExtension(".jpg");
         colorTextures.emplace_back(params);
     }
@@ -153,8 +157,8 @@ int main(int argc, char** argv) {
     uint totalProxies = -1;
     uint totalDepthOffsets = -1;
 
-    uint numBytesProxies = 0;
-    uint numBytesDepthOffsets = 0;
+    uint totalBytesProxies = 0;
+    uint totalBytesDepthOffsets = 0;
 
     double startTime = window->getTime();
     double loadFromFilesTime = 0.0;
@@ -171,13 +175,13 @@ int main(int argc, char** argv) {
         startTime = window->getTime();
 
         // Load proxies
-        Path quadProxiesFileName = (outputPath / "quads").appendToName(std::to_string(view)).withExtension(".bin.zstd");
+        Path quadProxiesFileName = (dataPath / "quads").appendToName(std::to_string(view)).withExtension(".bin.zstd");
         uint numProxies = quadBuffers.loadFromFile(quadProxiesFileName, &numBytes);
-        numBytesProxies += numBytes;
+        totalBytesProxies += numBytes;
         // Load depth offsets
-        Path depthOffsetsFileName = (outputPath / "depthOffsets").appendToName(std::to_string(view)).withExtension(".bin.zstd");
+        Path depthOffsetsFileName = (dataPath / "depthOffsets").appendToName(std::to_string(view)).withExtension(".bin.zstd");
         uint numDepthOffsets = depthOffsets.loadFromFile(depthOffsetsFileName, &numBytes);
-        numBytesDepthOffsets += numBytes;
+        totalBytesDepthOffsets += numBytes;
 
         meshes[view] = new Mesh({
             .maxVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
@@ -294,8 +298,8 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
-            float proxySizeMB = static_cast<float>(numBytesProxies) / BYTES_IN_MB;
-            float depthOffsetSizeMB = static_cast<float>(numBytesDepthOffsets) / BYTES_IN_MB;
+            float proxySizeMB = static_cast<float>(totalBytesProxies) / BYTES_IN_MB;
+            float depthOffsetSizeMB = static_cast<float>(totalBytesDepthOffsets) / BYTES_IN_MB;
             ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%.3f MB)", totalProxies, proxySizeMB);
             ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%.3f MB)", totalDepthOffsets, depthOffsetSizeMB);
 
@@ -345,7 +349,7 @@ int main(int argc, char** argv) {
             ImGui::Text("Base File Name:");
             ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
             std::string time = std::to_string(static_cast<int>(window->getTime() * 1000.0f));
-            Path filename = (outputPath / fileNameBase).appendToName("." + time);
+            Path filename = (dataPath / fileNameBase).appendToName("." + time);
 
             ImGui::Checkbox("Save as HDR", &saveAsHDR);
 
