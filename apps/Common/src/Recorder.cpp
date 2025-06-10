@@ -20,7 +20,6 @@ void Recorder::setOutputPath(const Path& path) {
 
 void Recorder::setTargetFrameRate(int targetFrameRate) {
     targetFrameRate = std::max(1, targetFrameRate);
-    lastCaptureTime = timeutils::getTimeMillis();
     frameCount = 0;
 }
 
@@ -40,7 +39,6 @@ void Recorder::start() {
     frameCount = 0;
 
     recordingStartTime = timeutils::getTimeMillis();
-    lastCaptureTime = recordingStartTime;
 
     std::ofstream pathFile(outputPath / "camera_path.txt");
     pathFile.close();
@@ -100,7 +98,6 @@ void Recorder::captureFrame(const Camera& camera) {
     queueCV.notify_one();
 
     frameCount++;
-    lastCaptureTime = currentTime;
 }
 
 void Recorder::saveFrames(int threadID) {

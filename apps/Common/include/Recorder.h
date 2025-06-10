@@ -122,7 +122,6 @@ private:
     std::condition_variable queueCV;
 
     int64_t recordingStartTime;
-    int64_t lastCaptureTime;
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     CudaGLImage cudaImage;
 #endif

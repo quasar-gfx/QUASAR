@@ -23,7 +23,7 @@ python3 run_eval.py 50 20 --pose-prediction --pose-smoothing  # run 50+/-20ms tr
 ```
 These will run traces (found in `../assets/paths/`) for the Robot Lab, Sun Temple, Viking Village, and San Miguel scenes for 0.25m, 0.5m, and 1.0m viewcell sizes.
 
-__WARNING__: these scripts will take a while to run and will use a lot of resources on your computer!
+__WARNING__: these scripts will take a while to run and will use a lot of resources on your computer! The resulting videos are stored in very high quality.
 
 ### Optional Paramters
 
