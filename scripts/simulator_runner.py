@@ -83,8 +83,7 @@ def run_from_config(
     network_jitter=10.0,
     pose_prediction=False,
     pose_smoothing=False,
-    view_size=0.5,
-    qr_qs_only=False
+    view_sizes=[0.25, 0.5, 1.0]
 ):
     # Scene Viewer
     run_simulator(
@@ -97,11 +96,28 @@ def run_from_config(
         camera_path=camera_path
     )
 
-    if not qr_qs_only:
-        # ATW Simulator
+    # ATW Simulator
+    run_simulator(
+        simulator_name="atw_simulator",
+        executable="atw/simulator/atw_simulator",
+        output_path=output_path,
+        exec_dir=exec_dir,
+        size=size,
+        scene=scene,
+        camera_path=camera_path,
+        extra_args=[
+            "--network-latency", str(network_latency),
+            "--network-jitter", str(network_jitter),
+            *(["--pose-prediction"] if pose_prediction else []),
+            *(["--pose-smoothing"] if pose_smoothing else [])
+        ]
+    )
+
+    # MeshWarp Simulator
+    for fov in [60, 120]:
         run_simulator(
-            simulator_name="atw_simulator",
-            executable="atw/simulator/atw_simulator",
+            simulator_name=f"mw_simulator_{fov}",
+            executable="meshwarp/simulator/mw_simulator",
             output_path=output_path,
             exec_dir=exec_dir,
             size=size,
@@ -110,66 +126,49 @@ def run_from_config(
             extra_args=[
                 "--network-latency", str(network_latency),
                 "--network-jitter", str(network_jitter),
+                "--rsize", "1920x1080" if fov == 60 else "3840x2160",
+                "--fov", str(fov),
                 *(["--pose-prediction"] if pose_prediction else []),
                 *(["--pose-smoothing"] if pose_smoothing else [])
             ]
         )
 
-        # MeshWarp Simulator
-        for fov in [60, 120]:
-            run_simulator(
-                simulator_name=f"mw_simulator_{fov}",
-                executable="meshwarp/simulator/mw_simulator",
-                output_path=output_path,
-                exec_dir=exec_dir,
-                size=size,
-                scene=scene,
-                camera_path=camera_path,
-                extra_args=[
-                    "--network-latency", str(network_latency),
-                    "--network-jitter", str(network_jitter),
-                    "--rsize", "1920x1080" if fov == 60 else "3840x2160",
-                    "--fov", str(fov),
-                    *(["--pose-prediction"] if pose_prediction else []),
-                    *(["--pose-smoothing"] if pose_smoothing else [])
-                ]
-            )
+    for view_size in view_sizes:
+        # QuadStream Simulator
+        run_simulator(
+            simulator_name=f"qs_simulator_{view_size:.2f}",
+            executable="quadstream/simulator/qs_simulator",
+            output_path=output_path,
+            exec_dir=exec_dir,
+            size=size,
+            scene=scene,
+            camera_path=camera_path,
+            extra_args=[
+                "--network-latency", str(network_latency),
+                "--network-jitter", str(network_jitter),
+                "--view-size", str(view_size),
+                *(["--pose-prediction"] if pose_prediction else []),
+                *(["--pose-smoothing"] if pose_smoothing else [])
+            ]
+        )
 
-    # QuadStream Simulator
-    run_simulator(
-        simulator_name="qs_simulator",
-        executable="quadstream/simulator/qs_simulator",
-        output_path=output_path,
-        exec_dir=exec_dir,
-        size=size,
-        scene=scene,
-        camera_path=camera_path,
-        extra_args=[
-            "--network-latency", str(network_latency),
-            "--network-jitter", str(network_jitter),
-            "--view-size", str(view_size),
-            *(["--pose-prediction"] if pose_prediction else []),
-            *(["--pose-smoothing"] if pose_smoothing else [])
-        ]
-    )
-
-    # QUASAR Simulator
-    run_simulator(
-        simulator_name="qr_simulator",
-        executable="quasar/simulator/qr_simulator",
-        output_path=output_path,
-        exec_dir=exec_dir,
-        size=size,
-        scene=scene,
-        camera_path=camera_path,
-        extra_args=[
-            "--network-latency", str(network_latency),
-            "--network-jitter", str(network_jitter),
-            "--view-size", str(view_size),
-            *(["--pose-prediction"] if pose_prediction else []),
-            *(["--pose-smoothing"] if pose_smoothing else [])
-        ]
-    )
+        # QUASAR Simulator
+        run_simulator(
+            simulator_name=f"qr_simulator_{view_size:.2f}",
+            executable="quasar/simulator/qr_simulator",
+            output_path=output_path,
+            exec_dir=exec_dir,
+            size=size,
+            scene=scene,
+            camera_path=camera_path,
+            extra_args=[
+                "--network-latency", str(network_latency),
+                "--network-jitter", str(network_jitter),
+                "--view-size", str(view_size),
+                *(["--pose-prediction"] if pose_prediction else []),
+                *(["--pose-smoothing"] if pose_smoothing else [])
+            ]
+        )
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run simulators with path file.")
@@ -182,11 +181,12 @@ if __name__ == "__main__":
     parser.add_argument("--network-jitter", type=float, default=10.0, help="Network jitter in ms")
     parser.add_argument('--pose-prediction', action='store_true')
     parser.add_argument('--pose-smoothing', action='store_true')
-    parser.add_argument("--view-size", type=float, default=0.5, help="View volume size")
+    parser.add_argument('--view-sizes', type=str, default='0.25,0.5,1.0')
     parser.add_argument("--camera-path", type=str, required=True, help="Camera animation file")
-    parser.add_argument("--dp-qs-only", action="store_true", help="Only run DP and MW simulators")
 
     args = parser.parse_args()
+
+    view_sizes = [float(size) for size in args.view_sizes.split(',')]
 
     run_from_config(
         scene=args.scene,
@@ -198,6 +198,6 @@ if __name__ == "__main__":
         network_jitter=args.network_jitter,
         pose_prediction=args.pose_prediction,
         pose_smoothing=args.pose_smoothing,
-        view_size=args.view_size,
+        view_sizes=view_sizes,
         qr_qs_only=args.qr_qs_only
     )

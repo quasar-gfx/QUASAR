@@ -45,25 +45,32 @@ See `run_eval.py` for more command line parameters.
 Results will be packed in tarball files in the `results/` folder:
 ```
 results/
-├── results_20.0_10.0ms_0.25m.tar.gz  # results with 20+/-10ms of latency with a 0.25m viewcell size
-├── results_20.0_10.0ms_0.5m.tar.gz   # results with 20+/-10ms of latency with a 0.5m viewcell size
-...                                   # etc.
+└── results_20.0_10.0ms.tar.gz  # results with 20+/-10ms of latency
 ```
 
 Untarring the files will reveal:
 ```
-results_20.0_10.0ms_0.25m/
+results_20.0_10.0ms/
 ├── errors.json                       # json file containing FLIP, SSIM, and PSNR errors for each method
 └── results/
     ├── stats/
     │   └── robot_lab/
-    │       ├── qr_simulator.log
-    │       ├── qs_simulator.log
-    │       ├── ...
+    │       ├── atw_simulator.log
+    │       ├── mw_simulator_120.log
+    │       ├── mw_simulator_60.log
+    │       ├── qr_simulator_0.5.log
+    │       ├── qr_simulator_1.0.log
+    │       ├── qs_simulator_0.5.log
+    │       ├── qs_simulator_1.0.log
     │       ├── scene_viewer.log
     │       └── stats.json            # json file containing performance timings and data payload statistics
     └── videos/
         └── robot_lab/
             ├── color/                # color videos for ground truth (scene_viewer) and all tested methods
+            │   ├── atw_simulator.mp4
+            │   ├── mw_simulator_120.mp4
+            │   ├── ...
+            │   ├── qs_simulator_1.0.mp4
+            │   └── scene_viewer.mp4
             └── flip/                 # FLIP error map videos for all tested methods
 ```

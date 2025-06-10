@@ -40,14 +40,14 @@ def format_camera_pose(filename):
 
 def clean_simulator_name(name):
     name = name.replace("_simulator", "")
-    if name == "atw":
+    if name.startswith("atw"):
         return "ATW"
     elif name.startswith("mw"):
         return f"MeshWarp FOV {name.split('_')[1]}"
-    elif name == "qs":
-        return "QuadStream"
+    elif name.startswith("qs"):
+        return f"QuadStream VC {name.split('_')[1]}"
     elif name.startswith("qr"):
-        return "QUASAR"
+        return f"QUASAR VC {name.split('_')[1]}"
     return name
 
 def load_image(path):
