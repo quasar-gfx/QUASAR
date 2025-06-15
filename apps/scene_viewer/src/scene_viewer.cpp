@@ -106,7 +106,7 @@ int main(int argc, char** argv) {
     float exposure = 1.0f;
     int shaderIndex = 0;
     bool recording = false;
-    float animationInterval = cameraPathFileIn ? (MILLISECONDS_IN_SECOND / 30.0f) : -1.0; // run at 30fps if camera path is provided
+    float animationInterval = (MILLISECONDS_IN_SECOND / 30.0f); // run animations at 30 FPS
     RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
@@ -310,7 +310,7 @@ int main(int argc, char** argv) {
     });
 
     double totalDT = 0.0;
-    double lastRenderTime = 0.0;
+    double lastRenderTime = -INFINITY;
     bool updateClient = !saveImages;
     app.onRender([&](double now, double dt) {
         if (!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse)) {
@@ -367,7 +367,7 @@ int main(int argc, char** argv) {
         totalDT += dt;
 
         // Update all animations
-        if (animationInterval == -1.0 || (now - lastRenderTime) >= (animationInterval - 1.0) / MILLISECONDS_IN_SECOND) {
+        if (animationInterval > 0.0 && (now - lastRenderTime) >= (animationInterval - 1.0) / MILLISECONDS_IN_SECOND) {
             scene.updateAnimations(totalDT);
             lastRenderTime = now;
             totalDT = 0.0;

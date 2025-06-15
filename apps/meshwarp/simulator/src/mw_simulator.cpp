@@ -430,7 +430,7 @@ int main(int argc, char** argv) {
     });
 
     double totalDT = 0.0;
-    double lastRenderTime = 0.0;
+    double lastRenderTime = -INFINITY;
     bool updateClient = !saveImages;
     app.onRender([&](double now, double dt) {
         // Handle mouse input

@@ -574,7 +574,7 @@ int main(int argc, char** argv) {
     });
 
     double totalDT = 0.0;
-    double lastRenderTime = 0.0;
+    double lastRenderTime = -INFINITY;
     bool updateClient = !saveImages;
     int frameCounter = 0;
     app.onRender([&](double now, double dt) {
@@ -633,11 +633,10 @@ int main(int argc, char** argv) {
         totalDT += dt;
 
         if (rerenderInterval > 0.0 && (now - lastRenderTime) >= (rerenderInterval - 1.0) / MILLISECONDS_IN_SECOND) {
-            generateRefFrame = (++frameCounter) % REF_FRAME_PERIOD == 0; // insert Reference Frame every REF_FRAME_PERIOD frames
+            generateRefFrame = (frameCounter++) % REF_FRAME_PERIOD == 0; // insert Reference Frame every REF_FRAME_PERIOD frames
             generateResFrame = !generateRefFrame;
         }
         if (generateRefFrame || generateResFrame) {
-
             // Update all animations
             if (runAnimations) {
                 remoteScene.updateAnimations(totalDT);

@@ -42,7 +42,7 @@ We have implementations for scene viewing and streaming clients for Meta Quest V
 
 Sponza is cloned with the repo, but additional scenes can be downloaded at https://drive.google.com/file/d/1zL_hsmtjyOcAbNbud92aNCxjO1kwEqlK/view?usp=drive_link.
 
-Download and unzip into `assets/models/Scenes/` (this will be gitignored).
+Download and unzip into `assets/models/scenes/` (this will be gitignored).
 
 ## Building
 ```

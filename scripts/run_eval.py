@@ -12,7 +12,7 @@ def main():
     parser.add_argument('network_latency', type=float)
     parser.add_argument('network_jitter', type=float, nargs='?')
     parser.add_argument('--size', type=str, default='1920x1080', help='Resolution of rendering results')
-    parser.add_argument('--scenes', type=str, default='robot_lab,viking_village,sun_temple,san_miguel')
+    parser.add_argument('--scenes', type=str, default='robot_lab,sun_temple,viking_village,san_miguel')
     parser.add_argument('--output-path', type=str, default='results')
     parser.add_argument('--view-sizes', type=str, default='0.25,0.5,1.0')
     parser.add_argument('--pose-prediction', action='store_true')
