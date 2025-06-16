@@ -92,10 +92,14 @@ def compare_images(scene_dir, output_dir):
         if d != "scene_viewer" and os.path.isdir(os.path.join(scene_dir, d))
     ]
 
-    for simulator in simulators:
-        process_simulator(scene, simulator, scene_dir, output_dir, reference_images)
+    total_cores = multiprocessing.cpu_count()
+    num_simulators = len(simulators)
+    workers_per_sim = max(1, total_cores // num_simulators)
 
-def process_simulator(scene, simulator_name, scene_dir, output_dir, reference_images):
+    for simulator in simulators:
+        process_simulator(scene, simulator, scene_dir, output_dir, reference_images, workers_per_sim)
+
+def process_simulator(scene, simulator_name, scene_dir, output_dir, reference_images, num_workers):
     simulator_dir = os.path.join(scene_dir, simulator_name)
     simulator_output_dir = os.path.join(output_dir, simulator_name)
     os.makedirs(simulator_output_dir, exist_ok=True)
@@ -115,7 +119,7 @@ def process_simulator(scene, simulator_name, scene_dir, output_dir, reference_im
         for test_img_path in matching_test_images:
             tasks.append((ref_img, test_img_path, pose, paths["flip"]))
 
-    with ProcessPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
+    with ProcessPoolExecutor(max_workers=num_workers) as executor:
         futures = [executor.submit(evaluate_error_metrics, *task) for task in tasks]
         for future in tqdm(as_completed(futures), total=len(futures), desc=f"{scene} | {simulator_name}", unit="image"):
             pose, flip_val, ssim_val, psnr_val = future.result()
