@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title>QUASAR: Quad-based Adaptive Streaming And Rendering</title>
+
+    <link rel="apple-touch-icon" sizes="180x180" href="images/logo.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/logo.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/logo.png">
+    <link rel="manifest" href="site.webmanifest">
+
+    <meta property="og:site_name" content="QUASAR: Quad-based Adaptive Streaming And Rendering" />
+    <meta property="og:type" content="video.other" />
+    <meta property="og:title" content="QUASAR: Quad-based Adaptive Streaming And Rendering" />
+    <meta property="og:description" content="QUASAR: Quad-based Adaptive Streaming And Rendering, 2025." />
+
+    <style type='text/css'>
+        :root {
+            --func-vert-padding: 0.5em;
+        }
+
+        span.smallcaps{font-variant: small-caps;}
+        span.underline{text-decoration: underline;}
+        div.column{display: inline-block; vertical-align: top; width: 50%;}
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            color: #000;
+            line-height: 1.5;
+        }
+        .tocstyle nav {
+            display: table;
+            padding: .4em 2em .5em 0;
+            margin-top: 1em;
+            background-color: #f6f8fa;
+            border: 1px solid DarkSlateGray;
+        }
+        h1 {
+            font-family: 'Montserrat', 'Segoe UI', sans-serif;
+            line-height: 1.2;
+            font-size: 3em;
+            margin-top: 0.5em;
+            margin-bottom: 0.2em;
+        }
+        h2, h3, h4, h5, h6 {
+            font-family: 'Segoe UI', sans-serif;
+            font-weight: 600;
+            margin-bottom: 0.1em;
+            color: DarkSlateGray;
+        }
+        h2     { margin-top: 2em; }
+        h2, h3 { border-bottom: 1px solid #ccc; }
+        p {
+        margin-left: 0px;
+        margin-right: 0px;
+        margin-top: 0.75em;
+        margin-bottom: 0.75em;
+        }
+
+        .max-width {
+            margin: 1em;
+        }
+
+        @media screen and (min-width: 680px) {
+            .max-width {
+            margin-left: auto;
+            margin-right: auto;
+            margin-top: 60px;
+            margin-bottom: 60px;
+            max-width: 800px;
+            }
+        }
+
+        .pixelated {
+            image-rendering: pixelated;
+        }
+
+        strong {
+            font-weight: 600;
+        }
+
+        .title {
+            text-align: center;
+        }
+        .subtitle {
+            font-size: 1.25em;
+            margin-top: 0px;
+            padding-top: 0px;
+            padding-bottom: 1em;
+            margin-bottom: 2em;
+            border-bottom: 1px solid #ccc;
+            color: #444;
+        }
+
+        .centered {
+            text-align: center;
+        }
+
+        .spaced {
+            margin: 2em 0;
+        }
+        .no-bottom-margin {
+            margin-bottom: 0;
+        }
+        .top-lined {
+            padding-top: 2em;
+            border-top: 1px solid #000;
+        }
+        .bottom-lined {
+            padding-bottom: 2em;
+            border-bottom: 1px solid #888;
+        }
+        .intro {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .permalinked {
+            color: #222;
+            text-decoration: none;
+        }
+        .permalinked:hover,
+        .permalinked:focus {
+            text-decoration: underline;
+        }
+        .flattr-note {
+            vertical-align: top;
+        }
+
+        pre {
+            font-family: 'Consolas', monospace, sans-serif;
+            font-size: 11pt;
+            font-weight: normal;
+            background-color: #f6f8fa;
+            border-radius: 3px;
+            padding: 12px;
+            line-height: 1.3;
+            overflow-x:auto;
+            white-space: pre-wrap;
+        }
+
+        code {
+            font-family: 'Consolas', monospace, sans-serif;
+            font-size: 11pt;
+            font-weight: normal;
+            background-color: #f6f8fa;
+            line-height: 1.3;
+            white-space: pre;
+        }
+
+        img.teaser {
+            width: 808px;
+            height: 350px;
+            border: 1px solid #aaa;
+            box-shadow: 2px 2px 4px 0 #ddd;
+            margin: 20px 5px 0 5px;
+        }
+
+        div.image-parent {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+        }
+
+        /* CSS for an image row with a caption */
+        .image-row {
+            display: flex;
+            flex-direction: row;
+            align-items: top;
+            width: min-content;
+        }
+
+        .image-row > div { margin:10px; }
+
+        .image-caption {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .image-caption .caption {
+            margin-top: 2px;
+        }
+
+        /* Styles for API reference */
+        .apifunc {
+            margin-bottom: 1.5em;
+        }
+        .apifunc h4 {
+            margin-top: var(--func-vert-padding);
+            margin-bottom: var(--func-vert-padding);
+            overflow-x: hidden;
+        }
+        .apifunc h4 .defarg {
+            color:MediumBlue;
+        }
+        .apifunc h4 .sym_class,.sym_function,.sym_method {
+            border-radius: 4px;
+            padding: 0px 5px 0px 5px;
+            border: 0;
+            margin: 0;
+            font-size: 11pt;
+            font-weight: 600;
+            color: #fff;
+        }
+        .apifunc h4 .sym_class {
+            background-color: #d66;
+        }
+        .apifunc h4 .sym_function {
+            background-color: #66f;
+        }
+        .apifunc h4 .sym_method {
+            background-color: #6a9;
+        }
+        .apifunc p {
+            margin-top: var(--func-vert-padding);
+            margin-bottom: var(--func-vert-padding);
+        }
+        .apifunc code {
+            color: #000;
+            background-color: #f6f8fa;
+            font-family: 'Consolas', monospace, sans-serif;
+            font-weight: normal;
+            line-height: 1.3;
+            white-space: pre-wrap;
+        }
+        .apifunc h4 code {
+            font-size: 12pt;
+        }
+        .apifunc .returns, .arguments {
+            margin-top: .5em;
+            margin-bottom: 0em;
+        }
+        .apifunc {
+            padding-bottom: 1em;
+            border-bottom: 1px solid #cdcdcd;
+        }
+        .apifunc:last-child {
+            border-bottom: none;
+        }
+
+        .apifunc .args,.return_description {
+            line-height: 1.4;
+            margin-bottom: 0.5em;
+            margin-left: 2em;
+        }
+        .apifunc .args .arg .argname  {
+            font-family: 'Consolas', monospace, sans-serif;
+            font-weight: normal;
+            font-size: 12pt;
+            padding-right: .5em;
+            padding-left: 0em;
+        }
+        .apifunc .args .arg {
+            vertical-align: baseline;
+        }
+        .apifunc .args .arg .arg_short {
+            padding-left: .5em;
+        }
+
+    </style>
+    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,500,600" rel="stylesheet" type="text/css">
+</head>
+
+<body class='max-width'>
+    <header id='title-block-header'>
+        <div style='display: flex; flex-direction: row; align-items: center; margin-top: 20px'>
+            <img class="pixelated" style='margin-top: 0.5em' width='80px' height='80px' src='images/logo.png'></img>
+            <h1 style='padding-bottom: 0.0em; margin-left: 3px;' class="title">QUASAR</h1>
+        </div>
+        <div class="subtitle">Quad-based Adaptive Streaming And Rendering</div>
+    </header>
+
+    <h2 style='border-bottom: 0; padding-bottom: 0;'>Table of contents</h2>
+    <div class="tocstyle">
+        <nav id="TOC">
+        <ul>
+            <li><a href="#overview" id="toc-overview">Overview</a></li>
+            <li><a href="#install-dependencies" id="toc-install-dependencies">Install Dependencies</a>
+                <ul>
+                    <li><a href="#linux" id="toc-linux">Linux</a></li>
+                    <li><a href="#mac" id="toc-mac">Mac</a></li>
+                    <li><a href="#quest" id="toc-quest">Meta Quest Headsets</a></li>
+                </ul>
+            </li>
+            <li><a href="#download" id="toc-download">Download 3D Assets</a></li>
+            <li><a href="#building" id="toc-building">Building</a></li>
+            <li><a href="#sample-apps" id="toc-sample-apps">Sample Apps</a>
+                <ul>
+                    <li><a href="#scene-viewer">Scene Viewer</a></li>
+                    <li><a href="#depth-peeling">Depth Peeling</a></li>
+                    <li><a href="#atw">Asynchronous Time Warp (ATW)</a></li>
+                    <li><a href="#meshwarp">MeshWarp (MW)</a></li>
+                    <li><a href="#depth-codec">Depth Codec</a></li>
+                    <li><a href="#quadwarp">QuadWarp</a></li>
+                    <li><a href="#quadstream">QuadStream</a></li>
+                    <li><a href="#quasar">QUASAR</a></li>
+                </ul>
+            </li>
+            <li><a href="#evaluation" id="toc-evaluation">Evaluation Scripts</a>
+                <ul>
+                    <li><a href="#eval-setup">Setup</a></li>
+                    <li><a href="#install-deps">Install Dependencies</a></li>
+                    <li><a href="#run-evaluation">Run Evaluation</a></li>
+                    <li><a href="#optional-parameters">Optional Parameters</a></li>
+                    <li><a href="#results">Results</a></li>
+                </ul>
+            </li>
+            <li><a href="#acknowledgments" id="toc-acknowledgments">Acknowledgments</a></li>
+            <li><a href="#citation" id="toc-citation">Citation</a></li>
+        </ul>
+        </nav>
+    </div>
+
+    <h2 id="overview">Overview</h2>
+    <p>QUASAR is a remote rendering system that represents scene views using pixel-aligned quads, enabling temporally consistent and bandwidth-adaptive streaming for high-quality, real-time visualization for thin clients.</p>
+    <p>Our repository below provides baseline implementations of remote rendering systems designed to support and accelerate research in the field. For detailed discussion on the design principles, implementation details, and benchmarks, please see our paper:</p>
+    <blockquote>
+    <strong>QUASAR: Quad-based Adaptive Streaming And Rendering</strong><br><a href="https://users.ece.cmu.edu/~elu2/">Edward Lu</a> and <a href="https://users.ece.cmu.edu/~agr/">Anthony Rowe</a><br>ACM Transactions on Graphics 44(4) (proc. SIGGRAPH 2025)
+    </blockquote>
+    <p>Paper: <a href="https://quasar-gfx.github.io/assets/quasar_siggraph_2025.pdf">https://quasar-gfx.github.io/assets/quasar_siggraph_2025.pdf</a><br>
+    GitHub: <a href="https://github.com/quasar-gfx/QUASAR">https://github.com/quasar-gfx/QUASAR</a></p>
+    <div class="image-parent">
+        <div class="image-caption">
+            <img class="teaser" src="images/system_diagram.png"/>
+            <div class="caption">
+                QUASAR system diagram.
+            </div>
+        </div>
+    </div>
+
+    <h2 id="install-dependencies">Install Dependencies</h2>
+    <p>Minimum requirements:</p>
+    <ul>
+        <li>Any simulator or server code assumes at least OpenGL 4.3. Scene viewing and client code assumes at least OpenGL 4.1 or OpenGL ES 3.2.</li>
+        <li>High-end NVIDIA GPUs and drivers with CUDA are <strong>highly</strong> reccomended, especially for streaming servers. Ubuntu machines with NVIDIA GPUs can run the scene viewer, simulators, streaming servers, and clients.</li>
+    </ul>
+    <p>To download QUASAR, either download the repository at <a href="https://github.com/quasar-gfx/QUASAR">https://github.com/quasar-gfx/QUASAR</a> as a .zip file, or clone the repository using git:</p>
+    <div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/quasar-gfx/QUASAR</span></code></pre></div>
+
+    <h3 id="linux">Linux</h3>
+    <div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">sudo apt install cmake libglew-dev libao-dev libmpg123-dev ffmpeg libavdevice-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev libavfilter-dev</span></code></pre></div>
+    <p>We recommend using Ubuntu, as some Linux distributions might not have all the required packages available.</p>
+    <p>Optional: Follow instructions <a href="https://docs.nvidia.com/video-technologies/video-codec-sdk/12.0/ffmpeg-with-nvidia-gpu/index.html">https://docs.nvidia.com/video-technologies/video-codec-sdk/12.0/ffmpeg-with-nvidia-gpu/index.html</a> for installing FFMPEG from source with CUDA hardware acceleration.</p>
+
+    <h3 id="mac">Mac</h3>
+    <p>MacOS devices can run the scene viewer and the ATW client <strong>only</strong>. They are <strong>not</strong> recommended to run the servers or simulators, and cannot run any other clients.</p>
+    <div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew install cmake glew ffmpeg</span></code></pre></div>
+
+    <h3 id="quest">Quest</h3>
+    <p>We have implementations for scene viewing and streaming clients for Meta Quest VR headsets, which can be found <a href="https://github.com/quasar-gfx/QUASAR-client">https://github.com/quasar-gfx/QUASAR-client</a>.</p>
+
+    <h2 id="download">Download 3D Assets</h2>
+    <p>Sponza is cloned with the repo, but additional scenes can be downloaded at <a href="https://drive.google.com/file/d/1zL_hsmtjyOcAbNbud92aNCxjO1kwEqlK/view?usp=drive_link">https://drive.google.com/file/d/1zL_hsmtjyOcAbNbud92aNCxjO1kwEqlK/view?usp=drive_link</a>.</p>
+    <p>Download and unzip into <code>assets/models/scenes/</code> (this will be gitignored).</p>
+
+    <h2 id="building">Building</h2>
+    <div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">mkdir build; cd build
+cmake ..; make -j</span></code></pre></div>
+    <p>In the <code>build/</code> directory, there will be a folder called <code>apps/</code>, which follows the same directory layout as <code>&lt;repo root&gt;/apps/</code>.</p>
+
+    <h2 id="sample-apps">Sample Apps</h2>
+    <p>All apps allow you to move through a scene using <code>wasd+qe</code> controls.</p>
+
+    <h3 id="scene-viewer">Scene Viewer</h3>
+    <p>The Scene Viewer app loads a scene and lets you fly through it.</p>
+    <pre><code># in build directory
+cd apps/scene_viewer
+./scene_viewer --size 1920x1080 --scene ../assets/scenes/robot_lab.json</code></pre>
+
+    <h3 id="depth-peeling">Depth Peeling</h3>
+    <p>The Depth Peeling app loads a scene rendered with Depth Peeling and lets you fly through it using <code>wasd+qe</code>.</p>
+    <pre><code># in build directory
+cd apps/depth_peeling
+./depth_peeling --size 1920x1080 --scene ../assets/scenes/robot_lab.json</code></pre>
+
+    <h3 id="atw">Asynchronous Time Warp (ATW)</h3>
+    <p>The ATW app warps a previously rendered frame on a plane using a homography.</p>
+    <p>To run the simulator (simulates streaming over a configurable network):</p>
+    <pre><code># in build directory
+cd apps/atw/simulator
+./atw_simulator --size 1920x1080 --scene ../assets/scenes/robot_lab.json</code></pre>
+
+    <p>To run streamer (actually streams over a network):</p>
+    <pre><code># in build directory
+cd apps/atw/streamer
+./atw_streamer --size 1920x1080 --scene ../assets/scenes/robot_lab.json --pose-url 0.0.0.0:54321 --video-url 127.0.0.1:12345</code></pre>
+
+    <p>In a new terminal, to run receiver (streaming client):</p>
+    <pre><code># in build directory
+cd apps/atw/receiver
+./atw_receiver --size 1920x1080 --pose-url 127.0.0.1:54321 --video-url 0.0.0.0:12345</code></pre>
+
+    <p>Note: Replace <code>127.0.0.1</code> with the IP address of the machine running the streamer if you are running the receiver on a different machine.</p>
+
+    <h3 id="meshwarp">MeshWarp (MW)</h3>
+    <p>The MeshWarp app warps a previously rendered frame by using a depth map to create a texture-mapped mesh.</p>
+    <p>To run the simulator:</p>
+    <pre><code># in build directory
+cd apps/meshwarp/simulator
+./mw_simulator --size 1920x1080 --scene ../assets/scenes/robot_lab.json</code></pre>
+
+    <p>To run streamer:</p>
+    <pre><code># in build directory
+cd apps/meshwarp/streamer
+./mw_streamer --size 1920x1080 --scene ../assets/scenes/robot_lab.json --pose-url 0.0.0.0:54321 --video-url 127.0.0.1:12345 --depth-url 127.0.0.1:65432</code></pre>
+
+    <p>In a new terminal, to run receiver:</p>
+    <pre><code># in build directory
+cd apps/meshwarp/receiver
+./mw_receiver --size 1920x1080 --pose-url 127.0.0.1:54321 --video-url 0.0.0.0:12345 --depth-url 0.0.0.0:65432</code></pre>
+
+    <p>Note: Replace <code>127.0.0.1</code> with the IP address of the machine running the streamer if you are running the receiver on a different machine.</p>
+
+    <h3 id="depth-codec">Depth Codec</h3>
+    <p>The Depth Codec app visualizes the differences of ground truth depth and a compressed depth map using a custom depth codec consisting of an 8x8 block BC4-like codec with ZSTD compression. This is the same depth codec we use in MeshWarp.</p>
+    <pre><code># in build directory
+cd apps/depth_codec
+./depth_codec --size 1920x1080 --scene ../assets/scenes/robot_lab.json</code></pre>
+
+    <h3 id="quadwarp">QuadWarp</h3>
+    <p>The QuadWarp app warps a previously rendered frame by fitting a series of quads from a G-Buffer.</p>
+    <p>To run the simulator:</p>
+    <pre><code># in build directory
+cd apps/quadwarp/simulator
+./quads_simulator --size 1920x1080 --scene ../assets/scenes/robot_lab.json</code></pre>
+    <p>You can save a frame to disk by clicking <code>View->Mesh Capture->Save Proxies</code> in the GUI.</p>
+    <p>To run the receiver (which loads a frame from disk):</p>
+    <pre><code># in build directory
+cd apps/quadwarp/receiver
+./quads_receiver --size 1920x1080</code></pre>
+
+    <h3 id="quadstream">QuadStream</h3>
+    <p>The QuadStream app fits a series of quads from multiple G-Buffers from various camera views inside a headbox. The code is a best effort implementation of <a href="https://jozef.hladky.de/projects/QS">QuadStream</a>.</p>
+    <p>To run the simulator:</p>
+    <pre><code># in build directory
+cd apps/quadstream/simulator
+./qs_simulator --size 1920x1080 --scene ../assets/scenes/robot_lab.json</code></pre>
+    <p>To run the receiver (which loads a frame from disk):</p>
+    <pre><code># in build directory
+cd apps/quadstream/receiver
+./qs_receiver --size 1920x1080</code></pre>
+
+    <h3 id="quasar">QUASAR</h3>
+    <p>The QUASAR app fits a series of quads from multiple G-Buffers from various depth peeling layers with fragment discarding determined by <a href="https://cg.skku.edu/pub/2023-kim-siggraph-pvhv">Effective Depth Peeling (EDP)</a>.</p>
+    <p>To run the simulator:</p>
+    <pre><code># in build directory
+cd apps/quasar/simulator
+./qr_simulator --size 1920x1080 --scene ../assets/scenes/robot_lab.json</code></pre>
+    <p>To run the receiver (which loads a frame from disk):</p>
+    <pre><code># in build directory
+cd apps/quasar/receiver
+./qr_receiver --size 1920x1080</code></pre>
+
+    <h2 id="evaluation">Evaluation Scripts</h2>
+    <p>Make sure you have the scenes downloaded and placed in <code>assets/models/Scenes/</code>!</p>
+
+    <h3 id="eval-setup">Setup</h3>
+    <p>Evaluation was run on an AMD Ryzen 9 7950X 16-Core Processor with an NVIDIA GeForce RTX 4090 (24 GB of VRAM) running Ubuntu. <strong>It is recommended you run this on a machine with ample resources (many CPU cores, high-end NVIDIA GPU w/ high VRAM).</strong></p>
+    <p>Tested with Python 3.10 and up.</p>
+
+    <h4 id="install-deps">Install Dependencies</h4>
+    <pre><code>pip3 install -r requirements.txt</code></pre>
+
+    <h3 id="run-evaluation">Run Evaluation</h3>
+    <p>To run the evaluation described in the paper, you can run:</p>
+    <pre><code>python3 run_eval.py 20 10 --pose-prediction                   # run 20+/-10ms trace (w/ pose prediction)
+python3 run_eval.py 50 20 --pose-prediction --pose-smoothing  # run 50+/-20ms trace (w/ pose prediction and smoothing)</code></pre>
+
+    <p>These will run traces (found in <code>../assets/paths/</code>) for the Robot Lab, Sun Temple, Viking Village, and San Miguel scenes for 0.25m, 0.5m, and 1.0m viewcell sizes.</p>
+
+    <p><strong>WARNING</strong>: these scripts will take a while to run and will use a lot of resources on your computer! The resulting videos are stored in very high quality.</p>
+
+    <h4 id="optional-parameters">Optional Parameters</h4>
+    <ul>
+        <li>If you want to run shorter traces (500 frames instead of 1500), you can add <code>--short-paths</code>.</li>
+        <li>If you want to run with specific viewcell size(s), you can add <code>--view-sizes &lt;comma-separated list&gt;</code>.</li>
+        <li>If you want to run with specific scene(s), you can add <code>--scenes &lt;comma-separated list&gt;</code>.</li>
+    </ul>
+
+    <p>Example (this will run the Robot Lab scene with a shorter trace with viewcell sizes of 0.5m and 1.0m):</p>
+    <pre><code>python3 run_eval.py 20 10 --pose-prediction --short-paths --view-sizes 0.5,1.0 --scenes robot_lab</code></pre>
+
+    <p>See <code>run_eval.py</code> for more command line parameters.</p>
+
+    <h3 id="results">Results</h3>
+    <p>Results will be packed in tarball files in the <code>results/</code> folder:</p>
+    <pre><code>results/
+    └── results_20.0_10.0ms.tar.gz  # results with 20+/-10ms of latency</code></pre>
+
+    <p>Untarring the files will reveal:</p>
+    <pre><code>results_20.0_10.0ms/
+    ├── errors.json                       # json file containing FLIP, SSIM, and PSNR errors for each method
+    └── results/
+        ├── stats/
+        │   └── robot_lab/
+        │       ├── atw_simulator.log
+        │       ├── mw_simulator_120.log
+        │       ├── mw_simulator_60.log
+        │       ├── qr_simulator_0.5.log
+        │       ├── qr_simulator_1.0.log
+        │       ├── qs_simulator_0.5.log
+        │       ├── qs_simulator_1.0.log
+        │       ├── scene_viewer.log
+        │       └── stats.json            # json file containing performance timings and data payload statistics
+        └── videos/
+            └── robot_lab/
+                ├── color/                # color videos for ground truth (scene_viewer) and all tested methods
+                │   ├── atw_simulator.mp4
+                │   ├── mw_simulator_120.mp4
+                │   ├── ...
+                │   ├── qs_simulator_1.0.mp4
+                │   └── scene_viewer.mp4
+                └── flip/                 # FLIP error map videos for all tested methods</code></pre>
+
+    <h2 id="citation">Citation</h2>
+    <p>If you find this project helpful for any research-related purposes, please consider citing our paper:</p>
+    <pre><code>@article{lu2025quasar,
+    title={QUASAR: Quad-based Adaptive Streaming And Rendering},
+    author={Lu, Edward and Rowe, Anthony},
+    journal={ACM Transactions on Graphics (TOG)},
+    volume={44},
+    number={4},
+    year={2025},
+    publisher={ACM New York, NY, USA},
+    url={https://doi.org/10.1145/3731213},
+    doi={10.1145/3731213},
+}</code></pre>
+
+    <h2 id="acknowledgment">Acknowledgments</h2>
+    <p>We gratefully acknowledge the authors of <a href="https://jozef.hladky.de/projects/QS">QuadStream</a> and <a href="https://cg.skku.edu/pub/2023-kim-siggraph-pvhv">PVHV</a> for their foundational ideas, which served as valuable inspiration for our work.</p>
+    <p>This work was supported in part by the NSF under Grant No. CNS1956095, the NSF Graduate Research Fellowship under Grant No. DGE2140739, and Bosch Research.</p>
+    <p>Special thanks to <a href="https://www.linkedin.com/in/taylorliii">Ziyue Li</a> and <a href="https://www.linkedin.com/in/ruiyang-dai-cmu">Ruiyang Dai</a> for helping on the implementation!</p>
+    <p>This webpage is adapted from <a href="https://nvlabs.github.io/nvdiffrast/">nvdiffrast</a>. We sincerely appreciate the authors for open-sourcing their code.</a></p>
+</body>
+
+</html>
