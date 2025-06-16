@@ -7,7 +7,7 @@ set(PUBLIC_HDR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 set(LIBS )
 
-set(LIBS ${LIBS} common)
+set(LIBS ${LIBS} quasar_common)
 
 file(GLOB_RECURSE SRCS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"

@@ -47,4 +47,4 @@ ImportExecutables-*.cmake
 /build*
 
 # Ignore large 3D assets
-/assets/models/scenes/
+/assets/models/scenes

@@ -286,7 +286,11 @@
                 </ul>
             </li>
             <li><a href="#download" id="toc-download">Download 3D Assets</a></li>
-            <li><a href="#building" id="toc-building">Building</a></li>
+            <li><a href="#building" id="toc-building">Building</a>
+                <ul>
+                    <li><a href="#external-library">Using as External Library</a></li>
+                </ul>
+            </li>
             <li><a href="#sample-apps" id="toc-sample-apps">Sample Apps</a>
                 <ul>
                     <li><a href="#scene-viewer">Scene Viewer</a></li>
@@ -360,6 +364,39 @@
     <div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">mkdir build; cd build
 cmake ..; make -j</span></code></pre></div>
     <p>In the <code>build/</code> directory, there will be a folder called <code>apps/</code>, which follows the same directory layout as <code>&lt;repo root&gt;/apps/</code>.</p>
+
+    <h3 id="external-library">Using as External Library</h3>
+    <p>To build and link QUASAR as an external library (if you want to use the renderer and streaming system in another project), you can use this <code>CMakeLists.txt</code> template:</p>
+    <pre><code>cmake_minimum_required(VERSION 3.22)
+set(TARGET my_project)
+project(${TARGET})
+
+set(CMAKE_CXX_STANDARD 17)
+
+set(QUASAR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/QUASAR)  # copy or add QUASAR as a submodule
+set(QUASAR_APP_COMMON_DIR ${QUASAR_DIR}/apps/Common)
+set(QUASAR_APP_COMMON_SHADERS_DIR ${QUASAR_APP_COMMON_DIR}/shaders)
+
+# QUASAR
+set(QUASAR_BUILD_APPS OFF)  # disable building apps
+add_subdirectory(${QUASAR_DIR})
+
+# QUASAR App Common
+add_subdirectory(${QUASAR_APP_COMMON_DIR})
+
+# my source files
+file(GLOB_RECURSE SRCS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+
+add_executable(${TARGET} ${SRCS})
+target_include_directories(${TARGET}
+    PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${QUASAR_APP_COMMON_DIR}/include
+    ${QUASAR_APP_COMMON_SHADERS_DIR}/include
+)
+target_link_libraries(${TARGET} PRIVATE quasar quasar_common)
+
+file(CREATE_LINK ${QUASAR_DIR}/assets ${CMAKE_CURRENT_BINARY_DIR}/assets SYMBOLIC)  # link assets directory if needed</code></pre>
 
     <h2 id="sample-apps">Sample Apps</h2>
     <p>All apps allow you to move through a scene using <code>wasd+qe</code> controls.</p>

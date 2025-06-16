@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-set(TARGET common)
+set(TARGET quasar_common)
 project(${TARGET})
 
 set(PUBLIC_HDR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
