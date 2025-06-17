@@ -267,8 +267,8 @@
 <body class='max-width'>
     <header id='title-block-header'>
         <div style='display: flex; flex-direction: row; align-items: center; margin-top: 20px'>
-            <img class="pixelated" style='margin-top: 0.5em' width='80px' height='80px' src='images/logo.png'></img>
-            <h1 style='padding-bottom: 0.0em; margin-left: 3px;' class="title">QUASAR</h1>
+            <img class="pixelated" style='margin-top: 0.25em' width='80px' height='80px' src='images/logo.png'></img>
+            <h1 style='margin-left: 5px;' class="title">QUASAR</h1>
         </div>
         <div class="subtitle">Quad-based Adaptive Streaming And Rendering</div>
     </header>
@@ -354,10 +354,10 @@
     <div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew install cmake glew ffmpeg</span></code></pre></div>
 
     <h3 id="quest">Quest</h3>
-    <p>We have implementations for scene viewing and streaming clients for Meta Quest VR headsets, which can be found <a href="https://github.com/quasar-gfx/QUASAR-client">https://github.com/quasar-gfx/QUASAR-client</a>.</p>
+    <p>We also have implementations for scene viewing and streaming clients for Meta Quest VR headsets for testing on mobile GPUs. Please refer to <a href="https://github.com/quasar-gfx/QUASAR-client">https://github.com/quasar-gfx/QUASAR-client</a>.</p>
 
     <h2 id="download">Download 3D Assets</h2>
-    <p>Sponza is cloned with the repo, but additional scenes can be downloaded at <a href="https://drive.google.com/file/d/1zL_hsmtjyOcAbNbud92aNCxjO1kwEqlK/view?usp=drive_link">https://drive.google.com/file/d/1zL_hsmtjyOcAbNbud92aNCxjO1kwEqlK/view?usp=drive_link</a>.</p>
+    <p>Sponza is cloned with the repo, but additional scenes used in our evaluations (along with some extra scenes) can be downloaded at <a href="https://drive.google.com/file/d/1zL_hsmtjyOcAbNbud92aNCxjO1kwEqlK/view?usp=drive_link">https://drive.google.com/file/d/1zL_hsmtjyOcAbNbud92aNCxjO1kwEqlK/view?usp=drive_link</a>.</p>
     <p>Download and unzip into <code>assets/models/scenes/</code> (this will be gitignored).</p>
 
     <h2 id="building">Building</h2>
@@ -464,7 +464,7 @@ cd apps/depth_codec
 cd apps/quadwarp/simulator
 ./quads_simulator --size 1920x1080 --scene ../assets/scenes/robot_lab.json</code></pre>
     <p>You can save a frame to disk by clicking <code>View->Mesh Capture->Save Proxies</code> in the GUI.</p>
-    <p>To run the receiver (which loads a frame from disk):</p>
+    <p>To run the receiver (which loads a saved frame from disk):</p>
     <pre><code># in build directory
 cd apps/quadwarp/receiver
 ./quads_receiver --size 1920x1080</code></pre>
@@ -475,18 +475,18 @@ cd apps/quadwarp/receiver
     <pre><code># in build directory
 cd apps/quadstream/simulator
 ./qs_simulator --size 1920x1080 --scene ../assets/scenes/robot_lab.json</code></pre>
-    <p>To run the receiver (which loads a frame from disk):</p>
+    <p>To run the receiver (which loads a saved frame from disk):</p>
     <pre><code># in build directory
 cd apps/quadstream/receiver
 ./qs_receiver --size 1920x1080</code></pre>
 
     <h3 id="quasar">QUASAR</h3>
-    <p>The QUASAR app fits a series of quads from multiple G-Buffers from various depth peeling layers with fragment discarding determined by <a href="https://cg.skku.edu/pub/2023-kim-siggraph-pvhv">Effective Depth Peeling (EDP)</a>.</p>
+    <p>The QUASAR app fits a series of quads from multiple G-Buffers from various depth peeling layers with fragment discarding determined by a modified version of <a href="https://cg.skku.edu/pub/2023-kim-siggraph-pvhv">Effective Depth Peeling (EDP)</a>. This only lets <i>potentially visible</i> fragments pass.</p>
     <p>To run the simulator:</p>
     <pre><code># in build directory
 cd apps/quasar/simulator
 ./qr_simulator --size 1920x1080 --scene ../assets/scenes/robot_lab.json</code></pre>
-    <p>To run the receiver (which loads a frame from disk):</p>
+    <p>To run the receiver (which loads a saved frame from disk):</p>
     <pre><code># in build directory
 cd apps/quasar/receiver
 ./qr_receiver --size 1920x1080</code></pre>
@@ -495,14 +495,17 @@ cd apps/quasar/receiver
     <p>Make sure you have the scenes downloaded and placed in <code>assets/models/Scenes/</code>!</p>
 
     <h3 id="eval-setup">Setup</h3>
-    <p>Evaluation was run on an AMD Ryzen 9 7950X 16-Core Processor with an NVIDIA GeForce RTX 4090 (24 GB of VRAM) running Ubuntu. <strong>It is recommended you run this on a machine with ample resources (many CPU cores, high-end NVIDIA GPU w/ high VRAM).</strong></p>
-    <p>Tested with Python 3.10 and up.</p>
+    <p><strong>It is recommended you run this on a machine with ample resources (many CPU cores, high-end NVIDIA GPU w/ high VRAM).</strong> Our evaluation was run on an AMD Ryzen 9 7950X 16-Core Processor with an NVIDIA GeForce RTX 4090 (24 GB of VRAM) running Ubuntu 22.04.</p>
+    <p>Tested with <code>Python 3.10.16</code>.</p>
 
     <h4 id="install-deps">Install Dependencies</h4>
-    <pre><code>pip3 install -r requirements.txt</code></pre>
+    <pre><code>conda create -n quasar python=3.10
+conda activate quasar
+pip3 install -r requirements.txt
+</code></pre>
 
     <h3 id="run-evaluation">Run Evaluation</h3>
-    <p>To run the evaluation described in the paper, you can run:</p>
+    <p>To run the evaluation described in the paper, you should run:</p>
     <pre><code>python3 run_eval.py 20 10 --pose-prediction                   # run 20+/-10ms trace (w/ pose prediction)
 python3 run_eval.py 50 20 --pose-prediction --pose-smoothing  # run 50+/-20ms trace (w/ pose prediction and smoothing)</code></pre>
 
