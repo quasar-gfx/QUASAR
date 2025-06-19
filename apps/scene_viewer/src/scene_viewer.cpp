@@ -106,7 +106,11 @@ int main(int argc, char** argv) {
     float exposure = 1.0f;
     int shaderIndex = 0;
     bool recording = false;
+    bool runAnimations = cameraPathFileIn;
     float animationInterval = (MILLISECONDS_IN_SECOND / 30.0f); // run animations at 30 FPS
+
+    double totalTime = 0.0;
+    double totalDT = 0.0;
     RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
@@ -117,6 +121,11 @@ int main(int argc, char** argv) {
         static bool showRecordWindow = false;
         static int recordingFormatIndex = 0;
         static char recordingDirBase[256] = "recordings";
+        static bool showAnimationsWindow = false;
+
+        static int allowedFramerates[] = {1, 5, 10, 24, 30, 60};
+        static const char* framerateLabels[] = {"1 FPS", "5 FPS", "10 FPS", "24 FPS", "30 FPS", "60 FPS"};
+        static int currentFramerateIndex = 4;
 
         static bool showSkyBox = true;
 
@@ -135,6 +144,7 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("UI", 0, &showUI);
             ImGui::MenuItem("Frame Capture", 0, &showFrameCaptureWindow);
             ImGui::MenuItem("Record", 0, &showRecordWindow);
+            ImGui::MenuItem("Animations", 0, &showAnimationsWindow);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -259,9 +269,8 @@ int main(int argc, char** argv) {
             ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 300), ImGuiCond_FirstUseEver);
             ImGui::Begin("Record", &showRecordWindow);
 
-            if (recording) {
-                ImGui::TextColored(ImVec4(1,0,0,1), "Recording in progress...");
-            }
+            if (recording) { ImGui::TextColored(ImVec4(1,0,0,1), "Recording in progress..."); }
+            else { ImGui::TextColored(ImVec4(1,0.5f,0,1), "No recording in progress"); }
 
             ImGui::Text("Output Directory:");
             ImGui::InputText("##output directory", recordingDirBase, IM_ARRAYSIZE(recordingDirBase));
@@ -283,18 +292,51 @@ int main(int argc, char** argv) {
                 recorder.setFormat(selectedFormat);
             }
 
-            if (ImGui::Button("Start")) {
-                recording = true;
-                std::string time = std::to_string(static_cast<int>(window->getTime() * 1000.0f));
-                Path recordingDir = (outputPath / recordingDirBase).appendToName("." + time);
-                spdlog::info("Recording to: {}", recordingDir.str());
-                recorder.setOutputPath(recordingDir);
-                recorder.start();
+            if (!recording) {
+                if (ImGui::Button("Start", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+                    std::string time = std::to_string(static_cast<int>(window->getTime() * 1000.0f));
+                    Path recordingDir = (outputPath / recordingDirBase).appendToName("." + time);
+                    spdlog::info("Recording to: {}", recordingDir.str());
+
+                    recorder.setOutputPath(recordingDir);
+                    recorder.start();
+
+                    recording = true;
+                }
             }
-            ImGui::SameLine();
-            if (ImGui::Button("Stop")) {
-                recorder.stop();
-                recording = false;
+            else {
+                if (ImGui::Button("Stop", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+                    recorder.stop();
+                    recording = false;
+                }
+            }
+
+            ImGui::End();
+        }
+
+        if (showAnimationsWindow) {
+            ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
+            ImGui::Begin("Animations", &showAnimationsWindow);
+
+            ImGui::TextColored(ImVec4(0,1,0,1), "Current Time: %.3f s", totalTime);
+
+            ImGui::Separator();
+
+            ImGui::Text("Animation Framerate:");
+            int animationFramerate = allowedFramerates[currentFramerateIndex];
+            if (ImGui::Combo("", &currentFramerateIndex, framerateLabels, IM_ARRAYSIZE(framerateLabels))) {
+                animationFramerate = allowedFramerates[currentFramerateIndex];
+                animationInterval = MILLISECONDS_IN_SECOND / static_cast<float>(animationFramerate);
+            }
+
+            ImGui::Separator();
+
+            if (!runAnimations) {
+                if (ImGui::Button("Play", ImVec2(ImGui::GetContentRegionAvail().x, 0))) { runAnimations = true; }
+            }
+            else {
+                if (ImGui::Button("Pause", ImVec2(ImGui::GetContentRegionAvail().x, 0))) { runAnimations = false; }
             }
 
             ImGui::End();
@@ -309,7 +351,6 @@ int main(int argc, char** argv) {
         camera.updateProjectionMatrix();
     });
 
-    double totalDT = 0.0;
     double lastRenderTime = -INFINITY;
     bool updateClient = !saveImages;
     app.onRender([&](double now, double dt) {
@@ -364,13 +405,18 @@ int main(int argc, char** argv) {
             camera.processScroll(scroll.y);
             camera.processKeyboard(keys, dt);
         }
-        totalDT += dt;
+        if (runAnimations) {
+            totalTime += dt;
+            totalDT += dt;
+        }
 
         // Update all animations
         if (animationInterval > 0.0 && (now - lastRenderTime) >= (animationInterval - 1.0) / MILLISECONDS_IN_SECOND) {
-            scene.updateAnimations(totalDT);
+            if (runAnimations) {
+                scene.updateAnimations(totalDT);
+                totalDT = 0.0;
+            }
             lastRenderTime = now;
-            totalDT = 0.0;
         }
 
         // Render all objects in scene
