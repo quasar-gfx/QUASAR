@@ -30,17 +30,17 @@ public:
     virtual void beginRendering() override;
     virtual void endRendering() override;
 
-    virtual RenderStats drawScene(const Scene& scene, const Camera& camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT) override;
-    virtual RenderStats drawSkyBox(const Scene& scene, const Camera& camera) override;
-    virtual RenderStats drawObjects(const Scene& scene, const Camera& camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT) override;
-    virtual RenderStats drawObjectsNoLighting(const Scene& scene, const Camera& camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT) override;
+    virtual RenderStats drawScene(Scene& scene, const Camera& camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT) override;
+    virtual RenderStats drawSkyBox(Scene& scene, const Camera& camera) override;
+    virtual RenderStats drawObjects(Scene& scene, const Camera& camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT) override;
+    virtual RenderStats drawObjectsNoLighting(Scene& scene, const Camera& camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT) override;
 
     virtual void copyToFrameRT(FrameRenderTarget& gBufferDst);
 
 protected:
     DeferredLightingMaterial lightingMaterial;
 
-    RenderStats lightingPass(const Scene& scene, const Camera& camera);
+    RenderStats lightingPass(Scene& scene, const Camera& camera);
 };
 
 } // namespace quasar

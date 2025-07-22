@@ -15,7 +15,6 @@ struct LitMaterialCreateParams {
     float metallicFactor = 1.0f;
     float roughness = 1.0f;
     float roughnessFactor = 1.0f;
-    uint numPointLights = 4;
     std::string albedoTexturePath = "";
     std::string normalTexturePath = "";
     std::string metallicTexturePath = "";

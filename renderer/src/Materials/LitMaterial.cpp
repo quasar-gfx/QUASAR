@@ -1,3 +1,4 @@
+#include <Lights/PointLight.h>
 #include <Materials/LitMaterial.h>
 
 using namespace quasar;
@@ -83,7 +84,7 @@ LitMaterial::LitMaterial(const LitMaterialCreateParams& params)
 
     if (shader == nullptr) {
         std::vector<std::string> defines = {
-            "#define MAX_POINT_LIGHTS " + std::to_string(params.numPointLights),
+            "#define MAX_POINT_LIGHTS " + std::to_string(PointLight::maxPointLights),
             "#define ALPHA_OPAQUE " + std::to_string(static_cast<uint8_t>(AlphaMode::OPAQUE)),
             "#define ALPHA_MASK " + std::to_string(static_cast<uint8_t>(AlphaMode::MASKED)),
             "#define ALPHA_BLEND " + std::to_string(static_cast<uint8_t>(AlphaMode::TRANSPARENT))

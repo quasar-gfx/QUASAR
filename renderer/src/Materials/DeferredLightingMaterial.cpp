@@ -1,3 +1,4 @@
+#include <Lights/PointLight.h>
 #include <Materials/DeferredLightingMaterial.h>
 
 using namespace quasar;
@@ -10,7 +11,10 @@ DeferredLightingMaterial::DeferredLightingMaterial() {
             .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
             .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
             .fragmentCodeData = SHADER_BUILTIN_DEFERRED_LIGHTING_FRAG,
-            .fragmentCodeSize = SHADER_BUILTIN_DEFERRED_LIGHTING_FRAG_len
+            .fragmentCodeSize = SHADER_BUILTIN_DEFERRED_LIGHTING_FRAG_len,
+            .defines = {
+                "#define MAX_POINT_LIGHTS " + std::to_string(PointLight::maxPointLights),
+            }
         };
         shader = new Shader(dirShadowMapParams);
     }

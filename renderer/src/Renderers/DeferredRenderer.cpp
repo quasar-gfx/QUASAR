@@ -74,7 +74,7 @@ void DeferredRenderer::endRendering() {
 #endif
 }
 
-RenderStats DeferredRenderer::drawScene(const Scene& scene, const Camera& camera, uint32_t clearMask) {
+RenderStats DeferredRenderer::drawScene(Scene& scene, const Camera& camera, uint32_t clearMask) {
     RenderStats stats;
 
     beginRendering();
@@ -93,14 +93,14 @@ RenderStats DeferredRenderer::drawScene(const Scene& scene, const Camera& camera
     return stats;
 }
 
-RenderStats DeferredRenderer::drawSkyBox(const Scene& scene, const Camera& camera) {
+RenderStats DeferredRenderer::drawSkyBox(Scene& scene, const Camera& camera) {
     outputRT.bind();
     RenderStats stats = drawSkyBoxImpl(scene, camera);
     outputRT.unbind();
     return stats;
 }
 
-RenderStats DeferredRenderer::drawObjects(const Scene& scene, const Camera& camera, uint32_t clearMask) {
+RenderStats DeferredRenderer::drawObjects(Scene& scene, const Camera& camera, uint32_t clearMask) {
     pipeline.apply();
 
     RenderStats stats;
@@ -124,7 +124,7 @@ RenderStats DeferredRenderer::drawObjects(const Scene& scene, const Camera& came
     return stats;
 }
 
-RenderStats DeferredRenderer::drawObjectsNoLighting(const Scene& scene, const Camera& camera, uint32_t clearMask) {
+RenderStats DeferredRenderer::drawObjectsNoLighting(Scene& scene, const Camera& camera, uint32_t clearMask) {
     pipeline.apply();
 
     RenderStats stats;
@@ -141,36 +141,15 @@ RenderStats DeferredRenderer::drawObjectsNoLighting(const Scene& scene, const Ca
     return stats;
 }
 
-RenderStats DeferredRenderer::lightingPass(const Scene& scene, const Camera& camera) {
+RenderStats DeferredRenderer::lightingPass(Scene& scene, const Camera& camera) {
     RenderStats stats;
 
     lightingMaterial.bind();
     lightingMaterial.bindGBuffer(frameRT);
     lightingMaterial.bindCamera(camera);
 
+    // Update material uniforms with lighting information
     scene.bindMaterial(&lightingMaterial);
-
-    if (scene.ambientLight != nullptr) {
-        scene.ambientLight->bindMaterial(&lightingMaterial);
-    }
-
-    int texIdx = lightingMaterial.getTextureCount() + Scene::numTextures;
-    if (scene.directionalLight != nullptr) {
-        scene.directionalLight->bindMaterial(&lightingMaterial);
-        lightingMaterial.getShader()->setMat4("lightSpaceMatrix", scene.directionalLight->lightSpaceMatrix);
-        lightingMaterial.getShader()->setTexture("dirLightShadowMap", scene.directionalLight->shadowMapRenderTarget.depthBuffer, texIdx);
-    }
-    texIdx++;
-
-    for (int i = 0; i < scene.pointLights.size(); i++) {
-        auto pointLight = scene.pointLights[i];
-        pointLight->setChannel(i);
-        lightingMaterial.getShader()->setTexture("pointLightShadowMaps[" + std::to_string(i) + "]", pointLight->shadowMapRenderTarget.depthCubeMap, texIdx);
-        pointLight->bindMaterial(&lightingMaterial);
-        texIdx++;
-    }
-
-    lightingMaterial.getShader()->setInt("numPointLights", static_cast<int>(scene.pointLights.size()));
 
     // Copy depth from FrameRenderTarget to outputRT
     frameRT.blitDepthToRenderTarget(outputRT);

@@ -162,41 +162,19 @@ void Mesh::setMaterialCameraParams(const Camera& camera, const Material* materia
     material->getShader()->setFloat("camera.far", camera.getFar());
 }
 
-void Mesh::bindMaterial(const Scene& scene, const glm::mat4& model, const Material* overrideMaterial, const Texture* prevIDMap) {
+void Mesh::bindMaterial(Scene& scene, const glm::mat4& model, const Material* overrideMaterial, const Texture* prevIDMap) {
     auto* materialToUse = overrideMaterial != nullptr ? overrideMaterial : material;
     materialToUse->bind();
 
-    scene.bindMaterial(materialToUse);
+    auto* shader = materialToUse->getShader();
 
-    if (scene.ambientLight != nullptr) {
-        scene.ambientLight->bindMaterial(materialToUse);
-    }
+    // Update material uniforms with lighting information
+    int texIdx = scene.bindMaterial(materialToUse);
+    shader->setFloat("material.IBL", IBL);
 
-    int texIdx = materialToUse->getTextureCount() + Scene::numTextures;
-    if (scene.directionalLight != nullptr) {
-        scene.directionalLight->bindMaterial(materialToUse);
-        materialToUse->getShader()->setMat4("lightSpaceMatrix", scene.directionalLight->lightSpaceMatrix);
-        if (overrideMaterial == nullptr) {
-            materialToUse->getShader()->setTexture("dirLightShadowMap", scene.directionalLight->shadowMapRenderTarget.depthBuffer, texIdx);
-        }
-    }
-    texIdx++;
-
-    for (int i = 0; i < scene.pointLights.size(); i++) {
-        auto pointLight = scene.pointLights[i];
-        pointLight->setChannel(i);
-        materialToUse->getShader()->setTexture("pointLightShadowMaps[" + std::to_string(i) + "]", pointLight->shadowMapRenderTarget.depthCubeMap, texIdx);
-        pointLight->bindMaterial(materialToUse);
-        texIdx++;
-    }
-
-    materialToUse->getShader()->setInt("numPointLights", static_cast<int>(scene.pointLights.size()));
-    materialToUse->getShader()->setFloat("material.IBL", IBL);
-
-    materialToUse->getShader()->setBool("peelDepth", prevIDMap != nullptr);
+    shader->setBool("peelDepth", prevIDMap != nullptr);
     if (prevIDMap != nullptr) {
-        materialToUse->getShader()->setTexture("prevIDMap", *prevIDMap, texIdx);
-        texIdx++;
+        shader->setTexture("prevIDMap", *prevIDMap, texIdx);
     }
 
     materialToUse->unbind();
@@ -205,6 +183,7 @@ void Mesh::bindMaterial(const Scene& scene, const glm::mat4& model, const Materi
 RenderStats Mesh::draw(GLenum primativeType, const Camera& camera, const glm::mat4& model, bool frustumCull, const Material* overrideMaterial) {
     RenderStats stats;
 
+    // If the camera is a VR camera, check if the AABB is visible in both frustums
     if (camera.isVR()) {
         auto vrcamera = static_cast<const VRCamera*>(&camera);
         auto& frustumLeft = vrcamera->left.frustum;

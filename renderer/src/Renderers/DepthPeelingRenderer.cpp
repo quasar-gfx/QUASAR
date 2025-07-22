@@ -60,7 +60,7 @@ void DepthPeelingRenderer::setScreenShaderUniforms(const Shader& screenShader) {
     screenShader.setTexture("idBuffer", frameRT.idBuffer, 4);
 }
 
-RenderStats DepthPeelingRenderer::drawScene(const Scene& scene, const Camera& camera, uint32_t clearMask) {
+RenderStats DepthPeelingRenderer::drawScene(Scene& scene, const Camera& camera, uint32_t clearMask) {
     RenderStats stats;
 
     for (int i = 0; i < maxLayers; i++) {
@@ -115,14 +115,14 @@ RenderStats DepthPeelingRenderer::drawScene(const Scene& scene, const Camera& ca
     return stats;
 }
 
-RenderStats DepthPeelingRenderer::drawSkyBox(const Scene& scene, const Camera& camera) {
+RenderStats DepthPeelingRenderer::drawSkyBox(Scene& scene, const Camera& camera) {
     outputRT.bind();
     RenderStats stats = drawSkyBoxImpl(scene, camera);
     outputRT.unbind();
     return stats;
 }
 
-RenderStats DepthPeelingRenderer::drawObjects(const Scene& scene, const Camera& camera, uint32_t clearMask) {
+RenderStats DepthPeelingRenderer::drawObjects(Scene& scene, const Camera& camera, uint32_t clearMask) {
     pipeline.apply();
 
     if (edp) {
@@ -160,7 +160,7 @@ RenderStats DepthPeelingRenderer::drawObjects(const Scene& scene, const Camera& 
     return stats;
 }
 
-RenderStats DepthPeelingRenderer::drawObjectsNoLighting(const Scene& scene, const Camera& camera, uint32_t clearMask) {
+RenderStats DepthPeelingRenderer::drawObjectsNoLighting(Scene& scene, const Camera& camera, uint32_t clearMask) {
     pipeline.apply();
 
     if (edp) {

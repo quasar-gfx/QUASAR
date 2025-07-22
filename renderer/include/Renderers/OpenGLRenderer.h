@@ -37,14 +37,14 @@ public:
     virtual void beginRendering() {}
     virtual void endRendering() {}
 
-    RenderStats updateDirLightShadow(const Scene& scene, const Camera& camera);
-    RenderStats updatePointLightShadows(const Scene& scene, const Camera& camera);
+    RenderStats updateDirLightShadow(Scene& scene, const Camera& camera);
+    RenderStats updatePointLightShadows(Scene& scene, const Camera& camera);
 
-    virtual RenderStats drawScene(const Scene& scene, const Camera& camera, uint32_t clearMask);
-    virtual RenderStats drawLights(const Scene& scene, const Camera& camera);
-    virtual RenderStats drawSkyBox(const Scene& scene, const Camera& camera);
-    virtual RenderStats drawObjects(const Scene& scene, const Camera& camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    virtual RenderStats drawObjectsNoLighting(const Scene& scene, const Camera& camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    virtual RenderStats drawScene(Scene& scene, const Camera& camera, uint32_t clearMask);
+    virtual RenderStats drawLights(Scene& scene, const Camera& camera);
+    virtual RenderStats drawSkyBox(Scene& scene, const Camera& camera);
+    virtual RenderStats drawObjects(Scene& scene, const Camera& camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    virtual RenderStats drawObjectsNoLighting(Scene& scene, const Camera& camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
     virtual RenderStats drawToScreen(const Shader& screenShader, const RenderTargetBase* overrideRenderTarget = nullptr);
     virtual RenderStats drawToRenderTarget(const Shader& screenShader, const RenderTargetBase& renderTarget);
@@ -54,13 +54,13 @@ protected:
 
     FullScreenQuad outputFsQuad;
 
-    RenderStats drawSceneImpl(const Scene& scene, const Camera& camera, uint32_t clearMask);
-    RenderStats drawLightsImpl(const Scene& scene, const Camera& camera);
-    RenderStats drawSkyBoxImpl(const Scene& scene, const Camera& camera);
+    RenderStats drawSceneImpl(Scene& scene, const Camera& camera, uint32_t clearMask);
+    RenderStats drawLightsImpl(Scene& scene, const Camera& camera);
+    RenderStats drawSkyBoxImpl(Scene& scene, const Camera& camera);
 
-    virtual RenderStats drawNode(const Scene& scene, const Camera& camera, Node* node, const glm::mat4& parentTransform,
+    virtual RenderStats drawNode(Scene& scene, const Camera& camera, Node* node, const glm::mat4& parentTransform,
                                  bool frustumCull = true, const Material* overrideMaterial = nullptr, const Texture* prevIDMap = nullptr);
-    virtual RenderStats drawNode(const Scene& scene, const Camera& camera, Node* node, const glm::mat4& parentTransform,
+    virtual RenderStats drawNode(Scene& scene, const Camera& camera, Node* node, const glm::mat4& parentTransform,
                                  const PointLight* pointLight, const Material* overrideMaterial = nullptr);
 };
 

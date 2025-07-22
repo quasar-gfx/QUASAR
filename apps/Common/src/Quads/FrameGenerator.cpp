@@ -2,7 +2,7 @@
 
 using namespace quasar;
 
-FrameGenerator::FrameGenerator(DeferredRenderer& remoteRenderer, const Scene& remoteScene, QuadsGenerator& quadsGenerator, MeshFromQuads& meshFromQuads)
+FrameGenerator::FrameGenerator(DeferredRenderer& remoteRenderer, Scene& remoteScene, QuadsGenerator& quadsGenerator, MeshFromQuads& meshFromQuads)
     : remoteRenderer(remoteRenderer)
     , remoteScene(remoteScene)
     , quadsGenerator(quadsGenerator)
@@ -59,7 +59,7 @@ uint FrameGenerator::generateRefFrame(
 }
 
 uint FrameGenerator::generateResFrame(
-        const Scene& currScene, const Scene& prevScene,
+        Scene& currScene, Scene& prevScene,
         FrameRenderTarget& frameRT, FrameRenderTarget& maskFrameRT,
         const PerspectiveCamera& currRemoteCamera, const PerspectiveCamera& prevRemoteCamera,
         const Mesh& currMesh, const Mesh& maskMesh,

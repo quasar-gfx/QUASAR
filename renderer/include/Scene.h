@@ -3,6 +3,7 @@
 
 #include <vector>
 
+#include <Buffer.h>
 #include <CubeMap.h>
 #include <Lights/Lights.h>
 #include <RenderTargets/RenderTarget.h>
@@ -13,16 +14,24 @@ namespace quasar {
 
 class Scene {
 public:
+    struct GPUPointLightBlock {
+        PointLight::GPUPointLight lights[PointLight::maxPointLights];
+        int numPointLights;
+    };
+
+    glm::vec4 backgroundColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
     CubeMap* envCubeMap = nullptr;
+
     AmbientLight* ambientLight = nullptr;
     DirectionalLight* directionalLight = nullptr;
     std::vector<PointLight*> pointLights;
 
     Node rootNode;
 
-    glm::vec4 backgroundColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    Buffer pointLightUBO;
 
     Scene();
+    ~Scene() = default;
 
     void setEnvMap(CubeMap* envCubeMap);
     void setAmbientLight(AmbientLight* ambientLight);
@@ -37,7 +46,7 @@ public:
     void equirectToCubeMap(const CubeMap& envCubeMap, const Texture& hdrTexture);
     void setupIBL(const CubeMap& envCubeMap);
 
-    void bindMaterial(const Material* material) const;
+    int bindMaterial(const Material* material);
 
     void clear();
 
@@ -70,6 +79,10 @@ private:
 
     RenderTarget captureRenderTarget;
     Renderbuffer captureRenderBuffer;
+
+    int bindAmbientLight(const Material* material, int texIdx);
+    int bindDirectionalLight(const Material* material, int texIdx);
+    int bindPointLights(const Material* material, int texIdx);
 };
 
 } // namespace quasar

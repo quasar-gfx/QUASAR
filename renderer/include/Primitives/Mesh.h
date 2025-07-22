@@ -68,7 +68,7 @@ public:
     Mesh(const MeshDataCreateParams& params);
     Mesh(const MeshSizeCreateParams& params);
 
-    virtual void bindMaterial(const Scene& scene, const glm::mat4& model,
+    virtual void bindMaterial(Scene& scene, const glm::mat4& model,
                               const Material* overrideMaterial = nullptr, const Texture* prevIDMap = nullptr) override;
 
     virtual RenderStats draw(GLenum primativeType, const Camera& camera, const glm::mat4& model,

@@ -18,7 +18,7 @@ public:
 
     MeshFromQuads meshFromQuadsMask;
 
-    FrameGenerator(DeferredRenderer& remoteRenderer, const Scene& remoteScene, QuadsGenerator& quadsGenerator, MeshFromQuads& meshFromQuads);
+    FrameGenerator(DeferredRenderer& remoteRenderer, Scene& remoteScene, QuadsGenerator& quadsGenerator, MeshFromQuads& meshFromQuads);
 
     struct Stats {
         double timeToCreateProxiesMs = 0.0;
@@ -42,7 +42,7 @@ public:
         bool compress = true);
 
     uint generateResFrame(
-        const Scene& currScene, const Scene& prevScene,
+        Scene& currScene, Scene& prevScene,
         FrameRenderTarget& frameRT, FrameRenderTarget& maskFrameRT,
         const PerspectiveCamera& currRemoteCamera, const PerspectiveCamera& prevRemoteCamera,
         const Mesh& currMesh, const Mesh& maskMesh,
@@ -52,7 +52,7 @@ public:
 
 private:
     DeferredRenderer& remoteRenderer;
-    const Scene& remoteScene;
+    Scene& remoteScene;
 };
 
 } // namespace quasar

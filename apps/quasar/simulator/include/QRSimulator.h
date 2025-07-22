@@ -291,7 +291,7 @@ public:
     }
 
     void generateFrame(
-            const PerspectiveCamera& remoteCameraCenter, const PerspectiveCamera& remoteCameraWideFov, const Scene& remoteScene,
+            const PerspectiveCamera& remoteCameraCenter, const PerspectiveCamera& remoteCameraWideFov, Scene& remoteScene,
             DeferredRenderer& remoteRenderer,
             DepthPeelingRenderer& remoteRendererDP,
             bool generateResFrame = false, bool showNormals = false, bool showDepth = false) {

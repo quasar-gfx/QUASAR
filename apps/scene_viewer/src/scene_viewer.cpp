@@ -144,6 +144,9 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("UI", 0, &showUI);
             ImGui::MenuItem("Frame Capture", 0, &showFrameCaptureWindow);
             ImGui::MenuItem("Record", 0, &showRecordWindow);
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Animations")) {
             ImGui::MenuItem("Animations", 0, &showAnimationsWindow);
             ImGui::EndMenu();
         }

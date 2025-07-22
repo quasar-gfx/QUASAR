@@ -121,7 +121,7 @@ void OpenGLRenderer::setWindowSize(uint width, uint height) {
     windowHeight = height;
 }
 
-RenderStats OpenGLRenderer::updateDirLightShadow(const Scene& scene, const Camera& camera) {
+RenderStats OpenGLRenderer::updateDirLightShadow(Scene& scene, const Camera& camera) {
     RenderStats stats;
     if (scene.directionalLight == nullptr) {
         return stats;
@@ -142,7 +142,7 @@ RenderStats OpenGLRenderer::updateDirLightShadow(const Scene& scene, const Camer
     return stats;
 }
 
-RenderStats OpenGLRenderer::updatePointLightShadows(const Scene& scene, const Camera& camera) {
+RenderStats OpenGLRenderer::updatePointLightShadows(Scene& scene, const Camera& camera) {
     RenderStats stats;
 
     for (int i = 0; i < scene.pointLights.size(); i++) {
@@ -175,7 +175,7 @@ RenderStats OpenGLRenderer::updatePointLightShadows(const Scene& scene, const Ca
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawSceneImpl(const Scene& scene, const Camera& camera, uint32_t clearMask) {
+RenderStats OpenGLRenderer::drawSceneImpl(Scene& scene, const Camera& camera, uint32_t clearMask) {
     if (clearMask != 0) {
         glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
         glClear(clearMask);
@@ -189,14 +189,14 @@ RenderStats OpenGLRenderer::drawSceneImpl(const Scene& scene, const Camera& came
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawScene(const Scene& scene, const Camera& camera, uint32_t clearMask) {
+RenderStats OpenGLRenderer::drawScene(Scene& scene, const Camera& camera, uint32_t clearMask) {
     beginRendering();
     RenderStats stats = drawSceneImpl(scene, camera, clearMask);
     endRendering();
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawLightsImpl(const Scene& scene, const Camera& camera) {
+RenderStats OpenGLRenderer::drawLightsImpl(Scene& scene, const Camera& camera) {
     // Dont clear color or depth bit here, since we want this to draw over
 
     RenderStats stats;
@@ -226,14 +226,14 @@ RenderStats OpenGLRenderer::drawLightsImpl(const Scene& scene, const Camera& cam
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawLights(const Scene& scene, const Camera& camera) {
+RenderStats OpenGLRenderer::drawLights(Scene& scene, const Camera& camera) {
     beginRendering();
     RenderStats stats = drawLightsImpl(scene, camera);
     endRendering();
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawSkyBoxImpl(const Scene& scene, const Camera& camera) {
+RenderStats OpenGLRenderer::drawSkyBoxImpl(Scene& scene, const Camera& camera) {
     // Dont clear color or depth bit here, since we want this to draw over
 
     RenderStats stats;
@@ -262,14 +262,14 @@ RenderStats OpenGLRenderer::drawSkyBoxImpl(const Scene& scene, const Camera& cam
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawSkyBox(const Scene& scene, const Camera& camera) {
+RenderStats OpenGLRenderer::drawSkyBox(Scene& scene, const Camera& camera) {
     beginRendering();
     RenderStats stats = drawSkyBoxImpl(scene, camera);
     endRendering();
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawObjectsNoLighting(const Scene& scene, const Camera& camera, uint32_t clearMask) {
+RenderStats OpenGLRenderer::drawObjectsNoLighting(Scene& scene, const Camera& camera, uint32_t clearMask) {
     pipeline.apply();
 
     RenderStats stats;
@@ -283,7 +283,7 @@ RenderStats OpenGLRenderer::drawObjectsNoLighting(const Scene& scene, const Came
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawObjects(const Scene& scene, const Camera& camera, uint32_t clearMask) {
+RenderStats OpenGLRenderer::drawObjects(Scene& scene, const Camera& camera, uint32_t clearMask) {
     pipeline.apply();
 
     RenderStats stats;
@@ -304,7 +304,7 @@ RenderStats OpenGLRenderer::drawObjects(const Scene& scene, const Camera& camera
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawNode(const Scene& scene, const Camera& camera, Node* node, const glm::mat4& parentTransform,
+RenderStats OpenGLRenderer::drawNode(Scene& scene, const Camera& camera, Node* node, const glm::mat4& parentTransform,
                                      bool frustumCull, const Material* overrideMaterial, const Texture* prevIDMap) {
     const glm::mat4& model = parentTransform * node->getTransformParentFromLocal() * node->getTransformAnimation();
 
@@ -364,7 +364,7 @@ RenderStats OpenGLRenderer::drawNode(const Scene& scene, const Camera& camera, N
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawNode(const Scene& scene, const Camera& camera, Node* node, const glm::mat4& parentTransform,
+RenderStats OpenGLRenderer::drawNode(Scene& scene, const Camera& camera, Node* node, const glm::mat4& parentTransform,
                                      const PointLight* pointLight, const Material* overrideMaterial) {
     const glm::mat4& model = parentTransform * node->getTransformParentFromLocal() * node->getTransformAnimation();
 

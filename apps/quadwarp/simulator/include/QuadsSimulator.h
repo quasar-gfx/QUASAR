@@ -207,7 +207,7 @@ public:
     }
 
     void generateFrame(
-            const PerspectiveCamera& remoteCamera, const Scene& remoteScene,
+            const PerspectiveCamera& remoteCamera, Scene& remoteScene,
             DeferredRenderer& remoteRenderer,
             bool generateResFrame = false, bool showNormals = false, bool showDepth = false) {
         double startTime = timeutils::getTimeMicros();

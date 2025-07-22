@@ -3,18 +3,30 @@
 using namespace quasar;
 
 Scene::Scene()
-    : irradianceCubeMap({ .width = 32, .height = 32, .type = CubeMapType::STANDARD })
-    , prefilterCubeMap({ .width = 128, .height = 128, .type = CubeMapType::PREFILTER })
-    , captureRenderTarget({ .width = 512,
-                            .height = 512,
-                            .internalFormat = GL_RGB16F,
-                            .format = GL_RGB,
-                            .type = GL_HALF_FLOAT,
-                            .wrapS = GL_CLAMP_TO_EDGE,
-                            .wrapT = GL_CLAMP_TO_EDGE,
-                            .minFilter = GL_LINEAR,
-                            .magFilter = GL_LINEAR })
-    , captureRenderBuffer({ .width = 512, .height = 512 })
+    : irradianceCubeMap({
+        .width = 32,
+        .height = 32,
+        .type = CubeMapType::STANDARD
+    })
+    , prefilterCubeMap({
+        .width = 128,
+        .height = 128,
+        .type = CubeMapType::PREFILTER
+    })
+    , captureRenderTarget({
+        .width = 1024,
+        .height = 1024,
+        .internalFormat = GL_RGB16F,
+        .format = GL_RGB,
+        .type = GL_HALF_FLOAT,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_LINEAR,
+        .magFilter = GL_LINEAR })
+    , captureRenderBuffer({
+        .width = 1024,
+        .height = 1024
+    })
     , brdfLUT({
         .internalFormat = GL_RG16F,
         .format = GL_RG,
@@ -30,22 +42,27 @@ Scene::Scene()
         .vertexCodeData = SHADER_BUILTIN_CUBEMAP_VERT,
         .vertexCodeSize = SHADER_BUILTIN_CUBEMAP_VERT_len,
         .fragmentCodeData = SHADER_BUILTIN_EQUIRECTANGULAR2CUBEMAP_FRAG,
-        .fragmentCodeSize = SHADER_BUILTIN_EQUIRECTANGULAR2CUBEMAP_FRAG_len })
+        .fragmentCodeSize = SHADER_BUILTIN_EQUIRECTANGULAR2CUBEMAP_FRAG_len
+    })
     , convolutionShader({
         .vertexCodeData = SHADER_BUILTIN_CUBEMAP_VERT,
         .vertexCodeSize = SHADER_BUILTIN_CUBEMAP_VERT_len,
         .fragmentCodeData = SHADER_BUILTIN_IRRADIANCE_CONVOLUTION_FRAG,
-        .fragmentCodeSize = SHADER_BUILTIN_IRRADIANCE_CONVOLUTION_FRAG_len })
+        .fragmentCodeSize = SHADER_BUILTIN_IRRADIANCE_CONVOLUTION_FRAG_len
+    })
     , prefilterShader({
         .vertexCodeData = SHADER_BUILTIN_CUBEMAP_VERT,
         .vertexCodeSize = SHADER_BUILTIN_CUBEMAP_VERT_len,
         .fragmentCodeData = SHADER_BUILTIN_PREFILTER_FRAG,
-        .fragmentCodeSize = SHADER_BUILTIN_PREFILTER_FRAG_len })
+        .fragmentCodeSize = SHADER_BUILTIN_PREFILTER_FRAG_len
+    })
     , brdfShader({
         .vertexCodeData = SHADER_BUILTIN_BRDF_VERT,
         .vertexCodeSize = SHADER_BUILTIN_BRDF_VERT_len,
         .fragmentCodeData = SHADER_BUILTIN_BRDF_FRAG,
-        .fragmentCodeSize = SHADER_BUILTIN_BRDF_FRAG_len })
+        .fragmentCodeSize = SHADER_BUILTIN_BRDF_FRAG_len
+    }),
+    pointLightUBO(GL_UNIFORM_BUFFER, 1, sizeof(GPUPointLightBlock), nullptr, GL_DYNAMIC_DRAW)
 {}
 
 void Scene::addChildNode(Node* node) {
@@ -73,21 +90,34 @@ void Scene::setDirectionalLight(DirectionalLight* directionalLight) {
 }
 
 void Scene::addPointLight(PointLight* pointLight) {
+    if (pointLights.size() >= PointLight::maxPointLights) {
+        spdlog::warn("Maximum number of point lights reached, cannot add more.");
+        return;
+    }
     pointLights.push_back(pointLight);
 }
 
-void Scene::bindMaterial(const Material* material) const {
+int Scene::bindMaterial(const Material* material) {
     auto* shader = material->getShader();
+
+    int texIdx = material->getTextureCount();
     if (hasPBREnvMap) {
-        shader->setTexture("material.irradianceMap", irradianceCubeMap, material->getTextureCount());
-        shader->setTexture("material.prefilterMap", prefilterCubeMap, material->getTextureCount() + 1);
-        shader->setTexture("material.brdfLUT", brdfLUT, material->getTextureCount() + 2);
+        shader->setTexture("material.irradianceMap", irradianceCubeMap, texIdx + 0);
+        shader->setTexture("material.prefilterMap", prefilterCubeMap, texIdx + 1);
+        shader->setTexture("material.brdfLUT", brdfLUT, texIdx + 2);
     }
     else {
-        shader->clearTexture("material.irradianceMap", material->getTextureCount());
-        shader->clearTexture("material.prefilterMap", material->getTextureCount() + 1);
-        shader->clearTexture("material.brdfLUT", material->getTextureCount() + 2);
+        shader->clearTexture("material.irradianceMap", texIdx + 0);
+        shader->clearTexture("material.prefilterMap", texIdx + 1);
+        shader->clearTexture("material.brdfLUT", texIdx + 2);
     }
+    texIdx += Scene::numTextures;
+
+    texIdx = bindAmbientLight(material, texIdx);
+    texIdx = bindDirectionalLight(material, texIdx);
+    texIdx = bindPointLights(material, texIdx);
+
+    return texIdx;
 }
 
 void Scene::equirectToCubeMap(const CubeMap& envCubeMap, const Texture& hdrTexture) {
@@ -132,6 +162,54 @@ void Scene::setupIBL(const CubeMap& envCubeMap) {
     captureRenderBuffer.unbind();
 
     glEnable(GL_BLEND);
+}
+
+int Scene::bindAmbientLight(const Material* material, int texIdx) {
+    if (ambientLight != nullptr) {
+        ambientLight->bindMaterial(material);
+    }
+    return texIdx;
+}
+
+int Scene::bindDirectionalLight(const Material* material, int texIdx) {
+    if (directionalLight != nullptr) {
+        directionalLight->bindMaterial(material);
+        material->getShader()->setMat4("lightSpaceMatrix", directionalLight->lightSpaceMatrix);
+        material->getShader()->setTexture("dirLightShadowMap",
+                                          directionalLight->shadowMapRenderTarget.depthBuffer, texIdx);
+    }
+    else {
+        material->getShader()->clearTexture("dirLightShadowMap", texIdx);
+    }
+    texIdx++;
+
+    return texIdx;
+}
+
+int Scene::bindPointLights(const Material* material, int texIdx) {
+    GPUPointLightBlock uboData{};
+    uboData.numPointLights = static_cast<int>(pointLights.size());
+
+    auto* shader = material->getShader();
+
+    for (int i = 0; i < uboData.numPointLights && i < PointLight::maxPointLights; ++i) {
+        auto& pointLight = pointLights[i];
+        pointLight->setChannel(i);
+        uboData.lights[i] = pointLight->toGPULight();
+        shader->setTexture("pointLightShadowMaps[" + std::to_string(i) + "]",
+                           pointLight->shadowMapRenderTarget.depthCubeMap, texIdx);
+        texIdx++;
+    }
+    for (int i = uboData.numPointLights; i < PointLight::maxPointLights; ++i) {
+        uboData.lights[i] = PointLight::GPUPointLight();
+        shader->clearTexture("pointLightShadowMaps[" + std::to_string(i) + "]", texIdx);
+    }
+
+    pointLightUBO.bind();
+    pointLightUBO.setData(1, &uboData);
+    pointLightUBO.bindToUniformBlock(shader->ID, "PointLightBlock", 0);
+
+    return texIdx;
 }
 
 void Scene::clear() {

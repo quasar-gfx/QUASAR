@@ -27,7 +27,7 @@ void ForwardRenderer::setScreenShaderUniforms(const Shader& screenShader) {
     screenShader.setTexture("idBuffer", frameRT.idBuffer, 4);
 }
 
-RenderStats ForwardRenderer::drawObjects(const Scene& scene, const Camera& camera, uint32_t clearMask) {
+RenderStats ForwardRenderer::drawObjects(Scene& scene, const Camera& camera, uint32_t clearMask) {
     RenderStats stats;
     if (camera.isVR()) {
         auto* vrCamera = static_cast<const VRCamera*>(&camera);

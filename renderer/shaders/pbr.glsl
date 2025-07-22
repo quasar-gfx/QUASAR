@@ -1,6 +1,16 @@
 #include "constants.glsl"
 #include "lights.glsl"
 
+struct PBRInfo {
+    vec3 N;
+    vec3 V;
+    vec3 R;
+    vec3 albedo;
+    float metallic;
+    float roughness;
+    vec3 F0;
+};
+
 vec3 gridSamplingDisk[20] = vec3[]
 (
    vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1),

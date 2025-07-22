@@ -173,7 +173,7 @@ public:
     }
 
     void generateFrame(
-            const std::vector<PerspectiveCamera> remoteCameras, const Scene& remoteScene,
+            const std::vector<PerspectiveCamera> remoteCameras, Scene& remoteScene,
             DeferredRenderer& remoteRenderer,
             bool showNormals = false, bool showDepth = false) {
         // Reset stats

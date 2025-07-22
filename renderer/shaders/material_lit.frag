@@ -58,8 +58,10 @@ uniform struct Material {
 
 uniform AmbientLight ambientLight;
 uniform DirectionalLight directionalLight;
-uniform PointLight pointLights[MAX_POINT_LIGHTS];
-uniform int numPointLights;
+layout(std140) uniform PointLightBlock {
+    PointLight pointLights[MAX_POINT_LIGHTS];
+    int numPointLights;
+}
 
 // Shadow maps
 uniform sampler2D dirLightShadowMap; // 9
@@ -216,7 +218,8 @@ void main() {
     vec3 radianceOut = vec3(0.0);
     radianceOut += calcDirLight(directionalLight, pbrInputs, dirLightShadowMap, fsIn.FragPosLightSpace, fsIn.Normal);
     for (int i = 0; i < numPointLights; i++) {
-        radianceOut += calcPointLight(pointLights[i], pointLightShadowMaps[i], pbrInputs, fsIn.FragPosWorld);
+        PointLight light = pointLights[i];
+        radianceOut += calcPointLight(light, pointLightShadowMaps[light.shadowIndex], pbrInputs, fsIn.FragPosWorld);
     }
 
     vec3 ambient = ambientLight.intensity * ambientLight.color * albedo;

@@ -28,6 +28,21 @@ struct PointLightCreateParams {
 
 class PointLight : public Light {
 public:
+    static const uint maxPointLights = 4;
+
+    struct GPUPointLight {
+        glm::vec3 position;
+        int shadowIndex;
+
+        glm::vec3 color;
+        float intensity;
+
+        float constant;
+        float linear;
+        float quadratic;
+        float farPlane;
+    };
+
     glm::vec3 position = glm::vec3(0.0f);
     float constant = 1.0f;
     float linear = 0.09f;
@@ -57,7 +72,10 @@ public:
             .shadowFar = params.shadowFar,
             .shadowMapRes = params.shadowMapRes
         })
-        , shadowMapRenderTarget({ .width = shadowMapRes, .height = shadowMapRes })
+        , shadowMapRenderTarget({
+            .width = shadowMapRes,
+            .height = shadowMapRes
+        })
         , boundingSphere(position, getLightRadius())
         , debug(params.debug)
     {
@@ -74,15 +92,6 @@ public:
             spdlog::warn("Point light channel is not set!");
             return;
         }
-
-        std::string idxStr = std::to_string(channel);
-        material->getShader()->setVec3("pointLights["+idxStr+"].position", position);
-        material->getShader()->setVec3("pointLights["+idxStr+"].color", color);
-        material->getShader()->setFloat("pointLights["+idxStr+"].intensity", intensity);
-        material->getShader()->setFloat("pointLights["+idxStr+"].constant", constant);
-        material->getShader()->setFloat("pointLights["+idxStr+"].linear", linear);
-        material->getShader()->setFloat("pointLights["+idxStr+"].quadratic", quadratic);
-        material->getShader()->setFloat("pointLights["+idxStr+"].farPlane", shadowFar);
     }
 
     void setPosition(const glm::vec3& position) {
@@ -125,7 +134,18 @@ public:
         }
     }
 
-    static const uint maxPointLights = 4;
+    GPUPointLight toGPULight() const {
+        GPUPointLight glight{};
+        glight.position = position;
+        glight.color = color;
+        glight.intensity = intensity;
+        glight.constant = constant;
+        glight.linear = linear;
+        glight.quadratic = quadratic;
+        glight.farPlane = shadowFar;
+        glight.shadowIndex = channel;
+        return glight;
+    }
 
 private:
     void updateLookAtFace() {

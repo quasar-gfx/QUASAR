@@ -34,11 +34,6 @@ public:
         bind();
         setData(numElems, data);
     }
-
-    ~Buffer() override {
-        glDeleteBuffers(1, &ID);
-    }
-
     Buffer(const Buffer& other)
         : target(other.target)
         , usage(other.usage)
@@ -55,6 +50,18 @@ public:
 #endif
         setData(other.numElems, data.data());
         unbind();
+    }
+    Buffer(Buffer&& other) noexcept
+        : target(other.target)
+        , usage(other.usage)
+        , numElems(other.numElems)
+        , dataSize(other.dataSize)
+    {
+        other.ID = 0;
+        other.numElems = 0;
+    }
+    ~Buffer() override {
+        glDeleteBuffers(1, &ID);
     }
 
     Buffer& operator=(const Buffer& other) {
@@ -83,12 +90,6 @@ public:
         return *this;
     }
 
-    Buffer(Buffer&& other) noexcept
-        : target(other.target), usage(other.usage), numElems(other.numElems), dataSize(other.dataSize) {
-        other.ID = 0;
-        other.numElems = 0;
-    }
-
     Buffer& operator=(Buffer&& other) noexcept {
         if (this == &other) return *this;
 
@@ -108,6 +109,15 @@ public:
 
     void bind() const override {
         glBindBuffer(target, ID);
+    }
+
+    void bindToUniformBlock(GLuint shaderID, const std::string& blockName, GLuint bindingIndex) const {
+        GLuint blockIndex = glGetUniformBlockIndex(shaderID, blockName.c_str());
+        if (blockIndex == GL_INVALID_INDEX) {
+            return;
+        }
+        glUniformBlockBinding(shaderID, blockIndex, bindingIndex);
+        glBindBufferBase(target, bindingIndex, ID);
     }
 
     void unbind() const override {

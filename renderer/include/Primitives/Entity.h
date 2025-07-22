@@ -55,7 +55,7 @@ public:
 
     int getID() const { return ID; }
 
-    virtual void bindMaterial(const Scene& scene, const glm::mat4& model,
+    virtual void bindMaterial(Scene& scene, const glm::mat4& model,
                               const Material* overrideMaterial = nullptr,
                               const Texture* prevIDMap = nullptr) = 0;
 
