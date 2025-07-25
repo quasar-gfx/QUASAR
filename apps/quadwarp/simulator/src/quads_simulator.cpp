@@ -238,8 +238,8 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
-            float proxySizeMB = static_cast<float>(quadsSimulator.stats.totalProxies * sizeof(QuadMapDataPacked)) / BYTES_IN_MB;
-            float depthOffsetSizeMB = static_cast<float>(quadsSimulator.stats.totalDepthOffsets * sizeof(uint16_t)) / BYTES_IN_MB;
+            float proxySizeMB = static_cast<float>(quadsSimulator.stats.totalProxies * sizeof(QuadMapDataPacked)) / BYTES_PER_MEGABYTE;
+            float depthOffsetSizeMB = static_cast<float>(quadsSimulator.stats.totalDepthOffsets * sizeof(uint16_t)) / BYTES_PER_MEGABYTE;
             ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%.3f MB)", quadsSimulator.stats.totalProxies, proxySizeMB);
             ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%.3f MB)", quadsSimulator.stats.totalDepthOffsets, depthOffsetSizeMB);
 
@@ -562,7 +562,7 @@ int main(int argc, char** argv) {
             spdlog::info("  Create Vert/Ind Time: {:.3f}ms", quadsSimulator.stats.totalCreateVertIndTime);
             spdlog::info("Compress Time: {:.3f}ms", quadsSimulator.stats.totalCompressTime);
             if (showDepth) spdlog::info("Gen Depth Time: {:.3f}ms", quadsSimulator.stats.totalGenDepthTime);
-            spdlog::info("Frame Size: {:.3f}MB", quadsSimulator.stats.compressedSizeBytes / BYTES_IN_MB);
+            spdlog::info("Frame Size: {:.3f}MB", quadsSimulator.stats.compressedSizeBytes / BYTES_PER_MEGABYTE);
             spdlog::info("Num Proxies: {}Proxies", quadsSimulator.stats.totalProxies);
 
             // Save to file if requested

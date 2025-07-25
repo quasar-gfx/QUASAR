@@ -31,6 +31,7 @@ __Please visit the ☞☞ [QUASAR documentation](https://quasar-gfx.github.io/QU
 - **[BS_thread_pool](https://github.com/bshoshany/thread-pool)**
 - **[glfw](https://github.com/glfw/glfw)**
 - **[glm](https://github.com/g-truc/glm)**
+- **[gstreamer](https://gstreamer.freedesktop.org/)**
 - **[imgui](https://github.com/ocornut/imgui)**
 - **[jsmn](https://github.com/zserge/jsmn)**
 - **[assimp](https://github.com/assimp/assimp)**

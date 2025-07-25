@@ -41,7 +41,6 @@ int main(int argc, char** argv) {
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::ValueFlag<bool> displayIn(parser, "display", "Show window", {'d', "display"}, true);
     args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "127.0.0.1:12345");
-    args::ValueFlag<std::string> videoFormatIn(parser, "video-format", "Video format", {'g', "video-format"}, "mpegts");
     args::ValueFlag<std::string> depthURLIn(parser, "depth", "Depth URL", {'e', "depth-url"}, "127.0.0.1:65432");
     args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "0.0.0.0:54321");
     args::ValueFlag<float> fovIn(parser, "fov", "Field of view", {'f', "fov"}, 60.0f);
@@ -74,7 +73,6 @@ int main(int argc, char** argv) {
 
     std::string sceneFile = args::get(sceneFileIn);
     std::string videoURL = args::get(videoURLIn);
-    std::string videoFormat = args::get(videoFormatIn);
     std::string depthURL = args::get(depthURLIn);
     std::string poseURL = args::get(poseURLIn);
 
@@ -110,7 +108,7 @@ int main(int argc, char** argv) {
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR,
-    }, videoURL, config.targetFramerate, targetBitrate, videoFormat);
+    }, videoURL, config.targetFramerate, targetBitrate);
 
     BC4DepthStreamer bc4DepthStreamerRT = BC4DepthStreamer({
         .width = windowSize.x / depthFactor,
@@ -195,7 +193,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::Text("Video URL: %s (%s)", videoURL.c_str(), videoFormat.c_str());
+            ImGui::Text("Video URL: %s", videoURL.c_str());
             ImGui::Text("Depth URL: %s", depthURL.c_str());
             ImGui::Text("Pose URL: %s", poseURL.c_str());
 

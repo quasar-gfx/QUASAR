@@ -344,14 +344,16 @@
     <p>To download QUASAR, clone the repository at <a href="https://github.com/quasar-gfx/QUASAR">https://github.com/quasar-gfx/QUASAR</a> using git:</p>
     <div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/quasar-gfx/QUASAR</span></code></pre></div>
 
+    <p>QUASAR uses <a href="https://gstreamer.freedesktop.org/">GStreamer</a> to send video. You can refer to the download instructions on their webpage: <a href="https://gstreamer.freedesktop.org/documentation/installing/index.html?gi-language=c">https://gstreamer.freedesktop.org/documentation/installing/index.html?gi-language=c</a>. The install instructions below will contain the necessary GStreamer packages.</p>
+
     <h3 id="linux">Linux</h3>
-    <div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">sudo apt install cmake libglew-dev libao-dev libmpg123-dev ffmpeg libavdevice-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev libavfilter-dev</span></code></pre></div>
+    <div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">sudo apt install cmake libglew-dev libao-dev libmpg123-dev ffmpeg libavdevice-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev libavfilter-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio</span></code></pre></div>
     <p>We recommend using Ubuntu, as some Linux distributions might not have all the required packages available.</p>
     <p>Optional: Follow instructions <a href="https://docs.nvidia.com/video-technologies/video-codec-sdk/12.0/ffmpeg-with-nvidia-gpu/index.html">https://docs.nvidia.com/video-technologies/video-codec-sdk/12.0/ffmpeg-with-nvidia-gpu/index.html</a> for installing FFMPEG from source with CUDA hardware acceleration.</p>
 
     <h3 id="mac">Mac</h3>
     <p>MacOS devices can run the scene viewer and the ATW client <strong>only</strong>. They are <strong>not</strong> recommended to run the servers or simulators, and cannot run any other clients.</p>
-    <div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew install cmake glew ffmpeg</span></code></pre></div>
+    <div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew install cmake glew ffmpeg gstreamer</span></code></pre></div>
 
     <h3 id="quest">Quest</h3>
     <p>We also have implementations for scene viewing and streaming clients for Meta Quest VR headsets for testing on mobile GPUs. Please refer to <a href="https://quasar-gfx.github.io/QUASAR/openxr.html">https://quasar-gfx.github.io/QUASAR/openxr.html</a> for instructions on how to download and run the client code.</p>

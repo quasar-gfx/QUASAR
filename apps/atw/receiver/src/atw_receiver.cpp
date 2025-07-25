@@ -32,7 +32,6 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "1920x1080");
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "0.0.0.0:12345");
-    args::ValueFlag<std::string> videoFormatIn(parser, "video-format", "Video format", {'g', "video-format"}, "mpegts");
     args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "127.0.0.1:54321");
     args::ValueFlag<std::string> outputPathIn(parser, "output-path", "Directory to save outputs", {'o', "output-path"}, ".");
     try {
@@ -60,7 +59,6 @@ int main(int argc, char** argv) {
     config.enableVSync = !args::get(novsync);
 
     std::string videoURL = args::get(videoURLIn);
-    std::string videoFormat = args::get(videoFormatIn);
     std::string poseURL = args::get(poseURLIn);
 
     Path outputPath = Path(args::get(outputPathIn)); outputPath.mkdirRecursive();
@@ -89,7 +87,7 @@ int main(int argc, char** argv) {
         // Make out of frame regions black
         .hasBorder = true,
         .borderColor = glm::vec4(0.0f),
-    }, videoURL, videoFormat);
+    }, videoURL);
 
     PoseStreamer poseStreamer(&camera, poseURL);
 
@@ -194,7 +192,23 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::Text("Video URL: %s (%s)", videoURL.c_str(), videoFormat.c_str());
+            ImGui::Text("Remote Pose ID: %d", currentFramePose.id);
+
+            glm::mat4 pose = glm::inverse(currentFramePose.mono.view);
+            glm::vec3 skew, scale;
+            glm::quat rotationQuat;
+            glm::vec3 remotePosition;
+            glm::vec4 perspective;
+            glm::decompose(pose, scale, rotationQuat, remotePosition, skew, perspective);
+            glm::vec3 remoteRotation = glm::degrees(glm::eulerAngles(rotationQuat));
+            ImGui::BeginDisabled();
+            ImGui::InputFloat3("Remote Position", (float*)&remotePosition);
+            ImGui::InputFloat3("Remote Rotation", (float*)&remoteRotation);
+            ImGui::EndDisabled();
+
+            ImGui::Separator();
+
+            ImGui::Text("Video URL: %s", videoURL.c_str());
             ImGui::Text("Pose URL: %s", poseURL.c_str());
 
             ImGui::Separator();
@@ -205,23 +219,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to receive frame: %.3f ms", videoTexture.stats.timeToReceiveMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decode frame: %.3f ms", videoTexture.stats.timeToDecodeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to resize frame: %.3f ms", videoTexture.stats.timeToResizeMs);
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: %.3f Mbps", videoTexture.stats.bitrateMbps);
-
-            ImGui::Separator();
-
-            ImGui::Text("Remote Pose ID: %d", currentFramePose.id);
-
-            glm::mat4 pose = glm::inverse(currentFramePose.mono.view);
-            glm::vec3 skew, scale;
-            glm::quat rotationQuat;
-            glm::vec3 remotePosition;
-            glm::vec4 perspective;
-            glm::decompose(pose, scale, rotationQuat, remotePosition, skew, perspective);
-            glm::vec3 remoteRotation = glm::degrees(glm::eulerAngles(rotationQuat));
-            ImGui::InputFloat3("Remote Position", (float*)&remotePosition);
-            ImGui::InputFloat3("Remote Rotation", (float*)&remoteRotation);
 
             ImGui::Separator();
 

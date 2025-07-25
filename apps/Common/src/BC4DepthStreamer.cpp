@@ -204,7 +204,7 @@ void BC4DepthStreamer::sendData() {
         streamer.send(compressedData);
 
         stats.timeToSendMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
-        stats.bitrateMbps = ((compressedSize * 8) / timeutils::millisToSeconds(stats.timeToSendMs)) / BYTES_IN_MB;
+        stats.bitrateMbps = ((compressedSize * 8) / timeutils::millisToSeconds(stats.timeToSendMs)) / BYTES_PER_MEGABYTE;
 
         prevTime = timeutils::getTimeMicros();
     }

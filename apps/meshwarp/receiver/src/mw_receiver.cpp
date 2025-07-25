@@ -37,7 +37,6 @@ int main(int argc, char** argv) {
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::ValueFlag<uint> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
     args::ValueFlag<std::string> videoURLIn(parser, "video", "Video URL", {'c', "video-url"}, "0.0.0.0:12345");
-    args::ValueFlag<std::string> videoFormatIn(parser, "video-format", "Video format", {'g', "video-format"}, "mpegts");
     args::ValueFlag<std::string> depthURLIn(parser, "depth", "Depth URL", {'e', "depth-url"}, "0.0.0.0:65432");
     args::ValueFlag<std::string> poseURLIn(parser, "pose", "Pose URL", {'p', "pose-url"}, "127.0.0.1:54321");
     args::ValueFlag<uint> depthFactorIn(parser, "factor", "Depth Resolution Factor", {'a', "depth-factor"}, 1);
@@ -69,7 +68,6 @@ int main(int argc, char** argv) {
 
     std::string sceneFile = args::get(sceneFileIn);
     std::string videoURL = args::get(videoURLIn);
-    std::string videoFormat = args::get(videoFormatIn);
     std::string depthURL = args::get(depthURLIn);
     std::string poseURL = args::get(poseURLIn);
 
@@ -98,7 +96,7 @@ int main(int argc, char** argv) {
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR,
-    }, videoURL, videoFormat);
+    }, videoURL);
 
     BC4DepthVideoTexture videoTextureDepth({
         .width = windowSize.x / depthFactor,
@@ -256,7 +254,23 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::Text("Video URL: %s (%s)", videoURL.c_str(), videoFormat.c_str());
+            ImGui::Text("Remote Pose ID: RGB (%d), D (%d)", poseIdColor, poseIdDepth);
+
+            glm::mat4 pose = glm::inverse(currentDepthFramePose.mono.view);
+            glm::vec3 skew, scale;
+            glm::quat rotationQuat;
+            glm::vec3 remotePosition;
+            glm::vec4 perspective;
+            glm::decompose(pose, scale, rotationQuat, remotePosition, skew, perspective);
+            glm::vec3 remoteRotation = glm::degrees(glm::eulerAngles(rotationQuat));
+            ImGui::BeginDisabled();
+            ImGui::InputFloat3("Remote Position", (float*)&remotePosition);
+            ImGui::InputFloat3("Remote Rotation", (float*)&remoteRotation);
+            ImGui::EndDisabled();
+
+            ImGui::Separator();
+
+            ImGui::Text("Video URL: %s", videoURL.c_str());
             ImGui::Text("Depth URL: %s", depthURL.c_str());
             ImGui::Text("Pose URL: %s", poseURL.c_str());
 
@@ -268,23 +282,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to receive frame: %.3f ms", videoTextureColor.stats.timeToReceiveMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decode frame: %.3f ms", videoTextureColor.stats.timeToDecodeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to resize frame: %.3f ms", videoTextureColor.stats.timeToResizeMs);
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: RGB (%.3f Mbps), D (%.3f Mbps)", videoTextureColor.stats.bitrateMbps, videoTextureDepth.stats.bitrateMbps);
-
-            ImGui::Separator();
-
-            ImGui::Text("Remote Pose ID: RGB (%d), D (%d)", poseIdColor, poseIdDepth);
-
-            glm::mat4 pose = glm::inverse(currentDepthFramePose.mono.view);
-            glm::vec3 skew, scale;
-            glm::quat rotationQuat;
-            glm::vec3 remotePosition;
-            glm::vec4 perspective;
-            glm::decompose(pose, scale, rotationQuat, remotePosition, skew, perspective);
-            glm::vec3 remoteRotation = glm::degrees(glm::eulerAngles(rotationQuat));
-            ImGui::InputFloat3("Remote Position", (float*)&remotePosition);
-            ImGui::InputFloat3("Remote Rotation", (float*)&remoteRotation);
 
             ImGui::Separator();
 

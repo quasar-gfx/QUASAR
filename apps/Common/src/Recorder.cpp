@@ -276,7 +276,7 @@ void Recorder::initializeFFmpeg() {
     codecCtx->height = height;
     codecCtx->time_base = (AVRational){1, targetFrameRate};
     codecCtx->framerate = (AVRational){targetFrameRate, 1};
-    codecCtx->bit_rate = targetBitRate * BYTES_IN_MB;
+    codecCtx->bit_rate = targetBitRate * BYTES_PER_MEGABYTE;
     codecCtx->max_b_frames = max_b_frames;
     codecCtx->gop_size = gop_size;
 

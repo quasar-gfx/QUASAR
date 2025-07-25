@@ -4,6 +4,7 @@
 #include <chrono>
 #include <thread>
 #include <cstring>
+#include <deque>
 
 #include <spdlog/spdlog.h>
 
@@ -23,13 +24,14 @@ class PoseReceiver : public DataReceiverUDP {
 public:
     std::string streamerURL;
 
-    PoseReceiver(Camera* camera, std::string streamerURL, float poseDropThresMs = 50.0f)
+    PoseReceiver(Camera* camera, const std::string& streamerURL, float poseDropThresMs = 50.0f, size_t maxSavedPoses = 2)
         : camera(camera)
         , streamerURL(streamerURL)
         , poseDropThresUs(timeutils::millisToMicros(poseDropThresMs))
+        , maxSavedPoses(maxSavedPoses)
         , DataReceiverUDP(streamerURL, sizeof(Pose))
     {
-        spdlog::info("Created PoseReceiver that recvs from URL: {}", streamerURL);
+        spdlog::info("Created PoseReceiver that recvs from URL: {}", this->streamerURL);
     }
 
     void onDataReceived(const std::vector<uint8_t>& data) override {
@@ -43,45 +45,52 @@ public:
         Pose newPose;
         std::memcpy(&newPose, data.data(), sizeof(Pose));
 
-        if (newPose.timestamp - currPose.timestamp > poseDropThresUs) {
-            currPose = newPose;
-            currPoseDirty = true;
+        // Avoid adding outdated poses
+        if (!poseQueue.empty() && newPose.timestamp - poseQueue.back().timestamp <= poseDropThresUs) {
+            return;
+        }
+
+        poseQueue.push_back(newPose);
+        if (poseQueue.size() > maxSavedPoses) {
+            poseQueue.pop_front();
         }
     }
 
     pose_id_t receivePose(bool setProj = true) {
         std::lock_guard<std::mutex> lock(m);
 
-        if (!currPoseDirty) {
+        if (poseQueue.empty()) {
             return -1;
         }
-        currPoseDirty = false;
+
+        Pose pose = poseQueue.front();
+        poseQueue.pop_front();
 
         if (camera->isVR()) {
             auto* vrCamera = static_cast<VRCamera*>(camera);
             if (setProj) {
-                vrCamera->setProjectionMatrices({currPose.stereo.projL, currPose.stereo.projR});
+                vrCamera->setProjectionMatrices({pose.stereo.projL, pose.stereo.projR});
             }
-            vrCamera->setViewMatrices({currPose.stereo.viewL, currPose.stereo.viewR});
+            vrCamera->setViewMatrices({pose.stereo.viewL, pose.stereo.viewR});
         }
         else {
             auto* perspectiveCamera = static_cast<PerspectiveCamera*>(camera);
             if (setProj) {
-                perspectiveCamera->setProjectionMatrix(currPose.mono.proj);
+                perspectiveCamera->setProjectionMatrix(pose.mono.proj);
             }
-            perspectiveCamera->setViewMatrix(currPose.mono.view);
+            perspectiveCamera->setViewMatrix(pose.mono.view);
         }
 
-        return currPose.id;
+        return pose.id;
     }
 
 private:
     Camera* camera;
     float poseDropThresUs;
+    size_t maxSavedPoses;
 
     std::mutex m;
-    bool currPoseDirty = false;
-    Pose currPose;
+    std::deque<Pose> poseQueue;
 };
 
 } // namespace quasar

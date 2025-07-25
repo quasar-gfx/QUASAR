@@ -341,7 +341,7 @@ public:
         quadsFile.write(quads.data(), quads.size());
         quadsFile.close();
         spdlog::info("Saved {} quads ({:.3f}MB) in {:.3f}ms",
-                      stats.totalProxies, static_cast<double>(quads.size()) / BYTES_IN_MB,
+                      stats.totalProxies, static_cast<double>(quads.size()) / BYTES_PER_MEGABYTE,
                         timeutils::microsToMillis(timeutils::getTimeMicros() - startTime));
 
         // Save depth offsets
@@ -351,7 +351,7 @@ public:
         depthOffsetsFile.write(depthOffsets.data(), depthOffsets.size());
         depthOffsetsFile.close();
         spdlog::info("Saved {} depth offsets ({:.3f}MB) in {:.3f}ms",
-                     stats.totalDepthOffsets, static_cast<double>(depthOffsets.size()) / BYTES_IN_MB,
+                     stats.totalDepthOffsets, static_cast<double>(depthOffsets.size()) / BYTES_PER_MEGABYTE,
                         timeutils::microsToMillis(timeutils::getTimeMicros() - startTime));
 
         // Save color buffer

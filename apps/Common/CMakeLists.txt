@@ -9,6 +9,7 @@ set(LIBS )
 
 set(LIBS ${LIBS} renderer)
 
+# Threads
 find_package(Threads REQUIRED)
 set(LIBS ${LIBS} Threads::Threads)
 
@@ -19,6 +20,10 @@ if (NOT APPLE)
     set(LIBS ${LIBS} CUDA::cudart)
     set(LIBS ${LIBS} CUDA::cuda_driver)
 endif()
+
+# ZLIB
+find_package(ZLIB REQUIRED)
+set(LIBS ${LIBS} ZLIB::ZLIB)
 
 # FFmpeg
 find_path(AVCODEC_INCLUDE_DIR libavcodec/avcodec.h)
@@ -45,8 +50,11 @@ find_path(SWRESAMPLE_INCLUDE_DIR libswresample/swresample.h)
 find_library(SWRESAMPLE_LIBRARY swresample)
 set(LIBS ${LIBS} ${SWRESAMPLE_LIBRARY})
 
-find_package(ZLIB REQUIRED)
-set(LIBS ${LIBS} ZLIB::ZLIB)
+# GStreamer
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
+pkg_check_modules(GSTREAMER_APP REQUIRED gstreamer-app-1.0)
+set(LIBS ${LIBS} ${GSTREAMER_LIBRARIES} ${GSTREAMER_APP_LIBRARIES})
 
 file(GLOB_RECURSE SRCS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
@@ -57,7 +65,8 @@ add_library(${TARGET} STATIC ${PUBLIC_HDRS} ${SRCS})
 
 target_compile_options(${TARGET} PRIVATE -Wno-cast-calling-convention -Wunused-variable)
 
-target_include_directories(${TARGET} PUBLIC ${PUBLIC_HDR_DIR} ${CMAKE_CURRENT_BINARY_DIR}/shaders)
+target_include_directories(${TARGET} PUBLIC ${PUBLIC_HDR_DIR} ${CMAKE_CURRENT_BINARY_DIR}/shaders
+    ${GSTREAMER_INCLUDE_DIRS} ${GSTREAMER_APP_INCLUDE_DIRS})
 
 add_subdirectory(${SHADERS_DIR})
 

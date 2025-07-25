@@ -229,8 +229,8 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
-            float proxySizeMB = static_cast<float>(totalBytesProxies) / BYTES_IN_MB;
-            float depthOffsetSizeMB = static_cast<float>(totalBytesDepthOffsets) / BYTES_IN_MB;
+            float proxySizeMB = static_cast<float>(totalBytesProxies) / BYTES_PER_MEGABYTE;
+            float depthOffsetSizeMB = static_cast<float>(totalBytesDepthOffsets) / BYTES_PER_MEGABYTE;
             ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%.3f MB)", totalProxies, proxySizeMB);
             ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%.3f MB)", totalDepthOffsets, depthOffsetSizeMB);
 

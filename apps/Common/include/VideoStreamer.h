@@ -1,21 +1,15 @@
 #ifndef VIDEOSTREAMER_H
 #define VIDEOSTREAMER_H
 
-extern "C" {
-#include <libavformat/avformat.h>
-#include <libavcodec/avcodec.h>
-#include <libswscale/swscale.h>
-#include <libavutil/time.h>
-#include <libavutil/opt.h>
-#include <libavutil/imgutils.h>
-#include <libavutil/avutil.h>
-}
+#include <gst/gst.h>
+#include <gst/app/gstappsrc.h>
 
+#include <vector>
+#include <queue>
 #include <atomic>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
-#include <queue>
 
 #include <Utils/TimeUtils.h>
 #include <RenderTargets/RenderTarget.h>
@@ -30,8 +24,6 @@ namespace quasar {
 class VideoStreamer : public RenderTarget {
 public:
     std::string videoURL = "0.0.0.0:12345";
-
-    std::string formatName;
 
     uint64_t framesSent = 0;
 
@@ -61,32 +53,17 @@ public:
 private:
     int targetFrameRate;
     int targetBitRate;
+    std::string formatName;
 
-    std::string preset = "p4";
-    std::string tune = "ull";
+    mutable std::atomic<uint64_t> totalBytesSent = 0;
 
-    int poseIDOffset = sizeof(pose_id_t) * 8;
-
+    const int poseIDOffset = sizeof(pose_id_t) * 8;
     uint videoWidth, videoHeight;
 
     RenderTarget* renderTargetCopy;
 
-    AVPixelFormat rgbaPixelFormat = AV_PIX_FMT_RGBA;
-    AVPixelFormat videoPixelFormat = AV_PIX_FMT_YUV420P;
-
-    AVFormatContext* outputFormatCtx = nullptr;
-    AVCodecContext* codecCtx = nullptr;
-
-    int videoStreamIndex = 0;
-    AVStream* outputVideoStream = nullptr;
-
-    SwsContext* swsCtx = nullptr;
-
-    void packPoseIDIntoVideoFrame(pose_id_t poseID);
-
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     CudaGLImage cudaGLImage;
-
     struct CudaBuffer {
         pose_id_t poseID;
         cudaArray* buffer;
@@ -94,23 +71,24 @@ private:
     std::queue<CudaBuffer> cudaBufferQueue;
 #else
     pose_id_t poseID = -1;
-
     std::vector<uint8_t> openglFrameData;
 #endif
 
     std::vector<uint8_t> rgbaVideoFrameData;
-    AVFrame* frame = av_frame_alloc();
-    AVPacket* packet = av_packet_alloc();
 
     std::thread videoStreamerThread;
     std::mutex m;
     std::condition_variable cv;
     bool frameReady = false;
 
-    std::atomic_bool sendFrames = false;
+    std::atomic_bool videoReady = false;
     bool shouldTerminate = false;
 
+    GstElement* pipeline = nullptr;
+    GstElement* appsrc = nullptr;
+
     void encodeAndSendFrames();
+    void packPoseIDIntoVideoFrame(pose_id_t poseID);
 };
 
 } // namespace quasar

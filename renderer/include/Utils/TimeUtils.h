@@ -11,7 +11,7 @@ constexpr double MICROSECONDS_IN_MILLISECOND = 1e3;
 constexpr double NANOSECONDS_IN_SECOND = 1e9;
 constexpr double NANOSECONDS_IN_MILLISECOND = 1e6;
 
-#define BYTES_IN_MB (1024 * 1024)
+#define BYTES_PER_MEGABYTE (1000 * 1000)
 
 namespace timeutils {
 

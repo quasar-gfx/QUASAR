@@ -303,7 +303,7 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
-            ImGui::TextColored(ImVec4(0,1,1,1), "Data Size: %.3f MB", static_cast<float>(compressedSize) / BYTES_IN_MB);
+            ImGui::TextColored(ImVec4(0,1,1,1), "Data Size: %.3f MB", static_cast<float>(compressedSize) / BYTES_PER_MEGABYTE);
 
             ImGui::Separator();
 
@@ -606,7 +606,7 @@ int main(int argc, char** argv) {
             spdlog::info("Create Mesh Time: {:.3f}ms", totalGenMeshTime);
             spdlog::info("  Create Vert/Ind Time: {:.3f}ms", totalCreateVertIndTime);
             spdlog::info("Compress Time: {:.3f}ms", totalCompressTime);
-            spdlog::info("Frame Size: {:.3f}MB", static_cast<float>(compressedSize) / BYTES_IN_MB);
+            spdlog::info("Frame Size: {:.3f}MB", static_cast<float>(compressedSize) / BYTES_PER_MEGABYTE);
 
             preventCopyingLocalPose = false;
             generateRemoteFrame = false;
