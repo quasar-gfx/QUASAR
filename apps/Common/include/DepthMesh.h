@@ -17,13 +17,13 @@ namespace quasar {
 
 class DepthMesh : public Mesh {
 public:
-    glm::uvec2& depthMapSize;
+    const glm::uvec2& depthMapSize;
 
     struct Stats {
         double genDepthTime = 0.0;
     } stats;
 
-    DepthMesh(glm::uvec2& depthMapSize, const glm::vec4& color = glm::vec4(1.0f))
+    DepthMesh(const glm::uvec2& depthMapSize, const glm::vec4& color = glm::vec4(1.0f))
         : depthMapSize(depthMapSize)
         , meshFromDepthShader({
             .computeCodeData = SHADER_COMMON_MESH_FROM_DEPTH_COMP,

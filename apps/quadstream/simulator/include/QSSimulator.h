@@ -6,8 +6,6 @@
 
 #include <DepthMesh.h>
 
-#include <Quads/QuadsGenerator.h>
-#include <Quads/MeshFromQuads.h>
 #include <Quads/QuadMaterial.h>
 #include <Quads/FrameGenerator.h>
 
@@ -28,9 +26,6 @@ public:
         glm::vec4(0.5f, 0.0f, 0.5f, 1.0f),
     };
 
-    QuadsGenerator& quadsGenerator;
-    FrameGenerator& frameGenerator;
-
     // Reference frame -- QS only has one frame
     std::vector<FrameRenderTarget> serverFrameRTs;
     std::vector<Mesh> serverFrameMeshes;
@@ -41,7 +36,7 @@ public:
     std::vector<Node> serverFrameWireframesLocal;
 
     std::vector<DepthMesh> depthMeshes;
-    std::vector<Node> depthNodesHidLayer;
+    std::vector<Node> depthNodes;
 
     std::vector<FrameRenderTarget> copyRTs;
 
@@ -72,14 +67,17 @@ public:
         double compressedSizeBytes = 0;
     } stats;
 
-    QSSimulator(uint maxViews, FrameGenerator& frameGenerator)
-        : quadsGenerator(frameGenerator.quadsGenerator)
+    QSSimulator(QuadFrame& quadFrame, uint maxViews, FrameGenerator& frameGenerator)
+        : quadFrame(quadFrame)
         , frameGenerator(frameGenerator)
         , maxViews(maxViews)
         , quads(maxViews)
         , depthOffsets(maxViews)
-        , maxVerticesDepth(quadsGenerator.remoteWindowSize.x * quadsGenerator.remoteWindowSize.y)
+        , maxVerticesDepth(quadFrame.getSize().x * quadFrame.getSize().y)
     {
+        proxiesPerQuadSet.reserve(maxViews);
+        depthOffsetsPerQuadSet.reserve(maxViews);
+
         serverFrameRTs.reserve(maxViews);
         copyRTs.reserve(maxViews);
         serverFrameMeshes.reserve(maxViews);
@@ -87,9 +85,10 @@ public:
         serverFrameNodesLocal.reserve(maxViews);
         serverFrameNodesRemote.reserve(maxViews);
         serverFrameWireframesLocal.reserve(maxViews);
-        depthNodesHidLayer.reserve(maxViews);
+        depthNodes.reserve(maxViews);
 
         // Match QuadStream's params:
+        auto& quadsGenerator = frameGenerator.quadsGenerator;
         quadsGenerator.params.expandEdges = true;
         quadsGenerator.params.depthThreshold = 1e-4f;
         quadsGenerator.params.flattenThreshold = 0.05f;
@@ -97,8 +96,8 @@ public:
         quadsGenerator.params.maxIterForceMerge = 1; // only merge once
 
         RenderTargetCreateParams rtParams = {
-            .width = quadsGenerator.remoteWindowSize.x,
-            .height = quadsGenerator.remoteWindowSize.y,
+            .width = quadFrame.getSize().x,
+            .height = quadFrame.getSize().y,
             .internalFormat = GL_RGBA16F,
             .format = GL_RGBA,
             .type = GL_HALF_FLOAT,
@@ -138,11 +137,11 @@ public:
             serverFrameWireframesLocal[view].wireframe = true;
             serverFrameWireframesLocal[view].overrideMaterial = new QuadMaterial({ .baseColor = color });
 
-            depthMeshes.emplace_back(quadsGenerator.remoteWindowSize, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+            depthMeshes.emplace_back(quadFrame.getSize(), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
 
-            depthNodesHidLayer.emplace_back(&depthMeshes[view]);
-            depthNodesHidLayer[view].frustumCulled = false;
-            depthNodesHidLayer[view].primativeType = GL_POINTS;
+            depthNodes.emplace_back(&depthMeshes[view]);
+            depthNodes[view].frustumCulled = false;
+            depthNodes[view].primativeType = GL_POINTS;
 
             serverFrameNodesRemote.emplace_back(&serverFrameMeshes[view]);
             serverFrameNodesRemote[view].frustumCulled = false;
@@ -156,7 +155,7 @@ public:
         for (int view = 0; view < maxViews; view++) {
             localScene.addChildNode(&serverFrameNodesLocal[view]);
             localScene.addChildNode(&serverFrameWireframesLocal[view]);
-            localScene.addChildNode(&depthNodesHidLayer[view]);
+            localScene.addChildNode(&depthNodes[view]);
         }
     }
 
@@ -215,11 +214,13 @@ public:
             stats.compressedSizeBytes += frameGenerator.generateRefFrame(
                 gBufferToUse, remoteCameraToUse,
                 meshToUse,
-                quads[view], depthOffsets[view],
                 numProxies, numDepthOffsets
             );
             // QS has data structures that are 103 bits
             stats.compressedSizeBytes *= (103.0) / (8*sizeof(QuadMapDataPacked));
+
+            // Copy quads and depth offsets to local vectors
+            quadFrame.copyToMemory(quads[view], depthOffsets[view]);
 
             stats.totalGenQuadMapTime += frameGenerator.stats.timeToGenerateQuadsMs;
             stats.totalSimplifyTime += frameGenerator.stats.timeToSimplifyQuadsMs;
@@ -233,6 +234,8 @@ public:
 
             stats.totalCompressTime += frameGenerator.stats.timeToCompress;
 
+            proxiesPerQuadSet[view] = numProxies;
+            depthOffsetsPerQuadSet[view] = numDepthOffsets;
             stats.totalProxies += numProxies;
             stats.totalDepthOffsets += numDepthOffsets;
 
@@ -249,22 +252,22 @@ public:
         for (int view = 0; view < maxViews; view++) {
             // Save quads
             double startTime = timeutils::getTimeMicros();
-            Path filename = (outputPath / "quads").appendToName(std::to_string(view));
-            std::ofstream quadsFile = std::ofstream(filename.withExtension(".bin.zstd"), std::ios::binary);
+            Path filename = (outputPath / "quads").appendToName(std::to_string(view)).withExtension(".bin.zstd");
+            std::ofstream quadsFile = std::ofstream(filename, std::ios::binary);
             quadsFile.write(quads[view].data(), quads[view].size());
             quadsFile.close();
             spdlog::info("Saved {} quads ({:.3f}MB) in {:.3f}ms",
-                        stats.totalProxies, static_cast<double>(quads[view].size()) / BYTES_PER_MEGABYTE,
+                         proxiesPerQuadSet[view], static_cast<double>(quads[view].size()) / BYTES_PER_MEGABYTE,
                             timeutils::microsToMillis(timeutils::getTimeMicros() - startTime));
 
             // Save depth offsets
             startTime = timeutils::getTimeMicros();
-            Path depthOffsetsFileName = (outputPath / "depthOffsets").appendToName(std::to_string(view));
-            std::ofstream depthOffsetsFile = std::ofstream(depthOffsetsFileName.withExtension(".bin.zstd"), std::ios::binary);
+            Path offsetsFile = (outputPath / "depthOffsets").appendToName(std::to_string(view)).withExtension(".bin.zstd");
+            std::ofstream depthOffsetsFile = std::ofstream(offsetsFile, std::ios::binary);
             depthOffsetsFile.write(depthOffsets[view].data(), depthOffsets[view].size());
             depthOffsetsFile.close();
             spdlog::info("Saved {} depth offsets ({:.3f}MB) in {:.3f}ms",
-                        stats.totalDepthOffsets, static_cast<double>(depthOffsets[view].size()) / BYTES_PER_MEGABYTE,
+                         depthOffsetsPerQuadSet[view], static_cast<double>(depthOffsets[view].size()) / BYTES_PER_MEGABYTE,
                             timeutils::microsToMillis(timeutils::getTimeMicros() - startTime));
 
             // Save color buffer
@@ -278,6 +281,13 @@ public:
     }
 
 private:
+    QuadFrame& quadFrame;
+
+    FrameGenerator& frameGenerator;
+
+    std::vector<uint> proxiesPerQuadSet;
+    std::vector<uint> depthOffsetsPerQuadSet;
+
     // Shaders
     ToneMapper toneMapper;
     ShowNormalsEffect showNormalsEffect;

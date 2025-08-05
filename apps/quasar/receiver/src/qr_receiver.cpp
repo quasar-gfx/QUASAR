@@ -16,7 +16,6 @@
 
 #include <Quads/MeshFromQuads.h>
 #include <Quads/QuadMaterial.h>
-#include <shaders_common.h>
 
 using namespace quasar;
 
@@ -117,7 +116,8 @@ int main(int argc, char** argv) {
         .magFilter = GL_LINEAR,
     }, renderer, toneMapper, dataPath, config.targetFramerate);
 
-    MeshFromQuads meshFromQuads(windowSize);
+    QuadFrame quadFrame(windowSize);
+    MeshFromQuads meshFromQuads(quadFrame);
 
     std::vector<Texture> colorTextures; colorTextures.reserve(maxViews);
     TextureFileCreateParams params = {
@@ -137,9 +137,9 @@ int main(int argc, char** argv) {
     std::vector<Node*> nodes(maxViews);
     std::vector<Node*> nodeWireframes(maxViews);
 
-    uint totalTriangles = -1;
-    uint totalProxies = -1;
-    uint totalDepthOffsets = -1;
+    uint totalTriangles = 0;
+    uint totalProxies = 0;
+    uint totalDepthOffsets = 0;
 
     uint totalBytesProxies = 0;
     uint totalBytesDepthOffsets = 0;
@@ -148,24 +148,14 @@ int main(int argc, char** argv) {
     double loadFromFilesTime = 0.0;
     double createMeshTime = 0.0;
 
-    uint maxProxies = windowSize.x * windowSize.y * NUM_SUB_QUADS;
-    QuadBuffers quadBuffers(maxProxies);
-
-    const glm::uvec2 depthOffsetBufferSize = 2u * windowSize;
-    DepthOffsets depthOffsets(depthOffsetBufferSize);
-
-    uint numBytes;
     for (int view = 0; view < maxViews; view++) {
         startTime = window->getTime();
 
-        // Load proxies
-        Path quadProxiesFileName = (dataPath / "quads").appendToName(std::to_string(view)).withExtension(".bin.zstd");
-        uint numProxies = quadBuffers.loadFromFile(quadProxiesFileName, &numBytes);
-        totalBytesProxies += numBytes;
-        // Load depth offsets
-        Path depthOffsetsFileName = (dataPath / "depthOffsets").appendToName(std::to_string(view)).withExtension(".bin.zstd");
-        uint numDepthOffsets = depthOffsets.loadFromFile(depthOffsetsFileName, &numBytes);
-        totalBytesDepthOffsets += numBytes;
+        Path quadsFile = (dataPath / "quads").appendToName(std::to_string(view)).withExtension(".bin.zstd");
+        Path offsetsFile = (dataPath / "depthOffsets").appendToName(std::to_string(view)).withExtension(".bin.zstd");
+        auto [bytesProxies, bytesDepthOffsets] = quadFrame.loadFromFiles(quadsFile, offsetsFile);
+        uint numProxies = quadFrame.getNumQuads();
+        uint numDepthOffsets = quadFrame.getNumDepthOffsets();
 
         meshes[view] = new Mesh({
             .maxVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
@@ -179,19 +169,9 @@ int main(int argc, char** argv) {
         loadFromFilesTime += timeutils::secondsToMillis(window->getTime() - startTime);
 
         const glm::uvec2 gBufferSize = glm::uvec2(colorTextures[view].width, colorTextures[view].height);
-
-        startTime = window->getTime();
         auto& cameraToUse = (!disableWideFov && view == maxViews - 1) ? remoteCameraWideFov : remoteCamera;
-        meshFromQuads.appendQuads(
-            gBufferSize,
-            numProxies, quadBuffers
-        );
-        meshFromQuads.createMeshFromProxies(
-            gBufferSize,
-            numProxies, depthOffsets,
-            cameraToUse,
-            *meshes[view]
-        );
+        meshFromQuads.appendQuads(quadFrame, gBufferSize);
+        meshFromQuads.createMeshFromProxies(quadFrame, gBufferSize, cameraToUse, *meshes[view]);
         createMeshTime += meshFromQuads.stats.timeToCreateMeshMs;
 
         auto meshBufferSizes = meshFromQuads.getBufferSizes();
@@ -199,6 +179,8 @@ int main(int argc, char** argv) {
         totalTriangles += meshBufferSizes.numIndices / 3;
         totalProxies += numProxies;
         totalDepthOffsets = numDepthOffsets;
+        totalBytesProxies += bytesProxies;
+        totalBytesDepthOffsets += bytesDepthOffsets;
     }
 
     for (int view = 0; view < maxViews; view++) {

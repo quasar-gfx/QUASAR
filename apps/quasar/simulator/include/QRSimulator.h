@@ -6,8 +6,6 @@
 
 #include <DepthMesh.h>
 
-#include <Quads/QuadsGenerator.h>
-#include <Quads/MeshFromQuads.h>
 #include <Quads/QuadMaterial.h>
 #include <Quads/FrameGenerator.h>
 
@@ -27,10 +25,6 @@ public:
         glm::vec4(0.0f, 0.0f, 0.5f, 1.0f),
         glm::vec4(0.5f, 0.0f, 0.5f, 1.0f),
     };
-
-    QuadsGenerator& quadsGenerator;
-    MeshFromQuads& meshFromQuads;
-    FrameGenerator& frameGenerator;
 
     // Reference frame
     FrameRenderTarget refFrameRT;
@@ -94,20 +88,16 @@ public:
         double compressedSizeBytes = 0;
     } stats;
 
-    QRSimulator(
-            const PerspectiveCamera& remoteCamera,
-            uint maxLayers,
-            QuadsGenerator& quadsGenerator, MeshFromQuads& meshFromQuads, FrameGenerator& frameGenerator)
-        : quadsGenerator(quadsGenerator)
-        , meshFromQuads(meshFromQuads)
+    QRSimulator(QuadFrame& quadFrame, uint maxLayers, const PerspectiveCamera& remoteCamera, FrameGenerator& frameGenerator)
+        : quadFrame(quadFrame)
         , frameGenerator(frameGenerator)
         , maxLayers(maxLayers)
         , quads(maxLayers)
         , depthOffsets(maxLayers)
-        , maxVerticesDepth(quadsGenerator.remoteWindowSize.x * quadsGenerator.remoteWindowSize.y)
+        , maxVerticesDepth(quadFrame.getSize().x * quadFrame.getSize().y)
         , refFrameRT({
-            .width = quadsGenerator.remoteWindowSize.x,
-            .height = quadsGenerator.remoteWindowSize.y,
+            .width = quadFrame.getSize().x,
+            .height = quadFrame.getSize().y,
             .internalFormat = GL_RGBA16F,
             .format = GL_RGBA,
             .type = GL_HALF_FLOAT,
@@ -117,8 +107,8 @@ public:
             .magFilter = GL_NEAREST,
         })
         , maskFrameRT({
-            .width = quadsGenerator.remoteWindowSize.x,
-            .height = quadsGenerator.remoteWindowSize.y,
+            .width = quadFrame.getSize().x,
+            .height = quadFrame.getSize().y,
             .internalFormat = GL_RGBA16F,
             .format = GL_RGBA,
             .type = GL_HALF_FLOAT,
@@ -128,8 +118,8 @@ public:
             .magFilter = GL_NEAREST,
         })
         , maskTempRT({
-            .width = quadsGenerator.remoteWindowSize.x,
-            .height = quadsGenerator.remoteWindowSize.y,
+            .width = quadFrame.getSize().x,
+            .height = quadFrame.getSize().y,
             .internalFormat = GL_RGBA16F,
             .format = GL_RGBA,
             .type = GL_HALF_FLOAT,
@@ -138,7 +128,7 @@ public:
             .minFilter = GL_NEAREST,
             .magFilter = GL_NEAREST,
         })
-        , depthMesh(quadsGenerator.remoteWindowSize, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f))
+        , depthMesh(quadFrame.getSize(), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f))
         , meshScenes(2)
     {
         remoteCameraPrev.setViewMatrix(remoteCamera.getViewMatrix());
@@ -151,6 +141,9 @@ public:
         refFrameWireframesLocal.reserve(2);
 
         copyRTs.reserve(maxLayers);
+
+        proxiesPerQuadSet.reserve(maxLayers);
+        depthOffsetsPerQuadSet.reserve(maxLayers);
 
         uint numHidLayers = maxLayers - 1;
 
@@ -211,8 +204,8 @@ public:
 
         // Setup hidden layers and wide fov RTs
         RenderTargetCreateParams rtParams = {
-            .width = quadsGenerator.remoteWindowSize.x,
-            .height = quadsGenerator.remoteWindowSize.y,
+            .width = quadFrame.getSize().x,
+            .height = quadFrame.getSize().y,
             .internalFormat = GL_RGBA16F,
             .format = GL_RGBA,
             .type = GL_HALF_FLOAT,
@@ -244,7 +237,7 @@ public:
             wireframesHidLayer[layer].wireframe = true;
             wireframesHidLayer[layer].overrideMaterial = new QuadMaterial({ .baseColor = color });
 
-            depthMeshsHidLayer.emplace_back(quadsGenerator.remoteWindowSize, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+            depthMeshsHidLayer.emplace_back(quadFrame.getSize(), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
 
             depthNodesHidLayer.emplace_back(&depthMeshsHidLayer[layer]);
             depthNodesHidLayer[layer].frustumCulled = false;
@@ -359,6 +352,7 @@ public:
             ============================
             */
             uint numProxies = 0, numDepthOffsets = 0;
+            auto& quadsGenerator = frameGenerator.quadsGenerator;
             auto oldParams = quadsGenerator.params;
             if (layer == maxLayers - 1) {
                 quadsGenerator.params.maxIterForceMerge = 4;
@@ -374,13 +368,15 @@ public:
             uint numBytesIFrame = frameGenerator.generateRefFrame(
                 frameToUse, remoteCameraToUse,
                 meshToUse,
-                quads[layer], depthOffsets[layer],
                 numProxies, numDepthOffsets
             );
             if (!generateResFrame) {
                 stats.compressedSizeBytes += numBytesIFrame;
             }
             quadsGenerator.params = oldParams;
+
+            // Copy quads and depth offsets to local vectors
+            quadFrame.copyToMemory(quads[layer], depthOffsets[layer]);
 
             stats.totalGenQuadMapTime += frameGenerator.stats.timeToGenerateQuadsMs;
             stats.totalSimplifyTime += frameGenerator.stats.timeToSimplifyQuadsMs;
@@ -409,7 +405,6 @@ public:
                         maskTempRT, maskFrameRT,
                         remoteCameraCenter, remoteCameraPrev,
                         refFrameMeshes[currMeshIndex], maskFrameMesh,
-                        quads[layer], depthOffsets[layer],
                         numProxies, numDepthOffsets
                     );
 
@@ -427,8 +422,6 @@ public:
 
                     stats.totalCompressTime += frameGenerator.stats.timeToCompress;
                 }
-                stats.totalProxies += numProxies;
-                stats.totalDepthOffsets += numDepthOffsets;
 
                 maskFrameNode.visible = generateResFrame;
                 currMeshIndex = (currMeshIndex + 1) % 2;
@@ -439,6 +432,10 @@ public:
                     remoteCameraPrev.setViewMatrix(remoteCameraCenter.getViewMatrix());
                 }
             }
+            proxiesPerQuadSet[layer] = numProxies;
+            depthOffsetsPerQuadSet[layer] = numDepthOffsets;
+            stats.totalProxies += numProxies;
+            stats.totalDepthOffsets += numDepthOffsets;
 
             // For debugging: Generate point cloud from depth map
             if (showDepth) {
@@ -453,22 +450,22 @@ public:
         for (int layer = 0; layer < maxLayers; layer++) {
             // Save quads
             double startTime = timeutils::getTimeMicros();
-            Path filename = (outputPath / "quads").appendToName(std::to_string(layer));
-            std::ofstream quadsFile = std::ofstream(filename.withExtension(".bin.zstd"), std::ios::binary);
+            Path filename = (outputPath / "quads").appendToName(std::to_string(layer)).withExtension(".bin.zstd");
+            std::ofstream quadsFile = std::ofstream(filename, std::ios::binary);
             quadsFile.write(quads[layer].data(), quads[layer].size());
             quadsFile.close();
             spdlog::info("Saved {} quads ({:.3f}MB) in {:.3f}ms",
-                        stats.totalProxies, static_cast<double>(quads[layer].size()) / BYTES_PER_MEGABYTE,
+                         proxiesPerQuadSet[layer], static_cast<double>(quads[layer].size()) / BYTES_PER_MEGABYTE,
                             timeutils::microsToMillis(timeutils::getTimeMicros() - startTime));
 
             // Save depth offsets
             startTime = timeutils::getTimeMicros();
-            Path depthOffsetsFileName = (outputPath / "depthOffsets").appendToName(std::to_string(layer));
-            std::ofstream depthOffsetsFile = std::ofstream(depthOffsetsFileName.withExtension(".bin.zstd"), std::ios::binary);
+            Path offsetsFile = (outputPath / "depthOffsets").appendToName(std::to_string(layer)).withExtension(".bin.zstd");
+            std::ofstream depthOffsetsFile = std::ofstream(offsetsFile, std::ios::binary);
             depthOffsetsFile.write(depthOffsets[layer].data(), depthOffsets[layer].size());
             depthOffsetsFile.close();
             spdlog::info("Saved {} depth offsets ({:.3f}MB) in {:.3f}ms",
-                        stats.totalDepthOffsets, static_cast<double>(depthOffsets[layer].size()) / BYTES_PER_MEGABYTE,
+                         depthOffsetsPerQuadSet[layer], static_cast<double>(depthOffsets[layer].size()) / BYTES_PER_MEGABYTE,
                             timeutils::microsToMillis(timeutils::getTimeMicros() - startTime));
 
             // Save color buffer
@@ -482,6 +479,13 @@ public:
     }
 
 private:
+    QuadFrame& quadFrame;
+
+    FrameGenerator& frameGenerator;
+
+    std::vector<uint> proxiesPerQuadSet;
+    std::vector<uint> depthOffsetsPerQuadSet;
+
     // Shaders
     ToneMapper toneMapper;
     ShowNormalsEffect showNormalsEffect;

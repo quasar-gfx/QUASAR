@@ -120,21 +120,11 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera(windowSize.x, windowSize.y);
     camera.setViewMatrix(remoteCameraCenter.getViewMatrix());
 
-    QuadsGenerator quadsGenerator(remoteWindowSize);
-    MeshFromQuads meshFromQuads(remoteWindowSize);
-    FrameGenerator frameGenerator(remoteRenderer, remoteScene, quadsGenerator, meshFromQuads);
-    QRSimulator quasarSimulator(remoteCameraCenter, maxViews, quadsGenerator, meshFromQuads, frameGenerator);
+    QuadFrame quadFrame(remoteWindowSize);
+    FrameGenerator frameGenerator(quadFrame, remoteRenderer, remoteScene);
+    QRSimulator quasar(quadFrame, maxViews, remoteCameraCenter, frameGenerator);
 
-    quasarSimulator.addMeshesToScene(localScene);
-
-    // Shaders
-    ComputeShader meshFromDepthShader({
-        .computeCodeData = SHADER_COMMON_MESH_FROM_DEPTH_COMP,
-        .computeCodeSize = SHADER_COMMON_MESH_FROM_DEPTH_COMP_len,
-        .defines = {
-            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
-        }
-    });
+    quasar.addMeshesToScene(localScene);
 
     // Post processing
     HoleFiller holeFiller;
@@ -220,7 +210,7 @@ int main(int argc, char** argv) {
                 continue;
             }
 
-            auto meshBufferSizes = frameGenerator.meshFromQuads.getBufferSizes();
+            auto [meshBufferSizes, meshBufferSizesMask] = frameGenerator.getBufferSizes();
             numVertices[view] = meshBufferSizes.numVertices;
             numIndicies[view] = meshBufferSizes.numIndices;
         }
@@ -282,10 +272,10 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
-                float proxySizeMB = static_cast<float>(quasarSimulator.stats.totalProxies * sizeof(QuadMapDataPacked)) / BYTES_PER_MEGABYTE;
-                float depthOffsetSizeMB = static_cast<float>(quasarSimulator.stats.totalDepthOffsets * sizeof(uint16_t)) / BYTES_PER_MEGABYTE;
-                ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%.3f MB)", quasarSimulator.stats.totalProxies, proxySizeMB);
-                ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%.3f MB)", quasarSimulator.stats.totalDepthOffsets, depthOffsetSizeMB);
+                float proxySizeMB = static_cast<float>(quasar.stats.totalProxies * sizeof(QuadMapDataPacked)) / BYTES_PER_MEGABYTE;
+                float depthOffsetSizeMB = static_cast<float>(quasar.stats.totalDepthOffsets * sizeof(uint16_t)) / BYTES_PER_MEGABYTE;
+                ImGui::TextColored(ImVec4(0,1,1,1), "Total Proxies: %d (%.3f MB)", quasar.stats.totalProxies, proxySizeMB);
+                ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %d (%.3f MB)", quasar.stats.totalDepthOffsets, depthOffsetSizeMB);
 
             ImGui::Separator();
 
@@ -335,6 +325,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::CollapsingHeader("Quad Generation Settings")) {
+                auto& quadsGenerator = frameGenerator.quadsGenerator;
                 if (ImGui::Checkbox("Correct Extreme Normals", &quadsGenerator.params.correctOrientation)) {
                     preventCopyingLocalPose = true;
                     generateRefFrame = true;
@@ -437,10 +428,10 @@ int main(int argc, char** argv) {
 
                     ImGui::Begin(("View " + std::to_string(viewIdx)).c_str(), 0, flags);
                     if (viewIdx == 0) {
-                        ImGui::Image((void*)(intptr_t)(quasarSimulator.refFrameRT.colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
+                        ImGui::Image((void*)(intptr_t)(quasar.refFrameRT.colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
                     }
                     else {
-                        ImGui::Image((void*)(intptr_t)(quasarSimulator.frameRTsHidLayer[viewIdx-1].colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
+                        ImGui::Image((void*)(intptr_t)(quasar.frameRTsHidLayer[viewIdx-1].colorBuffer.ID), ImVec2(texturePreviewSize, texturePreviewSize), ImVec2(0, 1), ImVec2(1, 0));
                     }
                     ImGui::End();
                 }
@@ -468,10 +459,10 @@ int main(int argc, char** argv) {
                 for (int view = 0; view < maxViews - 1; view++) {
                     Path viewPath = basePath.appendToName(".view" + std::to_string(view + 1) + "." + time);
                     if (saveAsHDR) {
-                        quasarSimulator.frameRTsHidLayer[view].saveColorAsHDR(viewPath.withExtension(".hdr"));
+                        quasar.frameRTsHidLayer[view].saveColorAsHDR(viewPath.withExtension(".hdr"));
                     }
                     else {
-                        quasarSimulator.frameRTsHidLayer[view].saveColorAsPNG(viewPath.withExtension(".png"));
+                        quasar.frameRTsHidLayer[view].saveColorAsPNG(viewPath.withExtension(".png"));
                     }
                 }
             }
@@ -542,11 +533,11 @@ int main(int argc, char** argv) {
         if (showFramePreviewWindow) {
             flags = 0;
             ImGui::Begin("FrameRenderTarget Color", 0, flags);
-            ImGui::Image((void*)(intptr_t)(quasarSimulator.refFrameRT.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::Image((void*)(intptr_t)(quasar.refFrameRT.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
 
             ImGui::Begin("FrameRenderTarget Mask Color", 0, flags);
-            ImGui::Image((void*)(intptr_t)(quasarSimulator.maskFrameRT.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::Image((void*)(intptr_t)(quasar.maskFrameRT.colorBuffer), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
         }
     });
@@ -645,30 +636,30 @@ int main(int argc, char** argv) {
             // Update wide fov camera
             remoteCameraWideFov.setViewMatrix(remoteCameraCenter.getViewMatrix());
 
-            quasarSimulator.generateFrame(
+            quasar.generateFrame(
                 remoteCameraCenter, remoteCameraWideFov, remoteScene,
                 remoteRenderer, remoteRendererDP, generateResFrame,
                 showNormals, showDepth);
 
             std::string frameType = generateRefFrame ? "RefFrame" : "ResFrame";
             spdlog::info("======================================================");
-            spdlog::info("Rendering Time ({}): {:.3f}ms", frameType, quasarSimulator.stats.totalRenderTime);
-            spdlog::info("Create Proxies Time ({}): {:.3f}ms", frameType, quasarSimulator.stats.totalCreateProxiesTime);
-            spdlog::info("  Gen Quad Map Time ({}): {:.3f}ms", frameType, quasarSimulator.stats.totalGenQuadMapTime);
-            spdlog::info("  Simplify Time ({}): {:.3f}ms", frameType, quasarSimulator.stats.totalSimplifyTime);
-            spdlog::info("  Gather Quads Time ({}): {:.3f}ms", frameType, quasarSimulator.stats.totalGatherQuadsTime);
-            spdlog::info("Create Mesh Time ({}): {:.3f}ms", frameType, quasarSimulator.stats.totalCreateMeshTime);
-            spdlog::info("  Append Quads Time ({}): {:.3f}ms", frameType, quasarSimulator.stats.totalAppendQuadsTime);
-            spdlog::info("  Fill Output Quads Time ({}): {:.3f}ms", frameType, quasarSimulator.stats.totalFillQuadsIndiciesTime);
-            spdlog::info("  Create Vert/Ind Time ({}): {:.3f}ms", frameType, quasarSimulator.stats.totalCreateVertIndTime);
-            spdlog::info("Compress Time ({}): {:.3f}ms", frameType, quasarSimulator.stats.totalCompressTime);
-            if (showDepth) spdlog::info("Gen Depth Time ({}): {:.3f}ms", frameType, quasarSimulator.stats.totalGenDepthTime);
-            spdlog::info("Frame Size: {:.3f}MB", quasarSimulator.stats.compressedSizeBytes / BYTES_PER_MEGABYTE);
-            spdlog::info("Num Proxies: {}Proxies", quasarSimulator.stats.totalProxies);
+            spdlog::info("Rendering Time ({}): {:.3f}ms", frameType, quasar.stats.totalRenderTime);
+            spdlog::info("Create Proxies Time ({}): {:.3f}ms", frameType, quasar.stats.totalCreateProxiesTime);
+            spdlog::info("  Gen Quad Map Time ({}): {:.3f}ms", frameType, quasar.stats.totalGenQuadMapTime);
+            spdlog::info("  Simplify Time ({}): {:.3f}ms", frameType, quasar.stats.totalSimplifyTime);
+            spdlog::info("  Gather Quads Time ({}): {:.3f}ms", frameType, quasar.stats.totalGatherQuadsTime);
+            spdlog::info("Create Mesh Time ({}): {:.3f}ms", frameType, quasar.stats.totalCreateMeshTime);
+            spdlog::info("  Append Quads Time ({}): {:.3f}ms", frameType, quasar.stats.totalAppendQuadsTime);
+            spdlog::info("  Fill Output Quads Time ({}): {:.3f}ms", frameType, quasar.stats.totalFillQuadsIndiciesTime);
+            spdlog::info("  Create Vert/Ind Time ({}): {:.3f}ms", frameType, quasar.stats.totalCreateVertIndTime);
+            spdlog::info("Compress Time ({}): {:.3f}ms", frameType, quasar.stats.totalCompressTime);
+            if (showDepth) spdlog::info("Gen Depth Time ({}): {:.3f}ms", frameType, quasar.stats.totalGenDepthTime);
+            spdlog::info("Frame Size: {:.3f}MB", quasar.stats.compressedSizeBytes / BYTES_PER_MEGABYTE);
+            spdlog::info("Num Proxies: {}Proxies", quasar.stats.totalProxies);
 
             // Save to file if requested
             if (saveToFile) {
-                quasarSimulator.saveToFile(outputPath);
+                quasar.saveToFile(outputPath);
             }
 
             preventCopyingLocalPose = false;
@@ -685,19 +676,19 @@ int main(int argc, char** argv) {
 
             if (view == 0) {
                 // Show previous mesh
-                quasarSimulator.refFrameNodesLocal[quasarSimulator.currMeshIndex].visible = false;
-                quasarSimulator.refFrameNodesLocal[quasarSimulator.prevMeshIndex].visible = showLayer;
-                quasarSimulator.refFrameWireframesLocal[quasarSimulator.currMeshIndex].visible = false;
-                quasarSimulator.refFrameWireframesLocal[quasarSimulator.prevMeshIndex].visible = showLayer && showWireframe;
-                quasarSimulator.depthNode.visible = showLayer && showDepth;
+                quasar.refFrameNodesLocal[quasar.currMeshIndex].visible = false;
+                quasar.refFrameNodesLocal[quasar.prevMeshIndex].visible = showLayer;
+                quasar.refFrameWireframesLocal[quasar.currMeshIndex].visible = false;
+                quasar.refFrameWireframesLocal[quasar.prevMeshIndex].visible = showLayer && showWireframe;
+                quasar.depthNode.visible = showLayer && showDepth;
             }
             else {
-                quasarSimulator.nodesHidLayer[view-1].visible = showLayer;
-                quasarSimulator.wireframesHidLayer[view-1].visible = showLayer && showWireframe;
-                quasarSimulator.depthNodesHidLayer[view-1].visible = showLayer && showDepth;
+                quasar.nodesHidLayer[view-1].visible = showLayer;
+                quasar.wireframesHidLayer[view-1].visible = showLayer && showWireframe;
+                quasar.depthNodesHidLayer[view-1].visible = showLayer && showDepth;
             }
         }
-        quasarSimulator.maskFrameWireframeNodesLocal.visible = quasarSimulator.maskFrameNode.visible && showWireframe;
+        quasar.maskFrameWireframeNodesLocal.visible = quasar.maskFrameNode.visible && showWireframe;
 
         if (restrictMovementToViewBox) {
             glm::vec3 remotePosition = remoteCameraCenter.getPosition();
@@ -718,6 +709,7 @@ int main(int argc, char** argv) {
         renderStats = renderer.drawObjects(localScene, camera);
 
         // Render to screen
+        auto& quadsGenerator = frameGenerator.quadsGenerator;
         holeFiller.enableToneMapping(!showNormals);
         holeFiller.setDepthThreshold(quadsGenerator.params.depthThreshold);
         holeFiller.drawToScreen(renderer);

@@ -5,8 +5,7 @@
 #include <Shaders/ComputeShader.h>
 #include <RenderTargets/FrameRenderTarget.h>
 
-#include <Quads/QuadsBuffers.h>
-#include <Quads/DepthOffsets.h>
+#include <Quads/QuadFrame.h>
 
 namespace quasar {
 
@@ -33,30 +32,21 @@ public:
         int maxIterForceMerge = 3;
     } params;
 
-    glm::uvec2& remoteWindowSize;
-    glm::uvec2 depthOffsetBufferSize;
     std::vector<glm::uvec2> quadMapSizes;
 
     uint numQuadMaps;
     uint maxProxies;
 
-    QuadBuffers quadBuffers;
-    DepthOffsets depthOffsets;
-
-    QuadsGenerator(glm::uvec2& remoteWindowSize);
+    QuadsGenerator(QuadFrame& quadFrame);
     ~QuadsGenerator() = default;
 
     BufferSizes getBufferSizes();
     void createProxiesFromRT(const FrameRenderTarget& frameRT, const PerspectiveCamera& remoteCamera);
     void createProxiesFromTextures(const Texture& colorBuffer, const Texture& normalsBuffer, const Texture& depthBuffer, const PerspectiveCamera& remoteCamera);
-#ifdef GL_CORE
-    uint saveQuadsToMemory(std::vector<char>& compressedData, bool compress = true);
-    uint saveDepthOffsetsToMemory(std::vector<char>& compressedData, bool compress = true);
-    uint saveToFile(const std::string& filename);
-    uint saveDepthOffsetsToFile(const std::string& filename);
-#endif
 
 private:
+    QuadFrame& quadFrame;
+
     Buffer sizesBuffer;
 
     std::vector<QuadBuffers> quadMaps;

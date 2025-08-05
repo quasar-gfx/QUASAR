@@ -16,7 +16,6 @@
 
 #include <Quads/MeshFromQuads.h>
 #include <Quads/QuadMaterial.h>
-#include <shaders_common.h>
 
 using namespace quasar;
 
@@ -90,7 +89,8 @@ int main(int argc, char** argv) {
         .magFilter = GL_LINEAR,
     }, renderer, toneMapper, dataPath, config.targetFramerate);
 
-    MeshFromQuads meshFromQuads(windowSize);
+    QuadFrame quadFrame(windowSize);
+    MeshFromQuads meshFromQuads(quadFrame);
 
     std::string colorFileName = dataPath / "color.jpg";
     Texture colorTexture = Texture({
@@ -104,28 +104,21 @@ int main(int argc, char** argv) {
 
     Mesh* mesh;
 
-    uint totalTriangles = -1;
-    uint totalProxies = -1;
-    uint totalDepthOffsets = -1;
-
-    uint totalBytesProxies = 0;
-    uint totalBytesDepthOffsets = 0;
+    uint totalTriangles = 0;
+    uint totalProxies = 0;
+    uint totalDepthOffsets = 0;
 
     double startTime = window->getTime();
     double loadFromFilesTime = 0.0;
     double createMeshTime = 0.0;
 
-    uint maxProxies = windowSize.x * windowSize.y * NUM_SUB_QUADS;
-    QuadBuffers quadBuffers(maxProxies);
-
-    const glm::uvec2 depthOffsetBufferSize = 2u * windowSize;
-    DepthOffsets depthOffsets(depthOffsetBufferSize);
-
-    startTime = window->getTime();
-    // Load proxies
-    uint numProxies = quadBuffers.loadFromFile(dataPath / "quads.bin.zstd", &totalBytesProxies);
-    // Load depth offsets
-    uint numDepthOffsets = depthOffsets.loadFromFile(dataPath / "depthOffsets.bin.zstd", &totalBytesDepthOffsets);
+    Path quadsFile = (dataPath / "quads").withExtension(".bin.zstd");
+    Path offsetsFile = (dataPath / "depthOffsets").withExtension(".bin.zstd");
+    auto [totalBytesProxies, totalBytesDepthOffsets] = quadFrame.loadFromFiles(quadsFile, offsetsFile);
+    uint numProxies = quadFrame.getNumQuads();
+    uint numDepthOffsets = quadFrame.getNumDepthOffsets();
+    totalProxies = numProxies;
+    totalDepthOffsets = numDepthOffsets;
 
     mesh = new Mesh({
         .maxVertices = numProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
@@ -139,27 +132,13 @@ int main(int argc, char** argv) {
     loadFromFilesTime = timeutils::secondsToMillis(window->getTime() - startTime);
 
     const glm::vec2 gBufferSize = glm::vec2(colorTexture.width, colorTexture.height);
-
-    startTime = window->getTime();
-    meshFromQuads.appendQuads(
-        gBufferSize,
-        numProxies,
-        quadBuffers
-    );
-    meshFromQuads.createMeshFromProxies(
-        gBufferSize,
-        numProxies, depthOffsets,
-        remoteCamera,
-        *mesh
-    );
-
+    meshFromQuads.appendQuads(quadFrame, gBufferSize);
+    meshFromQuads.createMeshFromProxies(quadFrame, gBufferSize, remoteCamera, *mesh);
     createMeshTime = meshFromQuads.stats.timeToCreateMeshMs;
 
     auto meshBufferSizes = meshFromQuads.getBufferSizes();
 
     totalTriangles = meshBufferSizes.numIndices / 3;
-    totalProxies = numProxies;
-    totalDepthOffsets = numDepthOffsets;
 
     Node node(mesh);
     node.frustumCulled = false;

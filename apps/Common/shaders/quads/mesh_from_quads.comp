@@ -42,10 +42,10 @@ layout(std430, binding = 6) readonly buffer DepthBufferInput {
 };
 
 layout(std430, binding = 7) readonly buffer OffsetsBufferInput {
-    uint offsetSizeFlattenedsInput[];
+    uint metadatasInput[];
 };
 
-layout(std430, binding = 8) readonly buffer QuadIndicesBuffer {
+layout(std430, binding = 8) readonly buffer quadIndicesMap {
     uint quadIndices[];
 };
 
@@ -92,16 +92,16 @@ QuadMapData loadQuadMap(uint index) {
     QuadMapDataPacked quadMapDataPacked;
     quadMapDataPacked.normalSpherical = normalSphericalsInput[index];
     quadMapDataPacked.depth = depthsInput[index];
-    quadMapDataPacked.offsetSizeFlattened = offsetSizeFlattenedsInput[index];
+    quadMapDataPacked.metadata = metadatasInput[index];
 
     QuadMapData quadMapData;
     quadMapData.normal = unpackSphericalToNormal(quadMapDataPacked.normalSpherical);
     quadMapData.depth = quadMapDataPacked.depth;
 
-    quadMapData.offset.x = (quadMapDataPacked.offsetSizeFlattened >> 20) & 0xFFFu;
-    quadMapData.offset.y = (quadMapDataPacked.offsetSizeFlattened >> 8) & 0xFFFu;
+    quadMapData.offset.x = (quadMapDataPacked.metadata >> 20) & 0xFFFu;
+    quadMapData.offset.y = (quadMapDataPacked.metadata >> 8) & 0xFFFu;
 
-    uint flattenedAndSize = quadMapDataPacked.offsetSizeFlattened & 0xFFu;
+    uint flattenedAndSize = quadMapDataPacked.metadata & 0xFFu;
     quadMapData.size = (flattenedAndSize >> 1) & 0x7Fu;
     quadMapData.flattened = (flattenedAndSize & 1u) != 0u;
 

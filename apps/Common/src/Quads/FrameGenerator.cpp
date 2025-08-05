@@ -2,21 +2,20 @@
 
 using namespace quasar;
 
-FrameGenerator::FrameGenerator(DeferredRenderer& remoteRenderer, Scene& remoteScene, QuadsGenerator& quadsGenerator, MeshFromQuads& meshFromQuads)
-    : remoteRenderer(remoteRenderer)
+FrameGenerator::FrameGenerator(QuadFrame& quadFrame, DeferredRenderer& remoteRenderer, Scene& remoteScene)
+    : quadFrame(quadFrame)
+    , remoteRenderer(remoteRenderer)
     , remoteScene(remoteScene)
-    , quadsGenerator(quadsGenerator)
-    , meshFromQuads(meshFromQuads)
-    , meshFromQuadsMask(meshFromQuads.remoteWindowSize, meshFromQuads.maxProxies / 4)
+    , quadsGenerator(quadFrame)
+    , meshFromQuads(quadFrame)
+    , meshFromQuadsMask(quadFrame, meshFromQuads.maxProxies / 4) // Mask mesh can have fewer proxies
 {}
 
 uint FrameGenerator::generateRefFrame(
     const FrameRenderTarget& frameRT,
     const PerspectiveCamera& remoteCamera,
     const Mesh& mesh,
-    std::vector<char>& quads, std::vector<char>& depthOffsets,
-    uint& numProxies, uint& numDepthOffsets,
-    bool compress)
+    uint& numProxies, uint& numDepthOffsets)
 {
     const glm::vec2 gBufferSize = glm::vec2(frameRT.width, frameRT.height);
     uint outputSize = 0;
@@ -30,26 +29,19 @@ uint FrameGenerator::generateRefFrame(
     stats.timeToSimplifyQuadsMs = quadsGenerator.stats.timeToSimplifyQuadsMs;
     stats.timeToGatherQuadsMs = quadsGenerator.stats.timeToGatherQuadsMs;
 
-    outputSize += quadsGenerator.saveQuadsToMemory(quads, compress);
-    outputSize += quadsGenerator.saveDepthOffsetsToMemory(depthOffsets, compress) / 8;
-    stats.timeToCompress = quadsGenerator.quadBuffers.stats.timeToCompressMs +
-                           quadsGenerator.depthOffsets.stats.timeToCompressMs;
+    auto [quadsSize, depthOffsetsSize] = quadFrame.copyToMemory();
+    outputSize += quadsSize + depthOffsetsSize;
+    stats.timeToCompress = quadFrame.stats.timeToCompressMs;
+
+    numProxies = quadFrame.getNumQuads();
+    numDepthOffsets = quadFrame.getNumDepthOffsets();
 
     // Create mesh from the proxies
     startTime = timeutils::getTimeMicros();
-    auto sizes = quadsGenerator.getBufferSizes();
-    numProxies = sizes.numProxies;
-    numDepthOffsets = sizes.numDepthOffsets;
-    meshFromQuads.appendQuads(
-        gBufferSize,
-        numProxies, quadsGenerator.quadBuffers
-    );
-    meshFromQuads.createMeshFromProxies(
-        gBufferSize,
-        numProxies, quadsGenerator.depthOffsets,
-        remoteCamera,
-        mesh
-    );
+    {
+        meshFromQuads.appendQuads(quadFrame, gBufferSize);
+        meshFromQuads.createMeshFromProxies(quadFrame, gBufferSize, remoteCamera, mesh);
+    }
     stats.timeToAppendQuadsMs = meshFromQuads.stats.timeToAppendQuadsMs;
     stats.timeToFillQuadIndicesMs = meshFromQuads.stats.timeToGatherQuadsMs;
     stats.timeToCreateVertIndMs = meshFromQuads.stats.timeToCreateMeshMs;
@@ -63,9 +55,7 @@ uint FrameGenerator::generateResFrame(
     FrameRenderTarget& frameRT, FrameRenderTarget& maskFrameRT,
     const PerspectiveCamera& currRemoteCamera, const PerspectiveCamera& prevRemoteCamera,
     const Mesh& currMesh, const Mesh& maskMesh,
-    std::vector<char>& quads, std::vector<char>& depthOffsets,
-    uint& numProxies, uint& numDepthOffsets,
-    bool compress)
+    uint& numProxies, uint& numDepthOffsets)
 {
     const glm::vec2 gBufferSize = glm::vec2(frameRT.width, frameRT.height);
     uint outputSize = 0;
@@ -112,26 +102,18 @@ uint FrameGenerator::generateResFrame(
         quadsGenerator.createProxiesFromRT(frameRT, prevRemoteCamera);
         stats.timeToCreateProxiesMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
-        outputSize += quadsGenerator.saveQuadsToMemory(quads, compress);
-        outputSize += quadsGenerator.saveDepthOffsetsToMemory(depthOffsets, compress) / 8;
-        stats.timeToCompress = quadsGenerator.quadBuffers.stats.timeToCompressMs +
-                               quadsGenerator.depthOffsets.stats.timeToCompressMs;
+        numProxies = quadFrame.getNumQuads();
+        numDepthOffsets = quadFrame.getNumDepthOffsets();
+
+        auto [quadsSize, depthOffsetsSize] = quadFrame.copyToMemory();
+        outputSize += quadsSize + depthOffsetsSize;
+        stats.timeToCompress = quadFrame.stats.timeToCompressMs;
 
         startTime = timeutils::getTimeMicros();
-        auto sizes = quadsGenerator.getBufferSizes();
-        numProxies = sizes.numProxies;
-        numDepthOffsets = sizes.numDepthOffsets;
-        meshFromQuads.appendQuads(
-            gBufferSize,
-            sizes.numProxies, quadsGenerator.quadBuffers,
-            false
-        );
-        meshFromQuads.createMeshFromProxies(
-            gBufferSize,
-            sizes.numProxies, quadsGenerator.depthOffsets,
-            prevRemoteCamera,
-            currMesh
-        );
+        {
+            meshFromQuads.appendQuads(quadFrame, gBufferSize, false);
+            meshFromQuads.createMeshFromProxies(quadFrame, gBufferSize, prevRemoteCamera, currMesh);
+        }
         stats.timeToAppendQuadsMs = meshFromQuads.stats.timeToAppendQuadsMs;
         stats.timeToFillQuadIndicesMs = meshFromQuads.stats.timeToGatherQuadsMs;
         stats.timeToCreateVertIndMs = meshFromQuads.stats.timeToCreateMeshMs;
@@ -144,28 +126,21 @@ uint FrameGenerator::generateResFrame(
         quadsGenerator.createProxiesFromRT(maskFrameRT, currRemoteCamera);
         stats.timeToCreateProxiesMs += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
-        outputSize += quadsGenerator.saveQuadsToMemory(quads, compress);
-        outputSize += quadsGenerator.saveDepthOffsetsToMemory(depthOffsets, compress) / 8;
-        stats.timeToCompress += quadsGenerator.quadBuffers.stats.timeToCompressMs +
-                                quadsGenerator.depthOffsets.stats.timeToCompressMs;
+        numProxies += quadFrame.getNumQuads();
+        numDepthOffsets += quadFrame.getNumDepthOffsets();
+
+        auto [quadsSize, depthOffsetsSize] = quadFrame.copyToMemory();
+        outputSize += quadsSize + depthOffsetsSize;
+        stats.timeToCompress = quadFrame.stats.timeToCompressMs;
 
         startTime = timeutils::getTimeMicros();
-        auto sizes = quadsGenerator.getBufferSizes();
-        numProxies += sizes.numProxies;
-        numDepthOffsets += sizes.numDepthOffsets;
-        meshFromQuadsMask.appendQuads(
-            gBufferSize,
-            sizes.numProxies, quadsGenerator.quadBuffers
-        );
-        meshFromQuadsMask.createMeshFromProxies(
-            gBufferSize,
-            sizes.numProxies, quadsGenerator.depthOffsets,
-            currRemoteCamera,
-            maskMesh
-        );
-        stats.timeToAppendQuadsMs += meshFromQuads.stats.timeToAppendQuadsMs;
-        stats.timeToFillQuadIndicesMs += meshFromQuads.stats.timeToGatherQuadsMs;
-        stats.timeToCreateVertIndMs += meshFromQuads.stats.timeToCreateMeshMs;
+        {
+            meshFromQuadsMask.appendQuads(quadFrame, gBufferSize);
+            meshFromQuadsMask.createMeshFromProxies(quadFrame, gBufferSize, currRemoteCamera, maskMesh);
+        }
+        stats.timeToAppendQuadsMs += meshFromQuadsMask.stats.timeToAppendQuadsMs;
+        stats.timeToFillQuadIndicesMs += meshFromQuadsMask.stats.timeToGatherQuadsMs;
+        stats.timeToCreateVertIndMs += meshFromQuadsMask.stats.timeToCreateMeshMs;
         stats.timeToCreateMeshMs += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
     }
 

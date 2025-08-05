@@ -17,7 +17,7 @@ layout(std430, binding = 3) readonly buffer DepthBufferInput {
 };
 
 layout(std430, binding = 4) readonly buffer OffsetsBufferInput {
-    uint offsetSizeFlattenedsInput[];
+    uint metadatasInput[];
 };
 
 layout(std430, binding = 5) writeonly buffer NormalSphericalsBufferOutput {
@@ -29,10 +29,10 @@ layout(std430, binding = 6) writeonly buffer DepthsBufferOutput {
 };
 
 layout(std430, binding = 7) writeonly buffer OffsetsBufferOutput {
-    uint offsetSizeFlattenedsOutput[];
+    uint metadatasOutput[];
 };
 
-uniform bool refFrame;
+uniform bool isRefFrame;
 uniform uint newNumProxies;
 
 shared uint localNumProxies;
@@ -41,7 +41,7 @@ void main() {
     uint proxyIndex = gl_GlobalInvocationID.x;
 
     // If RefFrame, start from the beginning
-    if (refFrame && proxyIndex == 0u) {
+    if (isRefFrame && proxyIndex == 0u) {
         currNumProxies = 0u;
     }
 
@@ -49,7 +49,7 @@ void main() {
         return;
     }
 
-    uint startIndex = refFrame ? 0u : prevNumProxies;
+    uint startIndex = isRefFrame ? 0u : prevNumProxies;
     if (gl_LocalInvocationID.x == 0u) {
         localNumProxies = 0u;
     }
@@ -60,7 +60,7 @@ void main() {
     uint globalIndex = startIndex + proxyIndex;
     normalSphericalsOutput[globalIndex] = normalSphericalsInput[proxyIndex];
     depthsOutput[globalIndex] = depthsInput[proxyIndex];
-    offsetSizeFlattenedsOutput[globalIndex] = offsetSizeFlattenedsInput[proxyIndex];
+    metadatasOutput[globalIndex] = metadatasInput[proxyIndex];
 
     barrier();
 

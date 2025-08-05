@@ -6,11 +6,8 @@
 #include <Cameras/PerspectiveCamera.h>
 #include <Shaders/ComputeShader.h>
 
+#include <Quads/QuadFrame.h>
 #include <Quads/QuadVertex.h>
-#include <Quads/QuadsBuffers.h>
-#include <Quads/DepthOffsets.h>
-
-#include <Utils/TimeUtils.h>
 
 #ifndef __ANDROID__
 #define THREADS_PER_LOCALGROUP 16
@@ -43,29 +40,15 @@ public:
         double timeToCreateMeshMs = 0.0;
     } stats;
 
-    glm::uvec2& remoteWindowSize;
-    glm::uvec2 depthOffsetBufferSize;
     uint maxProxies;
 
-    MeshFromQuads(glm::uvec2& remoteWindowSize, uint maxNumProxies = MAX_NUM_PROXIES);
+    MeshFromQuads(const QuadFrame& quadFrame, uint maxNumProxies = MAX_NUM_PROXIES);
     ~MeshFromQuads() = default;
 
-    void appendQuads(
-            const glm::uvec2& gBufferSize,
-            uint numProxies,
-            const QuadBuffers& newQuadBuffers,
-            bool refFrame = true);
+    void appendQuads(const QuadFrame& quadFrame, const glm::vec2& gBufferSize, bool isRefFrame = true);
+    void createMeshFromProxies(const QuadFrame& quadFrame, const glm::vec2& gBufferSize, const PerspectiveCamera& remoteCamera, const Mesh& mesh);
 
-    void fillQuadIndices(const glm::uvec2& gBufferSize);
-
-    void createMeshFromProxies(
-            const glm::uvec2& gBufferSize,
-            uint numProxies,
-            const DepthOffsets& depthOffsets,
-            const PerspectiveCamera& remoteCamera,
-            const Mesh& mesh);
-
-    BufferSizes getBufferSizes();
+    BufferSizes getBufferSizes() const;
 
 private:
     QuadBuffers currentQuadBuffers;
@@ -75,11 +58,13 @@ private:
     Buffer currNumProxiesBuffer;
 
     Buffer quadCreatedFlagsBuffer;
-    Buffer quadIndicesBuffer;
+    Buffer quadIndicesMap;
 
     ComputeShader appendQuadsShader;
     ComputeShader fillQuadIndicesShader;
     ComputeShader createMeshFromQuadsShader;
+
+    void fillQuadIndices(const QuadFrame& quadFrame, const glm::vec2& gBufferSize);
 };
 
 } // namespace quasar

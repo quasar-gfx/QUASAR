@@ -34,7 +34,7 @@ layout(std430, binding = 2) writeonly buffer DepthsBufferOutput {
 };
 
 layout(std430, binding = 3) writeonly buffer OffsetsBufferOutput {
-    uint offsetSizeFlattenedsOutput[];
+    uint metadatasOutput[];
 };
 
 layout(binding = 0) uniform sampler2D normalsMap;
@@ -316,14 +316,14 @@ void storeQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
     quadMapDataPacked.depth = quadMapData.depth;
 
     uint flattenedAndSize = ((quadMapData.size & 0x7Fu) << 1) | (quadMapData.flattened ? 1u : 0u);
-    quadMapDataPacked.offsetSizeFlattened = ((quadMapData.offset.x & 0xFFFu) << 20) |
+    quadMapDataPacked.metadata = ((quadMapData.offset.x & 0xFFFu) << 20) |
                                                     ((quadMapData.offset.y & 0xFFFu) << 8) |
                                                         (flattenedAndSize & 0xFFu);
 
     uint index = uint(pixelCoord.y) * uint(quadMapSize.x) + uint(pixelCoord.x);
     normalSphericalsOutput[index] = quadMapDataPacked.normalSpherical;
     depthsOutput[index] = quadMapDataPacked.depth;
-    offsetSizeFlattenedsOutput[index] = quadMapDataPacked.offsetSizeFlattened;
+    metadatasOutput[index] = quadMapDataPacked.metadata;
 }
 
 void storeDepthOffsets(in ivec2 pixelCoord, in vec4 depthOffsets) {

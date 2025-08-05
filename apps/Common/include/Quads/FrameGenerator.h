@@ -4,8 +4,7 @@
 #include <Renderers/DeferredRenderer.h>
 #include <RenderTargets/FrameRenderTarget.h>
 
-#include <Quads/QuadsBuffers.h>
-#include <Quads/DepthOffsets.h>
+#include <Quads/QuadFrame.h>
 #include <Quads/QuadsGenerator.h>
 #include <Quads/MeshFromQuads.h>
 
@@ -13,12 +12,9 @@ namespace quasar {
 
 class FrameGenerator {
 public:
-    QuadsGenerator& quadsGenerator;
-    MeshFromQuads& meshFromQuads;
+    QuadsGenerator quadsGenerator;
 
-    MeshFromQuads meshFromQuadsMask;
-
-    FrameGenerator(DeferredRenderer& remoteRenderer, Scene& remoteScene, QuadsGenerator& quadsGenerator, MeshFromQuads& meshFromQuads);
+    FrameGenerator(QuadFrame& quadFrame, DeferredRenderer& remoteRenderer, Scene& remoteScene);
 
     struct Stats {
         double timeToCreateProxiesMs = 0.0;
@@ -37,20 +33,25 @@ public:
         const FrameRenderTarget& frameRT,
         const PerspectiveCamera& remoteCamera,
         const Mesh& mesh,
-        std::vector<char>& quads, std::vector<char>& depthOffsets,
-        uint& numProxies, uint& numDepthOffsets,
-        bool compress = true);
+        uint& numProxies, uint& numDepthOffsets);
 
     uint generateResFrame(
         Scene& currScene, Scene& prevScene,
         FrameRenderTarget& frameRT, FrameRenderTarget& maskFrameRT,
         const PerspectiveCamera& currRemoteCamera, const PerspectiveCamera& prevRemoteCamera,
         const Mesh& currMesh, const Mesh& maskMesh,
-        std::vector<char>& quads, std::vector<char>& depthOffsets,
-        uint& numProxies, uint& numDepthOffsets,
-        bool compress = true);
+        uint& numProxies, uint& numDepthOffsets);
+
+    std::pair<MeshFromQuads::BufferSizes, MeshFromQuads::BufferSizes> getBufferSizes() const {
+        return { meshFromQuads.getBufferSizes(), meshFromQuadsMask.getBufferSizes() };
+    }
 
 private:
+    QuadFrame& quadFrame;
+
+    MeshFromQuads meshFromQuads;
+    MeshFromQuads meshFromQuadsMask;
+
     DeferredRenderer& remoteRenderer;
     Scene& remoteScene;
 };

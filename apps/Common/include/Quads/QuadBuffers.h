@@ -4,8 +4,6 @@
 #include <glm/glm.hpp>
 
 #include <Buffer.h>
-#include <Utils/FileIO.h>
-#include <Codec/ZSTDCodec.h>
 
 #if defined(HAS_CUDA)
 #include <CudaGLInterop/CudaGLBuffer.h>
@@ -27,45 +25,36 @@ struct QuadMapDataPacked {
     // Full resolution depth. 32 bits used.
     float depth;
     // offset.x << 20 | offset.y << 8 (12 bits each) | size << 1 (6 bits) | flattened (1 bit). 31 bits used.
-    uint32_t offsetSizeFlattened;
+    uint32_t metadata;
 }; // 96 bits total
 
 class QuadBuffers {
 public:
-    struct Stats {
-        double timeToCompressMs = 0.0;
-        double timeToDecompressMs = 0.0;
-    } stats;
-
     uint maxProxies;
     uint numProxies;
 
     Buffer normalSphericalsBuffer;
     Buffer depthsBuffer;
-    Buffer offsetSizeFlattenedsBuffer;
+    Buffer metadatasBuffer;
 
     QuadBuffers(uint maxProxies);
     ~QuadBuffers() = default;
 
     void resize(uint numProxies);
 
-    uint loadFromMemory(const std::vector<char>& compressedData, bool decompress = true);
-    uint loadFromFile(const std::string& filename, uint* numBytesLoaded = nullptr, bool compressed = true);
 #ifdef GL_CORE
-    uint saveToMemory(std::vector<char>& compressedData, bool compress = true);
-    uint saveToFile(const std::string& filename);
+    uint copyToMemory(std::vector<char>& outputData);
     uint updateDataBuffer();
 #endif
+    uint loadFromMemory(const std::vector<char>& inputData);
 
 private:
-    ZSTDCodec codec;
-
     std::vector<char> data;
 
 #if defined(HAS_CUDA)
     CudaGLBuffer cudaBufferNormalSphericals;
     CudaGLBuffer cudaBufferDepths;
-    CudaGLBuffer cudaBufferOffsetSizeFlatteneds;
+    CudaGLBuffer cudaBuffermetadatas;
 #endif
 };
 

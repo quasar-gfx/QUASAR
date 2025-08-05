@@ -2,8 +2,6 @@
 #define DEPTH_OFFSETS_H
 
 #include <Texture.h>
-#include <Utils/FileIO.h>
-#include <Codec/ZSTDCodec.h>
 
 #if defined(HAS_CUDA)
 #include <CudaGLInterop/CudaGLImage.h>
@@ -13,27 +11,19 @@ namespace quasar {
 
 class DepthOffsets {
 public:
-    struct Stats {
-        double timeToCompressMs = 0.0;
-        double timeToDecompressMs = 0.0;
-    } stats;
-
     glm::uvec2 size;
     Texture buffer;
 
     DepthOffsets(const glm::uvec2& size);
     ~DepthOffsets() = default;
 
-    uint loadFromMemory(std::vector<char>& compressedData, bool decompress = true);
-    uint loadFromFile(const std::string& filename, uint* numBytesLoaded = nullptr, bool compressed = true);
 #if defined(HAS_CUDA)
-    uint saveToMemory(std::vector<char>& compressedData, bool compress = true);
+    uint copyToMemory(std::vector<char>& outputData);
     uint saveToFile(const std::string& filename);
 #endif
+    uint loadFromMemory(std::vector<char>& inputData);
 
 private:
-    ZSTDCodec codec;
-
     std::vector<char> data;
 
 #if defined(HAS_CUDA)

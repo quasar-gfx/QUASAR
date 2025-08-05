@@ -97,16 +97,15 @@ int main(int argc, char** argv) {
     float remoteFOV = args::get(remoteFOVIn);
     remoteCamera.setFovyDegrees(remoteFOV);
 
-    QuadsGenerator quadsGenerator(remoteWindowSize);
-    MeshFromQuads meshFromQuads(remoteWindowSize);
-    FrameGenerator frameGenerator(remoteRenderer, remoteScene, quadsGenerator, meshFromQuads);
-    QuadsSimulator quadsSimulator(remoteCamera, frameGenerator);
-
     // "Local" scene
     Scene localScene;
     localScene.envCubeMap = remoteScene.envCubeMap;
     PerspectiveCamera camera(windowSize.x, windowSize.y);
     camera.setViewMatrix(remoteCamera.getViewMatrix());
+
+    QuadFrame quadFrame(remoteWindowSize);
+    FrameGenerator frameGenerator(quadFrame, remoteRenderer, remoteScene);
+    QuadsSimulator quadsSimulator(quadFrame, remoteCamera, frameGenerator);
 
     // Add meshes to local scene
     quadsSimulator.addMeshesToScene(localScene);
@@ -182,8 +181,7 @@ int main(int argc, char** argv) {
 
         static bool showSkyBox = true;
 
-        auto meshBufferSizes = frameGenerator.meshFromQuads.getBufferSizes();
-        auto meshBufferSizesMask = frameGenerator.meshFromQuadsMask.getBufferSizes();
+        auto [meshBufferSizes, meshBufferSizesMask] = frameGenerator.getBufferSizes();
 
         ImGui::NewFrame();
 
@@ -291,6 +289,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::CollapsingHeader("Quad Generation Settings")) {
+                auto& quadsGenerator = frameGenerator.quadsGenerator;
                 if (ImGui::Checkbox("Correct Extreme Normals", &quadsGenerator.params.correctOrientation)) {
                     preventCopyingLocalPose = true;
                     generateRefFrame = true;
