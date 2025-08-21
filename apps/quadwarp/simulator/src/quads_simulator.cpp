@@ -103,12 +103,12 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera(windowSize);
     camera.setViewMatrix(remoteCamera.getViewMatrix());
 
-    QuadFrame quadFrame(remoteWindowSize);
-    FrameGenerator frameGenerator(quadFrame, remoteRenderer, remoteScene);
-    QuadsSimulator quadsSimulator(quadFrame, remoteCamera, frameGenerator);
+    QuadSet quadSet(remoteWindowSize);
+    FrameGenerator frameGenerator(quadSet, remoteRenderer, remoteScene);
+    QuadsSimulator quadwarp(quadSet, remoteCamera, frameGenerator);
 
     // Add meshes to local scene
-    quadsSimulator.addMeshesToScene(localScene);
+    quadwarp.addMeshesToScene(localScene);
 
     // Post processing
     ToneMapper toneMapper;
@@ -219,7 +219,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            uint totalTriangles = quadsSimulator.getNumTriangles();
+            uint totalTriangles = quadwarp.getNumTriangles();
             if (totalTriangles < 100000)
                 ImGui::TextColored(ImVec4(0,1,0,1), "Triangles Drawn: %d", totalTriangles);
             else if (totalTriangles < 500000)
@@ -235,11 +235,11 @@ int main(int argc, char** argv) {
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
             ImGui::TextColored(ImVec4(0,1,1,1), "Total Quads: %ld (%.3f MB)",
-                               quadsSimulator.stats.sizes.numQuads,
-                               quadsSimulator.stats.sizes.quadsSize / BYTES_PER_MEGABYTE);
+                               quadwarp.stats.totalSizes.numQuads,
+                               quadwarp.stats.totalSizes.quadsSize / BYTES_PER_MEGABYTE);
             ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %ld (%.3f MB)",
-                               quadsSimulator.stats.sizes.numDepthOffsets,
-                               quadsSimulator.stats.sizes.depthOffsetsSize / BYTES_PER_MEGABYTE);
+                               quadwarp.stats.totalSizes.numDepthOffsets,
+                               quadwarp.stats.totalSizes.depthOffsetsSize / BYTES_PER_MEGABYTE);
 
             ImGui::Separator();
 
@@ -443,12 +443,12 @@ int main(int argc, char** argv) {
         if (showFramePreviewWindow) {
             flags = 0;
             ImGui::Begin("FrameRenderTarget Color", 0, flags);
-            ImGui::Image((void*)(intptr_t)(quadsSimulator.refFrameRT.colorTexture),
+            ImGui::Image((void*)(intptr_t)(quadwarp.refFrameRT.colorTexture),
                          ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
 
             ImGui::Begin("FrameRenderTarget Mask Color", 0, flags);
-            ImGui::Image((void*)(intptr_t)(quadsSimulator.maskFrameRT.colorTexture),
+            ImGui::Image((void*)(intptr_t)(quadwarp.resFrameRT.colorTexture),
                          ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
         }
@@ -543,27 +543,27 @@ int main(int argc, char** argv) {
                 // If we do not have a new pose, just send a new frame with the old pose
             }
 
-            quadsSimulator.generateFrame(remoteCamera, remoteScene, remoteRenderer, generateResFrame, showNormals, showDepth);
+            quadwarp.generateFrame(remoteCamera, remoteScene, remoteRenderer, generateResFrame, showNormals, showDepth);
 
             spdlog::info("======================================================");
-            spdlog::info("Rendering Time: {:.3f}ms", quadsSimulator.stats.totalRenderTime);
-            spdlog::info("Create Proxies Time: {:.3f}ms", quadsSimulator.stats.totalCreateProxiesTime);
-            spdlog::info("  Gen Quad Map Time: {:.3f}ms", quadsSimulator.stats.totalGenQuadMapTime);
-            spdlog::info("  Simplify Time: {:.3f}ms", quadsSimulator.stats.totalSimplifyTime);
-            spdlog::info("  Gather Quads Time: {:.3f}ms", quadsSimulator.stats.totalGatherQuadsTime);
-            spdlog::info("Create Mesh Time: {:.3f}ms", quadsSimulator.stats.totalCreateMeshTime);
-            spdlog::info("  Append Quads Time: {:.3f}ms", quadsSimulator.stats.totalAppendQuadsTime);
-            spdlog::info("  Fill Output Quads Time: {:.3f}ms", quadsSimulator.stats.totalFillQuadsIndiciesTime);
-            spdlog::info("  Create Vert/Ind Time: {:.3f}ms", quadsSimulator.stats.totalCreateVertIndTime);
-            spdlog::info("Compress Time: {:.3f}ms", quadsSimulator.stats.totalCompressTime);
-            if (showDepth) spdlog::info("Gen Depth Time: {:.3f}ms", quadsSimulator.stats.totalGenDepthTime);
-            spdlog::info("Frame Size: {:.3f}MB", (quadsSimulator.stats.sizes.quadsSize +
-                                                  quadsSimulator.stats.sizes.depthOffsetsSize) / BYTES_PER_MEGABYTE);
-            spdlog::info("Num Proxies: {}Proxies", quadsSimulator.stats.sizes.numQuads);
+            spdlog::info("Rendering Time: {:.3f}ms", quadwarp.stats.totalRenderTime);
+            spdlog::info("Create Proxies Time: {:.3f}ms", quadwarp.stats.totalCreateProxiesTime);
+            spdlog::info("  Gen Quad Map Time: {:.3f}ms", quadwarp.stats.totalGenQuadMapTime);
+            spdlog::info("  Simplify Time: {:.3f}ms", quadwarp.stats.totalSimplifyTime);
+            spdlog::info("  Gather Quads Time: {:.3f}ms", quadwarp.stats.totalGatherQuadsTime);
+            spdlog::info("Create Mesh Time: {:.3f}ms", quadwarp.stats.totalCreateMeshTime);
+            spdlog::info("  Append Quads Time: {:.3f}ms", quadwarp.stats.totalAppendQuadsTime);
+            spdlog::info("  Fill Output Quads Time: {:.3f}ms", quadwarp.stats.totalFillQuadsIndiciesTime);
+            spdlog::info("  Create Vert/Ind Time: {:.3f}ms", quadwarp.stats.totalCreateVertIndTime);
+            spdlog::info("Compress Time: {:.3f}ms", quadwarp.stats.totalCompressTime);
+            if (showDepth) spdlog::info("Gen Depth Time: {:.3f}ms", quadwarp.stats.totalGenDepthTime);
+            spdlog::info("Frame Size: {:.3f}MB", (quadwarp.stats.totalSizes.quadsSize +
+                                                  quadwarp.stats.totalSizes.depthOffsetsSize) / BYTES_PER_MEGABYTE);
+            spdlog::info("Num Proxies: {}Proxies", quadwarp.stats.totalSizes.numQuads);
 
             // Save to file if requested
             if (saveToFile) {
-                quadsSimulator.saveToFile(outputPath);
+                quadwarp.saveToFile(outputPath);
             }
 
             preventCopyingLocalPose = false;
@@ -575,12 +575,12 @@ int main(int argc, char** argv) {
         poseSendRecvSimulator.update(now);
 
         // Show previous mesh
-        quadsSimulator.refFrameNodesLocal[quadsSimulator.currMeshIndex].visible = false;
-        quadsSimulator.refFrameNodesLocal[quadsSimulator.prevMeshIndex].visible = true;
-        quadsSimulator.refFrameWireframesLocal[quadsSimulator.currMeshIndex].visible = false;
-        quadsSimulator.refFrameWireframesLocal[quadsSimulator.prevMeshIndex].visible = showWireframe;
-        quadsSimulator.maskFrameWireframeNodesLocal.visible = quadsSimulator.maskFrameNode.visible && showWireframe;
-        quadsSimulator.depthNode.visible = showDepth;
+        quadwarp.refFrameNodesLocal[quadwarp.currMeshIndex].visible = false;
+        quadwarp.refFrameNodesLocal[quadwarp.prevMeshIndex].visible = true;
+        quadwarp.refFrameWireframesLocal[quadwarp.currMeshIndex].visible = false;
+        quadwarp.refFrameWireframesLocal[quadwarp.prevMeshIndex].visible = showWireframe;
+        quadwarp.resFrameWireframeNodesLocal.visible = quadwarp.resFrameNode.visible && showWireframe;
+        quadwarp.depthNode.visible = showDepth;
 
         if (restrictMovementToViewBox) {
             glm::vec3 remotePosition = remoteCamera.getPosition();

@@ -6,7 +6,7 @@
 #include <Cameras/PerspectiveCamera.h>
 #include <Shaders/ComputeShader.h>
 
-#include <Quads/QuadFrame.h>
+#include <Quads/QuadSet.h>
 #include <Quads/QuadVertex.h>
 #include <Quads/QuadMaterial.h>
 
@@ -33,11 +33,11 @@ public:
 
     uint maxProxies;
 
-    QuadMesh(const QuadFrame& quadFrame, Texture& colorTexture, uint maxNumProxies = MAX_NUM_PROXIES);
+    QuadMesh(const QuadSet& quadSet, Texture& colorTexture, uint maxNumProxies = MAX_NUM_PROXIES);
     ~QuadMesh() = default;
 
-    void appendQuads(const QuadFrame& quadFrame, const glm::vec2& gBufferSize, bool isRefFrame = true);
-    void createMeshFromProxies(const QuadFrame& quadFrame, const glm::vec2& gBufferSize, const PerspectiveCamera& remoteCamera);
+    void appendQuads(const QuadSet& quadSet, const glm::vec2& gBufferSize, bool isRefFrame = true);
+    void createMeshFromProxies(const QuadSet& quadSet, const glm::vec2& gBufferSize, const PerspectiveCamera& remoteCamera);
 
     BufferSizes getBufferSizes() const;
 
@@ -55,7 +55,7 @@ private:
     ComputeShader fillQuadIndicesShader;
     ComputeShader createQuadMeshShader;
 
-    void fillQuadIndices(const QuadFrame& quadFrame, const glm::vec2& gBufferSize);
+    void fillQuadIndices(const QuadSet& quadSet, const glm::vec2& gBufferSize);
 };
 
 } // namespace quasar

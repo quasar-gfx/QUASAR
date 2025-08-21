@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
         .magFilter = GL_LINEAR,
     }, renderer, toneMapper, dataPath, config.targetFramerate);
 
-    QuadFrame::Sizes totalSizes{};
+    QuadSet::Sizes totalSizes{};
     uint totalTriangles = 0;
     double loadFromFilesTime = 0.0;
     double createMeshTime = 0.0;
@@ -100,10 +100,10 @@ int main(int argc, char** argv) {
         .magFilter = GL_NEAREST,
     });
 
-    QuadFrame quadFrame(windowSize);
+    QuadSet quadSet(windowSize);
 
     // Create mesh
-    QuadMesh quadMesh(quadFrame, colorTexture);
+    QuadMesh quadMesh(quadSet, colorTexture);
 
     // Create node and wireframe node
     Node node(&quadMesh);
@@ -131,13 +131,13 @@ int main(int argc, char** argv) {
         double startTime = window->getTime();
         Path quadsFile = (dataPath / "quads").withExtension(".bin.zstd");
         Path offsetsFile = (dataPath / "depthOffsets").withExtension(".bin.zstd");
-        auto sizes = quadFrame.loadFromFiles(quadsFile, offsetsFile);
+        auto sizes = quadSet.loadFromFiles(quadsFile, offsetsFile);
         loadFromFilesTime = timeutils::secondsToMillis(window->getTime() - startTime);
 
         // Update mesh
         const glm::vec2& gBufferSize = glm::vec2(colorTexture.width, colorTexture.height);
-        quadMesh.appendQuads(quadFrame, gBufferSize);
-        quadMesh.createMeshFromProxies(quadFrame, gBufferSize, remoteCamera);
+        quadMesh.appendQuads(quadSet, gBufferSize);
+        quadMesh.createMeshFromProxies(quadSet, gBufferSize, remoteCamera);
         createMeshTime = quadMesh.stats.timeToCreateMeshMs;
 
         auto meshBufferSizes = quadMesh.getBufferSizes();

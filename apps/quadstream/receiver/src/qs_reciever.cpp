@@ -144,7 +144,7 @@ int main(int argc, char** argv) {
         .magFilter = GL_LINEAR,
     }, renderer, toneMapper, dataPath, config.targetFramerate);
 
-    QuadFrame::Sizes totalSizes{};
+    QuadSet::Sizes totalSizes{};
     uint totalTriangles = 0;
     double loadFromFilesTime = 0.0;
     double createMeshTime = 0.0;
@@ -163,7 +163,7 @@ int main(int argc, char** argv) {
         colorTextures.emplace_back(params);
     }
 
-    QuadFrame quadFrame(windowSize);
+    QuadSet quadSet(windowSize);
 
     std::vector<QuadMesh> meshes; meshes.reserve(maxViews);
     std::vector<Node> nodes; nodes.reserve(maxViews);
@@ -171,7 +171,7 @@ int main(int argc, char** argv) {
 
     for (int view = 0; view < maxViews; view++) {
         // Create mesh
-        meshes.emplace_back(quadFrame, colorTextures[view]);
+        meshes.emplace_back(quadSet, colorTextures[view]);
 
         // Create node and wireframe node
         nodes.emplace_back(&meshes[view]);
@@ -201,13 +201,13 @@ int main(int argc, char** argv) {
             double startTime = window->getTime();
             Path quadsFile   = (dataPath / "quads").appendToName(std::to_string(view)).withExtension(".bin.zstd");
             Path offsetsFile = (dataPath / "depthOffsets").appendToName(std::to_string(view)).withExtension(".bin.zstd");
-            auto sizes = quadFrame.loadFromFiles(quadsFile, offsetsFile);
+            auto sizes = quadSet.loadFromFiles(quadsFile, offsetsFile);
             loadFromFilesTime += timeutils::secondsToMillis(window->getTime() - startTime);
 
             // Update mesh
             const glm::uvec2 gBufferSize(colorTextures[view].width, colorTextures[view].height);
-            meshes[view].appendQuads(quadFrame, glm::vec2(gBufferSize));
-            meshes[view].createMeshFromProxies(quadFrame, glm::vec2(gBufferSize), remoteCameras[view]);
+            meshes[view].appendQuads(quadSet, glm::vec2(gBufferSize));
+            meshes[view].createMeshFromProxies(quadSet, glm::vec2(gBufferSize), remoteCameras[view]);
             createMeshTime += meshes[view].stats.timeToCreateMeshMs;
 
             auto meshBufferSizes = meshes[view].getBufferSizes();

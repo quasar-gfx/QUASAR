@@ -114,7 +114,7 @@ int main(int argc, char** argv) {
         .magFilter = GL_LINEAR,
     }, renderer, toneMapper, dataPath, config.targetFramerate);
 
-    QuadFrame::Sizes totalSizes{};
+    QuadSet::Sizes totalSizes{};
     uint totalTriangles = 0;
     double loadFromFilesTime = 0.0;
     double createMeshTime = 0.0;
@@ -133,7 +133,7 @@ int main(int argc, char** argv) {
         colorTextures.emplace_back(params);
     }
 
-    QuadFrame quadFrame(windowSize);
+    QuadSet quadSet(windowSize);
 
     std::vector<QuadMesh> meshes; meshes.reserve(maxLayers);
     std::vector<Node> nodes; nodes.reserve(maxLayers);
@@ -141,7 +141,7 @@ int main(int argc, char** argv) {
 
     for (int layer = 0; layer < maxLayers; layer++) {
         // Create mesh
-        meshes.emplace_back(quadFrame, colorTextures[layer]);
+        meshes.emplace_back(quadSet, colorTextures[layer]);
 
         // Create node and wireframe node
         nodes.emplace_back(&meshes[layer]);
@@ -172,14 +172,14 @@ int main(int argc, char** argv) {
             Path quadsFile = (dataPath / ("quads" + std::to_string(layer))).withExtension(".bin.zstd");
             Path offsetsFile = (dataPath / ("depthOffsets" + std::to_string(layer))).withExtension(".bin.zstd");
 
-            auto sizes = quadFrame.loadFromFiles(quadsFile, offsetsFile);
+            auto sizes = quadSet.loadFromFiles(quadsFile, offsetsFile);
             loadFromFilesTime += timeutils::secondsToMillis(window->getTime() - startTime);
 
             // Update mesh
             const glm::uvec2& gBufferSize = glm::uvec2(colorTextures[layer].width, colorTextures[layer].height);
             auto& cameraToUse = (!disableWideFov && layer == maxLayers - 1) ? remoteCameraWideFov : remoteCamera;
-            meshes[layer].appendQuads(quadFrame, gBufferSize);
-            meshes[layer].createMeshFromProxies(quadFrame, gBufferSize, cameraToUse);
+            meshes[layer].appendQuads(quadSet, gBufferSize);
+            meshes[layer].createMeshFromProxies(quadSet, gBufferSize, cameraToUse);
             createMeshTime += meshes[layer].stats.timeToCreateMeshMs;
 
 

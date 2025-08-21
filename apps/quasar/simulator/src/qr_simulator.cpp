@@ -120,9 +120,9 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera(windowSize);
     camera.setViewMatrix(remoteCameraCenter.getViewMatrix());
 
-    QuadFrame quadFrame(remoteWindowSize);
-    FrameGenerator frameGenerator(quadFrame, remoteRenderer, remoteScene);
-    QRSimulator quasar(quadFrame, maxViews, remoteCameraCenter, frameGenerator);
+    QuadSet quadSet(remoteWindowSize);
+    FrameGenerator frameGenerator(quadSet, remoteRenderer, remoteScene);
+    QRSimulator quasar(quadSet, maxViews, remoteCameraCenter, frameGenerator);
 
     quasar.addMeshesToScene(localScene);
 
@@ -258,11 +258,11 @@ int main(int argc, char** argv) {
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
             ImGui::TextColored(ImVec4(0,1,1,1), "Total Quads: %ld (%.3f MB)",
-                               quasar.stats.sizes.numQuads,
-                               quasar.stats.sizes.quadsSize / BYTES_PER_MEGABYTE);
+                               quasar.stats.totalSizes.numQuads,
+                               quasar.stats.totalSizes.quadsSize / BYTES_PER_MEGABYTE);
             ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %ld (%.3f MB)",
-                               quasar.stats.sizes.numDepthOffsets,
-                               quasar.stats.sizes.depthOffsetsSize / BYTES_PER_MEGABYTE);
+                               quasar.stats.totalSizes.numDepthOffsets,
+                               quasar.stats.totalSizes.depthOffsetsSize / BYTES_PER_MEGABYTE);
 
             ImGui::Separator();
 
@@ -521,7 +521,7 @@ int main(int argc, char** argv) {
             ImGui::End();
 
             ImGui::Begin("FrameRenderTarget Mask Color", 0, flags);
-            ImGui::Image((void*)(intptr_t)(quasar.maskFrameRT.colorTexture), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::Image((void*)(intptr_t)(quasar.resFrameRT.colorTexture), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
         }
     });
@@ -638,9 +638,9 @@ int main(int argc, char** argv) {
             spdlog::info("  Create Vert/Ind Time ({}): {:.3f}ms", frameType, quasar.stats.totalCreateVertIndTime);
             spdlog::info("Compress Time ({}): {:.3f}ms", frameType, quasar.stats.totalCompressTime);
             if (showDepth) spdlog::info("Gen Depth Time ({}): {:.3f}ms", frameType, quasar.stats.totalGenDepthTime);
-            spdlog::info("Frame Size: {:.3f}MB", (quasar.stats.sizes.quadsSize +
-                                                  quasar.stats.sizes.depthOffsetsSize) / BYTES_PER_MEGABYTE);
-            spdlog::info("Num Proxies: {}Proxies", quasar.stats.sizes.numQuads);
+            spdlog::info("Frame Size: {:.3f}MB", (quasar.stats.totalSizes.quadsSize +
+                                                  quasar.stats.totalSizes.depthOffsetsSize) / BYTES_PER_MEGABYTE);
+            spdlog::info("Num Proxies: {}Proxies", quasar.stats.totalSizes.numQuads);
 
             // Save to file if requested
             if (saveToFile) {
@@ -673,7 +673,7 @@ int main(int argc, char** argv) {
                 quasar.depthNodesHidLayer[view-1].visible = showLayer && showDepth;
             }
         }
-        quasar.maskFrameWireframeNodesLocal.visible = quasar.maskFrameNode.visible && showWireframe;
+        quasar.resFrameWireframeNodesLocal.visible = quasar.resFrameNode.visible && showWireframe;
 
         if (restrictMovementToViewBox) {
             glm::vec3 remotePosition = remoteCameraCenter.getPosition();

@@ -5,7 +5,7 @@
 #include <Shaders/ComputeShader.h>
 #include <RenderTargets/FrameRenderTarget.h>
 
-#include <Quads/QuadFrame.h>
+#include <Quads/QuadSet.h>
 
 namespace quasar {
 
@@ -37,7 +37,7 @@ public:
     uint numQuadMaps;
     uint maxProxies;
 
-    QuadsGenerator(QuadFrame& quadFrame);
+    QuadsGenerator(QuadSet& quadSet);
     ~QuadsGenerator() = default;
 
     BufferSizes getBufferSizes();
@@ -45,7 +45,7 @@ public:
     void createProxiesFromTextures(const Texture& colorTexture, const Texture& normalsTexture, const Texture& depthBuffer, const PerspectiveCamera& remoteCamera);
 
 private:
-    QuadFrame& quadFrame;
+    QuadSet& quadSet;
 
     Buffer sizesBuffer;
 

@@ -116,7 +116,7 @@ void DepthStreamer::sendData() {
                                                    0, 0, width * sizeof(GLushort), height,
                                                    cudaMemcpyDeviceToHost));
         }
-        stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startCopyTime);
+        stats.timeToTransferMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startCopyTime);
 
         double elapsedTimeSec = timeutils::microsToSeconds(timeutils::getTimeMicros() - prevTime);
         if (elapsedTimeSec < (1.0f / targetFrameRate)) {

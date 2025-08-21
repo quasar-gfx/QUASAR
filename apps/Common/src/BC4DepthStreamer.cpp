@@ -150,7 +150,7 @@ void BC4DepthStreamer::sendFrame(pose_id_t poseID) {
     bc4CompressedBuffer.getData(data.data() + sizeof(pose_id_t));
     bc4CompressedBuffer.unbind();
 
-    stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+    stats.timeToTransferMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     startTime = timeutils::getTimeMicros();
 
@@ -188,7 +188,7 @@ void BC4DepthStreamer::sendData() {
             // Copy compressed BC4 data from GPU to CPU
             copyFrameToCPU(cudaBufferStruct.poseID, cudaPtr);
         }
-        stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startCopyTime);
+        stats.timeToTransferMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startCopyTime);
 
         // Compress even further
         time_t startCompressTime = timeutils::getTimeMicros();

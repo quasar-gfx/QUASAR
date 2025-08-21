@@ -32,7 +32,7 @@ public:
     size_t compressedSize;
 
     struct Stats {
-        double timeToCopyFrameMs = 0.0;
+        double timeToTransferMs = 0.0;
         double timeToCompressMs = 0.0;
         double timeToSendMs = 0.0;
         double bitrateMbps = 0.0;

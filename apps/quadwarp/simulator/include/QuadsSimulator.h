@@ -1,53 +1,36 @@
 #ifndef QUADS_SIMULATOR_H
 #define QUADS_SIMULATOR_H
 
-#include <PostProcessing/ToneMapper.h>
-#include <PostProcessing/ShowNormalsEffect.h>
-
 #include <DepthMesh.h>
 #include <Quads/FrameGenerator.h>
+#include <PostProcessing/ToneMapper.h>
+#include <PostProcessing/ShowNormalsEffect.h>
 
 namespace quasar {
 
 class QuadsSimulator {
 public:
-    const std::vector<glm::vec4> colors = {
-        glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), // primary view color is yellow
-        glm::vec4(0.0f, 0.0f, 1.0f, 1.0f),
-        glm::vec4(0.0f, 1.0f, 0.0f, 1.0f),
-        glm::vec4(1.0f, 0.5f, 0.5f, 1.0f),
-        glm::vec4(0.5f, 0.0f, 0.0f, 1.0f),
-        glm::vec4(0.0f, 1.0f, 1.0f, 1.0f),
-        glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
-        glm::vec4(0.0f, 0.5f, 0.0f, 1.0f),
-        glm::vec4(0.0f, 0.0f, 0.5f, 1.0f),
-        glm::vec4(0.5f, 0.0f, 0.5f, 1.0f),
-    };
-
     // Reference frame
     FrameRenderTarget refFrameRT;
     std::vector<QuadMesh> refFrameMeshes;
     std::vector<Node> refFrameNodes;
+    int currMeshIndex = 0, prevMeshIndex = 1;
+    ReferenceFrame referenceFrame;
 
-    // Mask frame (residual frame)
-    FrameRenderTarget maskFrameRT;
-    FrameRenderTarget maskTempRT;
-    QuadMesh maskFrameMesh;
-    Node maskFrameNode;
+    // Residual frame
+    FrameRenderTarget resFrameRT;
+    QuadMesh resFrameMesh;
+    Node resFrameNode;
+    ResidualFrame residualFrame;
 
     // Local objects
     std::vector<Node> refFrameNodesLocal;
     std::vector<Node> refFrameWireframesLocal;
-    Node maskFrameWireframeNodesLocal;
+    Node resFrameWireframeNodesLocal;
 
     // Depth point cloud for debugging
     DepthMesh depthMesh;
     Node depthNode;
-
-    // Holds a copy of the current frame
-    FrameRenderTarget copyRT;
-
-    int currMeshIndex = 0, prevMeshIndex = 1;
 
     struct Stats {
         double totalRenderTime = 0.0;
@@ -61,15 +44,15 @@ public:
         double totalCreateVertIndTime = 0.0;
         double totalGenDepthTime = 0.0;
         double totalCompressTime = 0.0;
-        QuadFrame::Sizes sizes;
+        QuadSet::Sizes totalSizes;
     } stats;
 
-    QuadsSimulator(QuadFrame& quadFrame, const PerspectiveCamera& remoteCamera, FrameGenerator& frameGenerator)
-        : quadFrame(quadFrame)
+    QuadsSimulator(QuadSet& quadSet, const PerspectiveCamera& remoteCamera, FrameGenerator& frameGenerator)
+        : quadSet(quadSet)
         , frameGenerator(frameGenerator)
         , refFrameRT({
-            .width = quadFrame.getSize().x,
-            .height = quadFrame.getSize().y,
+            .width = quadSet.getSize().x,
+            .height = quadSet.getSize().y,
             .internalFormat = GL_RGBA16F,
             .format = GL_RGBA,
             .type = GL_HALF_FLOAT,
@@ -78,20 +61,9 @@ public:
             .minFilter = GL_NEAREST,
             .magFilter = GL_NEAREST,
         })
-        , maskFrameRT({
-            .width = quadFrame.getSize().x,
-            .height = quadFrame.getSize().y,
-            .internalFormat = GL_RGBA16F,
-            .format = GL_RGBA,
-            .type = GL_HALF_FLOAT,
-            .wrapS = GL_CLAMP_TO_EDGE,
-            .wrapT = GL_CLAMP_TO_EDGE,
-            .minFilter = GL_NEAREST,
-            .magFilter = GL_NEAREST,
-        })
-        , maskTempRT({
-            .width = quadFrame.getSize().x,
-            .height = quadFrame.getSize().y,
+        , resFrameRT({
+            .width = quadSet.getSize().x,
+            .height = quadSet.getSize().y,
             .internalFormat = GL_RGBA16F,
             .format = GL_RGBA,
             .type = GL_HALF_FLOAT,
@@ -101,8 +73,8 @@ public:
             .magFilter = GL_NEAREST,
         })
         , copyRT({
-            .width = quadFrame.getSize().x,
-            .height = quadFrame.getSize().y,
+            .width = quadSet.getSize().x,
+            .height = quadSet.getSize().y,
             .internalFormat = GL_RGBA16F,
             .format = GL_RGBA,
             .type = GL_HALF_FLOAT,
@@ -111,8 +83,11 @@ public:
             .minFilter = GL_NEAREST,
             .magFilter = GL_NEAREST,
         })
-        , maskFrameMesh(quadFrame, maskFrameRT.colorTexture, MAX_NUM_PROXIES / 4) // We can use less vertices and indicies for the mask since it will be sparse
-        , depthMesh(quadFrame.getSize(), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f))
+        // We can use less vertices and indicies for the mask since it will be sparse
+        , resFrameMesh(quadSet, resFrameRT.colorTexture, MAX_NUM_PROXIES / 4)
+        , depthMesh(quadSet.getSize(), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f))
+        , wireframeMaterial({ .baseColor = colors[0] })
+        , maskWireframeMaterial({ .baseColor = colors[colors.size()-1] })
     {
         remoteCameraPrev.setViewMatrix(remoteCamera.getViewMatrix());
         remoteCameraPrev.setViewMatrix(remoteCamera.getViewMatrix());
@@ -124,7 +99,7 @@ public:
         refFrameWireframesLocal.reserve(2);
 
         for (int i = 0; i < 2; i++) {
-            refFrameMeshes.emplace_back(quadFrame, refFrameRT.colorTexture);
+            refFrameMeshes.emplace_back(quadSet, refFrameRT.colorTexture);
 
             refFrameNodes.emplace_back(&refFrameMeshes[i]);
             refFrameNodes[i].frustumCulled = false;
@@ -140,14 +115,14 @@ public:
             refFrameWireframesLocal[i].overrideMaterial = &wireframeMaterial;
         }
 
-        maskFrameNode.setEntity(&maskFrameMesh);
-        maskFrameNode.frustumCulled = false;
+        resFrameNode.setEntity(&resFrameMesh);
+        resFrameNode.frustumCulled = false;
 
-        maskFrameWireframeNodesLocal.setEntity(&maskFrameMesh);
-        maskFrameWireframeNodesLocal.frustumCulled = false;
-        maskFrameWireframeNodesLocal.wireframe = true;
-        maskFrameWireframeNodesLocal.visible = false;
-        maskFrameWireframeNodesLocal.overrideMaterial = &maskWireframeMaterial;
+        resFrameWireframeNodesLocal.setEntity(&resFrameMesh);
+        resFrameWireframeNodesLocal.frustumCulled = false;
+        resFrameWireframeNodesLocal.wireframe = true;
+        resFrameWireframeNodesLocal.visible = false;
+        resFrameWireframeNodesLocal.overrideMaterial = &maskWireframeMaterial;
 
         depthNode.setEntity(&depthMesh);
         depthNode.frustumCulled = false;
@@ -158,7 +133,7 @@ public:
 
     uint getNumTriangles() const {
         auto refMeshSizes = refFrameMeshes[currMeshIndex].getBufferSizes();
-        auto maskMeshSizes = maskFrameMesh.getBufferSizes();
+        auto maskMeshSizes = resFrameMesh.getBufferSizes();
         return (refMeshSizes.numIndices + maskMeshSizes.numIndices) / 3; // Each triangle has 3 indices
     }
 
@@ -167,8 +142,8 @@ public:
             localScene.addChildNode(&refFrameNodesLocal[i]);
             localScene.addChildNode(&refFrameWireframesLocal[i]);
         }
-        localScene.addChildNode(&maskFrameNode);
-        localScene.addChildNode(&maskFrameWireframeNodesLocal);
+        localScene.addChildNode(&resFrameNode);
+        localScene.addChildNode(&resFrameWireframeNodesLocal);
         localScene.addChildNode(&depthNode);
     }
 
@@ -201,10 +176,11 @@ public:
         */
         auto& quadsGenerator = frameGenerator.quadsGenerator;
         quadsGenerator.params.expandEdges = false;
-        auto sizes = frameGenerator.generateRefFrame(
+        frameGenerator.generateRefFrame(
             refFrameRT,
             remoteCameraToUse,
-            refFrameMeshes[currMeshIndex]
+            refFrameMeshes[currMeshIndex],
+            referenceFrame
         );
 
         stats.totalGenQuadMapTime += frameGenerator.stats.timeToGenerateQuadsMs;
@@ -218,7 +194,7 @@ public:
         stats.totalCreateMeshTime += frameGenerator.stats.timeToCreateMeshMs;
 
         if (!generateResFrame) {
-            stats.totalCompressTime += frameGenerator.stats.timeToCompress;
+            stats.totalCompressTime += frameGenerator.stats.timeToCompressMs;
         }
 
         /*
@@ -228,11 +204,12 @@ public:
         */
         if (generateResFrame) {
             quadsGenerator.params.expandEdges = true;
-            sizes = frameGenerator.generateResFrame(
+            frameGenerator.generateResFrame(
                 meshScenes[currMeshIndex], meshScenes[prevMeshIndex],
-                maskTempRT, maskFrameRT,
+                resFrameRT,
                 remoteCamera, remoteCameraPrev,
-                refFrameMeshes[currMeshIndex], maskFrameMesh
+                refFrameMeshes[currMeshIndex], resFrameMesh,
+                residualFrame
             );
 
             stats.totalRenderTime += frameGenerator.stats.timeToRenderMaskMs;
@@ -247,11 +224,10 @@ public:
             stats.totalCreateVertIndTime += frameGenerator.stats.timeToCreateVertIndMs;
             stats.totalCreateMeshTime += frameGenerator.stats.timeToCreateMeshMs;
 
-            stats.totalCompressTime += frameGenerator.stats.timeToCompress;
+            stats.totalCompressTime += frameGenerator.stats.timeToCompressMs;
         }
-        stats.sizes = sizes;
 
-        maskFrameNode.visible = generateResFrame;
+        resFrameNode.visible = generateResFrame;
         currMeshIndex = (currMeshIndex + 1) % meshScenes.size();
         prevMeshIndex = (prevMeshIndex + 1) % meshScenes.size();
 
@@ -265,55 +241,63 @@ public:
             depthMesh.update(remoteCamera, refFrameRT);
             stats.totalGenDepthTime += depthMesh.stats.genDepthTime;
         }
+
+        if (!generateResFrame) {
+            stats.totalSizes.numQuads += referenceFrame.getTotalNumQuads();
+            stats.totalSizes.numDepthOffsets += referenceFrame.getTotalNumDepthOffsets();
+            stats.totalSizes.quadsSize += referenceFrame.getTotalQuadsSize();
+            stats.totalSizes.depthOffsetsSize += referenceFrame.getTotalDepthOffsetsSize();
+        }
+        else {
+            stats.totalSizes.numQuads += residualFrame.getTotalNumQuads();
+            stats.totalSizes.numDepthOffsets += residualFrame.getTotalNumDepthOffsets();
+            stats.totalSizes.quadsSize += residualFrame.getTotalQuadsSize();
+            stats.totalSizes.depthOffsetsSize += residualFrame.getTotalDepthOffsetsSize();
+        }
     }
 
     uint saveToFile(const Path& outputPath) {
-        // Save quads
-        double startTime = timeutils::getTimeMicros();
-        Path filename = (outputPath / "quads").withExtension(".bin.zstd");
-        std::ofstream quadsFile = std::ofstream(filename, std::ios::binary);
-        quadsFile.write(quadFrame.getQuads().data(), quadFrame.getQuads().size());
-        quadsFile.close();
-        spdlog::info("Saved {} quads ({:.3f}MB) in {:.3f}ms",
-                      stats.sizes.numQuads, static_cast<double>(quadFrame.getQuads().size()) / BYTES_PER_MEGABYTE,
-                        timeutils::microsToMillis(timeutils::getTimeMicros() - startTime));
-
-        // Save depth offsets
-        startTime = timeutils::getTimeMicros();
-        Path offsetsFile = (outputPath / "depthOffsets").withExtension(".bin.zstd");
-        std::ofstream depthOffsetsFile = std::ofstream(offsetsFile, std::ios::binary);
-        depthOffsetsFile.write(quadFrame.getDepthOffsets().data(), quadFrame.getDepthOffsets().size());
-        depthOffsetsFile.close();
-        spdlog::info("Saved {} depth offsets ({:.3f}MB) in {:.3f}ms",
-                     stats.sizes.numDepthOffsets, static_cast<double>(quadFrame.getDepthOffsets().size()) / BYTES_PER_MEGABYTE,
-                        timeutils::microsToMillis(timeutils::getTimeMicros() - startTime));
-
-        // Save color buffer
+        // Save color
         Path colorFileName = outputPath / "color";
         copyRT.saveColorAsJPG(colorFileName.withExtension(".jpg"));
 
-        return quadFrame.getQuads().size() + quadFrame.getDepthOffsets().size();
+        // Save proxies
+        return referenceFrame.saveToFiles(outputPath);
     }
 
 private:
-    QuadFrame& quadFrame;
+    const std::vector<glm::vec4> colors = {
+        glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), // primary view color is yellow
+        glm::vec4(0.0f, 0.0f, 1.0f, 1.0f),
+        glm::vec4(0.0f, 1.0f, 0.0f, 1.0f),
+        glm::vec4(1.0f, 0.5f, 0.5f, 1.0f),
+        glm::vec4(0.5f, 0.0f, 0.0f, 1.0f),
+        glm::vec4(0.0f, 1.0f, 1.0f, 1.0f),
+        glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
+        glm::vec4(0.0f, 0.5f, 0.0f, 1.0f),
+        glm::vec4(0.0f, 0.0f, 0.5f, 1.0f),
+        glm::vec4(0.5f, 0.0f, 0.5f, 1.0f),
+    };
 
+    QuadSet& quadSet;
     FrameGenerator& frameGenerator;
+
+    PerspectiveCamera remoteCameraPrev;
+
+    // Scenes with resulting meshes
+    std::vector<Scene> meshScenes;
+
+    // Holds a copy of the current frame
+    FrameRenderTarget copyRT;
 
     // Shaders
     ToneMapper toneMapper;
     ShowNormalsEffect showNormalsEffect;
 
-    PerspectiveCamera remoteCameraPrev;
-
-    // Scenes with resulting mesh
-    std::vector<Scene> meshScenes;
-
-    QuadMaterial wireframeMaterial = QuadMaterial({. baseColor = colors[0] });
-    QuadMaterial maskWireframeMaterial = QuadMaterial({. baseColor = colors[colors.size()-1] });
+    QuadMaterial wireframeMaterial;
+    QuadMaterial maskWireframeMaterial;
 };
 
 } // namespace quasar
-
 
 #endif // QUADS_SIMULATOR_H

@@ -202,7 +202,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: RGB (%.3f ms), BC4 D (%.3f ms)", videoStreamerColorRT.stats.timeToCopyFrameMs, bc4DepthStreamerRT.stats.timeToCopyFrameMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: RGB (%.3f ms), BC4 D (%.3f ms)", videoStreamerColorRT.stats.timeToTransferMs, bc4DepthStreamerRT.stats.timeToTransferMs);
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: RGB (%.3f ms), BC4 D (%.3f ms)", videoStreamerColorRT.stats.timeToEncodeMs, bc4DepthStreamerRT.stats.timeToCompressMs);
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: RGB (%.3f ms), BC4 D (%.3f ms)", videoStreamerColorRT.stats.timeToSendMs, bc4DepthStreamerRT.stats.timeToSendMs);
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: RGB (%.3f Mbps), BC4 D (%.3f Mbps)", videoStreamerColorRT.stats.bitrateMbps, bc4DepthStreamerRT.stats.bitrateMbps);

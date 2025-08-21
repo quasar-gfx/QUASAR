@@ -221,7 +221,7 @@ void VideoStreamer::encodeAndSendFrames() {
 #endif
         // Pack the pose ID into the video frame
         packPoseIDIntoVideoFrame(poseIDToSend);
-        stats.timeToCopyFrameMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startCopyTime);
+        stats.timeToTransferMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startCopyTime);
 
         // Push to GStreamer
         time_t startEncode = timeutils::getTimeMicros();
