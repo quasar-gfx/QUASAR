@@ -96,7 +96,17 @@ pose_id_t BC4DepthVideoTexture::draw(pose_id_t poseID) {
     }
 
     // Update the BC4 compressed buffer
-    bc4CompressedBuffer.setData(compressedSize, res.data());
+    bc4CompressedBuffer.bind();
+    void* dst = bc4CompressedBuffer.mapToCPU(GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+    if (dst) {
+        std::memcpy(dst, res.data(), res.size());
+        bc4CompressedBuffer.unmapFromCPU();
+    }
+    else {
+        spdlog::warn("Failed to map BC4 compressed buffer. Copying using setData");
+        bc4CompressedBuffer.setData(res.size(), res.data());
+    }
+    bc4CompressedBuffer.unbind();
 
     prevPoseID = resPoseID;
 

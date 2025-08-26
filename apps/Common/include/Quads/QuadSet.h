@@ -57,14 +57,12 @@ public:
     }
 
 #ifdef GL_CORE
-    Sizes mapToCPU(std::vector<char>& outputQuads, std::vector<char>& outputDepthOffsets) {
-#if defined(HAS_CUDA)
+    Sizes copyToCPU(std::vector<char>& outputQuads, std::vector<char>& outputDepthOffsets) {
         double startTime = timeutils::getTimeMicros();
-        quadBuffers.mapToCPU(outputQuads);
-        depthOffsets.mapToCPU(outputDepthOffsets);
+        quadBuffers.copyToCPU(outputQuads);
+        depthOffsets.copyToCPU(outputDepthOffsets);
         stats.timeToTransferMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
-#endif
         return {
             quadBuffers.numProxies,
             depthOffsets.getSize().x * depthOffsets.getSize().y,
@@ -74,10 +72,10 @@ public:
     }
 #endif
 
-    Sizes unmapFromCPU(std::vector<char>& inputQuads, std::vector<char>& inputDepthOffsets) {
+    Sizes copyFromCPU(std::vector<char>& inputQuads, std::vector<char>& inputDepthOffsets) {
         double startTime = timeutils::getTimeMicros();
-        quadBuffers.unmapFromCPU(inputQuads);
-        depthOffsets.unmapFromCPU(inputDepthOffsets);
+        quadBuffers.copyFromCPU(inputQuads);
+        depthOffsets.copyFromCPU(inputDepthOffsets);
         stats.timeToTransferMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
         return {

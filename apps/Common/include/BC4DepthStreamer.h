@@ -67,7 +67,7 @@ private:
     ComputeShader bc4CompressionShader;
 
     size_t applyCodec();
-    void copyFrameToCPU(pose_id_t poseID = -1, void* cudaPtr = nullptr);
+    void copyToCPU(pose_id_t poseID = -1, void* cudaPtr = nullptr);
 
 #if defined(HAS_CUDA)
     CudaGLBuffer cudaBufferBc4;

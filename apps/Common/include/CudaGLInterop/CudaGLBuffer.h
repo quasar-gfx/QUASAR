@@ -20,7 +20,6 @@ public:
         cudautils::checkCudaDevice();
         registerBuffer(buffer);
     }
-
     ~CudaGLBuffer() {
         if (ownsStream && stream) cudaStreamSynchronize(stream);
         if (cudaResource) {
@@ -61,8 +60,52 @@ public:
         return cudaPtr;
     }
 
+    void copyFromHostAsync(const void* src, size_t bytes) {
+        ensureStream();
+        CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource, stream));
+        void* dst = nullptr; size_t size = 0;
+        CHECK_CUDA_ERROR(cudaGraphicsResourceGetMappedPointer(&dst, &size, cudaResource));
+        // Clamp to mapped size (defensive; keep behavior predictable)
+        const size_t n = (bytes <= size) ? bytes : size;
+        CHECK_CUDA_ERROR(cudaMemcpyAsync(dst, src, n, cudaMemcpyHostToDevice, stream));
+        CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource, stream));
+    }
+
+    void copyFromDeviceAsync(const void* srcDevice, size_t bytes) {
+        ensureStream();
+        CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource, stream));
+        void* dst = nullptr; size_t size = 0;
+        CHECK_CUDA_ERROR(cudaGraphicsResourceGetMappedPointer(&dst, &size, cudaResource));
+        const size_t n = (bytes <= size) ? bytes : size;
+        CHECK_CUDA_ERROR(cudaMemcpyAsync(dst, srcDevice, n, cudaMemcpyDeviceToDevice, stream));
+        CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource, stream));
+    }
+
+    void copyToHostAsync(void* dstHost, size_t bytes) {
+        ensureStream();
+        CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaResource, stream));
+        void* src = nullptr; size_t size = 0;
+        CHECK_CUDA_ERROR(cudaGraphicsResourceGetMappedPointer(&src, &size, cudaResource));
+        const size_t n = (bytes <= size) ? bytes : size;
+        CHECK_CUDA_ERROR(cudaMemcpyAsync(dstHost, src, n, cudaMemcpyDeviceToHost, stream));
+        CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaResource, stream));
+    }
+
+    void synchronize() {
+        ensureStream();
+        CHECK_CUDA_ERROR(cudaStreamSynchronize(stream));
+    }
+
     cudaStream_t getStream() const { return stream; }
     void setStream(cudaStream_t s) { stream = s; ownsStream = false; }
+
+    static void registerHostBuffer(void* ptr, size_t size) {
+        CHECK_CUDA_ERROR(cudaHostRegister(ptr, size, 0));
+    }
+
+    static void unregisterHostBuffer(void* ptr) {
+        CHECK_CUDA_ERROR(cudaHostUnregister(ptr));
+    }
 
 private:
     bool ownsStream = false;

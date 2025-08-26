@@ -173,13 +173,11 @@ void CubeMap::initBuffers() {
         { {-1.0f, -1.0f, 1.0f} },
         { {1.0f, -1.0f, 1.0f} },
     };
-
-    glGenVertexArrays(1, &vertexArrayBuffer);
-
-    glBindVertexArray(vertexArrayBuffer);
-
     vertexBuffer.bind();
     vertexBuffer.setData(skyboxVertices.size(), skyboxVertices.data());
+
+    glGenVertexArrays(1, &vertexArrayBuffer);
+    glBindVertexArray(vertexArrayBuffer);
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(CubeMapVertex), (void*)0);

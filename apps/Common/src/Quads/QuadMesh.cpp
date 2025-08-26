@@ -80,6 +80,7 @@ QuadMesh::BufferSizes QuadMesh::getBufferSizes() const {
     BufferSizes bufferSizes;
     meshSizesBuffer.bind();
     meshSizesBuffer.getData(&bufferSizes);
+    meshSizesBuffer.unbind();
     return bufferSizes;
 }
 
@@ -166,7 +167,7 @@ void QuadMesh::createMeshFromProxies(const QuadSet& quadSet, const glm::vec2& gB
 
         createQuadMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 9, currNumProxiesBuffer);
 
-        createQuadMeshShader.setImageTexture(0, quadSet.depthOffsets.buffer, 0, GL_FALSE, 0, GL_READ_ONLY, quadSet.depthOffsets.buffer.internalFormat);
+        createQuadMeshShader.setImageTexture(0, quadSet.depthOffsets.texture, 0, GL_FALSE, 0, GL_READ_ONLY, quadSet.depthOffsets.texture.internalFormat);
     }
     createQuadMeshShader.dispatch((quadSet.getSize().x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
                                   (quadSet.getSize().y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);

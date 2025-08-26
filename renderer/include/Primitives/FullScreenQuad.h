@@ -11,19 +11,6 @@
 namespace quasar {
 
 class FullScreenQuad {
-private:
-    struct FSQuadVertex {
-        glm::vec2 position;
-        glm::vec2 texCoord;
-
-        static const VertexInputAttributes getVertexInputAttributes() {
-            return {
-                {0, 2, GL_FLOAT, GL_FALSE, offsetof(FSQuadVertex, position)},
-                {1, 2, GL_FLOAT, GL_FALSE, offsetof(FSQuadVertex, texCoord)},
-            };
-        }
-    };
-
 public:
     Buffer vertexBuffer;
 
@@ -51,6 +38,9 @@ public:
 
         setArrayBufferAttributes(FSQuadVertex::getVertexInputAttributes(), sizeof(FSQuadVertex));
     }
+    ~FullScreenQuad() {
+        glDeleteVertexArrays(1, &vertexArrayBuffer);
+    }
 
     void setArrayBufferAttributes(const VertexInputAttributes& attributes, uint vertexSize) {
         glGenVertexArrays(1, &vertexArrayBuffer);
@@ -66,10 +56,6 @@ public:
 
         glBindVertexArray(0);
     }
-
-    ~FullScreenQuad() {
-        glDeleteVertexArrays(1, &vertexArrayBuffer);
-    };
 
     RenderStats draw() {
         RenderStats stats;
@@ -91,6 +77,18 @@ public:
     }
 
 private:
+    struct FSQuadVertex {
+        glm::vec2 position;
+        glm::vec2 texCoord;
+
+        static const VertexInputAttributes getVertexInputAttributes() {
+            return {
+                {0, 2, GL_FLOAT, GL_FALSE, offsetof(FSQuadVertex, position)},
+                {1, 2, GL_FLOAT, GL_FALSE, offsetof(FSQuadVertex, texCoord)},
+            };
+        }
+    };
+
     GLuint vertexArrayBuffer;
 };
 

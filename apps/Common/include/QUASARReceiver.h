@@ -87,7 +87,7 @@ public:
             stats.decompressTime += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
             // Copy data to GPU
-            auto sizes = quadSet.unmapFromCPU(uncompressedQuads, uncompressedOffsets);
+            auto sizes = quadSet.copyFromCPU(uncompressedQuads, uncompressedOffsets);
             stats.transferTime += quadSet.stats.timeToTransferMs;
 
             // Update mesh

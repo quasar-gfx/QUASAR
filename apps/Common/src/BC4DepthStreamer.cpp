@@ -75,25 +75,35 @@ size_t BC4DepthStreamer::compress(bool compress) {
     bc4CompressionShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
     if (compress) {
-        copyFrameToCPU();
+        copyToCPU();
         return applyCodec();
     }
 
     return 0;
 }
 
-void BC4DepthStreamer::copyFrameToCPU(pose_id_t poseID, void* cudaPtr) {
+void BC4DepthStreamer::copyToCPU(pose_id_t poseID, void* cudaPtr) {
     std::memcpy(data.data(), &poseID, sizeof(pose_id_t));
 
 #if defined(HAS_CUDA)
     if (cudaPtr == nullptr) {
-        cudaPtr = cudaBufferBc4.getPtr();
+        CudaGLBuffer::registerHostBuffer(data.data(), sizeof(pose_id_t) + compressedSize * sizeof(BC4Block));
+        cudaBufferBc4.copyToHostAsync(data.data() + sizeof(pose_id_t), compressedSize * sizeof(BC4Block));
+        cudaBufferBc4.synchronize();
+        CudaGLBuffer::unregisterHostBuffer(data.data());
     }
-
-    CHECK_CUDA_ERROR(cudaMemcpy(data.data() + sizeof(pose_id_t),
-                                cudaPtr,
-                                compressedSize * sizeof(BC4Block),
-                                cudaMemcpyDeviceToHost));
+    else {
+        CudaGLBuffer::registerHostBuffer(data.data(), sizeof(pose_id_t) + compressedSize * sizeof(BC4Block));
+        cudaBufferBc4.synchronize();
+        cudaStream_t stream = cudaBufferBc4.getStream();
+        CHECK_CUDA_ERROR(cudaMemcpyAsync(data.data() + sizeof(pose_id_t),
+                                         cudaPtr,
+                                         compressedSize * sizeof(BC4Block),
+                                         cudaMemcpyDeviceToHost,
+                                         stream));
+        CHECK_CUDA_ERROR(cudaStreamSynchronize(stream));
+        CudaGLBuffer::unregisterHostBuffer(data.data());
+    }
 #else
     bc4CompressedBuffer.bind();
     bc4CompressedBuffer.setData(compressedSize * sizeof(BC4Block), data.data() + sizeof(pose_id_t));
@@ -161,7 +171,7 @@ void BC4DepthStreamer::sendData() {
         time_t startTransferTime = timeutils::getTimeMicros();
 
         std::memcpy(data.data(), &cudaBufferStruct.poseID, sizeof(pose_id_t));
-        copyFrameToCPU(cudaBufferStruct.poseID, cudaBufferStruct.buffer);
+        copyToCPU(cudaBufferStruct.poseID, cudaBufferStruct.buffer);
 
         stats.timeToTransferMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTransferTime);
 

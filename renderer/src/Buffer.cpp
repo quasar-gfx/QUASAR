@@ -16,6 +16,7 @@ Buffer::Buffer(const BufferCreateParams& params)
     glGenBuffers(1, &ID);
     bind();
     setData(params.numElems, params.data);
+    unbind();
 }
 
 Buffer::Buffer(const Buffer& other)
@@ -71,7 +72,6 @@ Buffer& Buffer::operator=(const Buffer& other) {
         other.getData(data.data());
 #endif
         setData(numElems, data.data());
-        unbind();
     }
 
     return *this;

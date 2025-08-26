@@ -206,7 +206,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to load data: %.3f ms", quadstreamReceiver.stats.loadFromFilesTime);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to load from disk: %.3f ms", quadstreamReceiver.stats.loadFromFilesTime);
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decompress data: %.3f ms", quadstreamReceiver.stats.decompressTime);
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy data to GPU: %.3f ms", quadstreamReceiver.stats.transferTime);
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to create mesh: %.3f ms", quadstreamReceiver.stats.createMeshTime);

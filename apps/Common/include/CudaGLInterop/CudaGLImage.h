@@ -20,7 +20,6 @@ public:
         cudautils::checkCudaDevice();
         registerTexture(texture);
     }
-
     ~CudaGLImage() {
         if (ownsStream && stream) cudaStreamSynchronize(stream);
         if (cudaResource) {
@@ -95,16 +94,29 @@ public:
         CHECK_CUDA_ERROR(cudaStreamSynchronize(stream));
     }
 
+    void synchronize() {
+        ensureStream();
+        CHECK_CUDA_ERROR(cudaStreamSynchronize(stream));
+    }
+
     cudaStream_t getStream() const { return stream; }
     void setStream(cudaStream_t s) { stream = s; ownsStream = false; }
+
+    static void registerHostBuffer(void* ptr, size_t size) {
+        CHECK_CUDA_ERROR(cudaHostRegister(ptr, size, 0));
+    }
+
+    static void unregisterHostBuffer(void* ptr) {
+        CHECK_CUDA_ERROR(cudaHostUnregister(ptr));
+    }
 
 private:
     bool ownsStream = false;
 
-    const Texture* texture;
+    const Texture* texture = nullptr;
 
-    cudaGraphicsResource* cudaResource;
-    cudaStream_t stream;
+    cudaGraphicsResource* cudaResource = nullptr;
+    cudaStream_t stream = nullptr;
 };
 
 } // namespace quasar

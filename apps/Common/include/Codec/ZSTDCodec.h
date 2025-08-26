@@ -27,7 +27,6 @@ public:
             ZSTD_CCtx_setParameter(compressionCtx, ZSTD_c_jobSize, chunkSize);
         }
     }
-
     ~ZSTDCodec() override {
         ZSTD_freeCCtx(compressionCtx);
         ZSTD_freeDCtx(decompressionCtx);

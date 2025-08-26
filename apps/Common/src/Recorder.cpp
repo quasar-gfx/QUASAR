@@ -49,7 +49,8 @@ void Recorder::saveScreenshotToFile(const Path& filename, bool saveToHDR) {
 
     if (saveToHDR) {
         saveColorAsHDR(filename.withExtension(".hdr"));
-    } else {
+    }
+    else {
         saveColorAsPNG(filename.withExtension(".png"));
     }
 }
@@ -63,7 +64,8 @@ void Recorder::start() {
         initializeFFmpeg();
         saveThreadPool = std::make_unique<BS::thread_pool<>>(1);
         (void)saveThreadPool->submit_task([this]() { saveFrames(0); });
-    } else {
+    }
+    else {
         saveThreadPool = std::make_unique<BS::thread_pool<>>(numThreads);
         for (int i = 0; i < numThreads; i++) {
             (void)saveThreadPool->submit_task([this, i]() { saveFrames(i); });
@@ -168,7 +170,8 @@ void Recorder::saveFrames(int threadID) {
 
             av_interleaved_write_frame(outputFormatCtx, packet);
             av_packet_unref(packet);
-        } else {
+        }
+        else {
             std::stringstream ss;
             ss << "frame_" << std::setw(6) << std::setfill('0') << frameID;
             Path fileNameBase = outputPath / ss.str();
@@ -176,7 +179,8 @@ void Recorder::saveFrames(int threadID) {
             FileIO::flipVerticallyOnWrite(true);
             if (outputFormat == OutputFormat::PNG) {
                 FileIO::saveToPNG(fileNameBase.withExtension(".png"), width, height, 4, renderTargetData.data());
-            } else {
+            }
+            else {
                 FileIO::saveToJPG(fileNameBase.withExtension(".jpg"), width, height, 4, renderTargetData.data());
             }
         }

@@ -37,7 +37,6 @@ Scene::Scene()
         .magFilter = GL_LINEAR,
         .data = nullptr,
     })
-    , brdfFsQuad()
     , equirectToCubeMapShader({
         .vertexCodeData = SHADER_BUILTIN_CUBEMAP_VERT,
         .vertexCodeSize = SHADER_BUILTIN_CUBEMAP_VERT_len,
@@ -61,8 +60,9 @@ Scene::Scene()
         .vertexCodeSize = SHADER_BUILTIN_BRDF_VERT_len,
         .fragmentCodeData = SHADER_BUILTIN_BRDF_FRAG,
         .fragmentCodeSize = SHADER_BUILTIN_BRDF_FRAG_len,
-    }),
-    pointLightUBO({
+    })
+    , brdfFsQuad()
+    , pointLightUBO({
         .target = GL_UNIFORM_BUFFER,
         .dataSize = sizeof(GPUPointLightBlock),
         .numElems = 1,

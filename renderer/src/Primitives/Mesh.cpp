@@ -14,6 +14,7 @@ Mesh::Mesh()
         .dataSize = sizeof(uint),
     })
 {
+    vertexBuffer.bind();
     setArrayBufferAttributes(Vertex::getVertexInputAttributes(), sizeof(Vertex));
 }
 
@@ -40,6 +41,7 @@ Mesh::Mesh(const MeshDataCreateParams& params)
     , vertexSize(params.vertexSize)
     , attributes(params.attributes)
 {
+    vertexBuffer.bind();
     setArrayBufferAttributes(params.attributes, params.vertexSize);
     setBuffers(params.verticesData, params.verticesSize, params.indicesData, params.indicesSize);
 
@@ -74,6 +76,7 @@ Mesh::Mesh(const MeshSizeCreateParams& params)
     , vertexSize(params.vertexSize)
     , attributes(params.attributes)
 {
+    vertexBuffer.bind();
     setArrayBufferAttributes(params.attributes, params.vertexSize);
     setBuffers(params.maxVertices, params.maxIndices);
 
@@ -106,10 +109,10 @@ void Mesh::setBuffers(const void* verticesData, uint verticesSize, const uint* i
         return;
     }
 
-    glBindVertexArray(vertexArrayBuffer);
-
     vertexBuffer.bind();
     vertexBuffer.setData(verticesSize, verticesData);
+
+    glBindVertexArray(vertexArrayBuffer);
 
     updateAABB(verticesData, verticesSize);
 
@@ -134,6 +137,7 @@ void Mesh::setBuffers(uint verticesSize, uint indicesSize) {
 
     vertexBuffer.bind();
     vertexBuffer.resize(verticesSize);
+    vertexBuffer.unbind();
 
     if (indicesSize == 0) {
         glBindVertexArray(0);
@@ -142,6 +146,7 @@ void Mesh::setBuffers(uint verticesSize, uint indicesSize) {
 
     indexBuffer.bind();
     indexBuffer.resize(indicesSize);
+    indexBuffer.unbind();
 
     glBindVertexArray(0);
 }
@@ -265,20 +270,24 @@ RenderStats Mesh::draw(GLenum primativeType) {
         if (indexBuffer.getSize() > 0) {
             indexBuffer.bind();
             glDrawElementsIndirect(primativeType, GL_UNSIGNED_INT, 0);
+            indexBuffer.unbind();
         }
         else {
             vertexBuffer.bind();
             glDrawArraysIndirect(primativeType, 0);
+            vertexBuffer.unbind();
         }
     }
     else {
         if (indexBuffer.getSize() > 0) {
             indexBuffer.bind();
             glDrawElements(primativeType, indexBuffer.getSize(), GL_UNSIGNED_INT, 0);
+            indexBuffer.unbind();
         }
         else {
             vertexBuffer.bind();
             glDrawArrays(primativeType, 0, vertexBuffer.getSize());
+            vertexBuffer.unbind();
         }
     }
     glBindVertexArray(0);
