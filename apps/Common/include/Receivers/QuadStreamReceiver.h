@@ -24,6 +24,7 @@ public:
     } stats;
 
     uint maxViews;
+    float viewBoxSize;
     std::vector<ReferenceFrame> frames;
 
     QuadStreamReceiver(QuadSet& quadSet, uint maxViews);

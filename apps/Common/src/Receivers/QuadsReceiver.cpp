@@ -46,7 +46,6 @@ QuadsReceiver::QuadsReceiver(QuadSet& quadSet, float remoteFOV, const std::strin
 {
     remoteCamera.setFovyDegrees(remoteFOV);
     remoteCameraPrev.setProjectionMatrix(remoteCamera.getProjectionMatrix());
-    remoteCameraPrev.setViewMatrix(remoteCamera.getViewMatrix());
 }
 
 void QuadsReceiver::onDataReceived(const std::vector<char>& data) {

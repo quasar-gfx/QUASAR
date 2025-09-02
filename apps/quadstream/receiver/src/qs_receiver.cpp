@@ -122,6 +122,8 @@ int main(int argc, char** argv) {
     for (int i = 0; i < maxViews; ++i) {
         showViews[i] = true;
     }
+    bool showWireframe = false;
+
     RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
@@ -207,11 +209,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            bool showWireframe = nodeWireframes[0].visible;
             ImGui::Checkbox("Show Wireframe", &showWireframe);
-            for (int i = 0; i < maxViews; i++) {
-                nodeWireframes[i].visible = showWireframe;
-            }
 
             ImGui::Separator();
 
@@ -307,7 +305,7 @@ int main(int argc, char** argv) {
 
         for (int i = 0; i < maxViews; i++) {
             nodes[i].visible = showViews[i];
-            nodeWireframes[i].visible = showViews[i];
+            nodeWireframes[i].visible = showWireframe && showViews[i];
         }
 
         // Render all objects in scene

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
-project(QuadsReciever)
+project(Quadsreceiver)
 
-set(TARGET quads_reciever)
+set(TARGET quads_receiver)
 
 set(PUBLIC_HDR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 

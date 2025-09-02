@@ -53,7 +53,7 @@ QuadStreamStreamer::QuadStreamStreamer(
             rtParams.width = 1280; rtParams.height = 720;
         }
 
-        remoteCameras[view].setAspect(rtParams.width, rtParams.height);
+        remoteCameras[view].setProjectionMatrix(remoteCameras[view].getProjectionMatrix());
         if (view == maxViews - 1) {
             remoteCameras[view].setFovyDegrees(wideFOV);
         }
@@ -66,7 +66,7 @@ QuadStreamStreamer::QuadStreamStreamer(
         referenceFrameRTs_noTone.emplace_back(rtParams);
 
         // We can use less vertices and indicies for the additional views since they will be sparser
-        uint maxProxies = (view == 0 || view == maxViews - 1) ? MAX_QUADS_PER_MESH : MAX_QUADS_PER_MESH / 4;
+        uint maxProxies = (view == 0 || view == maxViews - 1) ? MAX_QUADS_PER_MESH : MAX_QUADS_PER_MESH / 8;
         referenceFrameMeshes.emplace_back(quadSet, referenceFrameRTs_noTone[view].colorTexture, maxProxies);
         referenceFrameNodesLocal.emplace_back(&referenceFrameMeshes[view]);
         referenceFrameNodesLocal[view].frustumCulled = false;
@@ -225,7 +225,6 @@ void QuadStreamStreamer::generateFrame(
 }
 
 size_t QuadStreamStreamer::writeToFiles(const Path& outputPath) {
-
     // Save camera data
     Pose cameraPose;
     PerspectiveCamera& remoteCameraCenter = remoteCameras[0];

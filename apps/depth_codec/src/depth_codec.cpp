@@ -270,7 +270,6 @@ int main(int argc, char** argv) {
 
         remoteRenderer.setWindowSize(width, height);
         renderer.setWindowSize(width, height);
-
         camera.setAspect(windowSize);
         camera.updateProjectionMatrix();
     });

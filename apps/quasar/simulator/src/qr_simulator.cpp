@@ -96,28 +96,22 @@ int main(int argc, char** argv) {
 
     // "Remote" scene
     Scene remoteScene;
-    PerspectiveCamera remoteCameraCenter(remoteRendererDP.width, remoteRendererDP.height);
-    PerspectiveCamera remoteCameraWideFov(remoteRenderer.width, remoteRenderer.height);
-
+    PerspectiveCamera remoteCamera(remoteRendererDP.width, remoteRendererDP.height);
     SceneLoader loader;
-    loader.loadScene(sceneFile, remoteScene, remoteCameraCenter);
+    loader.loadScene(sceneFile, remoteScene, remoteCamera);
 
     float remoteFOV = args::get(remoteFOVIn);
-    remoteCameraCenter.setFovyDegrees(remoteFOV);
+    remoteCamera.setFovyDegrees(remoteFOV);
 
-     // Make last camera have a larger fov
-    float remoteFOVWide = args::get(remoteFOVWideIn);
-    remoteCameraWideFov.setFovyDegrees(remoteFOVWide);
-
-    // "Local" scene with all the meshLayers
+    // "Local" scene
     Scene localScene;
     localScene.envCubeMap = remoteScene.envCubeMap;
     PerspectiveCamera camera(windowSize);
-    camera.setViewMatrix(remoteCameraCenter.getViewMatrix());
+    camera.setViewMatrix(remoteCamera.getViewMatrix());
 
     QuadSet quadSet(remoteWindowSize);
-    FrameGenerator frameGenerator(quadSet);
-    QUASARStreamer quasar(quadSet, maxLayersWideFOV, remoteRenderer, remoteScene, remoteCameraCenter, frameGenerator);
+    float remoteFOVWide = args::get(remoteFOVWideIn);
+    QUASARStreamer quasar(quadSet, maxLayersWideFOV, remoteRenderer, remoteScene, remoteCamera, remoteFOVWide);
 
     quasar.addMeshesToScene(localScene);
 
@@ -145,10 +139,9 @@ int main(int argc, char** argv) {
 
     if (cameraPathFileIn) {
         cameraAnimator.copyPoseToCamera(camera);
-        cameraAnimator.copyPoseToCamera(remoteCameraCenter);
+        cameraAnimator.copyPoseToCamera(remoteCamera);
     }
 
-    bool writeToFile = false;
     bool showDepth = false;
     bool showNormals = false;
     bool showWireframe = false;
@@ -306,7 +299,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::CollapsingHeader("Quad Generation Settings")) {
-                auto quadsGenerator = frameGenerator.getQuadsGenerator();
+                auto quadsGenerator = quasar.getQuadsGenerator();
                 if (ImGui::Checkbox("Correct Extreme Normals", &quadsGenerator->params.correctOrientation)) {
                     preventCopyingLocalPose = true;
                     sendReferenceFrame = true;
@@ -396,7 +389,6 @@ int main(int argc, char** argv) {
             flags = ImGuiWindowFlags_AlwaysAutoResize;
 
             const int texturePreviewSize = (windowSize.x * 0.8) / maxLayersWideFOV;
-
             int rowSize = (maxLayersWideFOV + 1) / 2;
             for (int layer = 0; layer < maxLayersWideFOV; layer++) {
                 int viewIdx = maxLayersWideFOV - layer - 1;
@@ -504,10 +496,7 @@ int main(int argc, char** argv) {
             ImGui::Begin("Mesh Capture", &showMeshCaptureWindow);
 
             if (ImGui::Button("Save Proxies")) {
-                preventCopyingLocalPose = true;
-                sendReferenceFrame = true;
-                runAnimations = false;
-                writeToFile = true;
+                quasar.writeToFiles(remoteCamera, outputPath);
             }
 
             ImGui::End();
@@ -535,7 +524,6 @@ int main(int argc, char** argv) {
         windowSize = glm::uvec2(width, height);
         remoteRendererDP.setWindowSize(width, height);
         renderer.setWindowSize(width, height);
-
         camera.setAspect(windowSize);
         camera.updateProjectionMatrix();
     });
@@ -617,18 +605,13 @@ int main(int argc, char** argv) {
                 // "Receive" a predicted pose to render a new frame. this will wait until latency+/-jitter ms have passed
                 Pose clientPosePred;
                 if (poseSendRecvSimulator.recvPoseToRender(clientPosePred, now)) {
-                    remoteCameraCenter.setViewMatrix(clientPosePred.mono.view);
+                    remoteCamera.setViewMatrix(clientPosePred.mono.view);
                 }
                 // If we do not have a new pose, just send a new frame with the old pose
             }
 
-            // Update wide fov camera
-            remoteCameraWideFov.setViewMatrix(remoteCameraCenter.getViewMatrix());
-
-            quasar.generateFrame(
-                remoteCameraCenter, remoteCameraWideFov, remoteScene,
-                remoteRenderer, remoteRendererDP, sendResidualFrame,
-                showNormals, showDepth);
+            quasar.updateViewSphere(remoteCamera, viewSphereDiameter);
+            quasar.generateFrame(remoteRenderer, remoteRendererDP, remoteScene, remoteCamera, sendResidualFrame, showNormals, showDepth);
 
             std::string frameType = sendReferenceFrame ? "Reference Frame" : "Residual Frame";
             spdlog::info("======================================================");
@@ -647,15 +630,9 @@ int main(int argc, char** argv) {
                                                   quasar.stats.totalSizes.depthOffsetsSize) / BYTES_PER_MEGABYTE);
             spdlog::info("Num Proxies: {}Proxies", quasar.stats.totalSizes.numQuads);
 
-            // Save to file if requested
-            if (writeToFile) {
-                quasar.writeToFile(outputPath);
-            }
-
             preventCopyingLocalPose = false;
             sendReferenceFrame = false;
             sendResidualFrame = false;
-            writeToFile = false;
         }
 
         poseSendRecvSimulator.update(now);
@@ -666,10 +643,10 @@ int main(int argc, char** argv) {
 
             if (layer == 0) {
                 // Show previous mesh
-                quasar.referenceFrameNodesLocal[quasar.currMeshIndex].visible = false;
-                quasar.referenceFrameNodesLocal[quasar.prevMeshIndex].visible = showLayer;
-                quasar.referenceFrameWireframesLocal[quasar.currMeshIndex].visible = false;
-                quasar.referenceFrameWireframesLocal[quasar.prevMeshIndex].visible = showLayer && showWireframe;
+                quasar.referenceFrameNodesLocal[quasar.currMeshIndex].visible = showLayer;
+                quasar.referenceFrameNodesLocal[quasar.prevMeshIndex].visible = false;
+                quasar.referenceFrameWireframesLocal[quasar.currMeshIndex].visible = showLayer && showWireframe;
+                quasar.referenceFrameWireframesLocal[quasar.prevMeshIndex].visible = false;
                 quasar.depthNode.visible = showLayer && showDepth;
             }
             else {
@@ -681,7 +658,7 @@ int main(int argc, char** argv) {
         quasar.residualFrameWireframesLocal.visible = quasar.residualFrameNode.visible && showWireframe;
 
         if (restrictMovementToViewBox) {
-            glm::vec3 remotePosition = remoteCameraCenter.getPosition();
+            glm::vec3 remotePosition = remoteCamera.getPosition();
             glm::vec3 position = camera.getPosition();
             glm::vec3 direction = position - remotePosition;
             float distanceSquared = glm::dot(direction, direction);
@@ -699,7 +676,7 @@ int main(int argc, char** argv) {
         renderStats = renderer.drawObjects(localScene, camera);
 
         // Render to screen
-        auto quadsGenerator = frameGenerator.getQuadsGenerator();
+        auto quadsGenerator = quasar.getQuadsGenerator();
         holeFiller.enableToneMapping(!showNormals);
         holeFiller.setDepthThreshold(quadsGenerator->params.depthThreshold);
         holeFiller.drawToScreen(renderer);
@@ -710,7 +687,7 @@ int main(int argc, char** argv) {
             spdlog::info("Client Render Time: {:.3f}ms", timeutils::secondsToMillis(window->getTime() - startTime));
         }
 
-        poseSendRecvSimulator.accumulateError(camera, remoteCameraCenter);
+        poseSendRecvSimulator.accumulateError(camera, remoteCamera);
 
         if (cameraPathFileIn) {
             recorder.captureFrame(camera);

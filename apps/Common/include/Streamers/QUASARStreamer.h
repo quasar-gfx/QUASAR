@@ -1,17 +1,21 @@
 #ifndef QUASAR_SIMULATOR_H
 #define QUASAR_SIMULATOR_H
 
+#include <CameraPose.h>
 #include <DepthMesh.h>
 #include <Quads/FrameGenerator.h>
 #include <Renderers/DepthPeelingRenderer.h>
+#include <Networking/DataStreamerTCP.h>
+#include <Streamers/VideoStreamer.h>
 #include <PostProcessing/ToneMapper.h>
 #include <PostProcessing/ShowNormalsEffect.h>
 
 namespace quasar {
 
-class QUASARStreamer {
+class QUASARStreamer : public DataStreamerTCP {
 public:
     uint maxLayers;
+    float viewSphereDiameter;
 
     // Reference frame
     FrameRenderTarget referenceFrameRT;
@@ -28,6 +32,8 @@ public:
     std::vector<ResidualFrame> residualFrames;
     QuadMesh residualFrameMesh;
     Node residualFrameNode;
+
+    VideoStreamer atlasVideoStreamerRT;
 
     // Local objects
     std::vector<Node> referenceFrameNodesLocal;
@@ -48,6 +54,9 @@ public:
 
     DepthMesh depthMesh;
     Node depthNode;
+
+    std::string videoURL;
+    std::string proxiesURL;
 
     struct Stats {
         double totalRenderTime = 0.0;
@@ -70,20 +79,23 @@ public:
         DeferredRenderer& remoteRenderer,
         Scene& remoteScene,
         const PerspectiveCamera& remoteCamera,
-        FrameGenerator& frameGenerator);
+        float wideFOV,
+        const std::string& videoURL = "",
+        const std::string& proxiesURL = "");
     ~QUASARStreamer() = default;
 
     uint getNumTriangles() const;
+    std::shared_ptr<QuadsGenerator> getQuadsGenerator() { return frameGenerator.getQuadsGenerator(); }
 
     void addMeshesToScene(Scene& localScene);
 
+    void updateViewSphere(const PerspectiveCamera& remoteCamera, float viewSphereDiameter);
     void generateFrame(
-        const PerspectiveCamera& remoteCameraCenter, const PerspectiveCamera& remoteCameraWideFov, Scene& remoteScene,
-        DeferredRenderer& remoteRenderer,
-        DepthPeelingRenderer& remoteRendererDP,
+        DeferredRenderer& remoteRenderer, DepthPeelingRenderer& remoteRendererDP,
+        Scene& remoteScene, const PerspectiveCamera& remoteCamera,
         bool createResidualFrame = false, bool showNormals = false, bool showDepth = false);
 
-    size_t writeToFile(const Path& outputPath);
+    size_t writeToFiles(const PerspectiveCamera& remoteCamera, const Path& outputPath);
 
 private:
     const std::vector<glm::vec4> colors = {
@@ -100,26 +112,27 @@ private:
     };
 
     QuadSet& quadSet;
-    FrameGenerator& frameGenerator;
+    FrameGenerator frameGenerator;
 
     DeferredRenderer& remoteRenderer;
     Scene& remoteScene;
 
     PerspectiveCamera remoteCameraPrev;
+    PerspectiveCamera remoteCameraWideFOV;
 
     // Scenes with resulting meshes
     std::vector<Scene> meshScenes;
     Scene sceneWideFov;
 
-    // Holds a copies of the current frame
-    std::vector<FrameRenderTarget> copyRTs;
-
-    // Shaders
-    ToneMapper toneMapper;
-    ShowNormalsEffect showNormalsEffect;
+    FrameRenderTarget referenceFrameRT_noTone;
+    FrameRenderTarget residualFrameRT_noTone;
+    std::vector<FrameRenderTarget> frameRTsHidLayer_noTone;
 
     QuadMaterial wireframeMaterial;
     QuadMaterial maskWireframeMaterial;
+
+    ToneMapper toneMapper;
+    ShowNormalsEffect showNormalsEffect;
 };
 
 } // namespace quasar

@@ -46,6 +46,8 @@ QuadStreamReceiver::QuadStreamReceiver(QuadSet& quadSet, uint maxViews, float re
 }
 
 void QuadStreamReceiver::updateViewBox(float viewBoxSize) {
+    this->viewBoxSize = viewBoxSize;
+
     PerspectiveCamera& remoteCameraCenter = remoteCameras[0];
 
     // Update other cameras in view box corners
@@ -79,8 +81,8 @@ void QuadStreamReceiver::loadFromFiles(const Path& dataPath) {
     cameraPose.loadFromFile(cameraFileName);
     cameraPose.copyPoseToCamera(remoteCameraCenter);
     for (int view = 1; view < maxViews; view++) {
-        remoteCameras[view].setProjectionMatrix(remoteCameraCenter.getProjectionMatrix());
         remoteCameras[view].setViewMatrix(remoteCameraCenter.getViewMatrix());
+        cameraPose.copyPoseToCamera(remoteCameras[view]);
     }
 
     // Load metadata (viewBoxSize and wide FOV)
@@ -102,11 +104,12 @@ void QuadStreamReceiver::loadFromFiles(const Path& dataPath) {
         Path colorFileName = (dataPath / ("color" + std::to_string(view))).withExtension(".jpg");
         colorTextures[view].loadFromFile(colorFileName, true, false);
 
-        // Load quads and depth offsets from files and decompress (nonblocking)
+        // Load quads and depth offsets from files
         double startTime = timeutils::getTimeMicros();
         frames[view].loadFromFiles(dataPath, view);
         stats.timeToLoadMs += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
+        // Decompress (asynchronous)
         startTime = timeutils::getTimeMicros();
         auto offsetsFuture = threadPool->submit_task([&]() {
             return frames[view].decompressDepthOffsets(uncompressedOffsets);

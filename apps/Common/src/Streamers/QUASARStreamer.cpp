@@ -8,13 +8,28 @@ QUASARStreamer::QUASARStreamer(
         DeferredRenderer& remoteRenderer,
         Scene& remoteScene,
         const PerspectiveCamera& remoteCamera,
-        FrameGenerator& frameGenerator)
-    : quadSet(quadSet)
+        float wideFOV,
+        const std::string& videoURL,
+        const std::string& proxiesURL)
+    : videoURL(videoURL)
+    , proxiesURL(proxiesURL)
+    , quadSet(quadSet)
     , maxLayers(maxLayers)
     , remoteRenderer(remoteRenderer)
     , remoteScene(remoteScene)
-    , frameGenerator(frameGenerator)
+    , frameGenerator(quadSet)
     , referenceFrameRT({
+        .width = quadSet.getSize().x,
+        .height = quadSet.getSize().y,
+        .internalFormat = GL_RGBA16F,
+        .format = GL_RGBA,
+        .type = GL_HALF_FLOAT,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST,
+    })
+    , referenceFrameRT_noTone({
         .width = quadSet.getSize().x,
         .height = quadSet.getSize().y,
         .internalFormat = GL_RGBA16F,
@@ -47,15 +62,35 @@ QUASARStreamer::QUASARStreamer(
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST,
     })
+    , residualFrameRT_noTone({
+        .width = quadSet.getSize().x,
+        .height = quadSet.getSize().y,
+        .internalFormat = GL_RGBA16F,
+        .format = GL_RGBA,
+        .type = GL_HALF_FLOAT,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST,
+    })
+    , atlasVideoStreamerRT({
+        .width = 2 * quadSet.getSize().x,
+        .height = 3 * quadSet.getSize().y,
+        .internalFormat = GL_SRGB8,
+        .format = GL_RGB,
+        .type = GL_UNSIGNED_BYTE,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST,
+    }, videoURL)
     , depthMesh(quadSet.getSize(), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f))
     // We can use less vertices and indicies for the mask since it will be sparse
-    , residualFrameMesh(quadSet, residualFrameRT.colorTexture, MAX_QUADS_PER_MESH / 4)
+    , residualFrameMesh(quadSet, residualFrameRT_noTone.colorTexture, MAX_QUADS_PER_MESH / 4)
     , wireframeMaterial({ .baseColor = colors[0] })
     , maskWireframeMaterial({ .baseColor = colors[colors.size()-1] })
+    , DataStreamerTCP(proxiesURL)
 {
-    remoteCameraPrev.setViewMatrix(remoteCamera.getViewMatrix());
-    remoteCameraPrev.setViewMatrix(remoteCamera.getViewMatrix());
-
     meshScenes.resize(2);
     referenceFrameMeshes.reserve(meshScenes.size());
     referenceFrameNodes.reserve(meshScenes.size());
@@ -63,22 +98,42 @@ QUASARStreamer::QUASARStreamer(
     referenceFrameNodesLocal.reserve(meshScenes.size());
     referenceFrameWireframesLocal.reserve(meshScenes.size());
 
-    copyRTs.reserve(maxLayers);
     referenceFrames.resize(maxLayers);
     residualFrames.resize(maxLayers);
 
     uint numHidLayers = maxLayers - 1;
-
     frameRTsHidLayer.reserve(numHidLayers);
+    frameRTsHidLayer_noTone.reserve(numHidLayers);
     meshesHidLayer.reserve(numHidLayers);
     depthMeshsHidLayer.reserve(numHidLayers);
     nodesHidLayer.reserve(numHidLayers);
     wireframesHidLayer.reserve(numHidLayers);
     depthNodesHidLayer.reserve(numHidLayers);
 
+    remoteCameraWideFOV.setProjectionMatrix(remoteCamera.getProjectionMatrix());
+    remoteCameraWideFOV.setFovyDegrees(wideFOV);
+    remoteCameraWideFOV.setViewMatrix(remoteCamera.getViewMatrix());
+
+    // Setup hidden layers and wide fov RTs
+    RenderTargetCreateParams rtParams = {
+        .width = quadSet.getSize().x,
+        .height = quadSet.getSize().y,
+        .internalFormat = GL_RGBA16F,
+        .format = GL_RGBA,
+        .type = GL_HALF_FLOAT,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST,
+    };
+    for (int layer = 0; layer < numHidLayers; layer++) {
+        frameRTsHidLayer.emplace_back(rtParams);
+        frameRTsHidLayer_noTone.emplace_back(rtParams);
+    }
+
     // Setup visible layer for reference frame
     for (int i = 0; i < meshScenes.size(); i++) {
-        referenceFrameMeshes.emplace_back(quadSet, referenceFrameRT.colorTexture);
+        referenceFrameMeshes.emplace_back(quadSet, referenceFrameRT_noTone.colorTexture);
 
         referenceFrameNodes.emplace_back(&referenceFrameMeshes[i]);
         referenceFrameNodes[i].frustumCulled = false;
@@ -110,27 +165,9 @@ QUASARStreamer::QUASARStreamer(
     depthNode.visible = false;
     depthNode.primitiveType = GL_POINTS;
 
-    // Setup hidden layers and wide fov RTs
-    RenderTargetCreateParams rtParams = {
-        .width = quadSet.getSize().x,
-        .height = quadSet.getSize().y,
-        .internalFormat = GL_RGBA16F,
-        .format = GL_RGBA,
-        .type = GL_HALF_FLOAT,
-        .wrapS = GL_CLAMP_TO_EDGE,
-        .wrapT = GL_CLAMP_TO_EDGE,
-        .minFilter = GL_NEAREST,
-        .magFilter = GL_NEAREST,
-    };
-    copyRTs.emplace_back(rtParams);
-    for (int layer = 0; layer < numHidLayers; layer++) {
-        copyRTs.emplace_back(rtParams);
-        frameRTsHidLayer.emplace_back(rtParams);
-    }
-
     for (int layer = 0; layer < numHidLayers; layer++) {
         // We can use less vertices and indicies for the hidden layers since they will be sparser
-        meshesHidLayer.emplace_back(quadSet, frameRTsHidLayer[layer].colorTexture, MAX_QUADS_PER_MESH / 4);
+        meshesHidLayer.emplace_back(quadSet, frameRTsHidLayer_noTone[layer].colorTexture, MAX_QUADS_PER_MESH / 4);
 
         nodesHidLayer.emplace_back(&meshesHidLayer[layer]);
         nodesHidLayer[layer].frustumCulled = false;
@@ -186,59 +223,63 @@ void QUASARStreamer::addMeshesToScene(Scene& localScene) {
     }
 }
 
+void QUASARStreamer::updateViewSphere(const PerspectiveCamera& remoteCamera, float viewSphereDiameter) {
+    this->viewSphereDiameter = viewSphereDiameter;
+
+    // Update wide FOV camera
+    remoteCameraWideFOV.setViewMatrix(remoteCamera.getViewMatrix());
+}
+
 void QUASARStreamer::generateFrame(
-    const PerspectiveCamera& remoteCameraCenter, const PerspectiveCamera& remoteCameraWideFov, Scene& remoteScene,
-    DeferredRenderer& remoteRenderer,
-    DepthPeelingRenderer& remoteRendererDP,
+    DeferredRenderer& remoteRenderer, DepthPeelingRenderer& remoteRendererDP,
+    Scene& remoteScene, const PerspectiveCamera& remoteCamera,
     bool createResidualFrame, bool showNormals, bool showDepth)
 {
     // Reset stats
     stats = { 0 };
 
-    // Render remote scene with multiple layers
+    auto quadsGenerator = frameGenerator.getQuadsGenerator();
+
+    if (!createResidualFrame) {
+        std::swap(currMeshIndex, prevMeshIndex);
+    }
+
+    /*
+    ============================
+    Render scene normally to create Reference Frame textures
+    ============================
+    */
     double startTime = timeutils::getTimeMicros();
-    remoteRendererDP.drawObjects(remoteScene, remoteCameraCenter);
+    remoteRendererDP.drawObjects(remoteScene, remoteCamera);
     stats.totalRenderTime += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     for (int layer = 0; layer < maxLayers; layer++) {
-        int hiddenIndex = layer - 1;
+        int hiddenLayerIndex = layer - 1;
         auto& remoteCameraToUse = (layer == 0 && createResidualFrame) ? remoteCameraPrev :
-                                    ((layer != maxLayers - 1) ? remoteCameraCenter : remoteCameraWideFov);
+                                  ((layer != maxLayers - 1) ? remoteCamera : remoteCameraWideFOV);
 
-        auto& frameToUse = (layer == 0) ? referenceFrameRT : frameRTsHidLayer[hiddenIndex];
+        auto& frameToUse = (layer == 0) ? referenceFrameRT : frameRTsHidLayer[hiddenLayerIndex];
+        auto& frameToUse_noTone = (layer == 0) ? referenceFrameRT_noTone : frameRTsHidLayer_noTone[hiddenLayerIndex];
 
-        auto& meshToUse = (layer == 0) ? referenceFrameMeshes[currMeshIndex] : meshesHidLayer[hiddenIndex];
-        auto& meshToUseDepth = (layer == 0) ? depthMesh : depthMeshsHidLayer[hiddenIndex];
+        auto& meshToUse = (layer == 0) ? referenceFrameMeshes[currMeshIndex] : meshesHidLayer[hiddenLayerIndex];
+        auto& meshToUseDepth = (layer == 0) ? depthMesh : depthMeshsHidLayer[hiddenLayerIndex];
 
         startTime = timeutils::getTimeMicros();
         if (layer == 0) {
             remoteRenderer.drawObjectsNoLighting(remoteScene, remoteCameraToUse);
-            if (!showNormals) {
-                remoteRenderer.copyToFrameRT(frameToUse);
-                toneMapper.drawToRenderTarget(remoteRenderer, copyRTs[layer]);
-            }
-            else {
-                showNormalsEffect.drawToRenderTarget(remoteRenderer, frameToUse);
-            }
+            remoteRenderer.copyToFrameRT(frameToUse);
         }
-        else if (layer != maxLayers - 1) {
-            // Copy to render target
-            if (!showNormals) {
-                remoteRendererDP.peelingLayers[hiddenIndex+1].blit(frameToUse);
-                toneMapper.setUniforms(frameToUse);
-                toneMapper.drawToRenderTarget(remoteRendererDP, copyRTs[layer], false);
-            }
-            else {
-                showNormalsEffect.drawToRenderTarget(remoteRendererDP, frameToUse);
-            }
+        else if (layer < maxLayers - 1) {
+            // Hidden layers need to use the noTone render targets to generate quads for some reason...
+            remoteRendererDP.peelingLayers[hiddenLayerIndex+1].blit(frameToUse_noTone);
         }
         // Wide fov camera
         else {
             // Draw old center mesh at new remoteCamera layer, filling stencil buffer with 1
             remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer(GL_KEEP, GL_KEEP, GL_REPLACE);
             remoteRenderer.pipeline.writeMaskState.disableColorWrites();
-            wideFovNodes[currMeshIndex].visible = false;
-            wideFovNodes[prevMeshIndex].visible = true;
+            wideFovNodes[currMeshIndex].visible = true;
+            wideFovNodes[prevMeshIndex].visible = false;
             remoteRenderer.drawObjectsNoLighting(sceneWideFov, remoteCameraToUse);
 
             // Render remoteScene using stencil buffer as a mask
@@ -248,15 +289,7 @@ void QUASARStreamer::generateFrame(
             remoteRenderer.drawObjectsNoLighting(remoteScene, remoteCameraToUse, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             remoteRenderer.pipeline.stencilState.restoreStencilState();
-
-            if (!showNormals) {
-                remoteRenderer.copyToFrameRT(frameToUse);
-                toneMapper.setUniforms(frameToUse);
-                toneMapper.drawToRenderTarget(remoteRenderer, copyRTs[layer], false);
-            }
-            else {
-                showNormalsEffect.drawToRenderTarget(remoteRenderer, frameToUse);
-            }
+            remoteRenderer.copyToFrameRT(frameToUse);
         }
         stats.totalRenderTime += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
@@ -265,24 +298,42 @@ void QUASARStreamer::generateFrame(
         Generate Reference Frame
         ============================
         */
-        auto quadsGenerator = frameGenerator.getQuadsGenerator();
         auto oldParams = quadsGenerator->params;
         if (layer == maxLayers - 1) {
-            quadsGenerator->params.maxIterForceMerge = 4;
             quadsGenerator->params.depthThreshold = 1e-3f;
             quadsGenerator->params.flattenThreshold = 0.5f;
             quadsGenerator->params.proxySimilarityThreshold = 5.0f;
+            quadsGenerator->params.maxIterForceMerge = 4;
         }
         else if (layer > 0) {
-            quadsGenerator->params.maxIterForceMerge = 4;
             quadsGenerator->params.depthThreshold = 1e-3f;
+            quadsGenerator->params.maxIterForceMerge = 4;
         }
         quadsGenerator->params.expandEdges = false;
+        ReferenceFrame currReferenceFrame;
         frameGenerator.createReferenceFrame(
-            frameToUse, remoteCameraToUse,
+            (layer != 0 && layer != maxLayers - 1) ? frameToUse_noTone : frameToUse,
+            remoteCameraToUse,
             meshToUse,
-            referenceFrames[layer]
+            ((layer == 0) && createResidualFrame) ? currReferenceFrame : referenceFrames[layer]
         );
+        if (!showNormals) {
+            if (layer == 0) {
+                remoteRenderer.copyToFrameRT(frameToUse_noTone);
+                toneMapper.drawToRenderTarget(remoteRenderer, frameToUse);
+            }
+            else if (layer < maxLayers - 1) {
+                toneMapper.setUniforms(frameToUse_noTone);
+                toneMapper.drawToRenderTarget(remoteRenderer, frameToUse, false);
+            }
+            else {
+                remoteRenderer.copyToFrameRT(frameToUse_noTone);
+                toneMapper.drawToRenderTarget(remoteRenderer, frameToUse);
+            }
+        }
+        else {
+            showNormalsEffect.drawToRenderTarget(remoteRenderer, frameToUse_noTone);
+        }
 
         quadsGenerator->params = oldParams;
 
@@ -307,19 +358,38 @@ void QUASARStreamer::generateFrame(
         */
         if (layer == 0) {
             if (createResidualFrame) {
-                quadsGenerator->params.expandEdges = true;
+                /*
+                ============================
+                Generate masked Residual Frame textures
+                ============================
+                */
                 frameGenerator.updateResidualRenderTargets(
                     residualFrameMaskRT, residualFrameRT,
                     remoteRenderer, remoteScene,
                     meshScenes[currMeshIndex], meshScenes[prevMeshIndex],
-                    remoteCameraCenter, remoteCameraPrev
+                    remoteCamera, remoteCameraPrev
                 );
+
+                /*
+                ============================
+                Generate Residual Frame
+                ============================
+                */
+                quadsGenerator->params.expandEdges = true;
                 frameGenerator.createResidualFrame(
                     residualFrameMaskRT, residualFrameRT,
-                    remoteCameraCenter, remoteCameraPrev,
-                    referenceFrameMeshes[currMeshIndex], residualFrameMesh,
+                    remoteCamera, remoteCameraPrev,
+                    referenceFrameMeshes[prevMeshIndex], residualFrameMesh,
                     residualFrames[layer]
                 );
+                if (!showNormals) {
+                    residualFrameRT.blit(residualFrameRT_noTone);
+                    toneMapper.setUniforms(residualFrameRT_noTone);
+                    toneMapper.drawToRenderTarget(remoteRenderer, residualFrameRT, false);
+                }
+                else {
+                    showNormalsEffect.drawToRenderTarget(remoteRenderer, residualFrameRT_noTone);
+                }
 
                 stats.totalRenderTime += frameGenerator.stats.timeToUpdateRTsMs;
 
@@ -337,12 +407,10 @@ void QUASARStreamer::generateFrame(
             }
 
             residualFrameNode.visible = createResidualFrame;
-            currMeshIndex = (currMeshIndex + 1) % meshScenes.size();
-            prevMeshIndex = (prevMeshIndex + 1) % meshScenes.size();
 
             // Only update the previous camera pose if we are not generating a Residual Frame
             if (!createResidualFrame) {
-                remoteCameraPrev.setViewMatrix(remoteCameraCenter.getViewMatrix());
+                remoteCameraPrev.setViewMatrix(remoteCamera.getViewMatrix());
             }
         }
 
@@ -365,15 +433,67 @@ void QUASARStreamer::generateFrame(
             stats.totalSizes.depthOffsetsSize += residualFrames[layer].getTotalDepthOffsetsSize();
         }
     }
+
+    // Update texture atlas (tile frames side by side)
+    uint row = 0, col = 0;
+    uint dstWidth = referenceFrameRT.width, dstHeight = referenceFrameRT.height;
+    for (int layer = 0; layer < maxLayers; layer++) {
+        if (layer == 0) {
+            referenceFrameRT.blit(atlasVideoStreamerRT,
+                0, 0, referenceFrameRT.width, referenceFrameRT.height,
+                col, row, dstWidth, dstHeight
+            );
+        }
+        else {
+            int hiddenLayerIndex = layer - 1;
+            frameRTsHidLayer[hiddenLayerIndex].blit(atlasVideoStreamerRT,
+                0, 0, frameRTsHidLayer[hiddenLayerIndex].width, frameRTsHidLayer[hiddenLayerIndex].height,
+                col, row, dstWidth, dstHeight
+            );
+        }
+        col += referenceFrameRT.width;
+        dstWidth += referenceFrameRT.width;
+        if (col >= atlasVideoStreamerRT.width) {
+            col = 0;
+            dstWidth = referenceFrameRT.width;
+
+            row += referenceFrameRT.height;
+            dstHeight += referenceFrameRT.height;
+            if (row >= atlasVideoStreamerRT.height) {
+                row = 0;
+                dstHeight = referenceFrameRT.height;
+            }
+        }
+    }
+    if (createResidualFrame) {
+        residualFrameRT.blit(atlasVideoStreamerRT,
+            0, 0, residualFrameRT.width, residualFrameRT.height,
+            col, row, dstWidth, dstHeight
+        );
+    }
 }
 
-size_t QUASARStreamer::writeToFile(const Path& outputPath) {
+size_t QUASARStreamer::writeToFiles(const PerspectiveCamera& remoteCamera, const Path& outputPath) {
+    // Save camera data
+    Pose cameraPose;
+    Path cameraFileName = (outputPath / "camera").withExtension(".bin");
+    cameraPose.setProjectionMatrix(remoteCamera.getProjectionMatrix());
+    cameraPose.setViewMatrix(remoteCamera.getViewMatrix());
+    cameraPose.writeToFile(cameraFileName);
+
+    // Save metadata (viewSphereDiameter and wide FOV)
+    std::vector<float> metadata = {
+        remoteCameraWideFOV.getFovyDegrees(),
+        viewSphereDiameter,
+    };
+    FileIO::writeToBinaryFile(outputPath / "metadata.bin", metadata.data(), metadata.size() * sizeof(float));
+
+    // Save color
+    Path colorFileName = (outputPath / "color").withExtension(".jpg");
+    atlasVideoStreamerRT.writeColorAsJPG(colorFileName);
+
     size_t totalOutputSize = 0;
     for (int layer = 0; layer < maxLayers; layer++) {
-        // Save color
-        Path colorFileName = outputPath / ("color" + std::to_string(layer));
-        copyRTs[layer].writeColorAsJPG(colorFileName.withExtension(".jpg"));
-
         // Save proxies
         totalOutputSize += referenceFrames[layer].writeToFiles(outputPath, layer);
     }

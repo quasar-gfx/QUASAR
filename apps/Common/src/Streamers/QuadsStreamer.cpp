@@ -109,6 +109,7 @@ QuadsStreamer::QuadsStreamer(
         referenceFrameWireframesLocal[i].overrideMaterial = &wireframeMaterial;
     }
 
+    // Setup masks for residual frame
     residualFrameNodeLocal.setEntity(&residualFrameMesh);
     residualFrameNodeLocal.frustumCulled = false;
 

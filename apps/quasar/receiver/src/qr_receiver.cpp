@@ -118,11 +118,13 @@ int main(int argc, char** argv) {
 
     // Initial load
     quasarReceiver.loadFromFiles(dataPath);
+    quasarReceiver.copyPoseToCamera(camera);
 
     bool* showLayers = new bool[maxLayers];
     for (int i = 0; i < maxLayers; ++i) {
         showLayers[i] = true;
     }
+    bool showWireframe = false;
 
     RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
@@ -209,9 +211,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            bool showWireframe = !nodeWireframes.empty() && nodeWireframes[0].visible;
             ImGui::Checkbox("Show Wireframe", &showWireframe);
-            for (auto& wf : nodeWireframes) wf.visible = showWireframe;
 
             ImGui::Separator();
 
@@ -306,6 +306,7 @@ int main(int argc, char** argv) {
 
         for (int i = 0; i < maxLayers; ++i) {
             nodes[i].visible = showLayers[i];
+            nodeWireframes[i].visible = showWireframe && showLayers[i];
         }
 
         // Render all objects in scene

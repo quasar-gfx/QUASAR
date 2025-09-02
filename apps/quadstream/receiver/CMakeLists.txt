@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 project(QuadStreamReceiver)
 
-set(TARGET qs_reciever)
+set(TARGET qs_receiver)
 
 set(PUBLIC_HDR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 

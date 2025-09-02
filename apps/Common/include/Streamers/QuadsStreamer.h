@@ -29,6 +29,8 @@ public:
     QuadMesh residualFrameMesh;
     Node residualFrameNodeLocal;
 
+    VideoStreamer atlasVideoStreamerRT;
+
     // Local objects
     std::vector<Node> referenceFrameNodesLocal;
     std::vector<Node> referenceFrameWireframesLocal;
@@ -107,13 +109,12 @@ private:
 
     FrameRenderTarget referenceFrameRT_noTone;
     FrameRenderTarget residualFrameRT_noTone;
-    VideoStreamer atlasVideoStreamerRT;
-
-    QuadMaterial wireframeMaterial;
-    QuadMaterial maskWireframeMaterial;
 
     std::vector<char> compressedData;
     std::vector<char> geometryData;
+
+    QuadMaterial wireframeMaterial;
+    QuadMaterial maskWireframeMaterial;
 
     ToneMapper toneMapper;
     ShowNormalsEffect showNormalsEffect;
