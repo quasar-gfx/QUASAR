@@ -11,6 +11,7 @@
 #include <CameraAnimator.h>
 
 #include <Receivers/QUASARReceiver.h>
+#include <Streamers/PoseStreamer.h>
 
 using namespace quasar;
 
@@ -38,9 +39,11 @@ int main(int argc, char** argv) {
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::ValueFlag<int> maxHiddenLayersIn(parser, "layers", "Max hidden layers", {'n', "max-hidden-layers"}, 3);
     args::Flag disableWideFov(parser, "disable-wide-fov", "Disable wide fov view", {'W', "disable-wide-fov"});
+    args::Flag loadFromDisk(parser, "load-from-disk", "Load data from disk", {'L', "load-from-disk"}, false);
     args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Path to data files", {'D', "data-path"}, "../simulator/");
-    args::ValueFlag<float> remoteFOVIn(parser, "remote-fov", "Remote camera FOV in degrees", {'F', "remote-fov"}, 60.0f);
-    args::ValueFlag<float> remoteFOVWideIn(parser, "remote-fov-wide", "Remote camera FOV in degrees for wide fov", {'R', "remote-fov-wide"}, 120.0f);
+    args::ValueFlag<std::string> videoURLIn(parser, "video", "URL to recv video", {'c', "video-url"}, "0.0.0.0:12345");
+    args::ValueFlag<std::string> proxiesURLIn(parser, "proxies", "URL to recv quad proxy metadata", {'e', "proxies-url"}, "127.0.0.1:65432");
+    args::ValueFlag<std::string> poseURLIn(parser, "pose", "URL to recv camera pose", {'p', "pose-url"}, "127.0.0.1:54321");
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -63,7 +66,10 @@ int main(int argc, char** argv) {
 
     config.enableVSync = !args::get(novsync);
 
-    Path dataPath = Path(args::get(dataPathIn)); dataPath.mkdirRecursive();
+    Path dataPath = Path(args::get(dataPathIn));
+    std::string videoURL = !loadFromDisk ? args::get(videoURLIn) : "";
+    std::string proxiesURL = !loadFromDisk ? args::get(proxiesURLIn) : "";
+    std::string poseURL = !loadFromDisk ? args::get(poseURLIn) : "";
 
     int maxHidLayers = args::get(maxHiddenLayersIn);
     int maxLayers = !disableWideFov ? maxHidLayers + 2 : maxHidLayers;
@@ -96,29 +102,45 @@ int main(int argc, char** argv) {
     }, renderer, toneMapper, dataPath, config.targetFramerate);
 
     QuadSet quadSet(windowSize);
-    float remoteFOV = args::get(remoteFOVIn);
-    float remoteFOVWide = args::get(remoteFOVWideIn);
-    QUASARReceiver quasarReceiver(quadSet, maxLayers, remoteFOV, remoteFOVWide);
+    QUASARReceiver quasarReceiver(quadSet, maxLayers, videoURL, proxiesURL);
+
+    PoseStreamer poseStreamer(&camera, poseURL);
 
     // Create node and wireframe node
-    std::vector<Node> nodes(maxLayers);
-    std::vector<Node> nodeWireframes(maxLayers);
+    std::vector<Node> refNodes(maxLayers);
+    std::vector<Node> refNodeWireframes(maxLayers);
     for (int layer = 0; layer < maxLayers; layer++) {
-        nodes[layer].setEntity(&quasarReceiver.getMesh(layer));
-        nodes[layer].frustumCulled = false;
-        scene.addChildNode(&nodes[layer]);
+        refNodes[layer].setEntity(&quasarReceiver.getMesh(layer));
+        refNodes[layer].frustumCulled = false;
+        scene.addChildNode(&refNodes[layer]);
 
-        nodeWireframes[layer].setEntity(&quasarReceiver.getMesh(layer));
-        nodeWireframes[layer].frustumCulled = false;
-        nodeWireframes[layer].wireframe = true;
-        nodeWireframes[layer].visible = false;
-        nodeWireframes[layer].overrideMaterial = new QuadMaterial({ .baseColor = colors[layer % colors.size()] });
-        scene.addChildNode(&nodeWireframes[layer]);
+        refNodeWireframes[layer].setEntity(&quasarReceiver.getMesh(layer));
+        refNodeWireframes[layer].frustumCulled = false;
+        refNodeWireframes[layer].wireframe = true;
+        refNodeWireframes[layer].visible = false;
+        refNodeWireframes[layer].overrideMaterial = new QuadMaterial({ .baseColor = colors[layer % colors.size()] });
+        scene.addChildNode(&refNodeWireframes[layer]);
     }
 
-    // Initial load
-    quasarReceiver.loadFromFiles(dataPath);
-    quasarReceiver.copyPoseToCamera(camera);
+    Node resNode(&quasarReceiver.getResidualMesh());
+    resNode.frustumCulled = false;
+    scene.addChildNode(&resNode);
+
+    QuadMaterial resNodeWireframeMaterial({ .baseColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f) });
+    Node resNodeWireframe(&quasarReceiver.getResidualMesh());
+    resNodeWireframe.frustumCulled = false;
+    resNodeWireframe.wireframe = true;
+    resNodeWireframe.visible = false;
+    resNodeWireframe.overrideMaterial = &resNodeWireframeMaterial;
+    scene.addChildNode(&resNodeWireframe);
+
+    if (loadFromDisk) {
+        // Initial load
+        quasarReceiver.loadFromFiles(dataPath);
+        quasarReceiver.copyPoseToCamera(camera);
+    }
+
+    bool restrictMovementToViewSphere = loadFromDisk;
 
     bool* showLayers = new bool[maxLayers];
     for (int i = 0; i < maxLayers; ++i) {
@@ -131,6 +153,7 @@ int main(int argc, char** argv) {
         static bool showFPS = true;
         static bool showUI = true;
         static bool showFrameCaptureWindow = false;
+        static bool showFramePreviewWindow = false;
         static bool writeToHDR = false;
         static char fileNameBase[256] = "screenshot";
 
@@ -148,6 +171,7 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("FPS", 0, &showFPS);
             ImGui::MenuItem("UI", 0, &showUI);
             ImGui::MenuItem("Frame Capture", 0, &showFrameCaptureWindow);
+            ImGui::MenuItem("Frame Preview", 0, &showFramePreviewWindow);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -205,13 +229,22 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to load data: %.3f ms", quasarReceiver.stats.timeToLoadMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decompress data: %.3f ms", quasarReceiver.stats.timeToDecompressMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decompress data (async): %.3f ms", quasarReceiver.stats.timeToDecompressMs);
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy data to GPU: %.3f ms", quasarReceiver.stats.timeToTransferMs);
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to create mesh: %.3f ms", quasarReceiver.stats.timeToCreateMeshMs);
 
             ImGui::Separator();
 
             ImGui::Checkbox("Show Wireframe", &showWireframe);
+
+            if (loadFromDisk) {
+                ImGui::Separator();
+                if (ImGui::Button("Reload Proxies", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+                    quasarReceiver.loadFromFiles(dataPath);
+                }
+            }
+
+            ImGui::Checkbox("Restrict Movement to View Sphere", &restrictMovementToViewSphere);
 
             ImGui::Separator();
 
@@ -250,6 +283,14 @@ int main(int argc, char** argv) {
                 recorder.saveScreenshotToFile(filename, writeToHDR);
             }
 
+            ImGui::End();
+        }
+
+        if (showFramePreviewWindow) {
+            flags = 0;
+            ImGui::Begin("Texture Atlas Video", 0, flags);
+            ImGui::Image((void*)(intptr_t)(quasarReceiver.atlasVideoTexture),
+                         ImVec2(430, 510), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
         }
     });
@@ -304,9 +345,31 @@ int main(int argc, char** argv) {
         auto scroll = window->getScrollOffset();
         camera.processScroll(scroll.y);
 
+        // Send pose to streamer
+        pose_id_t currPoseID = poseStreamer.sendPose();
+        poseStreamer.removePosesLessThan(currPoseID);
+
+        QuadFrame::FrameType frameType = quasarReceiver.recvData();
+        if (frameType != QuadFrame::FrameType::NONE) {
+            resNode.visible = frameType == QuadFrame::FrameType::RESIDUAL;
+        }
         for (int i = 0; i < maxLayers; ++i) {
-            nodes[i].visible = showLayers[i];
-            nodeWireframes[i].visible = showWireframe && showLayers[i];
+            refNodes[i].visible = showLayers[i];
+            refNodeWireframes[i].visible = showWireframe && showLayers[i];
+        }
+        resNodeWireframe.visible = refNodes[0].visible && showWireframe;
+
+        if (restrictMovementToViewSphere) {
+            glm::vec3 remotePosition = quasarReceiver.getRemoteCamera().getPosition();
+            glm::vec3 position = camera.getPosition();
+            glm::vec3 direction = position - remotePosition;
+            float distanceSquared = glm::dot(direction, direction);
+            float radius = quasarReceiver.viewSphereDiameter / 2.0f;
+            if (distanceSquared > radius * radius) {
+                position = remotePosition + glm::normalize(direction) * radius;
+            }
+            camera.setPosition(position);
+            camera.updateViewMatrix();
         }
 
         // Render all objects in scene

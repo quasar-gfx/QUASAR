@@ -53,8 +53,10 @@ struct Pose {
         stereo.projR = projs[1];
     }
 
-    void copyPoseToCamera(PerspectiveCamera& camera) {
-        camera.setProjectionMatrix(mono.proj);
+    void copyPoseToCamera(PerspectiveCamera& camera, bool copyProj = true) {
+        if (copyProj) {
+            camera.setProjectionMatrix(mono.proj);
+        }
         camera.setViewMatrix(mono.view);
     }
 
@@ -86,7 +88,7 @@ struct Pose {
     }
 
     size_t loadFromFile(const Path& inputPath) {
-        std::vector<char> data = FileIO::loadFromBinaryFile(inputPath);
+        const std::vector<char>& data = FileIO::loadFromBinaryFile(inputPath);
         std::memcpy(this, data.data(), sizeof(Pose));
         return sizeof(Pose);
     }

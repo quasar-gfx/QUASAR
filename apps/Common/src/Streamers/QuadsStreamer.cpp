@@ -9,9 +9,9 @@ QuadsStreamer::QuadsStreamer(
         PerspectiveCamera& remoteCamera,
         const std::string& videoURL,
         const std::string& proxiesURL)
-    : videoURL(videoURL)
+    : quadSet(quadSet)
+    , videoURL(videoURL)
     , proxiesURL(proxiesURL)
-    , quadSet(quadSet)
     , remoteRenderer(remoteRenderer)
     , remoteScene(remoteScene)
     , remoteCamera(remoteCamera)
@@ -83,7 +83,7 @@ QuadsStreamer::QuadsStreamer(
         .magFilter = GL_NEAREST,
     }, videoURL)
     // We can use less vertices and indicies for the mask since it will be sparser
-    , residualFrameMesh(quadSet, residualFrameRT_noTone.colorTexture, MAX_QUADS_PER_MESH / 4)
+    , residualFrameMesh(quadSet, residualFrameRT_noTone.colorTexture, MAX_PROXIES_PER_MESH / 4)
     , depthMesh(quadSet.getSize(), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f))
     , wireframeMaterial({ .baseColor = colors[0] })
     , maskWireframeMaterial({ .baseColor = colors[colors.size()-1] })
@@ -306,17 +306,17 @@ void QuadsStreamer::generateFrame(bool createResidualFrame, bool showNormals, bo
     }
 }
 
-void QuadsStreamer::sendProxies(pose_id_t poseID, const PerspectiveCamera& remoteCamera, bool createResidualFrame) {
+void QuadsStreamer::sendProxies(pose_id_t poseID, bool createResidualFrame) {
     if (!videoURL.empty() && !proxiesURL.empty()) {
         // Send atlas frame
         atlasVideoStreamerRT.sendFrame(poseID);
         // Send proxies
-        writeToMemory(poseID, remoteCamera, createResidualFrame, compressedData);
+        writeToMemory(poseID, createResidualFrame, compressedData);
         send(compressedData);
     }
 }
 
-size_t QuadsStreamer::writeToFiles(const PerspectiveCamera& remoteCamera, const Path& outputPath) {
+size_t QuadsStreamer::writeToFiles(const Path& outputPath) {
     // Save camera data
     Pose cameraPose;
     Path cameraFileName = (outputPath / "camera").withExtension(".bin");
@@ -334,24 +334,21 @@ size_t QuadsStreamer::writeToFiles(const PerspectiveCamera& remoteCamera, const 
     atlasVideoStreamerRT.writeColorAsJPG(colorFileName);
 
     // Save proxies
-    return referenceFrame.writeToFiles(outputPath) +
-           residualFrame.writeToFiles(outputPath);
+    size_t totalOutputSize = referenceFrame.writeToFiles(outputPath) + residualFrame.writeToFiles(outputPath);
+
+    spdlog::debug("Written output data size: {}", totalOutputSize);
+    return totalOutputSize;
 }
 
-size_t QuadsStreamer::writeToMemory(
-    pose_id_t poseID, const PerspectiveCamera& remoteCamera,
-    bool isResidualFrame,
-    std::vector<char>& outputData)
-{
+size_t QuadsStreamer::writeToMemory(pose_id_t poseID, bool writeResidualFrame, std::vector<char>& outputData) {
     // Save camera data
     Pose cameraPose;
-    std::vector<char> cameraData;
     cameraPose.setProjectionMatrix(remoteCamera.getProjectionMatrix());
     cameraPose.setViewMatrix(remoteCamera.getViewMatrix());
     cameraPose.writeToMemory(cameraData);
 
     // Save geometry data
-    if (!isResidualFrame) {
+    if (!writeResidualFrame) {
         referenceFrame.writeToMemory(geometryData);
     }
     else {
@@ -360,7 +357,7 @@ size_t QuadsStreamer::writeToMemory(
 
     QuadsReceiver::Header header{
         .poseID = poseID,
-        .frameType = !isResidualFrame ? FrameType::REFERENCE : FrameType::RESIDUAL,
+        .frameType = !writeResidualFrame ? QuadFrame::FrameType::REFERENCE : QuadFrame::FrameType::RESIDUAL,
         .cameraSize = static_cast<uint32_t>(cameraData.size()),
         .geometrySize = static_cast<uint32_t>(geometryData.size())
     };
@@ -369,17 +366,21 @@ size_t QuadsStreamer::writeToMemory(
     spdlog::debug("Writing geometry size: {}", header.geometrySize);
 
     outputData.resize(sizeof(header) + cameraData.size() + geometryData.size());
-
     char* ptr = outputData.data();
+
     // Write header
     std::memcpy(ptr, &header, sizeof(header));
     ptr += sizeof(header);
+
     // Write camera data
     std::memcpy(ptr, cameraData.data(), cameraData.size());
     ptr += cameraData.size();
+
     // Write geometry data
     std::memcpy(ptr, geometryData.data(), geometryData.size());
     ptr += geometryData.size();
+
+    spdlog::debug("Written output data size: {}", outputData.size());
 
     return outputData.size();
 }

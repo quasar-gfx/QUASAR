@@ -12,7 +12,7 @@ PointShadowMapMaterial::PointShadowMapMaterial() {
             .fragmentCodeData = SHADER_BUILTIN_POINTSHADOW_FRAG,
             .fragmentCodeSize = SHADER_BUILTIN_POINTSHADOW_FRAG_len,
             .geometryData = SHADER_BUILTIN_POINTSHADOW_GEOM,
-            .geometryDataSize = SHADER_BUILTIN_POINTSHADOW_GEOM_len,
+            .geometryMetadataSize = SHADER_BUILTIN_POINTSHADOW_GEOM_len,
 #ifdef GL_ES
             .extensions = {
                 "#extension GL_EXT_geometry_shader : enable"

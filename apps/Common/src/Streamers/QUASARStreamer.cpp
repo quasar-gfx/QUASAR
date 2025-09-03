@@ -13,9 +13,9 @@ QUASARStreamer::QUASARStreamer(
         float wideFOV,
         const std::string& videoURL,
         const std::string& proxiesURL)
-    : videoURL(videoURL)
+    : quadSet(quadSet)
+    , videoURL(videoURL)
     , proxiesURL(proxiesURL)
-    , quadSet(quadSet)
     , maxLayers(maxLayers)
     , remoteRenderer(remoteRenderer)
     , remoteRendererDP(remoteRendererDP)
@@ -87,10 +87,10 @@ QUASARStreamer::QUASARStreamer(
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST,
-    }, videoURL)
+    }, videoURL, 30, 20)
     , depthMesh(quadSet.getSize(), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f))
     // We can use less vertices and indicies for the mask since it will be sparse
-    , residualFrameMesh(quadSet, residualFrameRT_noTone.colorTexture, MAX_QUADS_PER_MESH / 4)
+    , residualFrameMesh(quadSet, residualFrameRT_noTone.colorTexture, MAX_PROXIES_PER_MESH / 4)
     , wireframeMaterial({ .baseColor = colors[0] })
     , maskWireframeMaterial({ .baseColor = colors[colors.size()-1] })
     , DataStreamerTCP(proxiesURL)
@@ -103,6 +103,7 @@ QUASARStreamer::QUASARStreamer(
     referenceFrameWireframesLocal.reserve(meshScenes.size());
 
     referenceFrames.resize(maxLayers);
+    geometryMetadatas.resize(maxLayers);
 
     uint numHidLayers = maxLayers - 1;
     frameRTsHidLayer.reserve(numHidLayers);
@@ -173,7 +174,7 @@ QUASARStreamer::QUASARStreamer(
 
     for (int layer = 0; layer < numHidLayers; layer++) {
         // We can use less vertices and indicies for the hidden layers since they will be sparser
-        meshesHidLayer.emplace_back(quadSet, frameRTsHidLayer_noTone[layer].colorTexture, MAX_QUADS_PER_MESH / 4);
+        meshesHidLayer.emplace_back(quadSet, frameRTsHidLayer_noTone[layer].colorTexture, MAX_PROXIES_PER_MESH / 4);
 
         nodesHidLayer.emplace_back(&meshesHidLayer[layer]);
         nodesHidLayer[layer].frustumCulled = false;
@@ -495,6 +496,16 @@ void QUASARStreamer::generateFrame(bool createResidualFrame, bool showNormals, b
     }
 }
 
+void QUASARStreamer::sendProxies(pose_id_t poseID, bool createResidualFrame) {
+    if (!videoURL.empty() && !proxiesURL.empty()) {
+        // Send atlas frame
+        atlasVideoStreamerRT.sendFrame(poseID);
+        // Send proxies
+        writeToMemory(poseID, createResidualFrame, compressedData);
+        send(compressedData);
+    }
+}
+
 size_t QUASARStreamer::writeToFiles(const Path& outputPath) {
     // Save camera data
     Pose cameraPose;
@@ -503,12 +514,18 @@ size_t QUASARStreamer::writeToFiles(const Path& outputPath) {
     cameraPose.setViewMatrix(remoteCamera.getViewMatrix());
     cameraPose.writeToFile(cameraFileName);
 
+    Path cameraFileNamePrev = (outputPath / "camera_prev").withExtension(".bin");
+    cameraPose.setProjectionMatrix(remoteCameraPrev.getProjectionMatrix());
+    cameraPose.setViewMatrix(remoteCameraPrev.getViewMatrix());
+    cameraPose.writeToFile(cameraFileNamePrev);
+
     // Save metadata (viewSphereDiameter and wide FOV)
-    std::vector<float> metadata = {
-        remoteCameraWideFOV.getFovyDegrees(),
-        viewSphereDiameter,
+    QUASARReceiver::Params params = {
+        .numLayers = static_cast<uint32_t>(geometryMetadatas.size()),
+        .viewSphereDiameter = viewSphereDiameter,
+        .wideFOV = remoteCameraWideFOV.getFovyDegrees(),
     };
-    FileIO::writeToBinaryFile(outputPath / "metadata.bin", metadata.data(), metadata.size() * sizeof(float));
+    FileIO::writeToBinaryFile(outputPath / "metadata.bin", &params, sizeof(params));
 
     // Save color
     Path colorFileName = (outputPath / "color").withExtension(".jpg");
@@ -519,6 +536,77 @@ size_t QUASARStreamer::writeToFiles(const Path& outputPath) {
     for (int layer = 0; layer < maxLayers; layer++) {
         totalOutputSize += referenceFrames[layer].writeToFiles(outputPath, layer);
     }
-    totalOutputSize += residualFrame.writeToFiles(outputPath, maxLayers);
+    totalOutputSize += residualFrame.writeToFiles(outputPath);
+
+    spdlog::debug("Written output data size: {}", totalOutputSize);
     return totalOutputSize;
+}
+
+size_t QUASARStreamer::writeToMemory(pose_id_t poseID, bool writeResidualFrame, std::vector<char>& outputData) {
+    // Save camera data
+    Pose cameraPose;
+    std::vector<char> cameraData;
+    cameraPose.setProjectionMatrix(remoteCamera.getProjectionMatrix());
+    cameraPose.setViewMatrix(remoteCamera.getViewMatrix());
+    cameraPose.writeToMemory(cameraData);
+
+    // Save geometry data
+    // Save visible layer
+    if (!writeResidualFrame) {
+        referenceFrames[0].writeToMemory(geometryMetadatas[0]);
+    }
+    else {
+        residualFrame.writeToMemory(geometryMetadatas[0]);
+    }
+    // Save hidden layers and wide FOV
+    for (int layer = 1; layer < maxLayers; layer++) {
+        referenceFrames[layer].writeToMemory(geometryMetadatas[layer]);
+    }
+
+    uint32_t geometrySize = 0;
+    for (const auto& layerData : geometryMetadatas) {
+        geometrySize += sizeof(uint32_t) + static_cast<uint32_t>(layerData.size());
+    }
+
+    QUASARReceiver::Header header{
+        .poseID = poseID,
+        .frameType = !writeResidualFrame ? QuadFrame::FrameType::REFERENCE : QuadFrame::FrameType::RESIDUAL,
+        .cameraSize = static_cast<uint32_t>(cameraData.size()),
+        .params {
+            .numLayers = static_cast<uint32_t>(geometryMetadatas.size()),
+            .viewSphereDiameter = viewSphereDiameter,
+            .wideFOV = remoteCameraWideFOV.getFovyDegrees(),
+        },
+        .geometrySize = geometrySize,
+    };
+
+    spdlog::debug("Writing camera size: {}", header.cameraSize);
+    spdlog::debug("Writing geometry size: {}", header.geometrySize);
+
+    outputData.resize(sizeof(header) + cameraData.size() + geometrySize);
+    char* ptr = outputData.data();
+
+    // Write header
+    std::memcpy(ptr, &header, sizeof(header));
+    ptr += sizeof(header);
+
+    // Write camera data
+    std::memcpy(ptr, cameraData.data(), cameraData.size());
+    ptr += cameraData.size();
+
+    // Write geometry data
+    for (const auto& layerData : geometryMetadatas) {
+        uint32_t layerSize = static_cast<uint32_t>(layerData.size());
+
+        // Write size of layer
+        std::memcpy(ptr, &layerSize, sizeof(uint32_t));
+        ptr += sizeof(uint32_t);
+
+        // Write layer data
+        std::memcpy(ptr, layerData.data(), layerSize);
+        ptr += layerSize;
+    }
+
+    spdlog::debug("Written output data size: {}", outputData.size());
+    return outputData.size();
 }

@@ -14,14 +14,14 @@
 
 namespace quasar {
 
-enum FrameType {
-    NONE,
-    REFERENCE,
-    RESIDUAL,
-};
-
 class QuadFrame {
 public:
+    enum FrameType {
+        NONE,
+        REFERENCE,
+        RESIDUAL,
+    };
+
     QuadFrame(FrameType type) : frameType(type) {}
     virtual ~QuadFrame() = default;
 
@@ -129,7 +129,7 @@ public:
         // Load quads
         double startTime = timeutils::getTimeMicros();
         Path quadsFileName = (inputPath / ("quads" + idxStr)).withExtension(".bin.zstd");
-        auto quadsData = FileIO::loadFromBinaryFile(quadsFileName);
+        const auto& quadsData = FileIO::loadFromBinaryFile(quadsFileName);
         quads = std::move(quadsData);
         spdlog::debug("Loaded quads ({:.3f}MB) in {:.3f}ms",
                        static_cast<double>(quads.size()) / BYTES_PER_MEGABYTE,
@@ -137,7 +137,7 @@ public:
 
         startTime = timeutils::getTimeMicros();
         Path depthOffsetsFileName = (inputPath / ("depthOffsets" + idxStr)).withExtension(".bin.zstd");
-        auto depthOffsetsData = FileIO::loadFromBinaryFile(depthOffsetsFileName);
+        const auto& depthOffsetsData = FileIO::loadFromBinaryFile(depthOffsetsFileName);
         depthOffsets = std::move(depthOffsetsData);
         spdlog::debug("Loaded depth offsets ({:.3f}MB) in {:.3f}ms",
                        static_cast<double>(depthOffsets.size()) / BYTES_PER_MEGABYTE,
@@ -146,8 +146,8 @@ public:
         return quads.size() + depthOffsets.size();
     }
 
-    size_t loadFromMemory(const std::vector<char>& inputData) {
-        const char* ptr = inputData.data();
+    size_t loadFromMemory(const void* data, size_t size) {
+        const char* ptr = static_cast<const char*>(data);
 
         // Read header
         Header header;
@@ -156,11 +156,11 @@ public:
 
         // Sanity check
         size_t expectedSize = sizeof(Header) + header.quadsSize + header.depthOffsetsSize;
-        if (inputData.size() < expectedSize) {
-            throw std::runtime_error("Input data size " +
-                                      std::to_string(inputData.size()) +
-                                      " is smaller than expected from header " +
-                                      std::to_string(expectedSize));
+        if (size < expectedSize) {
+            throw std::runtime_error("Reference Frame input data size " +
+                                     std::to_string(size) +
+                                     " is smaller than expected from header " +
+                                     std::to_string(expectedSize));
         }
 
         // Read quads
@@ -173,7 +173,7 @@ public:
         std::memcpy(depthOffsets.data(), ptr, header.depthOffsetsSize);
         ptr += header.depthOffsetsSize;
 
-        return quads.size() + depthOffsets.size();
+        return expectedSize;
     }
 
 private:
@@ -308,7 +308,7 @@ public:
         // Load updated quads
         double startTime = timeutils::getTimeMicros();
         Path updatedQuadsFileName = (inputPath / "updatedQuads").withExtension(".bin.zstd");
-        auto quadsUpdatedData = FileIO::loadFromBinaryFile(updatedQuadsFileName);
+        const auto& quadsUpdatedData = FileIO::loadFromBinaryFile(updatedQuadsFileName);
         quadsUpdated = std::move(quadsUpdatedData);
         spdlog::debug("Loaded updated quads ({:.3f}MB) in {:.3f}ms",
                        static_cast<double>(quadsUpdated.size()) / BYTES_PER_MEGABYTE,
@@ -317,7 +317,7 @@ public:
         // Load updated depth offsets
         startTime = timeutils::getTimeMicros();
         Path updatedDepthOffsetsFileName = (inputPath / "updatedDepthOffsets").withExtension(".bin.zstd");
-        auto depthOffsetsUpdatedData = FileIO::loadFromBinaryFile(updatedDepthOffsetsFileName);
+        const auto& depthOffsetsUpdatedData = FileIO::loadFromBinaryFile(updatedDepthOffsetsFileName);
         depthOffsetsUpdated = std::move(depthOffsetsUpdatedData);
         spdlog::debug("Loaded updated depth offsets ({:.3f}MB) in {:.3f}ms",
                        static_cast<double>(depthOffsetsUpdated.size()) / BYTES_PER_MEGABYTE,
@@ -326,7 +326,7 @@ public:
         // Load revealed quads
         startTime = timeutils::getTimeMicros();
         Path revealedQuadsFileName = (inputPath / "revealedQuads").withExtension(".bin.zstd");
-        auto quadsRevealedData = FileIO::loadFromBinaryFile(revealedQuadsFileName);
+        const auto& quadsRevealedData = FileIO::loadFromBinaryFile(revealedQuadsFileName);
         quadsRevealed = std::move(quadsRevealedData);
         spdlog::debug("Loaded revealed quads ({:.3f}MB) in {:.3f}ms",
                        static_cast<double>(quadsRevealed.size()) / BYTES_PER_MEGABYTE,
@@ -335,7 +335,7 @@ public:
         // Load revealed depth offsets
         startTime = timeutils::getTimeMicros();
         Path revealedDepthOffsetsFileName = (inputPath / "revealedDepthOffsets").withExtension(".bin.zstd");
-        auto depthOffsetsRevealedData = FileIO::loadFromBinaryFile(revealedDepthOffsetsFileName);
+        const auto& depthOffsetsRevealedData = FileIO::loadFromBinaryFile(revealedDepthOffsetsFileName);
         depthOffsetsRevealed = std::move(depthOffsetsRevealedData);
         spdlog::debug("Loaded revealed depth offsets ({:.3f}MB) in {:.3f}ms",
                        static_cast<double>(depthOffsetsRevealed.size()) / BYTES_PER_MEGABYTE,
@@ -377,8 +377,8 @@ public:
         return outputData.size();
     }
 
-    size_t loadFromMemory(const std::vector<char>& inputData) {
-        const char* ptr = inputData.data();
+    size_t loadFromMemory(const void* data, size_t size) {
+        const char* ptr = static_cast<const char*>(data);
 
         // Read header
         Header header;
@@ -389,11 +389,11 @@ public:
         size_t expectedSize = sizeof(Header) +
                               header.quadsUpdatedSize + header.depthOffsetsUpdatedSize +
                               header.quadsRevealedSize + header.depthOffsetsRevealedSize;
-        if (inputData.size() < expectedSize) {
-            throw std::runtime_error("Input data size " +
-                                      std::to_string(inputData.size()) +
-                                      " is smaller than expected from header " +
-                                      std::to_string(expectedSize));
+        if (size < expectedSize) {
+            throw std::runtime_error("Residual Frame input data size " +
+                                     std::to_string(size) +
+                                     " is smaller than expected from header " +
+                                     std::to_string(expectedSize));
         }
 
         // Read updated quads
@@ -416,8 +416,7 @@ public:
         std::memcpy(depthOffsetsRevealed.data(), ptr, header.depthOffsetsRevealedSize);
         ptr += header.depthOffsetsRevealedSize;
 
-        return quadsUpdated.size() + depthOffsetsUpdated.size() +
-               quadsRevealed.size() + depthOffsetsRevealed.size();
+        return expectedSize;
     }
 
 private:

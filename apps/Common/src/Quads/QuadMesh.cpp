@@ -86,9 +86,9 @@ void QuadMesh::appendQuads(const QuadSet& quadSet, const glm::vec2& gBufferSize,
 
     uint incomingNumProxies = quadSet.getNumProxies();
     uint newNumProxies = currNumProxies + incomingNumProxies;
-    if (newNumProxies > MAX_QUADS_PER_MESH) {
-        spdlog::warn("Max proxies reached! Clamping to {} proxies.", MAX_QUADS_PER_MESH);
-        newNumProxies = MAX_QUADS_PER_MESH;
+    if (newNumProxies > MAX_PROXIES_PER_MESH) {
+        spdlog::warn("Max proxies reached! Clamping to {} proxies.", MAX_PROXIES_PER_MESH);
+        newNumProxies = MAX_PROXIES_PER_MESH;
     }
 
     appendQuadsShader.bind();

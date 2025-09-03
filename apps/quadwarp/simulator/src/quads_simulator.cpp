@@ -428,7 +428,7 @@ int main(int argc, char** argv) {
             ImGui::Begin("Mesh Capture", &showMeshCaptureWindow);
 
             if (ImGui::Button("Save Proxies")) {
-                quadwarp.writeToFiles(remoteCamera, outputPath);
+                quadwarp.writeToFiles(outputPath);
             }
 
             ImGui::End();

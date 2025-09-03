@@ -12,7 +12,7 @@
 
 namespace quasar {
 
-#define MAX_QUADS_PER_MESH 600000u
+#define MAX_PROXIES_PER_MESH 600000u
 
 #define VERTICES_IN_A_QUAD 4
 #define INDICES_IN_A_QUAD 6
@@ -31,8 +31,8 @@ public:
         double timeToCreateMeshMs = 0.0;
     } stats;
 
-    QuadMesh(const QuadSet& quadSet, Texture& colorTexture, uint maxQuadsPerMesh = MAX_QUADS_PER_MESH);
-    QuadMesh(const QuadSet& quadSet, Texture& colorTexture, const glm::vec4& textureExtent, uint maxQuadsPerMesh = MAX_QUADS_PER_MESH);
+    QuadMesh(const QuadSet& quadSet, Texture& colorTexture, uint maxQuadsPerMesh = MAX_PROXIES_PER_MESH);
+    QuadMesh(const QuadSet& quadSet, Texture& colorTexture, const glm::vec4& textureExtent, uint maxQuadsPerMesh = MAX_PROXIES_PER_MESH);
     ~QuadMesh() = default;
 
     void appendQuads(const QuadSet& quadSet, const glm::vec2& gBufferSize, bool isFullFrame = true);

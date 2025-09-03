@@ -16,7 +16,7 @@ Shader::Shader(const ShaderDataCreateParams& params)
     , extensions(params.extensions)
     , defines(params.defines)
 {
-    loadFromData(params.vertexCodeData, params.vertexCodeSize, params.fragmentCodeData, params.fragmentCodeSize, params.geometryData, params.geometryDataSize);
+    loadFromData(params.vertexCodeData, params.vertexCodeSize, params.fragmentCodeData, params.fragmentCodeSize, params.geometryData, params.geometryMetadataSize);
 }
 
 void Shader::loadFromFiles(const std::string vertexPath, const std::string fragmentPath, const std::string geometryPath) {
@@ -35,20 +35,20 @@ void Shader::loadFromFiles(const std::string vertexPath, const std::string fragm
 
     size_t vertexCodeSize = vertexCode.size();
     size_t fragmentCodeSize = fragmentCode.size();
-    size_t geometryDataSize = geometryPath != "" ? geometryCode.size() : 0;
+    size_t geometryMetadataSize = geometryPath != "" ? geometryCode.size() : 0;
 
-    loadFromData(vShaderCode, vertexCodeSize, fShaderCode, fragmentCodeSize, gShaderCode, geometryDataSize);
+    loadFromData(vShaderCode, vertexCodeSize, fShaderCode, fragmentCodeSize, gShaderCode, geometryMetadataSize);
 }
 
 void Shader::loadFromData(const char* vertexCodeData, const size_t vertexCodeSize,
                           const char* fragmentCodeData, const size_t fragmentCodeSize,
-                          const char* geometryData, const size_t geometryDataSize) {
-    createAndCompileProgram(vertexCodeData, vertexCodeSize, fragmentCodeData, fragmentCodeSize, geometryData, geometryDataSize);
+                          const char* geometryData, const size_t geometryMetadataSize) {
+    createAndCompileProgram(vertexCodeData, vertexCodeSize, fragmentCodeData, fragmentCodeSize, geometryData, geometryMetadataSize);
 }
 
 void Shader::createAndCompileProgram(const char* vertexCodeData, const size_t vertexCodeSize,
                                      const char* fragmentCodeData, const size_t fragmentCodeSize,
-                                     const char* geometryData, const size_t geometryDataSize) {
+                                     const char* geometryData, const size_t geometryMetadataSize) {
     // Compile vertex shader
     GLuint vertex = createShader(version, extensions, defines, vertexCodeData, vertexCodeSize, ShaderType::VERTEX);
 
@@ -58,7 +58,7 @@ void Shader::createAndCompileProgram(const char* vertexCodeData, const size_t ve
     // If geometry shader is given, compile geometry shader
     GLuint geometry;
     if (geometryData != nullptr) {
-        geometry = createShader(version, extensions, defines, geometryData, geometryDataSize, ShaderType::GEOMETRY);
+        geometry = createShader(version, extensions, defines, geometryData, geometryMetadataSize, ShaderType::GEOMETRY);
     }
 
     // Shader Program

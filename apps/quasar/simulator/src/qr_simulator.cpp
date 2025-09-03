@@ -151,7 +151,7 @@ int main(int argc, char** argv) {
     bool showWireframe = false;
     bool preventCopyingLocalPose = false;
     bool runAnimations = cameraPathFileIn;
-    bool restrictMovementToViewBox = !cameraPathFileIn;
+    bool restrictMovementToViewSphere = !cameraPathFileIn;
 
     bool sendReferenceFrame = true;
     bool sendResidualFrame = false;
@@ -372,7 +372,7 @@ int main(int argc, char** argv) {
                 quasar.setViewSphereDiameter(viewSphereDiameter);
             }
 
-            ImGui::Checkbox("Restrict Movement to View Sphere", &restrictMovementToViewBox);
+            ImGui::Checkbox("Restrict Movement to View Sphere", &restrictMovementToViewSphere);
 
             ImGui::Separator();
 
@@ -651,7 +651,7 @@ int main(int argc, char** argv) {
         }
         quasar.residualFrameWireframesLocal.visible = quasar.residualFrameNode.visible && showWireframe;
 
-        if (restrictMovementToViewBox) {
+        if (restrictMovementToViewSphere) {
             glm::vec3 remotePosition = remoteCamera.getPosition();
             glm::vec3 position = camera.getPosition();
             glm::vec3 direction = position - remotePosition;

@@ -26,7 +26,7 @@ QuadStreamReceiver::QuadStreamReceiver(QuadSet& quadSet, uint maxViews)
         colorTextures.emplace_back(texParams);
 
         // We can use less vertices and indicies for the additional views since they will be sparser
-        uint maxProxies = (view == 0 || view == maxViews - 1) ? MAX_QUADS_PER_MESH : MAX_QUADS_PER_MESH / 8;
+        uint maxProxies = (view == 0 || view == maxViews - 1) ? MAX_PROXIES_PER_MESH : MAX_PROXIES_PER_MESH / 8;
         meshes.emplace_back(quadSet, colorTextures[view], maxProxies);
     }
 
@@ -86,7 +86,7 @@ void QuadStreamReceiver::loadFromFiles(const Path& dataPath) {
     }
 
     // Load metadata (viewBoxSize and wide FOV)
-    auto metadataChar = FileIO::loadFromBinaryFile(dataPath / "metadata.bin");
+    const auto& metadataChar = FileIO::loadFromBinaryFile(dataPath / "metadata.bin");
     std::vector<float> metadata(metadataChar.size() / sizeof(float));
     std::memcpy(metadata.data(), metadataChar.data(), metadataChar.size());
 

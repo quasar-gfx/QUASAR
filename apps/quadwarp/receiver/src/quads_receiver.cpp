@@ -255,7 +255,7 @@ int main(int argc, char** argv) {
 
         if (showFramePreviewWindow) {
             flags = 0;
-            ImGui::Begin("texture", 0, flags);
+            ImGui::Begin("Texture Atlas Video", 0, flags);
             ImGui::Image((void*)(intptr_t)(quadsReceiver.atlasVideoTexture),
                          ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
@@ -316,9 +316,9 @@ int main(int argc, char** argv) {
         pose_id_t currPoseID = poseStreamer.sendPose();
         poseStreamer.removePosesLessThan(currPoseID);
 
-        FrameType frameType = quadsReceiver.recvData();
-        if (frameType != FrameType::NONE) {
-            resNode.visible = frameType == FrameType::RESIDUAL;
+        QuadFrame::FrameType frameType = quadsReceiver.recvData();
+        if (frameType != QuadFrame::FrameType::NONE) {
+            resNode.visible = frameType == QuadFrame::FrameType::RESIDUAL;
         }
         refNodeWireframe.visible = showWireframe;
         resNodeWireframe.visible = resNode.visible && showWireframe;
