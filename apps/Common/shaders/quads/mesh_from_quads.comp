@@ -41,7 +41,7 @@ layout(std430, binding = 6) readonly buffer MetadatasBufferInput {
     uint metadatasInput[];
 };
 
-layout(std430, binding = 7) readonly buffer QuadCreatedBuffer {
+layout(std430, binding = 7) readonly buffer QuadCreatedFlags {
     int quadCreatedFlags[];
 };
 

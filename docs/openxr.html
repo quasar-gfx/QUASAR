@@ -290,6 +290,7 @@
                     <li><a href="#quads-client">QuadsClient</a></li>
                     <li><a href="#quadstream-viewer">QuadStreamViewer</a></li>
                     <li><a href="#quasar-viewer">QUASARViewer</a></li>
+                    <li><a href="#quasar-client">QUASARClient</a></li>
                 </ul>
             </li>
             <li><a href="#debugging">Debugging</a></li>
@@ -363,7 +364,10 @@ cd apps/atw/streamer
     <p>in a terminal with your headset connected. Make sure you have <code>adb</code> installed.</p>
 
     <h3 id="meshwarp-viewer">MeshWarpViewer</h3>
-    <p>The MeshWarp Viewer app will load a saved static frame from MeshWarp to view on the headset. Simply run the app on the headset to view!</p>
+    <p>The MeshWarp Viewer app will load a saved static frame from MeshWarp to view on the headset. You can change the scene by editing:</p>
+    <pre><code>std::string sceneName = "robot_lab"; // choose from robot_lab, sun_temple, viking_village, or san_miguel
+</code></pre>
+    <p>in <code>QuestClientApps/Apps/MeshWarpViewer/include/MeshWarpViewer.h</code>.</p>
 
     <h3 id="meshwarp-client">MeshWarpClient</h3>
     <p>The MeshWarp Client app allows the headset to act as a receiver for a video and depth stream from the server sent across a network. The headset will reconstruct a mesh using the depth stream and texture map it with the video for reprojection.</p>
@@ -383,7 +387,7 @@ cd apps/meshwarp/streamer
     <p>in <code>QuestClientApps/Apps/QuadsViewer/include/QuadsViewer.h</code>.</p>
 
     <h3 id="quads-client">QuadsClient</h3>
-    <p>The Quads Client app allows the headset to act as a receiver for an image and quad proxy metadata stream from the server sent across a network. The headset will reconstruct a mesh with the quads from the metadata stream and texture map it with the image for reprojection.</p>
+    <p>The Quads Client app allows the headset to act as a receiver for a video and quad proxy metadata stream from the server sent across a network. The headset will reconstruct a mesh with the quads from the metadata stream and texture map it with the video for reprojection.</p>
     <p>First, open <code>QuestClientApps/Apps/QuadsClient/include/QuadsClient.h</code> and change:</p>
     <pre><code>std::string serverIP = "192.168.4.140";
 </code></pre>
@@ -404,6 +408,17 @@ cd apps/quadwarp/streamer
     <pre><code>std::string sceneName = "robot_lab"; // choose from robot_lab, sun_temple, viking_village, or san_miguel
 </code></pre>
     <p>in <code>QuestClientApps/Apps/QUASARViewer/include/QUASARViewer.h</code>.</p>
+
+    <h3 id="quasar-client">QUASARClient</h3>
+    <p>The QUASAR Client app allows the headset to act as a receiver for a video and quad proxy metadata stream from the server sent across a network. The headset will reconstruct a layered mesh with the quads from the metadata stream and texture map it with the video for reprojection.</p>
+    <p>First, open <code>QuestClientApps/Apps/QUASARClient/include/QUASARClient.h</code> and change:</p>
+    <pre><code>std::string serverIP = "192.168.4.140";
+</code></pre>
+    <p>Then, on the <a href="https://github.com/quasar-gfx/QUASAR">QUASAR</a> repository, build and run:</p>
+    <pre><code># in build directory
+cd apps/quasar/streamer
+./qr_streamer --size 1920x1080 --scene ../assets/scenes/robot_lab.json --remote-fov-wide 140 --view-sphere-diameter 1.0 --pose-url 0.0.0.0:54321 --video-url &lt;headset's IP&gt;:12345 --proxies-url &lt;server's IP&gt;:65432
+</code></pre>
 
     <h2 id="debugging">Debugging</h2>
     <p>To wirelessly connect to your headset, type this into your terminal <strong>with your headset plugged in</strong>:</p>

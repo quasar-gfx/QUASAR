@@ -65,7 +65,7 @@ void Animation::AnimationProperty::update(double deltaTime) {
     Keyframe* prev = nullptr;
     Keyframe* next = nullptr;
 
-    for (size_t i = 0; i < keyframes.size(); ++i) {
+    for (size_t i = 0; i < keyframes.size(); i++) {
         if (keyframes[i].time >= elapsedTime) {
             next = &keyframes[i];
             prev = (i > 0) ? &keyframes[i - 1] : &keyframes.back();

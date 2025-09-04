@@ -119,7 +119,7 @@ int main(int argc, char** argv) {
     quadstreamReceiver.copyPoseToCamera(camera);
 
     bool* showViews = new bool[maxViews];
-    for (int i = 0; i < maxViews; ++i) {
+    for (int i = 0; i < maxViews; i++) {
         showViews[i] = true;
     }
     bool showWireframe = false;

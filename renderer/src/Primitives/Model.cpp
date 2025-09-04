@@ -104,7 +104,7 @@ void Model::loadFromFile(const ModelCreateParams& params) {
 }
 
 void Model::processAnimations(const aiScene* scene) {
-    for (uint i = 0; i < scene->mNumAnimations; ++i) {
+    for (uint i = 0; i < scene->mNumAnimations; i++) {
         aiAnimation* animation = scene->mAnimations[i];
 
         for (uint j = 0; j < animation->mNumChannels; ++j) {

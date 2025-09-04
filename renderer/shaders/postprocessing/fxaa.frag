@@ -118,7 +118,7 @@ void main() {
     float edgeStepOffsets[10] = float[](1.0, 1.5, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 4.0);
     float edgeGuessJumpSize = 8.0;
 
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 2; i++) {
         vec2 puv = uvEdge + edgeSteps[i] * edgeStepOffsets[0];
         float edgeLumaDelta = computeLuminance(texture(screenColor, puv).rgb) - edgeLumaAvg;
         bool atEdgeEnd = abs(edgeLumaDelta) >= gradientThreshold;

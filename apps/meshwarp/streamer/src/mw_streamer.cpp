@@ -33,9 +33,9 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::ValueFlag<bool> displayIn(parser, "display", "Show window", {'d', "display"}, true);
-    args::ValueFlag<int> targetBitrateIn(parser, "targetBitrate", "Target bitrate (Mbps)", {'b', "target-bitrate"}, 50);
     args::ValueFlag<int> depthFactorIn(parser, "factor", "Depth Resolution Factor", {'a', "depth-factor"}, 1);
     args::ValueFlag<float> fovIn(parser, "fov", "Field of view", {'f', "fov"}, 60.0f);
+    args::ValueFlag<int> targetBitrateIn(parser, "targetBitrate", "Target bitrate (Mbps)", {'b', "target-bitrate"}, 10);
     args::ValueFlag<std::string> videoURLIn(parser, "video", "URL to send video", {'c', "video-url"}, "127.0.0.1:12345");
     args::ValueFlag<std::string> depthURLIn(parser, "depth", "URL to send depth", {'e', "depth-url"}, "127.0.0.1:65432");
     args::ValueFlag<std::string> poseURLIn(parser, "pose", "URL to send camera pose", {'p', "pose-url"}, "0.0.0.0:54321");

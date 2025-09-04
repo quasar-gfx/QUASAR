@@ -26,7 +26,7 @@ layout(std430, binding = 5) writeonly buffer MetadatasBufferOutput {
     uint metadatasOutput[];
 };
 
-layout(std430, binding = 6) writeonly buffer QuadCreatedBuffer {
+layout(std430, binding = 6) writeonly buffer QuadCreatedFlags {
     int quadCreatedFlags[];
 };
 
@@ -69,7 +69,7 @@ void main() {
         return;
     }
 
-    // Clear quadCreatedBuffer
+    // Clear quadCreatedFlags
     quadCreatedFlags[quadIndex] = 0;
 
     if (quadIndex >= currNumProxies) {

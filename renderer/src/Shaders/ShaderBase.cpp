@@ -242,7 +242,7 @@ void ShaderBase::checkCompileErrors(GLuint shader, ShaderType type) {
 
                 std::stringstream contextStream;
                 contextStream << "---- Shader Error Context ----\n";
-                for (int i = startLine; i < endLine; ++i) {
+                for (int i = startLine; i < endLine; i++) {
                     if (i == lineIndex) {
                         contextStream << ">>> ";
                     }

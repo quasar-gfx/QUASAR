@@ -38,25 +38,25 @@ QUASARReceiver::QUASARReceiver(QuadSet& quadSet, uint maxLayers, const std::stri
     // Untile texture atlas
     glm::vec4 textureExtent(0.0f);
     for (int layer = 0; layer < maxLayers; layer++) {
+        // First and last layer need a lot of quads, each subsequent one has less
+        uint maxProxies =
+            (layer == 0 || layer == maxLayers - 1) ? MAX_PROXIES_PER_MESH :
+                (layer == 1) ? MAX_PROXIES_PER_MESH / 4 : MAX_PROXIES_PER_MESH / 8;
         textureExtent.z = textureExtent.x + 0.5f;
         textureExtent.w = textureExtent.y + 1.0f / 3.0f;
-
-        // First and last layer need a lot of quads, each subsequent one has less
-        uint maxProxies = (layer == 0 || layer == maxLayers - 1) ? MAX_PROXIES_PER_MESH : MAX_PROXIES_PER_MESH / 4;
         meshes.emplace_back(quadSet, atlasVideoTexture, textureExtent, maxProxies);
 
         textureExtent.x += 0.5f;
         if (textureExtent.x >= 1.0f) {
             textureExtent.x = 0.0f;
             textureExtent.y += 1.0f / 3.0f;
-            if (textureExtent.y >= 1.0f) textureExtent.y = 0.0f; // optional safety wrap
         }
     }
 
     frameInUse = std::make_shared<Frame>(quadSet.getSize(), maxLayers);
     framePending = std::make_shared<Frame>(quadSet.getSize(), maxLayers);
 
-    threadPool = std::make_unique<BS::thread_pool<>>(4);
+    threadPool = std::make_unique<BS::thread_pool<>>(6);
 
     if (!proxiesURL.empty()) {
         spdlog::info("Created QUASARReceiver that recvs from URL: {}", proxiesURL);
@@ -156,8 +156,7 @@ QuadFrame::FrameType QUASARReceiver::loadFromFiles(const Path& dataPath) {
 
     startTime = timeutils::getTimeMicros();
     frameInUse->frameType = QuadFrame::FrameType::REFERENCE;
-    frameInUse->decompressReferenceFrame(threadPool, referenceFrames[0]);
-    frameInUse->decompressHiddenWideFOV(threadPool, referenceFrames, maxLayers);
+    frameInUse->decompressReferenceFrames(threadPool, referenceFrames);
     stats.timeToDecompressMs += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     // Update reference GPU buffers
@@ -177,7 +176,7 @@ QuadFrame::FrameType QUASARReceiver::loadFromFiles(const Path& dataPath) {
 
     startTime = timeutils::getTimeMicros();
     frameInUse->frameType = QuadFrame::FrameType::RESIDUAL;
-    frameInUse->decompressResidualFrame(threadPool, residualFrame);
+    frameInUse->decompressReferenceAndResidualFrames(threadPool, referenceFrames, residualFrame);
     stats.timeToDecompressMs += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     // Update residual GPU buffers
@@ -252,10 +251,6 @@ QuadFrame::FrameType QUASARReceiver::loadFromMemory(const std::vector<char>& inp
         ptr += layerSize;
 
         stats.timeToLoadMs += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
-
-        startTime = timeutils::getTimeMicros();
-        frame->decompressReferenceFrame(threadPool, referenceFrames[0]);
-        stats.timeToDecompressMs += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
     }
     else {
         startTime = timeutils::getTimeMicros();
@@ -269,10 +264,6 @@ QuadFrame::FrameType QUASARReceiver::loadFromMemory(const std::vector<char>& inp
         ptr += layerSize;
 
         stats.timeToLoadMs += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
-
-        startTime = timeutils::getTimeMicros();
-        frame->decompressResidualFrame(threadPool, residualFrame);
-        stats.timeToDecompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
     }
 
     // Read hidden layers and wide FOV
@@ -286,9 +277,16 @@ QuadFrame::FrameType QUASARReceiver::loadFromMemory(const std::vector<char>& inp
         ptr += layerSize;
     }
 
-    startTime = timeutils::getTimeMicros();
-    frame->decompressHiddenWideFOV(threadPool, referenceFrames, maxLayers);
-    stats.timeToDecompressMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+    if (header.frameType == QuadFrame::FrameType::REFERENCE) {
+        startTime = timeutils::getTimeMicros();
+        frame->decompressReferenceFrames(threadPool, referenceFrames);
+        stats.timeToDecompressMs += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+    }
+    else {
+       startTime = timeutils::getTimeMicros();
+       frame->decompressReferenceAndResidualFrames(threadPool, referenceFrames, residualFrame);
+       stats.timeToDecompressMs += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+    }
 
     // Signal that frame is ready
     {
@@ -314,10 +312,11 @@ QuadFrame::FrameType QUASARReceiver::loadFromFrame(std::shared_ptr<Frame> frame)
     if (frame->frameType == QuadFrame::FrameType::REFERENCE) {
         // Transfer proxies to GPU for reconstruction
         auto sizes = quadSet.loadFromMemory(frame->uncompressedQuads[0], frame->uncompressedOffsets[0]);
+        referenceFrames[0].numQuads = sizes.numQuads;
+        referenceFrames[0].numDepthOffsets = sizes.numDepthOffsets;
         stats.timeToTransferMs += quadSet.stats.timeToTransferMs;
 
         // Using GPU buffers, reconstruct mesh using proxies
-        const glm::vec2& gBufferSize = glm::vec2(quadSet.getSize().x, quadSet.getSize().y);
         auto& cameraToUse = getCameraToUse(0);
         startTime = timeutils::getTimeMicros();
         meshes[0].appendQuads(quadSet, gBufferSize);
@@ -340,7 +339,7 @@ QuadFrame::FrameType QUASARReceiver::loadFromFrame(std::shared_ptr<Frame> frame)
 
         // Using GPU buffers, update reference frame mesh using proxies
         startTime = timeutils::getTimeMicros();
-        meshes[0].appendQuads(quadSet, gBufferSize, false /* is not reference frame */);
+        meshes[0].appendQuads(quadSet, gBufferSize, false /* not a reference frame */);
         meshes[0].createMeshFromProxies(quadSet, gBufferSize, remoteCameraPrev);
         stats.timeToCreateMeshMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
@@ -369,10 +368,11 @@ QuadFrame::FrameType QUASARReceiver::loadFromFrame(std::shared_ptr<Frame> frame)
     for (int layer = 1; layer < maxLayers; ++layer) {
         // Transfer proxies to GPU for reconstruction
         auto sizes = quadSet.loadFromMemory(frame->uncompressedQuads[layer], frame->uncompressedOffsets[layer]);
+        referenceFrames[layer].numQuads = sizes.numQuads;
+        referenceFrames[layer].numDepthOffsets = sizes.numDepthOffsets;
         stats.timeToTransferMs += quadSet.stats.timeToTransferMs;
 
         // Using GPU buffers, reconstruct mesh using proxies
-        const glm::vec2& gBufferSize = glm::vec2(quadSet.getSize().x, quadSet.getSize().y);
         const auto& cameraToUse = getCameraToUse(layer);
         startTime = timeutils::getTimeMicros();
         meshes[layer].appendQuads(quadSet, gBufferSize);

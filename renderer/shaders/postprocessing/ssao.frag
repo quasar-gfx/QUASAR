@@ -35,7 +35,7 @@ void main() {
     mat3 TBN = mat3(tangent, bitangent, normal);
 
     float occlusion = 0.0;
-    for (int i = 0; i < kernelSize; ++i) {
+    for (int i = 0; i < kernelSize; i++) {
         vec3 samplePos = fragPos + (TBN * samples[i]) * radius;
 
         vec4 offset = projection * vec4(samplePos, 1.0);

@@ -37,9 +37,8 @@ int main(int argc, char** argv) {
     args::Flag verbose(parser, "verbose", "Enable verbose logging", {'v', "verbose"});
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "1920x1080");
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
-    args::ValueFlag<int> maxHiddenLayersIn(parser, "layers", "Max hidden layers", {'n', "max-hidden-layers"}, 3);
-    args::Flag disableWideFov(parser, "disable-wide-fov", "Disable wide fov view", {'W', "disable-wide-fov"});
     args::Flag loadFromDisk(parser, "load-from-disk", "Load data from disk", {'L', "load-from-disk"}, false);
+    args::ValueFlag<int> maxHiddenLayersIn(parser, "layers", "Max hidden layers", {'n', "max-hidden-layers"}, 3);
     args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Path to data files", {'D', "data-path"}, "../simulator/");
     args::ValueFlag<std::string> videoURLIn(parser, "video", "URL to recv video", {'c', "video-url"}, "0.0.0.0:12345");
     args::ValueFlag<std::string> proxiesURLIn(parser, "proxies", "URL to recv quad proxy metadata", {'e', "proxies-url"}, "127.0.0.1:65432");
@@ -72,7 +71,7 @@ int main(int argc, char** argv) {
     std::string poseURL = !loadFromDisk ? args::get(poseURLIn) : "";
 
     int maxHidLayers = args::get(maxHiddenLayersIn);
-    int maxLayers = !disableWideFov ? maxHidLayers + 2 : maxHidLayers;
+    int maxLayers = maxHidLayers + 2;
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -143,7 +142,7 @@ int main(int argc, char** argv) {
     bool restrictMovementToViewSphere = loadFromDisk;
 
     bool* showLayers = new bool[maxLayers];
-    for (int i = 0; i < maxLayers; ++i) {
+    for (int i = 0; i < maxLayers; i++) {
         showLayers[i] = true;
     }
     bool showWireframe = false;
@@ -353,7 +352,7 @@ int main(int argc, char** argv) {
         if (frameType != QuadFrame::FrameType::NONE) {
             resNode.visible = frameType == QuadFrame::FrameType::RESIDUAL;
         }
-        for (int i = 0; i < maxLayers; ++i) {
+        for (int i = 0; i < maxLayers; i++) {
             refNodes[i].visible = showLayers[i];
             refNodeWireframes[i].visible = showWireframe && showLayers[i];
         }

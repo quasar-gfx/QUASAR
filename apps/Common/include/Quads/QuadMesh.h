@@ -31,8 +31,8 @@ public:
         double timeToCreateMeshMs = 0.0;
     } stats;
 
-    QuadMesh(const QuadSet& quadSet, Texture& colorTexture, uint maxQuadsPerMesh = MAX_PROXIES_PER_MESH);
-    QuadMesh(const QuadSet& quadSet, Texture& colorTexture, const glm::vec4& textureExtent, uint maxQuadsPerMesh = MAX_PROXIES_PER_MESH);
+    QuadMesh(const QuadSet& quadSet, Texture& colorTexture, uint maxProxies = MAX_PROXIES_PER_MESH);
+    QuadMesh(const QuadSet& quadSet, Texture& colorTexture, const glm::vec4& textureExtent, uint maxProxies = MAX_PROXIES_PER_MESH);
     ~QuadMesh() = default;
 
     void appendQuads(const QuadSet& quadSet, const glm::vec2& gBufferSize, bool isFullFrame = true);
@@ -43,14 +43,15 @@ public:
 private:
     glm::vec4 textureExtent;
 
+    uint maxProxies;
+    uint currNumProxies = 0;
+
     QuadBuffers currentQuadBuffers;
 
     Buffer sizesBuffer;
 
     Buffer quadIndexMap;
-    Buffer quadCreatedBuffer;
-
-    uint currNumProxies = 0;
+    Buffer quadCreatedFlags;
 
     ComputeShader appendQuadsShader;
     ComputeShader createQuadMeshShader;

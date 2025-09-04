@@ -423,17 +423,17 @@ cd apps/depth_peeling
 
     <h3 id="atw">Asynchronous Time Warp (ATW)</h3>
     <p>The ATW app warps a previously rendered frame on a plane using a homography.</p>
-    <p>To run the simulator (simulates streaming over a configurable network):</p>
+    <p>To run the <strong>simulator</strong> (simulates streaming over a configurable network):</p>
     <pre><code># in build directory
 cd apps/atw/simulator
 ./atw_simulator --size 1920x1080 --scene ../assets/scenes/robot_lab.json</code></pre>
 
-    <p>To run the streamer (actually streams over a network):</p>
+    <p>To run the <strong>streamer</strong> (actually streams over a network):</p>
     <pre><code># in build directory
 cd apps/atw/streamer
 ./atw_streamer --size 1920x1080 --scene ../assets/scenes/robot_lab.json --pose-url 0.0.0.0:54321 --video-url 127.0.0.1:12345</code></pre>
 
-    <p>In a new terminal, to run the receiver (streaming client):</p>
+    <p>In a new terminal, to run the <strong>receiver</strong> (streaming client):</p>
     <pre><code># in build directory
 cd apps/atw/receiver
 ./atw_receiver --size 1920x1080 --pose-url 127.0.0.1:54321 --video-url 0.0.0.0:12345</code></pre>
@@ -442,17 +442,17 @@ cd apps/atw/receiver
 
     <h3 id="meshwarp">MeshWarp (MW)</h3>
     <p>The MeshWarp app warps a previously rendered frame by using a depth map to create a texture-mapped mesh.</p>
-    <p>To run the simulator:</p>
+    <p>To run the <strong>simulator</strong>:</p>
     <pre><code># in build directory
 cd apps/meshwarp/simulator
 ./mw_simulator --size 1920x1080 --scene ../assets/scenes/robot_lab.json</code></pre>
 
-    <p>To run the streamer:</p>
+    <p>To run the <strong>streamer</strong>:</p>
     <pre><code># in build directory
 cd apps/meshwarp/streamer
 ./mw_streamer --size 1920x1080 --scene ../assets/scenes/robot_lab.json --pose-url 0.0.0.0:54321 --video-url 127.0.0.1:12345 --depth-url 127.0.0.1:65432</code></pre>
 
-    <p>In a new terminal, to run the receiver:</p>
+    <p>In a new terminal, to run the <strong>receiver</strong>:</p>
     <pre><code># in build directory
 cd apps/meshwarp/receiver
 ./mw_receiver --size 1920x1080 --pose-url 127.0.0.1:54321 --video-url 0.0.0.0:12345 --depth-url 127.0.0.1:65432</code></pre>
@@ -467,46 +467,53 @@ cd apps/depth_codec
 
     <h3 id="quadwarp">QuadWarp</h3>
     <p>The QuadWarp app warps a previously rendered frame by fitting a series of quads from a G-Buffer.</p>
-    <p>To run the simulator:</p>
+    <p>To run the <strong>simulator</strong>:</p>
     <pre><code># in build directory
 cd apps/quadwarp/simulator
 ./quads_simulator --size 1920x1080 --scene ../assets/scenes/robot_lab.json</code></pre>
     <p>You can save frames to disk by clicking <code>View->Mesh Capture->Save Proxies</code> in the GUI.</p>
 
-    <p>To run the streamer:</p>
+    <p>To run the <strong>streamer</strong>:</p>
     <pre><code># in build directory
 cd apps/quadwarp/streamer
 ./quads_streamer --size 1920x1080 --scene ../assets/scenes/robot_lab.json --pose-url 0.0.0.0:54321 --video-url 127.0.0.1:12345 --proxies-url 127.0.0.1:65432</code></pre>
 
-    <p>In a new terminal, to run the receiver:</p>
+    <p>In a new terminal, to run the <strong>receiver</strong>:</p>
     <pre><code># in build directory
 cd apps/quadwarp/receiver
 ./quads_receiver --size 1920x1080 --pose-url 127.0.0.1:54321 --video-url 0.0.0.0:12345 --proxies-url 127.0.0.1:65432</code></pre>
-    <p>You can loads frames saved to disk by adding <code>--load-from-disk</code> (this will disable receiving data from network).</p>
+    <p>You can load frames saved to disk by adding <code>--load-from-disk</code> (this will disable receiving data from network).</p>
 
     <h3 id="quadstream">QuadStream</h3>
     <p>The QuadStream app fits a series of quads from multiple G-Buffers from various camera views inside a headbox. The code is a best effort implementation of <a href="https://jozef.hladky.de/projects/QS">QuadStream</a>.</p>
-    <p>To run the simulator:</p>
+    <p>To run the <strong>simulator</strong>:</p>
     <pre><code># in build directory
 cd apps/quadstream/simulator
 ./qs_simulator --size 1920x1080 --scene ../assets/scenes/robot_lab.json</code></pre>
     <p>You can save a frame to disk by clicking <code>View->Mesh Capture->Save Proxies</code> in the GUI.</p>
-    <p>To run the receiver (which loads a saved frame from disk):</p>
+    <p>To run the <strong>receiver</strong> (which loads a saved frame from disk):</p>
     <pre><code># in build directory
 cd apps/quadstream/receiver
 ./qs_receiver --size 1920x1080</code></pre>
 
     <h3 id="quasar">QUASAR</h3>
     <p>The QUASAR app fits a series of quads from multiple G-Buffers from various depth peeling layers with fragment discarding determined by a modified version of <a href="https://cg.skku.edu/pub/2023-kim-siggraph-pvhv">Effective Depth Peeling (EDP)</a>. This only lets <i>potentially visible</i> fragments pass.</p>
-    <p>To run the simulator:</p>
+    <p>To run the <strong>simulator</strong>:</p>
     <pre><code># in build directory
 cd apps/quasar/simulator
 ./qr_simulator --size 1920x1080 --scene ../assets/scenes/robot_lab.json</code></pre>
     <p>You can save a frame to disk by clicking <code>View->Mesh Capture->Save Proxies</code> in the GUI.</p>
-    <p>To run the receiver (which loads a saved frame from disk):</p>
+
+    <p>To run the <strong>streamer</strong>:</p>
+    <pre><code># in build directory
+cd apps/quasar/streamer
+./qr_streamer --size 1920x1080 --scene ../assets/scenes/robot_lab.json --pose-url 0.0.0.0:54321 --video-url 127.0.0.1:12345 --proxies-url 127.0.0.1:65432</code></pre>
+
+    <p>In a new terminal, to run the <strong>receiver</strong>:</p>
     <pre><code># in build directory
 cd apps/quasar/receiver
-./qr_receiver --size 1920x1080</code></pre>
+./qr_receiver --size 1920x1080 --pose-url 127.0.0.1:54321 --video-url 0.0.0.0:12345 --proxies-url 127.0.0.1:65432</code></pre>
+    <p>You can load frames saved to disk by adding <code>--load-from-disk</code> (this will disable receiving data from network).</p>
 
     <h2 id="evaluation">Evaluation Scripts</h2>
     <p>Make sure you have the scenes downloaded and placed in <code>assets/models/Scenes/</code>!</p>

@@ -179,7 +179,7 @@ void VideoStreamer::sendFrame(pose_id_t poseID) {
 }
 
 void VideoStreamer::packPoseIDIntoVideoFrame(pose_id_t poseID) {
-    for (int i = 0; i < poseIDOffset; ++i) {
+    for (int i = 0; i < poseIDOffset; i++) {
         uint8_t value = (poseID & (1 << i)) ? 255 : 0;
         for (int j = 0; j < videoHeight; ++j) {
             int index = j * videoWidth * 4 + (videoWidth - 1 - i) * 4;

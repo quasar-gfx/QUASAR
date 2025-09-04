@@ -155,7 +155,7 @@ void FrameGenerator::createResidualFrame(
 
     // Using GPU buffers, update reference frame mesh using proxies
     startTime = timeutils::getTimeMicros();
-    referenceMesh.appendQuads(quadSet, gBufferSize, false /* is not reference frame */);
+    referenceMesh.appendQuads(quadSet, gBufferSize, false /* not a reference frame */);
     referenceMesh.createMeshFromProxies(quadSet, gBufferSize, remoteCameraPrev);
     stats.timeToAppendQuadsMs = referenceMesh.stats.timeToAppendQuadsMs;
     stats.timeToFillQuadIndicesMs = referenceMesh.stats.timeToGatherQuadsMs;

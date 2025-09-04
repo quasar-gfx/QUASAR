@@ -84,7 +84,8 @@ public:
         float viewSphereDiameter,
         float wideFOV,
         const std::string& videoURL = "",
-        const std::string& proxiesURL = "");
+        const std::string& proxiesURL = "",
+        uint targetBitRate = 20);
     ~QUASARStreamer();
 
     uint getNumTriangles() const;

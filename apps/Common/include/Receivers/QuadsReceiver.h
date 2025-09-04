@@ -71,7 +71,7 @@ private:
             : frameType(QuadFrame::FrameType::NONE)
         {
             const size_t quadsBytes = sizeof(uint) + maxProxiesPerMesh * sizeof(QuadMapDataPacked);
-            const size_t offsetsBytes = static_cast<size_t>(gBufferSize.x) * static_cast<size_t>(gBufferSize.y) * 4u * sizeof(uint16_t);
+            const size_t offsetsBytes = static_cast<size_t>(gBufferSize.x * gBufferSize.y) * 4 * sizeof(uint16_t);
 
             uncompressedQuads.resize(quadsBytes);
             uncompressedOffsets.resize(offsetsBytes);
@@ -81,7 +81,7 @@ private:
         }
         ~Frame() = default;
 
-        void decompressReferenceFrame(std::unique_ptr<BS::thread_pool<>>& threadPool, ReferenceFrame& referenceFrame) {
+        size_t decompressReferenceFrame(std::unique_ptr<BS::thread_pool<>>& threadPool, ReferenceFrame& referenceFrame) {
             // Decompress proxies (asynchronous)
             std::vector<std::future<size_t>> futures;
             futures.emplace_back(threadPool->submit_task([&]() {
@@ -90,10 +90,13 @@ private:
             futures.emplace_back(threadPool->submit_task([&]() {
                 return referenceFrame.decompressQuads(uncompressedQuads);
             }));
-            for (auto& f : futures) f.get();
+
+            size_t outputSize = 0;
+            for (auto& f : futures) outputSize += f.get();
+            return outputSize;
         }
 
-        void decompressResidualFrame(std::unique_ptr<BS::thread_pool<>>& threadPool, ResidualFrame& residualFrame) {
+        size_t decompressResidualFrame(std::unique_ptr<BS::thread_pool<>>& threadPool, ResidualFrame& residualFrame) {
             // Decompress proxies (asynchronous)
             std::vector<std::future<size_t>> futures;
             futures.emplace_back(threadPool->submit_task([&]() {
@@ -108,7 +111,10 @@ private:
             futures.emplace_back(threadPool->submit_task([&]() {
                 return residualFrame.decompressRevealedQuads(uncompressedQuadsRevealed);
             }));
-            for (auto& f : futures) f.get();
+
+            size_t outputSize = 0;
+            for (auto& f : futures) outputSize += f.get();
+            return outputSize;
         }
     };
 

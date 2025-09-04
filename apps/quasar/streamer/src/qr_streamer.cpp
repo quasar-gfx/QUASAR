@@ -26,10 +26,11 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::ValueFlag<bool> displayIn(parser, "display", "Show window", {'d', "display"}, true);
-    args::ValueFlag<float> viewSphereDiameterIn(parser, "view-sphere-diameter", "Size of view sphere in m", {'B', "view-size"}, 0.5f);
-    args::ValueFlag<int> maxLayersIn(parser, "layers", "Max layers", {'n', "max-layers"}, 4);
     args::ValueFlag<float> remoteFOVIn(parser, "remote-fov", "Remote camera FOV in degrees", {'F', "remote-fov"}, 60.0f);
     args::ValueFlag<float> remoteFOVWideIn(parser, "remote-fov-wide", "Remote camera FOV in degrees for wide fov", {'W', "remote-fov-wide"}, 120.0f);
+    args::ValueFlag<int> maxHiddenLayersIn(parser, "layers", "Max hidden layers", {'n', "max-hidden-layers"}, 3);
+    args::ValueFlag<float> viewSphereDiameterIn(parser, "view-sphere-diameter", "Size of view sphere in m", {'B', "view-size"}, 0.5f);
+    args::ValueFlag<int> targetBitrateIn(parser, "targetBitrate", "Target bitrate (Mbps)", {'b', "target-bitrate"}, 20);
     args::ValueFlag<std::string> videoURLIn(parser, "video", "URL to send video", {'c', "video-url"}, "127.0.0.1:12345");
     args::ValueFlag<std::string> proxiesURLIn(parser, "proxies", "URL to send quad proxy metadata", {'e', "proxies-url"}, "127.0.0.1:65432");
     args::ValueFlag<std::string> poseURLIn(parser, "pose", "URL to send camera pose", {'p', "pose-url"}, "0.0.0.0:54321");
@@ -66,8 +67,10 @@ int main(int argc, char** argv) {
     std::string proxiesURL = args::get(proxiesURLIn);
     std::string poseURL = args::get(poseURLIn);
 
-    int maxLayers = args::get(maxLayersIn);
-    int maxLayersWideFOV = maxLayers + 1;
+    uint maxHidLayers = args::get(maxHiddenLayersIn);
+    uint maxLayers = maxHidLayers + 2;
+
+    uint targetBitrate = args::get(targetBitrateIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -79,7 +82,7 @@ int main(int argc, char** argv) {
     ForwardRenderer renderer(config);
     config.width = remoteWindowSize.x;
     config.height = remoteWindowSize.y;
-    DepthPeelingRenderer remoteRendererDP(config, maxLayers, true);
+    DepthPeelingRenderer remoteRendererDP(config, maxLayers - 1, true); // DP layers doesn't include wide fov
     DeferredRenderer remoteRenderer(config);
 
     // "Remote" scene
@@ -97,10 +100,11 @@ int main(int argc, char** argv) {
     float remoteFOVWide = args::get(remoteFOVWideIn);
     float viewSphereDiameter = args::get(viewSphereDiameterIn);
     QUASARStreamer quasar(
-        quadSet, maxLayersWideFOV,
+        quadSet, maxLayers,
         remoteRendererDP, remoteRenderer, scene, camera,
         viewSphereDiameter, remoteFOVWide,
-        videoURL, proxiesURL);
+        videoURL, proxiesURL,
+        targetBitrate);
 
     // "Local" scene for visualization
     Scene localScene;
@@ -117,15 +121,15 @@ int main(int argc, char** argv) {
 
     bool sendReferenceFrame = true;
     bool sendResidualFrame = false;
-    int refFrameInterval = 1;
+    int refFrameInterval = 2;
 
-    const int serverFPSValues[] = {0, 1, 5, 10, 15, 30};
+    const int serverFPSValues[] = {0, 1, 2, 3, 4, 5};
     const char* serverFPSLabels[] = {"0 FPS", "1 FPS", "2 FPS", "3 FPS", "4 FPS", "5 FPS"};
     int serverFPSIndex = 1; // default to 1 FPS
     double rerenderIntervalMs = serverFPSIndex == 0 ? 0.0 : MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
 
-    bool* showLayers = new bool[maxLayersWideFOV];
-    for (int i = 0; i < maxLayersWideFOV; ++i) {
+    bool* showLayers = new bool[maxLayers];
+    for (int i = 0; i < maxLayers; i++) {
         showLayers[i] = true;
     }
 
@@ -279,7 +283,7 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             const int columns = 3;
-            for (int layer = 0; layer < maxLayersWideFOV; layer++) {
+            for (int layer = 0; layer < maxLayers; layer++) {
                 ImGui::Checkbox(("Show Layer " + std::to_string(layer)).c_str(), &showLayers[layer]);
                 if ((layer + 1) % columns != 0) {
                     ImGui::SameLine();
@@ -309,8 +313,8 @@ int main(int argc, char** argv) {
 
         if (showLayerPreviews) {
             flags = ImGuiWindowFlags_AlwaysAutoResize;
-            for (int layer = 0; layer < maxLayersWideFOV; layer++) {
-                int viewIdx = maxLayersWideFOV - layer - 1;
+            for (int layer = 0; layer < maxLayers; layer++) {
+                int viewIdx = maxLayers - layer - 1;
                 if (showLayers[viewIdx]) {
                     ImGui::Begin(("View " + std::to_string(viewIdx)).c_str(), 0, flags);
                     if (viewIdx == 0) {
@@ -396,7 +400,7 @@ int main(int argc, char** argv) {
 
         int currentIndex  = quasar.lastMeshIndex % 2;
         int previousIndex = (quasar.lastMeshIndex + 1) % 2;
-        for (int layer = 0; layer < maxLayersWideFOV; layer++) {
+        for (int layer = 0; layer < maxLayers; layer++) {
             bool showLayer = showLayers[layer];
             if (layer == 0) {
                 // Show current mesh

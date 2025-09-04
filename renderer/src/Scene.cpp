@@ -155,7 +155,7 @@ int Scene::bindPointLights(const Material* material, int texIdx) {
 
     auto* shader = material->getShader();
 
-    for (int i = 0; i < uboData.numPointLights && i < PointLight::maxPointLights; ++i) {
+    for (int i = 0; i < uboData.numPointLights && i < PointLight::maxPointLights; i++) {
         auto& pointLight = pointLights[i];
         pointLight->setChannel(i);
         uboData.lights[i] = pointLight->toGPULight();
@@ -172,7 +172,7 @@ int Scene::bindPointLights(const Material* material, int texIdx) {
         texIdx++;
     }
     // Set empty lights and shadow maps for remaining slots
-    for (int i = uboData.numPointLights; i < PointLight::maxPointLights; ++i) {
+    for (int i = uboData.numPointLights; i < PointLight::maxPointLights; i++) {
         uboData.lights[i] = PointLight::GPUPointLight();
 #ifdef GL_CORE
         shader->clearTexture("pointLightShadowMaps[" + std::to_string(i) + "]", texIdx);

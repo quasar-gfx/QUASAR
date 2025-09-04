@@ -12,7 +12,8 @@ QUASARStreamer::QUASARStreamer(
         float viewSphereDiameter,
         float wideFOV,
         const std::string& videoURL,
-        const std::string& proxiesURL)
+        const std::string& proxiesURL,
+        uint targetBitRate)
     : quadSet(quadSet)
     , videoURL(videoURL)
     , proxiesURL(proxiesURL)
@@ -87,7 +88,7 @@ QUASARStreamer::QUASARStreamer(
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST,
-    }, videoURL, 30, 20)
+    }, videoURL, 15, targetBitRate)
     , depthMesh(quadSet.getSize(), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f))
     // We can use less vertices and indicies for the mask since it will be sparse
     , residualFrameMesh(quadSet, residualFrameRT_noTone.colorTexture, MAX_PROXIES_PER_MESH / 4)
@@ -173,8 +174,11 @@ QUASARStreamer::QUASARStreamer(
     depthNode.primitiveType = GL_POINTS;
 
     for (int layer = 0; layer < numHidLayers; layer++) {
-        // We can use less vertices and indicies for the hidden layers since they will be sparser
-        meshesHidLayer.emplace_back(quadSet, frameRTsHidLayer_noTone[layer].colorTexture, MAX_PROXIES_PER_MESH / 4);
+        // First and last layer need a lot of quads, each subsequent one has less
+        uint maxProxies =
+            (layer == 0 || layer == maxLayers - 1) ? MAX_PROXIES_PER_MESH :
+                (layer == 1) ? MAX_PROXIES_PER_MESH / 4 : MAX_PROXIES_PER_MESH / 8;
+        meshesHidLayer.emplace_back(quadSet, frameRTsHidLayer_noTone[layer].colorTexture, maxProxies);
 
         nodesHidLayer.emplace_back(&meshesHidLayer[layer]);
         nodesHidLayer[layer].frustumCulled = false;

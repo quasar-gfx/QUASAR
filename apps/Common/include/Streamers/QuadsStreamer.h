@@ -64,7 +64,8 @@ public:
         Scene& remoteScene,
         PerspectiveCamera& remoteCamera,
         const std::string& videoURL = "",
-        const std::string& proxiesURL = "");
+        const std::string& proxiesURL = "",
+        uint targetBitRate = 15);
     ~QuadsStreamer();
 
     uint getNumTriangles() const;

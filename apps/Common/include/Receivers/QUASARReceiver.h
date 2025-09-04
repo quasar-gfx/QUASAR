@@ -87,45 +87,47 @@ private:
         Frame(const glm::vec2& gBufferSize, int maxLayers, size_t maxProxiesPerMesh = MAX_PROXIES_PER_MESH)
             : frameType(QuadFrame::FrameType::NONE)
         {
+            const size_t quadsBytes   = sizeof(uint) + maxProxiesPerMesh * sizeof(QuadMapDataPacked);
+            const size_t offsetsBytes = static_cast<size_t>(gBufferSize.x * gBufferSize.y) * 4 * sizeof(uint16_t);
             for (int layer = 0; layer < maxLayers; layer++) {
-                size_t quadsBytes   = sizeof(uint) + maxProxiesPerMesh * sizeof(QuadMapDataPacked);
-                size_t offsetsBytes = static_cast<size_t>(gBufferSize.x) *
-                                      static_cast<size_t>(gBufferSize.y) * 4u * sizeof(uint16_t);
-                if (!(layer == 0 || layer == maxLayers - 1)) {
-                    quadsBytes /= 4;
-                    offsetsBytes /= 4;
-                }
+                size_t adjustedQuadsBytes =
+                    (layer == 0 || layer == maxLayers - 1) ? quadsBytes :
+                        (layer == 1) ? quadsBytes / 4 : quadsBytes / 8;
 
-                uncompressedQuads.emplace_back(std::vector<char>(quadsBytes));
+                uncompressedQuads.emplace_back(std::vector<char>(adjustedQuadsBytes));
                 uncompressedOffsets.emplace_back(std::vector<char>(offsetsBytes));
             }
 
-            const size_t quadsBytes   = sizeof(uint) + maxProxiesPerMesh * sizeof(QuadMapDataPacked);
-            const size_t offsetsBytes = static_cast<size_t>(gBufferSize.x) *
-                                        static_cast<size_t>(gBufferSize.y) * 4u * sizeof(uint16_t);
             uncompressedQuadsRevealed.resize(quadsBytes);
             uncompressedOffsetsRevealed.resize(offsetsBytes);
         }
         ~Frame() = default;
 
-        void decompressReferenceFrame(std::unique_ptr<BS::thread_pool<>>& threadPool,
-                                       ReferenceFrame& referenceFrame) {
-            // Decompress reference frame proxies (asynchronous)
+        size_t decompressReferenceFrames(std::unique_ptr<BS::thread_pool<>>& threadPool,
+                                         std::vector<ReferenceFrame>& referenceFrames) {
+            // Decompress hidden layer and wide fov proxies (asynchronous)
             std::vector<std::future<size_t>> futures;
-            futures.reserve(2);
-            futures.emplace_back(threadPool->submit_task([&]() {
-                return referenceFrame.decompressDepthOffsets(uncompressedOffsets[0]);
-            }));
-            futures.emplace_back(threadPool->submit_task([&]() {
-                return referenceFrame.decompressQuads(uncompressedQuads[0]);
-            }));
-            for (auto& f : futures) f.get();
+            futures.reserve(referenceFrames.size() * 2);
+            for (int layer = 0; layer < referenceFrames.size(); layer++) {
+                futures.emplace_back(threadPool->submit_task([&, layer]() {
+                    return referenceFrames[layer].decompressDepthOffsets(uncompressedOffsets[layer]);
+                }));
+                futures.emplace_back(threadPool->submit_task([&, layer]() {
+                    return referenceFrames[layer].decompressQuads(uncompressedQuads[layer]);
+                }));
+            }
+
+            size_t outputSize = 0;
+            for (auto& f : futures) outputSize += f.get();
+            return outputSize;
         }
 
-        void decompressResidualFrame(std::unique_ptr<BS::thread_pool<>>& threadPool,
-                                     ResidualFrame& residualFrame) {
-            // Decompress residual frame proxies (asynchronous)
+        size_t decompressReferenceAndResidualFrames(std::unique_ptr<BS::thread_pool<>>& threadPool,
+                                                    std::vector<ReferenceFrame>& referenceFrames,
+                                                    ResidualFrame& residualFrame) {
+            // Decompress hidden layer and wide fov proxies (asynchronous)
             std::vector<std::future<size_t>> futures;
+            futures.reserve((referenceFrames.size() - 1) * 2 + 4);
             futures.emplace_back(threadPool->submit_task([&]() {
                 return residualFrame.decompressUpdatedDepthOffsets(uncompressedOffsets[0]);
             }));
@@ -138,16 +140,7 @@ private:
             futures.emplace_back(threadPool->submit_task([&]() {
                 return residualFrame.decompressRevealedQuads(uncompressedQuadsRevealed);
             }));
-            for (auto& f : futures) f.get();
-        }
-
-        void decompressHiddenWideFOV(std::unique_ptr<BS::thread_pool<>>& threadPool,
-                                     std::vector<ReferenceFrame>& referenceFrames,
-                                     uint numLayers) {
-            // Decompress hidden layer and wide fov proxies (asynchronous)
-            std::vector<std::future<size_t>> futures;
-            futures.reserve((numLayers - 1) * 2);
-            for (int layer = 1; layer < numLayers; ++layer) {
+            for (int layer = 1; layer < referenceFrames.size(); layer++) {
                 futures.emplace_back(threadPool->submit_task([&, layer]() {
                     return referenceFrames[layer].decompressDepthOffsets(uncompressedOffsets[layer]);
                 }));
@@ -155,7 +148,10 @@ private:
                     return referenceFrames[layer].decompressQuads(uncompressedQuads[layer]);
                 }));
             }
-            for (auto& f : futures) f.get();
+
+            size_t outputSize = 0;
+            for (auto& f : futures) outputSize += f.get();
+            return outputSize;
         }
     };
 

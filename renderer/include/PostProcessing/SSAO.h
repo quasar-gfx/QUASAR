@@ -54,7 +54,7 @@ public:
             .magFilter = GL_NEAREST,
         })
     {
-        for (uint i = 0; i < 64; ++i) {
+        for (uint i = 0; i < 64; i++) {
             glm::vec3 sample(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0, randomFloats(generator));
             sample = glm::normalize(sample);
             sample *= randomFloats(generator);
@@ -95,7 +95,7 @@ public:
         ssaoShader.bind();
         ssaoShader.setMat4("view", camera.getViewMatrix());
         ssaoShader.setMat4("projection", camera.getProjectionMatrix());
-        for (uint i = 0; i < 64; ++i) {
+        for (uint i = 0; i < 64; i++) {
             ssaoShader.setVec3("samples[" + std::to_string(i) + "]", ssaoKernel[i]);
         }
         ssaoShader.setTexture("noiseTexture", *noiseTexture, 5);
@@ -121,7 +121,7 @@ public:
         ssaoShader.bind();
         ssaoShader.setMat4("view", camera.getViewMatrix());
         ssaoShader.setMat4("projection", camera.getProjectionMatrix());
-        for (uint i = 0; i < 64; ++i) {
+        for (uint i = 0; i < 64; i++) {
             ssaoShader.setVec3("samples[" + std::to_string(i) + "]", ssaoKernel[i]);
         }
         ssaoShader.setTexture("noiseTexture", *noiseTexture, 5);

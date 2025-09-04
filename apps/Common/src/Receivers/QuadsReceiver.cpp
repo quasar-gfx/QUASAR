@@ -255,7 +255,7 @@ QuadFrame::FrameType QuadsReceiver::loadFromFrame(std::shared_ptr<Frame> frame) 
 
         // Using GPU buffers, update reference frame mesh using proxies
         startTime = timeutils::getTimeMicros();
-        referenceFrameMesh.appendQuads(quadSet, gBufferSize, false /* is not reference frame */);
+        referenceFrameMesh.appendQuads(quadSet, gBufferSize, false /* not a reference frame */);
         referenceFrameMesh.createMeshFromProxies(quadSet, gBufferSize, remoteCameraPrev);
         stats.timeToCreateMeshMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 

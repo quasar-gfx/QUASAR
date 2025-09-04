@@ -11,8 +11,9 @@
 
 using namespace quasar;
 
-QuadMesh::QuadMesh(const QuadSet& quadSet, Texture& colorTexture, const glm::vec4& textureExtent, uint maxQuadsPerMesh)
-    : currentQuadBuffers(maxQuadsPerMesh)
+QuadMesh::QuadMesh(const QuadSet& quadSet, Texture& colorTexture, const glm::vec4& textureExtent, uint maxProxies)
+    : maxProxies(maxProxies)
+    , currentQuadBuffers(maxProxies)
     , textureExtent(textureExtent)
     , sizesBuffer({
         .target = GL_SHADER_STORAGE_BUFFER,
@@ -26,10 +27,10 @@ QuadMesh::QuadMesh(const QuadSet& quadSet, Texture& colorTexture, const glm::vec
         .numElems = quadSet.getSize().x * quadSet.getSize().y,
         .usage = GL_DYNAMIC_DRAW,
     })
-    , quadCreatedBuffer({
+    , quadCreatedFlags({
         .target = GL_SHADER_STORAGE_BUFFER,
         .dataSize = sizeof(int),
-        .numElems = maxQuadsPerMesh,
+        .numElems = maxProxies,
         .usage = GL_DYNAMIC_DRAW,
     })
     , appendQuadsShader({
@@ -47,8 +48,8 @@ QuadMesh::QuadMesh(const QuadSet& quadSet, Texture& colorTexture, const glm::vec
         }
     })
     , Mesh({
-        .maxVertices = maxQuadsPerMesh * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
-        .maxIndices = maxQuadsPerMesh * NUM_SUB_QUADS * INDICES_IN_A_QUAD,
+        .maxVertices = maxProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD,
+        .maxIndices = maxProxies * NUM_SUB_QUADS * INDICES_IN_A_QUAD,
         .vertexSize = sizeof(QuadVertex),
         .attributes = QuadVertex::getVertexInputAttributes(),
         .material = new QuadMaterial({ .baseColorTexture = &colorTexture }),
@@ -57,8 +58,8 @@ QuadMesh::QuadMesh(const QuadSet& quadSet, Texture& colorTexture, const glm::vec
     })
 {}
 
-QuadMesh::QuadMesh(const QuadSet& quadSet, Texture& colorTexture, uint maxQuadsPerMesh)
-    : QuadMesh(quadSet, colorTexture, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), maxQuadsPerMesh)
+QuadMesh::QuadMesh(const QuadSet& quadSet, Texture& colorTexture, uint maxProxies)
+    : QuadMesh(quadSet, colorTexture, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), maxProxies)
 {}
 
 QuadMesh::BufferSizes QuadMesh::getBufferSizes() const {
@@ -86,9 +87,9 @@ void QuadMesh::appendQuads(const QuadSet& quadSet, const glm::vec2& gBufferSize,
 
     uint incomingNumProxies = quadSet.getNumProxies();
     uint newNumProxies = currNumProxies + incomingNumProxies;
-    if (newNumProxies > MAX_PROXIES_PER_MESH) {
-        spdlog::warn("Max proxies reached! Clamping to {} proxies.", MAX_PROXIES_PER_MESH);
-        newNumProxies = MAX_PROXIES_PER_MESH;
+    if (newNumProxies > maxProxies) {
+        spdlog::warn("Max proxies exceeded! Clamping {} to {} proxies.", newNumProxies, maxProxies);
+        newNumProxies = maxProxies;
     }
 
     appendQuadsShader.bind();
@@ -106,7 +107,7 @@ void QuadMesh::appendQuads(const QuadSet& quadSet, const glm::vec2& gBufferSize,
         appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, currentQuadBuffers.depthsBuffer);
         appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, currentQuadBuffers.metadatasBuffer);
 
-        appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, quadCreatedBuffer);
+        appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, quadCreatedFlags);
         appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, quadIndexMap);
     }
     appendQuadsShader.dispatch((newNumProxies + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
@@ -146,7 +147,7 @@ void QuadMesh::createMeshFromProxies(const QuadSet& quadSet, const glm::vec2& gB
         createQuadMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, currentQuadBuffers.depthsBuffer);
         createQuadMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, currentQuadBuffers.metadatasBuffer);
 
-        createQuadMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, quadCreatedBuffer);
+        createQuadMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, quadCreatedFlags);
         createQuadMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 8, quadIndexMap);
 
         createQuadMeshShader.setImageTexture(0, quadSet.depthOffsets.texture, 0, GL_FALSE, 0, GL_READ_ONLY, quadSet.depthOffsets.texture.internalFormat);

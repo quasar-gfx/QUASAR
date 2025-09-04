@@ -151,7 +151,7 @@ glm::vec3 PoseSendRecvSimulator::savitzkyGolayFilter(const std::deque<glm::vec3>
         -3.0f / 35.0f, 12.0f / 35.0f, 17.0f / 35.0f, 12.0f / 35.0f, -3.0f / 35.0f
     };
     glm::vec3 result(0.0f);
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 5; i++) {
         result += coeffs[i] * buffer[buffer.size() - 5 + i];
     }
     return result;
@@ -160,7 +160,7 @@ glm::vec3 PoseSendRecvSimulator::savitzkyGolayFilter(const std::deque<glm::vec3>
 glm::quat PoseSendRecvSimulator::averageQuaternions(const std::deque<glm::quat>& quats) {
     if (quats.empty()) return glm::quat(1, 0, 0, 0);
     glm::quat avg = quats[0];
-    for (size_t i = 1; i < quats.size(); ++i) {
+    for (size_t i = 1; i < quats.size(); i++) {
         if (glm::dot(avg, quats[i]) < 0.0f)
             avg = glm::slerp(avg, -quats[i], 1.0f / (i + 1));
         else

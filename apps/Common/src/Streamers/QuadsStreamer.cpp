@@ -8,7 +8,8 @@ QuadsStreamer::QuadsStreamer(
         Scene& remoteScene,
         PerspectiveCamera& remoteCamera,
         const std::string& videoURL,
-        const std::string& proxiesURL)
+        const std::string& proxiesURL,
+        uint targetBitRate)
     : quadSet(quadSet)
     , videoURL(videoURL)
     , proxiesURL(proxiesURL)
@@ -81,7 +82,7 @@ QuadsStreamer::QuadsStreamer(
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST,
-    }, videoURL)
+    }, videoURL, 15, targetBitRate)
     // We can use less vertices and indicies for the mask since it will be sparser
     , residualFrameMesh(quadSet, residualFrameRT_noTone.colorTexture, MAX_PROXIES_PER_MESH / 4)
     , depthMesh(quadSet.getSize(), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f))

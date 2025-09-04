@@ -191,7 +191,7 @@ public:
                                  GL_COLOR_ATTACHMENT6 };
         glDrawBuffers(7, drawBuffers);
 
-        for (int i = 0; i < 7; ++i) {
+        for (int i = 0; i < 7; i++) {
             glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
             glBlitFramebuffer(0, 0, width, height,
                               0, 0, gBuffer.width, gBuffer.height,
