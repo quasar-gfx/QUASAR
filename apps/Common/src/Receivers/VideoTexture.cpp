@@ -107,13 +107,13 @@ VideoTexture::VideoTexture(
 
     std::ostringstream oss;
     oss << "srtsrc name=" << srcName
-        << " uri=\"srt://" << host << ":" << port << "?mode=listener&latency=30\" ! "
-        << "tsdemux ! "
+        << " uri=\"srt://" << host << ":" << port << "?mode=listener&latency=80\" ! "
         << "h264parse ! "
         << decoderName << " ! "
         << "videoconvert ! video/x-raw,format=RGB ! "
+        << "queue leaky=downstream max-size-buffers=1 max-size-time=0 max-size-bytes=0 ! "
         << "appsink name=" << appSinkName
-        << " sync=false max-buffers=5 drop=false";
+        << " sync=false max-buffers=1 drop=true";
     std::string pipelineStr = oss.str();
 
     GError* error = nullptr;

@@ -231,7 +231,7 @@ int main(int argc, char** argv) {
         }
         if (sendFrame) {
             // Update all animations
-            scene.updateAnimations(dt);
+            scene.updateAnimations(totalDT);
             totalDT = 0.0;
             lastRenderTime = now;
 
