@@ -48,6 +48,7 @@ public:
 
         framebuffer.unbind();
     }
+    ~RenderTarget() = default;
 
     void blit(RenderTargetBase& rt) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);

@@ -44,7 +44,7 @@ BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams& params, const
 #endif
 
     if (!receiverURL.empty()) {
-        spdlog::info("Created BC4DepthStreamer that sends to URL: {}", receiverURL);
+        spdlog::info("Created BC4DepthStreamer that sends to URL: tcp://{}", receiverURL);
     }
 }
 

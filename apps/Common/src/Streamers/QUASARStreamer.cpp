@@ -205,7 +205,7 @@ QUASARStreamer::QUASARStreamer(
     setViewSphereDiameter(viewSphereDiameter);
 
     if (!videoURL.empty() && !proxiesURL.empty()) {
-        spdlog::info("Created QUASARStreamer that sends to URL: {}", proxiesURL);
+        spdlog::info("Created QUASARStreamer that sends to URL: tcp://{}", proxiesURL);
     }
 }
 

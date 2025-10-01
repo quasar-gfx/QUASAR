@@ -32,9 +32,10 @@ public:
         , DataReceiverUDP(streamerURL, sizeof(Pose))
     {
         if (!streamerURL.empty()) {
-            spdlog::info("Created PoseReceiver that recvs from URL: {}", this->streamerURL);
+            spdlog::info("Created PoseReceiver that recvs from URL: udp://{}", this->streamerURL);
         }
     }
+    ~PoseReceiver() = default;
 
     void onDataReceived(const std::vector<char>& data) override {
         std::lock_guard<std::mutex> lock(m);

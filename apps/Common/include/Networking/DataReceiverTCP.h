@@ -21,18 +21,20 @@ public:
     DataReceiverTCP(const std::string& url, bool nonBlocking = false);
     virtual ~DataReceiverTCP();
 
-    virtual void stop();
+    void stop();
 
 protected:
     std::string url;
     Stats stats;
-    std::atomic_bool ready = false;
+    std::atomic_bool running = false;
+    std::thread dataRecvingThread;
 
     virtual void onDataReceived(const std::vector<char>& data) = 0;
 
 private:
     std::unique_ptr<SocketTCP> socket;
-    std::thread dataRecvingThread;
+
+    std::vector<char> data;
 
     void recvData();
 };

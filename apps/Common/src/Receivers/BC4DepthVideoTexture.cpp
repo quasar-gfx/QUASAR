@@ -21,7 +21,7 @@ BC4DepthVideoTexture::BC4DepthVideoTexture(const TextureDataCreateParams& params
     });
 
     if (!streamerURL.empty()) {
-        spdlog::info("Created BC4DepthVideoTexture that recvs from URL: {}", streamerURL);
+        spdlog::info("Created BC4DepthVideoTexture that recvs from URL: tcp://{}", streamerURL);
     }
 }
 

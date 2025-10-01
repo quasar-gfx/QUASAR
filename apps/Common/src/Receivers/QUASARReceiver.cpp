@@ -59,7 +59,7 @@ QUASARReceiver::QUASARReceiver(QuadSet& quadSet, uint maxLayers, const std::stri
     threadPool = std::make_unique<BS::thread_pool<>>(4);
 
     if (!proxiesURL.empty()) {
-        spdlog::info("Created QUASARReceiver that recvs from URL: {}", proxiesURL);
+        spdlog::info("Created QUASARReceiver that recvs from URL: tcp://{}", proxiesURL);
     }
 }
 

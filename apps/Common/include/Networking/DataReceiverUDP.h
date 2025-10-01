@@ -22,9 +22,9 @@ public:
     int maxDataSize;
 
     DataReceiverUDP(std::string url, int maxDataSize, bool nonBlocking = false);
-    ~DataReceiverUDP();
+    virtual ~DataReceiverUDP();
 
-    virtual void stop();
+    void stop();
 
 protected:
     std::atomic_bool running{false};
@@ -37,6 +37,8 @@ protected:
 
 private:
     std::unique_ptr<SocketUDP> socket;
+
+    std::vector<char> data;
 
     int recvPacket(DataPacketUDP* packet);
     void recvData();

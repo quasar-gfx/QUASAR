@@ -33,9 +33,10 @@ public:
         , DataStreamerUDP(receiverURL, sizeof(Pose))
     {
         if (!receiverURL.empty()) {
-            spdlog::info("Created PoseStreamer that sends to URL: {}", receiverURL);
+            spdlog::info("Created PoseStreamer that sends to URL: udp://{}", receiverURL);
         }
     }
+    ~PoseStreamer() = default;
 
     bool epsilonEqual(const glm::mat4& mat1, const glm::mat4& mat2, float epsilon = 1e-5) {
         for (int i = 0; i < 4; i++) {

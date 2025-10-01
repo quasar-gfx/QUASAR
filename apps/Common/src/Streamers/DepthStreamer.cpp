@@ -22,7 +22,7 @@ DepthStreamer::DepthStreamer(const RenderTargetCreateParams& params, std::string
     })
     , DataStreamerTCP(receiverURL)
 {
-    spdlog::info("Created DepthStreamer that sends to URL: {}", receiverURL);
+    spdlog::info("Created DepthStreamer that sends to URL: tcp://{}", receiverURL);
 
 #if defined(HAS_CUDA)
     cudaGLImage.registerTexture(renderTargetCopy.colorTexture);

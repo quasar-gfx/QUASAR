@@ -145,24 +145,24 @@ int main(int argc, char** argv) {
     uint numTriangles = (adjustedWindowSize.x-1) * (adjustedWindowSize.y-1) * 2;
     uint maxIndices = numTriangles * 3;
 
-    Mesh mesh = Mesh({
+    Mesh mesh({
         .maxVertices = maxVertices,
         .maxIndices = maxIndices,
         .material = new UnlitMaterial({ .baseColorTexture = &renderTarget.colorTexture ,}),
         .usage = GL_DYNAMIC_DRAW
     });
-    Node node = Node(&mesh);
+    Node node(&mesh);
     node.frustumCulled = false;
     scene.addChildNode(&node);
 
-    Node nodeWireframe = Node(&mesh);
+    Node nodeWireframe(&mesh);
     nodeWireframe.frustumCulled = false;
     nodeWireframe.wireframe = true;
     nodeWireframe.visible = false;
     nodeWireframe.overrideMaterial = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
     scene.addChildNode(&nodeWireframe);
 
-    Node nodePointCloud = Node(&mesh);
+    Node nodePointCloud(&mesh);
     nodePointCloud.frustumCulled = false;
     nodePointCloud.primitiveType = GL_POINTS;
     nodePointCloud.pointSize = 7.5f;

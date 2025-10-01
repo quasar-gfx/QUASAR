@@ -212,7 +212,7 @@ RenderStats OpenGLRenderer::drawLightsImpl(Scene& scene, const Camera& camera) {
             Sphere light = Sphere({
                 .material = material,
             }, 32, 32);
-            Node nodeLight = Node(&light);
+            Node nodeLight(&light);
             nodeLight.setPosition(pointLight->position);
             nodeLight.setScale(glm::vec3(0.1));
             stats += drawNode(scene, camera, &nodeLight, glm::mat4(1.0f), false);
@@ -220,7 +220,7 @@ RenderStats OpenGLRenderer::drawLightsImpl(Scene& scene, const Camera& camera) {
             Sphere radius = Sphere({
                 .material = material,
             }, 32, 32);
-            Node nodeRadius = Node(&radius);
+            Node nodeRadius(&radius);
             nodeRadius.wireframe = true;
             nodeRadius.setPosition(pointLight->position);
             nodeRadius.setScale(glm::vec3(pointLight->getLightRadius()));

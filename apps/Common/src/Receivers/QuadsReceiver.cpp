@@ -40,7 +40,7 @@ QuadsReceiver::QuadsReceiver(QuadSet& quadSet, const std::string& videoURL, cons
     threadPool = std::make_unique<BS::thread_pool<>>(4);
 
     if (!proxiesURL.empty()) {
-        spdlog::info("Created QuadsReceiver that recvs from URL: {}", proxiesURL);
+        spdlog::info("Created QuadsReceiver that recvs from URL: tcp://{}", proxiesURL);
     }
 }
 

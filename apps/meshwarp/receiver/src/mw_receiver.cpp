@@ -123,18 +123,18 @@ int main(int argc, char** argv) {
     uint numTriangles = (adjustedWindowSize.x-1) * (adjustedWindowSize.y-1) * 2;
     uint maxIndices = numTriangles * 3;
 
-    Mesh mesh = Mesh({
+    Mesh mesh({
         .maxVertices = maxVertices,
         .maxIndices = maxIndices,
         .material = new UnlitMaterial({ .baseColorTexture = &videoTextureColor ,}),
         .usage = GL_DYNAMIC_DRAW
     });
-    Node node = Node(&mesh);
+    Node node(&mesh);
     node.frustumCulled = false;
     node.primitiveType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
     scene.addChildNode(&node);
 
-    Node nodeWireframe = Node(&mesh);
+    Node nodeWireframe(&mesh);
     nodeWireframe.frustumCulled = false;
     nodeWireframe.wireframe = true;
     nodeWireframe.visible = false;

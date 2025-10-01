@@ -14,7 +14,7 @@ DataReceiverTCP::DataReceiverTCP(const std::string& url, bool nonBlocking)
         return;
     }
 
-    ready = true;
+    running = true;
     socket = std::make_unique<SocketTCP>(nonBlocking);
     dataRecvingThread = std::thread(&DataReceiverTCP::recvData, this);
 }
@@ -28,7 +28,7 @@ void DataReceiverTCP::stop() {
         return;
     }
 
-    ready = false;
+    running = false;
     if (dataRecvingThread.joinable()) {
         dataRecvingThread.join();
     }
@@ -41,21 +41,19 @@ void DataReceiverTCP::recvData() {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
         else {
-            ready = true;
+            running = true;
             break;
         }
     }
 
-    while (ready) {
-        std::vector<char> data;
-
+    while (running) {
         int received = 0;
         int expectedSize = 0;
 
         int receiveStartTime = timeutils::getTimeMicros();
 
         // Read header first to determine the size of the incoming data packet
-        while (ready && expectedSize == 0) {
+        while (running && expectedSize == 0) {
             received = socket->recv(&expectedSize, sizeof(expectedSize), 0);
             if (received < 0) {
                 if (errno == EWOULDBLOCK || errno == EAGAIN) {
@@ -75,7 +73,7 @@ void DataReceiverTCP::recvData() {
 
         // Read the actual data based on the expected size
         int totalReceived = 0;
-        while (ready && totalReceived < expectedSize) {
+        while (running && totalReceived < expectedSize) {
             received = socket->recv(data.data() + totalReceived, expectedSize - totalReceived, 0);
             if (received < 0) {
                 if (errno == EWOULDBLOCK || errno == EAGAIN) {
@@ -85,7 +83,7 @@ void DataReceiverTCP::recvData() {
             }
             else if (received == 0) {
                 // Connection closed
-                ready = false;
+                running = false;
                 break;
             }
 
@@ -96,7 +94,9 @@ void DataReceiverTCP::recvData() {
             stats.receiveTimeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - receiveStartTime);
             stats.bitrateMbps = ((sizeof(expectedSize) + data.size() * 8) / timeutils::millisToSeconds(stats.receiveTimeMs)) / BYTES_PER_MEGABYTE;
 
-            onDataReceived(std::move(data)); // notify about the received data
+            if (running) {
+                onDataReceived(data); // notify about the received data
+            }
         }
     }
 

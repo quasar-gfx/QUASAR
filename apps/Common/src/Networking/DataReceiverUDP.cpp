@@ -50,14 +50,17 @@ void DataReceiverUDP::recvData() {
         dataSizes[packet.dataID] += packet.size;
 
         if (dataSizes[packet.dataID] == maxDataSize) {
-            std::vector<char> data(maxDataSize);
+            data.resize(maxDataSize);
+
             int offset = 0;
             for (auto& p : datas[packet.dataID]) {
                 std::memcpy(data.data() + offset, p.second.data, p.second.size);
                 offset += p.second.size;
             }
 
-            onDataReceived(std::move(data)); // notify about the received data
+            if (running) {
+                onDataReceived(data); // notify about the received data
+            }
 
             datas.erase(packet.dataID);
             dataSizes.erase(packet.dataID);

@@ -58,7 +58,8 @@ void VideoTexture::gst_android_glue_init(ANativeActivity* activity) {
 
 VideoTexture::VideoTexture(
         const TextureDataCreateParams& params,
-        const std::string& videoURL)
+        const std::string& videoURL,
+        bool useRTP)
     : videoURL(videoURL)
     , Texture(params)
 {
@@ -106,9 +107,19 @@ VideoTexture::VideoTexture(
 #endif
 
     std::ostringstream oss;
-    oss << "srtsrc name=" << srcName
-        << " uri=\"srt://" << host << ":" << port << "?mode=listener&latency=80\" ! "
-        << "h264parse ! "
+    if (useRTP) {
+        oss << "udpsrc name=" << srcName
+            << " address=" << host
+            << " port=" << port
+            << " caps=\"application/x-rtp, media=video, encoding-name=H264, payload=96, clock-rate=90000\" ! "
+            << "rtpjitterbuffer ! "
+            << "rtph264depay ! ";
+    }
+    else {
+        oss << "srtsrc name=" << srcName
+            << " uri=\"srt://" << host << ":" << port << "?mode=listener&latency=80\" ! ";
+    }
+    oss << "h264parse ! "
         << decoderName << " ! "
         << "videoconvert ! video/x-raw,format=RGB ! "
         << "queue leaky=downstream max-size-buffers=1 max-size-time=0 max-size-bytes=0 ! "
@@ -149,7 +160,7 @@ VideoTexture::VideoTexture(
     gst_element_set_state(pipeline, GST_STATE_PLAYING);
 
     videoReceiverThread = std::thread(&VideoTexture::receiveFrame, this);
-    spdlog::info("Created VideoTexture (GStreamer) that recvs from: {}", videoURL);
+    spdlog::info("Created VideoTexture (GStreamer) that recvs from: {}://{}", useRTP ? "rtp" : "srt", videoURL);
 }
 
 VideoTexture::~VideoTexture() {

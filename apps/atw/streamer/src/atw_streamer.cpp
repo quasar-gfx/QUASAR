@@ -287,7 +287,5 @@ int main(int argc, char** argv) {
     // Run app loop (blocking)
     app.run();
 
-    spdlog::info("Please do CTRL-C to exit!");
-
     return 0;
 }

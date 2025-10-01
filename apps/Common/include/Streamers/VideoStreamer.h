@@ -23,8 +23,6 @@ class VideoStreamer : public RenderTarget {
 public:
     std::string videoURL = "0.0.0.0:12345";
 
-    uint64_t framesSent = 0;
-
     struct Stats {
         double encodeTimeMs = 0.0;
         double transferTimeMs = 0.0;
@@ -36,7 +34,8 @@ public:
         const RenderTargetCreateParams& params,
         const std::string& videoURL,
         int maxFrameRate = 30,
-        int targetBitRateMbps = 12);
+        int targetBitRateMbps = 12,
+        bool useRTP = false);
     ~VideoStreamer();
 
     void stop();
@@ -46,6 +45,8 @@ public:
     void sendFrame(pose_id_t poseID);
 
 private:
+    uint64_t framesSent = 0;
+
     int maxFrameRate;
     int targetBitRateKbps;
 

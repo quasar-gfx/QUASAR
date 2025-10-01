@@ -18,7 +18,7 @@ public:
     int maxDataSize;
 
     DataStreamerUDP(std::string url, int maxDataSize, bool nonBlocking = false);
-    ~DataStreamerUDP();
+    virtual ~DataStreamerUDP();
 
     void stop();
 

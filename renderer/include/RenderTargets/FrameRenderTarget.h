@@ -103,6 +103,7 @@ public:
 
         framebuffer.unbind();
     }
+    ~FrameRenderTarget() = default;
 
     void blit(RenderTarget& rt, GLenum filter = GL_NEAREST) {
         blit(rt,

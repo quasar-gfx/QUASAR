@@ -10,7 +10,8 @@ VideoStreamer::VideoStreamer(
         const RenderTargetCreateParams& params,
         const std::string& videoURL,
         int maxFrameRate,
-        int targetBitRateMbps)
+        int targetBitRateMbps,
+        bool useRTP)
     : videoURL(videoURL)
     , videoWidth(params.width + poseIDOffset)
     , videoHeight(params.height)
@@ -59,9 +60,15 @@ VideoStreamer::VideoStreamer(
         << "queue leaky=upstream max-size-buffers=1 max-size-time=0 max-size-bytes=0 ! "
         << "videoconvert ! video/x-raw,format=" << format << " ! "
         << encoderParams << " bitrate=" << targetBitRateKbps << " ! "
-        << "h264parse config-interval=1 ! "
-        << "srtsink uri=\"srt://" << host << ":" << port
-        << "?mode=caller&latency=80\"";
+        << "h264parse config-interval=1 ! ";
+    if (useRTP) {
+        oss << "rtph264pay config-interval=1 pt=96 ! "
+            << "udpsink host=" << host << " port=" << port << " sync=false";
+    }
+    else {
+        oss << "srtsink uri=\"srt://" << host << ":" << port
+            << "?mode=caller&latency=80\"";
+    }
     std::string pipelineStr = oss.str();
 
     GError* error = nullptr;
@@ -82,7 +89,7 @@ VideoStreamer::VideoStreamer(
     gst_element_set_state(pipeline, GST_STATE_PLAYING);
 
     videoStreamerThread = std::thread(&VideoStreamer::encodeAndSendFrames, this);
-    spdlog::info("Created VideoStreamer (GStreamer) that sends to URL: {}", videoURL);
+    spdlog::info("Created VideoStreamer (GStreamer) that sends to URL: {}://{}", useRTP ? "rtp" : "srt", videoURL);
 }
 
 VideoStreamer::~VideoStreamer() {

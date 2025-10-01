@@ -131,7 +131,7 @@ QuadsStreamer::QuadsStreamer(
     depthNode.primitiveType = GL_POINTS;
 
     if (!videoURL.empty() && !proxiesURL.empty()) {
-        spdlog::info("Created QuadsStreamer that sends to URL: {}", proxiesURL);
+        spdlog::info("Created QuadsStreamer that sends to URL: tcp://{}", proxiesURL);
     }
 }
 

@@ -204,6 +204,7 @@ public:
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
+    ~GBuffer() = default;
 
     void blit(GBuffer& gBuffer, GLenum filter = GL_NEAREST) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);

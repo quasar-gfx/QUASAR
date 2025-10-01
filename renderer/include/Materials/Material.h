@@ -17,8 +17,6 @@ enum class AlphaMode : uint8_t {
 
 class Material {
 public:
-    std::vector<const Texture*> textures;
-
     Material() = default;
     ~Material() = default;
 
@@ -34,6 +32,9 @@ public:
     virtual std::shared_ptr<Shader> getShader() const = 0;
 
     virtual uint getTextureCount() const = 0;
+
+protected:
+    std::vector<const Texture*> textures;
 };
 
 } // namespace quasar

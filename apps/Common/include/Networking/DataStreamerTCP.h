@@ -24,7 +24,7 @@ public:
     } stats;
 
     DataStreamerTCP(std::string url, int maxDataSize = 65535, bool nonBlocking = false);
-    ~DataStreamerTCP();
+    virtual ~DataStreamerTCP();
 
     int send(std::vector<char>& data, bool copy = false);
     void stop();

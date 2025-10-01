@@ -134,25 +134,25 @@ int main(int argc, char** argv) {
     uint numTriangles = (adjustedWindowSize.x-1) * (adjustedWindowSize.y-1) * 2;
     uint maxIndices = numTriangles * 3;
 
-    Mesh mesh = Mesh({
+    Mesh mesh({
         .maxVertices = maxVertices,
         .maxIndices = maxIndices,
         .material = new UnlitMaterial({ .baseColor = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f) }),
         .usage = GL_DYNAMIC_DRAW
     });
-    Node node = Node(&mesh);
+    Node node(&mesh);
     node.frustumCulled = false;
     node.primitiveType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
     node.pointSize = 7.5f;
     scene.addChildNode(&node);
 
-    Mesh meshDecompressed = Mesh({
+    Mesh meshDecompressed({
         .maxVertices = maxVertices,
         .maxIndices = maxIndices,
         .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
         .usage = GL_DYNAMIC_DRAW
     });
-    Node nodeDecompressed = Node(&meshDecompressed);
+    Node nodeDecompressed(&meshDecompressed);
     nodeDecompressed.frustumCulled = false;
     nodeDecompressed.primitiveType = renderState == RenderState::POINTCLOUD ? GL_POINTS : GL_TRIANGLES;
     nodeDecompressed.pointSize = 7.5f;
