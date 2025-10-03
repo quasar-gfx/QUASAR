@@ -55,7 +55,7 @@ inline double secondsToMicros(double seconds) {
     return seconds * MICROSECONDS_IN_SECOND;
 }
 
-inline double nanoToMillis(double nanos) {
+inline double nanosToMillis(double nanos) {
     return nanos / NANOSECONDS_IN_MILLISECOND;
 }
 
@@ -65,6 +65,10 @@ inline double microsToMillis(double micros) {
 
 inline double secondsToMillis(double seconds) {
     return seconds * MILLISECONDS_IN_SECOND;
+}
+
+inline double nanosToSeconds(double nanos) {
+    return nanos / NANOSECONDS_IN_SECOND;
 }
 
 inline double microsToSeconds(double micros) {

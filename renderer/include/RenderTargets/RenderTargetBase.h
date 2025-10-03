@@ -41,9 +41,7 @@ public:
         }
     } viewport;
 
-    RenderTargetBase(const RenderTargetCreateParams& params)
-        : framebuffer()
-    {
+    RenderTargetBase(const RenderTargetCreateParams& params) {
         width = params.width;
         height = params.height;
 
@@ -78,13 +76,13 @@ public:
         return framebuffer.ID;
     }
 
-    void bind() const {
+    virtual void bind() const {
         framebuffer.bind();
         scissor.apply();
         viewport.apply();
     }
 
-    void unbind() const {
+    virtual void unbind() const {
         framebuffer.unbind();
     }
 

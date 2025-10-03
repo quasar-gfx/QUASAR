@@ -26,6 +26,8 @@ struct TextureDataCreateParams {
     GLint alignment = 4;
     bool multiSampled = false;
     uint numSamples = 4;
+    bool array = false;
+    uint arrayLayers = 2;
     const unsigned char* data = nullptr;
 };
 
@@ -40,6 +42,8 @@ struct TextureFileCreateParams {
     GLint alignment = 1;
     bool multiSampled = false;
     uint numSamples = 4;
+    bool array = false;
+    uint arrayLayers = 2;
     std::string path = "";
 };
 
@@ -47,20 +51,22 @@ class Texture : public OpenGLObject {
 public:
     uint width, height, channels;
 
-    GLint internalFormat = GL_RGB;
-    GLenum format = GL_RGB;
-    GLenum type = GL_UNSIGNED_BYTE;
+    GLint internalFormat;
+    GLenum format;
+    GLenum type;
 
-    GLint wrapS = GL_CLAMP_TO_EDGE;
-    GLint wrapT = GL_CLAMP_TO_EDGE;
+    GLint wrapS;
+    GLint wrapT;
+    GLint minFilter;
+    GLint magFilter;
 
-    GLint minFilter = GL_LINEAR;
-    GLint magFilter = GL_LINEAR;
+    GLint alignment;
 
-    GLint alignment = 4;
+    bool multiSampled;
+    uint numSamples;
 
-    bool multiSampled = false;
-    uint numSamples = 4;
+    bool array;
+    uint arrayLayers;
 
     Texture();
     Texture(const TextureDataCreateParams& params);

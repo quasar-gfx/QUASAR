@@ -14,7 +14,7 @@ public:
     Framebuffer() {
         glGenFramebuffers(1, &ID);
     }
-    ~Framebuffer() override {
+    ~Framebuffer() {
         glDeleteFramebuffers(1, &ID);
     }
 
@@ -58,14 +58,18 @@ public:
         return true;
     }
 
-    void attachTexture(const Texture& texture, GLenum attachment) {
-        if (!texture.multiSampled) {
-            glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D, texture.ID, 0);
+    void attachTexture(GLuint textureID, GLenum attachment, GLint mipLevel = 0, bool multiSampled = false) {
+        if (!multiSampled) {
+            glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D, textureID, mipLevel);
         }
         else {
-            glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D_MULTISAMPLE, texture.ID, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D_MULTISAMPLE, textureID, mipLevel);
         }
         numAttachments++;
+    }
+
+    void attachTexture(const Texture& texture, GLenum attachment, GLint mipLevel = 0) {
+        attachTexture(texture.ID, attachment, mipLevel, texture.multiSampled);
     }
 
     void attachCubeMap(const CubeMap& cubeMap, GLenum attachment) {

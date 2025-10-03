@@ -47,10 +47,10 @@ void main() {
     else {
         vec2 ndc = TexCoord * 2.0 - 1.0;
 
-#ifdef ANDROID
         vec3 viewCoord;
         vec3 worldCoord;
         vec2 TexCoordRemote;
+#ifdef ANDROID
         if (IsLeftEye > 0.5) {
             viewCoord = ndcToView(projectionInverseLeft, ndc, 1.0);
             worldCoord = viewToWorld(mat4(mat3(viewInverseLeft)), viewCoord);
@@ -64,9 +64,9 @@ void main() {
             TexCoordRemote.x = clamp(TexCoordRemote.x / 2.0 + 0.5, 0.5, 1.0 - epsilon);
         }
 #else
-        vec3 viewCoord = ndcToView(projectionInverse, ndc, 1.0);
-        vec3 worldPose = viewToWorld(mat4(mat3(viewInverse)), viewCoord);
-        vec2 TexCoordRemote = worldToScreen(mat4(mat3(remoteView)), remoteProjection, worldPose);
+        viewCoord = ndcToView(projectionInverse, ndc, 1.0);
+        worldCoord = viewToWorld(mat4(mat3(viewInverse)), viewCoord);
+        TexCoordRemote = worldToScreen(mat4(mat3(remoteView)), remoteProjection, worldCoord);
 #endif
 
         color = texture(videoTexture, TexCoordRemote).rgb;

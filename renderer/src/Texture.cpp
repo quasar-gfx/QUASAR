@@ -20,8 +20,34 @@ Texture::Texture(const TextureDataCreateParams& params)
     , alignment(params.alignment)
     , multiSampled(params.multiSampled)
     , numSamples(params.numSamples)
+    , array(params.array)
+    , arrayLayers(params.arrayLayers)
 {
-    target = !params.multiSampled ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
+    glGenTextures(1, &ID);
+
+    if (params.array) {
+        target = GL_TEXTURE_2D_ARRAY;
+    }
+    else if (params.multiSampled) {
+        target = GL_TEXTURE_2D_MULTISAMPLE;
+    }
+    else {
+        target = GL_TEXTURE_2D;
+    }
+
+    if (format == GL_RED) {
+        channels = 1;
+    }
+    else if (format == GL_RG) {
+        channels = 2;
+    }
+    else if (format == GL_RGB) {
+        channels = 3;
+    }
+    else if (format == GL_RGBA) {
+        channels = 4;
+    }
+
     loadFromData(params.data, true);
 
     if (params.hasBorder) {
@@ -38,8 +64,21 @@ Texture::Texture(const TextureFileCreateParams& params)
     , alignment(params.alignment)
     , multiSampled(params.multiSampled)
     , numSamples(params.numSamples)
+    , array(params.array)
+    , arrayLayers(params.arrayLayers)
 {
-    target = !params.multiSampled ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
+    glGenTextures(1, &ID);
+
+    if (params.array) {
+        target = GL_TEXTURE_2D_ARRAY;
+    }
+    else if (params.multiSampled) {
+        target = GL_TEXTURE_2D_MULTISAMPLE;
+    }
+    else {
+        target = GL_TEXTURE_2D;
+    }
+
     loadFromFile(params.path, params.flipVertically, params.gammaCorrected);
 }
 
@@ -48,23 +87,6 @@ Texture::~Texture() {
 }
 
 void Texture::loadFromData(const void* data, bool resize) {
-    if (ID == 0) {
-        glGenTextures(1, &ID);
-    }
-
-    if (format == GL_RED) {
-        channels = 1;
-    }
-    else if (format == GL_RG) {
-        channels = 2;
-    }
-    else if (format == GL_RGB) {
-        channels = 3;
-    }
-    else if (format == GL_RGBA) {
-        channels = 4;
-    }
-
     glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
     glBindTexture(target, ID);
 
@@ -74,11 +96,21 @@ void Texture::loadFromData(const void* data, bool resize) {
         glTexParameteri(target, GL_TEXTURE_MIN_FILTER, minFilter);
         glTexParameteri(target, GL_TEXTURE_MAG_FILTER, magFilter);
 
-        if (resize || data == nullptr) {
-            glTexImage2D(target, 0, internalFormat, width, height, 0, format, type, data);
+        if (!array) {
+            if (resize || data == nullptr) {
+                glTexImage2D(target, 0, internalFormat, width, height, 0, format, type, data);
+            }
+            else {
+                glTexSubImage2D(target, 0, 0, 0, width, height, format, type, data);
+            }
         }
         else {
-            glTexSubImage2D(target, 0, 0, 0, width, height, format, type, data);
+            if (resize || data == nullptr) {
+                glTexImage3D(target, 0, internalFormat, width, height, arrayLayers, 0, format, type, data);
+            }
+            else {
+                glTexSubImage3D(target, 0, 0, 0, 0, width, height, arrayLayers, format, type, data);
+            }
         }
 
         if (minFilter == GL_LINEAR_MIPMAP_LINEAR || minFilter == GL_LINEAR_MIPMAP_NEAREST) {

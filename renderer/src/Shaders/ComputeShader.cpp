@@ -50,7 +50,7 @@ void ComputeShader::endTiming() {
 double ComputeShader::getElapsedTime() const {
 #ifdef GL_CORE
     if (isQueried) {
-        return timeutils::nanoToMillis(lastElapsedTime);
+        return timeutils::nanosToMillis(lastElapsedTime);
     }
 
     if (startQueryID && endQueryID) {
@@ -64,7 +64,7 @@ double ComputeShader::getElapsedTime() const {
     }
 #endif
 
-    return timeutils::nanoToMillis(lastElapsedTime);
+    return timeutils::nanosToMillis(lastElapsedTime);
 }
 
 void ComputeShader::setBuffer(GLenum target, int slot, const Buffer& buffer) const {
