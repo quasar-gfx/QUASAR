@@ -247,18 +247,13 @@ RenderStats OpenGLRenderer::drawSkyBoxImpl(Scene& scene, const Camera& camera) {
         return stats;
     }
 
-    auto& skybox = *scene.envCubeMap;
-
-    skyboxShader.bind();
-    skyboxShader.setTexture("environmentMap", skybox, 0);
-
     // Disable writing to the depth buffer
     glDepthFunc(GL_LEQUAL);
     glDepthMask(GL_FALSE);
 
-    if (scene.envCubeMap != nullptr) {
-        stats = scene.envCubeMap->draw(skyboxShader, camera);
-    }
+    skyboxShader.bind();
+    skyboxShader.setTexture("environmentMap", *scene.envCubeMap, 0);
+    stats = scene.envCubeMap->draw(skyboxShader, camera);
 
     // Restore depth func
     glDepthFunc(GL_LESS);

@@ -88,12 +88,11 @@ void CubeMap::init(uint width, uint height, CubeMapType type) {
         for (int i = 0; i < NUM_CUBEMAP_FACES; i++) {
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
         }
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         break;
@@ -284,7 +283,7 @@ RenderStats CubeMap::draw(const Shader& shader, const Camera& camera) const {
     glm::mat4 projection;
     if (camera.isVR()) {
         auto& vrCamera = static_cast<const VRCamera&>(camera);
-        view = glm::mat4(glm::mat3(vrCamera.left.getViewMatrix()));
+        view = vrCamera.left.getViewMatrix();
         projection = vrCamera.getProjectionMatrix();
     }
     else {
@@ -295,8 +294,6 @@ RenderStats CubeMap::draw(const Shader& shader, const Camera& camera) const {
 
     shader.setUint("DrawID", ID);
 
-    // Remove translation from the view matrix
-    view = glm::mat4(glm::mat3(view));
     shader.setMat4("view", view);
     shader.setMat4("projection", projection);
 

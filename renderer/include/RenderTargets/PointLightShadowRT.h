@@ -11,7 +11,7 @@ public:
 
     PointLightShadowRT(const RenderTargetCreateParams& params)
         : RenderTargetBase(params)
-        ,  depthCubeMap({
+        , depthCubeMap({
             .width = params.width,
             .height = params.height,
             .type = CubeMapType::SHADOW,
@@ -22,6 +22,8 @@ public:
 
 #ifdef GL_CORE
         glDrawBuffer(GL_NONE);
+#else
+        glDrawBuffers(0, nullptr);
 #endif
         glReadBuffer(GL_NONE);
 
