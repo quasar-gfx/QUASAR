@@ -188,21 +188,37 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (scene.ambientLight != nullptr && ImGui::CollapsingHeader("Ambient Light Settings")) {
-                ImGui::ColorEdit3("Color", (float*)&scene.ambientLight->color);
-                ImGui::DragFloat("Strength", &scene.ambientLight->intensity, 0.1f, 0.1f, 1.0f);
+                ImGui::ColorEdit3("Color##Ambient", (float*)&scene.ambientLight->color);
+                ImGui::DragFloat("Strength##Ambient", &scene.ambientLight->intensity, 0.1f, 0.1f, 1.0f);
             }
 
             if (scene.directionalLight != nullptr && ImGui::CollapsingHeader("Directional Light Settings")) {
-                ImGui::ColorEdit3("Color", (float*)&scene.directionalLight->color);
-                ImGui::DragFloat("Strength", &scene.directionalLight->intensity, 0.1f, 0.1f, 100.0f);
-                ImGui::DragFloat3("Direction", (float*)&scene.directionalLight->direction, 0.1f, -5.0f, 5.0f);
-                ImGui::DragFloat("Distance", &scene.directionalLight->distance, 0.1f, 0.0f, 100.0f);
+                ImGui::ColorEdit3("Color##Directional", (float*)&scene.directionalLight->color);
+                ImGui::DragFloat("Strength##Directional", &scene.directionalLight->intensity, 0.1f, 0.1f, 100.0f);
+                ImGui::DragFloat3("Direction##Directional", (float*)&scene.directionalLight->direction, 0.1f, -5.0f, 5.0f);
+                ImGui::DragFloat("Distance##Directional", &scene.directionalLight->distance, 0.1f, 0.0f, 100.0f);
 
                 ImGui::TextColored(ImVec4(1,1,1,1), "Shadow Map:");
                 int halfWindowWidth = ImGui::GetWindowWidth() / 2;
                 ImGui::Image(
                     (void*)(intptr_t)scene.directionalLight->shadowMapRenderTarget.depthTexture,
                     ImVec2(halfWindowWidth, halfWindowWidth), ImVec2(0, 1), ImVec2(1, 0));
+            }
+
+            if (scene.pointLights.size() > 0 && ImGui::CollapsingHeader("Point Lights")) {
+                for (size_t i = 0; i < scene.pointLights.size(); i++) {
+                    PointLight* pointLight = scene.pointLights[i];
+                    if (ImGui::TreeNode((void*)(intptr_t)i, "Point Light %ld", i)) {
+                        ImGui::ColorEdit3(("Color##Point" + std::to_string(i)).c_str(), (float*)&pointLight->color);
+                        ImGui::DragFloat(("Strength##Point" + std::to_string(i)).c_str(), &pointLight->intensity, 0.1f, 0.1f, 100.0f);
+                        ImGui::DragFloat3(("Position##Point" + std::to_string(i)).c_str(), (float*)&pointLight->position, 0.01f);
+                        ImGui::DragFloat(("Constant##Point" + std::to_string(i)).c_str(), &pointLight->constant, 0.01f, 0.0f, 10.0f);
+                        ImGui::DragFloat(("Linear##Point" + std::to_string(i)).c_str(), &pointLight->linear, 0.001f, 0.0f, 1.0f);
+                        ImGui::DragFloat(("Quadratic##Point" + std::to_string(i)).c_str(), &pointLight->quadratic, 0.001f, 0.0f, 1.0f);
+                        ImGui::Checkbox(("Debug##Point" + std::to_string(i)).c_str(), &pointLight->debug);
+                        ImGui::TreePop();
+                    }
+                }
             }
 
             ImGui::Separator();
