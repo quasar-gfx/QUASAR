@@ -18,7 +18,7 @@ VideoStreamer::VideoStreamer(
     , maxFrameRate(maxFrameRate)
     , targetBitRateKbps(targetBitRateMbps * 1000)
     , RenderTarget(params)
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
     , cudaGLImage(colorTexture)
 #endif
 {
@@ -46,7 +46,7 @@ VideoStreamer::VideoStreamer(
 
     std::string encoderParams;
     const int gopFrames = std::max(1, maxFrameRate); // 1 second GOP at worst case FPS
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
     encoderParams = "nvh264enc preset=4 rc-mode=cbr zerolatency=true "
                     "bframes=0 gop-size=" + std::to_string(gopFrames);
 #else
@@ -122,7 +122,7 @@ void VideoStreamer::sendFrame(pose_id_t poseID) {
     videoFrame.poseID = poseID;
     videoFrame.buffer.resize(width * height * 4);
 
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
     cudaGLImage.copyArrayToHostAsync(
         width * 4,
         height,

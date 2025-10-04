@@ -5,7 +5,7 @@
 
 #include <Buffer.h>
 
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
 #include <CudaGLInterop/CudaGLBuffer.h>
 #endif
 
@@ -49,7 +49,7 @@ public:
     size_t loadFromMemory(const std::vector<char>& inputData);
 
 private:
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
     CudaGLBuffer cudaBufferNormalSphericals;
     CudaGLBuffer cudaBufferDepths;
     CudaGLBuffer cudaBufferMetadatas;

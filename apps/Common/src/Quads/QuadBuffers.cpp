@@ -28,7 +28,7 @@ QuadBuffers::QuadBuffers(size_t maxProxies)
         .maxElems = maxProxies,
         .usage = GL_DYNAMIC_COPY,
     })
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
     , cudaBufferNormalSphericals(normalSphericalsBuffer)
     , cudaBufferDepths(depthsBuffer)
     , cudaBufferMetadatas(metadatasBuffer)
@@ -49,7 +49,7 @@ size_t QuadBuffers::writeToMemory(std::vector<char>& outputData) {
     std::memcpy(outputData.data(), &numProxies, sizeof(uint));
     bufferOffset += sizeof(uint);
 
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
     CudaGLBuffer::registerHostBuffer(outputData.data(), outputData.size());
 
     cudaBufferNormalSphericals.copyToHostAsync(outputData.data() + bufferOffset, numProxies * sizeof(uint));

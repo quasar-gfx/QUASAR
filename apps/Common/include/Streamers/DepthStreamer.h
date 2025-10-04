@@ -11,7 +11,7 @@
 #include <Networking/DataStreamerTCP.h>
 #include <concurrentqueue/concurrentqueue.h>
 
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
 #include <CudaGLInterop/CudaGLImage.h>
 #endif
 
@@ -50,7 +50,7 @@ private:
     std::vector<char> data;
     RenderTarget renderTargetCopy;
 
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
     CudaGLImage cudaGLImage;
 
     struct CudaBuffer {

@@ -14,11 +14,21 @@ find_package(Threads REQUIRED)
 set(LIBS ${LIBS} Threads::Threads)
 
 # CUDA
-set(HAS_CUDA 0)
-find_package(CUDAToolkit QUIET)
-if (CUDAToolkit_FOUND)
-    set(LIBS ${LIBS} CUDA::cudart CUDA::cuda_driver)
-    set(HAS_CUDA 1)
+include(CheckLanguage)
+check_language(CUDA)
+if (CMAKE_CUDA_COMPILER)
+    find_package(CUDAToolkit REQUIRED)
+    if (NOT CUDAToolkit_FOUND)
+        message(FATAL_ERROR "CUDA compiler is available, but CUDAToolkit not found. Disabling CUDA support.")
+        set(QUASAR_HAS_CUDA 0)
+    else()
+        message(STATUS "CUDAToolkit found. Enabling CUDA support.")
+        set(LIBS ${LIBS} CUDA::cudart CUDA::cuda_driver)
+        set(QUASAR_HAS_CUDA 1)
+    endif()
+else()
+    message(STATUS "CUDA not found. Disabling CUDA support.")
+    set(QUASAR_HAS_CUDA 0)
 endif()
 
 # ZLIB
@@ -66,8 +76,8 @@ file(GLOB_RECURSE SRCS
 add_library(${TARGET} STATIC ${PUBLIC_HDRS} ${SRCS})
 
 target_compile_options(${TARGET} PRIVATE -Wno-cast-calling-convention -Wunused-variable)
-if (HAS_CUDA)
-    target_compile_options(${TARGET} PUBLIC -DHAS_CUDA)
+if (QUASAR_HAS_CUDA)
+    target_compile_options(${TARGET} PUBLIC -DQUASAR_HAS_CUDA)
 endif()
 
 target_include_directories(${TARGET} PUBLIC ${PUBLIC_HDR_DIR} ${CMAKE_CURRENT_BINARY_DIR}/shaders

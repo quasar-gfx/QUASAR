@@ -23,14 +23,21 @@ DepthOffsets::DepthOffsets(const glm::uvec2& textureSize)
         .numElems = textureSize.x * textureSize.y * 4, // 4 channels
         .usage = GL_STREAM_DRAW
     })
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
     , cudaImage(texture)
+#else
+    , downloadPBO({
+        .target = GL_PIXEL_PACK_BUFFER,
+        .dataSize = sizeof(uint16_t),
+        .numElems = textureSize.x * textureSize.y * 4, // 4 channels
+        .usage = GL_STREAM_READ
+    })
 #endif
 {}
 
 size_t DepthOffsets::writeToMemory(std::vector<char>& outputData) {
 #ifdef GL_CORE
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
     size_t rowBytes = bytesPerRow(textureSize.x);
     size_t outputSize = rowBytes * textureSize.y;
     outputData.resize(outputSize);
@@ -44,16 +51,15 @@ size_t DepthOffsets::writeToMemory(std::vector<char>& outputData) {
     size_t outputSize = rowBytes * textureSize.y;
     outputData.resize(outputSize);
 
-    uploadPBO.bind();
+    downloadPBO.bind();
     glBufferData(GL_PIXEL_PACK_BUFFER, outputSize, nullptr, GL_STREAM_READ);
 
     texture.bind();
     glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_HALF_FLOAT, nullptr);
 
-    uploadPBO.getData(outputData.data());
-    uploadPBO.unbind();
+    downloadPBO.getData(outputData.data());
+    downloadPBO.unbind();
 #endif
-
 #else
     spdlog::error("DepthOffsets::writeToMemory is only supported in OpenGL Core");
 #endif

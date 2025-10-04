@@ -24,7 +24,7 @@ DepthStreamer::DepthStreamer(const RenderTargetCreateParams& params, std::string
 {
     spdlog::info("Created DepthStreamer that sends to URL: tcp://{}", receiverURL);
 
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
     cudaGLImage.registerTexture(renderTargetCopy.colorTexture);
 
     if (!receiverURL.empty()) {
@@ -39,7 +39,7 @@ DepthStreamer::~DepthStreamer() {
 }
 
 void DepthStreamer::stop() {
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
     running = false;
 
     if (dataSendingThread.joinable()) {
@@ -49,7 +49,7 @@ void DepthStreamer::stop() {
 }
 
 void DepthStreamer::sendFrame(pose_id_t poseID) {
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
     bind();
     blit(renderTargetCopy);
     unbind();
@@ -72,7 +72,7 @@ void DepthStreamer::sendFrame(pose_id_t poseID) {
 #endif
 }
 
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
 void DepthStreamer::sendData() {
     float prevTime = timeutils::getTimeMicros();
 

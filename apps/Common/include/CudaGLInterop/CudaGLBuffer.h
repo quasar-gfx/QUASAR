@@ -1,7 +1,7 @@
 #ifndef CUDA_BUFFER_H
 #define CUDA_BUFFER_H
 
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
 
 #include <Buffer.h>
 
@@ -118,6 +118,6 @@ private:
 
 } // namespace quasar
 
-#endif // defined(HAS_CUDA)
+#endif // defined(QUASAR_HAS_CUDA)
 
 #endif // CUDA_BUFFER_H

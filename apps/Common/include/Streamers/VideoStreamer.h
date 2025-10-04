@@ -13,7 +13,7 @@
 #include <RenderTargets/RenderTarget.h>
 #include <CameraPose.h>
 
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
 #include <CudaGLInterop/CudaGLImage.h>
 #endif
 
@@ -50,7 +50,7 @@ private:
     int maxFrameRate;
     int targetBitRateKbps;
 
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
     std::string format = "NV12";
 #else
     std::string format = "I420";
@@ -61,7 +61,7 @@ private:
     const int poseIDOffset = sizeof(pose_id_t) * 8;
     uint videoWidth, videoHeight;
 
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
     CudaGLImage cudaGLImage;
 #endif
 

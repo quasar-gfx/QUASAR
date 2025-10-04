@@ -21,7 +21,7 @@ Recorder::Recorder(
     , numThreads(numThreads)
     , outputPath(outputPath)
     , outputFormats({"MP4", "PNG", "JPG"})
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
     , cudaImage(colorTexture)
 #endif
 {
@@ -97,7 +97,7 @@ void Recorder::captureFrame(const Camera& camera) {
 
     std::vector<uint8_t> renderTargetData(width * height * 4);
 
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
     cudaImage.copyArrayToHost(width * 4, height, width * 4, renderTargetData.data());
 #else
     readPixels(renderTargetData.data());

@@ -5,7 +5,7 @@
 #include <Buffer.h>
 #include <Texture.h>
 
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
 #include <CudaGLInterop/CudaGLImage.h>
 #endif
 
@@ -29,8 +29,10 @@ private:
     glm::uvec2 textureSize;
 
     Buffer uploadPBO;
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
     CudaGLImage cudaImage;
+#else
+    Buffer downloadPBO; // Without CUDA, we need a PBO to read back the texture data
 #endif
 
     static inline size_t bytesPerRow(unsigned w) {

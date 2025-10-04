@@ -1,7 +1,7 @@
 #ifndef CUDA_IMAGE_H
 #define CUDA_IMAGE_H
 
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
 
 #include <Texture.h>
 
@@ -121,6 +121,6 @@ private:
 
 } // namespace quasar
 
-#endif // defined(HAS_CUDA)
+#endif // defined(QUASAR_HAS_CUDA)
 
 #endif // CUDA_IMAGE_H

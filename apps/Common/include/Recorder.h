@@ -26,7 +26,7 @@ extern "C" {
 
 #include <PostProcessing/PostProcessingEffect.h>
 
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
 #include <CudaGLInterop/CudaGLImage.h>
 #endif
 
@@ -114,7 +114,7 @@ private:
     std::mutex swsMutex;
 
     int64_t recordingStartTime;
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
     CudaGLImage cudaImage;
 #endif
 

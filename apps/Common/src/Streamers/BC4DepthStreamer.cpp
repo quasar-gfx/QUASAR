@@ -34,7 +34,7 @@ BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams& params, const
         .usage = GL_DYNAMIC_DRAW,
     });
 
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
     cudaBufferBC4.registerBuffer(bc4CompressedBuffer);
 
     if (!receiverURL.empty()) {
@@ -53,7 +53,7 @@ BC4DepthStreamer::~BC4DepthStreamer() {
 }
 
 void BC4DepthStreamer::stop() {
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
     running = false;
 
     if (dataSendingThread.joinable()) {
@@ -87,7 +87,7 @@ size_t BC4DepthStreamer::compress(bool compress) {
 void BC4DepthStreamer::writeToMemory(pose_id_t poseID, void* cudaPtr) {
     std::memcpy(data.data(), &poseID, sizeof(pose_id_t));
 
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
     if (cudaPtr == nullptr) {
         CudaGLBuffer::registerHostBuffer(data.data(), sizeof(pose_id_t) + compressedSize * sizeof(BC4Block));
         cudaBufferBC4.copyToHostAsync(data.data() + sizeof(pose_id_t), compressedSize * sizeof(BC4Block));
@@ -108,7 +108,7 @@ void BC4DepthStreamer::writeToMemory(pose_id_t poseID, void* cudaPtr) {
     }
 #else
     bc4CompressedBuffer.bind();
-    bc4CompressedBuffer.setData(compressedSize * sizeof(BC4Block), data.data() + sizeof(pose_id_t));
+    bc4CompressedBuffer.getData(data.data() + sizeof(pose_id_t));
     bc4CompressedBuffer.unbind();
 #endif
 }
@@ -137,7 +137,7 @@ void BC4DepthStreamer::writeToFile(const Path& filename) {
 void BC4DepthStreamer::sendFrame(pose_id_t poseID) {
     compress();
 
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
     void* cudaPtr = cudaBufferBC4.getPtr();
     cudaBufferQueue.enqueue({ poseID, cudaPtr });
 #else
@@ -160,7 +160,7 @@ void BC4DepthStreamer::sendFrame(pose_id_t poseID) {
 #endif
 }
 
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
 void BC4DepthStreamer::sendData() {
     time_t prevTime = timeutils::getTimeMicros();
 

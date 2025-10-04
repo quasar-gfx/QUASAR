@@ -1,4 +1,4 @@
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
 
 #include <spdlog/spdlog.h>
 

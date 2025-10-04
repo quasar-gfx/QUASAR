@@ -16,7 +16,7 @@
 #include <Codec/ZSTDCodec.h>
 #include <CameraPose.h>
 
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
 #include <CudaGLInterop/CudaGLBuffer.h>
 #endif
 
@@ -68,7 +68,7 @@ private:
     size_t applyCodec();
     void writeToMemory(pose_id_t poseID = -1, void* cudaPtr = nullptr);
 
-#if defined(HAS_CUDA)
+#if defined(QUASAR_HAS_CUDA)
     CudaGLBuffer cudaBufferBC4;
 
     struct CudaBuffer {
