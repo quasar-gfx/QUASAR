@@ -189,14 +189,6 @@ void VideoTexture::resize(uint width, uint height) {
     Texture::resize(width, height);
 }
 
-void VideoTexture::setMaxQueueSize(size_t maxQueueSize) {
-    this->maxQueueSize = maxQueueSize;
-}
-
-float VideoTexture::getFrameRate() {
-    return 1.0f / timeutils::millisToSeconds(stats.totalRecvTimeMs);
-}
-
 void VideoTexture::receiveFrame() {
     time_t prevTime = timeutils::getTimeMicros();
     time_t lastBitrateCalcTime = 0;

@@ -54,7 +54,7 @@ public:
 
     size_t compress(bool compress = false);
     void sendFrame(pose_id_t poseID);
-    void writeToFile(const Path& filename);
+    size_t writeToFile(const Path& filename);
 
 private:
     int targetFrameRate = 30;

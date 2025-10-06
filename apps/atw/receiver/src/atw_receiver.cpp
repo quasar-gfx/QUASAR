@@ -206,7 +206,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::TextColored(ImVec4(1,0.5,0,1), "Server Frame Rate: %.1f FPS (%.3f ms/frame)", videoTexture.getFrameRate(), 1000.0f / videoTexture.getFrameRate());
+            ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoTexture.getFrameRate(), 1000.0f / videoTexture.getFrameRate());
             ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: %.3f ms", elapsedTime);
 
             ImGui::Separator();

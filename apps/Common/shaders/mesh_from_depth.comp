@@ -23,7 +23,7 @@ uniform mat4 projectionInverse;
 uniform float near;
 uniform float far;
 
-uniform int surfelSize = 1;
+uniform int vertexGroupSize = 1;
 
 layout(std430, binding = 0) buffer VertexBufferDepth {
     Vertex verticesDepth[];
@@ -40,14 +40,14 @@ float sampleDepth(sampler2D depthMap, ivec2 sampleCoord) {
 }
 
 void main() {
-    vec2 size = vec2(depthMapSize) / float(surfelSize);
+    vec2 size = vec2(depthMapSize) / float(vertexGroupSize);
 
     ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
     if (pixelCoord.x >= int(size.x) || pixelCoord.y >= int(size.y)) {
         return;
     }
 
-    vec2 surfelCornerCoordBottomLeft = float(surfelSize) * vec2(gl_GlobalInvocationID.xy);
+    vec2 surfelCornerCoordBottomLeft = float(vertexGroupSize) * vec2(gl_GlobalInvocationID.xy);
     vec2 pixelCenterCoord            = surfelCornerCoordBottomLeft + vec2(0.5, 0.5);
     vec2 uvCenter                    = pixelCenterCoord / vec2(depthMapSize);
     vec2 pixelCoordsNDC              = 2.0 * uvCenter - 1.0;
@@ -60,7 +60,7 @@ void main() {
     verticesDepth[shaderIndex].color = vec3(1.0, 1.0, 1.0);
     verticesDepth[shaderIndex].texCoord = viewToScreen(projection, pixelCoordsViewCenter);
 
-    if (pixelCoord.x < size.x - surfelSize && pixelCoord.y < size.y - surfelSize) {
+    if (pixelCoord.x < size.x - vertexGroupSize && pixelCoord.y < size.y - vertexGroupSize) {
         /************************
 
                 tl -- tr

@@ -64,6 +64,7 @@ public:
         PerspectiveCamera& remoteCamera,
         const std::string& videoURL = "",
         const std::string& proxiesURL = "",
+        uint targetFramerate = 5,
         uint targetBitRate = 15);
     ~QuadsStreamer();
 
@@ -72,7 +73,7 @@ public:
 
     void addMeshesToScene(Scene& localScene);
 
-    void generateFrame(bool createResidualFrame, bool showNormals = false, bool showDepth = false);
+    RenderStats generateFrame(bool createResidualFrame, bool showNormals = false, bool showDepth = false);
     void sendProxies(pose_id_t poseID, bool createResidualFrame);
 
     size_t writeToFiles(const Path& outputPath);

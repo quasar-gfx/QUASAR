@@ -37,9 +37,10 @@ public:
     void stop();
 
     pose_id_t getLatestPoseID();
-    float getFrameRate();
 
-    void setMaxQueueSize(size_t maxQueueSize);
+    float getFrameRate() { return 1.0f / timeutils::millisToSeconds(stats.totalRecvTimeMs); }
+
+    void setMaxQueueSize(size_t maxQueueSize) { this->maxQueueSize = maxQueueSize; }
 
     bool containsFrames();
     bool containsFrameWithPoseID(pose_id_t poseID);

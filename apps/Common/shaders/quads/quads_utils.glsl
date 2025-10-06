@@ -76,7 +76,7 @@ const vec3 up = vec3(0.0, 1.0, 0.0);
 const vec3 left = vec3(-1.0, 0.0, 0.0);
 const vec3 right = vec3(1.0, 0.0, 0.0);
 
-const float surfelSize = 0.5;
+const float vertexGroupSize = 0.5;
 
 bool isValidDepth(float depth) {
     return depth != 0.0 && depth < MAX_DEPTH;

@@ -42,7 +42,7 @@ private:
         std::vector<char> buffer;
     };
 
-    std::deque<FrameData> depthFrames;
+    std::deque<FrameData> frames;
 
     void onDataReceived(const std::vector<char>& data) override;
 };

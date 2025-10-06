@@ -10,11 +10,11 @@ DepthVideoTexture::DepthVideoTexture(const TextureDataCreateParams& params, std:
 {}
 
 pose_id_t DepthVideoTexture::getLatestPoseID() {
-    if (depthFrames.empty()) {
+    if (frames.empty()) {
         return -1;
     }
 
-    FrameData frameData = depthFrames.back();
+    FrameData frameData = frames.back();
     pose_id_t poseID = frameData.poseID;
     return poseID;
 }
@@ -29,10 +29,10 @@ void DepthVideoTexture::onDataReceived(const std::vector<char>& data) {
 
     depthFrame.erase(depthFrame.begin(), depthFrame.begin() + sizeof(pose_id_t));
     FrameData newFrameData = {poseID, std::move(depthFrame)};
-    depthFrames.push_back(newFrameData);
+    frames.push_back(newFrameData);
 
-    if (depthFrames.size() > maxQueueSize) {
-        depthFrames.pop_front();
+    if (frames.size() > maxQueueSize) {
+        frames.pop_front();
     }
 }
 
@@ -41,7 +41,7 @@ pose_id_t DepthVideoTexture::draw(pose_id_t poseID) {
 
     static float prevTime = timeutils::getTimeMicros();
 
-    if (depthFrames.empty()) {
+    if (frames.empty()) {
         return -1;
     }
 
@@ -49,13 +49,13 @@ pose_id_t DepthVideoTexture::draw(pose_id_t poseID) {
     std::vector<char> res;
     bool found = false;
     if (poseID == -1) {
-        FrameData frameData = depthFrames.back();
+        FrameData frameData = frames.back();
         res = std::move(frameData.buffer);
         resPoseID = frameData.poseID;
         found = true;
     }
     else {
-        for (auto it = depthFrames.begin(); it != depthFrames.end(); ++it) {
+        for (auto it = frames.begin(); it != frames.end(); ++it) {
             FrameData frameData = *it;
             if (frameData.poseID == poseID) {
                 res = std::move(frameData.buffer);

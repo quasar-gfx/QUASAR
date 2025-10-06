@@ -85,7 +85,6 @@ int main(int argc, char** argv) {
 
     QuadSet quadSet(windowSize);
     QuadsReceiver quadsReceiver(quadSet, videoURL, proxiesURL);
-
     PoseStreamer poseStreamer(&camera, poseURL);
 
     // Create nodes and wireframe nodes

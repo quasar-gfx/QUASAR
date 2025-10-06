@@ -13,7 +13,7 @@
 #include <Recorder.h>
 #include <CameraAnimator.h>
 
-#include <Streamers/BC4DepthStreamer.h>
+#include <Streamers/MeshWarpStreamer.h>
 #include <PoseSendRecvSimulator.h>
 
 #include <shaders_common.h>
@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<float> networkJitterIn(parser, "network-jitter", "Simulated network jitter in ms", {'J', "network-jitter"}, 10.0f);
     args::Flag posePredictionIn(parser, "pose-prediction", "Enable pose prediction", {'P', "pose-prediction"}, false);
     args::Flag poseSmoothingIn(parser, "pose-smoothing", "Enable pose smoothing", {'T', "pose-smoothing"}, false);
-    args::ValueFlag<uint> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
+    args::ValueFlag<uint> vertexGroupSizeIn(parser, "vertex", "Size of vertex grouping", {'g', "vertex-group-size"}, 1);
     args::ValueFlag<float> fovIn(parser, "fov", "Field of view", {'f', "fov"}, 60.0f);
     try {
         parser.ParseCLI(argc, argv);
@@ -74,7 +74,7 @@ int main(int argc, char** argv) {
     Path cameraPathFile = args::get(cameraPathFileIn);
     Path outputPath = Path(args::get(outputPathIn)); outputPath.mkdirRecursive();
 
-    uint surfelSize = args::get(surfelSizeIn);
+    uint vertexGroupSize = args::get(vertexGroupSizeIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -103,43 +103,10 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera(windowSize);
     camera.setViewMatrix(remoteCamera.getViewMatrix());
 
-    RenderTarget renderTarget({
-        .width = remoteWindowSize.x,
-        .height = remoteWindowSize.y,
-        .internalFormat = GL_RGBA16F,
-        .format = GL_RGBA,
-        .type = GL_HALF_FLOAT,
-        .wrapS = GL_CLAMP_TO_EDGE,
-        .wrapT = GL_CLAMP_TO_EDGE,
-        .minFilter = GL_NEAREST,
-        .magFilter = GL_NEAREST,
-    });
-    RenderTarget renderTargetCopy({
-        .width = remoteWindowSize.x,
-        .height = remoteWindowSize.y,
-        .internalFormat = GL_RGBA16F,
-        .format = GL_RGBA,
-        .type = GL_HALF_FLOAT,
-        .wrapS = GL_CLAMP_TO_EDGE,
-        .wrapT = GL_CLAMP_TO_EDGE,
-        .minFilter = GL_NEAREST,
-        .magFilter = GL_NEAREST,
-    });
-
-    BC4DepthStreamer bc4DepthStreamerRT = BC4DepthStreamer({
-        .width = remoteWindowSize.x,
-        .height = remoteWindowSize.y,
-        .internalFormat = GL_R32F,
-        .format = GL_RED,
-        .type = GL_FLOAT,
-        .wrapS = GL_CLAMP_TO_EDGE,
-        .wrapT = GL_CLAMP_TO_EDGE,
-        .minFilter = GL_NEAREST,
-        .magFilter = GL_NEAREST,
-    });
+    MeshWarpStreamer meshWarpStreamer(remoteRenderer, remoteScene, remoteCamera);
 
     glm::uvec2 depthMapSize = remoteWindowSize;
-    glm::uvec2 adjustedWindowSize = depthMapSize / surfelSize;
+    glm::uvec2 adjustedWindowSize = depthMapSize / vertexGroupSize;
 
     uint maxVertices = adjustedWindowSize.x * adjustedWindowSize.y;
     uint numTriangles = (adjustedWindowSize.x-1) * (adjustedWindowSize.y-1) * 2;
@@ -148,7 +115,7 @@ int main(int argc, char** argv) {
     Mesh mesh({
         .maxVertices = maxVertices,
         .maxIndices = maxIndices,
-        .material = new UnlitMaterial({ .baseColorTexture = &renderTarget.colorTexture ,}),
+        .material = new UnlitMaterial({ .baseColorTexture = &meshWarpStreamer.renderTarget.colorTexture }),
         .usage = GL_DYNAMIC_DRAW
     });
     Node node(&mesh);
@@ -336,9 +303,8 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::DragFloat("FoV (degrees)", &fov, 0.1f, 60.0f, 120.0f)) {
+            if (ImGui::DragFloat("Remote FOV", &fov, 0.1f, 60.0f, 170.0f)) {
                 remoteCamera.setFovyDegrees(fov);
-                remoteCamera.updateProjectionMatrix();
 
                 preventCopyingLocalPose = true;
                 sendRemoteFrame = true;
@@ -441,10 +407,7 @@ int main(int argc, char** argv) {
             ImGui::Begin("Mesh Capture", &showMeshCaptureWindow);
 
             if (ImGui::Button("Save Depth")) {
-                bc4DepthStreamerRT.writeToFile(outputPath / "depth.bc4.zstd");
-                Path colorFileName = outputPath / "color";
-                tonemapper.drawToRenderTarget(remoteRenderer, renderTargetCopy);
-                renderTargetCopy.writeColorAsJPG(colorFileName.appendToName(".jpg"));
+                meshWarpStreamer.writeToFiles(outputPath);
             }
 
             ImGui::End();
@@ -453,7 +416,8 @@ int main(int argc, char** argv) {
         if (showFramePreviewWindow) {
             flags = 0;
             ImGui::Begin("Frame", 0, flags);
-            ImGui::Image((void*)(intptr_t)(renderTarget.colorTexture), ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::Image((void*)(intptr_t)(meshWarpStreamer.renderTarget.colorTexture),
+                         ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
         }
     });
@@ -553,23 +517,21 @@ int main(int argc, char** argv) {
             // Render remoteScene
             remoteRenderer.drawObjects(remoteScene, remoteCamera);
 
-            // Copy rendered result to video render target
-            tonemapper.enableTonemapping(false);
-            tonemapper.drawToRenderTarget(remoteRenderer, renderTarget);
-            showDepthEffect.drawToRenderTarget(remoteRenderer, bc4DepthStreamerRT);
+            // Generate new frame
+            meshWarpStreamer.generateFrame();
 
             totalRenderTimeMs = timeutils::secondsToMillis(window->getTime() - startTime);
 
             // Compress depth map to BC4 format with ZSTD
-            compressedSize = bc4DepthStreamerRT.compress(true);
-            totalCompressTimeMs = bc4DepthStreamerRT.stats.compressTimeMs;
+            compressedSize = meshWarpStreamer.depthStreamerRT.compress(true);
+            totalCompressTimeMs = meshWarpStreamer.depthStreamerRT.stats.compressTimeMs;
 
             startTime = window->getTime();
             meshFromBC4Shader.bind();
             {
                 meshFromBC4Shader.setBool("unlinearizeDepth", true);
                 meshFromBC4Shader.setVec2("depthMapSize", remoteWindowSize);
-                meshFromBC4Shader.setInt("surfelSize", surfelSize);
+                meshFromBC4Shader.setInt("vertexGroupSize", vertexGroupSize);
             }
             {
                 meshFromBC4Shader.setMat4("projection", remoteCamera.getProjectionMatrix());
@@ -583,7 +545,7 @@ int main(int argc, char** argv) {
             {
                 meshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
                 meshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
-                meshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, bc4DepthStreamerRT.bc4CompressedBuffer);
+                meshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, meshWarpStreamer.depthStreamerRT.bc4CompressedBuffer);
             }
             // Dispatch compute shader to generate vertices and indices for mesh
             meshFromBC4Shader.dispatch((adjustedWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,

@@ -28,7 +28,7 @@ enum class RenderState {
 
 int main(int argc, char** argv) {
     Config config{};
-    config.title = "BC4 Compression";
+    config.title = "Depth Compression";
 
     RenderState renderState = RenderState::POINTCLOUD;
 
@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "1920x1080");
     args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
-    args::ValueFlag<uint> surfelSizeIn(parser, "surfel", "Surfel size", {'z', "surfel-size"}, 1);
+    args::ValueFlag<uint> vertexGroupSizeIn(parser, "vertex", "Size of vertex grouping", {'g', "vertex-group-size"}, 1);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
 
     Path sceneFile = args::get(sceneFileIn);
 
-    uint surfelSize = args::get(surfelSizeIn);
+    uint vertexGroupSize = args::get(vertexGroupSizeIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -128,7 +128,7 @@ int main(int argc, char** argv) {
     float compressionRatio = originalSize / compressedSize;
 
     // Set up meshes for rendering
-    glm::uvec2 adjustedWindowSize = windowSize / surfelSize;
+    glm::uvec2 adjustedWindowSize = windowSize / vertexGroupSize;
 
     uint maxVertices = adjustedWindowSize.x * adjustedWindowSize.y;
     uint numTriangles = (adjustedWindowSize.x-1) * (adjustedWindowSize.y-1) * 2;
@@ -334,7 +334,7 @@ int main(int argc, char** argv) {
         }
         {
             meshFromDepthShader.setVec2("depthMapSize", windowSize);
-            meshFromDepthShader.setInt("surfelSize", surfelSize);
+            meshFromDepthShader.setInt("vertexGroupSize", vertexGroupSize);
         }
         {
             meshFromDepthShader.setMat4("projection", remoteCamera.getProjectionMatrix());
@@ -364,7 +364,7 @@ int main(int argc, char** argv) {
         {
             meshFromBC4Shader.setBool("unlinearizeDepth", true);
             meshFromBC4Shader.setVec2("depthMapSize", windowSize);
-            meshFromBC4Shader.setInt("surfelSize", surfelSize);
+            meshFromBC4Shader.setInt("vertexGroupSize", vertexGroupSize);
         }
         {
             meshFromBC4Shader.setMat4("projection", remoteCamera.getProjectionMatrix());

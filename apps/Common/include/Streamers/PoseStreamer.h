@@ -48,7 +48,7 @@ public:
         return true;
     }
 
-    bool getPose(pose_id_t poseID, Pose* pose, double* elapsedTime = nullptr) {
+    bool getPose(pose_id_t poseID, Pose* pose, double* elapsedTime = nullptr) const {
         auto res = prevPoses.find(poseID);
         if (res != prevPoses.end()) { // found
             *pose = res->second;

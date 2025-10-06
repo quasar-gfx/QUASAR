@@ -9,6 +9,7 @@ QuadsStreamer::QuadsStreamer(
         PerspectiveCamera& remoteCamera,
         const std::string& videoURL,
         const std::string& proxiesURL,
+        uint targetFramerate,
         uint targetBitRate)
     : quadSet(quadSet)
     , videoURL(videoURL)
@@ -82,7 +83,7 @@ QuadsStreamer::QuadsStreamer(
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST,
-    }, videoURL, 5, targetBitRate)
+    }, videoURL, targetFramerate, targetBitRate)
     , residualFrameMesh(quadSet, residualFrameRT_noTone.colorTexture)
     , depthMesh(quadSet.getSize(), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f))
     , wireframeMaterial({ .baseColor = colors[0] })
@@ -156,7 +157,7 @@ void QuadsStreamer::addMeshesToScene(Scene& localScene) {
     localScene.addChildNode(&depthNode);
 }
 
-void QuadsStreamer::generateFrame(bool createResidualFrame, bool showNormals, bool showDepth) {
+RenderStats QuadsStreamer::generateFrame(bool createResidualFrame, bool showNormals, bool showDepth) {
     // Reset stats
     // Reset stats
     stats = { 0 };
@@ -173,7 +174,7 @@ void QuadsStreamer::generateFrame(bool createResidualFrame, bool showNormals, bo
     ============================
     */
     double startTime = timeutils::getTimeMicros();
-    remoteRenderer.drawObjects(remoteScene, remoteCameraToUse);
+    RenderStats renderStats = remoteRenderer.drawObjects(remoteScene, remoteCameraToUse);
     remoteRenderer.copyToFrameRT(referenceFrameRT);
     stats.totalRenderTimeMs += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
@@ -300,6 +301,8 @@ void QuadsStreamer::generateFrame(bool createResidualFrame, bool showNormals, bo
                       residualFrame.getTotalNumQuads(), residualFrame.getTotalQuadsSize() / BYTES_PER_MEGABYTE,
                       residualFrame.getTotalNumDepthOffsets(), residualFrame.getTotalDepthOffsetsSize() / BYTES_PER_MEGABYTE);
     }
+
+    return renderStats;
 }
 
 void QuadsStreamer::sendProxies(pose_id_t poseID, bool createResidualFrame) {

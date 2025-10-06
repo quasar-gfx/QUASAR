@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
         quadSet,
         remoteRenderer, scene, camera,
         videoURL, proxiesURL,
-        targetBitrate);
+        config.targetFramerate, targetBitrate);
 
     // "Local" scene for visualization
     Scene localScene;
@@ -300,7 +300,7 @@ int main(int argc, char** argv) {
                 camera.setPosition(camera.getPosition() + initialPosition);
                 camera.updateViewMatrix();
 
-                quadwarp.generateFrame(sendResidualFrame, showNormals, showDepth);
+                renderStats = quadwarp.generateFrame(sendResidualFrame, showNormals, showDepth);
 
                 // Restore camera position
                 camera.setPosition(camera.getPosition() - initialPosition);
@@ -345,7 +345,7 @@ int main(int argc, char** argv) {
         camera.updateViewMatrix();
 
         // Render generated meshes
-        renderStats = renderer.drawObjects(localScene, camera);
+        renderer.drawObjects(localScene, camera);
 
         // Restore camera position
         camera.setPosition(camera.getPosition() - initialPosition);

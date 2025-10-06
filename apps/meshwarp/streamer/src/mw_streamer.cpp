@@ -6,19 +6,11 @@
 #include <GUI/ImGuiManager.h>
 #include <Renderers/DeferredRenderer.h>
 #include <PostProcessing/Tonemapper.h>
-#include <PostProcessing/ShowDepthEffect.h>
 
-#include <Streamers/VideoStreamer.h>
-#include <Streamers/BC4DepthStreamer.h>
+#include <Streamers/MeshWarpStreamer.h>
 #include <Receivers/PoseReceiver.h>
 
 using namespace quasar;
-
-enum class PauseState {
-    NONE,
-    PAUSE_COLOR,
-    PAUSE_DEPTH,
-};
 
 int main(int argc, char** argv) {
     Config config{};
@@ -88,35 +80,14 @@ int main(int argc, char** argv) {
 
     glm::vec3 initialPosition = camera.getPosition();
 
-    VideoStreamer videoStreamerColorRT({
-        .width = windowSize.x,
-        .height = windowSize.y,
-        .internalFormat = GL_SRGB8_ALPHA8,
-        .format = GL_RGBA,
-        .type = GL_UNSIGNED_BYTE,
-        .wrapS = GL_CLAMP_TO_EDGE,
-        .wrapT = GL_CLAMP_TO_EDGE,
-        .minFilter = GL_LINEAR,
-        .magFilter = GL_LINEAR,
-    }, videoURL, config.targetFramerate, targetBitrate);
-
-    BC4DepthStreamer bc4DepthStreamerRT({
-        .width = windowSize.x / depthFactor,
-        .height = windowSize.y / depthFactor,
-        .internalFormat = GL_R32F,
-        .format = GL_RED,
-        .type = GL_FLOAT,
-        .wrapS = GL_CLAMP_TO_EDGE,
-        .wrapT = GL_CLAMP_TO_EDGE,
-        .minFilter = GL_NEAREST,
-        .magFilter = GL_NEAREST,
-    }, depthURL);
-
+    MeshWarpStreamer meshWarpStreamer(
+        renderer, scene, camera,
+        videoURL, depthURL,
+        depthFactor,
+        config.targetFramerate, targetBitrate);
     PoseReceiver poseReceiver(&camera, poseURL);
 
-    // Post processing
     Tonemapper tonemapper;
-    ShowDepthEffect showDepthEffect(camera);
 
     bool sendFrame = true;
 
@@ -127,7 +98,6 @@ int main(int argc, char** argv) {
 
     RenderStats renderStats;
     pose_id_t prevPoseID;
-    PauseState pauseState = PauseState::NONE;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = true;
@@ -201,10 +171,21 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: RGB (%.1f fps), BC4 D (%.1f fps)", videoStreamerColorRT.getFrameRate(), bc4DepthStreamerRT.getFrameRate());
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: RGB (%.3f ms), BC4 D (%.3f ms)", videoStreamerColorRT.stats.transferTimeMs, bc4DepthStreamerRT.stats.transferTimeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: RGB (%.3f ms), BC4 D (%.3f ms)", videoStreamerColorRT.stats.encodeTimeMs, bc4DepthStreamerRT.stats.compressTimeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: RGB (%.3f ms), BC4 D (%.3f ms)", videoStreamerColorRT.stats.sendTimeMs, bc4DepthStreamerRT.stats.sendTimeMs);
+            ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: RGB (%.1f fps), BC4 D (%.1f fps)",
+                                                    meshWarpStreamer.getVideoFrameRate(),
+                                                    meshWarpStreamer.getDepthFrameRate());
+
+            ImGui::Separator();
+
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: RGB (%.3f ms), BC4 D (%.3f ms)",
+                                                    meshWarpStreamer.videoStreamerRT.stats.transferTimeMs,
+                                                    meshWarpStreamer.depthStreamerRT.stats.transferTimeMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: RGB (%.3f ms), BC4 D (%.3f ms)",
+                                                    meshWarpStreamer.videoStreamerRT.stats.encodeTimeMs,
+                                                    meshWarpStreamer.depthStreamerRT.stats.compressTimeMs);
+            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: RGB (%.3f ms), BC4 D (%.3f ms)",
+                                                    meshWarpStreamer.videoStreamerRT.stats.sendTimeMs,
+                                                    meshWarpStreamer.depthStreamerRT.stats.sendTimeMs);
 
             ImGui::Separator();
 
@@ -215,12 +196,6 @@ int main(int argc, char** argv) {
             if (ImGui::Button("Send Frame", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
                 sendFrame = true;
             }
-
-            ImGui::Separator();
-
-            ImGui::RadioButton("Play", (int*)&pauseState, 0);
-            ImGui::RadioButton("Pause Color", (int*)&pauseState, 1);
-            ImGui::RadioButton("Pause Depth", (int*)&pauseState, 2);
 
             ImGui::End();
         }
@@ -259,21 +234,15 @@ int main(int argc, char** argv) {
                 camera.setPosition(camera.getPosition() + initialPosition);
                 camera.updateViewMatrix();
 
-                // Render all objects in scene
-                renderStats = renderer.drawObjects(scene, camera);
+                renderStats = meshWarpStreamer.generateFrame();
+                meshWarpStreamer.sendFrame(poseID);
 
                 // Restore camera position
                 camera.setPosition(camera.getPosition() - initialPosition);
                 camera.updateViewMatrix();
 
-                // Copy color and depth to video frames
-                tonemapper.drawToRenderTarget(renderer, videoStreamerColorRT);
-                showDepthEffect.drawToRenderTarget(renderer, bc4DepthStreamerRT);
-
                 // Send video and depth frames
                 prevPoseID = poseID;
-                if (pauseState != PauseState::PAUSE_COLOR) videoStreamerColorRT.sendFrame(poseID);
-                if (pauseState != PauseState::PAUSE_DEPTH) bc4DepthStreamerRT.sendFrame(poseID);
             }
 
             sendFrame = false;

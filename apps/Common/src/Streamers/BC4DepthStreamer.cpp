@@ -81,7 +81,7 @@ size_t BC4DepthStreamer::compress(bool compress) {
         return applyCodec();
     }
 
-    return 0;
+    return (depthMapSize.x / BC4_BLOCK_SIZE) * (depthMapSize.y / BC4_BLOCK_SIZE) / 8;
 }
 
 void BC4DepthStreamer::writeToMemory(pose_id_t poseID, void* cudaPtr) {
@@ -125,13 +125,9 @@ size_t BC4DepthStreamer::applyCodec() {
     return compressedSize;
 }
 
-void BC4DepthStreamer::writeToFile(const Path& filename) {
-    double startTime = timeutils::getTimeMicros();
+size_t BC4DepthStreamer::writeToFile(const Path& filename) {
     FileIO::writeToBinaryFile(filename.str(), compressedData.data(), compressedData.size());
-
-    spdlog::info("Saved {:.3f}MB in {:.3f}ms",
-                 static_cast<double>(compressedData.size()) / BYTES_PER_MEGABYTE,
-                 timeutils::microsToMillis(timeutils::getTimeMicros() - startTime));
+    return compressedData.size();
 }
 
 void BC4DepthStreamer::sendFrame(pose_id_t poseID) {

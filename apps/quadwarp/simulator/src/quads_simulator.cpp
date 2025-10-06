@@ -542,7 +542,7 @@ int main(int argc, char** argv) {
                 // If we do not have a new pose, just send a new frame with the old pose
             }
 
-            quadwarp.generateFrame(sendResidualFrame, showNormals, showDepth);
+            renderStats = quadwarp.generateFrame(sendResidualFrame, showNormals, showDepth);
 
             spdlog::info("======================================================");
             spdlog::info("Rendering Time: {:.3f}ms", quadwarp.stats.totalRenderTimeMs);

@@ -43,7 +43,7 @@ uniform mat4 viewInverseDepth;
 uniform float near;
 uniform float far;
 
-uniform int surfelSize;
+uniform int vertexGroupSize;
 
 uniform bool unlinearizeDepth;
 
@@ -107,14 +107,14 @@ float sampleBC4Buffer(vec2 pixelCoordNormalized) {
 }
 
 void main() {
-    vec2 size = vec2(depthMapSize) / vec2(surfelSize);
+    vec2 size = vec2(depthMapSize) / vec2(vertexGroupSize);
 
     vec2 surfelCoord = vec2(gl_GlobalInvocationID.xy);
     if (surfelCoord.x >= depthMapSize.x || surfelCoord.y >= depthMapSize.y) {
         return;
     }
 
-    vec2 pixelCoord = float(surfelSize) * (surfelCoord + vec2(0.5, 0.5));
+    vec2 pixelCoord = float(vertexGroupSize) * (surfelCoord + vec2(0.5, 0.5));
     vec2 uv = vec2(pixelCoord) / size;
 
     float depth = sampleBC4Buffer(uv);
@@ -128,7 +128,7 @@ void main() {
     vertices[shaderIndex].color = vec3(1.0, 1.0, 1.0);
     vertices[shaderIndex].texCoord = viewToScreen(projection, viewCoord);
 
-    if (pixelCoord.x < size.x - float(surfelSize) && pixelCoord.y < size.y - float(surfelSize)) {
+    if (pixelCoord.x < size.x - float(vertexGroupSize) && pixelCoord.y < size.y - float(vertexGroupSize)) {
         /************************
 
                 tl -- tr

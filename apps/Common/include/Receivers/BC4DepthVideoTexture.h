@@ -31,33 +31,33 @@ public:
 
     ReceiverStats stats;
 
-    BC4DepthVideoTexture(const TextureDataCreateParams& params, std::string streamerURL);
+    BC4DepthVideoTexture(const TextureDataCreateParams& params, std::string streamerURL = "");
     ~BC4DepthVideoTexture() = default;
 
-    void setMaxQueueSize(size_t maxQueueSize) {
-        this->maxQueueSize = maxQueueSize;
-    }
+    pose_id_t getLatestPoseID();
+    float getFrameRate() { return 1.0f / timeutils::millisToSeconds(stats.receiveTimeMs); }
 
-    float getFrameRate() {
-        return 1.0f / timeutils::millisToSeconds(stats.receiveTimeMs);
-    }
+    void setMaxQueueSize(size_t maxQueueSize) { this->maxQueueSize = maxQueueSize; }
 
     pose_id_t draw(pose_id_t poseID = -1);
-    pose_id_t getLatestPoseID();
+
+    void loadFromFile(const Path& dataPath);
 
 private:
     time_t prevTime = timeutils::getTimeMicros();
     pose_id_t prevPoseID = -1;
+    size_t maxQueueSize = 6;
 
-    size_t maxQueueSize = 10;
     std::mutex m;
 
     struct FrameData {
         pose_id_t poseID;
         std::vector<char> buffer;
     };
-    std::deque<FrameData> depthFrames;
+    std::deque<FrameData> frames;
     size_t compressedSize;
+
+    std::vector<char> decompressedData;
 
     ZSTDCodec codec;
 
