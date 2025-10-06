@@ -10,7 +10,7 @@
 
 using namespace quasar;
 
-QuadMesh::QuadMesh(const QuadSet& quadSet, Texture& colorTexture, const glm::vec4& textureExtent, uint maxProxies)
+QuadMesh::QuadMesh(const QuadSet& quadSet, Texture& colorTexture, const glm::vec4& textureExtent, uint32_t maxProxies)
     : maxProxies(maxProxies)
     , currentQuadBuffers(maxProxies)
     , textureExtent(textureExtent)

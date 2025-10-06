@@ -93,7 +93,7 @@ public:
     void addMeshesToScene(Scene& localScene);
     void setViewSphereDiameter(float viewSphereDiameter);
 
-    void generateFrame(bool createResidualFrame = false, bool showNormals = false, bool showDepth = false);
+    RenderStats generateFrame(bool createResidualFrame = false, bool showNormals = false, bool showDepth = false);
     void sendProxies(pose_id_t poseID, bool createResidualFrame);
 
     size_t writeToFiles(const Path& outputPath);

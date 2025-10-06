@@ -8,7 +8,7 @@
 #include <Quads/QuadsGenerator.h>
 #include <Renderers/DeferredRenderer.h>
 #include <RenderTargets/FrameRenderTarget.h>
-#include <Codec/ZSTDCodec.h>
+#include <Codecs/ZSTDCodec.h>
 
 namespace quasar {
 
@@ -26,6 +26,10 @@ public:
         double transferTimeMs = 0.0;
         double compressTimeMs = 0.0;
     } stats;
+
+    struct Params {
+        bool applyDeltaEncoding = true;
+    } params;
 
     FrameGenerator(QuadSet& quadSet);
 

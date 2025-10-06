@@ -12,8 +12,8 @@
 #include <Networking/DataStreamerTCP.h>
 
 #include <Path.h>
-#include <Codec/BC4.h>
-#include <Codec/ZSTDCodec.h>
+#include <Codecs/BC4.h>
+#include <Codecs/ZSTDCodec.h>
 #include <CameraPose.h>
 
 #if defined(QUASAR_HAS_CUDA)

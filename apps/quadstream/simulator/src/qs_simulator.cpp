@@ -465,7 +465,7 @@ int main(int argc, char** argv) {
             ImGui::Begin("Mesh Capture", &showMeshCaptureWindow);
 
             if (ImGui::Button("Save Proxies")) {
-                quadstream.writeToFiles(outputPath);
+                spdlog::info("Saved {} bytes to {}", quadstream.writeToFiles(outputPath), outputPath.absolutePathStr());
             }
 
             ImGui::End();

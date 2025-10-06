@@ -30,23 +30,23 @@ struct QuadMapDataPacked {
 
 class QuadBuffers {
 public:
-    size_t maxProxies;
-    size_t numProxies;
-    size_t maxDataSize;
+    uint32_t maxProxies;
+    uint32_t numProxies;
+    uint32_t maxDataSize;
 
     Buffer normalSphericalsBuffer;
     Buffer depthsBuffer;
     Buffer metadatasBuffer;
 
-    QuadBuffers(size_t maxProxies);
+    QuadBuffers(uint32_t maxProxies);
     ~QuadBuffers() = default;
 
-    void resize(size_t newNumProxies);
+    void resize(uint32_t newNumProxies);
 
 #ifdef GL_CORE
-    size_t writeToMemory(std::vector<char>& outputData);
+    size_t writeToMemory(std::vector<char>& outputData, bool applyDeltaEncoding);
 #endif
-    size_t loadFromMemory(const std::vector<char>& inputData);
+    size_t loadFromMemory(std::vector<char>& inputData, bool applyDeltaEncoding);
 
 private:
 #if defined(QUASAR_HAS_CUDA)

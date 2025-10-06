@@ -60,7 +60,7 @@ public:
     void addMeshesToScene(Scene& localScene);
     void setViewBoxSize(float viewBoxSize);
 
-    void generateFrame(bool showNormals = false, bool showDepth = false);
+    RenderStats generateFrame(bool showNormals = false, bool showDepth = false);
 
     size_t writeToFiles(const Path& outputPath);
 

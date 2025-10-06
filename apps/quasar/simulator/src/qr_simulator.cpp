@@ -470,7 +470,7 @@ int main(int argc, char** argv) {
             ImGui::Begin("Mesh Capture", &showMeshCaptureWindow);
 
             if (ImGui::Button("Save Proxies")) {
-                quasar.writeToFiles(outputPath);
+                spdlog::info("Saved {} bytes to {}", quasar.writeToFiles(outputPath), outputPath.absolutePathStr());
             }
 
             ImGui::End();

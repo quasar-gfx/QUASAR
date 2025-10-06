@@ -38,6 +38,10 @@ public:
         return path.c_str();
     }
 
+    std::string absolutePathStr() const {
+        return fs::absolute(path).string();
+    }
+
     bool exists() const {
         return fs::exists(path);
     }

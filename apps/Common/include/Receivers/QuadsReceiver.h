@@ -19,6 +19,8 @@ public:
         QuadFrame::FrameType frameType;
         uint32_t cameraSize;
         uint32_t geometrySize;
+
+        size_t getSize() const { return sizeof(Header) + cameraSize + geometrySize; }
     };
 
     struct Stats {
@@ -33,7 +35,7 @@ public:
     std::string proxiesURL;
     std::string videoURL;
 
-    VideoTexture atlasVideoTexture;
+    VideoTexture videoAtlasTexture;
 
     QuadsReceiver(QuadSet& quadSet, const std::string& videoURL = "", const std::string& proxiesURL = "");
     QuadsReceiver(QuadSet& quadSet, float remoteFOV, const std::string& videoURL = "", const std::string& proxiesURL = "");

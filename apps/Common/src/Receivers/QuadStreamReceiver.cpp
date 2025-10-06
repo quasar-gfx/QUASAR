@@ -118,7 +118,7 @@ void QuadStreamReceiver::loadFromFiles(const Path& dataPath) {
         stats.decompressTimeMs += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
         // Copy data to GPU
-        auto sizes = quadSet.loadFromMemory(uncompressedQuads, uncompressedOffsets);
+        auto sizes = quadSet.loadFromMemory(uncompressedQuads, uncompressedOffsets, applyDeltaEncoding);
         stats.transferTimeMs += quadSet.stats.transferTimeMs;
 
         // Update mesh

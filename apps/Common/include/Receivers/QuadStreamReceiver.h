@@ -26,6 +26,7 @@ public:
     uint maxViews;
     float viewBoxSize;
     std::vector<ReferenceFrame> frames;
+    bool applyDeltaEncoding = false;
 
     QuadStreamReceiver(QuadSet& quadSet, uint maxViews);
     QuadStreamReceiver(QuadSet& quadSet, uint maxViews, float remoteFOV, float remoteFOVWide, float viewBoxSize);

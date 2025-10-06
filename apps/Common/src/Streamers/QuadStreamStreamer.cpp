@@ -38,6 +38,7 @@ QuadStreamStreamer::QuadStreamStreamer(
     quadsGenerator->params.flattenThreshold = 0.05f; // This has been changed from original paper
     quadsGenerator->params.proxySimilarityThreshold = 0.1f;
     quadsGenerator->params.maxIterForceMerge = 1; // Only merge once (similar-ish to doing quad splitting)
+    frameGenerator.params.applyDeltaEncoding = false;
 
     RenderTargetCreateParams rtParams = {
         .width = quadSet.getSize().x,
@@ -112,9 +113,10 @@ void QuadStreamStreamer::setViewBoxSize(float viewBoxSize) {
     this->viewBoxSize = viewBoxSize;
 }
 
-void QuadStreamStreamer::generateFrame(bool showNormals, bool showDepth) {
+RenderStats QuadStreamStreamer::generateFrame(bool showNormals, bool showDepth) {
     // Reset stats
     stats = { 0 };
+    RenderStats renderStats;
 
     PerspectiveCamera& remoteCameraCenter = remoteCameras[0];
     remoteCameraCenter.setViewMatrix(remoteCamera.getViewMatrix());
@@ -152,7 +154,7 @@ void QuadStreamStreamer::generateFrame(bool showNormals, bool showDepth) {
         // Center view
         if (view == 0) {
             // Render all objects in remoteScene normally
-            remoteRenderer.drawObjects(remoteScene, remoteCameraToUse);
+            renderStats = remoteRenderer.drawObjects(remoteScene, remoteCameraToUse);
         }
         // Other view
         else {
@@ -163,14 +165,14 @@ void QuadStreamStreamer::generateFrame(bool showNormals, bool showDepth) {
             // Draw old referenceFrameMeshes at new remoteCamera view, filling stencil buffer with 1
             remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer(GL_KEEP, GL_KEEP, GL_REPLACE);
             remoteRenderer.pipeline.writeMaskState.disableColorWrites();
-            remoteRenderer.drawObjectsNoLighting(meshScene, remoteCameraToUse);
+            renderStats += remoteRenderer.drawObjectsNoLighting(meshScene, remoteCameraToUse);
 
             // Render remoteScene using stencil buffer as a mask
             // At values where stencil buffer is not 1, remoteScene should render
             remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_NOTEQUAL, 1);
             remoteRenderer.pipeline.rasterState.polygonOffsetEnabled = false;
             remoteRenderer.pipeline.writeMaskState.enableColorWrites();
-            remoteRenderer.drawObjectsNoLighting(remoteScene, remoteCameraToUse, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            renderStats += remoteRenderer.drawObjectsNoLighting(remoteScene, remoteCameraToUse, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             remoteRenderer.pipeline.stencilState.restoreStencilState();
         }
@@ -223,6 +225,8 @@ void QuadStreamStreamer::generateFrame(bool showNormals, bool showDepth) {
             referenceFrames[view].getTotalNumQuads(), referenceFrames[view].getTotalQuadsSize() * (103.0 / (8 * sizeof(QuadMapDataPacked))) / BYTES_PER_MEGABYTE,
             referenceFrames[view].getTotalNumDepthOffsets(), referenceFrames[view].getTotalDepthOffsetsSize() / BYTES_PER_MEGABYTE);
     }
+
+    return renderStats;
 }
 
 size_t QuadStreamStreamer::writeToFiles(const Path& outputPath) {

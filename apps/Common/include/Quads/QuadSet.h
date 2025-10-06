@@ -5,7 +5,7 @@
 
 #include <Path.h>
 #include <Utils/FileIO.h>
-#include <Codec/ZSTDCodec.h>
+#include <Codecs/ZSTDCodec.h>
 #include <Quads/QuadBuffers.h>
 #include <Quads/DepthOffsets.h>
 #include <Utils/TimeUtils.h>
@@ -66,10 +66,10 @@ public:
         quadBuffers.resize(numProxies);
     }
 
-    Sizes writeToMemory(std::vector<char>& outputQuads, std::vector<char>& outputDepthOffsets) {
+    Sizes writeToMemory(std::vector<char>& outputQuads, std::vector<char>& outputDepthOffsets, bool applyDeltaEncoding = true) {
 #ifdef GL_CORE
         double startTime = timeutils::getTimeMicros();
-        quadBuffers.writeToMemory(outputQuads);
+        quadBuffers.writeToMemory(outputQuads, applyDeltaEncoding);
         depthOffsets.writeToMemory(outputDepthOffsets);
         stats.transferTimeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 #else
@@ -84,9 +84,9 @@ public:
         };
     }
 
-    Sizes loadFromMemory(std::vector<char>& inputQuads, std::vector<char>& inputDepthOffsets) {
+    Sizes loadFromMemory(std::vector<char>& inputQuads, std::vector<char>& inputDepthOffsets, bool applyDeltaEncoding = true) {
         double startTime = timeutils::getTimeMicros();
-        auto quadsSize = quadBuffers.loadFromMemory(inputQuads);
+        auto quadsSize = quadBuffers.loadFromMemory(inputQuads, applyDeltaEncoding);
         depthOffsets.loadFromMemory(inputDepthOffsets);
         stats.transferTimeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 

@@ -12,7 +12,7 @@ QuadsReceiver::QuadsReceiver(QuadSet& quadSet, const std::string& videoURL, cons
     , videoURL(videoURL)
     , proxiesURL(proxiesURL)
     , remoteCamera(quadSet.getSize())
-    , atlasVideoTexture({
+    , videoAtlasTexture({
         .width = 2 * quadSet.getSize().x,
         .height = quadSet.getSize().y,
         .internalFormat = GL_RGB,
@@ -23,9 +23,9 @@ QuadsReceiver::QuadsReceiver(QuadSet& quadSet, const std::string& videoURL, cons
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST,
     }, videoURL)
-    , referenceFrameMesh(quadSet, atlasVideoTexture, glm::vec4(0.0f, 0.0f, 0.5f, 1.0f))
+    , referenceFrameMesh(quadSet, videoAtlasTexture, glm::vec4(0.0f, 0.0f, 0.5f, 1.0f))
     // We can use less vertices and indicies for the mask since it will be sparse
-    , residualFrameMesh(quadSet, atlasVideoTexture, glm::vec4(0.5f, 0.0f, 1.0f, 1.0f))
+    , residualFrameMesh(quadSet, videoAtlasTexture, glm::vec4(0.5f, 0.0f, 1.0f, 1.0f))
     , DataReceiverTCP(proxiesURL)
 {
     remoteCameraPrev.setProjectionMatrix(remoteCamera.getProjectionMatrix());
@@ -62,7 +62,7 @@ QuadFrame::FrameType QuadsReceiver::recvData() {
         return frameType;
     }
 
-    if (!atlasVideoTexture.containsFrames()) {
+    if (!videoAtlasTexture.containsFrames()) {
         return frameType;
     }
 
@@ -74,7 +74,7 @@ QuadFrame::FrameType QuadsReceiver::recvData() {
             return frameType;
         }
 
-        if (atlasVideoTexture.getLatestPoseID() < framePending->poseID) { // Video is behind, wait until video catches up
+        if (videoAtlasTexture.getLatestPoseID() < framePending->poseID) { // Video is behind, wait until video catches up
             return frameType;
         }
 
@@ -84,14 +84,14 @@ QuadFrame::FrameType QuadsReceiver::recvData() {
     }
 
     // If video is ahead, search for a previous frame
-    if (!atlasVideoTexture.containsFrameWithPoseID(frame->poseID)) {
+    if (!videoAtlasTexture.containsFrameWithPoseID(frame->poseID)) {
         // This means we dropped a video frame. We have to wait for the next reference frame to resync
         waitUntilReferenceFrame = true;
     }
     else if (!waitUntilReferenceFrame || (waitUntilReferenceFrame && frame->frameType == QuadFrame::FrameType::REFERENCE)) {
-        // Update texture
-        atlasVideoTexture.bind();
-        atlasVideoTexture.draw(frame->poseID);
+        // Update color texture
+        videoAtlasTexture.bind();
+        videoAtlasTexture.draw(frame->poseID);
 
         // Reconstruct meshes from frame
         frameType = reconstructFrame(frame);
@@ -117,7 +117,7 @@ QuadFrame::FrameType QuadsReceiver::loadFromFiles(const Path& dataPath) {
 
     // Read color data
     Path colorFileName = dataPath / "color.jpg";
-    atlasVideoTexture.loadFromFile(colorFileName, true, false);
+    videoAtlasTexture.loadFromFile(colorFileName, true, false);
 
     // Read previous camera data
     Path cameraFileNamePrev = dataPath / "camera_prev.bin";
@@ -130,11 +130,11 @@ QuadFrame::FrameType QuadsReceiver::loadFromFiles(const Path& dataPath) {
 
     startTime = timeutils::getTimeMicros();
     frameInUse->frameType = QuadFrame::FrameType::REFERENCE;
-    frameInUse->decompressReferenceFrame(threadPool, referenceFrame);
+    size_t refSize = frameInUse->decompressReferenceFrame(threadPool, referenceFrame);
     stats.decompressTimeMs += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     // Update reference GPU buffers
-    reconstructFrame(frameInUse);
+    if (refSize > 0) reconstructFrame(frameInUse);
 
     startTime = timeutils::getTimeMicros();
 
@@ -149,18 +149,16 @@ QuadFrame::FrameType QuadsReceiver::loadFromFiles(const Path& dataPath) {
 
     startTime = timeutils::getTimeMicros();
     frameInUse->frameType = QuadFrame::FrameType::RESIDUAL;
-    frameInUse->decompressResidualFrame(threadPool, residualFrame);
+    size_t resSize = frameInUse->decompressResidualFrame(threadPool, residualFrame);
     stats.decompressTimeMs += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     // Update residual GPU buffers
-    reconstructFrame(frameInUse);
+    if (resSize > 0) reconstructFrame(frameInUse);
 
     return frameInUse->frameType;
 }
 
 QuadFrame::FrameType QuadsReceiver::loadFromMemory(const std::vector<char>& inputData) {
-    stats = { 0 };
-
     double startTime = timeutils::getTimeMicros();
 
     spdlog::debug("Loading inputData of size {}", inputData.size());
@@ -172,9 +170,7 @@ QuadFrame::FrameType QuadsReceiver::loadFromMemory(const std::vector<char>& inpu
     ptr += sizeof(Header);
 
     // Sanity check
-    size_t expectedSize = sizeof(Header) +
-                          header.cameraSize +
-                          header.geometrySize;
+    size_t expectedSize = header.getSize();
     if (inputData.size() < expectedSize) {
         throw std::runtime_error("Input data size " +
                                   std::to_string(inputData.size()) +
@@ -293,7 +289,7 @@ QuadFrame::FrameType QuadsReceiver::reconstructFrame(std::shared_ptr<Frame> fram
 
         auto resMeshBufferSizes = residualFrameMesh.getBufferSizes();
         stats.totalTriangles += resMeshBufferSizes.numIndices / 3;
-        stats.sizes += sizesUpdated + sizesRevealed;
+        stats.sizes = sizesUpdated + sizesRevealed;
     }
 
     return frame->frameType;

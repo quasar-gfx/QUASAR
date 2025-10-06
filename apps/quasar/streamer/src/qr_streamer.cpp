@@ -380,7 +380,7 @@ int main(int argc, char** argv) {
                 camera.setPosition(camera.getPosition() + initialPosition);
                 camera.updateViewMatrix();
 
-                quasar.generateFrame(sendResidualFrame, showNormals, showDepth);
+                renderStats = quasar.generateFrame(sendResidualFrame, showNormals, showDepth);
 
                 // Restore camera position
                 camera.setPosition(camera.getPosition() - initialPosition);
@@ -435,7 +435,7 @@ int main(int argc, char** argv) {
         camera.updateViewMatrix();
 
         // Render generated meshes
-        renderStats = renderer.drawObjects(localScene, camera);
+        renderer.drawObjects(localScene, camera);
 
         // Restore camera position
         camera.setPosition(camera.getPosition() - initialPosition);

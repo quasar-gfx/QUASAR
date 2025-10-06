@@ -4,7 +4,7 @@
 #include <vector>
 
 #include <lz4.h>
-#include <Codec/Codec.h>
+#include <Codecs/Codec.h>
 #include <Utils/TimeUtils.h>
 
 namespace quasar {

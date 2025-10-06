@@ -245,7 +245,7 @@ void QUASARStreamer::setViewSphereDiameter(float viewSphereDiameter) {
     remoteRendererDP.setViewSphereDiameter(viewSphereDiameter);
 }
 
-void QUASARStreamer::generateFrame(bool createResidualFrame, bool showNormals, bool showDepth) {
+RenderStats QUASARStreamer::generateFrame(bool createResidualFrame, bool showNormals, bool showDepth) {
     // Reset stats
     stats = { 0 };
 
@@ -264,7 +264,7 @@ void QUASARStreamer::generateFrame(bool createResidualFrame, bool showNormals, b
     */
 
     double startTime = timeutils::getTimeMicros();
-    remoteRendererDP.drawObjects(remoteScene, remoteCamera);
+    RenderStats renderStats = remoteRendererDP.drawObjects(remoteScene, remoteCamera);
     stats.totalRenderTimeMs += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     for (int layer = 0; layer < maxLayers; layer++) {
@@ -280,7 +280,7 @@ void QUASARStreamer::generateFrame(bool createResidualFrame, bool showNormals, b
 
         startTime = timeutils::getTimeMicros();
         if (layer == 0) {
-            remoteRenderer.drawObjectsNoLighting(remoteScene, remoteCameraToUse);
+            renderStats += remoteRenderer.drawObjectsNoLighting(remoteScene, remoteCameraToUse);
             remoteRenderer.copyToFrameRT(frameToUse);
         }
         else if (layer < maxLayers - 1) {
@@ -294,13 +294,13 @@ void QUASARStreamer::generateFrame(bool createResidualFrame, bool showNormals, b
             remoteRenderer.pipeline.writeMaskState.disableColorWrites();
             wideFovNodes[currMeshIndex].visible = true;
             wideFovNodes[prevMeshIndex].visible = false;
-            remoteRenderer.drawObjectsNoLighting(sceneWideFov, remoteCameraToUse);
+            renderStats += remoteRenderer.drawObjectsNoLighting(sceneWideFov, remoteCameraToUse);
 
             // Render remoteScene using stencil buffer as a mask
             // At values where stencil buffer is not 1, remoteScene should render
             remoteRenderer.pipeline.stencilState.enableRenderingUsingStencilBufferAsMask(GL_NOTEQUAL, 1);
             remoteRenderer.pipeline.writeMaskState.enableColorWrites();
-            remoteRenderer.drawObjectsNoLighting(remoteScene, remoteCameraToUse, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            renderStats += remoteRenderer.drawObjectsNoLighting(remoteScene, remoteCameraToUse, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             remoteRenderer.pipeline.stencilState.restoreStencilState();
             remoteRenderer.copyToFrameRT(frameToUse);
@@ -489,6 +489,8 @@ void QUASARStreamer::generateFrame(bool createResidualFrame, bool showNormals, b
         0, 0, residualFrameRT.width, residualFrameRT.height,
         col, row, dstWidth, dstHeight
     );
+
+    return renderStats;
 }
 
 void QUASARStreamer::sendProxies(pose_id_t poseID, bool createResidualFrame) {

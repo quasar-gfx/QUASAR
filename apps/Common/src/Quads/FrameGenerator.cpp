@@ -32,7 +32,7 @@ void FrameGenerator::createReferenceFrame(
     stats.createQuadsTimeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     // Transfer updated proxies to CPU for compression
-    auto sizes = quadSet.writeToMemory(uncompressedQuads, uncompressedOffsets);
+    auto sizes = quadSet.writeToMemory(uncompressedQuads, uncompressedOffsets, params.applyDeltaEncoding);
     referenceFrame.numQuads = sizes.numQuads;
     referenceFrame.numDepthOffsets = sizes.numDepthOffsets;
     stats.transferTimeMs = quadSet.stats.transferTimeMs;
@@ -139,7 +139,7 @@ void FrameGenerator::createResidualFrame(
     stats.createQuadsTimeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     // Transfer updated proxies to CPU for compression
-    auto sizesUpdated = quadSet.writeToMemory(uncompressedQuads, uncompressedOffsets);
+    auto sizesUpdated = quadSet.writeToMemory(uncompressedQuads, uncompressedOffsets, params.applyDeltaEncoding);
     residualFrame.numQuadsUpdated = sizesUpdated.numQuads;
     residualFrame.numDepthOffsetsUpdated = sizesUpdated.numDepthOffsets;
     stats.transferTimeMs = quadSet.stats.transferTimeMs;
@@ -170,7 +170,7 @@ void FrameGenerator::createResidualFrame(
     stats.createQuadsTimeMs += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     // Transfer revealed proxies to CPU for compression
-    auto sizesRevealed = quadSet.writeToMemory(uncompressedQuadsRevealed, uncompressedOffsetsRevealed);
+    auto sizesRevealed = quadSet.writeToMemory(uncompressedQuadsRevealed, uncompressedOffsetsRevealed, params.applyDeltaEncoding);
     residualFrame.numQuadsRevealed = sizesRevealed.numQuads;
     residualFrame.numDepthOffsetsRevealed = sizesRevealed.numDepthOffsets;
     stats.transferTimeMs += quadSet.stats.transferTimeMs;

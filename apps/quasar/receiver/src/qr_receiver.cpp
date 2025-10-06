@@ -288,7 +288,7 @@ int main(int argc, char** argv) {
         if (showVideoPreviewWindow) {
             flags = 0;
             ImGui::Begin("Texture Atlas Video", 0, flags);
-            ImGui::Image((void*)(intptr_t)(quasarReceiver.atlasVideoTexture),
+            ImGui::Image((void*)(intptr_t)(quasarReceiver.videoAtlasTexture),
                          ImVec2(430, 510), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
         }

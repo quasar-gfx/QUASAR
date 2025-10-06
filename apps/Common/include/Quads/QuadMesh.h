@@ -30,10 +30,10 @@ public:
         double createMeshTimeMs = 0.0;
     } stats;
 
-    uint maxProxies;
+    uint32_t maxProxies;
 
-    QuadMesh(const QuadSet& quadSet, Texture& colorTexture, uint maxProxies = MAX_PROXIES_PER_MESH);
-    QuadMesh(const QuadSet& quadSet, Texture& colorTexture, const glm::vec4& textureExtent, uint maxProxies = MAX_PROXIES_PER_MESH);
+    QuadMesh(const QuadSet& quadSet, Texture& colorTexture, uint32_t maxProxies = MAX_PROXIES_PER_MESH);
+    QuadMesh(const QuadSet& quadSet, Texture& colorTexture, const glm::vec4& textureExtent, uint32_t maxProxies = MAX_PROXIES_PER_MESH);
     ~QuadMesh() = default;
 
     void setTextureExtent(const glm::vec4& extent) { textureExtent = extent; }

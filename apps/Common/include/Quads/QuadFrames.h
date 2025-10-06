@@ -7,7 +7,7 @@
 
 #include <Path.h>
 #include <Utils/FileIO.h>
-#include <Codec/ZSTDCodec.h>
+#include <Codecs/ZSTDCodec.h>
 #include <Quads/QuadBuffers.h>
 #include <Quads/DepthOffsets.h>
 #include <Utils/TimeUtils.h>
