@@ -11,12 +11,6 @@
 #include <Shaders/ComputeShader.h>
 #include <Streamers/PoseStreamer.h>
 
-#ifndef __ANDROID__
-#define THREADS_PER_LOCALGROUP 32
-#else
-#define THREADS_PER_LOCALGROUP 16
-#endif
-
 namespace quasar {
 
 class MeshWarpReceiver {

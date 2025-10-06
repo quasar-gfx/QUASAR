@@ -1,6 +1,12 @@
 #include <Receivers/MeshWarpReceiver.h>
 #include <shaders_common.h>
 
+#ifndef __ANDROID__
+#define THREADS_PER_LOCALGROUP 32
+#else
+#define THREADS_PER_LOCALGROUP 16
+#endif
+
 using namespace quasar;
 
 MeshWarpReceiver::MeshWarpReceiver(

@@ -1,4 +1,12 @@
 #include <Streamers/MeshWarpStreamer.h>
+#include <shaders_common.h>
+
+#ifndef __ANDROID__
+#define THREADS_PER_LOCALGROUP 32
+#else
+#define THREADS_PER_LOCALGROUP 16
+#endif
+
 
 using namespace quasar;
 
@@ -6,16 +14,13 @@ MeshWarpStreamer::MeshWarpStreamer(
         DeferredRenderer& remoteRenderer,
         Scene& remoteScene,
         PerspectiveCamera& remoteCamera,
-        const std::string& videoURL,
-        const std::string& depthURL,
-        uint depthFactor,
-        uint maxFrameRate,
-        uint targetBitRate)
-    : videoURL(videoURL)
-    , depthURL(depthURL)
+        const MeshWarpStreamerCreateParams& params)
+    : videoURL(params.videoURL)
+    , depthURL(params.depthURL)
     , remoteRenderer(remoteRenderer)
     , remoteScene(remoteScene)
     , remoteCamera(remoteCamera)
+    , adjustedSize(glm::uvec2(remoteRenderer.width, remoteRenderer.height) / params.vertexGroupSize)
     , renderTarget({
         .width = remoteRenderer.width,
         .height = remoteRenderer.height,
@@ -37,10 +42,10 @@ MeshWarpStreamer::MeshWarpStreamer(
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR,
-    }, videoURL, maxFrameRate, targetBitRate)
+    }, videoURL, params.maxFrameRate, params.targetBitRate)
     , depthStreamerRT({
-        .width = remoteRenderer.width / depthFactor,
-        .height = remoteRenderer.height / depthFactor,
+        .width = remoteRenderer.width / params.depthFactor,
+        .height = remoteRenderer.height / params.depthFactor,
         .internalFormat = GL_R32F,
         .format = GL_RED,
         .type = GL_FLOAT,
@@ -49,8 +54,27 @@ MeshWarpStreamer::MeshWarpStreamer(
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST,
     }, depthURL)
+    , meshFromBC4Shader({
+        .computeCodeData = SHADER_COMMON_MESH_FROM_BC4_COMP,
+        .computeCodeSize = SHADER_COMMON_MESH_FROM_BC4_COMP_len,
+        .defines = {
+            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
+        }
+    })
     , depthEffect(remoteCamera)
-{}
+    , meshMaterial({ .baseColorTexture = &videoStreamerRT.colorTexture })
+    , mesh({
+        .maxVertices = adjustedSize.x * adjustedSize.y,
+        .maxIndices = (adjustedSize.x - 1) * (adjustedSize.y - 1) * 2 * 3,
+        .material = &meshMaterial,
+        .usage = GL_DYNAMIC_DRAW
+    })
+{
+    meshFromBC4Shader.bind();
+    meshFromBC4Shader.setBool("unlinearizeDepth", true);
+    meshFromBC4Shader.setVec2("depthMapSize", glm::vec2(depthStreamerRT.width, depthStreamerRT.height));
+    meshFromBC4Shader.setInt("vertexGroupSize", params.vertexGroupSize);
+}
 
 RenderStats MeshWarpStreamer::generateFrame() {
     // Render all objects in scene
@@ -62,6 +86,27 @@ RenderStats MeshWarpStreamer::generateFrame() {
     // Copy color and depth to video frames
     tonemapper.drawToRenderTarget(remoteRenderer, videoStreamerRT);
     depthEffect.drawToRenderTarget(remoteRenderer, depthStreamerRT);
+
+    meshFromBC4Shader.bind();
+    {
+        meshFromBC4Shader.setMat4("projection", remoteCamera.getProjectionMatrix());
+        meshFromBC4Shader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
+        meshFromBC4Shader.setMat4("viewColor", remoteCamera.getViewMatrix());
+        meshFromBC4Shader.setMat4("viewInverseDepth", remoteCamera.getViewMatrixInverse());
+
+        meshFromBC4Shader.setFloat("near", remoteCamera.getNear());
+        meshFromBC4Shader.setFloat("far", remoteCamera.getFar());
+    }
+    {
+        meshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
+        meshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
+        meshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, depthStreamerRT.bc4CompressedBuffer);
+    }
+    // Dispatch compute shader to generate vertices and indices for mesh
+    meshFromBC4Shader.dispatch((adjustedSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                               (adjustedSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+    meshFromBC4Shader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
+                                    GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
     return renderStats;
 }

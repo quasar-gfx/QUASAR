@@ -208,17 +208,17 @@ RenderStats OpenGLRenderer::drawLightsImpl(Scene& scene, const Camera& camera) {
     for (auto& pointLight : scene.pointLights) {
         // Only draw if debug is set
         if (pointLight->debug) {
-            auto material = new UnlitMaterial({ .baseColor = glm::vec4(pointLight->color, 1.0) });
-            Sphere light = Sphere({
-                .material = material,
+            auto material = std::make_shared<UnlitMaterial>(UnlitMaterial({ .baseColor = glm::vec4(pointLight->color, 1.0) }));
+            Sphere light({
+                .material = material.get(),
             }, 32, 32);
             Node nodeLight(&light);
             nodeLight.setPosition(pointLight->position);
             nodeLight.setScale(glm::vec3(0.1));
             stats += drawNode(scene, camera, &nodeLight, glm::mat4(1.0f), false);
 
-            Sphere radius = Sphere({
-                .material = material,
+            Sphere radius({
+                .material = material.get(),
             }, 32, 32);
             Node nodeRadius(&radius);
             nodeRadius.wireframe = true;

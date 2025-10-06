@@ -4,14 +4,12 @@ using namespace quasar;
 
 QuadStreamStreamer::QuadStreamStreamer(
         QuadSet& quadSet,
-        uint maxViews,
         DeferredRenderer& remoteRenderer,
         Scene& remoteScene,
         PerspectiveCamera& remoteCamera,
-        float viewBoxSize,
-        float wideFOV)
+        const QuadStreamStreamerCreateParams& params)
     : quadSet(quadSet)
-    , maxViews(maxViews)
+    , maxViews(params.maxViews)
     , remoteRenderer(remoteRenderer)
     , remoteScene(remoteScene)
     , remoteCamera(remoteCamera)
@@ -58,7 +56,7 @@ QuadStreamStreamer::QuadStreamStreamer(
 
         remoteCameras[view].setProjectionMatrix(remoteCameras[view].getProjectionMatrix());
         if (view == maxViews - 1) {
-            remoteCameras[view].setFovyDegrees(wideFOV);
+            remoteCameras[view].setFovyDegrees(params.wideFOV);
         }
         else {
             remoteCameras[view].setFovyDegrees(remoteCamera.getFovyDegrees());
@@ -89,7 +87,7 @@ QuadStreamStreamer::QuadStreamStreamer(
         meshScene.addChildNode(&referenceFrameNodesRemote[view]);
     }
 
-    setViewBoxSize(viewBoxSize);
+    setViewBoxSize(params.viewBoxSize);
 }
 
 uint QuadStreamStreamer::getNumTriangles() const {

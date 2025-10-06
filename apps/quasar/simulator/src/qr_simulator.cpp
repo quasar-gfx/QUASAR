@@ -113,9 +113,13 @@ int main(int argc, char** argv) {
     float remoteFOVWide = args::get(remoteFOVWideIn);
     float viewSphereDiameter = args::get(viewSphereDiameterIn);
     QUASARStreamer quasar(
-        quadSet, maxLayers,
+        quadSet,
         remoteRendererDP, remoteRenderer, remoteScene, remoteCamera,
-        viewSphereDiameter, remoteFOVWide);
+        {
+            .maxLayers = static_cast<uint>(maxLayers),
+            .viewSphereDiameter = viewSphereDiameter,
+            .wideFOV = remoteFOVWide,
+        });
 
     quasar.addMeshesToScene(localScene);
 

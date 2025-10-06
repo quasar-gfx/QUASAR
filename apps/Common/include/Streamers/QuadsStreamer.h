@@ -12,6 +12,13 @@
 
 namespace quasar {
 
+struct QuadsStreamerCreateParams {
+    uint targetFramerate = 5;
+    uint targetBitRate = 16;
+    std::string videoURL = "";
+    std::string proxiesURL = "";
+};
+
 class QuadsStreamer : public DataStreamerTCP {
 public:
     // Reference frame
@@ -62,10 +69,7 @@ public:
         DeferredRenderer& remoteRenderer,
         Scene& remoteScene,
         PerspectiveCamera& remoteCamera,
-        const std::string& videoURL = "",
-        const std::string& proxiesURL = "",
-        uint targetFramerate = 5,
-        uint targetBitRate = 15);
+        const QuadsStreamerCreateParams& params = {});
     ~QuadsStreamer();
 
     uint getNumTriangles() const;

@@ -3,17 +3,14 @@
 using namespace quasar;
 
 QuadsStreamer::QuadsStreamer(
-        QuadSet& quadSet,
-        DeferredRenderer& remoteRenderer,
-        Scene& remoteScene,
-        PerspectiveCamera& remoteCamera,
-        const std::string& videoURL,
-        const std::string& proxiesURL,
-        uint targetFramerate,
-        uint targetBitRate)
+    QuadSet& quadSet,
+    DeferredRenderer& remoteRenderer,
+    Scene& remoteScene,
+    PerspectiveCamera& remoteCamera,
+    const QuadsStreamerCreateParams& params)
     : quadSet(quadSet)
-    , videoURL(videoURL)
-    , proxiesURL(proxiesURL)
+    , videoURL(params.videoURL)
+    , proxiesURL(params.proxiesURL)
     , remoteRenderer(remoteRenderer)
     , remoteScene(remoteScene)
     , remoteCamera(remoteCamera)
@@ -83,12 +80,12 @@ QuadsStreamer::QuadsStreamer(
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST,
-    }, videoURL, targetFramerate, targetBitRate)
+    }, params.videoURL, params.targetFramerate, params.targetBitRate)
     , residualFrameMesh(quadSet, residualFrameRT_noTone.colorTexture)
     , depthMesh(quadSet.getSize(), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f))
     , wireframeMaterial({ .baseColor = colors[0] })
     , maskWireframeMaterial({ .baseColor = colors[colors.size()-1] })
-    , DataStreamerTCP(proxiesURL)
+    , DataStreamerTCP(params.proxiesURL)
 {
     meshScenes.resize(2);
     referenceFrameMeshes.reserve(meshScenes.size());

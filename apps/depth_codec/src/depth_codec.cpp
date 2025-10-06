@@ -134,10 +134,11 @@ int main(int argc, char** argv) {
     uint numTriangles = (adjustedWindowSize.x-1) * (adjustedWindowSize.y-1) * 2;
     uint maxIndices = numTriangles * 3;
 
+    UnlitMaterial meshMaterial({ .baseColor = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f) });
     Mesh mesh({
         .maxVertices = maxVertices,
         .maxIndices = maxIndices,
-        .material = new UnlitMaterial({ .baseColor = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f) }),
+        .material = &meshMaterial,
         .usage = GL_DYNAMIC_DRAW
     });
     Node node(&mesh);
@@ -146,10 +147,11 @@ int main(int argc, char** argv) {
     node.pointSize = 7.5f;
     scene.addChildNode(&node);
 
+    UnlitMaterial meshDecompressedMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
     Mesh meshDecompressed({
         .maxVertices = maxVertices,
         .maxIndices = maxIndices,
-        .material = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }),
+        .material = &meshDecompressedMaterial,
         .usage = GL_DYNAMIC_DRAW
     });
     Node nodeDecompressed(&meshDecompressed);

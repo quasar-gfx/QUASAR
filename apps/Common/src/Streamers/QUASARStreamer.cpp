@@ -4,20 +4,15 @@ using namespace quasar;
 
 QUASARStreamer::QUASARStreamer(
         QuadSet& quadSet,
-        uint maxLayers,
         DepthPeelingRenderer& remoteRendererDP,
         DeferredRenderer& remoteRenderer,
         Scene& remoteScene,
         PerspectiveCamera& remoteCamera,
-        float viewSphereDiameter,
-        float wideFOV,
-        const std::string& videoURL,
-        const std::string& proxiesURL,
-        uint targetBitRate)
+        const QUASARStreamerCreateParams& params)
     : quadSet(quadSet)
-    , videoURL(videoURL)
-    , proxiesURL(proxiesURL)
-    , maxLayers(maxLayers)
+    , videoURL(params.videoURL)
+    , proxiesURL(params.proxiesURL)
+    , maxLayers(params.maxLayers)
     , remoteRenderer(remoteRenderer)
     , remoteRendererDP(remoteRendererDP)
     , remoteScene(remoteScene)
@@ -88,12 +83,12 @@ QUASARStreamer::QUASARStreamer(
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST,
-    }, videoURL, 5, targetBitRate)
+    }, params.videoURL, params.targetFramerate, params.targetBitRate)
     , depthMesh(quadSet.getSize(), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f))
     , residualFrameMesh(quadSet, residualFrameRT_noTone.colorTexture)
     , wireframeMaterial({ .baseColor = colors[0] })
     , maskWireframeMaterial({ .baseColor = colors[colors.size()-1] })
-    , DataStreamerTCP(proxiesURL)
+    , DataStreamerTCP(params.proxiesURL)
 {
     meshScenes.resize(2);
     referenceFrameMeshes.reserve(meshScenes.size());
@@ -118,7 +113,7 @@ QUASARStreamer::QUASARStreamer(
     remoteCameraPrev.setViewMatrix(remoteCamera.getViewMatrix());
 
     remoteCameraWideFOV.setProjectionMatrix(remoteCamera.getProjectionMatrix());
-    remoteCameraWideFOV.setFovyDegrees(wideFOV);
+    remoteCameraWideFOV.setFovyDegrees(params.wideFOV);
     remoteCameraWideFOV.setViewMatrix(remoteCamera.getViewMatrix());
 
     // Setup hidden layers and wide fov RTs
@@ -202,7 +197,7 @@ QUASARStreamer::QUASARStreamer(
     }
     sceneWideFov.addChildNode(&residualFrameNode);
 
-    setViewSphereDiameter(viewSphereDiameter);
+    setViewSphereDiameter(params.viewSphereDiameter);
 
     if (!videoURL.empty() && !proxiesURL.empty()) {
         spdlog::info("Created QUASARStreamer that sends to URL: tcp://{}", proxiesURL);

@@ -13,6 +13,16 @@
 
 namespace quasar {
 
+struct QUASARStreamerCreateParams {
+    uint maxLayers = 5;
+    float viewSphereDiameter = 1.0f;
+    float wideFOV = 120.0f;
+    uint targetFramerate = 5;
+    uint targetBitRate = 28;
+    std::string videoURL = "";
+    std::string proxiesURL = "";
+};
+
 class QUASARStreamer : public DataStreamerTCP {
 public:
     uint maxLayers;
@@ -75,16 +85,11 @@ public:
 
     QUASARStreamer(
         QuadSet& quadSet,
-        uint maxLayers,
         DepthPeelingRenderer& remoteRendererDP,
         DeferredRenderer& remoteRenderer,
         Scene& remoteScene,
         PerspectiveCamera& remoteCamera,
-        float viewSphereDiameter,
-        float wideFOV,
-        const std::string& videoURL = "",
-        const std::string& proxiesURL = "",
-        uint targetBitRate = 28);
+        const QUASARStreamerCreateParams& params = {});
     ~QUASARStreamer();
 
     uint getNumTriangles() const;

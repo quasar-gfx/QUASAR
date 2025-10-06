@@ -16,10 +16,6 @@
 #include <Streamers/MeshWarpStreamer.h>
 #include <PoseSendRecvSimulator.h>
 
-#include <shaders_common.h>
-
-#define THREADS_PER_LOCALGROUP 32
-
 using namespace quasar;
 
 int main(int argc, char** argv) {
@@ -40,6 +36,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<float> networkJitterIn(parser, "network-jitter", "Simulated network jitter in ms", {'J', "network-jitter"}, 10.0f);
     args::Flag posePredictionIn(parser, "pose-prediction", "Enable pose prediction", {'P', "pose-prediction"}, false);
     args::Flag poseSmoothingIn(parser, "pose-smoothing", "Enable pose smoothing", {'T', "pose-smoothing"}, false);
+    args::ValueFlag<uint> depthFactorIn(parser, "factor", "Depth Resolution Factor", {'a', "depth-factor"}, 1);
     args::ValueFlag<uint> vertexGroupSizeIn(parser, "vertex", "Size of vertex grouping", {'g', "vertex-group-size"}, 1);
     args::ValueFlag<float> fovIn(parser, "fov", "Field of view", {'f', "fov"}, 60.0f);
     try {
@@ -70,10 +67,11 @@ int main(int argc, char** argv) {
     config.enableVSync = !args::get(novsync) && !saveImages;
     config.showWindow = !args::get(saveImages);
 
+    Path outputPath = Path(args::get(outputPathIn)); outputPath.mkdirRecursive();
     Path sceneFile = args::get(sceneFileIn);
     Path cameraPathFile = args::get(cameraPathFileIn);
-    Path outputPath = Path(args::get(outputPathIn)); outputPath.mkdirRecursive();
 
+    uint depthFactor = args::get(depthFactorIn);
     uint vertexGroupSize = args::get(vertexGroupSizeIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
@@ -103,48 +101,33 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera(windowSize);
     camera.setViewMatrix(remoteCamera.getViewMatrix());
 
-    MeshWarpStreamer meshWarpStreamer(remoteRenderer, remoteScene, remoteCamera);
+    MeshWarpStreamer meshWarpStreamer(
+        remoteRenderer, remoteScene, remoteCamera,
+        {
+            .depthFactor = depthFactor,
+            .vertexGroupSize = vertexGroupSize,
+        });
 
-    glm::uvec2 depthMapSize = remoteWindowSize;
-    glm::uvec2 adjustedWindowSize = depthMapSize / vertexGroupSize;
-
-    uint maxVertices = adjustedWindowSize.x * adjustedWindowSize.y;
-    uint numTriangles = (adjustedWindowSize.x-1) * (adjustedWindowSize.y-1) * 2;
-    uint maxIndices = numTriangles * 3;
-
-    Mesh mesh({
-        .maxVertices = maxVertices,
-        .maxIndices = maxIndices,
-        .material = new UnlitMaterial({ .baseColorTexture = &meshWarpStreamer.renderTarget.colorTexture }),
-        .usage = GL_DYNAMIC_DRAW
-    });
-    Node node(&mesh);
+    Node node(&meshWarpStreamer.getMesh());
     node.frustumCulled = false;
     scene.addChildNode(&node);
 
-    Node nodeWireframe(&mesh);
+    UnlitMaterial wireframeMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
+    Node nodeWireframe(&meshWarpStreamer.getMesh());
     nodeWireframe.frustumCulled = false;
     nodeWireframe.wireframe = true;
     nodeWireframe.visible = false;
-    nodeWireframe.overrideMaterial = new UnlitMaterial({ .baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
+    nodeWireframe.overrideMaterial = &wireframeMaterial;
     scene.addChildNode(&nodeWireframe);
 
-    Node nodePointCloud(&mesh);
+    UnlitMaterial pointCloudMaterial({ .baseColor = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) });
+    Node nodePointCloud(&meshWarpStreamer.getMesh());
     nodePointCloud.frustumCulled = false;
     nodePointCloud.primitiveType = GL_POINTS;
     nodePointCloud.pointSize = 7.5f;
     nodePointCloud.visible = false;
-    nodePointCloud.overrideMaterial = new UnlitMaterial({ .baseColor = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) });
+    nodePointCloud.overrideMaterial = &pointCloudMaterial;
     scene.addChildNode(&nodePointCloud);
-
-    // Shaders
-    ComputeShader meshFromBC4Shader({
-        .computeCodeData = SHADER_COMMON_MESH_FROM_BC4_COMP,
-        .computeCodeSize = SHADER_COMMON_MESH_FROM_BC4_COMP_len,
-        .defines = {
-            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
-        }
-    });
 
     // Post processing
     Tonemapper tonemapper;
@@ -527,31 +510,7 @@ int main(int argc, char** argv) {
             totalCompressTimeMs = meshWarpStreamer.depthStreamerRT.stats.compressTimeMs;
 
             startTime = window->getTime();
-            meshFromBC4Shader.bind();
-            {
-                meshFromBC4Shader.setBool("unlinearizeDepth", true);
-                meshFromBC4Shader.setVec2("depthMapSize", remoteWindowSize);
-                meshFromBC4Shader.setInt("vertexGroupSize", vertexGroupSize);
-            }
-            {
-                meshFromBC4Shader.setMat4("projection", remoteCamera.getProjectionMatrix());
-                meshFromBC4Shader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
-                meshFromBC4Shader.setMat4("viewColor", remoteCamera.getViewMatrix());
-                meshFromBC4Shader.setMat4("viewInverseDepth", remoteCamera.getViewMatrixInverse());
-
-                meshFromBC4Shader.setFloat("near", remoteCamera.getNear());
-                meshFromBC4Shader.setFloat("far", remoteCamera.getFar());
-            }
-            {
-                meshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, mesh.vertexBuffer);
-                meshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, mesh.indexBuffer);
-                meshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, meshWarpStreamer.depthStreamerRT.bc4CompressedBuffer);
-            }
-            // Dispatch compute shader to generate vertices and indices for mesh
-            meshFromBC4Shader.dispatch((adjustedWindowSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                       (adjustedWindowSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
-            meshFromBC4Shader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
-                                            GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+            meshWarpStreamer.generateFrame();
             totalGenMeshTime += timeutils::secondsToMillis(window->getTime() - startTime);
 
             spdlog::info("======================================================");

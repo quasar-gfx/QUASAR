@@ -24,9 +24,9 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::ValueFlag<bool> displayIn(parser, "display", "Show window", {'d', "display"}, true);
-    args::ValueFlag<int> depthFactorIn(parser, "factor", "Depth Resolution Factor", {'a', "depth-factor"}, 1);
+    args::ValueFlag<uint> depthFactorIn(parser, "factor", "Depth Resolution Factor", {'a', "depth-factor"}, 1);
     args::ValueFlag<float> fovIn(parser, "fov", "Field of view", {'f', "fov"}, 60.0f);
-    args::ValueFlag<int> targetBitrateIn(parser, "target-bitrate", "Target bitrate (Mbps)", {'b', "target-bitrate"}, 12);
+    args::ValueFlag<uint> targetBitrateIn(parser, "target-bitrate", "Target bitrate (Mbps)", {'b', "target-bitrate"}, 12);
     args::ValueFlag<std::string> videoURLIn(parser, "video", "URL to send video", {'c', "video-url"}, "127.0.0.1:12345");
     args::ValueFlag<std::string> depthURLIn(parser, "depth", "URL to send depth", {'e', "depth-url"}, "127.0.0.1:65432");
     args::ValueFlag<std::string> poseURLIn(parser, "pose", "URL to send camera pose", {'p', "pose-url"}, "0.0.0.0:54321");
@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
     std::string poseURL = args::get(poseURLIn);
 
     uint targetBitrate = args::get(targetBitrateIn);
-    int depthFactor = args::get(depthFactorIn);
+    uint depthFactor = args::get(depthFactorIn);
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -82,9 +82,13 @@ int main(int argc, char** argv) {
 
     MeshWarpStreamer meshWarpStreamer(
         renderer, scene, camera,
-        videoURL, depthURL,
-        depthFactor,
-        config.targetFramerate, targetBitrate);
+        {
+            .depthFactor = depthFactor,
+            .maxFrameRate = static_cast<uint>(config.targetFramerate),
+            .targetBitRate = targetBitrate,
+            .videoURL = videoURL,
+            .depthURL = depthURL,
+        });
     PoseReceiver poseReceiver(&camera, poseURL);
 
     Tonemapper tonemapper;

@@ -11,6 +11,12 @@
 
 namespace quasar {
 
+struct QuadStreamStreamerCreateParams {
+    uint maxViews = 4;
+    float viewBoxSize = 0.5f;
+    float wideFOV = 120.0f;
+};
+
 class QuadStreamStreamer {
 public:
     uint maxViews;
@@ -46,12 +52,10 @@ public:
 
     QuadStreamStreamer(
         QuadSet& quadSet,
-        uint maxViews,
         DeferredRenderer& remoteRenderer,
         Scene& remoteScene,
         PerspectiveCamera& remoteCamera,
-        float viewBoxSize,
-        float wideFOV);
+        const QuadStreamStreamerCreateParams& params = {});
     ~QuadStreamStreamer() = default;
 
     uint getNumTriangles() const;

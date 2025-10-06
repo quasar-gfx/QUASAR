@@ -93,8 +93,11 @@ int main(int argc, char** argv) {
     QuadsStreamer quadwarp(
         quadSet,
         remoteRenderer, scene, camera,
-        videoURL, proxiesURL,
-        config.targetFramerate, targetBitrate);
+        {
+            .targetBitRate = targetBitrate,
+            .videoURL = videoURL,
+            .proxiesURL = proxiesURL,
+        });
 
     // "Local" scene for visualization
     Scene localScene;

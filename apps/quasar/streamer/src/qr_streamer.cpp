@@ -68,8 +68,8 @@ int main(int argc, char** argv) {
     std::string proxiesURL = args::get(proxiesURLIn);
     std::string poseURL = args::get(poseURLIn);
 
-    uint maxHidLayers = args::get(maxHiddenLayersIn);
-    uint maxLayers = maxHidLayers + 2;
+    uint maxHiddenLayers = args::get(maxHiddenLayersIn);
+    uint maxLayers = maxHiddenLayers + 2;
 
     uint targetBitrate = args::get(targetBitrateIn);
 
@@ -101,11 +101,16 @@ int main(int argc, char** argv) {
     float remoteFOVWide = args::get(remoteFOVWideIn);
     float viewSphereDiameter = args::get(viewSphereDiameterIn);
     QUASARStreamer quasar(
-        quadSet, maxLayers,
+        quadSet,
         remoteRendererDP, remoteRenderer, scene, camera,
-        viewSphereDiameter, remoteFOVWide,
-        videoURL, proxiesURL,
-        targetBitrate);
+        {
+            .maxLayers = maxLayers,
+            .viewSphereDiameter = viewSphereDiameter,
+            .wideFOV = remoteFOVWide,
+            .targetBitRate = targetBitrate,
+            .videoURL = videoURL,
+            .proxiesURL = proxiesURL,
+        });
 
     // "Local" scene for visualization
     Scene localScene;

@@ -107,9 +107,13 @@ int main(int argc, char** argv) {
     float remoteFOVWide = args::get(remoteFOVWideIn);
     float viewBoxSize = args::get(viewBoxSizeIn);
     QuadStreamStreamer quadstream(
-        quadSet, maxViews,
+        quadSet,
         remoteRenderer, remoteScene, remoteCamera,
-        viewBoxSize, remoteFOVWide);
+        {
+            .maxViews = static_cast<uint>(maxViews),
+            .viewBoxSize = viewBoxSize,
+            .wideFOV = remoteFOVWide,
+        });
 
     quadstream.addMeshesToScene(localScene);
 
