@@ -8,6 +8,8 @@
 #include <Renderers/DeferredRenderer.h>
 #include <PostProcessing/Tonemapper.h>
 
+#include <UI/FrameRateWindow.h>
+
 #include <Streamers/QuadsStreamer.h>
 #include <Receivers/PoseReceiver.h>
 
@@ -123,12 +125,11 @@ int main(int argc, char** argv) {
 
     RenderStats renderStats;
     pose_id_t prevPoseID;
+    FrameRateWindow frameRateWindow;
     guiManager->onRender([&](double now, double dt) {
-        static bool showFPS = true;
         static bool showUI = true;
         static bool showFramePreviewWindow = false;
 
-        ImGuiWindowFlags flags = 0;
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Exit", "ESC")) {
@@ -137,20 +138,14 @@ int main(int argc, char** argv) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
-            ImGui::MenuItem("FPS", 0, &showFPS);
+            ImGui::MenuItem("FPS", 0, &frameRateWindow.visible);
             ImGui::MenuItem("UI", 0, &showUI);
             ImGui::MenuItem("Frame Previews", 0, &showFramePreviewWindow);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
 
-        if (showFPS) {
-            ImGui::SetNextWindowPos(ImVec2(10, 40), ImGuiCond_FirstUseEver);
-            flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar;
-            ImGui::Begin("", 0, flags);
-            ImGui::Text("%.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
-            ImGui::End();
-        }
+        frameRateWindow.draw(now, dt);
 
         if (showUI) {
             ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
@@ -177,11 +172,11 @@ int main(int argc, char** argv) {
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %ld", renderStats.drawCalls);
 
             ImGui::TextColored(ImVec4(0,1,1,1), "Total Quads: %ld (%.3f MB)",
-                               quadwarp.stats.totalSizes.numQuads,
-                               quadwarp.stats.totalSizes.quadsSize / BYTES_PER_MEGABYTE);
+                               quadwarp.stats.proxySizes.numQuads,
+                               quadwarp.stats.proxySizes.quadsSize / BYTES_PER_MEGABYTE);
             ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %ld (%.3f MB)",
-                               quadwarp.stats.totalSizes.numDepthOffsets,
-                               quadwarp.stats.totalSizes.depthOffsetsSize / BYTES_PER_MEGABYTE);
+                               quadwarp.stats.proxySizes.numDepthOffsets,
+                               quadwarp.stats.proxySizes.depthOffsetsSize / BYTES_PER_MEGABYTE);
 
             ImGui::Separator();
 
@@ -204,7 +199,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            auto& videoStreamerRT = quadwarp.atlasVideoStreamerRT;
+            auto& videoStreamerRT = quadwarp.videoAtlasStreamerRT;
             ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoStreamerRT.getFrameRate(), 1000.0f / videoStreamerRT.getFrameRate());
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: %.3f ms", videoStreamerRT.stats.transferTimeMs);
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.3f ms", videoStreamerRT.stats.encodeTimeMs);
@@ -249,18 +244,17 @@ int main(int argc, char** argv) {
         }
 
         if (showFramePreviewWindow) {
-            flags = 0;
-            ImGui::Begin("Reference Frame", 0, flags);
+            ImGui::Begin("Reference Frame", 0);
             ImGui::Image((void*)(intptr_t)(quadwarp.referenceFrameRT.colorTexture),
                          ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
 
-            ImGui::Begin("Residual Frame (changed geometry)", 0, flags);
+            ImGui::Begin("Residual Frame (changed geometry)", 0);
             ImGui::Image((void*)(intptr_t)(quadwarp.residualFrameMaskRT.colorTexture),
                          ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
 
-            ImGui::Begin("Residual Frame (revealed geometry)", 0, flags);
+            ImGui::Begin("Residual Frame (revealed geometry)", 0);
             ImGui::Image((void*)(intptr_t)(quadwarp.residualFrameRT.colorTexture),
                          ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
@@ -318,12 +312,11 @@ int main(int argc, char** argv) {
                 spdlog::info("  Create Vert/Ind Time: {:.3f}ms", quadwarp.stats.totalCreateVertIndTimeMs);
                 spdlog::info("Compress Time: {:.3f}ms", quadwarp.stats.totalCompressTimeMs);
                 if (showDepth) spdlog::info("Gen Depth Time: {:.3f}ms", quadwarp.stats.totalGenDepthTimeMs);
-                spdlog::info("Frame Size: {:.3f}MB", (quadwarp.stats.totalSizes.quadsSize +
-                                                      quadwarp.stats.totalSizes.depthOffsetsSize) / BYTES_PER_MEGABYTE);
-                spdlog::info("Num Proxies: {}Proxies", quadwarp.stats.totalSizes.numQuads);
+                spdlog::info("Frame Size: {:.3f}MB", quadwarp.stats.frameSize / BYTES_PER_MEGABYTE);
+                spdlog::info("Num Proxies: {}Proxies", quadwarp.stats.proxySizes.numQuads);
 
                 prevPoseID = poseID;
-                quadwarp.sendProxies(poseID, sendResidualFrame);
+                quadwarp.sendFrame(poseID, sendResidualFrame);
 
                 sendReferenceFrame = false;
                 sendResidualFrame = false;

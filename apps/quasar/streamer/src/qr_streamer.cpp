@@ -141,15 +141,14 @@ int main(int argc, char** argv) {
 
     RenderStats renderStats;
     pose_id_t prevPoseID;
+    FrameRateWindow frameRateWindow;
     guiManager->onRender([&](double now, double dt) {
-        static bool showFPS = true;
         static bool showUI = true;
         static bool showFramePreviewWindow = false;
         static bool showLayerPreviews = false;
 
         static bool showSkyBox = true;
 
-        ImGuiWindowFlags flags = 0;
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Exit", "ESC")) {
@@ -158,7 +157,7 @@ int main(int argc, char** argv) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
-            ImGui::MenuItem("FPS", 0, &showFPS);
+            ImGui::MenuItem("FPS", 0, &frameRateWindow.visible);
             ImGui::MenuItem("UI", 0, &showUI);
             ImGui::MenuItem("Frame Previews", 0, &showFramePreviewWindow);
             ImGui::MenuItem("Layer Previews", 0, &showLayerPreviews);
@@ -166,13 +165,7 @@ int main(int argc, char** argv) {
         }
         ImGui::EndMainMenuBar();
 
-        if (showFPS) {
-            ImGui::SetNextWindowPos(ImVec2(10, 40), ImGuiCond_FirstUseEver);
-            flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar;
-            ImGui::Begin("", 0, flags);
-            ImGui::Text("%.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
-            ImGui::End();
-        }
+        frameRateWindow.draw(now, dt);
 
         if (showUI) {
             ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
@@ -199,19 +192,19 @@ int main(int argc, char** argv) {
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %ld", renderStats.drawCalls);
 
             ImGui::TextColored(ImVec4(0,1,1,1), "Total Quads: %ld (%.3f MB)",
-                               quasar.stats.totalSizes.numQuads,
-                               quasar.stats.totalSizes.quadsSize / BYTES_PER_MEGABYTE);
+                               quasar.stats.proxySizes.numQuads,
+                               quasar.stats.proxySizes.quadsSize / BYTES_PER_MEGABYTE);
             ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %ld (%.3f MB)",
-                               quasar.stats.totalSizes.numDepthOffsets,
-                               quasar.stats.totalSizes.depthOffsetsSize / BYTES_PER_MEGABYTE);
+                               quasar.stats.proxySizes.numDepthOffsets,
+                               quasar.stats.proxySizes.depthOffsetsSize / BYTES_PER_MEGABYTE);
 
             ImGui::Separator();
 
-            glm::vec3 position = camera.getPosition();
+            const glm::vec3& position = camera.getPosition();
             if (ImGui::DragFloat3("Camera Position", (float*)&position, 0.01f)) {
                 camera.setPosition(position);
             }
-            glm::vec3 rotation = camera.getRotationEuler();
+            const glm::vec3& rotation = camera.getRotationEuler();
             if (ImGui::DragFloat3("Camera Rotation", (float*)&rotation, 0.1f)) {
                 camera.setRotationEuler(rotation);
             }
@@ -229,7 +222,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            auto& videoStreamerRT = quasar.atlasVideoStreamerRT;
+            auto& videoStreamerRT = quasar.videoAtlasStreamerRT;
             ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoStreamerRT.getFrameRate(), 1000.0f / videoStreamerRT.getFrameRate());
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: %.3f ms", videoStreamerRT.stats.transferTimeMs);
             ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.3f ms", videoStreamerRT.stats.encodeTimeMs);
@@ -311,29 +304,27 @@ int main(int argc, char** argv) {
         }
 
         if (showFramePreviewWindow) {
-            flags = 0;
-            ImGui::Begin("Reference Frame", 0, flags);
+            ImGui::Begin("Reference Frame", 0);
             ImGui::Image((void*)(intptr_t)(quasar.referenceFrameRT.colorTexture),
                          ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
 
-            ImGui::Begin("Residual Frame (changed geometry)", 0, flags);
+            ImGui::Begin("Residual Frame (changed geometry)", 0);
             ImGui::Image((void*)(intptr_t)(quasar.residualFrameMaskRT.colorTexture),
                          ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
 
-            ImGui::Begin("Residual Frame (revealed geometry)", 0, flags);
+            ImGui::Begin("Residual Frame (revealed geometry)", 0);
             ImGui::Image((void*)(intptr_t)(quasar.residualFrameRT.colorTexture),
                          ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
         }
 
         if (showLayerPreviews) {
-            flags = ImGuiWindowFlags_AlwaysAutoResize;
             for (int layer = 0; layer < maxLayers; layer++) {
                 int viewIdx = maxLayers - layer - 1;
                 if (showLayers[viewIdx]) {
-                    ImGui::Begin(("View " + std::to_string(viewIdx)).c_str(), 0, flags);
+                    ImGui::Begin(("View " + std::to_string(viewIdx)).c_str(), 0, ImGuiWindowFlags_AlwaysAutoResize);
                     if (viewIdx == 0) {
                         ImGui::Image((void*)(intptr_t)(quasar.referenceFrameRT.colorTexture.ID),
                                      ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
@@ -401,12 +392,11 @@ int main(int argc, char** argv) {
                 spdlog::info("  Create Vert/Ind Time ({}): {:.3f}ms", frameType, quasar.stats.totalCreateVertIndTimeMs);
                 spdlog::info("Compress Time ({}): {:.3f}ms", frameType, quasar.stats.totalCompressTimeMs);
                 if (showDepth) spdlog::info("Gen Depth Time ({}): {:.3f}ms", frameType, quasar.stats.totalGenDepthTimeMs);
-                spdlog::info("Frame Size: {:.3f}MB", (quasar.stats.totalSizes.quadsSize +
-                                                    quasar.stats.totalSizes.depthOffsetsSize) / BYTES_PER_MEGABYTE);
-                spdlog::info("Num Proxies: {}Proxies", quasar.stats.totalSizes.numQuads);
+                spdlog::info("Frame Size: {:.3f}MB", quasar.stats.frameSize / BYTES_PER_MEGABYTE);
+                spdlog::info("Num Proxies: {}Proxies", quasar.stats.proxySizes.numQuads);
 
                 prevPoseID = poseID;
-                quasar.sendProxies(poseID, sendResidualFrame);
+                quasar.sendFrame(poseID, sendResidualFrame);
 
                 sendReferenceFrame = false;
                 sendResidualFrame = false;
@@ -438,7 +428,10 @@ int main(int argc, char** argv) {
         camera.updateViewMatrix();
 
         // Render generated meshes
+        quasar.setDrawState(QuadMesh::DrawState::OPAQUE); // draw opaque quads first
         renderer.drawObjects(localScene, camera);
+        quasar.setDrawState(QuadMesh::DrawState::TRANSPARENT); // then draw transparent quads
+        renderer.drawObjects(localScene, camera, 0);
 
         // Restore camera position
         camera.setPosition(camera.getPosition() - initialPosition);

@@ -11,6 +11,11 @@
 #include <Recorder.h>
 #include <CameraAnimator.h>
 
+#include <UI/FrameRateWindow.h>
+#include <UI/FrameCaptureWindow.h>
+#include <UI/RecordWindow.h>
+#include <UI/TexturePreviewWindow.h>
+
 #include <Receivers/VideoTexture.h>
 #include <Streamers/PoseStreamer.h>
 #include <shaders_common.h>
@@ -113,13 +118,11 @@ int main(int argc, char** argv) {
     pose_id_t prevPoseID = -1;
 
     RenderStats renderStats;
+    FrameRateWindow frameRateWindow;
+    FrameCaptureWindow frameCaptureWindow(recorder, glm::uvec2(430, 270), outputPath);
+    TexturePreviewWindow videoPreviewWindow("Video Texture", videoTexture, glm::uvec2(430, 270));
     guiManager->onRender([&](double now, double dt) {
-        static bool showFPS = true;
         static bool showUI = true;
-        static bool showFrameCaptureWindow = false;
-        static bool writeToHDR = false;
-        static char fileNameBase[256] = "screenshot";
-        static bool showVideoPreview = false;
 
         ImGuiWindowFlags flags = 0;
         ImGui::BeginMainMenuBar();
@@ -130,21 +133,15 @@ int main(int argc, char** argv) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
-            ImGui::MenuItem("FPS", 0, &showFPS);
+            ImGui::MenuItem("FPS", 0, &frameRateWindow.visible);
             ImGui::MenuItem("UI", 0, &showUI);
-            ImGui::MenuItem("Frame Capture", 0, &showFrameCaptureWindow);
-            ImGui::MenuItem("Video Preview", 0, &showVideoPreview);
+            ImGui::MenuItem("Frame Capture", 0, &frameCaptureWindow.visible);
+            ImGui::MenuItem("Video Preview", 0, &videoPreviewWindow.visible);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
 
-        if (showFPS) {
-            ImGui::SetNextWindowPos(ImVec2(10, 40), ImGuiCond_FirstUseEver);
-            flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar;
-            ImGui::Begin("", 0, flags);
-            ImGui::Text("%.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
-            ImGui::End();
-        }
+        frameRateWindow.draw(now, dt);
 
         if (showUI) {
             ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
@@ -219,34 +216,8 @@ int main(int argc, char** argv) {
             ImGui::End();
         }
 
-        flags = ImGuiWindowFlags_AlwaysAutoResize;
-        if (showVideoPreview) {
-            ImGui::SetNextWindowPos(ImVec2(windowSize.x - windowSize.x / 4 - 60, 40), ImGuiCond_FirstUseEver);
-            ImGui::Begin("Video Texture", &showVideoPreview, flags);
-            ImGui::Image((void*)(intptr_t)videoTexture, ImVec2(windowSize.x / 4, windowSize.y / 4), ImVec2(0, 1), ImVec2(1, 0));
-            ImGui::End();
-        }
-
-        if (showFrameCaptureWindow) {
-            ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
-            ImGui::Begin("Frame Capture", &showFrameCaptureWindow);
-
-            ImGui::Text("Base File Name:");
-            ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string time = std::to_string(static_cast<int>(window->getTime() * 1000.0f));
-            Path filename = (outputPath / fileNameBase).appendToName("." + time);
-
-            ImGui::Checkbox("Save as HDR", &writeToHDR);
-
-            ImGui::Separator();
-
-            if (ImGui::Button("Capture Current Frame")) {
-                recorder.saveScreenshotToFile(filename, writeToHDR);
-            }
-
-            ImGui::End();
-        }
+        frameCaptureWindow.draw(now, dt);
+        videoPreviewWindow.draw(now, dt);
     });
 
     app.onResize([&](uint width, uint height) {

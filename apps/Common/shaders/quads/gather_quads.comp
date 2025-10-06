@@ -4,30 +4,23 @@ layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = THREADS_PER_LOCALGR
 
 layout(std430, binding = 0) buffer QuadBufferSizes {
     uint numProxies;
+    uint numProxiesTransparent;
     uint numDepthOffsets;
 };
 
-layout(std430, binding = 1) readonly buffer NormalSphericalsBufferInput {
-    uint normalSphericalsInput[];
+layout(std430, binding = 1) readonly buffer normalAndDepthBufferInput {
+    uint normalAndDepthInput[];
 };
 
-layout(std430, binding = 2) readonly buffer DepthsBufferInput {
-    float depthsInput[];
-};
-
-layout(std430, binding = 3) readonly buffer MetadataBufferInput {
+layout(std430, binding = 2) readonly buffer MetadataBufferInput {
     uint metadatasInput[];
 };
 
-layout(std430, binding = 4) writeonly buffer NormalSphericalsBufferOutput {
-    uint normalSphericalsOutput[];
+layout(std430, binding = 3) writeonly buffer normalAndDepthBufferOutput {
+    uint normalAndDepthOutput[];
 };
 
-layout(std430, binding = 5) writeonly buffer DepthsBufferOutput {
-    float depthsOutput[];
-};
-
-layout(std430, binding = 6) writeonly buffer MetadataBufferOutput {
+layout(std430, binding = 4) writeonly buffer MetadataBufferOutput {
     uint metadatasOutput[];
 };
 
@@ -38,36 +31,36 @@ QuadMapData loadInputQuadMap(ivec2 pixelCoord) {
     uint index = uint(pixelCoord.y) * uint(quadMapSize.x) + uint(pixelCoord.x);
 
     QuadMapDataPacked quadMapDataPacked;
-    quadMapDataPacked.normalSpherical = normalSphericalsInput[index];
-    quadMapDataPacked.depth = depthsInput[index];
-    quadMapDataPacked.metadata = metadatasInput[index];
+    quadMapDataPacked.normalAndDepth = normalAndDepthInput[index];
+    quadMapDataPacked.metadata       = metadatasInput[index];
 
     QuadMapData quadMapData;
-    quadMapData.normal = unpackSphericalToNormal(quadMapDataPacked.normalSpherical);
-    quadMapData.depth = quadMapDataPacked.depth;
+    quadMapData.normal = unpackOctahedralToNormal((quadMapDataPacked.normalAndDepth >> 16) & 0xFFFFu);
+    quadMapData.depth  = unpackDepthUNORM16(quadMapDataPacked.normalAndDepth & 0xFFFFu);
 
     quadMapData.offset.x = (quadMapDataPacked.metadata >> 20) & 0xFFFu;
     quadMapData.offset.y = (quadMapDataPacked.metadata >> 8) & 0xFFFu;
 
-    uint flattenedAndSize = quadMapDataPacked.metadata & 0xFFu;
-    quadMapData.size = (flattenedAndSize >> 1) & 0x7Fu;
-    quadMapData.flattened = (flattenedAndSize & 1u) != 0;
+    uint sizeAlphaFlattened = quadMapDataPacked.metadata & 0xFFu;
+    quadMapData.size      = (sizeAlphaFlattened >> 2) & 0x7Fu;
+    quadMapData.hasAlpha  = (sizeAlphaFlattened & 2u) != 0u;
+    quadMapData.flattened = (sizeAlphaFlattened & 1u) != 0u;
 
     return quadMapData;
 }
 
-void storeOutputQuadMap(in uint index, in QuadMapData quadMapData) {
+void storeOutputQuadMap(uint index, in QuadMapData quadMapData) {
     QuadMapDataPacked quadMapDataPacked;
-    quadMapDataPacked.normalSpherical = packNormalToSpherical(quadMapData.normal);
-    quadMapDataPacked.depth = quadMapData.depth;
 
-    uint flattenedAndSize = ((quadMapData.size & 0x7Fu) << 1) | (quadMapData.flattened ? 1u : 0u);
+    uint sizeAlphaFlattened = ((quadMapData.size & 0x7Fu)       << 2) |
+                              ((quadMapData.hasAlpha ? 1u : 0u) << 1) |
+                              (quadMapData.flattened ? 1u : 0u);
     quadMapDataPacked.metadata = ((quadMapData.offset.x & 0xFFFu) << 20) |
-                                                    ((quadMapData.offset.y & 0xFFFu) << 8) |
-                                                        (flattenedAndSize & 0xFFu);
-    normalSphericalsOutput[index] = quadMapDataPacked.normalSpherical;
-    depthsOutput[index] = quadMapDataPacked.depth;
-    metadatasOutput[index] = quadMapDataPacked.metadata;
+                                 ((quadMapData.offset.y & 0xFFFu) <<  8) |
+                                 (sizeAlphaFlattened & 0xFFu);
+    normalAndDepthOutput[index] = ((packNormalToOctahedral(quadMapData.normal) & 0xFFFFu) << 16) |
+                                  (packDepthUNORM16(quadMapData.depth) & 0xFFFFu);
+    metadatasOutput[index]      = quadMapDataPacked.metadata;
 }
 
 void main() {
@@ -93,5 +86,8 @@ void main() {
     }
 
     uint index = atomicAdd(numProxies, 1);
+    if (quadMapData.hasAlpha) {
+        atomicAdd(numProxiesTransparent, 1);
+    }
     storeOutputQuadMap(index, quadMapData);
 }

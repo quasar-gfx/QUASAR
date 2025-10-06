@@ -16,7 +16,8 @@ public:
             .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
             .fragmentCodeData = SHADER_BUILTIN_SHOW_DEPTH_FRAG,
             .fragmentCodeSize = SHADER_BUILTIN_SHOW_DEPTH_FRAG_len,
-        }) {}
+        })
+    {}
 
     RenderStats drawToScreen(OpenGLRenderer& renderer) override {
         shader.bind();

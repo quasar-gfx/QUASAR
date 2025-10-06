@@ -8,6 +8,10 @@
 #include <PostProcessing/Tonemapper.h>
 #include <PostProcessing/ShowDepthEffect.h>
 
+#include <UI/FrameRateWindow.h>
+#include <UI/FrameCaptureWindow.h>
+#include <UI/TexturePreviewWindow.h>
+
 #include <Path.h>
 #include <Recorder.h>
 #include <CameraAnimator.h>
@@ -17,7 +21,11 @@
 
 #include <shaders_common.h>
 
+#ifndef __ANDROID__
 #define THREADS_PER_LOCALGROUP 32
+#else
+#define THREADS_PER_LOCALGROUP 16
+#endif
 
 using namespace quasar;
 
@@ -38,6 +46,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "1920x1080");
     args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
+    args::ValueFlag<std::string> outputPathIn(parser, "output-path", "Directory to save outputs", {'o', "output-path"}, ".");
     args::ValueFlag<uint> vertexGroupSizeIn(parser, "vertex", "Size of vertex grouping", {'g', "vertex-group-size"}, 1);
     try {
         parser.ParseCLI(argc, argv);
@@ -61,6 +70,7 @@ int main(int argc, char** argv) {
 
     config.enableVSync = !args::get(novsync);
 
+    Path outputPath = Path(args::get(outputPathIn)); outputPath.mkdirRecursive();
     Path sceneFile = args::get(sceneFileIn);
 
     uint vertexGroupSize = args::get(vertexGroupSizeIn);
@@ -120,6 +130,18 @@ int main(int argc, char** argv) {
     Tonemapper tonemapper;
     ShowDepthEffect showDepthEffect(camera);
 
+    Recorder recorder({
+        .width = windowSize.x,
+        .height = windowSize.y,
+        .internalFormat = GL_RGBA,
+        .format = GL_RGBA,
+        .type = GL_UNSIGNED_BYTE,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_LINEAR,
+        .magFilter = GL_LINEAR,
+    }, renderer, tonemapper, outputPath, config.targetFramerate);
+
     // Original size of depth buffer
     uint originalSize = windowSize.x * windowSize.y * sizeof(float);
 
@@ -162,13 +184,12 @@ int main(int argc, char** argv) {
 
     bool sendRemoteFrame = true;
     RenderStats renderStats;
+    FrameRateWindow frameRateWindow;
+    FrameCaptureWindow frameCaptureWindow(recorder, glm::uvec2(430, 270), outputPath);
+    TexturePreviewWindow depthPreviewWindow("Depth", remoteRenderer.frameRT.depthStencilTexture, glm::uvec2(430, 270));
     guiManager->onRender([&](double now, double dt) {
-        static bool showFPS = true;
         static bool showUI = true;
-        static bool showFrameCaptureWindow = false;
-        static bool showDepthPreview = true;
 
-        ImGuiWindowFlags flags = 0;
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Exit", "ESC")) {
@@ -177,21 +198,15 @@ int main(int argc, char** argv) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
-            ImGui::MenuItem("FPS", 0, &showFPS);
+            ImGui::MenuItem("FPS", 0, &frameRateWindow.visible);
             ImGui::MenuItem("UI", 0, &showUI);
-            ImGui::MenuItem("Frame Capture", 0, &showFrameCaptureWindow);
-            ImGui::MenuItem("Depth Preview", 0, &showDepthPreview);
+            ImGui::MenuItem("Frame Capture", 0, &frameCaptureWindow.visible);
+            ImGui::MenuItem("Depth Preview", 0, &depthPreviewWindow.visible);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
 
-        if (showFPS) {
-            ImGui::SetNextWindowPos(ImVec2(10, 40), ImGuiCond_FirstUseEver);
-            flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar;
-            ImGui::Begin("", 0, flags);
-            ImGui::Text("%.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
-            ImGui::End();
-        }
+        frameRateWindow.draw(now, dt);
 
         if (showUI) {
             ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
@@ -220,11 +235,11 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            glm::vec3 position = camera.getPosition();
+            const glm::vec3& position = camera.getPosition();
             if (ImGui::DragFloat3("Camera Position", (float*)&position, 0.01f)) {
                 camera.setPosition(position);
             }
-            glm::vec3 rotation = camera.getRotationEuler();
+            const glm::vec3& rotation = camera.getRotationEuler();
             if (ImGui::DragFloat3("Camera Rotation", (float*)&rotation, 0.1f)) {
                 camera.setRotationEuler(rotation);
             }
@@ -254,13 +269,8 @@ int main(int argc, char** argv) {
             ImGui::End();
         }
 
-        if (showDepthPreview) {
-            flags = ImGuiWindowFlags_AlwaysAutoResize;
-            ImGui::SetNextWindowPos(ImVec2(windowSize.x - windowSize.x / 4 - 60, 40), ImGuiCond_FirstUseEver);
-            ImGui::Begin("Original Depth", &showDepthPreview, flags);
-            ImGui::Image((void*)(intptr_t)remoteRenderer.frameRT.depthStencilTexture, ImVec2(windowSize.x / 4, windowSize.y / 4), ImVec2(0, 1), ImVec2(1, 0));
-            ImGui::End();
-        }
+        frameCaptureWindow.draw(now, dt);
+        depthPreviewWindow.draw(now, dt);
     });
 
     // Window resize callback

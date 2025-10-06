@@ -92,7 +92,6 @@ private:
     GLuint vertexArrayBuffer;
 
     void initBuffers();
-    void setArrayBufferAttributes(const VertexInputAttributes& attributes, uint vertexSize);
     void loadFromFiles(std::vector<std::string> faceFilePaths,
                        GLenum format,
                        GLint wrapS, GLint wrapT, GLint wrapR,

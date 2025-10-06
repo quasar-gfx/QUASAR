@@ -8,7 +8,10 @@
 #include <Networking/DataStreamerTCP.h>
 #include <Streamers/VideoStreamer.h>
 #include <PostProcessing/Tonemapper.h>
+
+#include <UI/FrameRateWindow.h>
 #include <PostProcessing/ShowNormalsEffect.h>
+#include <Codecs/AlphaCodec.h>
 
 namespace quasar {
 
@@ -36,7 +39,8 @@ public:
     QuadMesh residualFrameMesh;
     Node residualFrameNodeLocal;
 
-    VideoStreamer atlasVideoStreamerRT;
+    VideoStreamer videoAtlasStreamerRT;
+    FrameRenderTarget alphaAtlasRT;
 
     // Local objects
     std::vector<Node> referenceFrameNodesLocal;
@@ -61,7 +65,8 @@ public:
         double totalCreateVertIndTimeMs = 0.0;
         double totalGenDepthTimeMs = 0.0;
         double totalCompressTimeMs = 0.0;
-        QuadSet::Sizes totalSizes;
+        double frameSize = 0.0;
+        QuadSet::Sizes proxySizes;
     } stats;
 
     QuadsStreamer(
@@ -78,8 +83,9 @@ public:
     void addMeshesToScene(Scene& localScene);
 
     RenderStats generateFrame(bool createResidualFrame, bool showNormals = false, bool showDepth = false);
-    void sendProxies(pose_id_t poseID, bool createResidualFrame);
+    void sendFrame(pose_id_t poseID, bool createResidualFrame);
 
+    void writeTexturesToFiles(const Path& outputPath);
     size_t writeToFiles(const Path& outputPath);
     size_t writeToMemory(pose_id_t poseID, bool writeResidualFrame, std::vector<char>& outputData);
 
@@ -112,9 +118,14 @@ private:
     FrameRenderTarget referenceFrameRT_noTone;
     FrameRenderTarget residualFrameRT_noTone;
 
+    std::vector<unsigned char> alphaImageData;
+
     std::vector<char> cameraData;
+    std::vector<char> alphaData;
     std::vector<char> geometryData;
     std::vector<char> compressedData;
+
+    AlphaCodec alphaCodec;
 
     QuadMaterial wireframeMaterial;
     QuadMaterial maskWireframeMaterial;

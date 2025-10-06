@@ -12,8 +12,9 @@ namespace quasar {
 class QuadsGenerator {
 public:
     struct BufferSizes {
-        uint numProxies;
-        uint numDepthOffsets;
+        uint32_t numProxies;
+        uint32_t numProxiesTransparent;
+        uint32_t numDepthOffsets;
     };
 
     struct Stats {
@@ -26,7 +27,7 @@ public:
         bool expandEdges = false;
         bool correctOrientation = true;
         float depthThreshold = 1e-4f;
-        float angleThreshold = 87.5f;
+        float angleThreshold = 88.0f;
         float flattenThreshold = 0.2f;
         float proxySimilarityThreshold = 0.5f;
         int maxIterForceMerge = 3;

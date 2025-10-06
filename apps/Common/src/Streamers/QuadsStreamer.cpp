@@ -70,7 +70,7 @@ QuadsStreamer::QuadsStreamer(
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST,
     })
-    , atlasVideoStreamerRT({
+    , videoAtlasStreamerRT({
         .width = 2 * quadSet.getSize().x,
         .height = quadSet.getSize().y,
         .internalFormat = GL_SRGB8_ALPHA8,
@@ -81,7 +81,19 @@ QuadsStreamer::QuadsStreamer(
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST,
     }, params.videoURL, params.targetFramerate, params.targetBitRate)
-    , residualFrameMesh(quadSet, residualFrameRT_noTone.colorTexture)
+    , alphaAtlasRT({
+        .width = 2 * quadSet.getSize().x,
+        .height = quadSet.getSize().y,
+        .internalFormat = GL_R8,
+        .format = GL_RED,
+        .type = GL_UNSIGNED_BYTE,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST,
+    })
+    , alphaCodec(alphaAtlasRT.width, alphaAtlasRT.height)
+    , residualFrameMesh(quadSet, residualFrameRT_noTone.colorTexture, residualFrameRT_noTone.alphaTexture)
     , depthMesh(quadSet.getSize(), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f))
     , wireframeMaterial({ .baseColor = colors[0] })
     , maskWireframeMaterial({ .baseColor = colors[colors.size()-1] })
@@ -97,7 +109,7 @@ QuadsStreamer::QuadsStreamer(
     remoteCameraPrev.setViewMatrix(remoteCamera.getViewMatrix());
 
     for (int i = 0; i < meshScenes.size(); i++) {
-        referenceFrameMeshes.emplace_back(quadSet, referenceFrameRT_noTone.colorTexture);
+        referenceFrameMeshes.emplace_back(quadSet, referenceFrameRT_noTone.colorTexture, referenceFrameRT_noTone.alphaTexture);
 
         referenceFrameNodes.emplace_back(&referenceFrameMeshes[i]);
         referenceFrameNodes[i].frustumCulled = false;
@@ -128,13 +140,15 @@ QuadsStreamer::QuadsStreamer(
     depthNode.visible = false;
     depthNode.primitiveType = GL_POINTS;
 
+    alphaImageData.resize(alphaAtlasRT.width * alphaAtlasRT.height);
+
     if (!videoURL.empty() && !proxiesURL.empty()) {
         spdlog::info("Created QuadsStreamer that sends to URL: tcp://{}", proxiesURL);
     }
 }
 
 QuadsStreamer::~QuadsStreamer() {
-    atlasVideoStreamerRT.stop();
+    videoAtlasStreamerRT.stop();
 }
 
 uint QuadsStreamer::getNumTriangles() const {
@@ -156,7 +170,9 @@ void QuadsStreamer::addMeshesToScene(Scene& localScene) {
 
 RenderStats QuadsStreamer::generateFrame(bool createResidualFrame, bool showNormals, bool showDepth) {
     // Reset stats
+    Stats prevStats = stats;
     stats = { 0 };
+    stats.frameSize = prevStats.frameSize; // Keep previous frame size
 
     int currMeshIndex  = meshIndex % 2;
     int prevMeshIndex  = (meshIndex + 1) % 2;
@@ -263,14 +279,24 @@ RenderStats QuadsStreamer::generateFrame(bool createResidualFrame, bool showNorm
 
     residualFrameNodeLocal.visible = createResidualFrame;
 
-    // Update atlas texture
-    referenceFrameRT.blit(atlasVideoStreamerRT,
+    // Update color atlas texture
+    referenceFrameRT.blit(videoAtlasStreamerRT,
         0, 0, referenceFrameRT.width, referenceFrameRT.height,
         0, 0, referenceFrameRT.width, referenceFrameRT.height
     );
-    residualFrameRT.blit(atlasVideoStreamerRT,
+    residualFrameRT.blit(videoAtlasStreamerRT,
         0, 0, residualFrameRT.width, residualFrameRT.height,
-        referenceFrameRT.width, 0, atlasVideoStreamerRT.width, atlasVideoStreamerRT.height
+        referenceFrameRT.width, 0, videoAtlasStreamerRT.width, videoAtlasStreamerRT.height
+    );
+
+    // Update alpha atlas texture
+    referenceFrameRT.blit(alphaAtlasRT,
+        0, 0, referenceFrameRT.width, referenceFrameRT.height,
+        0, 0, referenceFrameRT.width, referenceFrameRT.height
+    );
+    residualFrameRT_noTone.blit(alphaAtlasRT,
+        0, 0, residualFrameRT_noTone.width, residualFrameRT_noTone.height,
+        referenceFrameRT.width, 0, alphaAtlasRT.width, alphaAtlasRT.height
     );
 
     // For debugging: Generate point cloud from depth map
@@ -280,37 +306,45 @@ RenderStats QuadsStreamer::generateFrame(bool createResidualFrame, bool showNorm
     }
 
     if (!createResidualFrame) {
-        stats.totalSizes.numQuads += referenceFrame.getTotalNumQuads();
-        stats.totalSizes.numDepthOffsets += referenceFrame.getTotalNumDepthOffsets();
-        stats.totalSizes.quadsSize += referenceFrame.getTotalQuadsSize();
-        stats.totalSizes.depthOffsetsSize += referenceFrame.getTotalDepthOffsetsSize();
+        stats.proxySizes.numQuads += referenceFrame.getTotalNumQuads();
+        stats.proxySizes.numDepthOffsets += referenceFrame.getTotalNumDepthOffsets();
+        stats.proxySizes.quadsSize += referenceFrame.getTotalQuadsSize();
+        stats.proxySizes.depthOffsetsSize += referenceFrame.getTotalDepthOffsetsSize();
         spdlog::debug("Reference frame generated with {} quads ({:.3f} MB), {} depth offsets ({:.3f} MB)",
                       referenceFrame.getTotalNumQuads(), referenceFrame.getTotalQuadsSize() / BYTES_PER_MEGABYTE,
                       referenceFrame.getTotalNumDepthOffsets(), referenceFrame.getTotalDepthOffsetsSize() / BYTES_PER_MEGABYTE);
     }
     else {
-        stats.totalSizes.numQuads += residualFrame.getTotalNumQuads();
-        stats.totalSizes.numDepthOffsets += residualFrame.getTotalNumDepthOffsets();
-        stats.totalSizes.quadsSize += residualFrame.getTotalQuadsSize();
-        stats.totalSizes.depthOffsetsSize += residualFrame.getTotalDepthOffsetsSize();
-        spdlog::debug("Residual frame generated with {} updated quads ({:.3f} MB) and {} revealed quads ({:.3f} MB), {} updated depth offsets ({:.3f} MB) and {} revealed depth offsets ({:.3f} MB)",
-                      residualFrame.getTotalNumQuadsUpdated(), residualFrame.getTotalQuadsUpdatedSize() / BYTES_PER_MEGABYTE,
-                      residualFrame.getTotalNumQuadsRevealed(), residualFrame.getTotalQuadsRevealedSize() / BYTES_PER_MEGABYTE,
-                      residualFrame.getTotalNumDepthOffsetsUpdated(), residualFrame.getTotalDepthOffsetsUpdatedSize() / BYTES_PER_MEGABYTE,
-                      residualFrame.getTotalNumDepthOffsetsRevealed(), residualFrame.getTotalDepthOffsetsRevealedSize() / BYTES_PER_MEGABYTE);
+        stats.proxySizes.numQuads += residualFrame.getTotalNumQuads();
+        stats.proxySizes.numDepthOffsets += residualFrame.getTotalNumDepthOffsets();
+        stats.proxySizes.quadsSize += residualFrame.getTotalQuadsSize();
+        stats.proxySizes.depthOffsetsSize += residualFrame.getTotalDepthOffsetsSize();
+        spdlog::debug("Residual frame generated with {} quads ({:.3f} MB), {} depth offsets ({:.3f} MB)",
+                      residualFrame.getTotalNumQuads(), residualFrame.getTotalQuadsSize() / BYTES_PER_MEGABYTE,
+                      residualFrame.getTotalNumDepthOffsets(), residualFrame.getTotalDepthOffsetsSize() / BYTES_PER_MEGABYTE);
     }
 
     return renderStats;
 }
 
-void QuadsStreamer::sendProxies(pose_id_t poseID, bool createResidualFrame) {
+void QuadsStreamer::sendFrame(pose_id_t poseID, bool createResidualFrame) {
+    stats.frameSize = writeToMemory(poseID, createResidualFrame, compressedData);
     if (!videoURL.empty() && !proxiesURL.empty()) {
         // Send atlas frame
-        atlasVideoStreamerRT.sendFrame(poseID);
+        videoAtlasStreamerRT.sendFrame(poseID);
         // Send proxies
-        writeToMemory(poseID, createResidualFrame, compressedData);
         send(compressedData);
     }
+}
+
+void QuadsStreamer::writeTexturesToFiles(const Path& outputPath) {
+    // Save color
+    Path colorFileName = (outputPath / "color.jpg");
+    videoAtlasStreamerRT.writeColorAsJPG(colorFileName);
+
+    // Save alpha
+    Path alphaFileName = (outputPath / "alpha.png");
+    alphaAtlasRT.writeAlphaAsPNG(alphaFileName);
 }
 
 size_t QuadsStreamer::writeToFiles(const Path& outputPath) {
@@ -326,14 +360,10 @@ size_t QuadsStreamer::writeToFiles(const Path& outputPath) {
     cameraPose.setViewMatrix(remoteCameraPrev.getViewMatrix());
     cameraPose.writeToFile(cameraFileNamePrev);
 
-    // Save color
-    Path colorFileName = outputPath / "color.jpg";
-    atlasVideoStreamerRT.writeColorAsJPG(colorFileName);
+    writeTexturesToFiles(outputPath);
 
     // Save proxies
     size_t totalOutputSize = referenceFrame.writeToFiles(outputPath) + residualFrame.writeToFiles(outputPath);
-
-    spdlog::debug("Written output data size: {}", totalOutputSize);
     return totalOutputSize;
 }
 
@@ -343,6 +373,10 @@ size_t QuadsStreamer::writeToMemory(pose_id_t poseID, bool writeResidualFrame, s
     cameraPose.setProjectionMatrix(remoteCamera.getProjectionMatrix());
     cameraPose.setViewMatrix(remoteCamera.getViewMatrix());
     cameraPose.writeToMemory(cameraData);
+
+    // Save alpha atlas
+    alphaAtlasRT.writeAlphaToMemory(alphaImageData);
+    alphaCodec.compress(alphaImageData.data(), alphaData, alphaImageData.size());
 
     // Save geometry data
     if (!writeResidualFrame) {
@@ -356,10 +390,12 @@ size_t QuadsStreamer::writeToMemory(pose_id_t poseID, bool writeResidualFrame, s
         .poseID = poseID,
         .frameType = !writeResidualFrame ? QuadFrame::FrameType::REFERENCE : QuadFrame::FrameType::RESIDUAL,
         .cameraSize = static_cast<uint32_t>(cameraData.size()),
+        .alphaSize = static_cast<uint32_t>(alphaData.size()),
         .geometrySize = static_cast<uint32_t>(geometryData.size())
     };
 
     spdlog::debug("Writing camera size: {}", header.cameraSize);
+    spdlog::debug("Writing alpha size: {}", header.alphaSize);
     spdlog::debug("Writing geometry size: {}", header.geometrySize);
 
     outputData.resize(header.getSize());
@@ -372,6 +408,10 @@ size_t QuadsStreamer::writeToMemory(pose_id_t poseID, bool writeResidualFrame, s
     // Write camera data
     std::memcpy(ptr, cameraData.data(), cameraData.size());
     ptr += cameraData.size();
+
+    // Write alpha data
+    std::memcpy(ptr, alphaData.data(), alphaData.size());
+    ptr += alphaData.size();
 
     // Write geometry data
     std::memcpy(ptr, geometryData.data(), geometryData.size());

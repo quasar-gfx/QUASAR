@@ -6,15 +6,40 @@
         "width": 1024,
         "height": 1024
     },
+    "materials": [
+        {
+            "albedoTexturePath": "../assets/textures/window.png",
+            "alphaMode": "transparent",
+            "maskThreshold": 0.1
+        }
+    ],
     "models": [
         {
             "name": "RobotLab",
             "path": "../assets/models/scenes/RobotLab.glb",
             "IBL": 0.01,
             "gammaCorrected": true,
+            "flipTextures": true
+        }
+    ],
+    "meshes": [
+        {
+            "type": "plane",
+            "material": 0
+        }
+    ],
+    "nodes": [
+        {
+            "model": 0,
             "position": [0.0, 0.0, 0.0],
             "rotation": [0.0, 0.0, 0.0],
             "scale": [1.0, 1.0, 1.0]
+        },
+        {
+            "mesh": 0,
+            "position": [0.0, 3.0, 2.0],
+            "rotation": [-90.0, 0.0, 0.0],
+            "scale": [2.0, 2.0, 2.0]
         }
     ],
     "camera": {

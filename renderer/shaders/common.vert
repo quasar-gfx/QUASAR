@@ -23,7 +23,7 @@ out VertexData {
     vec4 FragPosLightSpace;
 } vsOut;
 
-uniform uint DrawID;
+uniform uint drawID;
 
 uniform mat4 model;
 uniform mat3 normalMatrix;
@@ -42,7 +42,7 @@ void main() {
     vec4 worldPos = modelMatrix * vec4(aPos, 1.0);
     vec4 viewPos = viewMatrix * worldPos;
 
-    vsOut.DrawID = DrawID;
+    vsOut.DrawID = drawID;
     vsOut.TexCoord = aTexCoord;
     vsOut.FragPosView = viewPos.xyz;
     vsOut.FragPosWorld = worldPos.xyz;

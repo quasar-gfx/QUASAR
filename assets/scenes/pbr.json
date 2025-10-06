@@ -8,7 +8,6 @@
     },
     "materials": [
         {
-            "PBR": true,
             "albedoTexturePath": "../assets/textures/pbr/gold/albedo.png",
             "normalTexturePath": "../assets/textures/pbr/gold/normal.png",
             "metallicTexturePath": "../assets/textures/pbr/gold/metallic.png",
@@ -16,7 +15,6 @@
             "aoTexturePath": "../assets/textures/pbr/gold/ao.png"
         },
         {
-            "PBR": true,
             "albedoTexturePath": "../assets/textures/pbr/rusted_iron/albedo.png",
             "normalTexturePath": "../assets/textures/pbr/rusted_iron/normal.png",
             "metallicTexturePath": "../assets/textures/pbr/rusted_iron/metallic.png",

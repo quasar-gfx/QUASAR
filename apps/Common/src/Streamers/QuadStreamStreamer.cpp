@@ -33,7 +33,7 @@ QuadStreamStreamer::QuadStreamStreamer(
     auto quadsGenerator = frameGenerator.getQuadsGenerator();
     quadsGenerator->params.expandEdges = true;
     quadsGenerator->params.depthThreshold = 1e-4f;
-    quadsGenerator->params.flattenThreshold = 0.05f; // This has been changed from original paper
+    quadsGenerator->params.flattenThreshold = 0.1f; // This has been changed from original paper (used to be 0.01f)
     quadsGenerator->params.proxySimilarityThreshold = 0.1f;
     quadsGenerator->params.maxIterForceMerge = 1; // Only merge once (similar-ish to doing quad splitting)
     frameGenerator.params.applyDeltaEncoding = false;
@@ -66,7 +66,7 @@ QuadStreamStreamer::QuadStreamStreamer(
         referenceFrameRTs.emplace_back(rtParams);
         referenceFrameRTs_noTone.emplace_back(rtParams);
 
-        referenceFrameMeshes.emplace_back(quadSet, referenceFrameRTs_noTone[view].colorTexture);
+        referenceFrameMeshes.emplace_back(quadSet, referenceFrameRTs_noTone[view].colorTexture, referenceFrameRTs_noTone[view].alphaTexture);
         referenceFrameNodesLocal.emplace_back(&referenceFrameMeshes[view]);
         referenceFrameNodesLocal[view].frustumCulled = false;
 
@@ -100,7 +100,8 @@ uint QuadStreamStreamer::getNumTriangles() const {
 }
 
 void QuadStreamStreamer::addMeshesToScene(Scene& localScene) {
-    for (int view = 0; view < maxViews; view++) {
+    // Add in reverse order to have correct layering
+    for (int view = maxViews - 1; view >= 0; view--) {
         localScene.addChildNode(&referenceFrameNodesLocal[view]);
         localScene.addChildNode(&referenceFrameWireframesLocal[view]);
         localScene.addChildNode(&depthNodes[view]);
@@ -213,17 +214,18 @@ RenderStats QuadStreamStreamer::generateFrame(bool showNormals, bool showDepth) 
             stats.totalGenDepthTimeMs += depthMeshToUse.stats.genDepthTime;
         }
 
-        stats.totalSizes.numQuads += referenceFrames[view].getTotalNumQuads();
-        stats.totalSizes.numDepthOffsets += referenceFrames[view].getTotalNumDepthOffsets();
+        stats.proxySizes.numQuads += referenceFrames[view].getTotalNumQuads();
+        stats.proxySizes.numDepthOffsets += referenceFrames[view].getTotalNumDepthOffsets();
         // QS has data structures that are 103 bits
         // We approximate their data size by multiplying by 103/sizeof(our quad data struct)
-        stats.totalSizes.quadsSize += referenceFrames[view].getTotalQuadsSize() * (103.0 / (8 * sizeof(QuadMapDataPacked)));
-        stats.totalSizes.depthOffsetsSize += referenceFrames[view].getTotalDepthOffsetsSize();
+        stats.proxySizes.quadsSize += referenceFrames[view].getTotalQuadsSize() * (103.0 / (8 * sizeof(QuadMapDataPacked)));
+        stats.proxySizes.depthOffsetsSize += referenceFrames[view].getTotalDepthOffsetsSize();
         spdlog::debug("Reference frame generated with {} quads ({:.3f} MB), {} depth offsets ({:.3f} MB)",
             referenceFrames[view].getTotalNumQuads(), referenceFrames[view].getTotalQuadsSize() * (103.0 / (8 * sizeof(QuadMapDataPacked))) / BYTES_PER_MEGABYTE,
             referenceFrames[view].getTotalNumDepthOffsets(), referenceFrames[view].getTotalDepthOffsetsSize() / BYTES_PER_MEGABYTE);
     }
 
+    stats.frameSize = stats.proxySizes.quadsSize + stats.proxySizes.depthOffsetsSize;
     return renderStats;
 }
 
@@ -244,11 +246,14 @@ size_t QuadStreamStreamer::writeToFiles(const Path& outputPath) {
     };
     FileIO::writeToBinaryFile(outputPath / "metadata.bin", metadata.data(), metadata.size() * sizeof(float));
 
-    // Save color data and proxies
+    // Save color + alpha data and proxies
     size_t totalOutputSize = 0;
     for (int view = 0; view < maxViews; view++) {
         Path colorFileName = outputPath / ("color" + std::to_string(view) + ".jpg");
         referenceFrameRTs[view].writeColorAsJPG(colorFileName);
+
+        Path alphaFileName = (outputPath / ("alpha" + std::to_string(view))).withExtension(".png");
+        referenceFrameRTs[view].writeAlphaAsPNG(alphaFileName);
 
         totalOutputSize += referenceFrames[view].writeToFiles(outputPath, view);
     }

@@ -73,7 +73,7 @@ QUASARStreamer::QUASARStreamer(
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST,
     })
-    , atlasVideoStreamerRT({
+    , videoAtlasStreamerRT({
         .width = 2 * quadSet.getSize().x,
         .height = 3 * quadSet.getSize().y,
         .internalFormat = GL_SRGB8_ALPHA8,
@@ -84,8 +84,20 @@ QUASARStreamer::QUASARStreamer(
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST,
     }, params.videoURL, params.targetFramerate, params.targetBitRate)
+    , alphaAtlasRT({
+        .width = 2 * quadSet.getSize().x,
+        .height = 3 * quadSet.getSize().y,
+        .internalFormat = GL_R8,
+        .format = GL_RED,
+        .type = GL_UNSIGNED_BYTE,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST,
+    })
+    , alphaCodec(alphaAtlasRT.width, alphaAtlasRT.height)
     , depthMesh(quadSet.getSize(), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f))
-    , residualFrameMesh(quadSet, residualFrameRT_noTone.colorTexture)
+    , residualFrameMesh(quadSet, residualFrameRT_noTone.colorTexture, residualFrameRT_noTone.alphaTexture)
     , wireframeMaterial({ .baseColor = colors[0] })
     , maskWireframeMaterial({ .baseColor = colors[colors.size()-1] })
     , DataStreamerTCP(params.proxiesURL)
@@ -135,7 +147,7 @@ QUASARStreamer::QUASARStreamer(
 
     // Setup visible layer for reference frame
     for (int i = 0; i < meshScenes.size(); i++) {
-        referenceFrameMeshes.emplace_back(quadSet, referenceFrameRT_noTone.colorTexture);
+        referenceFrameMeshes.emplace_back(quadSet, referenceFrameRT_noTone.colorTexture, referenceFrameRT_noTone.alphaTexture);
 
         referenceFrameNodes.emplace_back(&referenceFrameMeshes[i]);
         referenceFrameNodes[i].frustumCulled = false;
@@ -168,7 +180,7 @@ QUASARStreamer::QUASARStreamer(
     depthNode.primitiveType = GL_POINTS;
 
     for (int layer = 0; layer < numHidLayers; layer++) {
-        meshesHidLayer.emplace_back(quadSet, frameRTsHidLayer_noTone[layer].colorTexture);
+        meshesHidLayer.emplace_back(quadSet, frameRTsHidLayer_noTone[layer].colorTexture, frameRTsHidLayer_noTone[layer].alphaTexture);
 
         nodesHidLayer.emplace_back(&meshesHidLayer[layer]);
         nodesHidLayer[layer].frustumCulled = false;
@@ -199,13 +211,15 @@ QUASARStreamer::QUASARStreamer(
 
     setViewSphereDiameter(params.viewSphereDiameter);
 
+    alphaImageData.resize(alphaAtlasRT.width * alphaAtlasRT.height);
+
     if (!videoURL.empty() && !proxiesURL.empty()) {
         spdlog::info("Created QUASARStreamer that sends to URL: tcp://{}", proxiesURL);
     }
 }
 
 QUASARStreamer::~QUASARStreamer() {
-    atlasVideoStreamerRT.stop();
+    videoAtlasStreamerRT.stop();
 }
 
 uint QUASARStreamer::getNumTriangles() const {
@@ -219,7 +233,24 @@ uint QUASARStreamer::getNumTriangles() const {
     return numTriangles;
 }
 
+void QUASARStreamer::setDrawState(QuadMesh::DrawState drawState) {
+    for (auto& mesh : referenceFrameMeshes) {
+        mesh.setDrawState(drawState);
+    }
+    residualFrameMesh.setDrawState(drawState);
+    for (auto& mesh : meshesHidLayer) {
+        mesh.setDrawState(drawState);
+    }
+}
+
 void QUASARStreamer::addMeshesToScene(Scene& localScene) {
+    // Add in reverse order to have correct layering
+    for (int layer = (maxLayers-1) - 1; layer >= 0; layer--) {
+        localScene.addChildNode(&nodesHidLayer[layer]);
+        localScene.addChildNode(&wireframesHidLayer[layer]);
+        localScene.addChildNode(&depthNodesHidLayer[layer]);
+    }
+
     for (int i = 0; i < meshScenes.size(); i++) {
         localScene.addChildNode(&referenceFrameNodesLocal[i]);
         localScene.addChildNode(&referenceFrameWireframesLocal[i]);
@@ -227,12 +258,6 @@ void QUASARStreamer::addMeshesToScene(Scene& localScene) {
     localScene.addChildNode(&residualFrameNode);
     localScene.addChildNode(&residualFrameWireframesLocal);
     localScene.addChildNode(&depthNode);
-
-    for (int layer = 0; layer < maxLayers - 1; layer++) {
-        localScene.addChildNode(&nodesHidLayer[layer]);
-        localScene.addChildNode(&wireframesHidLayer[layer]);
-        localScene.addChildNode(&depthNodesHidLayer[layer]);
-    }
 }
 
 void QUASARStreamer::setViewSphereDiameter(float viewSphereDiameter) {
@@ -242,7 +267,9 @@ void QUASARStreamer::setViewSphereDiameter(float viewSphereDiameter) {
 
 RenderStats QUASARStreamer::generateFrame(bool createResidualFrame, bool showNormals, bool showDepth) {
     // Reset stats
+    Stats prevStats = stats;
     stats = { 0 };
+    stats.frameSize = prevStats.frameSize; // Keep previous frame size
 
     int currMeshIndex  = meshIndex % 2;
     int prevMeshIndex  = (meshIndex + 1) % 2;
@@ -289,6 +316,7 @@ RenderStats QUASARStreamer::generateFrame(bool createResidualFrame, bool showNor
             remoteRenderer.pipeline.writeMaskState.disableColorWrites();
             wideFovNodes[currMeshIndex].visible = true;
             wideFovNodes[prevMeshIndex].visible = false;
+            setDrawState(QuadMesh::DrawState::BOTH);
             renderStats += remoteRenderer.drawObjectsNoLighting(sceneWideFov, remoteCameraToUse);
 
             // Render remoteScene using stencil buffer as a mask
@@ -309,13 +337,11 @@ RenderStats QUASARStreamer::generateFrame(bool createResidualFrame, bool showNor
         */
         auto oldParams = quadsGenerator->params;
         if (layer == maxLayers - 1) {
-            quadsGenerator->params.depthThreshold = 1e-3f;
             quadsGenerator->params.flattenThreshold = 0.5f;
             quadsGenerator->params.proxySimilarityThreshold = 5.0f;
             quadsGenerator->params.maxIterForceMerge = 4;
         }
         else if (layer > 0) {
-            quadsGenerator->params.depthThreshold = 1e-3f;
             quadsGenerator->params.maxIterForceMerge = 4;
         }
         quadsGenerator->params.expandEdges = false;
@@ -430,74 +456,94 @@ RenderStats QUASARStreamer::generateFrame(bool createResidualFrame, bool showNor
         }
 
         if (!(createResidualFrame && layer == 0)) {
-            stats.totalSizes.numQuads += referenceFrames[layer].getTotalNumQuads();
-            stats.totalSizes.numDepthOffsets += referenceFrames[layer].getTotalNumDepthOffsets();
-            stats.totalSizes.quadsSize += referenceFrames[layer].getTotalQuadsSize();
-            stats.totalSizes.depthOffsetsSize += referenceFrames[layer].getTotalDepthOffsetsSize();
+            stats.proxySizes.numQuads += referenceFrames[layer].getTotalNumQuads();
+            stats.proxySizes.numDepthOffsets += referenceFrames[layer].getTotalNumDepthOffsets();
+            stats.proxySizes.quadsSize += referenceFrames[layer].getTotalQuadsSize();
+            stats.proxySizes.depthOffsetsSize += referenceFrames[layer].getTotalDepthOffsetsSize();
             spdlog::debug("Reference frame generated with {} quads ({:.3f} MB), {} depth offsets ({:.3f} MB)",
                           referenceFrames[layer].getTotalNumQuads(), referenceFrames[layer].getTotalQuadsSize() / BYTES_PER_MEGABYTE,
                           referenceFrames[layer].getTotalNumDepthOffsets(), referenceFrames[layer].getTotalDepthOffsetsSize() / BYTES_PER_MEGABYTE);
         }
         else {
-            stats.totalSizes.numQuads += residualFrame.getTotalNumQuads();
-            stats.totalSizes.numDepthOffsets += residualFrame.getTotalNumDepthOffsets();
-            stats.totalSizes.quadsSize += residualFrame.getTotalQuadsSize();
-            stats.totalSizes.depthOffsetsSize += residualFrame.getTotalDepthOffsetsSize();
-            spdlog::debug("Residual frame generated with {} updated quads ({:.3f} MB) and {} revealed quads ({:.3f} MB), {} updated depth offsets ({:.3f} MB) and {} revealed depth offsets ({:.3f} MB)",
-                          residualFrame.getTotalNumQuadsUpdated(), residualFrame.getTotalQuadsUpdatedSize() / BYTES_PER_MEGABYTE,
-                          residualFrame.getTotalNumQuadsRevealed(), residualFrame.getTotalQuadsRevealedSize() / BYTES_PER_MEGABYTE,
-                          residualFrame.getTotalNumDepthOffsetsUpdated(), residualFrame.getTotalDepthOffsetsUpdatedSize() / BYTES_PER_MEGABYTE,
-                          residualFrame.getTotalNumDepthOffsetsRevealed(), residualFrame.getTotalDepthOffsetsRevealedSize() / BYTES_PER_MEGABYTE);
+            stats.proxySizes.numQuads += residualFrame.getTotalNumQuads();
+            stats.proxySizes.numDepthOffsets += residualFrame.getTotalNumDepthOffsets();
+            stats.proxySizes.quadsSize += residualFrame.getTotalQuadsSize();
+            stats.proxySizes.depthOffsetsSize += residualFrame.getTotalDepthOffsetsSize();
+            spdlog::debug("Residual frame generated with {} quads ({:.3f} MB), {} depth offsets ({:.3f} MB)",
+                          residualFrame.getTotalNumQuads(), residualFrame.getTotalQuadsSize() / BYTES_PER_MEGABYTE,
+                          residualFrame.getTotalNumDepthOffsets(), residualFrame.getTotalDepthOffsetsSize() / BYTES_PER_MEGABYTE);
         }
     }
 
-    // Update texture atlas (tile frames side by side)
+    // Update color and alpha atlases (tile frames side by side)
     uint row = 0, col = 0;
     uint dstWidth = referenceFrameRT.width, dstHeight = referenceFrameRT.height;
     for (int layer = 0; layer < maxLayers; layer++) {
         if (layer == 0) {
-            referenceFrameRT.blit(atlasVideoStreamerRT,
+            referenceFrameRT.blit(videoAtlasStreamerRT,
+                0, 0, referenceFrameRT.width, referenceFrameRT.height,
+                col, row, dstWidth, dstHeight
+            );
+            referenceFrameRT.blit(alphaAtlasRT,
                 0, 0, referenceFrameRT.width, referenceFrameRT.height,
                 col, row, dstWidth, dstHeight
             );
         }
         else {
             int hiddenLayerIndex = layer - 1;
-            frameRTsHidLayer[hiddenLayerIndex].blit(atlasVideoStreamerRT,
+            frameRTsHidLayer[hiddenLayerIndex].blit(videoAtlasStreamerRT,
                 0, 0, frameRTsHidLayer[hiddenLayerIndex].width, frameRTsHidLayer[hiddenLayerIndex].height,
+                col, row, dstWidth, dstHeight
+            );
+            frameRTsHidLayer_noTone[hiddenLayerIndex].blit(alphaAtlasRT,
+                0, 0, frameRTsHidLayer_noTone[hiddenLayerIndex].width, frameRTsHidLayer_noTone[hiddenLayerIndex].height,
                 col, row, dstWidth, dstHeight
             );
         }
         col += referenceFrameRT.width;
         dstWidth += referenceFrameRT.width;
-        if (col >= atlasVideoStreamerRT.width) {
+        if (col >= videoAtlasStreamerRT.width) {
             col = 0;
             dstWidth = referenceFrameRT.width;
 
             row += referenceFrameRT.height;
             dstHeight += referenceFrameRT.height;
-            if (row >= atlasVideoStreamerRT.height) {
+            if (row >= videoAtlasStreamerRT.height) {
                 row = 0;
                 dstHeight = referenceFrameRT.height;
             }
         }
     }
-    residualFrameRT.blit(atlasVideoStreamerRT,
+    residualFrameRT.blit(videoAtlasStreamerRT,
         0, 0, residualFrameRT.width, residualFrameRT.height,
+        col, row, dstWidth, dstHeight
+    );
+    residualFrameRT_noTone.blit(alphaAtlasRT,
+        0, 0, residualFrameRT_noTone.width, residualFrameRT_noTone.height,
         col, row, dstWidth, dstHeight
     );
 
     return renderStats;
 }
 
-void QUASARStreamer::sendProxies(pose_id_t poseID, bool createResidualFrame) {
+void QUASARStreamer::sendFrame(pose_id_t poseID, bool createResidualFrame) {
+    stats.frameSize = writeToMemory(poseID, createResidualFrame, compressedData);
     if (!videoURL.empty() && !proxiesURL.empty()) {
         // Send atlas frame
-        atlasVideoStreamerRT.sendFrame(poseID);
+        videoAtlasStreamerRT.sendFrame(poseID);
         // Send proxies
-        writeToMemory(poseID, createResidualFrame, compressedData);
         send(compressedData);
     }
+}
+
+void QUASARStreamer::writeTexturesToFiles(const Path& outputPath) {
+    // Save color
+    Path colorFileName = (outputPath / "color.jpg");
+    videoAtlasStreamerRT.writeColorAsJPG(colorFileName);
+
+    // Save alpha
+    Path alphaFileName = (outputPath / "alpha.png");
+    alphaAtlasRT.writeAlphaAsPNG(alphaFileName);
 }
 
 size_t QUASARStreamer::writeToFiles(const Path& outputPath) {
@@ -521,9 +567,7 @@ size_t QUASARStreamer::writeToFiles(const Path& outputPath) {
     };
     FileIO::writeToBinaryFile(outputPath / "metadata.bin", &params, sizeof(params));
 
-    // Save color
-    Path colorFileName = outputPath / "color.jpg";
-    atlasVideoStreamerRT.writeColorAsJPG(colorFileName);
+    writeTexturesToFiles(outputPath);
 
     // Save proxies
     size_t totalOutputSize = 0;
@@ -531,8 +575,6 @@ size_t QUASARStreamer::writeToFiles(const Path& outputPath) {
         totalOutputSize += referenceFrames[layer].writeToFiles(outputPath, layer);
     }
     totalOutputSize += residualFrame.writeToFiles(outputPath);
-
-    spdlog::debug("Written output data size: {}", totalOutputSize);
     return totalOutputSize;
 }
 
@@ -543,6 +585,10 @@ size_t QUASARStreamer::writeToMemory(pose_id_t poseID, bool writeResidualFrame, 
     cameraPose.setProjectionMatrix(remoteCamera.getProjectionMatrix());
     cameraPose.setViewMatrix(remoteCamera.getViewMatrix());
     cameraPose.writeToMemory(cameraData);
+
+    // Save alpha data
+    alphaAtlasRT.writeAlphaToMemory(alphaImageData);
+    alphaCodec.compress(alphaImageData.data(), alphaData, alphaImageData.size());
 
     // Save geometry data
     // Save visible layer
@@ -565,16 +611,18 @@ size_t QUASARStreamer::writeToMemory(pose_id_t poseID, bool writeResidualFrame, 
     QUASARReceiver::Header header{
         .poseID = poseID,
         .frameType = !writeResidualFrame ? QuadFrame::FrameType::REFERENCE : QuadFrame::FrameType::RESIDUAL,
-        .cameraSize = static_cast<uint32_t>(cameraData.size()),
         .params {
             .numLayers = static_cast<uint32_t>(geometryMetadatas.size()),
             .viewSphereDiameter = viewSphereDiameter,
             .wideFOV = remoteCameraWideFOV.getFovyDegrees(),
         },
+        .cameraSize = static_cast<uint32_t>(cameraData.size()),
+        .alphaSize = static_cast<uint32_t>(alphaData.size()),
         .geometrySize = geometrySize,
     };
 
     spdlog::debug("Writing camera size: {}", header.cameraSize);
+    spdlog::debug("Writing alpha size: {}", header.alphaSize);
     spdlog::debug("Writing geometry size: {}", header.geometrySize);
 
     outputData.resize(header.getSize());
@@ -587,6 +635,10 @@ size_t QUASARStreamer::writeToMemory(pose_id_t poseID, bool writeResidualFrame, 
     // Write camera data
     std::memcpy(ptr, cameraData.data(), cameraData.size());
     ptr += cameraData.size();
+
+    // Write alpha data
+    std::memcpy(ptr, alphaData.data(), alphaData.size());
+    ptr += alphaData.size();
 
     // Write geometry data
     for (const auto& layerData : geometryMetadatas) {

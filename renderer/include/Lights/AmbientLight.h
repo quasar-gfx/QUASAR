@@ -21,7 +21,8 @@ public:
         : Light({
             .color = params.color,
             .intensity = params.intensity,
-        }) {}
+        })
+    {}
 
     void bindMaterial(const Material* material) override {
         const GPUAmbientLight gpuAmbientLight = toGPULight();

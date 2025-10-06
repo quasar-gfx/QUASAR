@@ -3,27 +3,19 @@
 
 layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = THREADS_PER_LOCALGROUP, local_size_z = 1) in;
 
-layout(std430, binding = 0) readonly buffer NormalSphericalsBufferInput {
-    uint normalSphericalsInput[];
+layout(std430, binding = 0) readonly buffer normalAndDepthBufferInput {
+    uint normalAndDepthInput[];
 };
 
-layout(std430, binding = 1) readonly buffer DepthsBufferInput {
-    float depthsInput[];
-};
-
-layout(std430, binding = 2) buffer MetadatasBufferInput {
+layout(std430, binding = 1) buffer MetadatasBufferInput {
     uint metadatasInput[];
 };
 
-layout(std430, binding = 3) writeonly buffer NormalSphericalsBufferOutput {
-    uint normalSphericalsOutput[];
+layout(std430, binding = 2) writeonly buffer normalAndDepthBufferOutput {
+    uint normalAndDepthOutput[];
 };
 
-layout(std430, binding = 4) writeonly buffer DepthsBufferOutput {
-    float depthsOutput[];
-};
-
-layout(std430, binding = 5) writeonly buffer MetadatasBufferOutput {
+layout(std430, binding = 3) writeonly buffer MetadatasBufferOutput {
     uint metadatasOutput[];
 };
 
@@ -84,14 +76,14 @@ vec3 constrainToMaxAngle(in vec3 centerNormal, in vec3 frustumNormalView) {
     float dotProduct = dot(centerNormal, frustumNormalView);
 
     // Project the centerNormal onto the plane orthogonal to frustumNormalView
-    vec3 frustumNormalUnit = normalize(frustumNormalView);
-    vec3 projectedNormal = centerNormal - dot(centerNormal, frustumNormalUnit) * frustumNormalUnit;
+    vec3 frustumNormal = normalize(frustumNormalView);
+    vec3 projectedNormal = centerNormal - dot(centerNormal, frustumNormal) * frustumNormal;
 
     // Normalize the projected normal and scale it to the cone surface
     vec3 constrainedNormal = normalize(projectedNormal) * sqrt(1.0 - maxCos * maxCos);
 
     // Add the component along the frustumNormalView to make the vector within the cone
-    constrainedNormal += frustumNormalUnit * maxCos;
+    constrainedNormal += frustumNormal * maxCos;
     return normalize(constrainedNormal);
 }
 
@@ -99,38 +91,38 @@ QuadMapData loadInputQuadMap(ivec2 pixelCoord) {
     uint index = uint(pixelCoord.y) * uint(inputQuadMapSize.x) + uint(pixelCoord.x);
 
     QuadMapDataPacked quadMapDataPacked;
-    quadMapDataPacked.normalSpherical = normalSphericalsInput[index];
-    quadMapDataPacked.depth = depthsInput[index];
-    quadMapDataPacked.metadata = metadatasInput[index];
+    quadMapDataPacked.normalAndDepth = normalAndDepthInput[index];
+    quadMapDataPacked.metadata       = metadatasInput[index];
 
     QuadMapData quadMapData;
-    quadMapData.normal = unpackSphericalToNormal(quadMapDataPacked.normalSpherical);
-    quadMapData.depth = quadMapDataPacked.depth;
+    quadMapData.normal = unpackOctahedralToNormal((quadMapDataPacked.normalAndDepth >> 16) & 0xFFFFu);
+    quadMapData.depth  = unpackDepthUNORM16(quadMapDataPacked.normalAndDepth & 0xFFFFu);
 
     quadMapData.offset.x = (quadMapDataPacked.metadata >> 20) & 0xFFFu;
     quadMapData.offset.y = (quadMapDataPacked.metadata >> 8) & 0xFFFu;
 
-    uint flattenedAndSize = quadMapDataPacked.metadata & 0xFFu;
-    quadMapData.size = (flattenedAndSize >> 1) & 0x7Fu;
-    quadMapData.flattened = (flattenedAndSize & 1u) != 0;
+    uint sizeAlphaFlattened = quadMapDataPacked.metadata & 0xFFu;
+    quadMapData.size      = (sizeAlphaFlattened >> 2) & 0x7Fu;
+    quadMapData.hasAlpha  = (sizeAlphaFlattened & 2u) != 0u;
+    quadMapData.flattened = (sizeAlphaFlattened & 1u) != 0u;
 
     return quadMapData;
 }
 
 void storeQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
     QuadMapDataPacked quadMapDataPacked;
-    quadMapDataPacked.normalSpherical = packNormalToSpherical(quadMapData.normal);
-    quadMapDataPacked.depth = quadMapData.depth;
 
-    uint flattenedAndSize = ((quadMapData.size & 0x7Fu) << 1) | (quadMapData.flattened ? 1u : 0u);
+    uint sizeAlphaFlattened = ((quadMapData.size & 0x7Fu)       << 2) |
+                              ((quadMapData.hasAlpha ? 1u : 0u) << 1) |
+                              (quadMapData.flattened ? 1u : 0u);
     quadMapDataPacked.metadata = ((quadMapData.offset.x & 0xFFFu) << 20) |
-                                                    ((quadMapData.offset.y & 0xFFFu) << 8) |
-                                                        (flattenedAndSize & 0xFFu);
+                                 ((quadMapData.offset.y & 0xFFFu) <<  8) |
+                                 (sizeAlphaFlattened & 0xFFu);
 
     uint index = uint(pixelCoord.y) * uint(outputQuadMapSize.x) + uint(pixelCoord.x);
-    normalSphericalsOutput[index] = quadMapDataPacked.normalSpherical;
-    depthsOutput[index] = quadMapDataPacked.depth;
-    metadatasOutput[index] = quadMapDataPacked.metadata;
+    normalAndDepthOutput[index] = ((packNormalToOctahedral(quadMapData.normal) & 0xFFFFu) << 16) |
+                                  (packDepthUNORM16(quadMapData.depth) & 0xFFFFu);
+    metadatasOutput[index]      = quadMapDataPacked.metadata;
 }
 
 void ignoreInputQuadMapData(in ivec2 pixelCoord) {
@@ -146,7 +138,7 @@ Plane quadMapDataToPlane(in QuadMapData quadMapData) {
     Plane proxyPlane;
 
     uint halfSize = 1u << (quadMapData.size - 1u); // 2^size / 2
-    vec2 proxyPlaneUV =(vec2(quadMapData.offset) + float(halfSize) * vec2(0.5)) / gBufferSize;
+    vec2 proxyPlaneUV = (vec2(quadMapData.offset) + float(halfSize) * vec2(0.5)) / gBufferSize;
     float proxyPlaneDepth = quadMapData.depth;
     proxyPlane.normal = quadMapData.normal;
 
@@ -245,8 +237,8 @@ bool planeEquationsSimilar(in vec4 planeEq1, in vec4 planeEq2) {
 
 bool shouldMerge(
     in Plane proxyPlaneBottomLeft, in Plane proxyPlaneBottomRight,
-    in Plane proxyPlaneTopLeft, in Plane proxyPlaneTopRight
-) {
+    in Plane proxyPlaneTopLeft, in Plane proxyPlaneTopRight)
+{
     vec4 proxyPlaneEqBottomLeft  = planeToPlaneEq(proxyPlaneBottomLeft);
     vec4 proxyPlaneEqBottomRight = planeToPlaneEq(proxyPlaneBottomRight);
     vec4 proxyPlaneEqTopLeft     = planeToPlaneEq(proxyPlaneTopLeft);
@@ -275,10 +267,10 @@ Plane averagePlanes(in Plane plane1, in Plane plane2, in Plane plane3, in Plane 
 void recalcDepthOffsets(
     in Plane newProxyPlane,
     in QuadMapData quadMapData, in Plane proxyPlane,
-    inout int numBelowThreshold, inout int total
-) {
+    inout int numBelowThreshold, inout int total)
+{
     uint halfSize = 1u << (quadMapData.size - 1u); // 2^size / 2
-    vec2 proxyPlaneUV =(vec2(quadMapData.offset) + float(halfSize) * vec2(0.5)) / gBufferSize;
+    vec2 proxyPlaneUV = (vec2(quadMapData.offset) + float(halfSize) * vec2(0.5)) / gBufferSize;
     vec2 proxyPlanePixelCoords = vec2(proxyPlaneUV * gBufferSize);
 
     uint size = 1 << quadMapData.size;
@@ -381,11 +373,13 @@ void mergeQuadMapData(
         }
     }
 
-    mergedQuadMapData.flattened = flattened;
     mergedQuadMapData.normal = newProxyPlane.normal;
     mergedQuadMapData.depth = newProxyPlaneDepth;
     mergedQuadMapData.offset = quadMapDataBottomLeft.offset;
     mergedQuadMapData.size = quadMapDataBottomLeft.size + 1;
+    mergedQuadMapData.flattened = flattened;
+    mergedQuadMapData.hasAlpha = (quadMapDataBottomLeft.hasAlpha || quadMapDataBottomRight.hasAlpha ||
+                                  quadMapDataTopLeft.hasAlpha || quadMapDataTopRight.hasAlpha);
 }
 
 void main() {

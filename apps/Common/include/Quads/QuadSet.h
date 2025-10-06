@@ -16,6 +16,7 @@ class QuadSet {
 public:
     struct Sizes {
         size_t numQuads = 0;
+        size_t numQuadsTransparent = 0;
         size_t numDepthOffsets = 0;
         double quadsSize = 0.0;
         double depthOffsetsSize = 0.0;
@@ -23,6 +24,7 @@ public:
         Sizes operator+(const Sizes& other) const {
             return {
                 numQuads + other.numQuads,
+                numQuadsTransparent + other.numQuadsTransparent,
                 numDepthOffsets + other.numDepthOffsets,
                 quadsSize + other.quadsSize,
                 depthOffsetsSize + other.depthOffsetsSize
@@ -30,6 +32,7 @@ public:
         }
         Sizes& operator+=(const Sizes& other) {
             numQuads += other.numQuads;
+            numQuadsTransparent += other.numQuadsTransparent;
             numDepthOffsets += other.numDepthOffsets;
             quadsSize += other.quadsSize;
             depthOffsetsSize += other.depthOffsetsSize;
@@ -54,16 +57,20 @@ public:
         return frameSize;
     }
 
-    uint getNumProxies() const {
+    size_t getNumProxies() const {
         return quadBuffers.numProxies;
     }
 
-    uint getNumDepthOffsets() const {
+    size_t getNumProxiesTransparent() const {
+        return quadBuffers.numProxiesTransparent;
+    }
+
+    size_t getNumDepthOffsets() const {
         return depthOffsets.getSize().x * depthOffsets.getSize().y;
     }
 
-    void setNumProxies(int numProxies) {
-        quadBuffers.resize(numProxies);
+    void setNumProxies(int numProxies, int numProxiesTransparent) {
+        quadBuffers.resize(numProxies, numProxiesTransparent);
     }
 
     Sizes writeToMemory(std::vector<char>& outputQuads, std::vector<char>& outputDepthOffsets, bool applyDeltaEncoding = true) {
@@ -78,6 +85,7 @@ public:
 
         return {
             quadBuffers.numProxies,
+            quadBuffers.numProxiesTransparent,
             depthOffsets.getSize().x * depthOffsets.getSize().y,
             static_cast<double>(outputQuads.size()),
             static_cast<double>(outputDepthOffsets.size()),
@@ -92,6 +100,7 @@ public:
 
         return {
             quadBuffers.numProxies,
+            quadBuffers.numProxiesTransparent,
             depthOffsets.getSize().x * depthOffsets.getSize().y,
             static_cast<double>(quadsSize),
             static_cast<double>(inputDepthOffsets.size())

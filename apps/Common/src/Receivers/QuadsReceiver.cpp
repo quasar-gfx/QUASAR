@@ -23,9 +23,19 @@ QuadsReceiver::QuadsReceiver(QuadSet& quadSet, const std::string& videoURL, cons
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST,
     }, videoURL)
-    , referenceFrameMesh(quadSet, videoAtlasTexture, glm::vec4(0.0f, 0.0f, 0.5f, 1.0f))
+    , alphaAtlasTexture({
+        .width = 2 * quadSet.getSize().x,
+        .height = quadSet.getSize().y,
+        .internalFormat = GL_R8,
+        .format = GL_RED,
+        .type = GL_UNSIGNED_BYTE,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE
+    })
+    , alphaCodec(alphaAtlasTexture.width, alphaAtlasTexture.height)
+    , referenceFrameMesh(quadSet, videoAtlasTexture, alphaAtlasTexture, glm::vec4(0.0f, 0.0f, 0.5f, 1.0f))
     // We can use less vertices and indicies for the mask since it will be sparse
-    , residualFrameMesh(quadSet, videoAtlasTexture, glm::vec4(0.5f, 0.0f, 1.0f, 1.0f))
+    , residualFrameMesh(quadSet, videoAtlasTexture, alphaAtlasTexture, glm::vec4(0.5f, 0.0f, 1.0f, 1.0f))
     , DataReceiverTCP(proxiesURL)
 {
     remoteCameraPrev.setProjectionMatrix(remoteCamera.getProjectionMatrix());
@@ -93,6 +103,10 @@ QuadFrame::FrameType QuadsReceiver::recvData() {
         videoAtlasTexture.bind();
         videoAtlasTexture.draw(frame->poseID);
 
+        // Update alpha texture
+        alphaAtlasTexture.bind();
+        alphaAtlasTexture.loadFromData(frame->alphaData.data());
+
         // Reconstruct meshes from frame
         frameType = reconstructFrame(frame);
 
@@ -118,6 +132,10 @@ QuadFrame::FrameType QuadsReceiver::loadFromFiles(const Path& dataPath) {
     // Read color data
     Path colorFileName = dataPath / "color.jpg";
     videoAtlasTexture.loadFromFile(colorFileName, true, false);
+
+    // Read alpha data
+    Path alphaFileName = dataPath / "alpha.png";
+    alphaAtlasTexture.loadFromFile(alphaFileName, true, false);
 
     // Read previous camera data
     Path cameraFileNamePrev = dataPath / "camera_prev.bin";
@@ -190,11 +208,16 @@ QuadFrame::FrameType QuadsReceiver::loadFromMemory(const std::vector<char>& inpu
     frame->frameType = header.frameType;
 
     spdlog::debug("Loading camera size: {}", header.cameraSize);
+    spdlog::debug("Loading alpha size: {}", header.alphaSize);
     spdlog::debug("Loading geometry size: {}", header.geometrySize);
 
     // Read camera data
     frame->cameraPose.loadFromMemory(ptr, header.cameraSize);
     ptr += header.cameraSize;
+
+    // Read alpha data
+    alphaCodec.decompress(ptr, frame->alphaData, header.alphaSize);
+    ptr += header.alphaSize;
 
     // Read geometry data
     if (header.frameType == QuadFrame::FrameType::REFERENCE) {
