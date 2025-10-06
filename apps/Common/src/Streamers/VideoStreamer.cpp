@@ -9,8 +9,8 @@ using namespace quasar;
 VideoStreamer::VideoStreamer(
         const RenderTargetCreateParams& params,
         const std::string& videoURL,
-        int maxFrameRate,
-        int targetBitRateMbps,
+        uint maxFrameRate,
+        uint targetBitRateMbps,
         bool useRTP)
     : videoURL(videoURL)
     , videoWidth(params.width + poseIDOffset)
@@ -45,7 +45,7 @@ VideoStreamer::VideoStreamer(
     auto [host, port] = networkutils::parseIPAddressAndPort(videoURL);
 
     std::string encoderParams;
-    const int gopFrames = std::max(1, maxFrameRate); // 1 second GOP at worst case FPS
+    const uint gopFrames = std::max(1u, maxFrameRate); // 1 second GOP at worst case FPS
 #if defined(QUASAR_HAS_CUDA)
     encoderParams = "nvh264enc preset=4 rc-mode=cbr zerolatency=true "
                     "bframes=0 gop-size=" + std::to_string(gopFrames);
@@ -149,13 +149,13 @@ void VideoStreamer::packPoseIDIntoVideoFrame(pose_id_t poseID, uint8_t* data) {
 }
 
 void VideoStreamer::encodeAndSendFrames() {
-    time_t prevTime = timeutils::getTimeMicros();
+    double prevTime = timeutils::getTimeMicros();
 
     while (!shouldTerminate) {
         double frameIntervalSec = 1.0 / maxFrameRate;
-        time_t frameStart = timeutils::getTimeMicros();
+        double frameStart = timeutils::getTimeMicros();
 
-        time_t startTransferTimeMs = timeutils::getTimeMicros();
+        double startTransferTimeMs = timeutils::getTimeMicros();
         VideoFrame videoFrame;
         if (!videoFrameQueue.try_dequeue(videoFrame)) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -180,7 +180,7 @@ void VideoStreamer::encodeAndSendFrames() {
         gst_buffer_unmap(buffer, &map);
         stats.transferTimeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTransferTimeMs);
 
-        time_t startEncode = timeutils::getTimeMicros();
+        double startEncode = timeutils::getTimeMicros();
 
         GstFlowReturn ret = gst_app_src_push_buffer(GST_APP_SRC(appsrc), buffer);
         if (ret != GST_FLOW_OK) {
@@ -188,7 +188,7 @@ void VideoStreamer::encodeAndSendFrames() {
         }
         framesSent++;
 
-        time_t frameEnd = timeutils::getTimeMicros();
+        double frameEnd = timeutils::getTimeMicros();
 
         stats.encodeTimeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startEncode);
 

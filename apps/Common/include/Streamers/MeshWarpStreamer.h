@@ -31,6 +31,13 @@ public:
     BC4DepthStreamer depthStreamerRT;
     RenderTarget renderTarget;
 
+    struct Stats {
+        double totalRenderTimeMs = 0.0;
+        double totalGenMeshTime = 0.0;
+        double totalCompressTimeMs = 0.0;
+        size_t compressedSize = 0;
+    } stats;
+
     MeshWarpStreamer(
         DeferredRenderer& remoteRenderer,
         Scene& remoteScene,

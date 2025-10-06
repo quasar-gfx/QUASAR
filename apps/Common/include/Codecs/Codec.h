@@ -18,16 +18,16 @@ public:
     virtual ~Codec() = default;
 
     virtual size_t compress(const void* uncompressedData, std::vector<char>& compressedData, size_t numBytesUncompressed) = 0;
-    virtual size_t decompress(const std::vector<char>& compressedData, std::vector<char>& decompressedData) = 0;
+    virtual size_t decompress(const void* compressedData, std::vector<char>& decompressedData, size_t numBytesCompressed) = 0;
 
     virtual std::future<size_t> compressAsync(const void* uncompressedData, std::vector<char>& compressedData, size_t numBytesUncompressed) {
-        return std::async(std::launch::async, [this, uncompressedData, &compressedData, numBytesUncompressed]() {
+        return std::async(std::launch::async, [=, this, &compressedData]() {
             return this->compress(uncompressedData, compressedData, numBytesUncompressed);
         });
     }
-    virtual std::future<size_t> decompressAsync(const std::vector<char>& compressedData, std::vector<char>& decompressedData) {
-        return std::async(std::launch::async, [this, &compressedData, &decompressedData]() {
-            return this->decompress(compressedData, decompressedData);
+    virtual std::future<size_t> decompressAsync(const void* compressedData, std::vector<char>& decompressedData, size_t numBytesCompressed) {
+        return std::async(std::launch::async, [=, this, &decompressedData]() {
+            return this->decompress(compressedData, decompressedData, numBytesCompressed);
         });
     }
 };

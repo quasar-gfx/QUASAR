@@ -10,6 +10,7 @@
 #include <Shaders/ComputeShader.h>
 #include <RenderTargets/RenderTarget.h>
 #include <Networking/DataStreamerTCP.h>
+#include <Receivers/BC4DepthVideoTexture.h>
 
 #include <Path.h>
 #include <Codecs/BC4.h>
@@ -39,34 +40,27 @@ public:
         double compressionRatio = 0.0;
     } stats;
 
-    BC4DepthStreamer(const RenderTargetCreateParams& params, const std::string& receiverURL = "");
+    BC4DepthStreamer(const RenderTargetCreateParams& params, const std::string& receiverURL = "", uint maxFrameRate = 30);
     ~BC4DepthStreamer();
 
     void stop();
 
-    float getFrameRate() const {
-        return 1.0f / timeutils::millisToSeconds(stats.sendTimeMs);
-    }
+    float getFrameRate() const { return 1.0f / timeutils::millisToSeconds(stats.sendTimeMs); }
 
-    void setTargetFrameRate(int targetFrameRate) {
-        this->targetFrameRate = targetFrameRate;
-    }
-
-    size_t compress(bool compress = false);
+    size_t generateFrame();
     void sendFrame(pose_id_t poseID);
     size_t writeToFile(const Path& filename);
+    size_t writeToMemory(pose_id_t poseID, std::vector<char>& outputData);
 
 private:
-    int targetFrameRate = 30;
+    uint maxFrameRate;
 
-    std::vector<char> data;
+    std::vector<char> dataBC4;
+    std::vector<char> dataZSTD;
     std::vector<char> compressedData;
+
     ZSTDCodec codec;
-
     ComputeShader bc4CompressionShader;
-
-    size_t applyCodec();
-    void writeToMemory(pose_id_t poseID = -1, void* cudaPtr = nullptr);
 
 #if defined(QUASAR_HAS_CUDA)
     CudaGLBuffer cudaBufferBC4;

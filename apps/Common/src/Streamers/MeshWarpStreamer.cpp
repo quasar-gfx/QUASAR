@@ -53,7 +53,7 @@ MeshWarpStreamer::MeshWarpStreamer(
         .wrapT = GL_CLAMP_TO_EDGE,
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST,
-    }, depthURL)
+    }, depthURL, params.maxFrameRate)
     , meshFromBC4Shader({
         .computeCodeData = SHADER_COMMON_MESH_FROM_BC4_COMP,
         .computeCodeSize = SHADER_COMMON_MESH_FROM_BC4_COMP_len,
@@ -61,14 +61,14 @@ MeshWarpStreamer::MeshWarpStreamer(
             "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
         }
     })
-    , depthEffect(remoteCamera)
-    , meshMaterial({ .baseColorTexture = &videoStreamerRT.colorTexture })
+    , meshMaterial({ .baseColorTexture = &renderTarget.colorTexture })
     , mesh({
         .maxVertices = adjustedSize.x * adjustedSize.y,
         .maxIndices = (adjustedSize.x - 1) * (adjustedSize.y - 1) * 2 * 3,
         .material = &meshMaterial,
         .usage = GL_DYNAMIC_DRAW
     })
+    , depthEffect(remoteCamera)
 {
     meshFromBC4Shader.bind();
     meshFromBC4Shader.setBool("unlinearizeDepth", true);
@@ -77,16 +77,29 @@ MeshWarpStreamer::MeshWarpStreamer(
 }
 
 RenderStats MeshWarpStreamer::generateFrame() {
+    // Reset stats
+    stats = {};
+
     // Render all objects in scene
+    double startTime = timeutils::getTimeMicros();
     RenderStats renderStats = remoteRenderer.drawObjects(remoteScene, remoteCamera);
 
     // Copy to intermediate render target
+    tonemapper.enableTonemapping(false);
+    tonemapper.drawToRenderTarget(remoteRenderer, renderTarget);
     remoteRenderer.outputRT.blit(renderTarget);
 
     // Copy color and depth to video frames
+    tonemapper.enableTonemapping(true);
     tonemapper.drawToRenderTarget(remoteRenderer, videoStreamerRT);
     depthEffect.drawToRenderTarget(remoteRenderer, depthStreamerRT);
+    stats.totalRenderTimeMs = timeutils::getTimeMicros() - startTime;
 
+    // Compress depth map to BC4 format with ZSTD
+    stats.compressedSize = depthStreamerRT.generateFrame();
+    stats.totalCompressTimeMs = depthStreamerRT.stats.compressTimeMs;
+
+    startTime = timeutils::getTimeMicros();
     meshFromBC4Shader.bind();
     {
         meshFromBC4Shader.setMat4("projection", remoteCamera.getProjectionMatrix());
@@ -107,6 +120,7 @@ RenderStats MeshWarpStreamer::generateFrame() {
                                (adjustedSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
     meshFromBC4Shader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
                                     GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+    stats.totalGenMeshTime = timeutils::getTimeMicros() - startTime;
 
     return renderStats;
 }
@@ -117,8 +131,6 @@ void MeshWarpStreamer::sendFrame(pose_id_t poseID) {
 }
 
 size_t MeshWarpStreamer::writeToFiles(const Path& outputPath) {
-    double startTime = timeutils::getTimeMicros();
-
     // Save camera data
     Pose cameraPose;
     Path cameraFileName = (outputPath / "camera").withExtension(".bin");
@@ -133,10 +145,6 @@ size_t MeshWarpStreamer::writeToFiles(const Path& outputPath) {
     // Save depth
     Path depthFileName = (outputPath / "depth").withExtension(".bc4.zstd");
     size_t totalBytes = depthStreamerRT.writeToFile(depthFileName);
-
-    spdlog::info("Saved {:.3f}MB in {:.3f}ms",
-                 static_cast<double>(totalBytes) / BYTES_PER_MEGABYTE,
-                 timeutils::microsToMillis(timeutils::getTimeMicros() - startTime));
 
     return totalBytes;
 }

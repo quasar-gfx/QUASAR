@@ -182,7 +182,6 @@ int main(int argc, char** argv) {
 
     RenderStats renderStats;
     bool recording = false;
-    uint compressedSize = 0;
     guiManager->onRender([&](double now, double dt) {
         static bool showFPS = true;
         static bool showUI = !saveImages;
@@ -249,7 +248,7 @@ int main(int argc, char** argv) {
             else
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
 
-            ImGui::TextColored(ImVec4(0,1,1,1), "Data Size: %.3f MB", static_cast<float>(compressedSize) / BYTES_PER_MEGABYTE);
+            ImGui::TextColored(ImVec4(0,1,1,1), "Data Size: %.3f MB", static_cast<float>(meshWarpStreamer.stats.compressedSize) / BYTES_PER_MEGABYTE);
 
             ImGui::Separator();
 
@@ -390,7 +389,7 @@ int main(int argc, char** argv) {
             ImGui::Begin("Mesh Capture", &showMeshCaptureWindow);
 
             if (ImGui::Button("Save Depth")) {
-                meshWarpStreamer.writeToFiles(outputPath);
+                spdlog::info("Saved {} bytes to {}", meshWarpStreamer.writeToFiles(outputPath), outputPath.absolutePathStr());
             }
 
             ImGui::End();
@@ -481,11 +480,6 @@ int main(int argc, char** argv) {
             }
             lasttotalRenderTime = now;
 
-            double startTime = window->getTime();
-            double totalRenderTimeMs = 0.0;
-            double totalGenMeshTime = 0.0;
-            double totalCompressTimeMs = 0.0;
-
             // "Send" pose to the server. this will wait until latency+/-jitter ms have passed
             poseSendRecvSimulator.sendPose(camera, now);
             if (!preventCopyingLocalPose) {
@@ -497,27 +491,14 @@ int main(int argc, char** argv) {
                 // If we do not have a new pose, just send a new frame with the old pose
             }
 
-            // Render remoteScene
-            remoteRenderer.drawObjects(remoteScene, remoteCamera);
-
             // Generate new frame
             meshWarpStreamer.generateFrame();
 
-            totalRenderTimeMs = timeutils::secondsToMillis(window->getTime() - startTime);
-
-            // Compress depth map to BC4 format with ZSTD
-            compressedSize = meshWarpStreamer.depthStreamerRT.compress(true);
-            totalCompressTimeMs = meshWarpStreamer.depthStreamerRT.stats.compressTimeMs;
-
-            startTime = window->getTime();
-            meshWarpStreamer.generateFrame();
-            totalGenMeshTime += timeutils::secondsToMillis(window->getTime() - startTime);
-
             spdlog::info("======================================================");
-            spdlog::info("Rendering Time: {:.3f}ms", totalRenderTimeMs);
-            spdlog::info("Create Mesh Time: {:.3f}ms", totalGenMeshTime);
-            spdlog::info("Compress Time: {:.3f}ms", totalCompressTimeMs);
-            spdlog::info("Frame Size: {:.3f}MB", static_cast<float>(compressedSize) / BYTES_PER_MEGABYTE);
+            spdlog::info("Rendering Time: {:.3f}ms", meshWarpStreamer.stats.totalRenderTimeMs);
+            spdlog::info("Create Mesh Time: {:.3f}ms", meshWarpStreamer.stats.totalGenMeshTime);
+            spdlog::info("Compress Time: {:.3f}ms", meshWarpStreamer.stats.totalCompressTimeMs);
+            spdlog::info("Frame Size: {:.3f}MB", static_cast<float>(meshWarpStreamer.stats.compressedSize) / BYTES_PER_MEGABYTE);
 
             preventCopyingLocalPose = false;
             sendRemoteFrame = false;
@@ -533,7 +514,6 @@ int main(int argc, char** argv) {
         // Render generated meshes
         renderStats = renderer.drawObjects(scene, camera);
 
-        tonemapper.enableTonemapping(true);
         tonemapper.drawToScreen(renderer);
         if (!updateClient) {
             return;

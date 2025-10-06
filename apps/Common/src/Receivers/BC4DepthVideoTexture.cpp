@@ -39,16 +39,34 @@ pose_id_t BC4DepthVideoTexture::getLatestPoseID() {
 }
 
 void BC4DepthVideoTexture::onDataReceived(const std::vector<char>& compressedData) {
-    // Decompress
-    time_t startTime = timeutils::getTimeMicros();
-    codec.decompress(compressedData, decompressedData);
-    stats.decompressTimeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+    double startTime = timeutils::getTimeMicros();
 
-    stats.compressionRatio = static_cast<float>(decompressedData.size()) / compressedData.size();
+    spdlog::debug("Loading inputData of size {}", compressedData.size());
+
+    // Unpack frame
+    const char* ptr = compressedData.data();
+    Header header;
+    std::memcpy(&header, ptr, sizeof(Header));
+    ptr += sizeof(Header);
+
+    // Sanity check
+    size_t expectedSize = header.getSize();
+    if (compressedData.size() < expectedSize) {
+        throw std::runtime_error("Input data size " +
+                                  std::to_string(compressedData.size()) +
+                                  " is smaller than expected from header " +
+                                  std::to_string(expectedSize));
+    }
+
+    spdlog::debug("Loading depth size: {}", header.depthSize);
 
     // Extract pose ID
-    pose_id_t poseID;
-    std::memcpy(&poseID, decompressedData.data(), sizeof(pose_id_t));
+    pose_id_t poseID = header.poseID;
+
+    // Decompress
+    size_t decompressedSize = codec.decompress(ptr, decompressedData, header.depthSize);
+    stats.decompressTimeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+    stats.compressionRatio = static_cast<float>(decompressedSize) / compressedData.size();
 
     {
         std::unique_lock<std::mutex> lock(m);
@@ -57,15 +75,15 @@ void BC4DepthVideoTexture::onDataReceived(const std::vector<char>& compressedDat
             FrameData frame = std::move(frames.front());
             frames.pop_front();
             frame.poseID = poseID;
-            frame.buffer.resize(decompressedData.size() - sizeof(pose_id_t));
-            std::memcpy(frame.buffer.data(), decompressedData.data() + sizeof(pose_id_t), frame.buffer.size());
+            frame.buffer.resize(decompressedData.size());
+            std::memcpy(frame.buffer.data(), decompressedData.data(), frame.buffer.size());
             frames.push_back(std::move(frame));
         }
         else {
             FrameData frame;
             frame.poseID = poseID;
-            frame.buffer.resize(decompressedData.size() - sizeof(pose_id_t));
-            std::memcpy(frame.buffer.data(), decompressedData.data() + sizeof(pose_id_t), frame.buffer.size());
+            frame.buffer.resize(decompressedData.size());
+            std::memcpy(frame.buffer.data(), decompressedData.data(), frame.buffer.size());
             frames.push_back(std::move(frame));
         }
     }

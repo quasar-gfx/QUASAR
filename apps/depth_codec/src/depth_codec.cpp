@@ -87,7 +87,7 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera = PerspectiveCamera(windowSize);
     camera.setViewMatrix(remoteCamera.getViewMatrix());
 
-    BC4DepthStreamer bc4DepthStreamerRT = BC4DepthStreamer({
+    BC4DepthStreamer bc4DepthStreamerRT({
         .width = windowSize.x,
         .height = windowSize.y,
         .internalFormat = GL_R32F,
@@ -359,7 +359,7 @@ int main(int argc, char** argv) {
 
         // Compress with BC4
         showDepthEffect.drawToRenderTarget(remoteRenderer, bc4DepthStreamerRT);
-        bc4DepthStreamerRT.compress();
+        bc4DepthStreamerRT.generateFrame();
 
         // Generate mesh using compressed depth data
         meshFromBC4Shader.bind();

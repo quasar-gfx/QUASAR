@@ -30,13 +30,13 @@ public:
         return res;
     }
 
-    size_t decompress(const std::vector<char>& compressedData, std::vector<char>& decompressedData) override {
+    size_t decompress(const void* compressedData, std::vector<char>& decompressedData, size_t numBytesCompressed) override {
         double startTime = timeutils::getTimeMicros();
 
         auto res = LZ4_decompress_safe(
-            (const char*)compressedData.data(),
+            (const char*)compressedData,
             decompressedData.data(),
-            compressedData.size(),
+            numBytesCompressed,
             decompressedData.size());
 
         stats.decompressTimeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);

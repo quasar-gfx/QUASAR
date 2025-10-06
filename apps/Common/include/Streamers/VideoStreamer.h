@@ -33,8 +33,8 @@ public:
     VideoStreamer(
         const RenderTargetCreateParams& params,
         const std::string& videoURL,
-        int maxFrameRate = 30,
-        int targetBitRateMbps = 12,
+        uint maxFrameRate = 30,
+        uint targetBitRateMbps = 12,
         bool useRTP = false);
     ~VideoStreamer();
 

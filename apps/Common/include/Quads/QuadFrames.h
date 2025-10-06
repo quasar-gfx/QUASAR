@@ -66,10 +66,10 @@ public:
     }
 
     size_t decompressQuads(std::vector<char>& outputQuads) {
-        return refQuadsCodec.decompress(quads, outputQuads);
+        return refQuadsCodec.decompress(quads.data(), outputQuads, quads.size());
     }
     size_t decompressDepthOffsets(std::vector<char>& outputOffsets) {
-        return refOffsetsCodec.decompress(depthOffsets, outputOffsets);
+        return refOffsetsCodec.decompress(depthOffsets.data(), outputOffsets, depthOffsets.size());
     }
 
     double getCompressTime() const {
@@ -240,16 +240,16 @@ public:
     }
 
     size_t decompressUpdatedQuads(std::vector<char>& outputQuads) {
-        return resQuadsUpdatedCodec.decompress(quadsUpdated, outputQuads);
+        return resQuadsUpdatedCodec.decompress(quadsUpdated.data(), outputQuads, quadsUpdated.size());
     }
     size_t decompressRevealedQuads(std::vector<char>& outputQuads) {
-        return resQuadsRevealedCodec.decompress(quadsRevealed, outputQuads);
+        return resQuadsRevealedCodec.decompress(quadsRevealed.data(), outputQuads, quadsRevealed.size());
     }
     size_t decompressUpdatedDepthOffsets(std::vector<char>& outputOffsets) {
-        return resOffsetsUpdatedCodec.decompress(depthOffsetsUpdated, outputOffsets);
+        return resOffsetsUpdatedCodec.decompress(depthOffsetsUpdated.data(), outputOffsets, depthOffsetsUpdated.size());
     }
     size_t decompressRevealedDepthOffsets(std::vector<char>& outputOffsets) {
-        return resOffsetsRevealedCodec.decompress(depthOffsetsRevealed, outputOffsets);
+        return resOffsetsRevealedCodec.decompress(depthOffsetsRevealed.data(), outputOffsets, depthOffsetsRevealed.size());
     }
 
     double getCompressTime() const {

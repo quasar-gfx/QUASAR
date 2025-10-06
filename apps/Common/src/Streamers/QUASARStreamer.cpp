@@ -575,7 +575,7 @@ size_t QUASARStreamer::writeToMemory(pose_id_t poseID, bool writeResidualFrame, 
     spdlog::debug("Writing camera size: {}", header.cameraSize);
     spdlog::debug("Writing geometry size: {}", header.geometrySize);
 
-    outputData.resize(sizeof(header) + cameraData.size() + geometrySize);
+    outputData.resize(header.getSize());
     char* ptr = outputData.data();
 
     // Write header

@@ -47,12 +47,12 @@ public:
         return res;
     }
 
-    size_t decompress(const std::vector<char>& compressedData, std::vector<char>& decompressedData) override {
+    size_t decompress(const void* compressedData, std::vector<char>& decompressedData, size_t numBytesCompressed) override {
         double startTime = timeutils::getTimeMicros();
 
         auto res = ZSTD_decompressDCtx(decompressionCtx,
             decompressedData.data(), decompressedData.size(),
-            compressedData.data(), compressedData.size());
+            compressedData, numBytesCompressed);
 
         stats.decompressTimeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 

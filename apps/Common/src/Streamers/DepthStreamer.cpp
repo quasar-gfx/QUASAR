@@ -86,7 +86,7 @@ void DepthStreamer::sendData() {
         cudaArray_t cudaBuffer = cudaBufferStruct.buffer;
         pose_id_t poseIDToSend = cudaBufferStruct.poseID;
 
-        time_t startTransferTimeMs = timeutils::getTimeMicros();
+        double startTransferTimeMs = timeutils::getTimeMicros();
 
         std::memcpy(data.data(), &poseIDToSend, sizeof(pose_id_t));
 

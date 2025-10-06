@@ -3,11 +3,11 @@
 using namespace quasar;
 
 QuadsStreamer::QuadsStreamer(
-    QuadSet& quadSet,
-    DeferredRenderer& remoteRenderer,
-    Scene& remoteScene,
-    PerspectiveCamera& remoteCamera,
-    const QuadsStreamerCreateParams& params)
+        QuadSet& quadSet,
+        DeferredRenderer& remoteRenderer,
+        Scene& remoteScene,
+        PerspectiveCamera& remoteCamera,
+        const QuadsStreamerCreateParams& params)
     : quadSet(quadSet)
     , videoURL(params.videoURL)
     , proxiesURL(params.proxiesURL)
@@ -361,7 +361,7 @@ size_t QuadsStreamer::writeToMemory(pose_id_t poseID, bool writeResidualFrame, s
     spdlog::debug("Writing camera size: {}", header.cameraSize);
     spdlog::debug("Writing geometry size: {}", header.geometrySize);
 
-    outputData.resize(sizeof(header) + cameraData.size() + geometryData.size());
+    outputData.resize(header.getSize());
     char* ptr = outputData.data();
 
     // Write header

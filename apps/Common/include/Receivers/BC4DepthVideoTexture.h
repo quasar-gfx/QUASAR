@@ -18,6 +18,13 @@ namespace quasar {
 
 class BC4DepthVideoTexture : public Texture, public DataReceiverTCP {
 public:
+    struct Header {
+        pose_id_t poseID;
+        uint32_t depthSize;
+
+        size_t getSize() const { return sizeof(Header) + depthSize; }
+    };
+
     uint width, height;
 
     Buffer bc4CompressedBuffer;
@@ -44,7 +51,7 @@ public:
     void loadFromFile(const Path& dataPath);
 
 private:
-    time_t prevTime = timeutils::getTimeMicros();
+    double prevTime = timeutils::getTimeMicros();
     pose_id_t prevPoseID = -1;
     size_t maxQueueSize = 6;
 

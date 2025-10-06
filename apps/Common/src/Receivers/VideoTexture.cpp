@@ -190,15 +190,15 @@ void VideoTexture::resize(uint width, uint height) {
 }
 
 void VideoTexture::receiveFrame() {
-    time_t prevTime = timeutils::getTimeMicros();
-    time_t lastBitrateCalcTime = 0;
+    double prevTime = timeutils::getTimeMicros();
+    double lastBitrateCalcTime = 0;
 
     GstSample* sample = nullptr;
     GstBuffer* buffer = nullptr;
     GstMapInfo map;
 
     while (!shouldTerminate) {
-        time_t frameStart = timeutils::getTimeMicros();
+        double frameStart = timeutils::getTimeMicros();
 
         // Get a sample from appsink
         sample = gst_app_sink_try_pull_sample(GST_APP_SINK(appsink), GST_SECOND / 2);
@@ -243,13 +243,13 @@ void VideoTexture::receiveFrame() {
         gst_sample_unref(sample);
         framesReceived++;
 
-        time_t frameEnd = timeutils::getTimeMicros();
+        double frameEnd = timeutils::getTimeMicros();
 
         stats.receiveTimeMs = timeutils::microsToMillis(frameEnd - frameStart);
 
         // Bitrate calculation from pad probe
-        time_t now = timeutils::getTimeMicros();
-        time_t deltaSec = timeutils::microsToSeconds(now - lastBitrateCalcTime);
+        double now = timeutils::getTimeMicros();
+        double deltaSec = timeutils::microsToSeconds(now - lastBitrateCalcTime);
         if (deltaSec > 0.1) {
             stats.bitrateMbps = ((totalBytesRecv * 8.0) / BYTES_PER_MEGABYTE) / deltaSec;
             totalBytesRecv = 0;
