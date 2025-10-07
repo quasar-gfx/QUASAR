@@ -7,7 +7,6 @@
 #define THREADS_PER_LOCALGROUP 16
 #endif
 
-
 using namespace quasar;
 
 MeshWarpStreamer::MeshWarpStreamer(
@@ -29,8 +28,8 @@ MeshWarpStreamer::MeshWarpStreamer(
         .type = GL_HALF_FLOAT,
         .wrapS = GL_CLAMP_TO_EDGE,
         .wrapT = GL_CLAMP_TO_EDGE,
-        .minFilter = GL_NEAREST,
-        .magFilter = GL_NEAREST,
+        .minFilter = GL_LINEAR,
+        .magFilter = GL_LINEAR,
     })
     , videoStreamerRT({
         .width = remoteRenderer.width,
@@ -63,8 +62,8 @@ MeshWarpStreamer::MeshWarpStreamer(
     })
     , meshMaterial({ .baseColorTexture = &renderTarget.colorTexture })
     , mesh({
-        .maxVertices = adjustedSize.x * adjustedSize.y,
-        .maxIndices = (adjustedSize.x - 1) * (adjustedSize.y - 1) * 2 * 3,
+        .maxVertices = (adjustedSize.x + 1) * (adjustedSize.y + 1),
+        .maxIndices = (adjustedSize.x * adjustedSize.y + adjustedSize.x - 1) * 2 * 3,
         .material = &meshMaterial,
         .usage = GL_DYNAMIC_DRAW
     })
@@ -73,7 +72,7 @@ MeshWarpStreamer::MeshWarpStreamer(
     meshFromBC4Shader.bind();
     meshFromBC4Shader.setBool("unlinearizeDepth", true);
     meshFromBC4Shader.setVec2("depthMapSize", glm::vec2(depthStreamerRT.width, depthStreamerRT.height));
-    meshFromBC4Shader.setInt("vertexGroupSize", params.vertexGroupSize);
+    meshFromBC4Shader.setUint("vertexGroupSize", params.vertexGroupSize);
 }
 
 RenderStats MeshWarpStreamer::generateFrame() {
@@ -93,7 +92,7 @@ RenderStats MeshWarpStreamer::generateFrame() {
     tonemapper.enableTonemapping(true);
     tonemapper.drawToRenderTarget(remoteRenderer, videoStreamerRT);
     depthEffect.drawToRenderTarget(remoteRenderer, depthStreamerRT);
-    stats.totalRenderTimeMs = timeutils::getTimeMicros() - startTime;
+    stats.totalRenderTimeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     // Compress depth map to BC4 format with ZSTD
     stats.compressedSize = depthStreamerRT.generateFrame();
@@ -106,7 +105,6 @@ RenderStats MeshWarpStreamer::generateFrame() {
         meshFromBC4Shader.setMat4("projectionInverse", remoteCamera.getProjectionMatrixInverse());
         meshFromBC4Shader.setMat4("viewColor", remoteCamera.getViewMatrix());
         meshFromBC4Shader.setMat4("viewInverseDepth", remoteCamera.getViewMatrixInverse());
-
         meshFromBC4Shader.setFloat("near", remoteCamera.getNear());
         meshFromBC4Shader.setFloat("far", remoteCamera.getFar());
     }
@@ -116,11 +114,11 @@ RenderStats MeshWarpStreamer::generateFrame() {
         meshFromBC4Shader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, depthStreamerRT.bc4CompressedBuffer);
     }
     // Dispatch compute shader to generate vertices and indices for mesh
-    meshFromBC4Shader.dispatch((adjustedSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                               (adjustedSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+    meshFromBC4Shader.dispatch(((adjustedSize.x + 1) + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                               ((adjustedSize.y + 1) + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
     meshFromBC4Shader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
                                     GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
-    stats.totalGenMeshTime = timeutils::getTimeMicros() - startTime;
+    stats.totalGenMeshTime = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     return renderStats;
 }

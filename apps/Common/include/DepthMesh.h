@@ -58,7 +58,6 @@ public:
             meshFromDepthShader.setMat4("projection", camera.getProjectionMatrix());
             meshFromDepthShader.setMat4("viewInverse", camera.getViewMatrixInverse());
             meshFromDepthShader.setMat4("projectionInverse", camera.getProjectionMatrixInverse());
-
             meshFromDepthShader.setFloat("near", camera.getNear());
             meshFromDepthShader.setFloat("far", camera.getFar());
         }

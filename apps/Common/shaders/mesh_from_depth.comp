@@ -3,8 +3,6 @@
 
 layout(local_size_x = THREADS_PER_LOCALGROUP, local_size_y = THREADS_PER_LOCALGROUP, local_size_z = 1) in;
 
-layout(binding = 0) uniform sampler2D depthMap;
-
 struct Vertex {
     vec3 position;
     vec3 color;
@@ -18,12 +16,14 @@ uniform vec2 depthMapSize;
 
 uniform mat4 view;
 uniform mat4 projection;
+
 uniform mat4 viewInverse;
 uniform mat4 projectionInverse;
+
 uniform float near;
 uniform float far;
 
-uniform int vertexGroupSize = 1;
+uniform uint vertexGroupSize = 1u;
 
 layout(std430, binding = 0) buffer VertexBufferDepth {
     Vertex verticesDepth[];
@@ -33,6 +33,8 @@ layout(std430, binding = 1) buffer IndexBuffer {
     uint indices[];
 };
 
+layout(binding = 0) uniform sampler2D depthMap;
+
 float sampleDepth(sampler2D depthMap, ivec2 sampleCoord) {
     float depth = texelFetch(depthMap, sampleCoord, 0).r;
     depth = clamp(depth, 0.0, MAX_DEPTH);
@@ -40,47 +42,46 @@ float sampleDepth(sampler2D depthMap, ivec2 sampleCoord) {
 }
 
 void main() {
-    vec2 size = vec2(depthMapSize) / float(vertexGroupSize);
+    uvec2 adjustedSize = uvec2(depthMapSize) / vertexGroupSize;
 
-    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
-    if (pixelCoord.x >= int(size.x) || pixelCoord.y >= int(size.y)) {
+    uvec2 pixelCoord = uvec2(gl_GlobalInvocationID.xy);
+    if (pixelCoord.x >= adjustedSize.x || pixelCoord.y >= adjustedSize.y) {
         return;
     }
 
-    vec2 surfelCornerCoordBottomLeft = float(vertexGroupSize) * vec2(gl_GlobalInvocationID.xy);
-    vec2 pixelCenterCoord            = surfelCornerCoordBottomLeft + vec2(0.5, 0.5);
-    vec2 uvCenter                    = pixelCenterCoord / vec2(depthMapSize);
-    vec2 pixelCoordsNDC              = 2.0 * uvCenter - 1.0;
-    float pixelDepth                 = sampleDepth(depthMap, ivec2(pixelCenterCoord));
-    vec3 pixelCoordsViewCenter       = ndcToView(projectionInverse, pixelCoordsNDC, pixelDepth);
+    // Sample depth at center of pixel
+    vec2 pixelCenterCoord = (vec2(pixelCoord) + vec2(0.5)) * float(vertexGroupSize);
+    vec2 uvCenter         = pixelCenterCoord / vec2(depthMapSize);
 
-    // Store depth
-    uint shaderIndex = uint(gl_GlobalInvocationID.y * size.x + gl_GlobalInvocationID.x);
-    verticesDepth[shaderIndex].position = viewToWorld(viewInverse, pixelCoordsViewCenter);
+    float pixelDepth = sampleDepth(depthMap, ivec2(pixelCenterCoord));
+
+    // Project to world space
+    vec2 ndc        = 2.0 * uvCenter - 1.0;
+    vec3 viewCoord  = ndcToView(projectionInverse, ndc, pixelDepth);
+    vec3 worldCoord = viewToWorld(viewInverse, viewCoord);
+
+    // Store point
+    uint vertStride  = uint(adjustedSize.x);
+    uint shaderIndex = uint(pixelCoord.y * vertStride + pixelCoord.x);
+
+    verticesDepth[shaderIndex].position = worldCoord;
     verticesDepth[shaderIndex].color = vec3(1.0, 1.0, 1.0);
-    verticesDepth[shaderIndex].texCoord = viewToScreen(projection, pixelCoordsViewCenter);
+    verticesDepth[shaderIndex].texCoord = viewToScreen(projection, viewCoord);
 
-    if (pixelCoord.x < size.x - vertexGroupSize && pixelCoord.y < size.y - vertexGroupSize) {
-        /************************
-
-                tl -- tr
-                |    / |
-                |   c  |
-                |  /   |
-                bl -- br
-
-        ************************/
-        uint bottomLeftIdx = shaderIndex;
-        uint bottomRightIdx = shaderIndex + 1;
-        uint topLeftIdx = shaderIndex + uint(size.x);
-        uint topRightIdx = shaderIndex + uint(size.x) + 1;
-
-        indices[shaderIndex * 6 + 0] = topLeftIdx;
-        indices[shaderIndex * 6 + 1] = bottomLeftIdx;
-        indices[shaderIndex * 6 + 2] = topRightIdx;
-
-        indices[shaderIndex * 6 + 3] = topRightIdx;
-        indices[shaderIndex * 6 + 4] = bottomLeftIdx;
-        indices[shaderIndex * 6 + 5] = bottomRightIdx;
+    if (pixelCoord.x >= adjustedSize.x - vertexGroupSize || pixelCoord.y >= adjustedSize.y - vertexGroupSize) {
+        return;
     }
+
+    uint bottomLeftIdx  = shaderIndex;
+    uint bottomRightIdx = shaderIndex + 1;
+    uint topLeftIdx     = shaderIndex + vertStride;
+    uint topRightIdx    = shaderIndex + vertStride + 1;
+
+    indices[shaderIndex * 6 + 0] = topLeftIdx;
+    indices[shaderIndex * 6 + 1] = bottomLeftIdx;
+    indices[shaderIndex * 6 + 2] = topRightIdx;
+
+    indices[shaderIndex * 6 + 3] = topRightIdx;
+    indices[shaderIndex * 6 + 4] = bottomLeftIdx;
+    indices[shaderIndex * 6 + 5] = bottomRightIdx;
 }

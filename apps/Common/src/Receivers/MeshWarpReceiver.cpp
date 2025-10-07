@@ -53,8 +53,8 @@ MeshWarpReceiver::MeshWarpReceiver(
     })
     , meshMaterial({ .baseColorTexture = &videoTexture })
     , mesh({
-        .maxVertices = adjustedSize.x * adjustedSize.y,
-        .maxIndices = (adjustedSize.x - 1) * (adjustedSize.y - 1) * 2 * 3,
+        .maxVertices = (adjustedSize.x + 1) * (adjustedSize.y + 1),
+        .maxIndices = (adjustedSize.x * adjustedSize.y + adjustedSize.x - 1) * 2 * 3,
         .material = &meshMaterial,
         .usage = GL_DYNAMIC_DRAW
     })
@@ -64,7 +64,7 @@ MeshWarpReceiver::MeshWarpReceiver(
     meshFromBC4Shader.bind();
     meshFromBC4Shader.setBool("unlinearizeDepth", true);
     meshFromBC4Shader.setVec2("depthMapSize", glm::vec2(depthTexture.width, depthTexture.height));
-    meshFromBC4Shader.setInt("vertexGroupSize", vertexGroupSize);
+    meshFromBC4Shader.setUint("vertexGroupSize", vertexGroupSize);
 }
 
 void MeshWarpReceiver::loadFromFiles(const Path& dataPath) {
@@ -128,11 +128,8 @@ void MeshWarpReceiver::updateMesh() {
     }
 
     // Generate vertices and indices for mesh from depth map
-    meshFromBC4Shader.dispatch(
-            ((depthTexture.width / vertexGroupSize)  + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-            ((depthTexture.height / vertexGroupSize) + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-            1
-        );
+    meshFromBC4Shader.dispatch(((adjustedSize.x + 1) + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
+                               ((adjustedSize.y + 1) + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
     meshFromBC4Shader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT |
                                     GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 }
