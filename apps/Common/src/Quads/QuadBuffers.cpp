@@ -33,7 +33,7 @@ QuadBuffers::QuadBuffers(uint32_t maxProxies)
     , cudaBufferDepths(depthsBuffer)
     , cudaBufferMetadatas(metadatasBuffer)
 #endif
-    , maxDataSize(sizeof(uint) + maxProxies * sizeof(QuadMapDataPacked))
+    , maxDataSize(sizeof(uint32_t) + maxProxies * sizeof(QuadMapDataPacked))
 {}
 
 void QuadBuffers::resize(uint32_t newNumProxies) {

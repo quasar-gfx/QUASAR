@@ -6,7 +6,7 @@ QuadStreamReceiver::QuadStreamReceiver(QuadSet& quadSet, uint maxViews)
     : quadSet(quadSet)
     , maxViews(maxViews)
     , frames(maxViews)
-    , uncompressedQuads(sizeof(uint) + quadSet.quadBuffers.maxProxies * sizeof(QuadMapDataPacked))
+    , uncompressedQuads(sizeof(uint32_t) + quadSet.quadBuffers.maxProxies * sizeof(QuadMapDataPacked))
     , uncompressedOffsets(quadSet.depthOffsets.getSize().x * quadSet.depthOffsets.getSize().y * 4 * sizeof(uint16_t))
 {
     TextureDataCreateParams texParams = {

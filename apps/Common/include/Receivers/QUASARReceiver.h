@@ -83,13 +83,11 @@ private:
             uncompressedQuads.resize(maxLayers);
             uncompressedOffsets.resize(maxLayers);
 
-            const size_t quadsBytes   = sizeof(uint) + MAX_PROXIES_PER_MESH * sizeof(QuadMapDataPacked);
+            const size_t quadsBytes   = sizeof(uint32_t) + MAX_PROXIES_PER_MESH * sizeof(QuadMapDataPacked);
             const size_t offsetsBytes = static_cast<size_t>(gBufferSize.x * gBufferSize.y) * 4 * sizeof(uint16_t);
 
             for (int layer = 0; layer < maxLayers; layer++) {
-                // Hidden layers usually have less quads
-                size_t adjustedQuadsBytes = (layer == 0 || layer == maxLayers - 1) ? quadsBytes : quadsBytes / 4;
-                uncompressedQuads[layer].resize(adjustedQuadsBytes);
+                uncompressedQuads[layer].resize(quadsBytes);
                 uncompressedOffsets[layer].resize(offsetsBytes);
             }
 

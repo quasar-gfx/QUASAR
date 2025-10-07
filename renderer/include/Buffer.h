@@ -45,10 +45,11 @@ public:
 
     void getData(void* data) const;
     template<typename T>
-    std::vector<T> getData() const;
+    void getData(std::vector<T>& data) const;
 
     void setData(size_t numElems, const void* data);
-    void setData(const std::vector<char>& data);
+    template<typename T>
+    void setData(const std::vector<T>& data);
 
 #ifdef GL_CORE
     void setSubData(size_t offset, size_t numElems, const void* data);
@@ -61,9 +62,26 @@ public:
 private:
     GLenum target = GL_ARRAY_BUFFER;
     GLenum usage = GL_STATIC_DRAW;
+
     size_t numElems;
     size_t dataSize;
     size_t maxElems;
+
+    size_t capacity = 0;
+
+    inline size_t nextPowerOfTwo(size_t n) {
+        if (n == 0) return 1;
+        n--;
+        n |= n >> 1;
+        n |= n >> 2;
+        n |= n >> 4;
+        n |= n >> 8;
+        n |= n >> 16;
+    #if SIZE_MAX > UINT32_MAX
+        n |= n >> 32; // handle 64-bit size_t
+    #endif
+        return ++n;
+    }
 };
 
 } // namespace quasar

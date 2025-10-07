@@ -121,11 +121,17 @@ void QuadMesh::appendQuads(const QuadSet& quadSet, const glm::vec2& gBufferSize,
 void QuadMesh::createMeshFromProxies(const QuadSet& quadSet, const glm::vec2& gBufferSize, const PerspectiveCamera& remoteCamera) {
     double startTime = timeutils::getTimeMicros();
 
-    vertexBuffer.bind();
-    vertexBuffer.smartResize(currNumProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD, false);
-
-    indexBuffer.bind();
-    indexBuffer.smartResize(currNumProxies * NUM_SUB_QUADS * INDICES_IN_A_QUAD, false);
+    // Resize buffers if more space is needed
+    size_t newNumVertices = currNumProxies * NUM_SUB_QUADS * VERTICES_IN_A_QUAD;
+    if (vertexBuffer.getSize() < newNumVertices) {
+        vertexBuffer.bind();
+        vertexBuffer.smartResize(newNumVertices, false);
+    }
+    size_t newNumIndices = currNumProxies * NUM_SUB_QUADS * INDICES_IN_A_QUAD;
+    if (indexBuffer.getSize() < newNumIndices) {
+        indexBuffer.bind();
+        indexBuffer.smartResize(newNumIndices, false);
+    }
 
     createQuadMeshShader.bind();
     {

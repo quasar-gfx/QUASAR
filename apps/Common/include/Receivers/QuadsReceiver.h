@@ -72,7 +72,7 @@ private:
         Frame(const glm::vec2& gBufferSize)
             : frameType(QuadFrame::FrameType::NONE)
         {
-            const size_t quadsBytes = sizeof(uint) + MAX_PROXIES_PER_MESH * sizeof(QuadMapDataPacked);
+            const size_t quadsBytes = sizeof(uint32_t) + MAX_PROXIES_PER_MESH * sizeof(QuadMapDataPacked);
             const size_t offsetsBytes = static_cast<size_t>(gBufferSize.x * gBufferSize.y) * 4 * sizeof(uint16_t);
 
             uncompressedQuads.resize(quadsBytes);

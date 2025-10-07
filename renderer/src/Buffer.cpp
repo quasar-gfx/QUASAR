@@ -119,39 +119,53 @@ size_t Buffer::getSize() const {
 }
 
 void Buffer::resize(size_t newNumElems, bool copy) {
-    if (newNumElems == numElems) {
+    if (newNumElems == numElems && newNumElems == capacity) {
         return;
     }
 
     std::vector<char> data;
-    if (copy) {
-        data.resize(numElems * dataSize);
+    size_t elemsToCopy = 0;
+    if (copy && numElems > 0) {
+        elemsToCopy = std::min(numElems, newNumElems);
+        data.resize(elemsToCopy * dataSize);
         getData(data.data());
     }
 
     glBufferData(target, newNumElems * dataSize, nullptr, usage);
 
-    if (copy) {
-        size_t elemsToCopy = std::min(numElems, newNumElems);
+    if (copy && elemsToCopy > 0) {
         glBufferSubData(target, 0, elemsToCopy * dataSize, data.data());
     }
 
     numElems = newNumElems;
+    capacity = newNumElems;
 }
+
 
 void Buffer::smartResize(size_t newNumElems, bool copy) {
     if (newNumElems == numElems) {
         return;
     }
 
-    if (newNumElems > numElems) {
-        size_t targetNumElems = std::max(numElems + numElems / 2, newNumElems); // grow by 1.5x
-        targetNumElems = std::min(targetNumElems, maxElems == 0 ? targetNumElems : maxElems);
-        resize(targetNumElems, copy);
+    if (newNumElems > capacity) {
+        // Grow: round up to next power of two
+        size_t targetCapacity = nextPowerOfTwo(newNumElems);
+        if (maxElems > 0) {
+            targetCapacity = std::min(targetCapacity, maxElems);
+        }
+        resize(targetCapacity, copy);
     }
-    else if (newNumElems <= numElems / 4) {
-        size_t targetNumElems = std::max(numElems / 2, newNumElems);
-        resize(targetNumElems, copy);
+    else if (newNumElems <= capacity / 4) {
+        // Shrink: to half the current capacity
+        size_t targetCapacity = capacity / 2;
+        if (maxElems > 0) {
+            targetCapacity = std::min(targetCapacity, maxElems);
+        }
+        resize(targetCapacity, copy);
+    }
+    else {
+        // No reallocation, just update logical size
+        numElems = newNumElems;
     }
 }
 
@@ -165,27 +179,26 @@ void Buffer::getData(void* data) const {
 #ifdef GL_CORE
     getSubData(0, numElems, data);
 #else
-    void* mappedBuffer = glMapBufferRange(target, 0, numElems * dataSize, GL_MAP_READ_BIT);
-    if (mappedBuffer) {
-        std::memcpy(data, mappedBuffer, numElems * dataSize);
-        glUnmapBuffer(target);
+    void* ptr = mapToCPU(GL_MAP_READ_BIT);
+    if (ptr) {
+        std::memcpy(data, ptr, numElems * dataSize);
+        unmapFromCPU();
     }
     else {
-        spdlog::error("Could not map buffer data.");
+        spdlog::error("Failed to map buffer to CPU.");
     }
 #endif
 }
 
 template<typename T>
-std::vector<T> Buffer::getData() const {
+void Buffer::getData(std::vector<T>& data) const {
     static_assert(std::is_trivially_copyable<T>::value, "Buffer data must be trivially copyable.");
     if (sizeof(T) != dataSize) {
         spdlog::error("Data size mismatch. Requested type has size {}, but buffer holds size {}.", sizeof(T), dataSize);
-        return {};
+        return;
     }
-    std::vector<T> data(numElems);
+    data.resize(numElems);
     getData(static_cast<void*>(data.data()));
-    return data;
 }
 
 void Buffer::setData(size_t numElems, const void* data) {
@@ -193,8 +206,14 @@ void Buffer::setData(size_t numElems, const void* data) {
     glBufferData(target, numElems * dataSize, data, usage);
 }
 
-void Buffer::setData(const std::vector<char>& data) {
-    setData(data.size() / dataSize, data.data());
+template<typename T>
+void Buffer::setData(const std::vector<T>& data) {
+    static_assert(std::is_trivially_copyable<T>::value, "Buffer data must be trivially copyable.");
+    if (sizeof(T) != dataSize) {
+        spdlog::error("Data size mismatch. Requested type has size {}, but buffer holds size {}.", sizeof(T), dataSize);
+        return;
+    }
+    setData(data.size(), data.data());
 }
 
 #ifdef GL_CORE
