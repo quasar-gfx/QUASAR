@@ -98,7 +98,7 @@ void QuadStreamReceiver::loadFromFiles(const Path& dataPath) {
 
     for (int view = 0; view < maxViews; view++) {
         // Load texture
-        Path colorFileName = (dataPath / ("color" + std::to_string(view))).withExtension(".jpg");
+        Path colorFileName = dataPath / ("color" + std::to_string(view) + ".jpg");
         colorTextures[view].loadFromFile(colorFileName, true, false);
 
         // Load quads and depth offsets from files

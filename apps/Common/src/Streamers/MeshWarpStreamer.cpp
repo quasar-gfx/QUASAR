@@ -131,17 +131,17 @@ void MeshWarpStreamer::sendFrame(pose_id_t poseID) {
 size_t MeshWarpStreamer::writeToFiles(const Path& outputPath) {
     // Save camera data
     Pose cameraPose;
-    Path cameraFileName = (outputPath / "camera").withExtension(".bin");
+    Path cameraFileName = outputPath / "camera.bin";
     cameraPose.setProjectionMatrix(remoteCamera.getProjectionMatrix());
     cameraPose.setViewMatrix(remoteCamera.getViewMatrix());
     cameraPose.writeToFile(cameraFileName);
 
     // Save color
-    Path colorFileName = (outputPath / "color").withExtension(".jpg");
+    Path colorFileName = outputPath / "color.jpg";
     videoStreamerRT.writeColorAsJPG(colorFileName);
 
     // Save depth
-    Path depthFileName = (outputPath / "depth").withExtension(".bc4.zstd");
+    Path depthFileName = outputPath / "depth.bc4.zstd";
     size_t totalBytes = depthStreamerRT.writeToFile(depthFileName);
 
     return totalBytes;

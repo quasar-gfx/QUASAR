@@ -231,7 +231,7 @@ size_t QuadStreamStreamer::writeToFiles(const Path& outputPath) {
     // Save camera data
     Pose cameraPose;
     PerspectiveCamera& remoteCameraCenter = remoteCameras[0];
-    Path cameraFileName = (outputPath / "camera").withExtension(".bin");
+    Path cameraFileName = outputPath / "camera.bin";
     cameraPose.setProjectionMatrix(remoteCameraCenter.getProjectionMatrix());
     cameraPose.setViewMatrix(remoteCameraCenter.getViewMatrix());
     cameraPose.writeToFile(cameraFileName);
@@ -247,7 +247,7 @@ size_t QuadStreamStreamer::writeToFiles(const Path& outputPath) {
     // Save color data and proxies
     size_t totalOutputSize = 0;
     for (int view = 0; view < maxViews; view++) {
-        Path colorFileName = (outputPath / ("color" + std::to_string(view))).withExtension(".jpg");
+        Path colorFileName = outputPath / ("color" + std::to_string(view) + ".jpg");
         referenceFrameRTs[view].writeColorAsJPG(colorFileName);
 
         totalOutputSize += referenceFrames[view].writeToFiles(outputPath, view);

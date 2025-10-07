@@ -501,12 +501,12 @@ void QUASARStreamer::sendProxies(pose_id_t poseID, bool createResidualFrame) {
 size_t QUASARStreamer::writeToFiles(const Path& outputPath) {
     // Save camera data
     Pose cameraPose;
-    Path cameraFileName = (outputPath / "camera").withExtension(".bin");
+    Path cameraFileName = outputPath / "camera.bin";
     cameraPose.setProjectionMatrix(remoteCamera.getProjectionMatrix());
     cameraPose.setViewMatrix(remoteCamera.getViewMatrix());
     cameraPose.writeToFile(cameraFileName);
 
-    Path cameraFileNamePrev = (outputPath / "camera_prev").withExtension(".bin");
+    Path cameraFileNamePrev = outputPath / "camera_prev.bin";
     cameraPose.setProjectionMatrix(remoteCameraPrev.getProjectionMatrix());
     cameraPose.setViewMatrix(remoteCameraPrev.getViewMatrix());
     cameraPose.writeToFile(cameraFileNamePrev);
@@ -520,7 +520,7 @@ size_t QUASARStreamer::writeToFiles(const Path& outputPath) {
     FileIO::writeToBinaryFile(outputPath / "metadata.bin", &params, sizeof(params));
 
     // Save color
-    Path colorFileName = (outputPath / "color").withExtension(".jpg");
+    Path colorFileName = outputPath / "color.jpg";
     atlasVideoStreamerRT.writeColorAsJPG(colorFileName);
 
     // Save proxies

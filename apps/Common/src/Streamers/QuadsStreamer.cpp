@@ -156,7 +156,6 @@ void QuadsStreamer::addMeshesToScene(Scene& localScene) {
 
 RenderStats QuadsStreamer::generateFrame(bool createResidualFrame, bool showNormals, bool showDepth) {
     // Reset stats
-    // Reset stats
     stats = { 0 };
 
     int currMeshIndex  = meshIndex % 2;
@@ -315,18 +314,18 @@ void QuadsStreamer::sendProxies(pose_id_t poseID, bool createResidualFrame) {
 size_t QuadsStreamer::writeToFiles(const Path& outputPath) {
     // Save camera data
     Pose cameraPose;
-    Path cameraFileName = (outputPath / "camera").withExtension(".bin");
+    Path cameraFileName = outputPath / "camera.bin";
     cameraPose.setProjectionMatrix(remoteCamera.getProjectionMatrix());
     cameraPose.setViewMatrix(remoteCamera.getViewMatrix());
     cameraPose.writeToFile(cameraFileName);
 
-    Path cameraFileNamePrev = (outputPath / "camera_prev").withExtension(".bin");
+    Path cameraFileNamePrev = outputPath / "camera_prev.bin";
     cameraPose.setProjectionMatrix(remoteCameraPrev.getProjectionMatrix());
     cameraPose.setViewMatrix(remoteCameraPrev.getViewMatrix());
     cameraPose.writeToFile(cameraFileNamePrev);
 
     // Save color
-    Path colorFileName = (outputPath / "color").withExtension(".jpg");
+    Path colorFileName = outputPath / "color.jpg";
     atlasVideoStreamerRT.writeColorAsJPG(colorFileName);
 
     // Save proxies
