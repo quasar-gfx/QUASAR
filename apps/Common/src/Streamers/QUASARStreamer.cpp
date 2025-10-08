@@ -271,6 +271,9 @@ RenderStats QUASARStreamer::generateFrame(bool createResidualFrame, bool showNor
     stats = { 0 };
     stats.frameSize = prevStats.frameSize; // Keep previous frame size
 
+    // Draw all meshes for proper masking
+    setDrawState(QuadMesh::DrawState::BOTH);
+
     int currMeshIndex  = meshIndex % 2;
     int prevMeshIndex  = (meshIndex + 1) % 2;
 
@@ -284,30 +287,31 @@ RenderStats QUASARStreamer::generateFrame(bool createResidualFrame, bool showNor
     Render scene normally to create Reference Frame textures
     ============================
     */
-
     double startTime = timeutils::getTimeMicros();
     RenderStats renderStats = remoteRendererDP.drawObjects(remoteScene, remoteCamera);
     stats.totalRenderTimeMs += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     for (int layer = 0; layer < maxLayers; layer++) {
         int hiddenLayerIndex = layer - 1;
-        auto& remoteCameraToUse = (layer == 0 && createResidualFrame) ? remoteCameraPrev :
-                                  ((layer != maxLayers - 1) ? remoteCamera : remoteCameraWideFOV);
 
-        auto& frameToUse = (layer == 0) ? referenceFrameRT : frameRTsHidLayer[hiddenLayerIndex];
-        auto& frameToUse_noTone = (layer == 0) ? referenceFrameRT_noTone : frameRTsHidLayer_noTone[hiddenLayerIndex];
+        auto& remoteCameraToUse = (layer == 0 && createResidualFrame)
+                                    ? remoteCameraPrev
+                                    : ((layer != maxLayers - 1) ? remoteCamera : remoteCameraWideFOV);
 
-        auto& meshToUse = (layer == 0) ? referenceFrameMeshes[currMeshIndex] : meshesHidLayer[hiddenLayerIndex];
-        auto& meshToUseDepth = (layer == 0) ? depthMesh : depthMeshsHidLayer[hiddenLayerIndex];
+        auto& renderTargetToUse        = (layer == 0) ? referenceFrameRT        : frameRTsHidLayer[hiddenLayerIndex];
+        auto& renderTargetToUse_noTone = (layer == 0) ? referenceFrameRT_noTone : frameRTsHidLayer_noTone[hiddenLayerIndex];
+
+        auto& meshToUse      = (layer == 0) ? referenceFrameMeshes[currMeshIndex] : meshesHidLayer[hiddenLayerIndex];
+        auto& meshToUseDepth = (layer == 0) ? depthMesh                           : depthMeshsHidLayer[hiddenLayerIndex];
 
         startTime = timeutils::getTimeMicros();
         if (layer == 0) {
             renderStats += remoteRenderer.drawObjectsNoLighting(remoteScene, remoteCameraToUse);
-            remoteRenderer.copyToFrameRT(frameToUse);
+            remoteRenderer.copyToFrameRT(renderTargetToUse);
         }
         else if (layer < maxLayers - 1) {
             // Hidden layers need to use the noTone render targets to generate quads for some reason...
-            remoteRendererDP.peelingLayers[hiddenLayerIndex+1].blit(frameToUse_noTone);
+            remoteRendererDP.peelingLayers[hiddenLayerIndex+1].blit(renderTargetToUse_noTone);
         }
         // Wide fov camera
         else {
@@ -316,7 +320,6 @@ RenderStats QUASARStreamer::generateFrame(bool createResidualFrame, bool showNor
             remoteRenderer.pipeline.writeMaskState.disableColorWrites();
             wideFovNodes[currMeshIndex].visible = true;
             wideFovNodes[prevMeshIndex].visible = false;
-            setDrawState(QuadMesh::DrawState::BOTH);
             renderStats += remoteRenderer.drawObjectsNoLighting(sceneWideFov, remoteCameraToUse);
 
             // Render remoteScene using stencil buffer as a mask
@@ -326,7 +329,7 @@ RenderStats QUASARStreamer::generateFrame(bool createResidualFrame, bool showNor
             renderStats += remoteRenderer.drawObjectsNoLighting(remoteScene, remoteCameraToUse, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             remoteRenderer.pipeline.stencilState.restoreStencilState();
-            remoteRenderer.copyToFrameRT(frameToUse);
+            remoteRenderer.copyToFrameRT(renderTargetToUse);
         }
         stats.totalRenderTimeMs += timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
@@ -347,29 +350,28 @@ RenderStats QUASARStreamer::generateFrame(bool createResidualFrame, bool showNor
         quadsGenerator->params.expandEdges = false;
         ReferenceFrame dummyFrame;
         frameGenerator.createReferenceFrame(
-            (layer != 0 && layer != maxLayers - 1) ? frameToUse_noTone : frameToUse,
+            (layer != 0 && layer != maxLayers - 1) ? renderTargetToUse_noTone : renderTargetToUse,
             remoteCameraToUse,
             meshToUse,
             (layer == 0 && createResidualFrame) ? dummyFrame : referenceFrames[layer] // Don't save output of this reference frame
         );
         if (!showNormals) {
             if (layer == 0) {
-                remoteRenderer.copyToFrameRT(frameToUse_noTone);
-                tonemapper.drawToRenderTarget(remoteRenderer, frameToUse);
+                remoteRenderer.copyToFrameRT(referenceFrameRT_noTone);
+                tonemapper.drawToRenderTarget(remoteRenderer, referenceFrameRT);
             }
             else if (layer < maxLayers - 1) {
-                tonemapper.setUniforms(frameToUse_noTone);
-                tonemapper.drawToRenderTarget(remoteRenderer, frameToUse, false);
+                tonemapper.setUniforms(renderTargetToUse_noTone);
+                tonemapper.drawToRenderTarget(remoteRenderer, renderTargetToUse, false);
             }
             else {
-                remoteRenderer.copyToFrameRT(frameToUse_noTone);
-                tonemapper.drawToRenderTarget(remoteRenderer, frameToUse);
+                remoteRenderer.copyToFrameRT(renderTargetToUse_noTone);
+                tonemapper.drawToRenderTarget(remoteRenderer, renderTargetToUse);
             }
         }
         else {
-            showNormalsEffect.drawToRenderTarget(remoteRenderer, frameToUse_noTone);
+            showNormalsEffect.drawToRenderTarget(remoteRenderer, renderTargetToUse_noTone);
         }
-
         quadsGenerator->params = oldParams;
 
         stats.totalGenQuadMapTimeMs += frameGenerator.stats.generateQuadsTimeMs;
@@ -451,7 +453,7 @@ RenderStats QUASARStreamer::generateFrame(bool createResidualFrame, bool showNor
 
         // For debugging: Generate point cloud from depth map
         if (showDepth) {
-            meshToUseDepth.update(remoteCameraToUse, frameToUse);
+            meshToUseDepth.update((layer != maxLayers - 1) ? remoteCamera : remoteCameraWideFOV, renderTargetToUse);
             stats.totalGenDepthTimeMs += meshToUseDepth.stats.genDepthTime;
         }
 

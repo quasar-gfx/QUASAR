@@ -36,7 +36,6 @@ public:
     std::vector<ReferenceFrame> referenceFrames;
     std::vector<QuadMesh> referenceFrameMeshes;
     std::vector<Node> referenceFrameNodes;
-    std::vector<Node> referenceFrameWireframesLocal;
     int meshIndex = 0, lastMeshIndex = 1;
 
     // Residual frame -- we only create the residuals to the visible layer
@@ -53,6 +52,7 @@ public:
     // Local objects
     std::vector<Node> referenceFrameNodesLocal;
     Node residualFrameWireframesLocal;
+    std::vector<Node> referenceFrameWireframesLocal;
 
     // Hidden layers
     std::vector<FrameRenderTarget> frameRTsHidLayer;

@@ -11,6 +11,7 @@
 #include <UI/FrameRateWindow.h>
 #include <UI/FrameCaptureWindow.h>
 #include <UI/RecordWindow.h>
+#include <UI/TexturePreviewWindow.h>
 
 #include <Recorder.h>
 #include <CameraAnimator.h>
@@ -189,10 +190,13 @@ int main(int argc, char** argv) {
     FrameRateWindow frameRateWindow;
     FrameCaptureWindow frameCaptureWindow(recorder, glm::uvec2(430, 270), outputPath);
     RecordWindow recordWindow(recorder, glm::uvec2(550, 270), outputPath);
+    TexturePreviewWindow refFramePreviewWindow("Reference Frame", quasar.referenceFrameRT.colorTexture, glm::uvec2(430, 270));
+    TexturePreviewWindow resFrameChangedPreviewWindow("Residual Frame (changed geometry)", quasar.residualFrameMaskRT.colorTexture, glm::uvec2(430, 270));
+    TexturePreviewWindow resFrameFullPreviewWindow("Residual Frame (revealed geometry)", quasar.residualFrameRT.colorTexture, glm::uvec2(430, 270));
     guiManager->onRender([&](double now, double dt) {
         static bool showUI = !saveImages;
         static bool showMeshCapture = false;
-        static bool showFramePreviews = false;
+        static bool showFramePreviewWindows = false;
         static bool showLayerPreviews = false;
         static bool saveAsSeparate = true;
 
@@ -211,7 +215,7 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("Frame Capture", 0, &frameCaptureWindow.visible);
             ImGui::MenuItem("Record", 0, &recordWindow.visible);
             ImGui::MenuItem("Mesh Capture", 0, &showMeshCapture);
-            ImGui::MenuItem("Frame Previews", 0, &showFramePreviews);
+            ImGui::MenuItem("Frame Previews", 0, &showFramePreviewWindows);
             ImGui::MenuItem("Layer Previews", 0, &showLayerPreviews);
             ImGui::EndMenu();
         }
@@ -406,21 +410,10 @@ int main(int argc, char** argv) {
             ImGui::End();
         }
 
-        if (showFramePreviews) {
-            ImGui::Begin("Reference Frame", 0);
-            ImGui::Image((void*)(intptr_t)(quasar.referenceFrameRT.colorTexture),
-                         ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
-            ImGui::End();
-
-            ImGui::Begin("Residual Frame (changed geometry)", 0);
-            ImGui::Image((void*)(intptr_t)(quasar.residualFrameMaskRT.colorTexture),
-                         ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
-            ImGui::End();
-
-            ImGui::Begin("Residual Frame (revealed geometry)", 0);
-            ImGui::Image((void*)(intptr_t)(quasar.residualFrameRT.colorTexture),
-                         ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
-            ImGui::End();
+        if (showFramePreviewWindows) {
+            refFramePreviewWindow.visible = true; refFramePreviewWindow.draw(now, dt);
+            resFrameChangedPreviewWindow.visible = true; resFrameChangedPreviewWindow.draw(now, dt);
+            resFrameFullPreviewWindow.visible = true; resFrameFullPreviewWindow.draw(now, dt);
         }
 
         if (showLayerPreviews) {

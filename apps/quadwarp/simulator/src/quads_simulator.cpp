@@ -170,7 +170,7 @@ int main(int argc, char** argv) {
     FrameCaptureWindow frameCaptureWindow(recorder, glm::uvec2(430, 270), outputPath);
     RecordWindow recordWindow(recorder, glm::uvec2(550, 270), outputPath);
     TexturePreviewWindow refFramePreviewWindow("Reference Frame", quadwarp.referenceFrameRT.colorTexture, glm::uvec2(430, 270));
-    TexturePreviewWindow resFrameChangedPreviewWindow("Residual Frame (changed geometry)", quadwarp.residualFrameRT.colorTexture, glm::uvec2(430, 270));
+    TexturePreviewWindow resFrameChangedPreviewWindow("Residual Frame (changed geometry)", quadwarp.residualFrameMaskRT.colorTexture, glm::uvec2(430, 270));
     TexturePreviewWindow resFrameFullPreviewWindow("Residual Frame (revealed geometry)", quadwarp.residualFrameRT.colorTexture, glm::uvec2(430, 270));
     guiManager->onRender([&](double now, double dt) {
         static bool showUI = !saveImages;
