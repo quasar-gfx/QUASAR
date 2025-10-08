@@ -85,7 +85,7 @@ RenderStats DepthPeelingRenderer::drawScene(Scene& scene, const Camera& camera, 
         }
 
         // Render scene
-        for (auto& child : scene.rootNode.children) {
+        for (auto* child : scene.children) {
             stats += drawNode(scene, camera, child, glm::mat4(1.0f), true, nullptr, prevIDMap);
         }
 

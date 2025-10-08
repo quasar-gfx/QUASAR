@@ -74,6 +74,8 @@ public:
     void setBuffers(uint verticesSize, uint indicesSize);
 
     void resizeBuffers(uint verticesSize, uint indicesSize);
+
+    void updateAABB(const glm::vec3& min, const glm::vec3& max);
     void updateAABB(const void* vertices, uint verticesSize);
 
 protected:

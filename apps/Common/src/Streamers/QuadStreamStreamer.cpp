@@ -158,7 +158,7 @@ RenderStats QuadStreamStreamer::generateFrame(bool showNormals, bool showDepth) 
         else {
             // Make all previous referenceFrameMeshes visible and everything else invisible
             for (int prevView = 1; prevView < maxViews; prevView++) {
-                meshScene.rootNode.children[prevView]->visible = (prevView < view);
+                meshScene.children[prevView]->visible = (prevView < view);
             }
             // Draw old referenceFrameMeshes at new remoteCamera view, filling stencil buffer with 1
             remoteRenderer.pipeline.stencilState.enableRenderingIntoStencilBuffer(GL_KEEP, GL_KEEP, GL_REPLACE);

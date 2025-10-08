@@ -11,14 +11,7 @@
             "name": "BistroInterior",
             "path": "../assets/models/scenes/BistroInterior.glb",
             "IBL": 0.1,
-            "gammaCorrected": true
-        }
-    ],
-    "meshes": [
-    ],
-    "nodes": [
-        {
-            "model": 0,
+            "gammaCorrected": true,
             "position": [0.0, 0.0, 0.0],
             "rotation": [0.0, 0.0, 0.0],
             "scale": [1.0, 1.0, 1.0]

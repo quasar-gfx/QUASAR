@@ -1,86 +1,53 @@
-#include <spdlog/spdlog.h>
 #include <Utils/FileIO.h>
 #include <SceneLoader.h>
+#include <Primitives/Primitives.h>
 
-using namespace quasar;
 using nlohmann::json;
+using namespace quasar;
 
 SceneLoader::~SceneLoader() {
-    for (auto mesh : meshes) {
-        delete mesh;
-    }
-
-    for (auto model : models) {
-        delete model;
-    }
-
-    for (auto material : materials) {
+    for (auto* material : materials) {
         delete material;
     }
+    for (auto* mesh : meshes) {
+        delete mesh;
+    }
+    for (auto* model : models) {
+        delete model;
+    }
 }
 
-Mesh* SceneLoader::findMeshByName(const std::string& name) {
-    auto it = meshIndices.find(name);
-    if (it != meshIndices.end()) {
-        return meshes[it->second];
+static glm::vec3 jvec3(const json& a) {
+    glm::vec3 v{0.f, 0.f, 0.f};
+    if (a.is_array() && a.size() >= 3) {
+        v[0] = a[0].get<float>();
+        v[1] = a[1].get<float>();
+        v[2] = a[2].get<float>();
     }
 
-    return nullptr;
+    return v;
 }
 
-Model* SceneLoader::findModelByName(const std::string& name) {
-    auto it = modelIndices.find(name);
-    if (it != modelIndices.end()) {
-        return models[it->second];
-    }
-
-    return nullptr;
-}
-
-Node* SceneLoader::findNodeByName(const std::string& name) {
-    for (auto model : models) {
-        Node* node = model->rootNode.findNodeByName(name);
-        if (node != nullptr) {
-            return node;
-        }
-    }
-
-    return nullptr;
-}
-
-void SceneLoader::loadScene(const std::string& filename, Scene& scene, PerspectiveCamera& camera) {
+void SceneLoader::loadScene(const Path& filename, Scene& scene, PerspectiveCamera& camera) {
     uint size;
     std::string sceneJSON = FileIO::loadFromTextFile(filename, &size);
     if (size == 0) {
-        throw std::runtime_error("Scene file is empty: " + filename);
+        throw std::runtime_error("Scene file is empty: " + filename.str());
     }
 
     auto j = json::parse(sceneJSON);
 
-    spdlog::info("Loading scene: {}", filename);
+    spdlog::info("Loading scene: {}", filename.str());
     parse(j, scene, camera);
 }
 
-void SceneLoader::clearScene(Scene& scene, PerspectiveCamera& camera) {
+void SceneLoader::clear(Scene& scene) {
     scene.clear();
-
-    for (auto model : models) {
-        delete model;
-    }
-    models.clear();
-
-    for (auto mesh : meshes) {
-        delete mesh;
-    }
     meshes.clear();
-
-    for (auto material : materials) {
-        delete material;
-    }
     materials.clear();
 }
 
-void SceneLoader::parseSkybox(const json& j, Scene& scene, PerspectiveCamera& camera) {
+void SceneLoader::parseSkybox(const json& j, Scene& scene) {
     TextureFileCreateParams hdrTextureParams{
         .type = GL_FLOAT,
         .wrapS = GL_CLAMP_TO_EDGE,
@@ -118,7 +85,7 @@ void SceneLoader::parseSkybox(const json& j, Scene& scene, PerspectiveCamera& ca
     scene.setEnvMap(envCubeMap);
 }
 
-void SceneLoader::parseMaterial(const json& j, Scene& scene, PerspectiveCamera& camera) {
+void SceneLoader::parseMaterial(const json& j, Scene& scene) {
     LitMaterialCreateParams params{};
 
     if (j.contains("albedoTexturePath")) {
@@ -143,7 +110,6 @@ void SceneLoader::parseMaterial(const json& j, Scene& scene, PerspectiveCamera& 
 
     if (j.contains("alphaMode")) {
         auto alphaMode = j.at("alphaMode").get<std::string>();
-
         if (alphaMode == "opaque") {
             params.alphaMode = AlphaMode::OPAQUE;
         }
@@ -159,18 +125,17 @@ void SceneLoader::parseMaterial(const json& j, Scene& scene, PerspectiveCamera& 
         params.maskThreshold = j.at("maskThreshold").get<float>();
     }
 
-    auto material = new LitMaterial(params);
-
+    auto* material = new LitMaterial(params);
     materials.push_back(material);
 }
 
-void SceneLoader::parseMaterials(const json& j, Scene& scene, PerspectiveCamera& camera) {
+void SceneLoader::parseMaterials(const json& j, Scene& scene) {
     for (auto& m : j) {
-        parseMaterial(m, scene, camera);
+        parseMaterial(m, scene);
     }
 }
 
-void SceneLoader::parseModel(const json& j, Scene& scene, PerspectiveCamera& camera) {
+void SceneLoader::parseModel(const json& j, Scene& scene) {
     std::string name = "Model" + std::to_string(models.size());
 
     ModelCreateParams params{};
@@ -197,7 +162,6 @@ void SceneLoader::parseModel(const json& j, Scene& scene, PerspectiveCamera& cam
 
     if (j.contains("material")) {
         int materialIdx = static_cast<int>(j.at("material").get<float>());
-
         if (materialIdx < 0 || materialIdx >= static_cast<int>(materials.size())) {
             throw std::runtime_error("Material index out of bounds for Mesh 0");
         }
@@ -205,30 +169,51 @@ void SceneLoader::parseModel(const json& j, Scene& scene, PerspectiveCamera& cam
         params.material = materials[materialIdx];
     }
 
-    auto model = new Model(params);
+    auto* model = new Model(params);
+    model->setName(name);
+
+    // Wrapper node
+    auto* node = new Node();
+    node->addChildNode(model);
+
+    if (j.contains("position")) {
+        node->setPosition(jvec3(j.at("position")));
+    }
+
+    if (j.contains("rotation")) {
+        node->setRotationEuler(jvec3(j.at("rotation")));
+    }
+
+    if (j.contains("scale")) {
+        node->setScale(jvec3(j.at("scale")));
+    }
+
+    if (j.contains("wireframe")) {
+        node->wireframe = j.at("wireframe").get<bool>();
+    }
+
+    if (j.contains("pointcloud")) {
+        bool pointcloud = j.at("pointcloud").get<bool>();
+        node->primitiveType = pointcloud ? GL_POINTS : GL_TRIANGLES;
+    }
 
     models.push_back(model);
-    modelIndices[name] = static_cast<int>(models.size()) - 1;
+    scene.addChildNode(node);
 }
 
-void SceneLoader::parseModels(const json& j, Scene& scene, PerspectiveCamera& camera) {
+void SceneLoader::parseModels(const json& j, Scene& scene) {
     for (auto& m : j) {
-        parseModel(m, scene, camera);
+        parseModel(m, scene);
     }
 }
 
-void SceneLoader::parseMesh(const json& j, Scene& scene, PerspectiveCamera& camera) {
-    std::string meshType = "cube";
+void SceneLoader::parseMesh(const json& j, Scene& scene) {
     std::string name = "Mesh" + std::to_string(meshes.size());
 
     MeshDataCreateParams params{};
 
     if (j.contains("name")) {
         name = j.at("name").get<std::string>();
-    }
-
-    if (j.contains("type")) {
-        meshType = j.at("type").get<std::string>();
     }
 
     if (j.contains("material")) {
@@ -244,8 +229,12 @@ void SceneLoader::parseMesh(const json& j, Scene& scene, PerspectiveCamera& came
         params.IBL = j.at("IBL").get<float>();
     }
 
-    Mesh* mesh = nullptr;
+    std::string meshType = "cube";
+    if (j.contains("type")) {
+        meshType = j.at("type").get<std::string>();
+    }
 
+    Mesh* mesh = nullptr;
     if (meshType == "cube") {
         mesh = new Cube(params);
     }
@@ -257,39 +246,16 @@ void SceneLoader::parseMesh(const json& j, Scene& scene, PerspectiveCamera& came
     }
 
     meshes.push_back(mesh);
-    meshIndices[name] = static_cast<int>(meshes.size()) - 1;
 }
 
-void SceneLoader::parseMeshes(const json& j, Scene& scene, PerspectiveCamera& camera) {
+void SceneLoader::parseMeshes(const json& j, Scene& scene) {
     for (auto& m : j) {
-        parseMesh(m, scene, camera);
+        parseMesh(m, scene);
     }
 }
 
-static glm::vec3 jvec3(const json& a) {
-    glm::vec3 v{0.f, 0.f, 0.f};
-
-    if (a.is_array() && a.size() >= 3) {
-        v[0] = a[0].get<float>();
-        v[1] = a[1].get<float>();
-        v[2] = a[2].get<float>();
-    }
-
-    return v;
-}
-
-void SceneLoader::parseNode(const json& j, Scene& scene, PerspectiveCamera& camera) {
+void SceneLoader::parseNode(const json& j, Scene& scene) {
     Node* node = new Node();
-
-    if (j.contains("model")) {
-        int idx = static_cast<int>(j.at("model").get<float>());
-        if (idx < 0 || idx >= static_cast<int>(models.size())) {
-            delete node;
-            throw std::runtime_error("Model index out of bounds for Node 0");
-        }
-
-        node->setEntity(models[idx]);
-    }
 
     if (j.contains("mesh")) {
         int idx = static_cast<int>(j.at("mesh").get<float>());
@@ -298,7 +264,7 @@ void SceneLoader::parseNode(const json& j, Scene& scene, PerspectiveCamera& came
             throw std::runtime_error("Mesh index out of bounds for Node 0");
         }
 
-        node->setEntity(meshes[idx]);
+        node->addEntity(meshes[idx]);
     }
 
     if (j.contains("position")) {
@@ -325,9 +291,9 @@ void SceneLoader::parseNode(const json& j, Scene& scene, PerspectiveCamera& came
     scene.addChildNode(node);
 }
 
-void SceneLoader::parseNodes(const json& j, Scene& scene, PerspectiveCamera& camera) {
+void SceneLoader::parseNodes(const json& j, Scene& scene) {
     for (auto& n : j) {
-        parseNode(n, scene, camera);
+        parseNode(n, scene);
     }
 }
 
@@ -356,7 +322,7 @@ void SceneLoader::parseCamera(const json& j, Scene& scene, PerspectiveCamera& ca
     camera.updateViewMatrix();
 }
 
-void SceneLoader::parseAmbientLight(const json& j, Scene& scene, PerspectiveCamera& camera) {
+void SceneLoader::parseAmbientLight(const json& j, Scene& scene) {
     AmbientLightCreateParams params{};
 
     if (j.contains("color")) {
@@ -372,7 +338,7 @@ void SceneLoader::parseAmbientLight(const json& j, Scene& scene, PerspectiveCame
     scene.setAmbientLight(ambientLight);
 }
 
-void SceneLoader::parseDirectionalLight(const json& j, Scene& scene, PerspectiveCamera& camera) {
+void SceneLoader::parseDirectionalLight(const json& j, Scene& scene) {
     DirectionalLightCreateParams params{};
 
     if (j.contains("color")) {
@@ -412,7 +378,7 @@ void SceneLoader::parseDirectionalLight(const json& j, Scene& scene, Perspective
     scene.setDirectionalLight(directionalLight);
 }
 
-void SceneLoader::parsePointLight(const json& j, Scene& scene, PerspectiveCamera& camera) {
+void SceneLoader::parsePointLight(const json& j, Scene& scene) {
     PointLightCreateParams params{};
 
     if (j.contains("color")) {
@@ -464,13 +430,13 @@ void SceneLoader::parsePointLight(const json& j, Scene& scene, PerspectiveCamera
     scene.addPointLight(pointLight);
 }
 
-void SceneLoader::parsePointLights(const json& j, Scene& scene, PerspectiveCamera& camera) {
+void SceneLoader::parsePointLights(const json& j, Scene& scene) {
     for (auto& p : j) {
-        parsePointLight(p, scene, camera);
+        parsePointLight(p, scene);
     }
 }
 
-void SceneLoader::parseAnimation(const json& j, Scene& scene, PerspectiveCamera& camera) {
+void SceneLoader::parseAnimation(const json& j, Scene& scene) {
     std::string nodeName;
     std::string property;
 
@@ -532,7 +498,7 @@ void SceneLoader::parseAnimation(const json& j, Scene& scene, PerspectiveCamera&
         loop = j.at("loop").get<bool>();
     }
 
-    Node* node = findNodeByName(nodeName);
+    Node* node = scene.findNodeByName(nodeName);
     if (node != nullptr) {
         std::shared_ptr<Animation> anim = node->addAnimation();
 
@@ -553,31 +519,31 @@ void SceneLoader::parseAnimation(const json& j, Scene& scene, PerspectiveCamera&
     }
 }
 
-void SceneLoader::parseAnimations(const json& j, Scene& scene, PerspectiveCamera& camera) {
+void SceneLoader::parseAnimations(const json& j, Scene& scene) {
     for (auto& a : j) {
-        parseAnimation(a, scene, camera);
+        parseAnimation(a, scene);
     }
 }
 
 void SceneLoader::parse(const json& j, Scene& scene, PerspectiveCamera& camera) {
     if (j.contains("skybox")) {
-        parseSkybox(j.at("skybox"), scene, camera);
+        parseSkybox(j.at("skybox"), scene);
     }
 
     if (j.contains("materials")) {
-        parseMaterials(j.at("materials"), scene, camera);
+        parseMaterials(j.at("materials"), scene);
     }
 
     if (j.contains("models")) {
-        parseModels(j.at("models"), scene, camera);
+        parseModels(j.at("models"), scene);
     }
 
     if (j.contains("meshes")) {
-        parseMeshes(j.at("meshes"), scene, camera);
+        parseMeshes(j.at("meshes"), scene);
     }
 
     if (j.contains("nodes")) {
-        parseNodes(j.at("nodes"), scene, camera);
+        parseNodes(j.at("nodes"), scene);
     }
 
     if (j.contains("camera")) {
@@ -585,18 +551,18 @@ void SceneLoader::parse(const json& j, Scene& scene, PerspectiveCamera& camera) 
     }
 
     if (j.contains("ambientLight")) {
-        parseAmbientLight(j.at("ambientLight"), scene, camera);
+        parseAmbientLight(j.at("ambientLight"), scene);
     }
 
     if (j.contains("directionalLight")) {
-        parseDirectionalLight(j.at("directionalLight"), scene, camera);
+        parseDirectionalLight(j.at("directionalLight"), scene);
     }
 
     if (j.contains("pointLights")) {
-        parsePointLights(j.at("pointLights"), scene, camera);
+        parsePointLights(j.at("pointLights"), scene);
     }
 
     if (j.contains("animations")) {
-        parseAnimations(j.at("animations"), scene, camera);
+        parseAnimations(j.at("animations"), scene);
     }
 }

@@ -11,26 +11,16 @@
             "name": "VikingVillage",
             "path": "../assets/models/scenes/VikingVillage.glb",
             "IBL": 1.0,
-            "gammaCorrected": true
-        },
-        {
-            "name": "VikingVillageWater",
-            "path": "../assets/models/scenes/VikingVillageWater.glb",
-            "IBL": 0.1,
-            "gammaCorrected": true
-        }
-    ],
-    "meshes": [
-    ],
-    "nodes": [
-        {
-            "model": 0,
+            "gammaCorrected": true,
             "position": [0.0, 0.0, 0.0],
             "rotation": [0.0, 0.0, 0.0],
             "scale": [1.0, 1.0, 1.0]
         },
         {
-            "model": 1,
+            "name": "VikingVillageWater",
+            "path": "../assets/models/scenes/VikingVillageWater.glb",
+            "IBL": 0.1,
+            "gammaCorrected": true,
             "position": [0.0, -2.0, 0.0],
             "rotation": [0.0, 0.0, 0.0],
             "scale": [1.0, 1.0, 1.0]

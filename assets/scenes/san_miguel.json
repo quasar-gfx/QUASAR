@@ -10,13 +10,7 @@
         {
             "path": "../assets/models/scenes/SanMiguel.glb",
             "IBL": 0.25,
-            "gammaCorrected": true
-        }
-    ],
-    "meshes": [],
-    "nodes": [
-        {
-            "model": 0,
+            "gammaCorrected": true,
             "position": [0.0, 0.0, 0.0],
             "rotation": [0.0, 0.0, 0.0],
             "scale": [1.0, 1.0, 1.0]

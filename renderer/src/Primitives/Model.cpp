@@ -1,20 +1,17 @@
 // Adpated from: https://github.com/google/filament/blob/main/libs/filamentapp/src/MeshAssimp.cpp
-#include <iostream>
-#include <unistd.h>
-
 #include <spdlog/spdlog.h>
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/cimport.h>
 #include <assimp/GltfMaterial.h>
-
-#include <Utils/FileIO.h>
-#include <Primitives/Model.h>
-
 #ifdef __ANDROID__
 #include <assimp/port/AndroidJNI/AndroidJNIIOSystem.h>
 #endif
+
+#include <Path.h>
+#include <Utils/FileIO.h>
+#include <Primitives/Model.h>
 
 using namespace quasar;
 
@@ -27,35 +24,22 @@ Model::Model(const ModelCreateParams& params)
 }
 
 Model::~Model() {
-    for (auto mesh : meshes) {
+    for (auto* mesh : meshes) {
         delete mesh;
     }
-
-    for (auto& texture : texturesLoaded) {
+    for (auto& texture : texturesCache) {
         delete texture.second;
     }
 }
 
-Node* Model::findNodeByName(const std::string& name) {
-    return rootNode.findNodeByName(name);
-}
-
-void Model::updateAnimations(float dt) {
-    rootNode.updateAnimations(dt);
-}
-
 void Model::loadFromFile(const ModelCreateParams& params) {
-    std::string path = params.path;
-    spdlog::info("Loading model: {}", path);
+    Path path(params.path);
+    spdlog::info("Loading model: {}", path.str());
 
-    // Use absolute path if path starts with ~/
-    if (path[0] == '~') {
-        char* home = getenv("HOME");
-        if (home != nullptr) {
-            path.replace(0, 1, home);
-        }
-    }
+    // Get the absolute path to the model file
+    std::string absolutePath = path.absolutePathStr();
 
+    // Create importer
     Assimp::Importer importer;
     importer.SetPropertyInteger(AI_CONFIG_PP_SBP_REMOVE, aiPrimitiveType_LINE | aiPrimitiveType_POINT);
     importer.SetPropertyBool(AI_CONFIG_IMPORT_COLLADA_IGNORE_UP_DIRECTION, true);
@@ -64,6 +48,11 @@ void Model::loadFromFile(const ModelCreateParams& params) {
     Assimp::AndroidJNIIOSystem *ioSystem = new Assimp::AndroidJNIIOSystem(FileIO::getNativeActivity());
     if (ioSystem != nullptr) {
         importer.SetIOHandler(ioSystem);
+    }
+
+    // Android expects paths relative to assets/ folder so remove starting /
+    if (!absolutePath.empty() && absolutePath[0] == '/') {
+        absolutePath = absolutePath.substr(1);
     }
 #endif
 
@@ -82,24 +71,23 @@ void Model::loadFromFile(const ModelCreateParams& params) {
             aiProcess_SortByPType |
             // We only support triangles
             aiProcess_Triangulate;
-    scene = importer.ReadFile(path, flags);
+    scene = importer.ReadFile(absolutePath, flags);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         throw std::runtime_error("ERROR::ASSIMP:: " + std::string(importer.GetErrorString()));
     }
 
-    std::string extension = path.substr(path.find_last_of('.') + 1);
+    std::string extension = path.extension();
     size_t index = importer.GetImporterIndex(extension.c_str());
     const aiImporterDesc* importerDesc = importer.GetImporterInfo(index);
     isGLTF = importerDesc &&
             (!strncmp("glTF Importer",  importerDesc->mName, 13) ||
              !strncmp("glTF2 Importer", importerDesc->mName, 14));
 
-    rootDirectory = path.substr(0, path.find_last_of('/'))  + '/';
+    rootDirectory = path.parent().str();
 
     meshes.resize(scene->mNumMeshes);
 
-    processNode(scene->mRootNode, scene, &rootNode, params.material);
-
+    processNode(scene->mRootNode, scene, this, params.material);
     processAnimations(scene);
 }
 
@@ -110,7 +98,7 @@ void Model::processAnimations(const aiScene* scene) {
         for (uint j = 0; j < animation->mNumChannels; ++j) {
             aiNodeAnim* channel = animation->mChannels[j];
 
-            Node* node = rootNode.findNodeByName(channel->mNodeName.C_Str());
+            Node* node = findNodeByName(channel->mNodeName.C_Str());
             if (node == nullptr) {
                 spdlog::warn("Node {} not found in model", channel->mNodeName.C_Str());
                 continue;
@@ -152,22 +140,23 @@ void Model::processNode(aiNode* aiNode, const aiScene* scene, Node* node, const 
         const int meshIndex = aiNode->mMeshes[i];
         aiMesh* mesh = scene->mMeshes[meshIndex];
         meshes[meshIndex] = processMesh(mesh, scene, material);
-        node->pushMeshIndex(meshIndex);
+        node->addEntity(meshes[meshIndex]);
     }
 
+    // Process child nodes
     for (int i = 0; i < aiNode->mNumChildren; i++) {
-        node->children.push_back(new Node());
-        processNode(aiNode->mChildren[i], scene, node->children.back(), material);
+        Node* childNode = new Node();
+        node->addChildNode(childNode);
+        processNode(aiNode->mChildren[i], scene, childNode, material);
     }
 }
 
 Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, const LitMaterial* material) {
-    std::vector<Vertex> vertices;
-    std::vector<uint> indices;
-
-    std::vector<aiVector3D> normals(mesh->mNumVertices, aiVector3D(0, 0, 0));
+    std::vector<Vertex> vertices(mesh->mNumVertices);
+    std::vector<uint> indices(mesh->mNumFaces * 3); // Assume triangles
 
     // Set up indices and manually calculate normals
+    std::vector<aiVector3D> normals(mesh->mNumVertices, aiVector3D(0, 0, 0));
     for (int i = 0; i < mesh->mNumFaces; i++) {
         const aiFace& face = mesh->mFaces[i];
         const aiVector3D& v0 = mesh->mVertices[face.mIndices[0]];
@@ -178,7 +167,7 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, const LitMaterial* 
         normal.Normalize();
 
         for (int j = 0; j < face.mNumIndices; j++) {
-            indices.push_back(face.mIndices[j]);
+            indices[i * 3 + j] = face.mIndices[j];
             normals[face.mIndices[j]] += normal;
         }
     }
@@ -187,59 +176,45 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, const LitMaterial* 
     glm::vec3 min = glm::vec3(FLT_MAX);
     glm::vec3 max = glm::vec3(-FLT_MAX);
     for (int i = 0; i < mesh->mNumVertices; i++) {
-        Vertex vertex;
-        glm::vec3 tmpVec3;
-
         if (mesh->HasPositions()) {
-            tmpVec3.x = mesh->mVertices[i].x;
-            tmpVec3.y = mesh->mVertices[i].y;
-            tmpVec3.z = mesh->mVertices[i].z;
-            vertex.position = tmpVec3;
+            vertices[i].position.x = mesh->mVertices[i].x;
+            vertices[i].position.y = mesh->mVertices[i].y;
+            vertices[i].position.z = mesh->mVertices[i].z;
 
-            min = glm::min(min, tmpVec3);
-            max = glm::max(max, tmpVec3);
+            min = glm::min(min, vertices[i].position);
+            max = glm::max(max, vertices[i].position);
         }
 
         if (mesh->HasNormals()) {
-            tmpVec3.x = normals[i].x;
-            tmpVec3.y = normals[i].y;
-            tmpVec3.z = normals[i].z;
-            vertex.normal = tmpVec3;
+            vertices[i].normal.x = normals[i].x;
+            vertices[i].normal.y = normals[i].y;
+            vertices[i].normal.z = normals[i].z;
         }
 
         if (mesh->HasTextureCoords(0)) {
-            glm::vec2 vec;
-            vec.x = mesh->mTextureCoords[0][i].x;
+            vertices[i].texCoord.x = mesh->mTextureCoords[0][i].x;
             if (flipTextures) {
-                vec.y = 1.0f - mesh->mTextureCoords[0][i].y;
+                vertices[i].texCoord.y = 1.0f - mesh->mTextureCoords[0][i].y;
             }
             else {
-                vec.y = mesh->mTextureCoords[0][i].y;
+                vertices[i].texCoord.y = mesh->mTextureCoords[0][i].y;
             }
-            vertex.texCoord = vec;
         }
 
         if (mesh->HasTangentsAndBitangents()) {
-            tmpVec3.x = mesh->mTangents[i].x;
-            tmpVec3.y = mesh->mTangents[i].y;
-            tmpVec3.z = mesh->mTangents[i].z;
-            vertex.tangent = tmpVec3;
+            vertices[i].tangent.x = mesh->mTangents[i].x;
+            vertices[i].tangent.y = mesh->mTangents[i].y;
+            vertices[i].tangent.z = mesh->mTangents[i].z;
 
-            tmpVec3.x = mesh->mBitangents[i].x;
-            tmpVec3.y = mesh->mBitangents[i].y;
-            tmpVec3.z = mesh->mBitangents[i].z;
-            vertex.bitangent = tmpVec3;
+            vertices[i].bitangent.x = mesh->mBitangents[i].x;
+            vertices[i].bitangent.y = mesh->mBitangents[i].y;
+            vertices[i].bitangent.z = mesh->mBitangents[i].z;
         }
         else {
-            vertex.bitangent = glm::normalize(glm::cross(vertex.normal, glm::vec3(1.0f, 0.0f, 0.0f)));
-            vertex.tangent = glm::normalize(glm::cross(vertex.normal, vertex.bitangent));
+            vertices[i].bitangent = glm::normalize(glm::cross(vertices[i].normal, glm::vec3(1.0f, 0.0f, 0.0f)));
+            vertices[i].tangent   = glm::normalize(glm::cross(vertices[i].normal, vertices[i].bitangent));
         }
-
-        vertices.push_back(vertex);
     }
-
-    // Set up AABB
-    aabb.update(min, max);
 
     // Set up material
     uint32_t materialId = mesh->mMaterialIndex;
@@ -262,7 +237,9 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, const LitMaterial* 
     meshParams.IBL = IBL;
     meshParams.material = this->material;
 
-    return new Mesh(meshParams);
+    auto* result = new Mesh(meshParams);
+    result->updateAABB(min, max);
+    return result;
 }
 
 void Model::processMaterial(const aiMaterial* aiMat, LitMaterialCreateParams& materialParams) {
@@ -398,13 +375,13 @@ void Model::processMaterial(const aiMaterial* aiMat, LitMaterialCreateParams& ma
 
 int32_t Model::getEmbeddedTextureId(const aiString& path) {
     const char* pathStr = path.C_Str();
-    if (path.length >= 2 && pathStr[0] == '*') { // seems like assimp uses * as a prefix for embedded textures
+    if (path.length >= 2 && pathStr[0] == '*') { // assimp uses * as a prefix for embedded textures
         for (int i = 1; i < path.length; i++) {
             if (!isdigit(pathStr[i])) {
                 return -1;
             }
         }
-        return std::atoi(pathStr + 1); // NOLINT
+        return std::atoi(pathStr + 1);
     }
     return -1;
 }
@@ -415,8 +392,8 @@ Texture* Model::loadMaterialTexture(aiMaterial const* aiMat, aiString aiTextureP
     std::replace(texturePath.begin(), texturePath.end(), '\\', '/');
 
     // If we've loaded this texture already, return the already loaded texture
-    if (texturesLoaded.count(texturePath) > 0) {
-        return texturesLoaded[texturePath];
+    if (texturesCache.count(texturePath) > 0) {
+        return texturesCache[texturePath];
     }
 
     shouldGammaCorrect &= gammaCorrected;
@@ -460,8 +437,8 @@ Texture* Model::loadMaterialTexture(aiMaterial const* aiMat, aiString aiTextureP
             });
 
             FileIO::freeImage(data);
-            texturesLoaded[texturePath] = texture;
-            return texturesLoaded[texturePath];
+            texturesCache[texturePath] = texture;
+            return texturesCache[texturePath];
         }
 
         return nullptr;
@@ -476,61 +453,7 @@ Texture* Model::loadMaterialTexture(aiMaterial const* aiMat, aiString aiTextureP
             .gammaCorrected = shouldGammaCorrect,
             .path = texturePath,
         });
-        texturesLoaded[texturePath] = texture;
-        return texturesLoaded[texturePath];
+        texturesCache[texturePath] = texture;
+        return texturesCache[texturePath];
     }
-}
-
-void Model::bindMaterial(Scene& scene, Buffer& pointLightsUBO, const Material* overrideMaterial, const Texture* prevIDMap) {
-    for (auto& mesh : meshes) {
-        mesh->bindMaterial(scene, pointLightsUBO, overrideMaterial, prevIDMap);
-    }
-}
-
-RenderStats Model::draw(GLenum primitiveType, const Camera& camera, const glm::mat4& model, bool frustumCull, const Material* overrideMaterial) {
-    RenderStats stats = drawNode(&rootNode, primitiveType, camera, glm::mat4(1.0f), model, frustumCull, overrideMaterial);
-    return stats;
-}
-
-RenderStats Model::draw(GLenum primitiveType, const Camera& camera, const glm::mat4& model, const BoundingSphere& boundingSphere, const Material* overrideMaterial) {
-    RenderStats stats = drawNode(&rootNode, primitiveType, camera, glm::mat4(1.0f), model, boundingSphere, overrideMaterial);
-    return stats;
-}
-
-RenderStats Model::drawNode(const Node* node,
-                            GLenum primitiveType, const Camera& camera,
-                            const glm::mat4& parentTransform, const glm::mat4& model,
-                            bool frustumCull, const Material* overrideMaterial) {
-    RenderStats stats;
-    const glm::mat4& globalTransform = parentTransform * node->getTransformParentFromLocal() * node->getTransformAnimation();
-    const glm::mat4& modelMatrix = model * globalTransform;
-
-    for (int meshIndex : node->getMeshIndices()) {
-        stats += meshes[meshIndex]->draw(primitiveType, camera, modelMatrix, frustumCull, overrideMaterial);
-    }
-
-    for (const auto* child : node->children) {
-        stats += drawNode(child, primitiveType, camera, globalTransform, model, frustumCull, overrideMaterial);
-    }
-
-    return stats;
-}
-
-RenderStats Model::drawNode(const Node* node,
-                            GLenum primitiveType, const Camera& camera,
-                            const glm::mat4& parentTransform, const glm::mat4& model,
-                            const BoundingSphere& boundingSphere, const Material* overrideMaterial) {
-    RenderStats stats;
-    const glm::mat4& globalTransform = parentTransform * node->getTransformParentFromLocal() * node->getTransformAnimation();
-    const glm::mat4& modelMatrix = model * globalTransform;
-
-    for (int meshIndex : node->getMeshIndices()) {
-        stats += meshes[meshIndex]->draw(primitiveType, camera, modelMatrix, boundingSphere, overrideMaterial);
-    }
-
-    for (const auto* child : node->children) {
-        stats += drawNode(child, primitiveType, camera, globalTransform, model, boundingSphere, overrideMaterial);
-    }
-
-    return stats;
 }

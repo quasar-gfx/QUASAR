@@ -102,11 +102,11 @@ int main(int argc, char** argv) {
     std::vector<Node> nodes(maxViews);
     std::vector<Node> nodeWireframes(maxViews);
     for (int view = 0; view < maxViews; view++) {
-        nodes[view].setEntity(&quadstreamReceiver.getMesh(view));
+        nodes[view].addEntity(&quadstreamReceiver.getMesh(view));
         nodes[view].frustumCulled = false;
         scene.addChildNode(&nodes[view]);
 
-        nodeWireframes[view].setEntity(&quadstreamReceiver.getMesh(view));
+        nodeWireframes[view].addEntity(&quadstreamReceiver.getMesh(view));
         nodeWireframes[view].frustumCulled = false;
         nodeWireframes[view].wireframe = true;
         nodeWireframes[view].visible = false;

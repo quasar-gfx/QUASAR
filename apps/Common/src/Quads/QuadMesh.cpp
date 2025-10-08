@@ -22,7 +22,7 @@ QuadMesh::QuadMesh(const QuadSet& quadSet, Texture& colorTexture, const glm::vec
     })
     , quadIndexMap({
         .target = GL_SHADER_STORAGE_BUFFER,
-        .dataSize = sizeof(uint),
+        .dataSize = sizeof(uint32_t),
         .numElems = quadSet.getSize().x * quadSet.getSize().y,
         .usage = GL_DYNAMIC_DRAW,
     })

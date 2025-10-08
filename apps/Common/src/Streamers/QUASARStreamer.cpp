@@ -152,17 +152,17 @@ QUASARStreamer::QUASARStreamer(
     }
 
     // Setup masks for residual frame
-    residualFrameNode.setEntity(&residualFrameMesh);
+    residualFrameNode.addEntity(&residualFrameMesh);
     residualFrameNode.frustumCulled = false;
 
-    residualFrameWireframesLocal.setEntity(&residualFrameMesh);
+    residualFrameWireframesLocal.addEntity(&residualFrameMesh);
     residualFrameWireframesLocal.frustumCulled = false;
     residualFrameWireframesLocal.wireframe = true;
     residualFrameWireframesLocal.visible = false;
     residualFrameWireframesLocal.overrideMaterial = &maskWireframeMaterial;
 
     // Setup depth mesh
-    depthNode.setEntity(&depthMesh);
+    depthNode.addEntity(&depthMesh);
     depthNode.frustumCulled = false;
     depthNode.visible = false;
     depthNode.primitiveType = GL_POINTS;

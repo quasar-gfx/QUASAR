@@ -82,6 +82,10 @@ public:
         return path;
     }
 
+    const std::string extension() const {
+        return path.extension().string();
+    }
+
     Path withExtension(const std::string& ext) const {
         fs::path newPath = path;
         newPath.replace_filename(newPath.filename().string() + ext);

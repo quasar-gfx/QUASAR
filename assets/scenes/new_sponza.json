@@ -13,14 +13,7 @@
             "name": "Sponza",
             "path": "../assets/models/scenes/NewSponza.glb",
             "IBL": 0.05,
-            "gammaCorrected": true
-        }
-    ],
-    "meshes": [
-    ],
-    "nodes": [
-        {
-            "model": 0,
+            "gammaCorrected": true,
             "position": [0.0, 0.0, 0.0],
             "rotation": [0.0, -90.0, 0.0],
             "scale": [1.0, 1.0, 1.0]

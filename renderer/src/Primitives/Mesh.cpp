@@ -156,6 +156,10 @@ void Mesh::resizeBuffers(uint verticesSize, uint indicesSize) {
     indexBuffer.resize(indicesSize);
 }
 
+void Mesh::updateAABB(const glm::vec3& min, const glm::vec3& max) {
+    aabb.update(min, max);
+}
+
 void Mesh::updateAABB(const void* verticesData, uint verticesSize) {
     // If no vertices, return
     if (verticesData == nullptr || verticesSize == 0) {
@@ -171,9 +175,7 @@ void Mesh::updateAABB(const void* verticesData, uint verticesSize) {
         min = glm::min(min, vertex.position);
         max = glm::max(max, vertex.position);
     }
-
-    // Set up AABB
-    aabb.update(min, max);
+    updateAABB(min, max);
 }
 
 void Mesh::setMaterialCameraParams(const Camera& camera, const Material* material) {

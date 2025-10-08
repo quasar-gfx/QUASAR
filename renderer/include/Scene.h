@@ -9,7 +9,7 @@
 
 namespace quasar {
 
-class Scene {
+class Scene : public Node {
 public:
     struct GPUPointLightBlock {
         PointLight::GPUPointLight lights[PointLight::maxPointLights];
@@ -23,8 +23,6 @@ public:
     DirectionalLight* directionalLight = nullptr;
     std::vector<PointLight*> pointLights;
 
-    Node rootNode;
-
     Scene() = default;
     ~Scene() = default;
 
@@ -33,13 +31,8 @@ public:
     void setDirectionalLight(DirectionalLight* directionalLight);
 
     void addPointLight(PointLight* pointLight);
-    void addChildNode(Node* node);
-
-    void updateAnimations(float dt);
 
     int bindMaterial(const Material* material, Buffer& pointLightsUBO);
-
-    Node* findNodeByName(const std::string& name);
 
     void clear();
 

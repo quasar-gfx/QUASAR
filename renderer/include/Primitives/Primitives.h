@@ -9,6 +9,4 @@
 #include <Primitives/Sphere.h>
 #include <Primitives/FullScreenQuad.h>
 
-#include <Primitives/Model.h>
-
 #endif // PRIMITIVE_H

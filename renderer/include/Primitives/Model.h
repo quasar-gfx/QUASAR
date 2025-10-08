@@ -11,10 +11,9 @@
 #include <assimp/scene.h>
 
 #include <Vertex.h>
-#include <Shaders/Shader.h>
+#include <Primitives/Node.h>
 #include <Primitives/Mesh.h>
 #include <Materials/LitMaterial.h>
-#include <Primitives/Entity.h>
 
 namespace quasar {
 
@@ -26,38 +25,27 @@ struct ModelCreateParams {
     std::string path;
 };
 
-class Model : public Entity {
+class Model : public Node {
 public:
-    std::vector<Mesh*> meshes;
-    Node rootNode;
+    bool isGLTF = false;
 
     std::string rootDirectory;
 
-    bool flipTextures = false;
-    bool gammaCorrected = false;
-    float IBL = 1.0;
+    bool gammaCorrected;
+    float IBL;
 
     const LitMaterial* material;
-
-    bool isGLTF = false;
 
     Model(const ModelCreateParams& params);
     ~Model();
 
-    virtual void bindMaterial(Scene& scene, Buffer& pointLightsUBO,
-                              const Material* overrideMaterial = nullptr, const Texture* prevIDMap = nullptr) override;
-
-    virtual RenderStats draw(GLenum primitiveType, const Camera& camera, const glm::mat4& model,
-                             bool frustumCull = true, const Material* overrideMaterial = nullptr) override;
-    virtual RenderStats draw(GLenum primitiveType, const Camera& camera, const glm::mat4& model,
-                             const BoundingSphere& boundingSphere, const Material* overrideMaterial = nullptr) override;
-    virtual void updateAnimations(float dt) override;
-
-    Node* findNodeByName(const std::string& name);
-
 private:
+    bool flipTextures;
+
+    std::vector<Mesh*> meshes;
+
     const aiScene* scene;
-    std::unordered_map<std::string, Texture*> texturesLoaded;
+    std::unordered_map<std::string, Texture*> texturesCache;
 
     void loadFromFile(const ModelCreateParams& params);
     void processNode(aiNode* aiNode, const aiScene* scene, Node* node, const LitMaterial* material);
@@ -66,15 +54,6 @@ private:
     void processMaterial(aiMaterial const* aiMat, LitMaterialCreateParams& materialParams);
     Texture* loadMaterialTexture(aiMaterial const* aiMat, aiString aiTexturePath, bool shouldGammaCorrect = false);
     int32_t getEmbeddedTextureId(const aiString& path);
-
-    RenderStats drawNode(const Node* node,
-                         GLenum primitiveType, const Camera& camera,
-                         const glm::mat4& parentTransform, const glm::mat4& model,
-                         bool frustumCull = true, const Material* overrideMaterial = nullptr);
-    RenderStats drawNode(const Node* node,
-                         GLenum primitiveType, const Camera& camera,
-                         const glm::mat4& parentTransform, const glm::mat4& model,
-                         const BoundingSphere& boundingSphere, const Material* overrideMaterial = nullptr);
 };
 
 } // namespace quasar

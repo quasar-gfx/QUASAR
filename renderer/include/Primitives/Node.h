@@ -15,11 +15,13 @@ namespace quasar {
 class Node {
 public:
     Node* parent = nullptr;
-    Entity* entity = nullptr;
+    std::vector<Entity*> entities;
     std::vector<Node*> children;
 
     bool visible = true;
     bool frustumCulled = true;
+
+    bool isGLTF = false;
 
     GLenum primitiveType = GL_TRIANGLES;
     float pointSize = 5.0f;
@@ -37,7 +39,7 @@ public:
     Node* findNodeByName(const std::string& name);
 
     int getID() const;
-    void setEntity(Entity* entity);
+    void addEntity(Entity* entity);
     void setName(const std::string& name);
     void addChildNode(Node* node);
 
@@ -60,9 +62,6 @@ public:
     void setTransformParentFromLocal(const glm::mat4& pose);
     void setTransformLocalFromParent(const glm::mat4& view);
 
-    const std::vector<int>& getMeshIndices() const { return meshIndices; }
-    void pushMeshIndex(int index) { meshIndices.push_back(index); }
-
     bool hasAnimation() const { return animation != nullptr; }
     std::shared_ptr<Animation> addAnimation();
 
@@ -77,7 +76,6 @@ protected:
     glm::vec3 scale = glm::vec3(1.0f);
 
     std::shared_ptr<Animation> animation;
-    std::vector<int> meshIndices;
 
     static uint32_t nextID;
 };

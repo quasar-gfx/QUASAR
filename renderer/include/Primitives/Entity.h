@@ -14,13 +14,6 @@ class Node;
 class Scene;
 class Camera;
 
-enum class EntityType {
-    EMPTY,
-    MESH,
-    MODEL,
-    FULL_SCREEN_QUAD
-};
-
 struct RenderStats {
     uint trianglesDrawn = 0;
     uint drawCalls = 0;
@@ -64,8 +57,6 @@ public:
     virtual RenderStats draw(GLenum primitiveType, const Camera& camera, const glm::mat4& model,
                              const BoundingSphere& boundingSphere,
                              const Material* overrideMaterial = nullptr) = 0;
-
-    virtual void updateAnimations(float dt) {}
 
 protected:
     uint32_t ID;

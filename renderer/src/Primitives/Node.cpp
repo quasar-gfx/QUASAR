@@ -17,13 +17,13 @@ Node::Node(const std::string& name) {
 Node::Node(Entity* entity) {
     ID = nextID++;
     this->name = "Node" + std::to_string(ID);
-    setEntity(entity);
+    addEntity(entity);
 }
 
 Node::Node(const std::string& name, Entity* entity) {
     ID = nextID++;
     this->name = name;
-    setEntity(entity);
+    addEntity(entity);
 }
 
 Node* Node::findNodeByName(const std::string& name) {
@@ -45,8 +45,8 @@ int Node::getID() const {
     return ID;
 }
 
-void Node::setEntity(Entity* entity) {
-    this->entity = entity;
+void Node::addEntity(Entity* entity) {
+    entities.push_back(entity);
 }
 
 void Node::setName(const std::string& name) {
@@ -158,10 +158,6 @@ std::shared_ptr<Animation> Node::addAnimation() {
 void Node::updateAnimations(double dt) {
     if (animation) {
         animation->update(dt);
-    }
-
-    if (entity != nullptr) {
-        entity->updateAnimations(dt);
     }
 
     for (auto* child : children) {

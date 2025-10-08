@@ -2,18 +2,6 @@
 
 using namespace quasar;
 
-void Scene::addChildNode(Node* node) {
-    rootNode.addChildNode(node);
-}
-
-void Scene::updateAnimations(float dt) {
-    rootNode.updateAnimations(dt);
-}
-
-Node* Scene::findNodeByName(const std::string& name) {
-    return rootNode.findNodeByName(name);
-}
-
 void Scene::setEnvMap(SkyBox* envCubeMap) {
     this->envCubeMap = envCubeMap;
 }

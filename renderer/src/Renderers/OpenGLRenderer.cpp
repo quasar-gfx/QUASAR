@@ -138,7 +138,7 @@ RenderStats OpenGLRenderer::updateDirLightShadow(Scene& scene, const Camera& cam
     shadowMapRT.setViewport(0, 0, shadowMapRT.width, shadowMapRT.height);
     glClear(GL_DEPTH_BUFFER_BIT);
 
-    for (auto& child : scene.rootNode.children) {
+    for (auto* child : scene.children) {
         stats += drawNode(scene, camera, child, glm::mat4(1.0f), false, &scene.directionalLight->shadowMapMaterial);
     }
 
@@ -151,7 +151,7 @@ RenderStats OpenGLRenderer::updatePointLightShadows(Scene& scene, const Camera& 
     RenderStats stats;
 
     for (int i = 0; i < scene.pointLights.size(); i++) {
-        auto pointLight = scene.pointLights[i];
+        auto& pointLight = scene.pointLights[i];
         if (pointLight->intensity == 0)
             continue;
 
@@ -170,7 +170,7 @@ RenderStats OpenGLRenderer::updatePointLightShadows(Scene& scene, const Camera& 
             pointLight->shadowMapMaterial.shader->setMat4("shadowMatrices[" + std::to_string(face) + "]", shadowProj * pointLight->lookAtPerFace[face]);
         }
 
-        for (auto& child : scene.rootNode.children) {
+        for (auto* child : scene.children) {
             stats += drawNode(scene, camera, child, glm::mat4(1.0f), pointLight, &pointLight->shadowMapMaterial);
         }
 
@@ -187,7 +187,7 @@ RenderStats OpenGLRenderer::drawSceneImpl(Scene& scene, const Camera& camera, ui
     }
 
     RenderStats stats;
-    for (auto& child : scene.rootNode.children) {
+    for (auto* child : scene.children) {
         stats += drawNode(scene, camera, child, glm::mat4(1.0f), true);
     }
 
@@ -311,9 +311,9 @@ RenderStats OpenGLRenderer::drawNode(Scene& scene, const Camera& camera, Node* n
     auto* materialToUse = overrideMaterial != nullptr ? overrideMaterial : node->overrideMaterial;
 
     RenderStats stats;
-    if (node->entity != nullptr) {
-        if (node->visible) {
-            node->entity->bindMaterial(scene, pointLightsUBO, materialToUse, prevIDMap);
+    if (node->visible) {
+        for (auto* entity : node->entities) {
+            entity->bindMaterial(scene, pointLightsUBO, materialToUse, prevIDMap);
 
 #ifdef GL_CORE
             // Set polygon mode to wireframe if needed
@@ -337,7 +337,7 @@ RenderStats OpenGLRenderer::drawNode(Scene& scene, const Camera& camera, Node* n
 #endif
 
             frustumCull = frustumCull && node->frustumCulled;
-            stats += node->entity->draw(node->primitiveType, camera, model, frustumCull, materialToUse);
+            stats += entity->draw(node->primitiveType, camera, model, frustumCull, materialToUse);
 
 #ifdef GL_CORE
             // Restore polygon mode
@@ -357,8 +357,8 @@ RenderStats OpenGLRenderer::drawNode(Scene& scene, const Camera& camera, Node* n
         }
     }
 
-    for (auto& child : node->children) {
-        stats += drawNode(scene, camera, child, model, materialToUse);
+    for (auto* child : node->children) {
+        stats += drawNode(scene, camera, child, model, frustumCull, materialToUse, prevIDMap);
     }
 
     return stats;
@@ -369,14 +369,14 @@ RenderStats OpenGLRenderer::drawNode(Scene& scene, const Camera& camera, Node* n
     const glm::mat4& model = parentTransform * node->getTransformParentFromLocal() * node->getTransformAnimation();
 
     RenderStats stats;
-    if (node->entity != nullptr) {
-        if (node->visible) {
+    if (node->visible) {
+        for (auto* entity : node->entities) {
             // Don't have to bind to scene and camera here, since we are only drawing shadows
-            stats += node->entity->draw(node->primitiveType, camera, model, pointLight->boundingSphere, overrideMaterial);
+            stats += entity->draw(node->primitiveType, camera, model, pointLight->boundingSphere, overrideMaterial);
         }
     }
 
-    for (auto& child : node->children) {
+    for (auto* child : node->children) {
         stats += drawNode(scene, camera, child, model, pointLight, overrideMaterial);
     }
 

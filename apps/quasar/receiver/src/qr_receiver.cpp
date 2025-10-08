@@ -109,11 +109,11 @@ int main(int argc, char** argv) {
     std::vector<Node> refNodes(maxLayers);
     std::vector<Node> refNodeWireframes(maxLayers);
     for (int layer = 0; layer < maxLayers; layer++) {
-        refNodes[layer].setEntity(&quasarReceiver.getMesh(layer));
+        refNodes[layer].addEntity(&quasarReceiver.getMesh(layer));
         refNodes[layer].frustumCulled = false;
         scene.addChildNode(&refNodes[layer]);
 
-        refNodeWireframes[layer].setEntity(&quasarReceiver.getMesh(layer));
+        refNodeWireframes[layer].addEntity(&quasarReceiver.getMesh(layer));
         refNodeWireframes[layer].frustumCulled = false;
         refNodeWireframes[layer].wireframe = true;
         refNodeWireframes[layer].visible = false;
