@@ -189,7 +189,7 @@ int main(int argc, char** argv) {
 
             if (scene.ambientLight != nullptr && ImGui::CollapsingHeader("Ambient Light Settings")) {
                 ImGui::ColorEdit3("Color##Ambient", (float*)&scene.ambientLight->color);
-                ImGui::DragFloat("Strength##Ambient", &scene.ambientLight->intensity, 0.1f, 0.1f, 1.0f);
+                ImGui::DragFloat("Strength##Ambient", &scene.ambientLight->intensity, 0.05f, 0.1f, 2.0f);
             }
 
             if (scene.directionalLight != nullptr && ImGui::CollapsingHeader("Directional Light Settings")) {

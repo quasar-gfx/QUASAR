@@ -32,17 +32,16 @@ struct LitMaterialCreateParams {
 
 class LitMaterial : public Material {
 public:
-    glm::vec4 baseColor = glm::vec4(1.0f);
-    glm::vec4 baseColorFactor = glm::vec4(1.0f);
-    AlphaMode alphaMode = AlphaMode::OPAQUE;
-    float maskThreshold = 0.5f;
-    glm::vec3 emissiveFactor = glm::vec3(1.0f);
+    glm::vec4 baseColor;
+    glm::vec4 baseColorFactor;
+    float maskThreshold;
+    glm::vec3 emissiveFactor;
 
-    float metallic = 0.0f;
-    float metallicFactor = 1.0f;
-    float roughness = 1.0f;
-    float roughnessFactor = 1.0f;
-    bool metalRoughnessCombined = false;
+    float metallic;
+    float metallicFactor;
+    float roughness;
+    float roughnessFactor;
+    bool metalRoughnessCombined;
 
     LitMaterial() = default;
     LitMaterial(const LitMaterialCreateParams& params);

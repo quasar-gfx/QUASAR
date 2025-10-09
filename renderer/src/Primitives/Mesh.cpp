@@ -19,8 +19,7 @@ Mesh::Mesh()
 }
 
 Mesh::Mesh(const MeshDataCreateParams& params)
-    : material(params.material)
-    , IBL(params.IBL)
+    : IBL(params.IBL)
     , usage(params.usage)
     , vertexBuffer({
         .target = GL_ARRAY_BUFFER,
@@ -40,6 +39,7 @@ Mesh::Mesh(const MeshDataCreateParams& params)
     , indirectDraw(params.indirectDraw)
     , vertexSize(params.vertexSize)
     , attributes(params.attributes)
+    , Entity(params.material)
 {
     vertexBuffer.bind();
     setArrayBufferAttributes(params.attributes, params.vertexSize);
@@ -54,8 +54,7 @@ Mesh::Mesh(const MeshDataCreateParams& params)
 }
 
 Mesh::Mesh(const MeshSizeCreateParams& params)
-    : material(params.material)
-    , IBL(params.IBL)
+    : IBL(params.IBL)
     , usage(params.usage)
     , vertexBuffer({
         .target = GL_ARRAY_BUFFER,
@@ -75,6 +74,7 @@ Mesh::Mesh(const MeshSizeCreateParams& params)
     })
     , vertexSize(params.vertexSize)
     , attributes(params.attributes)
+    , Entity(params.material)
 {
     vertexBuffer.bind();
     setArrayBufferAttributes(params.attributes, params.vertexSize);
@@ -90,8 +90,8 @@ Mesh::Mesh(const MeshSizeCreateParams& params)
 
 void Mesh::setArrayBufferAttributes(const VertexInputAttributes& attributes, uint vertexSize) {
     glGenVertexArrays(1, &vertexArrayBuffer);
-    glBindVertexArray(vertexArrayBuffer);
 
+    glBindVertexArray(vertexArrayBuffer);
     if (attributes.size() == 0) {
         spdlog::warn("No vertex attributes provided!");
     }
@@ -99,7 +99,6 @@ void Mesh::setArrayBufferAttributes(const VertexInputAttributes& attributes, uin
         glEnableVertexAttribArray(attribute.index);
         glVertexAttribPointer(attribute.index, attribute.size, attribute.type, attribute.normalized, vertexSize, (void*)attribute.pointer);
     }
-
     glBindVertexArray(0);
 }
 
@@ -111,20 +110,14 @@ void Mesh::setBuffers(const void* verticesData, uint verticesSize, const uint* i
 
     vertexBuffer.bind();
     vertexBuffer.setData(verticesSize, verticesData);
-
-    glBindVertexArray(vertexArrayBuffer);
-
     updateAABB(verticesData, verticesSize);
 
     if (indicesData == nullptr || indicesSize == 0) {
-        glBindVertexArray(0);
         return;
     }
 
     indexBuffer.bind();
     indexBuffer.setData(indicesSize, indicesData);
-
-    glBindVertexArray(0);
 }
 
 void Mesh::setBuffers(uint verticesSize, uint indicesSize) {
@@ -133,22 +126,17 @@ void Mesh::setBuffers(uint verticesSize, uint indicesSize) {
         return;
     }
 
-    glBindVertexArray(vertexArrayBuffer);
-
     vertexBuffer.bind();
     vertexBuffer.resize(verticesSize);
     vertexBuffer.unbind();
 
     if (indicesSize == 0) {
-        glBindVertexArray(0);
         return;
     }
 
     indexBuffer.bind();
     indexBuffer.resize(indicesSize);
     indexBuffer.unbind();
-
-    glBindVertexArray(0);
 }
 
 void Mesh::resizeBuffers(uint verticesSize, uint indicesSize) {
@@ -166,12 +154,12 @@ void Mesh::updateAABB(const void* verticesData, uint verticesSize) {
         return;
     }
 
-    auto* verticesVec = reinterpret_cast<const Vertex*>(verticesData);
-    glm::vec3 min = verticesVec[0].position;
-    glm::vec3 max = verticesVec[0].position;
+    auto* vertices = reinterpret_cast<const Vertex*>(verticesData);
+    glm::vec3 min = vertices[0].position;
+    glm::vec3 max = vertices[0].position;
 
     for (uint i = 1; i < verticesSize; i++) {
-        auto& vertex = verticesVec[i];
+        auto& vertex = vertices[i];
         min = glm::min(min, vertex.position);
         max = glm::max(max, vertex.position);
     }
@@ -239,7 +227,7 @@ RenderStats Mesh::draw(GLenum primitiveType, const Camera& camera, const glm::ma
     materialToUse->bind();
 
     // Set draw ID/object ID
-    materialToUse->getShader()->setUint("DrawID", ID);
+    materialToUse->getShader()->setUint("drawID", ID);
 
     // Set camera params
     setMaterialCameraParams(camera, materialToUse);
@@ -268,8 +256,8 @@ RenderStats Mesh::draw(GLenum primitiveType) {
 
     glBindVertexArray(vertexArrayBuffer);
     if (indirectDraw) {
-        indirectBuffer.bind();
         if (indexBuffer.getSize() > 0) {
+            indirectBuffer.bind();
             indexBuffer.bind();
             glDrawElementsIndirect(primitiveType, GL_UNSIGNED_INT, 0);
             indexBuffer.unbind();

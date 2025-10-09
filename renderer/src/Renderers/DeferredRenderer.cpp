@@ -34,7 +34,7 @@ DeferredRenderer::DeferredRenderer(const Config& config)
 {}
 
 void DeferredRenderer::setScreenShaderUniforms(const Shader& screenShader) {
-    // Set FrameRenderTarget texture uniforms
+    // Set texture uniforms
     screenShader.bind();
     screenShader.setTexture("screenColor", outputRT.colorTexture, 0);
     screenShader.setTexture("screenDepth", outputRT.depthStencilTexture, 1);
@@ -83,6 +83,10 @@ RenderStats DeferredRenderer::drawScene(Scene& scene, const Camera& camera, uint
     RenderStats stats;
 
     beginRendering();
+    if (clearMask != 0) {
+        glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
+        glClear(clearMask);
+    }
 
     // Disable blending
     pipeline.blendState.blendEnabled = false; pipeline.apply();
@@ -98,9 +102,14 @@ RenderStats DeferredRenderer::drawScene(Scene& scene, const Camera& camera, uint
     return stats;
 }
 
-RenderStats DeferredRenderer::drawSkyBox(Scene& scene, const Camera& camera) {
+RenderStats DeferredRenderer::drawSkyBox(Scene& scene, const Camera& camera, uint32_t clearMask) {
     outputRT.bind();
-    RenderStats stats = drawSkyBoxImpl(scene, camera);
+    if (clearMask != 0) {
+        glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
+        glClear(clearMask);
+    }
+
+    RenderStats stats = drawSkyBoxImpl(scene, camera, clearMask);
     outputRT.unbind();
     return stats;
 }
@@ -175,18 +184,17 @@ RenderStats DeferredRenderer::lightingPass(Scene& scene, const Camera& camera) {
     // Copy depth from FrameRenderTarget to outputRT
     gBuffer.blitDepthToRenderTarget(outputRT);
 
-    glDepthFunc(GL_LEQUAL);
+    pipeline.depthState.depthFunc = GL_LEQUAL;
+    pipeline.apply();
 
     outputRT.bind();
-
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
+    outputRT.clear(GL_COLOR_BUFFER_BIT);
     stats += outputFsQuad.draw();
-
     outputRT.unbind();
 
-    glDepthFunc(GL_LESS);
+    // Reenable blending
+    pipeline.depthState.depthFunc = GL_LESS;
+    pipeline.apply();
 
     return stats;
 }

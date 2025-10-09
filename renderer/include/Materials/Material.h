@@ -17,7 +17,13 @@ enum class AlphaMode : uint8_t {
 
 class Material {
 public:
+    AlphaMode alphaMode = AlphaMode::OPAQUE;
+
     Material() = default;
+    Material(AlphaMode alphaMode)
+        : ID(nextID++)
+        , alphaMode(alphaMode)
+    {}
     ~Material() = default;
 
     virtual void bind() const = 0;
@@ -29,11 +35,15 @@ public:
         }
     }
 
-    virtual std::shared_ptr<Shader> getShader() const = 0;
+    virtual bool isTransparent() const { return alphaMode == AlphaMode::TRANSPARENT; }
 
+    virtual std::shared_ptr<Shader> getShader() const = 0;
     virtual uint getTextureCount() const = 0;
 
 protected:
+    uint32_t ID;
+    static uint32_t nextID;
+
     std::vector<const Texture*> textures;
 };
 

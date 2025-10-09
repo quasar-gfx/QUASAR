@@ -1,6 +1,13 @@
+#include <algorithm>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include <Primitives/Sphere.h>
 #include <Renderers/OpenGLRenderer.h>
 #include <Materials/UnlitMaterial.h>
+#include <Materials/LitMaterial.h>
+#include <Primitives/Mesh.h>
 
 using namespace quasar;
 
@@ -139,7 +146,7 @@ RenderStats OpenGLRenderer::updateDirLightShadow(Scene& scene, const Camera& cam
     glClear(GL_DEPTH_BUFFER_BIT);
 
     for (auto* child : scene.children) {
-        stats += drawNode(scene, camera, child, glm::mat4(1.0f), false, &scene.directionalLight->shadowMapMaterial);
+        stats += drawNodeImmediate(scene, camera, child, glm::mat4(1.0f), false, &scene.directionalLight->shadowMapMaterial);
     }
 
     shadowMapRT.unbind();
@@ -171,7 +178,7 @@ RenderStats OpenGLRenderer::updatePointLightShadows(Scene& scene, const Camera& 
         }
 
         for (auto* child : scene.children) {
-            stats += drawNode(scene, camera, child, glm::mat4(1.0f), pointLight, &pointLight->shadowMapMaterial);
+            stats += drawNodeImmediate(scene, camera, child, glm::mat4(1.0f), *pointLight, &pointLight->shadowMapMaterial);
         }
 
         shadowMapRT.unbind();
@@ -181,28 +188,33 @@ RenderStats OpenGLRenderer::updatePointLightShadows(Scene& scene, const Camera& 
 }
 
 RenderStats OpenGLRenderer::drawSceneImpl(Scene& scene, const Camera& camera, uint32_t clearMask) {
-    if (clearMask != 0) {
-        glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
-        glClear(clearMask);
+    RenderStats stats;
+
+    RenderList list;
+    for (auto* child : scene.children) {
+        gatherNodes(scene, camera, child, glm::mat4(1.0f), list, true);
     }
 
-    RenderStats stats;
-    for (auto* child : scene.children) {
-        stats += drawNode(scene, camera, child, glm::mat4(1.0f), true);
-    }
+    stats += drawOpaqueFromList(scene, camera, list);
+    stats += drawTransparentFromList(scene, camera, list);
 
     return stats;
 }
 
 RenderStats OpenGLRenderer::drawScene(Scene& scene, const Camera& camera, uint32_t clearMask) {
     beginRendering();
+    if (clearMask != 0) {
+        glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
+        glClear(clearMask);
+    }
+
     RenderStats stats = drawSceneImpl(scene, camera, clearMask);
     endRendering();
     return stats;
 }
 
 RenderStats OpenGLRenderer::drawLightsImpl(Scene& scene, const Camera& camera) {
-    // Dont clear color or depth bit here, since we want this to draw over
+    // Don't clear color or depth bit here, since we want this to draw over
 
     RenderStats stats;
     for (auto& pointLight : scene.pointLights) {
@@ -215,16 +227,19 @@ RenderStats OpenGLRenderer::drawLightsImpl(Scene& scene, const Camera& camera) {
             Node nodeLight(&light);
             nodeLight.setPosition(pointLight->position);
             nodeLight.setScale(glm::vec3(0.1));
-            stats += drawNode(scene, camera, &nodeLight, glm::mat4(1.0f), false);
+            stats += drawNodeImmediate(scene, camera, &nodeLight, glm::mat4(1.0f), false);
 
             Sphere radius({
                 .material = material.get(),
             }, 32, 32);
             Node nodeRadius(&radius);
             nodeRadius.wireframe = true;
+#ifdef GL_CORE
+            nodeRadius.primitiveType = GL_LINES;
+#endif
             nodeRadius.setPosition(pointLight->position);
             nodeRadius.setScale(glm::vec3(pointLight->getLightRadius()));
-            stats += drawNode(scene, camera, &nodeRadius, glm::mat4(1.0f), false);
+            stats += drawNodeImmediate(scene, camera, &nodeRadius, glm::mat4(1.0f), false);
         }
     }
 
@@ -238,9 +253,7 @@ RenderStats OpenGLRenderer::drawLights(Scene& scene, const Camera& camera) {
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawSkyBoxImpl(Scene& scene, const Camera& camera) {
-    // Dont clear color or depth bit here, since we want this to draw over
-
+RenderStats OpenGLRenderer::drawSkyBoxImpl(Scene& scene, const Camera& camera, uint32_t clearMask) {
     RenderStats stats;
 
     if (scene.envCubeMap == nullptr) {
@@ -248,23 +261,30 @@ RenderStats OpenGLRenderer::drawSkyBoxImpl(Scene& scene, const Camera& camera) {
     }
 
     // Disable writing to the depth buffer
-    glDepthFunc(GL_LEQUAL);
-    glDepthMask(GL_FALSE);
+    pipeline.depthState.depthFunc = GL_LEQUAL;
+    pipeline.writeMaskState.depth = false;
+    pipeline.apply();
 
     skyboxShader.bind();
     skyboxShader.setTexture("environmentMap", *scene.envCubeMap, 0);
     stats = scene.envCubeMap->draw(skyboxShader, camera);
 
-    // Restore depth func
-    glDepthFunc(GL_LESS);
-    glDepthMask(GL_TRUE);
+    // Restore depth state
+    pipeline.depthState.depthFunc = GL_LESS;
+    pipeline.writeMaskState.depth = true;
+    pipeline.apply();
 
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawSkyBox(Scene& scene, const Camera& camera) {
+RenderStats OpenGLRenderer::drawSkyBox(Scene& scene, const Camera& camera, uint32_t clearMask) {
     beginRendering();
-    RenderStats stats = drawSkyBoxImpl(scene, camera);
+    if (clearMask != 0) {
+        glClearColor(scene.backgroundColor.x, scene.backgroundColor.y, scene.backgroundColor.z, scene.backgroundColor.w);
+        glClear(clearMask);
+    }
+
+    RenderStats stats = drawSkyBoxImpl(scene, camera, clearMask);
     endRendering();
     return stats;
 }
@@ -304,44 +324,67 @@ RenderStats OpenGLRenderer::drawObjects(Scene& scene, const Camera& camera, uint
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawNode(Scene& scene, const Camera& camera, Node* node, const glm::mat4& parentTransform,
+void OpenGLRenderer::gatherNodes(Scene& scene, const Camera& camera, const Node* node, const glm::mat4& parentTransform,
+                                 RenderList& renderList, bool frustumCull, const Material* overrideMaterial, const Texture* prevIDMap) {
+    const glm::mat4 model = parentTransform * node->getTransformParentFromLocal() * node->getTransformAnimation();
+    const Material* materialToUse = overrideMaterial != nullptr ? overrideMaterial : node->overrideMaterial;
+
+    if (node->visible) {
+        if (!node->entities.empty()) {
+            bool isTransparent = (materialToUse != nullptr) && materialToUse->isTransparent();
+            for (auto* entity : node->entities) {
+                isTransparent = isTransparent || (entity->getMaterial() != nullptr && entity->getMaterial()->isTransparent());
+            }
+
+            RenderItem item{ node, model, materialToUse, frustumCull };
+            if (!isTransparent) {
+                renderList.opaque.push_back(item);
+            }
+            else {
+                renderList.transparent.push_back(item);
+            }
+        }
+
+        for (auto* child : node->children) {
+            gatherNodes(scene, camera, child, model, renderList, frustumCull, materialToUse, prevIDMap);
+        }
+    }
+}
+
+RenderStats OpenGLRenderer::drawNode(Scene& scene, const Camera& camera, const Node* node, const glm::mat4& model,
                                      bool frustumCull, const Material* overrideMaterial, const Texture* prevIDMap) {
-    const glm::mat4& model = parentTransform * node->getTransformParentFromLocal() * node->getTransformAnimation();
-
-    auto* materialToUse = overrideMaterial != nullptr ? overrideMaterial : node->overrideMaterial;
-
     RenderStats stats;
+
     if (node->visible) {
         for (auto* entity : node->entities) {
-            entity->bindMaterial(scene, pointLightsUBO, materialToUse, prevIDMap);
+            entity->bindMaterial(scene, pointLightsUBO, overrideMaterial, prevIDMap);
 
 #ifdef GL_CORE
             // Set polygon mode to wireframe if needed
             if (node->wireframe || node->primitiveType == GL_LINES) {
-                glEnable(GL_POLYGON_OFFSET_LINE); // to avoid z-fighting
-                glPolygonOffset(-1.0, -1.0); // adjust depth
+                glEnable(GL_POLYGON_OFFSET_LINE); // To avoid z-fighting
+                glPolygonOffset(-1.0, -1.0); // Adjust depth
                 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
                 glLineWidth(node->wireframeLineWidth);
             }
             if (node->primitiveType == GL_POINTS) {
-                glEnable(GL_POLYGON_OFFSET_POINT); // to avoid z-fighting
-                glPolygonOffset(-1.0, -1.0); // adjust depth
+                glEnable(GL_POLYGON_OFFSET_POINT); // To avoid z-fighting
+                glPolygonOffset(-1.0, -1.0); // Adjust depth
                 glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
                 glPointSize(node->pointSize);
             }
 #else
-            if (node->primitiveType == GL_LINES) {
+            if (node->wireframe || node->primitiveType == GL_LINES) {
                 glLineWidth(node->wireframeLineWidth);
                 glDepthRangef(0.0f, 0.999f);
             }
 #endif
 
-            frustumCull = frustumCull && node->frustumCulled;
-            stats += entity->draw(node->primitiveType, camera, model, frustumCull, materialToUse);
+        stats += entity->draw(node->primitiveType, camera, model, frustumCull && node->frustumCulled, overrideMaterial);
 
 #ifdef GL_CORE
             // Restore polygon mode
-            if (node->wireframe) {
+            if (node->wireframe || node->primitiveType == GL_LINES) {
                 glDisable(GL_POLYGON_OFFSET_LINE);
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             }
@@ -350,34 +393,122 @@ RenderStats OpenGLRenderer::drawNode(Scene& scene, const Camera& camera, Node* n
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             }
 #else
-            if (node->primitiveType == GL_LINES) {
+            if (node->wireframe || node->primitiveType == GL_LINES) {
                 glDepthRangef(0.0f, 1.0f);
             }
 #endif
         }
     }
 
-    for (auto* child : node->children) {
-        stats += drawNode(scene, camera, child, model, frustumCull, materialToUse, prevIDMap);
+    return stats;
+}
+
+RenderStats OpenGLRenderer::drawNodeImmediate(Scene& scene, const Camera& camera, const Node* node, const glm::mat4& parentTransform,
+                                              bool frustumCull, const Material* overrideMaterial, const Texture* prevIDMap) {
+    const glm::mat4 model = parentTransform * node->getTransformParentFromLocal() * node->getTransformAnimation();
+    const Material* materialToUse = overrideMaterial != nullptr ? overrideMaterial : node->overrideMaterial;
+
+    RenderStats stats;
+
+    if (node->visible) {
+        stats += drawNode(scene, camera, node, model, frustumCull && node->frustumCulled, materialToUse, prevIDMap);
+
+        for (auto* child : node->children) {
+            stats += drawNodeImmediate(scene, camera, child, model, frustumCull, materialToUse, prevIDMap);
+        }
     }
 
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawNode(Scene& scene, const Camera& camera, Node* node, const glm::mat4& parentTransform,
-                                     const PointLight* pointLight, const Material* overrideMaterial) {
+RenderStats OpenGLRenderer::drawNodeImmediate(Scene& scene, const Camera& camera, const Node* node, const glm::mat4& parentTransform,
+                                              const PointLight& pointLight, const Material* overrideMaterial) {
     const glm::mat4& model = parentTransform * node->getTransformParentFromLocal() * node->getTransformAnimation();
 
     RenderStats stats;
+
     if (node->visible) {
         for (auto* entity : node->entities) {
             // Don't have to bind to scene and camera here, since we are only drawing shadows
-            stats += entity->draw(node->primitiveType, camera, model, pointLight->boundingSphere, overrideMaterial);
+            stats += entity->draw(node->primitiveType, camera, model, pointLight.boundingSphere, overrideMaterial);
+        }
+
+        for (auto* child : node->children) {
+            stats += drawNodeImmediate(scene, camera, child, model, pointLight, overrideMaterial);
         }
     }
 
-    for (auto* child : node->children) {
-        stats += drawNode(scene, camera, child, model, pointLight, overrideMaterial);
+    return stats;
+}
+
+RenderStats OpenGLRenderer::drawItem(Scene& scene, const Camera& camera, const RenderItem& item) {
+    RenderStats stats;
+
+    const Node* node = item.node;
+    const glm::mat4& model = item.model;
+    const Material* materialToUse = item.materialOverride != nullptr ? item.materialOverride : node->overrideMaterial;
+    stats += drawNode(scene, camera, node, model, item.frustumCull, materialToUse, nullptr);
+
+    return stats;
+};
+
+RenderStats OpenGLRenderer::drawOpaqueFromList(Scene& scene, const Camera& camera, RenderList& renderList) {
+    pipeline.apply();
+
+    RenderStats stats;
+
+    // Draw nodes normally (no sorting needed)
+    for (const auto& item : renderList.opaque) {
+        stats += drawItem(scene, camera, item);
+    }
+
+    return stats;
+}
+
+RenderStats OpenGLRenderer::drawTransparentFromList(Scene& scene, const Camera& camera, RenderList& renderList) {
+    pipeline.apply();
+
+    RenderStats stats;
+
+    // Sort back-to-front by AABB distance to camera
+    std::vector<RenderItem>& sorted = renderList.transparent;
+    std::sort(sorted.begin(), sorted.end(), [&](const RenderItem& a, const RenderItem& b) {
+        // Get AABB centers in world space for comparison
+        glm::vec3 aabbCenterA = glm::vec3(0.0f);
+        glm::vec3 aabbCenterB = glm::vec3(0.0f);
+
+        // Calculate AABB center for item A
+        if (!a.node->entities.empty()) {
+            // Transform AABB center to world space
+            glm::vec3 localCenter = a.node->entities[0]->aabb.getCenter();
+            aabbCenterA = glm::vec3(a.model * glm::vec4(localCenter, 1.0f));
+        }
+        else {
+            // Fallback to node world position
+            aabbCenterA = glm::vec3(a.model[3]);
+        }
+
+        // Calculate AABB center for item B
+        if (!b.node->entities.empty()) {
+            // Transform AABB center to world space
+            glm::vec3 localCenter = b.node->entities[0]->aabb.getCenter();
+            aabbCenterB = glm::vec3(b.model * glm::vec4(localCenter, 1.0f));
+        }
+        else {
+            // Fallback to node world position
+            aabbCenterB = glm::vec3(b.model[3]);
+        }
+
+        // Compare squared distance to camera
+        glm::vec3 daVec = camera.getPosition() - aabbCenterA;
+        glm::vec3 dbVec = camera.getPosition() - aabbCenterB;
+        float da = glm::dot(daVec, daVec);
+        float db = glm::dot(dbVec, dbVec);
+        return da > db; // Sort back-to-front (farther objects first)
+    });
+
+    for (const auto& item : sorted) {
+        stats += drawItem(scene, camera, item);
     }
 
     return stats;
@@ -395,7 +526,7 @@ RenderStats OpenGLRenderer::drawToScreen(const Shader& screenShader, const Rende
         glViewport(0, 0, windowWidth, windowHeight);
     }
 
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     screenShader.bind();

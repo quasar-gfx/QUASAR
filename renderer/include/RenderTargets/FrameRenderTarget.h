@@ -58,8 +58,8 @@ public:
         , idTexture({
             .width = width,
             .height = height,
-            .internalFormat = GL_RGB32UI,
-            .format = GL_RGB_INTEGER,
+            .internalFormat = GL_RGBA32UI,
+            .format = GL_RGBA_INTEGER,
             .type = GL_UNSIGNED_INT,
             .wrapS = params.wrapS,
             .wrapT = params.wrapT,
@@ -194,6 +194,23 @@ public:
         framebuffer.blitToScreen(width, height);
     }
 
+    void clear(uint32_t clearMask) override {
+        if (clearMask & GL_COLOR_BUFFER_BIT) {
+            const GLfloat zero[4]   = {0, 0, 0, 0};
+            const GLfloat oneR[4]   = {1, 0, 0, 0};
+            const GLfloat normalZ[4]= {0, 0, 1, 0};
+            const GLuint uzero[4] = {0u, 0u, 0u, 0u};
+
+            glClearBufferfv(GL_COLOR, 0, zero);        // Color
+            glClearBufferfv(GL_COLOR, 1, oneR);        // Alpha
+            glClearBufferfv(GL_COLOR, 2, normalZ);     // Normals
+            glClearBufferuiv(GL_COLOR, 3, uzero);      // IDs
+        }
+        if (clearMask & (GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)) {
+            glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0); // Depth and Stencil
+        }
+    }
+
     void resize(uint width, uint height) override {
         RenderTargetBase::resize(width, height);
 
@@ -218,6 +235,13 @@ public:
         unbind();
     }
 
+    void writeAlphaAsPNG(const std::string& path) {
+        bind();
+        glReadBuffer(GL_COLOR_ATTACHMENT1);
+        alphaTexture.writeToPNG(path);
+        unbind();
+    }
+
     void writeColorAsJPG(const std::string& path, int quality = 85) {
         bind();
         glReadBuffer(GL_COLOR_ATTACHMENT0);
@@ -236,6 +260,13 @@ public:
         bind();
         glReadBuffer(GL_COLOR_ATTACHMENT0);
         colorTexture.writeJPGToMemory(outputData, quality);
+        unbind();
+    }
+
+    void writeAlphaToMemory(std::vector<unsigned char>& outputData) {
+        bind();
+        glReadBuffer(GL_COLOR_ATTACHMENT1);
+        alphaTexture.readPixels(outputData.data(), false);
         unbind();
     }
 };

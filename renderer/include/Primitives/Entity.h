@@ -40,12 +40,14 @@ class Entity {
 public:
     AABB aabb;
 
-    Entity()
+    Entity() : ID(nextID++) {}
+    Entity(const Material* material)
         : ID(nextID++)
-        , aabb()
+        , material(material)
     {}
 
     int getID() const { return ID; }
+    const Material* getMaterial() { return material; }
 
     virtual void bindMaterial(Scene& scene, Buffer& pointLightsUBO,
                               const Material* overrideMaterial = nullptr,
@@ -60,8 +62,9 @@ public:
 
 protected:
     uint32_t ID;
-
     static uint32_t nextID;
+
+    const Material* material;
 };
 
 } // namespace quasar

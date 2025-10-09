@@ -30,8 +30,8 @@ public:
     virtual void beginRendering() override;
     virtual void endRendering() override;
 
+    virtual RenderStats drawSkyBox(Scene& scene, const Camera& camera, uint32_t clearMask = 0) override;
     virtual RenderStats drawScene(Scene& scene, const Camera& camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT) override;
-    virtual RenderStats drawSkyBox(Scene& scene, const Camera& camera) override;
     virtual RenderStats drawObjects(Scene& scene, const Camera& camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT) override;
     virtual RenderStats drawObjectsNoLighting(Scene& scene, const Camera& camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT) override;
 

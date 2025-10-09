@@ -69,6 +69,8 @@ public:
 
 protected:
     uint32_t ID;
+    static uint32_t nextID;
+
     std::string name;
 
     glm::vec3 position = glm::vec3(0.0f);
@@ -76,8 +78,7 @@ protected:
     glm::vec3 scale = glm::vec3(1.0f);
 
     std::shared_ptr<Animation> animation;
-
-    static uint32_t nextID;
+\
 };
 
 } // namespace quasar

@@ -8,7 +8,6 @@
 #include <Shaders/Shader.h>
 #include <Texture.h>
 #include <Primitives/Entity.h>
-#include <Materials/Material.h>
 #include <Scene.h>
 #include <Cameras/PerspectiveCamera.h>
 #include <Cameras/VRCamera.h>
@@ -52,10 +51,9 @@ public:
     Buffer vertexBuffer;
     Buffer indexBuffer;
     Buffer indirectBuffer;
-    bool indirectDraw = false;
+    bool indirectDraw;
 
-    float IBL = 1.0;
-    const Material* material;
+    float IBL;
 
     Mesh();
     Mesh(const MeshDataCreateParams& params);

@@ -62,6 +62,11 @@ public:
         framebuffer.blitToScreen(width, height);
     }
 
+    virtual void clear(uint32_t clearMask) {
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(clearMask);
+    }
+
     void setScissor(uint x, uint y, uint width, uint height) {
         scissor = { x, y, width, height };
         scissor.apply();
