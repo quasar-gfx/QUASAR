@@ -8,7 +8,7 @@ namespace quasar {
 struct UnlitMaterialCreateParams {
     glm::vec4 baseColor = glm::vec4(1.0f);
     glm::vec4 baseColorFactor = glm::vec4(1.0f);
-    AlphaMode alphaMode = AlphaMode::OPAQUE;
+    Material::AlphaMode alphaMode = Material::AlphaMode::OPAQUE;
     float maskThreshold = 0.5f;
     std::string baseColorTexturePath = "";
     const Texture* baseColorTexture;

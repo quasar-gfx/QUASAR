@@ -296,10 +296,10 @@ void Model::processMaterial(const aiMaterial* aiMat, LitMaterialCreateParams& ma
 
     if (aiMat->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode) == AI_SUCCESS) {
         if (strcmp(alphaMode.C_Str(), "BLEND") == 0) {
-            materialParams.alphaMode = AlphaMode::TRANSPARENT;
+            materialParams.alphaMode = Material::AlphaMode::TRANSPARENT;
         }
         else if (strcmp(alphaMode.C_Str(), "MASK") == 0) {
-            materialParams.alphaMode = AlphaMode::MASKED;
+            materialParams.alphaMode = Material::AlphaMode::MASKED;
             float maskThreshold = 0.5;
             aiMat->Get(AI_MATKEY_GLTF_ALPHACUTOFF, maskThreshold);
             materialParams.maskThreshold = maskThreshold;

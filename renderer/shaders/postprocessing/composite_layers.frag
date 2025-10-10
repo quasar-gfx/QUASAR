@@ -14,11 +14,8 @@ void main() {
         vec3 layerColor = texture(peelingLayersColor[i], TexCoord).rgb;
         float layerAlpha = texture(peelingLayersAlpha[i], TexCoord).r;
 
-        vec3 srcRGB = layerColor * layerAlpha;
-        float srcA  = layerAlpha;
-
-        color.rgb += srcRGB * (1.0 - color.a);
-        color.a   += srcA * (1.0 - color.a);
+        color.rgb += layerColor * (1.0 - color.a);
+        color.a   += layerAlpha * (1.0 - color.a);
     }
 
     FragColor = color;

@@ -4,7 +4,15 @@
 using namespace quasar;
 
 std::shared_ptr<Shader> LitMaterial::shader = nullptr;
+std::shared_ptr<Shader> LitMaterial::deferredShader = nullptr;
+std::shared_ptr<Shader> LitMaterial::forwardShader = nullptr;
+Material::RenderPipelineMode Material::pipelineMode = Material::RenderPipelineMode::Deferred;
 std::vector<std::string> LitMaterial::extraShaderDefines;
+
+void LitMaterial::setPipelineMode(RenderPipelineMode mode) {
+    Material::setPipelineMode(mode);
+    shader = (mode == RenderPipelineMode::Forward && forwardShader != nullptr) ? forwardShader : deferredShader;
+}
 
 LitMaterial::LitMaterial(const LitMaterialCreateParams& params)
     : baseColor(params.baseColor)
@@ -82,34 +90,48 @@ LitMaterial::LitMaterial(const LitMaterialCreateParams& params)
         textures.push_back(params.emissiveTexture);
     }
 
-    if (getShader() == nullptr) {
+    // Build shader programs lazily; maintain both forward and deferred variants when available
+    if (deferredShader == nullptr || forwardShader == nullptr) {
         std::vector<std::string> defines = {
             "#define MAX_POINT_LIGHTS " + std::to_string(PointLight::maxPointLights),
-            "#define ALPHA_OPAQUE " + std::to_string(static_cast<uint8_t>(AlphaMode::OPAQUE)),
-            "#define ALPHA_MASK " + std::to_string(static_cast<uint8_t>(AlphaMode::MASKED)),
-            "#define ALPHA_BLEND " + std::to_string(static_cast<uint8_t>(AlphaMode::TRANSPARENT))
+            "#define ALPHA_OPAQUE " + std::to_string(static_cast<uint8_t>(Material::AlphaMode::OPAQUE)),
+            "#define ALPHA_MASK " + std::to_string(static_cast<uint8_t>(Material::AlphaMode::MASKED)),
+            "#define ALPHA_BLEND " + std::to_string(static_cast<uint8_t>(Material::AlphaMode::TRANSPARENT))
         };
         for (const auto& define : extraShaderDefines) {
             defines.push_back(define);
         }
 
-        ShaderDataCreateParams pbrShaderParams{
+        // Forward shader (always available for both GLES and GL)
+        ShaderDataCreateParams forwardParams{
             .vertexCodeData = SHADER_BUILTIN_COMMON_VERT,
             .vertexCodeSize = SHADER_BUILTIN_COMMON_VERT_len,
-#ifdef GL_CORE
-            .fragmentCodeData = SHADER_BUILTIN_DEFERRED_GBUFFER_FRAG,
-            .fragmentCodeSize = SHADER_BUILTIN_DEFERRED_GBUFFER_FRAG_len,
-#else
             .fragmentCodeData = SHADER_BUILTIN_MATERIAL_LIT_FRAG,
             .fragmentCodeSize = SHADER_BUILTIN_MATERIAL_LIT_FRAG_len,
-
+#ifndef GL_CORE
             .extensions = {
                 "#extension GL_EXT_texture_cube_map_array : enable"
             },
 #endif
             .defines = defines
         };
-        shader = std::make_shared<Shader>(pbrShaderParams);
+        forwardShader = std::make_shared<Shader>(forwardParams);
+
+#ifdef GL_CORE
+        ShaderDataCreateParams deferredParams{
+            .vertexCodeData = SHADER_BUILTIN_COMMON_VERT,
+            .vertexCodeSize = SHADER_BUILTIN_COMMON_VERT_len,
+            .fragmentCodeData = SHADER_BUILTIN_DEFERRED_GBUFFER_FRAG,
+            .fragmentCodeSize = SHADER_BUILTIN_DEFERRED_GBUFFER_FRAG_len,
+            .defines = defines
+        };
+        deferredShader = std::make_shared<Shader>(deferredParams);
+#else
+        deferredShader = forwardShader;
+#endif
+
+        // Initialize alias according to current pipeline mode
+        shader = (pipelineMode == RenderPipelineMode::Forward) ? forwardShader : deferredShader;
     }
 }
 

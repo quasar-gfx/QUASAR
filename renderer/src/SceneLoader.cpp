@@ -111,13 +111,13 @@ void SceneLoader::parseMaterial(const json& j, Scene& scene) {
     if (j.contains("alphaMode")) {
         auto alphaMode = j.at("alphaMode").get<std::string>();
         if (alphaMode == "opaque") {
-            params.alphaMode = AlphaMode::OPAQUE;
+            params.alphaMode = Material::AlphaMode::OPAQUE;
         }
         else if (alphaMode == "masked") {
-            params.alphaMode = AlphaMode::MASKED;
+            params.alphaMode = Material::AlphaMode::MASKED;
         }
         else if (alphaMode == "transparent") {
-            params.alphaMode = AlphaMode::TRANSPARENT;
+            params.alphaMode = Material::AlphaMode::TRANSPARENT;
         }
     }
 

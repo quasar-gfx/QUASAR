@@ -13,7 +13,7 @@ class FrameCaptureWindow {
 public:
     bool visible = false;
 
-    FrameCaptureWindow(Recorder& recorder, const glm::uvec2& size, const Path& outputPath,
+    FrameCaptureWindow(Recorder& recorder, const glm::vec2& size, const Path& outputPath,
                        ImGuiWindowFlags flags = ImGuiCond_FirstUseEver)
         : recorder(recorder)
         , size(size)
@@ -50,7 +50,7 @@ private:
     ImGuiWindowFlags flags;
 
     Recorder& recorder;
-    const glm::uvec2& size;
+    const glm::vec2& size;
     const Path& outputPath;
 
     bool writeToHDR = false;

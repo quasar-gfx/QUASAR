@@ -17,6 +17,7 @@ using namespace quasar;
 int main(int argc, char** argv) {
     Config config{};
     config.title = "QUASAR Streamer";
+    config.sortTransparent = false;
     config.targetFramerate = 30;
 
     args::ArgumentParser parser(config.title);

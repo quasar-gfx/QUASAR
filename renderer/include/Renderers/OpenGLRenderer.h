@@ -59,7 +59,7 @@ protected:
         bool frustumCull = true;
     };
 
-    struct RenderList {
+    struct RenderLists {
         std::vector<RenderItem> opaque;
         std::vector<RenderItem> transparent;
 
@@ -70,20 +70,25 @@ protected:
         bool empty() const { return opaque.empty() && transparent.empty(); }
     };
 
+    bool sortTransparent;
+
     std::shared_ptr<Shader> skyboxShader;
     std::shared_ptr<FullScreenQuad> outputFsQuad;
     std::shared_ptr<Buffer> pointLightsUBO;
 
     virtual void createResources();
 
+    RenderLists renderLists;
+
     RenderStats drawSkyBoxImpl(Scene& scene, const Camera& camera, uint32_t clearMask);
     RenderStats drawSceneImpl(Scene& scene, const Camera& camera, uint32_t clearMask);
     RenderStats drawLightsImpl(Scene& scene, const Camera& camera);
 
-    virtual void gatherNodes(Scene& scene, const Camera& camera, const Node* node, const glm::mat4& parentTransform, RenderList& renderList,
+    void fillRenderLists(Scene& scene, const Camera& camera);
+    virtual void gatherNodes(Scene& scene, const Camera& camera, const Node* node, const glm::mat4& parentTransform,
                              bool frustumCull, const Material* overrideMaterial = nullptr, const Texture* prevIDMap = nullptr);
-    virtual RenderStats drawOpaqueFromList(Scene& scene, const Camera& camera, RenderList& renderList);
-    virtual RenderStats drawTransparentFromList(Scene& scene, const Camera& camera, RenderList& renderList);
+    virtual RenderStats drawOpaque(Scene& scene, const Camera& camera);
+    virtual RenderStats drawTransparent(Scene& scene, const Camera& camera);
     virtual RenderStats drawItem(Scene& scene, const Camera& camera, const RenderItem& item);
 
     virtual RenderStats drawNodeImmediate(Scene& scene, const Camera& camera, const Node* node, const glm::mat4& parentTransform,

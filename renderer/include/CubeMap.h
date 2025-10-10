@@ -1,4 +1,4 @@
-#ifndef CUBE_MAP_H
+x#ifndef CUBE_MAP_H
 #define CUBE_MAP_H
 
 #include <glm/glm.hpp>
@@ -92,6 +92,7 @@ private:
     GLuint vertexArrayBuffer;
 
     void initBuffers();
+    void setArrayBufferAttributes(const VertexInputAttributes& attributes, uint vertexSize);
     void loadFromFiles(std::vector<std::string> faceFilePaths,
                        GLenum format,
                        GLint wrapS, GLint wrapT, GLint wrapR,

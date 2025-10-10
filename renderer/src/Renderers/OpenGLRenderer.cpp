@@ -93,6 +93,7 @@ void glDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLs
 OpenGLRenderer::OpenGLRenderer(const Config& config)
     : width(config.width), height(config.height)
     , windowWidth(config.width), windowHeight(config.height)
+    , sortTransparent(config.sortTransparent)
 {
 #ifdef GL_CORE
     // Enable setting vertex size for point clouds
@@ -194,17 +195,25 @@ RenderStats OpenGLRenderer::updatePointLightShadows(Scene& scene, const Camera& 
     return stats;
 }
 
+void OpenGLRenderer::fillRenderLists(Scene& scene, const Camera& camera) {
+    renderLists.clear();
+    for (auto* child : scene.children) {
+        gatherNodes(scene, camera, child, glm::mat4(1.0f), true);
+    }
+}
+
 RenderStats OpenGLRenderer::drawSceneImpl(Scene& scene, const Camera& camera, uint32_t clearMask) {
     RenderStats stats;
-
-    RenderList list;
-    for (auto* child : scene.children) {
-        gatherNodes(scene, camera, child, glm::mat4(1.0f), list, true);
+    if (sortTransparent) {
+        fillRenderLists(scene, camera);
+        stats += drawOpaque(scene, camera);
+        stats += drawTransparent(scene, camera);
     }
-
-    stats += drawOpaqueFromList(scene, camera, list);
-    stats += drawTransparentFromList(scene, camera, list);
-
+    else {
+        for (auto* child : scene.children) {
+            stats += drawNodeImmediate(scene, camera, child, glm::mat4(1.0f), true);
+        }
+    }
     return stats;
 }
 
@@ -234,7 +243,6 @@ RenderStats OpenGLRenderer::drawLightsImpl(Scene& scene, const Camera& camera) {
             Node nodeLight(&light);
             nodeLight.setPosition(pointLight->position);
             nodeLight.setScale(glm::vec3(0.1));
-            stats += drawNodeImmediate(scene, camera, &nodeLight, glm::mat4(1.0f), false);
 
             Sphere radius({
                 .material = material.get(),
@@ -246,6 +254,8 @@ RenderStats OpenGLRenderer::drawLightsImpl(Scene& scene, const Camera& camera) {
 #endif
             nodeRadius.setPosition(pointLight->position);
             nodeRadius.setScale(glm::vec3(pointLight->getLightRadius()));
+
+            stats += drawNodeImmediate(scene, camera, &nodeLight, glm::mat4(1.0f), false);
             stats += drawNodeImmediate(scene, camera, &nodeRadius, glm::mat4(1.0f), false);
         }
     }
@@ -332,7 +342,7 @@ RenderStats OpenGLRenderer::drawObjects(Scene& scene, const Camera& camera, uint
 }
 
 void OpenGLRenderer::gatherNodes(Scene& scene, const Camera& camera, const Node* node, const glm::mat4& parentTransform,
-                                 RenderList& renderList, bool frustumCull, const Material* overrideMaterial, const Texture* prevIDMap) {
+                                 bool frustumCull, const Material* overrideMaterial, const Texture* prevIDMap) {
     const glm::mat4 model = parentTransform * node->getTransformParentFromLocal() * node->getTransformAnimation();
     const Material* materialToUse = overrideMaterial != nullptr ? overrideMaterial : node->overrideMaterial;
 
@@ -345,15 +355,15 @@ void OpenGLRenderer::gatherNodes(Scene& scene, const Camera& camera, const Node*
 
             RenderItem item{ node, model, materialToUse, frustumCull };
             if (!isTransparent) {
-                renderList.opaque.push_back(item);
+                renderLists.opaque.push_back(item);
             }
             else {
-                renderList.transparent.push_back(item);
+                renderLists.transparent.push_back(item);
             }
         }
 
         for (auto* child : node->children) {
-            gatherNodes(scene, camera, child, model, renderList, frustumCull, materialToUse, prevIDMap);
+            gatherNodes(scene, camera, child, model, frustumCull, materialToUse, prevIDMap);
         }
     }
 }
@@ -459,26 +469,26 @@ RenderStats OpenGLRenderer::drawItem(Scene& scene, const Camera& camera, const R
     return stats;
 };
 
-RenderStats OpenGLRenderer::drawOpaqueFromList(Scene& scene, const Camera& camera, RenderList& renderList) {
+RenderStats OpenGLRenderer::drawOpaque(Scene& scene, const Camera& camera) {
     pipeline.apply();
 
     RenderStats stats;
 
     // Draw nodes normally (no sorting needed)
-    for (const auto& item : renderList.opaque) {
+    for (const auto& item : renderLists.opaque) {
         stats += drawItem(scene, camera, item);
     }
 
     return stats;
 }
 
-RenderStats OpenGLRenderer::drawTransparentFromList(Scene& scene, const Camera& camera, RenderList& renderList) {
+RenderStats OpenGLRenderer::drawTransparent(Scene& scene, const Camera& camera) {
     pipeline.apply();
 
     RenderStats stats;
 
     // Sort back-to-front by AABB distance to camera
-    std::vector<RenderItem>& sorted = renderList.transparent;
+    std::vector<RenderItem>& sorted = renderLists.transparent;
     std::sort(sorted.begin(), sorted.end(), [&](const RenderItem& a, const RenderItem& b) {
         // Get AABB centers in world space for comparison
         glm::vec3 aabbCenterA = glm::vec3(0.0f);

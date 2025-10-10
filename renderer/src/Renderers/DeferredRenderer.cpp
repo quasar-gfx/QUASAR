@@ -1,4 +1,5 @@
 #include <Cameras/VRCamera.h>
+#include <Materials/LitMaterial.h>
 #include <Renderers/DeferredRenderer.h>
 
 using namespace quasar;
@@ -88,14 +89,27 @@ RenderStats DeferredRenderer::drawScene(Scene& scene, const Camera& camera, uint
         glClear(clearMask);
     }
 
-    // Disable blending
-    pipeline.blendState.blendEnabled = false; pipeline.apply();
+    // Disable blending for G-Buffer pass and force lit materials to use deferred path
+    pipeline.blendState.blendEnabled = false;
+    pipeline.apply();
 
-    // Draw all objects in the scene
-    stats += drawSceneImpl(scene, camera, clearMask);
+    // Switch to deferred pipeline for lit materials
+    LitMaterial::setPipelineMode(Material::RenderPipelineMode::Deferred);
 
-    // Reenable blending
-    pipeline.blendState.blendEnabled = true; pipeline.apply();
+    if (sortTransparent) {
+        // Draw only opaque objects into G-Buffer
+        fillRenderLists(scene, camera);
+        stats += drawOpaque(scene, camera);
+    }
+    else {
+        for (auto* child : scene.children) {
+            stats += drawNodeImmediate(scene, camera, child, glm::mat4(1.0f), true);
+        }
+    }
+
+    // Restore previous pipeline mode and blend state
+    pipeline.blendState.blendEnabled = true;
+    pipeline.apply();
 
     endRendering();
 
@@ -125,6 +139,16 @@ RenderStats DeferredRenderer::drawObjectsNoLighting(Scene& scene, const Camera& 
     // Draw lighting pass
     stats += lightingPass(scene, camera);
 
+    // Forward pass for transparent objects
+    if (sortTransparent) {
+        // Switch to forward pipeline for lit materials
+        LitMaterial::setPipelineMode(Material::RenderPipelineMode::Forward);
+
+        outputRT.bind();
+        stats += drawTransparent(scene, camera);
+        outputRT.unbind();
+    }
+
     // Draw skybox
     stats += drawSkyBox(scene, camera);
 
@@ -141,11 +165,15 @@ RenderStats DeferredRenderer::drawObjects(Scene& scene, const Camera& camera, ui
         // Left eye
         gBuffer.setScissor(0, 0, width / 2, height);
         gBuffer.setViewport(0, 0, width / 2, height);
+        outputRT.setScissor(0, 0, width / 2, height);
+        outputRT.setViewport(0, 0, width / 2, height);
         stats += drawObjects(scene, vrCamera->left, clearMask);
 
         // Right eye
         gBuffer.setScissor(width / 2, 0, width / 2, height);
         gBuffer.setViewport(width / 2, 0, width / 2, height);
+        outputRT.setScissor(width / 2, 0, width / 2, height);
+        outputRT.setViewport(width / 2, 0, width / 2, height);
         stats += drawObjects(scene, vrCamera->right, clearMask);
     }
     else {
@@ -164,7 +192,18 @@ RenderStats DeferredRenderer::drawObjects(Scene& scene, const Camera& camera, ui
         // Draw lighting pass
         stats += lightingPass(scene, camera);
 
-        // Draw skybox
+        // Forward pass for transparent objects over lit scene
+        if (sortTransparent) {
+            // Switch to forward pipeline for lit materials
+            LitMaterial::setPipelineMode(Material::RenderPipelineMode::Forward);
+
+            // Bind lighting output and draw transparent objects
+            outputRT.bind();
+            stats += drawTransparent(scene, camera);
+            outputRT.unbind();
+        }
+
+        // Draw skybox (opaque background in outputRT)
         stats += drawSkyBox(scene, camera);
     }
 

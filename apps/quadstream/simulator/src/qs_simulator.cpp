@@ -25,6 +25,7 @@ using namespace quasar;
 int main(int argc, char** argv) {
     Config config{};
     config.title = "QuadStream Simulator";
+    config.sortTransparent = false;
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
