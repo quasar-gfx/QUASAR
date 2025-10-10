@@ -6,6 +6,7 @@
 namespace quasar {
 
 struct UnlitMaterialCreateParams {
+    std::string name = "UnlitMaterial" + std::to_string(Material::getNextID());
     glm::vec4 baseColor = glm::vec4(1.0f);
     glm::vec4 baseColorFactor = glm::vec4(1.0f);
     Material::AlphaMode alphaMode = Material::AlphaMode::OPAQUE;
@@ -23,6 +24,8 @@ public:
     UnlitMaterial() = default;
     UnlitMaterial(const UnlitMaterialCreateParams& params);
     ~UnlitMaterial() = default;
+
+    bool isTransparent() const override;
 
     void bind() const override;
 

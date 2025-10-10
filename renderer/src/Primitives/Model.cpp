@@ -136,14 +136,27 @@ void Model::processNode(aiNode* aiNode, const aiScene* scene, Node* node, const 
     node->setName(aiNode->mName.C_Str());
     node->setTransformParentFromLocal(transform);
 
+    // Collect meshes
+    std::vector<Mesh*> meshesToAdd(aiNode->mNumMeshes);
     for (int i = 0; i < aiNode->mNumMeshes; i++) {
         const int meshIndex = aiNode->mMeshes[i];
         aiMesh* mesh = scene->mMeshes[meshIndex];
-        meshes[meshIndex] = processMesh(mesh, scene, material);
-        node->addEntity(meshes[meshIndex]);
+        auto* meshToAdd = processMesh(mesh, scene, material);
+        meshes[meshIndex] = meshToAdd;
+        meshesToAdd[i] = meshToAdd;
     }
 
-    // Process child nodes
+    // Sort putting transparent meshes last
+    std::sort(meshesToAdd.begin(), meshesToAdd.end(), [](const Mesh* a, const Mesh* b) {
+        return !a->getMaterial()->isTransparent() && b->getMaterial()->isTransparent();
+    });
+
+    // Add meshes
+    for (auto* meshToAdd : meshesToAdd) {
+        node->addEntity(meshToAdd);
+    }
+
+    // Add child nodes
     for (int i = 0; i < aiNode->mNumChildren; i++) {
         Node* childNode = new Node();
         node->addChildNode(childNode);
@@ -220,26 +233,29 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, const LitMaterial* 
     uint32_t materialId = mesh->mMaterialIndex;
     aiMaterial const* aiMat = scene->mMaterials[materialId];
 
-    MeshDataCreateParams meshParams{};
+    const LitMaterial* materialToAdd = nullptr;
     if (material != nullptr) {
-        this->material = material;
+        materialToAdd = material;
     }
     else {
         LitMaterialCreateParams materialParams{};
         processMaterial(aiMat, materialParams);
-        this->material = new LitMaterial(materialParams);
+        materialToAdd = new LitMaterial(materialParams);
     }
+    materials.push_back(materialToAdd);
 
-    meshParams.verticesData = vertices.data();
-    meshParams.verticesSize = vertices.size();
-    meshParams.indicesData = indices.data();
-    meshParams.indicesSize = indices.size();
-    meshParams.IBL = IBL;
-    meshParams.material = this->material;
-
-    auto* result = new Mesh(meshParams);
-    result->updateAABB(min, max);
-    return result;
+    MeshDataCreateParams meshParams{
+        .name = mesh->mName.C_Str(),
+        .verticesData = vertices.data(),
+        .verticesSize = vertices.size(),
+        .indicesData = indices.data(),
+        .indicesSize = indices.size(),
+        .material = materialToAdd,
+        .IBL = IBL,
+    };
+    auto* meshToAdd = new Mesh(meshParams);
+    meshToAdd->updateAABB(min, max);
+    return meshToAdd;
 }
 
 void Model::processMaterial(const aiMaterial* aiMat, LitMaterialCreateParams& materialParams) {
@@ -258,6 +274,7 @@ void Model::processMaterial(const aiMaterial* aiMat, LitMaterialCreateParams& ma
 
     aiColor3D color;
     glm::vec4 baseColor = glm::vec4(1.0f);
+
     if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS) {
         baseColor = glm::vec4(color.r, color.g, color.b, baseColor.a);
     }

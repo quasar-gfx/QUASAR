@@ -39,7 +39,7 @@ Mesh::Mesh(const MeshDataCreateParams& params)
     , indirectDraw(params.indirectDraw)
     , vertexSize(params.vertexSize)
     , attributes(params.attributes)
-    , Entity(params.material)
+    , Entity(params.name, params.material)
 {
     vertexBuffer.bind();
     setArrayBufferAttributes(params.attributes, params.vertexSize);
@@ -74,7 +74,7 @@ Mesh::Mesh(const MeshSizeCreateParams& params)
     })
     , vertexSize(params.vertexSize)
     , attributes(params.attributes)
-    , Entity(params.material)
+    , Entity(params.name, params.material)
 {
     vertexBuffer.bind();
     setArrayBufferAttributes(params.attributes, params.vertexSize);

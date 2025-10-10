@@ -24,12 +24,14 @@ public:
 
     Material::AlphaMode alphaMode = Material::AlphaMode::OPAQUE;
 
-    Material() = default;
-    Material(Material::AlphaMode alphaMode)
-        : ID(nextID++)
-        , alphaMode(alphaMode)
-    {}
+    Material();
+    Material(Material::AlphaMode alphaMode);
+    Material(const std::string& name, Material::AlphaMode alphaMode);
     ~Material() = default;
+
+    const std::string& getName() const { return name; }
+
+    void setName(const std::string& name) { this->name = name; }
 
     virtual void bind() const = 0;
 
@@ -50,9 +52,13 @@ public:
 
     static RenderPipelineMode pipelineMode;
 
+    static uint32_t getNextID() { return nextID; }
+
 protected:
     uint32_t ID;
     static uint32_t nextID;
+
+    std::string name;
 
     std::vector<const Texture*> textures;
 };

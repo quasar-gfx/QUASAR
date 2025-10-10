@@ -92,7 +92,7 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera(windowSize);
 
     // Post processing
-    Tonemapper tonemapper(false);
+    Tonemapper tonemapper(loadFromDisk);
 
     Recorder recorder({
         .width = windowSize.x,
@@ -158,6 +158,7 @@ int main(int argc, char** argv) {
     FrameRateWindow frameRateWindow;
     FrameCaptureWindow frameCaptureWindow(recorder, glm::uvec2(430, 270), outputPath);
     TexturePreviewWindow videoPreviewWindow("Video Texture", quasarReceiver.videoAtlasTexture, glm::uvec2(860, 270));
+    TexturePreviewWindow alphaPreviewWindow("Alpha Texture", quasarReceiver.alphaAtlasTexture, glm::uvec2(860, 270));
     guiManager->onRender([&](double now, double dt) {
         static bool showUI = true;
 
@@ -173,6 +174,7 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("UI", 0, &showUI);
             ImGui::MenuItem("Frame Capture", 0, &frameCaptureWindow.visible);
             ImGui::MenuItem("Video Preview", 0, &videoPreviewWindow.visible);
+            ImGui::MenuItem("Alpha Preview", 0, &alphaPreviewWindow.visible);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -256,6 +258,7 @@ int main(int argc, char** argv) {
 
         frameCaptureWindow.draw(now, dt);
         videoPreviewWindow.draw(now, dt);
+        alphaPreviewWindow.draw(now, dt);
     });
 
     app.onResize([&](uint width, uint height) {

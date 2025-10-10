@@ -6,6 +6,7 @@
 namespace quasar {
 
 struct LitMaterialCreateParams {
+    std::string name = "LitMaterial" + std::to_string(Material::getNextID());
     glm::vec4 baseColor = glm::vec4(1.0f);
     glm::vec4 baseColorFactor = glm::vec4(1.0f);
     Material::AlphaMode alphaMode = Material::AlphaMode::OPAQUE;
@@ -46,6 +47,8 @@ public:
     LitMaterial() = default;
     LitMaterial(const LitMaterialCreateParams& params);
     ~LitMaterial() = default;
+
+    bool isTransparent() const override;
 
     void bind() const override;
 

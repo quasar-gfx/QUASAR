@@ -131,7 +131,7 @@ QuadFrame::FrameType QuadsReceiver::loadFromFiles(const Path& dataPath) {
 
     // Read color data
     Path colorFileName = dataPath / "color.jpg";
-    videoAtlasTexture.loadFromFile(colorFileName, true, false);
+    videoAtlasTexture.loadFromFile(colorFileName, true, true);
 
     // Read alpha data
     Path alphaFileName = dataPath / "alpha.png";

@@ -24,7 +24,7 @@ LitMaterial::LitMaterial(const LitMaterialCreateParams& params)
     , roughness(params.roughness)
     , roughnessFactor(params.roughnessFactor)
     , metalRoughnessCombined(params.metalRoughnessCombined)
-    , Material(params.alphaMode)
+    , Material(params.name, params.alphaMode)
 {
     TextureFileCreateParams textureParams{
         .wrapS = GL_REPEAT,
@@ -133,6 +133,10 @@ LitMaterial::LitMaterial(const LitMaterialCreateParams& params)
         // Initialize alias according to current pipeline mode
         shader = (pipelineMode == RenderPipelineMode::Forward) ? forwardShader : deferredShader;
     }
+}
+
+bool LitMaterial::isTransparent() const {
+    return alphaMode == Material::AlphaMode::TRANSPARENT || baseColor.a * baseColorFactor.a < 1.0f;
 }
 
 void LitMaterial::bind() const {

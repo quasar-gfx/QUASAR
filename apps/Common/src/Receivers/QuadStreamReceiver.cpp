@@ -110,7 +110,7 @@ void QuadStreamReceiver::loadFromFiles(const Path& dataPath) {
     for (int view = 0; view < maxViews; view++) {
         // Load color
         Path colorFileName = dataPath / ("color" + std::to_string(view) + ".jpg");
-        colorTextures[view].loadFromFile(colorFileName, true, false);
+        colorTextures[view].loadFromFile(colorFileName, true, true);
 
         // Load alpha
         Path alphaFileName = dataPath / ("alpha" + std::to_string(view) + ".png");

@@ -42,6 +42,9 @@ void main() {
         }
     }
 
+    // Un-premultiply alpha (alpha is guaranteed to be > 0.0 if we are here)
+    color.rgb /= alpha;
+
     FragColor = vec4(color.rgb, alpha);
     // FragNormal = vec4(normalize(fsIn.Normal), 1.0);
     FragIDs = uvec4(fsIn.DrawID, gl_PrimitiveID, 0.0, 1.0);

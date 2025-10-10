@@ -85,10 +85,10 @@ def run_from_config(
     pose_smoothing=False,
     view_sizes=[0.25, 0.5, 1.0]
 ):
-    # Depth Peeling Simulator (Ground Truth)
+    # Scene Viewer (Ground Truth)
     run_simulator(
         simulator_name="scene_viewer",
-        executable="depth_peeling/depth_peeling",
+        executable="scene_viewer/scene_viewer",
         output_path=output_path,
         exec_dir=exec_dir,
         size=size,

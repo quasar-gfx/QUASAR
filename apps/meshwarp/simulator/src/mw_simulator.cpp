@@ -5,7 +5,7 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 #include <Renderers/ForwardRenderer.h>
-#include <Renderers/DepthPeelingRenderer.h>
+#include <Renderers/DeferredRenderer.h>
 #include <PostProcessing/Tonemapper.h>
 #include <PostProcessing/ShowDepthEffect.h>
 
@@ -89,7 +89,7 @@ int main(int argc, char** argv) {
     ForwardRenderer renderer(config);
     config.width = remoteWindowSize.x;
     config.height = remoteWindowSize.y;
-    DepthPeelingRenderer remoteRenderer(config);
+    DeferredRenderer remoteRenderer(config);
 
     // "Remote" scene
     Scene remoteScene;

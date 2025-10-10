@@ -9,7 +9,7 @@ UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams& params)
     : baseColor(params.baseColor)
     , baseColorFactor(params.baseColorFactor)
     , maskThreshold(params.maskThreshold)
-    , Material(params.alphaMode)
+    , Material(params.name, params.alphaMode)
 {
     TextureFileCreateParams textureParams{
         .wrapS = GL_REPEAT,
@@ -46,6 +46,10 @@ UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams& params)
         };
         shader = std::make_shared<Shader>(unlitShaderParams);
     }
+}
+
+bool UnlitMaterial::isTransparent() const {
+    return alphaMode == Material::AlphaMode::TRANSPARENT || baseColor.a * baseColorFactor.a < 1.0f;
 }
 
 void UnlitMaterial::bind() const {

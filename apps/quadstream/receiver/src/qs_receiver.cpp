@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera(windowSize);
 
     // Post processing
-    Tonemapper tonemapper(false);
+    Tonemapper tonemapper;
 
     Recorder recorder({
         .width = windowSize.x,

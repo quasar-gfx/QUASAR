@@ -43,6 +43,7 @@ private:
     bool flipTextures;
 
     std::vector<Mesh*> meshes;
+    std::vector<const LitMaterial*> materials;
 
     const aiScene* scene;
     std::unordered_map<std::string, Texture*> texturesCache;

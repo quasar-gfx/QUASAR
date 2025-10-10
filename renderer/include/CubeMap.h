@@ -1,4 +1,4 @@
-x#ifndef CUBE_MAP_H
+#ifndef CUBE_MAP_H
 #define CUBE_MAP_H
 
 #include <glm/glm.hpp>

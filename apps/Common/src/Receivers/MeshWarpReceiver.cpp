@@ -75,7 +75,7 @@ void MeshWarpReceiver::loadFromFiles(const Path& dataPath) {
 
     // Read color data
     Path colorFileName = dataPath / "color.jpg";
-    videoTexture.loadFromFile(colorFileName, true, false);
+    videoTexture.loadFromFile(colorFileName, true, true);
 
     // Read depth data
     Path depthFileName = dataPath / "depth.bc4.zstd";

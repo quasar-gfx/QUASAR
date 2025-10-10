@@ -63,7 +63,7 @@ void DepthPeelingRenderer::setScreenShaderUniforms(const Shader& screenShader) {
 RenderStats DepthPeelingRenderer::drawScene(Scene& scene, const Camera& camera, uint32_t clearMask) {
     RenderStats stats;
 
-    for (int i = 0; i < maxLayers; i++) {
+    for (int layer = 0; layer < maxLayers; layer++) {
         beginRendering();
         if (clearMask != 0) {
             gBuffer.clear(clearMask);
@@ -72,20 +72,20 @@ RenderStats DepthPeelingRenderer::drawScene(Scene& scene, const Camera& camera, 
         // Disable blending
         pipeline.blendState.blendEnabled = false; pipeline.apply();
 
-        const Texture* prevIDMap = (i >= 1) ? &peelingLayers[i-1].idTexture : nullptr;
+        const Texture* prevIDMap = (layer >= 1) ? &peelingLayers[layer-1].idTexture : nullptr;
 
         // Set layer index in shaders
         if (LitMaterial::deferredShader != nullptr) {
             LitMaterial::deferredShader->bind();
-            LitMaterial::deferredShader->setInt("layerIndex", i);
+            LitMaterial::deferredShader->setInt("layerIndex", layer);
         }
         if (LitMaterial::forwardShader != nullptr) {
             LitMaterial::forwardShader->bind();
-            LitMaterial::forwardShader->setInt("layerIndex", i);
+            LitMaterial::forwardShader->setInt("layerIndex", layer);
         }
         if (UnlitMaterial::shader != nullptr) {
             UnlitMaterial::shader->bind();
-            UnlitMaterial::shader->setInt("layerIndex", i);
+            UnlitMaterial::shader->setInt("layerIndex", layer);
         }
 
         // Render scene
@@ -101,10 +101,12 @@ RenderStats DepthPeelingRenderer::drawScene(Scene& scene, const Camera& camera, 
         // Draw lighting pass
         stats += lightingPass(scene, camera);
 
-        // Draw skybox
-        stats += drawSkyBox(scene, camera);
+        // Draw skybox (only in first layer)
+        if (layer == 0) {
+            stats += drawSkyBox(scene, camera);
+        }
 
-        copyToFrameRT(peelingLayers[i]);
+        copyToFrameRT(peelingLayers[layer]);
     }
 
     return stats;

@@ -30,7 +30,7 @@ public:
 
         size_t writePos = 0;
 
-        for (size_t i = 1; i < numBytesUncompressed; i++) {
+        for (int i = 1; i < numBytesUncompressed; i++) {
             uint8_t delta = static_cast<uint8_t>(src[i] - prev);
 
             if (delta == currentDelta && runCount < 255) {
@@ -61,30 +61,30 @@ public:
         const uint8_t* src = static_cast<const uint8_t*>(compressedData);
         const size_t targetSize = static_cast<size_t>(width) * static_cast<size_t>(height);
 
-        size_t i = 0;
         uint8_t prev = 0;
-        bool first = true;
+        size_t writePos = 0;
 
         // Decode rle then delta
-        while (i + 1 < numBytesCompressed && decompressedData.size() < targetSize) {
+        int i = 0;
+        bool firstIter = true;
+        while (i + 1 < numBytesCompressed && writePos < targetSize) {
             uint8_t count = src[i++];
             uint8_t delta = src[i++];
 
-            for (uint8_t j = 0; j < count && decompressedData.size() < targetSize; ++j) {
-                if (first) {
-                    decompressedData.push_back(static_cast<char>(delta));
+            for (uint8_t j = 0; j < count && writePos < targetSize; ++j) {
+                if (firstIter) {
                     prev = delta;
-                    first = false;
+                    firstIter = false;
                 }
                 else {
                     prev = static_cast<uint8_t>(prev + delta);
-                    decompressedData.push_back(static_cast<char>(prev));
                 }
+                decompressedData[writePos++] = static_cast<char>(prev);
             }
         }
 
         stats.decompressTimeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
-        return decompressedData.size();
+        return writePos;
     }
 
 private:
