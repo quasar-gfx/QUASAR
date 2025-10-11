@@ -214,7 +214,7 @@ RenderStats DepthPeelingRenderer::compositeLayers() {
 
     outputRT.bind();
     outputRT.clear(GL_COLOR_BUFFER_BIT);
-    stats += outputFsQuad.draw();
+    stats += outputFsQuad->draw();
     outputRT.unbind();
 
     return stats;

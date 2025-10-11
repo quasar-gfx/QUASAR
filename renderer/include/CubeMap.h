@@ -41,11 +41,6 @@ struct CubeMapCreateParams {
 };
 
 class CubeMap : public Texture {
-private:
-    struct CubeMapVertex {
-        glm::vec3 position;
-    };
-
 public:
     Buffer vertexBuffer;
 
@@ -84,6 +79,16 @@ public:
     static const glm::mat4 captureViews[3*NUM_CUBEMAP_FACES];
 
 private:
+    struct CubeMapVertex {
+        glm::vec3 position;
+
+        static const VertexInputAttributes getVertexInputAttributes() {
+            return {
+                {0, 3, GL_FLOAT, GL_FALSE, offsetof(CubeMapVertex, position)},
+            };
+        }
+    };
+
     GLuint vertexArrayBuffer;
 
     void initBuffers();

@@ -2,6 +2,7 @@
 #define OPENGL_RENDERER_H
 
 #include <vector>
+#include <memory>
 
 #include <Utils/FileIO.h>
 #include <Utils/TimeUtils.h>
@@ -69,10 +70,11 @@ protected:
         bool empty() const { return opaque.empty() && transparent.empty(); }
     };
 
-    Shader skyboxShader;
-    FullScreenQuad outputFsQuad;
+    std::shared_ptr<Shader> skyboxShader;
+    std::shared_ptr<FullScreenQuad> outputFsQuad;
+    std::shared_ptr<Buffer> pointLightsUBO;
 
-    Buffer pointLightsUBO;
+    virtual void createResources();
 
     RenderStats drawSkyBoxImpl(Scene& scene, const Camera& camera, uint32_t clearMask);
     RenderStats drawSceneImpl(Scene& scene, const Camera& camera, uint32_t clearMask);

@@ -179,7 +179,7 @@ RenderStats DeferredRenderer::lightingPass(Scene& scene, const Camera& camera) {
     lightingMaterial.bindCamera(camera);
 
     // Update material uniforms with lighting information
-    scene.bindMaterial(&lightingMaterial, pointLightsUBO);
+    scene.bindMaterial(&lightingMaterial, *pointLightsUBO);
 
     // Copy depth from FrameRenderTarget to outputRT
     gBuffer.blitDepthToRenderTarget(outputRT);
@@ -189,7 +189,7 @@ RenderStats DeferredRenderer::lightingPass(Scene& scene, const Camera& camera) {
 
     outputRT.bind();
     outputRT.clear(GL_COLOR_BUFFER_BIT);
-    stats += outputFsQuad.draw();
+    stats += outputFsQuad->draw();
     outputRT.unbind();
 
     // Reenable blending

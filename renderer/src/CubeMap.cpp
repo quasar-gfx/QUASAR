@@ -1,7 +1,9 @@
-#include <CubeMap.h>
+#include <spdlog/spdlog.h>
+
+#include <Utils/FileIO.h>
 #include <Cameras/PerspectiveCamera.h>
 #include <Cameras/VRCamera.h>
-#include <Utils/FileIO.h>
+#include <CubeMap.h>
 
 using namespace quasar;
 
@@ -130,65 +132,75 @@ void CubeMap::init(uint width, uint height, CubeMapType type) {
 
 void CubeMap::initBuffers() {
     std::vector<CubeMapVertex> skyboxVertices = {
-        { {-1.0f, 1.0f, -1.0f} },
+        { {-1.0f,  1.0f, -1.0f} },
         { {-1.0f, -1.0f, -1.0f} },
-        { {1.0f, -1.0f, -1.0f} },
-        { {1.0f, -1.0f, -1.0f} },
-        { {1.0f, 1.0f, -1.0f} },
-        { {-1.0f, 1.0f, -1.0f} },
+        { { 1.0f, -1.0f, -1.0f} },
+        { { 1.0f, -1.0f, -1.0f} },
+        { { 1.0f,  1.0f, -1.0f} },
+        { {-1.0f,  1.0f, -1.0f} },
 
-        { {-1.0f, -1.0f, 1.0f} },
+        { {-1.0f, -1.0f,  1.0f} },
         { {-1.0f, -1.0f, -1.0f} },
-        { {-1.0f, 1.0f, -1.0f} },
-        { {-1.0f, 1.0f, -1.0f} },
-        { {-1.0f, 1.0f, 1.0f} },
-        { {-1.0f, -1.0f, 1.0f} },
+        { {-1.0f,  1.0f, -1.0f} },
+        { {-1.0f,  1.0f, -1.0f} },
+        { {-1.0f,  1.0f,  1.0f} },
+        { {-1.0f, -1.0f,  1.0f} },
 
-        { {1.0f, -1.0f, -1.0f} },
-        { {1.0f, -1.0f, 1.0f} },
-        { {1.0f, 1.0f, 1.0f} },
-        { {1.0f, 1.0f, 1.0f} },
-        { {1.0f, 1.0f, -1.0f} },
-        { {1.0f, -1.0f, -1.0f} },
+        { { 1.0f, -1.0f, -1.0f} },
+        { { 1.0f, -1.0f,  1.0f} },
+        { { 1.0f,  1.0f,  1.0f} },
+        { { 1.0f,  1.0f,  1.0f} },
+        { { 1.0f,  1.0f, -1.0f} },
+        { { 1.0f, -1.0f, -1.0f} },
 
-        { {-1.0f, -1.0f, 1.0f} },
-        { {-1.0f, 1.0f, 1.0f} },
-        { {1.0f, 1.0f, 1.0f} },
-        { {1.0f, 1.0f, 1.0f} },
-        { {1.0f, -1.0f, 1.0f} },
-        { {-1.0f, -1.0f, 1.0f} },
+        { {-1.0f, -1.0f,  1.0f} },
+        { {-1.0f,  1.0f,  1.0f} },
+        { { 1.0f,  1.0f,  1.0f} },
+        { { 1.0f,  1.0f,  1.0f} },
+        { { 1.0f, -1.0f,  1.0f} },
+        { {-1.0f, -1.0f,  1.0f} },
 
-        { {-1.0f, 1.0f, -1.0f} },
-        { {1.0f, 1.0f, -1.0f} },
-        { {1.0f, 1.0f, 1.0f} },
-        { {1.0f, 1.0f, 1.0f} },
-        { {-1.0f, 1.0f, 1.0f} },
-        { {-1.0f, 1.0f, -1.0f} },
+        { {-1.0f,  1.0f, -1.0f} },
+        { { 1.0f,  1.0f, -1.0f} },
+        { { 1.0f,  1.0f,  1.0f} },
+        { { 1.0f,  1.0f,  1.0f} },
+        { {-1.0f,  1.0f,  1.0f} },
+        { {-1.0f,  1.0f, -1.0f} },
 
         { {-1.0f, -1.0f, -1.0f} },
-        { {-1.0f, -1.0f, 1.0f} },
-        { {1.0f, -1.0f, -1.0f} },
-        { {1.0f, -1.0f, -1.0f} },
-        { {-1.0f, -1.0f, 1.0f} },
-        { {1.0f, -1.0f, 1.0f} },
+        { {-1.0f, -1.0f,  1.0f} },
+        { { 1.0f, -1.0f, -1.0f} },
+        { { 1.0f, -1.0f, -1.0f} },
+        { {-1.0f, -1.0f,  1.0f} },
+        { { 1.0f, -1.0f,  1.0f} },
     };
     vertexBuffer.bind();
     vertexBuffer.setData(skyboxVertices.size(), skyboxVertices.data());
 
+    setArrayBufferAttributes(CubeMapVertex::getVertexInputAttributes(), sizeof(CubeMapVertex));
+}
+
+void CubeMap::setArrayBufferAttributes(const VertexInputAttributes& attributes, uint vertexSize) {
     glGenVertexArrays(1, &vertexArrayBuffer);
     glBindVertexArray(vertexArrayBuffer);
 
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(CubeMapVertex), (void*)0);
+    if (attributes.size() == 0) {
+        spdlog::warn("No vertex attributes provided!");
+    }
+    for (const auto& attribute : attributes) {
+        glEnableVertexAttribArray(attribute.index);
+        glVertexAttribPointer(attribute.index, attribute.size, attribute.type, attribute.normalized, vertexSize, (void*)attribute.pointer);
+    }
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 }
 
-void CubeMap::loadFromFiles(std::vector<std::string> faceFilePaths,
-            GLenum format,
-            GLint wrapS, GLint wrapT, GLint wrapR,
-            GLint minFilter, GLint magFilter) {
+void CubeMap::loadFromFiles(
+    std::vector<std::string> faceFilePaths,
+    GLenum format,
+    GLint wrapS, GLint wrapT, GLint wrapR,
+    GLint minFilter, GLint magFilter)
+{
     glGenTextures(1, &ID);
     glBindTexture(GL_TEXTURE_CUBE_MAP, ID);
 

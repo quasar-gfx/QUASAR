@@ -93,18 +93,6 @@ void glDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLs
 OpenGLRenderer::OpenGLRenderer(const Config& config)
     : width(config.width), height(config.height)
     , windowWidth(config.width), windowHeight(config.height)
-    , skyboxShader({
-        .vertexCodeData = SHADER_BUILTIN_SKYBOX_VERT,
-        .vertexCodeSize = SHADER_BUILTIN_SKYBOX_VERT_len,
-        .fragmentCodeData = SHADER_BUILTIN_SKYBOX_FRAG,
-        .fragmentCodeSize = SHADER_BUILTIN_SKYBOX_FRAG_len,
-    })
-    , pointLightsUBO({
-        .target = GL_UNIFORM_BUFFER,
-        .dataSize = sizeof(Scene::GPUPointLightBlock),
-        .numElems = 1,
-        .usage = GL_DYNAMIC_DRAW,
-    })
 {
 #ifdef GL_CORE
     // Enable setting vertex size for point clouds
@@ -119,6 +107,8 @@ OpenGLRenderer::OpenGLRenderer(const Config& config)
     glDebugMessageControl(GL_DONT_CARE, GL_DEBUG_TYPE_ERROR, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 #endif
 
+    createResources();
+
     setGraphicsPipeline(config.pipeline);
     pipeline.apply();
 }
@@ -131,6 +121,23 @@ void OpenGLRenderer::resize(uint width, uint height) {
 void OpenGLRenderer::setWindowSize(uint width, uint height) {
     windowWidth = width;
     windowHeight = height;
+}
+
+void OpenGLRenderer::createResources() {
+    skyboxShader = std::make_shared<Shader>(ShaderDataCreateParams({
+        .vertexCodeData = SHADER_BUILTIN_SKYBOX_VERT,
+        .vertexCodeSize = SHADER_BUILTIN_SKYBOX_VERT_len,
+        .fragmentCodeData = SHADER_BUILTIN_SKYBOX_FRAG,
+        .fragmentCodeSize = SHADER_BUILTIN_SKYBOX_FRAG_len,
+    }));
+
+    pointLightsUBO = std::make_shared<Buffer>(BufferCreateParams({
+        .target = GL_UNIFORM_BUFFER,
+        .dataSize = sizeof(Scene::GPUPointLightBlock),
+        .numElems = 1,
+        .usage = GL_DYNAMIC_DRAW,
+    }));
+    outputFsQuad = std::make_shared<FullScreenQuad>();
 }
 
 RenderStats OpenGLRenderer::updateDirLightShadow(Scene& scene, const Camera& camera) {
@@ -265,9 +272,9 @@ RenderStats OpenGLRenderer::drawSkyBoxImpl(Scene& scene, const Camera& camera, u
     pipeline.writeMaskState.depth = false;
     pipeline.apply();
 
-    skyboxShader.bind();
-    skyboxShader.setTexture("environmentMap", *scene.envCubeMap, 0);
-    stats = scene.envCubeMap->draw(skyboxShader, camera);
+    skyboxShader->bind();
+    skyboxShader->setTexture("environmentMap", *scene.envCubeMap, 0);
+    stats = scene.envCubeMap->draw(*skyboxShader, camera);
 
     // Restore depth state
     pipeline.depthState.depthFunc = GL_LESS;
@@ -357,7 +364,7 @@ RenderStats OpenGLRenderer::drawNode(Scene& scene, const Camera& camera, const N
 
     if (node->visible) {
         for (auto* entity : node->entities) {
-            entity->bindMaterial(scene, pointLightsUBO, overrideMaterial, prevIDMap);
+            entity->bindMaterial(scene, *pointLightsUBO, overrideMaterial, prevIDMap);
 
 #ifdef GL_CORE
             // Set polygon mode to wireframe if needed
@@ -530,7 +537,7 @@ RenderStats OpenGLRenderer::drawToScreen(const Shader& screenShader, const Rende
     glClear(GL_COLOR_BUFFER_BIT);
 
     screenShader.bind();
-    RenderStats stats = outputFsQuad.draw();
+    RenderStats stats = outputFsQuad->draw();
 
     if (overrideRenderTarget != nullptr) {
         overrideRenderTarget->unbind();
