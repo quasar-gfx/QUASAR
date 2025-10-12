@@ -30,10 +30,6 @@ layout(std430, binding = 2) buffer BC4Buffer {
     Block bc4buffer[];
 };
 
-const uvec2 blockSize = uvec2(8, 8);
-
-uniform vec2 depthMapSize;
-
 uniform mat4 projection;
 uniform mat4 projectionInverse;
 
@@ -43,14 +39,18 @@ uniform mat4 viewInverseDepth;
 uniform float near;
 uniform float far;
 
+uniform vec2 depthMapSize;
+
 uniform bool unlinearizeDepth;
 uniform uint vertexGroupSize;
+
+const uvec2 blockSize = uvec2(8, 8);
 
 #define VERTICES_IN_A_QUAD  4u
 #define INDICES_IN_A_QUAD   6u
 
 float UnLinearizeDepth(float depth) {
-    depth *= far;
+    depth *= (far - near);
     depth = max(depth, near);
     float z = (depth * (far + near) - 2.0 * near * far) / (depth * (far - near));
     return z * 0.5 + 0.5;
@@ -141,7 +141,8 @@ void main() {
     vertices[shaderIndex].color    = vec3(1.0);
     vertices[shaderIndex].texCoord = viewToScreen(projection, viewCoord);
 
-    if (pixelCoord.x >= vertexGridSize.x - vertexGroupSize || pixelCoord.y >= vertexGridSize.y - vertexGroupSize) {
+    if (pixelCoord.x >= vertexGridSize.x - vertexGroupSize ||
+        pixelCoord.y >= vertexGridSize.y - vertexGroupSize) {
         return;
     }
 

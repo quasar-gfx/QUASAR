@@ -56,6 +56,7 @@ public:
 
 private:
     glm::uvec2 adjustedSize;
+    glm::uvec2 depthMapSize;
 
     DeferredRenderer& remoteRenderer;
     Scene& remoteScene;

@@ -20,6 +20,7 @@ MeshWarpStreamer::MeshWarpStreamer(
     , remoteScene(remoteScene)
     , remoteCamera(remoteCamera)
     , adjustedSize(glm::uvec2(remoteRenderer.width, remoteRenderer.height) / params.vertexGroupSize)
+    , depthMapSize(glm::uvec2(remoteRenderer.width, remoteRenderer.height) / params.depthFactor)
     , renderTarget({
         .width = remoteRenderer.width,
         .height = remoteRenderer.height,
@@ -65,23 +66,24 @@ MeshWarpStreamer::MeshWarpStreamer(
         .maxVertices = (adjustedSize.x + 1) * (adjustedSize.y + 1),
         .maxIndices = (adjustedSize.x * adjustedSize.y + adjustedSize.x - 1) * 2 * 3,
         .material = &meshMaterial,
-        .usage = GL_DYNAMIC_DRAW
+        .usage = GL_DYNAMIC_DRAW,
     })
     , depthEffect(remoteCamera)
 {
     meshFromBC4Shader.bind();
     meshFromBC4Shader.setBool("unlinearizeDepth", true);
-    meshFromBC4Shader.setVec2("depthMapSize", glm::vec2(depthStreamerRT.width, depthStreamerRT.height));
+    meshFromBC4Shader.setVec2("depthMapSize", depthMapSize);
     meshFromBC4Shader.setUint("vertexGroupSize", params.vertexGroupSize);
 }
 
 RenderStats MeshWarpStreamer::generateFrame() {
     // Reset stats
-    stats = {};
+    stats = { 0 };
+    RenderStats renderStats;
 
     // Render all objects in scene
     double startTime = timeutils::getTimeMicros();
-    RenderStats renderStats = remoteRenderer.drawObjects(remoteScene, remoteCamera);
+    renderStats = remoteRenderer.drawObjects(remoteScene, remoteCamera);
 
     // Copy to intermediate render target
     tonemapper.enableTonemapping(false);
