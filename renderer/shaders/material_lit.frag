@@ -110,7 +110,7 @@ vec3 getNormal() {
 #ifdef DO_DEPTH_PEELING
 
 // Adapted from https://github.com/cgskku/pvhv/blob/main/shaders/edp.frag
-#define DP_EPSILON 0.0001
+#define DP_EPSILON 0.0005
 #define EDP_SAMPLES 16
 
 bool cullUmbra(float fragmentDepth, float zf) {
@@ -170,7 +170,7 @@ void main() {
         float prevDepthNormalized = uintBitsToFloat(q.z);
         if (prevDepthNormalized == 0 || prevDepthNormalized >= MAX_DEPTH)
             discard;
-        if (-fsIn.FragPosView.z <= mix(camera.near, camera.far, prevDepthNormalized + DP_EPSILON))
+        if (currDepth <= mix(camera.near, camera.far, prevDepthNormalized) + DP_EPSILON)
             discard;
 #ifdef EDP
         vec3 fragViewPos = fsIn.FragPosView;
