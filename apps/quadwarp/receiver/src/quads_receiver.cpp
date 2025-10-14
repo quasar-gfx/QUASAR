@@ -75,12 +75,12 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera(windowSize);
 
     // Post processing
-    Tonemapper tonemapper(loadFromDisk);
+    Tonemapper tonemapper;
 
     Recorder recorder({
         .width = windowSize.x,
         .height = windowSize.y,
-        .internalFormat = GL_RGBA,
+        .internalFormat = GL_RGBA8,
         .format = GL_RGBA,
         .type = GL_UNSIGNED_BYTE,
         .wrapS = GL_CLAMP_TO_EDGE,
@@ -209,10 +209,24 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to load data: %.3f ms", quadsReceiver.stats.loadTimeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decompress data (async): %.3f ms", quadsReceiver.stats.decompressTimeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy data to GPU: %.3f ms", quadsReceiver.stats.transferTimeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to create mesh: %.3f ms", quadsReceiver.stats.createMeshTimeMs);
+            if (ImGui::CollapsingHeader("Video Stats")) {
+                ImGui::TextColored(ImVec4(1,0.5,0,1), "Frame Rate: %.1f FPS (%.3f ms/frame)",
+                                                        quadsReceiver.videoAtlasTexture.getFrameRate(),
+                                                        1000.0f / quadsReceiver.videoAtlasTexture.getFrameRate());
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to receive frame: %.3f ms",
+                                                        quadsReceiver.videoAtlasTexture.stats.receiveTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0.5,1), "Bitrate: %.3f Mbps",
+                                                        quadsReceiver.videoAtlasTexture.stats.bitrateMbps);
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::CollapsingHeader("Proxy Stats")) {
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to load data: %.3f ms", quadsReceiver.stats.loadTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decompress data (async): %.3f ms", quadsReceiver.stats.decompressTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy data to GPU: %.3f ms", quadsReceiver.stats.transferTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to create mesh: %.3f ms", quadsReceiver.stats.createMeshTimeMs);
+            }
 
             ImGui::Separator();
 

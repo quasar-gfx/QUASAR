@@ -109,7 +109,8 @@ QuadsStreamer::QuadsStreamer(
     remoteCameraPrev.setViewMatrix(remoteCamera.getViewMatrix());
 
     for (int i = 0; i < meshScenes.size(); i++) {
-        referenceFrameMeshes.emplace_back(quadSet, referenceFrameRT_noTone.colorTexture, referenceFrameRT_noTone.alphaTexture);
+        referenceFrameMeshes.emplace_back(
+            quadSet, referenceFrameRT_noTone.colorTexture, referenceFrameRT_noTone.alphaTexture);
 
         referenceFrameNodes.emplace_back(&referenceFrameMeshes[i]);
         referenceFrameNodes[i].frustumCulled = false;
@@ -201,7 +202,7 @@ RenderStats QuadsStreamer::generateFrame(bool createResidualFrame, bool showNorm
         referenceFrameRT,
         remoteCameraToUse,
         referenceFrameMeshes[currMeshIndex],
-        createResidualFrame ? dummyFrame : referenceFrame // Don't save output of this reference frame
+        createResidualFrame ? dummyFrame : referenceFrame // Don't save output of this reference frame if we are making a residual frame
     );
     if (!showNormals) {
         remoteRenderer.copyToFrameRT(referenceFrameRT_noTone);

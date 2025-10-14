@@ -10,7 +10,7 @@ QuadStreamReceiver::QuadStreamReceiver(QuadSet& quadSet, uint maxViews)
     , uncompressedOffsets(quadSet.depthOffsets.getSize().x * quadSet.depthOffsets.getSize().y * 4 * sizeof(uint16_t))
 {
     TextureDataCreateParams colorTexParams = {
-        .internalFormat = GL_RGB,
+        .internalFormat = GL_SRGB8,
         .format = GL_RGB,
         .wrapS = GL_REPEAT,
         .wrapT = GL_REPEAT,

@@ -13,10 +13,10 @@ class RecordWindow {
 public:
     bool visible = false;
 
-    RecordWindow(Recorder& recorder, const glm::uvec2& initialSize, const Path& outputPath,
+    RecordWindow(Recorder& recorder, glm::uvec2 size, const Path& outputPath,
                  ImGuiWindowFlags flags = ImGuiCond_FirstUseEver)
         : recorder(recorder)
-        , initialSize(initialSize)
+        , size(size)
         , outputPath(outputPath)
         , flags(flags)
     {}
@@ -28,7 +28,7 @@ public:
             return;
         }
 
-        ImGui::SetNextWindowSize(ImVec2(initialSize.x, initialSize.y), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(size.x, size.y), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowPos(ImVec2(10, 40), ImGuiCond_FirstUseEver);
         ImGui::Begin("Record", &visible);
 
@@ -78,7 +78,7 @@ private:
     bool recording = false;
 
     Recorder& recorder;
-    const glm::uvec2& initialSize;
+    glm::uvec2 size;
     const Path& outputPath;
 
     int recordingFormatIndex = 0;

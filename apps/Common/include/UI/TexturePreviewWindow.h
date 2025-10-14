@@ -12,11 +12,11 @@ class TexturePreviewWindow {
 public:
     bool visible = false;
 
-    TexturePreviewWindow(const std::string& title, const Texture& texture, const glm::uvec2& initialSize,
+    TexturePreviewWindow(const std::string& title, const Texture& texture, glm::uvec2 size,
                          ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse)
         : title(title)
         , texture(texture)
-        , initialSize(initialSize)
+        , size(size)
         , flags(flags)
     {}
 
@@ -26,7 +26,7 @@ public:
         }
 
         ImGui::SetNextWindowPos(ImVec2(10, 40), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(initialSize.x, initialSize.y), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(size.x, size.y), ImGuiCond_FirstUseEver);
         ImGui::Begin(title.c_str(), &visible, flags);
 
         // Maintain aspect ratio
@@ -47,9 +47,10 @@ public:
 private:
     ImGuiWindowFlags flags;
 
-    const std::string title;
+    std::string title;
+    glm::uvec2 size;
+
     const Texture& texture;
-    const glm::uvec2& initialSize;
 };
 
 } // namespace quasar

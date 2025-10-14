@@ -1,13 +1,15 @@
+const float gamma = 2.4;
+
 vec3 saturate(vec3 x) {
     return clamp(x, 0.0, 1.0);
 }
 
 vec3 linearToSRGB(vec3 color) {
-    return mix(pow(color, vec3(1.0 / 2.4)) * 1.055 - 0.055, color * 12.92, lessThanEqual(color, vec3(0.0031308)));
+    return mix(pow(color, vec3(1.0 / gamma)) * 1.055 - 0.055, color * 12.92, lessThanEqual(color, vec3(0.0031308)));
 }
 
 vec3 sRGBToLinear(vec3 color) {
-    return mix(pow((color + 0.055) / 1.055, vec3(2.4)), color / 12.92, lessThanEqual(color, vec3(0.04045)));
+    return mix(pow((color + 0.055) / 1.055, vec3(gamma)), color / 12.92, lessThanEqual(color, vec3(0.04045)));
 }
 
 vec3 tonemapReinhard(vec3 color, float exposure) {

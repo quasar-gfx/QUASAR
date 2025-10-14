@@ -169,21 +169,23 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: RGB (%.1f fps), BC4 D (%.1f fps)",
-                                                    meshWarpStreamer.getVideoFrameRate(),
-                                                    meshWarpStreamer.getDepthFrameRate());
-
-            ImGui::Separator();
-
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: RGB (%.3f ms), BC4 D (%.3f ms)",
-                                                    meshWarpStreamer.videoStreamerRT.stats.transferTimeMs,
-                                                    meshWarpStreamer.depthStreamerRT.stats.transferTimeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: RGB (%.3f ms), BC4 D (%.3f ms)",
-                                                    meshWarpStreamer.videoStreamerRT.stats.encodeTimeMs,
-                                                    meshWarpStreamer.depthStreamerRT.stats.compressTimeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: RGB (%.3f ms), BC4 D (%.3f ms)",
-                                                    meshWarpStreamer.videoStreamerRT.stats.sendTimeMs,
-                                                    meshWarpStreamer.depthStreamerRT.stats.sendTimeMs);
+            if (ImGui::CollapsingHeader("Video Stats")) {
+                ImGui::TextColored(ImVec4(1,0.5,0,1), "Frame Rate: RGB (%.1f fps), D (%.1f fps)",
+                                                        meshWarpStreamer.getVideoFrameRate(),
+                                                        meshWarpStreamer.getDepthFrameRate());
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: RGB (%.3f ms), D (%.3f ms)",
+                                                        meshWarpStreamer.videoStreamerRT.stats.transferTimeMs,
+                                                        meshWarpStreamer.depthStreamerRT.stats.transferTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: RGB (%.3f ms), D (%.3f ms)",
+                                                        meshWarpStreamer.videoStreamerRT.stats.encodeTimeMs,
+                                                        meshWarpStreamer.depthStreamerRT.stats.compressTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: RGB (%.3f ms), D (%.3f ms)",
+                                                        meshWarpStreamer.videoStreamerRT.stats.sendTimeMs,
+                                                        meshWarpStreamer.depthStreamerRT.stats.sendTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0.5,1), "Bitrate: RGB (%.3f Mbps), D (%.3f Mbps)",
+                                                        meshWarpStreamer.videoStreamerRT.stats.bitrateMbps,
+                                                        meshWarpStreamer.depthStreamerRT.stats.bitrateMbps);
+            }
 
             ImGui::Separator();
 

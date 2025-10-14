@@ -15,7 +15,7 @@ QuadsReceiver::QuadsReceiver(QuadSet& quadSet, const std::string& videoURL, cons
     , videoAtlasTexture({
         .width = 2 * quadSet.getSize().x,
         .height = quadSet.getSize().y,
-        .internalFormat = GL_RGB,
+        .internalFormat = GL_SRGB8,
         .format = GL_RGB,
         .type = GL_UNSIGNED_BYTE,
         .wrapS = GL_CLAMP_TO_EDGE,
@@ -30,11 +30,11 @@ QuadsReceiver::QuadsReceiver(QuadSet& quadSet, const std::string& videoURL, cons
         .format = GL_RED,
         .type = GL_UNSIGNED_BYTE,
         .wrapS = GL_CLAMP_TO_EDGE,
-        .wrapT = GL_CLAMP_TO_EDGE
+        .wrapT = GL_CLAMP_TO_EDGE,
     })
     , alphaCodec(alphaAtlasTexture.width, alphaAtlasTexture.height)
     , referenceFrameMesh(quadSet, videoAtlasTexture, alphaAtlasTexture, glm::vec4(0.0f, 0.0f, 0.5f, 1.0f))
-    // We can use less vertices and indicies for the mask since it will be sparse
+    // We can use fewer vertices and indices for the mask since it will be sparse
     , residualFrameMesh(quadSet, videoAtlasTexture, alphaAtlasTexture, glm::vec4(0.5f, 0.0f, 1.0f, 1.0f))
     , DataReceiverTCP(proxiesURL)
 {

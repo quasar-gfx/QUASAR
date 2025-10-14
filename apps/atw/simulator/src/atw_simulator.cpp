@@ -111,7 +111,7 @@ int main(int argc, char** argv) {
     Recorder recorder({
         .width = windowSize.x,
         .height = windowSize.y,
-        .internalFormat = GL_RGBA,
+        .internalFormat = GL_RGBA8,
         .format = GL_RGBA,
         .type = GL_UNSIGNED_BYTE,
         .wrapS = GL_CLAMP_TO_EDGE,
@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
     RenderStats renderStats;
     FrameRateWindow frameRateWindow;
     FrameCaptureWindow frameCaptureWindow(recorder, glm::uvec2(430, 270), outputPath);
-    RecordWindow recordWindow(recorder, glm::uvec2(550, 270), outputPath);
+    RecordWindow recordWindow(recorder, glm::uvec2(430, 270), outputPath);
     guiManager->onRender([&](double now, double dt) {
         static bool showUI = !saveImages;
 

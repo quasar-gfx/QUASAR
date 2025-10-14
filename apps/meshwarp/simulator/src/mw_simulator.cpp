@@ -7,7 +7,6 @@
 #include <Renderers/ForwardRenderer.h>
 #include <Renderers/DeferredRenderer.h>
 #include <PostProcessing/Tonemapper.h>
-#include <PostProcessing/ShowDepthEffect.h>
 
 #include <UI/FrameRateWindow.h>
 #include <UI/FrameCaptureWindow.h>
@@ -136,12 +135,11 @@ int main(int argc, char** argv) {
 
     // Post processing
     Tonemapper tonemapper;
-    ShowDepthEffect showDepthEffect(camera);
 
     Recorder recorder({
         .width = windowSize.x,
         .height = windowSize.y,
-        .internalFormat = GL_RGBA,
+        .internalFormat = GL_RGBA8,
         .format = GL_RGBA,
         .type = GL_UNSIGNED_BYTE,
         .wrapS = GL_CLAMP_TO_EDGE,
@@ -189,7 +187,7 @@ int main(int argc, char** argv) {
     FrameRateWindow frameRateWindow;
     FrameCaptureWindow frameCaptureWindow(recorder, glm::uvec2(430, 270), outputPath);
     TexturePreviewWindow videoPreviewWindow("Video", meshWarpStreamer.renderTarget.colorTexture, glm::uvec2(430, 270));
-    RecordWindow recordWindow(recorder, glm::uvec2(550, 270), outputPath);
+    RecordWindow recordWindow(recorder, glm::uvec2(430, 270), outputPath);
     guiManager->onRender([&](double now, double dt) {
         static bool showUI = !saveImages;
         static bool showMeshCapture = false;

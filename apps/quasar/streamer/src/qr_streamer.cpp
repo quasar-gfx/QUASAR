@@ -223,14 +223,6 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            auto& videoStreamerRT = quasar.videoAtlasStreamerRT;
-            ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoStreamerRT.getFrameRate(), 1000.0f / videoStreamerRT.getFrameRate());
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: %.3f ms", videoStreamerRT.stats.transferTimeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.3f ms", videoStreamerRT.stats.encodeTimeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: %.3f ms", videoStreamerRT.stats.sendTimeMs);
-
-            ImGui::Separator();
-
             if (ImGui::CollapsingHeader("Background Settings")) {
                 if (ImGui::Checkbox("Show Sky Box", &showSkyBox)) {
                     localScene.envCubeMap = showSkyBox ? scene.envCubeMap : nullptr;
@@ -265,6 +257,17 @@ int main(int argc, char** argv) {
                 ImGui::DragFloat("Flatten Threshold", &quadsGenerator->params.flattenThreshold, 0.001f, 0.0f, 1.0f);
                 ImGui::DragFloat("Similarity Threshold", &quadsGenerator->params.proxySimilarityThreshold, 0.001f, 0.0f, 2.0f);
                 ImGui::DragInt("Force Merge Iterations", &quadsGenerator->params.maxIterForceMerge, 1, 0, quadsGenerator->numQuadMaps/2);
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::CollapsingHeader("Video Stats")) {
+                auto& videoStreamerRT = quasar.videoAtlasStreamerRT;
+                ImGui::TextColored(ImVec4(1,0.5,0,1), "Frame Rate: %.1f FPS (%.3f ms/frame)", videoStreamerRT.getFrameRate(), 1000.0f / videoStreamerRT.getFrameRate());
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: %.3f ms", videoStreamerRT.stats.transferTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.3f ms", videoStreamerRT.stats.encodeTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: %.3f ms", videoStreamerRT.stats.sendTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0.5,1), "Bitrate: %.3f Mbps", videoStreamerRT.stats.bitrateMbps);
             }
 
             ImGui::Separator();

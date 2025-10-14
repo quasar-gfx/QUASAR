@@ -98,12 +98,12 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera(windowSize);
 
     // Post processing
-    Tonemapper tonemapper(loadFromDisk);
+    Tonemapper tonemapper;
 
     Recorder recorder({
         .width = windowSize.x,
         .height = windowSize.y,
-        .internalFormat = GL_RGBA,
+        .internalFormat = GL_RGBA8,
         .format = GL_RGBA,
         .type = GL_UNSIGNED_BYTE,
         .wrapS = GL_CLAMP_TO_EDGE,
@@ -243,18 +243,17 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: RGB (%.1f FPS), D (%.1f FPS)",
-                                                    meshWarpReceiver.videoTexture.getFrameRate(),
-                                                    meshWarpReceiver.depthTexture.getFrameRate());
-            ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: RGB (%.3f ms), D (%.3f ms)", elapsedTimeColor, elapsedTimeDepth);
-
-            ImGui::Separator();
-
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to receive frame: %.3f ms",
-                                                    meshWarpReceiver.videoTexture.stats.receiveTimeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: RGB (%.3f Mbps), D (%.3f Mbps)",
-                                                    meshWarpReceiver.videoTexture.stats.bitrateMbps,
-                                                    meshWarpReceiver.depthTexture.stats.bitrateMbps);
+            if (ImGui::CollapsingHeader("Video Stats")) {
+                ImGui::TextColored(ImVec4(1,0.5,0,1), "Frame Rate: RGB (%.1f FPS), D (%.1f FPS)",
+                                                        meshWarpReceiver.videoTexture.getFrameRate(),
+                                                        meshWarpReceiver.depthTexture.getFrameRate());
+                ImGui::TextColored(ImVec4(1,0.5,0.5,1), "E2E Latency: RGB (%.3f ms), D (%.3f ms)", elapsedTimeColor, elapsedTimeDepth);
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to receive frame: %.3f ms",
+                                                        meshWarpReceiver.videoTexture.stats.receiveTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0.5,1), "Bitrate: RGB (%.3f Mbps), D (%.3f Mbps)",
+                                                        meshWarpReceiver.videoTexture.stats.bitrateMbps,
+                                                        meshWarpReceiver.depthTexture.stats.bitrateMbps);
+            }
 
             ImGui::Separator();
 

@@ -46,6 +46,7 @@ void main() {
     color.rgb /= alpha;
 
     FragColor = vec4(color.rgb, alpha);
+    FragAlpha = alpha;
     // FragNormal = vec4(normalize(fsIn.Normal), 1.0);
     FragIDs = uvec4(fsIn.DrawID, gl_PrimitiveID, 0.0, 1.0);
 }

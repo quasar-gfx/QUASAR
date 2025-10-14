@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
     Recorder recorder({
         .width = windowSize.x,
         .height = windowSize.y,
-        .internalFormat = GL_RGBA,
+        .internalFormat = GL_RGBA8,
         .format = GL_RGBA,
         .type = GL_UNSIGNED_BYTE,
         .wrapS = GL_CLAMP_TO_EDGE,
@@ -201,13 +201,12 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoTexture.getFrameRate(), 1000.0f / videoTexture.getFrameRate());
-            ImGui::TextColored(ImVec4(1,0.5,0,1), "E2E Latency: %.3f ms", elapsedTime);
-
-            ImGui::Separator();
-
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to receive frame: %.3f ms", videoTexture.stats.receiveTimeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Bitrate: %.3f Mbps", videoTexture.stats.bitrateMbps);
+            if (ImGui::CollapsingHeader("Video Stats")) {
+                ImGui::TextColored(ImVec4(1,0.5,0,1), "Frame Rate: %.1f FPS (%.3f ms/frame)", videoTexture.getFrameRate(), 1000.0f / videoTexture.getFrameRate());
+                ImGui::TextColored(ImVec4(1,0.5,0.5,1), "E2E Latency: %.3f ms", elapsedTime);
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to receive frame: %.3f ms", videoTexture.stats.receiveTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0.5,1), "Bitrate: %.3f Mbps", videoTexture.stats.bitrateMbps);
+            }
 
             ImGui::Separator();
 

@@ -17,10 +17,6 @@
 #include <Codecs/ZSTDCodec.h>
 #include <CameraPose.h>
 
-#if defined(QUASAR_HAS_CUDA)
-#include <CudaGLInterop/CudaGLBuffer.h>
-#endif
-
 namespace quasar {
 
 class BC4DepthStreamer : public RenderTarget, public DataStreamerTCP {
@@ -41,9 +37,7 @@ public:
     } stats;
 
     BC4DepthStreamer(const RenderTargetCreateParams& params, const std::string& receiverURL = "", uint maxFrameRate = 30);
-    ~BC4DepthStreamer();
-
-    void stop();
+    ~BC4DepthStreamer() = default;
 
     float getFrameRate() const { return 1.0f / timeutils::millisToSeconds(stats.sendTimeMs); }
 
@@ -55,29 +49,14 @@ public:
 private:
     uint maxFrameRate;
 
+    double prevTime;
+
     std::vector<char> dataBC4;
     std::vector<char> dataZSTD;
     std::vector<char> compressedData;
 
     ZSTDCodec codec;
     ComputeShader bc4CompressionShader;
-
-#if defined(QUASAR_HAS_CUDA)
-    CudaGLBuffer cudaBufferBC4;
-
-    struct CudaBuffer {
-        pose_id_t poseID;
-        void* buffer;
-    };
-    moodycamel::ConcurrentQueue<CudaBuffer> cudaBufferQueue;
-
-    std::atomic_bool running{false};
-    std::thread dataSendingThread;
-
-    void sendData();
-#else
-    pose_id_t poseID;
-#endif
 };
 
 } // namespace quasar

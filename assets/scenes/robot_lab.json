@@ -19,7 +19,10 @@
             "path": "../assets/models/scenes/RobotLab.glb",
             "IBL": 0.01,
             "gammaCorrected": true,
-            "flipTextures": true
+            "flipTextures": true,
+            "position": [0.0, 0.0, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [1.0, 1.0, 1.0]
         }
     ],
     "meshes": [
@@ -29,12 +32,6 @@
         }
     ],
     "nodes": [
-        {
-            "model": 0,
-            "position": [0.0, 0.0, 0.0],
-            "rotation": [0.0, 0.0, 0.0],
-            "scale": [1.0, 1.0, 1.0]
-        },
         {
             "mesh": 0,
             "position": [0.0, 3.0, 2.0],

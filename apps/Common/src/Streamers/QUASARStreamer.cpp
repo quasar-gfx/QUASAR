@@ -147,7 +147,8 @@ QUASARStreamer::QUASARStreamer(
 
     // Setup visible layer for reference frame
     for (int i = 0; i < meshScenes.size(); i++) {
-        referenceFrameMeshes.emplace_back(quadSet, referenceFrameRT_noTone.colorTexture, referenceFrameRT_noTone.alphaTexture);
+        referenceFrameMeshes.emplace_back(
+            quadSet, referenceFrameRT_noTone.colorTexture, referenceFrameRT_noTone.alphaTexture);
 
         referenceFrameNodes.emplace_back(&referenceFrameMeshes[i]);
         referenceFrameNodes[i].frustumCulled = false;
@@ -180,7 +181,8 @@ QUASARStreamer::QUASARStreamer(
     depthNode.primitiveType = GL_POINTS;
 
     for (int layer = 0; layer < numHidLayers; layer++) {
-        meshesHidLayer.emplace_back(quadSet, frameRTsHidLayer_noTone[layer].colorTexture, frameRTsHidLayer_noTone[layer].alphaTexture);
+        meshesHidLayer.emplace_back(
+            quadSet, frameRTsHidLayer_noTone[layer].colorTexture, frameRTsHidLayer_noTone[layer].alphaTexture);
 
         nodesHidLayer.emplace_back(&meshesHidLayer[layer]);
         nodesHidLayer[layer].frustumCulled = false;
@@ -353,7 +355,7 @@ RenderStats QUASARStreamer::generateFrame(bool createResidualFrame, bool showNor
             (layer != 0 && layer != maxLayers - 1) ? renderTargetToUse_noTone : renderTargetToUse,
             remoteCameraToUse,
             meshToUse,
-            (layer == 0 && createResidualFrame) ? dummyFrame : referenceFrames[layer] // Don't save output of this reference frame
+            (layer == 0 && createResidualFrame) ? dummyFrame : referenceFrames[layer] // Don't save output of this reference frame if we are making a residual frame
         );
         if (!showNormals) {
             if (layer == 0) {

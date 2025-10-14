@@ -25,7 +25,7 @@ MeshWarpReceiver::MeshWarpReceiver(
     , videoTexture({
         .width = remoteGBufferSize.x,
         .height = remoteGBufferSize.y,
-        .internalFormat = GL_RGB8,
+        .internalFormat = GL_SRGB8,
         .format = GL_RGB,
         .type = GL_UNSIGNED_BYTE,
         .wrapS = GL_CLAMP_TO_EDGE,
