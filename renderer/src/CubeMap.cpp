@@ -244,10 +244,10 @@ void CubeMap::loadFromEquirectTexture(const Shader& equirectToCubeMapShader, con
     equirectTexture.unbind();
 }
 
-void CubeMap::convolve(const Shader& convolutionShader, const CubeMap& envCubeMap) const {
+void CubeMap::convolve(const Shader& convolutionShader, const CubeMap& skybox) const {
     convolutionShader.bind();
 
-    convolutionShader.setTexture("environmentMap", envCubeMap, 0);
+    convolutionShader.setTexture("environmentMap", skybox, 0);
     convolutionShader.setMat4("projection", captureProjection);
 
     glViewport(0, 0, width, height);
@@ -260,10 +260,10 @@ void CubeMap::convolve(const Shader& convolutionShader, const CubeMap& envCubeMa
     }
 }
 
-void CubeMap::prefilter(const Shader& prefilterShader, const CubeMap& envCubeMap, Renderbuffer& captureRBO) const {
+void CubeMap::prefilter(const Shader& prefilterShader, const CubeMap& skybox, Renderbuffer& captureRBO) const {
     prefilterShader.bind();
 
-    prefilterShader.setTexture("environmentMap", envCubeMap, 0);
+    prefilterShader.setTexture("environmentMap", skybox, 0);
     prefilterShader.setMat4("projection", captureProjection);
 
     for (int mip = 0; mip < maxMipLevels; mip++) {

@@ -12,6 +12,7 @@
 #include <UI/FrameCaptureWindow.h>
 #include <UI/RecordWindow.h>
 #include <UI/TexturePreviewWindow.h>
+#include <UI/SceneWindow.h>
 
 #include <Path.h>
 #include <Recorder.h>
@@ -101,7 +102,7 @@ int main(int argc, char** argv) {
 
     // "Local" scene
     Scene scene;
-    scene.envCubeMap = remoteScene.envCubeMap;
+    scene.skybox = remoteScene.skybox;
     PerspectiveCamera camera(windowSize);
     camera.setViewMatrix(remoteCamera.getViewMatrix());
 
@@ -188,11 +189,10 @@ int main(int argc, char** argv) {
     FrameCaptureWindow frameCaptureWindow(recorder, glm::uvec2(430, 270), outputPath);
     TexturePreviewWindow videoPreviewWindow("Video", meshWarpStreamer.renderTarget.colorTexture, glm::uvec2(430, 270));
     RecordWindow recordWindow(recorder, glm::uvec2(430, 270), outputPath);
+    SceneWindow sceneWindow(scene, glm::vec2(430, 800));
     guiManager->onRender([&](double now, double dt) {
         static bool showUI = !saveImages;
         static bool showMeshCapture = false;
-
-        static bool showSkyBox = true;
 
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {
@@ -210,9 +210,17 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("Frame Preview", 0, &videoPreviewWindow.visible);
             ImGui::EndMenu();
         }
+        if (ImGui::BeginMenu("Scene")) {
+            ImGui::MenuItem("Scene", 0, &sceneWindow.visible);
+            ImGui::EndMenu();
+        }
         ImGui::EndMainMenuBar();
 
         frameRateWindow.draw(now, dt);
+        frameCaptureWindow.draw(now, dt);
+        recordWindow.draw(now, dt);
+        sceneWindow.draw(now, dt);
+        videoPreviewWindow.draw(now, dt);
 
         if (showUI) {
             ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
@@ -253,22 +261,6 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::CollapsingHeader("Background Settings")) {
-                if (ImGui::Checkbox("Show Sky Box", &showSkyBox)) {
-                    scene.envCubeMap = showSkyBox ? remoteScene.envCubeMap : nullptr;
-                }
-
-                if (ImGui::Button("Change Background Color", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
-                    ImGui::OpenPopup("Background Color Popup");
-                }
-                if (ImGui::BeginPopup("Background Color Popup")) {
-                    ImGui::ColorPicker3("Background Color", (float*)&scene.backgroundColor);
-                    ImGui::EndPopup();
-                }
-            }
-
-            ImGui::Separator();
-
             ImGui::Checkbox("Show Wireframe", &showWireframe);
             ImGui::Checkbox("Show Depth Map as Point Cloud", &showDepth);
 
@@ -306,9 +298,6 @@ int main(int argc, char** argv) {
             ImGui::End();
         }
 
-        frameCaptureWindow.draw(now, dt);
-        recordWindow.draw(now, dt);
-
         if (showMeshCapture) {
             ImGui::SetNextWindowSize(ImVec2(430, 270), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 300), ImGuiCond_FirstUseEver);
@@ -320,8 +309,6 @@ int main(int argc, char** argv) {
 
             ImGui::End();
         }
-
-        videoPreviewWindow.draw(now, dt);
     });
 
     app.onResize([&](uint width, uint height) {

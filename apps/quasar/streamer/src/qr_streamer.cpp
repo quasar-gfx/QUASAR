@@ -7,6 +7,7 @@
 #include <Renderers/ForwardRenderer.h>
 #include <Renderers/DeferredRenderer.h>
 #include <Renderers/DepthPeelingRenderer.h>
+#include <UI/SceneWindow.h>
 
 #include <Streamers/QUASARStreamer.h>
 #include <HoleFiller.h>
@@ -143,12 +144,11 @@ int main(int argc, char** argv) {
     RenderStats renderStats;
     pose_id_t prevPoseID;
     FrameRateWindow frameRateWindow;
+    SceneWindow sceneWindow(localScene, glm::vec2(430, 800));
     guiManager->onRender([&](double now, double dt) {
         static bool showUI = true;
         static bool showFramePreviewWindow = false;
         static bool showLayerPreviews = false;
-
-        static bool showSkyBox = true;
 
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {
@@ -164,9 +164,14 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("Layer Previews", 0, &showLayerPreviews);
             ImGui::EndMenu();
         }
+        if (ImGui::BeginMenu("Scene")) {
+            ImGui::MenuItem("Scene", 0, &sceneWindow.visible);
+            ImGui::EndMenu();
+        }
         ImGui::EndMainMenuBar();
 
         frameRateWindow.draw(now, dt);
+        sceneWindow.draw(now, dt);
 
         if (showUI) {
             ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
@@ -220,22 +225,6 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             ImGui::Text("Client Pose ID: %d", prevPoseID);
-
-            ImGui::Separator();
-
-            if (ImGui::CollapsingHeader("Background Settings")) {
-                if (ImGui::Checkbox("Show Sky Box", &showSkyBox)) {
-                    localScene.envCubeMap = showSkyBox ? scene.envCubeMap : nullptr;
-                }
-
-                if (ImGui::Button("Change Background Color", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
-                    ImGui::OpenPopup("Background Color Popup");
-                }
-                if (ImGui::BeginPopup("Background Color Popup")) {
-                    ImGui::ColorPicker3("Background Color", (float*)&localScene.backgroundColor);
-                    ImGui::EndPopup();
-                }
-            }
 
             ImGui::Separator();
 

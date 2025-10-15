@@ -14,6 +14,7 @@
 #include <UI/FrameRateWindow.h>
 #include <UI/FrameCaptureWindow.h>
 #include <UI/RecordWindow.h>
+#include <UI/SceneWindow.h>
 
 #include <Path.h>
 #include <Recorder.h>
@@ -119,12 +120,11 @@ int main(int argc, char** argv) {
     FrameRateWindow frameRateWindow;
     FrameCaptureWindow frameCaptureWindow(recorder, glm::uvec2(430, 270), outputPath);
     RecordWindow recordWindow(recorder, glm::uvec2(430, 270), outputPath);
+    SceneWindow sceneWindow(scene, glm::vec2(430, 800));
     guiManager->onRender([&](double now, double dt) {
         static bool showUI = !saveImages;
         static bool showLayerPreviews = false;
         static bool showAnimationsWindow = false;
-
-        static bool showSkyBox = true;
 
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {
@@ -141,6 +141,10 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("Layer Previews", 0, &showLayerPreviews);
             ImGui::EndMenu();
         }
+        if (ImGui::BeginMenu("Scene")) {
+            ImGui::MenuItem("Scene", 0, &sceneWindow.visible);
+            ImGui::EndMenu();
+        }
         if (ImGui::BeginMenu("Animations")) {
             ImGui::MenuItem("Animations", 0, &showAnimationsWindow);
             ImGui::EndMenu();
@@ -148,6 +152,9 @@ int main(int argc, char** argv) {
         ImGui::EndMainMenuBar();
 
         frameRateWindow.draw(now, dt);
+        frameCaptureWindow.draw(now, dt);
+        recordWindow.draw(now, dt);
+        sceneWindow.draw(now, dt);
 
         if (showUI) {
             ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
@@ -186,58 +193,6 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::CollapsingHeader("Background Settings")) {
-                if (ImGui::Checkbox("Show Sky Box", &showSkyBox)) {
-                    scene.envCubeMap = showSkyBox ? scene.envCubeMap : nullptr;
-                }
-
-                if (ImGui::Button("Change Background Color", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
-                    ImGui::OpenPopup("Background Color Popup");
-                }
-                if (ImGui::BeginPopup("Background Color Popup")) {
-                    ImGui::ColorPicker3("Background Color", (float*)&scene.backgroundColor);
-                    ImGui::EndPopup();
-                }
-            }
-
-            ImGui::Separator();
-
-            if (scene.ambientLight != nullptr && ImGui::CollapsingHeader("Ambient Light Settings")) {
-                ImGui::ColorEdit3("Color##Ambient", (float*)&scene.ambientLight->color);
-                ImGui::DragFloat("Strength##Ambient", &scene.ambientLight->intensity, 0.05f, 0.1f, 2.0f);
-            }
-
-            if (scene.directionalLight != nullptr && ImGui::CollapsingHeader("Directional Light Settings")) {
-                ImGui::ColorEdit3("Color##Directional", (float*)&scene.directionalLight->color);
-                ImGui::DragFloat("Strength##Directional", &scene.directionalLight->intensity, 0.1f, 0.1f, 100.0f);
-                ImGui::DragFloat3("Direction##Directional", (float*)&scene.directionalLight->direction, 0.1f, -5.0f, 5.0f);
-                ImGui::DragFloat("Distance##Directional", &scene.directionalLight->distance, 0.1f, 0.0f, 100.0f);
-
-                ImGui::TextColored(ImVec4(1,1,1,1), "Shadow Map:");
-                int halfWindowWidth = ImGui::GetWindowWidth() / 2;
-                ImGui::Image(
-                    (void*)(intptr_t)scene.directionalLight->shadowMapRenderTarget.depthTexture,
-                    ImVec2(halfWindowWidth, halfWindowWidth), ImVec2(0, 1), ImVec2(1, 0));
-            }
-
-            if (scene.pointLights.size() > 0 && ImGui::CollapsingHeader("Point Lights")) {
-                for (size_t i = 0; i < scene.pointLights.size(); i++) {
-                    PointLight* pointLight = scene.pointLights[i];
-                    if (ImGui::TreeNode((void*)(intptr_t)i, "Point Light %ld", i)) {
-                        ImGui::ColorEdit3(("Color##Point" + std::to_string(i)).c_str(), (float*)&pointLight->color);
-                        ImGui::DragFloat(("Strength##Point" + std::to_string(i)).c_str(), &pointLight->intensity, 0.1f, 0.1f, 100.0f);
-                        ImGui::DragFloat3(("Position##Point" + std::to_string(i)).c_str(), (float*)&pointLight->position, 0.01f);
-                        ImGui::DragFloat(("Constant##Point" + std::to_string(i)).c_str(), &pointLight->constant, 0.01f, 0.0f, 10.0f);
-                        ImGui::DragFloat(("Linear##Point" + std::to_string(i)).c_str(), &pointLight->linear, 0.001f, 0.0f, 1.0f);
-                        ImGui::DragFloat(("Quadratic##Point" + std::to_string(i)).c_str(), &pointLight->quadratic, 0.001f, 0.0f, 1.0f);
-                        ImGui::Checkbox(("Debug##Point" + std::to_string(i)).c_str(), &pointLight->debug);
-                        ImGui::TreePop();
-                    }
-                }
-            }
-
-            ImGui::Separator();
-
             if (ImGui::CollapsingHeader("Post Processing Settings")) {
                 ImGui::DragFloat("Exposure", &exposure, 0.1f, 0.1f, 5.0f);
                 ImGui::RadioButton("Show Color", &shaderIndex, 0);
@@ -250,9 +205,6 @@ int main(int argc, char** argv) {
 
             ImGui::End();
         }
-
-        frameCaptureWindow.draw(now, dt);
-        recordWindow.draw(now, dt);
 
         if (showLayerPreviews) {
             for (int layer = 0; layer < renderer.maxLayers; layer++) {

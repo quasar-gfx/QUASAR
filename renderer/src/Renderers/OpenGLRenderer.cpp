@@ -273,7 +273,7 @@ RenderStats OpenGLRenderer::drawLights(Scene& scene, const Camera& camera) {
 RenderStats OpenGLRenderer::drawSkyBoxImpl(Scene& scene, const Camera& camera, uint32_t clearMask) {
     RenderStats stats;
 
-    if (scene.envCubeMap == nullptr) {
+    if (scene.skybox == nullptr) {
         return stats;
     }
 
@@ -283,8 +283,8 @@ RenderStats OpenGLRenderer::drawSkyBoxImpl(Scene& scene, const Camera& camera, u
     pipeline.apply();
 
     skyboxShader->bind();
-    skyboxShader->setTexture("environmentMap", *scene.envCubeMap, 0);
-    stats = scene.envCubeMap->draw(*skyboxShader, camera);
+    skyboxShader->setTexture("environmentMap", *scene.skybox, 0);
+    stats = scene.skybox->draw(*skyboxShader, camera);
 
     // Restore depth state
     pipeline.depthState.depthFunc = GL_LESS;

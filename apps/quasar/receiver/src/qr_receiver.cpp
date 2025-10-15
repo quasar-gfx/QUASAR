@@ -180,6 +180,9 @@ int main(int argc, char** argv) {
         ImGui::EndMainMenuBar();
 
         frameRateWindow.draw(now, dt);
+        frameCaptureWindow.draw(now, dt);
+        videoPreviewWindow.draw(now, dt);
+        alphaPreviewWindow.draw(now, dt);
 
         if (showUI) {
             ImGui::SetNextWindowSize(ImVec2(430, 270), ImGuiCond_FirstUseEver);
@@ -269,10 +272,6 @@ int main(int argc, char** argv) {
 
             ImGui::End();
         }
-
-        frameCaptureWindow.draw(now, dt);
-        videoPreviewWindow.draw(now, dt);
-        alphaPreviewWindow.draw(now, dt);
     });
 
     app.onResize([&](uint width, uint height) {

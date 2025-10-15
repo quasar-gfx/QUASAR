@@ -152,6 +152,9 @@ int main(int argc, char** argv) {
         ImGui::EndMainMenuBar();
 
         frameRateWindow.draw(now, dt);
+        frameCaptureWindow.draw(now, dt);
+        videoPreviewWindow.draw(now, dt);
+        alphaPreviewWindow.draw(now, dt);
 
         if (showUI) {
             ImGui::SetNextWindowSize(ImVec2(430, 270), ImGuiCond_FirstUseEver);
@@ -197,18 +200,6 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::CollapsingHeader("Background Settings")) {
-                if (ImGui::Button("Change Background Color", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
-                    ImGui::OpenPopup("Background Color Popup");
-                }
-                if (ImGui::BeginPopup("Background Color Popup")) {
-                    ImGui::ColorPicker3("Background Color", (float*)&scene.backgroundColor);
-                    ImGui::EndPopup();
-                }
-            }
-
-            ImGui::Separator();
-
             if (ImGui::CollapsingHeader("Video Stats")) {
                 ImGui::TextColored(ImVec4(1,0.5,0,1), "Frame Rate: %.1f FPS (%.3f ms/frame)",
                                                         quadsReceiver.videoAtlasTexture.getFrameRate(),
@@ -241,10 +232,6 @@ int main(int argc, char** argv) {
 
             ImGui::End();
         }
-
-        frameCaptureWindow.draw(now, dt);
-        videoPreviewWindow.draw(now, dt);
-        alphaPreviewWindow.draw(now, dt);
     });
 
     app.onResize([&](uint width, uint height) {

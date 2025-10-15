@@ -11,6 +11,7 @@
 #include <UI/FrameRateWindow.h>
 #include <UI/FrameCaptureWindow.h>
 #include <UI/TexturePreviewWindow.h>
+#include <UI/SceneWindow.h>
 
 #include <Path.h>
 #include <Recorder.h>
@@ -187,6 +188,7 @@ int main(int argc, char** argv) {
     FrameRateWindow frameRateWindow;
     FrameCaptureWindow frameCaptureWindow(recorder, glm::uvec2(430, 270), outputPath);
     TexturePreviewWindow depthPreviewWindow("Depth", remoteRenderer.frameRT.depthStencilTexture, glm::uvec2(430, 270));
+    SceneWindow sceneWindow(scene, glm::vec2(430, 800));
     guiManager->onRender([&](double now, double dt) {
         static bool showUI = true;
 
@@ -204,9 +206,16 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("Depth Preview", 0, &depthPreviewWindow.visible);
             ImGui::EndMenu();
         }
+        if (ImGui::BeginMenu("Scene")) {
+            ImGui::MenuItem("Scene", 0, &sceneWindow.visible);
+            ImGui::EndMenu();
+        }
         ImGui::EndMainMenuBar();
 
         frameRateWindow.draw(now, dt);
+        frameCaptureWindow.draw(now, dt);
+        depthPreviewWindow.draw(now, dt);
+        sceneWindow.draw(now, dt);
 
         if (showUI) {
             ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
@@ -268,9 +277,6 @@ int main(int argc, char** argv) {
 
             ImGui::End();
         }
-
-        frameCaptureWindow.draw(now, dt);
-        depthPreviewWindow.draw(now, dt);
     });
 
     // Window resize callback

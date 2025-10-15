@@ -17,7 +17,7 @@ public:
     };
 
     glm::vec4 backgroundColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    SkyBox* envCubeMap = nullptr;
+    SkyBox* skybox = nullptr;
 
     AmbientLight* ambientLight = nullptr;
     DirectionalLight* directionalLight = nullptr;
@@ -26,7 +26,7 @@ public:
     Scene() = default;
     ~Scene() = default;
 
-    void setEnvMap(SkyBox* envCubeMap);
+    void setEnvMap(SkyBox* skybox);
     void setAmbientLight(AmbientLight* ambientLight);
     void setDirectionalLight(DirectionalLight* directionalLight);
 

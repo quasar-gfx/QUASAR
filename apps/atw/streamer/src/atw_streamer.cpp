@@ -8,6 +8,7 @@
 #include <PostProcessing/Tonemapper.h>
 
 #include <UI/FrameRateWindow.h>
+#include <UI/SceneWindow.h>
 
 #include <Streamers/VideoStreamer.h>
 #include <Receivers/PoseReceiver.h>
@@ -114,6 +115,7 @@ int main(int argc, char** argv) {
     RenderStats renderStats;
     pose_id_t prevPoseID;
     FrameRateWindow frameRateWindow;
+    SceneWindow sceneWindow(scene, glm::vec2(430, 800));
     guiManager->onRender([&](double now, double dt) {
         static bool showUI = true;
 
@@ -129,9 +131,14 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("UI", 0, &showUI);
             ImGui::EndMenu();
         }
+        if (ImGui::BeginMenu("Scene")) {
+            ImGui::MenuItem("Scene", 0, &sceneWindow.visible);
+            ImGui::EndMenu();
+        }
         ImGui::EndMainMenuBar();
 
         frameRateWindow.draw(now, dt);
+        sceneWindow.draw(now, dt);
 
         if (showUI) {
             ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);

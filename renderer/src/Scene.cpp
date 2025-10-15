@@ -2,8 +2,8 @@
 
 using namespace quasar;
 
-void Scene::setEnvMap(SkyBox* envCubeMap) {
-    this->envCubeMap = envCubeMap;
+void Scene::setEnvMap(SkyBox* skybox) {
+    this->skybox = skybox;
 }
 
 void Scene::setAmbientLight(AmbientLight* ambientLight) {
@@ -26,10 +26,10 @@ int Scene::bindMaterial(const Material* material, Buffer& pointLightsUBO) {
     auto shader = material->getShader();
 
     int texIdx = material->getTextureCount();
-    if (envCubeMap != nullptr) {
-        shader->setTexture("material.irradianceMap", envCubeMap->getIrradianceCubeMap(), texIdx + 0);
-        shader->setTexture("material.prefilterMap", envCubeMap->getPrefilterCubeMap(), texIdx + 1);
-        shader->setTexture("material.brdfLUT", envCubeMap->getBRDFLUT(), texIdx + 2);
+    if (skybox != nullptr) {
+        shader->setTexture("material.irradianceMap", skybox->getIrradianceCubeMap(), texIdx + 0);
+        shader->setTexture("material.prefilterMap", skybox->getPrefilterCubeMap(), texIdx + 1);
+        shader->setTexture("material.brdfLUT", skybox->getBRDFLUT(), texIdx + 2);
     }
     else {
         shader->clearTexture("material.irradianceMap", texIdx + 0);
@@ -109,7 +109,7 @@ int Scene::bindPointLights(const Material* material, Buffer& pointLightsUBO, int
 
 void Scene::clear() {
     pointLights.clear();
-    envCubeMap = nullptr;
+    skybox = nullptr;
     ambientLight = nullptr;
     directionalLight = nullptr;
 }

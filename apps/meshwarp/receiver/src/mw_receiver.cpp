@@ -171,6 +171,8 @@ int main(int argc, char** argv) {
         ImGui::EndMainMenuBar();
 
         frameRateWindow.draw(now, dt);
+        frameCaptureWindow.draw(now, dt);
+        videoPreviewWindow.draw(now, dt);
 
         if (showUI) {
             ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
@@ -206,18 +208,6 @@ int main(int argc, char** argv) {
                 camera.setRotationEuler(rotation);
             }
             ImGui::DragFloat("Movement Speed", &camera.movementSpeed, 0.05f, 0.1f, 20.0f);
-
-            ImGui::Separator();
-
-            if (ImGui::CollapsingHeader("Background Settings")) {
-                if (ImGui::Button("Change Background Color", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
-                    ImGui::OpenPopup("Background Color Popup");
-                }
-                if (ImGui::BeginPopup("Background Color Popup")) {
-                    ImGui::ColorPicker3("Background Color", (float*)&scene.backgroundColor);
-                    ImGui::EndPopup();
-                }
-            }
 
             ImGui::Separator();
 
@@ -273,9 +263,6 @@ int main(int argc, char** argv) {
 
             ImGui::End();
         }
-
-        frameCaptureWindow.draw(now, dt);
-        videoPreviewWindow.draw(now, dt);
     });
 
     app.onResize([&](uint width, uint height) {

@@ -48,9 +48,9 @@ public:
 
 private:
     ImGuiWindowFlags flags;
+    glm::vec2 size;
 
     Recorder& recorder;
-    glm::vec2 size;
     const Path& outputPath;
 
     bool writeToHDR = false;

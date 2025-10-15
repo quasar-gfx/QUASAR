@@ -11,6 +11,7 @@
 #include <UI/FrameRateWindow.h>
 #include <UI/FrameCaptureWindow.h>
 #include <UI/RecordWindow.h>
+#include <UI/SceneWindow.h>
 
 #include <Path.h>
 #include <Recorder.h>
@@ -104,7 +105,7 @@ int main(int argc, char** argv) {
 
     // "Local" scene
     Scene localScene;
-    localScene.envCubeMap = remoteScene.envCubeMap;
+    localScene.skybox = remoteScene.skybox;
     PerspectiveCamera camera(windowSize);
     camera.setViewMatrix(remoteCamera.getViewMatrix());
 
@@ -183,12 +184,11 @@ int main(int argc, char** argv) {
     FrameRateWindow frameRateWindow;
     FrameCaptureWindow frameCaptureWindow(recorder, glm::uvec2(430, 270), outputPath);
     RecordWindow recordWindow(recorder, glm::uvec2(430, 270), outputPath);
+    SceneWindow sceneWindow(remoteScene, glm::vec2(430, 800));
     guiManager->onRender([&](double now, double dt) {
         static bool showUI = !saveImages;
         static bool showFramePreviews = false;
         static bool showMeshCapture = false;
-
-        static bool showSkyBox = true;
 
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {
@@ -206,9 +206,16 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("View Previews", 0, &showFramePreviews);
             ImGui::EndMenu();
         }
+        if (ImGui::BeginMenu("Scene")) {
+            ImGui::MenuItem("Scene", 0, &sceneWindow.visible);
+            ImGui::EndMenu();
+        }
         ImGui::EndMainMenuBar();
 
         frameRateWindow.draw(now, dt);
+        frameCaptureWindow.draw(now, dt);
+        recordWindow.draw(now, dt);
+        sceneWindow.draw(now, dt);
 
         if (showUI) {
             ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
@@ -252,22 +259,6 @@ int main(int argc, char** argv) {
                 camera.setRotationEuler(rotation);
             }
             ImGui::DragFloat("Movement Speed", &camera.movementSpeed, 0.05f, 0.1f, 20.0f);
-
-            ImGui::Separator();
-
-            if (ImGui::CollapsingHeader("Background Settings")) {
-                if (ImGui::Checkbox("Show Sky Box", &showSkyBox)) {
-                    localScene.envCubeMap = showSkyBox ? remoteScene.envCubeMap : nullptr;
-                }
-
-                if (ImGui::Button("Change Background Color", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
-                    ImGui::OpenPopup("Background Color Popup");
-                }
-                if (ImGui::BeginPopup("Background Color Popup")) {
-                    ImGui::ColorPicker3("Background Color", (float*)&localScene.backgroundColor);
-                    ImGui::EndPopup();
-                }
-            }
 
             ImGui::Separator();
 
@@ -375,9 +366,6 @@ int main(int argc, char** argv) {
                 }
             }
         }
-
-        frameCaptureWindow.draw(now, dt);
-        recordWindow.draw(now, dt);
 
         if (showMeshCapture) {
             ImGui::SetNextWindowSize(ImVec2(430, 270), ImGuiCond_FirstUseEver);

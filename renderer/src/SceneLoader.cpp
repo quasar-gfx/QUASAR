@@ -80,9 +80,9 @@ void SceneLoader::parseSkybox(const json& j, Scene& scene) {
 
     Texture hdrTexture = Texture(hdrTextureParams);
 
-    SkyBox* envCubeMap = new SkyBox(skyBoxParams, hdrTexture);
+    SkyBox* skybox = new SkyBox(skyBoxParams, hdrTexture);
 
-    scene.setEnvMap(envCubeMap);
+    scene.setEnvMap(skybox);
 }
 
 void SceneLoader::parseMaterial(const json& j, Scene& scene) {
