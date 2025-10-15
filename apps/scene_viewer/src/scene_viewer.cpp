@@ -15,6 +15,7 @@
 #include <UI/FrameCaptureWindow.h>
 #include <UI/RecordWindow.h>
 #include <UI/SceneWindow.h>
+#include <UI/AnimationWindow.h>
 
 #include <Path.h>
 #include <Recorder.h>
@@ -106,12 +107,6 @@ int main(int argc, char** argv) {
 
     float exposure = 1.0f;
     int shaderIndex = 0;
-    bool runAnimations = cameraPathFileIn;
-    float animationInterval = (MILLISECONDS_IN_SECOND / 30.0f); // run animations at 30 FPS
-    int animationFramerates[] = {1, 5, 10, 24, 30, 60};
-    const char* animationFramerateLabels[] = {"1 FPS", "5 FPS", "10 FPS", "24 FPS", "30 FPS", "60 FPS"};
-    int animationFramerateIndex = 4;
-
     double totalTime = 0.0;
     double totalDT = 0.0;
 
@@ -120,9 +115,10 @@ int main(int argc, char** argv) {
     FrameCaptureWindow frameCaptureWindow(recorder, glm::uvec2(430, 270), outputPath);
     RecordWindow recordWindow(recorder, glm::uvec2(430, 270), outputPath);
     SceneWindow sceneWindow(scene, glm::vec2(430, 800));
+    AnimationWindow animationWindow(glm::vec2(430, 270));
+    animationWindow.setPlaying(cameraPathFileIn);
     guiManager->onRender([&](double now, double dt) {
         static bool showUI = !saveImages;
-        static bool showAnimationsWindow = false;
 
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {
@@ -143,7 +139,7 @@ int main(int argc, char** argv) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Animations")) {
-            ImGui::MenuItem("Animations", 0, &showAnimationsWindow);
+            ImGui::MenuItem("Animations", 0, &animationWindow.visible);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -152,6 +148,7 @@ int main(int argc, char** argv) {
         frameCaptureWindow.draw(now, dt);
         recordWindow.draw(now, dt);
         sceneWindow.draw(now, dt);
+        animationWindow.draw(now, dt);
 
         if (showUI) {
             ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
@@ -198,34 +195,6 @@ int main(int argc, char** argv) {
                 ImGui::RadioButton("Show Positions", &shaderIndex, 3);
                 ImGui::RadioButton("Show Object IDs", &shaderIndex, 4);
                 ImGui::RadioButton("Show Primitive IDs", &shaderIndex, 5);
-            }
-
-            ImGui::End();
-        }
-
-        if (showAnimationsWindow) {
-            ImGui::SetNextWindowSize(ImVec2(430, 270), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
-            ImGui::Begin("Animations", &showAnimationsWindow);
-
-            ImGui::TextColored(ImVec4(0,1,0,1), "Current Time: %.3f s", totalTime);
-
-            ImGui::Separator();
-
-            ImGui::Text("Animation Framerate:");
-            int animationFramerate = animationFramerates[animationFramerateIndex];
-            if (ImGui::Combo("", &animationFramerateIndex, animationFramerateLabels, IM_ARRAYSIZE(animationFramerateLabels))) {
-                animationFramerate = animationFramerates[animationFramerateIndex];
-                animationInterval = MILLISECONDS_IN_SECOND / static_cast<float>(animationFramerate);
-            }
-
-            ImGui::Separator();
-
-            if (!runAnimations) {
-                if (ImGui::Button("Play", ImVec2(ImGui::GetContentRegionAvail().x, 0))) { runAnimations = true; }
-            }
-            else {
-                if (ImGui::Button("Pause", ImVec2(ImGui::GetContentRegionAvail().x, 0))) { runAnimations = false; }
             }
 
             ImGui::End();
@@ -293,14 +262,15 @@ int main(int argc, char** argv) {
             camera.processScroll(scroll.y);
             camera.processKeyboard(keys, dt);
         }
-        if (runAnimations) {
+        if (animationWindow.isPlaying()) {
             totalTime += dt;
             totalDT += dt;
         }
 
         // Update all animations
+        float animationInterval = animationWindow.getAnimationIntervalMs();
         if (animationInterval > 0.0 && (now - lastRenderTime) >= (animationInterval - 1.0) / MILLISECONDS_IN_SECOND) {
-            if (runAnimations) {
+            if (animationWindow.isPlaying()) {
                 scene.updateAnimations(totalDT);
                 totalDT = 0.0;
             }

@@ -33,7 +33,7 @@ QuadStreamStreamer::QuadStreamStreamer(
     auto quadsGenerator = frameGenerator.getQuadsGenerator();
     quadsGenerator->params.expandEdges = true;
     quadsGenerator->params.depthThreshold = 1e-4f;
-    quadsGenerator->params.flattenThreshold = 0.1f; // This has been changed from original paper (used to be 0.01f)
+    quadsGenerator->params.flattenThreshold = 0.05f; // This has been changed from original paper (used to be 0.01f)
     quadsGenerator->params.proxySimilarityThreshold = 0.1f;
     quadsGenerator->params.maxIterForceMerge = 1; // Only merge once (similar-ish to doing quad splitting)
     frameGenerator.params.applyDeltaEncoding = false;
