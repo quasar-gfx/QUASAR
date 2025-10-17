@@ -31,9 +31,9 @@ struct QuadMapDataPacked {
 
 class QuadBuffers {
 public:
-    uint32_t maxProxies;
-    uint32_t numProxies;
-    uint32_t numProxiesTransparent;
+    uint32_t maxProxies = 0;
+    uint32_t numProxies = 0;
+    uint32_t numProxiesTransparent = 0;
 
     Buffer normalAndDepthBuffer;
     Buffer metadatasBuffer;

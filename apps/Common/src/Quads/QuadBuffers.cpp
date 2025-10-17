@@ -6,7 +6,6 @@ using namespace quasar;
 
 QuadBuffers::QuadBuffers(uint32_t maxProxies)
     : maxProxies(maxProxies)
-    , numProxies(maxProxies)
     , normalAndDepthBuffer({
         .target = GL_SHADER_STORAGE_BUFFER,
         .dataSize = sizeof(uint32_t),

@@ -5,11 +5,9 @@
 
 #define MAX_PROXY_SIZE (2 << 10)
 
-#ifndef __ANDROID__
-#define THREADS_PER_LOCALGROUP 32
-#else
-#define THREADS_PER_LOCALGROUP 16
-#endif
+#define CREATE_THREADS_PER_LOCALGROUP       32
+#define SIMPLIFY_THREADS_PER_LOCALGROUP     16
+#define GATHER_THREADS_PER_LOCALGROUP       32
 
 using namespace quasar;
 
@@ -26,21 +24,21 @@ QuadsGenerator::QuadsGenerator(QuadSet& quadSet)
         .computeCodeData = SHADER_COMMON_CREATE_QUADMAP_COMP,
         .computeCodeSize = SHADER_COMMON_CREATE_QUADMAP_COMP_len,
         .defines = {
-            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
+            "#define THREADS_PER_LOCALGROUP " + std::to_string(CREATE_THREADS_PER_LOCALGROUP)
         }
     })
     , simplifyQuadMapShader({
         .computeCodeData = SHADER_COMMON_SIMPLIFY_QUADMAP_COMP,
         .computeCodeSize = SHADER_COMMON_SIMPLIFY_QUADMAP_COMP_len,
         .defines = {
-            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
+            "#define THREADS_PER_LOCALGROUP " + std::to_string(SIMPLIFY_THREADS_PER_LOCALGROUP)
         }
     })
     , gatherQuadsShader({
         .computeCodeData = SHADER_COMMON_GATHER_QUADS_COMP,
         .computeCodeSize = SHADER_COMMON_GATHER_QUADS_COMP_len,
         .defines = {
-            "#define THREADS_PER_LOCALGROUP " + std::to_string(THREADS_PER_LOCALGROUP)
+            "#define THREADS_PER_LOCALGROUP " + std::to_string(GATHER_THREADS_PER_LOCALGROUP)
         }
     })
 {
@@ -131,8 +129,8 @@ void QuadsGenerator::generateInitialQuadMap(
         createQuadMapShader.setImageTexture(0, quadSet.depthOffsets.texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, quadSet.depthOffsets.texture.internalFormat);
         createQuadMapShader.setImageTexture(1, colorTexture, 0, GL_FALSE, 0, GL_READ_WRITE, colorTexture.internalFormat);
     }
-    createQuadMapShader.dispatch((gBufferSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                 (gBufferSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+    createQuadMapShader.dispatch((gBufferSize.x + CREATE_THREADS_PER_LOCALGROUP - 1) / CREATE_THREADS_PER_LOCALGROUP,
+                                 (gBufferSize.y + CREATE_THREADS_PER_LOCALGROUP - 1) / CREATE_THREADS_PER_LOCALGROUP, 1);
     createQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
     stats.generateQuadsTimeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
@@ -197,8 +195,8 @@ void QuadsGenerator::simplifyQuadMaps(const PerspectiveCamera& remoteCamera, con
             simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, currQuadMaps.normalAndDepthBuffer);
             simplifyQuadMapShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, currQuadMaps.metadatasBuffer);
         }
-        simplifyQuadMapShader.dispatch((currQuadMapSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                       (currQuadMapSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+        simplifyQuadMapShader.dispatch((currQuadMapSize.x + SIMPLIFY_THREADS_PER_LOCALGROUP - 1) / SIMPLIFY_THREADS_PER_LOCALGROUP,
+                                       (currQuadMapSize.y + SIMPLIFY_THREADS_PER_LOCALGROUP - 1) / SIMPLIFY_THREADS_PER_LOCALGROUP, 1);
         simplifyQuadMapShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
         iter++;
@@ -243,10 +241,10 @@ void QuadsGenerator::gatherOutputQuads(const glm::vec2& gBufferSize) {
             gatherQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, quadSet.quadBuffers.normalAndDepthBuffer);
             gatherQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, quadSet.quadBuffers.metadatasBuffer);
         }
-        gatherQuadsShader.dispatch((currQuadMapSize.x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
-                                   (currQuadMapSize.y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
+        gatherQuadsShader.dispatch((currQuadMapSize.x + GATHER_THREADS_PER_LOCALGROUP - 1) / GATHER_THREADS_PER_LOCALGROUP,
+                                   (currQuadMapSize.y + GATHER_THREADS_PER_LOCALGROUP - 1) / GATHER_THREADS_PER_LOCALGROUP, 1);
     }
-    gatherQuadsShader.memoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
+    gatherQuadsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
     stats.gatherQuadsTimeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 }

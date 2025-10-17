@@ -22,10 +22,11 @@ uniform float flattenThreshold;
 
 layout(std430, binding = 0) writeonly buffer QuadBufferSizes {
     uint numProxies;
+    uint numProxiesTransparent;
     uint numDepthOffsets;
 };
 
-layout(std430, binding = 1) writeonly buffer normalAndDepthBufferOutput {
+layout(std430, binding = 1) writeonly buffer NormalAndDepthBufferOutput {
     uint normalAndDepthOutput[];
 };
 
@@ -434,6 +435,7 @@ void main() {
     // Reset buffers on first invocation
     if (pixelCoord == ivec2(0)) {
         atomicExchange(numProxies, 0u);
+        atomicExchange(numProxiesTransparent, 0u);
         atomicExchange(numDepthOffsets, 0u);
     }
 

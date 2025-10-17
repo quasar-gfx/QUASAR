@@ -42,7 +42,7 @@ layout(std430, binding = 5) buffer IndirectCommandBufferTransparent {
     uint baseInstance;
 } indirectCommandBufferTransparent;
 
-layout(std430, binding = 6) readonly buffer normalAndDepthBufferInput {
+layout(std430, binding = 6) readonly buffer NormalAndDepthBufferInput {
     uint normalAndDepthInput[];
 };
 
