@@ -225,14 +225,14 @@ Plane planeEqToPlane(in vec4 planeEq) {
     return plane;
 }
 
-bool planeEquationsSimilar(in vec4 planeEq1, in vec4 planeEq2) {
+bool planeEquationsSimilar(in vec4 planeEq1, in vec4 planeEq2, float threshold) {
     float len1 = length(planeEq1.xyz);
     float len2 = length(planeEq2.xyz);
     if (len1 == 0.0 || len2 == 0.0) return false;
 
     vec4 norm1 = planeEq1 / len1;
     vec4 norm2 = planeEq2 / len2;
-    return distance(norm1, norm2) < proxySimilarityThreshold;
+    return distance(norm1, norm2) < threshold;
 }
 
 bool shouldMerge(
@@ -244,13 +244,12 @@ bool shouldMerge(
     vec4 proxyPlaneEqTopLeft     = planeToPlaneEq(proxyPlaneTopLeft);
     vec4 proxyPlaneEqTopRight    = planeToPlaneEq(proxyPlaneTopRight);
 
-    // We merge the quad if all the proxy planes are similar
-    return planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight) &&
-           planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft) &&
-           planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight) &&
-           planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopLeft) &&
-           planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopRight) &&
-           planeEquationsSimilar(proxyPlaneEqTopLeft, proxyPlaneEqTopRight);
+    return planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight, proxySimilarityThreshold) &&
+           planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft, proxySimilarityThreshold) &&
+           planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight, proxySimilarityThreshold) &&
+           planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopLeft, proxySimilarityThreshold) &&
+           planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopRight, proxySimilarityThreshold) &&
+           planeEquationsSimilar(proxyPlaneEqTopLeft, proxyPlaneEqTopRight, proxySimilarityThreshold);
 }
 
 Plane averagePlanes(in Plane plane1, in Plane plane2, in Plane plane3, in Plane plane4) {

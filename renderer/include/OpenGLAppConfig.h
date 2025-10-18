@@ -15,7 +15,7 @@ struct Config {
     bool showWindow = true;
     bool sortTransparent = true;
     unsigned char openglMajorVersion = 4;
-#ifndef PLATFORM_APPLE
+#ifndef __APPLE__
     unsigned char openglMinorVersion = 6;
 #else
     unsigned char openglMinorVersion = 1;

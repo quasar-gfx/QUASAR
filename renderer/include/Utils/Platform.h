@@ -3,7 +3,7 @@
 
 // Platform detection and GL includes
 #if defined(__ANDROID__)
-    #define PLATFORM_ANDROID
+    #define __ANDROID__
     #define GL_ES
     #include <GLES3/gl32.h>
     #define GL_FRAMEBUFFER_SRGB_EXT 0x8DB9
@@ -16,7 +16,7 @@
     #define GL_CORE
     #include <glad/glad.h>
 #elif defined(__APPLE__)
-    #define PLATFORM_APPLE
+    #define __APPLE__
     #define GL_CORE
     #include <glad/glad.h>
 #endif

@@ -201,7 +201,7 @@ void Recorder::saveFrames(int threadID) {
 }
 
 void Recorder::initializeFFmpeg() {
-#ifdef PLATFORM_APPLE
+#ifdef __APPLE__
     std::string encoderName = "h264_videotoolbox";
 #elif __linux__
     std::string encoderName = "h264_nvenc";

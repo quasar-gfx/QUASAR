@@ -1,4 +1,4 @@
-#ifndef PLATFORM_ANDROID
+#ifndef __ANDROID__
 
 #include <spdlog/spdlog.h>
 
@@ -15,7 +15,7 @@ GLFWWindow::GLFWWindow(const Config& config) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, config.openglMajorVersion);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, config.openglMinorVersion);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-#ifdef PLATFORM_APPLE
+#ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 

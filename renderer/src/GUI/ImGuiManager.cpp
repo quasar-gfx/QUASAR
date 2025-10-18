@@ -1,4 +1,4 @@
-#ifndef PLATFORM_ANDROID
+#ifndef __ANDROID__
 
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_glfw.h>

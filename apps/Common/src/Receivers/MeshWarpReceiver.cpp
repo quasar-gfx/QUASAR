@@ -1,7 +1,7 @@
 #include <Receivers/MeshWarpReceiver.h>
 #include <shaders_common.h>
 
-#ifndef PLATFORM_ANDROID
+#ifndef __ANDROID__
 #define THREADS_PER_LOCALGROUP 32
 #else
 #define THREADS_PER_LOCALGROUP 16

@@ -11,7 +11,7 @@
 
 using namespace quasar;
 
-#ifndef PLATFORM_APPLE
+#ifndef __APPLE__
 void glDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam) {
     std::cout << "OpenGL Debug message (" << id << "): " << message << std::endl;
 
@@ -100,7 +100,7 @@ OpenGLRenderer::OpenGLRenderer(const Config& config)
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 #endif
 
-#ifndef PLATFORM_APPLE
+#ifndef __APPLE__
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
     glDebugMessageCallback(glDebugCallback, nullptr);

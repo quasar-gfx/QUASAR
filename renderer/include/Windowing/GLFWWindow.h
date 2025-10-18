@@ -1,7 +1,7 @@
 #ifndef GLFW_WINDOW_H
 #define GLFW_WINDOW_H
 
-#ifndef PLATFORM_ANDROID
+#ifndef __ANDROID__
 
 #include <OpenGLAppConfig.h>
 #include <Windowing/Window.h>

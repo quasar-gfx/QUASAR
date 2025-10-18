@@ -320,9 +320,11 @@ RenderStats QuadsStreamer::generateFrame(bool createResidualFrame, bool showNorm
         stats.proxySizes.numDepthOffsets += residualFrame.getTotalNumDepthOffsets();
         stats.proxySizes.quadsSize += residualFrame.getTotalQuadsSize();
         stats.proxySizes.depthOffsetsSize += residualFrame.getTotalDepthOffsetsSize();
-        spdlog::debug("Residual frame generated with {} quads ({:.3f} MB), {} depth offsets ({:.3f} MB)",
-                      residualFrame.getTotalNumQuads(), residualFrame.getTotalQuadsSize() / BYTES_PER_MEGABYTE,
-                      residualFrame.getTotalNumDepthOffsets(), residualFrame.getTotalDepthOffsetsSize() / BYTES_PER_MEGABYTE);
+        spdlog::debug("Residual frame generated with {} updated quads ({:.3f} MB) and {} revealed quads ({:.3f} MB), {} updated depth offsets ({:.3f} MB) and {} revealed depth offsets ({:.3f} MB)",
+                      residualFrame.getTotalNumQuadsUpdated(), residualFrame.getTotalQuadsUpdatedSize() / BYTES_PER_MEGABYTE,
+                      residualFrame.getTotalNumQuadsRevealed(), residualFrame.getTotalQuadsRevealedSize() / BYTES_PER_MEGABYTE,
+                      residualFrame.getTotalNumDepthOffsetsUpdated(), residualFrame.getTotalDepthOffsetsUpdatedSize() / BYTES_PER_MEGABYTE,
+                      residualFrame.getTotalNumDepthOffsetsRevealed(), residualFrame.getTotalDepthOffsetsRevealedSize() / BYTES_PER_MEGABYTE);
     }
 
     return renderStats;

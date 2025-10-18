@@ -10,7 +10,7 @@ ForwardRenderer::ForwardRenderer(const Config& config)
         .height = config.height,
         .multiSampled = false,
     })
-#if !defined(PLATFORM_APPLE) && !defined(PLATFORM_ANDROID)
+#if !defined(__APPLE__) && !defined(__ANDROID__)
     , frameRT_MS({
         .width = config.width,
         .height = config.height,
@@ -58,13 +58,13 @@ RenderStats ForwardRenderer::drawObjects(Scene& scene, const Camera& camera, uin
 void ForwardRenderer::resize(uint width, uint height) {
     OpenGLRenderer::resize(width, height);
     frameRT.resize(width, height);
-#if !defined(PLATFORM_APPLE) && !defined(PLATFORM_ANDROID)
+#if !defined(__APPLE__) && !defined(__ANDROID__)
     frameRT_MS.resize(width, height);
 #endif
 }
 
 void ForwardRenderer::beginRendering() {
-#if !defined(PLATFORM_APPLE) && !defined(PLATFORM_ANDROID)
+#if !defined(__APPLE__) && !defined(__ANDROID__)
     if (!multiSampled) {
         frameRT.bind();
     }
@@ -77,7 +77,7 @@ void ForwardRenderer::beginRendering() {
 }
 
 void ForwardRenderer::endRendering() {
-#if !defined(PLATFORM_APPLE) && !defined(PLATFORM_ANDROID)
+#if !defined(__APPLE__) && !defined(__ANDROID__)
     if (!multiSampled) {
         frameRT.unbind();
     }

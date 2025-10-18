@@ -6,7 +6,7 @@
 #include <vector>
 #include <stdexcept>
 
-#ifdef PLATFORM_ANDROID
+#ifdef __ANDROID__
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
 #include <android/native_activity.h>
@@ -36,7 +36,7 @@ public:
 
     static void freeImage(void* imageData);
 
-#ifdef PLATFORM_ANDROID
+#ifdef __ANDROID__
     static void registerIOSystem(ANativeActivity* activity);
     static ANativeActivity* getNativeActivity() {
         return activity;
@@ -55,7 +55,7 @@ private:
         size_t cap;
     };
 
-#ifdef PLATFORM_ANDROID
+#ifdef __ANDROID__
     static ANativeActivity* activity;
 #endif
 };

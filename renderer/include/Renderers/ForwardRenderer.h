@@ -11,7 +11,7 @@ public:
     bool multiSampled = false;
 
     FrameRenderTarget frameRT;
-#if !defined(PLATFORM_APPLE) && !defined(PLATFORM_ANDROID)
+#if !defined(__APPLE__) && !defined(__ANDROID__)
     FrameRenderTarget frameRT_MS;
 #endif
 
