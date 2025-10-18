@@ -79,8 +79,8 @@ public:
 
 private:
     struct FSQuadVertex {
-        glm::vec2 position;
-        glm::vec2 texCoord;
+        alignas(16) glm::vec2 position;
+        alignas(16) glm::vec2 texCoord;
 
         static const VertexInputAttributes getVertexInputAttributes() {
             return {

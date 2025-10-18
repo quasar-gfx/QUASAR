@@ -80,7 +80,7 @@ public:
 
 private:
     struct CubeMapVertex {
-        glm::vec3 position;
+        alignas(16) glm::vec3 position;
 
         static const VertexInputAttributes getVertexInputAttributes() {
             return {
