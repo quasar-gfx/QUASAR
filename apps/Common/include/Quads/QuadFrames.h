@@ -36,6 +36,8 @@ public:
     struct Header {
         uint32_t quadsSize;
         uint32_t depthOffsetsSize;
+
+        size_t getSize() const { return sizeof(Header) + quadsSize + depthOffsetsSize; }
     };
 
     size_t numQuads, numDepthOffsets;
@@ -106,7 +108,7 @@ public:
             static_cast<uint32_t>(quads.size()),
             static_cast<uint32_t>(depthOffsets.size())
         };
-        size_t outputSize = sizeof(header) + quads.size() + depthOffsets.size();
+        size_t outputSize = header.getSize();
         outputData.resize(outputSize);
 
         char* ptr = outputData.data();
@@ -155,7 +157,7 @@ public:
         ptr += sizeof(Header);
 
         // Sanity check
-        size_t expectedSize = sizeof(Header) + header.quadsSize + header.depthOffsetsSize;
+        size_t expectedSize = header.getSize();
         if (size < expectedSize) {
             throw std::runtime_error("Reference Frame input data size " +
                                      std::to_string(size) +
@@ -188,6 +190,10 @@ public:
         uint32_t depthOffsetsUpdatedSize;
         uint32_t quadsRevealedSize;
         uint32_t depthOffsetsRevealedSize;
+
+        size_t getSize() const { return sizeof(Header) +
+                                        quadsUpdatedSize + depthOffsetsUpdatedSize +
+                                        quadsRevealedSize + depthOffsetsRevealedSize; }
     };
 
     size_t numQuadsUpdated;
@@ -211,8 +217,14 @@ public:
     size_t getTotalNumDepthOffsets() const { return numDepthOffsetsUpdated + numDepthOffsetsRevealed; }
     size_t getTotalNumQuadsUpdated() const { return numQuadsUpdated; }
     size_t getTotalNumQuadsRevealed() const { return numQuadsRevealed; }
-    double getTotalQuadsSize() const { return quadsUpdated.size() + depthOffsetsUpdated.size(); }
-    double getTotalDepthOffsetsSize() const { return quadsRevealed.size() + depthOffsetsRevealed.size(); }
+    size_t getTotalNumDepthOffsetsUpdated() const { return numDepthOffsetsUpdated; }
+    size_t getTotalNumDepthOffsetsRevealed() const { return numDepthOffsetsRevealed; }
+    double getTotalQuadsUpdatedSize() const { return quadsUpdated.size(); }
+    double getTotalQuadsRevealedSize() const { return quadsRevealed.size(); }
+    double getTotalQuadsSize() const {return quadsUpdated.size() + quadsRevealed.size(); }
+    double getTotalDepthOffsetsUpdatedSize() const { return depthOffsetsUpdated.size(); }
+    double getTotalDepthOffsetsRevealedSize() const { return depthOffsetsRevealed.size(); }
+    double getTotalDepthOffsetsSize() const { return depthOffsetsUpdated.size() + depthOffsetsRevealed.size(); }
 
     size_t compressAndStoreUpdatedQuads(const std::vector<char>& uncompressedQuads) {
         return resQuadsUpdatedCodec.compress(
@@ -352,9 +364,7 @@ public:
             static_cast<uint32_t>(quadsRevealed.size()),
             static_cast<uint32_t>(depthOffsetsRevealed.size())
         };
-        size_t outputSize = sizeof(Header) +
-                            quadsUpdated.size() + depthOffsetsUpdated.size() +
-                            quadsRevealed.size() + depthOffsetsRevealed.size();
+        size_t outputSize = header.getSize();
         outputData.resize(outputSize);
 
         char* ptr = outputData.data();
@@ -386,9 +396,7 @@ public:
         ptr += sizeof(Header);
 
         // Sanity check
-        size_t expectedSize = sizeof(Header) +
-                              header.quadsUpdatedSize + header.depthOffsetsUpdatedSize +
-                              header.quadsRevealedSize + header.depthOffsetsRevealedSize;
+        size_t expectedSize = header.getSize();
         if (size < expectedSize) {
             throw std::runtime_error("Residual Frame input data size " +
                                      std::to_string(size) +
