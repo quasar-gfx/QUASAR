@@ -32,7 +32,7 @@ public:
     };
 
     struct Stats {
-        uint totalTriangles = 0;
+        size_t totalTriangles = 0;
         double loadTimeMs = 0.0;
         double decompressTimeMs = 0.0;
         double transferTimeMs = 0.0;

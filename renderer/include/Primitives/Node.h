@@ -78,7 +78,6 @@ protected:
     glm::vec3 scale = glm::vec3(1.0f);
 
     std::shared_ptr<Animation> animation;
-\
 };
 
 } // namespace quasar

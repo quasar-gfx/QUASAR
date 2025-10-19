@@ -28,7 +28,7 @@ public:
         double decompressTimeMs = 0.0;
         double transferTimeMs = 0.0;
         double createMeshTimeMs = 0.0;
-        uint totalTriangles = 0;
+        size_t totalTriangles = 0;
         QuadSet::Sizes sizes{};
     } stats;
 

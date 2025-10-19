@@ -17,7 +17,7 @@ namespace quasar {
 struct MeshDataCreateParams {
     const void* verticesData;
     size_t verticesSize;
-    const uint* indicesData = nullptr;
+    const uint32_t* indicesData = nullptr;
     size_t indicesSize = 0;
     size_t vertexSize = sizeof(Vertex);
     VertexInputAttributes attributes = Vertex::getVertexInputAttributes();
@@ -68,22 +68,22 @@ public:
                              const BoundingSphere& boundingSphere, const Material* overrideMaterial = nullptr) override;
     virtual RenderStats draw(GLenum primitiveType);
 
-    void setBuffers(const void* vertices, uint verticesSize, const uint* indices = nullptr, uint indicesSize = 0);
-    void setBuffers(uint verticesSize, uint indicesSize);
+    void setBuffers(const void* vertices, size_t verticesSize, const uint32_t* indices = nullptr, size_t indicesSize = 0);
+    void setBuffers(size_t verticesSize, size_t indicesSize);
 
-    void resizeBuffers(uint verticesSize, uint indicesSize);
+    void resizeBuffers(size_t verticesSize, size_t indicesSize);
 
     void updateAABB(const glm::vec3& min, const glm::vec3& max);
-    void updateAABB(const void* vertices, uint verticesSize);
+    void updateAABB(const void* vertices, size_t verticesSize);
 
 protected:
     GLenum usage;
-    uint vertexSize;
+    size_t vertexSize;
 
     GLuint vertexArrayBuffer;
     VertexInputAttributes attributes;
 
-    void setArrayBufferAttributes(const VertexInputAttributes& attributes, uint vertexSize);
+    void setArrayBufferAttributes(const VertexInputAttributes& attributes, size_t vertexSize);
 
     void setMaterialCameraParams(const Camera& camera, const Material* material);
 };

@@ -166,18 +166,18 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (quadsReceiver.stats.totalTriangles < 100000)
-                ImGui::TextColored(ImVec4(0,1,0,1), "Triangles Drawn: %d", quadsReceiver.stats.totalTriangles);
+                ImGui::TextColored(ImVec4(0,1,0,1), "Triangles Drawn: %ld", quadsReceiver.stats.totalTriangles);
             else if (quadsReceiver.stats.totalTriangles < 500000)
-                ImGui::TextColored(ImVec4(1,1,0,1), "Triangles Drawn: %d", quadsReceiver.stats.totalTriangles);
+                ImGui::TextColored(ImVec4(1,1,0,1), "Triangles Drawn: %ld", quadsReceiver.stats.totalTriangles);
             else
-                ImGui::TextColored(ImVec4(1,0,0,1), "Triangles Drawn: %d", quadsReceiver.stats.totalTriangles);
+                ImGui::TextColored(ImVec4(1,0,0,1), "Triangles Drawn: %ld", quadsReceiver.stats.totalTriangles);
 
             if (renderStats.drawCalls < 200)
-                ImGui::TextColored(ImVec4(0,1,0,1), "Draw Calls: %d", renderStats.drawCalls);
+                ImGui::TextColored(ImVec4(0,1,0,1), "Draw Calls: %ld", renderStats.drawCalls);
             else if (renderStats.drawCalls < 500)
-                ImGui::TextColored(ImVec4(1,1,0,1), "Draw Calls: %d", renderStats.drawCalls);
+                ImGui::TextColored(ImVec4(1,1,0,1), "Draw Calls: %ld", renderStats.drawCalls);
             else
-                ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %d", renderStats.drawCalls);
+                ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %ld", renderStats.drawCalls);
 
             ImGui::TextColored(ImVec4(0,1,1,1), "Total Quads: %ld (%.3f MB)",
                                quadsReceiver.stats.sizes.numQuads,

@@ -15,8 +15,8 @@ class Scene;
 class Camera;
 
 struct RenderStats {
-    uint trianglesDrawn = 0;
-    uint drawCalls = 0;
+    size_t trianglesDrawn = 0;
+    size_t drawCalls = 0;
 
     RenderStats operator+ (const RenderStats& other) {
         RenderStats stats;

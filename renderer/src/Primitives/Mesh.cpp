@@ -11,7 +11,7 @@ Mesh::Mesh()
     })
     , indexBuffer({
         .target = GL_ELEMENT_ARRAY_BUFFER,
-        .dataSize = sizeof(uint),
+        .dataSize = sizeof(uint32_t),
     })
 {
     vertexBuffer.bind();
@@ -28,7 +28,7 @@ Mesh::Mesh(const MeshDataCreateParams& params)
     })
     , indexBuffer({
         .target = GL_ELEMENT_ARRAY_BUFFER,
-        .dataSize = sizeof(uint),
+        .dataSize = sizeof(uint32_t),
         .usage = params.usage,
     })
     , indirectBuffer({
@@ -63,7 +63,7 @@ Mesh::Mesh(const MeshSizeCreateParams& params)
     })
     , indexBuffer({
         .target = GL_ELEMENT_ARRAY_BUFFER,
-        .dataSize = sizeof(uint),
+        .dataSize = sizeof(uint32_t),
         .usage = params.usage,
     })
     , indirectDraw(params.indirectDraw)
@@ -88,7 +88,7 @@ Mesh::Mesh(const MeshSizeCreateParams& params)
     }
 }
 
-void Mesh::setArrayBufferAttributes(const VertexInputAttributes& attributes, uint vertexSize) {
+void Mesh::setArrayBufferAttributes(const VertexInputAttributes& attributes, size_t vertexSize) {
     glGenVertexArrays(1, &vertexArrayBuffer);
 
     glBindVertexArray(vertexArrayBuffer);
@@ -102,7 +102,7 @@ void Mesh::setArrayBufferAttributes(const VertexInputAttributes& attributes, uin
     glBindVertexArray(0);
 }
 
-void Mesh::setBuffers(const void* verticesData, uint verticesSize, const uint* indicesData, uint indicesSize) {
+void Mesh::setBuffers(const void* verticesData, size_t verticesSize, const uint32_t* indicesData, size_t indicesSize) {
     // If no vertices, dont bind buffers
     if (verticesData == nullptr || verticesSize == 0) {
         return;
@@ -120,7 +120,7 @@ void Mesh::setBuffers(const void* verticesData, uint verticesSize, const uint* i
     indexBuffer.setData(indicesSize, indicesData);
 }
 
-void Mesh::setBuffers(uint verticesSize, uint indicesSize) {
+void Mesh::setBuffers(size_t verticesSize, size_t indicesSize) {
     // If no vertices or indices, dont bind buffers
     if (verticesSize == 0) {
         return;
@@ -139,7 +139,7 @@ void Mesh::setBuffers(uint verticesSize, uint indicesSize) {
     indexBuffer.unbind();
 }
 
-void Mesh::resizeBuffers(uint verticesSize, uint indicesSize) {
+void Mesh::resizeBuffers(size_t verticesSize, size_t indicesSize) {
     vertexBuffer.resize(verticesSize);
     indexBuffer.resize(indicesSize);
 }
@@ -148,7 +148,7 @@ void Mesh::updateAABB(const glm::vec3& min, const glm::vec3& max) {
     aabb.update(min, max);
 }
 
-void Mesh::updateAABB(const void* verticesData, uint verticesSize) {
+void Mesh::updateAABB(const void* verticesData, size_t verticesSize) {
     // If no vertices, return
     if (verticesData == nullptr || verticesSize == 0) {
         return;
@@ -158,7 +158,7 @@ void Mesh::updateAABB(const void* verticesData, uint verticesSize) {
     glm::vec3 min = vertices[0].position;
     glm::vec3 max = vertices[0].position;
 
-    for (uint i = 1; i < verticesSize; i++) {
+    for (int i = 1; i < verticesSize; i++) {
         auto& vertex = vertices[i];
         min = glm::min(min, vertex.position);
         max = glm::max(max, vertex.position);
@@ -283,10 +283,10 @@ RenderStats Mesh::draw(GLenum primitiveType) {
     glBindVertexArray(0);
 
     if (indexBuffer.getSize() > 0) {
-        stats.trianglesDrawn = static_cast<uint>(indexBuffer.getSize() / 3);
+        stats.trianglesDrawn = indexBuffer.getSize() / 3;
     }
     else if (vertexBuffer.getSize() > 0) {
-        stats.trianglesDrawn = static_cast<uint>(vertexBuffer.getSize() / 3);
+        stats.trianglesDrawn = vertexBuffer.getSize() / 3;
     }
     stats.drawCalls = 1;
 
