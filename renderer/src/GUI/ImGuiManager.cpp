@@ -1,6 +1,10 @@
 #ifndef __ANDROID__
 
+#include <imgui/backends/imgui_impl_opengl3.h>
+#include <imgui/backends/imgui_impl_glfw.h>
+
 #include <GUI/ImGuiManager.h>
+#include <GUI/fonts/trebucbd.h>
 
 using namespace quasar;
 
@@ -12,7 +16,7 @@ ImGuiManager::ImGuiManager(std::shared_ptr<GLFWWindow> glfwWindow) {
     ImGui_ImplGlfw_InitForOpenGL(glfwWindow->window, true);
     ImGui_ImplOpenGL3_Init("#version 410");
 
-    setStyle();
+    setStyle(fontSize);
 }
 
 ImGuiManager::~ImGuiManager() {
@@ -21,9 +25,16 @@ ImGuiManager::~ImGuiManager() {
     ImGui::DestroyContext();
 }
 
-void ImGuiManager::setStyle() const {
+void ImGuiManager::setStyle(float fontSize) const {
     auto& fonts = ImGui::GetIO().Fonts;
-    fonts->AddFontFromFileTTF("../assets/fonts/trebucbd.ttf", 24.0f);
+    ImFontConfig cfg;
+    cfg.FontDataOwnedByAtlas = false;
+    fonts->AddFontFromMemoryTTF(
+        static_cast<void*>(trebucbd_ttf),
+        static_cast<int>(trebucbd_ttf_len),
+        fontSize,
+        &cfg
+    );
 
     auto& style = ImGui::GetStyle();
     style.TabRounding = 5;
@@ -33,6 +44,7 @@ void ImGuiManager::setStyle() const {
 void ImGuiManager::beginDrawing() const {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
 }
 
 void ImGuiManager::endDrawing() const {

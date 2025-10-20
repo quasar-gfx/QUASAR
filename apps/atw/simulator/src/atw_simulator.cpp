@@ -162,8 +162,6 @@ int main(int argc, char** argv) {
         static int recordingFormatIndex = 0;
         static char recordingDirBase[256] = "recordings";
 
-        ImGui::NewFrame();
-
         ImGuiWindowFlags flags = 0;
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {

@@ -151,8 +151,6 @@ int main(int argc, char** argv) {
         static char fileNameBase[256] = "screenshot";
         static bool showVideoPreview = true;
 
-        ImGui::NewFrame();
-
         ImGuiWindowFlags flags = 0;
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {

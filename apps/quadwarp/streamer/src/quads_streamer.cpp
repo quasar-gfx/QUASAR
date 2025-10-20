@@ -128,8 +128,6 @@ int main(int argc, char** argv) {
         static bool showUI = true;
         static bool showFramePreviewWindow = false;
 
-        ImGui::NewFrame();
-
         ImGuiWindowFlags flags = 0;
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {

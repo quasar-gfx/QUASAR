@@ -138,11 +138,11 @@ GLuint ShaderBase::createShader(std::string version, std::vector<std::string> ex
     }
 
     // Platform defines
-#if defined(PLATFORM_ANDROID)
+#if defined(__ANDROID__)
     sources.emplace_back("#define ANDROID\n");
 #elif defined(PLATFORM_LINUX)
     sources.emplace_back("#define LINUX\n");
-#elif defined(PLATFORM_APPLE)
+#elif defined(__APPLE__)
     sources.emplace_back("#define APPLE\n");
 #elif defined(PLATFORM_WINDOWS)
     sources.emplace_back("#define WINDOWS\n");

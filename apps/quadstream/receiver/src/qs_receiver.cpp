@@ -132,8 +132,6 @@ int main(int argc, char** argv) {
         static bool writeToHDR = false;
         static char fileNameBase[256] = "screenshot";
 
-        ImGui::NewFrame();
-
         ImGuiWindowFlags flags = 0;
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {

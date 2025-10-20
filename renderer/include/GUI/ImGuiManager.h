@@ -3,11 +3,7 @@
 
 #ifndef __ANDROID__
 
-#include <memory>
-
 #include <imgui/imgui.h>
-#include <imgui/backends/imgui_impl_opengl3.h>
-#include <imgui/backends/imgui_impl_glfw.h>
 
 #include <Windowing/GLFWWindow.h>
 #include <GUI/GUIManager.h>
@@ -19,10 +15,13 @@ public:
     ImGuiManager(std::shared_ptr<GLFWWindow> glfwWindow);
     ~ImGuiManager();
 
-    void setStyle() const;
+    void setStyle(float fontSize) const;
 
     void beginDrawing() const override;
     void endDrawing() const override;
+
+private:
+    float fontSize = 24.0f;
 };
 
 #endif

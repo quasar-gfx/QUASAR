@@ -51,8 +51,8 @@ private:
     }
 };
 
-#endif
-
 } // namespace quasar
+
+#endif
 
 #endif // GLFW_WINDOW_H

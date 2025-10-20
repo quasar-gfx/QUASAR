@@ -10,7 +10,7 @@
 
 namespace quasar {
 
-class SSAO: public PostProcessingEffect {
+class SSAO : public PostProcessingEffect {
 public:
     SSAO(
             glm::uvec2& windowSize, PerspectiveCamera& camera,

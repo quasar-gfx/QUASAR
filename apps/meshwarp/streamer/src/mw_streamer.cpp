@@ -106,8 +106,6 @@ int main(int argc, char** argv) {
         static bool showFPS = true;
         static bool showUI = true;
 
-        ImGui::NewFrame();
-
         ImGuiWindowFlags flags = 0;
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {

@@ -1,7 +1,7 @@
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
-// Platform detection and OpenGL includes
+// Platform detection and GL includes
 #if defined(__ANDROID__)
     #define PLATFORM_ANDROID
     #define GL_ES
