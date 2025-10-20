@@ -16,7 +16,7 @@ public:
 
     RenderTarget outputRT;
     GBuffer gBuffer;
-#if !defined(__APPLE__) && !defined(__ANDROID__)
+#if !defined(PLATFORM_APPLE) && !defined(PLATFORM_ANDROID)
     GBuffer gBuffer_MS;
 #endif
 

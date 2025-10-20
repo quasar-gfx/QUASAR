@@ -5,7 +5,7 @@
 
 using namespace quasar;
 
-#ifdef __ANDROID__
+#ifdef PLATFORM_ANDROID
 extern "C" {
     static JavaVM* _java_vm;
     static jobject _app_context;
@@ -68,7 +68,7 @@ VideoTexture::VideoTexture(
     }
 
     gst_init(nullptr, nullptr);
-#ifdef __ANDROID__
+#ifdef PLATFORM_ANDROID
     GST_PLUGIN_STATIC_REGISTER(coreelements);
     GST_PLUGIN_STATIC_REGISTER(app);
     GST_PLUGIN_STATIC_REGISTER(videoconvertscale);
@@ -100,7 +100,7 @@ VideoTexture::VideoTexture(
     // Parse host and port
     auto [host, port] = networkutils::parseIPAddressAndPort(videoURL);
 
-#ifndef __ANDROID__
+#ifndef PLATFORM_ANDROID
     std::string decoderName = "avdec_h264";
 #else
     std::string decoderName = "decodebin"; // decodebin should automatically select a hardware decoder

@@ -5,7 +5,7 @@
 #include <assimp/postprocess.h>
 #include <assimp/cimport.h>
 #include <assimp/GltfMaterial.h>
-#ifdef __ANDROID__
+#ifdef PLATFORM_ANDROID
 #include <assimp/port/AndroidJNI/AndroidJNIIOSystem.h>
 #endif
 
@@ -44,7 +44,7 @@ void Model::loadFromFile(const ModelCreateParams& params) {
     importer.SetPropertyInteger(AI_CONFIG_PP_SBP_REMOVE, aiPrimitiveType_LINE | aiPrimitiveType_POINT);
     importer.SetPropertyBool(AI_CONFIG_IMPORT_COLLADA_IGNORE_UP_DIRECTION, true);
     importer.SetPropertyBool(AI_CONFIG_PP_PTV_KEEP_HIERARCHY, true);
-#ifdef __ANDROID__
+#ifdef PLATFORM_ANDROID
     Assimp::AndroidJNIIOSystem *ioSystem = new Assimp::AndroidJNIIOSystem(FileIO::getNativeActivity());
     if (ioSystem != nullptr) {
         importer.SetIOHandler(ioSystem);

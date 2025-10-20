@@ -221,7 +221,7 @@ void ShaderBase::checkCompileErrors(GLuint shader, ShaderType type) {
             spdlog::error("Failed to compile {} shader:\n{}", shaderTypeStr, infoStr);
 
             // Try to extract line number
-#if defined(GL_CORE) && !defined(__APPLE__)
+#if defined(GL_CORE) && !defined(PLATFORM_APPLE)
             // GL Core error: "0(111) : message"
             std::regex lineRegex(R"(\((\d+)\))");
 #else

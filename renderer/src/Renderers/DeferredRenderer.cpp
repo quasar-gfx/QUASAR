@@ -22,7 +22,7 @@ DeferredRenderer::DeferredRenderer(const Config& config)
         .height = config.height,
         .multiSampled = false,
     })
-#if !defined(__APPLE__) && !defined(__ANDROID__)
+#if !defined(PLATFORM_APPLE) && !defined(PLATFORM_ANDROID)
     , gBuffer_MS({
         .width = config.width,
         .height = config.height,
@@ -47,13 +47,13 @@ void DeferredRenderer::resize(uint width, uint height) {
     OpenGLRenderer::resize(width, height);
     outputRT.resize(width, height);
     gBuffer.resize(width, height);
-#if !defined(__APPLE__) && !defined(__ANDROID__)
+#if !defined(PLATFORM_APPLE) && !defined(PLATFORM_ANDROID)
     gBuffer_MS.resize(width, height);
 #endif
 }
 
 void DeferredRenderer::beginRendering() {
-#if !defined(__APPLE__) && !defined(__ANDROID__)
+#if !defined(PLATFORM_APPLE) && !defined(PLATFORM_ANDROID)
     if (!multiSampled) {
         gBuffer.bind();
     }
@@ -66,7 +66,7 @@ void DeferredRenderer::beginRendering() {
 }
 
 void DeferredRenderer::endRendering() {
-#if !defined(__APPLE__) && !defined(__ANDROID__)
+#if !defined(PLATFORM_APPLE) && !defined(PLATFORM_ANDROID)
     if (!multiSampled) {
         gBuffer.unbind();
     }

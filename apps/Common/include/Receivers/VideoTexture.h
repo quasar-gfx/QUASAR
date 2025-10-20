@@ -48,7 +48,7 @@ public:
 
     void resize(uint width, uint height);
 
-#ifdef __ANDROID__
+#ifdef PLATFORM_ANDROID
     // Registers Android JNI with GStreamer
     static void gst_android_glue_init(ANativeActivity* activity);
 #endif

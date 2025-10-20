@@ -7,7 +7,7 @@
 
 using namespace quasar;
 
-#ifdef __ANDROID__
+#ifdef PLATFORM_ANDROID
 #define CHECK_ANDROID_ACTIVITY() if (activity == nullptr) { throw std::runtime_error("Android App Activity not set!"); }
 
 ANativeActivity* FileIO::activity = nullptr;
@@ -57,7 +57,7 @@ void FileIO::flipVerticallyOnWrite(bool flip) {
 }
 
 std::ifstream::pos_type FileIO::getFileSize(const std::string& filename) {
-#ifndef __ANDROID__
+#ifndef PLATFORM_ANDROID
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
         throw std::runtime_error("Could not open file: " + filename);
@@ -77,7 +77,7 @@ std::ifstream::pos_type FileIO::getFileSize(const std::string& filename) {
 }
 
 std::string FileIO::loadFromTextFile(const std::string& filename, uint* sizePtr) {
-#ifndef __ANDROID__
+#ifndef PLATFORM_ANDROID
     std::ifstream file(filename);
     if (!file.is_open()) {
         throw std::runtime_error("Could not open file: " + filename);
@@ -107,7 +107,7 @@ std::string FileIO::loadFromTextFile(const std::string& filename, uint* sizePtr)
 }
 
 std::vector<char> FileIO::loadFromBinaryFile(const std::string& filename, uint* sizePtr) {
-#ifndef __ANDROID__
+#ifndef PLATFORM_ANDROID
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
         throw std::runtime_error("Could not open file: " + filename);
@@ -139,7 +139,7 @@ std::vector<char> FileIO::loadFromBinaryFile(const std::string& filename, uint* 
 }
 
 unsigned char* FileIO::loadImage(const std::string& filename, int* width, int* height, int* channels, int desiredChannels) {
-#ifndef __ANDROID__
+#ifndef PLATFORM_ANDROID
     unsigned char* data = stbi_load(filename.c_str(), width, height, channels, desiredChannels);
     if (!data) {
         throw std::runtime_error("Failed to load image: " + filename);
@@ -168,7 +168,7 @@ unsigned char* FileIO::loadImageFromMemory(const unsigned char* data, int size, 
 }
 
 float* FileIO::loadImageHDR(const std::string& filename, int* width, int* height, int* channels, int desiredChannels) {
-#ifndef __ANDROID__
+#ifndef PLATFORM_ANDROID
     float* data = stbi_loadf(filename.c_str(), width, height, channels, desiredChannels);
     if (!data) {
         throw std::runtime_error("Failed to load HDR image: " + filename);
@@ -189,7 +189,7 @@ float* FileIO::loadImageHDR(const std::string& filename, int* width, int* height
 }
 
 size_t FileIO::writeToTextFile(const std::string& filename, const std::string& data, bool append) {
-#ifndef __ANDROID__
+#ifndef PLATFORM_ANDROID
     std::ofstream file;
     if (append) {
         file.open(filename, std::ios::app);
@@ -226,7 +226,7 @@ size_t FileIO::writeToTextFile(const std::string& filename, const std::string& d
 }
 
 size_t FileIO::writeToBinaryFile(const std::string& filename, const void* data, size_t size, bool append) {
-#ifndef __ANDROID__
+#ifndef PLATFORM_ANDROID
     std::ofstream file;
     if (append) {
         file.open(filename, std::ios::app | std::ios::binary);

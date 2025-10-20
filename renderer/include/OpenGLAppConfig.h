@@ -14,7 +14,7 @@ struct Config {
     bool enableVSync = true;
     bool showWindow = true;
     unsigned char openglMajorVersion = 4;
-#ifndef __APPLE__
+#ifndef PLATFORM_APPLE
     unsigned char openglMinorVersion = 6;
 #else
     unsigned char openglMinorVersion = 1;
