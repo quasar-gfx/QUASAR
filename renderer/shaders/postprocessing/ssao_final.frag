@@ -12,11 +12,15 @@ uniform usampler2D idTexture;
 
 uniform sampler2D ssao;
 
-uniform bool tonemap = true;
-uniform float exposure = 1.0;
+uniform bool tonemap;
+uniform float exposure;
 
 void main() {
     vec3 color = texture(screenColor, TexCoord).rgb;
+    if (tonemap) {
+        color = tonemapExponential(color, exposure);
+    }
+
     float ambient = texture(ssao, TexCoord).r;
     color *= ambient;
 

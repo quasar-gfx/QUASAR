@@ -12,7 +12,11 @@ namespace quasar {
 
 class SSAO: public PostProcessingEffect {
 public:
-    SSAO(glm::uvec2& windowSize, PerspectiveCamera& camera, uint seed = 42)
+    SSAO(
+            glm::uvec2& windowSize, PerspectiveCamera& camera,
+            bool tonemap = true,
+            uint numSamples = 64, float radius = 0.5f, float bias = 0.025f,
+            uint seed = 42)
         : windowSize(windowSize)
         , camera(camera)
         , generator(seed)
@@ -22,6 +26,9 @@ public:
             .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
             .fragmentCodeData = SHADER_BUILTIN_SSAO_FRAG,
             .fragmentCodeSize = SHADER_BUILTIN_SSAO_FRAG_len,
+            .defines = {
+                "#define NUM_SAMPLES " + std::to_string(numSamples),
+            },
         })
         , ssaoBlurShader({
             .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
@@ -53,34 +60,47 @@ public:
             .minFilter = GL_NEAREST,
             .magFilter = GL_NEAREST,
         })
+        , noiseTexture({
+            .width = 4,
+            .height = 4,
+            .internalFormat = GL_RGB32F,
+            .format = GL_RGB,
+            .type = GL_FLOAT,
+            .wrapS = GL_REPEAT,
+            .wrapT = GL_REPEAT,
+            .minFilter = GL_NEAREST,
+            .magFilter = GL_NEAREST,
+        })
     {
-        for (uint i = 0; i < 64; i++) {
+        for (int i = 0; i < numSamples; i++) {
             glm::vec3 sample(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0, randomFloats(generator));
             sample = glm::normalize(sample);
             sample *= randomFloats(generator);
-            float scale = float(i) / 64.0f;
+            float scale = float(i) / float(numSamples);
 
             scale = lerp(0.1f, 1.0f, scale * scale);
             sample *= scale;
             ssaoKernel.push_back(sample);
         }
 
-        for (uint i = 0; i < 16; i++) {
+        for (int i = 0; i < 16; i++) {
             glm::vec3 noise(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0, 0.0f);
             ssaoNoise.push_back(noise);
         }
-        noiseTexture = new Texture({
-            .width = 4,
-            .height = 4,
-            .internalFormat = GL_RGBA32F,
-            .format = GL_RGBA,
-            .type = GL_FLOAT,
-            .wrapS = GL_REPEAT,
-            .wrapT = GL_REPEAT,
-            .minFilter = GL_NEAREST,
-            .magFilter = GL_NEAREST,
-            .data = reinterpret_cast<unsigned char*>(ssaoNoise.data()),
-        });
+        noiseTexture.loadFromData(reinterpret_cast<unsigned char*>(ssaoNoise.data()));
+
+        enableTonemapping(tonemap);
+        setExposure(1.0f);
+
+        ssaoShader.bind();
+        ssaoShader.setInt("kernelSize", numSamples);
+        ssaoShader.setFloat("radius", radius);
+        ssaoShader.setFloat("bias", bias);
+    }
+
+    void enableTonemapping(bool enable) {
+        ssaoFinalShader.bind();
+        ssaoFinalShader.setBool("tonemap", enable);
     }
 
     void setExposure(float exposure) {
@@ -95,20 +115,23 @@ public:
         ssaoShader.bind();
         ssaoShader.setMat4("view", camera.getViewMatrix());
         ssaoShader.setMat4("projection", camera.getProjectionMatrix());
-        for (uint i = 0; i < 64; i++) {
+        for (int i = 0; i < 64; i++) {
             ssaoShader.setVec3("samples[" + std::to_string(i) + "]", ssaoKernel[i]);
         }
-        ssaoShader.setTexture("noiseTexture", *noiseTexture, 5);
+        ssaoShader.setTexture("noiseTexture", noiseTexture, 5);
+        renderer.setScreenShaderUniforms(ssaoShader);
         stats += renderer.drawToRenderTarget(ssaoShader, ssaoRenderTarget);
 
         // Blur ssao
         ssaoBlurShader.bind();
         ssaoBlurShader.setTexture("ssaoInput", ssaoRenderTarget.colorTexture, 5);
+        renderer.setScreenShaderUniforms(ssaoBlurShader);
         stats += renderer.drawToRenderTarget(ssaoBlurShader, ssaoBlurRenderTarget);
 
         // Final ssao
         ssaoFinalShader.bind();
         ssaoFinalShader.setTexture("ssao", ssaoBlurRenderTarget.colorTexture, 5);
+        renderer.setScreenShaderUniforms(ssaoFinalShader);
         stats += renderer.drawToScreen(ssaoFinalShader);
 
         return stats;
@@ -121,10 +144,10 @@ public:
         ssaoShader.bind();
         ssaoShader.setMat4("view", camera.getViewMatrix());
         ssaoShader.setMat4("projection", camera.getProjectionMatrix());
-        for (uint i = 0; i < 64; i++) {
+        for (int i = 0; i < 64; i++) {
             ssaoShader.setVec3("samples[" + std::to_string(i) + "]", ssaoKernel[i]);
         }
-        ssaoShader.setTexture("noiseTexture", *noiseTexture, 5);
+        ssaoShader.setTexture("noiseTexture", noiseTexture, 5);
         renderer.setScreenShaderUniforms(ssaoShader);
         stats += renderer.drawToRenderTarget(ssaoShader, ssaoRenderTarget);
 
@@ -154,9 +177,9 @@ private:
     RenderTarget ssaoBlurRenderTarget;
     RenderTarget ssaoRenderTarget;
 
-    const Texture* noiseTexture;
+    Texture noiseTexture;
 
-    std::uniform_real_distribution<GLfloat> randomFloats;
+    std::uniform_real_distribution<float> randomFloats;
     std::default_random_engine generator;
     std::vector<glm::vec3> ssaoKernel;
 
