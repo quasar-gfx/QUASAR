@@ -41,17 +41,6 @@ uniform float flattenThreshold;
 uniform float proxySimilarityThreshold;
 uniform int maxIterForceMerge;
 
-vec3 normalToView(mat4 view, vec3 normalWorld) {
-    // Skybox normals might be NaN, just set normal to face the camera
-    if (any(isnan(normalWorld))) {
-        return -forward;
-    }
-
-    // Extract the rotation part of the view matrix
-    mat3 rotationMatrix = mat3(view);
-    return normalize(rotationMatrix * normalWorld);
-}
-
 bool hasDepthDiscontinuity(float depth1, float depth2, float depth3, float depth4) {
     return abs(depth1 - depth2) >= depthThreshold ||
            abs(depth1 - depth3) >= depthThreshold ||

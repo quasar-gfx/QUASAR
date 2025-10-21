@@ -195,7 +195,8 @@ int main(int argc, char** argv) {
     TexturePreviewWindow refFramePreviewWindow("Reference Frame", quasar.referenceFrameRT.colorTexture, glm::uvec2(430, 270));
     TexturePreviewWindow resFrameChangedPreviewWindow("Residual Frame (changed geometry)", quasar.residualFrameMaskRT.colorTexture, glm::uvec2(430, 270));
     TexturePreviewWindow resFrameFullPreviewWindow("Residual Frame (revealed geometry)", quasar.residualFrameRT.colorTexture, glm::uvec2(430, 270));
-    SceneWindow sceneWindow(remoteScene, glm::vec2(430, 800));
+    SceneWindow sceneWindowRemote(remoteScene, glm::vec2(430, 800));
+    SceneWindow sceneWindowLocal(localScene, glm::vec2(430, 800));
     guiManager->onRender([&](double now, double dt) {
         static bool showUI = !saveImages;
         static bool showMeshCapture = false;
@@ -221,7 +222,8 @@ int main(int argc, char** argv) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Scene")) {
-            ImGui::MenuItem("Scene", 0, &sceneWindow.visible);
+            ImGui::MenuItem("Remote Scene", 0, &sceneWindowRemote.visible);
+            ImGui::MenuItem("Local Scene", 0, &sceneWindowLocal.visible);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -229,7 +231,8 @@ int main(int argc, char** argv) {
         frameRateWindow.draw(now, dt);
         frameCaptureWindow.draw(now, dt);
         recordWindow.draw(now, dt);
-        sceneWindow.draw(now, dt);
+        sceneWindowRemote.draw(now, dt);
+        sceneWindowLocal.draw(now, dt);
 
         if (showUI) {
             ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);

@@ -72,7 +72,7 @@ size_t QuadBuffers::writeToMemory(std::vector<char>& outputData, bool applyDelta
     }
     else {
         spdlog::warn("Failed to map normalAndDepthBuffer. Copying using getData");
-        normalAndDepthBuffer.getData(outputData.data() + bufferOffset);
+        normalAndDepthBuffer.getData(normalAndDepth);
     }
     bufferOffset += numProxies * sizeof(uint32_t);
 

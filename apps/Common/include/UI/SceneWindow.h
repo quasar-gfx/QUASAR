@@ -53,7 +53,7 @@ public:
         ImGui::Separator();
 
         // Lights Section
-        if (ImGui::TreeNodeEx("Lights", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth)) {
+        if (ImGui::TreeNodeEx("Lights", ImGuiTreeNodeFlags_SpanAvailWidth)) {
             // Ambient Light
             if (scene.ambientLight) {
                 if (ImGui::TreeNodeEx((void*)scene.ambientLight, ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth, "Ambient Light")) {
@@ -82,7 +82,7 @@ public:
 
             // Point Lights
             if (!scene.pointLights.empty()) {
-                if (ImGui::TreeNodeEx("Point Lights", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth)) {
+                if (ImGui::TreeNodeEx("Point Lights", ImGuiTreeNodeFlags_SpanAvailWidth)) {
                     for (size_t i = 0; i < scene.pointLights.size(); ++i) {
                         PointLight* pl = scene.pointLights[i];
                         std::string label = "Point Light " + std::to_string(i);
