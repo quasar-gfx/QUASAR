@@ -116,7 +116,7 @@ QUASARStreamer::QUASARStreamer(
     frameRTsHidLayer.reserve(numHidLayers);
     frameRTsHidLayer_noTone.reserve(numHidLayers);
     meshesHidLayer.reserve(numHidLayers);
-    depthMeshsHidLayer.reserve(numHidLayers);
+    depthMeshesHidLayer.reserve(numHidLayers);
     nodesHidLayer.reserve(numHidLayers);
     wireframesHidLayer.reserve(numHidLayers);
     depthNodesHidLayer.reserve(numHidLayers);
@@ -194,9 +194,10 @@ QUASARStreamer::QUASARStreamer(
         wireframesHidLayer[layer].wireframe = true;
         wireframesHidLayer[layer].overrideMaterial = new QuadMaterial({ .baseColor = color });
 
-        depthMeshsHidLayer.emplace_back(quadSet.getSize(), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
-        depthNodesHidLayer.emplace_back(&depthMeshsHidLayer[layer]);
+        depthMeshesHidLayer.emplace_back(quadSet.getSize(), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+        depthNodesHidLayer.emplace_back(&depthMeshesHidLayer[layer]);
         depthNodesHidLayer[layer].frustumCulled = false;
+        depthNodesHidLayer[layer].visible = false;
         depthNodesHidLayer[layer].primitiveType = GL_POINTS;
     }
 
@@ -304,7 +305,7 @@ RenderStats QUASARStreamer::generateFrame(bool createResidualFrame, bool showNor
         auto& renderTargetToUse_noTone = (layer == 0) ? referenceFrameRT_noTone : frameRTsHidLayer_noTone[hiddenLayerIndex];
 
         auto& meshToUse      = (layer == 0) ? referenceFrameMeshes[currMeshIndex] : meshesHidLayer[hiddenLayerIndex];
-        auto& meshToUseDepth = (layer == 0) ? depthMesh                           : depthMeshsHidLayer[hiddenLayerIndex];
+        auto& meshToUseDepth = (layer == 0) ? depthMesh                           : depthMeshesHidLayer[hiddenLayerIndex];
 
         startTime = timeutils::getTimeMicros();
         if (layer == 0) {
@@ -341,10 +342,10 @@ RenderStats QUASARStreamer::generateFrame(bool createResidualFrame, bool showNor
         ============================
         */
         auto oldParams = quadsGenerator->params;
-        if (layer == maxLayers - 1) {
-            quadsGenerator->params.flattenThreshold = 1.0f;
-            quadsGenerator->params.proxySimilarityThreshold = 5.0f;
-        }
+        // if (layer == maxLayers - 1) {
+        //     quadsGenerator->params.flattenThreshold = 1.0f;
+        //     quadsGenerator->params.proxySimilarityThreshold = 5.0f;
+        // }
         quadsGenerator->params.expandEdges = false;
         ReferenceFrame dummyFrame;
         frameGenerator.createReferenceFrame(

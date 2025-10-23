@@ -109,10 +109,21 @@ void storeOutputQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
     metadatasOutput[index]      = quadMapDataPacked.metadata;
 }
 
-void ignoreInputQuadMapData(in ivec2 pixelCoord) {
+void clearInputQuadMapData(in ivec2 pixelCoord) {
     uint index = uint(pixelCoord.y) * uint(inputQuadMapSize.x) + uint(pixelCoord.x);
     normalAndDepthInput[index] = 0;
     metadatasInput[index] = 0;
+}
+
+bool inputQuadMapDataIsSet(in ivec2 pixelCoord) {
+    uint index = uint(pixelCoord.y) * uint(inputQuadMapSize.x) + uint(pixelCoord.x);
+    return normalAndDepthInput[index] == 0xFFFFFFFF && metadatasInput[index] == 0xFFFFFFFF;
+}
+
+void setOutputQuadMapData(in ivec2 pixelCoord) {
+    uint index = uint(pixelCoord.y) * uint(outputQuadMapSize.x) + uint(pixelCoord.x);
+    normalAndDepthOutput[index] = 0xFFFFFFFF;
+    metadatasOutput[index] = 0xFFFFFFFF;
 }
 
 Plane quadMapDataToPlane(in QuadMapData quadMapData) {
@@ -229,7 +240,7 @@ bool shouldMerge(
     vec4 proxyPlaneEqTopLeft     = planeToPlaneEq(proxyPlaneTopLeft);
     vec4 proxyPlaneEqTopRight    = planeToPlaneEq(proxyPlaneTopRight);
 
-    if (iter < 3) {
+    if (iter < 5) {
         int validCount = int(validBottomLeft) + int(validBottomRight) + int(validTopLeft) + int(validTopRight);
 
         // If only one quad is valid, merge everything with that one
@@ -238,22 +249,22 @@ bool shouldMerge(
 
         // If two are valid and similar, merge
         if (validCount == 2) {
-            if (validBottomLeft && validBottomRight &&
+            if ((validBottomLeft && validBottomRight) &&
                 planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight, proxySimilarityThreshold))
                 return true;
-            if (validBottomLeft && validTopLeft &&
+            if ((validBottomLeft && validTopLeft) &&
                 planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft, proxySimilarityThreshold))
                 return true;
-            if (validBottomRight && validTopRight &&
+            if ((validBottomRight && validTopRight) &&
                 planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopRight, proxySimilarityThreshold))
                 return true;
-            if (validTopLeft && validTopRight &&
+            if ((validTopLeft && validTopRight) &&
                 planeEquationsSimilar(proxyPlaneEqTopLeft, proxyPlaneEqTopRight, proxySimilarityThreshold))
                 return true;
-            if (validBottomLeft && validTopRight &&
+            if ((validBottomLeft && validTopRight) &&
                 planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight, proxySimilarityThreshold))
                 return true;
-            if (validBottomRight && validTopLeft &&
+            if ((validBottomRight && validTopLeft) &&
                 planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopLeft, proxySimilarityThreshold))
                 return true;
             return false;
@@ -266,46 +277,28 @@ bool shouldMerge(
                 planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight, proxySimilarityThreshold) &&
                 planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft, proxySimilarityThreshold))
                 return true;
-
             if ((validBottomLeft && validBottomRight && validTopRight) &&
                 planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight, proxySimilarityThreshold) &&
                 planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight, proxySimilarityThreshold))
                 return true;
-
             if ((validBottomLeft && validTopLeft && validTopRight) &&
                 planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft, proxySimilarityThreshold) &&
                 planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight, proxySimilarityThreshold))
                 return true;
-
             if ((validBottomRight && validTopLeft && validTopRight) &&
                 planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopLeft, proxySimilarityThreshold) &&
                 planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopRight, proxySimilarityThreshold))
                 return true;
-
             return false;
         }
-
-        // If four are valid, always merge (average all four)
-        if (validCount == 4)
-            return planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight, proxySimilarityThreshold) &&
-                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft, proxySimilarityThreshold) &&
-                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight, proxySimilarityThreshold) &&
-                planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopLeft, proxySimilarityThreshold) &&
-                planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopRight, proxySimilarityThreshold) &&
-                planeEquationsSimilar(proxyPlaneEqTopLeft, proxyPlaneEqTopRight, proxySimilarityThreshold);
-    }
-    else {
-        // all planes must be similar to merge
-        return planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight, proxySimilarityThreshold) &&
-               planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft, proxySimilarityThreshold) &&
-               planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight, proxySimilarityThreshold) &&
-               planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopLeft, proxySimilarityThreshold) &&
-               planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopRight, proxySimilarityThreshold) &&
-               planeEquationsSimilar(proxyPlaneEqTopLeft, proxyPlaneEqTopRight, proxySimilarityThreshold);
     }
 
-    // If no valid quads, nothing to merge
-    return false;
+    return planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight, proxySimilarityThreshold) &&
+            planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft, proxySimilarityThreshold) &&
+            planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight, proxySimilarityThreshold) &&
+            planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopLeft, proxySimilarityThreshold) &&
+            planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopRight, proxySimilarityThreshold) &&
+            planeEquationsSimilar(proxyPlaneEqTopLeft, proxyPlaneEqTopRight, proxySimilarityThreshold);
 }
 
 Plane averagePlanes(in Plane plane1, in Plane plane2, in Plane plane3, in Plane plane4,
@@ -315,7 +308,7 @@ Plane averagePlanes(in Plane plane1, in Plane plane2, in Plane plane3, in Plane 
     vec4 proxyPlaneEq3 = planeToPlaneEq(plane3);
     vec4 proxyPlaneEq4 = planeToPlaneEq(plane4);
 
-    if (iter < 3) {
+    if (iter < 5) {
         bool validBottomLeft  = isValidQuadMapData(quadMapDataBottomLeft);
         bool validBottomRight = isValidQuadMapData(quadMapDataBottomRight);
         bool validTopLeft     = isValidQuadMapData(quadMapDataTopLeft);
@@ -328,12 +321,6 @@ Plane averagePlanes(in Plane plane1, in Plane plane2, in Plane plane3, in Plane 
         if (validBottomRight) sumProxyPlaneEq += proxyPlaneEq2;
         if (validTopLeft)     sumProxyPlaneEq += proxyPlaneEq3;
         if (validTopRight)    sumProxyPlaneEq += proxyPlaneEq4;
-
-        // Fallback: if no valid quads, keep previous behavior (average all four)
-        if (validCount == 0) {
-            sumProxyPlaneEq = proxyPlaneEq1 + proxyPlaneEq2 + proxyPlaneEq3 + proxyPlaneEq4;
-            validCount = 4;
-        }
 
         vec4 newProxyPlaneEq = sumProxyPlaneEq / float(validCount);
         Plane newProxyPlane = planeEqToPlane(newProxyPlaneEq);
@@ -489,6 +476,16 @@ void main() {
     QuadMapData quadMapDataTopLeft     = loadInputQuadMap(pixelCoordsTopLeft);
     QuadMapData quadMapDataTopRight    = loadInputQuadMap(pixelCoordsTopRight);
 
+    // If any of the input quads contain unmerged quads from previous iterations, skip merging
+    bool isSetBottomLeft  = inputQuadMapDataIsSet(pixelCoordsBottomLeft);
+    bool isSetBottomRight = inputQuadMapDataIsSet(pixelCoordsBottomRight);
+    bool isSetTopLeft     = inputQuadMapDataIsSet(pixelCoordsTopLeft);
+    bool isSetTopRight    = inputQuadMapDataIsSet(pixelCoordsTopRight);
+    if (isSetBottomLeft || isSetBottomRight || isSetTopLeft || isSetTopRight) {
+        setOutputQuadMapData(pixelCoord);
+        return;
+    }
+
     // Create proxy planes
     Plane proxyPlaneBottomLeft  = quadMapDataToPlane(quadMapDataBottomLeft);
     Plane proxyPlaneBottomRight = quadMapDataToPlane(quadMapDataBottomRight);
@@ -509,34 +506,11 @@ void main() {
     bool validTopLeft     = isValidQuadMapData(quadMapDataTopLeft);
     bool validTopRight    = isValidQuadMapData(quadMapDataTopRight);
 
-    // If all of the loaded proxy planes are empty, no need to merge, so return
+    // If all of the loaded proxy planes are empty, skip merging
     if (!validBottomLeft && !validBottomRight && !validTopLeft && !validTopRight) {
         storeOutputQuadMap(pixelCoord, mergedQuadMapData);
         return;
     }
-
-    // if (iter < 3) {
-    //     // We know at least one quad is valid here
-    //     // Find a valid quad to use as a base and make the invalid quads' planes that plane
-    //     Plane baseProxyPlane;
-    //     if (isValidQuadMapData(quadMapDataBottomLeft))  baseProxyPlane = proxyPlaneBottomLeft;
-    //     if (isValidQuadMapData(quadMapDataBottomRight)) baseProxyPlane = proxyPlaneBottomRight;
-    //     if (isValidQuadMapData(quadMapDataTopLeft))     baseProxyPlane = proxyPlaneTopLeft;
-    //     if (isValidQuadMapData(quadMapDataTopRight))    baseProxyPlane = proxyPlaneTopRight;
-
-    //     if (!isValidQuadMapData(quadMapDataBottomLeft))  proxyPlaneBottomLeft  = baseProxyPlane;
-    //     if (!isValidQuadMapData(quadMapDataBottomRight)) proxyPlaneBottomRight = baseProxyPlane;
-    //     if (!isValidQuadMapData(quadMapDataTopLeft))     proxyPlaneTopLeft     = baseProxyPlane;
-    //     if (!isValidQuadMapData(quadMapDataTopRight))    proxyPlaneTopRight    = baseProxyPlane;
-    // }
-    // else {
-    //     // If any of the loaded proxy planes are empty, we shouldn't merge, so return
-    //     if (!isValidQuadMapData(quadMapDataBottomLeft) || !isValidQuadMapData(quadMapDataBottomRight) ||
-    //         !isValidQuadMapData(quadMapDataTopLeft)    || !isValidQuadMapData(quadMapDataTopRight)) {
-    //         storeOutputQuadMap(pixelCoord, mergedQuadMapData);
-    //         return;
-    //     }
-    // }
 
     float depthBottomLeft  = quadMapDataBottomLeft.depth;
     float depthBottomRight = quadMapDataBottomRight.depth;
@@ -561,11 +535,15 @@ void main() {
         );
 
         // Ignore the previous proxy planes that have been merged
-        ignoreInputQuadMapData(pixelCoordsBottomLeft);
-        ignoreInputQuadMapData(pixelCoordsBottomRight);
-        ignoreInputQuadMapData(pixelCoordsTopLeft);
-        ignoreInputQuadMapData(pixelCoordsTopRight);
-    }
+        clearInputQuadMapData(pixelCoordsBottomLeft);
+        clearInputQuadMapData(pixelCoordsBottomRight);
+        clearInputQuadMapData(pixelCoordsTopLeft);
+        clearInputQuadMapData(pixelCoordsTopRight);
 
-    storeOutputQuadMap(pixelCoord, mergedQuadMapData);
+        storeOutputQuadMap(pixelCoord, mergedQuadMapData);
+    }
+    else {
+        // This means we did not merge, so we set the output to invalid to signal that to the next pass
+        setOutputQuadMapData(pixelCoord);
+    }
 }

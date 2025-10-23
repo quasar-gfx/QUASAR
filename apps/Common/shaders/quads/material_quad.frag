@@ -37,10 +37,10 @@ void main() {
     float alpha = 1.0;
     if (material.alphaMode == ALPHA_BLEND && material.hasAlphaMap) {
         alpha = texture(material.alphaMap, uv).r;
-        if (alpha == 0.0) { // HACK: This is most likely an expanded edge, so show anyways
-            alpha = 1.0;
-        }
     }
+
+    if (alpha == 0.0)
+        discard;
 
     // Un-premultiply alpha (alpha is guaranteed to be > 0.0 if we are here)
     color.rgb /= alpha;

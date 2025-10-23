@@ -61,7 +61,7 @@ public:
     std::vector<Node> wireframesHidLayer;
 
     // Depth point cloud for debugging
-    std::vector<DepthMesh> depthMeshsHidLayer;
+    std::vector<DepthMesh> depthMeshesHidLayer;
     std::vector<Node> depthNodesHidLayer;
 
     // Wide fov
