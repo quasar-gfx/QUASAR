@@ -109,9 +109,9 @@ public:
         ImGui::Separator();
 
         // Scene Graph Section
-        if (ImGui::TreeNodeEx("Scene", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth)) {
+        if (ImGui::TreeNodeEx("Scene Graph", ImGuiTreeNodeFlags_SpanAvailWidth)) {
             for (auto* child : scene.children) {
-                drawNodeRecursive(child);
+                displayNode(child);
             }
             ImGui::TreePop();
         }
@@ -128,7 +128,7 @@ private:
     Scene& scene;
     SkyBox* savedSkybox = nullptr;
 
-    void drawNodeRecursive(Node* node) {
+    void displayNode(Node* node) {
         ImGuiTreeNodeFlags tflags = ImGuiTreeNodeFlags_SpanAvailWidth;
 
         std::string label = node->getName().empty() ? (std::string("Node ") + std::to_string(node->getID())) : node->getName();
@@ -156,7 +156,7 @@ private:
             }
 
             for (auto* child : node->children) {
-                drawNodeRecursive(child);
+                displayNode(child);
             }
 
             ImGui::TreePop();

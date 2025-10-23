@@ -397,9 +397,9 @@ size_t QuadsStreamer::writeToMemory(pose_id_t poseID, bool writeResidualFrame, s
         .geometrySize = static_cast<uint32_t>(geometryData.size())
     };
 
-    spdlog::debug("Writing camera size: {}", header.cameraSize);
-    spdlog::debug("Writing alpha size: {}", header.alphaSize);
-    spdlog::debug("Writing geometry size: {}", header.geometrySize);
+    spdlog::debug("Writing camera size: {:.3f}MB", static_cast<float>(header.cameraSize) / BYTES_PER_MEGABYTE);
+    spdlog::debug("Writing alpha size: {:.3f}MB", static_cast<float>(header.alphaSize) / BYTES_PER_MEGABYTE);
+    spdlog::debug("Writing geometry size: {:.3f}MB", static_cast<float>(header.geometrySize) / BYTES_PER_MEGABYTE);
 
     outputData.resize(header.getSize());
     char* ptr = outputData.data();
@@ -420,7 +420,7 @@ size_t QuadsStreamer::writeToMemory(pose_id_t poseID, bool writeResidualFrame, s
     std::memcpy(ptr, geometryData.data(), geometryData.size());
     ptr += geometryData.size();
 
-    spdlog::debug("Written output data size: {}", outputData.size());
+    spdlog::debug("Total data size: {:.3f}MB", static_cast<float>(outputData.size()) / BYTES_PER_MEGABYTE);
 
     return outputData.size();
 }

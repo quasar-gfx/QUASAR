@@ -30,7 +30,7 @@ public:
         float angleThreshold = 88.0f;
         float flattenThreshold = 0.2f;
         float proxySimilarityThreshold = 0.5f;
-        int maxIterForceMerge = 3;
+        int maxIterForceMerge = 11;
     } params;
 
     std::vector<glm::uvec2> quadMapSizes;

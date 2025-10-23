@@ -70,7 +70,7 @@ void main() {
     }
 
     QuadMapData quadMapData = loadInputQuadMap(quadMapPixelCoords);
-    if (quadMapData.size == 0) {
+    if (!isValidQuadMapData(quadMapData)) {
         return;
     }
 

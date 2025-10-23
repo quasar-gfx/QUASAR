@@ -82,6 +82,17 @@ bool isValidDepth(float depth) {
     return depth != 0.0 && depth < MAX_DEPTH;
 }
 
+bool isValidQuadMapData(in QuadMapData quadMapData) {
+    return quadMapData.normal != vec3(0.0) &&
+           isValidDepth(quadMapData.depth) &&
+           quadMapData.size > 0;
+}
+
+float signedDistance(vec3 p1, vec3 p2) {
+    float dist = distance(p1, p2);
+    return (length(p1) > length(p2)) ? -dist : dist;
+}
+
 vec3 rayPlaneIntersection(vec3 rayOrigin, vec3 rayDirection, Plane plane) {
     float denominator = dot(rayDirection, plane.normal);
     if (abs(denominator) < epsilon) {

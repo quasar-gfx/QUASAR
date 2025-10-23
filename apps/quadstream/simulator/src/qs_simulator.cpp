@@ -306,7 +306,7 @@ int main(int argc, char** argv) {
                     sendRemoteFrame = true;
                     runAnimations = false;
                 }
-                if (ImGui::DragInt("Force Merge Iterations", &quadsGenerator->params.maxIterForceMerge, 1, 0, quadsGenerator->numQuadMaps/2)) {
+                if (ImGui::DragInt("Force Merge Iterations", &quadsGenerator->params.maxIterForceMerge, 1, 0, quadsGenerator->numQuadMaps)) {
                     preventCopyingLocalPose = true;
                     sendRemoteFrame = true;
                     runAnimations = false;

@@ -68,7 +68,7 @@ void main() {
         uint inputQuadIndex = quadIndex - currNumProxies;
 
         QuadMapData quadMapData = loadInputQuadMap(inputQuadIndex);
-        if (quadMapData.size == 0u) { // Ignore if quad is empty
+        if (!isValidQuadMapData(quadMapData)) {
             return;
         }
 

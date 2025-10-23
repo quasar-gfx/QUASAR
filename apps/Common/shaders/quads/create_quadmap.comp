@@ -154,11 +154,6 @@ vec3 constrainToMaxAngle(in vec3 centerNormal, in vec3 frustumNormalView) {
     return normalize(constrainedNormal);
 }
 
-float signedDistance(vec3 p1, vec3 p2) {
-    float dist = distance(p1, p2);
-    return (length(p1) > length(p2)) ? -dist : dist;
-}
-
 vec4 findDepthOffsets(in Quad quadView, in Plane proxyPlane) {
     Quad quadPtsOnPlane;
     quadPtsOnPlane.bottomLeft  = pointPlaneIntersection(quadView.bottomLeft,  proxyPlane);
@@ -387,15 +382,16 @@ void storeSurfelsInQuadMap(
                          int(absDepthOffsetsTopRight.z < flattenThreshold) +
                          int(absDepthOffsetsTopRight.w < flattenThreshold);
 
-    bool flattened = (numBelowThreshold >= total);
+    // If all surfels are below the threshold, then the plane is considered flattened
+    bool flattened = (numBelowThreshold == total);
 
     QuadMapData quadMapData;
     quadMapData.normal = proxyPlaneNormal;
     quadMapData.depth = proxyPlaneDepth;
     quadMapData.offset = uvec2(pixelCoord);
     quadMapData.size = 1; // 2x2 surfels, store as a power of 2
-    quadMapData.flattened = flattened;
     quadMapData.hasAlpha = (imageLoad(colorMap, pixelCoord).a < 1.0);
+    quadMapData.flattened = flattened;
     storeQuadMap(pixelCoord, quadMapData);
 
     // Store empty depth offsets if the proxy plane is flattened
@@ -441,7 +437,12 @@ void main() {
 
     // Store an empty plane to clear the output quad map
     QuadMapData ignoredQuadMapData;
-    ignoredQuadMapData.size = 0;
+    ignoredQuadMapData.normal = vec3(0.0);
+    ignoredQuadMapData.depth = 0.0; // invalid
+    ignoredQuadMapData.offset = uvec2(pixelCoord);
+    ignoredQuadMapData.size = 0; // invalid
+    ignoredQuadMapData.hasAlpha = false;
+    ignoredQuadMapData.flattened = true;
     storeQuadMap(pixelCoord, ignoredQuadMapData);
 
     // Calculate coords (see above)

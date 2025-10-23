@@ -342,12 +342,8 @@ RenderStats QUASARStreamer::generateFrame(bool createResidualFrame, bool showNor
         */
         auto oldParams = quadsGenerator->params;
         if (layer == maxLayers - 1) {
-            quadsGenerator->params.flattenThreshold = 0.5f;
+            quadsGenerator->params.flattenThreshold = 1.0f;
             quadsGenerator->params.proxySimilarityThreshold = 5.0f;
-            quadsGenerator->params.maxIterForceMerge = 4;
-        }
-        else if (layer > 0) {
-            quadsGenerator->params.maxIterForceMerge = 4;
         }
         quadsGenerator->params.expandEdges = false;
         ReferenceFrame dummyFrame;
@@ -627,9 +623,9 @@ size_t QUASARStreamer::writeToMemory(pose_id_t poseID, bool writeResidualFrame, 
         .geometrySize = geometrySize,
     };
 
-    spdlog::debug("Writing camera size: {}", header.cameraSize);
-    spdlog::debug("Writing alpha size: {}", header.alphaSize);
-    spdlog::debug("Writing geometry size: {}", header.geometrySize);
+    spdlog::debug("Writing camera size: {:.3f}MB", static_cast<float>(header.cameraSize) / BYTES_PER_MEGABYTE);
+    spdlog::debug("Writing alpha size: {:.3f}MB", static_cast<float>(header.alphaSize) / BYTES_PER_MEGABYTE);
+    spdlog::debug("Writing geometry size: {:.3f}MB", static_cast<float>(header.geometrySize) / BYTES_PER_MEGABYTE);
 
     outputData.resize(header.getSize());
     char* ptr = outputData.data();
@@ -659,6 +655,6 @@ size_t QUASARStreamer::writeToMemory(pose_id_t poseID, bool writeResidualFrame, 
         ptr += layerSize;
     }
 
-    spdlog::debug("Written output data size: {}", outputData.size());
+    spdlog::debug("Total data size: {:.3f}MB", static_cast<float>(outputData.size()) / BYTES_PER_MEGABYTE);
     return outputData.size();
 }
