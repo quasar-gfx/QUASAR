@@ -2,6 +2,7 @@
 #define ALPHA_CODEC_H
 
 #include <Codecs/Codec.h>
+#include <Codecs/ZSTDCodec.h>
 
 namespace quasar {
 
@@ -21,64 +22,46 @@ public:
     size_t compress(const void* uncompressedData, std::vector<char>& compressedData, size_t numBytesUncompressed) {
         double startTime = timeutils::getTimeMicros();
 
+        // Delta-encode the input
         const uint8_t* src = static_cast<const uint8_t*>(uncompressedData);
-        compressedData.resize(numBytesUncompressed * 2);
 
-        uint8_t prev = src[0];
-        uint8_t currentDelta = prev;
-        uint8_t runCount = 1;
+        deltaBuffer.resize(numBytesUncompressed);
 
-        size_t writePos = 0;
-
-        for (int i = 1; i < numBytesUncompressed; i++) {
-            uint8_t delta = static_cast<uint8_t>(src[i] - prev);
-
-            if (delta == currentDelta && runCount < 255) {
-                runCount++;
+        if (numBytesUncompressed > 0) {
+            deltaBuffer[0] = static_cast<char>(src[0]);
+            for (size_t i = 1; i < numBytesUncompressed; ++i) {
+                uint8_t delta = static_cast<uint8_t>(src[i] - src[i - 1]);
+                deltaBuffer[i] = static_cast<char>(delta);
             }
-            else {
-                compressedData[writePos++] = static_cast<char>(runCount);
-                compressedData[writePos++] = static_cast<char>(currentDelta);
-                currentDelta = delta;
-                runCount = 1;
-            }
-
-            prev = src[i];
         }
 
-        compressedData[writePos++] = static_cast<char>(runCount);
-        compressedData[writePos++] = static_cast<char>(currentDelta);
-
-        compressedData.resize(writePos);
+        size_t written = zstd.compress(deltaBuffer.data(), compressedData, deltaBuffer.size());
+        compressedData.resize(written);
 
         stats.compressTimeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
-        return writePos;
+        return written;
     }
 
     size_t decompress(const void* compressedData, std::vector<char>& decompressedData, size_t numBytesCompressed) {
         double startTime = timeutils::getTimeMicros();
 
-        const uint8_t* src = static_cast<const uint8_t*>(compressedData);
         const size_t targetSize = static_cast<size_t>(width) * static_cast<size_t>(height);
 
-        uint8_t prev = 0;
+        // Decompress with ZSTD
+        deltaBuffer.resize(targetSize);
+
+        size_t decompressedBytes = zstd.decompress(compressedData, deltaBuffer, numBytesCompressed);
+
         size_t writePos = 0;
+        uint8_t prev = 0;
+        if (decompressedBytes > 0 && targetSize > 0) {
+            // First byte is the initial value
+            prev = static_cast<uint8_t>(deltaBuffer[0]);
+            decompressedData[writePos++] = static_cast<char>(prev);
 
-        // Decode rle then delta
-        int i = 0;
-        bool firstIter = true;
-        while (i + 1 < numBytesCompressed && writePos < targetSize) {
-            uint8_t count = src[i++];
-            uint8_t delta = src[i++];
-
-            for (uint8_t j = 0; j < count && writePos < targetSize; ++j) {
-                if (firstIter) {
-                    prev = delta;
-                    firstIter = false;
-                }
-                else {
-                    prev = static_cast<uint8_t>(prev + delta);
-                }
+            for (size_t i = 1; i < std::min(decompressedBytes, targetSize); ++i) {
+                uint8_t delta = static_cast<uint8_t>(deltaBuffer[i]);
+                prev = static_cast<uint8_t>(prev + delta);
                 decompressedData[writePos++] = static_cast<char>(prev);
             }
         }
@@ -89,6 +72,9 @@ public:
 
 private:
     uint width, height;
+
+    std::vector<char> deltaBuffer;
+    ZSTDCodec zstd;
 };
 
 } // namespace quasar

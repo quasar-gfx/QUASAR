@@ -342,10 +342,16 @@ RenderStats QUASARStreamer::generateFrame(bool createResidualFrame, bool showNor
         ============================
         */
         auto oldParams = quadsGenerator->params;
-        // if (layer == maxLayers - 1) {
-        //     quadsGenerator->params.flattenThreshold = 1.0f;
-        //     quadsGenerator->params.proxySimilarityThreshold = 5.0f;
-        // }
+        // Wide FOV has very loose parameters to reduce data size
+        if (layer == maxLayers - 1) {
+            quadsGenerator->params.flattenThreshold = 1.0f;
+            quadsGenerator->params.proxySimilarityThreshold *= 10.0f;
+        }
+        // Hidden layers have looser parameters to reduce data size
+        else if (layer > 0) {
+            quadsGenerator->params.flattenThreshold = 1.0f;
+            quadsGenerator->params.proxySimilarityThreshold *= layer * 2.0f;
+        }
         quadsGenerator->params.expandEdges = false;
         ReferenceFrame dummyFrame;
         frameGenerator.createReferenceFrame(

@@ -2,7 +2,10 @@
 #include "camera.glsl"
 #include "pbr.glsl"
 
-out vec4 FragColor;
+layout(location = 0) out vec4 FragColor;
+layout(location = 1) out float FragAlpha;
+layout(location = 2) out vec4 FragNormal;
+layout(location = 3) out uvec4 FragIDs;
 
 in vec2 TexCoord;
 
@@ -95,4 +98,6 @@ void main() {
     radianceOut = radianceOut + ambient;
 
     FragColor = vec4(radianceOut, alpha);
+    FragAlpha = alpha;
+    FragNormal = vec4(fragNormal, 1.0);
 }
