@@ -10,10 +10,12 @@
 
 using namespace quasar;
 
-QuadMesh::QuadMesh(const QuadSet& quadSet, Texture& colorTexture, Texture& alphaTexture, const glm::vec4& textureExtent, uint maxProxies)
+QuadMesh::QuadMesh(const QuadSet& quadSet, const Texture& colorTexture, const Texture& alphaTexture, const glm::vec4& textureExtent, uint maxProxies)
     : maxProxies(maxProxies)
     , currentQuadBuffers(maxProxies)
     , textureExtent(textureExtent)
+    , colorTexture(colorTexture)
+    , alphaTexture(alphaTexture)
     , sizesBuffer({
         .target = GL_SHADER_STORAGE_BUFFER,
         .dataSize = sizeof(BufferSizes),
@@ -72,7 +74,7 @@ QuadMesh::QuadMesh(const QuadSet& quadSet, Texture& colorTexture, Texture& alpha
     indirectBufferTransparent.unbind();
 }
 
-QuadMesh::QuadMesh(const QuadSet& quadSet, Texture& colorTexture, Texture& alphaTexture, uint maxProxies)
+QuadMesh::QuadMesh(const QuadSet& quadSet, const Texture& colorTexture, const Texture& alphaTexture, uint maxProxies)
     : QuadMesh(quadSet, colorTexture, alphaTexture, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), maxProxies)
 {}
 
@@ -183,6 +185,8 @@ void QuadMesh::createMeshFromProxies(const QuadSet& quadSet, const glm::vec2& gB
 
         createQuadMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 8, quadCreatedFlags);
         createQuadMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 9, quadIndexMap);
+
+        createQuadMeshShader.setTexture(alphaTexture, 0);
 
         createQuadMeshShader.setImageTexture(0, quadSet.depthOffsets.texture, 0, GL_FALSE, 0, GL_READ_ONLY, quadSet.depthOffsets.texture.internalFormat);
     }

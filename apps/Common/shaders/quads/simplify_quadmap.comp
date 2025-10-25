@@ -34,6 +34,7 @@ uniform float far;
 
 uniform int iter;
 
+uniform bool expandProxies;
 uniform bool correctOrientation;
 uniform float depthThreshold;
 uniform float angleThreshold;
@@ -240,56 +241,57 @@ bool shouldMerge(
     vec4 proxyPlaneEqTopLeft     = planeToPlaneEq(proxyPlaneTopLeft);
     vec4 proxyPlaneEqTopRight    = planeToPlaneEq(proxyPlaneTopRight);
 
+    if (expandProxies) {
+        int validCount = int(validBottomLeft) + int(validBottomRight) + int(validTopLeft) + int(validTopRight);
 
-    int validCount = int(validBottomLeft) + int(validBottomRight) + int(validTopLeft) + int(validTopRight);
+        // If only one quad is valid, merge everything with that one
+        if (validCount == 1)
+            return true;
 
-    // If only one quad is valid, merge everything with that one
-    if (validCount == 1)
-        return true;
+        // If two are valid and similar, merge
+        if (validCount == 2) {
+            if ((validBottomLeft && validBottomRight) &&
+                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight, proxySimilarityThreshold))
+                return true;
+            if ((validBottomLeft && validTopLeft) &&
+                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft,     proxySimilarityThreshold))
+                return true;
+            if ((validBottomRight && validTopRight) &&
+                planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopRight,   proxySimilarityThreshold))
+                return true;
+            if ((validTopLeft && validTopRight) &&
+                planeEquationsSimilar(proxyPlaneEqTopLeft, proxyPlaneEqTopRight,       proxySimilarityThreshold))
+                return true;
+            if ((validBottomLeft && validTopRight) &&
+                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight,    proxySimilarityThreshold))
+                return true;
+            if ((validBottomRight && validTopLeft) &&
+                planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopLeft,    proxySimilarityThreshold))
+                return true;
+            return false;
+        }
 
-    // If two are valid and similar, merge
-    if (validCount == 2) {
-        if ((validBottomLeft && validBottomRight) &&
-            planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight, proxySimilarityThreshold))
-            return true;
-        if ((validBottomLeft && validTopLeft) &&
-            planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft,     proxySimilarityThreshold))
-            return true;
-        if ((validBottomRight && validTopRight) &&
-            planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopRight,   proxySimilarityThreshold))
-            return true;
-        if ((validTopLeft && validTopRight) &&
-            planeEquationsSimilar(proxyPlaneEqTopLeft, proxyPlaneEqTopRight,       proxySimilarityThreshold))
-            return true;
-        if ((validBottomLeft && validTopRight) &&
-            planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight,    proxySimilarityThreshold))
-            return true;
-        if ((validBottomRight && validTopLeft) &&
-            planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopLeft,    proxySimilarityThreshold))
-            return true;
-        return false;
-    }
-
-    // If three are valid and similar, merge
-    if (validCount == 3) {
-        // Check all combinations of three valid quads being similar
-        if ((validBottomLeft && validBottomRight && validTopLeft) &&
-            planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight, proxySimilarityThreshold) &&
-            planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft,     proxySimilarityThreshold))
-            return true;
-        if ((validBottomLeft && validBottomRight && validTopRight) &&
-            planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight, proxySimilarityThreshold) &&
-            planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight,    proxySimilarityThreshold))
-            return true;
-        if ((validBottomLeft && validTopLeft && validTopRight) &&
-            planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft,     proxySimilarityThreshold) &&
-            planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight,    proxySimilarityThreshold))
-            return true;
-        if ((validBottomRight && validTopLeft && validTopRight) &&
-            planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopLeft,    proxySimilarityThreshold) &&
-            planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopRight,   proxySimilarityThreshold))
-            return true;
-        return false;
+        // If three are valid and similar, merge
+        if (validCount == 3) {
+            // Check all combinations of three valid quads being similar
+            if ((validBottomLeft && validBottomRight && validTopLeft) &&
+                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight, proxySimilarityThreshold) &&
+                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft,     proxySimilarityThreshold))
+                return true;
+            if ((validBottomLeft && validBottomRight && validTopRight) &&
+                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight, proxySimilarityThreshold) &&
+                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight,    proxySimilarityThreshold))
+                return true;
+            if ((validBottomLeft && validTopLeft && validTopRight) &&
+                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft,     proxySimilarityThreshold) &&
+                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight,    proxySimilarityThreshold))
+                return true;
+            if ((validBottomRight && validTopLeft && validTopRight) &&
+                planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopLeft,    proxySimilarityThreshold) &&
+                planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopRight,   proxySimilarityThreshold))
+                return true;
+            return false;
+        }
     }
 
     return planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight, proxySimilarityThreshold) &&
@@ -309,18 +311,24 @@ Plane averagePlanes(
     vec4 proxyPlaneEq3 = planeToPlaneEq(plane3);
     vec4 proxyPlaneEq4 = planeToPlaneEq(plane4);
 
-    bool validBottomLeft  = isValidQuadMapData(quadMapDataBottomLeft);
-    bool validBottomRight = isValidQuadMapData(quadMapDataBottomRight);
-    bool validTopLeft     = isValidQuadMapData(quadMapDataTopLeft);
-    bool validTopRight    = isValidQuadMapData(quadMapDataTopRight);
-
-    int validCount = int(validBottomLeft) + int(validBottomRight) + int(validTopLeft) + int(validTopRight);
-
     vec4 sumProxyPlaneEq = vec4(0.0);
-    if (validBottomLeft)  sumProxyPlaneEq += proxyPlaneEq1;
-    if (validBottomRight) sumProxyPlaneEq += proxyPlaneEq2;
-    if (validTopLeft)     sumProxyPlaneEq += proxyPlaneEq3;
-    if (validTopRight)    sumProxyPlaneEq += proxyPlaneEq4;
+    int validCount = 0;
+    if (expandProxies) {
+        bool validBottomLeft  = isValidQuadMapData(quadMapDataBottomLeft);
+        bool validBottomRight = isValidQuadMapData(quadMapDataBottomRight);
+        bool validTopLeft     = isValidQuadMapData(quadMapDataTopLeft);
+        bool validTopRight    = isValidQuadMapData(quadMapDataTopRight);
+
+        if (validBottomLeft)  sumProxyPlaneEq += proxyPlaneEq1;
+        if (validBottomRight) sumProxyPlaneEq += proxyPlaneEq2;
+        if (validTopLeft)     sumProxyPlaneEq += proxyPlaneEq3;
+        if (validTopRight)    sumProxyPlaneEq += proxyPlaneEq4;
+        validCount = int(validBottomLeft) + int(validBottomRight) + int(validTopLeft) + int(validTopRight);
+    }
+    else {
+        sumProxyPlaneEq = proxyPlaneEq1 + proxyPlaneEq2 + proxyPlaneEq3 + proxyPlaneEq4;
+        validCount = 4;
+    }
 
     vec4 newProxyPlaneEq = sumProxyPlaneEq / float(validCount);
     Plane newProxyPlane = planeEqToPlane(newProxyPlaneEq);

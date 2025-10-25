@@ -25,6 +25,7 @@ public:
 
     struct Parameters {
         bool expandEdges = false;
+        bool expandProxies = true;
         bool correctOrientation = true;
         float depthThreshold = 1e-4f;
         float angleThreshold = 88.0f;
