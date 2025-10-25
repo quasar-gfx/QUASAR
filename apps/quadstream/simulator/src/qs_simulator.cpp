@@ -281,6 +281,11 @@ int main(int argc, char** argv) {
 
             if (ImGui::CollapsingHeader("Quad Generation Settings")) {
                 auto quadsGenerator = quadstream.getQuadsGenerator();
+                if (ImGui::Checkbox("Expand Proxies", &quadsGenerator->params.expandProxies)) {
+                    preventCopyingLocalPose = true;
+                    sendRemoteFrame = true;
+                    runAnimations = false;
+                }
                 if (ImGui::Checkbox("Correct Extreme Normals", &quadsGenerator->params.correctOrientation)) {
                     preventCopyingLocalPose = true;
                     sendRemoteFrame = true;

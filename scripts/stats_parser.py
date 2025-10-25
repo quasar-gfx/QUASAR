@@ -61,9 +61,46 @@ def process_directory(directory_path):
     except Exception as e:
         logger.error(f"An error occurred: {e}")
 
+def print_frame_sizes(directory_path):
+    result = {}
+    try:
+        for root, subdirs, _ in os.walk(directory_path):
+            for subdir in subdirs:
+                subdirectory_path = os.path.join(root, subdir)
+                stats_file = os.path.join(subdirectory_path, "stats.json")
+                if not os.path.isfile(stats_file):
+                    continue
+                try:
+                    with open(stats_file, 'r') as sf:
+                        stats_data = json.load(sf)
+                except Exception as e:
+                    logger.debug(f"Failed to load stats.json in '{subdirectory_path}': {e}")
+                    continue
+
+                for logfile, stats in stats_data.items():
+                    sim_name = logfile[:-4] if logfile.lower().endswith('.log') else logfile
+                    if not stats:
+                        val = 0.0
+                    else:
+                        fs_key = "Frame Size (MB)"
+                        if fs_key in stats and isinstance(stats[fs_key], dict):
+                            val = stats[fs_key].get('average', 0.0) or 0.0
+                        else:
+                            val = 0.0
+
+                    rounded = round(float(val), 3)
+                    result[sim_name] = f"{rounded:.3f} MB"
+        print(json.dumps(result, indent=4))
+    except Exception as e:
+        logger.error(f"An error occurred while collecting frame sizes: {e}")
+    return result
+
 def run_from_config(output_path="results"):
     stats_folder = os.path.join(output_path, "stats")
     process_directory(stats_folder)
+
+    # Print frame sizes for each simulator/subdirectory
+    print_frame_sizes(stats_folder)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process log files in subdirectories to calculate averages and save as JSON.")

@@ -135,9 +135,10 @@ void FrameGenerator::createResidualFrame(
     ============================
     */
     double startTime = timeutils::getTimeMicros();
+    bool oldExpandProxies = quadsGenerator->params.expandProxies;
     quadsGenerator->params.expandProxies = false;
     quadsGenerator->createProxiesFromRT(residualFrameMaskRT, remoteCameraPrev);
-    quadsGenerator->params.expandProxies = true;
+    quadsGenerator->params.expandProxies = oldExpandProxies;
     stats.createQuadsTimeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     // Transfer updated proxies to CPU for compression

@@ -345,11 +345,11 @@ void recalcDepthOffsets(
     vec2 proxyPlanePixelCoords = vec2(proxyPlaneUV * gBufferSize);
 
     uint size = 1 << quadMapData.size;
-    float halfGridSize = float(size) * vertexGroupSize / 2;
+    float halfGridSize = float(size) * surfelSize / 2;
 
     // Calculate new depth offsets relative to new proxy plane
     vec2 baseCoord = proxyPlanePixelCoords - vec2(halfGridSize);
-    vec2 stepSize = vec2(vertexGroupSize);
+    vec2 stepSize = vec2(surfelSize);
     for (uint idx = 0u; idx < size * size; idx++) {
         uint i = idx % size;
         uint j = idx / size;
@@ -508,10 +508,19 @@ void main() {
     bool validTopLeft     = isValidQuadMapData(quadMapDataTopLeft);
     bool validTopRight    = isValidQuadMapData(quadMapDataTopRight);
 
-    // If all of the loaded proxy planes are empty, skip merging
-    if (!validBottomLeft && !validBottomRight && !validTopLeft && !validTopRight) {
-        storeOutputQuadMap(pixelCoord, mergedQuadMapData);
-        return;
+    if (expandProxies) {
+        // If *all* of the loaded proxy planes are empty, skip merging
+        if (!validBottomLeft && !validBottomRight && !validTopLeft && !validTopRight) {
+            storeOutputQuadMap(pixelCoord, mergedQuadMapData);
+            return;
+        }
+    }
+    else {
+        // If *any* of the input quads are empty, skip merging
+        if (!validBottomLeft || !validBottomRight || !validTopLeft || !validTopRight) {
+            setOutputQuadMapData(pixelCoord);
+            return;
+        }
     }
 
     float depthBottomLeft  = quadMapDataBottomLeft.depth;
