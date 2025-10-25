@@ -220,7 +220,7 @@ RenderStats QuadStreamStreamer::generateFrame(bool showNormals, bool showDepth) 
         // We approximate their data size by multiplying by 103/sizeof(our quad data struct)
         stats.proxySizes.quadsSize += referenceFrames[view].getTotalQuadsSize() * (103.0 / (8 * sizeof(QuadMapDataPacked)));
         stats.proxySizes.depthOffsetsSize += referenceFrames[view].getTotalDepthOffsetsSize();
-        spdlog::debug("Reference frame generated with {} quads ({:.3f} MB), {} depth offsets ({:.3f} MB)",
+        spdlog::debug("Reference frame generated with {} quads ({:.3f}MB), {} depth offsets ({:.3f}MB)",
             referenceFrames[view].getTotalNumQuads(), referenceFrames[view].getTotalQuadsSize() * (103.0 / (8 * sizeof(QuadMapDataPacked))) / BYTES_PER_MEGABYTE,
             referenceFrames[view].getTotalNumDepthOffsets(), referenceFrames[view].getTotalDepthOffsetsSize() / BYTES_PER_MEGABYTE);
     }

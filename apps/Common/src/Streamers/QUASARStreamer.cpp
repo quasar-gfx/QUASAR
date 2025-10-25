@@ -183,6 +183,11 @@ QUASARStreamer::QUASARStreamer(
     for (int layer = 0; layer < numHidLayers; layer++) {
         meshesHidLayer.emplace_back(
             quadSet, frameRTsHidLayer_noTone[layer].colorTexture, frameRTsHidLayer_noTone[layer].alphaTexture);
+        if (layer == numHidLayers - 1) {
+            // Increase expand amount by 5px for wide FOV
+            // This makes it so that we can merge more and still cover holes
+            meshesHidLayer[layer].setExpandQuadAmount(5.0f);
+        }
 
         nodesHidLayer.emplace_back(&meshesHidLayer[layer]);
         nodesHidLayer[layer].frustumCulled = false;
@@ -345,12 +350,12 @@ RenderStats QUASARStreamer::generateFrame(bool createResidualFrame, bool showNor
         // Wide FOV has very loose parameters to reduce data size
         if (layer == maxLayers - 1) {
             quadsGenerator->params.flattenThreshold = 1.0f;
-            quadsGenerator->params.proxySimilarityThreshold *= 10.0f;
+            quadsGenerator->params.proxySimilarityThreshold *= 20.0f;
         }
         // Hidden layers have looser parameters to reduce data size
         else if (layer > 0) {
             quadsGenerator->params.flattenThreshold = 1.0f;
-            quadsGenerator->params.proxySimilarityThreshold *= layer * 2.0f;
+            quadsGenerator->params.proxySimilarityThreshold *= (layer * 2.0f);
         }
         quadsGenerator->params.expandEdges = false;
         ReferenceFrame dummyFrame;
@@ -467,7 +472,7 @@ RenderStats QUASARStreamer::generateFrame(bool createResidualFrame, bool showNor
             stats.proxySizes.numDepthOffsets += referenceFrames[layer].getTotalNumDepthOffsets();
             stats.proxySizes.quadsSize += referenceFrames[layer].getTotalQuadsSize();
             stats.proxySizes.depthOffsetsSize += referenceFrames[layer].getTotalDepthOffsetsSize();
-            spdlog::debug("Reference frame generated with {} quads ({:.3f} MB), {} depth offsets ({:.3f} MB)",
+            spdlog::debug("Reference frame generated with {} quads ({:.3f}MB), {} depth offsets ({:.3f}MB)",
                           referenceFrames[layer].getTotalNumQuads(), referenceFrames[layer].getTotalQuadsSize() / BYTES_PER_MEGABYTE,
                           referenceFrames[layer].getTotalNumDepthOffsets(), referenceFrames[layer].getTotalDepthOffsetsSize() / BYTES_PER_MEGABYTE);
         }
@@ -476,7 +481,7 @@ RenderStats QUASARStreamer::generateFrame(bool createResidualFrame, bool showNor
             stats.proxySizes.numDepthOffsets += residualFrame.getTotalNumDepthOffsets();
             stats.proxySizes.quadsSize += residualFrame.getTotalQuadsSize();
             stats.proxySizes.depthOffsetsSize += residualFrame.getTotalDepthOffsetsSize();
-            spdlog::debug("Residual frame generated with {} updated quads ({:.3f} MB) and {} revealed quads ({:.3f} MB), {} updated depth offsets ({:.3f} MB) and {} revealed depth offsets ({:.3f} MB)",
+            spdlog::debug("Residual frame generated with {} updated quads ({:.3f}MB) and {} revealed quads ({:.3f}MB), {} updated depth offsets ({:.3f}MB) and {} revealed depth offsets ({:.3f}MB)",
                           residualFrame.getTotalNumQuadsUpdated(), residualFrame.getTotalQuadsUpdatedSize() / BYTES_PER_MEGABYTE,
                           residualFrame.getTotalNumQuadsRevealed(), residualFrame.getTotalQuadsRevealedSize() / BYTES_PER_MEGABYTE,
                           residualFrame.getTotalNumDepthOffsetsUpdated(), residualFrame.getTotalDepthOffsetsUpdatedSize() / BYTES_PER_MEGABYTE,

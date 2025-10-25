@@ -116,12 +116,12 @@ void clearInputQuadMapData(in ivec2 pixelCoord) {
     metadatasInput[index] = 0;
 }
 
-bool inputQuadMapDataIsSet(in ivec2 pixelCoord) {
+bool inputQuadMapDataIsMarked(in ivec2 pixelCoord) {
     uint index = uint(pixelCoord.y) * uint(inputQuadMapSize.x) + uint(pixelCoord.x);
     return normalAndDepthInput[index] == 0xFFFFFFFF && metadatasInput[index] == 0xFFFFFFFF;
 }
 
-void setOutputQuadMapData(in ivec2 pixelCoord) {
+void markOutputQuadMapData(in ivec2 pixelCoord) {
     uint index = uint(pixelCoord.y) * uint(outputQuadMapSize.x) + uint(pixelCoord.x);
     normalAndDepthOutput[index] = 0xFFFFFFFF;
     metadatasOutput[index] = 0xFFFFFFFF;
@@ -478,13 +478,13 @@ void main() {
     QuadMapData quadMapDataTopLeft     = loadInputQuadMap(pixelCoordsTopLeft);
     QuadMapData quadMapDataTopRight    = loadInputQuadMap(pixelCoordsTopRight);
 
-    // If any of the input quads contain unmerged quads from previous iterations, skip merging
-    bool isSetBottomLeft  = inputQuadMapDataIsSet(pixelCoordsBottomLeft);
-    bool isSetBottomRight = inputQuadMapDataIsSet(pixelCoordsBottomRight);
-    bool isSetTopLeft     = inputQuadMapDataIsSet(pixelCoordsTopLeft);
-    bool isSetTopRight    = inputQuadMapDataIsSet(pixelCoordsTopRight);
-    if (isSetBottomLeft || isSetBottomRight || isSetTopLeft || isSetTopRight) {
-        setOutputQuadMapData(pixelCoord);
+    // If any of the input quads are marked as containing unmerged quads from previous iterations, skip merging
+    bool isMarkedBottomLeft  = inputQuadMapDataIsMarked(pixelCoordsBottomLeft);
+    bool isMarkedBottomRight = inputQuadMapDataIsMarked(pixelCoordsBottomRight);
+    bool isMarkedTopLeft     = inputQuadMapDataIsMarked(pixelCoordsTopLeft);
+    bool isMarkedTopRight    = inputQuadMapDataIsMarked(pixelCoordsTopRight);
+    if (isMarkedBottomLeft || isMarkedBottomRight || isMarkedTopLeft || isMarkedTopRight) {
+        markOutputQuadMapData(pixelCoord);
         return;
     }
 
@@ -518,7 +518,7 @@ void main() {
     else {
         // If *any* of the input quads are empty, skip merging
         if (!validBottomLeft || !validBottomRight || !validTopLeft || !validTopRight) {
-            setOutputQuadMapData(pixelCoord);
+            markOutputQuadMapData(pixelCoord);
             return;
         }
     }
@@ -554,7 +554,8 @@ void main() {
         storeOutputQuadMap(pixelCoord, mergedQuadMapData);
     }
     else {
-        // This means we did not merge, so we set the output to invalid to signal that to the next pass
-        setOutputQuadMapData(pixelCoord);
+        // This means we did not merge, so we mark the output as invalid,
+        // but contains unmerged data to signal that to the next pass
+        markOutputQuadMapData(pixelCoord);
     }
 }

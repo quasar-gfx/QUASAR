@@ -40,16 +40,9 @@ layout(binding = 1) uniform sampler2D depthMap;
 layout(rgba16f, binding = 0) uniform writeonly image2D depthOffsetsBuffer;
 layout(rgba16f, binding = 1) uniform image2D colorMap;
 
-float UnLinearizeDepth(float depth) {
-    float zView = depth * (far - near) + near;
-    float z = (zView * (far + near) - 2.0 * near * far) / (zView * (far - near));
-    return z * 0.5 + 0.5;
-}
-
 float normalizeDepth(float depth) {
-    depth = clamp(depth, near, far);
-    float z = (depth - near) / (far - near);
-    return UnLinearizeDepth(z);
+    float z = (depth * (far + near) - 2.0 * near * far) / (depth * (far - near));
+    return z * 0.5 + 0.5;
 }
 
 float sampleDepth(sampler2D depthMap, ivec2 sampleCoord) {
