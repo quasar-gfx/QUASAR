@@ -12,7 +12,7 @@ class TexturePreviewWindow {
 public:
     bool visible = false;
 
-    TexturePreviewWindow(const std::string& title, const Texture& texture, glm::uvec2 size,
+    TexturePreviewWindow(const std::string& title, const Texture& texture, const glm::uvec2& size,
                          ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse)
         : title(title)
         , texture(texture)

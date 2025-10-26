@@ -171,6 +171,8 @@ int main(int argc, char** argv) {
     FrameRateWindow frameRateWindow;
     FrameCaptureWindow frameCaptureWindow(recorder, glm::uvec2(430, 270), outputPath);
     RecordWindow recordWindow(recorder, glm::uvec2(430, 270), outputPath);
+    TexturePreviewWindow videoPreviewWindow("Video Texture", quadwarp.videoAtlasStreamerRT.colorTexture, glm::uvec2(430, 270));
+    TexturePreviewWindow alphaPreviewWindow("Alpha Texture", quadwarp.alphaAtlasRT.alphaTexture, glm::uvec2(430, 270));
     TexturePreviewWindow refFramePreviewWindow("Reference Frame", quadwarp.referenceFrameRT.colorTexture, glm::uvec2(430, 270));
     TexturePreviewWindow resFrameChangedPreviewWindow("Residual Frame (changed geometry)", quadwarp.residualFrameMaskRT.colorTexture, glm::uvec2(430, 270));
     TexturePreviewWindow resFrameFullPreviewWindow("Residual Frame (revealed geometry)", quadwarp.residualFrameRT.colorTexture, glm::uvec2(430, 270));
@@ -196,6 +198,8 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("Record", 0, &recordWindow.visible);
             ImGui::MenuItem("Mesh Capture", 0, &showMeshCapture);
             ImGui::MenuItem("Frame Previews", 0, &showFramePreviewWindows);
+            ImGui::MenuItem("Video Preview", 0, &videoPreviewWindow.visible);
+            ImGui::MenuItem("Alpha Preview", 0, &alphaPreviewWindow.visible);
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Scene")) {
@@ -210,6 +214,8 @@ int main(int argc, char** argv) {
         recordWindow.draw(now, dt);
         sceneWindowRemote.draw(now, dt);
         sceneWindowLocal.draw(now, dt);
+        videoPreviewWindow.draw(now, dt);
+        alphaPreviewWindow.draw(now, dt);
 
         if (showUI) {
             ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);

@@ -89,7 +89,7 @@ def print_frame_sizes(directory_path):
                             val = 0.0
 
                     rounded = round(float(val), 3)
-                    result[sim_name] = f"{rounded:.3f}MB"
+                    result[sim_name] = f"{rounded:.3f}MB/frame ({rounded*30*8:.1f}Mbps)"
         print(json.dumps(result, indent=4))
     except Exception as e:
         logger.error(f"An error occurred while collecting frame sizes: {e}")

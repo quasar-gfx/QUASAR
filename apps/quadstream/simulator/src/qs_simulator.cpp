@@ -204,7 +204,7 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("Frame Capture", 0, &frameCaptureWindow.visible);
             ImGui::MenuItem("Record", 0, &recordWindow.visible);
             ImGui::MenuItem("Mesh Capture", 0, &showMeshCapture);
-            ImGui::MenuItem("View Previews", 0, &showFramePreviews);
+            ImGui::MenuItem("Frame Previews", 0, &showFramePreviews);
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Scene")) {

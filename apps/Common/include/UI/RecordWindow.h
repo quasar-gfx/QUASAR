@@ -13,7 +13,7 @@ class RecordWindow {
 public:
     bool visible = false;
 
-    RecordWindow(Recorder& recorder, glm::uvec2 size, const Path& outputPath,
+    RecordWindow(Recorder& recorder, const glm::uvec2& size, const Path& outputPath,
                  ImGuiWindowFlags flags = ImGuiCond_FirstUseEver)
         : recorder(recorder)
         , size(size)
