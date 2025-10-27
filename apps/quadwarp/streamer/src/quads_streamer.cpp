@@ -118,6 +118,7 @@ int main(int argc, char** argv) {
 
     bool sendReferenceFrame = true;
     bool sendResidualFrame = false;
+    bool showResidualFrame = false;
     int refFrameInterval = 2;
 
     const double serverFPSValues[] = {0, 1, 2, 3, 4, 5};
@@ -329,6 +330,7 @@ int main(int argc, char** argv) {
                 prevPoseID = poseID;
                 quadwarp.sendFrame(poseID, sendResidualFrame);
 
+                showResidualFrame = sendResidualFrame;
                 sendReferenceFrame = false;
                 sendResidualFrame = false;
             }
@@ -342,6 +344,7 @@ int main(int argc, char** argv) {
         quadwarp.referenceFrameWireframesLocal[currentIndex].visible = true;
         quadwarp.referenceFrameWireframesLocal[currentIndex].visible = showWireframe;
         quadwarp.referenceFrameWireframesLocal[previousIndex].visible = false;
+        quadwarp.residualFrameNodeLocal.visible = showResidualFrame;
         quadwarp.residualFrameWireframeLocal.visible = quadwarp.residualFrameNodeLocal.visible && showWireframe;
         quadwarp.depthNode.visible = showDepth;
 

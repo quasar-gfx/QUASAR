@@ -218,7 +218,7 @@ void VideoTexture::receiveFrame() {
         }
 
         // Read the pose ID from the frame
-        pose_id_t poseID = unpackPoseIDFromFrame(map.data, videoWidth, videoHeight);
+        const pose_id_t poseID = unpackPoseIDFromFrame(map.data, videoWidth, videoHeight);
 
         {
             std::unique_lock<std::mutex> lock(m);

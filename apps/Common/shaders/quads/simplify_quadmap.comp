@@ -244,9 +244,9 @@ bool shouldMerge(
     if (expandProxies) {
         int validCount = int(validBottomLeft) + int(validBottomRight) + int(validTopLeft) + int(validTopRight);
 
-        // If only one quad is valid, merge everything with that one
+        // If only one quad is valid, don't merge
         if (validCount == 1)
-            return true;
+            return false;
 
         // If two are valid and similar, merge
         if (validCount == 2) {

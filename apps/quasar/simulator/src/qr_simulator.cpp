@@ -160,6 +160,7 @@ int main(int argc, char** argv) {
     bool showNormals = false;
     bool showWireframe = false;
     bool hideReferenceFrame = false, hideResidualFrame = false;
+    bool showResidualFrame = false;
     bool preventCopyingLocalPose = false;
     bool runAnimations = cameraPathFileIn;
     bool restrictMovementToViewSphere = !cameraPathFileIn;
@@ -549,6 +550,7 @@ int main(int argc, char** argv) {
             spdlog::info("Frame Size: {:.3f}MB", quasar.stats.frameSize / BYTES_PER_MEGABYTE);
             spdlog::info("Num Proxies: {}Proxies", quasar.stats.proxySizes.numQuads);
 
+            showResidualFrame = sendResidualFrame;
             preventCopyingLocalPose = false;
             sendReferenceFrame = false;
             sendResidualFrame = false;
@@ -574,7 +576,7 @@ int main(int argc, char** argv) {
                 quasar.depthNodesHidLayer[layer-1].visible = showLayer && !hideReferenceFrame && showDepth;
             }
         }
-        quasar.residualFrameNodeLocal.visible = !hideResidualFrame;
+        quasar.residualFrameNodeLocal.visible = showResidualFrame && !hideResidualFrame;
         quasar.residualFrameWireframeLocal.visible = quasar.residualFrameNodeLocal.visible && showWireframe;
 
         if (restrictMovementToViewSphere) {

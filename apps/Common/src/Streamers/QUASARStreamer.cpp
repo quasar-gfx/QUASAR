@@ -350,7 +350,7 @@ RenderStats QUASARStreamer::generateFrame(bool createResidualFrame, bool showNor
         // Wide FOV has very loose parameters to reduce data size
         if (layer == maxLayers - 1) {
             quadsGenerator->params.flattenThreshold = 1.0f;
-            quadsGenerator->params.proxySimilarityThreshold *= 20.0f;
+            quadsGenerator->params.proxySimilarityThreshold = 8.0f;
         }
         // Hidden layers have looser parameters to reduce data size
         else if (layer > 0) {
@@ -458,8 +458,6 @@ RenderStats QUASARStreamer::generateFrame(bool createResidualFrame, bool showNor
                 meshIndex++;
             }
         }
-
-        residualFrameNodeLocal.visible = createResidualFrame;
 
         // For debugging: Generate point cloud from depth map
         if (showDepth) {

@@ -139,6 +139,7 @@ int main(int argc, char** argv) {
     bool showNormals = false;
     bool showWireframe = false;
     bool hideReferenceFrame = false, hideResidualFrame = false;
+    bool showResidualFrame = false;
     bool preventCopyingLocalPose = false;
     bool runAnimations = cameraPathFileIn;
     bool restrictMovementToViewBox = !cameraPathFileIn;
@@ -491,6 +492,7 @@ int main(int argc, char** argv) {
             spdlog::info("Frame Size: {:.3f}MB", quadwarp.stats.frameSize / BYTES_PER_MEGABYTE);
             spdlog::info("Num Proxies: {}Proxies", quadwarp.stats.proxySizes.numQuads);
 
+            showResidualFrame = sendResidualFrame;
             preventCopyingLocalPose = false;
             sendReferenceFrame = false;
             sendResidualFrame = false;
@@ -505,7 +507,7 @@ int main(int argc, char** argv) {
         quadwarp.referenceFrameNodesLocal[previousIndex].visible = false;
         quadwarp.referenceFrameWireframesLocal[currentIndex].visible = !hideReferenceFrame && showWireframe;
         quadwarp.referenceFrameWireframesLocal[previousIndex].visible = false;
-        quadwarp.residualFrameNodeLocal.visible = !hideResidualFrame;
+        quadwarp.residualFrameNodeLocal.visible = showResidualFrame && !hideResidualFrame;
         quadwarp.residualFrameWireframeLocal.visible = quadwarp.residualFrameNodeLocal.visible && showWireframe;
         quadwarp.depthNode.visible = !hideReferenceFrame && showDepth;
 

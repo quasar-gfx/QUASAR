@@ -200,7 +200,7 @@ void VideoStreamer::encodeAndSendFrames() {
         }
 
         // Pack pose ID into the right side of the frame
-        pose_id_t poseIDToSend = videoFrame.poseID;
+        const pose_id_t poseIDToSend = videoFrame.poseID;
         packPoseIDIntoVideoFrame(poseIDToSend, map.data);
 
         gst_buffer_unmap(buffer, &map);

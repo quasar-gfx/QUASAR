@@ -129,6 +129,7 @@ int main(int argc, char** argv) {
 
     bool sendReferenceFrame = true;
     bool sendResidualFrame = false;
+    bool showResidualFrame = false;
     int refFrameInterval = 2;
 
     const double serverFPSValues[] = {0, 1, 2, 3, 4, 5};
@@ -391,6 +392,7 @@ int main(int argc, char** argv) {
                 prevPoseID = poseID;
                 quasar.sendFrame(poseID, sendResidualFrame);
 
+                showResidualFrame = sendResidualFrame;
                 sendReferenceFrame = false;
                 sendResidualFrame = false;
             }
@@ -413,6 +415,7 @@ int main(int argc, char** argv) {
                 quasar.depthNodesHidLayer[layer-1].visible = showLayer && showDepth;
             }
         }
+        quasar.residualFrameNodeLocal.visible = showResidualFrame;
         quasar.residualFrameWireframeLocal.visible = quasar.residualFrameNodeLocal.visible && showWireframe;
 
         // Offset camera

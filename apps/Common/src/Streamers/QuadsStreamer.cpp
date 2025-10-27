@@ -278,8 +278,6 @@ RenderStats QuadsStreamer::generateFrame(bool createResidualFrame, bool showNorm
         meshIndex++;
     }
 
-    residualFrameNodeLocal.visible = createResidualFrame;
-
     // Update color atlas texture
     referenceFrameRT.blit(videoAtlasStreamerRT,
         0, 0, referenceFrameRT.width, referenceFrameRT.height,
