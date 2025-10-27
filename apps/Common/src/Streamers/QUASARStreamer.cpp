@@ -165,14 +165,14 @@ QUASARStreamer::QUASARStreamer(
     }
 
     // Setup masks for residual frame
-    residualFrameNode.addEntity(&residualFrameMesh);
-    residualFrameNode.frustumCulled = false;
+    residualFrameNodeLocal.addEntity(&residualFrameMesh);
+    residualFrameNodeLocal.frustumCulled = false;
 
-    residualFrameWireframesLocal.addEntity(&residualFrameMesh);
-    residualFrameWireframesLocal.frustumCulled = false;
-    residualFrameWireframesLocal.wireframe = true;
-    residualFrameWireframesLocal.visible = false;
-    residualFrameWireframesLocal.overrideMaterial = &maskWireframeMaterial;
+    residualFrameWireframeLocal.addEntity(&residualFrameMesh);
+    residualFrameWireframeLocal.frustumCulled = false;
+    residualFrameWireframeLocal.wireframe = true;
+    residualFrameWireframeLocal.visible = false;
+    residualFrameWireframeLocal.overrideMaterial = &maskWireframeMaterial;
 
     // Setup depth mesh
     depthNode.addEntity(&depthMesh);
@@ -215,7 +215,7 @@ QUASARStreamer::QUASARStreamer(
     for (int i = 0; i < numHidLayers - 1; i++) {
         sceneWideFov.addChildNode(&nodesHidLayer[i]);
     }
-    sceneWideFov.addChildNode(&residualFrameNode);
+    sceneWideFov.addChildNode(&residualFrameNodeLocal);
 
     setViewSphereDiameter(params.viewSphereDiameter);
 
@@ -263,8 +263,8 @@ void QUASARStreamer::addMeshesToScene(Scene& localScene) {
         localScene.addChildNode(&referenceFrameNodesLocal[i]);
         localScene.addChildNode(&referenceFrameWireframesLocal[i]);
     }
-    localScene.addChildNode(&residualFrameNode);
-    localScene.addChildNode(&residualFrameWireframesLocal);
+    localScene.addChildNode(&residualFrameNodeLocal);
+    localScene.addChildNode(&residualFrameWireframeLocal);
     localScene.addChildNode(&depthNode);
 }
 
@@ -459,7 +459,7 @@ RenderStats QUASARStreamer::generateFrame(bool createResidualFrame, bool showNor
             }
         }
 
-        residualFrameNode.visible = createResidualFrame;
+        residualFrameNodeLocal.visible = createResidualFrame;
 
         // For debugging: Generate point cloud from depth map
         if (showDepth) {

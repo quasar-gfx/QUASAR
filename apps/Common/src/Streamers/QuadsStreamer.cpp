@@ -130,11 +130,11 @@ QuadsStreamer::QuadsStreamer(
     residualFrameNodeLocal.addEntity(&residualFrameMesh);
     residualFrameNodeLocal.frustumCulled = false;
 
-    residualFrameWireframesLocal.addEntity(&residualFrameMesh);
-    residualFrameWireframesLocal.frustumCulled = false;
-    residualFrameWireframesLocal.wireframe = true;
-    residualFrameWireframesLocal.visible = false;
-    residualFrameWireframesLocal.overrideMaterial = &maskWireframeMaterial;
+    residualFrameWireframeLocal.addEntity(&residualFrameMesh);
+    residualFrameWireframeLocal.frustumCulled = false;
+    residualFrameWireframeLocal.wireframe = true;
+    residualFrameWireframeLocal.visible = false;
+    residualFrameWireframeLocal.overrideMaterial = &maskWireframeMaterial;
 
     depthNode.addEntity(&depthMesh);
     depthNode.frustumCulled = false;
@@ -165,7 +165,7 @@ void QuadsStreamer::addMeshesToScene(Scene& localScene) {
         localScene.addChildNode(&referenceFrameWireframesLocal[i]);
     }
     localScene.addChildNode(&residualFrameNodeLocal);
-    localScene.addChildNode(&residualFrameWireframesLocal);
+    localScene.addChildNode(&residualFrameWireframeLocal);
     localScene.addChildNode(&depthNode);
 }
 

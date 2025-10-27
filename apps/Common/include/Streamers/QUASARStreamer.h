@@ -44,15 +44,15 @@ public:
     FrameRenderTarget residualFrameMaskRT;
     ResidualFrame residualFrame;
     QuadMesh residualFrameMesh;
-    Node residualFrameNode;
 
     VideoStreamer videoAtlasStreamerRT;
     FrameRenderTarget alphaAtlasRT;
 
     // Local objects
-    std::vector<Node> referenceFrameNodesLocal;
-    Node residualFrameWireframesLocal;
     std::vector<Node> referenceFrameWireframesLocal;
+    std::vector<Node> referenceFrameNodesLocal;
+    Node residualFrameNodeLocal;
+    Node residualFrameWireframeLocal;
 
     // Hidden layers
     std::vector<FrameRenderTarget> frameRTsHidLayer;

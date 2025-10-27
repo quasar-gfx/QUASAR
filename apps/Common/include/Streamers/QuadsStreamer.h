@@ -37,7 +37,6 @@ public:
     FrameRenderTarget residualFrameMaskRT;
     ResidualFrame residualFrame;
     QuadMesh residualFrameMesh;
-    Node residualFrameNodeLocal;
 
     VideoStreamer videoAtlasStreamerRT;
     FrameRenderTarget alphaAtlasRT;
@@ -45,7 +44,8 @@ public:
     // Local objects
     std::vector<Node> referenceFrameNodesLocal;
     std::vector<Node> referenceFrameWireframesLocal;
-    Node residualFrameWireframesLocal;
+    Node residualFrameNodeLocal;
+    Node residualFrameWireframeLocal;
 
     // Depth point cloud for debugging
     DepthMesh depthMesh;

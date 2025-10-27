@@ -105,10 +105,6 @@ int main(int argc, char** argv) {
     QuadSet quadSet(remoteWindowSize);
     QuadsStreamer quadwarp(quadSet, remoteRenderer, remoteScene, remoteCamera);
 
-    std::vector<Node> referenceFrameNodesLocal;
-    std::vector<Node> referenceFrameWireframesLocal;
-    Node residualFrameWireframesLocal;
-
     // Add meshes to local scene
     quadwarp.addMeshesToScene(localScene);
 
@@ -142,6 +138,7 @@ int main(int argc, char** argv) {
     bool showDepth = false;
     bool showNormals = false;
     bool showWireframe = false;
+    bool hideReferenceFrame = false, hideResidualFrame = false;
     bool preventCopyingLocalPose = false;
     bool runAnimations = cameraPathFileIn;
     bool restrictMovementToViewBox = !cameraPathFileIn;
@@ -273,6 +270,8 @@ int main(int argc, char** argv) {
                 runAnimations = false;
             }
             ImGui::Checkbox("Show Wireframe", &showWireframe);
+            ImGui::Checkbox("Hide Reference Frame", &hideReferenceFrame); ImGui::SameLine();
+            ImGui::Checkbox("Hide Residual Frame", &hideResidualFrame);
 
             ImGui::Separator();
 
@@ -502,12 +501,13 @@ int main(int argc, char** argv) {
         // Show meshes
         int currentIndex  = quadwarp.lastMeshIndex % 2;
         int previousIndex = (quadwarp.lastMeshIndex + 1) % 2;
-        quadwarp.referenceFrameNodesLocal[currentIndex].visible = true;
+        quadwarp.referenceFrameNodesLocal[currentIndex].visible = !hideReferenceFrame;
         quadwarp.referenceFrameNodesLocal[previousIndex].visible = false;
-        quadwarp.referenceFrameWireframesLocal[currentIndex].visible = showWireframe;
+        quadwarp.referenceFrameWireframesLocal[currentIndex].visible = !hideReferenceFrame && showWireframe;
         quadwarp.referenceFrameWireframesLocal[previousIndex].visible = false;
-        quadwarp.residualFrameWireframesLocal.visible = quadwarp.residualFrameNodeLocal.visible && showWireframe;
-        quadwarp.depthNode.visible = showDepth;
+        quadwarp.residualFrameNodeLocal.visible = !hideResidualFrame;
+        quadwarp.residualFrameWireframeLocal.visible = quadwarp.residualFrameNodeLocal.visible && showWireframe;
+        quadwarp.depthNode.visible = !hideReferenceFrame && showDepth;
 
         if (restrictMovementToViewBox) {
             glm::vec3 remotePosition = remoteCamera.getPosition();

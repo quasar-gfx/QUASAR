@@ -159,6 +159,7 @@ int main(int argc, char** argv) {
     bool showDepth = false;
     bool showNormals = false;
     bool showWireframe = false;
+    bool hideReferenceFrame = false, hideResidualFrame = false;
     bool preventCopyingLocalPose = false;
     bool runAnimations = cameraPathFileIn;
     bool restrictMovementToViewSphere = !cameraPathFileIn;
@@ -285,7 +286,6 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::Checkbox("Show Wireframe", &showWireframe);
             if (ImGui::Checkbox("Show Depth Map as Point Cloud", &showDepth)) {
                 preventCopyingLocalPose = true;
                 sendReferenceFrame = true;
@@ -296,6 +296,9 @@ int main(int argc, char** argv) {
                 sendReferenceFrame = true;
                 runAnimations = false;
             }
+            ImGui::Checkbox("Show Wireframe", &showWireframe);
+            ImGui::Checkbox("Hide Reference Frame", &hideReferenceFrame); ImGui::SameLine();
+            ImGui::Checkbox("Hide Residual Frame", &hideResidualFrame);
 
             ImGui::Separator();
 
@@ -559,20 +562,20 @@ int main(int argc, char** argv) {
         for (int layer = 0; layer < maxLayers; layer++) {
             bool showLayer = showLayers[layer];
             if (layer == 0) {
-                // Show current mesh
-                quasar.referenceFrameNodesLocal[currentIndex].visible = showLayer;
+                quasar.referenceFrameNodesLocal[currentIndex].visible = showLayer && !hideReferenceFrame;
                 quasar.referenceFrameNodesLocal[previousIndex].visible = false;
-                quasar.referenceFrameWireframesLocal[currentIndex].visible = showLayer && showWireframe;
+                quasar.referenceFrameWireframesLocal[currentIndex].visible = showLayer && !hideReferenceFrame && showWireframe;
                 quasar.referenceFrameWireframesLocal[previousIndex].visible = false;
-                quasar.depthNode.visible = showLayer && showDepth;
+                quasar.depthNode.visible = showLayer && !hideReferenceFrame && showDepth;
             }
             else {
-                quasar.nodesHidLayer[layer-1].visible = showLayer;
-                quasar.wireframesHidLayer[layer-1].visible = showLayer && showWireframe;
-                quasar.depthNodesHidLayer[layer-1].visible = showLayer && showDepth;
+                quasar.nodesHidLayer[layer-1].visible = showLayer && !hideReferenceFrame;
+                quasar.wireframesHidLayer[layer-1].visible = showLayer && !hideReferenceFrame && showWireframe;
+                quasar.depthNodesHidLayer[layer-1].visible = showLayer && !hideReferenceFrame && showDepth;
             }
         }
-        quasar.residualFrameWireframesLocal.visible = quasar.residualFrameNode.visible && showWireframe;
+        quasar.residualFrameNodeLocal.visible = !hideResidualFrame;
+        quasar.residualFrameWireframeLocal.visible = quasar.residualFrameNodeLocal.visible && showWireframe;
 
         if (restrictMovementToViewSphere) {
             glm::vec3 remotePosition = remoteCamera.getPosition();

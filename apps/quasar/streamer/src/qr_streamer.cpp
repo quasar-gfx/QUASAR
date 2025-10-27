@@ -401,7 +401,6 @@ int main(int argc, char** argv) {
         for (int layer = 0; layer < maxLayers; layer++) {
             bool showLayer = showLayers[layer];
             if (layer == 0) {
-                // Show current mesh
                 quasar.referenceFrameNodesLocal[currentIndex].visible = showLayer;
                 quasar.referenceFrameNodesLocal[previousIndex].visible = false;
                 quasar.referenceFrameWireframesLocal[currentIndex].visible = showLayer && showWireframe;
@@ -414,7 +413,7 @@ int main(int argc, char** argv) {
                 quasar.depthNodesHidLayer[layer-1].visible = showLayer && showDepth;
             }
         }
-        quasar.residualFrameWireframesLocal.visible = quasar.residualFrameNode.visible && showWireframe;
+        quasar.residualFrameWireframeLocal.visible = quasar.residualFrameNodeLocal.visible && showWireframe;
 
         // Offset camera
         camera.setPosition(camera.getPosition() + initialPosition);

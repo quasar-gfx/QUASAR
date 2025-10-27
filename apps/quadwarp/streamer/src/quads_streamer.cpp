@@ -342,7 +342,7 @@ int main(int argc, char** argv) {
         quadwarp.referenceFrameWireframesLocal[currentIndex].visible = true;
         quadwarp.referenceFrameWireframesLocal[currentIndex].visible = showWireframe;
         quadwarp.referenceFrameWireframesLocal[previousIndex].visible = false;
-        quadwarp.residualFrameWireframesLocal.visible = quadwarp.residualFrameNodeLocal.visible && showWireframe;
+        quadwarp.residualFrameWireframeLocal.visible = quadwarp.residualFrameNodeLocal.visible && showWireframe;
         quadwarp.depthNode.visible = showDepth;
 
         // Offset camera
