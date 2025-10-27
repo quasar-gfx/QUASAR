@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
 
     // Post processing
     Tonemapper tonemapper;
-    ShowDepthEffect showDepthEffect(camera);
+    ShowDepthEffect showDepthEffect(camera, 10.0f);
     ShowNormalsEffect showNormalsEffect;
     ShowPositionsEffect showPositionsEffect;
     ShowIDsEffect showIDsEffect;

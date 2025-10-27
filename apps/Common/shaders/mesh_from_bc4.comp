@@ -49,10 +49,9 @@ const uvec2 blockSize = uvec2(8, 8);
 #define VERTICES_IN_A_QUAD  4u
 #define INDICES_IN_A_QUAD   6u
 
-float UnLinearizeDepth(float depth) {
-    depth *= (far - near);
-    depth = max(depth, near);
-    float z = (depth * (far + near) - 2.0 * near * far) / (depth * (far - near));
+float nonlinearDepthFromLinear01(float linearDepth) {
+    float z = linearDepth * (far - near) + near;
+    z = (z * (far + near) - 2.0 * near * far) / (z * (far - near));
     return z * 0.5 + 0.5;
 }
 
@@ -102,7 +101,7 @@ float sampleBC4Buffer(vec2 pixelCoordNormalized) {
     float depth = mix(minVal, maxVal, t);
     depth = min(depth, MAX_DEPTH);
 
-    return unlinearizeDepth ? UnLinearizeDepth(depth) : depth;
+    return unlinearizeDepth ? nonlinearDepthFromLinear01(depth) : depth;
 }
 
 void main() {

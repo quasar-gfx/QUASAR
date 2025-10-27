@@ -9,7 +9,7 @@ namespace quasar {
 
 class ShowDepthEffect : public PostProcessingEffect {
 public:
-    ShowDepthEffect(Camera& camera)
+    ShowDepthEffect(Camera& camera, float depthMultiplier = 1.0f)
         : camera(camera)
         , shader({
             .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
@@ -17,7 +17,10 @@ public:
             .fragmentCodeData = SHADER_BUILTIN_SHOW_DEPTH_FRAG,
             .fragmentCodeSize = SHADER_BUILTIN_SHOW_DEPTH_FRAG_len,
         })
-    {}
+    {
+        shader.bind();
+        shader.setFloat("depthMultiplier", depthMultiplier);
+    }
 
     RenderStats drawToScreen(OpenGLRenderer& renderer) override {
         shader.bind();

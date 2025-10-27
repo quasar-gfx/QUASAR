@@ -29,7 +29,7 @@ public:
         bool correctOrientation = true;
         float depthThreshold = 1e-4f;
         float angleThreshold = 88.0f;
-        float flattenThreshold = 0.25f;
+        float flattenThreshold = 0.5f;
         float proxySimilarityThreshold = 0.5f;
         int maxIterForceMerge = 11;
     } params;

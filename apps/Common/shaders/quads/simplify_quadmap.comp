@@ -370,10 +370,10 @@ void recalcDepthOffsets(
         storeDepthOffsets(depthOffsetPixelCoords, newDepthOffsets);
 
         vec4 absOffsets = abs(newDepthOffsets);
-        numBelowThreshold += int(absOffsets.x < flattenThreshold) +
-                             int(absOffsets.y < flattenThreshold) +
-                             int(absOffsets.z < flattenThreshold) +
-                             int(absOffsets.w < flattenThreshold);
+        numBelowThreshold += int(nonlinearDepthFromLinearView(absOffsets.x, near, far) < flattenThreshold) +
+                             int(nonlinearDepthFromLinearView(absOffsets.y, near, far) < flattenThreshold) +
+                             int(nonlinearDepthFromLinearView(absOffsets.z, near, far) < flattenThreshold) +
+                             int(nonlinearDepthFromLinearView(absOffsets.w, near, far) < flattenThreshold);
         total += 4;
     }
 }

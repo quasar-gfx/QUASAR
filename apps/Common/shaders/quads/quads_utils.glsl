@@ -88,6 +88,11 @@ bool isValidQuadMapData(in QuadMapData quadMapData) {
            quadMapData.size > 0;
 }
 
+float nonlinearDepthFromLinearView(float depthView, float near, float far) {
+    float z = (depthView * (far + near) - 2.0 * near * far) / (depthView * (far - near));
+    return z * 0.5 + 0.5;
+}
+
 float signedDistance(vec3 p1, vec3 p2) {
     float dist = distance(p1, p2);
     return (length(p1) > length(p2)) ? -dist : dist;
