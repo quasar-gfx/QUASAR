@@ -36,7 +36,7 @@ public:
         const std::string& videoURL,
         uint maxFrameRate = 30,
         uint targetBitRateMbps = 12,
-        bool useRTP = false);
+        bool useSRT = false);
     ~VideoStreamer();
 
     void stop();
@@ -59,8 +59,6 @@ private:
     std::string appSrcName = "oglsrc0";
     std::string payloaderName = "pay0";
     std::string h264ParseName = "h264parse0";
-
-    bool useRTP = false;
 
     const int poseIDOffset = sizeof(pose_id_t) * 8;
     uint videoWidth, videoHeight;

@@ -11,13 +11,12 @@ VideoStreamer::VideoStreamer(
         const std::string& videoURL,
         uint maxFrameRate,
         uint targetBitRateMbps,
-        bool useRTP)
+        bool useSRT)
     : videoURL(videoURL)
     , videoWidth(params.width + poseIDOffset)
     , videoHeight(params.height)
     , maxFrameRate(maxFrameRate)
     , targetBitRateKbps(targetBitRateMbps * 1000)
-    , useRTP(useRTP)
     , RenderTarget(params)
 #if defined(QUASAR_HAS_CUDA)
     , cudaGLImage(colorTexture)
@@ -62,7 +61,7 @@ VideoStreamer::VideoStreamer(
         << "videoconvert ! video/x-raw,format=" << format << " ! "
         << encoderParams << " bitrate=" << targetBitRateKbps << " ! "
         << "h264parse config-interval=1 name=" << h264ParseName << " ! ";
-    if (useRTP) {
+    if (!useSRT) {
         oss << "rtph264pay config-interval=1 pt=96 name=" << payloaderName << " ! "
             << "udpsink host=" << host << " port=" << port << " sync=false";
     }
@@ -93,7 +92,7 @@ VideoStreamer::VideoStreamer(
             gst_pad_add_probe(
                 srcpad,
                 GST_PAD_PROBE_TYPE_BUFFER,
-                [](GstPad* /*pad*/, GstPadProbeInfo* info, gpointer user_data) -> GstPadProbeReturn {
+                [](GstPad* pad, GstPadProbeInfo* info, gpointer user_data) -> GstPadProbeReturn {
                     auto* self = static_cast<VideoStreamer*>(user_data);
                     GstBuffer* buf = GST_PAD_PROBE_INFO_BUFFER(info);
                     if (buf && self) {
@@ -115,7 +114,7 @@ VideoStreamer::VideoStreamer(
     gst_element_set_state(pipeline, GST_STATE_PLAYING);
 
     videoStreamerThread = std::thread(&VideoStreamer::encodeAndSendFrames, this);
-    spdlog::info("Created VideoStreamer (GStreamer) that sends to URL: {}://{}", useRTP ? "rtp" : "srt", videoURL);
+    spdlog::info("Created VideoStreamer (GStreamer) that sends to URL: {}://{}", useSRT ? "srt" : "rtp", videoURL);
 }
 
 VideoStreamer::~VideoStreamer() {
@@ -230,7 +229,7 @@ void VideoStreamer::encodeAndSendFrames() {
         stats.totalSendTimeMs = timeutils::microsToMillis(now - prevTime);
 
         // Compute encoded bitrate in Mbps based on bytes metered at encoder output
-        double elapsedSec = timeutils::microsToSeconds(now - prevTime);
+        double elapsedSec = timeutils::microsToSeconds(frameStart - prevTime);
         if (elapsedSec > 0.0) {
             uint64_t total = encodedBytesTotal.load(std::memory_order_relaxed);
             uint64_t deltaBytes = total - prevEncodedBytesTotal;
@@ -239,7 +238,7 @@ void VideoStreamer::encodeAndSendFrames() {
             stats.bitrateMbps = bitsPerSec / BYTES_PER_MEGABYTE;
         }
 
-        prevTime = now;
+        prevTime = frameStart;
     }
 }
 

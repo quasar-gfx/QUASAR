@@ -34,7 +34,6 @@ QuadsReceiver::QuadsReceiver(QuadSet& quadSet, const std::string& videoURL, cons
     })
     , alphaCodec(alphaAtlasTexture.width, alphaAtlasTexture.height)
     , referenceFrameMesh(quadSet, videoAtlasTexture, alphaAtlasTexture, glm::vec4(0.0f, 0.0f, 0.5f, 1.0f))
-    // We can use fewer vertices and indices for the mask since it will be sparse
     , residualFrameMesh(quadSet, videoAtlasTexture, alphaAtlasTexture, glm::vec4(0.5f, 0.0f, 1.0f, 1.0f))
     , DataReceiverTCP(proxiesURL)
 {

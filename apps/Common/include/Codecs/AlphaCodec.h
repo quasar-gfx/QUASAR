@@ -21,6 +21,7 @@ public:
         , height(height)
     {
         prevFrame.resize(width * height, 0);
+        deltaBuffer.resize(width * height, 0);
     }
     ~AlphaCodec() = default;
 
@@ -51,7 +52,8 @@ public:
 
                 if (!skip) {
                     // Emit residuals for this block
-                    iterateBlock(bi, [&](size_t idx, uint8_t v) {
+                    iterateBlock(bi, [&](size_t idx) {
+                        const uint8_t v = src[idx];
                         const int16_t r = int16_t(v) - int16_t(prevFrame[idx]);
                         prevFrame[idx] = v;
                         if (writePos == deltaBuffer.size()) deltaBuffer.push_back(0);
@@ -60,8 +62,8 @@ public:
                 }
                 else {
                     // For skipped blocks, just advance prevFrame to src (copy)
-                    iterateBlock(bi, [&](size_t idx, uint8_t v) {
-                        prevFrame[idx] = v;
+                    iterateBlock(bi, [&](size_t idx) {
+                        prevFrame[idx] = src[idx];
                     });
                 }
             }
@@ -105,14 +107,14 @@ public:
 
                 if (skip) {
                     // Copy prevFrame into output, keep prevFrame as-is (already prev)
-                    iterateBlock(bi, [&](size_t idx, uint8_t) {
+                    iterateBlock(bi, [&](size_t idx) {
                         const uint8_t v = prevFrame[idx];
                         decompressedData[idx] = static_cast<char>(v);
                     });
                 }
                 else {
                     // Reconstruct from residuals
-                    iterateBlock(bi, [&](size_t idx, uint8_t) {
+                    iterateBlock(bi, [&](size_t idx) {
                         if (payload + readPos >= inEnd) return; // safety
                         const int8_t d = static_cast<int8_t>(deltaBuffer[flagBytes + readPos++]);
                         const uint8_t v = uint8_t(int16_t(prevFrame[idx]) + d);
@@ -157,7 +159,7 @@ private:
             const size_t row = size_t(b.y0 + dy) * width + b.x0;
             for (uint dx = 0; dx < b.w; dx++) {
                 const size_t idx = row + dx;
-                f(idx, 0);
+                f(idx);
             }
         }
     }
