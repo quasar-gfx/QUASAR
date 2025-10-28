@@ -13,8 +13,8 @@ public:
     Texture alphaTexture;
     Texture pbrTexture;
     Texture emissiveTexture;
-    Texture positionTexture;
     Texture normalsTexture;
+    Texture positionTexture;
     Texture lightPositionTexture;
     Texture idTexture;
     Texture depthStencilTexture;

@@ -208,11 +208,10 @@ int main(int argc, char** argv) {
                 int layerIdx = renderer.maxLayers - layer - 1;
                 ImGui::Begin(("Layer " + std::to_string(layerIdx)).c_str(), 0, ImGuiWindowFlags_AlwaysAutoResize);
                 ImGui::Image((void*)(intptr_t)(renderer.peelingLayers[layerIdx].colorTexture.ID),
-                                ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
+                             ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
                 ImGui::End();
             }
         }
-
     });
 
     app.onResize([&](uint width, uint height) {

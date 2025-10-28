@@ -14,7 +14,8 @@ public:
     enum class AlphaMode : uint8_t {
         OPAQUE = 0,
         MASKED,
-        TRANSPARENT
+        TRANSPARENT,
+        NONE,
     };
 
     enum class RenderPipelineMode : uint8_t {

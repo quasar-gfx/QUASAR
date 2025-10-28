@@ -181,6 +181,7 @@ void main() {
     radianceOut = radianceOut + ambient;
 
     FragColor = vec4(radianceOut, alpha);
+    FragAlpha = alpha;
     FragNormal = vec4(normalize(fsIn.Normal), 1.0);
     FragIDs = uvec4(fsIn.DrawID, gl_PrimitiveID, 0, material.alphaMode);
     FragIDs.z = floatBitsToUint((-fsIn.FragPosView.z - camera.near) / (camera.far - camera.near));

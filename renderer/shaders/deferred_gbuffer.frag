@@ -141,7 +141,7 @@ void main() {
 #ifdef VIEW_DEPENDENT_LIGHTING
     gNormal = vec3(N);
 #else
-    gNormal = vec3(normalize(fsIn.Normal));
+    gNormal = normalize(fsIn.Normal);
 #endif
     gPosition = fsIn.FragPosWorld;
     gLightPosition = fsIn.FragPosLightSpace;
