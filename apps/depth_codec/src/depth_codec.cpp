@@ -334,7 +334,7 @@ int main(int argc, char** argv) {
         }
         {
             meshFromDepthShader.setVec2("depthMapSize", windowSize);
-            meshFromDepthShader.setInt("vertexGroupSize", vertexGroupSize);
+            meshFromDepthShader.setUint("vertexGroupSize", vertexGroupSize);
         }
         {
             meshFromDepthShader.setMat4("projection", remoteCamera.getProjectionMatrix());
@@ -364,7 +364,7 @@ int main(int argc, char** argv) {
         {
             meshFromBC4Shader.setBool("unlinearizeDepth", true);
             meshFromBC4Shader.setVec2("depthMapSize", windowSize);
-            meshFromBC4Shader.setInt("vertexGroupSize", vertexGroupSize);
+            meshFromBC4Shader.setUint("vertexGroupSize", vertexGroupSize);
         }
         {
             meshFromBC4Shader.setMat4("projection", remoteCamera.getProjectionMatrix());
