@@ -165,6 +165,8 @@ QUASARStreamer::QUASARStreamer(
     }
 
     // Setup masks for residual frame
+    residualFrameNode.addEntity(&residualFrameMesh);
+    residualFrameNode.frustumCulled = false;
     residualFrameNodeLocal.addEntity(&residualFrameMesh);
     residualFrameNodeLocal.frustumCulled = false;
 
@@ -215,7 +217,7 @@ QUASARStreamer::QUASARStreamer(
     for (int i = 0; i < numHidLayers - 1; i++) {
         sceneWideFov.addChildNode(&nodesHidLayer[i]);
     }
-    sceneWideFov.addChildNode(&residualFrameNodeLocal);
+    sceneWideFov.addChildNode(&residualFrameNode);
 
     setViewSphereDiameter(params.viewSphereDiameter);
 
@@ -457,6 +459,8 @@ RenderStats QUASARStreamer::generateFrame(bool createResidualFrame, bool showNor
                 lastMeshIndex = meshIndex;
                 meshIndex++;
             }
+
+            residualFrameNode.visible = createResidualFrame;
         }
 
         // For debugging: Generate point cloud from depth map

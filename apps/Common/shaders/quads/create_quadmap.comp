@@ -63,62 +63,64 @@ vec3 normalToView(mat4 view, vec3 normalWorld) {
 
 vec3 findQuadPointCorner(
     vec2 surfelNDC,
-    vec3 surfelViewPlane,
-    vec3 surfelViewPlanePixelNeighbor1,
-    vec3 surfelViewPlanePixelNeighbor2,
-    vec3 surfelViewPlanePixelNeighbor3,
+    vec3 surfelViewPt,
+    vec3 surfelViewPtNeighbor1,
+    vec3 surfelViewPtNeighbor2,
+    vec3 surfelViewPtNeighbor3,
     float pixelDepthCenter, float pixelDepthNeighbor1, float pixelDepthNeighbor2, float pixelDepthNeighbor3)
 {
     if (!isValidDepth(pixelDepthNeighbor1) || !isValidDepth(pixelDepthNeighbor2) || !isValidDepth(pixelDepthNeighbor3)) {
-        return surfelViewPlane;
+        return surfelViewPt;
     }
 
-    // Find distance of depth of point on this pixel's plane to the same point on neighboring pixels' planes
-    float dist1 = nonlinearDepthFromLinearView(distance(surfelViewPlane, surfelViewPlanePixelNeighbor1), near, far);
-    float dist2 = nonlinearDepthFromLinearView(distance(surfelViewPlane, surfelViewPlanePixelNeighbor2), near, far);
-    float dist3 = nonlinearDepthFromLinearView(distance(surfelViewPlane, surfelViewPlanePixelNeighbor3), near, far);
+    // Find distances of *inverse* depth values to neighboring pixels
+    // Inverse depth makes it so that further surfels have smaller inverse depth distances,
+    // making closer surfels more likely to have depth offsets and further surfels more likely to be flattened
+    float dist1 = invDepthDistance(surfelViewPt, surfelViewPtNeighbor1, near, far);
+    float dist2 = invDepthDistance(surfelViewPt, surfelViewPtNeighbor2, near, far);
+    float dist3 = invDepthDistance(surfelViewPt, surfelViewPtNeighbor3, near, far);
 
-    // Add the contribution of each neighboring pixel to interpolated depth, if it is within depthThreshold
-    float depth = pixelDepthCenter;
+    // Interpolate with the depths of the neighboring pixels that have inverse depth distances within depthThreshold
+    float interpDepth = pixelDepthCenter;
     float n = 1;
     if (dist1 < depthThreshold) {
-        depth += pixelDepthNeighbor1;
+        interpDepth += pixelDepthNeighbor1;
         n++;
     }
     if (dist2 < depthThreshold) {
-        depth += pixelDepthNeighbor2;
+        interpDepth += pixelDepthNeighbor2;
         n++;
     }
     if (dist3 < depthThreshold) {
-        depth += pixelDepthNeighbor3;
+        interpDepth += pixelDepthNeighbor3;
         n++;
     }
-    depth /= n;
+    interpDepth /= n;
 
-    // Only return the interpolated point if all neighboring pixels are within depthThreshold
-    vec3 surfelViewBottomLeftInterp = ndcToView(projectionInverse, surfelNDC, depth);
+    // Use interpolated point if *all* neighboring pixels' inverse depth distances are within depthThreshold
     if (n == 4) {
+        vec3 surfelViewBottomLeftInterp = ndcToView(projectionInverse, surfelNDC, interpDepth);
         return surfelViewBottomLeftInterp;
     }
-    return surfelViewPlane;
+    return surfelViewPt;
 }
 
 vec3 findQuadPointEdge(
     vec2 surfelNDC,
-    vec3 surfelViewPlane,
-    vec3 surfelViewPlanePixelNeighbor,
+    vec3 surfelViewPt,
+    vec3 surfelViewPtNeighbor,
     float pixelDepthCenter, float pixelDepthNeighbor)
 {
     if (!isValidDepth(pixelDepthNeighbor)) {
-        return surfelViewPlane;
+        return surfelViewPt;
     }
 
-    // Return interpolated point if neighboring pixel's depth is within depthThreshold
-    if (nonlinearDepthFromLinearView(distance(surfelViewPlane, surfelViewPlanePixelNeighbor), near, far) < depthThreshold) {
-        float depth = (pixelDepthCenter + pixelDepthNeighbor) / 2.0;
-        return ndcToView(projectionInverse, surfelNDC, depth);
+    // Use interpolated point if neighboring pixel's inverse depth distance is within depthThreshold
+    if (invDepthDistance(surfelViewPt, surfelViewPtNeighbor, near, far) < depthThreshold) {
+        float interpDepth = (pixelDepthCenter + pixelDepthNeighbor) / 2.0;
+        return ndcToView(projectionInverse, surfelNDC, interpDepth);
     }
-    return surfelViewPlane;
+    return surfelViewPt;
 }
 
 bool quadHasExtremeOrientation(in vec3 centerNormal, in vec3 frustumNormalView) {
@@ -350,25 +352,25 @@ void storeSurfelsInQuadMap(
     vec4 absDepthOffsetsTopRight    = abs(depthOffsetsTopRight);
 
     int numBelowThreshold = 0, total = 16;
-    numBelowThreshold += int(nonlinearDepthFromLinearView(absDepthOffsetsBottomLeft.x, near, far) < flattenThreshold) +
-                         int(nonlinearDepthFromLinearView(absDepthOffsetsBottomLeft.y, near, far) < flattenThreshold) +
-                         int(nonlinearDepthFromLinearView(absDepthOffsetsBottomLeft.z, near, far) < flattenThreshold) +
-                         int(nonlinearDepthFromLinearView(absDepthOffsetsBottomLeft.w, near, far) < flattenThreshold) +
+    numBelowThreshold += int(absDepthOffsetsBottomLeft.x < flattenThreshold) +
+                         int(absDepthOffsetsBottomLeft.y < flattenThreshold) +
+                         int(absDepthOffsetsBottomLeft.z < flattenThreshold) +
+                         int(absDepthOffsetsBottomLeft.w < flattenThreshold) +
 
-                         int(nonlinearDepthFromLinearView(absDepthOffsetsBottomRight.x, near, far) < flattenThreshold) +
-                         int(nonlinearDepthFromLinearView(absDepthOffsetsBottomRight.y, near, far) < flattenThreshold) +
-                         int(nonlinearDepthFromLinearView(absDepthOffsetsBottomRight.z, near, far) < flattenThreshold) +
-                         int(nonlinearDepthFromLinearView(absDepthOffsetsBottomRight.w, near, far) < flattenThreshold) +
+                         int(absDepthOffsetsBottomRight.x < flattenThreshold) +
+                         int(absDepthOffsetsBottomRight.y < flattenThreshold) +
+                         int(absDepthOffsetsBottomRight.z < flattenThreshold) +
+                         int(absDepthOffsetsBottomRight.w < flattenThreshold) +
 
-                         int(nonlinearDepthFromLinearView(absDepthOffsetsTopLeft.x, near, far) < flattenThreshold) +
-                         int(nonlinearDepthFromLinearView(absDepthOffsetsTopLeft.y, near, far) < flattenThreshold) +
-                         int(nonlinearDepthFromLinearView(absDepthOffsetsTopLeft.z, near, far) < flattenThreshold) +
-                         int(nonlinearDepthFromLinearView(absDepthOffsetsTopLeft.w, near, far) < flattenThreshold) +
+                         int(absDepthOffsetsTopLeft.x < flattenThreshold) +
+                         int(absDepthOffsetsTopLeft.y < flattenThreshold) +
+                         int(absDepthOffsetsTopLeft.z < flattenThreshold) +
+                         int(absDepthOffsetsTopLeft.w < flattenThreshold) +
 
-                         int(nonlinearDepthFromLinearView(absDepthOffsetsTopRight.x, near, far) < flattenThreshold) +
-                         int(nonlinearDepthFromLinearView(absDepthOffsetsTopRight.y, near, far) < flattenThreshold) +
-                         int(nonlinearDepthFromLinearView(absDepthOffsetsTopRight.z, near, far) < flattenThreshold) +
-                         int(nonlinearDepthFromLinearView(absDepthOffsetsTopRight.w, near, far) < flattenThreshold);
+                         int(absDepthOffsetsTopRight.x < flattenThreshold) +
+                         int(absDepthOffsetsTopRight.y < flattenThreshold) +
+                         int(absDepthOffsetsTopRight.z < flattenThreshold) +
+                         int(absDepthOffsetsTopRight.w < flattenThreshold);
 
     // If all surfels are below the threshold, then the plane is considered flattened
     bool flattened = (numBelowThreshold == total);

@@ -127,6 +127,8 @@ QuadsStreamer::QuadsStreamer(
     }
 
     // Setup masks for residual frame
+    residualFrameNode.addEntity(&residualFrameMesh);
+    residualFrameNode.frustumCulled = false;
     residualFrameNodeLocal.addEntity(&residualFrameMesh);
     residualFrameNodeLocal.frustumCulled = false;
 
@@ -277,6 +279,8 @@ RenderStats QuadsStreamer::generateFrame(bool createResidualFrame, bool showNorm
         lastMeshIndex = meshIndex;
         meshIndex++;
     }
+
+    residualFrameNode.visible = createResidualFrame;
 
     // Update color atlas texture
     referenceFrameRT.blit(videoAtlasStreamerRT,

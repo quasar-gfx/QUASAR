@@ -43,32 +43,24 @@ uniform float proxySimilarityThreshold;
 uniform int maxIterForceMerge;
 
 bool hasDepthDiscontinuity(
-    float depthBottomLeft, float depthBottomRight, float depthTopLeft, float depthTopRight,
+    in Plane proxyPlaneBottomLeft, in Plane proxyPlaneBottomRight, in Plane proxyPlaneTopLeft, in Plane proxyPlaneTopRight,
     bool validBottomLeft, bool validBottomRight, bool validTopLeft, bool validTopRight)
 {
-    vec3 sumNormal = vec3(0.0);
     int validCount = int(validBottomLeft) + int(validBottomRight) + int(validTopLeft) + int(validTopRight);
+    if (validCount < 4) return true;
 
-    // If we have fewer than two valid proxy planes, there is no discontinuity
-    if (validCount < 2) return false;
-
-    float depths[4];
-    depths[0] = depthBottomLeft;
-    depths[1] = depthBottomRight;
-    depths[2] = depthTopLeft;
-    depths[3] = depthTopRight;
-
-    float validDepths[4];
-    int validDepthCount = 0;
-    for (int i = 0; i < 4; i++) {
-        if (!isValidDepth(depths[i])) continue;
-        validDepths[validDepthCount++] = depths[i];
-    }
+    bool valids[4] = {validBottomLeft, validBottomRight, validTopLeft, validTopRight};
+    vec3 points[4] = {proxyPlaneBottomLeft.point,
+                      proxyPlaneBottomRight.point,
+                      proxyPlaneTopLeft.point,
+                      proxyPlaneTopRight.point};
 
     // Compare pairwise differences
-    for (int i = 0; i < validDepthCount; i++) {
-        for (int j = i + 1; j < validDepthCount; j++) {
-            if (abs(validDepths[i] - validDepths[j]) >= depthThreshold) return true;
+    for (int i = 0; i < 4; i++) {
+        vec3 pi = points[i];
+        for (int j = i + 1; j < 4; j++) {
+            vec3 pj = points[j];
+            if (normalizeDepth(distance(pi.z, pj.z), near, far) >= depthThreshold) return true;
         }
     }
     return false;
@@ -136,18 +128,18 @@ void storeOutputQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
 void clearInputQuadMapData(in ivec2 pixelCoord) {
     uint index = uint(pixelCoord.y) * uint(inputQuadMapSize.x) + uint(pixelCoord.x);
     normalAndDepthInput[index] = 0;
-    metadatasInput[index] = 0;
-}
-
-bool inputQuadMapDataIsMarked(in ivec2 pixelCoord) {
-    uint index = uint(pixelCoord.y) * uint(inputQuadMapSize.x) + uint(pixelCoord.x);
-    return normalAndDepthInput[index] == 0xFFFFFFFF && metadatasInput[index] == 0xFFFFFFFF;
+    metadatasInput[index]      = 0;
 }
 
 void markOutputQuadMapData(in ivec2 pixelCoord) {
     uint index = uint(pixelCoord.y) * uint(outputQuadMapSize.x) + uint(pixelCoord.x);
     normalAndDepthOutput[index] = 0xFFFFFFFF;
-    metadatasOutput[index] = 0xFFFFFFFF;
+    metadatasOutput[index]      = 0;
+}
+
+bool inputQuadMapDataIsMarked(in ivec2 pixelCoord) {
+    uint index = uint(pixelCoord.y) * uint(inputQuadMapSize.x) + uint(pixelCoord.x);
+    return normalAndDepthInput[index] == 0xFFFFFFFF && metadatasInput[index] == 0;
 }
 
 Plane quadMapDataToPlane(in QuadMapData quadMapData) {
@@ -394,10 +386,10 @@ void recalcDepthOffsets(
         storeDepthOffsets(depthOffsetPixelCoords, newDepthOffsets);
 
         vec4 absOffsets = abs(newDepthOffsets);
-        numBelowThreshold += int(nonlinearDepthFromLinearView(absOffsets.x, near, far) < flattenThreshold) +
-                             int(nonlinearDepthFromLinearView(absOffsets.y, near, far) < flattenThreshold) +
-                             int(nonlinearDepthFromLinearView(absOffsets.z, near, far) < flattenThreshold) +
-                             int(nonlinearDepthFromLinearView(absOffsets.w, near, far) < flattenThreshold);
+        numBelowThreshold += int(absOffsets.x < flattenThreshold) +
+                             int(absOffsets.y < flattenThreshold) +
+                             int(absOffsets.z < flattenThreshold) +
+                             int(absOffsets.w < flattenThreshold);
         total += 4;
     }
 }
@@ -547,16 +539,11 @@ void main() {
         }
     }
 
-    float depthBottomLeft  = quadMapDataBottomLeft.depth;
-    float depthBottomRight = quadMapDataBottomRight.depth;
-    float depthTopLeft     = quadMapDataTopLeft.depth;
-    float depthTopRight    = quadMapDataTopRight.depth;
-
     bool merge = false;
     if (iter < maxIterForceMerge) {
         // Force merge the quads if theres no depth discontinuity
         merge = merge || !hasDepthDiscontinuity(
-            depthBottomLeft, depthBottomRight, depthTopLeft, depthTopRight,
+            proxyPlaneBottomLeft, proxyPlaneBottomRight, proxyPlaneTopLeft, proxyPlaneTopRight,
             validBottomLeft, validBottomRight, validTopLeft, validTopRight);
     }
 

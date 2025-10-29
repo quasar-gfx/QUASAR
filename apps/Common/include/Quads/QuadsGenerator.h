@@ -29,9 +29,9 @@ public:
         bool correctOrientation = true;
         float depthThreshold = 1e-4f;
         float angleThreshold = 88.0f;
-        float flattenThreshold = 0.5f;
+        float flattenThreshold = 0.1f;
         float proxySimilarityThreshold = 0.5f;
-        int maxIterForceMerge = 11;
+        int maxIterForceMerge = 4;
     } params;
 
     std::vector<glm::uvec2> quadMapSizes;

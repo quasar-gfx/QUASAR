@@ -79,7 +79,7 @@ const vec3 right = vec3(1.0, 0.0, 0.0);
 const float surfelSize = 0.5;
 
 bool isValidDepth(float depth) {
-    return depth != 0.0 && depth < MAX_DEPTH;
+    return depth != 0.0 && depth < 1.0;
 }
 
 bool isValidQuadMapData(in QuadMapData quadMapData) {
@@ -88,9 +88,14 @@ bool isValidQuadMapData(in QuadMapData quadMapData) {
            quadMapData.size > 0;
 }
 
-float nonlinearDepthFromLinearView(float depthView, float near, float far) {
-    float z = (depthView * (far + near) - 2.0 * near * far) / (depthView * (far - near));
-    return z * 0.5 + 0.5;
+float normalizeDepth(float depth, float near, float far) {
+    return (depth - near) / (far - near);
+}
+
+float invDepthDistance(vec3 point1, vec3 point2, float near, float far) {
+    float z1 = normalizeDepth(max(point1.z, near), near, far);
+    float z2 = normalizeDepth(max(point2.z, near), near, far);
+    return abs((1.0 / z1) - (1.0 / z2));
 }
 
 float signedDistance(vec3 p1, vec3 p2) {

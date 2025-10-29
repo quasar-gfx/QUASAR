@@ -37,6 +37,7 @@ public:
     FrameRenderTarget residualFrameMaskRT;
     ResidualFrame residualFrame;
     QuadMesh residualFrameMesh;
+    Node residualFrameNode;
 
     VideoStreamer videoAtlasStreamerRT;
     FrameRenderTarget alphaAtlasRT;
