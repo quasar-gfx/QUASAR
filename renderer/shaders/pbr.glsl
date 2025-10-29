@@ -93,8 +93,8 @@ vec3 computeBRDF(PBRInfo pbrInputs, vec3 L, vec3 radianceIn) {
 }
 
 // Shadow calculation for directional light
-float calcDirLightShadow(DirectionalLight light, sampler2D dirLightShadowMap, vec4 fragPosLightSpace, vec3 fragNormal) {
-    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+float calcDirLightShadow(DirectionalLight light, sampler2D dirLightShadowMap, vec4 PositionLightSpace, vec3 fragNormal) {
+    vec3 projCoords = PositionLightSpace.xyz / PositionLightSpace.w;
     projCoords = projCoords * 0.5 + 0.5;
 
     int samples = 9;
@@ -112,12 +112,12 @@ float calcDirLightShadow(DirectionalLight light, sampler2D dirLightShadowMap, ve
 }
 
 // Point light shadow using cube map
-float calcPointLightShadows(PointLight light, samplerCube pointLightShadowMap, vec3 fragToLight, vec3 fragPosWorld) {
+float calcPointLightShadows(PointLight light, samplerCube pointLightShadowMap, vec3 fragToLight, vec3 PositionWorld) {
     float currentDepth = length(fragToLight);
     int samples = 20;
     float shadow = 0.0;
     float bias = 0.15;
-    float viewDistance = length(camera.position - fragPosWorld);
+    float viewDistance = length(camera.position - PositionWorld);
     float diskRadius = (1.0 + (viewDistance / light.farPlane)) / 25.0;
 
     for (int i = 0; i < samples; i++) {
@@ -131,28 +131,28 @@ float calcPointLightShadows(PointLight light, samplerCube pointLightShadowMap, v
 }
 
 // Directional light with Filament BRDF
-vec3 calcDirLight(DirectionalLight light, PBRInfo pbrInputs, sampler2D dirLightShadowMap, vec4 fragPosLightSpace, vec3 fragNormal) {
+vec3 calcDirLight(DirectionalLight light, PBRInfo pbrInputs, sampler2D dirLightShadowMap, vec4 PositionLightSpace, vec3 fragNormal) {
     if (light.intensity == 0.0) return vec3(0.0);
 
     vec3 L = normalize(-light.direction);
     vec3 radianceIn = light.color * light.intensity;
 
-    float shadow = calcDirLightShadow(light, dirLightShadowMap, fragPosLightSpace, fragNormal);
+    float shadow = calcDirLightShadow(light, dirLightShadowMap, PositionLightSpace, fragNormal);
     vec3 brdf = computeBRDF(pbrInputs, L, radianceIn);
     return brdf * (1.0 - shadow);
 }
 
 // Point light with Filament BRDF
-vec3 calcPointLight(PointLight light, samplerCube pointLightShadowMap, PBRInfo pbrInputs, vec3 fragPosWorld) {
+vec3 calcPointLight(PointLight light, samplerCube pointLightShadowMap, PBRInfo pbrInputs, vec3 PositionWorld) {
     if (light.intensity == 0.0) return vec3(0.0);
 
-    vec3 L = normalize(light.position - fragPosWorld);
-    float distance = length(light.position - fragPosWorld);
+    vec3 L = normalize(light.position - PositionWorld);
+    float distance = length(light.position - PositionWorld);
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * distance * distance);
     vec3 radianceIn = light.color * light.intensity * attenuation;
 
-    vec3 fragToLight = fragPosWorld - light.position;
-    float shadow = calcPointLightShadows(light, pointLightShadowMap, fragToLight, fragPosWorld);
+    vec3 fragToLight = PositionWorld - light.position;
+    float shadow = calcPointLightShadows(light, pointLightShadowMap, fragToLight, PositionWorld);
     vec3 brdf = computeBRDF(pbrInputs, L, radianceIn);
     return brdf * (1.0 - shadow);
 }

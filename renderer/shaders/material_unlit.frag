@@ -4,19 +4,19 @@
 
 layout(location = 0) out vec4 FragColor;
 layout(location = 1) out float FragAlpha;
-layout(location = 2) out vec4 FragNormal;
+layout(location = 2) out vec3 FragNormal;
 layout(location = 3) out uvec4 FragIDs;
 
 in VertexData {
     flat uint DrawID;
     vec2 TexCoord;
-    vec3 FragPosView;
-    vec3 FragPosWorld;
+    vec3 PositionView;
+    vec3 PositionWorld;
     vec3 Color;
     vec3 Normal;
     vec3 Tangent;
     vec3 BiTangent;
-    vec4 FragPosLightSpace;
+    vec4 PositionLightSpace;
 } fsIn;
 
 // Material
@@ -50,12 +50,12 @@ void main() {
         discard;
 
 #ifdef DO_DEPTH_PEELING
-    applyDepthPeeling(fsIn.FragPosView);
+    applyDepthPeeling(fsIn.PositionView);
 #endif
 
     FragColor = vec4(baseColor.rgb, alpha);
     FragAlpha = alpha;
-    FragNormal = vec4(normalize(fsIn.Normal), 1.0);
+    FragNormal = normalize(fsIn.Normal);
     FragIDs = uvec4(fsIn.DrawID, gl_PrimitiveID, 0, material.alphaMode);
-    FragIDs.z = floatBitsToUint((-fsIn.FragPosView.z - camera.near) / (camera.far - camera.near));
+    FragIDs.z = floatBitsToUint((-fsIn.PositionView.z - camera.near) / (camera.far - camera.near));
 }

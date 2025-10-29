@@ -190,6 +190,26 @@ public:
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
+    void blitColorAndDepth(FrameRenderTarget& frameRT, GLenum filter = GL_NEAREST) {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frameRT.getFramebufferID());
+
+        // Color
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
+        GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0 };
+        glDrawBuffers(1, drawBuffers);
+        glBlitFramebuffer(0, 0, width, height,
+                          0, 0, frameRT.width, frameRT.height,
+                          GL_COLOR_BUFFER_BIT, filter);
+
+        // Depth and stencil
+        glBlitFramebuffer(0, 0, width, height,
+                          0, 0, frameRT.width, frameRT.height,
+                          GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
     void blitToScreen(uint width, uint height) {
         framebuffer.blitToScreen(width, height);
     }

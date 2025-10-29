@@ -14,13 +14,13 @@ layout(location = 7) out uvec4 gIDs;
 in VertexData {
     flat uint DrawID;
     vec2 TexCoord;
-    vec3 FragPosView;
-    vec3 FragPosWorld;
+    vec3 PositionView;
+    vec3 PositionWorld;
     vec3 Color;
     vec3 Normal;
     vec3 Tangent;
     vec3 BiTangent;
-    vec4 FragPosLightSpace;
+    vec4 PositionLightSpace;
 } fsIn;
 
 // Material
@@ -71,8 +71,8 @@ vec3 getNormal() {
         return N;
 
     if (any(isnan(B))) {
-        vec3 q1 = dFdx(fsIn.FragPosWorld);
-        vec3 q2 = dFdy(fsIn.FragPosWorld);
+        vec3 q1 = dFdx(fsIn.PositionWorld);
+        vec3 q2 = dFdy(fsIn.PositionWorld);
         vec2 st1 = dFdx(fsIn.TexCoord);
         vec2 st2 = dFdy(fsIn.TexCoord);
 
@@ -102,7 +102,7 @@ void main() {
         discard;
 
 #ifdef DO_DEPTH_PEELING
-    applyDepthPeeling(fsIn.FragPosView);
+    applyDepthPeeling(fsIn.PositionView);
 #endif
 
     // Metallic and roughness properties
@@ -120,31 +120,27 @@ void main() {
     roughness = material.roughnessFactor * roughness;
 
     // Input lighting data
-    vec3 N = getNormal();
+    vec3 N = normalize(fsIn.Normal); // getNormal();
 
-    // Apply emissive component
-    vec3 emissive = vec3(0.0);
-    if (material.hasEmissiveMap) {
-        emissive = material.emissiveFactor * texture(material.emissiveMap, fsIn.TexCoord).rgb;
-    }
-
-    // Apply ambient occlusion
+    // Ambient occlusion
     float ao = 1.0;
     if (material.hasAOMap) {
         ao = texture(material.aoMap, fsIn.TexCoord).r;
+    }
+
+    // Emissive lighting
+    vec3 emissive = vec3(0.0);
+    if (material.hasEmissiveMap) {
+        emissive = material.emissiveFactor * texture(material.emissiveMap, fsIn.TexCoord).rgb;
     }
 
     gAlbedo = albedo;
     gAlpha = alpha;
     gPBR = vec3(metallic, roughness, ao);
     gEmissive = vec4(emissive, material.IBL);
-#ifdef VIEW_DEPENDENT_LIGHTING
-    gNormal = vec3(N);
-#else
-    gNormal = normalize(fsIn.Normal);
-#endif
-    gPosition = fsIn.FragPosWorld;
-    gLightPosition = fsIn.FragPosLightSpace;
+    gNormal = N;
+    gPosition = fsIn.PositionWorld;
+    gLightPosition = fsIn.PositionLightSpace;
     gIDs = uvec4(fsIn.DrawID, gl_PrimitiveID, 0, (alpha == 1.0) ? ALPHA_OPAQUE : ALPHA_BLEND);
-    gIDs.z = floatBitsToUint((-fsIn.FragPosView.z - camera.near) / (camera.far - camera.near));
+    gIDs.z = floatBitsToUint((-fsIn.PositionView.z - camera.near) / (camera.far - camera.near));
 }

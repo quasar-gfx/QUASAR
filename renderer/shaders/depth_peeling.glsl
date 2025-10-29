@@ -2,7 +2,6 @@
 uniform bool peelDepth;
 uniform usampler2D prevIDMap;
 
-uniform int height;
 uniform float E;
 uniform float edpDelta;
 uniform int layerIndex;
@@ -11,7 +10,7 @@ uniform int layerIndex;
 #define DP_EPSILON 0.0005
 #define EDP_SAMPLES 16
 
-bool cullUmbra(float fragmentDepth, float zf) {
+bool cullUmbra(float fragmentDepth, float zf, int height) {
     float d = fragmentDepth; // fragment depth
     float df = mix(camera.near, camera.far, zf); // blocker depth
     float s  = tan(camera.fovy * 0.5) * 2.0 * df / height; // pixel geometry size
@@ -20,37 +19,81 @@ bool cullUmbra(float fragmentDepth, float zf) {
     return d < df + x;
 }
 
-float LCOC(float d, float df) {
+float LCOC(float d, float df, int height) {
     float K = float(height)*0.5 / df / tan(camera.fovy*0.5); // screen-space LCOC scale
     return K * E * abs(df-d) / d; // relative radius of COC against df (blocker depth)
 }
 
 bool inPVHV(ivec2 pixelCoords, vec3 fragViewPos, uvec4 q) {
+    int width = textureSize(prevIDMap, 0).x;
+    int height = textureSize(prevIDMap, 0).y;
+
     float fragmentDepth = -fragViewPos.z;
 
-    if (layerIndex > 2) return cullUmbra(fragmentDepth, uintBitsToFloat(q.z));
+    if (layerIndex > 2) return cullUmbra(fragmentDepth, uintBitsToFloat(q.z), height);
 
     float blockerDepthNormalized = uintBitsToFloat(q.z);
     float df = mix(camera.near, camera.far, blockerDepthNormalized);
-    float R = LCOC(fragmentDepth, df);
-    for (int i = 0; i < EDP_SAMPLES; i++) {
-        // Sample around a circle with radius R
-        float x = R * cos(float(i) * 2*PI / EDP_SAMPLES);
-        float y = R * sin(float(i) * 2*PI / EDP_SAMPLES);
-        vec2 offset = vec2(x, y);
+    float R = LCOC(fragmentDepth, df, height);
 
-        uvec4 w = texelFetch(prevIDMap, ivec2(round(vec2(pixelCoords) + offset)), 0);
+    uint q_item	= q.w;
+
+    // If the sampling circle is fully inside the image, return true as soon as a visible sample is found
+    // If the circle reaches outside the image, require at least one visible sample inside the image to consider visible
+    vec2 fragCoord = vec2(pixelCoords);
+    bool lcocInside = (fragCoord.x - R >= 0.0 && fragCoord.x + R < width &&
+                       fragCoord.y - R >= 0.0 && fragCoord.y + R < height);
+
+    bool sampleVisible = false;
+    for (int i = 0; i < EDP_SAMPLES; i++) {
+        float angle = float(i) * 2.0 * PI / EDP_SAMPLES;
+        vec2 offset = vec2(R * cos(angle), R * sin(angle));
+        vec2 sampleCoord = fragCoord + offset;
+
+        // Skip samples that fall outside the image
+        if (sampleCoord.x < 0.0 || sampleCoord.x >= width || sampleCoord.y < 0.0 || sampleCoord.y >= height)
+            continue;
+
+        uvec4 w = texelFetch(prevIDMap, ivec2(round(sampleCoord)), 0);
+		uint w_item = w.w;
 
         float sampleDepthNormalized = uintBitsToFloat(w.z);
-        if (sampleDepthNormalized == 0) return true;
+        if (sampleDepthNormalized == 0) {
+            if (lcocInside) return true;
+            sampleVisible = true; // hole in prev map -> visible at edge
+            continue;
+        }
         if (sampleDepthNormalized >= MAX_DEPTH) continue;
 
+        // If opaque in previous layer, consider visible
         int prevAlphaMode = int(w.w);
-        if (prevAlphaMode != ALPHA_OPAQUE) return true;
+        if (prevAlphaMode != ALPHA_OPAQUE) {
+            if (lcocInside) return true;
+            sampleVisible = true;
+            continue;
+        }
 
-        if (sampleDepthNormalized >= blockerDepthNormalized + edpDelta) return true;
-        else if (sampleDepthNormalized <= blockerDepthNormalized - edpDelta) return true;
+        // If drawIDs differ, consider visible
+        if (q_item != w_item) {
+            if (lcocInside) return true;
+            sampleVisible = true;
+            continue;
+        }
+
+        if (sampleDepthNormalized >= blockerDepthNormalized + edpDelta) {
+            if (lcocInside) return true;
+            sampleVisible = true;
+            continue;
+        }
+        else if (sampleDepthNormalized <= blockerDepthNormalized - edpDelta) {
+            if (lcocInside) return true;
+            sampleVisible = true;
+            continue;
+        }
     }
+
+    // If circle reached outside image, require at least one visible sample inside the image
+    if (lcocInside) return sampleVisible;
 
     return false;
 }

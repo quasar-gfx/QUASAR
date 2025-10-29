@@ -14,7 +14,7 @@ class DeferredRenderer : public OpenGLRenderer {
 public:
     bool multiSampled = false;
 
-    RenderTarget outputRT;
+    FrameRenderTarget outputRT;
     GBuffer gBuffer;
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     GBuffer gBuffer_MS;

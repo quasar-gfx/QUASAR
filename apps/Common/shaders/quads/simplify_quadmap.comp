@@ -42,13 +42,36 @@ uniform float flattenThreshold;
 uniform float proxySimilarityThreshold;
 uniform int maxIterForceMerge;
 
-bool hasDepthDiscontinuity(float depth1, float depth2, float depth3, float depth4) {
-    return abs(depth1 - depth2) >= depthThreshold ||
-           abs(depth1 - depth3) >= depthThreshold ||
-           abs(depth1 - depth4) >= depthThreshold ||
-           abs(depth2 - depth3) >= depthThreshold ||
-           abs(depth2 - depth4) >= depthThreshold ||
-           abs(depth3 - depth4) >= depthThreshold;
+bool hasDepthDiscontinuity(
+    float depthBottomLeft, float depthBottomRight, float depthTopLeft, float depthTopRight,
+    bool validBottomLeft, bool validBottomRight, bool validTopLeft, bool validTopRight)
+{
+    vec3 sumNormal = vec3(0.0);
+    int validCount = int(validBottomLeft) + int(validBottomRight) + int(validTopLeft) + int(validTopRight);
+
+    // If we have fewer than two valid proxy planes, there is no discontinuity
+    if (validCount < 2) return false;
+
+    float depths[4];
+    depths[0] = depthBottomLeft;
+    depths[1] = depthBottomRight;
+    depths[2] = depthTopLeft;
+    depths[3] = depthTopRight;
+
+    float validDepths[4];
+    int validDepthCount = 0;
+    for (int i = 0; i < 4; i++) {
+        if (!isValidDepth(depths[i])) continue;
+        validDepths[validDepthCount++] = depths[i];
+    }
+
+    // Compare pairwise differences
+    for (int i = 0; i < validDepthCount; i++) {
+        for (int j = i + 1; j < validDepthCount; j++) {
+            if (abs(validDepths[i] - validDepths[j]) >= depthThreshold) return true;
+        }
+    }
+    return false;
 }
 
 bool quadHasExtremeOrientation(in vec3 centerNormal, in vec3 frustumNormalView) {
@@ -294,6 +317,7 @@ bool shouldMerge(
         }
     }
 
+    // All four are valid and similar, merge
     return planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight, proxySimilarityThreshold) &&
            planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft, proxySimilarityThreshold)     &&
            planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight, proxySimilarityThreshold)    &&
@@ -531,7 +555,9 @@ void main() {
     bool merge = false;
     if (iter < maxIterForceMerge) {
         // Force merge the quads if theres no depth discontinuity
-        merge = merge || !hasDepthDiscontinuity(depthBottomLeft, depthBottomRight, depthTopLeft, depthTopRight);
+        merge = merge || !hasDepthDiscontinuity(
+            depthBottomLeft, depthBottomRight, depthTopLeft, depthTopRight,
+            validBottomLeft, validBottomRight, validTopLeft, validTopRight);
     }
 
     merge = merge || shouldMerge(

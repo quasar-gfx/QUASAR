@@ -39,9 +39,9 @@ void DeferredRenderer::setScreenShaderUniforms(const Shader& screenShader) {
     screenShader.bind();
     screenShader.setTexture("screenColor", outputRT.colorTexture, 0);
     screenShader.setTexture("screenDepth", outputRT.depthStencilTexture, 1);
-    screenShader.setTexture("screenNormals", gBuffer.normalsTexture, 2);
+    screenShader.setTexture("screenNormals", outputRT.normalsTexture, 2);
     screenShader.setTexture("screenPositions", gBuffer.positionTexture, 3);
-    screenShader.setTexture("idTexture", gBuffer.idTexture, 4);
+    screenShader.setTexture("idTexture", outputRT.idTexture, 4);
 }
 
 void DeferredRenderer::resize(uint width, uint height) {
@@ -220,8 +220,8 @@ RenderStats DeferredRenderer::lightingPass(Scene& scene, const Camera& camera) {
     // Update material uniforms with lighting information
     scene.bindMaterial(&lightingMaterial, *pointLightsUBO);
 
-    // Copy depth from FrameRenderTarget to outputRT
-    gBuffer.blitDepthToRenderTarget(outputRT);
+    // Copy depth from GBuffer to outputRT
+    gBuffer.blitDepth(outputRT);
 
     pipeline.depthState.depthFunc = GL_LEQUAL;
     pipeline.apply();
@@ -239,6 +239,6 @@ RenderStats DeferredRenderer::lightingPass(Scene& scene, const Camera& camera) {
 }
 
 void DeferredRenderer::copyToFrameRT(FrameRenderTarget& frameRT) {
-    gBuffer.blit(frameRT); // Copy alpha, normals, id, and depth
-    outputRT.blit(frameRT); // Copy color
+    gBuffer.blit(frameRT); // Copy alpha, normals, positions, and IDs
+    outputRT.blitColorAndDepth(frameRT); // Copy color and depth
 }

@@ -49,7 +49,7 @@ UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams& params)
 }
 
 bool UnlitMaterial::isTransparent() const {
-    return alphaMode == Material::AlphaMode::TRANSPARENT || baseColor.a * baseColorFactor.a < 1.0f;
+    return Material::isTransparent() || baseColor.a * baseColorFactor.a < 1.0f;
 }
 
 void UnlitMaterial::bind() const {

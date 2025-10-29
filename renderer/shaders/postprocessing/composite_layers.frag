@@ -13,6 +13,7 @@ void main() {
     for (int i = 0; i < MAX_LAYERS; i++) {
         vec3 layerColor = texture(peelingLayersColor[i], TexCoord).rgb;
         float layerAlpha = texture(peelingLayersAlpha[i], TexCoord).r;
+        if (i == MAX_LAYERS-1 && layerAlpha == 0.0) layerAlpha = 1.0; // Ensure background layer is opaque
 
         color.rgb += layerColor * (1.0 - color.a);
         color.a   += layerAlpha * (1.0 - color.a);

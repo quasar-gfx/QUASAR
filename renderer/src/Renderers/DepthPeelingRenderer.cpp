@@ -101,8 +101,8 @@ RenderStats DepthPeelingRenderer::drawScene(Scene& scene, const Camera& camera, 
         // Draw lighting pass
         stats += lightingPass(scene, camera);
 
-        // Draw skybox (only in first layer)
-        if (layer == 0) {
+        // Draw skybox (only in last layer)
+        if (layer == maxLayers - 1) {
             stats += drawSkyBox(scene, camera);
         }
 
@@ -139,19 +139,16 @@ RenderStats DepthPeelingRenderer::drawObjects(Scene& scene, const Camera& camera
         if (edp) {
             if (LitMaterial::deferredShader != nullptr) {
                 LitMaterial::deferredShader->bind();
-                LitMaterial::deferredShader->setInt("height", gBuffer.height);
                 LitMaterial::deferredShader->setFloat("E", viewSphereDiameter / 2.0f);
                 LitMaterial::deferredShader->setFloat("edpDelta", edpDelta);
             }
             if (LitMaterial::forwardShader != nullptr) {
                 LitMaterial::forwardShader->bind();
-                LitMaterial::forwardShader->setInt("height", gBuffer.height);
                 LitMaterial::forwardShader->setFloat("E", viewSphereDiameter / 2.0f);
                 LitMaterial::forwardShader->setFloat("edpDelta", edpDelta);
             }
             if (UnlitMaterial::shader != nullptr) {
                 UnlitMaterial::shader->bind();
-                UnlitMaterial::shader->setInt("height", gBuffer.height);
                 UnlitMaterial::shader->setFloat("E", viewSphereDiameter / 2.0f);
                 UnlitMaterial::shader->setFloat("edpDelta", edpDelta);
             }
@@ -184,19 +181,16 @@ RenderStats DepthPeelingRenderer::drawObjectsNoLighting(Scene& scene, const Came
     if (edp) {
         if (LitMaterial::deferredShader != nullptr) {
             LitMaterial::deferredShader->bind();
-            LitMaterial::deferredShader->setInt("height", gBuffer.height);
             LitMaterial::deferredShader->setFloat("E", viewSphereDiameter / 2.0f);
             LitMaterial::deferredShader->setFloat("edpDelta", edpDelta);
         }
         if (LitMaterial::forwardShader != nullptr) {
             LitMaterial::forwardShader->bind();
-            LitMaterial::forwardShader->setInt("height", gBuffer.height);
             LitMaterial::forwardShader->setFloat("E", viewSphereDiameter / 2.0f);
             LitMaterial::forwardShader->setFloat("edpDelta", edpDelta);
         }
         if (UnlitMaterial::shader != nullptr) {
             UnlitMaterial::shader->bind();
-            UnlitMaterial::shader->setInt("height", gBuffer.height);
             UnlitMaterial::shader->setFloat("E", viewSphereDiameter / 2.0f);
             UnlitMaterial::shader->setFloat("edpDelta", edpDelta);
         }

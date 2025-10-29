@@ -136,7 +136,7 @@ LitMaterial::LitMaterial(const LitMaterialCreateParams& params)
 }
 
 bool LitMaterial::isTransparent() const {
-    return alphaMode == Material::AlphaMode::TRANSPARENT || baseColor.a * baseColorFactor.a < 1.0f;
+    return Material::isTransparent() || baseColor.a * baseColorFactor.a < 1.0f;
 }
 
 void LitMaterial::bind() const {

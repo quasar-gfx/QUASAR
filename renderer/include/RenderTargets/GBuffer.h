@@ -168,6 +168,7 @@ public:
 
         framebuffer.unbind();
     }
+    ~GBuffer() = default;
 
     void blit(FrameRenderTarget& frameRT, GLenum filter = GL_NEAREST) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
@@ -204,7 +205,6 @@ public:
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
-    ~GBuffer() = default;
 
     void blit(GBuffer& gBuffer, GLenum filter = GL_NEAREST) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
@@ -231,12 +231,12 @@ public:
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void blitDepthToRenderTarget(RenderTarget& renderTarget) {
+    void blitDepth(FrameRenderTarget& frameRT) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, renderTarget.getFramebufferID());
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frameRT.getFramebufferID());
 
         glBlitFramebuffer(0, 0, width, height,
-                          0, 0, renderTarget.width, renderTarget.height,
+                          0, 0, frameRT.width, frameRT.height,
                           GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);

@@ -1,5 +1,5 @@
-#ifndef PBR_MATERIAL_H
-#define PBR_MATERIAL_H
+#ifndef LIT_MATERIAL_H
+#define LIT_MATERIAL_H
 
 #include <Materials/Material.h>
 
@@ -69,4 +69,4 @@ public:
 
 } // namespace quasar
 
-#endif // PBR_MATERIAL_H
+#endif // LIT_MATERIAL_H
