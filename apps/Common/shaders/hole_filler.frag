@@ -22,33 +22,12 @@ void main() {
     vec3 color = texture(screenColor, TexCoord).rgb;
     float centerDepth = texture(screenDepth, TexCoord).r;
 
-    if (centerDepth >= MAX_DEPTH) {
-        vec2 textureSize = vec2(textureSize(screenColor, 0));
-
-        bool isSkyBox = true;
-        for (int i = 1; i <= searchRadius; i++) {
-            float topDepth = texture(screenDepth, TexCoord + vec2(0.0, i / textureSize.y)).r;
-            float bottomDepth = texture(screenDepth, TexCoord - vec2(0.0, i / textureSize.y)).r;
-            float leftDepth = texture(screenDepth, TexCoord - vec2(i / textureSize.x, 0.0)).r;
-            float rightDepth = texture(screenDepth, TexCoord + vec2(i / textureSize.x, 0.0)).r;
-
-            bool bothSidesUnder =
-                ((abs(topDepth - bottomDepth) <= depthThreshold) &&
-                 (abs(topDepth - centerDepth) > depthThreshold) &&
-                 (abs(bottomDepth - centerDepth) > depthThreshold)) ||
-                ((abs(leftDepth - rightDepth) <= depthThreshold) &&
-                 (abs(leftDepth - centerDepth) > depthThreshold) &&
-                 (abs(rightDepth - centerDepth) > depthThreshold));
-            bothSidesUnder = bothSidesUnder ||
-                             ((topDepth < MAX_DEPTH && bottomDepth < MAX_DEPTH) ||
-                              (leftDepth < MAX_DEPTH && rightDepth < MAX_DEPTH));
-            if (bothSidesUnder) {
-                isSkyBox = false;
-                break;
-            }
-        }
+    if (centerDepth == 0.0 || centerDepth >= MAX_DEPTH) {
+        bool isSkyBox = (texture(screenNormals, TexCoord).xyz == vec3(0.0/0.0) &&
+                         texture(idTexture, TexCoord).z == 0xFFFFFFFFu);
 
         // Fill hole
+        vec2 textureSize = vec2(textureSize(screenColor, 0));
         if (!isSkyBox) {
             vec3 sumColor = vec3(0.0);
             float sumWeight = 0.0;
@@ -59,7 +38,7 @@ void main() {
                     float sampleDepth = texture(screenDepth, texCoord).r;
                     if (sampleDepth < MAX_DEPTH) {
                         float weight = 1.0 / (1.0 + abs(centerDepth - sampleDepth));
-                        sumColor += texture(screenColor, texCoord).rgb * weight;
+                        sumColor  += texture(screenColor, texCoord).rgb * weight;
                         sumWeight += weight;
                     }
                 }

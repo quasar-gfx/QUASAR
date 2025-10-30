@@ -43,7 +43,7 @@ public:
         }
     }
 
-    virtual bool isTransparent() const { return alphaMode == Material::AlphaMode::TRANSPARENT; }
+    virtual bool isTransparent() const { return (alphaMode == Material::AlphaMode::TRANSPARENT) || (alphaMode == Material::AlphaMode::MASKED); }
 
     virtual std::shared_ptr<Shader> getShader() const = 0;
     virtual uint getTextureCount() const = 0;

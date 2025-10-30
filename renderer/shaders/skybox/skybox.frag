@@ -16,5 +16,5 @@ void main() {
     FragColor = vec4(envColor, 1.0);
     FragAlpha = 1.0;
     FragNormal = vec3(0.0/0.0, 0.0/0.0, 0.0/0.0); // make NaN
-    FragIDs = uvec4(fsIn.DrawID, gl_PrimitiveID, 0, 1);
+    FragIDs = uvec4(fsIn.DrawID, gl_PrimitiveID, 0xFFFFFFFFu, 1);
 }

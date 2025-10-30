@@ -197,14 +197,20 @@ RenderStats DeferredRenderer::drawObjects(Scene& scene, const Camera& camera, ui
             // Switch to forward pipeline for lit materials
             LitMaterial::setPipelineMode(Material::RenderPipelineMode::Forward);
 
-            // Bind lighting output and draw transparent objects
+            // First draw skybox into the output so transparent objects blend over the background correctly,
+            // then draw transparent geometry
+            stats += drawSkyBox(scene, camera);
+
+            // Draw transparent objects
             outputRT.bind();
             stats += drawTransparent(scene, camera);
             outputRT.unbind();
         }
 
-        // Draw skybox (opaque background in outputRT)
-        stats += drawSkyBox(scene, camera);
+        // Draw skybox if not already drawn in forward pass
+        if (!sortTransparent) {
+            stats += drawSkyBox(scene, camera);
+        }
     }
 
     return stats;
