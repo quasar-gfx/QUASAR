@@ -76,9 +76,9 @@ public:
         , normalsTexture({
             .width = width,
             .height = height,
-            .internalFormat = GL_RGB16F,
+            .internalFormat = GL_RGB32F,
             .format = GL_RGB,
-            .type = GL_HALF_FLOAT,
+            .type = GL_FLOAT,
             .wrapS = params.wrapS,
             .wrapT = params.wrapT,
             .minFilter = params.minFilter,

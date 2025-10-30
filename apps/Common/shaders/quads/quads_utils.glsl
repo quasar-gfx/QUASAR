@@ -85,7 +85,7 @@ bool isValidDepth(float depth) {
 bool isValidQuadMapData(in QuadMapData quadMapData) {
     return quadMapData.normal != vec3(0.0) &&
            isValidDepth(quadMapData.depth) &&
-           quadMapData.size > 0;
+           quadMapData.size > 0u;
 }
 
 float normalizeDepth(float depth, float near, float far) {

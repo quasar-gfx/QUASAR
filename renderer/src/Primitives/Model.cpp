@@ -16,7 +16,7 @@
 using namespace quasar;
 
 Model::Model(const ModelCreateParams& params)
-    : flipTextures(params.flipTextures)
+    : flipTextureY(params.flipTextureY)
     , gammaCorrected(params.gammaCorrected)
     , IBL(params.IBL)
 {
@@ -206,7 +206,7 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, const LitMaterial* 
 
         if (mesh->HasTextureCoords(0)) {
             vertices[i].texCoord.x = mesh->mTextureCoords[0][i].x;
-            if (flipTextures) {
+            if (flipTextureY) {
                 vertices[i].texCoord.y = 1.0f - mesh->mTextureCoords[0][i].y;
             }
             else {

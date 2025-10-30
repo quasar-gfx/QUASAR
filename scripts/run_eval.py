@@ -9,24 +9,37 @@ import simulator_runner, error_evaluator, stats_parser, video_generator
 
 def main():
     parser = argparse.ArgumentParser(description='Run and compare all methods.')
-    parser.add_argument('network_latency', type=float)
-    parser.add_argument('network_jitter', type=float, nargs='?')
-    parser.add_argument('--size', type=str, default='1920x1080', help='Resolution of rendering results')
-    parser.add_argument('--scenes', type=str, default='robot_lab,sun_temple,viking_village,san_miguel')
-    parser.add_argument('--output-path', type=str, default='results')
-    parser.add_argument('--view-sizes', type=str, default='0.25,0.5,1.0')
-    parser.add_argument('--pose-prediction', action='store_true')
-    parser.add_argument('--pose-smoothing', action='store_true')
-    parser.add_argument('--no-errors', action='store_true')
-    parser.add_argument('--no-videos', action='store_true')
-    parser.add_argument('--short-paths', action='store_true')
+    parser.add_argument('network_latency', type=float,
+                        help='Simulated network latency in ms')
+    parser.add_argument('network_jitter', type=float, nargs='?',
+                        help='Simulated network jitter in ms')
+    parser.add_argument('--size', type=str, default='1920x1080',
+                        help='Resolution of rendering results')
+    parser.add_argument('--scenes', type=str, default='robot_lab,sun_temple,viking_village,san_miguel',
+                        help='Comma-separated list of scene names to evaluate')
+    parser.add_argument('--output-path', type=str, default='results',
+                        help='Path to store all results')
+    parser.add_argument('--view-sizes', type=str, default='0.25,0.5,1.0',
+                        help='Comma-separated list of viewcell sizes to evaluate')
+    parser.add_argument('--num-poses', type=int, default=None,
+                        help='If set, use the first N poses from the full camera path file')
+    parser.add_argument('--pose-prediction', action='store_true',
+                        help='Enable pose prediction')
+    parser.add_argument('--pose-smoothing', action='store_true',
+                        help='Enable pose smoothing')
+    parser.add_argument('--no-errors', action='store_true',
+                        help='Disable error evaluation')
+    parser.add_argument('--no-videos', action='store_true',
+                        help='Disable video generation')
+    parser.add_argument('--short-paths', action='store_true',
+                        help='Use short camera paths')
     args = parser.parse_args()
 
     scenes = args.scenes.split(',')
     view_sizes = [float(size) for size in args.view_sizes.split(',')]
 
     for scene in scenes:
-        camera_path = f"../assets/paths/{scene}_path_short.txt" if args.short_paths else f"../assets/paths/{scene}_path.txt"
+        camera_path = f"../assets/paths/{scene}_path.txt"
         scene_file = f"../assets/scenes/{scene}.json"
 
         logger.info("======================================================")
@@ -42,7 +55,8 @@ def main():
             network_jitter=args.network_jitter,
             pose_prediction=args.pose_prediction,
             pose_smoothing=args.pose_smoothing,
-            view_sizes=view_sizes
+            view_sizes=view_sizes,
+            num_poses=args.num_poses
         )
         logger.info("*****************************************")
         logger.info(f"Total execution time: {(time.time() - start_time) / 60:.2f} minutes")

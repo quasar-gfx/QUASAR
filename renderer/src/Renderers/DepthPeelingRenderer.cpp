@@ -17,6 +17,8 @@ DepthPeelingRenderer::DepthPeelingRenderer(const Config& config, uint maxLayers,
         }
     })
 {
+    sortTransparent = false;
+
     // Enable depth peeling in shaders
     LitMaterial::extraShaderDefines.push_back("#define DO_DEPTH_PEELING");
     UnlitMaterial::extraShaderDefines.push_back("#define DO_DEPTH_PEELING");

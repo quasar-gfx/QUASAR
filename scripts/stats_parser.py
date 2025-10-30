@@ -100,7 +100,8 @@ def run_from_config(output_path="results"):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process log files in subdirectories to calculate averages and save as JSON.")
-    parser.add_argument("--output-path", type=str, default="results", help="Folder that stores the rendering results")
+    parser.add_argument("--output-path", type=str, default="results",
+                        help="Folder that stores the rendering results")
     args = parser.parse_args()
 
     run_from_config(output_path=args.output_path)

@@ -2,7 +2,6 @@
     "skybox": {
         "path": "../assets/textures/ibr/winter_forest.hdr",
         "HDR": true,
-        "flipVertically": true,
         "width": 1024,
         "height": 1024
     },

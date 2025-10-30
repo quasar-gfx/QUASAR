@@ -2,7 +2,6 @@
     "skybox": {
         "path": "../assets/textures/ibr/newport_loft.hdr",
         "HDR": true,
-        "flipVertically": true,
         "width": 1024,
         "height": 1024
     },
@@ -37,7 +36,6 @@
             "name": "Cerberus",
             "path": "../assets/models/Cerberus.glb",
             "IBL": 1.0,
-            "flipTextures": true,
             "gammaCorrected": true,
             "position": [2.0, 0.5, 0.0],
             "rotation": [0.0, 90.0, 0.0],
@@ -47,7 +45,6 @@
             "name": "DamagedHelmet",
             "path": "../assets/models/DamagedHelmet.glb",
             "IBL": 1.0,
-            "flipTextures": true,
             "gammaCorrected": true,
             "position": [5.0, 0.0, 0.0]
         }

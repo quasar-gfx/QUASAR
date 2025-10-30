@@ -542,13 +542,13 @@ python3 run_eval.py 50 20 --pose-prediction --pose-smoothing  # run 50+/-20ms tr
 
     <h4 id="optional-parameters">Optional Parameters</h4>
     <ul>
-        <li>If you want to run shorter traces (500 frames instead of 1500), you can add <code>--short-paths</code>.</li>
+        <li>If you want to run shorter traces (for example, 500 frames instead of 1500), you can add <code>--num-poses 500</code>.</li>
         <li>If you want to run with specific viewcell size(s), you can add <code>--view-sizes &lt;comma-separated list&gt;</code>.</li>
         <li>If you want to run with specific scene(s), you can add <code>--scenes &lt;comma-separated list&gt;</code>.</li>
     </ul>
 
-    <p>Example (this will run the Robot Lab scene with a shorter trace with viewcell sizes of 0.5m and 1.0m):</p>
-    <pre><code>python3 run_eval.py 20 10 --pose-prediction --short-paths --view-sizes 0.5,1.0 --scenes robot_lab</code></pre>
+    <p>Example (this will run the Robot Lab scene with a 500 frame trace with viewcell sizes of 0.5m and 1.0m):</p>
+    <pre><code>python3 run_eval.py 20 10 --pose-prediction --num-poses 500 --view-sizes 0.5,1.0 --scenes robot_lab</code></pre>
 
     <p>See <code>run_eval.py</code> for more command line parameters.</p>
 

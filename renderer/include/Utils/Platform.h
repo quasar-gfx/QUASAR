@@ -3,7 +3,7 @@
 
 // Platform detection and GL includes
 #if defined(__ANDROID__)
-    #define __ANDROID__
+    #define PLATFORM_ANDROID
     #define GL_ES
     #include <GLES3/gl32.h>
     #define GL_FRAMEBUFFER_SRGB_EXT 0x8DB9

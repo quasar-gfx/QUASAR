@@ -62,8 +62,8 @@ void SceneLoader::parseSkybox(const json& j, Scene& scene) {
         hdrTextureParams.path = j.at("path").get<std::string>();
     }
 
-    if (j.contains("flipVertically")) {
-        hdrTextureParams.flipVertically = j.at("flipVertically").get<bool>();
+    if (j.contains("flipTextureY")) {
+        hdrTextureParams.flipTextureY = j.at("flipTextureY").get<bool>();
     }
 
     if (j.contains("width")) {
@@ -152,8 +152,8 @@ void SceneLoader::parseModel(const json& j, Scene& scene) {
         params.IBL = j.at("IBL").get<float>();
     }
 
-    if (j.contains("flipTextures")) {
-        params.flipTextures = j.at("flipTextures").get<bool>();
+    if (j.contains("flipTextureY")) {
+        params.flipTextureY = j.at("flipTextureY").get<bool>();
     }
 
     if (j.contains("gammaCorrected")) {

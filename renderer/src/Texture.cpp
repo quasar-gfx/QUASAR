@@ -79,7 +79,7 @@ Texture::Texture(const TextureFileCreateParams& params)
         target = GL_TEXTURE_2D;
     }
 
-    loadFromFile(params.path, params.flipVertically, params.gammaCorrected);
+    loadFromFile(params.path, params.flipTextureY, params.gammaCorrected);
 }
 
 Texture::~Texture() {
@@ -125,7 +125,7 @@ void Texture::loadFromData(const void* data, bool resize) {
     glBindTexture(target, 0);
 }
 
-void Texture::loadFromFile(const std::string& path, bool flipVertically, bool gammaCorrected) {
+void Texture::loadFromFile(const std::string& path, bool flipTextureY, bool gammaCorrected) {
     std::string resolvedPath = path;
 
     if (!resolvedPath.empty() && resolvedPath[0] == '~') {
@@ -135,16 +135,17 @@ void Texture::loadFromFile(const std::string& path, bool flipVertically, bool ga
         }
     }
 
-    FileIO::flipVerticallyOnLoad(flipVertically);
-
     int texWidth, texHeight, texChannels;
     void* data = nullptr;
+    FileIO::flipVerticallyOnLoad(flipTextureY);
     if (type == GL_UNSIGNED_BYTE) {
         data = FileIO::loadImage(resolvedPath, &texWidth, &texHeight, &texChannels);
     }
     else if (type == GL_FLOAT || type == GL_HALF_FLOAT) {
         data = FileIO::loadImageHDR(resolvedPath, &texWidth, &texHeight, &texChannels);
     }
+    FileIO::flipVerticallyOnLoad(false); // Reset to default
+
     if (!data) {
         throw std::runtime_error("Texture failed to load at path: " + resolvedPath);
     }
