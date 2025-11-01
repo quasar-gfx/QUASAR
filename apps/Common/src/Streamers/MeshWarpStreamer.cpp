@@ -64,7 +64,7 @@ MeshWarpStreamer::MeshWarpStreamer(
     , meshMaterial({ .baseColorTexture = &renderTarget.colorTexture })
     , mesh({
         .maxVertices = (adjustedSize.x + 1) * (adjustedSize.y + 1),
-        .maxIndices = (adjustedSize.x * adjustedSize.y + adjustedSize.x - 1) * 2 * 3,
+        .maxIndices = (adjustedSize.x * adjustedSize.y) * 2 * 3,
         .material = &meshMaterial,
         .usage = GL_DYNAMIC_DRAW,
     })

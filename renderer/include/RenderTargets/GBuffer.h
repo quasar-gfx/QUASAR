@@ -170,6 +170,31 @@ public:
     }
     ~GBuffer() = default;
 
+    void blit(GBuffer& gBuffer, GLenum filter = GL_NEAREST) {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gBuffer.getFramebufferID());
+
+        // Colors
+        GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2,
+                                 GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5,
+                                 GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7 };
+        glDrawBuffers(8, drawBuffers);
+
+        for (int i = 0; i < 8; i++) {
+            glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
+            glBlitFramebuffer(0, 0, width, height,
+                              0, 0, gBuffer.width, gBuffer.height,
+                              GL_COLOR_BUFFER_BIT, filter);
+        }
+
+        // Depth and stencil
+        glBlitFramebuffer(0, 0, width, height,
+                          0, 0, gBuffer.width, gBuffer.height,
+                          GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
     void blit(FrameRenderTarget& frameRT, GLenum filter = GL_NEAREST) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frameRT.getFramebufferID());
@@ -201,31 +226,6 @@ public:
         // Depth and stencil
         glBlitFramebuffer(0, 0, width, height,
                           0, 0, frameRT.width, frameRT.height,
-                          GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
-
-    void blit(GBuffer& gBuffer, GLenum filter = GL_NEAREST) {
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gBuffer.getFramebufferID());
-
-        // Colors
-        GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2,
-                                 GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5,
-                                 GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7 };
-        glDrawBuffers(8, drawBuffers);
-
-        for (int i = 0; i < 8; i++) {
-            glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
-            glBlitFramebuffer(0, 0, width, height,
-                              0, 0, gBuffer.width, gBuffer.height,
-                              GL_COLOR_BUFFER_BIT, filter);
-        }
-
-        // Depth and stencil
-        glBlitFramebuffer(0, 0, width, height,
-                          0, 0, gBuffer.width, gBuffer.height,
                           GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
