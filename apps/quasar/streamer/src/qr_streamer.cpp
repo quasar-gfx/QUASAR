@@ -19,6 +19,7 @@ int main(int argc, char** argv) {
     Config config{};
     config.title = "QUASAR Streamer";
     config.targetFramerate = 30;
+    config.sortTransparent = false;
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});

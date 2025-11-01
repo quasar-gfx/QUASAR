@@ -93,10 +93,11 @@ def run_from_config(
     view_sizes=[0.25, 0.5, 1.0],
     num_poses=None
 ):
-    # Scene Viewer (Ground Truth)
+    # Depth Peeling (Ground Truth)
+    # Using depth peeling as ground truth since it provides correct transparency handling
     run_simulator(
         simulator_name="scene_viewer",
-        executable="scene_viewer/scene_viewer",
+        executable="depth_peeling/depth_peeling",
         output_path=output_path,
         exec_dir=exec_dir,
         size=size,
