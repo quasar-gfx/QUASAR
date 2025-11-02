@@ -157,8 +157,8 @@ int main(int argc, char** argv) {
     RenderStats renderStats;
     FrameRateWindow frameRateWindow;
     FrameCaptureWindow frameCaptureWindow(recorder, glm::uvec2(430, 270), outputPath);
-    TexturePreviewWindow videoPreviewWindow("Video Texture", quasarReceiver.videoAtlasTexture, glm::uvec2(860, 270));
-    TexturePreviewWindow alphaPreviewWindow("Alpha Texture", quasarReceiver.alphaAtlasTexture, glm::uvec2(860, 270));
+    TexturePreviewWindow videoPreviewWindow("Video Texture", quasarReceiver.videoAtlasTexture, glm::uvec2(860, 860));
+    TexturePreviewWindow alphaPreviewWindow("Alpha Texture", quasarReceiver.alphaAtlasTexture, glm::uvec2(860, 860));
     guiManager->onRender([&](double now, double dt) {
         static bool showUI = true;
 
