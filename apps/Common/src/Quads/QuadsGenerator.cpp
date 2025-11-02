@@ -161,7 +161,7 @@ void QuadsGenerator::simplifyQuadMaps(const PerspectiveCamera& remoteCamera, con
         simplifyQuadMapShader.setFloat("depthThreshold", params.depthThreshold);
         simplifyQuadMapShader.setFloat("angleThreshold", glm::radians(params.angleThreshold));
         simplifyQuadMapShader.setFloat("flattenThreshold", params.flattenThreshold);
-        simplifyQuadMapShader.setFloat("proxySimilarityThreshold", params.proxySimilarityThreshold);
+        simplifyQuadMapShader.setFloat("planeSimilarityThreshold", params.planeSimilarityThreshold);
         simplifyQuadMapShader.setInt("maxIterForceMerge", params.maxIterForceMerge);
     }
     {

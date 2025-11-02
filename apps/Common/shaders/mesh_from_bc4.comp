@@ -105,22 +105,32 @@ float sampleBC4Buffer(vec2 pixelCoordNormalized) {
 }
 
 void main() {
-    uvec2 vertexGridSize = uvec2(depthMapSize) / vertexGroupSize;
+    uvec2 adjustedSize = uvec2(depthMapSize) / vertexGroupSize;
+    uvec2 vertexGridSize = adjustedSize + uvec2(1);
 
     uvec2 pixelCoord = uvec2(gl_GlobalInvocationID.xy);
     if (pixelCoord.x >= vertexGridSize.x || pixelCoord.y >= vertexGridSize.y) {
         return;
     }
 
+    vec2 uvBottomLeft = vec2(pixelCoord) / vec2(adjustedSize);
+
+    vec2 sampleCoord = vec2(pixelCoord);
+    if (pixelCoord.x == vertexGridSize.x - 1u) {
+        sampleCoord.x -= 1.0;
+    }
+    if (pixelCoord.y == vertexGridSize.y - 1u) {
+        sampleCoord.y -= 1.0;
+    }
+
     // Sample depth at center of pixel
-    vec2 uvCenter    = (vec2(pixelCoord) + vec2(0.5)) / vec2(vertexGridSize);
+    vec2 uvCenter    = (sampleCoord + vec2(0.5)) / vec2(adjustedSize);
     float pixelDepth = sampleBC4Buffer(uvCenter);
 
     // Project to world space
-    vec2 uvBottomLeft = vec2(pixelCoord) / vec2(vertexGridSize);
-    vec2 ndc          = 2.0 * uvBottomLeft - 1.0;
-    vec3 viewCoord    = ndcToView(projectionInverse, ndc, pixelDepth);
-    vec3 worldCoord   = viewToWorld(viewInverseDepth, viewCoord);
+    vec2 ndc        = 2.0 * uvBottomLeft - 1.0;
+    vec3 viewCoord  = ndcToView(projectionInverse, ndc, pixelDepth);
+    vec3 worldCoord = viewToWorld(viewInverseDepth, viewCoord);
 
     // Write vertex
     uint vertStride  = vertexGridSize.x;

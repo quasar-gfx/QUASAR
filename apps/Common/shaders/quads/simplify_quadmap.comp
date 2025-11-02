@@ -39,7 +39,7 @@ uniform bool correctOrientation;
 uniform float depthThreshold;
 uniform float angleThreshold;
 uniform float flattenThreshold;
-uniform float proxySimilarityThreshold;
+uniform float planeSimilarityThreshold;
 uniform int maxIterForceMerge;
 
 bool hasDepthDiscontinuity(
@@ -266,22 +266,22 @@ bool shouldMerge(
         // If two are valid and similar, merge
         if (validCount == 2) {
             if ((validBottomLeft && validBottomRight) &&
-                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight, proxySimilarityThreshold))
+                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight, planeSimilarityThreshold))
                 return true;
             if ((validBottomLeft && validTopLeft) &&
-                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft,     proxySimilarityThreshold))
+                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft,     planeSimilarityThreshold))
                 return true;
             if ((validBottomRight && validTopRight) &&
-                planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopRight,   proxySimilarityThreshold))
+                planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopRight,   planeSimilarityThreshold))
                 return true;
             if ((validTopLeft && validTopRight) &&
-                planeEquationsSimilar(proxyPlaneEqTopLeft, proxyPlaneEqTopRight,       proxySimilarityThreshold))
+                planeEquationsSimilar(proxyPlaneEqTopLeft, proxyPlaneEqTopRight,       planeSimilarityThreshold))
                 return true;
             if ((validBottomLeft && validTopRight) &&
-                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight,    proxySimilarityThreshold))
+                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight,    planeSimilarityThreshold))
                 return true;
             if ((validBottomRight && validTopLeft) &&
-                planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopLeft,    proxySimilarityThreshold))
+                planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopLeft,    planeSimilarityThreshold))
                 return true;
             return false;
         }
@@ -290,32 +290,32 @@ bool shouldMerge(
         if (validCount == 3) {
             // Check all combinations of three valid quads being similar
             if ((validBottomLeft && validBottomRight && validTopLeft) &&
-                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight, proxySimilarityThreshold) &&
-                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft,     proxySimilarityThreshold))
+                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight, planeSimilarityThreshold) &&
+                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft,     planeSimilarityThreshold))
                 return true;
             if ((validBottomLeft && validBottomRight && validTopRight) &&
-                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight, proxySimilarityThreshold) &&
-                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight,    proxySimilarityThreshold))
+                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight, planeSimilarityThreshold) &&
+                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight,    planeSimilarityThreshold))
                 return true;
             if ((validBottomLeft && validTopLeft && validTopRight) &&
-                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft,     proxySimilarityThreshold) &&
-                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight,    proxySimilarityThreshold))
+                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft,     planeSimilarityThreshold) &&
+                planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight,    planeSimilarityThreshold))
                 return true;
             if ((validBottomRight && validTopLeft && validTopRight) &&
-                planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopLeft,    proxySimilarityThreshold) &&
-                planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopRight,   proxySimilarityThreshold))
+                planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopLeft,    planeSimilarityThreshold) &&
+                planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopRight,   planeSimilarityThreshold))
                 return true;
             return false;
         }
     }
 
     // All four are valid and similar, merge
-    return planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight, proxySimilarityThreshold) &&
-           planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft, proxySimilarityThreshold)     &&
-           planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight, proxySimilarityThreshold)    &&
-           planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopLeft, proxySimilarityThreshold)    &&
-           planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopRight, proxySimilarityThreshold)   &&
-           planeEquationsSimilar(proxyPlaneEqTopLeft, proxyPlaneEqTopRight, proxySimilarityThreshold);
+    return planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqBottomRight, planeSimilarityThreshold) &&
+           planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopLeft, planeSimilarityThreshold)     &&
+           planeEquationsSimilar(proxyPlaneEqBottomLeft, proxyPlaneEqTopRight, planeSimilarityThreshold)    &&
+           planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopLeft, planeSimilarityThreshold)    &&
+           planeEquationsSimilar(proxyPlaneEqBottomRight, proxyPlaneEqTopRight, planeSimilarityThreshold)   &&
+           planeEquationsSimilar(proxyPlaneEqTopLeft, proxyPlaneEqTopRight, planeSimilarityThreshold);
 }
 
 Plane averagePlanes(

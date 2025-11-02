@@ -308,7 +308,7 @@ int main(int argc, char** argv) {
                     sendRemoteFrame = true;
                     runAnimations = false;
                 }
-                if (ImGui::DragFloat("Similarity Threshold", &quadsGenerator->params.proxySimilarityThreshold, 0.001f, 0.0f, 5.0f)) {
+                if (ImGui::DragFloat("Plane Similarity Threshold", &quadsGenerator->params.planeSimilarityThreshold, 0.001f, 0.0f, 5.0f)) {
                     preventCopyingLocalPose = true;
                     sendRemoteFrame = true;
                     runAnimations = false;

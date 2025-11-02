@@ -29,13 +29,13 @@ QuadStreamStreamer::QuadStreamStreamer(
     remoteCameras.resize(maxViews);
     referenceFrames.resize(maxViews);
 
-    // Mostly match QuadStream's params from paper:
+    // Match QuadStream's params from paper:
     auto quadsGenerator = frameGenerator.getQuadsGenerator();
     quadsGenerator->params.expandProxies = false;
     quadsGenerator->params.expandEdges = true;
     quadsGenerator->params.depthThreshold = 1e-4f;
-    quadsGenerator->params.flattenThreshold = 0.01f;
-    quadsGenerator->params.proxySimilarityThreshold = 0.1f;
+    quadsGenerator->params.planeSimilarityThreshold = 1e-2f;
+    quadsGenerator->params.flattenThreshold = 1e-1f;
     quadsGenerator->params.maxIterForceMerge = 1; // Only merge once (similar-ish to doing quad splitting)
     frameGenerator.params.applyDeltaEncoding = false;
 
