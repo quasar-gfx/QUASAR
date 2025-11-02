@@ -125,7 +125,7 @@ def run_from_config(
     )
 
     # MeshWarp Simulator
-    for fov in [60, 120]:
+    for fov in [80, 140]:
         run_simulator(
             simulator_name=f"mw_simulator_{fov}",
             executable="meshwarp/simulator/mw_simulator",
@@ -138,8 +138,8 @@ def run_from_config(
             extra_args=[
                 "--network-latency", str(network_latency),
                 "--network-jitter", str(network_jitter),
-                "--rsize", "1920x1080" if fov == 60 else "3840x2160",
-                "--fov", str(fov),
+                "--rsize", "1920x1080" if fov == 80 else "3840x2160",
+                "--remote-fov", str(fov),
                 *(["--pose-prediction"] if pose_prediction else []),
                 *(["--pose-smoothing"] if pose_smoothing else [])
             ]

@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
     args::Flag poseSmoothingIn(parser, "pose-smoothing", "Enable pose smoothing", {'T', "pose-smoothing"}, false);
     args::ValueFlag<uint> depthFactorIn(parser, "factor", "Depth Resolution Factor", {'a', "depth-factor"}, 1);
     args::ValueFlag<uint> vertexGroupSizeIn(parser, "vertex", "Size of vertex grouping", {'g', "vertex-group-size"}, 1);
-    args::ValueFlag<float> fovIn(parser, "fov", "Field of view", {'f', "fov"}, 60.0f);
+    args::ValueFlag<float> remoteFOVIn(parser, "remote-fov", "Remote camera FOV in degrees", {'F', "remote-fov"}, 80.0f);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -99,8 +99,8 @@ int main(int argc, char** argv) {
     SceneLoader loader;
     loader.loadScene(sceneFile, remoteScene, remoteCamera);
 
-    float fov = args::get(fovIn);
-    remoteCamera.setFovyDegrees(fov);
+    float remoteFOV = args::get(remoteFOVIn);
+    remoteCamera.setFovyDegrees(remoteFOV);
 
     // "Local" scene
     Scene scene;
@@ -268,8 +268,8 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::DragFloat("Remote FOV", &fov, 0.1f, 60.0f, 170.0f)) {
-                remoteCamera.setFovyDegrees(fov);
+            if (ImGui::DragFloat("Remote FOV", &remoteFOV, 0.1f, 80.0f, 180.0f)) {
+                remoteCamera.setFovyDegrees(remoteFOV);
 
                 preventCopyingLocalPose = true;
                 sendRemoteFrame = true;

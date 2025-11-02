@@ -29,7 +29,7 @@ public:
         const glm::uvec2& remoteGBufferSize,
         uint depthFactor = 1,
         uint vertexGroupSize = 1,
-        float remoteFOV = 120.0f,
+        float remoteFOV = 140.0f,
         const std::string& videoURL = "",
         const std::string& depthURL = "");
     ~MeshWarpReceiver() = default;

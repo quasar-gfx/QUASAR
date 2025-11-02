@@ -19,7 +19,7 @@ namespace quasar {
 struct QUASARStreamerCreateParams {
     uint maxLayers = 5;
     float viewSphereDiameter = 1.0f;
-    float wideFOV = 120.0f;
+    float wideFOV = 140.0f;
     uint targetFramerate = 5;
     uint targetBitRate = 28;
     std::string videoURL = "";
@@ -62,14 +62,10 @@ public:
     std::vector<Node> wireframesHidLayer;
 
     // Depth point cloud for debugging
-    std::vector<DepthMesh> depthMeshesHidLayer;
-    std::vector<Node> depthNodesHidLayer;
-
-    // Wide fov
-    std::vector<Node> wideFovNodes;
-
     DepthMesh depthMesh;
+    std::vector<DepthMesh> depthMeshesHidLayer;
     Node depthNode;
+    std::vector<Node> depthNodesHidLayer;
 
     std::string videoURL;
     std::string proxiesURL;
@@ -136,6 +132,9 @@ private:
     PerspectiveCamera& remoteCamera;
     PerspectiveCamera remoteCameraPrev;
     PerspectiveCamera remoteCameraWideFOV;
+
+    // Wide fov
+    std::vector<Node> wideFovNodes;
 
     // Scenes with resulting meshes
     std::vector<Scene> meshScenes;

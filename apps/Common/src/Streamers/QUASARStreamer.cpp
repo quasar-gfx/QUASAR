@@ -186,9 +186,9 @@ QUASARStreamer::QUASARStreamer(
         meshesHidLayer.emplace_back(
             quadSet, frameRTsHidLayer_noTone[layer].colorTexture, frameRTsHidLayer_noTone[layer].alphaTexture);
         if (layer == numHidLayers - 1) {
-            // Increase expand amount by 5px for wide FOV
+            // Increase expand amount by 3px for wide FOV
             // This makes it so that we can merge more and still cover holes
-            meshesHidLayer[layer].setExpandQuadAmount(5.0f);
+            meshesHidLayer[layer].setExpandQuadAmount(3.0f);
         }
 
         nodesHidLayer.emplace_back(&meshesHidLayer[layer]);
@@ -219,9 +219,9 @@ QUASARStreamer::QUASARStreamer(
     }
     sceneWideFov.addChildNode(&residualFrameNode);
 
-    setViewSphereDiameter(params.viewSphereDiameter);
-
     alphaImageData.resize(alphaAtlasRT.width * alphaAtlasRT.height);
+
+    setViewSphereDiameter(params.viewSphereDiameter);
 
     if (!videoURL.empty() && !proxiesURL.empty()) {
         spdlog::info("Created QUASARStreamer that sends to URL: tcp://{}", proxiesURL);
@@ -351,15 +351,14 @@ RenderStats QUASARStreamer::generateFrame(bool createResidualFrame, bool showNor
         auto oldParams = quadsGenerator->params;
         // Wide FOV has very loose parameters to reduce data size
         if (layer == maxLayers - 1) {
-            quadsGenerator->params.flattenThreshold = 1.0f;
-            quadsGenerator->params.planeSimilarityThreshold = 8.0f;
+            quadsGenerator->params.planeSimilarityThreshold *= 4.0f;
+            quadsGenerator->params.expandEdges = true;
         }
         // Hidden layers have looser parameters to reduce data size
         else if (layer > 0) {
-            quadsGenerator->params.flattenThreshold = 1.0f;
             quadsGenerator->params.planeSimilarityThreshold *= (layer * 2.0f);
+            quadsGenerator->params.expandEdges = false;
         }
-        quadsGenerator->params.expandEdges = false;
         ReferenceFrame dummyFrame;
         frameGenerator.createReferenceFrame(
             (layer != 0 && layer != maxLayers - 1) ? renderTargetToUse_noTone : renderTargetToUse,

@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Path to data files", {'D', "data-path"}, "../simulator/");
     args::ValueFlag<uint> vertexGroupSizeIn(parser, "vertex", "Size of vertex grouping", {'g', "vertex-group-size"}, 1);
     args::ValueFlag<uint> depthFactorIn(parser, "factor", "Depth Resolution Factor", {'a', "depth-factor"}, 1);
-    args::ValueFlag<float> remoteFOVIn(parser, "remote-fov", "Remote field of view", {'f', "remote-fov"}, 60.0f);
+    args::ValueFlag<float> remoteFOVIn(parser, "remote-fov", "Remote field of view", {'f', "remote-fov"}, 80.0f);
     args::ValueFlag<std::string> outputPathIn(parser, "output-path", "Directory to save outputs", {'o', "output-path"}, ".");
     args::ValueFlag<std::string> videoURLIn(parser, "video", "URL to recv video", {'c', "video-url"}, "0.0.0.0:12345");
     args::ValueFlag<std::string> depthURLIn(parser, "depth", "URL to recv depth", {'e', "depth-url"}, "127.0.0.1:65432");
@@ -253,7 +253,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::DragFloat("Remote FOV", &remoteFOV, 0.5f, 60.0f, 170.0f);
+            ImGui::DragFloat("Remote FOV", &remoteFOV, 0.5f, 80.0f, 180.0f);
 
             ImGui::Separator();
 

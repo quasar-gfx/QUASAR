@@ -45,8 +45,8 @@ int main(int argc, char** argv) {
     args::Flag poseSmoothingIn(parser, "pose-smoothing", "Enable pose smoothing", {'T', "pose-smoothing"}, false);
     args::ValueFlag<float> viewBoxSizeIn(parser, "view-box-size", "Size of view box in m", {'B', "view-size"}, 0.5f);
     args::ValueFlag<int> maxAdditionalViewsIn(parser, "views", "Max views", {'n', "max-views"}, 8);
-    args::ValueFlag<float> remoteFOVIn(parser, "remote-fov", "Remote camera FOV in degrees", {'F', "remote-fov"}, 60.0f);
-    args::ValueFlag<float> remoteFOVWideIn(parser, "remote-fov-wide", "Remote camera FOV in degrees for wide fov", {'W', "remote-fov-wide"}, 120.0f);
+    args::ValueFlag<float> remoteFOVIn(parser, "remote-fov", "Remote camera FOV in degrees", {'F', "remote-fov"}, 80.0f);
+    args::ValueFlag<float> remoteFOVWideIn(parser, "remote-fov-wide", "Remote camera FOV in degrees for wide fov", {'W', "remote-fov-wide"}, 140.0f);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
     int numPoses = args::get(numPosesIn);
     Path outputPath = Path(args::get(outputPathIn)); outputPath.mkdirRecursive();
 
-    // 0th is standard view, maxViews-1 is large fov view
+    // 0th is center view, maxViews-1 is wide fov view
     int maxAdditionalViews = args::get(maxAdditionalViewsIn);
     int maxViews = maxAdditionalViews + 2;
 

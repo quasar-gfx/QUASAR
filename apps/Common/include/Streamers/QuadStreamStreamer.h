@@ -16,7 +16,7 @@ namespace quasar {
 struct QuadStreamStreamerCreateParams {
     uint maxViews = 4;
     float viewBoxSize = 0.5f;
-    float wideFOV = 120.0f;
+    float wideFOV = 140.0f;
 };
 
 class QuadStreamStreamer {

@@ -11,7 +11,7 @@ class DepthPeelingRenderer : public DeferredRenderer {
 public:
     uint maxLayers;
     float viewSphereDiameter = 0.5f;
-    float edpDelta = 0.001f;
+    float edpDelta = 0.0005f;
 
     std::vector<FrameRenderTarget> peelingLayers;
 
