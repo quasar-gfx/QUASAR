@@ -29,7 +29,6 @@ int main(int argc, char** argv) {
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::ValueFlag<bool> displayIn(parser, "display", "Show window", {'d', "display"}, true);
     args::ValueFlag<uint> depthFactorIn(parser, "factor", "Depth Resolution Factor", {'a', "depth-factor"}, 1);
-    args::ValueFlag<float> fovIn(parser, "fov", "Field of view", {'f', "fov"}, 80.0f);
     args::ValueFlag<uint> targetBitrateIn(parser, "target-bitrate", "Target bitrate (Mbps)", {'b', "target-bitrate"}, 12);
     args::ValueFlag<std::string> videoURLIn(parser, "video", "URL to send video", {'c', "video-url"}, "127.0.0.1:12345");
     args::ValueFlag<std::string> depthURLIn(parser, "depth", "URL to send depth", {'e', "depth-url"}, "127.0.0.1:65432");
@@ -78,9 +77,6 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera(windowSize);
     SceneLoader loader;
     loader.loadScene(sceneFile, scene, camera);
-
-    float remoteFOV = args::get(fovIn);
-    camera.setFovyDegrees(remoteFOV);
 
     glm::vec3 initialPosition = camera.getPosition();
 
