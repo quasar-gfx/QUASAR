@@ -61,7 +61,6 @@ uniform struct Material {
     sampler2D brdfLUT; // 8
 } material;
 
-
 vec3 getNormal() {
 	vec3 N = normalize(fsIn.Normal);
 	vec3 T = normalize(fsIn.Tangent);

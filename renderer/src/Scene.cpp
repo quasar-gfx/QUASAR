@@ -98,6 +98,7 @@ int Scene::bindPointLights(const Material* material, Buffer& pointLightsUBO, int
 #else
         shader->clearTexture("pointLightShadowMaps" + std::to_string(i), texIdx);
 #endif
+        texIdx++;
     }
 
     pointLightsUBO.bind();

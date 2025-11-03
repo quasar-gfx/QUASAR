@@ -128,90 +128,18 @@ RenderStats DeferredRenderer::drawSkyBox(Scene& scene, const Camera& camera, uin
     return stats;
 }
 
-RenderStats DeferredRenderer::drawObjectsNoLighting(Scene& scene, const Camera& camera, uint32_t clearMask) {
-    pipeline.apply();
-
+RenderStats DeferredRenderer::preLightingPass(Scene& scene, const Camera& camera, uint32_t clearMask) {
     RenderStats stats;
+
+    // Update shadows
+    updateDirLightShadow(scene, camera);
+    updatePointLightShadows(scene, camera);
 
     // Draw all objects in the scene
     stats += drawScene(scene, camera, clearMask);
 
-    // Draw lighting pass
-    stats += lightingPass(scene, camera);
-
-    // Forward pass for transparent objects
-    if (sortTransparent) {
-        // Switch to forward pipeline for lit materials
-        LitMaterial::setPipelineMode(Material::RenderPipelineMode::Forward);
-
-        outputRT.bind();
-        stats += drawTransparent(scene, camera);
-        outputRT.unbind();
-    }
-
-    // Draw skybox
-    stats += drawSkyBox(scene, camera);
-
-    return stats;
-}
-
-RenderStats DeferredRenderer::drawObjects(Scene& scene, const Camera& camera, uint32_t clearMask) {
-    RenderStats stats;
-    if (camera.isVR()) {
-        auto* vrCamera = static_cast<const VRCamera*>(&camera);
-
-        pipeline.rasterState.scissorTestEnabled = true;
-
-        // Left eye
-        gBuffer.setScissor(0, 0, width / 2, height);
-        gBuffer.setViewport(0, 0, width / 2, height);
-        outputRT.setScissor(0, 0, width / 2, height);
-        outputRT.setViewport(0, 0, width / 2, height);
-        stats += drawObjects(scene, vrCamera->left, clearMask);
-
-        // Right eye
-        gBuffer.setScissor(width / 2, 0, width / 2, height);
-        gBuffer.setViewport(width / 2, 0, width / 2, height);
-        outputRT.setScissor(width / 2, 0, width / 2, height);
-        outputRT.setViewport(width / 2, 0, width / 2, height);
-        stats += drawObjects(scene, vrCamera->right, clearMask);
-    }
-    else {
-        pipeline.apply();
-
-        // Update shadows
-        updateDirLightShadow(scene, camera);
-        updatePointLightShadows(scene, camera);
-
-        // Draw all objects in the scene
-        stats += drawScene(scene, camera, clearMask);
-
-        // Draw lights for debugging
-        stats += drawLights(scene, camera);
-
-        // Draw lighting pass
-        stats += lightingPass(scene, camera);
-
-        // Forward pass for transparent objects over lit scene
-        if (sortTransparent) {
-            // Switch to forward pipeline for lit materials
-            LitMaterial::setPipelineMode(Material::RenderPipelineMode::Forward);
-
-            // First draw skybox into the output so transparent objects blend over the background correctly,
-            // then draw transparent geometry
-            stats += drawSkyBox(scene, camera);
-
-            // Draw transparent objects
-            outputRT.bind();
-            stats += drawTransparent(scene, camera);
-            outputRT.unbind();
-        }
-
-        // Draw skybox if not already drawn in forward pass
-        if (!sortTransparent) {
-            stats += drawSkyBox(scene, camera);
-        }
-    }
+    // Draw lights for debugging
+    stats += drawLights(scene, camera);
 
     return stats;
 }
@@ -240,6 +168,120 @@ RenderStats DeferredRenderer::lightingPass(Scene& scene, const Camera& camera) {
     // Reenable blending
     pipeline.depthState.depthFunc = GL_LESS;
     pipeline.apply();
+
+    return stats;
+}
+
+RenderStats DeferredRenderer::postLightingPass(Scene& scene, const Camera& camera) {
+    RenderStats stats;
+    // Forward pass for transparent objects over lit scene
+    if (sortTransparent) {
+        // Switch to forward pipeline for lit materials
+        LitMaterial::setPipelineMode(Material::RenderPipelineMode::Forward);
+
+        // First draw skybox into the output so transparent objects blend over the background correctly,
+        // then draw transparent geometry
+        stats += drawSkyBox(scene, camera);
+
+        // Draw transparent objects
+        outputRT.bind();
+        stats += drawTransparent(scene, camera);
+        outputRT.unbind();
+    }
+
+    // Draw skybox if not already drawn in forward pass
+    if (!sortTransparent) {
+        stats += drawSkyBox(scene, camera);
+    }
+
+    return stats;
+}
+
+RenderStats DeferredRenderer::drawObjectsNoLighting(Scene& scene, const Camera& camera, uint32_t clearMask) {
+    pipeline.apply();
+
+    RenderStats stats;
+
+    // Draw all objects in the scene
+    stats += drawScene(scene, camera, clearMask);
+
+    // Draw lighting pass
+    stats += lightingPass(scene, camera);
+
+    // Draw transparent objects and skybox
+    stats += postLightingPass(scene, camera);
+
+    return stats;
+}
+
+RenderStats DeferredRenderer::drawObjects(Scene& scene, const Camera& camera, uint32_t clearMask) {
+    pipeline.apply();
+
+    RenderStats stats;
+    if (camera.isVR()) {
+        auto* vrCamera = static_cast<const VRCamera*>(&camera);
+
+        pipeline.rasterState.scissorTestEnabled = true;
+
+        // Left eye
+        gBuffer.setScissor({ 0, 0, width / 2, height });
+        gBuffer.setViewport({ 0, 0, width / 2, height });
+        stats += preLightingPass(scene, vrCamera->left, clearMask);
+
+        // Copy scissor and viewport to outputRT
+        outputRT.setScissor(gBuffer.getScissor());
+        outputRT.setViewport(gBuffer.getViewport());
+
+        // Copy depth from GBuffer to outputRT
+        gBuffer.blitDepth(outputRT);
+
+        // Restore full viewport for outputRT
+        outputRT.setScissor({ 0, 0, width, height });
+        outputRT.setViewport({ 0, 0, width, height });
+
+        // Right eye
+        gBuffer.setScissor({ width / 2, 0, width / 2, height });
+        gBuffer.setViewport({ width / 2, 0, width / 2, height });
+        stats += preLightingPass(scene, vrCamera->right, clearMask);
+
+        // Copy scissor and viewport to outputRT
+        outputRT.setScissor(gBuffer.getScissor());
+        outputRT.setViewport(gBuffer.getViewport());
+
+        // Copy depth from GBuffer to outputRT
+        gBuffer.blitDepth(outputRT);
+
+        // Restore full viewport for outputRT
+        outputRT.setScissor({ 0, 0, width, height });
+        outputRT.setViewport({ 0, 0, width, height });
+    }
+    else {
+        stats += preLightingPass(scene, camera, clearMask);
+    }
+
+    stats += lightingPass(scene, camera);
+
+    if (camera.isVR()) {
+        auto* vrCamera = static_cast<const VRCamera*>(&camera);
+
+        // Left eye
+        outputRT.setScissor({ 0, 0, width / 2, height });
+        outputRT.setViewport({ 0, 0, width / 2, height });
+        stats += postLightingPass(scene, vrCamera->left);
+
+        // Right eye
+        outputRT.setScissor({ width / 2, 0, width / 2, height });
+        outputRT.setViewport({ width / 2, 0, width / 2, height });
+        stats += postLightingPass(scene, vrCamera->right);
+
+        pipeline.rasterState.scissorTestEnabled = false;
+
+        outputRT.setScissor({ 0, 0, width, height });
+        outputRT.setViewport({ 0, 0, width, height });
+    }
+    else {
+        stats += postLightingPass(scene, camera);
+    }
 
     return stats;
 }

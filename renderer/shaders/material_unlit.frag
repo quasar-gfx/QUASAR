@@ -33,8 +33,6 @@ uniform struct Material {
     sampler2D baseColorMap; // 0
 } material;
 
-// Depth peeling helpers moved to depth_peeling.glsl
-
 void main() {
     vec4 baseColor;
     if (material.hasBaseColorMap) {

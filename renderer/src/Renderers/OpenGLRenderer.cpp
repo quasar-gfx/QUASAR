@@ -150,7 +150,7 @@ RenderStats OpenGLRenderer::updateDirLightShadow(Scene& scene, const Camera& cam
     auto& shadowMapRT = scene.directionalLight->shadowMapRenderTarget;
 
     shadowMapRT.bind();
-    shadowMapRT.setViewport(0, 0, shadowMapRT.width, shadowMapRT.height);
+    shadowMapRT.setViewport({ 0, 0, shadowMapRT.width, shadowMapRT.height });
     glClear(GL_DEPTH_BUFFER_BIT);
 
     for (auto* child : scene.children) {
@@ -173,7 +173,7 @@ RenderStats OpenGLRenderer::updatePointLightShadows(Scene& scene, const Camera& 
         auto& shadowMapRT = pointLight->shadowMapRenderTarget;
 
         shadowMapRT.bind();
-        shadowMapRT.setViewport(0, 0, shadowMapRT.width, shadowMapRT.height);
+        shadowMapRT.setViewport({ 0, 0, shadowMapRT.width, shadowMapRT.height });
         glClear(GL_DEPTH_BUFFER_BIT);
 
         pointLight->shadowMapMaterial.bind();

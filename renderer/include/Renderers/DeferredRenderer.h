@@ -40,7 +40,9 @@ public:
 protected:
     DeferredLightingMaterial lightingMaterial;
 
+    RenderStats preLightingPass(Scene& scene, const Camera& camera, uint32_t clearMask);
     RenderStats lightingPass(Scene& scene, const Camera& camera);
+    RenderStats postLightingPass(Scene& scene, const Camera& camera);
 };
 
 } // namespace quasar

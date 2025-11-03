@@ -39,13 +39,13 @@ RenderStats ForwardRenderer::drawObjects(Scene& scene, const Camera& camera, uin
         pipeline.rasterState.scissorTestEnabled = true;
 
         // Left eye
-        frameRT.setScissor(0, 0, width / 2, height);
-        frameRT.setViewport(0, 0, width / 2, height);
+        frameRT.setScissor({ 0, 0, width / 2, height });
+        frameRT.setViewport({ 0, 0, width / 2, height });
         stats = drawObjects(scene, vrCamera->left, clearMask);
 
         // Right eye
-        frameRT.setScissor(width / 2, 0, width / 2, height);
-        frameRT.setViewport(width / 2, 0, width / 2, height);
+        frameRT.setScissor({ width / 2, 0, width / 2, height });
+        frameRT.setViewport({ width / 2, 0, width / 2, height });
         stats = drawObjects(scene, vrCamera->right, clearMask);
     }
     else {

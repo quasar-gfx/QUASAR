@@ -122,17 +122,17 @@ RenderStats DepthPeelingRenderer::drawObjects(Scene& scene, const Camera& camera
         pipeline.rasterState.scissorTestEnabled = true;
 
         // Left eye
-        gBuffer.setScissor(0, 0, width / 2, height);
-        gBuffer.setViewport(0, 0, width / 2, height);
-        outputRT.setScissor(0, 0, width / 2, height);
-        outputRT.setViewport(0, 0, width / 2, height);
+        gBuffer.setScissor({ 0, 0, width / 2, height });
+        gBuffer.setViewport({ 0, 0, width / 2, height });
+        outputRT.setScissor({ 0, 0, width / 2, height });
+        outputRT.setViewport({ 0, 0, width / 2, height });
         stats += drawObjects(scene, vrCamera->left, clearMask);
 
         // Right eye
-        gBuffer.setScissor(width / 2, 0, width / 2, height);
-        gBuffer.setViewport(width / 2, 0, width / 2, height);
-        outputRT.setScissor(width / 2, 0, width / 2, height);
-        outputRT.setViewport(width / 2, 0, width / 2, height);
+        gBuffer.setScissor({ width / 2, 0, width / 2, height });
+        gBuffer.setViewport({ width / 2, 0, width / 2, height });
+        outputRT.setScissor({ width / 2, 0, width / 2, height });
+        outputRT.setViewport({ width / 2, 0, width / 2, height });
         stats += drawObjects(scene, vrCamera->right, clearMask);
     }
     else {
