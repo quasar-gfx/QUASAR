@@ -62,8 +62,8 @@ void SceneLoader::parseSkybox(const json& j, Scene& scene) {
         hdrTextureParams.path = j.at("path").get<std::string>();
     }
 
-    if (j.contains("flipVertically")) {
-        hdrTextureParams.flipVertically = j.at("flipVertically").get<bool>();
+    if (j.contains("flipTextureY")) {
+        hdrTextureParams.flipTextureY = j.at("flipTextureY").get<bool>();
     }
 
     if (j.contains("width")) {
@@ -80,9 +80,9 @@ void SceneLoader::parseSkybox(const json& j, Scene& scene) {
 
     Texture hdrTexture = Texture(hdrTextureParams);
 
-    SkyBox* envCubeMap = new SkyBox(skyBoxParams, hdrTexture);
+    SkyBox* skybox = new SkyBox(skyBoxParams, hdrTexture);
 
-    scene.setEnvMap(envCubeMap);
+    scene.setEnvMap(skybox);
 }
 
 void SceneLoader::parseMaterial(const json& j, Scene& scene) {
@@ -111,13 +111,13 @@ void SceneLoader::parseMaterial(const json& j, Scene& scene) {
     if (j.contains("alphaMode")) {
         auto alphaMode = j.at("alphaMode").get<std::string>();
         if (alphaMode == "opaque") {
-            params.alphaMode = AlphaMode::OPAQUE;
+            params.alphaMode = Material::AlphaMode::OPAQUE;
         }
         else if (alphaMode == "masked") {
-            params.alphaMode = AlphaMode::MASKED;
+            params.alphaMode = Material::AlphaMode::MASKED;
         }
         else if (alphaMode == "transparent") {
-            params.alphaMode = AlphaMode::TRANSPARENT;
+            params.alphaMode = Material::AlphaMode::TRANSPARENT;
         }
     }
 
@@ -152,8 +152,8 @@ void SceneLoader::parseModel(const json& j, Scene& scene) {
         params.IBL = j.at("IBL").get<float>();
     }
 
-    if (j.contains("flipTextures")) {
-        params.flipTextures = j.at("flipTextures").get<bool>();
+    if (j.contains("flipTextureY")) {
+        params.flipTextureY = j.at("flipTextureY").get<bool>();
     }
 
     if (j.contains("gammaCorrected")) {

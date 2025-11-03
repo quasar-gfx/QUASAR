@@ -9,14 +9,17 @@
 #include <Networking/DataStreamerTCP.h>
 #include <Streamers/VideoStreamer.h>
 #include <PostProcessing/Tonemapper.h>
+
+#include <UI/FrameRateWindow.h>
 #include <PostProcessing/ShowNormalsEffect.h>
+#include <Codecs/AlphaCodec.h>
 
 namespace quasar {
 
 struct QUASARStreamerCreateParams {
     uint maxLayers = 5;
     float viewSphereDiameter = 1.0f;
-    float wideFOV = 120.0f;
+    float wideFOV = 140.0f;
     uint targetFramerate = 5;
     uint targetBitRate = 28;
     std::string videoURL = "";
@@ -33,7 +36,6 @@ public:
     std::vector<ReferenceFrame> referenceFrames;
     std::vector<QuadMesh> referenceFrameMeshes;
     std::vector<Node> referenceFrameNodes;
-    std::vector<Node> referenceFrameWireframesLocal;
     int meshIndex = 0, lastMeshIndex = 1;
 
     // Residual frame -- we only create the residuals to the visible layer
@@ -44,11 +46,14 @@ public:
     QuadMesh residualFrameMesh;
     Node residualFrameNode;
 
-    VideoStreamer atlasVideoStreamerRT;
+    VideoStreamer videoAtlasStreamerRT;
+    FrameRenderTarget alphaAtlasRT;
 
     // Local objects
+    std::vector<Node> referenceFrameWireframesLocal;
     std::vector<Node> referenceFrameNodesLocal;
-    Node residualFrameWireframesLocal;
+    Node residualFrameNodeLocal;
+    Node residualFrameWireframeLocal;
 
     // Hidden layers
     std::vector<FrameRenderTarget> frameRTsHidLayer;
@@ -57,14 +62,10 @@ public:
     std::vector<Node> wireframesHidLayer;
 
     // Depth point cloud for debugging
-    std::vector<DepthMesh> depthMeshsHidLayer;
-    std::vector<Node> depthNodesHidLayer;
-
-    // Wide fov
-    std::vector<Node> wideFovNodes;
-
     DepthMesh depthMesh;
+    std::vector<DepthMesh> depthMeshesHidLayer;
     Node depthNode;
+    std::vector<Node> depthNodesHidLayer;
 
     std::string videoURL;
     std::string proxiesURL;
@@ -80,7 +81,8 @@ public:
         double totalCreateVertIndTimeMs = 0.0;
         double totalGenDepthTimeMs = 0.0;
         double totalCompressTimeMs = 0.0;
-        QuadSet::Sizes totalSizes;
+        double frameSize = 0.0;
+        QuadSet::Sizes proxySizes;
     } stats;
 
     QUASARStreamer(
@@ -99,8 +101,11 @@ public:
     void setViewSphereDiameter(float viewSphereDiameter);
 
     RenderStats generateFrame(bool createResidualFrame = false, bool showNormals = false, bool showDepth = false);
-    void sendProxies(pose_id_t poseID, bool createResidualFrame);
+    void sendFrame(pose_id_t poseID, bool createResidualFrame);
 
+    void setDrawState(QuadMesh::DrawState drawState);
+
+    void writeTexturesToFiles(const Path& outputPath);
     size_t writeToFiles(const Path& outputPath);
     size_t writeToMemory(pose_id_t poseID, bool writeResidualFrame, std::vector<char>& outputData);
 
@@ -128,6 +133,9 @@ private:
     PerspectiveCamera remoteCameraPrev;
     PerspectiveCamera remoteCameraWideFOV;
 
+    // Wide fov
+    std::vector<Node> wideFovNodes;
+
     // Scenes with resulting meshes
     std::vector<Scene> meshScenes;
     Scene sceneWideFov;
@@ -136,9 +144,14 @@ private:
     FrameRenderTarget residualFrameRT_noTone;
     std::vector<FrameRenderTarget> frameRTsHidLayer_noTone;
 
+    std::vector<unsigned char> alphaImageData;
+
     std::vector<char> cameraData;
+    std::vector<char> alphaData;
     std::vector<std::vector<char>> geometryMetadatas;
     std::vector<char> compressedData;
+
+    AlphaCodec alphaCodec;
 
     QuadMaterial wireframeMaterial;
     QuadMaterial maskWireframeMaterial;

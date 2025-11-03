@@ -8,7 +8,10 @@
 
 using namespace quasar;
 
-CameraAnimator::CameraAnimator(const std::string& pathFile, bool tween) : tween(tween) {
+CameraAnimator::CameraAnimator(const std::string& pathFile, int numPoses, bool tween)
+    : numPoses(numPoses)
+    , tween(tween)
+{
     if (!pathFile.empty()) {
         loadAnimation(pathFile);
     }
@@ -24,8 +27,18 @@ void CameraAnimator::loadAnimation(const std::string& pathFile) {
         return;
     }
 
+    int posesAdded = 0;
     std::string line;
     while (std::getline(file, line)) {
+        if (line.empty() || line[0] == '#') {
+            continue; // Skip empty lines and comments
+        }
+
+        if (numPoses > 0 && posesAdded >= numPoses) {
+            break; // Reached the specified number of poses
+        }
+        posesAdded++;
+
         std::stringstream ss(line);
         float px, py, pz;
         float rx, ry, rz;

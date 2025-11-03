@@ -1,11 +1,4 @@
-#include <iostream>
-#include <thread>
-
 #include <spdlog/spdlog.h>
-
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 #include <Primitives/Entity.h>
 #include <OpenGLApp.h>

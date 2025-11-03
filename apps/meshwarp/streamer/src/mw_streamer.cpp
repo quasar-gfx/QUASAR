@@ -7,6 +7,10 @@
 #include <Renderers/DeferredRenderer.h>
 #include <PostProcessing/Tonemapper.h>
 
+#include <UI/FrameRateWindow.h>
+#include <UI/SceneWindow.h>
+#include <PostProcessing/ShowDepthEffect.h>
+
 #include <Streamers/MeshWarpStreamer.h>
 #include <Receivers/PoseReceiver.h>
 
@@ -25,7 +29,6 @@ int main(int argc, char** argv) {
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::ValueFlag<bool> displayIn(parser, "display", "Show window", {'d', "display"}, true);
     args::ValueFlag<uint> depthFactorIn(parser, "factor", "Depth Resolution Factor", {'a', "depth-factor"}, 1);
-    args::ValueFlag<float> fovIn(parser, "fov", "Field of view", {'f', "fov"}, 60.0f);
     args::ValueFlag<uint> targetBitrateIn(parser, "target-bitrate", "Target bitrate (Mbps)", {'b', "target-bitrate"}, 12);
     args::ValueFlag<std::string> videoURLIn(parser, "video", "URL to send video", {'c', "video-url"}, "127.0.0.1:12345");
     args::ValueFlag<std::string> depthURLIn(parser, "depth", "URL to send depth", {'e', "depth-url"}, "127.0.0.1:65432");
@@ -75,9 +78,6 @@ int main(int argc, char** argv) {
     SceneLoader loader;
     loader.loadScene(sceneFile, scene, camera);
 
-    float remoteFOV = args::get(fovIn);
-    camera.setFovyDegrees(remoteFOV);
-
     glm::vec3 initialPosition = camera.getPosition();
 
     MeshWarpStreamer meshWarpStreamer(
@@ -102,11 +102,11 @@ int main(int argc, char** argv) {
 
     RenderStats renderStats;
     pose_id_t prevPoseID;
+    FrameRateWindow frameRateWindow;
+    SceneWindow sceneWindow(scene, glm::vec2(430, 800));
     guiManager->onRender([&](double now, double dt) {
-        static bool showFPS = true;
         static bool showUI = true;
 
-        ImGuiWindowFlags flags = 0;
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Exit", "ESC")) {
@@ -115,19 +115,18 @@ int main(int argc, char** argv) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
-            ImGui::MenuItem("FPS", 0, &showFPS);
+            ImGui::MenuItem("FPS", 0, &frameRateWindow.visible);
             ImGui::MenuItem("UI", 0, &showUI);
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Scene")) {
+            ImGui::MenuItem("Scene", 0, &sceneWindow.visible);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
 
-        if (showFPS) {
-            ImGui::SetNextWindowPos(ImVec2(10, 40), ImGuiCond_FirstUseEver);
-            flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar;
-            ImGui::Begin("", 0, flags);
-            ImGui::Text("%.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
-            ImGui::End();
-        }
+        frameRateWindow.draw(now, dt);
+        sceneWindow.draw(now, dt);
 
         if (showUI) {
             ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
@@ -173,21 +172,23 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: RGB (%.1f fps), BC4 D (%.1f fps)",
-                                                    meshWarpStreamer.getVideoFrameRate(),
-                                                    meshWarpStreamer.getDepthFrameRate());
-
-            ImGui::Separator();
-
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: RGB (%.3f ms), BC4 D (%.3f ms)",
-                                                    meshWarpStreamer.videoStreamerRT.stats.transferTimeMs,
-                                                    meshWarpStreamer.depthStreamerRT.stats.transferTimeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: RGB (%.3f ms), BC4 D (%.3f ms)",
-                                                    meshWarpStreamer.videoStreamerRT.stats.encodeTimeMs,
-                                                    meshWarpStreamer.depthStreamerRT.stats.compressTimeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: RGB (%.3f ms), BC4 D (%.3f ms)",
-                                                    meshWarpStreamer.videoStreamerRT.stats.sendTimeMs,
-                                                    meshWarpStreamer.depthStreamerRT.stats.sendTimeMs);
+            if (ImGui::CollapsingHeader("Video Stats")) {
+                ImGui::TextColored(ImVec4(1,0.5,0,1), "Frame Rate: RGB (%.1f fps), D (%.1f fps)",
+                                                        meshWarpStreamer.getVideoFrameRate(),
+                                                        meshWarpStreamer.getDepthFrameRate());
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: RGB (%.3f ms), D (%.3f ms)",
+                                                        meshWarpStreamer.videoStreamerRT.stats.transferTimeMs,
+                                                        meshWarpStreamer.depthStreamerRT.stats.transferTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: RGB (%.3f ms), D (%.3f ms)",
+                                                        meshWarpStreamer.videoStreamerRT.stats.encodeTimeMs,
+                                                        meshWarpStreamer.depthStreamerRT.stats.compressTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: RGB (%.3f ms), D (%.3f ms)",
+                                                        meshWarpStreamer.videoStreamerRT.stats.sendTimeMs,
+                                                        meshWarpStreamer.depthStreamerRT.stats.sendTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0.5,1), "Bitrate: RGB (%.3f Mbps), D (%.3f Mbps)",
+                                                        meshWarpStreamer.videoStreamerRT.stats.bitrateMbps,
+                                                        meshWarpStreamer.depthStreamerRT.stats.bitrateMbps);
+            }
 
             ImGui::Separator();
 

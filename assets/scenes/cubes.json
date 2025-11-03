@@ -2,13 +2,11 @@
     "skybox": {
         "path": "../assets/textures/ibr/frozen_waterfall.hdr",
         "HDR": true,
-        "flipVertically": true,
         "width": 1024,
         "height": 1024
     },
     "materials": [
         {
-            "PBR": true,
             "albedoTexturePath": "../assets/textures/pbr/gold/albedo.png",
             "normalTexturePath": "../assets/textures/pbr/gold/normal.png",
             "metallicTexturePath": "../assets/textures/pbr/gold/metallic.png",
@@ -16,7 +14,6 @@
             "aoTexturePath": "../assets/textures/pbr/gold/ao.png"
         },
         {
-            "PBR": true,
             "albedoTexturePath": "../assets/textures/pbr/rusted_iron/albedo.png",
             "normalTexturePath": "../assets/textures/pbr/rusted_iron/normal.png",
             "metallicTexturePath": "../assets/textures/pbr/rusted_iron/metallic.png",
@@ -24,7 +21,6 @@
             "aoTexturePath": "../assets/textures/pbr/rusted_iron/ao.png"
         },
         {
-            "PBR": true,
             "albedoTexturePath": "../assets/textures/pbr/plastic/albedo.png",
             "normalTexturePath": "../assets/textures/pbr/plastic/normal.png",
             "metallicTexturePath": "../assets/textures/pbr/plastic/metallic.png",
@@ -70,8 +66,8 @@
         }
     ],
     "camera": {
-        "fov": 60.0,
-        "near": 0.1,
+        "fov": 80.0,
+        "near": 0.05,
         "far": 1000.0,
         "position": [0.0, 0.0, 0.0],
         "rotation": [0.0, 0.0, 0.0]

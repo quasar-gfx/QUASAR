@@ -190,25 +190,28 @@ public:
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void blitToScreen(uint width, uint height) {
-        framebuffer.blitToScreen(width, height);
+    void blitColorAndDepth(FrameRenderTarget& frameRT, GLenum filter = GL_NEAREST) {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frameRT.getFramebufferID());
+
+        // Color
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
+        GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0 };
+        glDrawBuffers(1, drawBuffers);
+        glBlitFramebuffer(0, 0, width, height,
+                          0, 0, frameRT.width, frameRT.height,
+                          GL_COLOR_BUFFER_BIT, filter);
+
+        // Depth and stencil
+        glBlitFramebuffer(0, 0, width, height,
+                          0, 0, frameRT.width, frameRT.height,
+                          GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void clear(uint32_t clearMask) override {
-        if (clearMask & GL_COLOR_BUFFER_BIT) {
-            const GLfloat zero[4]   = {0, 0, 0, 0};
-            const GLfloat oneR[4]   = {1, 0, 0, 0};
-            const GLfloat normalZ[4]= {0, 0, 1, 0};
-            const GLuint uzero[4] = {0u, 0u, 0u, 0u};
-
-            glClearBufferfv(GL_COLOR, 0, zero);        // Color
-            glClearBufferfv(GL_COLOR, 1, oneR);        // Alpha
-            glClearBufferfv(GL_COLOR, 2, normalZ);     // Normals
-            glClearBufferuiv(GL_COLOR, 3, uzero);      // IDs
-        }
-        if (clearMask & (GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)) {
-            glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0); // Depth and Stencil
-        }
+    void blitToScreen(uint width, uint height) {
+        framebuffer.blitToScreen(width, height);
     }
 
     void resize(uint width, uint height) override {

@@ -25,7 +25,7 @@ public:
     double now = 0.0;
     double dt = 0.0;
 
-    CameraAnimator(const std::string& pathFile, bool tween = true);
+    CameraAnimator(const std::string& pathFile, int numPoses = -1, bool tween = true);
 
     void loadAnimation(const std::string& pathFile);
     bool update(double dt);
@@ -33,6 +33,7 @@ public:
     void copyPoseToCamera(PerspectiveCamera& camera) const;
 
 private:
+    int numPoses;
     bool tween = false;
 
     std::vector<CameraPose> waypoints;

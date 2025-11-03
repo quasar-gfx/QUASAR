@@ -8,6 +8,9 @@
 #include <Renderers/DeferredRenderer.h>
 #include <PostProcessing/Tonemapper.h>
 
+#include <UI/FrameRateWindow.h>
+#include <UI/SceneWindow.h>
+
 #include <Streamers/QuadsStreamer.h>
 #include <Receivers/PoseReceiver.h>
 
@@ -17,6 +20,7 @@ int main(int argc, char** argv) {
     Config config{};
     config.title = "Quads Streamer";
     config.targetFramerate = 30;
+    config.sortTransparent = false;
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
@@ -26,7 +30,7 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::ValueFlag<bool> displayIn(parser, "display", "Show window", {'d', "display"}, true);
-    args::ValueFlag<float> remoteFOVIn(parser, "remote-fov", "Remote camera FOV in degrees", {'F', "remote-fov"}, 60.0f);
+    args::ValueFlag<float> remoteFOVIn(parser, "remote-fov", "Remote camera FOV in degrees", {'F', "remote-fov"}, 80.0f);
     args::ValueFlag<int> targetBitrateIn(parser, "target-bitrate", "Target bitrate (Mbps)", {'b', "target-bitrate"}, 16);
     args::ValueFlag<std::string> videoURLIn(parser, "video", "URL to send video", {'c', "video-url"}, "127.0.0.1:12345");
     args::ValueFlag<std::string> proxiesURLIn(parser, "proxies", "URL to send quad proxy metadata", {'e', "proxies-url"}, "127.0.0.1:65432");
@@ -114,6 +118,7 @@ int main(int argc, char** argv) {
 
     bool sendReferenceFrame = true;
     bool sendResidualFrame = false;
+    bool showResidualFrame = false;
     int refFrameInterval = 2;
 
     const double serverFPSValues[] = {0, 1, 2, 3, 4, 5};
@@ -123,12 +128,12 @@ int main(int argc, char** argv) {
 
     RenderStats renderStats;
     pose_id_t prevPoseID;
+    FrameRateWindow frameRateWindow;
+    SceneWindow sceneWindow(localScene, glm::vec2(430, 800));
     guiManager->onRender([&](double now, double dt) {
-        static bool showFPS = true;
         static bool showUI = true;
         static bool showFramePreviewWindow = false;
 
-        ImGuiWindowFlags flags = 0;
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Exit", "ESC")) {
@@ -137,20 +142,19 @@ int main(int argc, char** argv) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
-            ImGui::MenuItem("FPS", 0, &showFPS);
+            ImGui::MenuItem("FPS", 0, &frameRateWindow.visible);
             ImGui::MenuItem("UI", 0, &showUI);
             ImGui::MenuItem("Frame Previews", 0, &showFramePreviewWindow);
             ImGui::EndMenu();
         }
+        if (ImGui::BeginMenu("Scene")) {
+            ImGui::MenuItem("Scene", 0, &sceneWindow.visible);
+            ImGui::EndMenu();
+        }
         ImGui::EndMainMenuBar();
 
-        if (showFPS) {
-            ImGui::SetNextWindowPos(ImVec2(10, 40), ImGuiCond_FirstUseEver);
-            flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar;
-            ImGui::Begin("", 0, flags);
-            ImGui::Text("%.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
-            ImGui::End();
-        }
+        frameRateWindow.draw(now, dt);
+        sceneWindow.draw(now, dt);
 
         if (showUI) {
             ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
@@ -177,11 +181,11 @@ int main(int argc, char** argv) {
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %ld", renderStats.drawCalls);
 
             ImGui::TextColored(ImVec4(0,1,1,1), "Total Quads: %ld (%.3f MB)",
-                               quadwarp.stats.totalSizes.numQuads,
-                               quadwarp.stats.totalSizes.quadsSize / BYTES_PER_MEGABYTE);
+                               quadwarp.stats.proxySizes.numQuads,
+                               quadwarp.stats.proxySizes.quadsSize / BYTES_PER_MEGABYTE);
             ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %ld (%.3f MB)",
-                               quadwarp.stats.totalSizes.numDepthOffsets,
-                               quadwarp.stats.totalSizes.depthOffsetsSize / BYTES_PER_MEGABYTE);
+                               quadwarp.stats.proxySizes.numDepthOffsets,
+                               quadwarp.stats.proxySizes.depthOffsetsSize / BYTES_PER_MEGABYTE);
 
             ImGui::Separator();
 
@@ -204,14 +208,6 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            auto& videoStreamerRT = quadwarp.atlasVideoStreamerRT;
-            ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoStreamerRT.getFrameRate(), 1000.0f / videoStreamerRT.getFrameRate());
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: %.3f ms", videoStreamerRT.stats.transferTimeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.3f ms", videoStreamerRT.stats.encodeTimeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: %.3f ms", videoStreamerRT.stats.sendTimeMs);
-
-            ImGui::Separator();
-
             ImGui::Checkbox("Show Depth Map as Point Cloud", &showDepth);
             ImGui::Checkbox("Show Normals Instead of Color", &showNormals);
             ImGui::Checkbox("Show Wireframe", &showWireframe);
@@ -224,8 +220,19 @@ int main(int argc, char** argv) {
                 ImGui::DragFloat("Depth Threshold", &quadsGenerator->params.depthThreshold, 0.0001f, 0.0f, 1.0f, "%.4f");
                 ImGui::DragFloat("Angle Threshold", &quadsGenerator->params.angleThreshold, 0.1f, 0.0f, 180.0f);
                 ImGui::DragFloat("Flatten Threshold", &quadsGenerator->params.flattenThreshold, 0.001f, 0.0f, 1.0f);
-                ImGui::DragFloat("Similarity Threshold", &quadsGenerator->params.proxySimilarityThreshold, 0.001f, 0.0f, 2.0f);
-                ImGui::DragInt("Force Merge Iterations", &quadsGenerator->params.maxIterForceMerge, 0.1, 0, quadsGenerator->numQuadMaps/2);
+                ImGui::DragFloat("Plane Similarity Threshold", &quadsGenerator->params.planeSimilarityThreshold, 0.001f, 0.0f, 2.0f);
+                ImGui::DragInt("Force Merge Iterations", &quadsGenerator->params.maxIterForceMerge, 0.1, 0, quadsGenerator->numQuadMaps);
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::CollapsingHeader("Video Stats")) {
+                auto& videoStreamerRT = quadwarp.videoAtlasStreamerRT;
+                ImGui::TextColored(ImVec4(1,0.5,0,1), "Frame Rate: %.1f FPS (%.3f ms/frame)", videoStreamerRT.getFrameRate(), 1000.0f / videoStreamerRT.getFrameRate());
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: %.3f ms", videoStreamerRT.stats.transferTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.3f ms", videoStreamerRT.stats.encodeTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: %.3f ms", videoStreamerRT.stats.sendTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0.5,1), "Bitrate: %.3f Mbps", videoStreamerRT.stats.bitrateMbps);
             }
 
             ImGui::Separator();
@@ -249,18 +256,17 @@ int main(int argc, char** argv) {
         }
 
         if (showFramePreviewWindow) {
-            flags = 0;
-            ImGui::Begin("Reference Frame", 0, flags);
+            ImGui::Begin("Reference Frame", 0);
             ImGui::Image((void*)(intptr_t)(quadwarp.referenceFrameRT.colorTexture),
                          ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
 
-            ImGui::Begin("Residual Frame (changed geometry)", 0, flags);
+            ImGui::Begin("Residual Frame (changed geometry)", 0);
             ImGui::Image((void*)(intptr_t)(quadwarp.residualFrameMaskRT.colorTexture),
                          ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
 
-            ImGui::Begin("Residual Frame (revealed geometry)", 0, flags);
+            ImGui::Begin("Residual Frame (revealed geometry)", 0);
             ImGui::Image((void*)(intptr_t)(quadwarp.residualFrameRT.colorTexture),
                          ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
@@ -318,13 +324,13 @@ int main(int argc, char** argv) {
                 spdlog::info("  Create Vert/Ind Time: {:.3f}ms", quadwarp.stats.totalCreateVertIndTimeMs);
                 spdlog::info("Compress Time: {:.3f}ms", quadwarp.stats.totalCompressTimeMs);
                 if (showDepth) spdlog::info("Gen Depth Time: {:.3f}ms", quadwarp.stats.totalGenDepthTimeMs);
-                spdlog::info("Frame Size: {:.3f}MB", (quadwarp.stats.totalSizes.quadsSize +
-                                                      quadwarp.stats.totalSizes.depthOffsetsSize) / BYTES_PER_MEGABYTE);
-                spdlog::info("Num Proxies: {}Proxies", quadwarp.stats.totalSizes.numQuads);
+                spdlog::info("Frame Size: {:.3f}MB", quadwarp.stats.frameSize / BYTES_PER_MEGABYTE);
+                spdlog::info("Num Proxies: {}Proxies", quadwarp.stats.proxySizes.numQuads);
 
                 prevPoseID = poseID;
-                quadwarp.sendProxies(poseID, sendResidualFrame);
+                quadwarp.sendFrame(poseID, sendResidualFrame);
 
+                showResidualFrame = sendResidualFrame;
                 sendReferenceFrame = false;
                 sendResidualFrame = false;
             }
@@ -338,7 +344,8 @@ int main(int argc, char** argv) {
         quadwarp.referenceFrameWireframesLocal[currentIndex].visible = true;
         quadwarp.referenceFrameWireframesLocal[currentIndex].visible = showWireframe;
         quadwarp.referenceFrameWireframesLocal[previousIndex].visible = false;
-        quadwarp.residualFrameWireframesLocal.visible = quadwarp.residualFrameNodeLocal.visible && showWireframe;
+        quadwarp.residualFrameNodeLocal.visible = showResidualFrame;
+        quadwarp.residualFrameWireframeLocal.visible = quadwarp.residualFrameNodeLocal.visible && showWireframe;
         quadwarp.depthNode.visible = showDepth;
 
         // Offset camera

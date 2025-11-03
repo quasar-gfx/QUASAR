@@ -4,25 +4,27 @@ using namespace quasar;
 
 uint32_t Node::nextID = 0;
 
-Node::Node() {
-    ID = nextID++;
-    this->name = "Node" + std::to_string(ID);
-}
+Node::Node()
+    : ID(nextID++)
+    , name("Node" + std::to_string(ID))
+{}
 
-Node::Node(const std::string& name) {
-    ID = nextID++;
-    this->name = name;
-}
+Node::Node(const std::string& name)
+    : ID(nextID++)
+    , name(name)
+{}
 
-Node::Node(Entity* entity) {
-    ID = nextID++;
-    this->name = "Node" + std::to_string(ID);
+Node::Node(Entity* entity)
+    : ID(nextID++)
+    , name("Node" + std::to_string(ID))
+{
     addEntity(entity);
 }
 
-Node::Node(const std::string& name, Entity* entity) {
-    ID = nextID++;
-    this->name = name;
+Node::Node(const std::string& name, Entity* entity)
+    : ID(nextID++)
+    , name(name)
+{
     addEntity(entity);
 }
 
@@ -47,10 +49,6 @@ int Node::getID() const {
 
 void Node::addEntity(Entity* entity) {
     entities.push_back(entity);
-}
-
-void Node::setName(const std::string& name) {
-    this->name = name;
 }
 
 void Node::addChildNode(Node* node) {

@@ -10,10 +10,12 @@
 
 using namespace quasar;
 
-QuadMesh::QuadMesh(const QuadSet& quadSet, Texture& colorTexture, const glm::vec4& textureExtent, uint32_t maxProxies)
+QuadMesh::QuadMesh(const QuadSet& quadSet, const Texture& colorTexture, const Texture& alphaTexture, const glm::vec4& textureExtent, uint maxProxies)
     : maxProxies(maxProxies)
     , currentQuadBuffers(maxProxies)
     , textureExtent(textureExtent)
+    , colorTexture(colorTexture)
+    , alphaTexture(alphaTexture)
     , sizesBuffer({
         .target = GL_SHADER_STORAGE_BUFFER,
         .dataSize = sizeof(BufferSizes),
@@ -51,14 +53,29 @@ QuadMesh::QuadMesh(const QuadSet& quadSet, Texture& colorTexture, const glm::vec
         .maxIndices = 0,
         .vertexSize = sizeof(QuadVertex),
         .attributes = QuadVertex::getVertexInputAttributes(),
-        .material = new QuadMaterial({ .baseColorTexture = &colorTexture }),
+        .material = new QuadMaterial({ .baseColorTexture = &colorTexture, .alphaTexture = &alphaTexture }),
         .usage = GL_DYNAMIC_DRAW,
         .indirectDraw = true
     })
-{}
+    , indexBufferTransparent({
+        .target = GL_ELEMENT_ARRAY_BUFFER,
+        .dataSize = sizeof(uint),
+        .usage = GL_DYNAMIC_DRAW,
+    })
+    , indirectBufferTransparent({
+        .target = GL_DRAW_INDIRECT_BUFFER,
+        .dataSize = sizeof(DrawElementsIndirectCommand),
+        .usage = GL_DYNAMIC_DRAW,
+    })
+{
+    indirectBufferTransparent.bind();
+    DrawElementsIndirectCommand indirectCommand;
+    indirectBufferTransparent.setData(sizeof(DrawElementsIndirectCommand), &indirectCommand);
+    indirectBufferTransparent.unbind();
+}
 
-QuadMesh::QuadMesh(const QuadSet& quadSet, Texture& colorTexture, uint maxProxies)
-    : QuadMesh(quadSet, colorTexture, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), maxProxies)
+QuadMesh::QuadMesh(const QuadSet& quadSet, const Texture& colorTexture, const Texture& alphaTexture, uint maxProxies)
+    : QuadMesh(quadSet, colorTexture, alphaTexture, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), maxProxies)
 {}
 
 QuadMesh::BufferSizes QuadMesh::getBufferSizes() const {
@@ -85,6 +102,7 @@ void QuadMesh::appendQuads(const QuadSet& quadSet, const glm::vec2& gBufferSize,
     }
 
     uint incomingNumProxies = quadSet.getNumProxies();
+    uint incomingNumProxiesTransparent = quadSet.getNumProxiesTransparent();
     uint newNumProxies = currNumProxies + incomingNumProxies;
     if (newNumProxies > maxProxies) {
         spdlog::warn("Max proxies exceeded! Clamping {} to {} proxies.", newNumProxies, maxProxies);
@@ -98,22 +116,21 @@ void QuadMesh::appendQuads(const QuadSet& quadSet, const glm::vec2& gBufferSize,
         appendQuadsShader.setUint("newNumProxies", newNumProxies);
     }
     {
-        appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, quadSet.quadBuffers.normalSphericalsBuffer);
-        appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, quadSet.quadBuffers.depthsBuffer);
-        appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, quadSet.quadBuffers.metadatasBuffer);
+        appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 0, quadSet.quadBuffers.normalAndDepthBuffer);
+        appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, quadSet.quadBuffers.metadatasBuffer);
 
-        appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, currentQuadBuffers.normalSphericalsBuffer);
-        appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, currentQuadBuffers.depthsBuffer);
-        appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, currentQuadBuffers.metadatasBuffer);
+        appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, currentQuadBuffers.normalAndDepthBuffer);
+        appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, currentQuadBuffers.metadatasBuffer);
 
-        appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, quadCreatedFlags);
-        appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, quadIndexMap);
+        appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, quadCreatedFlags);
+        appendQuadsShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, quadIndexMap);
     }
     appendQuadsShader.dispatch((newNumProxies + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1, 1);
     appendQuadsShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
     // Set new current proxy count
     currNumProxies = newNumProxies;
+    currNumProxiesTransparent = incomingNumProxiesTransparent;
 
     stats.appendQuadsTimeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 }
@@ -127,10 +144,16 @@ void QuadMesh::createMeshFromProxies(const QuadSet& quadSet, const glm::vec2& gB
         vertexBuffer.bind();
         vertexBuffer.smartResize(newNumVertices, false);
     }
-    size_t newNumIndices = currNumProxies * NUM_SUB_QUADS * INDICES_IN_A_QUAD;
+    size_t numProxiesOpaque = currNumProxies - currNumProxiesTransparent;
+    size_t newNumIndices = numProxiesOpaque * NUM_SUB_QUADS * INDICES_IN_A_QUAD;
     if (indexBuffer.getSize() < newNumIndices) {
         indexBuffer.bind();
         indexBuffer.smartResize(newNumIndices, false);
+    }
+    size_t newNumIndicesTransparent = currNumProxiesTransparent * NUM_SUB_QUADS * INDICES_IN_A_QUAD;
+    if (indexBufferTransparent.getSize() < newNumIndicesTransparent) {
+        indexBufferTransparent.bind();
+        indexBufferTransparent.smartResize(newNumIndicesTransparent, false);
     }
 
     createQuadMeshShader.bind();
@@ -138,6 +161,7 @@ void QuadMesh::createMeshFromProxies(const QuadSet& quadSet, const glm::vec2& gB
         createQuadMeshShader.setVec2("gBufferSize", gBufferSize);
         createQuadMeshShader.setUint("currNumProxies", currNumProxies);
         createQuadMeshShader.setVec4("textureExtent", textureExtent);
+        createQuadMeshShader.setFloat("expandQuadAmount", expandQuadAmount);
     }
     {
         createQuadMeshShader.setMat4("view", remoteCamera.getViewMatrix());
@@ -152,21 +176,56 @@ void QuadMesh::createMeshFromProxies(const QuadSet& quadSet, const glm::vec2& gB
 
         createQuadMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 1, vertexBuffer);
         createQuadMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 2, indexBuffer);
-        createQuadMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, indirectBuffer);
+        createQuadMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 3, indexBufferTransparent);
+        createQuadMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, indirectBuffer);
+        createQuadMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, indirectBufferTransparent);
 
-        createQuadMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 4, currentQuadBuffers.normalSphericalsBuffer);
-        createQuadMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 5, currentQuadBuffers.depthsBuffer);
-        createQuadMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, currentQuadBuffers.metadatasBuffer);
+        createQuadMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 6, currentQuadBuffers.normalAndDepthBuffer);
+        createQuadMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, currentQuadBuffers.metadatasBuffer);
 
-        createQuadMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 7, quadCreatedFlags);
-        createQuadMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 8, quadIndexMap);
+        createQuadMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 8, quadCreatedFlags);
+        createQuadMeshShader.setBuffer(GL_SHADER_STORAGE_BUFFER, 9, quadIndexMap);
+
+        createQuadMeshShader.setTexture(alphaTexture, 0);
 
         createQuadMeshShader.setImageTexture(0, quadSet.depthOffsets.texture, 0, GL_FALSE, 0, GL_READ_ONLY, quadSet.depthOffsets.texture.internalFormat);
     }
     createQuadMeshShader.dispatch((quadSet.getSize().x + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP,
                                   (quadSet.getSize().y + THREADS_PER_LOCALGROUP - 1) / THREADS_PER_LOCALGROUP, 1);
-    createQuadMeshShader.memoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
-                                       GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
+    createQuadMeshShader.memoryBarrier(
+        GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
+        GL_COMMAND_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT);
 
     stats.createMeshTimeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
+}
+
+RenderStats QuadMesh::draw(GLenum primitiveType) {
+    RenderStats stats;
+
+    BufferSizes bufferSizes = getBufferSizes();
+
+    glBindVertexArray(vertexArrayBuffer);
+    // Draw opaque proxies first
+    if ((drawState == DrawState::OPAQUE || drawState == DrawState::BOTH) && indexBuffer.getSize() > 0) {
+        indirectBuffer.bind();
+        indexBuffer.bind();
+        glDrawElementsIndirect(primitiveType, GL_UNSIGNED_INT, 0);
+        indexBuffer.unbind();
+
+        stats.trianglesDrawn = static_cast<uint>(bufferSizes.numIndices / 3);
+    }
+    // Draw transparent proxies after opaque ones
+    if ((drawState == DrawState::TRANSPARENT || drawState == DrawState::BOTH) && indexBufferTransparent.getSize() > 0) {
+        indirectBufferTransparent.bind();
+        indexBufferTransparent.bind();
+        glDrawElementsIndirect(primitiveType, GL_UNSIGNED_INT, 0);
+        indexBufferTransparent.unbind();
+
+        stats.trianglesDrawn = static_cast<uint>(bufferSizes.numIndicesTransparent / 3);
+    }
+    glBindVertexArray(0);
+
+    stats.drawCalls = 1;
+
+    return stats;
 }

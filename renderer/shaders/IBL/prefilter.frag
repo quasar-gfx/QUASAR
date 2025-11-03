@@ -1,4 +1,4 @@
-out vec4 FragColor;
+layout(location = 0) out vec4 FragColor;
 in vec3 WorldPos;
 
 uniform samplerCube environmentMap;

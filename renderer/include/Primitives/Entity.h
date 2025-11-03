@@ -40,14 +40,17 @@ class Entity {
 public:
     AABB aabb;
 
-    Entity() : ID(nextID++) {}
-    Entity(const Material* material)
-        : ID(nextID++)
-        , material(material)
-    {}
+    Entity();
+    Entity(const std::string& name);
+    Entity(const Material* material);
+    Entity(const std::string& name, const Material* material);
 
     int getID() const { return ID; }
-    const Material* getMaterial() { return material; }
+    const Material* getMaterial() const { return material; }
+
+    const std::string& getName() const { return name; }
+
+    void setName(const std::string& name) { this->name = name; }
 
     virtual void bindMaterial(Scene& scene, Buffer& pointLightsUBO,
                               const Material* overrideMaterial = nullptr,
@@ -60,9 +63,12 @@ public:
                              const BoundingSphere& boundingSphere,
                              const Material* overrideMaterial = nullptr) = 0;
 
+    static uint32_t getNextID() { return nextID; }
 protected:
     uint32_t ID;
     static uint32_t nextID;
+
+    std::string name;
 
     const Material* material;
 };

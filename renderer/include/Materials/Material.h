@@ -9,22 +9,30 @@
 
 namespace quasar {
 
-enum class AlphaMode : uint8_t {
-    OPAQUE = 0,
-    MASKED,
-    TRANSPARENT
-};
-
 class Material {
 public:
-    AlphaMode alphaMode = AlphaMode::OPAQUE;
+    enum class AlphaMode : uint8_t {
+        OPAQUE = 0,
+        MASKED,
+        TRANSPARENT,
+        NONE,
+    };
 
-    Material() = default;
-    Material(AlphaMode alphaMode)
-        : ID(nextID++)
-        , alphaMode(alphaMode)
-    {}
+    enum class RenderPipelineMode : uint8_t {
+        Forward = 0,
+        Deferred,
+    };
+
+    Material::AlphaMode alphaMode = Material::AlphaMode::OPAQUE;
+
+    Material();
+    Material(Material::AlphaMode alphaMode);
+    Material(const std::string& name, Material::AlphaMode alphaMode);
     ~Material() = default;
+
+    const std::string& getName() const { return name; }
+
+    void setName(const std::string& name) { this->name = name; }
 
     virtual void bind() const = 0;
 
@@ -35,14 +43,23 @@ public:
         }
     }
 
-    virtual bool isTransparent() const { return alphaMode == AlphaMode::TRANSPARENT; }
+    virtual bool isTransparent() const { return (alphaMode == Material::AlphaMode::TRANSPARENT) || (alphaMode == Material::AlphaMode::MASKED); }
 
     virtual std::shared_ptr<Shader> getShader() const = 0;
     virtual uint getTextureCount() const = 0;
 
+    static void getPipelineMode(RenderPipelineMode& mode) { mode = pipelineMode; }
+    static void setPipelineMode(RenderPipelineMode mode) { pipelineMode = mode; }
+
+    static RenderPipelineMode pipelineMode;
+
+    static uint32_t getNextID() { return nextID; }
+
 protected:
     uint32_t ID;
     static uint32_t nextID;
+
+    std::string name;
 
     std::vector<const Texture*> textures;
 };

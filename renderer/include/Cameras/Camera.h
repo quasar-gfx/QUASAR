@@ -3,9 +3,9 @@
 
 #include <Primitives/Node.h>
 
-#define DEFAULT_FOV_DEG 60.0f
+#define DEFAULT_FOV_DEG 80.0f
 #define DEFAULT_ASPECT 16.0f / 9.0f
-#define DEFAULT_NEAR 0.1f
+#define DEFAULT_NEAR 0.05f
 #define DEFAULT_FAR 1000.0f
 
 namespace quasar {

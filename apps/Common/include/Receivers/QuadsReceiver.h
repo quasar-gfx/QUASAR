@@ -9,6 +9,7 @@
 #include <Quads/QuadMesh.h>
 #include <Networking/DataReceiverTCP.h>
 #include <Receivers/VideoTexture.h>
+#include <Codecs/AlphaCodec.h>
 
 namespace quasar {
 
@@ -18,9 +19,10 @@ public:
         pose_id_t poseID;
         QuadFrame::FrameType frameType;
         uint32_t cameraSize;
+        uint32_t alphaSize;
         uint32_t geometrySize;
 
-        size_t getSize() const { return sizeof(Header) + cameraSize + geometrySize; }
+        size_t getSize() const { return sizeof(Header) + cameraSize + alphaSize + geometrySize; }
     };
 
     struct Stats {
@@ -36,6 +38,7 @@ public:
     std::string videoURL;
 
     VideoTexture videoAtlasTexture;
+    Texture alphaAtlasTexture;
 
     QuadsReceiver(QuadSet& quadSet, const std::string& videoURL = "", const std::string& proxiesURL = "");
     QuadsReceiver(QuadSet& quadSet, float remoteFOV, const std::string& videoURL = "", const std::string& proxiesURL = "");
@@ -66,6 +69,7 @@ private:
 
         Pose cameraPose;
 
+        std::vector<char> alphaData;
         std::vector<char> uncompressedQuads, uncompressedOffsets;
         std::vector<char> uncompressedQuadsRevealed, uncompressedOffsetsRevealed;
 
@@ -80,6 +84,8 @@ private:
 
             uncompressedQuadsRevealed.resize(quadsBytes / 4); // Residual frame usually has less quads
             uncompressedOffsetsRevealed.resize(offsetsBytes);
+
+            alphaData.resize(2 * gBufferSize.x * gBufferSize.y);
         }
         ~Frame() = default;
 
@@ -125,6 +131,8 @@ private:
     std::shared_ptr<Frame> frameInUse;
     std::shared_ptr<Frame> framePending;
     std::shared_ptr<Frame> frameFree;
+
+    AlphaCodec alphaCodec;
 
     bool waitUntilReferenceFrame = false;
 

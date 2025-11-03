@@ -17,6 +17,8 @@ DepthPeelingRenderer::DepthPeelingRenderer(const Config& config, uint maxLayers,
         }
     })
 {
+    sortTransparent = false;
+
     // Enable depth peeling in shaders
     LitMaterial::extraShaderDefines.push_back("#define DO_DEPTH_PEELING");
     UnlitMaterial::extraShaderDefines.push_back("#define DO_DEPTH_PEELING");
@@ -50,14 +52,6 @@ void DepthPeelingRenderer::resize(uint width, uint height) {
     }
 }
 
-void DepthPeelingRenderer::beginRendering() {
-    gBuffer.bind();
-}
-
-void DepthPeelingRenderer::endRendering() {
-    gBuffer.unbind();
-}
-
 void DepthPeelingRenderer::setScreenShaderUniforms(const Shader& screenShader) {
     // Set texture uniforms
     screenShader.bind();
@@ -71,7 +65,7 @@ void DepthPeelingRenderer::setScreenShaderUniforms(const Shader& screenShader) {
 RenderStats DepthPeelingRenderer::drawScene(Scene& scene, const Camera& camera, uint32_t clearMask) {
     RenderStats stats;
 
-    for (int i = 0; i < maxLayers; i++) {
+    for (int layer = 0; layer < maxLayers; layer++) {
         beginRendering();
         if (clearMask != 0) {
             gBuffer.clear(clearMask);
@@ -80,16 +74,20 @@ RenderStats DepthPeelingRenderer::drawScene(Scene& scene, const Camera& camera, 
         // Disable blending
         pipeline.blendState.blendEnabled = false; pipeline.apply();
 
-        const Texture* prevIDMap = (i >= 1) ? &peelingLayers[i-1].idTexture : nullptr;
+        const Texture* prevIDMap = (layer >= 1) ? &peelingLayers[layer-1].idTexture : nullptr;
 
         // Set layer index in shaders
-        if (LitMaterial::shader != nullptr) {
-            LitMaterial::shader->bind();
-            LitMaterial::shader->setInt("layerIndex", i);
+        if (LitMaterial::deferredShader != nullptr) {
+            LitMaterial::deferredShader->bind();
+            LitMaterial::deferredShader->setInt("layerIndex", layer);
+        }
+        if (LitMaterial::forwardShader != nullptr) {
+            LitMaterial::forwardShader->bind();
+            LitMaterial::forwardShader->setInt("layerIndex", layer);
         }
         if (UnlitMaterial::shader != nullptr) {
             UnlitMaterial::shader->bind();
-            UnlitMaterial::shader->setInt("layerIndex", i);
+            UnlitMaterial::shader->setInt("layerIndex", layer);
         }
 
         // Render scene
@@ -97,7 +95,7 @@ RenderStats DepthPeelingRenderer::drawScene(Scene& scene, const Camera& camera, 
             stats += drawNodeImmediate(scene, camera, child, glm::mat4(1.0f), true, nullptr, prevIDMap);
         }
 
-        // Reenable blending
+        // Re-enable blending
         pipeline.blendState.blendEnabled = true; pipeline.apply();
 
         endRendering();
@@ -105,10 +103,12 @@ RenderStats DepthPeelingRenderer::drawScene(Scene& scene, const Camera& camera, 
         // Draw lighting pass
         stats += lightingPass(scene, camera);
 
-        // Draw skybox
-        stats += drawSkyBox(scene, camera);
+        // Draw skybox (only in last layer)
+        if (layer == maxLayers - 1) {
+            stats += drawSkyBox(scene, camera);
+        }
 
-        copyToFrameRT(peelingLayers[i]);
+        copyToFrameRT(peelingLayers[layer]);
     }
 
     return stats;
@@ -122,28 +122,35 @@ RenderStats DepthPeelingRenderer::drawObjects(Scene& scene, const Camera& camera
         pipeline.rasterState.scissorTestEnabled = true;
 
         // Left eye
-        gBuffer.setScissor(0, 0, width / 2, height);
-        gBuffer.setViewport(0, 0, width / 2, height);
+        gBuffer.setScissor({ 0, 0, width / 2, height });
+        gBuffer.setViewport({ 0, 0, width / 2, height });
+        outputRT.setScissor({ 0, 0, width / 2, height });
+        outputRT.setViewport({ 0, 0, width / 2, height });
         stats += drawObjects(scene, vrCamera->left, clearMask);
 
         // Right eye
-        gBuffer.setScissor(width / 2, 0, width / 2, height);
-        gBuffer.setViewport(width / 2, 0, width / 2, height);
+        gBuffer.setScissor({ width / 2, 0, width / 2, height });
+        gBuffer.setViewport({ width / 2, 0, width / 2, height });
+        outputRT.setScissor({ width / 2, 0, width / 2, height });
+        outputRT.setViewport({ width / 2, 0, width / 2, height });
         stats += drawObjects(scene, vrCamera->right, clearMask);
     }
     else {
         pipeline.apply();
 
         if (edp) {
-            if (LitMaterial::shader != nullptr) {
-                LitMaterial::shader->bind();
-                LitMaterial::shader->setInt("height", gBuffer.height);
-                LitMaterial::shader->setFloat("E", viewSphereDiameter / 2.0f);
-                LitMaterial::shader->setFloat("edpDelta", edpDelta);
+            if (LitMaterial::deferredShader != nullptr) {
+                LitMaterial::deferredShader->bind();
+                LitMaterial::deferredShader->setFloat("E", viewSphereDiameter / 2.0f);
+                LitMaterial::deferredShader->setFloat("edpDelta", edpDelta);
+            }
+            if (LitMaterial::forwardShader != nullptr) {
+                LitMaterial::forwardShader->bind();
+                LitMaterial::forwardShader->setFloat("E", viewSphereDiameter / 2.0f);
+                LitMaterial::forwardShader->setFloat("edpDelta", edpDelta);
             }
             if (UnlitMaterial::shader != nullptr) {
                 UnlitMaterial::shader->bind();
-                UnlitMaterial::shader->setInt("height", gBuffer.height);
                 UnlitMaterial::shader->setFloat("E", viewSphereDiameter / 2.0f);
                 UnlitMaterial::shader->setFloat("edpDelta", edpDelta);
             }
@@ -174,15 +181,18 @@ RenderStats DepthPeelingRenderer::drawObjectsNoLighting(Scene& scene, const Came
     pipeline.apply();
 
     if (edp) {
-        if (LitMaterial::shader != nullptr) {
-            LitMaterial::shader->bind();
-            LitMaterial::shader->setInt("height", gBuffer.height);
-            LitMaterial::shader->setFloat("E", viewSphereDiameter / 2.0f);
-            LitMaterial::shader->setFloat("edpDelta", edpDelta);
+        if (LitMaterial::deferredShader != nullptr) {
+            LitMaterial::deferredShader->bind();
+            LitMaterial::deferredShader->setFloat("E", viewSphereDiameter / 2.0f);
+            LitMaterial::deferredShader->setFloat("edpDelta", edpDelta);
+        }
+        if (LitMaterial::forwardShader != nullptr) {
+            LitMaterial::forwardShader->bind();
+            LitMaterial::forwardShader->setFloat("E", viewSphereDiameter / 2.0f);
+            LitMaterial::forwardShader->setFloat("edpDelta", edpDelta);
         }
         if (UnlitMaterial::shader != nullptr) {
             UnlitMaterial::shader->bind();
-            UnlitMaterial::shader->setInt("height", gBuffer.height);
             UnlitMaterial::shader->setFloat("E", viewSphereDiameter / 2.0f);
             UnlitMaterial::shader->setFloat("edpDelta", edpDelta);
         }

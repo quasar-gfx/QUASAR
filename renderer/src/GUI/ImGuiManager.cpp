@@ -4,7 +4,7 @@
 #include <imgui/backends/imgui_impl_glfw.h>
 
 #include <GUI/ImGuiManager.h>
-#include <GUI/fonts/trebucbd.h>
+#include <fonts/trebucbd.h>
 
 using namespace quasar;
 
@@ -30,8 +30,7 @@ void ImGuiManager::setStyle(float fontSize) const {
     ImFontConfig cfg;
     cfg.FontDataOwnedByAtlas = false;
     fonts->AddFontFromMemoryTTF(
-        static_cast<void*>(trebucbd_ttf),
-        static_cast<int>(trebucbd_ttf_len),
+        (void*)trebucbd_ttf, trebucbd_ttf_len,
         fontSize,
         &cfg
     );

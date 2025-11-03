@@ -12,7 +12,7 @@ QUASARReceiver::QUASARReceiver(QuadSet& quadSet, uint maxLayers, const std::stri
     , videoAtlasTexture({
         .width = 2 * quadSet.getSize().x,
         .height = 3 * quadSet.getSize().y,
-        .internalFormat = GL_RGB,
+        .internalFormat = GL_SRGB8,
         .format = GL_RGB,
         .type = GL_UNSIGNED_BYTE,
         .wrapS = GL_CLAMP_TO_EDGE,
@@ -20,7 +20,19 @@ QUASARReceiver::QUASARReceiver(QuadSet& quadSet, uint maxLayers, const std::stri
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST,
     }, videoURL)
-    , residualFrameMesh(quadSet, videoAtlasTexture)
+    , alphaAtlasTexture({
+        .width = 2 * quadSet.getSize().x,
+        .height = 3 * quadSet.getSize().y,
+        .internalFormat = GL_R8,
+        .format = GL_RED,
+        .type = GL_UNSIGNED_BYTE,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST,
+    })
+    , alphaCodec(alphaAtlasTexture.width, alphaAtlasTexture.height)
+    , residualFrameMesh(quadSet, videoAtlasTexture, alphaAtlasTexture)
     , bufferPool(quadSet.getSize(), maxLayers)
     , DataReceiverTCP(proxiesURL)
 {
@@ -33,7 +45,8 @@ QUASARReceiver::QUASARReceiver(QuadSet& quadSet, uint maxLayers, const std::stri
     // Untile texture atlas
     glm::vec4 textureExtent(0.0f, 0.0f, 0.5f, 1.0f / 3.0f);
     for (int layer = 0; layer < maxLayers; layer++) {
-        meshes.emplace_back(quadSet, videoAtlasTexture, textureExtent);
+        meshes.emplace_back(
+            quadSet, videoAtlasTexture, alphaAtlasTexture, textureExtent);
 
         textureExtent.x += 0.5f;
         if (textureExtent.x >= 1.0f) {
@@ -74,6 +87,13 @@ QUASARReceiver::QUASARReceiver(
 void QUASARReceiver::copyPoseToCamera(PerspectiveCamera& camera) {
     camera.setViewMatrix(remoteCamera.getViewMatrix());
     camera.setProjectionMatrix(remoteCamera.getProjectionMatrix());
+}
+
+void QUASARReceiver::setDrawState(QuadMesh::DrawState drawState) {
+    for (auto& mesh : meshes) {
+        mesh.setDrawState(drawState);
+    }
+    residualFrameMesh.setDrawState(drawState);
 }
 
 void QUASARReceiver::onDataReceived(const std::vector<char>& data) {
@@ -118,6 +138,10 @@ QuadFrame::FrameType QUASARReceiver::recvData() {
         videoAtlasTexture.bind();
         videoAtlasTexture.draw(frame->poseID);
 
+        // Update alpha texture
+        alphaAtlasTexture.bind();
+        alphaAtlasTexture.loadFromData(frame->bufferPool.alphaData.data());
+
         // Reconstruct meshes from frame
         frameType = reconstructFrame(frame);
 
@@ -142,7 +166,11 @@ QuadFrame::FrameType QUASARReceiver::loadFromFiles(const Path& dataPath) {
 
     // Read color data
     Path colorFileName = dataPath / "color.jpg";
-    videoAtlasTexture.loadFromFile(colorFileName, true, false);
+    videoAtlasTexture.loadFromFile(colorFileName, true, true);
+
+    // Read alpha data
+    Path alphaFileName = dataPath / "alpha.png";
+    alphaAtlasTexture.loadFromFile(alphaFileName, true, false);
 
     // Read previous camera data
     Path cameraFileNamePrev = dataPath / "camera_prev.bin";
@@ -242,11 +270,16 @@ QuadFrame::FrameType QUASARReceiver::loadFromMemory(const std::vector<char>& inp
     remoteCameraWideFOV.setFovyDegrees(header.params.wideFOV);
 
     spdlog::debug("Loading camera size: {}", header.cameraSize);
+    spdlog::debug("Loading alpha size: {}", header.alphaSize);
     spdlog::debug("Loading geometry size: {}", header.geometrySize);
 
     // Read camera data
     frame->cameraPose.loadFromMemory(ptr, header.cameraSize);
     ptr += header.cameraSize;
+
+    // Read alpha data
+    alphaCodec.decompress(ptr, frame->bufferPool.alphaData, header.alphaSize);
+    ptr += header.alphaSize;
 
     // Read geometry data
     const char* layerPtr = ptr;

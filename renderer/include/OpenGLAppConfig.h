@@ -13,6 +13,7 @@ namespace quasar {
 struct Config {
     bool enableVSync = true;
     bool showWindow = true;
+    bool sortTransparent = true;
     unsigned char openglMajorVersion = 4;
 #ifndef __APPLE__
     unsigned char openglMinorVersion = 6;

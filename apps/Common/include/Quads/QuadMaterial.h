@@ -8,18 +8,18 @@ namespace quasar {
 struct QuadMaterialCreateParams {
     glm::vec4 baseColor = glm::vec4(1.0f);
     glm::vec4 baseColorFactor = glm::vec4(1.0f);
-    AlphaMode alphaMode = AlphaMode::OPAQUE;
-    float maskThreshold = 0.5f;
+    Material::AlphaMode alphaMode = Material::AlphaMode::TRANSPARENT;
     std::string baseColorTexturePath = "";
     const Texture* baseColorTexture;
+    std::string alphaTexturePath = "";
+    const Texture* alphaTexture;
 };
 
 class QuadMaterial : public Material {
 public:
-    glm::vec4 baseColor = glm::vec4(1.0f);
-    glm::vec4 baseColorFactor = glm::vec4(1.0f);
-    AlphaMode alphaMode = AlphaMode::OPAQUE;
-    float maskThreshold = 0.5f;
+    glm::vec4 baseColor;
+    glm::vec4 baseColorFactor;
+    Material::AlphaMode alphaMode;
 
     QuadMaterial() = default;
     QuadMaterial(const QuadMaterialCreateParams& params);

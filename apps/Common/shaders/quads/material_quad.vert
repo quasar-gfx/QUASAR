@@ -13,13 +13,13 @@ out VertexData {
     vec3 FragPos;
 } vsOut;
 
-uniform uint DrawID;
+uniform uint drawID;
 
 uniform mat4 model;
 uniform mat3 normalMatrix;
 
 void main() {
-    vsOut.DrawID = DrawID;
+    vsOut.DrawID = drawID;
     vsOut.FragPos = vec3(model * vec4(aPos, 1.0));
     vsOut.TexCoord3D = aTexCoord3D;
 

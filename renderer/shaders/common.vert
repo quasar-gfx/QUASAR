@@ -14,16 +14,16 @@ layout(num_views = 2) in;
 out VertexData {
     flat uint DrawID;
     vec2 TexCoord;
-    vec3 FragPosView;
-    vec3 FragPosWorld;
+    vec3 PositionView;
+    vec3 PositionWorld;
     vec3 Color;
     vec3 Normal;
     vec3 Tangent;
     vec3 BiTangent;
-    vec4 FragPosLightSpace;
+    vec4 PositionLightSpace;
 } vsOut;
 
-uniform uint DrawID;
+uniform uint drawID;
 
 uniform mat4 model;
 uniform mat3 normalMatrix;
@@ -42,16 +42,16 @@ void main() {
     vec4 worldPos = modelMatrix * vec4(aPos, 1.0);
     vec4 viewPos = viewMatrix * worldPos;
 
-    vsOut.DrawID = DrawID;
+    vsOut.DrawID = drawID;
     vsOut.TexCoord = aTexCoord;
-    vsOut.FragPosView = viewPos.xyz;
-    vsOut.FragPosWorld = worldPos.xyz;
+    vsOut.PositionView = viewPos.xyz;
+    vsOut.PositionWorld = worldPos.xyz;
     vsOut.Color = aColor;
     vsOut.Normal = normalize(normalMatrix * aNormal);
     vsOut.Tangent = normalize(normalMatrix * aTangent);
     vsOut.BiTangent = normalize(normalMatrix * aBitangent);
 
-    vsOut.FragPosLightSpace = lightSpaceMatrix * vec4(vsOut.FragPosWorld, 1.0);
+    vsOut.PositionLightSpace = lightSpaceMatrix * vec4(vsOut.PositionWorld, 1.0);
 
-    gl_Position = projectionMatrix * viewMatrix * vec4(vsOut.FragPosWorld, 1.0);
+    gl_Position = projectionMatrix * viewMatrix * vec4(vsOut.PositionWorld, 1.0);
 }

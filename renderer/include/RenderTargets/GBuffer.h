@@ -13,8 +13,8 @@ public:
     Texture alphaTexture;
     Texture pbrTexture;
     Texture emissiveTexture;
-    Texture positionTexture;
     Texture normalsTexture;
+    Texture positionTexture;
     Texture lightPositionTexture;
     Texture idTexture;
     Texture depthStencilTexture;
@@ -76,9 +76,9 @@ public:
         , normalsTexture({
             .width = width,
             .height = height,
-            .internalFormat = GL_RGB16F,
+            .internalFormat = GL_RGB32F,
             .format = GL_RGB,
-            .type = GL_HALF_FLOAT,
+            .type = GL_FLOAT,
             .wrapS = params.wrapS,
             .wrapT = params.wrapT,
             .minFilter = params.minFilter,
@@ -168,6 +168,32 @@ public:
 
         framebuffer.unbind();
     }
+    ~GBuffer() = default;
+
+    void blit(GBuffer& gBuffer, GLenum filter = GL_NEAREST) {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gBuffer.getFramebufferID());
+
+        // Colors
+        GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2,
+                                 GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5,
+                                 GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7 };
+        glDrawBuffers(8, drawBuffers);
+
+        for (int i = 0; i < 8; i++) {
+            glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
+            glBlitFramebuffer(0, 0, width, height,
+                              0, 0, gBuffer.width, gBuffer.height,
+                              GL_COLOR_BUFFER_BIT, filter);
+        }
+
+        // Depth and stencil
+        glBlitFramebuffer(0, 0, width, height,
+                          0, 0, gBuffer.width, gBuffer.height,
+                          GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
 
     void blit(FrameRenderTarget& frameRT, GLenum filter = GL_NEAREST) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
@@ -204,39 +230,13 @@ public:
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
-    ~GBuffer() = default;
 
-    void blit(GBuffer& gBuffer, GLenum filter = GL_NEAREST) {
+    void blitDepth(FrameRenderTarget& frameRT) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gBuffer.getFramebufferID());
-
-        // Colors
-        GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2,
-                                 GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5,
-                                 GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7 };
-        glDrawBuffers(8, drawBuffers);
-
-        for (int i = 0; i < 8; i++) {
-            glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
-            glBlitFramebuffer(0, 0, width, height,
-                              0, 0, gBuffer.width, gBuffer.height,
-                              GL_COLOR_BUFFER_BIT, filter);
-        }
-
-        // Depth and stencil
-        glBlitFramebuffer(0, 0, width, height,
-                          0, 0, gBuffer.width, gBuffer.height,
-                          GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
-
-    void blitDepthToRenderTarget(RenderTarget& renderTarget) {
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.ID);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, renderTarget.getFramebufferID());
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frameRT.getFramebufferID());
 
         glBlitFramebuffer(0, 0, width, height,
-                          0, 0, renderTarget.width, renderTarget.height,
+                          0, 0, frameRT.width, frameRT.height,
                           GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -244,27 +244,6 @@ public:
 
     void blitToScreen(uint width, uint height) {
         framebuffer.blitToScreen(width, height);
-    }
-
-    void clear(uint32_t clearMask) override {
-        if (clearMask & GL_COLOR_BUFFER_BIT) {
-            const GLfloat zero[4]   = {0, 0, 0, 0};
-            const GLfloat oneR[4]   = {1, 0, 0, 0};
-            const GLfloat normalZ[4]= {0, 0, 1, 0};
-            const GLuint uzero[4] = {0u, 0u, 0u, 0u};
-
-            glClearBufferfv(GL_COLOR, 0, zero);       // Albedo
-            glClearBufferfv(GL_COLOR, 1, oneR);       // Alpha
-            glClearBufferfv(GL_COLOR, 2, zero);       // Normals
-            glClearBufferfv(GL_COLOR, 3, zero);       // IDs
-            glClearBufferfv(GL_COLOR, 4, normalZ);    // Position
-            glClearBufferfv(GL_COLOR, 5, zero);       // Emissive
-            glClearBufferfv(GL_COLOR, 6, zero);       // Light Position
-            glClearBufferuiv(GL_COLOR, 7, uzero);     // IDs
-        }
-        if (clearMask & (GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)) {
-            glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0); // Depth and Stencil
-        }
     }
 
     void resize(uint width, uint height) override {

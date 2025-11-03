@@ -1,0 +1,149 @@
+{
+    "skybox": {
+        "path": "../assets/textures/ibr/mon_valley.hdr",
+        "HDR": true,
+        "width": 1024,
+        "height": 1024
+    },
+    "materials": [
+        {
+            "albedoTexturePath": "../assets/textures/window.png",
+            "alphaMode": "transparent",
+            "maskThreshold": 0.1
+        }
+    ],
+    "meshes": [
+        {
+            "type": "plane",
+            "material": 0
+        }
+    ],
+    "nodes": [
+        {
+            "mesh": 0,
+            "position": [0.0, 3.0, 2.0],
+            "rotation": [-90.0, 0.0, 0.0],
+            "scale": [2.0, 2.0, 2.0]
+        }
+    ],
+    "models": [
+        {
+            "name": "RobotLab",
+            "path": "../assets/models/scenes/RobotLab.glb",
+            "IBL": 0.01,
+            "gammaCorrected": true,
+            "position": [0.0, 0.0, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [1.0, 1.0, 1.0]
+        }
+    ],
+    "camera": {
+        "fov": 80.0,
+        "near": 0.05,
+        "far": 1000.0,
+        "position": [0.0, 3.0, 10.0],
+        "rotation": [0.0, 0.0, 0.0]
+    },
+    "ambientLight": {
+        "color": [1.0, 1.0, 1.0],
+        "intensity": 0.1
+    },
+    "directionalLight": {
+        "color": [1.0, 1.0, 1.0],
+        "direction": [1.0, 0.3, -6.0],
+        "distance": 1.0,
+        "intensity": 1.25,
+        "orthoBoxSize": 50.0
+    },
+    "pointLights": [
+        {
+            "color": [0.95, 0.95, 1.0],
+            "position": [5.0, 5.0, 5.0],
+            "intensity": 2.0,
+            "constant": 1.0,
+            "linear": 0.07,
+            "quadratic": 0.017
+        },
+        {
+            "color": [0.95, 0.95, 1.0],
+            "position": [-5.0, 5.0, 5.0],
+            "intensity": 2.0,
+            "constant": 1.0,
+            "linear": 0.07,
+            "quadratic": 0.017
+        },
+        {
+            "color": [0.95, 0.95, 1.0],
+            "position": [5.0, 5.0, -5.0],
+            "intensity": 2.0,
+            "constant": 1.0,
+            "linear": 0.07,
+            "quadratic": 0.017
+        },
+        {
+            "color": [0.95, 0.95, 1.0],
+            "position": [-5.0, 5.0, -5.0],
+            "intensity": 2.0,
+            "constant": 1.0,
+            "linear": 0.07,
+            "quadratic": 0.017
+        }
+    ],
+    "animations": [
+        {
+            "node": "prop_robotArm_body",
+            "fromRotation": [0.0, 360.0, 0.0],
+            "toRotation": [0.0, 0.0, 0.0],
+            "duration": 60.0,
+            "loop": true
+        },
+        {
+            "node": "vehicle_rcFlyer_clean",
+            "fromPosition": [0.0, 0.0, 0.0],
+            "toPosition": [0.0, 2.0, 0.0],
+            "duration": 5.0,
+            "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "vehicle_rcLand_clean",
+            "fromPosition": [0.0, 0.0, 0.0],
+            "toPosition": [0.0, 0.0, 3.0],
+            "duration": 15.0,
+            "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "vehicle_rcLand_wheel_rearLeft",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [360.0, 0.0, 0.0],
+            "duration": 15.0,
+            "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "vehicle_rcLand_wheel_rearRight",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [360.0, 0.0, 0.0],
+            "duration": 15.0,
+            "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "vehicle_rcLand_wheel_frontLeft",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [360.0, 0.0, 0.0],
+            "duration": 15.0,
+            "reverse": true,
+            "loop": true
+        },
+        {
+            "node": "vehicle_rcLand_wheel_frontRight",
+            "fromRotation": [0.0, 0.0, 0.0],
+            "toRotation": [360.0, 0.0, 0.0],
+            "duration": 15.0,
+            "reverse": true,
+            "loop": true
+        }
+    ]
+}

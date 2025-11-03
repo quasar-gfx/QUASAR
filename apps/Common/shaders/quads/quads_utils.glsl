@@ -5,12 +5,12 @@ struct QuadMapData {
     float depth;
     uvec2 offset;
     uint size;
+    bool hasAlpha;
     bool flattened;
 };
 
 struct QuadMapDataPacked {
-    uint normalSpherical;
-    float depth;
+    uint normalAndDepth;
     uint metadata;
 };
 
@@ -76,10 +76,31 @@ const vec3 up = vec3(0.0, 1.0, 0.0);
 const vec3 left = vec3(-1.0, 0.0, 0.0);
 const vec3 right = vec3(1.0, 0.0, 0.0);
 
-const float vertexGroupSize = 0.5;
+const float surfelSize = 0.5;
 
 bool isValidDepth(float depth) {
-    return depth != 0.0 && depth < MAX_DEPTH;
+    return depth != 0.0 && depth < 1.0;
+}
+
+bool isValidQuadMapData(in QuadMapData quadMapData) {
+    return quadMapData.normal != vec3(0.0) &&
+           isValidDepth(quadMapData.depth) &&
+           quadMapData.size > 0u;
+}
+
+float normalizeDepth(float depth, float near, float far) {
+    return (depth - near) / (far - near);
+}
+
+float invDepthDistance(vec3 point1, vec3 point2, float near, float far) {
+    float z1 = normalizeDepth(max(point1.z, near), near, far);
+    float z2 = normalizeDepth(max(point2.z, near), near, far);
+    return abs((1.0 / z1) - (1.0 / z2));
+}
+
+float signedDistance(vec3 p1, vec3 p2) {
+    float dist = distance(p1, p2);
+    return (length(p1) > length(p2)) ? -dist : dist;
 }
 
 vec3 rayPlaneIntersection(vec3 rayOrigin, vec3 rayDirection, Plane plane) {
@@ -102,32 +123,41 @@ vec3 pointPlaneIntersection(vec3 pt, Plane plane) {
     return rayPlaneIntersection(origin, rayDirection, plane);
 }
 
-uint packNormalToSpherical(vec3 normal) {
-    // Convert to spherical coordinates
-    float theta = acos(clamp(normal.y, -1.0, 1.0)); // elevation
-    float phi = atan(normal.z, normal.x);           // azimuth
-
-    float thetaSnorm = (theta / PI) * 2.0 - 1.0;
-    float phiSnorm = phi / PI;
-
-    // Pack into lower two components, pad upper two with 0
-    return packSnorm4x8(vec4(thetaSnorm, phiSnorm, 0.0, 0.0));
+// Adapted from: https://knarkowicz.wordpress.com/2014/04/16/octahedron-normal-vector-encoding/
+vec2 warpOct(vec2 v) {
+    float ox = (1.0 - abs(v.y)) * (v.x >= 0.0 ? 1.0 : -1.0);
+    float oy = (1.0 - abs(v.x)) * (v.y >= 0.0 ? 1.0 : -1.0);
+    return vec2(ox, oy);
 }
 
-vec3 unpackSphericalToNormal(uint packedNormal) {
-    vec4 unpacked = unpackSnorm4x8(packedNormal);
+uint packNormalToOctahedral(vec3 n) {
+    // Project to octahedron
+    n /= (abs(n.x) + abs(n.y) + abs(n.z));
+    // Fold the bottom half onto the top
+    if (n.z < 0.0) {
+        vec2 o = warpOct(n.xy);
+        n = vec3(o, n.z);
+    }
+    return packSnorm4x8(vec4(n.x, n.y, 0.0, 0.0));
+}
 
-    float thetaSnorm = unpacked.x;
-    float phiSnorm = unpacked.y;
+vec3 unpackOctahedralToNormal(uint packedNormal) {
+    vec2 f = unpackSnorm4x8(packedNormal).xy;
 
-    float theta = (thetaSnorm + 1.0) * 0.5 * PI;
-    float phi = phiSnorm * PI;
+    // Reconstruct z and unfold if needed
+    vec3 n = vec3(f.xy, 1.0 - abs(f.x) - abs(f.y));
+    if (n.z < 0.0) {
+        vec2 o = warpOct(n.xy);
+        n = vec3(o, n.z);
+    }
+    return normalize(n);
+}
 
-    // Reconstruct normal from spherical coords
-    float y = cos(theta);
-    float r = sin(theta);
-    float x = r * cos(phi);
-    float z = r * sin(phi);
+uint packDepthUNORM16(float depth) {
+    depth = clamp(depth, 0.0, 1.0);
+    return uint(round(depth * 65535.0));
+}
 
-    return normalize(vec3(x, y, z));
+float unpackDepthUNORM16(uint bits) {
+    return float(bits & 0xFFFFu) / 65535.0;
 }

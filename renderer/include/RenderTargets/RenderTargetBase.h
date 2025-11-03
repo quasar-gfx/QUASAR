@@ -45,8 +45,8 @@ public:
         width = params.width;
         height = params.height;
 
-        setViewport(0, 0, width, height);
-        setScissor(0, 0, width, height);
+        setViewport({ 0, 0, width, height });
+        setScissor({ 0, 0, width, height });
     }
     ~RenderTargetBase() = default;
 
@@ -54,8 +54,8 @@ public:
         this->width = width;
         this->height = height;
 
-        setViewport(0, 0, width, height);
-        setScissor(0, 0, width, height);
+        setViewport({ 0, 0, width, height });
+        setScissor({ 0, 0, width, height });
     }
 
     void blitToScreen(uint width, uint height) {
@@ -67,13 +67,21 @@ public:
         glClear(clearMask);
     }
 
-    void setScissor(uint x, uint y, uint width, uint height) {
-        scissor = { x, y, width, height };
+    const Scissor& getScissor() const {
+        return scissor;
+    }
+
+    const Viewport& getViewport() const {
+        return viewport;
+    }
+
+    void setScissor(const Scissor& scissor) {
+        this->scissor = scissor;
         scissor.apply();
     }
 
-    void setViewport(uint x, uint y, uint width, uint height) {
-        viewport = { x, y, width, height };
+    void setViewport(const Viewport& viewport) {
+        this->viewport = viewport;
         viewport.apply();
     }
 

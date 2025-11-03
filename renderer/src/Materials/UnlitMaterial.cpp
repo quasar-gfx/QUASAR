@@ -9,7 +9,7 @@ UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams& params)
     : baseColor(params.baseColor)
     , baseColorFactor(params.baseColorFactor)
     , maskThreshold(params.maskThreshold)
-    , Material(params.alphaMode)
+    , Material(params.name, params.alphaMode)
 {
     TextureFileCreateParams textureParams{
         .wrapS = GL_REPEAT,
@@ -29,9 +29,9 @@ UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams& params)
 
     if (getShader() == nullptr) {
         std::vector<std::string> defines = {
-            "#define ALPHA_OPAQUE " + std::to_string(static_cast<uint8_t>(AlphaMode::OPAQUE)),
-            "#define ALPHA_MASK " + std::to_string(static_cast<uint8_t>(AlphaMode::MASKED)),
-            "#define ALPHA_BLEND " + std::to_string(static_cast<uint8_t>(AlphaMode::TRANSPARENT))
+            "#define ALPHA_OPAQUE " + std::to_string(static_cast<uint8_t>(Material::AlphaMode::OPAQUE)),
+            "#define ALPHA_MASK " + std::to_string(static_cast<uint8_t>(Material::AlphaMode::MASKED)),
+            "#define ALPHA_BLEND " + std::to_string(static_cast<uint8_t>(Material::AlphaMode::TRANSPARENT))
         };
         for (const auto& define : extraShaderDefines) {
             defines.push_back(define);
@@ -46,6 +46,10 @@ UnlitMaterial::UnlitMaterial(const UnlitMaterialCreateParams& params)
         };
         shader = std::make_shared<Shader>(unlitShaderParams);
     }
+}
+
+bool UnlitMaterial::isTransparent() const {
+    return Material::isTransparent() || baseColor.a * baseColorFactor.a < 1.0f;
 }
 
 void UnlitMaterial::bind() const {

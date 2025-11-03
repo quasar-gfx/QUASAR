@@ -1,7 +1,7 @@
 #include "constants.glsl"
 #include "tonemap.glsl"
 
-out vec4 FragColor;
+layout(location = 0) out vec4 FragColor;
 
 in vec2 TexCoord;
 
@@ -11,12 +11,11 @@ uniform sampler2D screenNormals;
 uniform sampler2D screenPositions;
 uniform usampler2D idTexture;
 
+uniform float depthThreshold;
+uniform int searchRadius = 3;
+
 uniform bool tonemap = true;
 uniform float exposure = 1.0;
-
-uniform float depthThreshold;
-
-uniform int searchRadius = 3;
 
 void main() {
     vec3 color = texture(screenColor, TexCoord).rgb;

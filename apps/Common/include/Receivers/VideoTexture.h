@@ -31,7 +31,7 @@ public:
     VideoTexture(
         const TextureDataCreateParams& params,
         const std::string& videoURL,
-        bool useRTP = false);
+        bool useSRT = false);
     ~VideoTexture();
 
     void stop();

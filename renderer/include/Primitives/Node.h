@@ -40,19 +40,19 @@ public:
 
     int getID() const;
     void addEntity(Entity* entity);
-    void setName(const std::string& name);
     void addChildNode(Node* node);
-
-    void setPosition(const glm::vec3& position);
-    void setRotationQuat(const glm::quat& quat);
-    void setRotationEuler(const glm::vec3& euler, bool radians = false);
-    void setScale(const glm::vec3& scale);
 
     const std::string& getName() const { return name; }
     virtual glm::vec3 getPosition() const;
     glm::quat getRotationQuat() const;
     glm::vec3 getRotationEuler(bool radians = false) const;
     glm::vec3 getScale() const;
+
+    void setName(const std::string& name) { this->name = name; }
+    void setPosition(const glm::vec3& position);
+    void setRotationQuat(const glm::quat& quat);
+    void setRotationEuler(const glm::vec3& euler, bool radians = false);
+    void setScale(const glm::vec3& scale);
 
     const glm::mat4 getTransformParentFromLocal() const;
     const glm::mat4 getTransformLocalFromParent() const;
@@ -66,6 +66,8 @@ public:
     std::shared_ptr<Animation> addAnimation();
 
     void updateAnimations(double dt);
+
+    static uint32_t getNextID() { return nextID; }
 
 protected:
     uint32_t ID;

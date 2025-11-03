@@ -11,7 +11,7 @@ VideoStreamer::VideoStreamer(
         const std::string& videoURL,
         uint maxFrameRate,
         uint targetBitRateMbps,
-        bool useRTP)
+        bool useSRT)
     : videoURL(videoURL)
     , videoWidth(params.width + poseIDOffset)
     , videoHeight(params.height)
@@ -60,9 +60,9 @@ VideoStreamer::VideoStreamer(
         << "queue leaky=upstream max-size-buffers=1 max-size-time=0 max-size-bytes=0 ! "
         << "videoconvert ! video/x-raw,format=" << format << " ! "
         << encoderParams << " bitrate=" << targetBitRateKbps << " ! "
-        << "h264parse config-interval=1 ! ";
-    if (useRTP) {
-        oss << "rtph264pay config-interval=1 pt=96 ! "
+        << "h264parse config-interval=1 name=" << h264ParseName << " ! ";
+    if (!useSRT) {
+        oss << "rtph264pay config-interval=1 pt=96 name=" << payloaderName << " ! "
             << "udpsink host=" << host << " port=" << port << " sync=false";
     }
     else {
@@ -86,10 +86,35 @@ VideoStreamer::VideoStreamer(
                  "do-timestamp", TRUE,
                  nullptr);
 
+    // Attach a buffer probe on the h264parse src pad to meter encoded bytes
+    if (GstElement* h264parseEl = gst_bin_get_by_name(GST_BIN(pipeline), h264ParseName.c_str())) {
+        if (GstPad* srcpad = gst_element_get_static_pad(h264parseEl, "src")) {
+            gst_pad_add_probe(
+                srcpad,
+                GST_PAD_PROBE_TYPE_BUFFER,
+                [](GstPad* pad, GstPadProbeInfo* info, gpointer user_data) -> GstPadProbeReturn {
+                    auto* self = static_cast<VideoStreamer*>(user_data);
+                    GstBuffer* buf = GST_PAD_PROBE_INFO_BUFFER(info);
+                    if (buf && self) {
+                        gsize sz = gst_buffer_get_size(buf);
+                        self->encodedBytesTotal.fetch_add(static_cast<uint64_t>(sz), std::memory_order_relaxed);
+                    }
+                    return GST_PAD_PROBE_OK;
+                },
+                this,
+                nullptr);
+            gst_object_unref(srcpad);
+        }
+        gst_object_unref(h264parseEl);
+    }
+    else {
+        spdlog::warn("Could not find '{}' element to probe bitrate.", h264ParseName);
+    }
+
     gst_element_set_state(pipeline, GST_STATE_PLAYING);
 
     videoStreamerThread = std::thread(&VideoStreamer::encodeAndSendFrames, this);
-    spdlog::info("Created VideoStreamer (GStreamer) that sends to URL: {}://{}", useRTP ? "rtp" : "srt", videoURL);
+    spdlog::info("Created VideoStreamer (GStreamer) that sends to URL: {}://{}", useSRT ? "srt" : "rtp", videoURL);
 }
 
 VideoStreamer::~VideoStreamer() {
@@ -174,7 +199,7 @@ void VideoStreamer::encodeAndSendFrames() {
         }
 
         // Pack pose ID into the right side of the frame
-        pose_id_t poseIDToSend = videoFrame.poseID;
+        const pose_id_t poseIDToSend = videoFrame.poseID;
         packPoseIDIntoVideoFrame(poseIDToSend, map.data);
 
         gst_buffer_unmap(buffer, &map);
@@ -200,8 +225,20 @@ void VideoStreamer::encodeAndSendFrames() {
                 (int)(timeutils::secondsToMicros(frameIntervalSec - elapsedTimeSec))));
         }
 
-        stats.totalSendTimeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
-        prevTime = timeutils::getTimeMicros();
+        double now = timeutils::getTimeMicros();
+        stats.totalSendTimeMs = timeutils::microsToMillis(now - prevTime);
+
+        // Compute encoded bitrate in Mbps based on bytes metered at encoder output
+        double elapsedSec = timeutils::microsToSeconds(frameStart - prevTime);
+        if (elapsedSec > 0.0) {
+            uint64_t total = encodedBytesTotal.load(std::memory_order_relaxed);
+            uint64_t deltaBytes = total - prevEncodedBytesTotal;
+            prevEncodedBytesTotal = total;
+            double bitsPerSec = static_cast<double>(deltaBytes) * 8.0 / elapsedSec;
+            stats.bitrateMbps = bitsPerSec / BYTES_PER_MEGABYTE;
+        }
+
+        prevTime = frameStart;
     }
 }
 

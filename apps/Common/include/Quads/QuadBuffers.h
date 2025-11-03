@@ -14,44 +14,43 @@ namespace quasar {
 struct QuadMapData {
     glm::vec3 normal;
     float depth;
-    glm::ivec2 offset;
+    glm::uvec2 offset;
     uint32_t size;
+    bool hasAlpha;
     bool flattened;
 };
 
 struct QuadMapDataPacked {
-    // Normal converted into spherical coordinates. 16 bits of padding + theta, phi (8 bits each) packed into 16 bits.
-    uint32_t normalSpherical;
-    // Full resolution depth. 32 bits used.
-    float depth;
-    // offset.x << 20 | offset.y << 8 (12 bits each) | size << 1 (6 bits) | flattened (1 bit). 31 bits used.
+    // normal is converted into octahedral coordinates quantized to two 8 bit values.
+    // depth is quantized to 16 bits.
+    // (normal theta << 24) | (normal phi << 16) | (depth). 16 + 16 bits = 32 bits used.
+    uint32_t normalAndDepth;
+    // (offset.x << 20) | (offset.y << 8) | (size << 2) | (hasAlpha << 1) | (flattened). 12 + 12 + 5 + 1 + 1 bits = 32 bits used.
     uint32_t metadata;
-}; // 96 bits total
+}; // 64 bits total
 
 class QuadBuffers {
 public:
-    uint32_t maxProxies;
-    uint32_t numProxies;
-    uint32_t maxDataSize;
+    uint32_t maxProxies = 0;
+    uint32_t numProxies = 0;
+    uint32_t numProxiesTransparent = 0;
 
-    Buffer normalSphericalsBuffer;
-    Buffer depthsBuffer;
+    Buffer normalAndDepthBuffer;
     Buffer metadatasBuffer;
 
     QuadBuffers(uint32_t maxProxies);
     ~QuadBuffers() = default;
 
-    void resize(uint32_t newNumProxies);
+    void resize(uint32_t newNumProxies, uint32_t newnumProxiesTransparent);
 
 #ifdef GL_CORE
-    size_t writeToMemory(std::vector<char>& outputData, bool applyDeltaEncoding);
+    size_t writeToMemory(std::vector<char>& outputData, bool applyDeltaEncoding = true);
 #endif
-    size_t loadFromMemory(std::vector<char>& inputData, bool applyDeltaEncoding);
+    size_t loadFromMemory(std::vector<char>& inputData, bool applyDeltaEncoding = true);
 
 private:
 #if defined(QUASAR_HAS_CUDA)
-    CudaGLBuffer cudaBufferNormalSphericals;
-    CudaGLBuffer cudaBufferDepths;
+    CudaGLBuffer cudaBufferNormalAndDepth;
     CudaGLBuffer cudaBufferMetadatas;
 #endif
 };

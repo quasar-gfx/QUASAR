@@ -1,4 +1,5 @@
 #include <Cameras/VRCamera.h>
+#include <Materials/LitMaterial.h>
 #include <Renderers/DeferredRenderer.h>
 
 using namespace quasar;
@@ -38,9 +39,9 @@ void DeferredRenderer::setScreenShaderUniforms(const Shader& screenShader) {
     screenShader.bind();
     screenShader.setTexture("screenColor", outputRT.colorTexture, 0);
     screenShader.setTexture("screenDepth", outputRT.depthStencilTexture, 1);
-    screenShader.setTexture("screenNormals", gBuffer.normalsTexture, 2);
+    screenShader.setTexture("screenNormals", outputRT.normalsTexture, 2);
     screenShader.setTexture("screenPositions", gBuffer.positionTexture, 3);
-    screenShader.setTexture("idTexture", gBuffer.idTexture, 4);
+    screenShader.setTexture("idTexture", outputRT.idTexture, 4);
 }
 
 void DeferredRenderer::resize(uint width, uint height) {
@@ -88,14 +89,27 @@ RenderStats DeferredRenderer::drawScene(Scene& scene, const Camera& camera, uint
         glClear(clearMask);
     }
 
-    // Disable blending
-    pipeline.blendState.blendEnabled = false; pipeline.apply();
+    // Disable blending for G-Buffer pass and force lit materials to use deferred path
+    pipeline.blendState.blendEnabled = false;
+    pipeline.apply();
 
-    // Draw all objects in the scene
-    stats += drawSceneImpl(scene, camera, clearMask);
+    // Switch to deferred pipeline for lit materials
+    LitMaterial::setPipelineMode(Material::RenderPipelineMode::Deferred);
 
-    // Reenable blending
-    pipeline.blendState.blendEnabled = true; pipeline.apply();
+    if (sortTransparent) {
+        // Draw only opaque objects into G-Buffer
+        fillRenderLists(scene, camera);
+        stats += drawOpaque(scene, camera);
+    }
+    else {
+        for (auto* child : scene.children) {
+            stats += drawNodeImmediate(scene, camera, child, glm::mat4(1.0f), true);
+        }
+    }
+
+    // Restore previous pipeline mode and blend state
+    pipeline.blendState.blendEnabled = true;
+    pipeline.apply();
 
     endRendering();
 
@@ -114,59 +128,18 @@ RenderStats DeferredRenderer::drawSkyBox(Scene& scene, const Camera& camera, uin
     return stats;
 }
 
-RenderStats DeferredRenderer::drawObjectsNoLighting(Scene& scene, const Camera& camera, uint32_t clearMask) {
-    pipeline.apply();
-
+RenderStats DeferredRenderer::preLightingPass(Scene& scene, const Camera& camera, uint32_t clearMask) {
     RenderStats stats;
+
+    // Update shadows
+    updateDirLightShadow(scene, camera);
+    updatePointLightShadows(scene, camera);
 
     // Draw all objects in the scene
     stats += drawScene(scene, camera, clearMask);
 
-    // Draw lighting pass
-    stats += lightingPass(scene, camera);
-
-    // Draw skybox
-    stats += drawSkyBox(scene, camera);
-
-    return stats;
-}
-
-RenderStats DeferredRenderer::drawObjects(Scene& scene, const Camera& camera, uint32_t clearMask) {
-    RenderStats stats;
-    if (camera.isVR()) {
-        auto* vrCamera = static_cast<const VRCamera*>(&camera);
-
-        pipeline.rasterState.scissorTestEnabled = true;
-
-        // Left eye
-        gBuffer.setScissor(0, 0, width / 2, height);
-        gBuffer.setViewport(0, 0, width / 2, height);
-        stats += drawObjects(scene, vrCamera->left, clearMask);
-
-        // Right eye
-        gBuffer.setScissor(width / 2, 0, width / 2, height);
-        gBuffer.setViewport(width / 2, 0, width / 2, height);
-        stats += drawObjects(scene, vrCamera->right, clearMask);
-    }
-    else {
-        pipeline.apply();
-
-        // Update shadows
-        updateDirLightShadow(scene, camera);
-        updatePointLightShadows(scene, camera);
-
-        // Draw all objects in the scene
-        stats += drawScene(scene, camera, clearMask);
-
-        // Draw lights for debugging
-        stats += drawLights(scene, camera);
-
-        // Draw lighting pass
-        stats += lightingPass(scene, camera);
-
-        // Draw skybox
-        stats += drawSkyBox(scene, camera);
-    }
+    // Draw lights for debugging
+    stats += drawLights(scene, camera);
 
     return stats;
 }
@@ -181,8 +154,8 @@ RenderStats DeferredRenderer::lightingPass(Scene& scene, const Camera& camera) {
     // Update material uniforms with lighting information
     scene.bindMaterial(&lightingMaterial, *pointLightsUBO);
 
-    // Copy depth from FrameRenderTarget to outputRT
-    gBuffer.blitDepthToRenderTarget(outputRT);
+    // Copy depth from GBuffer to outputRT
+    gBuffer.blitDepth(outputRT);
 
     pipeline.depthState.depthFunc = GL_LEQUAL;
     pipeline.apply();
@@ -199,7 +172,121 @@ RenderStats DeferredRenderer::lightingPass(Scene& scene, const Camera& camera) {
     return stats;
 }
 
+RenderStats DeferredRenderer::postLightingPass(Scene& scene, const Camera& camera) {
+    RenderStats stats;
+    // Forward pass for transparent objects over lit scene
+    if (sortTransparent) {
+        // Switch to forward pipeline for lit materials
+        LitMaterial::setPipelineMode(Material::RenderPipelineMode::Forward);
+
+        // First draw skybox into the output so transparent objects blend over the background correctly,
+        // then draw transparent geometry
+        stats += drawSkyBox(scene, camera);
+
+        // Draw transparent objects
+        outputRT.bind();
+        stats += drawTransparent(scene, camera);
+        outputRT.unbind();
+    }
+
+    // Draw skybox if not already drawn in forward pass
+    if (!sortTransparent) {
+        stats += drawSkyBox(scene, camera);
+    }
+
+    return stats;
+}
+
+RenderStats DeferredRenderer::drawObjectsNoLighting(Scene& scene, const Camera& camera, uint32_t clearMask) {
+    pipeline.apply();
+
+    RenderStats stats;
+
+    // Draw all objects in the scene
+    stats += drawScene(scene, camera, clearMask);
+
+    // Draw lighting pass
+    stats += lightingPass(scene, camera);
+
+    // Draw transparent objects and skybox
+    stats += postLightingPass(scene, camera);
+
+    return stats;
+}
+
+RenderStats DeferredRenderer::drawObjects(Scene& scene, const Camera& camera, uint32_t clearMask) {
+    pipeline.apply();
+
+    RenderStats stats;
+    if (camera.isVR()) {
+        auto* vrCamera = static_cast<const VRCamera*>(&camera);
+
+        pipeline.rasterState.scissorTestEnabled = true;
+
+        // Left eye
+        gBuffer.setScissor({ 0, 0, width / 2, height });
+        gBuffer.setViewport({ 0, 0, width / 2, height });
+        stats += preLightingPass(scene, vrCamera->left, clearMask);
+
+        // Copy scissor and viewport to outputRT
+        outputRT.setScissor(gBuffer.getScissor());
+        outputRT.setViewport(gBuffer.getViewport());
+
+        // Copy depth from GBuffer to outputRT
+        gBuffer.blitDepth(outputRT);
+
+        // Restore full viewport for outputRT
+        outputRT.setScissor({ 0, 0, width, height });
+        outputRT.setViewport({ 0, 0, width, height });
+
+        // Right eye
+        gBuffer.setScissor({ width / 2, 0, width / 2, height });
+        gBuffer.setViewport({ width / 2, 0, width / 2, height });
+        stats += preLightingPass(scene, vrCamera->right, clearMask);
+
+        // Copy scissor and viewport to outputRT
+        outputRT.setScissor(gBuffer.getScissor());
+        outputRT.setViewport(gBuffer.getViewport());
+
+        // Copy depth from GBuffer to outputRT
+        gBuffer.blitDepth(outputRT);
+
+        // Restore full viewport for outputRT
+        outputRT.setScissor({ 0, 0, width, height });
+        outputRT.setViewport({ 0, 0, width, height });
+    }
+    else {
+        stats += preLightingPass(scene, camera, clearMask);
+    }
+
+    stats += lightingPass(scene, camera);
+
+    if (camera.isVR()) {
+        auto* vrCamera = static_cast<const VRCamera*>(&camera);
+
+        // Left eye
+        outputRT.setScissor({ 0, 0, width / 2, height });
+        outputRT.setViewport({ 0, 0, width / 2, height });
+        stats += postLightingPass(scene, vrCamera->left);
+
+        // Right eye
+        outputRT.setScissor({ width / 2, 0, width / 2, height });
+        outputRT.setViewport({ width / 2, 0, width / 2, height });
+        stats += postLightingPass(scene, vrCamera->right);
+
+        pipeline.rasterState.scissorTestEnabled = false;
+
+        outputRT.setScissor({ 0, 0, width, height });
+        outputRT.setViewport({ 0, 0, width, height });
+    }
+    else {
+        stats += postLightingPass(scene, camera);
+    }
+
+    return stats;
+}
+
 void DeferredRenderer::copyToFrameRT(FrameRenderTarget& frameRT) {
-    gBuffer.blit(frameRT); // Copy alpha, normals, id, and depth
-    outputRT.blit(frameRT); // Copy color
+    gBuffer.blit(frameRT); // Copy alpha, normals, positions, and IDs
+    outputRT.blitColorAndDepth(frameRT); // Copy color and depth
 }

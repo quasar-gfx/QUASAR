@@ -15,6 +15,7 @@
 namespace quasar {
 
 struct MeshDataCreateParams {
+    std::string name = "Mesh" + std::to_string(Entity::getNextID());
     const void* verticesData;
     size_t verticesSize;
     const uint32_t* indicesData = nullptr;
@@ -28,6 +29,7 @@ struct MeshDataCreateParams {
 };
 
 struct MeshSizeCreateParams {
+    std::string name = "Mesh" + std::to_string(Entity::getNextID());
     size_t maxVertices;
     size_t maxIndices = 0;
     size_t vertexSize = sizeof(Vertex);

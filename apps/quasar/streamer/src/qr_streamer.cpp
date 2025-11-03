@@ -7,6 +7,7 @@
 #include <Renderers/ForwardRenderer.h>
 #include <Renderers/DeferredRenderer.h>
 #include <Renderers/DepthPeelingRenderer.h>
+#include <UI/SceneWindow.h>
 
 #include <Streamers/QUASARStreamer.h>
 #include <HoleFiller.h>
@@ -18,6 +19,7 @@ int main(int argc, char** argv) {
     Config config{};
     config.title = "QUASAR Streamer";
     config.targetFramerate = 30;
+    config.sortTransparent = false;
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
@@ -27,8 +29,8 @@ int main(int argc, char** argv) {
     args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::ValueFlag<bool> displayIn(parser, "display", "Show window", {'d', "display"}, true);
-    args::ValueFlag<float> remoteFOVIn(parser, "remote-fov", "Remote camera FOV in degrees", {'F', "remote-fov"}, 60.0f);
-    args::ValueFlag<float> remoteFOVWideIn(parser, "remote-fov-wide", "Remote camera FOV in degrees for wide fov", {'W', "remote-fov-wide"}, 120.0f);
+    args::ValueFlag<float> remoteFOVIn(parser, "remote-fov", "Remote camera FOV in degrees", {'F', "remote-fov"}, 80.0f);
+    args::ValueFlag<float> remoteFOVWideIn(parser, "remote-fov-wide", "Remote camera FOV in degrees for wide fov", {'W', "remote-fov-wide"}, 140.0f);
     args::ValueFlag<int> maxHiddenLayersIn(parser, "layers", "Max hidden layers", {'n', "max-hidden-layers"}, 3);
     args::ValueFlag<float> viewSphereDiameterIn(parser, "view-sphere-diameter", "Size of view sphere in m", {'B', "view-size"}, 0.5f);
     args::ValueFlag<int> targetBitrateIn(parser, "target-bitrate", "Target bitrate (Mbps)", {'b', "target-bitrate"}, 28);
@@ -127,6 +129,7 @@ int main(int argc, char** argv) {
 
     bool sendReferenceFrame = true;
     bool sendResidualFrame = false;
+    bool showResidualFrame = false;
     int refFrameInterval = 2;
 
     const double serverFPSValues[] = {0, 1, 2, 3, 4, 5};
@@ -141,15 +144,13 @@ int main(int argc, char** argv) {
 
     RenderStats renderStats;
     pose_id_t prevPoseID;
+    FrameRateWindow frameRateWindow;
+    SceneWindow sceneWindow(localScene, glm::vec2(430, 800));
     guiManager->onRender([&](double now, double dt) {
-        static bool showFPS = true;
         static bool showUI = true;
         static bool showFramePreviewWindow = false;
         static bool showLayerPreviews = false;
 
-        static bool showSkyBox = true;
-
-        ImGuiWindowFlags flags = 0;
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Exit", "ESC")) {
@@ -158,21 +159,20 @@ int main(int argc, char** argv) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
-            ImGui::MenuItem("FPS", 0, &showFPS);
+            ImGui::MenuItem("FPS", 0, &frameRateWindow.visible);
             ImGui::MenuItem("UI", 0, &showUI);
             ImGui::MenuItem("Frame Previews", 0, &showFramePreviewWindow);
             ImGui::MenuItem("Layer Previews", 0, &showLayerPreviews);
             ImGui::EndMenu();
         }
+        if (ImGui::BeginMenu("Scene")) {
+            ImGui::MenuItem("Scene", 0, &sceneWindow.visible);
+            ImGui::EndMenu();
+        }
         ImGui::EndMainMenuBar();
 
-        if (showFPS) {
-            ImGui::SetNextWindowPos(ImVec2(10, 40), ImGuiCond_FirstUseEver);
-            flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar;
-            ImGui::Begin("", 0, flags);
-            ImGui::Text("%.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
-            ImGui::End();
-        }
+        frameRateWindow.draw(now, dt);
+        sceneWindow.draw(now, dt);
 
         if (showUI) {
             ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
@@ -199,19 +199,19 @@ int main(int argc, char** argv) {
                 ImGui::TextColored(ImVec4(1,0,0,1), "Draw Calls: %ld", renderStats.drawCalls);
 
             ImGui::TextColored(ImVec4(0,1,1,1), "Total Quads: %ld (%.3f MB)",
-                               quasar.stats.totalSizes.numQuads,
-                               quasar.stats.totalSizes.quadsSize / BYTES_PER_MEGABYTE);
+                               quasar.stats.proxySizes.numQuads,
+                               quasar.stats.proxySizes.quadsSize / BYTES_PER_MEGABYTE);
             ImGui::TextColored(ImVec4(1,0,1,1), "Total Depth Offsets: %ld (%.3f MB)",
-                               quasar.stats.totalSizes.numDepthOffsets,
-                               quasar.stats.totalSizes.depthOffsetsSize / BYTES_PER_MEGABYTE);
+                               quasar.stats.proxySizes.numDepthOffsets,
+                               quasar.stats.proxySizes.depthOffsetsSize / BYTES_PER_MEGABYTE);
 
             ImGui::Separator();
 
-            glm::vec3 position = camera.getPosition();
+            const glm::vec3& position = camera.getPosition();
             if (ImGui::DragFloat3("Camera Position", (float*)&position, 0.01f)) {
                 camera.setPosition(position);
             }
-            glm::vec3 rotation = camera.getRotationEuler();
+            const glm::vec3& rotation = camera.getRotationEuler();
             if (ImGui::DragFloat3("Camera Rotation", (float*)&rotation, 0.1f)) {
                 camera.setRotationEuler(rotation);
             }
@@ -226,30 +226,6 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             ImGui::Text("Client Pose ID: %d", prevPoseID);
-
-            ImGui::Separator();
-
-            auto& videoStreamerRT = quasar.atlasVideoStreamerRT;
-            ImGui::TextColored(ImVec4(1,0.5,0,1), "Video Frame Rate: %.1f FPS (%.3f ms/frame)", videoStreamerRT.getFrameRate(), 1000.0f / videoStreamerRT.getFrameRate());
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: %.3f ms", videoStreamerRT.stats.transferTimeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.3f ms", videoStreamerRT.stats.encodeTimeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: %.3f ms", videoStreamerRT.stats.sendTimeMs);
-
-            ImGui::Separator();
-
-            if (ImGui::CollapsingHeader("Background Settings")) {
-                if (ImGui::Checkbox("Show Sky Box", &showSkyBox)) {
-                    localScene.envCubeMap = showSkyBox ? scene.envCubeMap : nullptr;
-                }
-
-                if (ImGui::Button("Change Background Color", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
-                    ImGui::OpenPopup("Background Color Popup");
-                }
-                if (ImGui::BeginPopup("Background Color Popup")) {
-                    ImGui::ColorPicker3("Background Color", (float*)&localScene.backgroundColor);
-                    ImGui::EndPopup();
-                }
-            }
 
             ImGui::Separator();
 
@@ -269,8 +245,19 @@ int main(int argc, char** argv) {
                 ImGui::DragFloat("Depth Threshold", &quadsGenerator->params.depthThreshold, 0.0001f, 0.0f, 1.0f, "%.4f");
                 ImGui::DragFloat("Angle Threshold", &quadsGenerator->params.angleThreshold, 0.1f, 0.0f, 180.0f);
                 ImGui::DragFloat("Flatten Threshold", &quadsGenerator->params.flattenThreshold, 0.001f, 0.0f, 1.0f);
-                ImGui::DragFloat("Similarity Threshold", &quadsGenerator->params.proxySimilarityThreshold, 0.001f, 0.0f, 2.0f);
-                ImGui::DragInt("Force Merge Iterations", &quadsGenerator->params.maxIterForceMerge, 1, 0, quadsGenerator->numQuadMaps/2);
+                ImGui::DragFloat("Plane Similarity Threshold", &quadsGenerator->params.planeSimilarityThreshold, 0.001f, 0.0f, 2.0f);
+                ImGui::DragInt("Force Merge Iterations", &quadsGenerator->params.maxIterForceMerge, 1, 0, quadsGenerator->numQuadMaps);
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::CollapsingHeader("Video Stats")) {
+                auto& videoStreamerRT = quasar.videoAtlasStreamerRT;
+                ImGui::TextColored(ImVec4(1,0.5,0,1), "Frame Rate: %.1f FPS (%.3f ms/frame)", videoStreamerRT.getFrameRate(), 1000.0f / videoStreamerRT.getFrameRate());
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy frame: %.3f ms", videoStreamerRT.stats.transferTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to encode frame: %.3f ms", videoStreamerRT.stats.encodeTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to send frame: %.3f ms", videoStreamerRT.stats.sendTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0.5,1), "Bitrate: %.3f Mbps", videoStreamerRT.stats.bitrateMbps);
             }
 
             ImGui::Separator();
@@ -311,29 +298,27 @@ int main(int argc, char** argv) {
         }
 
         if (showFramePreviewWindow) {
-            flags = 0;
-            ImGui::Begin("Reference Frame", 0, flags);
+            ImGui::Begin("Reference Frame", 0);
             ImGui::Image((void*)(intptr_t)(quasar.referenceFrameRT.colorTexture),
                          ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
 
-            ImGui::Begin("Residual Frame (changed geometry)", 0, flags);
+            ImGui::Begin("Residual Frame (changed geometry)", 0);
             ImGui::Image((void*)(intptr_t)(quasar.residualFrameMaskRT.colorTexture),
                          ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
 
-            ImGui::Begin("Residual Frame (revealed geometry)", 0, flags);
+            ImGui::Begin("Residual Frame (revealed geometry)", 0);
             ImGui::Image((void*)(intptr_t)(quasar.residualFrameRT.colorTexture),
                          ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
         }
 
         if (showLayerPreviews) {
-            flags = ImGuiWindowFlags_AlwaysAutoResize;
             for (int layer = 0; layer < maxLayers; layer++) {
                 int viewIdx = maxLayers - layer - 1;
                 if (showLayers[viewIdx]) {
-                    ImGui::Begin(("View " + std::to_string(viewIdx)).c_str(), 0, flags);
+                    ImGui::Begin(("View " + std::to_string(viewIdx)).c_str(), 0, ImGuiWindowFlags_AlwaysAutoResize);
                     if (viewIdx == 0) {
                         ImGui::Image((void*)(intptr_t)(quasar.referenceFrameRT.colorTexture.ID),
                                      ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
@@ -401,13 +386,13 @@ int main(int argc, char** argv) {
                 spdlog::info("  Create Vert/Ind Time ({}): {:.3f}ms", frameType, quasar.stats.totalCreateVertIndTimeMs);
                 spdlog::info("Compress Time ({}): {:.3f}ms", frameType, quasar.stats.totalCompressTimeMs);
                 if (showDepth) spdlog::info("Gen Depth Time ({}): {:.3f}ms", frameType, quasar.stats.totalGenDepthTimeMs);
-                spdlog::info("Frame Size: {:.3f}MB", (quasar.stats.totalSizes.quadsSize +
-                                                    quasar.stats.totalSizes.depthOffsetsSize) / BYTES_PER_MEGABYTE);
-                spdlog::info("Num Proxies: {}Proxies", quasar.stats.totalSizes.numQuads);
+                spdlog::info("Frame Size: {:.3f}MB", quasar.stats.frameSize / BYTES_PER_MEGABYTE);
+                spdlog::info("Num Proxies: {}Proxies", quasar.stats.proxySizes.numQuads);
 
                 prevPoseID = poseID;
-                quasar.sendProxies(poseID, sendResidualFrame);
+                quasar.sendFrame(poseID, sendResidualFrame);
 
+                showResidualFrame = sendResidualFrame;
                 sendReferenceFrame = false;
                 sendResidualFrame = false;
             }
@@ -418,7 +403,6 @@ int main(int argc, char** argv) {
         for (int layer = 0; layer < maxLayers; layer++) {
             bool showLayer = showLayers[layer];
             if (layer == 0) {
-                // Show current mesh
                 quasar.referenceFrameNodesLocal[currentIndex].visible = showLayer;
                 quasar.referenceFrameNodesLocal[previousIndex].visible = false;
                 quasar.referenceFrameWireframesLocal[currentIndex].visible = showLayer && showWireframe;
@@ -431,14 +415,18 @@ int main(int argc, char** argv) {
                 quasar.depthNodesHidLayer[layer-1].visible = showLayer && showDepth;
             }
         }
-        quasar.residualFrameWireframesLocal.visible = quasar.residualFrameNode.visible && showWireframe;
+        quasar.residualFrameNodeLocal.visible = showResidualFrame;
+        quasar.residualFrameWireframeLocal.visible = quasar.residualFrameNodeLocal.visible && showWireframe;
 
         // Offset camera
         camera.setPosition(camera.getPosition() + initialPosition);
         camera.updateViewMatrix();
 
         // Render generated meshes
+        quasar.setDrawState(QuadMesh::DrawState::OPAQUE); // draw opaque quads first
         renderer.drawObjects(localScene, camera);
+        quasar.setDrawState(QuadMesh::DrawState::TRANSPARENT); // then draw transparent quads
+        renderer.drawObjects(localScene, camera, 0);
 
         // Restore camera position
         camera.setPosition(camera.getPosition() - initialPosition);

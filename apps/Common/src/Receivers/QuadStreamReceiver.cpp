@@ -9,22 +9,33 @@ QuadStreamReceiver::QuadStreamReceiver(QuadSet& quadSet, uint maxViews)
     , uncompressedQuads(sizeof(uint32_t) + quadSet.quadBuffers.maxProxies * sizeof(QuadMapDataPacked))
     , uncompressedOffsets(quadSet.depthOffsets.getSize().x * quadSet.depthOffsets.getSize().y * 4 * sizeof(uint16_t))
 {
-    TextureDataCreateParams texParams = {
-        .internalFormat = GL_RGB,
+    TextureDataCreateParams colorTexParams = {
+        .internalFormat = GL_SRGB8,
         .format = GL_RGB,
         .wrapS = GL_REPEAT,
         .wrapT = GL_REPEAT,
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST,
     };
+    TextureDataCreateParams alphaTexParams = {
+        .internalFormat = GL_R8,
+        .format = GL_RED,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .minFilter = GL_NEAREST,
+        .magFilter = GL_NEAREST,
+    };
+
     remoteCameras.reserve(maxViews);
     colorTextures.reserve(maxViews);
+    alphaAtlasTextures.reserve(maxViews);
     meshes.reserve(maxViews);
     for (int view = 0; view < maxViews; view++) {
         remoteCameras.emplace_back(quadSet.getSize());
 
-        colorTextures.emplace_back(texParams);
-        meshes.emplace_back(quadSet, colorTextures[view]);
+        colorTextures.emplace_back(colorTexParams);
+        alphaAtlasTextures.emplace_back(alphaTexParams);
+        meshes.emplace_back(quadSet, colorTextures[view], alphaAtlasTextures[view]);
     }
 
     threadPool = std::make_unique<BS::thread_pool<>>(2);
@@ -97,9 +108,13 @@ void QuadStreamReceiver::loadFromFiles(const Path& dataPath) {
     setViewBoxSize(viewBoxSize);
 
     for (int view = 0; view < maxViews; view++) {
-        // Load texture
+        // Load color
         Path colorFileName = dataPath / ("color" + std::to_string(view) + ".jpg");
-        colorTextures[view].loadFromFile(colorFileName, true, false);
+        colorTextures[view].loadFromFile(colorFileName, true, true);
+
+        // Load alpha
+        Path alphaFileName = dataPath / ("alpha" + std::to_string(view) + ".png");
+        alphaAtlasTextures[view].loadFromFile(alphaFileName, true, false);
 
         // Load quads and depth offsets from files
         double startTime = timeutils::getTimeMicros();

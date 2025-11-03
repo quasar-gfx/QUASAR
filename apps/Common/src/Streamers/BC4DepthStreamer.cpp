@@ -3,7 +3,11 @@
 #include <Streamers/BC4DepthStreamer.h>
 #include <shaders_common.h>
 
+#ifndef __ANDROID__
 #define THREADS_PER_LOCALGROUP 32
+#else
+#define THREADS_PER_LOCALGROUP 16
+#endif
 
 using namespace quasar;
 
@@ -33,32 +37,9 @@ BC4DepthStreamer::BC4DepthStreamer(const RenderTargetCreateParams& params, const
         .usage = GL_DYNAMIC_DRAW,
     });
 
-#if defined(QUASAR_HAS_CUDA)
-    cudaBufferBC4.registerBuffer(bc4CompressedBuffer);
-
-    if (!receiverURL.empty()) {
-        running = true;
-        dataSendingThread = std::thread(&BC4DepthStreamer::sendData, this);
-    }
-#endif
-
     if (!receiverURL.empty()) {
         spdlog::info("Created BC4DepthStreamer that sends to URL: tcp://{}", receiverURL);
     }
-}
-
-BC4DepthStreamer::~BC4DepthStreamer() {
-    stop();
-}
-
-void BC4DepthStreamer::stop() {
-#if defined(QUASAR_HAS_CUDA)
-    running = false;
-
-    if (dataSendingThread.joinable()) {
-        dataSendingThread.join();
-    }
-#endif
 }
 
 size_t BC4DepthStreamer::generateFrame() {
@@ -81,13 +62,6 @@ size_t BC4DepthStreamer::generateFrame() {
     double startTime = timeutils::getTimeMicros();
 
     // Copy depth data
-#if defined(QUASAR_HAS_CUDA)
-    CudaGLBuffer::registerHostBuffer(dataBC4.data(), compressedSize * sizeof(BC4Block));
-    cudaBufferBC4.copyToHostAsync(dataBC4.data(), compressedSize * sizeof(BC4Block));
-
-    cudaBufferBC4.synchronize();
-    CudaGLBuffer::unregisterHostBuffer(dataBC4.data());
-#else
     bc4CompressedBuffer.bind();
     void* ptr = bc4CompressedBuffer.mapToCPU(GL_MAP_READ_BIT);
     if (ptr) {
@@ -98,7 +72,6 @@ size_t BC4DepthStreamer::generateFrame() {
         spdlog::error("Failed to map BC4 compressed buffer to CPU. Copying using getData");
         bc4CompressedBuffer.getData(dataBC4.data());
     }
-#endif
     stats.transferTimeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - startTime);
 
     // Compress with codec
@@ -140,42 +113,12 @@ size_t BC4DepthStreamer::writeToMemory(pose_id_t poseID, std::vector<char>& outp
 }
 
 void BC4DepthStreamer::sendFrame(pose_id_t poseID) {
-    writeToMemory(poseID, compressedData);
+    size_t outputSize = writeToMemory(poseID, compressedData);
 
-#if defined(QUASAR_HAS_CUDA)
-    void* cudaPtr = cudaBufferBC4.getPtr();
-    cudaBufferQueue.enqueue({ poseID, cudaPtr });
-#else
     send(compressedData);
-#endif
+
+    stats.sendTimeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
+    stats.bitrateMbps = ((8.0 * outputSize) / BYTES_PER_MEGABYTE) / timeutils::millisToSeconds(stats.sendTimeMs);
+
+    prevTime = timeutils::getTimeMicros();
 }
-
-#if defined(QUASAR_HAS_CUDA)
-void BC4DepthStreamer::sendData() {
-    double prevTime = timeutils::getTimeMicros();
-
-    while (running) {
-        CudaBuffer cudaBuffer;
-        if (!cudaBufferQueue.try_dequeue(cudaBuffer)) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            continue;
-        }
-
-        double elapsedTimeSec = timeutils::microsToSeconds(timeutils::getTimeMicros() - prevTime);
-        if (elapsedTimeSec < (1.0f / maxFrameRate)) {
-            std::this_thread::sleep_for(
-                std::chrono::microseconds(
-                    (int)timeutils::secondsToMicros(1.0f / maxFrameRate - elapsedTimeSec)
-                )
-            );
-        }
-
-        send(compressedData);
-
-        stats.sendTimeMs = timeutils::microsToMillis(timeutils::getTimeMicros() - prevTime);
-        stats.bitrateMbps = ((8.0 * compressedData.size()) / BYTES_PER_MEGABYTE) / timeutils::millisToSeconds(stats.sendTimeMs);
-
-        prevTime = timeutils::getTimeMicros();
-    }
-}
-#endif

@@ -7,6 +7,10 @@
 #include <Renderers/ForwardRenderer.h>
 #include <PostProcessing/Tonemapper.h>
 
+#include <UI/FrameRateWindow.h>
+#include <UI/FrameCaptureWindow.h>
+#include <UI/TexturePreviewWindow.h>
+
 #include <Recorder.h>
 #include <CameraAnimator.h>
 
@@ -26,6 +30,7 @@ int main(int argc, char** argv) {
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::Flag loadFromDisk(parser, "load-from-disk", "Load data from disk", {'L', "load-from-disk"}, false);
     args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Path to data files", {'D', "data-path"}, "../simulator/");
+    args::ValueFlag<std::string> outputPathIn(parser, "output-path", "Directory to save outputs", {'o', "output-path"}, ".");
     args::ValueFlag<std::string> videoURLIn(parser, "video", "URL to recv video", {'c', "video-url"}, "0.0.0.0:12345");
     args::ValueFlag<std::string> proxiesURLIn(parser, "proxies", "URL to recv quad proxy metadata", {'e', "proxies-url"}, "127.0.0.1:65432");
     args::ValueFlag<std::string> poseURLIn(parser, "pose", "URL to recv camera pose", {'p', "pose-url"}, "127.0.0.1:54321");
@@ -52,6 +57,7 @@ int main(int argc, char** argv) {
     config.enableVSync = !args::get(novsync);
 
     Path dataPath = Path(args::get(dataPathIn));
+    Path outputPath = Path(args::get(outputPathIn)); outputPath.mkdirRecursive();
     std::string videoURL = !loadFromDisk ? args::get(videoURLIn) : "";
     std::string proxiesURL = !loadFromDisk ? args::get(proxiesURLIn) : "";
     std::string poseURL = !loadFromDisk ? args::get(poseURLIn) : "";
@@ -69,12 +75,12 @@ int main(int argc, char** argv) {
     PerspectiveCamera camera(windowSize);
 
     // Post processing
-    Tonemapper tonemapper(false);
+    Tonemapper tonemapper;
 
     Recorder recorder({
         .width = windowSize.x,
         .height = windowSize.y,
-        .internalFormat = GL_RGBA,
+        .internalFormat = GL_RGBA8,
         .format = GL_RGBA,
         .type = GL_UNSIGNED_BYTE,
         .wrapS = GL_CLAMP_TO_EDGE,
@@ -121,15 +127,13 @@ int main(int argc, char** argv) {
     bool showWireframe = false;
 
     RenderStats renderStats;
+    FrameRateWindow frameRateWindow;
+    FrameCaptureWindow frameCaptureWindow(recorder, glm::uvec2(430, 270), outputPath);
+    TexturePreviewWindow videoPreviewWindow("Video Texture", quadsReceiver.videoAtlasTexture, glm::uvec2(860, 270));
+    TexturePreviewWindow alphaPreviewWindow("Alpha Texture", quadsReceiver.alphaAtlasTexture, glm::uvec2(860, 270));
     guiManager->onRender([&](double now, double dt) {
-        static bool showFPS = true;
         static bool showUI = true;
-        static bool showFrameCaptureWindow = false;
-        static bool showVideoPreviewWindow = false;
-        static bool writeToHDR = false;
-        static char fileNameBase[256] = "screenshot";
 
-        ImGuiWindowFlags flags = 0;
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Exit", "ESC")) {
@@ -138,24 +142,22 @@ int main(int argc, char** argv) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
-            ImGui::MenuItem("FPS", 0, &showFPS);
+            ImGui::MenuItem("FPS", 0, &frameRateWindow.visible);
             ImGui::MenuItem("UI", 0, &showUI);
-            ImGui::MenuItem("Frame Capture", 0, &showFrameCaptureWindow);
-            ImGui::MenuItem("Video Preview", 0, &showVideoPreviewWindow);
+            ImGui::MenuItem("Frame Capture", 0, &frameCaptureWindow.visible);
+            ImGui::MenuItem("Video Preview", 0, &videoPreviewWindow.visible);
+            ImGui::MenuItem("Alpha Preview", 0, &alphaPreviewWindow.visible);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
 
-        if (showFPS) {
-            ImGui::SetNextWindowPos(ImVec2(10, 40), ImGuiCond_FirstUseEver);
-            flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar;
-            ImGui::Begin("", 0, flags);
-            ImGui::Text("%.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
-            ImGui::End();
-        }
+        frameRateWindow.draw(now, dt);
+        frameCaptureWindow.draw(now, dt);
+        videoPreviewWindow.draw(now, dt);
+        alphaPreviewWindow.draw(now, dt);
 
         if (showUI) {
-            ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(430, 270), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowPos(ImVec2(10, 90), ImGuiCond_FirstUseEver);
             ImGui::Begin(config.title.c_str(), &showUI);
             ImGui::Text("OpenGL Version: %s", glGetString(GL_VERSION));
@@ -186,11 +188,11 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            glm::vec3 position = camera.getPosition();
+            const glm::vec3& position = camera.getPosition();
             if (ImGui::DragFloat3("Camera Position", (float*)&position, 0.01f)) {
                 camera.setPosition(position);
             }
-            glm::vec3 rotation = camera.getRotationEuler();
+            const glm::vec3& rotation = camera.getRotationEuler();
             if (ImGui::DragFloat3("Camera Rotation", (float*)&rotation, 0.1f)) {
                 camera.setRotationEuler(rotation);
             }
@@ -198,22 +200,24 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::CollapsingHeader("Background Settings")) {
-                if (ImGui::Button("Change Background Color", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
-                    ImGui::OpenPopup("Background Color Popup");
-                }
-                if (ImGui::BeginPopup("Background Color Popup")) {
-                    ImGui::ColorPicker3("Background Color", (float*)&scene.backgroundColor);
-                    ImGui::EndPopup();
-                }
+            if (ImGui::CollapsingHeader("Video Stats")) {
+                ImGui::TextColored(ImVec4(1,0.5,0,1), "Frame Rate: %.1f FPS (%.3f ms/frame)",
+                                                        quadsReceiver.videoAtlasTexture.getFrameRate(),
+                                                        1000.0f / quadsReceiver.videoAtlasTexture.getFrameRate());
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to receive frame: %.3f ms",
+                                                        quadsReceiver.videoAtlasTexture.stats.receiveTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0.5,1), "Bitrate: %.3f Mbps",
+                                                        quadsReceiver.videoAtlasTexture.stats.bitrateMbps);
             }
 
             ImGui::Separator();
 
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to load data: %.3f ms", quadsReceiver.stats.loadTimeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decompress data (async): %.3f ms", quadsReceiver.stats.decompressTimeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy data to GPU: %.3f ms", quadsReceiver.stats.transferTimeMs);
-            ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to create mesh: %.3f ms", quadsReceiver.stats.createMeshTimeMs);
+            if (ImGui::CollapsingHeader("Proxy Stats")) {
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to load data: %.3f ms", quadsReceiver.stats.loadTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to decompress data (async): %.3f ms", quadsReceiver.stats.decompressTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to copy data to GPU: %.3f ms", quadsReceiver.stats.transferTimeMs);
+                ImGui::TextColored(ImVec4(0,0.5,0,1), "Time to create mesh: %.3f ms", quadsReceiver.stats.createMeshTimeMs);
+            }
 
             ImGui::Separator();
 
@@ -226,35 +230,6 @@ int main(int argc, char** argv) {
                 }
             }
 
-            ImGui::End();
-        }
-
-        if (showFrameCaptureWindow) {
-            ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
-            ImGui::Begin("Frame Capture", &showFrameCaptureWindow);
-
-            ImGui::Text("Base File Name:");
-            ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string time = std::to_string(static_cast<int>(window->getTime() * 1000.0f));
-            Path filename = (dataPath / fileNameBase).appendToName("." + time);
-
-            ImGui::Checkbox("Save as HDR", &writeToHDR);
-
-            ImGui::Separator();
-
-            if (ImGui::Button("Capture Current Frame")) {
-                recorder.saveScreenshotToFile(filename, writeToHDR);
-            }
-
-            ImGui::End();
-        }
-
-        if (showVideoPreviewWindow) {
-            flags = 0;
-            ImGui::Begin("Texture Atlas Video", 0, flags);
-            ImGui::Image((void*)(intptr_t)(quadsReceiver.videoAtlasTexture),
-                         ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
         }
     });

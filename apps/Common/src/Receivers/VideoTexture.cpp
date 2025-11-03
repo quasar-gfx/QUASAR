@@ -59,7 +59,7 @@ void VideoTexture::gst_android_glue_init(ANativeActivity* activity) {
 VideoTexture::VideoTexture(
         const TextureDataCreateParams& params,
         const std::string& videoURL,
-        bool useRTP)
+        bool useSRT)
     : videoURL(videoURL)
     , Texture(params)
 {
@@ -107,7 +107,7 @@ VideoTexture::VideoTexture(
 #endif
 
     std::ostringstream oss;
-    if (useRTP) {
+    if (!useSRT) {
         oss << "udpsrc name=" << srcName
             << " address=" << host
             << " port=" << port
@@ -160,7 +160,7 @@ VideoTexture::VideoTexture(
     gst_element_set_state(pipeline, GST_STATE_PLAYING);
 
     videoReceiverThread = std::thread(&VideoTexture::receiveFrame, this);
-    spdlog::info("Created VideoTexture (GStreamer) that recvs from: {}://{}", useRTP ? "rtp" : "srt", videoURL);
+    spdlog::info("Created VideoTexture (GStreamer) that recvs from: {}://{}", useSRT ? "srt" : "rtp", videoURL);
 }
 
 VideoTexture::~VideoTexture() {
@@ -218,7 +218,7 @@ void VideoTexture::receiveFrame() {
         }
 
         // Read the pose ID from the frame
-        pose_id_t poseID = unpackPoseIDFromFrame(map.data, videoWidth, videoHeight);
+        const pose_id_t poseID = unpackPoseIDFromFrame(map.data, videoWidth, videoHeight);
 
         {
             std::unique_lock<std::mutex> lock(m);

@@ -18,7 +18,7 @@
 namespace quasar {
 
 struct ModelCreateParams {
-    bool flipTextures = false;
+    bool flipTextureY = true;
     bool gammaCorrected = false;
     float IBL = 1.0;
     const LitMaterial* material;
@@ -40,9 +40,10 @@ public:
     ~Model();
 
 private:
-    bool flipTextures;
+    bool flipTextureY;
 
     std::vector<Mesh*> meshes;
+    std::vector<const LitMaterial*> materials;
 
     const aiScene* scene;
     std::unordered_map<std::string, Texture*> texturesCache;

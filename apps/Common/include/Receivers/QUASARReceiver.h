@@ -10,6 +10,7 @@
 #include <Quads/QuadMesh.h>
 #include <Networking/DataReceiverTCP.h>
 #include <Receivers/VideoTexture.h>
+#include <Codecs/AlphaCodec.h>
 
 namespace quasar {
 
@@ -24,11 +25,12 @@ public:
     struct Header {
         pose_id_t poseID;
         QuadFrame::FrameType frameType;
-        uint32_t cameraSize;
         Params params;
+        uint32_t cameraSize;
+        uint32_t alphaSize;
         uint32_t geometrySize;
 
-        size_t getSize() const { return sizeof(Header) + cameraSize + geometrySize; }
+        size_t getSize() const { return sizeof(Header) + cameraSize + alphaSize + geometrySize; }
     };
 
     struct Stats {
@@ -47,6 +49,7 @@ public:
     float viewSphereDiameter;
 
     VideoTexture videoAtlasTexture;
+    Texture alphaAtlasTexture;
 
     QUASARReceiver(QuadSet& quadSet, uint maxLayers, const std::string& videoURL = "", const std::string& proxiesURL = "");
     QUASARReceiver(QuadSet& quadSet, uint maxLayers, float remoteFOV, float remoteFOVWide, const std::string& videoURL = "", const std::string& proxiesURL = "");
@@ -59,6 +62,7 @@ public:
     PerspectiveCamera& getremoteCameraWideFOV() { return remoteCameraWideFOV; }
     void copyPoseToCamera(PerspectiveCamera& camera);
 
+    void setDrawState(QuadMesh::DrawState drawState);
     void setViewSphereDiameter(float viewSphereDiameter) { this->viewSphereDiameter = viewSphereDiameter; }
 
     QuadFrame::FrameType loadFromFiles(const Path& dataPath);
@@ -76,6 +80,7 @@ private:
     QuadMesh residualFrameMesh;
 
     struct BufferPool {
+        std::vector<char> alphaData;
         std::vector<std::vector<char>> uncompressedQuads, uncompressedOffsets;
         std::vector<char> uncompressedQuadsRevealed, uncompressedOffsetsRevealed;
 
@@ -93,6 +98,8 @@ private:
 
             uncompressedQuadsRevealed.resize(quadsBytes / 4); // Residual frame usually has less quads
             uncompressedOffsetsRevealed.resize(offsetsBytes);
+
+            alphaData.resize(2 * gBufferSize.x * 3 * gBufferSize.y);
         }
     };
 
@@ -204,6 +211,8 @@ private:
     std::shared_ptr<Frame> frameInUse;
     std::shared_ptr<Frame> framePending;
     std::shared_ptr<Frame> frameFree;
+
+    AlphaCodec alphaCodec;
 
     bool waitUntilReferenceFrame = false;
 

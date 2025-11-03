@@ -42,7 +42,7 @@ def main(argv):
     buf = content.encode("utf-8")
 
     out_file = open_or_exit(argv[3], "a")
-    out_file.write(f"static const char {sym}[] = {{\n")
+    out_file.write(f"const char {sym}[] = {{\n")
 
     linecount = 0
     for b in buf:
@@ -56,7 +56,7 @@ def main(argv):
         out_file.write("\n")
 
     out_file.write("};\n")
-    out_file.write(f"static const size_t {sym}_len = sizeof({sym});\n\n")
+    out_file.write(f"constexpr size_t {sym}_len = sizeof({sym});\n\n")
     out_file.close()
 
     return 0

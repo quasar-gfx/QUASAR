@@ -7,6 +7,8 @@
 #include <Networking/DataStreamerTCP.h>
 #include <Streamers/VideoStreamer.h>
 #include <PostProcessing/Tonemapper.h>
+
+#include <UI/FrameRateWindow.h>
 #include <PostProcessing/ShowNormalsEffect.h>
 
 namespace quasar {
@@ -14,7 +16,7 @@ namespace quasar {
 struct QuadStreamStreamerCreateParams {
     uint maxViews = 4;
     float viewBoxSize = 0.5f;
-    float wideFOV = 120.0f;
+    float wideFOV = 140.0f;
 };
 
 class QuadStreamStreamer {
@@ -47,7 +49,8 @@ public:
         double totalCreateVertIndTimeMs = 0.0;
         double totalGenDepthTimeMs = 0.0;
         double totalCompressTimeMs = 0.0;
-        QuadSet::Sizes totalSizes;
+        double frameSize = 0.0;
+        QuadSet::Sizes proxySizes;
     } stats;
 
     QuadStreamStreamer(

@@ -2,7 +2,6 @@
     "skybox": {
         "path": "../assets/textures/ibr/vv_skybox.hdr",
         "HDR": true,
-        "flipVertically": true,
         "width": 1024,
         "height": 1024
     },
@@ -27,8 +26,8 @@
         }
     ],
     "camera": {
-        "fov": 60.0,
-        "near": 0.1,
+        "fov": 80.0,
+        "near": 0.05,
         "far": 1000.0,
         "position": [-15.0, 8.0, 10.0],
         "rotation": [0.0, 0.0, 0.0]

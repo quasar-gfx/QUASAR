@@ -2,7 +2,6 @@
     "skybox": {
         "path": "../assets/textures/ibr/winter_forest.hdr",
         "HDR": true,
-        "flipVertically": true,
         "width": 1024,
         "height": 1024
     },
@@ -20,8 +19,8 @@
         }
     ],
     "camera": {
-        "fov": 60.0,
-        "near": 0.1,
+        "fov": 80.0,
+        "near": 0.05,
         "far": 1000.0,
         "position": [0.0, 3.0, 0.0],
         "rotation": [0.0, 0.0, 0.0]

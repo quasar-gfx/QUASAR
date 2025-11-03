@@ -11,7 +11,7 @@ class DepthPeelingRenderer : public DeferredRenderer {
 public:
     uint maxLayers;
     float viewSphereDiameter = 0.5f;
-    float edpDelta = 0.001f;
+    float edpDelta = 0.0005f;
 
     std::vector<FrameRenderTarget> peelingLayers;
 
@@ -22,9 +22,6 @@ public:
     virtual void setScreenShaderUniforms(const Shader& screenShader) override;
 
     virtual void resize(uint width, uint height) override;
-
-    virtual void beginRendering() override;
-    virtual void endRendering() override;
 
     virtual RenderStats drawScene(Scene& scene, const Camera& camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT) override;
     virtual RenderStats drawObjects(Scene& scene, const Camera& camera, uint32_t clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT) override;

@@ -366,7 +366,7 @@
     <p>We also have implementations for scene viewing and streaming clients for Meta Quest VR headsets for testing on mobile GPUs. Please refer to <a href="https://quasar-gfx.github.io/QUASAR/openxr.html">https://quasar-gfx.github.io/QUASAR/openxr.html</a> for instructions on how to download and run the client code.</p>
 
     <h2 id="download-assets">Download 3D Assets</h2>
-    <p>The scene assets used in our evaluations (along with some extra ones) can be downloaded at <a href="https://drive.google.com/file/d/1zL_hsmtjyOcAbNbud92aNCxjO1kwEqlK/view?usp=drive_link">https://drive.google.com/file/d/1zL_hsmtjyOcAbNbud92aNCxjO1kwEqlK/view?usp=drive_link</a>.</p>
+    <p>The scene assets used in our evaluations (along with some extra ones) can be downloaded at <a href="https://drive.google.com/file/d/1zL_hsmtjyOcAbNbud92aNCxjO1kwEqlK/view?usp=drive_link" target="_blank">https://drive.google.com/file/d/1zL_hsmtjyOcAbNbud92aNCxjO1kwEqlK/view?usp=drive_link</a>.</p>
     <p>Please download and unzip into <code>assets/models/scenes/</code> (this will be gitignored). You must download these and place them in the correct path for the evaluation to be run.</p>
 
     <h2 id="building">Building</h2>
@@ -542,13 +542,13 @@ python3 run_eval.py 50 20 --pose-prediction --pose-smoothing  # run 50+/-20ms tr
 
     <h4 id="optional-parameters">Optional Parameters</h4>
     <ul>
-        <li>If you want to run shorter traces (500 frames instead of 1500), you can add <code>--short-paths</code>.</li>
+        <li>If you want to run shorter traces (for example, 500 frames instead of 1500), you can add <code>--num-poses 500</code>.</li>
         <li>If you want to run with specific viewcell size(s), you can add <code>--view-sizes &lt;comma-separated list&gt;</code>.</li>
         <li>If you want to run with specific scene(s), you can add <code>--scenes &lt;comma-separated list&gt;</code>.</li>
     </ul>
 
-    <p>Example (this will run the Robot Lab scene with a shorter trace with viewcell sizes of 0.5m and 1.0m):</p>
-    <pre><code>python3 run_eval.py 20 10 --pose-prediction --short-paths --view-sizes 0.5,1.0 --scenes robot_lab</code></pre>
+    <p>Example (this will run the Robot Lab scene with a 500 frame trace with viewcell sizes of 0.5m and 1.0m):</p>
+    <pre><code>python3 run_eval.py 20 10 --pose-prediction --num-poses 500 --view-sizes 0.5,1.0 --scenes robot_lab</code></pre>
 
     <p>See <code>run_eval.py</code> for more command line parameters.</p>
 
@@ -564,8 +564,8 @@ python3 run_eval.py 50 20 --pose-prediction --pose-smoothing  # run 50+/-20ms tr
         ├── stats/
         │   └── robot_lab/
         │       ├── atw_simulator.log
-        │       ├── mw_simulator_120.log
-        │       ├── mw_simulator_60.log
+        │       ├── mw_simulator_140.log
+        │       ├── mw_simulator_80.log
         │       ├── qr_simulator_0.5.log
         │       ├── qr_simulator_1.0.log
         │       ├── qs_simulator_0.5.log
@@ -576,7 +576,7 @@ python3 run_eval.py 50 20 --pose-prediction --pose-smoothing  # run 50+/-20ms tr
             └── robot_lab/
                 ├── color/                # color videos for ground truth (scene_viewer) and all tested methods
                 │   ├── atw_simulator.mp4
-                │   ├── mw_simulator_120.mp4
+                │   ├── mw_simulator_140.mp4
                 │   ├── ...
                 │   ├── qs_simulator_1.0.mp4
                 │   └── scene_viewer.mp4

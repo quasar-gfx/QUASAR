@@ -25,7 +25,7 @@ MeshWarpReceiver::MeshWarpReceiver(
     , videoTexture({
         .width = remoteGBufferSize.x,
         .height = remoteGBufferSize.y,
-        .internalFormat = GL_RGB8,
+        .internalFormat = GL_SRGB8,
         .format = GL_RGB,
         .type = GL_UNSIGNED_BYTE,
         .wrapS = GL_CLAMP_TO_EDGE,
@@ -75,7 +75,7 @@ void MeshWarpReceiver::loadFromFiles(const Path& dataPath) {
 
     // Read color data
     Path colorFileName = dataPath / "color.jpg";
-    videoTexture.loadFromFile(colorFileName, true, false);
+    videoTexture.loadFromFile(colorFileName, true, true);
 
     // Read depth data
     Path depthFileName = dataPath / "depth.bc4.zstd";

@@ -14,7 +14,7 @@ class DeferredRenderer : public OpenGLRenderer {
 public:
     bool multiSampled = false;
 
-    RenderTarget outputRT;
+    FrameRenderTarget outputRT;
     GBuffer gBuffer;
 #if !defined(__APPLE__) && !defined(__ANDROID__)
     GBuffer gBuffer_MS;
@@ -40,7 +40,9 @@ public:
 protected:
     DeferredLightingMaterial lightingMaterial;
 
+    RenderStats preLightingPass(Scene& scene, const Camera& camera, uint32_t clearMask);
     RenderStats lightingPass(Scene& scene, const Camera& camera);
+    RenderStats postLightingPass(Scene& scene, const Camera& camera);
 };
 
 } // namespace quasar

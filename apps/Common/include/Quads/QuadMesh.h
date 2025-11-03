@@ -15,14 +15,21 @@ namespace quasar {
 #define MAX_PROXIES_PER_MESH 640000u
 
 #define VERTICES_IN_A_QUAD 4
-#define INDICES_IN_A_QUAD 6
-#define NUM_SUB_QUADS 4
+#define INDICES_IN_A_QUAD  6
+#define NUM_SUB_QUADS      4
 
 class QuadMesh : public Mesh {
 public:
     struct BufferSizes {
-        uint numVertices;
-        uint numIndices;
+        uint32_t numVertices;
+        uint32_t numIndices;
+        uint32_t numIndicesTransparent;
+    };
+
+    enum class DrawState {
+        OPAQUE,
+        TRANSPARENT,
+        BOTH
     };
 
     struct Stats {
@@ -30,23 +37,36 @@ public:
         double createMeshTimeMs = 0.0;
     } stats;
 
-    uint32_t maxProxies;
-
-    QuadMesh(const QuadSet& quadSet, Texture& colorTexture, uint32_t maxProxies = MAX_PROXIES_PER_MESH);
-    QuadMesh(const QuadSet& quadSet, Texture& colorTexture, const glm::vec4& textureExtent, uint32_t maxProxies = MAX_PROXIES_PER_MESH);
+    QuadMesh(const QuadSet& quadSet, const Texture& colorTexture, const Texture& alphaTexture, uint maxProxies = MAX_PROXIES_PER_MESH);
+    QuadMesh(const QuadSet& quadSet, const Texture& colorTexture, const Texture& alphaTexture, const glm::vec4& textureExtent, uint maxProxies = MAX_PROXIES_PER_MESH);
     ~QuadMesh() = default;
 
+    glm::vec4 getTextureExtent() const { return textureExtent; }
+    uint32_t getMaxProxies() const { return maxProxies; }
+
     void setTextureExtent(const glm::vec4& extent) { textureExtent = extent; }
+    void setExpandQuadAmount(float amount) { expandQuadAmount = amount; }
+    void setDrawState(DrawState drawState) { this->drawState = drawState; }
 
     void appendQuads(const QuadSet& quadSet, const glm::vec2& gBufferSize, bool isFullFrame = true);
     void createMeshFromProxies(const QuadSet& quadSet, const glm::vec2& gBufferSize, const PerspectiveCamera& remoteCamera);
 
     BufferSizes getBufferSizes() const;
 
-private:
-    glm::vec4 textureExtent;
+    RenderStats draw(GLenum primitiveType) override;
 
-    uint currNumProxies = 0;
+private:
+    uint32_t maxProxies;
+
+    DrawState drawState = DrawState::BOTH;
+    float expandQuadAmount = 0.025f;
+
+    glm::vec4 textureExtent;
+    const Texture& colorTexture;
+    const Texture& alphaTexture;
+
+    uint32_t currNumProxies;
+    uint32_t currNumProxiesTransparent;
 
     QuadBuffers currentQuadBuffers;
 
@@ -54,6 +74,9 @@ private:
 
     Buffer quadIndexMap;
     Buffer quadCreatedFlags;
+
+    Buffer indexBufferTransparent;
+    Buffer indirectBufferTransparent;
 
     ComputeShader appendQuadsShader;
     ComputeShader createQuadMeshShader;

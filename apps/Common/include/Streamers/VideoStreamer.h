@@ -28,6 +28,7 @@ public:
         double transferTimeMs = 0.0;
         double sendTimeMs = 0.0;
         double totalSendTimeMs = 0.0;
+        double bitrateMbps = 0.0;
     } stats;
 
     VideoStreamer(
@@ -35,7 +36,7 @@ public:
         const std::string& videoURL,
         uint maxFrameRate = 30,
         uint targetBitRateMbps = 12,
-        bool useRTP = false);
+        bool useSRT = false);
     ~VideoStreamer();
 
     void stop();
@@ -57,6 +58,7 @@ private:
 #endif
     std::string appSrcName = "oglsrc0";
     std::string payloaderName = "pay0";
+    std::string h264ParseName = "h264parse0";
 
     const int poseIDOffset = sizeof(pose_id_t) * 8;
     uint videoWidth, videoHeight;
@@ -77,6 +79,9 @@ private:
 
     GstElement* pipeline = nullptr;
     GstElement* appsrc = nullptr;
+
+    std::atomic<uint64_t> encodedBytesTotal{0};
+    uint64_t prevEncodedBytesTotal = 0;
 
     void encodeAndSendFrames();
     void packPoseIDIntoVideoFrame(pose_id_t poseID, uint8_t* data);

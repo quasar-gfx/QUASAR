@@ -12,8 +12,9 @@ namespace quasar {
 class QuadsGenerator {
 public:
     struct BufferSizes {
-        uint numProxies;
-        uint numDepthOffsets;
+        uint32_t numProxies;
+        uint32_t numProxiesTransparent;
+        uint32_t numDepthOffsets;
     };
 
     struct Stats {
@@ -24,12 +25,13 @@ public:
 
     struct Parameters {
         bool expandEdges = false;
+        bool expandProxies = true;
         bool correctOrientation = true;
         float depthThreshold = 1e-4f;
-        float angleThreshold = 87.5f;
-        float flattenThreshold = 0.2f;
-        float proxySimilarityThreshold = 0.5f;
-        int maxIterForceMerge = 3;
+        float angleThreshold = 88.0f;
+        float planeSimilarityThreshold = 0.5f;
+        float flattenThreshold = 0.1f;
+        int maxIterForceMerge = 4;
     } params;
 
     std::vector<glm::uvec2> quadMapSizes;

@@ -1,6 +1,6 @@
 layout(location = 0) in vec3 aPos;
 
-uniform uint DrawID;
+uniform uint drawID;
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -11,7 +11,7 @@ out VertexData {
 } vsOut;
 
 void main() {
-	vsOut.DrawID = DrawID;
+	vsOut.DrawID = drawID;
     vsOut.WorldPos = aPos;
 
 	mat4 rotationMatrix = mat4(mat3(view));

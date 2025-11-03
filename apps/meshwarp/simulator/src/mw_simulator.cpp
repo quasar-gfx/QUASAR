@@ -5,9 +5,14 @@
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
 #include <Renderers/ForwardRenderer.h>
-#include <Renderers/DeferredRenderer.h>
+#include <Renderers/DepthPeelingRenderer.h> // We use depth peeling here to be consistent with other baselines
 #include <PostProcessing/Tonemapper.h>
-#include <PostProcessing/ShowDepthEffect.h>
+
+#include <UI/FrameRateWindow.h>
+#include <UI/FrameCaptureWindow.h>
+#include <UI/RecordWindow.h>
+#include <UI/TexturePreviewWindow.h>
+#include <UI/SceneWindow.h>
 
 #include <Path.h>
 #include <Recorder.h>
@@ -31,6 +36,7 @@ int main(int argc, char** argv) {
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::Flag saveImages(parser, "save", "Save outputs to disk", {'I', "save-images"});
     args::ValueFlag<std::string> cameraPathFileIn(parser, "camera-path", "Path to camera animation file", {'C', "camera-path"});
+    args::ValueFlag<int> numPosesIn(parser, "num-poses", "Number of poses to load from camera path", {'N', "num-poses"}, -1);
     args::ValueFlag<std::string> outputPathIn(parser, "output-path", "Directory to save outputs", {'o', "output-path"}, ".");
     args::ValueFlag<float> networkLatencyIn(parser, "network-latency", "Simulated network latency in ms", {'N', "network-latency"}, 25.0f);
     args::ValueFlag<float> networkJitterIn(parser, "network-jitter", "Simulated network jitter in ms", {'J', "network-jitter"}, 10.0f);
@@ -38,7 +44,7 @@ int main(int argc, char** argv) {
     args::Flag poseSmoothingIn(parser, "pose-smoothing", "Enable pose smoothing", {'T', "pose-smoothing"}, false);
     args::ValueFlag<uint> depthFactorIn(parser, "factor", "Depth Resolution Factor", {'a', "depth-factor"}, 1);
     args::ValueFlag<uint> vertexGroupSizeIn(parser, "vertex", "Size of vertex grouping", {'g', "vertex-group-size"}, 1);
-    args::ValueFlag<float> fovIn(parser, "fov", "Field of view", {'f', "fov"}, 60.0f);
+    args::ValueFlag<float> remoteFOVIn(parser, "remote-fov", "Remote camera FOV in degrees", {'F', "remote-fov"}, 80.0f);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -70,6 +76,7 @@ int main(int argc, char** argv) {
     Path outputPath = Path(args::get(outputPathIn)); outputPath.mkdirRecursive();
     Path sceneFile = args::get(sceneFileIn);
     Path cameraPathFile = args::get(cameraPathFileIn);
+    int numPoses = args::get(numPosesIn);
 
     uint depthFactor = args::get(depthFactorIn);
     uint vertexGroupSize = args::get(vertexGroupSizeIn);
@@ -84,7 +91,7 @@ int main(int argc, char** argv) {
     ForwardRenderer renderer(config);
     config.width = remoteWindowSize.x;
     config.height = remoteWindowSize.y;
-    DeferredRenderer remoteRenderer(config);
+    DepthPeelingRenderer remoteRenderer(config);
 
     // "Remote" scene
     Scene remoteScene;
@@ -92,12 +99,12 @@ int main(int argc, char** argv) {
     SceneLoader loader;
     loader.loadScene(sceneFile, remoteScene, remoteCamera);
 
-    float fov = args::get(fovIn);
-    remoteCamera.setFovyDegrees(fov);
+    float remoteFOV = args::get(remoteFOVIn);
+    remoteCamera.setFovyDegrees(remoteFOV);
 
     // "Local" scene
     Scene scene;
-    scene.envCubeMap = remoteScene.envCubeMap;
+    scene.skybox = remoteScene.skybox;
     PerspectiveCamera camera(windowSize);
     camera.setViewMatrix(remoteCamera.getViewMatrix());
 
@@ -131,12 +138,11 @@ int main(int argc, char** argv) {
 
     // Post processing
     Tonemapper tonemapper;
-    ShowDepthEffect showDepthEffect(camera);
 
     Recorder recorder({
         .width = windowSize.x,
         .height = windowSize.y,
-        .internalFormat = GL_RGBA,
+        .internalFormat = GL_RGBA8,
         .format = GL_RGBA,
         .type = GL_UNSIGNED_BYTE,
         .wrapS = GL_CLAMP_TO_EDGE,
@@ -144,7 +150,7 @@ int main(int argc, char** argv) {
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR,
     }, renderer, tonemapper, outputPath, config.targetFramerate);
-    CameraAnimator cameraAnimator(cameraPathFile);
+    CameraAnimator cameraAnimator(cameraPathFile, numPoses);
 
     if (saveImages) {
         recorder.setTargetFrameRate(-1 /* unlimited */);
@@ -181,22 +187,15 @@ int main(int argc, char** argv) {
     });
 
     RenderStats renderStats;
-    bool recording = false;
+    FrameRateWindow frameRateWindow;
+    FrameCaptureWindow frameCaptureWindow(recorder, glm::uvec2(430, 270), outputPath);
+    RecordWindow recordWindow(recorder, glm::uvec2(430, 270), outputPath);
+    TexturePreviewWindow videoPreviewWindow("Video Texture", meshWarpStreamer.renderTarget.colorTexture, glm::uvec2(430, 270));
+    SceneWindow sceneWindow(scene, glm::vec2(430, 800));
     guiManager->onRender([&](double now, double dt) {
-        static bool showFPS = true;
         static bool showUI = !saveImages;
-        static bool showFrameCaptureWindow = false;
-        static bool showMeshCaptureWindow = false;
-        static bool showFramePreviewWindow = false;
-        static char fileNameBase[256] = "screenshot";
-        static bool writeToHDR = false;
-        static bool showRecordWindow = false;
-        static int recordingFormatIndex = 0;
-        static char recordingDirBase[256] = "recordings";
+        static bool showMeshCapture = false;
 
-        static bool showSkyBox = true;
-
-        ImGuiWindowFlags flags = 0;
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Exit", "ESC")) {
@@ -205,23 +204,25 @@ int main(int argc, char** argv) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
-            ImGui::MenuItem("FPS", 0, &showFPS);
+            ImGui::MenuItem("FPS", 0, &frameRateWindow.visible);
             ImGui::MenuItem("UI", 0, &showUI);
-            ImGui::MenuItem("Frame Capture", 0, &showFrameCaptureWindow);
-            ImGui::MenuItem("Record", 0, &showRecordWindow);
-            ImGui::MenuItem("Mesh Capture", 0, &showMeshCaptureWindow);
-            ImGui::MenuItem("Frame Preview", 0, &showFramePreviewWindow);
+            ImGui::MenuItem("Frame Capture", 0, &frameCaptureWindow.visible);
+            ImGui::MenuItem("Record", 0, &recordWindow.visible);
+            ImGui::MenuItem("Mesh Capture", 0, &showMeshCapture);
+            ImGui::MenuItem("Frame Preview", 0, &videoPreviewWindow.visible);
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Scene")) {
+            ImGui::MenuItem("Scene", 0, &sceneWindow.visible);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
 
-        if (showFPS) {
-            ImGui::SetNextWindowPos(ImVec2(10, 40), ImGuiCond_FirstUseEver);
-            flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar;
-            ImGui::Begin("", 0, flags);
-            ImGui::Text("%.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
-            ImGui::End();
-        }
+        frameRateWindow.draw(now, dt);
+        frameCaptureWindow.draw(now, dt);
+        recordWindow.draw(now, dt);
+        sceneWindow.draw(now, dt);
+        videoPreviewWindow.draw(now, dt);
 
         if (showUI) {
             ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
@@ -250,31 +251,15 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            glm::vec3 position = camera.getPosition();
+            const glm::vec3& position = camera.getPosition();
             if (ImGui::DragFloat3("Camera Position", (float*)&position, 0.01f)) {
                 camera.setPosition(position);
             }
-            glm::vec3 rotation = camera.getRotationEuler();
+            const glm::vec3& rotation = camera.getRotationEuler();
             if (ImGui::DragFloat3("Camera Rotation", (float*)&rotation, 0.1f)) {
                 camera.setRotationEuler(rotation);
             }
             ImGui::DragFloat("Movement Speed", &camera.movementSpeed, 0.05f, 0.1f, 20.0f);
-
-            ImGui::Separator();
-
-            if (ImGui::CollapsingHeader("Background Settings")) {
-                if (ImGui::Checkbox("Show Sky Box", &showSkyBox)) {
-                    scene.envCubeMap = showSkyBox ? remoteScene.envCubeMap : nullptr;
-                }
-
-                if (ImGui::Button("Change Background Color", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
-                    ImGui::OpenPopup("Background Color Popup");
-                }
-                if (ImGui::BeginPopup("Background Color Popup")) {
-                    ImGui::ColorPicker3("Background Color", (float*)&scene.backgroundColor);
-                    ImGui::EndPopup();
-                }
-            }
 
             ImGui::Separator();
 
@@ -283,8 +268,8 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            if (ImGui::DragFloat("Remote FOV", &fov, 0.1f, 60.0f, 170.0f)) {
-                remoteCamera.setFovyDegrees(fov);
+            if (ImGui::DragFloat("Remote FOV", &remoteFOV, 0.1f, 80.0f, 180.0f)) {
+                remoteCamera.setFovyDegrees(remoteFOV);
 
                 preventCopyingLocalPose = true;
                 sendRemoteFrame = true;
@@ -315,89 +300,15 @@ int main(int argc, char** argv) {
             ImGui::End();
         }
 
-        if (showFrameCaptureWindow) {
-            ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 90), ImGuiCond_FirstUseEver);
-            ImGui::Begin("Frame Capture", &showFrameCaptureWindow);
-
-            ImGui::Text("Base File Name:");
-            ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
-            std::string time = std::to_string(static_cast<int>(window->getTime() * 1000.0f));
-            Path filename = (outputPath / fileNameBase).appendToName("." + time);
-
-            ImGui::Checkbox("Save as HDR", &writeToHDR);
-
-            ImGui::Separator();
-
-            if (ImGui::Button("Capture Current Frame")) {
-                recorder.saveScreenshotToFile(filename, writeToHDR);
-            }
-
-            ImGui::End();
-        }
-
-        if (showRecordWindow) {
-            ImGui::SetNextWindowSize(ImVec2(300, 300), ImGuiCond_FirstUseEver);
+        if (showMeshCapture) {
+            ImGui::SetNextWindowSize(ImVec2(430, 270), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 300), ImGuiCond_FirstUseEver);
-            ImGui::Begin("Record", &showRecordWindow);
-
-            if (recording) {
-                ImGui::TextColored(ImVec4(1,0,0,1), "Recording in progress...");
-            }
-
-            ImGui::Text("Output Directory:");
-            ImGui::InputText("##output directory", recordingDirBase, IM_ARRAYSIZE(recordingDirBase));
-
-            ImGui::Text("FPS:");
-            if (ImGui::InputInt("##fps", &recorder.targetFrameRate)) {
-                recorder.setTargetFrameRate(recorder.targetFrameRate);
-            }
-
-            ImGui::Text("Format:");
-            if (ImGui::Combo("##format", &recordingFormatIndex, recorder.getFormatCStrArray(), recorder.getFormatCount())) {
-                Recorder::OutputFormat selectedFormat = Recorder::OutputFormat::MP4;
-                switch (recordingFormatIndex) {
-                    case 0: selectedFormat = Recorder::OutputFormat::MP4; break;
-                    case 1: selectedFormat = Recorder::OutputFormat::PNG; break;
-                    case 2: selectedFormat = Recorder::OutputFormat::JPG; break;
-                    default: break;
-                }
-                recorder.setFormat(selectedFormat);
-            }
-
-            if (ImGui::Button("Start")) {
-                recording = true;
-                std::string time = std::to_string(static_cast<int>(window->getTime() * 1000.0f));
-                Path recordingDir = (outputPath / recordingDirBase).appendToName("." + time);
-                recorder.setOutputPath(recordingDir);
-                recorder.start();
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("Stop")) {
-                recorder.stop();
-                recording = false;
-            }
-
-            ImGui::End();
-        }
-
-        if (showMeshCaptureWindow) {
-            ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowPos(ImVec2(windowSize.x * 0.4, 300), ImGuiCond_FirstUseEver);
-            ImGui::Begin("Mesh Capture", &showMeshCaptureWindow);
+            ImGui::Begin("Mesh Capture", &showMeshCapture);
 
             if (ImGui::Button("Save Depth")) {
                 spdlog::info("Saved {} bytes to {}", meshWarpStreamer.writeToFiles(outputPath), outputPath.absolutePathStr());
             }
 
-            ImGui::End();
-        }
-
-        if (showFramePreviewWindow) {
-            flags = 0;
-            ImGui::Begin("Frame", 0, flags);
-            ImGui::Image((void*)(intptr_t)(meshWarpStreamer.renderTarget.colorTexture),
-                         ImVec2(430, 270), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::End();
         }
     });
@@ -531,7 +442,7 @@ int main(int argc, char** argv) {
                 window->close();
             }
         }
-        else if (recording) {
+        else if (recordWindow.isRecording()) {
             recorder.captureFrame(camera);
         }
     });

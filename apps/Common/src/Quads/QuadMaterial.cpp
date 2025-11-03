@@ -9,7 +9,6 @@ QuadMaterial::QuadMaterial(const QuadMaterialCreateParams& params)
     : baseColor(params.baseColor)
     , baseColorFactor(params.baseColorFactor)
     , alphaMode(params.alphaMode)
-    , maskThreshold(params.maskThreshold)
 {
     TextureFileCreateParams textureParams{
         .wrapS = GL_REPEAT,
@@ -27,6 +26,15 @@ QuadMaterial::QuadMaterial(const QuadMaterialCreateParams& params)
         textures.push_back(params.baseColorTexture);
     }
 
+    if (params.alphaTexturePath != "") {
+        textureParams.path = params.alphaTexturePath;
+        Texture* texture = new Texture(textureParams);
+        textures.push_back(texture);
+    }
+    else {
+        textures.push_back(params.alphaTexture);
+    }
+
     if (getShader() == nullptr) {
         ShaderDataCreateParams unlitShaderParams{
             .vertexCodeData = SHADER_COMMON_MATERIAL_QUAD_VERT,
@@ -34,9 +42,9 @@ QuadMaterial::QuadMaterial(const QuadMaterialCreateParams& params)
             .fragmentCodeData = SHADER_COMMON_MATERIAL_QUAD_FRAG,
             .fragmentCodeSize = SHADER_COMMON_MATERIAL_QUAD_FRAG_len,
             .defines = {
-                "#define ALPHA_OPAQUE " + std::to_string(static_cast<uint8_t>(AlphaMode::OPAQUE)),
-                "#define ALPHA_MASK " + std::to_string(static_cast<uint8_t>(AlphaMode::MASKED)),
-                "#define ALPHA_BLEND " + std::to_string(static_cast<uint8_t>(AlphaMode::TRANSPARENT))
+                "#define ALPHA_OPAQUE " + std::to_string(static_cast<uint8_t>(Material::AlphaMode::OPAQUE)),
+                "#define ALPHA_MASK " + std::to_string(static_cast<uint8_t>(Material::AlphaMode::MASKED)),
+                "#define ALPHA_BLEND " + std::to_string(static_cast<uint8_t>(Material::AlphaMode::TRANSPARENT))
             }
         };
         shader = std::make_shared<Shader>(unlitShaderParams);
@@ -48,7 +56,6 @@ void QuadMaterial::bind() const {
     shader->setVec4("material.baseColor", baseColor);
     shader->setVec4("material.baseColorFactor", baseColorFactor);
     shader->setInt("material.alphaMode", static_cast<int>(alphaMode));
-    shader->setFloat("material.maskThreshold", maskThreshold);
 
     std::string name = "material.baseColorMap";
     glActiveTexture(GL_TEXTURE0);
@@ -59,6 +66,17 @@ void QuadMaterial::bind() const {
     }
     else {
         shader->setInt(name, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+    name = "material.alphaMap";
+    glActiveTexture(GL_TEXTURE1);
+    shader->setBool("material.hasAlphaMap", textures.size() > 1 && textures[1] != nullptr);
+    if (textures.size() > 1 && textures[1] != nullptr) {
+        shader->setTexture(name, *textures[1], 1);
+    }
+    else {
+        shader->setInt(name, 1);
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 }

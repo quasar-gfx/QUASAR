@@ -2,7 +2,10 @@
 #include "camera.glsl"
 #include "pbr.glsl"
 
-out vec4 FragColor;
+layout(location = 0) out vec4 FragColor;
+layout(location = 1) out float FragAlpha;
+layout(location = 2) out vec3 FragNormal;
+layout(location = 3) out uvec4 FragIDs;
 
 in vec2 TexCoord;
 
@@ -45,8 +48,8 @@ void main() {
     vec3 mra = texture(gPBR, TexCoord).rgb;
     vec4 emissive_IBL = texture(gEmissive, TexCoord);
     vec3 fragNormal = texture(gNormal, TexCoord).rgb;
-    vec3 fragPosWorld = texture(gPosition, TexCoord).xyz;
-    vec4 fragPosLightSpace = texture(gLightPosition, TexCoord);
+    vec3 PositionWorld = texture(gPosition, TexCoord).xyz;
+    vec4 PositionLightSpace = texture(gLightPosition, TexCoord);
 
     float metallic = mra.r;
     float roughness = mra.g;
@@ -57,7 +60,7 @@ void main() {
 
     // Input lighting data
     vec3 N = fragNormal;
-    vec3 V = normalize(camera.position - fragPosWorld);
+    vec3 V = normalize(camera.position - PositionWorld);
     vec3 R = reflect(-V, N);
 
     // Calculate reflectance at normal incidence; if dia-electric (like plastic) use F0
@@ -69,16 +72,16 @@ void main() {
 
     // Apply reflectance equation for lights
     vec3 radianceOut = vec3(0.0);
-    radianceOut += calcDirLight(directionalLight, pbrInputs, dirLightShadowMap, fragPosLightSpace, N);
+    radianceOut += calcDirLight(directionalLight, pbrInputs, dirLightShadowMap, PositionLightSpace, N);
     for (int i = 0; i < numPointLights; i++) {
         PointLight light = pointLights[i];
 #ifndef GL_ES
-        radianceOut += calcPointLight(light, pointLightShadowMaps[light.shadowIndex], pbrInputs, fragPosWorld);
+        radianceOut += calcPointLight(light, pointLightShadowMaps[light.shadowIndex], pbrInputs, PositionWorld);
 #else
-             if (i == 0) radianceOut += calcPointLight(light, pointLightShadowMaps0, pbrInputs, fragPosWorld);
-        else if (i == 1) radianceOut += calcPointLight(light, pointLightShadowMaps1, pbrInputs, fragPosWorld);
-        else if (i == 2) radianceOut += calcPointLight(light, pointLightShadowMaps2, pbrInputs, fragPosWorld);
-        else if (i == 3) radianceOut += calcPointLight(light, pointLightShadowMaps3, pbrInputs, fragPosWorld);
+             if (i == 0) radianceOut += calcPointLight(light, pointLightShadowMaps0, pbrInputs, PositionWorld);
+        else if (i == 1) radianceOut += calcPointLight(light, pointLightShadowMaps1, pbrInputs, PositionWorld);
+        else if (i == 2) radianceOut += calcPointLight(light, pointLightShadowMaps2, pbrInputs, PositionWorld);
+        else if (i == 3) radianceOut += calcPointLight(light, pointLightShadowMaps3, pbrInputs, PositionWorld);
 #endif
     }
 
@@ -86,13 +89,15 @@ void main() {
     // Apply IBL
     ambient += IBL * calcIBLContribution(pbrInputs, material.irradianceMap, material.prefilterMap, material.brdfLUT);
 
-    // Apply emissive component
-    radianceOut += emissive;
-
     // Apply ambient occlusion
     ambient *= ao;
+
+    // Apply emissive lighting
+    radianceOut += emissive;
 
     radianceOut = radianceOut + ambient;
 
     FragColor = vec4(radianceOut, alpha);
+    FragAlpha = alpha;
+    FragNormal = N;
 }

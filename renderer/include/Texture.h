@@ -37,7 +37,7 @@ struct TextureFileCreateParams {
     GLint wrapT = GL_CLAMP_TO_EDGE;
     GLint minFilter = GL_LINEAR;
     GLint magFilter = GL_LINEAR;
-    bool flipVertically = false;
+    bool flipTextureY = true;
     bool gammaCorrected = false;
     GLint alignment = 1;
     bool multiSampled = false;
@@ -94,7 +94,7 @@ public:
 
     void resize(uint width, uint height);
 
-    void loadFromFile(const std::string& path, bool flipVertically, bool gammaCorrected);
+    void loadFromFile(const std::string& path, bool flipTextureY, bool gammaCorrected);
     void loadFromData(const void* data, bool resize = false);
 
     void cleanup() {

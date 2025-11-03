@@ -52,7 +52,8 @@ def clean_simulator_name(name):
 
 def load_image(path):
     pose = format_camera_pose(os.path.basename(path))
-    image = cv2.imread(path, cv2.IMREAD_COLOR).astype(np.float32) / 255.0
+    image = cv2.imread(path, cv2.IMREAD_COLOR)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
     return pose, image
 
 def evaluate_error_metrics(reference_image, test_image_path, pose, flip_output_dir):
@@ -62,7 +63,7 @@ def evaluate_error_metrics(reference_image, test_image_path, pose, flip_output_d
     if psnr_error == float('inf'):
         psnr_error = 100.0
 
-    ssim_error = ssim(reference_image, test_image, data_range=(test_image.max() - test_image.min()), channel_axis=2)
+    ssim_error = ssim(reference_image, test_image, data_range=1.0, channel_axis=-1)
     if ssim_error == float('inf'):
         ssim_error = 1.0
 
@@ -211,7 +212,8 @@ def run_from_config(output_path="results"):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Get quality errors.")
-    parser.add_argument("--output-path", type=str, default="results", help="Folder that stores the rendering results")
+    parser.add_argument("--output-path", type=str, default="results",
+                        help="Folder that stores the rendering results")
     args = parser.parse_args()
 
     run_from_config(output_path=args.output_path)
