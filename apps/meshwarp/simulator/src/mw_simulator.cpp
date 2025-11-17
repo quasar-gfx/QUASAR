@@ -8,6 +8,7 @@
 #include <Renderers/DepthPeelingRenderer.h> // We use depth peeling here to be consistent with other baselines
 #include <PostProcessing/Tonemapper.h>
 
+#include <UI/CameraHeader.h>
 #include <UI/FrameRateWindow.h>
 #include <UI/FrameCaptureWindow.h>
 #include <UI/RecordWindow.h>
@@ -192,6 +193,7 @@ int main(int argc, char** argv) {
     RecordWindow recordWindow(recorder, glm::uvec2(430, 270), outputPath);
     TexturePreviewWindow videoPreviewWindow("Video Texture", meshWarpStreamer.renderTarget.colorTexture, glm::uvec2(430, 270));
     SceneWindow sceneWindow(scene, glm::vec2(430, 800));
+    CameraHeader cameraHeader(camera);
     guiManager->onRender([&](double now, double dt) {
         static bool showUI = !saveImages;
         static bool showMeshCapture = false;
@@ -251,15 +253,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            const glm::vec3& position = camera.getPosition();
-            if (ImGui::DragFloat3("Camera Position", (float*)&position, 0.01f)) {
-                camera.setPosition(position);
-            }
-            const glm::vec3& rotation = camera.getRotationEuler();
-            if (ImGui::DragFloat3("Camera Rotation", (float*)&rotation, 0.1f)) {
-                camera.setRotationEuler(rotation);
-            }
-            ImGui::DragFloat("Movement Speed", &camera.movementSpeed, 0.05f, 0.1f, 20.0f);
+            cameraHeader.draw(now, dt);
 
             ImGui::Separator();
 

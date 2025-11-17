@@ -11,6 +11,7 @@
 #include <Recorder.h>
 #include <CameraAnimator.h>
 
+#include <UI/CameraHeader.h>
 #include <UI/FrameRateWindow.h>
 #include <UI/FrameCaptureWindow.h>
 #include <UI/RecordWindow.h>
@@ -121,6 +122,7 @@ int main(int argc, char** argv) {
     FrameRateWindow frameRateWindow;
     FrameCaptureWindow frameCaptureWindow(recorder, glm::uvec2(430, 270), outputPath);
     TexturePreviewWindow videoPreviewWindow("Video Texture", videoTexture, glm::uvec2(430, 270));
+    CameraHeader cameraHeader(camera);
     guiManager->onRender([&](double now, double dt) {
         static bool showUI = true;
 

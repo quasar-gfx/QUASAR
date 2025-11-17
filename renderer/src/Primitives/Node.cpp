@@ -43,10 +43,6 @@ Node* Node::findNodeByName(const std::string& name) {
     return nullptr;
 }
 
-int Node::getID() const {
-    return ID;
-}
-
 void Node::addEntity(Entity* entity) {
     entities.push_back(entity);
 }

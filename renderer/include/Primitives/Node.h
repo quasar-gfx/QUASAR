@@ -38,7 +38,7 @@ public:
 
     Node* findNodeByName(const std::string& name);
 
-    int getID() const;
+    uint32_t getID() const { return ID; }
     void addEntity(Entity* entity);
     void addChildNode(Node* node);
 

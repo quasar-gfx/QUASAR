@@ -8,6 +8,7 @@
 #include <Renderers/DeferredRenderer.h>
 #include <PostProcessing/Tonemapper.h>
 
+#include <UI/CameraHeader.h>
 #include <UI/FrameRateWindow.h>
 #include <UI/SceneWindow.h>
 
@@ -130,6 +131,7 @@ int main(int argc, char** argv) {
     pose_id_t prevPoseID;
     FrameRateWindow frameRateWindow;
     SceneWindow sceneWindow(localScene, glm::vec2(430, 800));
+    CameraHeader cameraHeader(camera, "Remote Camera", true);
     guiManager->onRender([&](double now, double dt) {
         static bool showUI = true;
         static bool showFramePreviewWindow = false;
@@ -189,12 +191,7 @@ int main(int argc, char** argv) {
 
             ImGui::Separator();
 
-            glm::vec3 position = camera.getPosition();
-            glm::vec3 rotation = camera.getRotationEuler();
-            ImGui::BeginDisabled();
-            ImGui::DragFloat3("Camera Position", (float*)&position);
-            ImGui::DragFloat3("Camera Rotation", (float*)&rotation);
-            ImGui::EndDisabled();
+            cameraHeader.draw(now, dt);
 
             ImGui::Separator();
 

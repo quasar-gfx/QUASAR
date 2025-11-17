@@ -26,6 +26,27 @@ public:
     float getFar() const override { return left.getFar(); }
     float getNear() const override { return left.getNear(); }
 
+    void setFovyRadians(float fovyRad) override {
+        left.setFovyRadians(fovyRad);
+        right.setFovyRadians(fovyRad);
+    }
+    void setFovyDegrees(float fovyDeg) override {
+        left.setFovyDegrees(fovyDeg);
+        right.setFovyDegrees(fovyDeg);
+    }
+    void setAspect(float aspect) override {
+        left.setAspect(aspect);
+        right.setAspect(aspect);
+    }
+    void setNear(float near) override {
+        left.setNear(near);
+        right.setNear(near);
+    }
+    void setFar(float far) override {
+        left.setFar(far);
+        right.setFar(far);
+    }
+
     void setProjectionMatrix(const glm::mat4& proj);
     void setProjectionMatrix(float fovy, float aspect, float near, float far);
     void setProjectionMatrices(const glm::mat4 (&projs)[2]);

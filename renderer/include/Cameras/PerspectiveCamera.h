@@ -21,39 +21,36 @@ public:
 
     float getFovyRadians() const override { return fovyRad; }
     float getFovyDegrees() const override { return glm::degrees(fovyRad); }
-    void setFovyRadians(float fovyRad) { this->fovyRad = fovyRad; updateProjectionMatrix(); }
-    void setFovyDegrees(float fovyDeg) { this->fovyRad = glm::radians(fovyDeg); updateProjectionMatrix(); }
+    float getAspect() const override { return aspect; }
+    float getNear() const override { return near; }
+    float getFar() const override { return far; }
+    const glm::mat4& getProjectionMatrix() const { return proj; }
+    const glm::mat4& getProjectionMatrixInverse() const { return projInverse; }
+    const glm::mat4& getViewMatrix() const { return view; }
+    const glm::mat4& getViewMatrixInverse() const { return viewInverse; }
+
+    void setFovyRadians(float fovyRad) override { this->fovyRad = fovyRad; updateProjectionMatrix(); }
+    void setFovyDegrees(float fovyDeg) override { this->fovyRad = glm::radians(fovyDeg); updateProjectionMatrix(); }
     void setFovxDegrees(float fovxDeg) {
         float fovxRad = glm::radians(fovxDeg);
         float newFovyRad = 2.0f * glm::atan(glm::tan(fovxRad / 2.0f) / aspect);
         setFovyRadians(newFovyRad);
     }
-
-    float getAspect() const override { return aspect; }
-    void setAspect(float aspect) { this->aspect = aspect; updateProjectionMatrix(); }
+    void setAspect(float aspect) override { this->aspect = aspect; updateProjectionMatrix(); }
     void setAspect(const glm::uvec2& windowSize) { setAspect((float)windowSize.x / (float)windowSize.y); }
     void setAspect(uint width, uint height) { setAspect((float)width / (float)height); }
-
-    float getNear() const override { return near; }
-    void setNear(float near) { this->near = near; updateProjectionMatrix(); }
-
-    float getFar() const override { return far; }
-    void setFar(float far) { this->far = far; updateProjectionMatrix(); }
-
-    const glm::mat4& getProjectionMatrix() const { return proj; }
-    const glm::mat4& getProjectionMatrixInverse() const { return projInverse; }
+    void setNear(float near) override { this->near = near; updateProjectionMatrix(); }
+    void setFar(float far) override { this->far = far; updateProjectionMatrix(); }
     void setProjectionMatrix(const glm::mat4& proj);
     void setProjectionMatrix(float fovyDeg, float aspect, float near, float far);
-    void updateProjectionMatrix();
-
-    const glm::mat4& getViewMatrix() const { return view; }
-    const glm::mat4& getViewMatrixInverse() const { return viewInverse; }
     void setViewMatrix(const glm::mat4& view);
+
+    void updateProjectionMatrix();
     void updateViewMatrix();
 
-    glm::vec3 getForwardVector() const { return front; }
-    glm::vec3 getRightVector() const { return right; }
-    glm::vec3 getUpVector() const { return up; }
+    const glm::vec3& getForwardVector() const { return front; }
+    const glm::vec3& getRightVector() const { return right; }
+    const glm::vec3& getUpVector() const { return up; }
 
     void processScroll(float yoffset);
     void processKeyboard(const Keys& keys, double deltaTime);

@@ -21,7 +21,6 @@ struct ModelCreateParams {
     bool flipTextureY = true;
     bool gammaCorrected = false;
     float IBL = 1.0;
-    const LitMaterial* material;
     std::string path;
 };
 
@@ -49,8 +48,8 @@ private:
     std::unordered_map<std::string, Texture*> texturesCache;
 
     void loadFromFile(const ModelCreateParams& params);
-    void processNode(aiNode* aiNode, const aiScene* scene, Node* node, const LitMaterial* material);
-    Mesh* processMesh(aiMesh* mesh, const aiScene* scene, const LitMaterial* material);
+    void processNode(aiNode* aiNode, const aiScene* scene, Node* node);
+    Mesh* processMesh(aiMesh* mesh, const aiScene* scene);
     void processAnimations(const aiScene* scene);
     void processMaterial(aiMaterial const* aiMat, LitMaterialCreateParams& materialParams);
     Texture* loadMaterialTexture(aiMaterial const* aiMat, aiString aiTexturePath, bool shouldGammaCorrect = false);

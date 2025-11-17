@@ -87,7 +87,7 @@ void Model::loadFromFile(const ModelCreateParams& params) {
 
     meshes.resize(scene->mNumMeshes);
 
-    processNode(scene->mRootNode, scene, this, params.material);
+    processNode(scene->mRootNode, scene, this);
     processAnimations(scene);
 }
 
@@ -130,41 +130,42 @@ void Model::processAnimations(const aiScene* scene) {
     }
 }
 
-void Model::processNode(aiNode* aiNode, const aiScene* scene, Node* node, const LitMaterial* material) {
+void Model::processNode(aiNode* aiNode, const aiScene* scene, Node* node) {
     const glm::mat4& transform = glm::transpose(reinterpret_cast<glm::mat4&>(aiNode->mTransformation));
 
     node->setName(aiNode->mName.C_Str());
     node->setTransformParentFromLocal(transform);
 
-    // Collect meshes
-    std::vector<Mesh*> meshesToAdd(aiNode->mNumMeshes);
+    std::vector<int> meshesIdxs(aiNode->mNumMeshes);
     for (int i = 0; i < aiNode->mNumMeshes; i++) {
         const int meshIndex = aiNode->mMeshes[i];
-        aiMesh* mesh = scene->mMeshes[meshIndex];
-        auto* meshToAdd = processMesh(mesh, scene, material);
-        meshes[meshIndex] = meshToAdd;
-        meshesToAdd[i] = meshToAdd;
+        if (meshes[meshIndex] == nullptr) {
+            aiMesh* mesh = scene->mMeshes[meshIndex];
+            meshes[meshIndex] = processMesh(mesh, scene);
+        }
+
+        meshesIdxs[i] = meshIndex;
     }
 
-    // Sort putting transparent meshes last
-    std::sort(meshesToAdd.begin(), meshesToAdd.end(), [](const Mesh* a, const Mesh* b) {
-        return !a->getMaterial()->isTransparent() && b->getMaterial()->isTransparent();
+    // Sort by transparency
+    std::sort(meshesIdxs.begin(), meshesIdxs.end(), [this](int a, int b) {
+        return !meshes[a]->getMaterial()->isTransparent() && meshes[b]->getMaterial()->isTransparent();
     });
 
     // Add meshes
-    for (auto* meshToAdd : meshesToAdd) {
-        node->addEntity(meshToAdd);
+    for (int meshIndex : meshesIdxs) {
+        node->addEntity(meshes[meshIndex]);
     }
 
     // Add child nodes
     for (int i = 0; i < aiNode->mNumChildren; i++) {
         Node* childNode = new Node();
         node->addChildNode(childNode);
-        processNode(aiNode->mChildren[i], scene, childNode, material);
+        processNode(aiNode->mChildren[i], scene, childNode);
     }
 }
 
-Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, const LitMaterial* material) {
+Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene) {
     std::vector<Vertex> vertices(mesh->mNumVertices);
     std::vector<uint> indices(mesh->mNumFaces * 3); // Assume triangles
 
@@ -233,15 +234,9 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, const LitMaterial* 
     uint32_t materialId = mesh->mMaterialIndex;
     aiMaterial const* aiMat = scene->mMaterials[materialId];
 
-    const LitMaterial* materialToAdd = nullptr;
-    if (material != nullptr) {
-        materialToAdd = material;
-    }
-    else {
-        LitMaterialCreateParams materialParams{};
-        processMaterial(aiMat, materialParams);
-        materialToAdd = new LitMaterial(materialParams);
-    }
+    LitMaterialCreateParams materialParams{};
+    processMaterial(aiMat, materialParams);
+    auto* materialToAdd = new LitMaterial(materialParams);
     materials.push_back(materialToAdd);
 
     MeshDataCreateParams meshParams{

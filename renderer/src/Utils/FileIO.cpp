@@ -76,7 +76,7 @@ std::ifstream::pos_type FileIO::getFileSize(const std::string& filename) {
 #endif
 }
 
-std::string FileIO::loadFromTextFile(const std::string& filename, uint* sizePtr) {
+std::string FileIO::loadFromTextFile(const std::string& filename, size_t* sizePtr) {
 #ifndef __ANDROID__
     std::ifstream file(filename);
     if (!file.is_open()) {
@@ -106,7 +106,7 @@ std::string FileIO::loadFromTextFile(const std::string& filename, uint* sizePtr)
 #endif
 }
 
-std::vector<char> FileIO::loadFromBinaryFile(const std::string& filename, uint* sizePtr) {
+std::vector<char> FileIO::loadFromBinaryFile(const std::string& filename, size_t* sizePtr) {
 #ifndef __ANDROID__
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {

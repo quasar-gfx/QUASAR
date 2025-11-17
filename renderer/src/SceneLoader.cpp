@@ -28,16 +28,19 @@ static glm::vec3 jvec3(const json& a) {
     return v;
 }
 
-void SceneLoader::loadScene(const Path& filename, Scene& scene, PerspectiveCamera& camera) {
-    uint size;
-    std::string sceneJSON = FileIO::loadFromTextFile(filename, &size);
+void SceneLoader::loadScene(const Path& path, Scene& scene, PerspectiveCamera& camera) {
+    size_t size;
+
+    // Get the absolute path to the scene file
+    std::string absolutePath = path.absolutePathStr();
+    std::string sceneJSON = FileIO::loadFromTextFile(absolutePath, &size);
     if (size == 0) {
-        throw std::runtime_error("Scene file is empty: " + filename.str());
+        throw std::runtime_error("Scene file is empty: " + absolutePath);
     }
 
     auto j = json::parse(sceneJSON);
 
-    spdlog::info("Loading scene: {}", filename.str());
+    spdlog::info("Loading scene: {}", path.str());
     parse(j, scene, camera);
 }
 
@@ -158,15 +161,6 @@ void SceneLoader::parseModel(const json& j, Scene& scene) {
 
     if (j.contains("gammaCorrected")) {
         params.gammaCorrected = j.at("gammaCorrected").get<bool>();
-    }
-
-    if (j.contains("material")) {
-        int materialIdx = static_cast<int>(j.at("material").get<float>());
-        if (materialIdx < 0 || materialIdx >= static_cast<int>(materials.size())) {
-            throw std::runtime_error("Material index out of bounds for Mesh 0");
-        }
-
-        params.material = materials[materialIdx];
     }
 
     auto* model = new Model(params);
