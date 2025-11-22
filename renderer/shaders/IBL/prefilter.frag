@@ -19,7 +19,7 @@ float DistributionGGX(vec3 N, vec3 H, float roughness) {
     return nom / denom;
 }
 
-// Http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
+// http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
 // Efficient VanDerCorpus calculation.
 float RadicalInverse_VdC(uint bits) {
      bits = (bits << 16u) | (bits >> 16u);

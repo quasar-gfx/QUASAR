@@ -139,10 +139,7 @@ int main(int argc, char** argv) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Scene")) {
-            ImGui::MenuItem("Scene", 0, &sceneWindow.visible);
-            ImGui::EndMenu();
-        }
-        if (ImGui::BeginMenu("Animations")) {
+            ImGui::MenuItem("Scene Settings", 0, &sceneWindow.visible);
             ImGui::MenuItem("Animations", 0, &animationWindow.visible);
             ImGui::EndMenu();
         }

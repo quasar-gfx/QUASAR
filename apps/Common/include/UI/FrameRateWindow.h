@@ -19,7 +19,7 @@ public:
         }
 
         ImGui::SetNextWindowPos(ImVec2(10, 40), ImGuiCond_FirstUseEver);
-        ImGui::Begin("", 0, flags);
+        ImGui::Begin("FPS##FrameRateWindow", 0, flags);
         ImGui::Text("%.1f FPS (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
         ImGui::End();
     }

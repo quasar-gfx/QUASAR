@@ -108,8 +108,8 @@ public:
 
         ImGui::Separator();
 
-        // Scene Graph Section
-        if (ImGui::TreeNodeEx("Scene Graph", ImGuiTreeNodeFlags_SpanAvailWidth)) {
+        // Node Graph Section
+        if (ImGui::TreeNodeEx("Node Graph", ImGuiTreeNodeFlags_SpanAvailWidth)) {
             for (auto* child : scene.children) {
                 displayNode(child);
             }

@@ -3,7 +3,7 @@ in vec2 TexCoord;
 
 const float PI = 3.14159265359;
 
-// Http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
+// http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
 // Efficient VanDerCorpus calculation.
 float RadicalInverse_VdC(uint bits) {
      bits = (bits << 16u) | (bits >> 16u);

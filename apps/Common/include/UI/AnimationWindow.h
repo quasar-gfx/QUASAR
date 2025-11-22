@@ -44,7 +44,7 @@ public:
         ImGui::Separator();
 
         ImGui::Text("Animation Framerate:");
-        ImGui::Combo("", &animationFramerateIndex, animationFramerateLabels, IM_ARRAYSIZE(animationFramerateLabels));
+        ImGui::Combo("FPS##AnimationWindow", &animationFramerateIndex, animationFramerateLabels, IM_ARRAYSIZE(animationFramerateLabels));
 
         ImGui::Separator();
 
