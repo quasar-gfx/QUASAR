@@ -129,9 +129,9 @@ int main(int argc, char** argv) {
 
     RenderStats renderStats;
     FrameRateWindow frameRateWindow;
-    FrameCaptureWindow frameCaptureWindow(recorder, glm::uvec2(430, 270), outputPath);
-    TexturePreviewWindow videoPreviewWindow("Video Texture", quadsReceiver.videoAtlasTexture, glm::uvec2(860, 270));
-    TexturePreviewWindow alphaPreviewWindow("Alpha Texture", quadsReceiver.alphaAtlasTexture, glm::uvec2(860, 270));
+    FrameCaptureWindow frameCaptureWindow(recorder, ImVec2(430, 270), outputPath);
+    TexturePreviewWindow videoPreviewWindow("Video Texture", quadsReceiver.videoAtlasTexture, ImVec2(860, 270));
+    TexturePreviewWindow alphaPreviewWindow("Alpha Texture", quadsReceiver.alphaAtlasTexture, ImVec2(860, 270));
     CameraHeader cameraHeader(camera);
     guiManager->onRender([&](double now, double dt) {
         static bool showUI = true;

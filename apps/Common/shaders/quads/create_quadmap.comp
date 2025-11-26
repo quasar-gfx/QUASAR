@@ -425,7 +425,7 @@ void main() {
         atomicExchange(numDepthOffsets, 0u);
     }
 
-    // Store an empty plane to clear the output quad map
+    // Clear output quad map
     QuadMapData ignoredQuadMapData;
     ignoredQuadMapData.normal = vec3(0.0);
     ignoredQuadMapData.depth = 0.0; // invalid
@@ -434,6 +434,12 @@ void main() {
     ignoredQuadMapData.hasAlpha = false;
     ignoredQuadMapData.flattened = true;
     storeQuadMap(pixelCoord, ignoredQuadMapData);
+
+    // Clear depth offsets
+    storeDepthOffsets(2 * pixelCoord + ivec2(0, 0), vec4(0.0));
+    storeDepthOffsets(2 * pixelCoord + ivec2(1, 0), vec4(0.0));
+    storeDepthOffsets(2 * pixelCoord + ivec2(0, 1), vec4(0.0));
+    storeDepthOffsets(2 * pixelCoord + ivec2(1, 1), vec4(0.0));
 
     // Calculate coords (see above)
     vec2 surfelCornerCoordBottomLeft = vec2(pixelCoord);

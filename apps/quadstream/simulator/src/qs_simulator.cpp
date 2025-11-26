@@ -185,10 +185,10 @@ int main(int argc, char** argv) {
 
     RenderStats renderStats;
     FrameRateWindow frameRateWindow;
-    FrameCaptureWindow frameCaptureWindow(recorder, glm::uvec2(430, 270), outputPath);
-    RecordWindow recordWindow(recorder, glm::uvec2(430, 270), outputPath);
-    SceneWindow sceneWindowRemote(remoteScene, glm::vec2(430, 800));
-    SceneWindow sceneWindowLocal(localScene, glm::vec2(430, 800));
+    FrameCaptureWindow frameCaptureWindow(recorder, ImVec2(430, 270), outputPath);
+    RecordWindow recordWindow(recorder, ImVec2(430, 270), outputPath);
+    SceneWindow sceneWindowRemote(remoteScene, ImVec2(430, 800));
+    SceneWindow sceneWindowLocal(localScene, ImVec2(430, 800));
     CameraHeader cameraHeader(camera);
     guiManager->onRender([&](double now, double dt) {
         static bool showUI = !saveImages;

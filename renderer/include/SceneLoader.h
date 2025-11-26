@@ -1,5 +1,5 @@
-#ifndef ASSET_LOADER_H
-#define ASSET_LOADER_H
+#ifndef SCENE_LOADER_H
+#define SCENE_LOADER_H
 
 #include <map>
 #include <string>
@@ -54,4 +54,4 @@ private:
 
 } // namespace quasar
 
-#endif // ASSET_LOADER_H
+#endif // SCENE_LOADER_H

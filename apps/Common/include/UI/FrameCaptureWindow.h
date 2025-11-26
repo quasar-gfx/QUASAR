@@ -13,8 +13,8 @@ class FrameCaptureWindow {
 public:
     bool visible = false;
 
-    FrameCaptureWindow(Recorder& recorder, glm::vec2 size, const Path& outputPath,
-                       ImGuiWindowFlags flags = ImGuiCond_FirstUseEver)
+    FrameCaptureWindow(Recorder& recorder, const ImVec2 size, const Path& outputPath,
+                       ImGuiWindowFlags flags = ImGuiWindowFlags_None)
         : recorder(recorder)
         , size(size)
         , outputPath(outputPath)
@@ -26,9 +26,11 @@ public:
             return;
         }
 
-        ImGui::SetNextWindowSize(ImVec2(size.x, size.y), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowPos(ImVec2(10, 40), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Frame Capture", &visible);
+        ImGui::SetNextWindowSize(size, ImGuiCond_FirstUseEver);
+        ImGuiViewport* vp = ImGui::GetMainViewport();
+        ImVec2 pos = ImVec2(vp->WorkPos.x + vp->WorkSize.x - size.x - 10.0f, vp->WorkPos.y + 10.0f);
+        ImGui::SetNextWindowPos(pos, ImGuiCond_FirstUseEver);
+        ImGui::Begin("Screenshot", &visible, flags);
 
         ImGui::Text("Base File Name:");
         ImGui::InputText("##base file name", fileNameBase, IM_ARRAYSIZE(fileNameBase));
@@ -48,7 +50,7 @@ public:
 
 private:
     ImGuiWindowFlags flags;
-    glm::vec2 size;
+    const ImVec2 size;
 
     Recorder& recorder;
     const Path& outputPath;

@@ -16,7 +16,7 @@ class SceneWindow {
 public:
     bool visible = false;
 
-    SceneWindow(Scene& scene, glm::vec2 size, ImGuiWindowFlags flags = ImGuiWindowFlags_None)
+    SceneWindow(Scene& scene, const ImVec2 size, ImGuiWindowFlags flags = ImGuiWindowFlags_None)
         : scene(scene)
         , savedSkybox(scene.skybox)
         , size(size)
@@ -28,10 +28,10 @@ public:
             return;
         }
 
-        ImGui::SetNextWindowSize(ImVec2(size.x, size.y), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(size, ImGuiCond_FirstUseEver);
         ImGuiViewport* vp = ImGui::GetMainViewport();
-        ImVec2 pos = ImVec2(vp->WorkPos.x + vp->WorkSize.x - 10.0f, vp->WorkPos.y + 10.0f);
-        ImGui::SetNextWindowPos(pos, ImGuiCond_FirstUseEver, ImVec2(1.0f, 0.0f));
+        ImVec2 pos = ImVec2(vp->WorkPos.x + vp->WorkSize.x - size.x - 10.0f, vp->WorkPos.y + 10.0f);
+        ImGui::SetNextWindowPos(pos, ImGuiCond_FirstUseEver);
         ImGui::Begin("Scene Settings", &visible, flags);
 
         // Background Section
@@ -56,7 +56,7 @@ public:
         if (ImGui::TreeNodeEx("Lights", ImGuiTreeNodeFlags_SpanAvailWidth)) {
             // Ambient Light
             if (scene.ambientLight) {
-                if (ImGui::TreeNodeEx((void*)scene.ambientLight, ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth, "Ambient Light")) {
+                if (ImGui::TreeNodeEx((void*)scene.ambientLight, ImGuiTreeNodeFlags_SpanAvailWidth, "Ambient Light")) {
                     ImGui::ColorEdit3("Color##Ambient", (float*)&scene.ambientLight->color);
                     ImGui::DragFloat("Intensity##Ambient", &scene.ambientLight->intensity, 0.05f, 0.0f, 10.0f);
                     ImGui::TreePop();
@@ -68,7 +68,7 @@ public:
 
             // Directional Light
             if (scene.directionalLight) {
-                if (ImGui::TreeNodeEx((void*)scene.directionalLight, ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth, "Directional Light")) {
+                if (ImGui::TreeNodeEx((void*)scene.directionalLight, ImGuiTreeNodeFlags_SpanAvailWidth, "Directional Light")) {
                     ImGui::ColorEdit3("Color##Directional", (float*)&scene.directionalLight->color);
                     ImGui::DragFloat("Intensity##Directional", &scene.directionalLight->intensity, 0.05f, 0.0f, 10.0f);
                     ImGui::DragFloat3("Direction##Directional", (float*)&scene.directionalLight->direction, 0.1f, -5.0f, 5.0f);
@@ -121,7 +121,7 @@ public:
 
 private:
     ImGuiWindowFlags flags;
-    glm::vec2 size;
+    const ImVec2 size;
 
     bool showSkyBox = true;
 

@@ -81,10 +81,8 @@ void SceneLoader::parseSkybox(const json& j, Scene& scene) {
         skyBoxParams.type = j.at("HDR").get<bool>() ? CubeMapType::HDR : CubeMapType::STANDARD;
     }
 
-    Texture hdrTexture = Texture(hdrTextureParams);
-
+    Texture hdrTexture(hdrTextureParams);
     SkyBox* skybox = new SkyBox(skyBoxParams, hdrTexture);
-
     scene.setEnvMap(skybox);
 }
 
@@ -328,7 +326,6 @@ void SceneLoader::parseAmbientLight(const json& j, Scene& scene) {
     }
 
     auto ambientLight = new AmbientLight(params);
-
     scene.setAmbientLight(ambientLight);
 }
 
@@ -368,7 +365,6 @@ void SceneLoader::parseDirectionalLight(const json& j, Scene& scene) {
     }
 
     auto directionalLight = new DirectionalLight(params);
-
     scene.setDirectionalLight(directionalLight);
 }
 
@@ -399,16 +395,12 @@ void SceneLoader::parsePointLight(const json& j, Scene& scene) {
         params.quadratic = j.at("quadratic").get<float>();
     }
 
-    if (j.contains("shadowFar")) {
-        params.shadowFar = j.at("shadowFar").get<float>();
+    if (j.contains("intensityThreshold")) {
+        params.intensityThreshold = j.at("intensityThreshold").get<float>();
     }
 
     if (j.contains("shadowNear")) {
         params.shadowNear = j.at("shadowNear").get<float>();
-    }
-
-    if (j.contains("shadowFov")) {
-        params.shadowFov = j.at("shadowFov").get<float>();
     }
 
     if (j.contains("shadowMapRes")) {
@@ -420,7 +412,6 @@ void SceneLoader::parsePointLight(const json& j, Scene& scene) {
     }
 
     auto pointLight = new PointLight(params);
-
     scene.addPointLight(pointLight);
 }
 

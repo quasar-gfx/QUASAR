@@ -187,9 +187,9 @@ int main(int argc, char** argv) {
     bool sendRemoteFrame = true;
     RenderStats renderStats;
     FrameRateWindow frameRateWindow;
-    FrameCaptureWindow frameCaptureWindow(recorder, glm::uvec2(430, 270), outputPath);
-    TexturePreviewWindow depthPreviewWindow("Depth", remoteRenderer.frameRT.depthStencilTexture, glm::uvec2(430, 270));
-    SceneWindow sceneWindow(scene, glm::vec2(430, 800));
+    FrameCaptureWindow frameCaptureWindow(recorder, ImVec2(430, 270), outputPath);
+    TexturePreviewWindow depthPreviewWindow("Depth", remoteRenderer.frameRT.depthStencilTexture, ImVec2(430, 270));
+    SceneWindow sceneWindow(scene, ImVec2(430, 800));
     CameraHeader cameraHeader(camera);
     guiManager->onRender([&](double now, double dt) {
         static bool showUI = true;

@@ -38,7 +38,7 @@
     "pointLights": [
         {
             "color": [1.0, 0.84, 0.7],
-            "position": [7.5, 3, -1.7],
+            "position": [7.5, 3.0, -1.2],
             "intensity": 25.0,
             "constant": 0.0,
             "linear": 0.09,
@@ -46,7 +46,7 @@
         },
         {
             "color": [1.0, 0.84, 0.7],
-            "position": [14.5, 3, -1.7],
+            "position": [14.7, 3.0, -1.2],
             "intensity": 25.0,
             "constant": 0.0,
             "linear": 0.09,
@@ -54,7 +54,7 @@
         },
         {
             "color": [1.0, 0.84, 0.7],
-            "position": [22, 3, -1.7],
+            "position": [21.6, 3.0, -1.2],
             "intensity": 25.0,
             "constant": 0.0,
             "linear": 0.09,
@@ -62,7 +62,15 @@
         },
         {
             "color": [1.0, 0.84, 0.7],
-            "position": [25, 3, 2],
+            "position": [22.5, 3.0, -1.2],
+            "intensity": 25.0,
+            "constant": 0.0,
+            "linear": 0.09,
+            "quadratic": 1.0
+        },
+        {
+            "color": [1.0, 0.84, 0.7],
+            "position": [24.6, 3.0, 2],
             "intensity": 25.0,
             "constant": 0.0,
             "linear": 0.09,

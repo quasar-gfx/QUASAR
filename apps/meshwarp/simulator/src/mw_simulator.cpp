@@ -189,10 +189,10 @@ int main(int argc, char** argv) {
 
     RenderStats renderStats;
     FrameRateWindow frameRateWindow;
-    FrameCaptureWindow frameCaptureWindow(recorder, glm::uvec2(430, 270), outputPath);
-    RecordWindow recordWindow(recorder, glm::uvec2(430, 270), outputPath);
-    TexturePreviewWindow videoPreviewWindow("Video Texture", meshWarpStreamer.renderTarget.colorTexture, glm::uvec2(430, 270));
-    SceneWindow sceneWindow(scene, glm::vec2(430, 800));
+    FrameCaptureWindow frameCaptureWindow(recorder, ImVec2(430, 270), outputPath);
+    RecordWindow recordWindow(recorder, ImVec2(430, 270), outputPath);
+    TexturePreviewWindow videoPreviewWindow("Video Texture", meshWarpStreamer.renderTarget.colorTexture, ImVec2(430, 270));
+    SceneWindow sceneWindow(scene, ImVec2(430, 800));
     CameraHeader cameraHeader(camera);
     guiManager->onRender([&](double now, double dt) {
         static bool showUI = !saveImages;

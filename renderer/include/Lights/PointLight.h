@@ -20,17 +20,15 @@ struct PointLightCreateParams {
     float quadratic = 0.032f;
     float intensityThreshold = 1.0f;
     float shadowNear = 0.1f;
-    float shadowFar = 100.0f;
-    float shadowFov = 90.0f;
     uint shadowMapRes = 1024;
     bool debug = false;
 };
 
 class PointLight : public Light {
 public:
-#if defined(PLATFORM_GLES) // We limit GLES to 4 point lights due to performance constraints
+#if defined(PLATFORM_GLES)  // We limit mobile GLES platforms to having 4 point lights due to performance constraints
     static const uint maxPointLights = 4;
-#elif defined(__APPLE__) // Apple platforms have a limit on number of texture units
+#elif defined(__APPLE__)    // Apple platforms have a limit on the number of texture units
     static const uint maxPointLights = 5;
 #else
     static const uint maxPointLights = 8;
@@ -46,14 +44,15 @@ public:
         float constant;
         float linear;
         float quadratic;
-        float farPlane;
+        float shadowFar;
     };
 
-    glm::vec3 position = glm::vec3(0.0f);
-    float constant = 1.0f;
-    float linear = 0.09f;
-    float quadratic = 0.032f;
-    float intensityThreshold = 1.0f;
+    glm::vec3 position;
+    float constant;
+    float linear;
+    float quadratic;
+    float intensityThreshold;
+    float radius = 100.0f;
 
     bool debug = false;
 
@@ -75,17 +74,17 @@ public:
             .color = params.color,
             .intensity = params.intensity,
             .shadowNear = params.shadowNear,
-            .shadowFar = params.shadowFar,
             .shadowMapRes = params.shadowMapRes,
         })
         , shadowMapRenderTarget({
             .width = shadowMapRes,
             .height = shadowMapRes,
         })
-        , boundingSphere(position, getLightRadius())
+        , boundingSphere(position, radius)
         , debug(params.debug)
     {
-        shadowProjectionMat = glm::perspective(glm::radians(params.shadowFov), 1.0f, params.shadowNear, params.shadowFar);
+        updateRadius();
+        shadowProjectionMat = glm::perspective(glm::radians(90.0f), 1.0f, params.shadowNear, radius);
         updateLookAtFace();
     }
 
@@ -113,11 +112,17 @@ public:
         updateBoundingSphere();
     }
 
-    void updateBoundingSphere() {
-        boundingSphere.update(position, getLightRadius());
+    void updateRadius() {
+        radius = calcLightRadius();
+        shadowFar = radius;
+        updateBoundingSphere();
     }
 
-    float getLightRadius() {
+    void updateBoundingSphere() {
+        boundingSphere.update(position, calcLightRadius());
+    }
+
+    float calcLightRadius() {
         float discriminant = linear * linear - 4.0f * quadratic * (constant - intensity / intensityThreshold);
         if (discriminant < 0.0f) {
             return 0.0f; // light does not reach the intensity threshold
@@ -149,7 +154,7 @@ public:
             .constant = constant,
             .linear = linear,
             .quadratic = quadratic,
-            .farPlane = shadowFar,
+            .shadowFar = shadowFar,
         };
     }
 

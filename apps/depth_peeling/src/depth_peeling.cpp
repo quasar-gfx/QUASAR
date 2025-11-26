@@ -116,10 +116,10 @@ int main(int argc, char** argv) {
 
     RenderStats renderStats;
     FrameRateWindow frameRateWindow;
-    FrameCaptureWindow frameCaptureWindow(recorder, glm::uvec2(430, 270), outputPath);
-    RecordWindow recordWindow(recorder, glm::uvec2(430, 270), outputPath);
-    SceneWindow sceneWindow(scene, glm::vec2(430, 800));
-    AnimationWindow animationWindow(glm::vec2(430, 270));
+    FrameCaptureWindow frameCaptureWindow(recorder, ImVec2(430, 270), outputPath);
+    RecordWindow recordWindow(recorder, ImVec2(430, 270), outputPath);
+    SceneWindow sceneWindow(scene, ImVec2(430, 800));
+    AnimationWindow animationWindow(ImVec2(430, 270));
     animationWindow.setPlaying(cameraPathFileIn);
     CameraHeader cameraHeader(camera);
     guiManager->onRender([&](double now, double dt) {

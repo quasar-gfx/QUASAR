@@ -13,8 +13,8 @@ class RecordWindow {
 public:
     bool visible = false;
 
-    RecordWindow(Recorder& recorder, const glm::uvec2& size, const Path& outputPath,
-                 ImGuiWindowFlags flags = ImGuiCond_FirstUseEver)
+    RecordWindow(Recorder& recorder, const ImVec2 size, const Path& outputPath,
+                 ImGuiWindowFlags flags = ImGuiWindowFlags_None)
         : recorder(recorder)
         , size(size)
         , outputPath(outputPath)
@@ -28,9 +28,11 @@ public:
             return;
         }
 
-        ImGui::SetNextWindowSize(ImVec2(size.x, size.y), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowPos(ImVec2(10, 40), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Record", &visible);
+        ImGui::SetNextWindowSize(size, ImGuiCond_FirstUseEver);
+        ImGuiViewport* vp = ImGui::GetMainViewport();
+        ImVec2 pos = ImVec2(vp->WorkPos.x + vp->WorkSize.x - size.x - 10.0f, vp->WorkPos.y + 10.0f);
+        ImGui::SetNextWindowPos(pos, ImGuiCond_FirstUseEver);
+        ImGui::Begin("Record", &visible, flags);
 
         if (isRecording()) {
             ImGui::TextColored(ImVec4(1,0,0,1), "Recording in progress...");
@@ -78,7 +80,7 @@ private:
     bool recording = false;
 
     Recorder& recorder;
-    glm::uvec2 size;
+    const ImVec2 size;
     const Path& outputPath;
 
     int recordingFormatIndex = 0;

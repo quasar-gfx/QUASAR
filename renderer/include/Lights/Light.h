@@ -13,8 +13,8 @@ struct LightCreateParams {
     glm::vec3 color = glm::vec3(1.0f);
     float intensity = 1.0f;
     float shadowNear = 1.0f;
-    float shadowFar = 25.0f;
-    uint shadowMapRes = 2048;
+    float shadowFar = 1000.0f;
+    uint shadowMapRes = 1024;
 };
 
 class Light {
@@ -22,12 +22,12 @@ public:
     glm::vec3 color = glm::vec3(1.0f);
     float intensity = 1.0f;
 
-    float shadowNear = 1.0f;
-    float shadowFar = 2000.0f;
+    float shadowNear;
+    float shadowFar;
 
-    glm::mat4 shadowProjectionMat = glm::mat4(0.0);
+    uint shadowMapRes;
 
-    uint shadowMapRes = 2048;
+    glm::mat4 shadowProjectionMat{1.0f};
 
     Light(const LightCreateParams& params)
         : color(params.color)

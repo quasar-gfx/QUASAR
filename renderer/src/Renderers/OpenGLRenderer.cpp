@@ -178,7 +178,7 @@ RenderStats OpenGLRenderer::updatePointLightShadows(Scene& scene, const Camera& 
 
         pointLight->shadowMapMaterial.bind();
         pointLight->shadowMapMaterial.shader->setVec3("lightPos", pointLight->position);
-        pointLight->shadowMapMaterial.shader->setFloat("farPlane", pointLight->shadowFar);
+        pointLight->shadowMapMaterial.shader->setFloat("shadowFar", pointLight->shadowFar);
 
         glm::mat4 shadowProj = pointLight->shadowProjectionMat;
         for (int face = 0; face < NUM_CUBEMAP_FACES; face++) {
@@ -253,7 +253,7 @@ RenderStats OpenGLRenderer::drawLightsImpl(Scene& scene, const Camera& camera) {
             nodeRadius.primitiveType = GL_LINES;
 #endif
             nodeRadius.setPosition(pointLight->position);
-            nodeRadius.setScale(glm::vec3(pointLight->getLightRadius()));
+            nodeRadius.setScale(glm::vec3(pointLight->radius));
 
             stats += drawNodeImmediate(scene, camera, &nodeLight, glm::mat4(1.0f), false);
             stats += drawNodeImmediate(scene, camera, &nodeRadius, glm::mat4(1.0f), false);

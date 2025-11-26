@@ -10,7 +10,7 @@ class AnimationWindow {
 public:
     bool visible = false;
 
-    AnimationWindow(glm::vec2 size, ImGuiWindowFlags flags = ImGuiWindowFlags_None)
+    AnimationWindow(const ImVec2 size, ImGuiWindowFlags flags = ImGuiWindowFlags_None)
         : size(size)
         , flags(flags)
     {}
@@ -33,9 +33,9 @@ public:
             currentTime += dt;
         }
 
-        ImGui::SetNextWindowSize(ImVec2(size.x, size.y), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(size, ImGuiCond_FirstUseEver);
         ImGuiViewport* vp = ImGui::GetMainViewport();
-        ImVec2 pos = ImVec2(vp->WorkPos.x + vp->WorkSize.x * 0.4f, vp->WorkPos.y + 90.0f);
+        ImVec2 pos = ImVec2(vp->WorkPos.x + vp->WorkSize.x * 0.5f - size.x * 0.5f, vp->WorkPos.y + 10.0f);
         ImGui::SetNextWindowPos(pos, ImGuiCond_FirstUseEver);
         ImGui::Begin("Animations", &visible, flags);
 
@@ -60,7 +60,7 @@ public:
 
 private:
     ImGuiWindowFlags flags;
-    glm::vec2 size;
+    const ImVec2 size;
 
     bool runAnimations = false;
     int animationFramerates[6] = {1, 5, 10, 24, 30, 60};

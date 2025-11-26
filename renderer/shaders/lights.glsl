@@ -21,5 +21,5 @@ struct PointLight {
     float constant;
     float linear;
     float quadratic;
-    float farPlane;
+    float shadowFar;
 };

@@ -195,15 +195,15 @@ int main(int argc, char** argv) {
 
     RenderStats renderStats;
     FrameRateWindow frameRateWindow;
-    FrameCaptureWindow frameCaptureWindow(recorder, glm::uvec2(430, 270), outputPath);
-    RecordWindow recordWindow(recorder, glm::uvec2(430, 270), outputPath);
-    TexturePreviewWindow videoPreviewWindow("Video Texture", quasar.videoAtlasStreamerRT.colorTexture, glm::uvec2(860, 860));
-    TexturePreviewWindow alphaPreviewWindow("Alpha Texture", quasar.alphaAtlasRT.alphaTexture, glm::uvec2(860, 860));
-    TexturePreviewWindow refFramePreviewWindow("Reference Frame", quasar.referenceFrameRT.colorTexture, glm::uvec2(430, 270));
-    TexturePreviewWindow resFrameChangedPreviewWindow("Residual Frame (changed geometry)", quasar.residualFrameMaskRT.colorTexture, glm::uvec2(430, 270));
-    TexturePreviewWindow resFrameFullPreviewWindow("Residual Frame (revealed geometry)", quasar.residualFrameRT.colorTexture, glm::uvec2(430, 270));
-    SceneWindow sceneWindowRemote(remoteScene, glm::vec2(430, 800));
-    SceneWindow sceneWindowLocal(localScene, glm::vec2(430, 800));
+    FrameCaptureWindow frameCaptureWindow(recorder, ImVec2(430, 270), outputPath);
+    RecordWindow recordWindow(recorder, ImVec2(430, 270), outputPath);
+    TexturePreviewWindow videoPreviewWindow("Video Texture", quasar.videoAtlasStreamerRT.colorTexture, ImVec2(860, 860));
+    TexturePreviewWindow alphaPreviewWindow("Alpha Texture", quasar.alphaAtlasRT.alphaTexture, ImVec2(860, 860));
+    TexturePreviewWindow refFramePreviewWindow("Reference Frame", quasar.referenceFrameRT.colorTexture, ImVec2(430, 270));
+    TexturePreviewWindow resFrameChangedPreviewWindow("Residual Frame (changed geometry)", quasar.residualFrameMaskRT.colorTexture, ImVec2(430, 270));
+    TexturePreviewWindow resFrameFullPreviewWindow("Residual Frame (revealed geometry)", quasar.residualFrameRT.colorTexture, ImVec2(430, 270));
+    SceneWindow sceneWindowRemote(remoteScene, ImVec2(430, 800));
+    SceneWindow sceneWindowLocal(localScene, ImVec2(430, 800));
     CameraHeader cameraHeader(camera);
     guiManager->onRender([&](double now, double dt) {
         static bool showUI = !saveImages;

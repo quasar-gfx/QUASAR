@@ -116,7 +116,7 @@ int main(int argc, char** argv) {
     RenderStats renderStats;
     pose_id_t prevPoseID;
     FrameRateWindow frameRateWindow;
-    SceneWindow sceneWindow(scene, glm::vec2(430, 800));
+    SceneWindow sceneWindow(scene, ImVec2(430, 800));
     CameraHeader cameraHeader(*camera, "Remote Camera", true);
     guiManager->onRender([&](double now, double dt) {
         static bool showUI = true;

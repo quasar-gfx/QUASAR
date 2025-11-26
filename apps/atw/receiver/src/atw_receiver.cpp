@@ -120,8 +120,8 @@ int main(int argc, char** argv) {
 
     RenderStats renderStats;
     FrameRateWindow frameRateWindow;
-    FrameCaptureWindow frameCaptureWindow(recorder, glm::uvec2(430, 270), outputPath);
-    TexturePreviewWindow videoPreviewWindow("Video Texture", videoTexture, glm::uvec2(430, 270));
+    FrameCaptureWindow frameCaptureWindow(recorder, ImVec2(430, 270), outputPath);
+    TexturePreviewWindow videoPreviewWindow("Video Texture", videoTexture, ImVec2(430, 270));
     CameraHeader cameraHeader(camera);
     guiManager->onRender([&](double now, double dt) {
         static bool showUI = true;

@@ -188,29 +188,29 @@ float calcPointLightShadows(PointLight light, samplerCube pointLightShadowMap, v
         vec3 sampleDir = lightDir + (right * offset.x * diskRadius) + (up * offset.y * diskRadius);
 
         float closestDepth = texture(pointLightShadowMap, sampleDir).r;
-        closestDepth *= light.farPlane;
-        if (currentDepth - bias > closestDepth) {
+        closestDepth *= light.shadowFar;
+        if (currentDepth - bias < closestDepth) {
             shadowFactor += 1.0; // blocked
         }
     }
 
     shadowFactor /= float(samples);
-    return 1.0 - shadowFactor; // 0.0 is blocked, 1.0 is lit
+    return shadowFactor; // 0.0 is blocked, 1.0 is lit
 }
 
 // Point light with Filament BRDF
-vec3 calcPointLight(PointLight light, samplerCube pointLightShadowMap, PBRInfo pbrInputs, vec3 PositionWorld) {
+vec3 calcPointLight(PointLight light, samplerCube pointLightShadowMap, PBRInfo pbrInputs, vec3 fragPositionWorld) {
     if (light.intensity == 0.0) return vec3(0.0);
 
-    vec3 L = normalize(light.position - PositionWorld);
-    float distance = length(light.position - PositionWorld);
+    vec3 L = normalize(light.position - fragPositionWorld);
+    float distance = length(light.position - fragPositionWorld);
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * distance * distance);
     vec3 radianceIn = light.color * light.intensity * attenuation;
 
-    vec3 fragToLight = PositionWorld - light.position;
+    vec3 fragToLight = fragPositionWorld - light.position;
 
     // Returns 1.0 if lit, 0.0 if dark
-    float visibility = calcPointLightShadows(light, pointLightShadowMap, fragToLight, PositionWorld);
+    float visibility = calcPointLightShadows(light, pointLightShadowMap, fragToLight, fragPositionWorld);
     vec3 brdf = computeBRDF(pbrInputs, L, radianceIn);
     return brdf * visibility;
 }

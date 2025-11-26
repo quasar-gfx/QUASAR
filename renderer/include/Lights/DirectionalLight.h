@@ -15,7 +15,7 @@ struct DirectionalLightCreateParams {
     float orthoBoxSize = 75.0f;
     float shadowNear = 1.0f;
     float shadowFar = 750.0f;
-    uint shadowMapRes = 2048;
+    uint shadowMapRes = 4096;
 };
 
 class DirectionalLight : public Light {
@@ -26,13 +26,13 @@ public:
         float intensity;
     };
 
-    glm::vec3 direction = glm::vec3(0.0f);
-    float distance = 100.0f;
+    glm::vec3 direction;
+    float distance;
 
-    float orthoBoxSize = 75.0f;
+    float orthoBoxSize;
 
-    glm::mat4 lightView = glm::mat4(0.0);
-    glm::mat4 lightSpaceMatrix = glm::mat4(0.0);
+    glm::mat4 lightView{1.0f};
+    glm::mat4 lightSpaceMatrix{1.0f};
 
     DirLightShadowRT shadowMapRenderTarget;
     DirShadowMapMaterial shadowMapMaterial;

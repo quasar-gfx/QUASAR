@@ -12,7 +12,7 @@ class TexturePreviewWindow {
 public:
     bool visible = false;
 
-    TexturePreviewWindow(const std::string& title, const Texture& texture, const glm::uvec2& size,
+    TexturePreviewWindow(const std::string& title, const Texture& texture, const ImVec2 size,
                          ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse)
         : title(title)
         , texture(texture)
@@ -26,7 +26,7 @@ public:
         }
 
         ImGui::SetNextWindowPos(ImVec2(10, 40), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(size.x, size.y), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(size, ImGuiCond_FirstUseEver);
         ImGui::Begin(title.c_str(), &visible, flags);
 
         // Maintain aspect ratio
@@ -48,7 +48,7 @@ private:
     ImGuiWindowFlags flags;
 
     std::string title;
-    glm::uvec2 size;
+    const ImVec2 size;
 
     const Texture& texture;
 };
