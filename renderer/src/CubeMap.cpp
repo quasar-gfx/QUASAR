@@ -44,9 +44,9 @@ CubeMap::CubeMap(const CubeMapCreateParams& params)
     })
 {
     target = GL_TEXTURE_CUBE_MAP;
-    if (params.rightFaceTexturePath != "" && params.leftFaceTexturePath != "" &&
-        params.topFaceTexturePath != "" && params.bottomFaceTexturePath != "" &&
-        params.frontFaceTexturePath != "" && params.backFaceTexturePath != "") {
+    if (params.rightFaceTexturePath != "" && params.leftFaceTexturePath   != "" &&
+        params.topFaceTexturePath   != "" && params.bottomFaceTexturePath != "" &&
+        params.frontFaceTexturePath != "" && params.backFaceTexturePath   != "") {
         initBuffers();
         std::vector<std::string> faceTexturePaths = {
             params.rightFaceTexturePath,
@@ -260,7 +260,7 @@ void CubeMap::convolve(const Shader& convolutionShader, const CubeMap& skybox) c
     }
 }
 
-void CubeMap::prefilter(const Shader& prefilterShader, const CubeMap& skybox, Renderbuffer& captureRBO) const {
+void CubeMap::prefilter(const Shader& prefilterShader, const CubeMap& skybox, Renderbuffer& captureRenderBuffer) const {
     prefilterShader.bind();
 
     prefilterShader.setTexture("environmentMap", skybox, 0);
@@ -270,8 +270,8 @@ void CubeMap::prefilter(const Shader& prefilterShader, const CubeMap& skybox, Re
         uint mipWidth = static_cast<uint>(width * std::pow(0.5f, mip));
         uint mipHeight = static_cast<uint>(height * std::pow(0.5f, mip));
 
-        captureRBO.bind();
-        captureRBO.resize(mipWidth, mipHeight);
+        captureRenderBuffer.bind();
+        captureRenderBuffer.resize(mipWidth, mipHeight);
         glViewport(0, 0, mipWidth, mipHeight);
 
         float roughness = (float)mip / static_cast<float>(maxMipLevels - 1);

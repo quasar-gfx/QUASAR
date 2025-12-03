@@ -7,19 +7,19 @@ namespace quasar {
 
 struct UnlitMaterialCreateParams {
     std::string name = "UnlitMaterial" + std::to_string(Material::getNextID());
-    glm::vec4 baseColor = glm::vec4(1.0f);
-    glm::vec4 baseColorFactor = glm::vec4(1.0f);
+    glm::vec4 baseColor{1.0f};
+    glm::vec4 baseColorFactor{1.0f};
     Material::AlphaMode alphaMode = Material::AlphaMode::OPAQUE;
-    float maskThreshold = 0.5f;
+    float maskThreshold = 0.1f;
     std::string baseColorTexturePath = "";
     const Texture* baseColorTexture;
 };
 
 class UnlitMaterial : public Material {
 public:
-    glm::vec4 baseColor = glm::vec4(1.0f);
-    glm::vec4 baseColorFactor = glm::vec4(1.0f);
-    float maskThreshold = 0.5f;
+    glm::vec4 baseColor;
+    glm::vec4 baseColorFactor;
+    float maskThreshold;
 
     UnlitMaterial() = default;
     UnlitMaterial(const UnlitMaterialCreateParams& params);

@@ -10,7 +10,7 @@ struct LitMaterialCreateParams {
     glm::vec4 baseColor = glm::vec4(1.0f);
     glm::vec4 baseColorFactor = glm::vec4(1.0f);
     Material::AlphaMode alphaMode = Material::AlphaMode::OPAQUE;
-    float maskThreshold = 0.5f;
+    float maskThreshold = 0.1f;
     glm::vec3 emissiveFactor = glm::vec3(1.0f);
     float metallic = 0.0f;
     float metallicFactor = 1.0f;

@@ -58,7 +58,7 @@ public:
 
     void loadFromEquirectTexture(const Shader& equirectToCubeMapShader, const Texture& equirectTexture) const;
     void convolve(const Shader& convolutionShader, const CubeMap& skybox) const;
-    void prefilter(const Shader& prefilterShader, const CubeMap& skybox, Renderbuffer& captureRBO) const;
+    void prefilter(const Shader& prefilterShader, const CubeMap& skybox, Renderbuffer& captureRenderBuffer) const;
 
     RenderStats draw(const Shader& shader, const Camera& camera) const;
 

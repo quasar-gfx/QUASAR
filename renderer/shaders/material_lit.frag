@@ -99,19 +99,14 @@ vec3 getNormal() {
 	return normalize(TBN * tangentNormal);
 }
 
-// Depth peeling helpers moved to depth_peeling.glsl
-
 void main() {
-    vec4 baseColor;
+    // Albedo and alpha
+    vec4 baseColor = material.baseColor;
     if (material.hasBaseColorMap) {
         baseColor = texture(material.baseColorMap, fsIn.TexCoord) * material.baseColorFactor;
     }
-    else {
-        baseColor = material.baseColorFactor;
-    }
     baseColor.rgb *= fsIn.Color;
 
-    // Albedo
     vec3 albedo = baseColor.rgb;
     float alpha = (material.alphaMode == ALPHA_OPAQUE) ? 1.0 : baseColor.a;
     if (alpha < material.maskThreshold)
@@ -147,7 +142,7 @@ void main() {
 
     PBRInfo pbrInputs = PBRInfo(N, V, R, albedo, metallic, roughness, F0);
 
-    // Apply reflectance equation for lights
+    // Direct lighting
     vec3 radianceOut = vec3(0.0);
     radianceOut += calcDirLight(directionalLight, pbrInputs, dirLightShadowMap, fsIn.PositionLightSpace, fsIn.Normal);
     for (int i = 0; i < numPointLights; i++) {

@@ -10,7 +10,6 @@
 
 #include <assimp/scene.h>
 
-#include <Vertex.h>
 #include <Primitives/Node.h>
 #include <Primitives/Mesh.h>
 #include <Materials/LitMaterial.h>
@@ -26,8 +25,6 @@ struct ModelCreateParams {
 
 class Model : public Node {
 public:
-    bool isGLTF = false;
-
     std::string rootDirectory;
 
     bool gammaCorrected;

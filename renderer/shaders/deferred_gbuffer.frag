@@ -85,16 +85,13 @@ vec3 getNormal() {
 }
 
 void main() {
-    vec4 baseColor;
+    // Albedo and alpha
+    vec4 baseColor = material.baseColor;
     if (material.hasBaseColorMap) {
         baseColor = texture(material.baseColorMap, fsIn.TexCoord) * material.baseColorFactor;
     }
-    else {
-        baseColor = material.baseColorFactor;
-    }
     baseColor.rgb *= fsIn.Color;
 
-    // Albedo
     vec3 albedo = baseColor.rgb;
     float alpha = (material.alphaMode == ALPHA_OPAQUE) ? 1.0 : baseColor.a;
     if (alpha < material.maskThreshold)

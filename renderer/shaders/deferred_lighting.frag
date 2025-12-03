@@ -70,7 +70,7 @@ void main() {
 
     PBRInfo pbrInputs = PBRInfo(N, V, R, albedo, metallic, roughness, F0);
 
-    // Apply reflectance equation for lights
+    // Direct lighting
     vec3 radianceOut = vec3(0.0);
     radianceOut += calcDirLight(directionalLight, pbrInputs, dirLightShadowMap, PositionLightSpace, N);
     for (int i = 0; i < numPointLights; i++) {
