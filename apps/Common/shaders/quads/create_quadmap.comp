@@ -40,25 +40,15 @@ layout(binding = 1) uniform sampler2D depthMap;
 layout(rgba16f, binding = 0) uniform writeonly image2D depthOffsetsBuffer;
 layout(rgba16f, binding = 1) uniform image2D colorMap;
 
-float sampleDepth(sampler2D depthMap, ivec2 sampleCoord) {
+float sampleDepth(sampler2D depthMap, ivec2 sampleCoord, bool quantize) {
     float depth = texelFetch(depthMap, sampleCoord, 0).r;
-    return unpackDepthUNORM16(packDepthUNORM16(depth)); // Quantize
+    return quantize ? unpackDepthUNORM16(packDepthUNORM16(depth)) : depth;
 }
 
 vec3 sampleNormal(sampler2D normalsMap, ivec2 sampleCoord) {
-    vec3 normal = normalize(texelFetch(normalsMap, sampleCoord, 0).xyz);
-    return unpackOctahedralToNormal(packNormalToOctahedral(normal)); // Quantize
-}
-
-vec3 normalToView(mat4 view, vec3 normalWorld) {
-    // Skybox normals might be NaN, just set normal to face the camera
-    if (any(isnan(normalWorld))) {
-        return -forward;
-    }
-
-    // Extract the rotation part of the view matrix
-    mat3 rotationMatrix = mat3(view);
-    return normalize(rotationMatrix * normalWorld);
+    mat3 viewRotation = mat3(view);
+    vec3 n = texelFetch(normalsMap, sampleCoord, 0).xyz;
+    return normalize(viewRotation * n);
 }
 
 vec3 findQuadPointCorner(
@@ -123,22 +113,17 @@ vec3 findQuadPointEdge(
     return surfelViewPt;
 }
 
-bool quadHasExtremeOrientation(in vec3 centerNormal, in vec3 frustumNormalView) {
-    float dotProduct = dot(centerNormal, frustumNormalView);
-    return abs(dotProduct) <= cos(angleThreshold);
+bool quadHasExtremeOrientation(in vec3 centerNormal, in vec3 frustumNormalView, float maxCos) {
+    return abs(dot(centerNormal, frustumNormalView)) <= maxCos;
 }
 
-vec3 constrainToMaxAngle(in vec3 centerNormal, in vec3 frustumNormalView) {
-    float maxCos = cos(angleThreshold);
-    float dotProduct = dot(centerNormal, frustumNormalView);
-
+vec3 constrainToMaxAngle(in vec3 centerNormal, in vec3 frustumNormalView, float maxCos) {
     // Project the centerNormal onto the plane orthogonal to frustumNormalView
     vec3 frustumNormalUnit = normalize(frustumNormalView);
     vec3 projectedNormal = centerNormal - dot(centerNormal, frustumNormalUnit) * frustumNormalUnit;
 
     // Normalize the projected normal and scale it to the cone surface
     vec3 constrainedNormal = normalize(projectedNormal) * sqrt(1.0 - maxCos * maxCos);
-
     // Add the component along the frustumNormalView to make the vector within the cone
     constrainedNormal += frustumNormalUnit * maxCos;
     return normalize(constrainedNormal);
@@ -418,6 +403,10 @@ void main() {
         return;
     }
 
+    vec2 invGBufferSize = 1.0 / gBufferSize;
+    vec2 gBufferToNDC = invGBufferSize * 2.0;
+    float angleMaxCos = cos(angleThreshold);
+
     // Reset buffers on first invocation
     if (pixelCoord == ivec2(0)) {
         atomicExchange(numProxies, 0u);
@@ -471,41 +460,52 @@ void main() {
     surfelCornerCoords.top         = surfelCenterCoord + vec2(+0.0, +0.5);
     surfelCornerCoords.topRight    = surfelCenterCoord + vec2(+0.5, +0.5);
 
-    // Sample texture maps
+    // Sample depth map
     MultiQuad1D pixelDepths;
-    pixelDepths.bottomLeft  = sampleDepth(depthMap, ivec2(pixelNeighborCoords.bottomLeft));
-    pixelDepths.bottom      = sampleDepth(depthMap, ivec2(pixelNeighborCoords.bottom));
-    pixelDepths.bottomRight = sampleDepth(depthMap, ivec2(pixelNeighborCoords.bottomRight));
-    pixelDepths.left        = sampleDepth(depthMap, ivec2(pixelNeighborCoords.left));
-    pixelDepths.center      = sampleDepth(depthMap, ivec2(pixelNeighborCoords.center));
-    pixelDepths.right       = sampleDepth(depthMap, ivec2(pixelNeighborCoords.right));
-    pixelDepths.topLeft     = sampleDepth(depthMap, ivec2(pixelNeighborCoords.topLeft));
-    pixelDepths.top         = sampleDepth(depthMap, ivec2(pixelNeighborCoords.top));
-    pixelDepths.topRight    = sampleDepth(depthMap, ivec2(pixelNeighborCoords.topRight));
+    pixelDepths.bottomLeft  = sampleDepth(depthMap, ivec2(pixelNeighborCoords.bottomLeft), false);
+    pixelDepths.bottom      = sampleDepth(depthMap, ivec2(pixelNeighborCoords.bottom), false);
+    pixelDepths.bottomRight = sampleDepth(depthMap, ivec2(pixelNeighborCoords.bottomRight), false);
+    pixelDepths.left        = sampleDepth(depthMap, ivec2(pixelNeighborCoords.left), false);
+    pixelDepths.center      = sampleDepth(depthMap, ivec2(pixelNeighborCoords.center), false);
+    pixelDepths.right       = sampleDepth(depthMap, ivec2(pixelNeighborCoords.right), false);
+    pixelDepths.topLeft     = sampleDepth(depthMap, ivec2(pixelNeighborCoords.topLeft), false);
+    pixelDepths.top         = sampleDepth(depthMap, ivec2(pixelNeighborCoords.top), false);
+    pixelDepths.topRight    = sampleDepth(depthMap, ivec2(pixelNeighborCoords.topRight), false);
 
-    // Transform normals to view space
-    MultiQuad pixelNormalsView;
-    pixelNormalsView.bottomLeft  = normalToView(view, sampleNormal(normalsMap, ivec2(pixelNeighborCoords.bottomLeft)));
-    pixelNormalsView.bottom      = normalToView(view, sampleNormal(normalsMap, ivec2(pixelNeighborCoords.bottom)));
-    pixelNormalsView.bottomRight = normalToView(view, sampleNormal(normalsMap, ivec2(pixelNeighborCoords.bottomRight)));
-    pixelNormalsView.left        = normalToView(view, sampleNormal(normalsMap, ivec2(pixelNeighborCoords.left)));
-    pixelNormalsView.center      = normalToView(view, sampleNormal(normalsMap, ivec2(pixelNeighborCoords.center)));
-    pixelNormalsView.right       = normalToView(view, sampleNormal(normalsMap, ivec2(pixelNeighborCoords.right)));
-    pixelNormalsView.topLeft     = normalToView(view, sampleNormal(normalsMap, ivec2(pixelNeighborCoords.topLeft)));
-    pixelNormalsView.top         = normalToView(view, sampleNormal(normalsMap, ivec2(pixelNeighborCoords.top)));
-    pixelNormalsView.topRight    = normalToView(view, sampleNormal(normalsMap, ivec2(pixelNeighborCoords.topRight)));
-
-    // Project 2D points to 3D view space
+    // Project 2D points to 3D points
     MultiQuad2D pixelCenterNDCs;
-    pixelCenterNDCs.bottomLeft  = (pixelNeighborCoords.bottomLeft  / gBufferSize) * 2.0 - 1.0;
-    pixelCenterNDCs.bottom      = (pixelNeighborCoords.bottom      / gBufferSize) * 2.0 - 1.0;
-    pixelCenterNDCs.bottomRight = (pixelNeighborCoords.bottomRight / gBufferSize) * 2.0 - 1.0;
-    pixelCenterNDCs.left        = (pixelNeighborCoords.left        / gBufferSize) * 2.0 - 1.0;
-    pixelCenterNDCs.center      = (pixelNeighborCoords.center      / gBufferSize) * 2.0 - 1.0;
-    pixelCenterNDCs.right       = (pixelNeighborCoords.right       / gBufferSize) * 2.0 - 1.0;
-    pixelCenterNDCs.topLeft     = (pixelNeighborCoords.topLeft     / gBufferSize) * 2.0 - 1.0;
-    pixelCenterNDCs.top         = (pixelNeighborCoords.top         / gBufferSize) * 2.0 - 1.0;
-    pixelCenterNDCs.topRight    = (pixelNeighborCoords.topRight    / gBufferSize) * 2.0 - 1.0;
+    pixelCenterNDCs.bottomLeft  = pixelNeighborCoords.bottomLeft  * gBufferToNDC - 1.0;
+    pixelCenterNDCs.bottom      = pixelNeighborCoords.bottom      * gBufferToNDC - 1.0;
+    pixelCenterNDCs.bottomRight = pixelNeighborCoords.bottomRight * gBufferToNDC - 1.0;
+    pixelCenterNDCs.left        = pixelNeighborCoords.left        * gBufferToNDC - 1.0;
+    pixelCenterNDCs.center      = pixelNeighborCoords.center      * gBufferToNDC - 1.0;
+    pixelCenterNDCs.right       = pixelNeighborCoords.right       * gBufferToNDC - 1.0;
+    pixelCenterNDCs.topLeft     = pixelNeighborCoords.topLeft     * gBufferToNDC - 1.0;
+    pixelCenterNDCs.top         = pixelNeighborCoords.top         * gBufferToNDC - 1.0;
+    pixelCenterNDCs.topRight    = pixelNeighborCoords.topRight    * gBufferToNDC - 1.0;
+
+    MultiQuad pixelCoordsView;
+    pixelCoordsView.bottomLeft  = ndcToView(projectionInverse, pixelCenterNDCs.bottomLeft, pixelDepths.bottomLeft);
+    pixelCoordsView.bottom      = ndcToView(projectionInverse, pixelCenterNDCs.bottom, pixelDepths.bottom);
+    pixelCoordsView.bottomRight = ndcToView(projectionInverse, pixelCenterNDCs.bottomRight, pixelDepths.bottomRight);
+    pixelCoordsView.left        = ndcToView(projectionInverse, pixelCenterNDCs.left, pixelDepths.left);
+    pixelCoordsView.center      = ndcToView(projectionInverse, pixelCenterNDCs.center, pixelDepths.center);
+    pixelCoordsView.right       = ndcToView(projectionInverse, pixelCenterNDCs.right, pixelDepths.right);
+    pixelCoordsView.topLeft     = ndcToView(projectionInverse, pixelCenterNDCs.topLeft, pixelDepths.topLeft);
+    pixelCoordsView.top         = ndcToView(projectionInverse, pixelCenterNDCs.top, pixelDepths.top);
+    pixelCoordsView.topRight    = ndcToView(projectionInverse, pixelCenterNDCs.topRight, pixelDepths.topRight);
+
+    // Sample normals (view space)
+    MultiQuad pixelNormalsView;
+    pixelNormalsView.bottomLeft  = sampleNormal(normalsMap, ivec2(pixelNeighborCoords.bottomLeft));
+    pixelNormalsView.bottom      = sampleNormal(normalsMap, ivec2(pixelNeighborCoords.bottom));
+    pixelNormalsView.bottomRight = sampleNormal(normalsMap, ivec2(pixelNeighborCoords.bottomRight));
+    pixelNormalsView.left        = sampleNormal(normalsMap, ivec2(pixelNeighborCoords.left));
+    pixelNormalsView.center      = sampleNormal(normalsMap, ivec2(pixelNeighborCoords.center));
+    pixelNormalsView.right       = sampleNormal(normalsMap, ivec2(pixelNeighborCoords.right));
+    pixelNormalsView.topLeft     = sampleNormal(normalsMap, ivec2(pixelNeighborCoords.topLeft));
+    pixelNormalsView.top         = sampleNormal(normalsMap, ivec2(pixelNeighborCoords.top));
+    pixelNormalsView.topRight    = sampleNormal(normalsMap, ivec2(pixelNeighborCoords.topRight));
 
     // If there is an empty sample, check if we should expand the edges
     if (!isValidDepth(pixelDepths.center)) {
@@ -543,41 +543,31 @@ void main() {
         }
 
         pixelDepths.center = closestDepth;
-        pixelNormalsView.center = normalToView(view, sampleNormal(normalsMap, ivec2(closestCoord)));
-        vec3 closestColor = imageLoad(colorMap, ivec2(closestCoord)).rgb;
+        pixelCoordsView.center = ndcToView(projectionInverse, pixelCenterNDCs.center, pixelDepths.center);
+        pixelNormalsView.center = sampleNormal(normalsMap, ivec2(closestCoord));
 
+        vec3 closestColor = imageLoad(colorMap, ivec2(closestCoord)).rgb;
         for (int i = 0; i < 8; i++) {
             imageStore(colorMap, ivec2(neighborCoords[i]), vec4(closestColor, 1.0));
         }
     }
 
     MultiQuad2D surfelNDCs;
-    surfelNDCs.bottomLeft  = (surfelCornerCoords.bottomLeft  / gBufferSize) * 2.0 - 1.0;
-    surfelNDCs.bottom      = (surfelCornerCoords.bottom      / gBufferSize) * 2.0 - 1.0;
-    surfelNDCs.bottomRight = (surfelCornerCoords.bottomRight / gBufferSize) * 2.0 - 1.0;
-    surfelNDCs.left        = (surfelCornerCoords.left        / gBufferSize) * 2.0 - 1.0;
-    surfelNDCs.center      = (surfelCornerCoords.center      / gBufferSize) * 2.0 - 1.0;
-    surfelNDCs.right       = (surfelCornerCoords.right       / gBufferSize) * 2.0 - 1.0;
-    surfelNDCs.topLeft     = (surfelCornerCoords.topLeft     / gBufferSize) * 2.0 - 1.0;
-    surfelNDCs.top         = (surfelCornerCoords.top         / gBufferSize) * 2.0 - 1.0;
-    surfelNDCs.topRight    = (surfelCornerCoords.topRight    / gBufferSize) * 2.0 - 1.0;
-
-    MultiQuad pixelCoordsView;
-    pixelCoordsView.bottomLeft  = ndcToView(projectionInverse, pixelCenterNDCs.bottomLeft, pixelDepths.bottomLeft);
-    pixelCoordsView.bottom      = ndcToView(projectionInverse, pixelCenterNDCs.bottom, pixelDepths.bottom);
-    pixelCoordsView.bottomRight = ndcToView(projectionInverse, pixelCenterNDCs.bottomRight, pixelDepths.bottomRight);
-    pixelCoordsView.left        = ndcToView(projectionInverse, pixelCenterNDCs.left, pixelDepths.left);
-    pixelCoordsView.center      = ndcToView(projectionInverse, pixelCenterNDCs.center, pixelDepths.center);
-    pixelCoordsView.right       = ndcToView(projectionInverse, pixelCenterNDCs.right, pixelDepths.right);
-    pixelCoordsView.topLeft     = ndcToView(projectionInverse, pixelCenterNDCs.topLeft, pixelDepths.topLeft);
-    pixelCoordsView.top         = ndcToView(projectionInverse, pixelCenterNDCs.top, pixelDepths.top);
-    pixelCoordsView.topRight    = ndcToView(projectionInverse, pixelCenterNDCs.topRight, pixelDepths.topRight);
+    surfelNDCs.bottomLeft  = surfelCornerCoords.bottomLeft  * gBufferToNDC - 1.0;
+    surfelNDCs.bottom      = surfelCornerCoords.bottom      * gBufferToNDC - 1.0;
+    surfelNDCs.bottomRight = surfelCornerCoords.bottomRight * gBufferToNDC - 1.0;
+    surfelNDCs.left        = surfelCornerCoords.left        * gBufferToNDC - 1.0;
+    surfelNDCs.center      = surfelCornerCoords.center      * gBufferToNDC - 1.0;
+    surfelNDCs.right       = surfelCornerCoords.right       * gBufferToNDC - 1.0;
+    surfelNDCs.topLeft     = surfelCornerCoords.topLeft     * gBufferToNDC - 1.0;
+    surfelNDCs.top         = surfelCornerCoords.top         * gBufferToNDC - 1.0;
+    surfelNDCs.topRight    = surfelCornerCoords.topRight    * gBufferToNDC - 1.0;
 
     // Fix extreme orientations
     vec3 frustumNormalView = normalize(origin - pixelCoordsView.center);
-    if (correctOrientation && quadHasExtremeOrientation(pixelNormalsView.center, frustumNormalView)) {
+    if (correctOrientation && quadHasExtremeOrientation(pixelNormalsView.center, frustumNormalView, angleMaxCos)) {
         // If the quad has an extreme orientation, constrain the center normal
-        pixelNormalsView.center = constrainToMaxAngle(pixelNormalsView.center, frustumNormalView);
+        pixelNormalsView.center = constrainToMaxAngle(pixelNormalsView.center, frustumNormalView, angleMaxCos);
     }
 
     // Project all points to near plane

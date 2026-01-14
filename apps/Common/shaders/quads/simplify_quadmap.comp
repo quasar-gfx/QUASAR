@@ -66,22 +66,17 @@ bool hasDepthDiscontinuity(
     return false;
 }
 
-bool quadHasExtremeOrientation(in vec3 centerNormal, in vec3 frustumNormalView) {
-    float dotProduct = dot(centerNormal, frustumNormalView);
-    return abs(dotProduct) <= cos(angleThreshold);
+bool quadHasExtremeOrientation(in vec3 centerNormal, in vec3 frustumNormalView, float maxCos) {
+    return abs(dot(centerNormal, frustumNormalView)) <= maxCos;
 }
 
-vec3 constrainToMaxAngle(in vec3 centerNormal, in vec3 frustumNormalView) {
-    float maxCos = cos(angleThreshold);
-    float dotProduct = dot(centerNormal, frustumNormalView);
-
+vec3 constrainToMaxAngle(in vec3 centerNormal, in vec3 frustumNormalView, float maxCos) {
     // Project the centerNormal onto the plane orthogonal to frustumNormalView
     vec3 frustumNormal = normalize(frustumNormalView);
     vec3 projectedNormal = centerNormal - dot(centerNormal, frustumNormal) * frustumNormal;
 
     // Normalize the projected normal and scale it to the cone surface
     vec3 constrainedNormal = normalize(projectedNormal) * sqrt(1.0 - maxCos * maxCos);
-
     // Add the component along the frustumNormalView to make the vector within the cone
     constrainedNormal += frustumNormal * maxCos;
     return normalize(constrainedNormal);
@@ -143,6 +138,10 @@ bool inputQuadMapDataIsMarked(in ivec2 pixelCoord) {
 }
 
 Plane quadMapDataToPlane(in QuadMapData quadMapData) {
+    if (!isValidQuadMapData(quadMapData)) {
+        return Plane(vec3(0.0), vec3(0.0));
+    }
+
     Plane proxyPlane;
 
     uint halfSize = 1u << (quadMapData.size - 1u); // 2^size / 2
@@ -214,42 +213,39 @@ void createSurfel(out Quad surfel, in Quad2D surfelPixelCoords, in vec4 depthOff
 }
 
 vec4 planeToPlaneEq(in Plane plane) {
-    vec4 planeEq = vec4(plane.normal, -dot(plane.normal, plane.point));
-    return planeEq;
+    return vec4(plane.normal, -dot(plane.normal, plane.point));
 }
 
 Plane planeEqToPlane(in vec4 planeEq) {
     Plane plane;
     plane.normal = planeEq.xyz;
     float D = planeEq.w;
-    if (planeEq.z != 0.0) {
-        float z = -D / planeEq.z;
-        plane.point = vec3(0.0, 0.0, z);
+    if (abs(planeEq.z) > 1e-6) {
+        plane.point = vec3(0.0, 0.0, -D / planeEq.z);
     }
-    else if (planeEq.y != 0.0) {
-        float y = -D / planeEq.y;
-        plane.point = vec3(0.0, y, 0.0);
+    else if (abs(planeEq.y) > 1e-6) {
+        plane.point = vec3(0.0, -D / planeEq.y, 0.0);
     }
-    else if (planeEq.x != 0.0) {
-        float x = -D / planeEq.x;
-        plane.point = vec3(x, 0.0, 0.0);
+    else if (abs(planeEq.x) > 1e-6) {
+        plane.point = vec3(-D / planeEq.x, 0.0, 0.0);
+    }
+    else {
+        plane.point = vec3(0.0);
     }
     return plane;
 }
 
 bool planeEquationsSimilar(in vec4 planeEq1, in vec4 planeEq2, float threshold) {
-    float len1 = length(planeEq1.xyz);
-    float len2 = length(planeEq2.xyz);
-    if (len1 == 0.0 || len2 == 0.0) return false;
+    if (dot(planeEq1.xyz, planeEq2.xyz) < 0.0) return false;
 
-    vec4 norm1 = planeEq1 / len1;
-    vec4 norm2 = planeEq2 / len2;
-    return distance(norm1, norm2) < threshold;
+    vec4 diff = planeEq1 - planeEq2;
+    return dot(diff, diff) < threshold;
 }
 
 bool shouldMerge(
     in Plane proxyPlaneBottomLeft, in Plane proxyPlaneBottomRight, in Plane proxyPlaneTopLeft, in Plane proxyPlaneTopRight,
-    in bool validBottomLeft, in bool validBottomRight, in bool validTopLeft, in bool validTopRight)
+    in bool validBottomLeft, in bool validBottomRight, in bool validTopLeft, in bool validTopRight,
+    float planeSimilarityThreshold)
 {
     vec4 proxyPlaneEqBottomLeft  = planeToPlaneEq(proxyPlaneBottomLeft);
     vec4 proxyPlaneEqBottomRight = planeToPlaneEq(proxyPlaneBottomRight);
@@ -357,8 +353,7 @@ void recalcDepthOffsets(
     inout int numBelowThreshold, inout int total)
 {
     uint halfSize = 1u << (quadMapData.size - 1u); // 2^size / 2
-    vec2 proxyPlaneUV = (vec2(quadMapData.offset) + float(halfSize) * vec2(0.5)) / gBufferSize;
-    vec2 proxyPlanePixelCoords = vec2(proxyPlaneUV * gBufferSize);
+    vec2 proxyPlanePixelCoords = (vec2(quadMapData.offset) + float(halfSize) * vec2(0.5));
 
     uint size = 1 << quadMapData.size;
     float halfGridSize = float(size) * surfelSize / 2;
@@ -427,9 +422,9 @@ void mergeQuadMapData(
 
     // Fix extreme orientations
     vec3 frustumNormalView = normalize(origin - newProxyPlane.point);
-    if (correctOrientation && quadHasExtremeOrientation(newProxyPlane.normal, frustumNormalView)) {
+    if (correctOrientation && quadHasExtremeOrientation(newProxyPlane.normal, frustumNormalView, cos(angleThreshold))) {
         // If the quad has an extreme orientation, constrain the center normal
-        newProxyPlane.normal = constrainToMaxAngle(newProxyPlane.normal, frustumNormalView);
+        newProxyPlane.normal = constrainToMaxAngle(newProxyPlane.normal, frustumNormalView, cos(angleThreshold));
     }
 
     // Previously flattened if all valid quads were flattened
@@ -549,7 +544,8 @@ void main() {
 
     merge = merge || shouldMerge(
             proxyPlaneBottomLeft, proxyPlaneBottomRight, proxyPlaneTopLeft, proxyPlaneTopRight,
-            validBottomLeft, validBottomRight, validTopLeft, validTopRight);
+            validBottomLeft, validBottomRight, validTopLeft, validTopRight,
+            planeSimilarityThreshold);
     if (merge) {
         // Merge the proxy planes
         mergeQuadMapData(

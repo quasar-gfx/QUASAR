@@ -20,7 +20,8 @@
 
 #include <Streamers/QuadStreamStreamer.h>
 
-#include <PoseSendRecvSimulator.h>
+#include <NetworkSimulator.h>
+#include <PosePredictor.h>
 
 using namespace quasar;
 
@@ -38,14 +39,14 @@ int main(int argc, char** argv) {
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::Flag saveImages(parser, "save", "Save outputs to disk", {'I', "save-images"});
     args::ValueFlag<std::string> cameraPathFileIn(parser, "camera-path", "Path to camera animation file", {'C', "camera-path"});
-    args::ValueFlag<int> numPosesIn(parser, "num-poses", "Number of poses to load from camera path", {'N', "num-poses"}, -1);
+    args::ValueFlag<int> numPosesIn(parser, "num-poses", "Number of poses to load from camera path", {'n', "num-poses"}, -1);
     args::ValueFlag<std::string> outputPathIn(parser, "output-path", "Directory to save outputs", {'o', "output-path"}, ".");
     args::ValueFlag<float> networkLatencyIn(parser, "network-latency", "Simulated network latency in ms", {'N', "network-latency"}, 25.0f);
     args::ValueFlag<float> networkJitterIn(parser, "network-jitter", "Simulated network jitter in ms", {'J', "network-jitter"}, 10.0f);
     args::Flag posePredictionIn(parser, "pose-prediction", "Enable pose prediction", {'P', "pose-prediction"}, false);
     args::Flag poseSmoothingIn(parser, "pose-smoothing", "Enable pose smoothing", {'T', "pose-smoothing"}, false);
     args::ValueFlag<float> viewBoxSizeIn(parser, "view-box-size", "Size of view box in m", {'B', "view-size"}, 0.5f);
-    args::ValueFlag<int> maxAdditionalViewsIn(parser, "views", "Max views", {'n', "max-views"}, 8);
+    args::ValueFlag<int> maxAdditionalViewsIn(parser, "views", "Max views", {'l', "max-views"}, 8);
     args::ValueFlag<float> remoteFOVIn(parser, "remote-fov", "Remote camera FOV in degrees", {'F', "remote-fov"}, 80.0f);
     args::ValueFlag<float> remoteFOVWideIn(parser, "remote-fov-wide", "Remote camera FOV in degrees for wide fov", {'W', "remote-fov-wide"}, 140.0f);
     try {
@@ -170,12 +171,14 @@ int main(int argc, char** argv) {
     float networkJitter = !cameraPathFileIn ? 0.0f : args::get(networkJitterIn);
     bool posePrediction = posePredictionIn;
     bool poseSmoothing = poseSmoothingIn;
-    PoseSendRecvSimulator poseSendRecvSimulator({
+    NetworkSimulator networkSimulator({
         .networkLatencyMs = networkLatency,
         .networkJitterMs = networkJitter,
         .renderTimeMs = rerenderIntervalMs,
-        .posePrediction = posePrediction,
-        .poseSmoothing = poseSmoothing,
+    });
+    PosePredictor posePredictor({
+        .enablePrediction = posePrediction,
+        .enableSmoothing = poseSmoothing,
     });
 
     bool* showViews = new bool[maxViews];
@@ -317,13 +320,13 @@ int main(int argc, char** argv) {
             ImGui::Separator();
 
             if (ImGui::DragFloat("Network Latency (ms)", &networkLatency, 0.5f, 0.0f, 500.0f)) {
-                poseSendRecvSimulator.setNetworkLatency(networkLatency);
+                networkSimulator.setNetworkLatency(networkLatency);
             }
             if (ImGui::DragFloat("Network Jitter (ms)", &networkJitter, 0.25f, 0.0f, 50.0f)) {
-                poseSendRecvSimulator.setNetworkJitter(networkJitter);
+                networkSimulator.setNetworkJitter(networkJitter);
             }
 
-            ImGui::Checkbox("Pose Prediction Enabled", &poseSendRecvSimulator.posePrediction);
+            ImGui::Checkbox("Pose Prediction Enabled", &posePredictor.enablePrediction);
 
             if (ImGui::Combo("Server Framerate", &serverFPSIndex, serverFPSLabels, IM_ARRAYSIZE(serverFPSLabels))) {
                 rerenderIntervalMs = serverFPSIndex == 0 ? 0.0 : MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
@@ -460,13 +463,31 @@ int main(int argc, char** argv) {
             }
             lastRenderTime = now;
 
-            // "Send" pose to the server. this will wait until latency+/-jitter ms have passed
-            poseSendRecvSimulator.sendPose(camera, now);
+            // "Send" pose to the server (simulates network latency)
+            Pose currentPose;
+            currentPose.setViewMatrix(camera.getViewMatrix());
+            currentPose.setProjectionMatrix(camera.getProjectionMatrix());
+            networkSimulator.sendPose(currentPose, now);
+            posePredictor.addPose(currentPose);
+
             if (!preventCopyingLocalPose) {
-                // "Receive" a predicted pose to render a new frame. this will wait until latency+/-jitter ms have passed
-                Pose clientPosePred;
-                if (poseSendRecvSimulator.recvPoseToRender(clientPosePred, now)) {
-                    remoteCamera.setViewMatrix(clientPosePred.mono.view);
+                // "Receive" predicted pose to render (simulates network latency + prediction)
+                Pose receivedPose;
+                double originalTimestamp;
+                if (networkSimulator.recvPose(receivedPose, now, originalTimestamp)) {
+                    if (posePredictor.enablePrediction) {
+                        Pose predictedPose;
+                        double dtFuture = networkSimulator.getNetworkLatency() + networkSimulator.getRenderTime();
+                        if (posePredictor.predictPose(predictedPose, now + dtFuture)) {
+                            remoteCamera.setViewMatrix(predictedPose.mono.view);
+                        }
+                        else {
+                            remoteCamera.setViewMatrix(receivedPose.mono.view);
+                        }
+                    }
+                    else {
+                        remoteCamera.setViewMatrix(receivedPose.mono.view);
+                    }
                 }
                 // If we do not have a new pose, just send a new frame with the old pose
             }
@@ -491,7 +512,7 @@ int main(int argc, char** argv) {
             sendRemoteFrame = false;
         }
 
-        poseSendRecvSimulator.update(now);
+        networkSimulator.update(now);
 
         // Hide/show nodes based on user input
         for (int view = 0; view < maxViews; view++) {
@@ -527,13 +548,22 @@ int main(int argc, char** argv) {
             spdlog::info("Client Render Time: {:.3f}ms", timeutils::secondsToMillis(window->getTime() - startTime));
         }
 
-        poseSendRecvSimulator.accumulateError(camera, remoteCamera);
+        posePredictor.accumulateError(camera, remoteCamera);
 
         if (cameraPathFileIn) {
             recorder.captureFrame(camera);
 
             if (!cameraAnimator.running) {
-                poseSendRecvSimulator.printErrors();
+                auto errorStats = posePredictor.getErrorStats();
+                spdlog::info("Pose Error:");
+                spdlog::info("  Pos ({:.2f}±{:.2f},[{:.1f},{:.2f}])m",
+                    errorStats.positionErrMeanStd.x, errorStats.positionErrMeanStd.y,
+                    errorStats.positionErrMinMax.x, errorStats.positionErrMinMax.y);
+                spdlog::info("  Rot ({:.2f}±{:.2f},[{:.1f},{:.2f}])°",
+                    errorStats.rotationErrMeanStd.x, errorStats.rotationErrMeanStd.y,
+                    errorStats.rotationErrMinMax.x, errorStats.rotationErrMinMax.y);
+                spdlog::info("  RTT ({:.2f}±{:.2f})ms",
+                    networkSimulator.getRTTMean(), networkSimulator.getRTTStdDev());
                 recorder.stop();
                 window->close();
             }

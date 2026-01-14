@@ -142,7 +142,7 @@ void Texture::loadFromFile(const std::string& path, bool flipTextureY, bool gamm
         data = FileIO::loadImage(resolvedPath, &texWidth, &texHeight, &texChannels);
     }
     else if (type == GL_FLOAT || type == GL_HALF_FLOAT) {
-        data = FileIO::loadImageHDR(resolvedPath, &texWidth, &texHeight, &texChannels);
+        data = FileIO::loadImageFromHDR(resolvedPath, &texWidth, &texHeight, &texChannels);
     }
     FileIO::flipVerticallyOnLoad(false); // Reset to default
 

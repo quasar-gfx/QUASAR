@@ -16,29 +16,29 @@ set(ASSETS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/assets)
 # Set required libs
 set(RENDERER_LIBS )
 
-if (UNIX)
+if(UNIX)
     set(RENDERER_LIBS ${RENDERER_LIBS} ${CMAKE_DL_LIBS})
 endif()
 
 # Add third party libraries
 # glad
-if (NOT ANDROID)
+if(NOT ANDROID)
     add_library(glad ${EXTERNAL_DIR}/glad/glad.c)
     target_include_directories(glad PUBLIC ${EXTERNAL_DIR})
     set(RENDERER_LIBS ${RENDERER_LIBS} glad)
 endif()
 
 # glfw
-if (NOT ANDROID)
-    set(GLFW_BUILD_EXAMPLES OFF)
-    set(GLFW_BUILD_TESTS OFF)
-    set(GLFW_BUILD_DOCS OFF)
+if(NOT ANDROID)
+    set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
     add_subdirectory(${EXTERNAL_DIR}/glfw)
     set(RENDERER_LIBS ${RENDERER_LIBS} glfw)
 endif()
 
 # imgui
-if (NOT ANDROID)
+if(NOT ANDROID)
     add_subdirectory(${EXTERNAL_DIR}/imgui/tnt)
     # use bundled glfw
     target_link_libraries(imgui PUBLIC glfw)
@@ -63,10 +63,10 @@ add_subdirectory(${EXTERNAL_DIR}/lz4/tnt)
 set(RENDERER_LIBS ${RENDERER_LIBS} lz4)
 
 # zstd
-set(ZSTD_LEGACY_SUPPORT OFF)
-set(ZSTD_BUILD_PROGRAMS OFF)
-set(ZSTD_BUILD_SHARED OFF)
-set(ZSTD_BUILD_TESTS OFF)
+set(ZSTD_LEGACY_SUPPORT OFF CACHE BOOL "" FORCE)
+set(ZSTD_BUILD_PROGRAMS OFF CACHE BOOL "" FORCE)
+set(ZSTD_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+set(ZSTD_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 add_subdirectory(${EXTERNAL_DIR}/zstd/build/cmake)
 set(RENDERER_LIBS ${RENDERER_LIBS} libzstd_static)
 
@@ -81,7 +81,7 @@ target_include_directories(${TARGET} INTERFACE ${EXTERNAL_DIR})
 target_link_libraries(${TARGET} INTERFACE renderer)
 
 # Add apps
-if (QUASAR_BUILD_APPS)
+if(QUASAR_BUILD_APPS)
     add_subdirectory(apps)
 
     # make symbolic link of assets to output/apps directory

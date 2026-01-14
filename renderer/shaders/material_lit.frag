@@ -76,29 +76,6 @@ uniform samplerCube pointLightShadowMaps2; // 12
 uniform samplerCube pointLightShadowMaps3; // 13
 #endif
 
-vec3 getNormal() {
-	vec3 N = normalize(fsIn.Normal);
-	vec3 T = normalize(fsIn.Tangent);
-	vec3 B = normalize(fsIn.BiTangent);
-
-    if (!material.hasNormalMap)
-        return N;
-
-    if (any(isnan(B))) {
-        vec3 q1 = dFdx(fsIn.PositionWorld);
-        vec3 q2 = dFdy(fsIn.PositionWorld);
-        vec2 st1 = dFdx(fsIn.TexCoord);
-        vec2 st2 = dFdy(fsIn.TexCoord);
-
-        T = normalize(q1 * st2.t - q2 * st1.t);
-        B = -normalize(cross(N, T));
-    }
-
-	mat3 TBN = mat3(T, B, N);
-	vec3 tangentNormal = texture(material.normalMap, fsIn.TexCoord).xyz * 2.0 - 1.0;
-	return normalize(TBN * tangentNormal);
-}
-
 void main() {
     // Albedo and alpha
     vec4 baseColor = material.baseColor;
@@ -130,8 +107,13 @@ void main() {
     metallic = material.metallicFactor * metallic;
     roughness = material.roughnessFactor * roughness;
 
+    vec3 N = normalize(fsIn.Normal);
+    // vec3 normalSample = texture(material.normalMap, fsIn.TexCoord).xyz;
+    // if (length(normalSample) > 0.5) {
+    //     N = perturbNormal(N, fsIn.PositionWorld, normalSample, fsIn.TexCoord);
+    // }
+
     // Input lighting data
-    vec3 N = normalize(fsIn.Normal); // getNormal();
     vec3 V = normalize(camera.position - fsIn.PositionWorld);
     vec3 R = reflect(-V, N);
 

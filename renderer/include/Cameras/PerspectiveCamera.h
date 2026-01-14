@@ -10,7 +10,6 @@ namespace quasar {
 class PerspectiveCamera : public Camera {
 public:
     float scrollSensitivity = 0.1f;
-    float movementSpeed = 2.0f;
     float mouseSensitivity = 0.05f;
 
     PerspectiveCamera();

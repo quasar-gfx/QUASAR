@@ -16,9 +16,9 @@ set(LIBS ${LIBS} Threads::Threads)
 # CUDA
 include(CheckLanguage)
 check_language(CUDA)
-if (CMAKE_CUDA_COMPILER)
+if(CMAKE_CUDA_COMPILER)
     find_package(CUDAToolkit REQUIRED)
-    if (NOT CUDAToolkit_FOUND)
+    if(NOT CUDAToolkit_FOUND)
         message(FATAL_ERROR "CUDA compiler is available, but CUDAToolkit not found. Disabling CUDA support.")
         set(QUASAR_HAS_CUDA 0)
     else()
@@ -76,7 +76,7 @@ file(GLOB_RECURSE SRCS
 add_library(${TARGET} STATIC ${PUBLIC_HDRS} ${SRCS})
 
 target_compile_options(${TARGET} PRIVATE -Wno-cast-calling-convention -Wunused-variable)
-if (QUASAR_HAS_CUDA)
+if(QUASAR_HAS_CUDA)
     target_compile_options(${TARGET} PUBLIC -DQUASAR_HAS_CUDA)
 endif()
 

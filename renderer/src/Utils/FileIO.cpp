@@ -167,7 +167,7 @@ unsigned char* FileIO::loadImageFromMemory(const unsigned char* data, int size, 
     return imageData;
 }
 
-float* FileIO::loadImageHDR(const std::string& filename, int* width, int* height, int* channels, int desiredChannels) {
+float* FileIO::loadImageFromHDR(const std::string& filename, int* width, int* height, int* channels, int desiredChannels) {
 #ifndef __ANDROID__
     float* data = stbi_loadf(filename.c_str(), width, height, channels, desiredChannels);
     if (!data) {

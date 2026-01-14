@@ -23,7 +23,7 @@ add_custom_command(
 
 foreach(GLSL_SRC ${SRCS})
     # ignore glsl files
-    if (GLSL_SRC MATCHES ".*\\.glsl$")
+    if(GLSL_SRC MATCHES ".*\\.glsl$")
         continue()
     endif()
 

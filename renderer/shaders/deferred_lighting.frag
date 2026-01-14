@@ -47,7 +47,7 @@ void main() {
     float alpha = texture(gAlpha, TexCoord).r;
     vec3 mra = texture(gPBR, TexCoord).rgb;
     vec4 emissive_IBL = texture(gEmissive, TexCoord);
-    vec3 fragNormal = texture(gNormal, TexCoord).rgb;
+    vec3 N = texture(gNormal, TexCoord).xyz;
     vec3 PositionWorld = texture(gPosition, TexCoord).xyz;
     vec4 PositionLightSpace = texture(gLightPosition, TexCoord);
 
@@ -59,7 +59,6 @@ void main() {
     float IBL = emissive_IBL.a;
 
     // Input lighting data
-    vec3 N = fragNormal;
     vec3 V = normalize(camera.position - PositionWorld);
     vec3 R = reflect(-V, N);
 
