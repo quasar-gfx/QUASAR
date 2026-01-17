@@ -7,7 +7,7 @@ set(SHADERS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
 
 set(LIBS )
 
-set(LIBS ${LIBS} renderer)
+set(LIBS ${LIBS} quasar_renderer)
 
 # Threads
 find_package(Threads REQUIRED)

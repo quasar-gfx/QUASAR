@@ -15,6 +15,7 @@ namespace quasar {
 
 class Path {
 public:
+    Path() = default;
     Path(const std::string& p) : path(p) {}
     Path(const fs::path& p) : path(p) {}
 
@@ -27,11 +28,11 @@ public:
     }
 
     operator std::string() const {
-        return path.string();
+        return str();
     }
 
     std::string str() const {
-        return path.string();
+        return isDir() ? path.string() + fs::path::preferred_separator : path.string();
     }
 
     const char* c_str() const {

@@ -1,7 +1,12 @@
+#include <cmath>
 #include <Texture.h>
 #include <Utils/FileIO.h>
 
 using namespace quasar;
+
+static float sRGBToLinear(float srgb, float gamma = 2.4f) {
+    return (srgb <= 0.04045f) ? (srgb / 12.92f) : std::pow((srgb + 0.055f) / 1.055f, gamma);
+}
 
 Texture::Texture() {
     target = GL_TEXTURE_2D;
@@ -125,29 +130,39 @@ void Texture::loadFromData(const void* data, bool resize) {
     glBindTexture(target, 0);
 }
 
-void Texture::loadFromFile(const std::string& path, bool flipTextureY, bool gammaCorrected) {
-    std::string resolvedPath = path;
+void Texture::loadFromFile(const Path& path, bool flipTextureY, bool gammaCorrected) {
+    std::string absolutePath = path.absolutePathStr();
+    std::string ext = path.extension();
 
-    if (!resolvedPath.empty() && resolvedPath[0] == '~') {
+    if (!absolutePath.empty() && absolutePath[0] == '~') {
         const char* home = getenv("HOME");
         if (home) {
-            resolvedPath.replace(0, 1, home);
+            absolutePath.replace(0, 1, home);
         }
     }
 
     int texWidth, texHeight, texChannels;
     void* data = nullptr;
-    FileIO::flipVerticallyOnLoad(flipTextureY);
-    if (type == GL_UNSIGNED_BYTE) {
-        data = FileIO::loadImage(resolvedPath, &texWidth, &texHeight, &texChannels);
+    if (ext == ".exr" || ext == ".EXR") {
+        // EXR loader handles orientation
+        data = FileIO::loadImageFromEXR(absolutePath, &texWidth, &texHeight, &texChannels);
+        if (type == GL_UNSIGNED_BYTE) {
+            type = GL_FLOAT;
+        }
     }
-    else if (type == GL_FLOAT || type == GL_HALF_FLOAT) {
-        data = FileIO::loadImageFromHDR(resolvedPath, &texWidth, &texHeight, &texChannels);
+    else {
+        FileIO::flipVerticallyOnLoad(flipTextureY);
+        if (type == GL_UNSIGNED_BYTE) {
+            data = FileIO::loadImage(absolutePath, &texWidth, &texHeight, &texChannels);
+        }
+        else if (type == GL_FLOAT || type == GL_HALF_FLOAT) {
+            data = FileIO::loadImageFromHDR(absolutePath, &texWidth, &texHeight, &texChannels);
+        }
+        FileIO::flipVerticallyOnLoad(false); // Reset to default
     }
-    FileIO::flipVerticallyOnLoad(false); // Reset to default
 
     if (!data) {
-        throw std::runtime_error("Texture failed to load at path: " + resolvedPath);
+        throw std::runtime_error("Texture failed to load at path: " + absolutePath);
     }
 
     width = texWidth;
@@ -201,7 +216,16 @@ void Texture::readPixels(unsigned char* data, bool readAsFloat) {
     unbind();
 }
 
-void Texture::writeToPNG(const std::string& filename) {
+void Texture::writeJPGToMemory(std::vector<unsigned char>& outputData, int quality) {
+    outputData.resize(width * height * channels);
+    readPixels(outputData.data());
+
+    FileIO::flipVerticallyOnWrite(true);
+    FileIO::writeJPGToMemory(outputData, width, height, channels, outputData.data(), quality);
+}
+
+
+void Texture::writeToPNG(const Path& filename) {
     std::vector<unsigned char> data(width * height * channels);
     readPixels(data.data());
 
@@ -209,7 +233,7 @@ void Texture::writeToPNG(const std::string& filename) {
     FileIO::writeToPNG(filename, width, height, channels, data.data());
 }
 
-void Texture::writeToJPG(const std::string& filename, int quality) {
+void Texture::writeToJPG(const Path& filename, int quality) {
     std::vector<unsigned char> data(width * height * channels);
     readPixels(data.data());
 
@@ -217,7 +241,7 @@ void Texture::writeToJPG(const std::string& filename, int quality) {
     FileIO::writeToJPG(filename, width, height, channels, data.data(), quality);
 }
 
-void Texture::writeToHDR(const std::string& filename) {
+void Texture::writeToHDR(const Path& filename) {
     std::vector<float> data(width * height * channels);
     readPixels(reinterpret_cast<unsigned char*>(data.data()), true);
 
@@ -225,8 +249,25 @@ void Texture::writeToHDR(const std::string& filename) {
     FileIO::writeToHDR(filename, width, height, channels, data.data());
 }
 
+void Texture::writeToEXR(const Path& filename, bool convertToLinear) {
+    std::vector<float> data(width * height * channels);
+    readPixels(reinterpret_cast<unsigned char*>(data.data()), true);
+
+    if (convertToLinear) {
+        size_t numPixels = width * height;
+        for (size_t i = 0; i < numPixels; i++) {
+            for (int c = 0; c < 3 && c < channels; c++) { // RGB only
+                data[i * channels + c] = sRGBToLinear(data[i * channels + c]);
+            }
+        }
+    }
+
+    FileIO::flipVerticallyOnWrite(false);
+    FileIO::writeToEXR(filename, width, height, channels, data.data());
+}
+
 #ifdef GL_CORE
-void Texture::saveDepthToFile(const std::string& filename) {
+void Texture::writeDepthToFile(const Path& filename) {
     std::vector<float> data(width * height);
 
     bind(0);
@@ -236,11 +277,3 @@ void Texture::saveDepthToFile(const std::string& filename) {
     FileIO::writeToBinaryFile(filename, data.data(), data.size());
 }
 #endif
-
-void Texture::writeJPGToMemory(std::vector<unsigned char>& outputData, int quality) {
-    outputData.resize(width * height * channels);
-    readPixels(outputData.data());
-
-    FileIO::flipVerticallyOnWrite(true);
-    FileIO::writeJPGToMemory(outputData, width, height, channels, outputData.data(), quality);
-}

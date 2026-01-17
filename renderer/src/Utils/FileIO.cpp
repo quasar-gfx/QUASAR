@@ -3,6 +3,9 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
 
+#include <ImfRgbaFile.h>
+#include <ImfArray.h>
+
 #include <Utils/FileIO.h>
 
 using namespace quasar;
@@ -188,6 +191,37 @@ float* FileIO::loadImageFromHDR(const std::string& filename, int* width, int* he
 #endif
 }
 
+float* FileIO::loadImageFromEXR(const std::string& filename, int* width, int* height, int* channels) {
+    try {
+        Imf::RgbaInputFile file(filename.c_str());
+        Imath::Box2i dw = file.dataWindow();
+        *width = dw.max.x - dw.min.x + 1;
+        *height = dw.max.y - dw.min.y + 1;
+        *channels = 4; // RGBA
+
+        Imf::Array2D<Imf::Rgba> pixels(*height, *width);
+        file.setFrameBuffer(&pixels[0][0], 1, *width);
+        file.readPixels(dw.min.y, dw.max.y);
+
+        float* data = (float*)malloc(*width * *height * 4 * sizeof(float));
+        for (int y = 0; y < *height; y++) {
+            for (int x = 0; x < *width; x++) {
+                const Imf::Rgba& p = pixels[y][x];
+                int idx = (y * *width + x) * 4;
+                data[idx + 0] = p.r;
+                data[idx + 1] = p.g;
+                data[idx + 2] = p.b;
+                data[idx + 3] = p.a;
+            }
+        }
+        return data;
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Error reading EXR file " << filename << ": " << e.what() << std::endl;
+        return nullptr;
+    }
+}
+
 size_t FileIO::writeToTextFile(const std::string& filename, const std::string& data, bool append) {
 #ifndef __ANDROID__
     std::ofstream file;
@@ -262,24 +296,6 @@ size_t FileIO::writeToBinaryFile(const std::string& filename, const void* data, 
 #endif
 }
 
-void FileIO::writeToPNG(const std::string& filename, int width, int height, int channels, const void *data) {
-    if (!stbi_write_png(filename.c_str(), width, height, channels, data, width * channels)) {
-        throw std::runtime_error("Failed to save PNG image: " + filename);
-    }
-}
-
-void FileIO::writeToJPG(const std::string& filename, int width, int height, int channels, const void *data, int quality) {
-    if (!stbi_write_jpg(filename.c_str(), width, height, channels, data, quality)) {
-        throw std::runtime_error("Failed to save JPG image: " + filename);
-    }
-}
-
-void FileIO::writeToHDR(const std::string& filename, int width, int height, int channels, const float *data) {
-    if (!stbi_write_hdr(filename.c_str(), width, height, channels, data)) {
-        throw std::runtime_error("Failed to save HDR image: " + filename);
-    }
-}
-
 size_t FileIO::writeJPGToMemory(std::vector<unsigned char>& outputData, int width, int height, int channels, const void *data, int quality) {
     auto write_func = [](void* context, void* d, int s) {
         MemBuffer* mb = static_cast<MemBuffer*>(context);
@@ -309,6 +325,49 @@ size_t FileIO::writeJPGToMemory(std::vector<unsigned char>& outputData, int widt
 
     free(mb.data);
     return outputData.size();
+}
+
+void FileIO::writeToPNG(const std::string& filename, int width, int height, int channels, const void *data) {
+    if (!stbi_write_png(filename.c_str(), width, height, channels, data, width * channels)) {
+        throw std::runtime_error("Failed to save PNG image: " + filename);
+    }
+}
+
+void FileIO::writeToJPG(const std::string& filename, int width, int height, int channels, const void *data, int quality) {
+    if (!stbi_write_jpg(filename.c_str(), width, height, channels, data, quality)) {
+        throw std::runtime_error("Failed to save JPG image: " + filename);
+    }
+}
+
+void FileIO::writeToHDR(const std::string& filename, int width, int height, int channels, const float *data) {
+    if (!stbi_write_hdr(filename.c_str(), width, height, channels, data)) {
+        throw std::runtime_error("Failed to save HDR image: " + filename);
+    }
+}
+
+void FileIO::writeToEXR(const std::string& filename, int width, int height, int channels, const float *data) {
+    try {
+        Imf::RgbaOutputFile file(filename.c_str(), width, height, Imf::WRITE_RGBA);
+        Imf::Array2D<Imf::Rgba> pixels(height, width);
+
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int idx = ((height - 1 - y) * width + x) * channels;
+                Imf::Rgba &p = pixels[y][x];
+                if (channels >= 1) p.r = data[idx + 0]; else p.r = 0;
+                if (channels >= 2) p.g = data[idx + 1]; else p.g = p.r; // Grayscale
+                if (channels >= 3) p.b = data[idx + 2]; else p.b = p.r; // Grayscale
+                if (channels >= 4) p.a = data[idx + 3]; else p.a = 1.0f;
+            }
+        }
+
+        file.setFrameBuffer(&pixels[0][0], 1, width);
+        file.writePixels(height);
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Error writing EXR file " << filename << ": " << e.what() << std::endl;
+        throw std::runtime_error("Failed to save EXR image: " + filename);
+    }
 }
 
 void FileIO::freeImage(void* imageData) {

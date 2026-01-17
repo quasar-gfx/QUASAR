@@ -60,7 +60,7 @@ public:
         uint numThreads = 8);
     ~Recorder();
 
-    void saveScreenshotToFile(const Path& filename, bool writeToHDR = false);
+    void saveScreenshotToFile(const Path& filename);
 
     void setOutputPath(const Path& path);
     void setFormat(OutputFormat format);

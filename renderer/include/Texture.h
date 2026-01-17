@@ -7,6 +7,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <OpenGLObject.h>
+#include <Path.h>
 
 namespace quasar {
 
@@ -44,7 +45,7 @@ struct TextureFileCreateParams {
     uint numSamples = 4;
     bool array = false;
     uint arrayLayers = 2;
-    std::string path = "";
+    Path path;
 };
 
 class Texture : public OpenGLObject {
@@ -94,7 +95,7 @@ public:
 
     void resize(uint width, uint height);
 
-    void loadFromFile(const std::string& path, bool flipTextureY, bool gammaCorrected);
+    void loadFromFile(const Path& path, bool flipTextureY, bool gammaCorrected);
     void loadFromData(const void* data, bool resize = false);
 
     void cleanup() {
@@ -102,13 +103,15 @@ public:
     }
 
     void readPixels(unsigned char* data, bool readAsFloat = false);
-    void writeToPNG(const std::string& filename);
-    void writeToJPG(const std::string& filename, int quality = 85);
-    void writeToHDR(const std::string& filename);
-#ifdef GL_CORE
-    void saveDepthToFile(const std::string& filename);
-#endif
+
     void writeJPGToMemory(std::vector<unsigned char>& outputData, int quality = 85);
+    void writeToPNG(const Path& filename);
+    void writeToJPG(const Path& filename, int quality = 85);
+    void writeToHDR(const Path& filename);
+    void writeToEXR(const Path& filename, bool convertToLinear = true);
+#ifdef GL_CORE
+    void writeDepthToFile(const Path& filename);
+#endif
 
 protected:
     GLenum target;

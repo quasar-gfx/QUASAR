@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 project(OpenGLRenderer)
 
-set(TARGET renderer)
+set(TARGET quasar_renderer)
 
 set(PUBLIC_HDR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(SHADERS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)

@@ -9,7 +9,8 @@
 
 #include <UI/CameraHeader.h>
 #include <UI/FrameRateWindow.h>
-#include <UI/FrameCaptureWindow.h>
+#include <UI/ScreenshotWindow.h>
+#include <UI/RecordWindow.h>
 #include <UI/TexturePreviewWindow.h>
 
 #include <Recorder.h>
@@ -129,7 +130,8 @@ int main(int argc, char** argv) {
 
     RenderStats renderStats;
     FrameRateWindow frameRateWindow;
-    FrameCaptureWindow frameCaptureWindow(recorder, ImVec2(430, 270), outputPath);
+    ScreenshotWindow screenshotWindow(recorder, ImVec2(430, 270), outputPath);
+    RecordWindow recordWindow(recorder, ImVec2(430, 270), outputPath);
     TexturePreviewWindow videoPreviewWindow("Video Texture", quadsReceiver.videoAtlasTexture, ImVec2(860, 270));
     TexturePreviewWindow alphaPreviewWindow("Alpha Texture", quadsReceiver.alphaAtlasTexture, ImVec2(860, 270));
     CameraHeader cameraHeader(camera);
@@ -146,15 +148,20 @@ int main(int argc, char** argv) {
         if (ImGui::BeginMenu("View")) {
             ImGui::MenuItem("FPS", 0, &frameRateWindow.visible);
             ImGui::MenuItem("UI", 0, &showUI);
-            ImGui::MenuItem("Frame Capture", 0, &frameCaptureWindow.visible);
             ImGui::MenuItem("Video Preview", 0, &videoPreviewWindow.visible);
             ImGui::MenuItem("Alpha Preview", 0, &alphaPreviewWindow.visible);
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Frame Capture")) {
+            ImGui::MenuItem("Take Screenshot", 0, &screenshotWindow.visible);
+            ImGui::MenuItem("Record Video", 0, &recordWindow.visible);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
 
         frameRateWindow.draw(now, dt);
-        frameCaptureWindow.draw(now, dt);
+        screenshotWindow.draw(now, dt);
+        recordWindow.draw(now, dt);
         videoPreviewWindow.draw(now, dt);
         alphaPreviewWindow.draw(now, dt);
 

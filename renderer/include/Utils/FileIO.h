@@ -26,13 +26,15 @@ public:
     static unsigned char* loadImage(const std::string& filename, int* width, int* height, int* channels, int desiredChannels = 0);
     static unsigned char* loadImageFromMemory(const unsigned char* data, int size, int* width, int* height, int* channels, int desiredChannels = 0);
     static float* loadImageFromHDR(const std::string& filename, int* width, int* height, int* channels, int desiredChannels = 0);
+    static float* loadImageFromEXR(const std::string& filename, int* width, int* height, int* channels);
 
     static size_t writeToTextFile(const std::string& filename, const std::string& data, bool append = false);
     static size_t writeToBinaryFile(const std::string& filename, const void* data, size_t size, bool append = false);
+    static size_t writeJPGToMemory(std::vector<unsigned char>& outputData, int width, int height, int channels, const void *data, int quality = 85);
     static void writeToPNG(const std::string& filename, int width, int height, int channels, const void *data);
     static void writeToJPG(const std::string& filename, int width, int height, int channels, const void *data, int quality = 85);
     static void writeToHDR(const std::string& filename, int width, int height, int channels, const float *data);
-    static size_t writeJPGToMemory(std::vector<unsigned char>& outputData, int width, int height, int channels, const void *data, int quality = 85);
+    static void writeToEXR(const std::string& filename, int width, int height, int channels, const float *data);
 
     static void freeImage(void* imageData);
 

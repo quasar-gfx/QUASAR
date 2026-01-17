@@ -44,14 +44,20 @@ void Recorder::setTargetFrameRate(int targetFrameRate) {
     frameCount = 0;
 }
 
-void Recorder::saveScreenshotToFile(const Path& filename, bool writeToHDR) {
+void Recorder::saveScreenshotToFile(const Path& filename) {
     effect.drawToRenderTarget(renderer, *this);
 
-    if (writeToHDR) {
-        writeColorAsHDR(filename.withExtension(".hdr"));
+    if (filename.extension() == ".hdr") {
+        writeColorAsHDR(filename);
+    }
+    else if (filename.extension() == ".exr") {
+        writeColorAsEXR(filename);
+    }
+    else if (filename.extension() == ".jpg" || filename.extension() == ".jpeg") {
+        writeColorAsJPG(filename);
     }
     else {
-        writeColorAsPNG(filename.withExtension(".png"));
+        writeColorAsPNG(filename);
     }
 }
 
@@ -85,7 +91,7 @@ void Recorder::stop() {
 
     // Clear queue
     FrameData dummy;
-    while (frameQueue.try_dequeue(dummy)) {}
+    while (frameQueue.try_dequeue(dummy));
     frameCount = 0;
 }
 

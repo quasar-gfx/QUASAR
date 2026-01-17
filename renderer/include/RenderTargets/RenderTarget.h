@@ -117,6 +117,13 @@ public:
         unbind();
     }
 
+    void writeColorAsEXR(const std::string& path) {
+        bind();
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
+        colorTexture.writeToEXR(path);
+        unbind();
+    }
+
     void writeColorJPGToMemory(std::vector<unsigned char>& outputData, int quality = 85) {
         bind();
         glReadBuffer(GL_COLOR_ATTACHMENT0);

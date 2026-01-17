@@ -10,7 +10,7 @@
 
 #include <UI/CameraHeader.h>
 #include <UI/FrameRateWindow.h>
-#include <UI/FrameCaptureWindow.h>
+#include <UI/ScreenshotWindow.h>
 #include <UI/RecordWindow.h>
 #include <UI/SceneWindow.h>
 
@@ -188,7 +188,7 @@ int main(int argc, char** argv) {
 
     RenderStats renderStats;
     FrameRateWindow frameRateWindow;
-    FrameCaptureWindow frameCaptureWindow(recorder, ImVec2(430, 270), outputPath);
+    ScreenshotWindow screenshotWindow(recorder, ImVec2(430, 270), outputPath);
     RecordWindow recordWindow(recorder, ImVec2(430, 270), outputPath);
     SceneWindow sceneWindowRemote(remoteScene, ImVec2(430, 800));
     SceneWindow sceneWindowLocal(localScene, ImVec2(430, 800));
@@ -208,8 +208,6 @@ int main(int argc, char** argv) {
         if (ImGui::BeginMenu("View")) {
             ImGui::MenuItem("FPS", 0, &frameRateWindow.visible);
             ImGui::MenuItem("UI", 0, &showUI);
-            ImGui::MenuItem("Frame Capture", 0, &frameCaptureWindow.visible);
-            ImGui::MenuItem("Record", 0, &recordWindow.visible);
             ImGui::MenuItem("Mesh Capture", 0, &showMeshCapture);
             ImGui::MenuItem("Frame Previews", 0, &showFramePreviews);
             ImGui::EndMenu();
@@ -219,10 +217,15 @@ int main(int argc, char** argv) {
             ImGui::MenuItem("Local Scene", 0, &sceneWindowLocal.visible);
             ImGui::EndMenu();
         }
+        if (ImGui::BeginMenu("Frame Capture")) {
+            ImGui::MenuItem("Take Screenshot", 0, &screenshotWindow.visible);
+            ImGui::MenuItem("Record Video", 0, &recordWindow.visible);
+            ImGui::EndMenu();
+        }
         ImGui::EndMainMenuBar();
 
         frameRateWindow.draw(now, dt);
-        frameCaptureWindow.draw(now, dt);
+        screenshotWindow.draw(now, dt);
         recordWindow.draw(now, dt);
         sceneWindowRemote.draw(now, dt);
         sceneWindowLocal.draw(now, dt);
