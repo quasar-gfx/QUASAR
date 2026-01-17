@@ -78,8 +78,8 @@ set(LIBS ${LIBS} OpenEXR::OpenEXR)
 # lz4
 set(LZ4_BUILD_CLI OFF CACHE BOOL "" FORCE)
 set(LZ4_BUILD_LEGACY_LZ4C OFF CACHE BOOL "" FORCE)
-add_subdirectory(${EXTERNAL_DIR}/lz4/tnt)
-set(LIBS ${LIBS} lz4)
+add_subdirectory(${EXTERNAL_DIR}/lz4/build/cmake)
+set(LIBS ${LIBS} lz4_static)
 
 # zstd
 set(ZSTD_LEGACY_SUPPORT OFF CACHE BOOL "" FORCE)

@@ -26,25 +26,11 @@ LZ4 library is provided as open-source software using BSD 2-Clause license.
 
 |Branch      |Status   |
 |------------|---------|
-|master      | [![Build Status][travisMasterBadge]][travisLink] [![Build status][AppveyorMasterBadge]][AppveyorLink] [![coverity][coverBadge]][coverlink] |
-|dev         | [![Build Status][travisDevBadge]][travisLink]    [![Build status][AppveyorDevBadge]][AppveyorLink]                                         |
+|dev         | [![Build status][AppveyorDevBadge]][AppveyorLink]  |
 
-[travisMasterBadge]: https://travis-ci.org/lz4/lz4.svg?branch=master "Continuous Integration test suite"
-[travisDevBadge]: https://travis-ci.org/lz4/lz4.svg?branch=dev "Continuous Integration test suite"
-[travisLink]: https://travis-ci.org/lz4/lz4
-[AppveyorMasterBadge]: https://ci.appveyor.com/api/projects/status/github/lz4/lz4?branch=master&svg=true "Windows test suite"
 [AppveyorDevBadge]: https://ci.appveyor.com/api/projects/status/github/lz4/lz4?branch=dev&svg=true "Windows test suite"
 [AppveyorLink]: https://ci.appveyor.com/project/YannCollet/lz4-1lndh
-[coverBadge]: https://scan.coverity.com/projects/4735/badge.svg "Static code analysis of Master branch"
-[coverlink]: https://scan.coverity.com/projects/4735
 
-> **Branch Policy:**
-> - The "master" branch is considered stable, at all times.
-> - The "dev" branch is the one where all contributions must be merged
-    before being promoted to master.
->   + If you plan to propose a patch, please commit into the "dev" branch,
-      or its own feature branch.
-      Direct commit to "master" are not permitted.
 
 Benchmarks
 -------------------------
@@ -68,13 +54,13 @@ in single-thread mode.
 | [Zstandard] 1.4.0 -1    |  2.883  |   515 MB/s  |   1380 MB/s   |
 |  LZF v3.6               |  2.073  |   415 MB/s  |    910 MB/s   |
 | [zlib] deflate 1.2.11 -1|  2.730  |   100 MB/s  |    415 MB/s   |
-|**LZ4 HC -9 (v1.8.2)**   |**2.721**|    41 MB/s  | **4900 MB/s** |
+|**LZ4 HC -9 (v1.9.0)**   |**2.721**|    41 MB/s  | **4900 MB/s** |
 | [zlib] deflate 1.2.11 -6|  3.099  |    36 MB/s  |    445 MB/s   |
 
 [zlib]: http://www.zlib.net/
 [Zstandard]: http://www.zstd.net/
 
-LZ4 is also compatible and optimized for x32 mode,
+LZ4 is also compatible and optimized for x32 mode (`-mx32`),
 for which it provides additional speed performance.
 
 
@@ -95,6 +81,17 @@ It is compatible with parallel builds (`-j#`).
 [redirection]: https://www.gnu.org/prep/standards/html_node/Directory-Variables.html
 [command redefinition]: https://www.gnu.org/prep/standards/html_node/Utilities-in-Makefiles.html
 
+### Building LZ4 - Using vcpkg
+
+You can download and install LZ4 using the [vcpkg](https://github.com/Microsoft/vcpkg) dependency manager:
+
+    git clone https://github.com/Microsoft/vcpkg.git
+    cd vcpkg
+    ./bootstrap-vcpkg.sh
+    ./vcpkg integrate install
+    ./vcpkg.exe install lz4
+
+The LZ4 port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please [create an issue or pull request](https://github.com/Microsoft/vcpkg) on the vcpkg repository.
 
 Documentation
 -------------------------
@@ -119,3 +116,16 @@ many contributors have created versions of lz4 in multiple languages
 A list of known source ports is maintained on the [LZ4 Homepage].
 
 [LZ4 Homepage]: http://www.lz4.org
+
+### Packaging status
+
+Most distributions are bundled with a package manager
+which allows easy installation of both the `liblz4` library
+and the `lz4` command line interface.
+
+[![Packaging status](https://repology.org/badge/vertical-allrepos/lz4.svg)](https://repology.org/project/lz4/versions)
+
+
+### Special Thanks
+
+- Takayuki Matsuoka, aka @t-mat, for exceptional first-class support throughout the lifetime of this project

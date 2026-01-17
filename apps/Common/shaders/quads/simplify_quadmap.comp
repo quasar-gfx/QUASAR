@@ -318,32 +318,36 @@ Plane averagePlanes(
     in Plane plane1, in Plane plane2, in Plane plane3, in Plane plane4,
     in QuadMapData quadMapDataBottomLeft, in QuadMapData quadMapDataBottomRight, in QuadMapData quadMapDataTopLeft, in QuadMapData quadMapDataTopRight)
 {
-    vec4 proxyPlaneEq1 = planeToPlaneEq(plane1);
-    vec4 proxyPlaneEq2 = planeToPlaneEq(plane2);
-    vec4 proxyPlaneEq3 = planeToPlaneEq(plane3);
-    vec4 proxyPlaneEq4 = planeToPlaneEq(plane4);
-
-    vec4 sumProxyPlaneEq = vec4(0.0);
+    vec3 sumNormal = vec3(0.0);
+    vec3 sumPoint = vec3(0.0);
     int validCount = 0;
+
     if (expandProxies) {
         bool validBottomLeft  = isValidQuadMapData(quadMapDataBottomLeft);
         bool validBottomRight = isValidQuadMapData(quadMapDataBottomRight);
         bool validTopLeft     = isValidQuadMapData(quadMapDataTopLeft);
         bool validTopRight    = isValidQuadMapData(quadMapDataTopRight);
 
-        if (validBottomLeft)  sumProxyPlaneEq += proxyPlaneEq1;
-        if (validBottomRight) sumProxyPlaneEq += proxyPlaneEq2;
-        if (validTopLeft)     sumProxyPlaneEq += proxyPlaneEq3;
-        if (validTopRight)    sumProxyPlaneEq += proxyPlaneEq4;
+        if (validBottomLeft)  { sumNormal += plane1.normal; sumPoint += plane1.point; }
+        if (validBottomRight) { sumNormal += plane2.normal; sumPoint += plane2.point; }
+        if (validTopLeft)     { sumNormal += plane3.normal; sumPoint += plane3.point; }
+        if (validTopRight)    { sumNormal += plane4.normal; sumPoint += plane4.point; }
         validCount = int(validBottomLeft) + int(validBottomRight) + int(validTopLeft) + int(validTopRight);
     }
     else {
-        sumProxyPlaneEq = proxyPlaneEq1 + proxyPlaneEq2 + proxyPlaneEq3 + proxyPlaneEq4;
+        sumNormal = plane1.normal + plane2.normal + plane3.normal + plane4.normal;
+        sumPoint = plane1.point + plane2.point + plane3.point + plane4.point;
         validCount = 4;
     }
 
-    vec4 newProxyPlaneEq = sumProxyPlaneEq / float(validCount);
-    Plane newProxyPlane = planeEqToPlane(newProxyPlaneEq);
+    if (validCount == 0) {
+        return Plane(vec3(0.0, 0.0, 1.0), vec3(0.0));
+    }
+
+    Plane newProxyPlane;
+    newProxyPlane.normal = normalize(sumNormal);
+    newProxyPlane.point = sumPoint / float(validCount);
+
     return newProxyPlane;
 }
 

@@ -1,6 +1,6 @@
 /*
   LZ4io.h - LZ4 File/Stream Interface
-  Copyright (C) Yann Collet 2011-2016
+  Copyright (C) Yann Collet 2011-2023
   GPL v2 License
 
   This program is free software; you can redistribute it and/or modify
@@ -39,13 +39,13 @@
 /* ************************************************** */
 /* Special input/output values                        */
 /* ************************************************** */
+#define stdinmark  "stdin"
+#define stdoutmark "stdout"
 #define NULL_OUTPUT "null"
-static const char stdinmark[]  = "stdin";
-static const char stdoutmark[] = "stdout";
 #ifdef _WIN32
-static const char nulmark[] = "nul";
+#define nulmark "nul"
 #else
-static const char nulmark[] = "/dev/null";
+#define nulmark "/dev/null"
 #endif
 
 /* ************************************************** */
@@ -55,25 +55,28 @@ static const char nulmark[] = "/dev/null";
 typedef struct LZ4IO_prefs_s LZ4IO_prefs_t;
 
 LZ4IO_prefs_t* LZ4IO_defaultPreferences(void);
-void LZ4IO_freePreferences(LZ4IO_prefs_t* const prefs);
+void LZ4IO_freePreferences(LZ4IO_prefs_t* prefs);
 
 
-/* ************************************************** */
-/* ****************** Functions ********************* */
-/* ************************************************** */
+/* *************************************************** */
+/* ****************** Processing ********************* */
+/* *************************************************** */
 
 /* if output_filename == stdoutmark, writes to stdout */
-int LZ4IO_compressFilename(LZ4IO_prefs_t* const prefs, const char* input_filename, const char* output_filename, int compressionlevel);
-int LZ4IO_decompressFilename(LZ4IO_prefs_t* const prefs, const char* input_filename, const char* output_filename);
+int LZ4IO_compressFilename(const char* input_filename, const char* output_filename, int compressionlevel, const LZ4IO_prefs_t* prefs);
+int LZ4IO_decompressFilename(const char* input_filename, const char* output_filename, const LZ4IO_prefs_t* prefs);
 
 /* if suffix == stdoutmark, writes to stdout */
-int LZ4IO_compressMultipleFilenames(LZ4IO_prefs_t* const prefs, const char** inFileNamesTable, int ifntSize, const char* suffix, int compressionlevel);
-int LZ4IO_decompressMultipleFilenames(LZ4IO_prefs_t* const prefs, const char** inFileNamesTable, int ifntSize, const char* suffix);
+int LZ4IO_compressMultipleFilenames(const char** inFileNamesTable, int ifntSize, const char* suffix, int compressionlevel, const LZ4IO_prefs_t* prefs);
+int LZ4IO_decompressMultipleFilenames(const char** inFileNamesTable, int ifntSize, const char* suffix, const LZ4IO_prefs_t* prefs);
 
 
 /* ************************************************** */
 /* ****************** Parameters ******************** */
 /* ************************************************** */
+
+int LZ4IO_setNbWorkers(LZ4IO_prefs_t* const prefs, int nbWorkers);
+int LZ4IO_defaultNbWorkers(void);
 
 int LZ4IO_setDictionaryFilename(LZ4IO_prefs_t* const prefs, const char* dictionaryFilename);
 
@@ -122,6 +125,11 @@ void LZ4IO_setRemoveSrcFile(LZ4IO_prefs_t* const prefs, unsigned flag);
 /* Default setting : 0 == favor compression ratio
  * Note : 1 only works for high compression levels (10+) */
 void LZ4IO_favorDecSpeed(LZ4IO_prefs_t* const prefs, int favor);
+
+
+/* implement --list
+ * @return 0 on success, 1 on error */
+int LZ4IO_displayCompressedFilesInfo(const char** inFileNames, size_t ifnIdx);
 
 
 #endif  /* LZ4IO_H_237902873 */
