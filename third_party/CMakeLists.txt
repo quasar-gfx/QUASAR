@@ -73,6 +73,9 @@ add_subdirectory(${EXTERNAL_DIR}/openexr)
 if(UNIX)
     target_compile_options(OpenEXR PRIVATE -Wno-deprecated-declarations)
 endif()
+if(ANDROID)
+    target_compile_options(OpenEXRCore PRIVATE -Wno-pointer-sign -Wno-format)
+endif()
 set(LIBS ${LIBS} OpenEXR::OpenEXR)
 
 # lz4

@@ -174,7 +174,8 @@ public:
                                 const uint8_t v = uint8_t(int16_t(prevFrame[idx]) + d);
                                 prevFrame[idx] = v;
                                 decompressedData[idx] = static_cast<char>(v);
-                            } else {
+                            }
+                            else {
                                 const uint8_t v = prevFrame[idx];
                                 decompressedData[idx] = static_cast<char>(v);
                             }
