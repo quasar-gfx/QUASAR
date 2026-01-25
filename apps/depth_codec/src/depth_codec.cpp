@@ -45,10 +45,13 @@ int main(int argc, char** argv) {
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
-    args::Flag verbose(parser, "verbose", "Enable verbose logging", {'v', "verbose"});
-    args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "1920x1080");
+    args::ValueFlag<int> verbosity(parser, "verbosity", "Set log verbosity level", {'v', "verbosity"}, 2 /* spdlog::level::info */);
+    args::ValueFlag<std::string> sizeIn(parser, "size", "Window resolution", {'s', "size"}, "1920x1080");
     args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
+    args::Flag saveImages(parser, "save", "Save outputs to disk", {'I', "save-images"});
+    args::ValueFlag<std::string> cameraPathFileIn(parser, "camera-path", "Path to camera animation file", {'C', "camera-path"});
+    args::ValueFlag<int> numPosesIn(parser, "num-poses", "Number of poses to load from camera path", {'n', "num-poses"}, -1);
     args::ValueFlag<std::string> outputPathIn(parser, "output-path", "Directory to save outputs", {'o', "output-path"}, ".");
     args::ValueFlag<uint> vertexGroupSizeIn(parser, "vertex", "Size of vertex grouping", {'g', "vertex-group-size"}, 1);
     try {
@@ -62,7 +65,15 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    if (verbose) spdlog::set_level(spdlog::level::debug);
+
+
+    // Parse arguments
+    bool saveImagesToDisk = args::get(saveImages);
+    int numPoses = args::get(numPosesIn);
+    Path outputPath = Path(args::get(outputPathIn)); outputPath.mkdirRecursive();
+    Path sceneFile = args::get(sceneFileIn);
+    Path cameraPathFile = args::get(cameraPathFileIn);
+    uint vertexGroupSize = args::get(vertexGroupSizeIn);
 
     // Parse size
     std::string sizeStr = args::get(sizeIn);
@@ -71,12 +82,9 @@ int main(int argc, char** argv) {
     config.width = windowSize.x;
     config.height = windowSize.y;
 
-    config.enableVSync = !args::get(novsync);
-
-    Path outputPath = Path(args::get(outputPathIn)); outputPath.mkdirRecursive();
-    Path sceneFile = args::get(sceneFileIn);
-
-    uint vertexGroupSize = args::get(vertexGroupSizeIn);
+    config.verbosity = args::get(verbosity);
+    config.enableVSync = !args::get(novsync) && !saveImagesToDisk;
+    config.showWindow = !saveImagesToDisk;
 
     auto window = std::make_shared<GLFWWindow>(config);
     auto guiManager = std::make_shared<ImGuiManager>(window);
@@ -186,15 +194,29 @@ int main(int argc, char** argv) {
     scene.addChildNode(&nodeDecompressed);
 
     bool sendRemoteFrame = true;
-    RenderStats renderStats;
+
     FrameRateWindow frameRateWindow;
     ScreenshotWindow screenshotWindow(recorder, ImVec2(430, 270), outputPath);
     RecordWindow recordWindow(recorder, ImVec2(430, 270), outputPath);
     TexturePreviewWindow depthPreviewWindow("Depth", remoteRenderer.frameRT.depthStencilTexture, ImVec2(430, 270));
     SceneWindow sceneWindow(scene, ImVec2(430, 800));
     CameraHeader cameraHeader(camera);
+
+    CameraAnimator cameraAnimator(cameraPathFile, numPoses, !saveImagesToDisk); // Disable tweening when saving images
+    if (saveImagesToDisk || cameraPathFileIn) {
+        cameraAnimator.copyPoseToCamera(camera);
+        spdlog::info("Loading camera path {} and saving images to {}", cameraPathFile.str(), outputPath.str());
+
+        if (saveImagesToDisk) {
+            recorder.setTargetFrameRate(-1 /* unlimited */);
+            recorder.setFormat(Recorder::OutputFormat::PNG);
+            recorder.start();
+        }
+    }
+
+    RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
-        static bool showUI = true;
+        static bool showUI = !saveImagesToDisk;
 
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {
@@ -330,9 +352,20 @@ int main(int argc, char** argv) {
         if (keys.ESC_PRESSED) {
             window->close();
         }
-        auto scroll = window->getScrollOffset();
-        camera.processScroll(scroll.y);
-        camera.processKeyboard(keys, dt);
+
+        if (cameraAnimator.isRunning()) {
+            bool waypointUpdated = cameraAnimator.update(saveImagesToDisk ? (1.0 / 60.0) : dt);
+            now = cameraAnimator.now;
+            dt = cameraAnimator.dt;
+            if (waypointUpdated) {
+                cameraAnimator.copyPoseToCamera(camera);
+            }
+        }
+        else {
+            auto scroll = window->getScrollOffset();
+            camera.processScroll(scroll.y);
+            camera.processKeyboard(keys, dt);
+        }
 
         if (sendRemoteFrame) {
             remoteCamera.setPosition(camera.getPosition());
@@ -413,6 +446,18 @@ int main(int argc, char** argv) {
         // Render to screen
         tonemapper.enableTonemapping(false);
         tonemapper.drawToScreen(renderer);
+
+        if (saveImagesToDisk) {
+            recorder.captureFrame(camera);
+
+            if (!cameraAnimator.isRunning()) {
+                recorder.stop();
+                window->close();
+            }
+        }
+        else if (recordWindow.isRecording()) {
+            recorder.captureFrame(camera);
+        }
     });
 
     // Run app loop (blocking)

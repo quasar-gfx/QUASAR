@@ -1,8 +1,6 @@
 #include <fstream>
 #include <sstream>
-
 #include <spdlog/spdlog.h>
-
 #include <CameraAnimator.h>
 #include <Utils/TimeUtils.h>
 

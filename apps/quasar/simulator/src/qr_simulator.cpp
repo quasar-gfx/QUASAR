@@ -38,9 +38,9 @@ int main(int argc, char** argv) {
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
-    args::Flag verbose(parser, "verbose", "Enable verbose logging", {'v', "verbose"});
-    args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of local renderer", {'s', "size"}, "1920x1080");
-    args::ValueFlag<std::string> resIn(parser, "rsize", "Resolution of remote renderer", {'r', "rsize"}, "1920x1080");
+    args::ValueFlag<int> verbosity(parser, "verbosity", "Set log verbosity level", {'v', "verbosity"}, 2 /* spdlog::level::info */);
+    args::ValueFlag<std::string> sizeIn(parser, "size", "Window resolution", {'s', "size"}, "1920x1080");
+    args::ValueFlag<std::string> rsizeIn(parser, "rsize", "Renderer resolution", {"rsize"}, "1920x1080");
     args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::Flag saveImages(parser, "save", "Save outputs to disk", {'I', "save-images"});
@@ -66,7 +66,12 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    if (verbose) spdlog::set_level(spdlog::level::debug);
+    // Parse arguments
+    bool saveImagesToDisk = args::get(saveImages);
+    int numPoses = args::get(numPosesIn);
+    Path outputPath = Path(args::get(outputPathIn)); outputPath.mkdirRecursive();
+    Path sceneFile = args::get(sceneFileIn);
+    Path cameraPathFile = args::get(cameraPathFileIn);
 
     // Parse size
     std::string sizeStr = args::get(sizeIn);
@@ -75,19 +80,15 @@ int main(int argc, char** argv) {
     config.width = windowSize.x;
     config.height = windowSize.y;
 
-    // Parse remote size
-    std::string rsizeStr = args::get(resIn);
+    // Parse render size
+    std::string rsizeStr = args::get(rsizeIn);
     pos = rsizeStr.find('x');
-    glm::uvec2 remoteWindowSize = glm::uvec2(std::stoi(rsizeStr.substr(0, pos)), std::stoi(rsizeStr.substr(pos + 1)));
+    glm::uvec2 renderSize = glm::uvec2(std::stoi(rsizeStr.substr(0, pos)), std::stoi(rsizeStr.substr(pos + 1)));
+    glm::uvec2 remoteWindowSize = renderSize;
 
-    config.enableVSync = !args::get(novsync) && !saveImages;
-    config.showWindow = !args::get(saveImages);
-
-    Path sceneFile = args::get(sceneFileIn);
-    Path cameraPathFile = args::get(cameraPathFileIn);
-    int numPoses = args::get(numPosesIn);
-    Path outputPath = Path(args::get(outputPathIn)); outputPath.mkdirRecursive();
-
+    config.verbosity = args::get(verbosity);
+    config.enableVSync = !args::get(novsync) && !saveImagesToDisk;
+    config.showWindow = !saveImagesToDisk;
     uint maxHidLayers = args::get(maxHiddenLayersIn);
     uint maxLayers = maxHidLayers + 2;
 
@@ -147,18 +148,6 @@ int main(int argc, char** argv) {
         .minFilter = GL_LINEAR,
         .magFilter = GL_LINEAR,
     }, renderer, holeFiller, outputPath, config.targetFramerate);
-    CameraAnimator cameraAnimator(cameraPathFile, numPoses);
-
-    if (saveImages) {
-        recorder.setTargetFrameRate(-1 /* unlimited */);
-        recorder.setFormat(Recorder::OutputFormat::PNG);
-        recorder.start();
-    }
-
-    if (cameraPathFileIn) {
-        cameraAnimator.copyPoseToCamera(camera);
-        cameraAnimator.copyPoseToCamera(remoteCamera);
-    }
 
     bool showDepth = false;
     bool showNormals = false;
@@ -196,7 +185,6 @@ int main(int argc, char** argv) {
         showLayers[i] = true;
     }
 
-    RenderStats renderStats;
     FrameRateWindow frameRateWindow;
     ScreenshotWindow screenshotWindow(recorder, ImVec2(430, 270), outputPath);
     RecordWindow recordWindow(recorder, ImVec2(430, 270), outputPath);
@@ -208,8 +196,23 @@ int main(int argc, char** argv) {
     SceneWindow sceneWindowRemote(remoteScene, ImVec2(430, 800));
     SceneWindow sceneWindowLocal(localScene, ImVec2(430, 800));
     CameraHeader cameraHeader(camera);
+
+    CameraAnimator cameraAnimator(cameraPathFile, numPoses, !saveImagesToDisk); // Disable tweening when saving images
+    if (saveImagesToDisk || cameraPathFileIn) {
+        cameraAnimator.copyPoseToCamera(camera);
+        cameraAnimator.copyPoseToCamera(remoteCamera);
+        spdlog::info("Loading camera path {} and saving images to {}", cameraPathFile.str(), outputPath.str());
+
+        if (saveImagesToDisk) {
+            recorder.setTargetFrameRate(-1 /* unlimited */);
+            recorder.setFormat(Recorder::OutputFormat::PNG);
+            recorder.start();
+        }
+    }
+
+    RenderStats renderStats;
     guiManager->onRender([&](double now, double dt) {
-        static bool showUI = !saveImages;
+        static bool showUI = !saveImagesToDisk;
         static bool showMeshCapture = false;
         static bool showFramePreviewWindows = false;
         static bool showLayerPreviews = false;
@@ -454,7 +457,6 @@ int main(int argc, char** argv) {
 
     double totalDT = 0.0;
     double lastRenderTime = -INFINITY;
-    bool updateClient = !saveImages;
     int frameCounter = 0;
     app.onRender([&](double now, double dt) {
         // Handle mouse input
@@ -496,11 +498,11 @@ int main(int argc, char** argv) {
             window->close();
         }
 
-        if (cameraAnimator.running) {
-            updateClient = cameraAnimator.update(!cameraPathFileIn ? dt : 1.0 / MILLISECONDS_IN_SECOND);
+        if (cameraAnimator.isRunning()) {
+            bool waypointUpdated = cameraAnimator.update(saveImagesToDisk ? (1.0 / 60.0) : dt);
             now = cameraAnimator.now;
             dt = cameraAnimator.dt;
-            if (updateClient) {
+            if (waypointUpdated) {
                 cameraAnimator.copyPoseToCamera(camera);
             }
         }
@@ -612,8 +614,6 @@ int main(int argc, char** argv) {
             camera.updateViewMatrix();
         }
 
-        double startTime = window->getTime();
-
         // Render generated meshes
         quasar.setDrawState(QuadMesh::DrawState::OPAQUE); // draw opaque quads first
         renderStats = renderer.drawObjects(localScene, camera);
@@ -625,19 +625,11 @@ int main(int argc, char** argv) {
         holeFiller.enableTonemapping(!showNormals);
         holeFiller.setDepthThreshold(quadsGenerator->params.depthThreshold);
         holeFiller.drawToScreen(renderer);
-        if (!updateClient) {
-            return;
-        }
-        if (cameraAnimator.running) {
-            spdlog::info("Client Render Time: {:.3f}ms", timeutils::secondsToMillis(window->getTime() - startTime));
-        }
 
-        posePredictor.accumulateError(camera, remoteCamera);
-
-        if (cameraPathFileIn) {
+        if (saveImagesToDisk) {
             recorder.captureFrame(camera);
 
-            if (!cameraAnimator.running) {
+            if (!cameraAnimator.isRunning()) {
                 auto errorStats = posePredictor.getErrorStats();
                 spdlog::info("Pose Error:");
                 spdlog::info("  Pos ({:.2f}±{:.2f},[{:.1f},{:.2f}])m",

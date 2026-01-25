@@ -11,6 +11,7 @@ OpenGLApp::OpenGLApp(const Config& config)
     , targetFramerate(config.enableVSync ? config.targetFramerate : 0)
 {
     spdlog::set_pattern("[%H:%M:%S] [%^%L%$] %v");
+    spdlog::set_level(static_cast<spdlog::level::level_enum>(config.verbosity));
 
     // Check opengl version
     if (config.openglMajorVersion < 3 || (config.openglMajorVersion == 3 && config.openglMinorVersion < 3)) {

@@ -1,5 +1,5 @@
-#ifndef ANIMATOR_H
-#define ANIMATOR_H
+#ifndef CAMERA_ANIMATOR_H
+#define CAMERA_ANIMATOR_H
 
 #include <vector>
 #include <string>
@@ -20,8 +20,6 @@ public:
         double timestamp;
     };
 
-    bool running = false;
-
     double now = 0.0;
     double dt = 0.0;
 
@@ -31,8 +29,10 @@ public:
     bool update(double dt);
 
     void copyPoseToCamera(PerspectiveCamera& camera) const;
+    bool isRunning() const { return running; }
 
 private:
+    bool running = false;
     int numPoses;
     bool tween = false;
 
@@ -45,4 +45,4 @@ private:
 
 } // namespace quasar
 
-#endif // ANIMATOR_H
+#endif // CAMERA_ANIMATOR_H

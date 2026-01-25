@@ -4,6 +4,8 @@
 #include <string>
 #include <memory>
 
+#include <spdlog/spdlog.h>
+
 #include <GraphicsPipeline.h>
 #include <Windowing/Window.h>
 #include <GUI/GUIManager.h>
@@ -14,6 +16,7 @@ struct Config {
     bool enableVSync = true;
     bool showWindow = true;
     bool sortTransparent = true;
+    int verbosity = SPDLOG_LEVEL_INFO;
     unsigned char openglMajorVersion = 4;
 #ifndef __APPLE__
     unsigned char openglMinorVersion = 6;

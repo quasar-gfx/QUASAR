@@ -344,7 +344,7 @@ float* FileIO::loadImageFromEXR(const std::string& filename, int* width, int* he
         float* data = (float*)malloc((size_t)(*width) * (size_t)(*height) * 4 * sizeof(float));
         for (int y = 0; y < *height; y++) {
             for (int x = 0; x < *width; x++) {
-                const Imf::Rgba& p = pixels[y][x];
+                const Imf::Rgba& p = pixels[*height - 1 - y][x];
                 int idx = (y * *width + x) * 4;
                 data[idx + 0] = p.r;
                 data[idx + 1] = p.g;
