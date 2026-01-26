@@ -168,8 +168,8 @@ int main(int argc, char** argv) {
     double rerenderIntervalMs = serverFPSIndex == 0 ? 0.0 : MILLISECONDS_IN_SECOND / serverFPSValues[serverFPSIndex];
     float networkLatency = !cameraPathFileIn ? 0.0f : args::get(networkLatencyIn);
     float networkJitter = !cameraPathFileIn ? 0.0f : args::get(networkJitterIn);
-    bool posePrediction = posePredictionIn;
-    bool poseSmoothing = poseSmoothingIn;
+    bool posePrediction = args::get(posePredictionIn);
+    bool poseSmoothing = args::get(poseSmoothingIn);
     NetworkSimulator networkSimulator({
         .networkLatencyMs = networkLatency,
         .networkJitterMs = networkJitter,
@@ -529,6 +529,7 @@ int main(int argc, char** argv) {
             Pose currentPose;
             currentPose.setViewMatrix(camera.getViewMatrix());
             currentPose.setProjectionMatrix(camera.getProjectionMatrix());
+            currentPose.timestamp = static_cast<double>(timeutils::secondsToMicros(now));
             networkSimulator.sendPose(currentPose, now);
             posePredictor.addPose(currentPose);
 

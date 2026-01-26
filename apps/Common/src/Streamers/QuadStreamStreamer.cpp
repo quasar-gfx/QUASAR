@@ -68,6 +68,7 @@ QuadStreamStreamer::QuadStreamStreamer(
         referenceFrameRTs_noTone.emplace_back(rtParams);
 
         referenceFrameMeshes.emplace_back(quadSet, referenceFrameRTs_noTone[view].colorTexture, referenceFrameRTs_noTone[view].alphaTexture);
+        referenceFrameMeshes[view].setExpandQuadAmount(0.0f);
         referenceFrameNodesLocal.emplace_back(&referenceFrameMeshes[view]);
         referenceFrameNodesLocal[view].frustumCulled = false;
 

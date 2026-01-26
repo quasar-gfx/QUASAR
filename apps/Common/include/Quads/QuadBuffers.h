@@ -16,6 +16,7 @@ struct QuadMapData {
     float depth;
     glm::uvec2 offset;
     uint32_t size;
+    bool isEdge;
     bool hasAlpha;
     bool flattened;
 };
@@ -25,7 +26,7 @@ struct QuadMapDataPacked {
     // depth is quantized to 16 bits.
     // (normal theta << 24) | (normal phi << 16) | (depth). 16 + 16 bits = 32 bits used.
     uint32_t normalAndDepth;
-    // (offset.x << 20) | (offset.y << 8) | (size << 2) | (hasAlpha << 1) | (flattened). 12 + 12 + 5 + 1 + 1 bits = 32 bits used.
+    // (offset.x << 20) | (offset.y << 8) | (size << 3) | (isEdge << 2) | (hasAlpha << 1) | (flattened). 12 + 12 + 5 + 1 + 1 + 1 bits = 32 bits used.
     uint32_t metadata;
 }; // 64 bits total
 

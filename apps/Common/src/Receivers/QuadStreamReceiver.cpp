@@ -36,6 +36,7 @@ QuadStreamReceiver::QuadStreamReceiver(QuadSet& quadSet, uint maxViews)
         colorTextures.emplace_back(colorTexParams);
         alphaAtlasTextures.emplace_back(alphaTexParams);
         meshes.emplace_back(quadSet, colorTextures[view], alphaAtlasTextures[view]);
+        meshes[view].setExpandQuadAmount(0.0f);
     }
 
     threadPool = std::make_unique<BS::thread_pool<>>(2);

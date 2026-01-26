@@ -97,7 +97,8 @@ QuadMapData loadInputQuadMap(ivec2 pixelCoord) {
     quadMapData.offset.y = (quadMapDataPacked.metadata >> 8) & 0xFFFu;
 
     uint sizeAlphaFlattened = quadMapDataPacked.metadata & 0xFFu;
-    quadMapData.size      = (sizeAlphaFlattened >> 2) & 0x7Fu;
+    quadMapData.size      = (sizeAlphaFlattened >> 3) & 0x7Fu;
+    quadMapData.isEdge    = (sizeAlphaFlattened & 4u) != 0u;
     quadMapData.hasAlpha  = (sizeAlphaFlattened & 2u) != 0u;
     quadMapData.flattened = (sizeAlphaFlattened & 1u) != 0u;
 
@@ -107,7 +108,8 @@ QuadMapData loadInputQuadMap(ivec2 pixelCoord) {
 void storeOutputQuadMap(in ivec2 pixelCoord, in QuadMapData quadMapData) {
     QuadMapDataPacked quadMapDataPacked;
 
-    uint sizeAlphaFlattened = ((quadMapData.size & 0x7Fu)       << 2) |
+    uint sizeAlphaFlattened = ((quadMapData.size & 0x7Fu)       << 3) |
+                              ((quadMapData.isEdge   ? 1u : 0u) << 2) |
                               ((quadMapData.hasAlpha ? 1u : 0u) << 1) |
                               (quadMapData.flattened ? 1u : 0u);
     quadMapDataPacked.metadata = ((quadMapData.offset.x & 0xFFFu) << 20) |
@@ -475,6 +477,8 @@ void mergeQuadMapData(
     mergedQuadMapData.flattened = flattened;
     mergedQuadMapData.hasAlpha = (quadMapDataBottomLeft.hasAlpha || quadMapDataBottomRight.hasAlpha ||
                                   quadMapDataTopLeft.hasAlpha    || quadMapDataTopRight.hasAlpha);
+    mergedQuadMapData.isEdge = (quadMapDataBottomLeft.isEdge || quadMapDataBottomRight.isEdge ||
+                                quadMapDataTopLeft.isEdge    || quadMapDataTopRight.isEdge);
 }
 
 void main() {
@@ -517,6 +521,7 @@ void main() {
     mergedQuadMapData.size = 0; // invalid
     mergedQuadMapData.hasAlpha = false;
     mergedQuadMapData.flattened = true;
+    mergedQuadMapData.isEdge = false;
 
     bool validBottomLeft  = isValidQuadMapData(quadMapDataBottomLeft);
     bool validBottomRight = isValidQuadMapData(quadMapDataBottomRight);

@@ -18,8 +18,32 @@ void PosePredictor::addPose(const Pose& pose) {
     }
 }
 
+glm::vec3 PosePredictor::savitzkyGolayFilter(const std::deque<glm::vec3>& buffer) {
+    if (buffer.size() < 5) return buffer.back();
+    static const std::array<float, 5> coeffs = {
+        -3.0f / 35.0f, 12.0f / 35.0f, 17.0f / 35.0f, 12.0f / 35.0f, -3.0f / 35.0f
+    };
+    glm::vec3 result(0.0f);
+    for (int i = 0; i < 5; i++) {
+        result += coeffs[i] * buffer[buffer.size() - 5 + i];
+    }
+    return result;
+}
+
+glm::quat PosePredictor::averageQuaternions(const std::deque<glm::quat>& quats) {
+    if (quats.empty()) return glm::quat(1, 0, 0, 0);
+    glm::quat avg = quats[0];
+    for (size_t i = 1; i < quats.size(); i++) {
+        if (glm::dot(avg, quats[i]) < 0.0f)
+            avg = glm::slerp(avg, -quats[i], 1.0f / (i + 1));
+        else
+            avg = glm::slerp(avg, quats[i], 1.0f / (i + 1));
+    }
+    return glm::normalize(avg);
+}
+
 bool PosePredictor::predictPose(Pose& predictedPose, double targetFutureTimeS) {
-    if (poseHistory.size() < 2) {
+    if (poseHistory.size() < 3) {
         if (!poseHistory.empty()) {
             predictedPose = poseHistory.back();
         }
@@ -27,14 +51,15 @@ bool PosePredictor::predictPose(Pose& predictedPose, double targetFutureTimeS) {
     }
 
     return predictPose(predictedPose,
-                      poseHistory[poseHistory.size()-1],
-                      poseHistory[poseHistory.size()-2],
-                      targetFutureTimeS);
+                       poseHistory[poseHistory.size()-1],
+                       poseHistory[poseHistory.size()-2],
+                       poseHistory[poseHistory.size()-3],
+                       targetFutureTimeS);
 }
 
 bool PosePredictor::predictPose(
     Pose& predictedPose,
-    const Pose& latest, const Pose& previous,
+    const Pose& latest, const Pose& previous, const Pose& secondPrevious,
     double targetFutureTimeS)
 {
     if (!enablePrediction) {
@@ -42,45 +67,74 @@ bool PosePredictor::predictPose(
         return true;
     }
 
-    // Simple verification of timestamps
+    double t2 = timeutils::microsToSeconds(secondPrevious.timestamp);
     double t1 = timeutils::microsToSeconds(previous.timestamp);
     double t0 = timeutils::microsToSeconds(latest.timestamp);
-    float dt = static_cast<float>(t0 - t1);
 
-    if (dt <= 1e-5f) return false;
+    float dt1 = t1 - t2;
+    float dt2 = t0 - t1;
+
+    if (dt1 <= 1e-5f || dt2 <= 1e-5f) return false;
 
     float dtFuture = static_cast<float>(targetFutureTimeS - t0);
-    // Limit prediction time to avoid wild extrapolations
-    dtFuture = glm::clamp(dtFuture, 0.0f, 0.1f);
+    const float maxPredictTime = 0.1f;
+    dtFuture = glm::clamp(dtFuture, 0.0f, maxPredictTime);
 
     glm::vec3 scale, skew;
     glm::vec4 perspective;
-    glm::vec3 p0, p1;
-    glm::quat r0, r1;
+    glm::vec3 p2, p1, p0;
+    glm::quat r2, r1, r0;
 
-    // Decompose the view matrices
-    // View matrix is the inverse of the camera transform
-    glm::decompose(glm::inverse(latest.mono.view), scale, r0, p0, skew, perspective);
+    glm::decompose(glm::inverse(secondPrevious.mono.view), scale, r2, p2, skew, perspective);
     glm::decompose(glm::inverse(previous.mono.view), scale, r1, p1, skew, perspective);
+    glm::decompose(glm::inverse(latest.mono.view), scale, r0, p0, skew, perspective);
 
-    // Ensure quaternions are in the same neighborhood
-    if (glm::dot(r0, r1) < 0.0f) r1 = -r1;
+    if (glm::dot(r1, r0) < 0.0f) r1 = -r1;
+    if (glm::dot(r2, r1) < 0.0f) r2 = -r2;
 
-    // Linear Position Prediction
-    // P_pred = P0 + V * t
-    glm::vec3 velocity = (p0 - p1) / dt;
-    glm::vec3 pPred = p0 + velocity * dtFuture;
+    glm::vec3 filteredP0 = enableSmoothing ? savitzkyGolayFilter([&] {
+        positionSmoothingHistory.push_back(p0);
+        if (positionSmoothingHistory.size() > maxPositionHistorySize) positionSmoothingHistory.pop_front();
+        return positionSmoothingHistory;
+    }()) : p0;
 
-    // Spherical Linear Integration for Rotation
-    // Extrapolate rotation using Slerp
-    // ratio = (time_total) / time_segment = (dt + dtFuture) / dt = 1 + dtFuture/dt
-    float slerpRatio = 1.0f + dtFuture / dt;
-    glm::quat rPred = glm::normalize(glm::slerp(r1, r0, slerpRatio));
+    // 2nd order prediction (acceleration)
+    glm::vec3 v1 = (p1 - p2) / dt1;
+    glm::vec3 v2 = (p0 - p1) / dt2;
+    glm::vec3 v = 0.5f * (v1 + v2);
+    glm::vec3 a = (v2 - v1) / dt2;
+    a = glm::clamp(a, -3.0f, 3.0f);
 
-    // Reconstruct the view matrix
-    glm::mat4 predTransform = glm::translate(glm::mat4(1.0f), pPred) * glm::mat4_cast(rPred);
+    glm::vec3 rawPrediction = filteredP0 + v * dtFuture + 0.5f * a * dtFuture * dtFuture;
 
-    predictedPose.setViewMatrix(glm::inverse(predTransform));
+    float confidence = 1.0f - glm::smoothstep(0.02f, 0.06f, dtFuture);
+    glm::vec3 finalPrediction = enableSmoothing ? glm::mix(filteredP0, rawPrediction, confidence) : rawPrediction;
+
+    // Rotation prediction
+    glm::quat dq = glm::normalize(r0 * glm::inverse(r1));
+    float angle = glm::angle(dq);
+    glm::vec3 axis = glm::axis(dq);
+    if (glm::length(axis) < 1e-5f || glm::any(glm::isnan(axis))) axis = glm::vec3(0, 1, 0);
+
+    // Angular velocity
+    float angularSpeed = angle / dt2;
+    angularSpeed = glm::clamp(angularSpeed, 0.0f, glm::radians(200.0f));
+
+    float futureAngle = angularSpeed * dtFuture;
+    futureAngle = glm::clamp(futureAngle, 0.0f, glm::radians(45.0f));
+
+    glm::quat deltaFuture = glm::angleAxis(futureAngle, axis);
+    glm::quat predictedRotation = glm::normalize(deltaFuture * r0);
+
+    glm::quat finalRotation = enableSmoothing ? averageQuaternions([&] {
+        rotationSmoothingHistory.push_back(predictedRotation);
+        if (rotationSmoothingHistory.size() > maxRotationHistorySize) rotationSmoothingHistory.pop_front();
+        return rotationSmoothingHistory;
+    }()) : predictedRotation;
+
+    glm::mat4 predictedTransform = glm::translate(glm::mat4(1.0f), finalPrediction) * glm::mat4_cast(finalRotation);
+
+    predictedPose.setViewMatrix(glm::inverse(predictedTransform));
     predictedPose.setProjectionMatrix(latest.mono.proj);
 
     return true;

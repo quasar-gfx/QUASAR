@@ -110,7 +110,8 @@ QuadMapData loadQuadMap(uint index) {
     quadMapData.offset.y = (quadMapDataPacked.metadata >> 8) & 0xFFFu;
 
     uint sizeAlphaFlattened = quadMapDataPacked.metadata & 0xFFu;
-    quadMapData.size      = (sizeAlphaFlattened >> 2) & 0x7Fu;
+    quadMapData.size      = (sizeAlphaFlattened >> 3) & 0x7Fu;
+    quadMapData.isEdge    = (sizeAlphaFlattened & 4u) != 0u;
     quadMapData.hasAlpha  = (sizeAlphaFlattened & 2u) != 0u;
     quadMapData.flattened = (sizeAlphaFlattened & 1u) != 0u;
 
@@ -140,11 +141,13 @@ Plane quadMapDataToPlane(in QuadMapData quadMapData) {
     return proxyPlane;
 }
 
-void createSurfel(in Quad2D surfelPixelCoords, in vec4 depthOffsets, in Plane proxyPlane, out Quad surfel, out Quad2D surfelUVs) {
-    surfelUVs.bottomLeft  = (surfelPixelCoords.bottomLeft  + vec2(-expandQuadAmount, -expandQuadAmount)) / gBufferSize;
-    surfelUVs.bottomRight = (surfelPixelCoords.bottomRight + vec2(+expandQuadAmount, -expandQuadAmount)) / gBufferSize;
-    surfelUVs.topLeft     = (surfelPixelCoords.topLeft     + vec2(-expandQuadAmount, +expandQuadAmount)) / gBufferSize;
-    surfelUVs.topRight    = (surfelPixelCoords.topRight    + vec2(+expandQuadAmount, +expandQuadAmount)) / gBufferSize;
+void createSurfel(in Quad2D surfelPixelCoords, in vec4 depthOffsets, in Plane proxyPlane, out Quad surfel, out Quad2D surfelUVs, bool isEdge) {
+    float expansion = isEdge ? 0.0 : expandQuadAmount;
+
+    surfelUVs.bottomLeft  = (surfelPixelCoords.bottomLeft  + vec2(-expansion, -expansion)) / gBufferSize;
+    surfelUVs.bottomRight = (surfelPixelCoords.bottomRight + vec2(+expansion, -expansion)) / gBufferSize;
+    surfelUVs.topLeft     = (surfelPixelCoords.topLeft     + vec2(-expansion, +expansion)) / gBufferSize;
+    surfelUVs.topRight    = (surfelPixelCoords.topRight    + vec2(+expansion, +expansion)) / gBufferSize;
 
     Quad2D surfelNDCs;
     surfelNDCs.bottomLeft  = surfelUVs.bottomLeft  * 2.0 - 1.0;
@@ -289,7 +292,7 @@ void storeSurfelsFromQuadMap(QuadMapData quadMapData) {
             ivec2 depthOffsetPixelCoords = 2 * ivec2(quadMapData.offset) + ivec2(i, j);
             vec4 depthOffsets = loadDepthOffsets(depthOffsetPixelCoords);
             Quad surfel; Quad2D surfelUVs;
-            createSurfel(surfelPixelCoords, depthOffsets, proxyPlane, surfel, surfelUVs);
+            createSurfel(surfelPixelCoords, depthOffsets, proxyPlane, surfel, surfelUVs, quadMapData.isEdge);
             storeSurfel(surfel, surfelUVs, quadMapData);
         }
     }
@@ -303,7 +306,7 @@ void storeSurfelsFromQuadMap(QuadMapData quadMapData) {
 
         vec4 depthOffsets = vec4(0.0);
         Quad surfel; Quad2D surfelUVs;
-        createSurfel(surfelPixelCoords, depthOffsets, proxyPlane, surfel, surfelUVs);
+        createSurfel(surfelPixelCoords, depthOffsets, proxyPlane, surfel, surfelUVs, quadMapData.isEdge);
         storeSurfel(surfel, surfelUVs, quadMapData);
     }
 }

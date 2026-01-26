@@ -21,6 +21,7 @@
 #include <Streamers/QuadsStreamer.h>
 #include <NetworkSimulator.h>
 #include <PosePredictor.h>
+#include <Utils/TimeUtils.h>
 
 using namespace quasar;
 
@@ -472,6 +473,7 @@ int main(int argc, char** argv) {
             Pose currentPose;
             currentPose.setViewMatrix(camera.getViewMatrix());
             currentPose.setProjectionMatrix(camera.getProjectionMatrix());
+            currentPose.timestamp = static_cast<double>(timeutils::secondsToMicros(now));
             networkSimulator.sendPose(currentPose, now);
             posePredictor.addPose(currentPose);
 

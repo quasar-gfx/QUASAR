@@ -59,7 +59,7 @@ private:
     uint32_t maxProxies;
 
     DrawState drawState = DrawState::BOTH;
-    float expandQuadAmount = 0.025f;
+    float expandQuadAmount = 1.0f;
 
     glm::vec4 textureExtent;
     const Texture& colorTexture;
