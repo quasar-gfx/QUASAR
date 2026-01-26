@@ -550,6 +550,7 @@ int main(int argc, char** argv) {
         // Render to screen
         tonemapper.enableTonemapping(!showNormals);
         tonemapper.drawToScreen(renderer);
+        posePredictor.accumulateError(camera, remoteCamera);
 
         if (saveImagesToDisk) {
             recorder.captureFrame(camera);

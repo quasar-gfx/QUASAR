@@ -625,6 +625,7 @@ int main(int argc, char** argv) {
         holeFiller.enableTonemapping(!showNormals);
         holeFiller.setDepthThreshold(quadsGenerator->params.depthThreshold);
         holeFiller.drawToScreen(renderer);
+        posePredictor.accumulateError(camera, remoteCamera);
 
         if (saveImagesToDisk) {
             recorder.captureFrame(camera);
