@@ -101,7 +101,7 @@ vec3 FresnelSchlick(float cosTheta, vec3 F0, float roughness) {
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-// Compute the BRDF with optional view-dependent lighting
+// Compute BRDF
 vec3 computeBRDF(PBRInfo pbrInputs, vec3 L, vec3 radianceIn) {
     vec3 N = pbrInputs.N;
     vec3 V = pbrInputs.V;
@@ -112,24 +112,20 @@ vec3 computeBRDF(PBRInfo pbrInputs, vec3 L, vec3 radianceIn) {
     vec3 F0 = pbrInputs.F0;
 
     float NdotL = max(dot(N, L), 0.0);
-    float NdotV = max(dot(N, V), 0.0);
-    float NdotH = max(dot(N, H), 0.0);
+    float NdotV = max(dot(N, V), 0.001);
     float LdotH = max(dot(L, H), 0.0);
 
     float D = DistributionGGX(N, H, roughness);
     float G = GeometrySmith(NdotV, NdotL, roughness);
 
-    vec3 F = vec3(0.0);
 #ifdef VIEW_DEPENDENT_LIGHTING
-    F = FresnelSchlick(LdotH, F0, roughness);
+    vec3 F = FresnelSchlick(LdotH, F0, roughness);
     vec3 specular = (D * G * F) / max(4.0 * NdotL * NdotV, 0.001);
+    vec3 kD = (vec3(1.0) - F) * (1.0 - metallic);
 #else
     vec3 specular = vec3(0.0);
+    vec3 kD = vec3(1.0);
 #endif
-
-    float energyComp = 1.0 + roughness;
-    vec3 kS = F * energyComp;
-    vec3 kD = (1.0 - kS) * (1.0 - metallic);
 
     float disneyDiffuse = DiffuseBurley(NdotV, NdotL, LdotH, roughness);
     vec3 diffuse = (albedo / PI) * disneyDiffuse;
@@ -272,7 +268,7 @@ vec3 calcIBLContribution(PBRInfo pbrInputs, samplerCube irradianceMap, samplerCu
     return kD * diffuse + specular;
 #else
     vec3 irradiance = texture(irradianceMap, pbrInputs.N).rgb;
-    vec3 diffuse = irradiance * pbrInputs.albedo * (1.0 - pbrInputs.metallic);
+    vec3 diffuse = irradiance * pbrInputs.albedo;
     return diffuse;
 #endif
 }
