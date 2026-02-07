@@ -7,34 +7,14 @@ namespace quasar {
 
 class HoleFiller : public PostProcessingEffect {
 public:
-    HoleFiller()
-        : shader({
-            .vertexCodeData = SHADER_BUILTIN_POSTPROCESS_VERT,
-            .vertexCodeSize = SHADER_BUILTIN_POSTPROCESS_VERT_len,
-            .fragmentCodeData = SHADER_COMMON_HOLE_FILLER_FRAG,
-            .fragmentCodeSize = SHADER_COMMON_HOLE_FILLER_FRAG_len,
-        })
-    {}
+    HoleFiller();
 
-    void setDepthThreshold(float depthThreshold) {
-        shader.bind();
-        shader.setFloat("depthThreshold", depthThreshold);
-    }
+    void enableTonemapping(bool enable);
+    void setDepthThreshold(float depthThreshold);
 
-    void enableTonemapping(bool enable) {
-        shader.bind();
-        shader.setBool("tonemap", enable);
-    }
+    RenderStats drawToScreen(OpenGLRenderer& renderer) override;
 
-    RenderStats drawToScreen(OpenGLRenderer& renderer) override {
-        renderer.setScreenShaderUniforms(shader);
-        return renderer.drawToScreen(shader);
-    }
-
-    RenderStats drawToRenderTarget(OpenGLRenderer& renderer, RenderTargetBase& rt) override {
-        renderer.setScreenShaderUniforms(shader);
-        return renderer.drawToRenderTarget(shader, rt);
-    }
+    RenderStats drawToRenderTarget(OpenGLRenderer& renderer, RenderTargetBase& rt) override;
 
 private:
     Shader shader;

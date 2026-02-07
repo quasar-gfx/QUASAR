@@ -1,20 +1,23 @@
 #include <args/args.hxx>
 
 #include <OpenGLApp.h>
-#include <SceneLoader.h>
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
+
+#include <SceneLoader.h>
+
 #include <Renderers/ForwardRenderer.h>
+
+#include <CameraAnimator.h>
+#include <Recorder.h>
+
 #include <PostProcessing/Tonemapper.h>
 
 #include <UI/CameraHeader.h>
 #include <UI/FrameRateWindow.h>
-#include <UI/ScreenshotWindow.h>
 #include <UI/RecordWindow.h>
+#include <UI/ScreenshotWindow.h>
 #include <UI/TexturePreviewWindow.h>
-
-#include <Recorder.h>
-#include <CameraAnimator.h>
 
 #include <Receivers/QuadsReceiver.h>
 #include <Streamers/PoseStreamer.h>
@@ -27,9 +30,9 @@ int main(int argc, char** argv) {
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
-    args::Flag verbose(parser, "verbose", "Enable verbose logging", {'v', "verbose"});
-    args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "1920x1080");
+    args::ValueFlag<int> verbosity(parser, "verbosity", "Set log verbosity level", {'v', "verbosity"}, SPDLOG_LEVEL_INFO);
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
+    args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "1920x1080");
     args::Flag loadFromDisk(parser, "load-from-disk", "Load data from disk", {'L', "load-from-disk"}, false);
     args::ValueFlag<std::string> dataPathIn(parser, "data-path", "Path to data files", {'D', "data-path"}, "../simulator/");
     args::ValueFlag<std::string> outputPathIn(parser, "output-path", "Directory to save outputs", {'o', "output-path"}, ".");
@@ -47,8 +50,6 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    if (verbose) spdlog::set_level(spdlog::level::debug);
-
     // Parse size
     std::string sizeStr = args::get(sizeIn);
     size_t pos = sizeStr.find('x');
@@ -56,6 +57,7 @@ int main(int argc, char** argv) {
     config.width = windowSize.x;
     config.height = windowSize.y;
 
+    config.verbosity = args::get(verbosity);
     config.enableVSync = !args::get(novsync);
 
     Path dataPath = Path(args::get(dataPathIn));

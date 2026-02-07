@@ -141,7 +141,6 @@ void Buffer::resize(size_t newNumElems, bool copy) {
     capacity = newNumElems;
 }
 
-
 void Buffer::smartResize(size_t newNumElems, bool copy) {
     if (newNumElems == numElems) {
         return;

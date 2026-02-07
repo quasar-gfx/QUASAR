@@ -1,33 +1,34 @@
 #include <args/args.hxx>
 
 #include <OpenGLApp.h>
-#include <SceneLoader.h>
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
-#include <Renderers/ForwardRenderer.h>
+
+#include <SceneLoader.h>
+
 #include <Renderers/DeferredRenderer.h>
 #include <Renderers/DepthPeelingRenderer.h>
+#include <Renderers/ForwardRenderer.h>
+
+#include <CameraAnimator.h>
+#include <Recorder.h>
 
 #include <UI/CameraHeader.h>
 #include <UI/FrameRateWindow.h>
-#include <UI/ScreenshotWindow.h>
 #include <UI/RecordWindow.h>
-#include <UI/TexturePreviewWindow.h>
 #include <UI/SceneWindow.h>
+#include <UI/ScreenshotWindow.h>
+#include <UI/TexturePreviewWindow.h>
 
-#include <Recorder.h>
-#include <CameraAnimator.h>
-
-#include <Quads/QuadsGenerator.h>
-#include <Quads/QuadMesh.h>
-#include <Quads/QuadMaterial.h>
 #include <Quads/FrameGenerator.h>
+#include <Quads/QuadMaterial.h>
+#include <Quads/QuadMesh.h>
+#include <Quads/QuadsGenerator.h>
 
-#include <Streamers/QUASARStreamer.h>
 #include <HoleFiller.h>
-
 #include <NetworkSimulator.h>
 #include <PosePredictor.h>
+#include <Streamers/QUASARStreamer.h>
 
 using namespace quasar;
 
@@ -38,11 +39,11 @@ int main(int argc, char** argv) {
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
-    args::ValueFlag<int> verbosity(parser, "verbosity", "Set log verbosity level", {'v', "verbosity"}, 2 /* spdlog::level::info */);
-    args::ValueFlag<std::string> sizeIn(parser, "size", "Window resolution", {'s', "size"}, "1920x1080");
-    args::ValueFlag<std::string> rsizeIn(parser, "rsize", "Renderer resolution", {"rsize"}, "1920x1080");
-    args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
+    args::ValueFlag<int> verbosity(parser, "verbosity", "Set log verbosity level", {'v', "verbosity"}, SPDLOG_LEVEL_INFO);
     args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
+    args::ValueFlag<std::string> sizeIn(parser, "size", "Window resolution", {'s', "size"}, "1920x1080");
+    args::ValueFlag<std::string> rsizeIn(parser, "rsize", "Renderer resolution", {'r', "rsize"}, "1920x1080");
+    args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
     args::Flag saveImages(parser, "save", "Save outputs to disk", {'I', "save-images"});
     args::ValueFlag<std::string> cameraPathFileIn(parser, "camera-path", "Path to camera animation file", {'C', "camera-path"});
     args::ValueFlag<int> numPosesIn(parser, "num-poses", "Number of poses to load from camera path", {'n', "num-poses"}, -1);

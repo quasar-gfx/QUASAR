@@ -224,7 +224,6 @@ void Texture::writeJPGToMemory(std::vector<unsigned char>& outputData, int quali
     FileIO::writeJPGToMemory(outputData, width, height, channels, outputData.data(), quality);
 }
 
-
 void Texture::writeToPNG(const Path& filename) {
     std::vector<unsigned char> data(width * height * channels);
     readPixels(data.data());

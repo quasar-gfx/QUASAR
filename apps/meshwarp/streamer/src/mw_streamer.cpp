@@ -1,16 +1,19 @@
 #include <args/args.hxx>
 
 #include <OpenGLApp.h>
-#include <SceneLoader.h>
 #include <Windowing/GLFWWindow.h>
 #include <GUI/ImGuiManager.h>
+
+#include <SceneLoader.h>
+
 #include <Renderers/DeferredRenderer.h>
+
+#include <PostProcessing/ShowDepthEffect.h>
 #include <PostProcessing/Tonemapper.h>
 
 #include <UI/CameraHeader.h>
 #include <UI/FrameRateWindow.h>
 #include <UI/SceneWindow.h>
-#include <PostProcessing/ShowDepthEffect.h>
 
 #include <Streamers/MeshWarpStreamer.h>
 #include <Receivers/PoseReceiver.h>
@@ -24,10 +27,10 @@ int main(int argc, char** argv) {
 
     args::ArgumentParser parser(config.title);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
-    args::Flag verbose(parser, "verbose", "Enable verbose logging", {'v', "verbose"});
+    args::ValueFlag<int> verbosity(parser, "verbosity", "Set log verbosity level", {'v', "verbosity"}, SPDLOG_LEVEL_INFO);
+    args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::ValueFlag<std::string> sizeIn(parser, "size", "Resolution of renderer", {'s', "size"}, "1920x1080");
     args::ValueFlag<std::string> sceneFileIn(parser, "scene", "Path to scene file", {'S', "scene"}, "../assets/scenes/sponza.json");
-    args::Flag novsync(parser, "novsync", "Disable VSync", {'V', "novsync"}, false);
     args::ValueFlag<bool> displayIn(parser, "display", "Show window", {'d', "display"}, true);
     args::ValueFlag<uint> depthFactorIn(parser, "factor", "Depth Resolution Factor", {'a', "depth-factor"}, 1);
     args::ValueFlag<uint> targetBitrateIn(parser, "target-bitrate", "Target bitrate (Mbps)", {'b', "target-bitrate"}, 12);
@@ -45,8 +48,6 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    if (verbose) spdlog::set_level(spdlog::level::debug);
-
     // Parse size
     std::string sizeStr = args::get(sizeIn);
     size_t pos = sizeStr.find('x');
@@ -54,6 +55,7 @@ int main(int argc, char** argv) {
     config.width = windowSize.x;
     config.height = windowSize.y;
 
+    config.verbosity = args::get(verbosity);
     config.enableVSync = !args::get(novsync);
     config.showWindow = args::get(displayIn);
 
