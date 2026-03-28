@@ -6,16 +6,19 @@
 #include "ImfInputPartData.h"
 #include "ImfNamespace.h"
 
+#include <string.h>
+#include <iostream>
 OPENEXR_IMF_INTERNAL_NAMESPACE_SOURCE_ENTER
 
-InputPartData::InputPartData(InputStreamMutex* mutex, const Header &header,
-                             int partNumber, int numThreads, int version):
-        header(header),
-        numThreads(numThreads),
-        partNumber(partNumber),
-        version(version),       
-        mutex(mutex),
-        completed(false)
+InputPartData::InputPartData (
+        const Context& ctxt,
+        int            partNumber,
+        int            numThreads
+                              )
+    : header (ctxt.header (partNumber))
+    , numThreads (numThreads)
+    , partNumber (partNumber)
+    , context (ctxt)
 {
 }
 

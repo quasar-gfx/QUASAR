@@ -8,13 +8,21 @@
 
 #pragma once
 
+
+// automated formatting does not handle the cmake tags well
+// clang-format off
+
+//
+// Whether to use the internally provided vendored version of
+// deflate or the system provided version
+#cmakedefine OPENEXR_USE_INTERNAL_DEFLATE 1
+
 //
 // Define and set to 1 if the target system supports a proc filesystem
 // compatible with the Linux kernel's proc filesystem.  Note that this
 // is only used by a program in the OpenEXRTest test suite, it's not
 // used by any OpenEXR library or application code.
 //
-
 #cmakedefine OPENEXR_IMF_HAVE_LINUX_PROCFS 1
 
 //
@@ -43,5 +51,14 @@
 //
 
 #cmakedefine OPENEXR_IMF_HAVE_GCC_INLINE_ASM_AVX 1
+
+//
+// Define if we need to shim in our own implementation of vld1q_f32_x2 for
+// older compilers that are missing x2 Neon intrinsics on aarch64
+//
+
+#cmakedefine OPENEXR_MISSING_ARM_VLD1 0
+
+// clang-format on
 
 #endif // INCLUDED_OPENEXR_INTERNAL_CONFIG_H

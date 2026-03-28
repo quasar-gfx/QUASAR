@@ -63,6 +63,11 @@ if (OPENEXR_USE_DEFAULT_VISIBILITY)
 else()
   set(OPENEXR_ENABLE_API_VISIBILITY ON)
 endif()
+if (OPENEXR_FORCE_EMBEDDED_CORE)
+  set(OPENEXR_CORE_FUNCTIONS_EMBEDDED ON)
+else()
+  set(OPENEXR_CORE_FUNCTIONS_EMBEDDED OFF)
+endif()
 
 if (UNIX AND NOT APPLE AND NOT BEOS)
   find_library(OPENEXR_EXTRA_MATH_LIB m)
@@ -71,15 +76,8 @@ endif()
 
 configure_file(OpenEXRConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/OpenEXRConfig.h)
 configure_file(OpenEXRConfigInternal.h.in ${CMAKE_CURRENT_BINARY_DIR}/OpenEXRConfigInternal.h)
-
-if(OPENEXR_INSTALL)
-install(
-  FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/OpenEXRConfig.h
-  DESTINATION
-    ${CMAKE_INSTALL_INCLUDEDIR}/${OPENEXR_OUTPUT_SUBDIR}
-)
-endif()
+# make a temp copy in the binary dir for OpenEXRConfig.h to include
+configure_file(../src/lib/OpenEXRCore/openexr_version.h ${CMAKE_CURRENT_BINARY_DIR}/OpenEXRCore/openexr_version.h COPYONLY)
 
 ###################################################
 ####### IexConfig.h and IexConfigInternal.h
@@ -163,7 +161,7 @@ target_include_directories(IexConfig INTERFACE
 if(OPENEXR_INSTALL)
   install(TARGETS IexConfig EXPORT ${PROJECT_NAME})
 endif()
-add_library(${PROJECT_NAME}::Config ALIAS IexConfig)
+add_library(Iex::Config ALIAS IexConfig)
 
 add_library(IlmThreadConfig INTERFACE)
 target_include_directories(IlmThreadConfig INTERFACE
@@ -174,18 +172,29 @@ target_include_directories(IlmThreadConfig INTERFACE
 if(OPENEXR_INSTALL)
   install(TARGETS IlmThreadConfig EXPORT ${PROJECT_NAME})
 endif()
-add_library(${PROJECT_NAME}::Config ALIAS IlmThreadConfig)
+add_library(IlmThread::Config ALIAS IlmThreadConfig)
 
 ###################################################
 ####### Install pkg-config files if requested
 
 if(OPENEXR_INSTALL_PKG_CONFIG)
+
+  # Prepend prefix for includedir only if CMAKE_INSTALL_INCLUDEDIR is relative
+  if(IS_ABSOLUTE "${CMAKE_INSTALL_INCLUDEDIR}")
+      set(PKG_CONFIG_INSTALL_INCLUDEDIR "${CMAKE_INSTALL_INCLUDEDIR}")
+  else()
+      set(PKG_CONFIG_INSTALL_INCLUDEDIR "\${prefix}/${CMAKE_INSTALL_INCLUDEDIR}")
+  endif()
+
+  # Prepend exec_prefix for libdir only if CMAKE_INSTALL_LIBDIR is relative
+  if(IS_ABSOLUTE "${CMAKE_INSTALL_LIBDIR}")
+      set(PKG_CONFIG_INSTALL_LIBDIR "${CMAKE_INSTALL_LIBDIR}")
+  else()
+      set(PKG_CONFIG_INSTALL_LIBDIR "\${exec_prefix}/${CMAKE_INSTALL_LIBDIR}")
+  endif()
+
   # use a helper function to avoid variable pollution, but pretty simple
   function(openexr_pkg_config_help pcinfile)
-    set(prefix ${CMAKE_INSTALL_PREFIX})
-    set(exec_prefix "\${prefix}")
-    set(libdir ${CMAKE_INSTALL_FULL_LIBDIR})
-    set(includedir ${CMAKE_INSTALL_FULL_INCLUDEDIR})
     string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
     set(LIB_SUFFIX_DASH ${OPENEXR_LIB_SUFFIX}${CMAKE_${uppercase_CMAKE_BUILD_TYPE}_POSTFIX})
     if(OPENEXR_ENABLE_THREADING AND TARGET Threads::Threads)
@@ -198,9 +207,6 @@ if(OPENEXR_INSTALL_PKG_CONFIG)
       endif()
       set(exr_pthread_libs ${CMAKE_THREAD_LIBS_INIT})
     endif()
-    if(NOT zlib_INTERNAL_DIR)
-      set(zlib_link "-lz")
-    endif()
     string(REPLACE ".in" "" pcout ${pcinfile})
     configure_file(${pcinfile} ${CMAKE_CURRENT_BINARY_DIR}/${pcout} @ONLY)
     install(
@@ -209,8 +215,9 @@ if(OPENEXR_INSTALL_PKG_CONFIG)
     )
   endfunction()
   openexr_pkg_config_help(OpenEXR.pc.in)
+  message(STATUS "OpenEXR pkg-config generation enabled")
 else()
-  message(STATUS "-- pkg-config generation disabled")
+  message(STATUS "OpenEXR pkg-config generation disabled")
 endif()
 
 ###################################################

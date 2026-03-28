@@ -5,6 +5,7 @@
 
 #include "openexr_base.h"
 #include "openexr_errors.h"
+#include "openexr_version.h"
 
 /**************************************/
 
@@ -23,8 +24,7 @@ exr_get_library_version (int* maj, int* min, int* patch, const char** extra)
 
 /**************************************/
 
-static const char * the_error_code_names[] = 
-{
+static const char* the_error_code_names[] = {
     "EXR_ERR_SUCCESS",
     "EXR_ERR_OUT_OF_MEMORY",
     "EXR_ERR_MISSING_CONTEXT_ARG",
@@ -49,6 +49,7 @@ static const char * the_error_code_names[] =
     "EXR_ERR_ALREADY_WROTE_ATTRS",
     "EXR_ERR_BAD_CHUNK_LEADER",
     "EXR_ERR_CORRUPT_CHUNK",
+    "EXR_ERR_INCOMPLETE_CHUNK_TABLE",
     "EXR_ERR_INCORRECT_PART",
     "EXR_ERR_INCORRECT_CHUNK",
     "EXR_ERR_USE_SCAN_DEEP_WRITE",
@@ -57,8 +58,7 @@ static const char * the_error_code_names[] =
     "EXR_ERR_USE_TILE_NONDEEP_WRITE",
     "EXR_ERR_INVALID_SAMPLE_DATA",
     "EXR_ERR_FEATURE_NOT_IMPLEMENTED",
-    "EXR_ERR_UNKNOWN"
-};
+    "EXR_ERR_UNKNOWN"};
 static int the_error_code_count =
     sizeof (the_error_code_names) / sizeof (const char*);
 
@@ -89,6 +89,7 @@ static const char* the_default_errors[] = {
     "File in write mode, but header already written, can no longer edit attributes",
     "Unexpected or corrupt values in data block leader vs computed value",
     "Corrupt data block data, unable to decode",
+    "Chunk offsets table not completely finished writing (incomplete file)",
     "Previous part not yet finished writing",
     "Invalid data block to write at this point",
     "Use deep scanline write with the sample count table arguments",
@@ -97,8 +98,7 @@ static const char* the_default_errors[] = {
     "Use non-deep tile write (sample count table invalid for this part type)",
     "Invalid sample data table value",
     "Feature not yet implemented, please use C++ library",
-    "Unknown error code"
-};
+    "Unknown error code"};
 static int the_default_error_count =
     sizeof (the_default_errors) / sizeof (const char*);
 

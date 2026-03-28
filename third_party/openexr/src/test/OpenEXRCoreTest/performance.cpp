@@ -44,7 +44,7 @@ public:
     {}
     void execute () override
     {
-        exr_chunk_info_t      cinfo = { 0 };
+        exr_chunk_info_t      cinfo = {0};
         exr_decode_pipeline_t chunk;
         exr_result_t rv = exr_read_scanline_chunk_info (_f, 0, _y, &cinfo);
         if (rv == EXR_ERR_SUCCESS)
@@ -143,8 +143,8 @@ read_pixels_raw (exr_context_t f)
             ret += linesread * w;
         }
 #else
-        exr_chunk_info_t      cinfo = { 0 };
-        exr_decode_pipeline_t chunk = { 0 };
+        exr_chunk_info_t      cinfo = {0};
+        exr_decode_pipeline_t chunk = {0};
         for (int y = dw.min.y; y <= dw.max.y;)
         {
             exr_result_t rv = exr_read_scanline_chunk_info (f, 0, y, &cinfo);
@@ -277,8 +277,7 @@ read_pixels_raw (MultiPartInputFile* f)
     auto&    dw   = head.dataWindow ();
     int64_t  w    = dw.max.x - dw.min.x + 1;
     int64_t  h    = dw.max.y - dw.min.y + 1;
-    int      linesread;
-    uint64_t ret = 0;
+    uint64_t ret  = 0;
 
     if (w <= 0) return ret;
 
@@ -288,15 +287,19 @@ read_pixels_raw (MultiPartInputFile* f)
     if (head.lineOrder () != DECREASING_Y)
     {
         std::vector<char>  rawBuf;
-        const char*        outPtr;
-        InputPart          part{ *f, 0 };
+        InputPart          part{*f, 0};
         const ChannelList& chans      = head.channels ();
+//#define INCLUDE_COMPRESSOR_IN_PERF 1
+#ifdef INCLUDE_COMPRESSOR_IN_PERF
         int                layercount = 0;
+#endif
         int                bpp        = 0;
 
         for (auto b = chans.begin (), e = chans.end (); b != e; ++b)
         {
+#ifdef INCLUDE_COMPRESSOR_IN_PERF
             ++layercount;
+#endif
             if (b.channel ().type == HALF)
                 bpp += 2;
             else
@@ -309,7 +312,7 @@ read_pixels_raw (MultiPartInputFile* f)
         char* buf  = (char*) data - dw.min.x * bpp - dw.min.y * scanlinebytes;
 
         FrameBuffer frameBuffer;
-        int              chanoffset = 0;
+        int         chanoffset = 0;
         for (auto c = chans.begin (), e = chans.end (); c != e; ++c)
         {
             frameBuffer.insert (
@@ -324,14 +327,13 @@ read_pixels_raw (MultiPartInputFile* f)
 
         part.setFrameBuffer (frameBuffer);
         part.readPixels (dw.min.y, dw.max.y);
-#if 0
+#ifdef INCLUDE_COMPRESSOR_IN_PERF
         Compressor *comp = nullptr;
         try
         {
             if ( layercount == 0 )
                 throw std::runtime_error( "channels" );
             comp = newCompressor( head.compression(), w * bpp, head );
-            
             int linesread = comp->numScanLines();
             int bufSize = linesread * w * 4 * layercount;
             if ( bufSize == 0 )

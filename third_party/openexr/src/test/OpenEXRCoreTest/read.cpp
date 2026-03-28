@@ -79,7 +79,7 @@ testReadBadArgs (const std::string& tempdir)
     EXRCORE_TEST_RVAL_FAIL (
         EXR_ERR_INVALID_ARGUMENT, exr_start_read (&f, NULL, &cinit));
     EXRCORE_TEST_RVAL_FAIL (
-        EXR_ERR_INVALID_ARGUMENT, exr_start_read (&f, "", &cinit));
+        EXR_ERR_FILE_ACCESS, exr_start_read (&f, "", &cinit));
     // windows fails on directory open, where under unix you can open
     // the directory as a file handle but not read from it
 #ifdef _WIN32
@@ -123,11 +123,37 @@ testReadMeta (const std::string& tempdir)
     fn += "v1.7.test.1.exr";
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
     cinit.error_handler_fn          = &err_cb;
-    exr_attribute_t*       newattr;
-    const exr_attribute_t* attr;
+    exr_attribute_t* newattr;
+    uint32_t verflags;
+    uint64_t cto;
 
     EXRCORE_TEST_RVAL (exr_test_file_header (fn.c_str (), &cinit));
     EXRCORE_TEST_RVAL (exr_start_read (&f, fn.c_str (), &cinit));
+    EXRCORE_TEST_RVAL_FAIL (
+        EXR_ERR_MISSING_CONTEXT_ARG,
+        exr_get_file_version_and_flags (NULL, NULL));
+    EXRCORE_TEST_RVAL_FAIL (
+        EXR_ERR_INVALID_ARGUMENT,
+        exr_get_file_version_and_flags (f, NULL));
+    EXRCORE_TEST_RVAL (
+        exr_get_file_version_and_flags (f, &verflags));
+    EXRCORE_TEST (verflags == 2);
+
+    EXRCORE_TEST_RVAL_FAIL (
+        EXR_ERR_MISSING_CONTEXT_ARG,
+        exr_get_chunk_table_offset (NULL, 0, NULL));
+    EXRCORE_TEST_RVAL_FAIL (
+        EXR_ERR_ARGUMENT_OUT_OF_RANGE,
+        exr_get_chunk_table_offset (f, -1, NULL));
+    EXRCORE_TEST_RVAL_FAIL (
+        EXR_ERR_ARGUMENT_OUT_OF_RANGE,
+        exr_get_chunk_table_offset (f, 2, NULL));
+    EXRCORE_TEST_RVAL_FAIL (
+        EXR_ERR_INVALID_ARGUMENT,
+        exr_get_chunk_table_offset (f, 0, NULL));
+    EXRCORE_TEST_RVAL (
+        exr_get_chunk_table_offset (f, 0, &cto));
+    EXRCORE_TEST (cto == 331);
 
     EXRCORE_TEST_RVAL_FAIL (
         EXR_ERR_NOT_OPEN_WRITE,
@@ -156,20 +182,16 @@ testReadMeta (const std::string& tempdir)
     EXRCORE_TEST (udata == NULL);
 
     int zlev = -2;
-    EXRCORE_TEST_RVAL (
-        exr_get_zip_compression_level (f, 0, &zlev));
+    EXRCORE_TEST_RVAL (exr_get_zip_compression_level (f, 0, &zlev));
     EXRCORE_TEST (zlev == -1);
     EXRCORE_TEST_RVAL_FAIL (
-        EXR_ERR_NOT_OPEN_WRITE,
-        exr_set_zip_compression_level (f, 0, 4));
+        EXR_ERR_NOT_OPEN_WRITE, exr_set_zip_compression_level (f, 0, 4));
 
     float dlev = -3.f;
-    EXRCORE_TEST_RVAL (
-        exr_get_dwa_compression_level (f, 0, &dlev));
+    EXRCORE_TEST_RVAL (exr_get_dwa_compression_level (f, 0, &dlev));
     EXRCORE_TEST (dlev == 45.f);
     EXRCORE_TEST_RVAL_FAIL (
-        EXR_ERR_NOT_OPEN_WRITE,
-        exr_set_dwa_compression_level (f, 0, 42.f));
+        EXR_ERR_NOT_OPEN_WRITE, exr_set_dwa_compression_level (f, 0, 42.f));
 
     exr_finish (&f);
 }
@@ -321,8 +343,8 @@ testReadScans (const std::string& tempdir)
     EXRCORE_TEST (decoder.channels[1].x_samples == 1);
     EXRCORE_TEST (decoder.channels[1].y_samples == 1);
 
-    std::unique_ptr<uint8_t[]> rptr{ new uint8_t[178 * 2] };
-    std::unique_ptr<uint8_t[]> zptr{ new uint8_t[178 * 4] };
+    std::unique_ptr<uint8_t[]> rptr{new uint8_t[178 * 2]};
+    std::unique_ptr<uint8_t[]> zptr{new uint8_t[178 * 4]};
     memset (rptr.get (), -1, 178 * 2);
     memset (zptr.get (), -1, 178 * 4);
     decoder.channels[0].decode_to_ptr     = rptr.get ();
@@ -508,8 +530,8 @@ testReadTiles (const std::string& tempdir)
     EXRCORE_TEST (decoder.channels[1].x_samples == 1);
     EXRCORE_TEST (decoder.channels[1].y_samples == 1);
 
-    std::unique_ptr<uint8_t[]> gptr{ new uint8_t[24 * 12 * 2] };
-    std::unique_ptr<uint8_t[]> zptr{ new uint8_t[24 * 12 * 4] };
+    std::unique_ptr<uint8_t[]> gptr{new uint8_t[24 * 12 * 2]};
+    std::unique_ptr<uint8_t[]> zptr{new uint8_t[24 * 12 * 4]};
     memset (gptr.get (), 0, 24 * 12 * 2);
     memset (zptr.get (), 0, 24 * 12 * 4);
     decoder.channels[0].decode_to_ptr          = gptr.get ();
@@ -567,8 +589,8 @@ testReadUnpack (const std::string& tempdir)
         exr_decode_pipeline_t decoder;
         EXRCORE_TEST_RVAL (exr_decoding_initialize (f, 0, &cinfo, &decoder));
 
-        std::unique_ptr<float[]>    gptr{ new float[24 * 12] };
-        std::unique_ptr<uint16_t[]> zptr{ new uint16_t[24 * 12] };
+        std::unique_ptr<float[]>    gptr{new float[24 * 12]};
+        std::unique_ptr<uint16_t[]> zptr{new uint16_t[24 * 12]};
         memset (gptr.get (), 0, 24 * 12 * 4);
         memset (zptr.get (), 0, 24 * 12 * 2);
         decoder.channels[0].decode_to_ptr          = (uint8_t*) gptr.get ();

@@ -3,37 +3,48 @@
 // Copyright (c) Contributors to the OpenEXR Project.
 //
 
-
-#include "rgbaInterfaceExamples.h"
-#include "rgbaInterfaceTiledExamples.h"
 #include "generalInterfaceExamples.h"
 #include "generalInterfaceTiledExamples.h"
 #include "lowLevelIoExamples.h"
 #include "previewImageExamples.h"
+#include "rgbaInterfaceExamples.h"
+#include "rgbaInterfaceTiledExamples.h"
+#include "deepExamples.h"
+#include "deepTiledExamples.h"
+#include "multipartExamples.h"
 
 #include <iostream>
 #include <stdexcept>
 
-
 int
-main (int argc, char *argv[])
+main (int argc, char* argv[])
 {
     try
     {
-	rgbaInterfaceExamples();
-	generalInterfaceExamples();
+        rgbaInterfaceExamples ();
+        generalInterfaceExamples ();
 
-        rgbaInterfaceTiledExamples();
-        generalInterfaceTiledExamples();
+        rgbaInterfaceTiledExamples ();
+        generalInterfaceTiledExamples ();
 
-	lowLevelIoExamples();
+        deepExamples ();
+        deepTiledExamples ();
 
-	previewImageExamples();
+        lowLevelIoExamples ();
+
+        previewImageExamples ();
+
+        // This example uses the files created by
+        //   generalInterfaceExamples,
+        //   generalInterfaceTiledExamples,
+        //   deepExamples,
+        //   deepTiledExamples
+        multipartExamples ();
     }
-    catch (const std::exception &exc)
+    catch (const std::exception& exc)
     {
-	std::cerr << exc.what() << std::endl;
-	return 1;
+        std::cerr << exc.what () << std::endl;
+        return 1;
     }
 
     return 0;

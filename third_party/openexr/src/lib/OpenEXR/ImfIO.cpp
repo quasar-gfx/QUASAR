@@ -9,24 +9,21 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <ImfIO.h>
 #include "Iex.h"
 #include "ImfNamespace.h"
+#include <ImfIO.h>
 
 OPENEXR_IMF_INTERNAL_NAMESPACE_SOURCE_ENTER
 
-
-IStream::IStream (const char fileName[]): _fileName (fileName)
+IStream::IStream (const char fileName[]) : _fileName (fileName)
 {
     // empty
 }
-
 
 IStream::~IStream ()
 {
     // empty
 }
-
 
 bool
 IStream::isMemoryMapped () const
@@ -34,14 +31,12 @@ IStream::isMemoryMapped () const
     return false;
 }
 
-
-char *
+char*
 IStream::readMemoryMapped (int n)
 {
     throw IEX_NAMESPACE::InputExc ("Attempt to perform a memory-mapped read "
-			 "on a file that is not memory mapped.");
+                                   "on a file that is not memory mapped.");
 }
-
 
 void
 IStream::clear ()
@@ -49,31 +44,45 @@ IStream::clear ()
     // empty
 }
 
-
-const char *
+const char*
 IStream::fileName () const
 {
-    return _fileName.c_str();
+    return _fileName.c_str ();
 }
 
+int64_t
+IStream::size ()
+{
+    return -1;
+}
 
-OStream::OStream (const char fileName[]): _fileName (fileName)
+bool
+IStream::isStatelessRead () const
+{
+    return false;
+}
+
+int64_t
+IStream::read (void *, uint64_t, uint64_t)
+{
+    throw IEX_NAMESPACE::InputExc ("Attempt to perform a stateless read "
+                                   "on a stream without support.");
+}
+
+OStream::OStream (const char fileName[]) : _fileName (fileName)
 {
     // empty
 }
-
 
 OStream::~OStream ()
 {
     // empty
 }
 
-
-const char *
+const char*
 OStream::fileName () const
 {
-    return _fileName.c_str();
+    return _fileName.c_str ();
 }
-
 
 OPENEXR_IMF_INTERNAL_NAMESPACE_SOURCE_EXIT
