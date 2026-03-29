@@ -35,6 +35,7 @@
 .DS_Store
 
 # IDEs
+.claude/
 .idea/
 .vscode/
 
