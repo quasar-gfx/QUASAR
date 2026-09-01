@@ -278,7 +278,6 @@ void Model::processMaterial(const aiMaterial* aiMat, LitMaterialCreateParams& ma
     if (aiMat->Get(AI_MATKEY_OPACITY, opacity) != AI_SUCCESS) {
         opacity = 1.0f;
     }
-    if (opacity <= 0.0f) opacity = 1.0f;
     baseColor.a = opacity;
 
     float shininess;
@@ -363,7 +362,7 @@ void Model::processMaterial(const aiMaterial* aiMat, LitMaterialCreateParams& ma
     // Load emissive map
     if (aiMat->GetTexture(aiTextureType_EMISSIVE, 0, &emissivePath, nullptr,
                           nullptr, nullptr, nullptr, mapMode) == AI_SUCCESS) {
-        Texture* emissiveMap = loadMaterialTexture(aiMat, emissivePath);
+        Texture* emissiveMap = loadMaterialTexture(aiMat, emissivePath, true);
         materialParams.emissiveTexture = emissiveMap;
     }
 
@@ -403,12 +402,13 @@ Texture* Model::loadMaterialTexture(aiMaterial const* aiMat, aiString aiTextureP
     texturePath = texturePath.append(aiTexturePath.C_Str());
     std::replace(texturePath.begin(), texturePath.end(), '\\', '/');
 
-    // If we've loaded this texture already, return the already loaded texture
-    if (texturesCache.count(texturePath) > 0) {
-        return texturesCache[texturePath];
-    }
-
     shouldGammaCorrect &= gammaCorrected;
+
+    // If we've loaded this texture already, return the already loaded texture
+    const TextureKey cacheKey{texturePath, shouldGammaCorrect};
+    if (texturesCache.count(cacheKey) > 0) {
+        return texturesCache[cacheKey];
+    }
 
     // If texture is embedded into the file, read it from memory
     int32_t embeddedId = getEmbeddedTextureId(aiTexturePath);
@@ -449,8 +449,8 @@ Texture* Model::loadMaterialTexture(aiMaterial const* aiMat, aiString aiTextureP
             });
 
             FileIO::freeImage(data);
-            texturesCache[texturePath] = texture;
-            return texturesCache[texturePath];
+            texturesCache[cacheKey] = texture;
+            return texturesCache[cacheKey];
         }
 
         return nullptr;
@@ -465,7 +465,7 @@ Texture* Model::loadMaterialTexture(aiMaterial const* aiMat, aiString aiTextureP
             .gammaCorrected = shouldGammaCorrect,
             .path = texturePath,
         });
-        texturesCache[texturePath] = texture;
-        return texturesCache[texturePath];
+        texturesCache[cacheKey] = texture;
+        return texturesCache[cacheKey];
     }
 }

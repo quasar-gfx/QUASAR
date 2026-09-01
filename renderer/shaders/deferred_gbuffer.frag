@@ -106,9 +106,9 @@ void main() {
     }
 
     // Emissive lighting
-    vec3 emissive = vec3(0.0);
+    vec3 emissive = material.emissiveFactor;
     if (material.hasEmissiveMap) {
-        emissive = material.emissiveFactor * texture(material.emissiveMap, fsIn.TexCoord).rgb;
+        emissive *= texture(material.emissiveMap, fsIn.TexCoord).rgb;
     }
 
     gAlbedo = albedo;

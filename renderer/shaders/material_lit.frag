@@ -151,10 +151,11 @@ void main() {
     radianceOut = radianceOut + ambient;
 
     // Apply emissive lighting
+    vec3 emissive = material.emissiveFactor;
     if (material.hasEmissiveMap) {
-        vec3 emissive = texture(material.emissiveMap, fsIn.TexCoord).rgb;
-        radianceOut += material.emissiveFactor * emissive;
+        emissive *= texture(material.emissiveMap, fsIn.TexCoord).rgb;
     }
+    radianceOut += emissive;
 
     FragColor = vec4(radianceOut, alpha);
     FragAlpha = alpha;

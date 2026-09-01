@@ -42,7 +42,24 @@ private:
     std::vector<const LitMaterial*> materials;
 
     const aiScene* scene;
-    std::unordered_map<std::string, Texture*> texturesCache;
+
+    // One image can back both a color slot and a data slot, so how it is decoded is part
+    // of its identity: keying on the path alone would hand back the wrong internal format
+    struct TextureKey {
+        std::string path;
+        bool gammaCorrected = false;
+
+        bool operator==(const TextureKey& other) const {
+            return gammaCorrected == other.gammaCorrected && path == other.path;
+        }
+    };
+    struct TextureKeyHash {
+        size_t operator()(const TextureKey& key) const {
+            return std::hash<std::string>{}(key.path) ^ (static_cast<size_t>(key.gammaCorrected) << 1);
+        }
+    };
+
+    std::unordered_map<TextureKey, Texture*, TextureKeyHash> texturesCache;
 
     void loadFromFile(const ModelCreateParams& params);
     void processNode(aiNode* aiNode, const aiScene* scene, Node* node);
