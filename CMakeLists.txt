@@ -6,6 +6,11 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Debug, Release, RelWithDebInfo, or MinSizeRel" FORCE)
+endif()
+set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS Debug Release RelWithDebInfo MinSizeRel)
+
 option(QUASAR_BUILD_APPS "Build apps" ON)
 
 set(RENDERER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/renderer)
@@ -22,6 +27,8 @@ target_link_libraries(quasar_renderer PUBLIC quasar_external)
 # Create target library
 add_library(${TARGET} INTERFACE)
 target_link_libraries(${TARGET} INTERFACE quasar_renderer)
+
+message(STATUS "QUASAR_BUILD_APPS: ${QUASAR_BUILD_APPS}")
 
 # Add apps
 if(QUASAR_BUILD_APPS)

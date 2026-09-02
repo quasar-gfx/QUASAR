@@ -1,0 +1,15 @@
+# Checks that contradict this codebase's conventions are disabled, see README for the style
+Checks: '
+-bugprone-easily-swappable-parameters,
+-bugprone-exception-escape,
+-misc-misplaced-const,
+-misc-use-internal-linkage,
+-modernize-avoid-c-arrays,
+-modernize-use-trailing-return-type,
+-modernize-use-using,
+-performance-enum-size,
+-readability-braces-around-statements,
+-readability-identifier-length,
+-readability-magic-numbers,
+-readability-uppercase-literal-suffix,
+'
