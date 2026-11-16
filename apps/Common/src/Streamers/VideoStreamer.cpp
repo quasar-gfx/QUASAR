@@ -1,5 +1,7 @@
+#include <algorithm>
 #include <sstream>
 #include <spdlog/spdlog.h>
+#include <Codecs/VideoEncoder.h>
 #include <Streamers/VideoStreamer.h>
 #include <Utils/TimeUtils.h>
 #include <Networking/Utils.h>
@@ -15,7 +17,7 @@ VideoStreamer::VideoStreamer(
     : videoURL(videoURL)
     , videoWidth(params.width + poseIDOffset)
     , videoHeight(params.height)
-    , maxFrameRate(maxFrameRate)
+    , maxFrameRate(std::max(1u, maxFrameRate))
     , targetBitRateKbps(targetBitRateMbps * 1000)
     , RenderTarget(params)
 #if defined(QUASAR_HAS_CUDA)
@@ -44,23 +46,7 @@ VideoStreamer::VideoStreamer(
 
     auto [host, port] = networkutils::parseIPAddressAndPort(videoURL);
 
-    std::string encoderParams;
-    const uint gopFrames = std::max(1u, maxFrameRate); // 1 second GOP at worst case FPS
-#if defined(QUASAR_HAS_CUDA)
-    encoderParams = "nvh264enc preset=4 rc-mode=cbr zerolatency=true "
-                    "bframes=0 gop-size=" + std::to_string(gopFrames);
-#else
-    encoderParams = "x264enc speed-preset=veryfast tune=zerolatency byte-stream=true "
-                    "bframes=0 key-int-max=" + std::to_string(gopFrames);
-#endif
-
     std::ostringstream oss;
-    oss << "appsrc name=" << appSrcName << " is-live=true format=time "
-        << "caps=video/x-raw,format=RGBA,width=" << videoWidth << ",height=" << videoHeight << " ! "
-        << "queue leaky=upstream max-size-buffers=1 max-size-time=0 max-size-bytes=0 ! "
-        << "videoconvert ! video/x-raw,format=" << format << " ! "
-        << encoderParams << " bitrate=" << targetBitRateKbps << " ! "
-        << "h264parse config-interval=1 name=" << h264ParseName << " ! ";
     if (!useSRT) {
         oss << "rtph264pay config-interval=1 pt=96 name=" << payloaderName << " ! "
             << "udpsink host=" << host << " port=" << port << " sync=false";
@@ -69,25 +55,19 @@ VideoStreamer::VideoStreamer(
         oss << "srtsink uri=\"srt://" << host << ":" << port
             << "?mode=caller&latency=80\"";
     }
-    std::string pipelineStr = oss.str();
+    pipelineDestination = oss.str();
+    videoStreamerThread = std::thread(&VideoStreamer::encodeAndSendFrames, this);
+    spdlog::info("Created VideoStreamer (GStreamer) that sends to URL: {}://{}", useSRT ? "srt" : "rtp", videoURL);
+}
 
-    GError* error = nullptr;
-    pipeline = gst_parse_launch(pipelineStr.c_str(), &error);
-    if (!pipeline || error) {
-        spdlog::error("GStreamer pipeline error: {}", error ? error->message : "unknown");
-        g_error_free(error);
-        throw std::runtime_error("Failed to create GStreamer pipeline.");
-    }
-
-    appsrc = gst_bin_get_by_name(GST_BIN(pipeline), appSrcName.c_str());
-    g_object_set(G_OBJECT(appsrc),
-                 "is-live", TRUE,
-                 "format", GST_FORMAT_TIME,
-                 "do-timestamp", TRUE,
-                 nullptr);
+bool VideoStreamer::startPipeline(GstBuffer* firstFrame) {
+    pipeline = startVideoPipeline({videoWidth, videoHeight, static_cast<uint32_t>(maxFrameRate),
+                                   static_cast<uint32_t>(targetBitRateKbps)}, pipelineDestination, firstFrame);
+    if (!pipeline) return false;
+    appsrc = gst_bin_get_by_name(GST_BIN(pipeline), "src");
 
     // Attach a buffer probe on the h264parse src pad to meter encoded bytes
-    if (GstElement* h264parseEl = gst_bin_get_by_name(GST_BIN(pipeline), h264ParseName.c_str())) {
+    if (GstElement* h264parseEl = gst_bin_get_by_name(GST_BIN(pipeline), "parser")) {
         if (GstPad* srcpad = gst_element_get_static_pad(h264parseEl, "src")) {
             gst_pad_add_probe(
                 srcpad,
@@ -108,13 +88,10 @@ VideoStreamer::VideoStreamer(
         gst_object_unref(h264parseEl);
     }
     else {
-        spdlog::warn("Could not find '{}' element to probe bitrate.", h264ParseName);
+        spdlog::warn("Could not find parser element to probe bitrate.");
     }
 
-    gst_element_set_state(pipeline, GST_STATE_PLAYING);
-
-    videoStreamerThread = std::thread(&VideoStreamer::encodeAndSendFrames, this);
-    spdlog::info("Created VideoStreamer (GStreamer) that sends to URL: {}://{}", useSRT ? "srt" : "rtp", videoURL);
+    return true;
 }
 
 VideoStreamer::~VideoStreamer() {
@@ -143,6 +120,8 @@ void VideoStreamer::stop() {
 }
 
 void VideoStreamer::sendFrame(pose_id_t poseID) {
+    if (videoURL.empty() || shouldTerminate) return;
+
     VideoFrame videoFrame;
     videoFrame.poseID = poseID;
     videoFrame.buffer.resize(width * height * 4);
@@ -207,9 +186,19 @@ void VideoStreamer::encodeAndSendFrames() {
 
         double startEncode = timeutils::getTimeMicros();
 
-        GstFlowReturn ret = gst_app_src_push_buffer(GST_APP_SRC(appsrc), buffer);
-        if (ret != GST_FLOW_OK) {
-            spdlog::error("Failed to push buffer to GStreamer: {}", static_cast<int>(ret));
+        if (!pipeline) {
+            const bool started = startPipeline(buffer);
+            gst_buffer_unref(buffer);
+            if (!started) {
+                shouldTerminate = true;
+                return;
+            }
+        }
+        else {
+            GstFlowReturn ret = gst_app_src_push_buffer(GST_APP_SRC(appsrc), buffer);
+            if (ret != GST_FLOW_OK) {
+                spdlog::error("Failed to push buffer to GStreamer: {}", static_cast<int>(ret));
+            }
         }
         framesSent++;
 

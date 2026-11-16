@@ -51,14 +51,8 @@ private:
     int maxFrameRate;
     int targetBitRateKbps;
 
-#if defined(QUASAR_HAS_CUDA)
-    std::string format = "NV12";
-#else
-    std::string format = "I420";
-#endif
-    std::string appSrcName = "oglsrc0";
     std::string payloaderName = "pay0";
-    std::string h264ParseName = "h264parse0";
+    std::string pipelineDestination;
 
     const int poseIDOffset = sizeof(pose_id_t) * 8;
     uint videoWidth, videoHeight;
@@ -85,6 +79,7 @@ private:
 
     void encodeAndSendFrames();
     void packPoseIDIntoVideoFrame(pose_id_t poseID, uint8_t* data);
+    bool startPipeline(GstBuffer* firstFrame);
 };
 
 } // namespace quasar
